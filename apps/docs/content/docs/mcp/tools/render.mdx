@@ -1,0 +1,88 @@
+---
+title: render
+description: Render an Paradoc artifact from a verified registry as text, PDF, or DOCX
+ogTitle: render — Paradoc MCP
+ogDescription: Render an Paradoc artifact from a verified registry using the MCP server
+---
+
+Renders an Paradoc form artifact from a verified registry. Looks up the artifact by `registry_id` and `artifact_name`, fetches it from the registry, validates, fills with data, and renders via the appropriate renderer (text, PDF, DOCX). Returns a short download link by default, or content inline.
+
+<Callout type="info">
+  Only form artifacts can be rendered. The registry must have `verified` status.
+</Callout>
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `registry_id` | `string` | Yes | Registry ID (must be a verified registry) |
+| `artifact_name` | `string` | Yes | Artifact name within the registry |
+| `data` | `object` | Yes | Data to fill before rendering. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
+| `layer` | `string` | No | Layer key to render. Falls back to `defaultLayer`, then first layer |
+| `outputMode` | `"url"` \| `"inline"` | No | `"url"` (default) returns a short download link with 7-day TTL. `"inline"` returns content directly — best for text/markdown. |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether the render completed successfully |
+| `renderId` | `string` | Unique render identifier (present on success and unexpected errors) |
+| `artifactKind` | `string` | Detected artifact kind |
+| `content` | `string` | Rendered content (inline mode) |
+| `encoding` | `string` | Content encoding: `utf-8` or `base64` (inline mode) |
+| `mimeType` | `string` | MIME type of the rendered output |
+| `downloadUrl` | `string` | Short download link (url mode) |
+| `expiresAt` | `string` | URL expiration timestamp (url mode) |
+| `error` | `string` | Error message if rendering failed |
+| `errors` | `array` | List of fill errors, each with `field` and `message` |
+| `validationIssues` | `array` | List of schema validation issues, each with `message` and optional `path` |
+
+# Examples
+
+## Inline rendering
+
+```json
+// Request
+{
+  "registry_id": "cly1abc123",
+  "artifact_name": "lease-agreement",
+  "data": { "fields": { "tenantName": "Jane Doe", "startDate": "2026-03-01" } },
+  "outputMode": "inline"
+}
+
+// Response
+{
+  "success": true,
+  "renderId": "550e8400-e29b-41d4-a716-446655440000",
+  "artifactKind": "form",
+  "content": "LEASE AGREEMENT\n\nTenant: Jane Doe\nStart Date: March 1, 2026\n...",
+  "encoding": "utf-8",
+  "mimeType": "text/plain"
+}
+```
+
+## URL output mode
+
+For binary formats like PDF, use `outputMode: "url"` (or omit it — `"url"` is the default) to get a download link:
+
+```json
+// Request
+{
+  "registry_id": "cly1abc123",
+  "artifact_name": "lease-agreement",
+  "data": { "fields": { "tenantName": "Jane Doe" } },
+  "layer": "pdf"
+}
+
+// Response
+{
+  "success": true,
+  "renderId": "550e8400-e29b-41d4-a716-446655440000",
+  "artifactKind": "form",
+  "downloadUrl": "https://paradoc.link/3aBcDe12f",
+  "expiresAt": "2026-02-25T12:00:00.000Z",
+  "mimeType": "application/pdf"
+}
+```
+
+The download URL expires after 7 days.

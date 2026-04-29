@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/bundlecontentitem.json",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "inline"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Unique identifier for this content item, used to reference it in defs expressions"
+        },
+        "artifact": {
+          "description": "Inline artifact definition (document, form, checklist, or nested bundle)"
+        }
+      },
+      "required": [
+        "type",
+        "key",
+        "artifact"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Unique identifier for this content item, used to reference it in defs expressions"
+        },
+        "include": {
+          "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+        },
+        "type": {
+          "type": "string",
+          "const": "path"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute path from repo root to the artifact file"
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Unique identifier for this content item, used to reference it in defs expressions"
+        },
+        "include": {
+          "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+        },
+        "type": {
+          "type": "string",
+          "const": "registry"
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource slug in format @org/repo/resource or @org/repo/resource@version"
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "slug"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "id": "BundleContentItem",
+  "title": "BundleContentItem"
+}

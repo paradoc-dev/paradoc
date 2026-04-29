@@ -1,0 +1,291 @@
+---
+title: Bundles
+description: Compose multiple artifacts into a distributable package
+ogTitle: Create a bundle with Paradoc
+ogDescription: Package forms, documents, and checklists into a single distributable unit
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Bundles group forms, documents, and checklists into a single package. This guide walks through creating a lease transaction bundle.
+
+<Steps>
+<Step>
+## Define the Artifacts
+
+A lease transaction needs multiple artifacts. Start with the form from the previous guide, then add a disclosure document and a move-in checklist.
+
+```ts tab="Object Pattern"
+import { para } from '@paradoc/core'
+
+// Lease Agreement Form
+const lease = para.form({
+  name: 'lease-agreement',
+  version: '1.0.0',
+  title: 'Residential Lease Agreement',
+  fields: {
+    address: { type: 'address', label: 'Property Address', required: true },
+    monthlyRent: { type: 'money', label: 'Monthly Rent', required: true },
+    startDate: { type: 'date', label: 'Start Date', required: true },
+    endDate: { type: 'date', label: 'End Date', required: true },
+  },
+  parties: {
+    landlord: { label: 'Landlord', signature: { required: true } },
+    tenant: { label: 'Tenant', signature: { required: true } },
+  },
+  defaultLayer: 'markdown',
+  layers: {
+    markdown: { kind: 'inline', mimeType: 'text/markdown', text: '# Lease\n\n{{address}}' },
+  },
+})
+
+// Lead Paint Disclosure Document
+const disclosure = para.document({
+  name: 'lead-paint-disclosure',
+  version: '1.0.0',
+  title: 'Lead Paint Disclosure',
+  code: 'EPA-747-K-12-001',
+  defaultLayer: 'text',
+  layers: {
+    text: { kind: 'inline', mimeType: 'text/plain', text: 'Lead Paint Disclosure Notice...' },
+  },
+})
+
+// Move-In Checklist
+const moveInChecklist = para.checklist({
+  name: 'move-in-checklist',
+  version: '1.0.0',
+  title: 'Move-In Checklist',
+  items: [
+    { id: 'keys', title: 'Keys Provided' },
+    { id: 'utilities', title: 'Utilities Transferred' },
+    { id: 'inspection', title: 'Walk-Through Complete' },
+  ],
+})
+```
+
+```ts tab="Builder Pattern"
+import { para } from '@paradoc/core'
+
+// Lease Agreement Form
+const lease = para
+  .form()
+  .name('lease-agreement')
+  .version('1.0.0')
+  .title('Residential Lease Agreement')
+  .fields({
+    address: { type: 'address', label: 'Property Address', required: true },
+    monthlyRent: { type: 'money', label: 'Monthly Rent', required: true },
+    startDate: { type: 'date', label: 'Start Date', required: true },
+    endDate: { type: 'date', label: 'End Date', required: true },
+  })
+  .parties({
+    landlord: para.party().label('Landlord').signature({ required: true }),
+    tenant: para.party().label('Tenant').signature({ required: true }),
+  })
+  .defaultLayer('markdown')
+  .inlineLayer('markdown', { mimeType: 'text/markdown', text: '# Lease\n\n{{address}}' })
+  .build()
+
+// Lead Paint Disclosure Document
+const disclosure = para
+  .document()
+  .name('lead-paint-disclosure')
+  .version('1.0.0')
+  .title('Lead Paint Disclosure')
+  .code('EPA-747-K-12-001')
+  .inlineLayer('text', { mimeType: 'text/plain', text: 'Lead Paint Disclosure Notice...' })
+  .defaultLayer('text')
+  .build()
+
+// Move-In Checklist
+const moveInChecklist = para
+  .checklist()
+  .name('move-in-checklist')
+  .version('1.0.0')
+  .title('Move-In Checklist')
+  .item({ id: 'keys', title: 'Keys Provided' })
+  .item({ id: 'utilities', title: 'Utilities Transferred' })
+  .item({ id: 'inspection', title: 'Walk-Through Complete' })
+  .build()
+```
+</Step>
+
+<Step>
+## Compose the Bundle
+
+Use `.inline()` to embed artifacts directly in the bundle:
+
+```ts tab="Object Pattern"
+const leaseBundle = para.bundle({
+  name: 'lease-transaction',
+  version: '1.0.0',
+  title: 'Complete Lease Package',
+  contents: [
+    { type: 'inline', key: 'lease', artifact: lease.toJSON({ includeSchema: false }) },
+    { type: 'inline', key: 'disclosure', artifact: disclosure.toJSON({ includeSchema: false }) },
+    { type: 'inline', key: 'checklist', artifact: moveInChecklist.toJSON({ includeSchema: false }) },
+  ],
+})
+```
+
+```ts tab="Builder Pattern"
+const leaseBundle = para
+  .bundle()
+  .name('lease-transaction')
+  .version('1.0.0')
+  .title('Complete Lease Package')
+  .inline('lease', lease)
+  .inline('disclosure', disclosure)
+  .inline('checklist', moveInChecklist)
+  .build()
+```
+
+Each content item has a `key` that identifies it within the bundle.
+</Step>
+
+<Step>
+## Validate the Bundle
+
+Check that the bundle and all its contents are valid:
+
+```ts
+if (leaseBundle.isValid()) {
+  console.log('Bundle is valid')
+  console.log(`Contains ${leaseBundle.contents.length} artifacts`)
+} else {
+  const result = leaseBundle.validate()
+  if ('errors' in result) {
+    console.log('Validation errors:', result.errors)
+  }
+}
+```
+
+Output:
+
+```
+Bundle is valid
+Contains 3 artifacts
+```
+</Step>
+
+<Step>
+## Assemble and Render
+
+Fill the artifacts and assemble the bundle for rendering:
+
+```ts
+import { textRenderer } from '@paradoc/renderer-text'
+
+// Fill the lease form
+const filledLease = lease.fill({
+  fields: {
+    address: { line1: '123 Main St', locality: 'Portland', region: 'OR', postalCode: '97201', country: 'USA' },
+    monthlyRent: { amount: 1500, currency: 'USD' },
+    startDate: '2025-02-01',
+    endDate: '2026-01-31',
+  },
+  parties: {
+    landlord: { id: 'landlord-1', name: 'Jane Smith' },
+    tenant: { id: 'tenant-1', name: 'John Doe' },
+  },
+})
+
+// Assemble the bundle
+const assembled = await leaseBundle.assemble({
+  renderers: {
+    'text/markdown': textRenderer(),
+    'text/plain': textRenderer(),
+  },
+  contents: {
+    lease: filledLease,
+    disclosure: disclosure.prepare(),
+    checklist: moveInChecklist.fill({ keys: true, utilities: true, inspection: false }),
+  },
+})
+
+// Access rendered outputs
+for (const [key, output] of Object.entries(assembled.outputs)) {
+  console.log(`${key}: ${output.mimeType}`)
+}
+```
+
+Output:
+
+```
+lease: text/markdown
+disclosure: text/plain
+checklist: text/plain
+```
+</Step>
+
+<Step>
+## Save the Artifact
+
+Export the bundle definition to JSON or YAML:
+
+```ts
+const json = leaseBundle.toJSON() // or leaseBundle.toYAML()
+console.log(JSON.stringify(json, null, 2))
+```
+
+```json tab="JSON"
+{
+  "$schema": "https://schemas.paradoc.dev/schema.json",
+  "kind": "bundle",
+  "name": "lease-transaction",
+  "version": "1.0.0",
+  "title": "Complete Lease Package",
+  "contents": [
+    { "type": "inline", "key": "lease", "artifact": { "kind": "form", "..." } },
+    { "type": "inline", "key": "disclosure", "artifact": { "kind": "document", "..." } },
+    { "type": "inline", "key": "checklist", "artifact": { "kind": "checklist", "..." } }
+  ]
+}
+```
+
+```yaml tab="YAML"
+# yaml-language-server: $schema=https://schemas.paradoc.dev/schema.json
+kind: bundle
+name: lease-transaction
+version: 1.0.0
+title: Complete Lease Package
+contents:
+  - type: inline
+    key: lease
+    artifact:
+      kind: form
+      # ...
+  - type: inline
+    key: disclosure
+    artifact:
+      kind: document
+      # ...
+  - type: inline
+    key: checklist
+    artifact:
+      kind: checklist
+      # ...
+```
+</Step>
+</Steps>
+
+## Content Types
+
+Bundles support three content types:
+
+| Type | Description |
+|------|-------------|
+| `inline` | Artifact embedded directly in the bundle |
+| `path` | Reference to a local file path |
+| `registry` | Reference to a registry slug (e.g., `@org/artifact`) |
+
+```ts
+const bundle = para
+  .bundle()
+  .name('mixed-bundle')
+  .inline('embedded', someForm)           // Embedded
+  .path('local', './forms/other.yaml')    // File reference
+  .registry('shared', '@acme/disclosure') // Registry reference
+  .build()
+```

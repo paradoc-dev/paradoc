@@ -1,0 +1,105 @@
+---
+title: detach
+description: Detach a layer or content reference from an artifact
+ogTitle: para detach
+ogDescription: Remove a layer or content reference from an Paradoc artifact
+---
+
+Detach (remove) a layer or content reference from an artifact.
+
+# Usage
+
+```bash
+para detach <artifact> [target] [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Artifact file (JSON/YAML) to detach from |
+| `target` | Layer name, `instructions`, or `agent-instructions` (optional, will prompt if not provided) |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Skip confirmation prompt |
+| `--dry-run` | Show what would be changed without modifying the file |
+
+# Description
+
+Removes a layer definition or content reference from an artifact file. The target can be a layer name, `instructions`, or `agent-instructions`.
+
+If no target is provided, you will be prompted to select from all available layers and content references interactively. In non-interactive mode (`-y`), the target argument is required.
+
+The artifact file is rewritten in its original format (JSON or YAML) after removal. If the last layer is removed, the `layers` object is removed from the artifact entirely.
+
+# Examples
+
+Detach a specific layer:
+
+```bash
+para detach my-form.yaml pdf
+```
+
+Detach instructions:
+
+```bash
+para detach my-form.yaml instructions
+```
+
+Detach agent instructions:
+
+```bash
+para detach my-form.yaml agent-instructions
+```
+
+Interactive selection (layers + content references):
+
+```bash
+para detach my-form.yaml
+```
+
+Preview changes without modifying:
+
+```bash
+para detach my-form.yaml pdf --dry-run
+```
+
+Skip confirmation:
+
+```bash
+para detach my-form.yaml instructions -y
+```
+
+# Output
+
+When detaching a layer:
+
+```
+Layer to remove:
+  layers.pdf:
+    kind: file
+    path: ./lease-template.pdf
+    mimeType: application/pdf
+
+Detached layer "pdf" from: my-form.yaml
+```
+
+When detaching a content reference:
+
+```
+Content reference to remove:
+  instructions:
+    kind: file
+    path: ./instructions.md
+    mimeType: text/markdown
+
+Detached content reference "instructions" from: my-form.yaml
+```
+
+# See also
+
+- [attach](/cli/commands/attach) - Attach files to artifacts
+- [show](/cli/commands/show) - Display artifact content

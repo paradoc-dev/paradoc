@@ -1,0 +1,58 @@
+---
+title: Phone
+description: A phone number in E.164 format
+---
+
+A Phone is a structured primitive that represents a phone number in international E.164 format with optional type and extension.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'number',
+    type: 'string',
+    description: 'Phone number in international E.164 format (e.g., +14155552671).',
+  },
+  {
+    name: 'type',
+    type: 'string',
+    description: 'Category/usage of the number (mobile, work, home, etc.).',
+    isOptional: true,
+  },
+  {
+    name: 'extension',
+    type: 'string',
+    description: 'Optional extension digits.',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+number: "+14155552671"
+type: mobile
+```
+
+```json tab="JSON"
+{
+  "number": "+14155552671",
+  "type": "mobile"
+}
+```
+
+## With extension
+
+```yaml tab="YAML"
+number: "+12125551234"
+type: work
+extension: "4567"
+```
+
+```json tab="JSON"
+{
+  "number": "+12125551234",
+  "type": "work",
+  "extension": "4567"
+}
+```

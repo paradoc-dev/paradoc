@@ -1,0 +1,131 @@
+---
+title: date
+description: Validate date strings
+---
+
+Validate date strings in ISO 8601 format (YYYY-MM-DD). The Date primitive ensures dates are properly formatted and represent valid calendar dates.
+
+# Examples
+
+## Creating dates
+
+```ts
+// Direct validation
+const date = para.date('2024-01-15')
+
+// Parse unknown input
+const date = para.date.parse(jsonData)
+
+// Check validity without throwing
+if (para.date.isValid('2024-02-29')) {
+  console.log('Valid leap year date')
+}
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const date = para.date.parse(userInput)
+
+// Safe parsing (returns result object)
+const result = para.date.safeParse(userInput)
+if (result.success) {
+  console.log(`Date: ${result.data}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'booking',
+  fields: {
+    checkIn: { type: 'date', label: 'Check-in Date' },
+    checkOut: { type: 'date', label: 'Check-out Date' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    checkIn: para.date('2024-06-01'),
+    checkOut: para.date('2024-06-07')
+  }
+})
+```
+
+# API
+
+## Direct Call
+
+```ts
+para.date(input: string): string
+```
+
+Pass a date string for validation. Returns the validated string or throws on error.
+
+```ts
+const date = para.date('2024-01-15')
+```
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'string', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<string>', description: 'Parse unknown input (returns result object)' },
+  { name: 'isValid', params: 'input: string', returns: 'boolean', description: 'Check if a string is a valid date' },
+]} />
+
+# Format
+
+The Date primitive expects and returns strings in ISO 8601 date format:
+
+```
+YYYY-MM-DD
+```
+
+| Component | Description | Range |
+|-----------|-------------|-------|
+| `YYYY` | Four-digit year | 0000-9999 |
+| `MM` | Two-digit month | 01-12 |
+| `DD` | Two-digit day | 01-31 |
+
+# Validation
+
+The Date primitive validates:
+
+- String must match `YYYY-MM-DD` format exactly
+- Year, month, and day must be valid numbers
+- Day must be valid for the given month (accounts for leap years)
+
+```ts
+// Valid
+para.date('2024-01-15')
+para.date('2024-02-29')  // Leap year
+para.date('2000-12-31')
+
+// Invalid - throws Error
+para.date('2024-1-15')
+// Error: Invalid Date: must be in YYYY-MM-DD format
+
+para.date('2024-13-01')
+// Error: Invalid Date: month must be between 01 and 12
+
+para.date('2024-02-30')
+// Error: Invalid Date: invalid day for month
+
+para.date('2023-02-29')  // Not a leap year
+// Error: Invalid Date: invalid day for month
+
+para.date('not-a-date')
+// Error: Invalid Date: must be in YYYY-MM-DD format
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Datetime](/sdk/primitives/datetime) - Date with time component
+- [Time](/sdk/primitives/time) - Time only
+- [Date Field](/sdk/artifacts/form/field#date) - Date field type

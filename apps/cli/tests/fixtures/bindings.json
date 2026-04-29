@@ -1,0 +1,6 @@
+{
+  "name": "pet_name",
+  "weight": "petWeight",
+  "species": "SPECIES",
+  "hasVaccination": "is_vaccinated"
+}

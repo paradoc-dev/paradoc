@@ -1,0 +1,48 @@
+name: pet-addendum
+version: 1.0.0
+title: Pet Addendum
+kind: form
+fields:
+  name:
+    label: Name
+    description: The name of the pet
+    required: true
+    type: text
+    default: 'Henry'
+  species:
+    label: Species
+    description: The species of the pet
+    required: true
+    type: enum
+    enum:
+      - dog
+      - cat
+      - bird
+      - turtle
+    default: 'cat'
+  weight:
+    label: Weight in pounds
+    required: true
+    type: number
+    min: 0
+    max: 100
+    default: 10
+  hasVaccination:
+    label: Has Vaccination
+    required: true
+    type: boolean
+    default: false
+defaultLayer: default
+layers:
+  default:
+    kind: inline
+    mimeType: text/markdown
+    text: |
+      # Pet Addendum
+
+      ## Pet Information
+
+      **Pet Name:** {{name}}
+      **Species:** {{species}}
+      **Weight:** {{weight}}
+      **Has Vaccination:** {{hasVaccination}}

@@ -1,0 +1,14 @@
+{
+  "fields": {
+    "name": "John Smith",
+    "taxClassification": "individual",
+    "address": {
+      "line1": "123 Main Street",
+      "locality": "San Francisco",
+      "region": "CA",
+      "postalCode": "94105",
+      "country": "US"
+    },
+    "ssn": "123-45-6789"
+  }
+}

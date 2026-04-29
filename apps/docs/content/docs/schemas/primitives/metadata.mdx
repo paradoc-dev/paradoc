@@ -1,0 +1,42 @@
+---
+title: Metadata
+description: Custom key-value pairs
+---
+
+A Metadata is a collection of custom key-value pairs for storing domain-specific or organizational data. All [Artifacts](/schemas/artifacts) can have metadata associated with them.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: '[key: string]',
+    type: 'string | number | boolean | null',
+    description: 'Keys must be alphanumeric with hyphens. Values can be strings, numbers, booleans, or null',
+  },
+]} />
+
+# Examples
+
+
+
+```yaml tab="YAML"
+metadata:
+  department: Human Resources
+  category: onboarding
+  priority: 1
+  isPublic: false
+  approvedBy: null
+```
+
+
+```json tab="JSON"
+{
+  "metadata": {
+    "department": "Human Resources",
+    "category": "onboarding",
+    "priority": 1,
+    "isPublic": false,
+    "approvedBy": null
+  }
+}
+```

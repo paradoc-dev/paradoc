@@ -1,0 +1,41 @@
+{
+  "name": "paradoc",
+  "description": "Paradoc monorepo - Documents as Code framework",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git"
+  },
+  "homepage": "https://paradoc.dev",
+  "packageManager": "pnpm@10.5.2",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "build:public": "turbo run build --filter='./packages/*' --filter='@paradoc/cli'",
+    "test:public": "turbo run test --filter='./packages/*' --filter='@paradoc/cli'",
+    "check:public": "turbo run lint check-types --filter='./packages/*' --filter='@paradoc/cli'",
+    "verify:public": "pnpm check:public && pnpm test:public && pnpm build:public",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8",
+    "docx": "^9.5.1",
+    "turbo": "^2.5.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"],
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3",
+      "@types/react": "19.2.7",
+      "@types/react-dom": "19.2.3"
+    }
+  }
+}

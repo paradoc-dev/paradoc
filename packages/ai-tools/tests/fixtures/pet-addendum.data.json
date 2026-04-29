@@ -1,0 +1,20 @@
+{
+  "fields": {
+    "petName": "Bella",
+    "species": "dog",
+    "weight": 35,
+    "isVaccinated": true
+  },
+  "parties": {
+    "tenant": {
+      "id": "tenant-1",
+      "name": "Jane Doe",
+      "firstName": "Jane",
+      "lastName": "Doe"
+    },
+    "landlord": {
+      "id": "landlord-1",
+      "name": "Acme Properties LLC"
+    }
+  }
+}

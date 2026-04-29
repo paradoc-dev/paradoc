@@ -1,0 +1,71 @@
+---
+title: get_registry
+description: Get details for a specific Paradoc registry including its artifacts
+ogTitle: get_registry — Paradoc MCP
+ogDescription: Get details for a specific Paradoc registry using the MCP server
+---
+
+Get details for a specific Paradoc registry including its artifacts (up to 500) and install stats. Each artifact includes `registry_id` and `artifact_name` for chaining into `get_artifact` or `render`.
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `registry_id` | `string` | Yes | Registry ID |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Registry ID |
+| `name` | `string` | Registry name |
+| `displayName` | `string` | Display name (e.g. `owner/repo`) |
+| `url` | `string` | Registry URL |
+| `description` | `string` | Registry description |
+| `homepage` | `string` | Homepage URL |
+| `status` | `string` | Registry status |
+| `createdAt` | `string` | Creation timestamp |
+| `artifacts` | `array` | List of artifacts in the registry |
+| `artifacts[].registry_id` | `string` | Registry ID (for chaining) |
+| `artifacts[].artifact_name` | `string` | Artifact name (for chaining) |
+| `artifacts[].title` | `string` | Display title |
+| `artifacts[].kind` | `string` | Artifact kind |
+| `artifacts[].installsTotal` | `integer` | Total installs |
+| `error` | `string` | Error message if the registry was not found |
+
+# Example
+
+```json
+// Request
+{
+  "registry_id": "cly1abc123"
+}
+
+// Response
+{
+  "id": "cly1abc123",
+  "name": "legal-forms",
+  "displayName": "acme/legal-forms",
+  "url": "https://example.com/registry",
+  "description": "Standard legal form templates",
+  "homepage": "https://example.com",
+  "status": "verified",
+  "createdAt": "2026-01-10T08:00:00.000Z",
+  "artifacts": [
+    {
+      "registry_id": "cly1abc123",
+      "artifact_name": "lease-agreement",
+      "title": "Lease Agreement",
+      "kind": "form",
+      "installsTotal": 1420
+    },
+    {
+      "registry_id": "cly1abc123",
+      "artifact_name": "nda",
+      "title": "Non-Disclosure Agreement",
+      "kind": "form",
+      "installsTotal": 980
+    }
+  ]
+}
+```

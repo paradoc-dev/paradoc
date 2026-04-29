@@ -1,0 +1,89 @@
+{
+  "name": "@paradoc/essentials",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ready-to-use Paradoc artifacts for common business forms — IRS, NACHA, USCIS, HIPAA, ACORD, and more",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "paradoc",
+    "forms",
+    "artifacts",
+    "irs",
+    "w9",
+    "1099",
+    "nacha",
+    "ach",
+    "uscis",
+    "i9",
+    "hipaa",
+    "acord",
+    "nda",
+    "business-forms"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Paradoc",
+    "url": "https://paradoc.dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git",
+    "directory": "packages/essentials"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean",
+    "pack:dry": "pnpm run build && npm pack --dry-run",
+    "prepublishOnly": "pnpm run build",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\"",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@paradoc/core": "workspace:^",
+    "@paradoc/types": "workspace:^"
+  },
+  "devDependencies": {
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,214 @@
+---
+title: docxRenderer
+description: Render Paradoc artifacts to Word documents
+---
+
+Render forms to DOCX (Word) documents using template placeholders. Built on [docx-templates](https://github.com/guigrpa/docx-templates), supporting Handlebars-style syntax with automatic field serialization.
+
+# Example
+
+```ts
+import { para } from '@paradoc/core'
+import { docxRenderer } from '@paradoc/renderer-docx'
+
+const form = para.form({
+  name: 'contract',
+  fields: {
+    clientName: { type: 'text', label: 'Client Name' },
+    contractValue: { type: 'money', label: 'Contract Value' },
+    startDate: { type: 'date', label: 'Start Date' }
+  },
+  layers: {
+    docx: {
+      kind: 'file',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      path: '/templates/contract-template.docx'
+    }
+  },
+  defaultLayer: 'docx'
+})
+
+// Fill the form with data
+const filled = form.fill({
+  fields: {
+    clientName: 'Acme Corp',
+    contractValue: { amount: 50000, currency: 'USD' },
+    startDate: '2024-04-01'
+  }
+})
+
+// Render the filled form
+const output = await filled.render({
+  renderer: docxRenderer()
+})
+
+// output is Uint8Array - write to file
+fs.writeFileSync('contract-filled.docx', output)
+```
+
+# Import
+
+From the umbrella package:
+
+```ts
+import { docxRenderer } from '@paradoc/renderers'
+```
+
+Or from the individual package:
+
+```ts
+import { docxRenderer } from '@paradoc/renderer-docx'
+```
+
+# API
+
+## docxRenderer()
+
+Factory function that creates a configured DOCX renderer instance.
+
+```ts
+function docxRenderer(options?: DocxRendererOptions): ParadocRenderer<
+  RendererLayer & { type: 'docx'; content: Uint8Array },
+  Uint8Array
+>
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'options', type: 'DocxRendererOptions', description: 'Configuration options', isOptional: true },
+]} />
+
+### DocxRendererOptions
+
+<PropertiesTable properties={[
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry for formatting field values. Defaults to USA serializers.', isOptional: true },
+  { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
+]} />
+
+### DocxSignatureOptions
+
+<PropertiesTable properties={[
+  { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
+  { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
+]} />
+
+### Returns
+
+Returns an `ParadocRenderer` object with:
+
+<PropertiesTable properties={[
+  { name: 'id', type: '"docx"', description: 'Renderer identifier' },
+  { name: 'render', type: '(request: RenderRequest) => Promise<Uint8Array>', description: 'Async render function that returns the filled document', isMethod: true },
+]} />
+
+## renderDocx()
+
+Low-level function for direct DOCX rendering without the full renderer interface.
+
+```ts
+async function renderDocx(options: RenderDocxOptions): Promise<Uint8Array>
+```
+
+### RenderDocxOptions
+
+<PropertiesTable properties={[
+  { name: 'template', type: 'Uint8Array', description: 'DOCX template file as binary data' },
+  { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
+  { name: 'form', type: 'Form', description: 'Form schema for automatic field type detection and serialization', isOptional: true },
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry. Defaults to USA serializers.', isOptional: true },
+  { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
+  { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
+  { name: 'options', type: 'DocxRenderOptions', description: 'DOCX-specific rendering options', isOptional: true },
+]} />
+
+### DocxRenderOptions
+
+<PropertiesTable properties={[
+  { name: 'cmdDelimiter', type: '[string, string]', description: 'Custom command delimiter. Defaults to ["{{", "}}"]', isOptional: true },
+  { name: 'failFast', type: 'boolean', description: 'Fail immediately on errors. Defaults to false.', isOptional: true },
+  { name: 'processLineBreaks', type: 'boolean', description: 'Convert newlines to line breaks. Defaults to true.', isOptional: true },
+]} />
+
+### Returns
+
+Returns a `Promise<Uint8Array>` containing the rendered DOCX document.
+
+# Template Syntax
+
+DOCX templates use Handlebars-style placeholders:
+
+```
+Contract for {{clientName}}
+
+Total Value: {{contractValue}}
+Start Date: {{startDate}}
+
+{{#if hasDiscount}}
+Discount Applied: {{discountPercent}}
+{{/if}}
+```
+
+## Supported Features
+
+| Syntax | Description |
+|--------|-------------|
+| `{{fieldName}}` | Simple value insertion |
+| `{{#if condition}}...{{/if}}` | Conditional sections |
+| `{{#each items}}...{{/each}}` | Loop over arrays |
+| `{{#unless condition}}...{{/unless}}` | Negative conditionals |
+
+# Automatic Serialization
+
+When a form schema is provided, field values are automatically serialized:
+
+```ts
+// Money fields formatted as "$50,000.00"
+// Date fields formatted as "April 1, 2024"
+// Phone fields formatted as "(555) 123-4567"
+```
+
+# Custom Serializers
+
+Use custom serializers for different locales:
+
+```ts
+import { renderDocx } from '@paradoc/renderer-docx'
+import { euSerializers } from '@paradoc/serialization'
+
+const output = await renderDocx({
+  template: templateBytes,
+  data,
+  form,
+  serializers: euSerializers,
+})
+// Money formatted as "50.000,00 €" instead of "$50,000.00"
+```
+
+# Template Bindings
+
+Map template placeholders to different field names:
+
+```ts
+const form = para.form({
+  name: 'contract',
+  fields: {
+    clientFullName: { type: 'text' }
+  },
+  layers: {
+    docx: {
+      kind: 'file',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      path: '/templates/contract.docx',
+      bindings: {
+        client_name: 'clientFullName'  // Maps {{client_name}} to clientFullName field
+      }
+    }
+  }
+})
+```
+
+# Related
+
+- [Renderers](/sdk/renderers) - Renderer interface overview
+- [Serialization](/sdk/serialization) - Value formatting

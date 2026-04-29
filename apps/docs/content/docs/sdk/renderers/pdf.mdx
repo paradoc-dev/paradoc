@@ -1,0 +1,261 @@
+---
+title: pdfRenderer
+description: Fill PDF forms with AcroForm field support
+---
+
+Fill PDF forms by populating AcroForm fields with form data. Built on [pdf-lib](https://pdf-lib.js.org/), supporting text fields, checkboxes, dropdowns, and radio buttons with automatic field serialization.
+
+# Example
+
+```ts
+import { para } from '@paradoc/core'
+import { pdfRenderer } from '@paradoc/renderer-pdf'
+
+const form = para.form({
+  name: 'w9',
+  fields: {
+    name: { type: 'text', label: 'Name' },
+    businessName: { type: 'text', label: 'Business Name' },
+    taxClassification: { type: 'enum', enum: ['individual', 'llc', 'corporation'] },
+    address: { type: 'text', label: 'Address' },
+    ssn: { type: 'text', label: 'SSN' }
+  },
+  layers: {
+    pdf: {
+      kind: 'file',
+      mimeType: 'application/pdf',
+      path: '/templates/w9-form.pdf',
+      bindings: {
+        // Map PDF field names to form field expressions
+        'topmostSubform[0].Page1[0].f1_1[0]': 'name',
+        'topmostSubform[0].Page1[0].f1_2[0]': 'businessName',
+        'topmostSubform[0].Page1[0].c1_1[0]': 'taxClassification:individual',
+        'topmostSubform[0].Page1[0].c1_1[1]': 'taxClassification:llc',
+        'topmostSubform[0].Page1[0].f1_5[0]': 'address'
+      }
+    }
+  },
+  defaultLayer: 'pdf'
+})
+
+// Fill the form with data
+const filled = form.fill({
+  fields: {
+    name: 'John Smith',
+    businessName: 'Smith Consulting',
+    taxClassification: 'llc',
+    address: '123 Main St, New York, NY 10001'
+  }
+})
+
+// Render the filled form
+const output = await filled.render({
+  renderer: pdfRenderer()
+})
+
+// output is Uint8Array - write to file
+fs.writeFileSync('w9-filled.pdf', output)
+```
+
+# Import
+
+From the umbrella package:
+
+```ts
+import { pdfRenderer } from '@paradoc/renderers'
+```
+
+Or from the individual package:
+
+```ts
+import { pdfRenderer } from '@paradoc/renderer-pdf'
+```
+
+# API
+
+## pdfRenderer()
+
+Factory function that creates a configured PDF renderer instance.
+
+```ts
+function pdfRenderer(options?: PdfRendererOptions): ParadocRenderer<
+  RendererLayer & { type: 'pdf'; content: Uint8Array },
+  Uint8Array
+>
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'options', type: 'PdfRendererOptions', description: 'Configuration options', isOptional: true },
+]} />
+
+### PdfRendererOptions
+
+<PropertiesTable properties={[
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry for formatting field values. Defaults to USA serializers.', isOptional: true },
+  { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering (future feature).', isOptional: true },
+]} />
+
+### PdfSignatureOptions
+
+<PropertiesTable properties={[
+  { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
+  { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
+]} />
+
+### Returns
+
+Returns an `ParadocRenderer` object with:
+
+<PropertiesTable properties={[
+  { name: 'id', type: '"pdf"', description: 'Renderer identifier' },
+  { name: 'render', type: '(request: RenderRequest) => Promise<Uint8Array>', description: 'Async render function that returns the filled PDF', isMethod: true },
+]} />
+
+## renderPdf()
+
+Low-level function for direct PDF rendering without the full renderer interface.
+
+```ts
+async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
+```
+
+### RenderPdfOptions
+
+<PropertiesTable properties={[
+  { name: 'template', type: 'Uint8Array', description: 'PDF template file as binary data' },
+  { name: 'form', type: 'Form', description: 'Form schema for field type detection' },
+  { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate form fields' },
+  { name: 'bindings', type: 'Record<string, string>', description: 'Mapping from PDF field names to form field expressions', isOptional: true },
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry. Defaults to USA serializers.', isOptional: true },
+  { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
+]} />
+
+### Returns
+
+Returns a `Promise<Uint8Array>` containing the filled PDF document.
+
+## inspectAcroFormFields()
+
+Utility function to inspect AcroForm fields in a PDF template.
+
+```ts
+async function inspectAcroFormFields(
+  template: Uint8Array,
+  options?: InspectOptions
+): Promise<PdfFieldInfo[]>
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'template', type: 'Uint8Array', description: 'PDF template file as binary data' },
+  { name: 'options', type: 'InspectOptions', description: 'Inspection options', isOptional: true },
+]} />
+
+### InspectOptions
+
+<PropertiesTable properties={[
+  { name: 'includeButton', type: 'boolean', description: 'Include button fields in results. Defaults to false.', isOptional: true },
+  { name: 'includeSignature', type: 'boolean', description: 'Include signature fields in results. Defaults to false.', isOptional: true },
+]} />
+
+### PdfFieldInfo
+
+<PropertiesTable properties={[
+  { name: 'name', type: 'string', description: 'AcroForm field name' },
+  { name: 'type', type: '"text" | "checkbox" | "dropdown" | "radio" | "button" | "signature" | "unknown"', description: 'Field type' },
+  { name: 'value', type: 'string | boolean | string[]', description: 'Current field value', isOptional: true },
+  { name: 'required', type: 'boolean', description: 'Whether field is marked required', isOptional: true },
+]} />
+
+# Inspecting PDF Fields
+
+Use `inspectAcroFormFields()` to discover field names in a PDF template:
+
+```ts
+import { inspectAcroFormFields } from '@paradoc/renderer-pdf'
+import fs from 'fs'
+
+const template = fs.readFileSync('form.pdf')
+const fields = await inspectAcroFormFields(template)
+
+console.log(fields)
+// [
+//   { name: 'f1_1', type: 'text', required: true },
+//   { name: 'c1_1', type: 'checkbox', value: false },
+//   { name: 'dropdown1', type: 'dropdown', value: ['Option A'] }
+// ]
+```
+
+# Binding Syntax
+
+PDF bindings map AcroForm field names to form field names with special syntax for complex cases:
+
+## Simple Binding
+
+```ts
+bindings: {
+  'pdfFieldName': 'formFieldName'
+}
+```
+
+## Enum Checkboxes
+
+For PDF checkboxes that represent enum values, use `:value` syntax:
+
+```ts
+bindings: {
+  'checkbox_individual': 'taxType:individual',  // Check if taxType === 'individual'
+  'checkbox_llc': 'taxType:llc',                // Check if taxType === 'llc'
+  'checkbox_corp': 'taxType:corporation'        // Check if taxType === 'corporation'
+}
+```
+
+## Split Fields
+
+For fields split across multiple PDF inputs (like SSN), use `:partNumber` syntax:
+
+```ts
+bindings: {
+  'ssn_part1': 'ssn:1',  // First part: "123" from "123-45-6789"
+  'ssn_part2': 'ssn:2',  // Second part: "45"
+  'ssn_part3': 'ssn:3'   // Third part: "6789"
+}
+```
+
+## Combined Fields
+
+Combine multiple form fields into one PDF field:
+
+```ts
+bindings: {
+  'cityStateZip': 'city,state,zipCode'  // "San Francisco, CA, 94105"
+}
+```
+
+## Nested Paths
+
+Access nested data using dot notation:
+
+```ts
+bindings: {
+  'buyer_name': 'parties.buyer.name'
+}
+```
+
+# Automatic Serialization
+
+Field values are automatically serialized based on their schema types:
+
+```ts
+// Money fields formatted as "$50,000.00"
+// Date fields formatted as "April 1, 2024"
+// Phone fields formatted as "(555) 123-4567"
+```
+
+# Related
+
+- [Renderers](/sdk/renderers) - Renderer interface overview
+- [Serialization](/sdk/serialization) - Value formatting

@@ -1,0 +1,23 @@
+# Source files (schemas/ is published via files field)
+src/
+scripts/
+
+# Tests
+*.test.ts
+tests/
+coverage/
+vitest.config.ts
+
+# Build config
+tsconfig.json
+tsup.config.ts
+eslint.config.mjs
+
+# Turbo
+.turbo/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store

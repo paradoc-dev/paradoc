@@ -1,0 +1,126 @@
+---
+title: renderers
+description: Manage renderer plugins
+ogTitle: para renderers
+ogDescription: Manage Paradoc CLI renderer plugins for PDF, text, and DOCX output
+---
+
+Manages renderer plugins used by the `render` and `inspect` commands.
+
+# Usage
+
+```bash
+para renderers <command>
+```
+
+# Overview
+
+Renderers are not bundled with the CLI to keep the base install small (~1.1 MB). Instead, they are installed on demand the first time you run `render` or `inspect`. Installed renderers are cached in `~/.paradoc/renderers/`.
+
+Available renderers:
+
+| Renderer | Used for | Heavy dependency |
+|----------|----------|-----------------|
+| `@paradoc/renderer-text` | Text/Markdown/HTML layers | handlebars |
+| `@paradoc/renderer-pdf` | PDF layers, `inspect` command | pdf-lib |
+| `@paradoc/renderer-docx` | DOCX layers | docx-templates |
+
+# Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `status` | Show installation status of all renderers |
+| `install` | Install a renderer (or all) |
+| `remove` | Remove a renderer (or all) |
+| `update` | Reinstall all renderers to match current CLI version |
+
+---
+
+# renderers status
+
+Show installation status of all renderers.
+
+```bash
+para renderers status [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+## Output
+
+```
+Renderer plugins
+
+Package                        Installed  Expected  Status  Size
+@paradoc/renderer-text       0.2.1      0.2.1     ok      245.3 KB
+@paradoc/renderer-pdf        0.2.1      0.2.1     ok      1.2 MB
+@paradoc/renderer-docx       not installed  0.2.1  -       -
+```
+
+---
+
+# renderers install
+
+Install a renderer, or all renderers if no name is given.
+
+```bash
+para renderers install [name]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `name` | Renderer to install: `text`, `pdf`, or `docx` (optional; installs all if omitted) |
+
+## Examples
+
+Install all renderers:
+
+```bash
+para renderers install
+```
+
+Install only the PDF renderer:
+
+```bash
+para renderers install pdf
+```
+
+---
+
+# renderers remove
+
+Remove a renderer, or all renderers if no name is given.
+
+```bash
+para renderers remove [name]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `name` | Renderer to remove: `text`, `pdf`, or `docx` (optional; removes all if omitted) |
+
+---
+
+# renderers update
+
+Reinstall all renderers to match the versions pinned by the current CLI release.
+
+```bash
+para renderers update
+```
+
+This is useful after upgrading the CLI to ensure renderer versions stay in sync.
+
+# See also
+
+- [render](/cli/commands/render) - Render artifact layers
+- [inspect](/cli/commands/inspect) - Inspect PDF form fields
+- [reset](/cli/commands/reset) - Reset CLI (also clears renderers)

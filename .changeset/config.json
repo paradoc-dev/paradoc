@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@paradoc/types",
+      "@paradoc/schemas",
+      "@paradoc/core",
+      "@paradoc/serialization",
+      "@paradoc/resolvers",
+      "@paradoc/renderer-text",
+      "@paradoc/renderer-pdf",
+      "@paradoc/renderer-docx",
+      "@paradoc/renderers",
+      "@paradoc/sdk",
+      "@paradoc/cli",
+      "@paradoc/ai-tools",
+      "@paradoc/ai-sdk",
+      "@paradoc/tanstack-ai",
+      "paradoc-cli"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [],
+  "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
+    "onlyUpdatePeerDependentsWhenOutOfRange": true
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "name": "@paradoc/renderer-docx",
+  "version": "0.1.0",
+  "description": "DOCX renderer package for Paradoc framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "paradoc",
+    "forms",
+    "docx",
+    "rendering",
+    "renderer"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Paradoc",
+    "url": "https://paradoc.dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git",
+    "directory": "packages/renderer-docx"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean",
+    "pack:dry": "pnpm run build && npm pack --dry-run",
+    "prepublishOnly": "pnpm run build",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "docx-templates": "^4.14.1"
+  },
+  "peerDependencies": {
+    "@paradoc/types": ">=0.2.0",
+    "@paradoc/serialization": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@paradoc/types": {
+      "optional": false
+    },
+    "@paradoc/serialization": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@paradoc/types": "workspace:^",
+    "@paradoc/serialization": "workspace:^",
+    "@paradoc/core": "workspace:^",
+    "@paradoc/resolvers": "workspace:^",
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

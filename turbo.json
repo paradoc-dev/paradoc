@@ -1,0 +1,89 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"ui": "tui",
+	"globalEnv": [
+		"ARTIFACTS_DIR",
+		"NODE_ENV",
+		"STAGE",
+		"DATABASE_URL",
+		"DATABASE_HOST",
+		"DATABASE_PORT",
+		"DATABASE_USERNAME",
+		"DATABASE_PASSWORD",
+		"DATABASE_NAME",
+		"NEON_CORPUS_DB_URL",
+		"R2_ENDPOINT",
+		"R2_ACCESS_KEY_ID",
+		"R2_SECRET_ACCESS_KEY",
+		"R2_WEBHOOK_EVENTS_BUCKET",
+		"FILES_BUCKET",
+		"UPSTASH_REDIS_REST_URL",
+		"UPSTASH_REDIS_REST_TOKEN",
+		"STRIPE_SECRET_KEY",
+		"WORKOS_API_KEY",
+		"WORKOS_CLIENT_ID",
+		"WORKOS_CLI_CLIENT_ID",
+		"WORKOS_CLI_ISSUER",
+		"DISABLE_RATE_LIMITS",
+		"NEXT_PUBLIC_APP_URL",
+		"RESEND_API_KEY",
+		"AWS_REGION",
+		"AWS_ACCESS_KEY_ID",
+		"AWS_SECRET_ACCESS_KEY",
+		"AWS_SESSION_TOKEN",
+		"NOTION_MARKETING_INTEGRATION",
+		"NOTION_BLOG_DATABASE_ID",
+		"NOTION_ARTICLES_DATABASE_ID",
+		"TINYBIRD_BASE_URL",
+		"TINYBIRD_ADMIN_TOKEN",
+		"TINYBIRD_QUERY_TOKEN",
+		"AXIOM_TOKEN",
+		"AXIOM_DATASET",
+		"WEBHOOK_SECRET_ENCRYPTION_KEY",
+		"POLL_INTERVAL_MS",
+		"BATCH_SIZE",
+		"LEASE_DURATION_MS",
+		"PORT",
+		"ENVIRONMENT",
+		"ADMIN_SECRET",
+		"NOTIFICATION_FROM_EMAIL",
+		"BASE_URL",
+		"QSTASH_TOKEN",
+		"WEBHOOK_SERVICE_URL",
+		"WEBHOOKS_SERVICE_URL",
+		"CDN_BUCKET",
+		"CDN_BASE_URL",
+		"WORKERS_API_URL",
+		"WORKERS_ADMIN_SECRET",
+		"INGEST_API_URL",
+		"INGEST_ADMIN_SECRET",
+		"DOCUMENTS_API_KEY",
+		"PUPPETEER_EXECUTABLE_PATH",
+		"MAX_PUPPETEER_PAGES",
+		"MAX_LIBREOFFICE_PROCESSES"
+	],
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": [".next/**", "!.next/cache/**", "dist/**", ".output/**"]
+		},
+		"dev": {
+			"dependsOn": ["^build"],
+			"cache": false,
+			"persistent": true
+		},
+		"lint": {
+			"dependsOn": ["^lint"]
+		},
+		"check-types": {
+			"dependsOn": ["^check-types"]
+		},
+		"test": {
+			"dependsOn": ["^build"]
+		},
+		"clean": {
+			"cache": false
+		}
+	}
+}

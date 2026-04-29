@@ -1,0 +1,152 @@
+---
+title: cache
+description: Manage registry cache
+ogTitle: para cache
+ogDescription: Manage the Paradoc CLI registry cache
+---
+
+Manages the registry data cache used to speed up registry operations.
+
+# Usage
+
+```bash
+para cache <command> [options]
+```
+
+# Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `clear` | Clear all cached registry data |
+| `stats` | Show cache statistics |
+| `invalidate` | Invalidate cache for a specific registry |
+| `config` | Show current cache configuration |
+| `reset` | Reset cache configuration to defaults |
+
+---
+
+# cache clear
+
+Clear all cached registry data.
+
+```bash
+para cache clear
+```
+
+## Output
+
+```
+✓ Cleared 12 cached entries
+```
+
+---
+
+# cache stats
+
+Show cache statistics.
+
+```bash
+para cache stats [options]
+para cache info [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+## Output
+
+```
+Cache Statistics
+
+Directory: ~/.paradoc/cache
+Default TTL: 1h
+Disk entries: 12
+Session entries: 0
+Total size: 45.2 KB
+```
+
+---
+
+# cache invalidate
+
+Invalidate cache for a specific registry.
+
+```bash
+para cache invalidate <namespace>
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `namespace` | Registry namespace to invalidate (e.g., `@acme`) |
+
+## Example
+
+```bash
+para cache invalidate @acme
+```
+
+---
+
+# cache config
+
+Show current cache configuration.
+
+```bash
+para cache config [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+## Output
+
+```
+Cache Configuration
+
+Effective directory: ~/.paradoc/cache
+
+Global config:
+  TTL: 1h
+
+Project config:
+  (not configured)
+```
+
+---
+
+# cache reset
+
+Reset cache configuration to defaults.
+
+```bash
+para cache reset [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--clear` | Also clear all cached data |
+
+## Output
+
+```
+✓ Cache configuration reset to defaults
+
+Default settings:
+  TTL: 3600s (1 hour)
+  Directory: ~/.paradoc/cache
+```
+
+# See also
+
+- [configure](/cli/commands/configure) - Interactive configuration wizard
+- [reset](/cli/commands/reset) - Reset CLI to factory defaults

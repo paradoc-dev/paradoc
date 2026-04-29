@@ -1,0 +1,794 @@
+---
+title: FormField
+description: Field definitions for capturing user input
+---
+
+FormField is a union type representing all possible field types in a form. Each field type has a `type` discriminator and shares common base properties.
+
+```typescript
+type FormField =
+  | TextField
+  | BooleanField
+  | NumberField
+  | CoordinateField
+  | BboxField
+  | MoneyField
+  | AddressField
+  | PhoneField
+  | DurationField
+  | EmailField
+  | UuidField
+  | UriField
+  | EnumField
+  | DateField
+  | DatetimeField
+  | TimeField
+  | PersonField
+  | OrganizationField
+  | IdentificationField
+  | MultiselectField
+  | PercentageField
+  | RatingField
+  | FieldsetField
+```
+
+# BaseField
+
+All field types share these base properties:
+
+<PropertiesTable properties={[
+  {
+    name: 'label',
+    type: 'string',
+    description: 'Human-readable label for the field',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Long-form description or helper text displayed in the UI',
+    isOptional: true,
+  },
+  {
+    name: 'required',
+    type: 'boolean | string',
+    description: 'Whether this field is required. Can be a boolean or logic expression',
+    isOptional: true,
+  },
+  {
+    name: 'visible',
+    type: 'boolean | string',
+    description: 'Whether this field is visible. Can be a boolean or logic expression. Defaults to true',
+    isOptional: true,
+  },
+]} />
+
+# Field Types
+
+Each field type includes all [BaseField](#basefield) properties plus the type-specific properties listed below.
+
+## TextField
+
+Text input field for string values.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'text'",
+    description: 'Discriminator for text field type',
+  },
+  {
+    name: 'minLength',
+    type: 'number',
+    description: 'Minimum character length',
+    isOptional: true,
+  },
+  {
+    name: 'maxLength',
+    type: 'number',
+    description: 'Maximum character length',
+    isOptional: true,
+  },
+  {
+    name: 'pattern',
+    type: 'string',
+    description: 'Regular expression pattern for validation',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'string',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## BooleanField
+
+Boolean checkbox/toggle field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'boolean'",
+    description: 'Discriminator for boolean field type',
+  },
+  {
+    name: 'default',
+    type: 'boolean',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## NumberField
+
+Numeric input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'number'",
+    description: 'Discriminator for number field type',
+  },
+  {
+    name: 'min',
+    type: 'number',
+    description: 'Minimum allowed value',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: 'Maximum allowed value',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'number',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## EnumField
+
+Single-select dropdown field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'enum'",
+    description: 'Discriminator for enum field type',
+  },
+  {
+    name: 'enum',
+    type: '(string | number)[]',
+    description: 'Available options for selection',
+  },
+  {
+    name: 'default',
+    type: 'string | number',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## MultiselectField
+
+Multi-select field allowing multiple selections.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'multiselect'",
+    description: 'Discriminator for multiselect field type',
+  },
+  {
+    name: 'enum',
+    type: '(string | number)[]',
+    description: 'Available options for selection',
+  },
+  {
+    name: 'min',
+    type: 'number',
+    description: 'Minimum number of selections required',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: 'Maximum number of selections allowed',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: '(string | number)[]',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## DateField
+
+Date input field (ISO 8601 format: YYYY-MM-DD).
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'date'",
+    description: 'Discriminator for date field type',
+  },
+  {
+    name: 'min',
+    type: 'string',
+    description: 'Minimum allowed date in ISO 8601 format',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'string',
+    description: 'Maximum allowed date in ISO 8601 format',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'string',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## DatetimeField
+
+Datetime input field (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ).
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'datetime'",
+    description: 'Discriminator for datetime field type',
+  },
+  {
+    name: 'min',
+    type: 'string',
+    description: 'Minimum allowed datetime in ISO 8601 format',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'string',
+    description: 'Maximum allowed datetime in ISO 8601 format',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'string',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## TimeField
+
+Time input field (HH:MM:SS format).
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'time'",
+    description: 'Discriminator for time field type',
+  },
+  {
+    name: 'min',
+    type: 'string',
+    description: 'Minimum allowed time',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'string',
+    description: 'Maximum allowed time',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'string',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## EmailField
+
+Email address input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'email'",
+    description: 'Discriminator for email field type',
+  },
+  {
+    name: 'minLength',
+    type: 'number',
+    description: 'Minimum character length',
+    isOptional: true,
+  },
+  {
+    name: 'maxLength',
+    type: 'number',
+    description: 'Maximum character length',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'string',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## UriField
+
+URI/URL input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'uri'",
+    description: 'Discriminator for URI field type',
+  },
+  {
+    name: 'minLength',
+    type: 'number',
+    description: 'Minimum character length',
+    isOptional: true,
+  },
+  {
+    name: 'maxLength',
+    type: 'number',
+    description: 'Maximum character length',
+    isOptional: true,
+  },
+  {
+    name: 'pattern',
+    type: 'string',
+    description: 'Regular expression pattern for validation',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'string',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## UuidField
+
+UUID input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'uuid'",
+    description: 'Discriminator for UUID field type',
+  },
+  {
+    name: 'minLength',
+    type: 'number',
+    description: 'Minimum character length',
+    isOptional: true,
+  },
+  {
+    name: 'maxLength',
+    type: 'number',
+    description: 'Maximum character length',
+    isOptional: true,
+  },
+  {
+    name: 'pattern',
+    type: 'string',
+    description: 'Regular expression pattern for validation',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'string',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## MoneyField
+
+Monetary amount input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'money'",
+    description: 'Discriminator for money field type',
+  },
+  {
+    name: 'min',
+    type: 'number',
+    description: 'Minimum allowed amount',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: 'Maximum allowed amount',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'Money',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## PercentageField
+
+Percentage input field (0-100 by default).
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'percentage'",
+    description: 'Discriminator for percentage field type',
+  },
+  {
+    name: 'min',
+    type: 'number',
+    description: 'Minimum allowed percentage',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: 'Maximum allowed percentage',
+    isOptional: true,
+  },
+  {
+    name: 'precision',
+    type: 'number',
+    description: 'Number of decimal places',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'number',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## RatingField
+
+Rating input field (1-5 by default).
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'rating'",
+    description: 'Discriminator for rating field type',
+  },
+  {
+    name: 'min',
+    type: 'number',
+    description: 'Minimum rating value',
+    isOptional: true,
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: 'Maximum rating value',
+    isOptional: true,
+  },
+  {
+    name: 'step',
+    type: 'number',
+    description: 'Rating increment step',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'number',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## AddressField
+
+Postal address input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'address'",
+    description: 'Discriminator for address field type',
+  },
+  {
+    name: 'default',
+    type: 'Address',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## PhoneField
+
+Phone number input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'phone'",
+    description: 'Discriminator for phone field type',
+  },
+  {
+    name: 'default',
+    type: 'Phone',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## CoordinateField
+
+Geographic coordinate (latitude/longitude) input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'coordinate'",
+    description: 'Discriminator for coordinate field type',
+  },
+  {
+    name: 'default',
+    type: 'Coordinate',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## BboxField
+
+Geographic bounding box input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'bbox'",
+    description: 'Discriminator for bbox field type',
+  },
+  {
+    name: 'default',
+    type: 'Bbox',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## DurationField
+
+Duration input field (ISO 8601 format).
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'duration'",
+    description: 'Discriminator for duration field type',
+  },
+  {
+    name: 'default',
+    type: 'Duration',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## PersonField
+
+Person information input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'person'",
+    description: 'Discriminator for person field type',
+  },
+  {
+    name: 'default',
+    type: 'Person',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## OrganizationField
+
+Organization information input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'organization'",
+    description: 'Discriminator for organization field type',
+  },
+  {
+    name: 'default',
+    type: 'Organization',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## IdentificationField
+
+Identification document input field.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'identification'",
+    description: 'Discriminator for identification field type',
+  },
+  {
+    name: 'allowedTypes',
+    type: 'string[]',
+    description: 'Allowed identification document types',
+    isOptional: true,
+  },
+  {
+    name: 'default',
+    type: 'Identification',
+    description: 'Default value for the field',
+    isOptional: true,
+  },
+]} />
+
+## FieldsetField
+
+Nested fieldset containing other fields.
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'fieldset'",
+    description: 'Discriminator for fieldset field type',
+  },
+  {
+    name: 'fields',
+    type: 'Record<string, FormField>',
+    description: 'Nested field definitions keyed by identifier',
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+fields:
+  # Text field with validation
+  firstName:
+    type: text
+    label: First Name
+    required: true
+    minLength: 1
+    maxLength: 100
+
+  # Email field
+  email:
+    type: email
+    label: Email Address
+    required: true
+
+  # Enum dropdown
+  preferredContact:
+    type: enum
+    label: Preferred Contact Method
+    enum: ["email", "phone", "mail"]
+    default: email
+
+  # Money field
+  annualIncome:
+    type: money
+    label: Annual Income
+    required: true
+    min: 0
+
+  # Date with constraints
+  birthDate:
+    type: date
+    label: Date of Birth
+    max: "2006-01-01"
+
+  # Conditional field
+  spouseName:
+    type: person
+    label: Spouse Information
+    visible: "fields.maritalStatus.value == 'married'"
+    required: "fields.maritalStatus.value == 'married'"
+
+  # Nested fieldset
+  emergencyContact:
+    type: fieldset
+    label: Emergency Contact
+    fields:
+      name:
+        type: text
+        label: Contact Name
+        required: true
+      phone:
+        type: phone
+        label: Contact Phone
+        required: true
+```
+
+```json tab="JSON"
+{
+  "fields": {
+    "firstName": {
+      "type": "text",
+      "label": "First Name",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "email": {
+      "type": "email",
+      "label": "Email Address",
+      "required": true
+    },
+    "preferredContact": {
+      "type": "enum",
+      "label": "Preferred Contact Method",
+      "enum": ["email", "phone", "mail"],
+      "default": "email"
+    },
+    "annualIncome": {
+      "type": "money",
+      "label": "Annual Income",
+      "required": true,
+      "min": 0
+    },
+    "birthDate": {
+      "type": "date",
+      "label": "Date of Birth",
+      "max": "2006-01-01"
+    },
+    "spouseName": {
+      "type": "person",
+      "label": "Spouse Information",
+      "visible": "fields.maritalStatus.value == 'married'",
+      "required": "fields.maritalStatus.value == 'married'"
+    },
+    "emergencyContact": {
+      "type": "fieldset",
+      "label": "Emergency Contact",
+      "fields": {
+        "name": {
+          "type": "text",
+          "label": "Contact Name",
+          "required": true
+        },
+        "phone": {
+          "type": "phone",
+          "label": "Contact Phone",
+          "required": true
+        }
+      }
+    }
+  }
+}
+```
+
+# Related
+
+- [Form](/schemas/artifacts/form) - Form artifact overview
+- [Primitives](/schemas/primitives) - Primitive types used as field defaults

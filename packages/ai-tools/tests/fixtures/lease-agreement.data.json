@@ -1,0 +1,25 @@
+{
+  "fields": {
+    "address": {
+      "line1": "123 Oak Street, Unit 4B",
+      "locality": "San Francisco",
+      "region": "CA",
+      "postalCode": "94102",
+      "country": "US"
+    },
+    "propertyType": "apartment",
+    "bedrooms": 2,
+    "startDate": "2025-02-01",
+    "leaseTerm": "P12M",
+    "monthlyRent": { "amount": 2800, "currency": "USD" },
+    "petsAllowed": true,
+    "smokingAllowed": false
+  },
+  "parties": {
+    "landlord": { "id": "landlord-1", "name": "Alice Chen" },
+    "tenant": [
+      { "id": "tenant-1", "name": "Bob Smith" },
+      { "id": "tenant-2", "name": "Carol Johnson" }
+    ]
+  }
+}

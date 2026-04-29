@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/coordinate.json",
+  "type": "object",
+  "properties": {
+    "lat": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90,
+      "description": "Latitude in decimal degrees (WGS84), range -90 (South Pole) to 90 (North Pole)"
+    },
+    "lon": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180,
+      "description": "Longitude in decimal degrees (WGS84), range -180 (west) to 180 (east)"
+    }
+  },
+  "required": [
+    "lat",
+    "lon"
+  ],
+  "additionalProperties": false,
+  "id": "Coordinate",
+  "title": "Coordinate"
+}

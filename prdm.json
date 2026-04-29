@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "name": "Paradoc",
+  "database": "platform/_docs/prd.db",
+  "narratives": "platform/_docs/narratives",
+  "architecture": "platform/_docs/architecture.md",
+  "overview": "platform/_docs/overview.md"
+}

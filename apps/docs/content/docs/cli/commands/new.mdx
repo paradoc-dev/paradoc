@@ -1,0 +1,129 @@
+---
+title: new
+description: Create new Paradoc artifacts
+ogTitle: para new
+ogDescription: Scaffold new forms, documents, checklists, and bundles
+---
+
+Creates new Paradoc artifacts with interactive prompts or command-line options.
+
+# Usage
+
+```bash
+para new <type> <name> [options]
+```
+
+# Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `form` | Create a new form artifact |
+| `document` | Create a new document artifact |
+| `checklist` | Create a new checklist artifact |
+| `bundle` | Create a new bundle artifact |
+
+---
+
+# new form
+
+Create a new form artifact.
+
+```bash
+para new form <name> [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Non-interactive mode (skip prompts) |
+| `--slug <slug>` | Override auto-generated slug |
+| `--title <title>` | Human-readable title |
+| `--description <desc>` | Description |
+| `--code <code>` | Code/reference |
+| `--artifact-version <version>` | Version (default: 1.0.0) |
+| `--dir <path>` | Custom output directory |
+| `--field <name:type>` | Add field (can be used multiple times) |
+| `--dry-run` | Preview without creating files |
+| `--format <format>` | Output format: `json` or `yaml` (default: json) |
+
+## Examples
+
+Interactive form creation:
+
+```bash
+para new form my-form
+```
+
+Non-interactive with options:
+
+```bash
+para new form lease-agreement \
+  --yes \
+  --title "Lease Agreement" \
+  --field "address:address" \
+  --field "rent:money" \
+  --format yaml
+```
+
+---
+
+# new document
+
+Create a new document artifact.
+
+```bash
+para new document <name> [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Non-interactive mode |
+| `--slug <slug>` | Override auto-generated slug |
+| `--format <format>` | Output format: `json` or `yaml` |
+| `--dry-run` | Preview without creating files |
+
+---
+
+# new checklist
+
+Create a new checklist artifact.
+
+```bash
+para new checklist <name> [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Non-interactive mode |
+| `--slug <slug>` | Override auto-generated slug |
+| `--format <format>` | Output format: `json` or `yaml` |
+| `--dry-run` | Preview without creating files |
+
+---
+
+# new bundle
+
+Create a new bundle artifact.
+
+```bash
+para new bundle <name> [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Non-interactive mode |
+| `--slug <slug>` | Override auto-generated slug |
+| `--format <format>` | Output format: `json` or `yaml` |
+| `--dry-run` | Preview without creating files |
+
+# See also
+
+- [validate](/cli/commands/validate) - Validate created artifacts
+- [fix](/cli/commands/fix) - Fix artifact issues

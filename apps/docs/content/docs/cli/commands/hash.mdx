@@ -1,0 +1,71 @@
+---
+title: hash
+description: Compute file checksums
+ogTitle: para hash
+ogDescription: Compute SHA256 checksums for use in Paradoc layer definitions
+---
+
+Compute a SHA256 checksum of a file, formatted for use in layer definitions.
+
+# Usage
+
+```bash
+para hash <file> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `file` | File to compute hash for, or `-` for stdin |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+| `-a, --algorithm <algorithm>` | Hash algorithm (default: `sha256`) |
+
+# Description
+
+Computes the SHA256 checksum of a file and outputs it in the `sha256:<hex>` format used by Paradoc layer definitions. This is useful when manually adding file-backed layers to artifacts.
+
+# Examples
+
+Hash a PDF file:
+
+```bash
+para hash lease-template.pdf
+```
+
+Output:
+
+```
+sha256:a3f2b8c4e5d6...
+```
+
+JSON output:
+
+```bash
+para hash lease-template.pdf --json
+```
+
+```json
+{
+  "checksum": "sha256:a3f2b8c4e5d6...",
+  "algorithm": "sha256",
+  "hash": "a3f2b8c4e5d6...",
+  "path": "lease-template.pdf"
+}
+```
+
+Hash from stdin:
+
+```bash
+cat file.pdf | para hash -
+```
+
+# See also
+
+- [fix](/cli/commands/fix) - Auto-compute checksums for all layers in an artifact
+- [attach](/cli/commands/attach) - Attach files to artifacts as layers

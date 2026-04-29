@@ -1,0 +1,91 @@
+{
+  "name": "@paradoc/renderers",
+  "version": "0.1.0",
+  "description": "Umbrella package for Paradoc framework renderers - re-exports all renderers from @paradoc/renderer-docx, @paradoc/renderer-pdf, and @paradoc/renderer-text",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./pdf": {
+      "types": "./dist/pdf.d.ts",
+      "import": "./dist/pdf.js",
+      "default": "./dist/pdf.js"
+    },
+    "./docx": {
+      "types": "./dist/docx.d.ts",
+      "import": "./dist/docx.js",
+      "default": "./dist/docx.js"
+    },
+    "./text": {
+      "types": "./dist/text.d.ts",
+      "import": "./dist/text.js",
+      "default": "./dist/text.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "paradoc",
+    "forms",
+    "rendering",
+    "renderers"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Paradoc",
+    "url": "https://paradoc.dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git",
+    "directory": "packages/renderers"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean",
+    "pack:dry": "pnpm run build && npm pack --dry-run",
+    "prepublishOnly": "pnpm run build",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\""
+  },
+  "dependencies": {
+    "@paradoc/renderer-docx": "workspace:*",
+    "@paradoc/renderer-pdf": "workspace:*",
+    "@paradoc/renderer-text": "workspace:*"
+  },
+  "devDependencies": {
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

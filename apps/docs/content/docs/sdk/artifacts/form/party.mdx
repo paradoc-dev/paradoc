@@ -1,0 +1,329 @@
+---
+title: party
+description: Define signing roles and signature requirements
+---
+
+Define party roles for signatories with signature configuration. Parties represent roles like "buyer", "seller", or "guarantor" that can be filled by persons or organizations at runtime.
+
+Party data format is determined by `max`:
+- `max = 1` (default): single party object with required `id`
+- `max > 1`: array of party objects, each with required `id`
+
+# Examples
+
+## Creating parties
+
+```ts
+// Single signer with signature requirement
+const buyer = party()
+  .label('Buyer')
+  .partyType('person')
+  .signature({ required: true })
+  .build()
+
+// Organization signer with witness requirement
+const company = party()
+  .label('Company')
+  .partyType('organization')
+  .description('The selling organization')
+  .signature({ required: true, witnesses: 1 })
+  .build()
+
+// Multiple allowed (e.g., co-signers)
+const coOwners = party()
+  .label('Co-owners')
+  .min(1)
+  .max(4)  // max > 1 enables array format
+  .signature({ required: true })
+  .build()
+
+// Optional party (min: 0 allows empty)
+const coSigner = party()
+  .label('Co-signer')
+  .optional()  // sets min: 0
+  .signature({ required: true })
+  .build()
+
+// Conditional requirement
+const guarantor = party()
+  .label('Guarantor')
+  .required('needsGuarantor')
+  .signature({ required: true })
+  .build()
+
+// Notarized signature
+const affiant = party()
+  .label('Affiant')
+  .signature({ required: true, notarized: true })
+  .build()
+```
+
+## Adding parties to forms
+
+```ts
+// Object pattern
+const form = para.form({
+  name: 'purchase-agreement',
+  parties: {
+    buyer: {
+      label: 'Buyer',
+      partyType: 'person',
+      signature: { required: true }
+    },
+    seller: {
+      label: 'Seller',
+      partyType: 'any',
+      signature: { required: true, witnesses: 2 }
+    }
+  }
+})
+
+// Builder pattern
+const form = para.form()
+  .name('purchase-agreement')
+  .party('buyer', party()
+    .label('Buyer')
+    .partyType('person')
+    .signature({ required: true })
+    .build())
+  .party('seller', party()
+    .label('Seller')
+    .signature({ required: true, witnesses: 2 })
+    .build())
+  .build()
+```
+
+# API
+
+## Object Pattern
+
+Create party definitions directly as objects:
+
+```ts
+const partyDef: FormParty = {
+  label: 'Buyer',
+  description: 'The purchasing party',
+  partyType: 'person',
+  min: 1,
+  max: 1,  // default, single party
+  required: true,
+  signature: {
+    required: true,
+    witnesses: 1,
+    notarized: false
+  }
+}
+```
+
+### FormParty Properties
+
+<PropertiesTable properties={[
+  { name: 'label', type: 'string', description: 'Human-readable role name' },
+  { name: 'description', type: 'string', description: 'Description of this role', isOptional: true },
+  { name: 'partyType', type: "'person' | 'organization' | 'any'", description: 'Constraint on party type', isOptional: true },
+  { name: 'min', type: 'number', description: 'Minimum parties required. Defaults to 1', isOptional: true },
+  { name: 'max', type: 'number', description: 'Maximum parties allowed. Defaults to 1. When max > 1, party data must be an array', isOptional: true },
+  { name: 'required', type: 'boolean | string', description: 'Whether this role is required. Can be an expression.', isOptional: true },
+  { name: 'signature', type: 'FormSignature', description: 'Signature requirements', isOptional: true },
+]} />
+
+### FormSignature Properties
+
+<PropertiesTable properties={[
+  { name: 'required', type: 'boolean', description: 'Whether signature is required for this role', isOptional: true },
+  { name: 'witnesses', type: 'number', description: 'Number of witnesses required for this signature', isOptional: true },
+  { name: 'notarized', type: 'boolean', description: 'Whether at least one witness must be a notary', isOptional: true },
+]} />
+
+## Builder Pattern
+
+Chain methods to build a party incrementally:
+
+<MethodChain
+  starter="party()"
+  methods={[
+    { name: 'label', params: 'value: string', description: 'Set role display name (required)' },
+    { name: 'description', params: 'value: string', description: 'Set role description' },
+    { name: 'partyType', params: "value: 'person' | 'organization' | 'any'", description: 'Constrain party type' },
+    { name: 'min', params: 'value: number', description: 'Set minimum parties required (default: 1)' },
+    { name: 'max', params: 'value: number', description: 'Set maximum parties allowed (default: 1). When > 1, party data is an array' },
+    { name: 'optional', params: '', description: 'Set min to 0, making this party optional' },
+    { name: 'required', params: 'value?: boolean | string', description: 'Mark as required (default: true). Accepts expression.' },
+    { name: 'signature', params: 'value: FormSignature', description: 'Set signature requirements' },
+    { name: 'from', params: 'value: FormParty', description: 'Initialize from existing party' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'PartyBuilder', terminal: 'FormParty' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'FormParty', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<FormParty>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Party Types
+
+| Type | Description |
+|------|-------------|
+| `person` | Individual person (natural person) |
+| `organization` | Company, business, or legal entity |
+| `any` | Either person or organization (default) |
+
+# Signature Requirements
+
+Use the `signature` property to specify requirements for this party's signature:
+
+```ts
+// Basic signature requirement
+party()
+  .label('Signer')
+  .signature({ required: true })
+  .build()
+
+// With witnesses
+party()
+  .label('Borrower')
+  .signature({ required: true, witnesses: 2 })
+  .build()
+
+// Notarized signature
+party()
+  .label('Affiant')
+  .signature({ required: true, notarized: true })
+  .build()
+
+// Notarized with witness
+party()
+  .label('Declarant')
+  .signature({ required: true, witnesses: 1, notarized: true })
+  .build()
+```
+
+# Multiple Parties
+
+Allow multiple parties to fill a single role by setting `max > 1`:
+
+```ts
+const form = para.form()
+  .name('joint-account')
+  .party('accountHolders', party()
+    .label('Account Holders')
+    .min(1)   // At least 1 required
+    .max(4)   // Up to 4 allowed (enables array format)
+    .signature({ required: true })  // All must sign
+    .build())
+  .build()
+```
+
+When `max > 1`, the party data at runtime must be an array:
+
+```ts
+const filled = form.fill({
+  fields: { /* ... */ },
+  parties: {
+    accountHolders: [
+      { id: 'accountHolders-0', name: 'Jane Smith' },
+      { id: 'accountHolders-1', name: 'John Smith' }
+    ]
+  }
+})
+```
+
+# Conditional Parties
+
+Use defs for conditional party requirements:
+
+```ts
+const form = para.form()
+  .name('loan-application')
+  .def('needsGuarantor', 'loanAmount > 100000')
+  .party('borrower', party()
+    .label('Borrower')
+    .signature({ required: true })
+    .build())
+  .party('guarantor', party()
+    .label('Guarantor')
+    .required('needsGuarantor')
+    .signature({ required: true })
+    .build())
+  .build()
+```
+
+# Runtime Party Types
+
+At runtime, parties are represented using the `Party` and `RuntimeParty` types.
+
+## Party
+
+The base `Party` type is a union of `Person` or `Organization`:
+
+```typescript
+type Party = Person | Organization
+```
+
+Party type is inferred from shape:
+- **Person**: Has `name` property (a natural person)
+- **Organization**: Has `name` property plus `legalName`, `entityType`, etc.
+
+## RuntimeParty
+
+`RuntimeParty` extends `Party` with a required `id` field for tracking in the execution context:
+
+```typescript
+type RuntimeParty = (Person | Organization) & {
+  id: string  // Unique identifier for this party
+}
+```
+
+The ID convention is `{roleId}-{index}`:
+
+```ts
+// Fill a form with party data (single parties)
+const filled = form.fill({
+  fields: { /* ... */ },
+  parties: {
+    buyer: {
+      id: 'buyer-0',  // Required ID
+      name: 'John Smith',
+      firstName: 'John',
+      lastName: 'Smith'
+    },
+    seller: {
+      id: 'seller-0',  // Required ID
+      name: 'Acme Corporation, Inc.',
+      entityType: 'corporation'
+    }
+  }
+})
+```
+
+You can also use the primitive builders with the `id` field:
+
+```ts
+const filled = form.fill({
+  fields: { /* ... */ },
+  parties: {
+    buyer: {
+      id: 'buyer-0',
+      ...para.person().name('John Smith').build()
+    },
+    seller: {
+      id: 'seller-0',
+      ...para.organization()
+        .name('Acme Corp')
+        .legalName('Acme Corporation, Inc.')
+        .build()
+    }
+  }
+})
+```
+
+# Related
+
+- [form](/sdk/artifacts/form) - Parent form artifact
+- [person](/sdk/primitives/person) - Person primitive for filling party roles
+- [organization](/sdk/primitives/organization) - Organization primitive for filling party roles
+- [signing](/sdk/artifacts/form/signing) - Signing flow and signature types
+- [Party Schema](/schemas/artifacts/form/party)

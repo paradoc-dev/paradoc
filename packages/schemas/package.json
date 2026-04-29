@@ -1,0 +1,83 @@
+{
+  "name": "@paradoc/schemas",
+  "version": "0.1.0",
+  "description": "JSON Schema definitions for Paradoc framework artifacts, blocks, and primitives",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./schema.json": "./schemas/schema.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "schemas",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "paradoc",
+    "forms",
+    "json-schema",
+    "schemas",
+    "zod",
+    "validation"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Paradoc",
+    "url": "https://paradoc.dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git",
+    "directory": "packages/schemas"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf schemas/paradoc.schema.json dist",
+    "pack:dry": "npm pack --dry-run",
+    "prepublishOnly": "pnpm run build",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\"",
+    "export:bundled-schema": "tsx scripts/export-root-schema-zod.ts",
+    "export:individual-schemas": "tsx scripts/export-all-schemas-zod.ts",
+    "export:manifest": "tsx scripts/export-manifest-schema-zod.ts",
+    "export:registry": "tsx scripts/export-registry-schemas-zod.ts",
+    "export:all": "pnpm export:bundled-schema && pnpm export:individual-schemas && pnpm export:manifest && pnpm export:registry"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "zod": "catalog:",
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/types": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "tsup": "catalog:",
+    "tsx": "^4.20.6",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

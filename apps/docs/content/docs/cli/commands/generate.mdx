@@ -1,0 +1,82 @@
+---
+title: generate
+description: Generate TypeScript types for artifacts
+ogTitle: para generate
+ogDescription: Generate TypeScript declarations and modules from Paradoc artifacts
+---
+
+Generate TypeScript types for an artifact file.
+
+# Usage
+
+```bash
+para generate <file> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `file` | Path to artifact file (JSON or YAML) |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--output <format>` | Output format: `typed` (.d.ts) or `ts` (TypeScript module). Default: `typed` |
+
+# Description
+
+Reads an artifact file and generates TypeScript type declarations for it. This enables type-safe imports in your application code.
+
+Two output formats are available:
+
+- **typed** (default) - Generates a `.d.ts` declaration file alongside the JSON artifact. If the input is YAML, a JSON copy is also generated.
+- **ts** - Generates a standalone TypeScript module with the artifact embedded as `as const`, preserving full literal types.
+
+# Examples
+
+Generate `.d.ts` from JSON:
+
+```bash
+para generate artifacts/w9-form.json
+```
+
+Generate `.d.ts` from YAML:
+
+```bash
+para generate artifacts/lease.yaml
+```
+
+Generate TypeScript module:
+
+```bash
+para generate artifacts/w9-form.json --output ts
+```
+
+# Output
+
+For `typed` output:
+
+```
+✓ Generated: artifacts/w9-form.json.d.ts
+
+You can now import the artifact with full type safety:
+  import schema from './w9-form.json'
+  import { para } from '@paradoc/sdk'
+  const w9Form = para.form(schema)
+```
+
+For `ts` output:
+
+```
+✓ Generated: artifacts/w9-form.ts
+
+You can now import the artifact with full type safety:
+  import { w9Form } from './w9-form.js'
+```
+
+# See also
+
+- [add](/cli/commands/add) - Add artifacts from a registry (supports `--output typed` and `--output ts`)
+- [validate](/cli/commands/validate) - Validate artifact schemas

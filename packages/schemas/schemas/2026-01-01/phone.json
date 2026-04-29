@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/phone.json",
+  "type": "object",
+  "properties": {
+    "number": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 16,
+      "pattern": "^\\+[1-9]\\d{1,14}$",
+      "description": "Phone number in E.164 international format (e.g., +14155552671)"
+    },
+    "type": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "Type or category of phone number (e.g., mobile, work, home)"
+    },
+    "extension": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20,
+      "description": "Phone extension or extension number"
+    }
+  },
+  "required": [
+    "number"
+  ],
+  "additionalProperties": false,
+  "id": "Phone",
+  "title": "Phone"
+}

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Paradoc CLI wrapper for local development testing
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+exec tsx "$DIR/../../src/index.ts" "$@"

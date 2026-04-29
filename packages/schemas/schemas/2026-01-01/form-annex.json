@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/formannex.json",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Title or heading for the annex slot"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "Description of what document should be attached"
+    },
+    "required": {
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+    },
+    "visible": {
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+    },
+    "order": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Display order for rendering"
+    }
+  },
+  "additionalProperties": false,
+  "id": "FormAnnex",
+  "title": "FormAnnex"
+}

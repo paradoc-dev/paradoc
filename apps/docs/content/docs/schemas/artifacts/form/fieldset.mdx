@@ -1,0 +1,149 @@
+---
+title: FormFieldset
+description: Logical grouping of fields rendered as a section
+---
+
+FormFieldset defines a logical grouping of fields that are rendered together as a section. Unlike `FieldsetField` (which is a field type with `type: "fieldset"`), FormFieldset is a top-level grouping construct with its own identifier.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'id',
+    type: 'string',
+    description: 'Fieldset identifier (slug)',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Title/heading for the fieldset',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Description/help text for the fieldset',
+    isOptional: true,
+  },
+  {
+    name: 'fields',
+    type: 'Record<string, FormField>',
+    description: 'Map of field identifiers to field definitions',
+  },
+  {
+    name: 'required',
+    type: 'boolean',
+    description: 'Whether completion of the entire fieldset is required',
+    isOptional: true,
+  },
+  {
+    name: 'order',
+    type: 'number',
+    description: 'Display order hint (lower numbers first)',
+    isOptional: true,
+  },
+]} />
+
+# FormFieldset vs FieldsetField
+
+| Type | Usage | Location |
+|------|-------|----------|
+| `FormFieldset` | Top-level section grouping with its own `id` | Standalone grouping construct |
+| `FieldsetField` | Nested field with `type: "fieldset"` | Inside `form.fields` record |
+
+Use `FormFieldset` when you need a named section with explicit ordering. Use `FieldsetField` when you want nested fields within the form's field hierarchy.
+
+# Examples
+
+```yaml tab="YAML"
+fieldsets:
+  - id: personal-info
+    title: Personal Information
+    description: Basic contact details
+    order: 1
+    required: true
+    fields:
+      firstName:
+        type: text
+        label: First Name
+        required: true
+      lastName:
+        type: text
+        label: Last Name
+        required: true
+      email:
+        type: email
+        label: Email Address
+        required: true
+
+  - id: employment
+    title: Employment Details
+    description: Current employment information
+    order: 2
+    fields:
+      employer:
+        type: text
+        label: Employer Name
+      jobTitle:
+        type: text
+        label: Job Title
+      annualIncome:
+        type: money
+        label: Annual Income
+```
+
+```json tab="JSON"
+{
+  "fieldsets": [
+    {
+      "id": "personal-info",
+      "title": "Personal Information",
+      "description": "Basic contact details",
+      "order": 1,
+      "required": true,
+      "fields": {
+        "firstName": {
+          "type": "text",
+          "label": "First Name",
+          "required": true
+        },
+        "lastName": {
+          "type": "text",
+          "label": "Last Name",
+          "required": true
+        },
+        "email": {
+          "type": "email",
+          "label": "Email Address",
+          "required": true
+        }
+      }
+    },
+    {
+      "id": "employment",
+      "title": "Employment Details",
+      "description": "Current employment information",
+      "order": 2,
+      "fields": {
+        "employer": {
+          "type": "text",
+          "label": "Employer Name"
+        },
+        "jobTitle": {
+          "type": "text",
+          "label": "Job Title"
+        },
+        "annualIncome": {
+          "type": "money",
+          "label": "Annual Income"
+        }
+      }
+    }
+  ]
+}
+```
+
+# Related
+
+- [FormField](/schemas/artifacts/form/field) - Field definitions including FieldsetField
+- [Form](/schemas/artifacts/form) - Form artifact overview

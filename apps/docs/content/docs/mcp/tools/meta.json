@@ -1,0 +1,15 @@
+{
+  "title": "Tools",
+  "pages": [
+    "index",
+    "validate",
+    "fill",
+    "render",
+    "list-artifacts",
+    "get-artifact",
+    "list-registries",
+    "get-registry",
+    "search"
+  ],
+  "defaultOpen": false
+}

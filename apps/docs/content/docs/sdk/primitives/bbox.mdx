@@ -1,0 +1,152 @@
+---
+title: bbox
+description: Build and validate bounding boxes
+---
+
+Build and validate geographic bounding boxes. The Bbox primitive defines a rectangular area using southwest and northeast corner coordinates.
+
+# Examples
+
+## Creating bounding boxes
+
+```ts
+// Object pattern
+const area = para.bbox({
+  southWest: { lat: 40.7128, lon: -74.0060 },
+  northEast: { lat: 40.7580, lon: -73.9855 }
+})
+
+// Builder pattern
+const area = para.bbox()
+  .southWest({ lat: 40.7128, lon: -74.0060 })
+  .northEast({ lat: 40.7580, lon: -73.9855 })
+  .build()
+
+// Using bounds shorthand
+const area = para.bbox()
+  .bounds(
+    { lat: 40.7128, lon: -74.0060 },
+    { lat: 40.7580, lon: -73.9855 }
+  )
+  .build()
+
+// Copy and modify
+const expanded = para.bbox()
+  .from(area)
+  .northEast({ lat: 40.8000, lon: -73.9500 })
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const area = para.bbox.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.bbox.safeParse(jsonData)
+if (result.success) {
+  console.log(`SW: ${result.data.southWest.lat}, ${result.data.southWest.lon}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'property',
+  fields: {
+    propertyBounds: { type: 'bbox', label: 'Property Boundaries' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    propertyBounds: para.bbox()
+      .bounds(
+        { lat: 34.0522, lon: -118.2437 },
+        { lat: 34.0622, lon: -118.2337 }
+      )
+      .build()
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.bbox(input: Bbox): Bbox
+```
+
+Pass a Bbox object for validation. Returns the validated Bbox or throws on error.
+
+```ts
+const area = para.bbox({
+  southWest: { lat: 51.5074, lon: -0.1278 },
+  northEast: { lat: 51.5174, lon: -0.1178 }
+})
+```
+
+## Builder Pattern
+
+Chain methods to build a Bbox value incrementally:
+
+<MethodChain
+  starter="para.bbox()"
+  methods={[
+    { name: 'southWest', params: 'value: Coordinate', description: 'Set southwest corner' },
+    { name: 'northEast', params: 'value: Coordinate', description: 'Set northeast corner' },
+    { name: 'bounds', params: 'sw: Coordinate, ne: Coordinate', description: 'Set both corners at once' },
+    { name: 'from', params: 'value: Bbox', description: 'Initialize from existing Bbox' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'BboxBuilder', terminal: 'Bbox' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Bbox', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Bbox>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'southWest', type: 'Coordinate', description: 'Southwest corner of the bounding box.' },
+  { name: 'northEast', type: 'Coordinate', description: 'Northeast corner of the bounding box.' },
+]} />
+
+# Validation
+
+The Bbox primitive validates:
+
+- `southWest` must be a valid Coordinate
+- `northEast` must be a valid Coordinate
+- Both coordinates must have valid lat/lon values
+
+```ts
+// Valid
+para.bbox({
+  southWest: { lat: 40.7128, lon: -74.0060 },
+  northEast: { lat: 40.7580, lon: -73.9855 }
+})
+
+// Invalid - throws Error
+para.bbox({
+  southWest: { lat: 91, lon: -74 },  // Invalid latitude
+  northEast: { lat: 40, lon: -73 }
+})
+// Error: Invalid Bbox: southWest latitude must be between -90 and 90
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Coordinate](/sdk/primitives/coordinate) - Coordinate primitive used by Bbox
+- [Bbox Field](/sdk/artifacts/form/field#bbox) - Bbox field type
+- [Bbox Schema](/schemas/primitives/bbox) - JSON Schema definition

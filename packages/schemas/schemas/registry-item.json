@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/registry-item.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "JSON Schema URI for validation"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "form"
+        },
+        {
+          "type": "string",
+          "const": "document"
+        },
+        {
+          "type": "string",
+          "const": "checklist"
+        },
+        {
+          "type": "string",
+          "const": "bundle"
+        }
+      ],
+      "description": "Artifact kind"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-_]*$",
+      "description": "Artifact name"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+",
+      "description": "Semantic version"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Human-readable title"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Artifact description"
+    },
+    "layers": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "Layer key"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/RegistryLayer"
+      },
+      "description": "Available layers"
+    },
+    "defaultLayer": {
+      "type": "string",
+      "description": "Default layer key"
+    }
+  },
+  "required": [
+    "kind",
+    "name",
+    "version"
+  ],
+  "additionalProperties": {},
+  "title": "Paradoc Registry Item",
+  "description": "Schema for registry item files (r/{name}.json)",
+  "$defs": {
+    "RegistryLayer": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RegistryInlineLayer"
+        },
+        {
+          "$ref": "#/$defs/RegistryFileLayer"
+        }
+      ],
+      "title": "RegistryLayer",
+      "description": "Layer in a registry item - inline or file with URL"
+    },
+    "RegistryInlineLayer": {
+      "type": "object",
+      "properties": {
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "MIME type of the layer content"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title for this layer"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Description of what this layer represents"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA-256 checksum for integrity verification"
+        },
+        "bindings": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Mapping from form field names to template identifiers"
+        },
+        "kind": {
+          "type": "string",
+          "const": "inline"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000000,
+          "description": "Layer content with interpolation placeholders"
+        }
+      },
+      "required": [
+        "mimeType",
+        "kind",
+        "text"
+      ],
+      "additionalProperties": false,
+      "title": "RegistryInlineLayer",
+      "description": "Inline layer with embedded content"
+    },
+    "RegistryFileLayer": {
+      "type": "object",
+      "properties": {
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "MIME type of the layer content"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title for this layer"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Description of what this layer represents"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA-256 checksum for integrity verification"
+        },
+        "bindings": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Mapping from form field names to template identifiers"
+        },
+        "kind": {
+          "type": "string",
+          "const": "file"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Relative path for the layer file when installed"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to download the layer file from"
+        }
+      },
+      "required": [
+        "mimeType",
+        "kind",
+        "path",
+        "url"
+      ],
+      "additionalProperties": false,
+      "title": "RegistryFileLayer",
+      "description": "File-backed layer with download URL"
+    }
+  }
+}

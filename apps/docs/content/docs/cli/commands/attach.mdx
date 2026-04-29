@@ -1,0 +1,129 @@
+---
+title: attach
+description: Attach files to artifacts as layers or content references
+ogTitle: para attach
+ogDescription: Add file-backed layers and content references to Paradoc artifacts
+---
+
+Attaches a file to an artifact as a layer or content reference.
+
+# Usage
+
+```bash
+para attach <artifact> <file> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Artifact file (JSON/YAML) to attach file to |
+| `file` | File to attach (PDF, image, Markdown, etc.) |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Skip interactive prompts |
+| `-n, --name <name>` | Layer name (key in layers object) |
+| `-t, --title <title>` | Human-readable title |
+| `-d, --description <desc>` | Description text |
+| `-m, --mime-type <type>` | Override auto-detected MIME type |
+| `--dry-run` | Show what would be changed without modifying the file |
+| `--as <target>` | Attach as: `layer` (default), `instructions`, or `agent-instructions` |
+
+# Description
+
+The `attach` command adds a file reference to an artifact. It computes the relative path from the artifact directory and a SHA-256 checksum, then writes the result back to the artifact file.
+
+By default, the file is attached as a **layer**. Use `--as instructions` or `--as agent-instructions` to attach the file as a content reference instead.
+
+In interactive mode (without `-y`), the command prompts for a layer name, title, and description. The layer name defaults to a sanitized version of the filename. In non-interactive mode, a name is derived automatically or can be set with `--name`.
+
+If the target content reference already exists, you will be prompted to confirm the overwrite (unless `-y` is set).
+
+MIME type is auto-detected from the file extension. Use `--mime-type` to override.
+
+# Examples
+
+Attach a PDF as a layer (interactive):
+
+```bash
+para attach my-form.yaml ./lease-template.pdf
+```
+
+Attach a layer with explicit options:
+
+```bash
+para attach my-form.yaml ./lease-template.pdf --name pdf --title "Lease Template" -y
+```
+
+Attach a file as instructions:
+
+```bash
+para attach my-form.yaml ./instructions.md --as instructions
+```
+
+Attach a file as agent instructions:
+
+```bash
+para attach my-form.yaml ./agent-guide.md --as agent-instructions
+```
+
+Preview changes without writing:
+
+```bash
+para attach my-form.yaml ./lease-template.pdf --dry-run
+```
+
+# Output
+
+When attaching as a layer:
+
+```
+Attach File to Artifact
+
+File: ./lease-template.pdf
+MIME type: application/pdf
+Checksum: sha256:abc123...
+
+Layer to add:
+  layers.pdf:
+    kind: file
+    path: ./lease-template.pdf
+    mimeType: application/pdf
+    checksum: sha256:abc123...
+
+Attached "pdf" layer to: my-form.yaml
+```
+
+When attaching as a content reference:
+
+```
+Content reference to set:
+  instructions:
+    kind: file
+    path: ./instructions.md
+    mimeType: text/markdown
+    checksum: sha256:def456...
+
+Set "instructions" on: my-form.yaml
+```
+
+# Supported file types
+
+| Type | MIME Type |
+|------|-----------|
+| PDF | `application/pdf` |
+| PNG | `image/png` |
+| JPEG | `image/jpeg` |
+| GIF | `image/gif` |
+| SVG | `image/svg+xml` |
+| HTML | `text/html` |
+| Markdown | `text/markdown` |
+
+# See also
+
+- [detach](/cli/commands/detach) - Remove layers or content references
+- [fix](/cli/commands/fix) - Compute checksums for attached files
+- [render](/cli/commands/render) - Render artifact layers

@@ -1,0 +1,4962 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01.json",
+  "title": "Paradoc Schema",
+  "description": "Paradoc JSON Schema specification version 2026-01-01",
+  "$ref": "#/$defs/Paradoc",
+  "$defs": {
+    "FieldsetField": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Display label for the field"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Description or help text for the field"
+        },
+        "required": {
+          "$ref": "#/$defs/CondExpr"
+        },
+        "visible": {
+          "$ref": "#/$defs/CondExpr"
+        },
+        "type": {
+          "type": "string",
+          "const": "fieldset"
+        },
+        "fields": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Nested field identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "minLength": {
+                        "type": "number",
+                        "description": "Minimum length"
+                      },
+                      "maxLength": {
+                        "type": "number",
+                        "description": "Maximum length"
+                      },
+                      "pattern": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Regular expression pattern for validation"
+                      },
+                      "default": {
+                        "type": "string",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "boolean"
+                      },
+                      "default": {
+                        "type": "boolean",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "min": {
+                        "type": "number",
+                        "description": "Minimum value"
+                      },
+                      "max": {
+                        "type": "number",
+                        "description": "Maximum value"
+                      },
+                      "default": {
+                        "type": "number",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "coordinate"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Coordinate"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "bbox"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Bbox"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "money"
+                      },
+                      "min": {
+                        "type": "number",
+                        "description": "Minimum amount"
+                      },
+                      "max": {
+                        "type": "number",
+                        "description": "Maximum amount"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Money"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "address"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Address"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "phone"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Phone"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "duration"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Duration"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "email"
+                      },
+                      "minLength": {
+                        "type": "number",
+                        "description": "Minimum length"
+                      },
+                      "maxLength": {
+                        "type": "number",
+                        "description": "Maximum length"
+                      },
+                      "default": {
+                        "type": "string",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "uuid"
+                      },
+                      "minLength": {
+                        "type": "number",
+                        "description": "Minimum length"
+                      },
+                      "maxLength": {
+                        "type": "number",
+                        "description": "Maximum length"
+                      },
+                      "pattern": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Regular expression pattern for validation"
+                      },
+                      "default": {
+                        "type": "string",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "uri"
+                      },
+                      "minLength": {
+                        "type": "number",
+                        "description": "Minimum length"
+                      },
+                      "maxLength": {
+                        "type": "number",
+                        "description": "Maximum length"
+                      },
+                      "pattern": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Regular expression pattern for validation"
+                      },
+                      "default": {
+                        "type": "string",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "enum"
+                      },
+                      "enum": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "description": "Array of allowed values for the enum field"
+                      },
+                      "default": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "enum"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "date"
+                      },
+                      "min": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "description": "Minimum date (ISO 8601: YYYY-MM-DD)"
+                      },
+                      "max": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "description": "Maximum date (ISO 8601: YYYY-MM-DD)"
+                      },
+                      "default": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "datetime"
+                      },
+                      "min": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "description": "Minimum datetime (ISO 8601)"
+                      },
+                      "max": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "description": "Maximum datetime (ISO 8601)"
+                      },
+                      "default": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "time"
+                      },
+                      "min": {
+                        "type": "string",
+                        "description": "Minimum time (HH:MM:SS)"
+                      },
+                      "max": {
+                        "type": "string",
+                        "description": "Maximum time (HH:MM:SS)"
+                      },
+                      "default": {
+                        "type": "string",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "person"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Person"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "organization"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Organization"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "identification"
+                      },
+                      "allowedTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "Allowed ID types (e.g., passport, drivers_license)"
+                      },
+                      "default": {
+                        "$ref": "#/$defs/Identification"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "multiselect"
+                      },
+                      "enum": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "description": "Available options"
+                      },
+                      "min": {
+                        "type": "number",
+                        "description": "Minimum selections required"
+                      },
+                      "max": {
+                        "type": "number",
+                        "description": "Maximum selections allowed"
+                      },
+                      "default": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "description": "Default selected values"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "enum"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "percentage"
+                      },
+                      "min": {
+                        "type": "number",
+                        "description": "Minimum value (default: 0)"
+                      },
+                      "max": {
+                        "type": "number",
+                        "description": "Maximum value (default: 100)"
+                      },
+                      "precision": {
+                        "type": "number",
+                        "description": "Decimal places (default: 2)"
+                      },
+                      "default": {
+                        "type": "number",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": "Display label for the field"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "description": "Description or help text for the field"
+                      },
+                      "required": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "visible": {
+                        "$ref": "#/$defs/CondExpr"
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "rating"
+                      },
+                      "min": {
+                        "type": "number",
+                        "description": "Minimum value (default: 1)"
+                      },
+                      "max": {
+                        "type": "number",
+                        "description": "Maximum value (default: 5)"
+                      },
+                      "step": {
+                        "type": "number",
+                        "description": "Increment step (e.g., 0.5 for half stars, default: 1)"
+                      },
+                      "default": {
+                        "type": "number",
+                        "description": "Default value"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "$ref": "#/$defs/FieldsetField"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "type",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "Form": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "JSON Schema URI for this artifact instance."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
+          "description": "Unique artifact identifier. Must start with a letter or digit, can contain letters, numbers, and hyphens (no leading/trailing/consecutive hyphens)."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Artifact version (semantic versioning). Required for publishing to registry."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title. Recommended for published/shared artifacts and directory browsing."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000,
+          "description": "Detailed description or context for the artifact."
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Optional user-defined internal code."
+        },
+        "releaseDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+          "description": "Artifact release date"
+        },
+        "metadata": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+        },
+        "instructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)"
+        },
+        "agentInstructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "LLM/agent prompts for field ordering, grouping, tone, and presentation guidance"
+        },
+        "kind": {
+          "type": "string",
+          "const": "form"
+        },
+        "defs": {
+          "$ref": "#/$defs/DefsSection"
+        },
+        "rules": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Validation rule identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "expr": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Boolean expression that must evaluate to true for the form to be valid. Has access to field values directly (e.g., \"ssn or ein\") and defs section values."
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "description": "Error message displayed when the rule fails (expression evaluates to false)"
+              },
+              "severity": {
+                "default": "error",
+                "description": "Severity level: error (default) blocks submission, warning allows but warns",
+                "type": "string",
+                "enum": [
+                  "error",
+                  "warning"
+                ]
+              }
+            },
+            "required": [
+              "expr",
+              "message"
+            ],
+            "additionalProperties": false
+          },
+          "title": "RulesSection",
+          "description": "Form-level validation rules for cross-field constraints. Rules use expr-eval-fork expressions with direct access to field values and defs section values."
+        },
+        "fields": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Field identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/FormField"
+          },
+          "description": "Form field definitions keyed by field identifier. Fields define the input structure and validation rules for the form"
+        },
+        "layers": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Layer identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Layer"
+          },
+          "description": "Named layers for rendering this form into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
+        },
+        "defaultLayer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Key of the default layer to use when none specified at render time"
+        },
+        "allowAdditionalAnnexes": {
+          "default": false,
+          "description": "Whether additional ad-hoc annexes can be attached beyond those defined in the annexes record",
+          "type": "boolean"
+        },
+        "annexes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Annex identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/FormAnnex"
+          },
+          "description": "Predefined annex slots keyed by identifier. Each slot can be marked as required (must be filled at runtime) or optional"
+        },
+        "parties": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Party role identifier (e.g., buyer, seller, landlord, buyerRepresentative)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/FormParty"
+          },
+          "description": "Party role definitions keyed by role identifier. Each role specifies constraints on who can fill it (person/organization) and signature requirements."
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "Document": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "JSON Schema URI for this artifact instance."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
+          "description": "Unique artifact identifier. Must start with a letter or digit, can contain letters, numbers, and hyphens (no leading/trailing/consecutive hyphens)."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Artifact version (semantic versioning). Required for publishing to registry."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title. Recommended for published/shared artifacts and directory browsing."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000,
+          "description": "Detailed description or context for the artifact."
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Optional user-defined internal code."
+        },
+        "releaseDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+          "description": "Artifact release date"
+        },
+        "metadata": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+        },
+        "instructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)"
+        },
+        "agentInstructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "LLM/agent prompts for field ordering, grouping, tone, and presentation guidance"
+        },
+        "kind": {
+          "type": "string",
+          "const": "document"
+        },
+        "layers": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Layer identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Layer"
+          },
+          "description": "Named layers for rendering this document into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
+        },
+        "defaultLayer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Key of the default layer to use when none specified at render time"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "Bundle": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "JSON Schema URI for this artifact instance."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
+          "description": "Unique artifact identifier. Must start with a letter or digit, can contain letters, numbers, and hyphens (no leading/trailing/consecutive hyphens)."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Artifact version (semantic versioning). Required for publishing to registry."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title. Recommended for published/shared artifacts and directory browsing."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000,
+          "description": "Detailed description or context for the artifact."
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Optional user-defined internal code."
+        },
+        "releaseDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+          "description": "Artifact release date"
+        },
+        "metadata": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+        },
+        "instructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)"
+        },
+        "agentInstructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "LLM/agent prompts for field ordering, grouping, tone, and presentation guidance"
+        },
+        "kind": {
+          "type": "string",
+          "const": "bundle"
+        },
+        "defs": {
+          "$ref": "#/$defs/DefsSection"
+        },
+        "contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BundleContentItem"
+          },
+          "description": "Ordered bundle contents. Each item has a key and is either an inline artifact, path reference, or registry reference."
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "contents"
+      ],
+      "additionalProperties": false
+    },
+    "Checklist": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "JSON Schema URI for this artifact instance."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
+          "description": "Unique artifact identifier. Must start with a letter or digit, can contain letters, numbers, and hyphens (no leading/trailing/consecutive hyphens)."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Artifact version (semantic versioning). Required for publishing to registry."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title. Recommended for published/shared artifacts and directory browsing."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000,
+          "description": "Detailed description or context for the artifact."
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Optional user-defined internal code."
+        },
+        "releaseDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+          "description": "Artifact release date"
+        },
+        "metadata": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+        },
+        "instructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)"
+        },
+        "agentInstructions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "inline"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000000,
+                  "description": "Inline text content"
+                }
+              },
+              "required": [
+                "kind",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Path to the content file"
+                },
+                "mimeType": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "description": "MIME type of the file content"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Human-readable title"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "description": "Description of the content"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "kind",
+                "path",
+                "mimeType"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "title": "ContentRef",
+          "description": "LLM/agent prompts for field ordering, grouping, tone, and presentation guidance"
+        },
+        "kind": {
+          "type": "string",
+          "const": "checklist"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChecklistItem"
+          },
+          "description": "Array of checklist items. Each item represents a task, step, or requirement."
+        },
+        "layers": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Layer identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Layer"
+          },
+          "description": "Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
+        },
+        "defaultLayer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Key of the default layer to use when none specified at render time"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "BundleContentItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "inline"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+              "description": "Unique identifier for this content item, used to reference it in defs expressions"
+            },
+            "artifact": {
+              "description": "Inline artifact definition (document, form, checklist, or nested bundle)"
+            }
+          },
+          "required": [
+            "type",
+            "key",
+            "artifact"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+              "description": "Unique identifier for this content item, used to reference it in defs expressions"
+            },
+            "include": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "path"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Absolute path from repo root to the artifact file"
+            }
+          },
+          "required": [
+            "key",
+            "type",
+            "path"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+              "description": "Unique identifier for this content item, used to reference it in defs expressions"
+            },
+            "include": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "registry"
+            },
+            "slug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Resource slug in format @org/repo/resource or @org/repo/resource@version"
+            }
+          },
+          "required": [
+            "key",
+            "type",
+            "slug"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ChecklistItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Unique identifier for the checklist item (e.g., \"task-1\", \"step-a\"). Used to link to runtime status."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Title or label for the checklist item"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Detailed description or instructions for the item"
+        },
+        "status": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "boolean"
+                },
+                "default": {
+                  "type": "boolean",
+                  "description": "Default status value (true/false) for new instances"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false,
+              "title": "BooleanStatusSpec",
+              "description": "Boolean status (e.g., incomplete/complete) with an optional default value."
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "enum"
+                },
+                "options": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "description": "Internal status value (e.g., \"todo\", \"in-progress\", \"done\")"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256,
+                        "description": "Human-readable label for the status option"
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000,
+                        "description": "Optional description or help text for this status option"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Allowed status options"
+                },
+                "default": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "description": "Default status value for new instances (must match one of the option values)"
+                }
+              },
+              "required": [
+                "kind",
+                "options"
+              ],
+              "additionalProperties": false,
+              "title": "EnumStatusSpec",
+              "description": "Enum-based status with a set of allowed options and an optional default."
+            }
+          ],
+          "title": "StatusSpec",
+          "description": "Specification for how checklist item status should be represented (boolean or enum)."
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "FormField": {
+      "anyOf": [
+        {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "text"
+                },
+                "minLength": {
+                  "type": "number",
+                  "description": "Minimum length"
+                },
+                "maxLength": {
+                  "type": "number",
+                  "description": "Maximum length"
+                },
+                "pattern": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Regular expression pattern for validation"
+                },
+                "default": {
+                  "type": "string",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "boolean"
+                },
+                "default": {
+                  "type": "boolean",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "number"
+                },
+                "min": {
+                  "type": "number",
+                  "description": "Minimum value"
+                },
+                "max": {
+                  "type": "number",
+                  "description": "Maximum value"
+                },
+                "default": {
+                  "type": "number",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "coordinate"
+                },
+                "default": {
+                  "$ref": "#/$defs/Coordinate"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "bbox"
+                },
+                "default": {
+                  "$ref": "#/$defs/Bbox"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "money"
+                },
+                "min": {
+                  "type": "number",
+                  "description": "Minimum amount"
+                },
+                "max": {
+                  "type": "number",
+                  "description": "Maximum amount"
+                },
+                "default": {
+                  "$ref": "#/$defs/Money"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "address"
+                },
+                "default": {
+                  "$ref": "#/$defs/Address"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "phone"
+                },
+                "default": {
+                  "$ref": "#/$defs/Phone"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "duration"
+                },
+                "default": {
+                  "$ref": "#/$defs/Duration"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "email"
+                },
+                "minLength": {
+                  "type": "number",
+                  "description": "Minimum length"
+                },
+                "maxLength": {
+                  "type": "number",
+                  "description": "Maximum length"
+                },
+                "default": {
+                  "type": "string",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "uuid"
+                },
+                "minLength": {
+                  "type": "number",
+                  "description": "Minimum length"
+                },
+                "maxLength": {
+                  "type": "number",
+                  "description": "Maximum length"
+                },
+                "pattern": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Regular expression pattern for validation"
+                },
+                "default": {
+                  "type": "string",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "uri"
+                },
+                "minLength": {
+                  "type": "number",
+                  "description": "Minimum length"
+                },
+                "maxLength": {
+                  "type": "number",
+                  "description": "Maximum length"
+                },
+                "pattern": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Regular expression pattern for validation"
+                },
+                "default": {
+                  "type": "string",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "enum"
+                },
+                "enum": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "description": "Array of allowed values for the enum field"
+                },
+                "default": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type",
+                "enum"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "date"
+                },
+                "min": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Minimum date (ISO 8601: YYYY-MM-DD)"
+                },
+                "max": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Maximum date (ISO 8601: YYYY-MM-DD)"
+                },
+                "default": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "datetime"
+                },
+                "min": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                  "description": "Minimum datetime (ISO 8601)"
+                },
+                "max": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                  "description": "Maximum datetime (ISO 8601)"
+                },
+                "default": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "time"
+                },
+                "min": {
+                  "type": "string",
+                  "description": "Minimum time (HH:MM:SS)"
+                },
+                "max": {
+                  "type": "string",
+                  "description": "Maximum time (HH:MM:SS)"
+                },
+                "default": {
+                  "type": "string",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "person"
+                },
+                "default": {
+                  "$ref": "#/$defs/Person"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "organization"
+                },
+                "default": {
+                  "$ref": "#/$defs/Organization"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "identification"
+                },
+                "allowedTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Allowed ID types (e.g., passport, drivers_license)"
+                },
+                "default": {
+                  "$ref": "#/$defs/Identification"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "multiselect"
+                },
+                "enum": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "description": "Available options"
+                },
+                "min": {
+                  "type": "number",
+                  "description": "Minimum selections required"
+                },
+                "max": {
+                  "type": "number",
+                  "description": "Maximum selections allowed"
+                },
+                "default": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "description": "Default selected values"
+                }
+              },
+              "required": [
+                "type",
+                "enum"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "percentage"
+                },
+                "min": {
+                  "type": "number",
+                  "description": "Minimum value (default: 0)"
+                },
+                "max": {
+                  "type": "number",
+                  "description": "Maximum value (default: 100)"
+                },
+                "precision": {
+                  "type": "number",
+                  "description": "Decimal places (default: 2)"
+                },
+                "default": {
+                  "type": "number",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the field"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or help text for the field"
+                },
+                "required": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "visible": {
+                  "$ref": "#/$defs/CondExpr"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "rating"
+                },
+                "min": {
+                  "type": "number",
+                  "description": "Minimum value (default: 1)"
+                },
+                "max": {
+                  "type": "number",
+                  "description": "Maximum value (default: 5)"
+                },
+                "step": {
+                  "type": "number",
+                  "description": "Increment step (e.g., 0.5 for half stars, default: 1)"
+                },
+                "default": {
+                  "type": "number",
+                  "description": "Default value"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        {
+          "$ref": "#/$defs/FieldsetField"
+        }
+      ]
+    },
+    "FormAnnex": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Title or heading for the annex slot"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Description of what document should be attached"
+        },
+        "required": {
+          "$ref": "#/$defs/CondExpr"
+        },
+        "visible": {
+          "$ref": "#/$defs/CondExpr"
+        },
+        "order": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Display order for rendering"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FormParty": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Display name for this role"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Description of this role"
+        },
+        "partyType": {
+          "default": "any",
+          "description": "Constraint on party type",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "person"
+            },
+            {
+              "type": "string",
+              "const": "organization"
+            },
+            {
+              "type": "string",
+              "const": "any"
+            }
+          ]
+        },
+        "min": {
+          "default": 1,
+          "description": "Minimum parties required",
+          "type": "number",
+          "minimum": 0
+        },
+        "max": {
+          "default": 1,
+          "description": "Maximum parties allowed",
+          "type": "number",
+          "minimum": 1
+        },
+        "required": {
+          "$ref": "#/$defs/CondExpr"
+        },
+        "signature": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "default": false,
+              "description": "Whether signature is required for this role",
+              "type": "boolean"
+            },
+            "witnesses": {
+              "default": 0,
+              "description": "Number of witnesses required for this signature",
+              "type": "number",
+              "minimum": 0
+            },
+            "notarized": {
+              "default": false,
+              "description": "Whether at least one witness must be a notary",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "title": "FormSignature",
+          "description": "Design-time signature requirements for a party role"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "FormFieldset": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Title or heading for the fieldset"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Description or summary of the fieldset"
+        },
+        "fields": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Field identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/FormField"
+          }
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether fieldset is required"
+        },
+        "order": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Display order (lower numbers appear first)"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "Layer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "MIME type of the layer content (e.g., text/markdown, application/pdf)"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Human-readable title for this layer"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Description of what this layer represents"
+            },
+            "bindings": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Form field name (semantic identifier)"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "description": "Target identifier in the template"
+              },
+              "description": "Mapping from form field names to template target identifiers"
+            },
+            "bindingsFrom": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Key of a sibling layer whose bindings this layer reuses"
+            },
+            "signatureBlocks": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Location ID for the signature block"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "signature",
+                      "initials",
+                      "date"
+                    ],
+                    "description": "Type of signature block: signature, initials, or date"
+                  },
+                  "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991,
+                    "description": "1-based page number where this block appears"
+                  },
+                  "x": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "X coordinate in points from left edge of page"
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Y coordinate in points from top edge of page"
+                  },
+                  "width": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Width of the block in points"
+                  },
+                  "height": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Height of the block in points"
+                  },
+                  "partyRole": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Party role this block is bound to (e.g., \"taxpayer\", \"tenant\")"
+                  },
+                  "partyIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0-based index for multi-party roles. Defaults to 0 (first party)"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the block"
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "description": "Whether this block is required. Defaults to true"
+                  }
+                },
+                "required": [
+                  "type",
+                  "page",
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Pre-defined signature blocks keyed by locationId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "inline"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000000,
+              "description": "Layer content with interpolation placeholders (e.g., {{fieldName}})"
+            }
+          },
+          "required": [
+            "mimeType",
+            "kind",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "MIME type of the layer content (e.g., text/markdown, application/pdf)"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Human-readable title for this layer"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Description of what this layer represents"
+            },
+            "bindings": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Form field name (semantic identifier)"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "description": "Target identifier in the template"
+              },
+              "description": "Mapping from form field names to template target identifiers"
+            },
+            "bindingsFrom": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Key of a sibling layer whose bindings this layer reuses"
+            },
+            "signatureBlocks": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Location ID for the signature block"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "signature",
+                      "initials",
+                      "date"
+                    ],
+                    "description": "Type of signature block: signature, initials, or date"
+                  },
+                  "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991,
+                    "description": "1-based page number where this block appears"
+                  },
+                  "x": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "X coordinate in points from left edge of page"
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Y coordinate in points from top edge of page"
+                  },
+                  "width": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Width of the block in points"
+                  },
+                  "height": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Height of the block in points"
+                  },
+                  "partyRole": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Party role this block is bound to (e.g., \"taxpayer\", \"tenant\")"
+                  },
+                  "partyIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0-based index for multi-party roles. Defaults to 0 (first party)"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the block"
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "description": "Whether this block is required. Defaults to true"
+                  }
+                },
+                "required": [
+                  "type",
+                  "page",
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Pre-defined signature blocks keyed by locationId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "file"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Absolute path from repo root to the layer file"
+            },
+            "checksum": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "SHA-256 checksum for integrity verification"
+            }
+          },
+          "required": [
+            "mimeType",
+            "kind",
+            "path"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Address": {
+      "type": "object",
+      "properties": {
+        "line1": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Primary address line"
+        },
+        "line2": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Secondary address line"
+        },
+        "locality": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "City or locality name"
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "State, province, or region name"
+        },
+        "postalCode": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 20,
+          "pattern": "^[A-Z0-9\\s-]+$",
+          "description": "Postal or ZIP code"
+        },
+        "country": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100,
+          "description": "ISO 3166-1 country code (e.g., \"US\", \"GB\", \"FRA\") or full country name"
+        }
+      },
+      "required": [
+        "line1",
+        "locality",
+        "region",
+        "postalCode",
+        "country"
+      ],
+      "additionalProperties": false
+    },
+    "Attachment": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Original file name"
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "MIME type of the attached file"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA-256 checksum for integrity verification"
+        }
+      },
+      "required": [
+        "name",
+        "mimeType"
+      ],
+      "additionalProperties": false
+    },
+    "Bbox": {
+      "type": "object",
+      "properties": {
+        "southWest": {
+          "description": "Southwest corner coordinate (minimum latitude and longitude)",
+          "$ref": "#/$defs/Coordinate"
+        },
+        "northEast": {
+          "description": "Northeast corner coordinate (maximum latitude and longitude)",
+          "$ref": "#/$defs/Coordinate"
+        }
+      },
+      "required": [
+        "southWest",
+        "northEast"
+      ],
+      "additionalProperties": false
+    },
+    "Coordinate": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "description": "Latitude in decimal degrees (WGS84), range -90 (South Pole) to 90 (North Pole)"
+        },
+        "lon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "description": "Longitude in decimal degrees (WGS84), range -180 (west) to 180 (east)"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ],
+      "additionalProperties": false
+    },
+    "Duration": {
+      "type": "string",
+      "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$"
+    },
+    "Identification": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Type of identification document (e.g., ssn, passport, license, ein)"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Identification number or identifier"
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Issuing authority, country, or state (e.g., US, CA, DMV)"
+        },
+        "issueDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+          "description": "Issue date in ISO 8601 format (YYYY-MM-DD)"
+        },
+        "expiryDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+          "description": "Expiry date in ISO 8601 format (YYYY-MM-DD)"
+        }
+      },
+      "required": [
+        "type",
+        "number"
+      ],
+      "additionalProperties": false
+    },
+    "Money": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "description": "Monetary amount in the smallest currency unit (e.g., cents for USD) or as a decimal (e.g., 99.99 for USD). Negative values allowed for debts/credits"
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 3,
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 alpha-3 currency code (e.g., USD, EUR, GBP)"
+        }
+      },
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "Metadata": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
+        "description": "Metadata key identifier. Must start with alphanumeric character and can contain alphanumeric characters and hyphens"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Metadata value as a string (max 500 characters)"
+          },
+          {
+            "type": "number",
+            "description": "Metadata value as a number"
+          },
+          {
+            "type": "boolean",
+            "description": "Metadata value as a boolean"
+          },
+          {
+            "type": "null",
+            "description": "Metadata value as null"
+          }
+        ]
+      }
+    },
+    "Organization": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Organization name"
+        },
+        "legalName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Legal or registered name of the organization"
+        },
+        "domicile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Domicile"
+        },
+        "entityType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Legal entity type of the organization"
+        },
+        "entityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Business identification number"
+        },
+        "taxId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Tax identification number"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "Person": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Person's full name (complete name as a single string)"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Name prefix or title (e.g., Mr., Mrs., Dr., Prof.)"
+        },
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Person's first or given name"
+        },
+        "middleName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Person's middle name or initial"
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Person's last name or surname"
+        },
+        "suffix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Name suffix (e.g., Jr., Sr., III, Esq.)"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "Phone": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 16,
+          "pattern": "^\\+[1-9]\\d{1,14}$",
+          "description": "Phone number in E.164 international format (e.g., +14155552671)"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Type or category of phone number (e.g., mobile, work, home)"
+        },
+        "extension": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Phone extension or extension number"
+        }
+      },
+      "required": [
+        "number"
+      ],
+      "additionalProperties": false
+    },
+    "Signature": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base64-encoded signature image or data URI"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "description": "ISO 8601 date-time when the signature was captured"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "drawn"
+            },
+            {
+              "type": "string",
+              "const": "typed"
+            },
+            {
+              "type": "string",
+              "const": "uploaded"
+            },
+            {
+              "type": "string",
+              "const": "certificate"
+            }
+          ],
+          "description": "Method used to capture the signature"
+        },
+        "type": {
+          "default": "signature",
+          "description": "Whether this is a full signature or initials",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "signature"
+            },
+            {
+              "type": "string",
+              "const": "initials"
+            }
+          ]
+        },
+        "metadata": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {},
+          "description": "Additional metadata (IP address, device info, etc.)"
+        }
+      },
+      "required": [
+        "timestamp",
+        "method"
+      ],
+      "additionalProperties": false
+    },
+    "CondExpr": {
+      "anyOf": [
+        {
+          "type": "boolean",
+          "description": "Literal boolean value"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Expression string - either inline expression or reference to a defs key"
+        }
+      ]
+    },
+    "DefsSection": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Definition identifier (camelCase, starts with lowercase letter)"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "boolean"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to a boolean"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "string"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to a string"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "number"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to a number"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "integer"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to an integer"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "percentage"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to a percentage (0-100)"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "rating"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to a rating value"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "date"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to an ISO 8601 date (YYYY-MM-DD)"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "time"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to a time (HH:MM:SS)"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "datetime"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to an ISO 8601 datetime"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "duration"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression that evaluates to an ISO 8601 duration string"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "money"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "amount",
+                  "currency"
+                ],
+                "additionalProperties": false,
+                "description": "Money object with amount and currency expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "address"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "line1": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "line2": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "locality": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "region": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "country": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "line1",
+                  "locality",
+                  "region",
+                  "postalCode",
+                  "country"
+                ],
+                "additionalProperties": false,
+                "description": "Address object with component expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "phone"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "number": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "extension": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "number"
+                ],
+                "additionalProperties": false,
+                "description": "Phone object with number and optional type/extension expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "coordinate"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "lon": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lon"
+                ],
+                "additionalProperties": false,
+                "description": "Coordinate object with latitude and longitude expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "bbox"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "north": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "south": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "east": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "west": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "north",
+                  "south",
+                  "east",
+                  "west"
+                ],
+                "additionalProperties": false,
+                "description": "Bounding box with north, south, east, west boundary expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "person"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "middleName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "suffix": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false,
+                "description": "Person object with name component expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "organization"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "legalName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "domicile": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "entityType": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "taxId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false,
+                "description": "Organization object with component expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Display label for the computed value"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "Description or documentation of the computed value"
+              },
+              "type": {
+                "type": "string",
+                "const": "identification"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "number": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "issuer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "issueDate": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "expiryDate": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "type",
+                  "number"
+                ],
+                "additionalProperties": false,
+                "description": "Identification object with type, number, and optional issuer/date expressions"
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "title": "Expression",
+        "description": "A typed computed value with optional metadata (label, description). The type property determines the expected result type and value schema."
+      }
+    },
+    "Paradoc": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Form"
+        },
+        {
+          "$ref": "#/$defs/Document"
+        },
+        {
+          "$ref": "#/$defs/Checklist"
+        },
+        {
+          "$ref": "#/$defs/Bundle"
+        }
+      ]
+    }
+  }
+}

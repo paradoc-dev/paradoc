@@ -1,0 +1,140 @@
+---
+title: duration
+description: Build and validate ISO 8601 durations
+---
+
+Build and validate time durations in ISO 8601 format. The Duration primitive represents spans of time like "1 year, 6 months" or "2 hours, 30 minutes".
+
+# Examples
+
+## Creating durations
+
+```ts
+// Direct validation
+const period = para.duration('P1Y6M')  // 1 year, 6 months
+const hours = para.duration('PT2H30M') // 2 hours, 30 minutes
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const period = para.duration.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.duration.safeParse(jsonData)
+if (result.success) {
+  console.log(`Duration: ${result.data}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'subscription',
+  fields: {
+    term: { type: 'duration', label: 'Subscription Term' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    term: para.duration('P1Y')  // 1 year
+  }
+})
+```
+
+# API
+
+## Direct Call
+
+```ts
+para.duration(input: Duration): Duration
+```
+
+Pass a duration string for validation. Returns the validated string or throws on error.
+
+```ts
+const period = para.duration('P6M')  // 6 months
+```
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Duration', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Duration>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Format
+
+The Duration primitive uses ISO 8601 duration format:
+
+```
+P[n]Y[n]M[n]DT[n]H[n]M[n]S
+```
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| `P` | Period designator (required) | P |
+| `[n]Y` | Years | 1Y |
+| `[n]M` | Months | 6M |
+| `[n]D` | Days | 15D |
+| `T` | Time designator | T |
+| `[n]H` | Hours | 2H |
+| `[n]M` | Minutes | 30M |
+| `[n]S` | Seconds | 45S |
+
+# Common Examples
+
+| Duration | Meaning |
+|----------|---------|
+| `P1Y` | 1 year |
+| `P6M` | 6 months |
+| `P1Y6M` | 1 year, 6 months |
+| `P30D` | 30 days |
+| `PT2H` | 2 hours |
+| `PT30M` | 30 minutes |
+| `PT2H30M` | 2 hours, 30 minutes |
+| `P1DT12H` | 1 day, 12 hours |
+
+# Validation
+
+The Duration primitive validates:
+
+- String must start with `P`
+- At least one component must be specified
+- Components must be in correct order (Y, M, D, then T, H, M, S)
+- Time components must follow `T` designator
+
+```ts
+// Valid
+para.duration('P1Y')
+para.duration('P1Y6M')
+para.duration('P1Y6M15D')
+para.duration('PT2H30M')
+para.duration('P1DT12H')
+para.duration('P0D')  // Zero duration
+
+// Invalid - throws Error
+para.duration('1Y')
+// Error: Invalid Duration: must start with P
+
+para.duration('P')
+// Error: Invalid Duration: must specify at least one component
+
+para.duration('P2H')
+// Error: Invalid Duration: time components must follow T
+
+para.duration('PT1Y')
+// Error: Invalid Duration: years cannot follow T designator
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Date](/sdk/primitives/date) - Date values
+- [Duration Field](/sdk/artifacts/form/field#duration) - Duration field type
+- [Duration Schema](/schemas/primitives/duration) - JSON Schema definition

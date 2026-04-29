@@ -1,0 +1,307 @@
+---
+title: Text Layers
+description: Create dynamic documents with Handlebars templates
+ogTitle: Text layers
+ogDescription: Generate Markdown, HTML, and plain text documents using Handlebars templates
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this guide, we'll use Paradoc to create a residential lease agreement. The lease is a perfect example because it combines field values (rent amount, dates), party information (landlord and tenants), conditionals (smoking allowed?), and loops (multiple tenants) — all common patterns in document generation.
+
+**About Text Layers**
+
+Text layers use [Handlebars](https://handlebarsjs.com/) templates to generate documents. You write a template with placeholders like `{{monthlyRent}}` and Paradoc fills them with your data. This works for Markdown, HTML, plain text, and DOCX files.
+
+<Steps>
+<Step>
+## Set Up Your Project
+
+Create a new project and set up the directory structure:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    mkdir my-lease-project && cd my-lease-project
+    mkdir -p layers src output
+    npm init -y
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    mkdir my-lease-project && cd my-lease-project
+    mkdir -p layers src output
+    pnpm init
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    mkdir my-lease-project && cd my-lease-project
+    mkdir -p layers src output
+    yarn init -y
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    mkdir my-lease-project && cd my-lease-project
+    mkdir -p layers src output
+    bun init -y
+    ```
+  </Tab>
+</Tabs>
+
+Your project structure should look like this:
+
+```
+my-lease-project/
+├── layers/
+│   └── lease.md          # Your Handlebars template
+├── src/                  # Your code goes here
+├── output/               # Generated documents
+└── package.json
+```
+</Step>
+
+<Step>
+## Install
+
+Install the SDK and the filesystem resolver.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step>
+## Create the Template
+
+Create a Handlebars template at `layers/lease.md`:
+
+```markdown
+# RESIDENTIAL LEASE AGREEMENT
+
+This Lease Agreement is entered into on **{{startDate}}** between:
+
+**LANDLORD:** {{parties.landlord.name}}
+
+**TENANT(S):**
+{{#each parties.tenant}}
+- {{name}}
+{{/each}}
+
+---
+
+## 1. PROPERTY
+
+The Landlord agrees to rent to the Tenant the property located at:
+
+{{address}}
+
+**Property Type:** {{propertyType}}
+**Bedrooms:** {{bedrooms}}
+
+---
+
+## 2. TERM
+
+The lease term shall be **{{leaseTerm}}**, starting on **{{startDate}}**.
+
+---
+
+## 3. RENT
+
+The Tenant agrees to pay **{{monthlyRent}}** per month, due on the first of each month.
+
+---
+
+## 4. RULES
+
+{{#if petsAllowed}}
+Pets are **permitted** with prior written approval.
+{{else}}
+Pets are **not permitted** on the premises.
+{{/if}}
+
+{{#if smokingAllowed}}
+Smoking is **permitted** in designated areas only.
+{{else}}
+Smoking is **not permitted** on the premises.
+{{/if}}
+
+---
+
+## 5. SIGNATURES
+
+**LANDLORD:**
+
+Name: {{parties.landlord.name}}
+
+Signature: ___________________________  Date: ____________
+
+
+**TENANT(S):**
+
+{{#each parties.tenant}}
+Name: {{name}}
+
+Signature: ___________________________  Date: ____________
+
+{{/each}}
+```
+
+Key syntax patterns:
+- `{{fieldName}}` — Output a field value
+- `{{parties.role.property}}` — Access party data
+- `{{#each parties.tenant}}...{{/each}}` — Loop over multiple parties
+- `{{#if condition}}...{{else}}...{{/if}}` — Conditional content
+</Step>
+
+<Step>
+## Define the Form
+
+Create a form that references the template file:
+
+```ts
+import { para } from '@paradoc/sdk'
+
+const leaseAgreement = para.form({
+  name: 'lease-agreement',
+  title: 'Residential Lease Agreement',
+  fields: {
+    address: { type: 'address', label: 'Property Address', required: true },
+    propertyType: {
+      type: 'enum',
+      label: 'Property Type',
+      enum: ['apartment', 'house', 'condo', 'townhouse'],
+      required: true,
+    },
+    bedrooms: { type: 'number', label: 'Bedrooms', min: 0, max: 10, required: true },
+    startDate: { type: 'date', label: 'Lease Start Date', required: true },
+    leaseTerm: { type: 'duration', label: 'Lease Term', required: true },
+    monthlyRent: { type: 'money', label: 'Monthly Rent', required: true },
+    petsAllowed: { type: 'boolean', label: 'Pets Allowed', default: false },
+    smokingAllowed: { type: 'boolean', label: 'Smoking Allowed', default: false },
+  },
+  parties: {
+    landlord: {
+      label: 'Landlord',
+      min: 1,
+      max: 1,
+      signature: { required: true },
+    },
+    tenant: {
+      label: 'Tenant',
+      min: 1,
+      max: 4,
+      signature: { required: true },
+    },
+  },
+  defaultLayer: 'markdown',
+  layers: {
+    markdown: {
+      kind: 'file',
+      mimeType: 'text/markdown',
+      path: 'layers/lease.md',
+    },
+  },
+})
+```
+</Step>
+
+<Step>
+## Fill the Form
+
+Create a runtime instance by filling the form with field and party data:
+
+```ts
+const filled = leaseAgreement.fill({
+  fields: {
+    address: {
+      line1: '123 Oak Street, Unit 4B',
+      locality: 'San Francisco',
+      region: 'CA',
+      postalCode: '94102',
+      country: 'US',
+    },
+    propertyType: 'apartment',
+    bedrooms: 2,
+    startDate: '2025-02-01',
+    leaseTerm: 'P12M', // ISO 8601 duration: 12 months
+    monthlyRent: { amount: 2800, currency: 'USD' },
+    petsAllowed: true,
+    smokingAllowed: false,
+  },
+  parties: {
+    landlord: { id: 'landlord-1', name: 'Alice Chen' },
+    tenant: [
+      { id: 'tenant-1', name: 'Bob Smith' },
+      { id: 'tenant-2', name: 'Carol Johnson' },
+    ],
+  },
+})
+
+if (!filled.isValid()) {
+  console.log('Errors:', filled.validate().errors)
+}
+```
+</Step>
+
+<Step>
+## Render the Document
+
+Render the filled form using the text renderer:
+
+```ts
+import { textRenderer } from '@paradoc/sdk'
+import { createFsResolver } from '@paradoc/resolvers'
+import { writeFileSync } from 'node:fs'
+
+// Point the resolver to your project root where layers/ lives
+const resolver = createFsResolver({ root: '.' })
+
+const output = await filled.render({
+  renderer: textRenderer(),
+  resolver,
+  layer: 'markdown',
+})
+
+writeFileSync('output/lease-agreement.md', output)
+```
+
+The output is a string containing your rendered Markdown document with all placeholders filled in.
+</Step>
+</Steps>
+
+You've now created a form that generates lease agreements from a Handlebars template. The same approach works for HTML templates, plain text, and DOCX files — just change the `mimeType` and file extension.
+
+## Template Syntax Reference
+
+| Pattern | Example | Description |
+|---------|---------|-------------|
+| Field value | `{{fieldName}}` | Output a field value |
+| Nested value | `{{address.line1}}` | Access nested properties |
+| Party data | `{{parties.landlord.name}}` | Access party information |
+| Loop | `{{#each parties.tenant}}...{{/each}}` | Iterate over arrays |
+| Conditional | `{{#if petsAllowed}}...{{/if}}` | Conditional content |
+| If/else | `{{#if x}}...{{else}}...{{/if}}` | Conditional with fallback |
+| Loop index | `{{@index}}` | Zero-based index in loops |
+| Comment | `{{!-- comment --}}` | Not rendered in output |

@@ -1,0 +1,66 @@
+---
+title: getArtifact
+description: Fetch artifact JSON from a registry by name
+ogTitle: getArtifact — Paradoc AI Tools
+ogDescription: Fetch the full artifact JSON from an Paradoc registry by name
+---
+
+Fetches the full artifact JSON from a registry. First fetches `registry.json` to find the artifact path, then fetches the artifact itself.
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `registryUrl` | `string` | Yes | Registry base URL (e.g. `https://public.paradoc.dev`) |
+| `artifactName` | `string` | Yes | Artifact name within the registry |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `artifact` | `object` | The full artifact JSON (form, document, bundle, or checklist) |
+| `artifactName` | `string` | The artifact name |
+| `error` | `string` | Error message if the fetch failed |
+
+# Direct usage
+
+```typescript
+import { executeGetArtifact } from "@paradoc/ai-tools"
+
+const result = await executeGetArtifact({
+  registryUrl: "https://public.paradoc.dev",
+  artifactName: "pet-addendum",
+})
+// {
+//   artifact: { kind: "form", name: "pet-addendum", fields: { ... }, ... },
+//   artifactName: "pet-addendum"
+// }
+```
+
+# Example response
+
+```json
+{
+  "artifact": {
+    "kind": "form",
+    "name": "pet-addendum",
+    "fields": {
+      "petName": { "type": "text", "label": "Pet Name", "required": true },
+      "species": { "type": "enum", "label": "Species" },
+      "weight": { "type": "number", "label": "Weight (lbs)" },
+      "isVaccinated": { "type": "boolean", "label": "Vaccinated" }
+    }
+  },
+  "artifactName": "pet-addendum"
+}
+```
+
+# Error response
+
+When the artifact is not found in the registry:
+
+```json
+{
+  "error": "Artifact \"does-not-exist\" not found in registry. Available: pet-addendum, w-9"
+}
+```

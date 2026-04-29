@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.paradoc.dev/registry.json",
+  "name": "acme",
+  "homepage": "https://acme-realestate.example.com",
+  "description": "ACME Real Estate - Official artifact registry for property management forms and documents",
+  "artifactsPath": "/r",
+  "items": [
+    {
+      "name": "w9",
+      "kind": "form",
+      "version": "1.0.0",
+      "title": "Request for Taxpayer Identification Number and Certification",
+      "description": "IRS Form W-9 - Request for Taxpayer Identification Number and Certification",
+      "layers": ["pdf"],
+      "tags": ["irs", "tax", "w9", "tin", "government"]
+    },
+    {
+      "name": "residential-lease",
+      "kind": "form",
+      "version": "1.0.0",
+      "title": "Residential Lease Agreement",
+      "description": "Standard residential property lease agreement form",
+      "layers": ["default", "legal"],
+      "tags": ["lease", "residential", "rental", "agreement"]
+    },
+    {
+      "name": "commercial-lease",
+      "kind": "form",
+      "version": "1.0.0",
+      "title": "Commercial Lease Agreement",
+      "description": "Commercial property lease agreement for business tenants",
+      "layers": ["default", "legal"],
+      "tags": ["lease", "commercial", "business", "agreement"]
+    },
+    {
+      "name": "lease-addendum",
+      "kind": "form",
+      "version": "1.0.0",
+      "title": "Lease Addendum",
+      "description": "Addendum to modify existing lease agreements",
+      "layers": ["default"],
+      "tags": ["lease", "addendum", "modification"]
+    },
+    {
+      "name": "property-inspection",
+      "kind": "checklist",
+      "version": "1.0.0",
+      "title": "Property Inspection Checklist",
+      "description": "Move-in/move-out property condition checklist",
+      "layers": ["default"],
+      "tags": ["inspection", "checklist", "property", "condition"]
+    }
+  ]
+}

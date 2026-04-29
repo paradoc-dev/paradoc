@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/contentref.json",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "inline"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000000,
+          "description": "Inline text content"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "file"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Path to the content file"
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "MIME type of the file content"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Description of the content"
+        },
+        "checksum": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA-256 checksum for integrity verification"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "mimeType"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "description": "Content reference — inline text or file reference",
+  "title": "ContentRef"
+}

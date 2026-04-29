@@ -1,0 +1,85 @@
+---
+title: Signature
+description: Captured signature data
+---
+
+A Signature is a structured primitive that represents the data captured when a party signs a [Form](/schemas/artifacts/form), including the signature image/data, timestamp, capture method, and optional metadata.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'image',
+    type: 'string',
+    description: 'Base64-encoded signature image or data URI',
+    isOptional: true,
+  },
+  {
+    name: 'timestamp',
+    type: 'string',
+    description: 'ISO 8601 date-time when the signature was captured',
+  },
+  {
+    name: 'method',
+    type: "'drawn' | 'typed' | 'uploaded' | 'certificate'",
+    description: 'Method used to capture the signature',
+  },
+  {
+    name: 'type',
+    type: "'signature' | 'initials'",
+    description: 'Whether this is a full signature or initials',
+    isOptional: true,
+    default: "'signature'",
+  },
+  {
+    name: 'metadata',
+    type: 'Record<string, unknown>',
+    description: 'Additional metadata (IP address, device info, etc.)',
+    isOptional: true,
+  },
+]} />
+
+## Signature Methods
+
+| Method | Description |
+| ------ | ----------- |
+| `drawn` | Signature drawn on screen (touch or mouse) |
+| `typed` | Name typed and converted to signature font |
+| `uploaded` | Signature image uploaded from file |
+| `certificate` | Digital certificate-based signature |
+
+## Signature Types
+
+| Type | Description |
+| ---- | ----------- |
+| `signature` | Full signature (default) |
+| `initials` | Initials only |
+
+# Examples
+
+```yaml tab="YAML"
+image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+timestamp: "2024-01-15T14:45:00Z"
+method: drawn
+type: signature
+metadata:
+  ipAddress: "192.168.1.100"
+```
+
+```json tab="JSON"
+{
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+  "timestamp": "2024-01-15T14:45:00Z",
+  "method": "drawn",
+  "type": "signature",
+  "metadata": {
+    "ipAddress": "192.168.1.100"
+  }
+}
+```
+
+# Related
+
+- [FormSignature](/schemas/artifacts/form/party) - Design-time signature requirements (in FormParty)
+- [FormParty](/schemas/artifacts/form/party) - Party role definitions
+- [Signing](/sdk/artifacts/form/signing) - Runtime signing flow, captures, and attestations

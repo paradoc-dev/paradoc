@@ -1,0 +1,136 @@
+---
+title: AI Tools
+description: Integrate Paradoc tools into your own AI applications with framework-specific adapters
+ogTitle: Paradoc AI Tools
+ogDescription: npm packages for adding Paradoc validateArtifact, fill, render, and registry tools to AI agents
+---
+
+The Paradoc AI packages let you add Paradoc tools to your own AI applications. Unlike the [MCP server](/mcp), which is a hosted service, these are npm packages you install and run in your own stack.
+
+# Packages
+
+| Package | Description | Install |
+|---------|-------------|---------|
+| `@paradoc/ai-tools` | Core tool protocol — schemas, execute functions, registry client | `npm install @paradoc/ai-tools` |
+| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK adapter | `npm install @paradoc/ai-sdk` |
+| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai` |
+
+Install the adapter for your framework. Both adapters depend on `@paradoc/ai-tools` internally.
+
+# Tools
+
+All adapters expose the same five tools:
+
+| Tool | Description | Network? |
+|------|-------------|----------|
+| [`validateArtifact`](/ai/tools/validate-artifact) | Validate an artifact against the Paradoc schema | Yes\* |
+| [`fill`](/ai/tools/fill) | Fill a form or checklist with data and validate | Yes\* |
+| [`render`](/ai/tools/render) | Render a form to PDF, markdown, or DOCX | Yes\* |
+| [`getRegistry`](/ai/tools/get-registry) | Fetch registry.json, returns available artifacts | Yes |
+| [`getArtifact`](/ai/tools/get-artifact) | Fetch artifact JSON from a registry by name | Yes |
+
+\* `validateArtifact`, `fill`, and `render` all fetch in URL and registry modes. In artifact mode, only `render` may fetch (file-backed layers use `baseUrl` to resolve templates).
+
+# Quick start
+
+<Tabs items={['Vercel AI SDK', 'TanStack AI']} groupId="ai-framework" persist>
+  <Tab value="Vercel AI SDK">
+    ```bash
+    npm install @paradoc/ai-sdk ai zod
+    ```
+
+    ```typescript
+    import { paradocTools } from "@paradoc/ai-sdk"
+    import { generateText } from "ai"
+    import { openai } from "@ai-sdk/openai"
+
+    const result = await generateText({
+      model: openai("gpt-4o"),
+      tools: paradocTools({
+        defaultRegistryUrl: "https://public.paradoc.dev",
+      }),
+      prompt: "Fill the pet addendum for my dog Rex",
+    })
+    ```
+  </Tab>
+  <Tab value="TanStack AI">
+    ```bash
+    npm install @paradoc/tanstack-ai @tanstack/ai zod
+    ```
+
+    ```typescript
+    import { paradocTools } from "@paradoc/tanstack-ai"
+
+    const tools = paradocTools({
+      defaultRegistryUrl: "https://public.paradoc.dev",
+    })
+    ```
+  </Tab>
+</Tabs>
+
+# Composing with other tools
+
+`paradocTools()` returns a plain object. Spread it alongside your own tools:
+
+```typescript
+import { paradocTools } from "@paradoc/ai-sdk"
+import { tool } from "ai"
+
+const result = await generateText({
+  model,
+  tools: {
+    ...paradocTools(),
+    lookupCustomer: tool({ /* ... */ }),
+  },
+  prompt: "...",
+})
+```
+
+Or cherry-pick individual tools:
+
+```typescript
+const { validateArtifact, render } = paradocTools()
+
+const result = await generateText({
+  model,
+  tools: { validateArtifact, render },
+  prompt: "...",
+})
+```
+
+# Configuration
+
+All adapters accept the same `ParadocToolsConfig`:
+
+```typescript
+paradocTools({
+  defaultRegistryUrl: "https://public.paradoc.dev",
+  proxyTextRenderer: {
+    url: "https://your-documents-service.example.com",
+    apiKey: "your-api-key",
+  },
+  fetch: customFetchWithAuth,
+})
+```
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `defaultRegistryUrl` | `string` | Default registry URL for getRegistry and getArtifact |
+| `proxyTextRenderer` | `{ url, apiKey }` | Edge-compatible proxy for Handlebars text rendering |
+| `fetch` | `typeof fetch` | Custom fetch for auth headers or test mocks |
+
+# Edge compatibility
+
+- **PDF and DOCX renderers** work everywhere (pure JS, no `new Function()`)
+- **Text renderer** (Handlebars) requires Node.js. On edge runtimes, set `proxyTextRenderer` to delegate to an HTTP service
+
+# Differences from MCP server
+
+| | MCP server | AI packages |
+|---|---|---|
+| **Runs where** | Hosted at `mcp.paradoc.dev` | Your own application |
+| **Protocol** | Model Context Protocol | Framework-specific (AI SDK, TanStack) |
+| **Registry lookup** | DB-backed registry IDs | Direct registry URLs |
+| **Render output** | URL (R2 upload) or inline | Inline only |
+| **Auth** | None (public) | Your config (fetch, API keys) |
+| **Extra tools** | list_artifacts, list_registries, search | Not included (require DB) |

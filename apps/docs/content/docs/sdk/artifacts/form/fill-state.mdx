@@ -1,0 +1,208 @@
+---
+title: fill-state
+description: Track form completion progress with FillState
+---
+
+Query the fill state of a DraftForm to determine what's been filled, what's still needed, and what to ask next. FillState evaluates conditional visibility, required expressions, and dependency chains to give an accurate picture of form progress.
+
+# Examples
+
+## Basic usage
+
+```ts
+const draft = form.partialFill({
+  fields: { tenantName: 'John Doe' }
+})
+
+const state = draft.getFillState()
+
+state.summary.completionPercent  // e.g. 25
+state.summary.requiredRemaining  // e.g. 3
+state.next                       // { kind: 'party', key: 'tenant', required: true, order: 0 }
+```
+
+## Progressive fill loop
+
+```ts
+let draft = form.partialFill()
+
+while (true) {
+  const state = draft.getFillState()
+  if (state.summary.requiredRemaining === 0) break
+
+  const target = state.next
+  if (!target) break
+
+  const value = await collectValueFromUser(target)
+
+  draft = draft.update({
+    [target.kind === 'party' ? 'parties' : 'fields']: {
+      [target.key]: value
+    }
+  })
+}
+
+// All required data collected — fill the form
+const filled = form.fill(draft.data)
+```
+
+## Including optional targets
+
+By default, `candidates` only includes required targets. Pass `includeOptional: true` to include optional fields:
+
+```ts
+const state = draft.getFillState({ includeOptional: true })
+// state.candidates now includes both required and optional targets
+// Required targets are listed first (requiredFirst defaults to true)
+```
+
+## Checking blocked items
+
+Items with conditional visibility that depends on unfilled fields appear in `blocked`:
+
+```ts
+const state = draft.getFillState()
+
+for (const item of state.blocked) {
+  console.log(`${item.key} is hidden, waiting on: ${item.blockedBy.join(', ')}`)
+}
+// e.g. "spouseName is hidden, waiting on: maritalStatus"
+```
+
+## Checking rules
+
+```ts
+const state = draft.getFillState()
+
+if (!state.rules.valid) {
+  for (const error of state.rules.errors) {
+    console.log(`Rule violation: ${error}`)
+  }
+}
+```
+
+# API
+
+## FillState
+
+Returned by `draft.getFillState()`.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'draft' | 'signable' | 'executed'", description: 'Current form phase' },
+  { name: 'summary', type: 'FillStateSummary', description: 'Progress summary with counts and completion percentage' },
+  { name: 'defsValues', type: 'Record<string, unknown>', description: 'Current evaluated defs values' },
+  { name: 'rules', type: '{ valid: boolean; errors: string[]; warnings: string[] }', description: 'Rules evaluation result' },
+  { name: 'openRequired', type: 'FillItemState[]', description: 'Visible, unfilled, required items' },
+  { name: 'openOptional', type: 'FillItemState[]', description: 'Visible, unfilled, optional items' },
+  { name: 'blocked', type: 'FillItemState[]', description: 'Not visible — waiting on dependencies to be filled' },
+  { name: 'done', type: 'FillItemState[]', description: 'Already filled items' },
+  { name: 'candidates', type: 'FillTarget[]', description: 'Available fill targets in declaration order (parties first, then fields, then annexes)' },
+  { name: 'next', type: 'FillTarget | null', description: 'First candidate — convenience shorthand for candidates[0]' },
+]} />
+
+## FillStateSummary
+
+<PropertiesTable properties={[
+  { name: 'requiredTotal', type: 'number', description: 'Total number of required items (visible and blocked)' },
+  { name: 'requiredDone', type: 'number', description: 'Number of required items already filled' },
+  { name: 'requiredRemaining', type: 'number', description: 'Number of required items still needed' },
+  { name: 'completionPercent', type: 'number', description: 'Completion percentage (0–100)' },
+]} />
+
+## FillTarget
+
+A candidate target that can be filled next.
+
+<PropertiesTable properties={[
+  { name: 'kind', type: 'FillTargetKind', description: "'field', 'party', or 'annex'" },
+  { name: 'key', type: 'string', description: 'Field id, role id, or annex id' },
+  { name: 'required', type: 'boolean', description: 'Whether this target is required' },
+  { name: 'order', type: 'number', description: 'Declaration order in schema' },
+]} />
+
+## FillItemState
+
+Extended fill target with runtime state. Used in `openRequired`, `openOptional`, `blocked`, and `done` arrays.
+
+<PropertiesTable properties={[
+  { name: 'kind', type: 'FillTargetKind', description: "'field', 'party', or 'annex'" },
+  { name: 'key', type: 'string', description: 'Field id, role id, or annex id' },
+  { name: 'required', type: 'boolean', description: 'Whether this target is required' },
+  { name: 'order', type: 'number', description: 'Declaration order in schema' },
+  { name: 'visible', type: 'boolean', description: 'Whether this item is currently visible' },
+  { name: 'filled', type: 'boolean', description: 'Whether this item has been filled' },
+  { name: 'blockedBy', type: 'string[]', description: 'IDs of unfilled fields/parties this depends on for visibility' },
+]} />
+
+## FillTargetKind
+
+```ts
+type FillTargetKind = 'field' | 'party' | 'annex'
+```
+
+## FillTargetOptions
+
+Options for `getFillState`, `getNextFillTarget`, and `getAvailableFillTargets`.
+
+<PropertiesTable properties={[
+  { name: 'requiredFirst', type: 'boolean', description: 'Sort required targets before optional in candidates. Default: true', isOptional: true },
+  { name: 'includeOptional', type: 'boolean', description: 'Include optional targets in candidates. Default: false', isOptional: true },
+]} />
+
+## PartialFillOptions
+
+Options for `partialFill` and `safePartialFill` on FormInstance.
+
+<PropertiesTable properties={[
+  { name: 'validate', type: 'FillValidationMode', description: "Validation mode: 'patch' (default), 'full', or 'none'", isOptional: true },
+  { name: 'rules', type: 'boolean', description: 'Evaluate and report rules. Default: false', isOptional: true },
+]} />
+
+## UpdateOptions
+
+Options for `update` and `safeUpdate` on DraftForm.
+
+<PropertiesTable properties={[
+  { name: 'validate', type: 'FillValidationMode', description: "Validation mode: 'patch' (default), 'full', or 'none'", isOptional: true },
+  { name: 'rules', type: 'boolean', description: 'Evaluate and report rules. Default: false', isOptional: true },
+]} />
+
+## SafePartialFillResult
+
+Returned by `safePartialFill` and `safeUpdate`.
+
+```ts
+type SafePartialFillResult<F extends Form> =
+  | { success: true; data: DraftForm<F> }
+  | { success: false; error: Error }
+```
+
+## FillValidationMode
+
+```ts
+type FillValidationMode = 'patch' | 'full' | 'none'
+```
+
+| Mode | Behavior |
+|------|----------|
+| `"patch"` | Validate only the provided fields (default) |
+| `"full"` | Validate entire payload including required fields |
+| `"none"` | Skip validation entirely |
+
+# How visibility and blocking work
+
+FillState evaluates conditional `visible` and `required` expressions on fields, parties, and annexes using the current data. Items are categorized as:
+
+- **openRequired** — visible, required, not yet filled. These are what the user needs to answer.
+- **openOptional** — visible, optional, not yet filled. Available but not blocking completion.
+- **blocked** — not visible because a dependency hasn't been filled yet. The `blockedBy` array shows which field or party needs a value first. Blocked items unblock automatically when their dependencies are filled.
+- **done** — already filled, regardless of visibility.
+
+The `candidates` array contains all open (visible, unfilled) targets in declaration order. When `requiredFirst` is true (the default), required targets appear before optional ones.
+
+# Related
+
+- [form](/sdk/artifacts/form) - Form builder and lifecycle
+- [field](/sdk/artifacts/form/field) - Field definitions
+- [party](/sdk/artifacts/form/party) - Party role definitions
+- [annex](/sdk/artifacts/form/annex) - Annex slot definitions

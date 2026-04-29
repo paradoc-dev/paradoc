@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Clean the playground directory, keeping only the para and clean scripts
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$DIR"
+
+# Remove all files and directories except para and clean scripts
+find . -mindepth 1 -maxdepth 1 ! -name 'para' ! -name 'clean' -exec rm -rf {} +
+
+echo "✓ Playground cleaned (kept para and clean scripts)"

@@ -1,0 +1,320 @@
+---
+title: Checklists
+description: Create task lists with boolean or enum statuses
+ogTitle: Create a checklist with Paradoc
+ogDescription: Build task lists with boolean or multi-state status tracking
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+This guide walks through creating a checklist with items, filling it with data, and rendering the output.
+
+<Steps>
+<Step>
+## Define the Checklist
+
+A checklist needs a name, version, title, and items. Each item has an ID, title, and status configuration.
+
+```ts tab="Object Pattern"
+import { para } from '@paradoc/core'
+
+const onboarding = para.checklist({
+  name: 'employee-onboarding',
+  version: '1.0.0',
+  title: 'Employee Onboarding Checklist',
+  items: [
+    { id: 'signed-contract', title: 'Signed Employment Contract', status: { kind: 'boolean' } },
+    { id: 'received-equipment', title: 'Received Equipment', status: { kind: 'boolean' } },
+    { id: 'completed-training', title: 'Completed Training', status: { kind: 'boolean' } },
+  ],
+})
+```
+
+```ts tab="Builder Pattern"
+import { para } from '@paradoc/core'
+
+const onboarding = para
+  .checklist()
+  .name('employee-onboarding')
+  .version('1.0.0')
+  .title('Employee Onboarding Checklist')
+  .items([
+    { id: 'signed-contract', title: 'Signed Employment Contract', status: { kind: 'boolean' } },
+    { id: 'received-equipment', title: 'Received Equipment', status: { kind: 'boolean' } },
+    { id: 'completed-training', title: 'Completed Training', status: { kind: 'boolean' } },
+  ])
+  .build()
+```
+</Step>
+
+<Step>
+## Use Enum Statuses
+
+Items can use enum statuses for multi-state workflows.
+
+```ts tab="Object Pattern"
+const approvals = para.checklist({
+  name: 'approval-workflow',
+  version: '1.0.0',
+  title: 'Approval Workflow',
+  items: [
+    {
+      id: 'manager-approval',
+      title: 'Manager Approval',
+      status: {
+        kind: 'enum',
+        options: [
+          { value: 'pending', label: 'Pending' },
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' },
+        ],
+      },
+    },
+    {
+      id: 'hr-approval',
+      title: 'HR Approval',
+      status: {
+        kind: 'enum',
+        options: [
+          { value: 'pending', label: 'Pending' },
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' },
+        ],
+      },
+    },
+  ],
+})
+```
+
+```ts tab="Builder Pattern"
+const approvals = para
+  .checklist()
+  .name('approval-workflow')
+  .version('1.0.0')
+  .title('Approval Workflow')
+  .items([
+    {
+      id: 'manager-approval',
+      title: 'Manager Approval',
+      status: {
+        kind: 'enum',
+        options: [
+          { value: 'pending', label: 'Pending' },
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' },
+        ],
+      },
+    },
+    {
+      id: 'hr-approval',
+      title: 'HR Approval',
+      status: {
+        kind: 'enum',
+        options: [
+          { value: 'pending', label: 'Pending' },
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' },
+        ],
+      },
+    },
+  ])
+  .build()
+```
+</Step>
+
+<Step>
+## Fill the Checklist
+
+Use `.fill()` to create a draft checklist with item values.
+
+```ts
+const draft = onboarding.fill({
+  'signed-contract': true,
+  'received-equipment': true,
+  'completed-training': false,
+})
+
+// Access individual items
+console.log(draft.getItem('signed-contract')) // true
+
+// Get all items
+console.log(draft.getAllItems())
+// { 'signed-contract': true, 'received-equipment': true, 'completed-training': false }
+```
+
+For enum checklists:
+
+```ts
+const draft = approvals.fill({
+  'manager-approval': 'approved',
+  'hr-approval': 'pending',
+})
+```
+</Step>
+
+<Step>
+## Update Items
+
+Use `.setItem()` to update individual items immutably.
+
+```ts
+// Create a new draft with updated item
+const updated = draft.setItem('completed-training', true)
+
+console.log(updated.getItem('completed-training')) // true
+console.log(draft.getItem('completed-training')) // false (original unchanged)
+```
+</Step>
+
+<Step>
+## Add a Layer
+
+Add a layer to render the checklist in a specific format.
+
+```ts tab="Object Pattern"
+const onboarding = para.checklist({
+  name: 'employee-onboarding',
+  version: '1.0.0',
+  title: 'Employee Onboarding Checklist',
+  items: [
+    { id: 'signed-contract', title: 'Signed Employment Contract', status: { kind: 'boolean' } },
+    { id: 'received-equipment', title: 'Received Equipment', status: { kind: 'boolean' } },
+    { id: 'completed-training', title: 'Completed Training', status: { kind: 'boolean' } },
+  ],
+  defaultLayer: 'markdown',
+  layers: {
+    markdown: {
+      kind: 'inline',
+      mimeType: 'text/markdown',
+      text: `
+# {{schema.title}}
+
+{{#each items}}
+- [{{#if value}}x{{else}} {{/if}}] {{title}}
+{{/each}}
+      `,
+    },
+  },
+})
+```
+
+```ts tab="Builder Pattern"
+const onboarding = para
+  .checklist()
+  .name('employee-onboarding')
+  .version('1.0.0')
+  .title('Employee Onboarding Checklist')
+  .items([
+    { id: 'signed-contract', title: 'Signed Employment Contract', status: { kind: 'boolean' } },
+    { id: 'received-equipment', title: 'Received Equipment', status: { kind: 'boolean' } },
+    { id: 'completed-training', title: 'Completed Training', status: { kind: 'boolean' } },
+  ])
+  .inlineLayer('markdown', {
+    mimeType: 'text/markdown',
+    text: `
+# {{schema.title}}
+
+{{#each items}}
+- [{{#if value}}x{{else}} {{/if}}] {{title}}
+{{/each}}
+    `,
+  })
+  .defaultLayer('markdown')
+  .build()
+```
+</Step>
+
+<Step>
+## Render the Checklist
+
+Render the filled checklist using a renderer.
+
+```ts
+import { textRenderer } from '@paradoc/renderer-text'
+
+const draft = onboarding.fill({
+  'signed-contract': true,
+  'received-equipment': true,
+  'completed-training': false,
+})
+
+const output = await draft.render({ renderer: textRenderer() })
+console.log(output)
+```
+
+Output:
+
+```markdown
+# Employee Onboarding Checklist
+
+- [x] Signed Employment Contract
+- [x] Received Equipment
+- [ ] Completed Training
+```
+</Step>
+
+<Step>
+## Save the Artifact
+
+Export the checklist to JSON or YAML for storage or version control.
+
+```ts
+const json = onboarding.toJSON()
+const yaml = onboarding.toYAML()
+```
+
+```json tab="JSON"
+{
+  "$schema": "https://schemas.paradoc.dev/schema.json",
+  "kind": "checklist",
+  "name": "employee-onboarding",
+  "version": "1.0.0",
+  "title": "Employee Onboarding Checklist",
+  "items": [
+    {
+      "id": "signed-contract",
+      "title": "Signed Employment Contract",
+      "status": { "kind": "boolean" }
+    },
+    {
+      "id": "received-equipment",
+      "title": "Received Equipment",
+      "status": { "kind": "boolean" }
+    },
+    {
+      "id": "completed-training",
+      "title": "Completed Training",
+      "status": { "kind": "boolean" }
+    }
+  ]
+}
+```
+
+```yaml tab="YAML"
+$schema: https://schemas.paradoc.dev/schema.json
+kind: checklist
+name: employee-onboarding
+version: 1.0.0
+title: Employee Onboarding Checklist
+items:
+  - id: signed-contract
+    title: Signed Employment Contract
+    status:
+      kind: boolean
+  - id: received-equipment
+    title: Received Equipment
+    status:
+      kind: boolean
+  - id: completed-training
+    title: Completed Training
+    status:
+      kind: boolean
+```
+
+Load it back with `para.load()`:
+
+```ts
+const loaded = para.load(jsonString) // works with JSON or YAML
+```
+</Step>
+</Steps>

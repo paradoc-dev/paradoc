@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/registry.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "JSON Schema URI for validation"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "description": "Registry name/identifier (lowercase slug, used for data attributes and metadata)"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Homepage URL for the registry"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Description of the registry"
+    },
+    "artifactsPath": {
+      "type": "string",
+      "maxLength": 100,
+      "pattern": "^\\/[a-zA-Z0-9/_-]*$",
+      "description": "Path prefix for artifact files (e.g., \"/r\" or \"/artifacts\"). When omitted, artifacts are served from the base URL root."
+    },
+    "enableTelemetry": {
+      "default": true,
+      "description": "Enable anonymous usage telemetry for artifact installs. Defaults to true.",
+      "type": "boolean"
+    },
+    "enableDirectory": {
+      "default": true,
+      "description": "Allow this registry to appear in the Paradoc Hub directory. Defaults to true.",
+      "type": "boolean"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RegistryItemSummary"
+      },
+      "description": "List of all artifacts in the registry"
+    }
+  },
+  "required": [
+    "name",
+    "items"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "RegistryItemSummary": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-_]*$",
+          "description": "Artifact name (unique within registry)"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "form"
+            },
+            {
+              "type": "string",
+              "const": "document"
+            },
+            {
+              "type": "string",
+              "const": "checklist"
+            },
+            {
+              "type": "string",
+              "const": "bundle"
+            }
+          ],
+          "description": "Artifact kind"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+",
+          "description": "Semantic version"
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 500,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/-]*\\.(json|yaml|yml)$",
+          "description": "Relative path to the artifact file. When omitted, defaults to \"{name}.json\"."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Brief description of the artifact"
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Layer key"
+          },
+          "description": "Available layer keys"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "description": "Tag for categorization"
+          },
+          "description": "Tags for search and filtering"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "version"
+      ],
+      "additionalProperties": false,
+      "title": "RegistryItemSummary",
+      "description": "Summary information about an artifact in the registry"
+    }
+  }
+}

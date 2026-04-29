@@ -1,0 +1,241 @@
+---
+title: PDF Layers
+description: Fill existing PDF forms using AcroForm field bindings
+ogTitle: PDF layers
+ogDescription: Fill existing PDF forms by mapping fields to AcroForm bindings
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this guide, we'll use Paradoc to fill out an IRS W-9 form. The W-9 is a common tax document that businesses use to collect taxpayer identification information from contractors and vendors. It's a great example because it has text fields, checkboxes, and split fields (like SSN broken into three boxes) — all patterns you'll encounter when working with PDF forms.
+
+**About AcroForm Fields**
+
+AcroForm is the original interactive PDF forms technology introduced by Adobe. When a PDF lets you type into text fields, check boxes, or select dropdowns, those elements are AcroForm fields. Each field has an internal (often non-semantic, like `Page1.f1_01[0].top`) name, which Paradoc uses to map your data to the correct field in the PDF.
+
+<Steps>
+<Step>
+## Set Up Your Project
+
+Create a new project, set up the directory structure, and download the W-9 form:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    mkdir my-w9-project && cd my-w9-project
+    mkdir -p layers src output
+    npm init -y
+    curl -o layers/w9.pdf https://www.irs.gov/pub/irs-pdf/fw9.pdf
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    mkdir my-w9-project && cd my-w9-project
+    mkdir -p layers src output
+    pnpm init
+    curl -o layers/w9.pdf https://www.irs.gov/pub/irs-pdf/fw9.pdf
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    mkdir my-w9-project && cd my-w9-project
+    mkdir -p layers src output
+    yarn init -y
+    curl -o layers/w9.pdf https://www.irs.gov/pub/irs-pdf/fw9.pdf
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    mkdir my-w9-project && cd my-w9-project
+    mkdir -p layers src output
+    bun init -y
+    curl -o layers/w9.pdf https://www.irs.gov/pub/irs-pdf/fw9.pdf
+    ```
+  </Tab>
+</Tabs>
+
+This downloads the W-9 from the IRS: [https://www.irs.gov/pub/irs-pdf/fw9.pdf](https://www.irs.gov/pub/irs-pdf/fw9.pdf)
+
+Your project structure should now look like this:
+
+```
+my-w9-project/
+├── layers/
+│   └── w9.pdf          # PDF with AcroForm fields
+├── src/                # Your code goes here
+├── output/             # Generated filled PDFs
+└── package.json
+```
+</Step>
+
+<Step>
+## Install
+
+Install the SDK and the filesystem resolver.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step>
+## Inspect PDF Fields
+
+Before creating bindings, discover the AcroForm field names in your PDF template using `inspectAcroFormFields`.
+
+```ts
+import { inspectAcroFormFields } from '@paradoc/sdk'
+import { readFileSync } from 'node:fs'
+
+const template = readFileSync('layers/w9.pdf')
+const fields = await inspectAcroFormFields(new Uint8Array(template))
+
+console.log(JSON.stringify(fields, null, 2))
+// [
+//   { "name": "topmostSubform[0].Page1[0].f1_01[0]", "type": "text" },
+//   { "name": "topmostSubform[0].Page1[0].f1_02[0]", "type": "text" },
+//   { "name": "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[0]", "type": "checkbox" },
+//   ...
+// ]
+```
+
+This reveals the internal field names that you'll map to your form fields.
+</Step>
+
+<Step>
+## Define the Form
+
+Create a form with a PDF file layer. The `bindings` object maps PDF field names to your form field expressions.
+
+```ts
+import { para } from '@paradoc/sdk'
+
+const w9Form = para.form({
+  name: 'w9-tax-form',
+  fields: {
+    name: { type: 'text', label: 'Name', required: true },
+    businessName: { type: 'text', label: 'Business Name' },
+    taxClassification: {
+      type: 'enum',
+      label: 'Tax Classification',
+      enum: ['individual', 'c_corp', 's_corp', 'partnership', 'llc'],
+      required: true,
+    },
+    llcTaxCode: { type: 'text', label: 'LLC Tax Code' },
+    address: { type: 'address', label: 'Address', required: true },
+    ssn: { type: 'text', label: 'SSN' },
+    ein: { type: 'text', label: 'EIN' },
+  },
+  defaultLayer: 'pdf',
+  layers: {
+    pdf: {
+      kind: 'file',
+      mimeType: 'application/pdf',
+      path: 'layers/w9.pdf',
+      bindings: {
+        // Simple field binding
+        'topmostSubform[0].Page1[0].f1_01[0]': 'name',
+        'topmostSubform[0].Page1[0].f1_02[0]': 'businessName',
+
+        // Checkbox bindings for enum values
+        'topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[0]': 'taxClassification:individual',
+        'topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[1]': 'taxClassification:c_corp',
+        'topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[2]': 'taxClassification:s_corp',
+        'topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[3]': 'taxClassification:partnership',
+        'topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[5]': 'taxClassification:llc',
+        'topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].f1_03[0]': 'llcTaxCode',
+
+        // Nested path for complex types
+        'topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_07[0]': 'address.line1',
+
+        // Combined fields (joined with comma)
+        'topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_08[0]': 'address.locality,address.region,address.postalCode',
+
+        // Split fields (SSN split across 3 inputs)
+        'topmostSubform[0].Page1[0].f1_11[0]': 'ssn:1',
+        'topmostSubform[0].Page1[0].f1_12[0]': 'ssn:2',
+        'topmostSubform[0].Page1[0].f1_13[0]': 'ssn:3',
+
+        // Split fields (EIN split across 2 inputs)
+        'topmostSubform[0].Page1[0].f1_14[0]': 'ein:1',
+        'topmostSubform[0].Page1[0].f1_15[0]': 'ein:2',
+      },
+    },
+  },
+})
+```
+</Step>
+
+<Step>
+## Fill the Form
+
+Create a runtime instance by filling the form with data.
+
+```ts
+const filled = w9Form.fill({
+  fields: {
+    name: 'John Smith',
+    taxClassification: 'individual',
+    address: {
+      line1: '123 Main Street',
+      locality: 'San Francisco',
+      region: 'CA',
+      postalCode: '94105',
+      country: 'US',
+    },
+    ssn: '123-45-6789',
+  },
+})
+
+if (!filled.isValid()) {
+  console.log('Errors:', filled.validate().errors)
+}
+```
+</Step>
+
+<Step>
+## Render to PDF
+
+Render the filled form using the PDF renderer. The resolver loads the PDF template from the filesystem.
+
+```ts
+import { pdfRenderer } from '@paradoc/sdk'
+import { createFsResolver } from '@paradoc/resolvers/fs'
+import { writeFileSync } from 'node:fs'
+
+// Point the resolver to your project root where layers/ lives
+const resolver = createFsResolver({ root: '.' })
+
+const output = await filled.render({
+  renderer: pdfRenderer(),
+  resolver,
+  layer: 'pdf',
+})
+
+writeFileSync('output/w9-filled.pdf', output)
+```
+
+The output is a `Uint8Array` containing the filled PDF document with all AcroForm fields populated.
+</Step>
+</Steps>
+
+You've now created a form that fills an existing PDF template using field bindings. The binding syntax handles common patterns like checkboxes for enum values, split fields for formatted data like SSN/EIN, and combined fields for address components.

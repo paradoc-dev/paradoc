@@ -1,0 +1,43 @@
+{
+  "name": "paradoc-cli",
+  "version": "0.1.0",
+  "description": "CLI for the Paradoc framework — convenience alias for @paradoc/cli",
+  "type": "module",
+  "bin": {
+    "para": "./bin.js",
+    "paradoc": "./bin.js"
+  },
+  "files": [
+    "bin.js",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "cli",
+    "forms",
+    "documents-as-code",
+    "command-line"
+  ],
+  "license": "MIT",
+  "author": "Paradoc",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git",
+    "directory": "apps/paradoc-cli"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@paradoc/cli": "workspace:^"
+  }
+}

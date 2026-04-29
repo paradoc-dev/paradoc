@@ -1,0 +1,196 @@
+---
+title: Defs & Rules
+description: Typed computed values and validation rules
+---
+
+Defs and Rules enable conditional behavior and validation in forms and bundles.
+
+- **Defs** define typed computed values that can be referenced in field/annex conditions (`visible`, `required`)
+- **Rules** define form-level validation constraints evaluated at fill time
+
+# DefsSection
+
+A mapping of named typed expressions keyed by camelCase identifier.
+
+Each entry specifies a `type` and `value`. For scalar types the value is a string expression; for composite types (money, address, etc.) the value is an object with component expressions.
+
+<PropertiesTable properties={[
+  {
+    name: '[key]',
+    type: 'Expression',
+    description: 'A typed computed value entry. Key must be camelCase (starts with lowercase letter)',
+    properties: [
+      {
+        type: 'Expression',
+        parameters: [
+          { name: 'type', type: 'string', description: 'Value type: boolean, string, number, integer, percentage, rating, date, time, datetime, duration, money, address, phone, coordinate, bbox, person, organization, identification' },
+          { name: 'value', type: 'string | object', description: 'Expression string (scalar types) or object with component expressions (composite types)' },
+          { name: 'label', type: 'string', description: 'Display label for the computed value', isOptional: true },
+          { name: 'description', type: 'string', description: 'Documentation for the computed value', isOptional: true },
+        ],
+      },
+    ],
+  },
+]} />
+
+# RulesSection
+
+A mapping of form-level validation rules keyed by camelCase identifier. Rules are evaluated at fill time.
+
+<PropertiesTable properties={[
+  {
+    name: '[key]',
+    type: 'ValidationRule',
+    description: 'A validation rule entry. Key must be camelCase (starts with lowercase letter)',
+    properties: [
+      {
+        type: 'ValidationRule',
+        parameters: [
+          { name: 'expr', type: 'string', description: 'Boolean expression that must evaluate to true for the form to be valid. Has access to field values directly and defs values' },
+          { name: 'message', type: 'string', description: 'Error message displayed when the rule fails' },
+          { name: 'severity', type: "'error' | 'warning'", description: 'Severity level: error (default) blocks submission, warning allows but warns', isOptional: true },
+        ],
+      },
+    ],
+  },
+]} />
+
+# CondExpr
+
+A conditional expression used in `include`, `required`, and `visible` fields.
+
+```typescript
+type CondExpr = boolean | string
+```
+
+When a string is provided, it can reference:
+- Named defs from the `defs` section
+- Field values using `fields.<fieldName>`
+- Comparison operators (`==`, `!=`, `>`, `<`, `>=`, `<=`)
+- Logical operators (`&&`, `||`, `!`)
+
+# Examples
+
+```yaml tab="YAML"
+kind: form
+name: loan-application
+defs:
+  isEmployed:
+    type: boolean
+    value: "fields.employmentStatus == 'employed'"
+  needsCoSigner:
+    type: boolean
+    value: "fields.creditScore < 650"
+  showIncomeFields:
+    type: boolean
+    value: "isEmployed"
+
+rules:
+  creditScoreRange:
+    expr: "creditScore >= 300 and creditScore <= 850"
+    message: "Credit score must be between 300 and 850"
+  incomeRequired:
+    expr: "not isEmployed or monthlyIncome > 0"
+    message: "Monthly income is required for employed applicants"
+    severity: error
+
+fields:
+  employmentStatus:
+    type: enum
+    label: Employment Status
+    enum: ["employed", "self-employed", "unemployed", "retired"]
+
+  creditScore:
+    type: number
+    label: Credit Score
+    min: 300
+    max: 850
+
+  employer:
+    type: text
+    label: Employer Name
+    visible: showIncomeFields
+    required: showIncomeFields
+
+  monthlyIncome:
+    type: money
+    label: Monthly Income
+    visible: showIncomeFields
+    required: showIncomeFields
+
+  coSignerName:
+    type: person
+    label: Co-Signer
+    visible: needsCoSigner
+    required: needsCoSigner
+```
+
+```json tab="JSON"
+{
+  "kind": "form",
+  "name": "loan-application",
+  "defs": {
+    "isEmployed": {
+      "type": "boolean",
+      "value": "fields.employmentStatus == 'employed'"
+    },
+    "needsCoSigner": {
+      "type": "boolean",
+      "value": "fields.creditScore < 650"
+    },
+    "showIncomeFields": {
+      "type": "boolean",
+      "value": "isEmployed"
+    }
+  },
+  "rules": {
+    "creditScoreRange": {
+      "expr": "creditScore >= 300 and creditScore <= 850",
+      "message": "Credit score must be between 300 and 850"
+    },
+    "incomeRequired": {
+      "expr": "not isEmployed or monthlyIncome > 0",
+      "message": "Monthly income is required for employed applicants",
+      "severity": "error"
+    }
+  },
+  "fields": {
+    "employmentStatus": {
+      "type": "enum",
+      "label": "Employment Status",
+      "enum": ["employed", "self-employed", "unemployed", "retired"]
+    },
+    "creditScore": {
+      "type": "number",
+      "label": "Credit Score",
+      "min": 300,
+      "max": 850
+    },
+    "employer": {
+      "type": "text",
+      "label": "Employer Name",
+      "visible": "showIncomeFields",
+      "required": "showIncomeFields"
+    },
+    "monthlyIncome": {
+      "type": "money",
+      "label": "Monthly Income",
+      "visible": "showIncomeFields",
+      "required": "showIncomeFields"
+    },
+    "coSignerName": {
+      "type": "person",
+      "label": "Co-Signer",
+      "visible": "needsCoSigner",
+      "required": "needsCoSigner"
+    }
+  }
+}
+```
+
+# Related
+
+- [Form](/schemas/artifacts/form) - Interactive form artifact
+- [Bundle](/schemas/artifacts/bundle) - Container artifact with conditional inclusion
+- [FormField](/schemas/artifacts/form/field) - Field definitions with conditional properties
+- [FormAnnex](/schemas/artifacts/form/annex) - Attachment slots with conditional visibility and requirements

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/address.json",
+  "type": "object",
+  "properties": {
+    "line1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Primary address line"
+    },
+    "line2": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Secondary address line"
+    },
+    "locality": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "City or locality name"
+    },
+    "region": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "State, province, or region name"
+    },
+    "postalCode": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 20,
+      "pattern": "^[A-Z0-9\\s-]+$",
+      "description": "Postal or ZIP code"
+    },
+    "country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 100,
+      "description": "ISO 3166-1 country code (e.g., \"US\", \"GB\", \"FRA\") or full country name"
+    }
+  },
+  "required": [
+    "line1",
+    "locality",
+    "region",
+    "postalCode",
+    "country"
+  ],
+  "additionalProperties": false,
+  "id": "Address",
+  "title": "Address"
+}

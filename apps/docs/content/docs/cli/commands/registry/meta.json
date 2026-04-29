@@ -1,0 +1,16 @@
+{
+  "title": "registry",
+  "pages": [
+    "index",
+    "add",
+    "remove",
+    "list",
+    "make",
+    "info",
+    "catalog",
+    "stats",
+    "compile",
+    "view"
+  ],
+  "defaultOpen": false
+}

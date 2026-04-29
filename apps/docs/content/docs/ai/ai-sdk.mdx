@@ -1,0 +1,122 @@
+---
+title: Vercel AI SDK
+description: Use Paradoc tools with the Vercel AI SDK
+ogTitle: Vercel AI SDK — Paradoc AI
+ogDescription: Integrate Paradoc tools into Vercel AI SDK applications with @paradoc/ai-sdk
+---
+
+`@paradoc/ai-sdk` wraps `@paradoc/ai-tools` with Vercel AI SDK's `tool()` function. Works with `generateText`, `streamText`, and any AI SDK-compatible model.
+
+# Installation
+
+```bash
+npm install @paradoc/ai-sdk ai zod
+```
+
+Peer dependencies: `ai` ^6.0.0 and `zod` ^4.0.0.
+
+# Usage
+
+```typescript
+import { paradocTools } from "@paradoc/ai-sdk"
+import { generateText } from "ai"
+import { openai } from "@ai-sdk/openai"
+
+const result = await generateText({
+  model: openai("gpt-4o"),
+  tools: paradocTools({
+    defaultRegistryUrl: "https://public.paradoc.dev",
+  }),
+  prompt: "Fill the pet addendum for my dog Rex, 30 lbs, vaccinated",
+})
+```
+
+# Streaming
+
+```typescript
+import { streamText } from "ai"
+
+const result = streamText({
+  model: openai("gpt-4o"),
+  tools: paradocTools(),
+  prompt: "What artifacts are available in the public registry?",
+})
+
+for await (const part of result.textStream) {
+  process.stdout.write(part)
+}
+```
+
+# Composing with other tools
+
+Spread alongside your own tools:
+
+```typescript
+import { paradocTools } from "@paradoc/ai-sdk"
+import { tool } from "ai"
+import { z } from "zod"
+
+const result = await generateText({
+  model,
+  tools: {
+    ...paradocTools(),
+    lookupCustomer: tool({
+      description: "Look up a customer by ID",
+      inputSchema: z.object({ id: z.string() }),
+      execute: async ({ id }) => fetchCustomer(id),
+    }),
+  },
+  prompt: "...",
+})
+```
+
+Or pick individual tools:
+
+```typescript
+const { validateArtifact, render } = paradocTools()
+```
+
+# Configuration
+
+```typescript
+paradocTools({
+  defaultRegistryUrl: "https://public.paradoc.dev",
+  proxyTextRenderer: {
+    url: "https://your-documents-service.example.com",
+    apiKey: "your-api-key",
+  },
+  fetch: customFetchWithAuth,
+})
+```
+
+See the [configuration reference](/ai#configuration) for details on each option.
+
+# API
+
+## `paradocTools(config?)`
+
+Returns an object with five tools:
+
+| Key | AI SDK `tool()` description |
+|-----|----------------------------|
+| `validateArtifact` | Validates an Paradoc artifact against its schema |
+| `fill` | Fills an Paradoc artifact with data and validates |
+| `render` | Renders an Paradoc artifact to PDF, markdown, or DOCX |
+| `getRegistry` | Fetches registry.json from a URL, returns available artifacts |
+| `getArtifact` | Fetches artifact JSON from a registry by name |
+
+## Re-exports
+
+The package also re-exports all output types from `@paradoc/ai-tools`:
+
+```typescript
+import type {
+  ParadocToolsConfig,
+  ProxyTextRendererConfig,
+  ValidateOutput,
+  FillOutput,
+  RenderOutput,
+  GetRegistryOutput,
+  GetArtifactOutput,
+} from "@paradoc/ai-sdk"
+```

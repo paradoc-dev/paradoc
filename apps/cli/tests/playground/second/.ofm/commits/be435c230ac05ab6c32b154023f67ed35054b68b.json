@@ -1,0 +1,37 @@
+{
+  "id": "be435c230ac05ab6c32b154023f67ed35054b68b",
+  "parent": "7d7f0d7a61eed456d6f07066f7d6499b0f49765c",
+  "message": "second commit",
+  "timestamp": "2025-11-20T04:41:20.869Z",
+  "author": {
+    "name": "",
+    "email": ""
+  },
+  "artifacts": {
+    "test-form": {
+      "path": "test-form.json",
+      "kind": "form",
+      "version": "1.0.0",
+      "content_hash": "a4c1398b5d0f439e425d866beb25ad9e4c77ee9dee85077bced8d8591d3def2e",
+      "content": "{\n  \"$schema\": \"https://paradoc.dev/schemas/form.schema.json\",\n  \"kind\": \"form\",\n  \"name\": \"test-form\",\n  \"title\": \"Test Form\",\n  \"version\": \"1.0.0\",\n  \"fields\": {}\n}\n",
+      "status": "unchanged",
+      "file_dependencies": []
+    }
+  },
+  "files": {
+    "README.md": {
+      "path": "README.md",
+      "content_hash": "55e51b52fda76ac894114f241210c54f3f0924cdff89fdcbe87cc83765e0e757",
+      "content": "I am a readme file again.\n",
+      "size": 26,
+      "media_type": "text/markdown",
+      "status": "modified"
+    }
+  },
+  "stats": {
+    "added": 0,
+    "modified": 1,
+    "deleted": 0,
+    "unchanged": 1
+  }
+}

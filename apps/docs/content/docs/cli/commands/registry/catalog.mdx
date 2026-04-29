@@ -1,0 +1,91 @@
+---
+title: registry catalog
+description: Manage registry catalog items
+ogTitle: para registry catalog
+ogDescription: Add and remove artifacts from an Paradoc registry catalog
+---
+
+Manage which artifacts are listed in a registry catalog.
+
+# Usage
+
+```bash
+para registry catalog <command> [options]
+```
+
+# Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `add` | Add an artifact to the registry catalog |
+| `remove` | Remove an artifact from the registry catalog |
+
+---
+
+# catalog add
+
+Add an artifact to the registry catalog.
+
+```bash
+para registry catalog add <artifact> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Path to artifact file (JSON/YAML) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-r, --registry <path>` | Path to registry.json (default: `./registry.json`) |
+| `-y, --yes` | Skip confirmation prompts |
+
+## Description
+
+Reads and validates the artifact file, then adds it to the `items` array in `registry.json`. If an artifact with the same name already exists, you will be prompted to update it.
+
+## Examples
+
+```bash
+para registry catalog add ./artifacts/w9-form.json
+para registry catalog add ./lease.yaml -r ./my-registry/registry.json
+```
+
+---
+
+# catalog remove
+
+Remove an artifact from the registry catalog.
+
+```bash
+para registry catalog remove <name> [options]
+para registry catalog rm <name> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `name` | Artifact name to remove |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-r, --registry <path>` | Path to registry.json (default: `./registry.json`) |
+| `-y, --yes` | Skip confirmation prompts |
+
+## Examples
+
+```bash
+para registry catalog remove w9-form
+para registry catalog rm old-template -y
+```
+
+# See also
+
+- [registry make](/cli/commands/registry/make) - Create a registry
+- [registry compile](/cli/commands/registry/compile) - Compile registry artifacts

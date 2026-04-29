@@ -1,0 +1,67 @@
+---
+title: Address
+description: A postal address
+---
+
+An Address is a structured primitive that represents a postal address.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'line1',
+    type: 'string',
+    description: 'Primary address line (street address, PO box, company name).',
+  },
+  {
+    name: 'line2',
+    type: 'string',
+    description: 'Secondary address line (apartment, suite, unit, building).',
+    isOptional: true,
+  },
+  {
+    name: 'locality',
+    type: 'string',
+    description: 'City, town, or locality.',
+  },
+  {
+    name: 'region',
+    type: 'string',
+    description: 'State, province, or region.',
+  },
+  {
+    name: 'postalCode',
+    type: 'string',
+    description: 'Postal or ZIP code.',
+  },
+  {
+    name: 'country',
+    type: 'string',
+    description: 'ISO country code or full country name.',
+  },
+]} />
+
+# Examples
+
+
+
+```yaml tab="YAML"
+line1: 123 Main Street
+line2: Suite 400
+locality: San Francisco
+region: CA
+postalCode: "94102"
+country: US
+```
+
+
+```json tab="JSON"
+{
+  "line1": "123 Main Street",
+  "line2": "Suite 400",
+  "locality": "San Francisco",
+  "region": "CA",
+  "postalCode": "94102",
+  "country": "US"
+}
+```

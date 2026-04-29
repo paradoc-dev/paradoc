@@ -1,0 +1,12 @@
+{
+  "title": "form",
+  "pages": [
+    "index",
+    "field",
+    "annex",
+    "party",
+    "fill-state",
+    "signing"
+  ],
+  "defaultOpen": false
+}

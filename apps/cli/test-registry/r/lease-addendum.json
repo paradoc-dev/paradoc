@@ -1,0 +1,95 @@
+{
+  "$schema": "https://schema.paradoc.dev/registry-item.json",
+  "kind": "form",
+  "name": "lease-addendum",
+  "version": "1.0.0",
+  "title": "Lease Addendum",
+  "description": "Addendum to modify or supplement an existing lease agreement",
+  "fields": {
+    "landlordName": {
+      "type": "text",
+      "label": "Landlord Name",
+      "required": true
+    },
+    "tenantName": {
+      "type": "text",
+      "label": "Tenant Name",
+      "required": true
+    },
+    "propertyAddress": {
+      "type": "text",
+      "label": "Property Address",
+      "description": "Address of the leased property",
+      "required": true
+    },
+    "originalLeaseDate": {
+      "type": "text",
+      "label": "Original Lease Date",
+      "description": "Date of the original lease agreement",
+      "required": true
+    },
+    "addendumDate": {
+      "type": "text",
+      "label": "Addendum Date",
+      "description": "Date this addendum is executed",
+      "required": true
+    },
+    "addendumType": {
+      "type": "enum",
+      "label": "Addendum Type",
+      "description": "Type of modification being made",
+      "enum": [
+        "pet-agreement",
+        "rent-modification",
+        "lease-extension",
+        "roommate-addition",
+        "parking-agreement",
+        "early-termination",
+        "other"
+      ],
+      "required": true
+    },
+    "addendumTitle": {
+      "type": "text",
+      "label": "Addendum Title",
+      "description": "Brief title describing this addendum",
+      "required": true
+    },
+    "addendumDetails": {
+      "type": "text",
+      "label": "Addendum Details",
+      "description": "Full description of the modification or addition",
+      "required": true,
+      "minLength": 10,
+      "maxLength": 5000
+    },
+    "effectiveDate": {
+      "type": "text",
+      "label": "Effective Date",
+      "description": "Date when this addendum takes effect",
+      "required": true
+    },
+    "additionalRent": {
+      "type": "number",
+      "label": "Additional Monthly Rent",
+      "description": "Any additional rent amount resulting from this addendum",
+      "min": 0,
+      "required": false
+    },
+    "additionalDeposit": {
+      "type": "number",
+      "label": "Additional Deposit",
+      "description": "Any additional deposit required",
+      "min": 0,
+      "required": false
+    }
+  },
+  "layers": {
+    "default": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# LEASE ADDENDUM\n\n## {{addendumTitle}}\n\nThis Addendum is made and entered into on **{{addendumDate}}** and is attached to and made part of the Lease Agreement dated **{{originalLeaseDate}}** (the \"Original Lease\").\n\n## PARTIES\n\n- **Landlord:** {{landlordName}}\n- **Tenant:** {{tenantName}}\n\n## PROPERTY\n\n{{propertyAddress}}\n\n## TYPE OF ADDENDUM\n\n**{{addendumType}}**\n\n## TERMS AND CONDITIONS\n\n{{addendumDetails}}\n\n## FINANCIAL MODIFICATIONS\n\n- **Additional Monthly Rent:** ${{additionalRent}}\n- **Additional Deposit:** ${{additionalDeposit}}\n\n## EFFECTIVE DATE\n\nThis Addendum shall be effective as of **{{effectiveDate}}**.\n\n## AGREEMENT\n\nExcept as modified by this Addendum, all other terms and conditions of the Original Lease remain in full force and effect.\n\nIN WITNESS WHEREOF, the parties have executed this Addendum as of the date first written above.\n\n_____________________________\nLandlord Signature & Date\n\n_____________________________\nTenant Signature & Date\n"
+    }
+  },
+  "defaultLayer": "default"
+}

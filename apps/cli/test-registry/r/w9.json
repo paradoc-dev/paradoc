@@ -1,0 +1,110 @@
+{
+  "$schema": "https://schema.paradoc.dev/registry-item.json",
+  "kind": "form",
+  "name": "w9",
+  "version": "1.0.0",
+  "title": "Request for Taxpayer Identification Number and Certification",
+  "description": "IRS Form W-9 - Request for Taxpayer Identification Number and Certification (Rev. October 2018)",
+  "tags": ["irs", "tax", "w9", "tin", "government"],
+  "fields": {
+    "name": {
+      "type": "text",
+      "label": "Name",
+      "description": "Name as shown on your income tax return",
+      "required": true
+    },
+    "businessName": {
+      "type": "text",
+      "label": "Business Name",
+      "description": "Business name/disregarded entity name, if different from above"
+    },
+    "taxClassification": {
+      "type": "enum",
+      "label": "Federal Tax Classification",
+      "description": "Check appropriate box for federal tax classification",
+      "enum": ["individual", "c_corp", "s_corp", "partnership", "trust_estate", "llc", "other"],
+      "required": true
+    },
+    "llcTaxCode": {
+      "type": "text",
+      "label": "LLC Tax Classification Code",
+      "description": "Enter the tax classification (C=C corporation, S=S corporation, P=Partnership)"
+    },
+    "otherClassification": {
+      "type": "text",
+      "label": "Other Classification",
+      "description": "If 'Other' selected, describe the classification"
+    },
+    "exemptPayeeCode": {
+      "type": "text",
+      "label": "Exempt Payee Code",
+      "description": "Exempt payee code (if any)"
+    },
+    "fatcaExemptionCode": {
+      "type": "text",
+      "label": "FATCA Exemption Code",
+      "description": "Exemption from FATCA reporting code (if any)"
+    },
+    "address": {
+      "type": "address",
+      "label": "Address",
+      "description": "Address (number, street, city, state, ZIP code)",
+      "required": true
+    },
+    "requesterInfo": {
+      "type": "text",
+      "label": "Requester's Name and Address",
+      "description": "Optional - list account number(s) here"
+    },
+    "accountNumbers": {
+      "type": "text",
+      "label": "Account Number(s)",
+      "description": "Optional account numbers"
+    },
+    "ssn": {
+      "type": "text",
+      "label": "Social Security Number",
+      "description": "Social Security Number (format: 123-45-6789)"
+    },
+    "ein": {
+      "type": "text",
+      "label": "Employer Identification Number",
+      "description": "Employer Identification Number (format: 12-3456789)"
+    }
+  },
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "title": "W-9 PDF Form",
+      "description": "Official IRS W-9 form (Rev. October 2018)",
+      "path": "w9.pdf",
+      "url": "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
+      "bindings": {
+        "topmostSubform[0].Page1[0].f1_01[0]": "name",
+        "topmostSubform[0].Page1[0].f1_02[0]": "businessName",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[0]": "taxClassification:individual",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[1]": "taxClassification:c_corp",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[2]": "taxClassification:s_corp",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[3]": "taxClassification:partnership",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[4]": "taxClassification:trust_estate",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[5]": "taxClassification:llc",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[6]": "taxClassification:other",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].f1_03[0]": "llcTaxCode",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].f1_04[0]": "otherClassification",
+        "topmostSubform[0].Page1[0].f1_05[0]": "exemptPayeeCode",
+        "topmostSubform[0].Page1[0].f1_06[0]": "fatcaExemptionCode",
+        "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_07[0]": "address.line1",
+        "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_08[0]": "address.locality,address.region,address.postalCode",
+        "topmostSubform[0].Page1[0].f1_09[0]": "requesterInfo",
+        "topmostSubform[0].Page1[0].f1_10[0]": "accountNumbers",
+        "topmostSubform[0].Page1[0].f1_11[0]": "ssn:1",
+        "topmostSubform[0].Page1[0].f1_12[0]": "ssn:2",
+        "topmostSubform[0].Page1[0].f1_13[0]": "ssn:3",
+        "topmostSubform[0].Page1[0].f1_14[0]": "ein:1",
+        "topmostSubform[0].Page1[0].f1_15[0]": "ein:2"
+      }
+    }
+  },
+  "defaultLayer": "pdf"
+}

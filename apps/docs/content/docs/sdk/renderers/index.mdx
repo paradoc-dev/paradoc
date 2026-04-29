@@ -1,0 +1,167 @@
+---
+title: Renderer Reference
+description: Render artifacts to different output formats
+---
+
+Renderers transform Paradoc artifacts into output formats like text, PDF, and DOCX. Each renderer implements the `ParadocRenderer` interface, making it easy to build custom renderers for your specific needs.
+
+# Installation
+
+Install all renderers via the umbrella package:
+
+```bash
+npm install @paradoc/renderers
+```
+
+Or install individual renderer packages:
+
+```bash
+npm install @paradoc/renderer-text
+npm install @paradoc/renderer-pdf
+npm install @paradoc/renderer-docx
+```
+
+# Usage
+
+```ts
+import { textRenderer } from '@paradoc/renderers'
+// Or from individual package:
+// import { textRenderer } from '@paradoc/renderer-text'
+
+import { para } from '@paradoc/core'
+
+// Create a form with a template layer
+const form = para.form({
+  name: 'invoice',
+  fields: {
+    customer: { type: 'text', label: 'Customer' },
+    total: { type: 'money', label: 'Total' }
+  },
+  layers: {
+    text: {
+      kind: 'inline',
+      mimeType: 'text/plain',
+      text: 'Invoice for {{customer}}\nTotal: {{total}}'
+    }
+  },
+  defaultLayer: 'text'
+})
+
+// Fill the form with data
+const filled = form.fill({
+  fields: {
+    customer: 'Acme Corp',
+    total: { amount: 1500, currency: 'USD' }
+  }
+})
+
+// Render the filled form
+const output = await filled.render({
+  renderer: textRenderer()
+})
+// output: "Invoice for Acme Corp\nTotal: $1,500.00"
+```
+
+# Renderer Packages
+
+| Package | Description |
+|---------|-------------|
+| [Text](/sdk/renderers/text) | Handlebars-based text templating for HTML, Markdown, plain text |
+| [PDF](/sdk/renderers/pdf) | Fill PDF forms with AcroForm field support |
+| [DOCX](/sdk/renderers/docx) | Generate Word documents from templates |
+
+# Renderer Interface
+
+All renderers implement the `ParadocRenderer` interface. Use this to build custom renderers:
+
+```ts
+import type { ParadocRenderer, RenderRequest, RendererLayer } from '@paradoc/types'
+
+const myRenderer: ParadocRenderer<RendererLayer, string> = {
+  id: 'my-renderer',
+  render(request: RenderRequest): string {
+    const { template, form, data, bindings, ctx } = request
+    // Your rendering logic here
+    return processTemplate(template.content, data)
+  }
+}
+```
+
+## ParadocRenderer
+
+<PropertiesTable properties={[
+  { name: 'id', type: 'string', description: 'Unique identifier for this renderer (e.g., "text", "pdf", "docx")' },
+  { name: 'render', type: '(request: RenderRequest) => Output | Promise<Output>', description: 'Execute the rendering operation', isMethod: true },
+]} />
+
+## RenderRequest
+
+The request object passed to the `render` method:
+
+<PropertiesTable properties={[
+  { name: 'template', type: 'RendererLayer', description: 'The resolved template layer to render' },
+  { name: 'form', type: 'Form', description: 'The form schema (used for field type detection)' },
+  { name: 'data', type: 'FormData', description: 'The data to populate the template with' },
+  { name: 'bindings', type: 'Bindings', description: 'Optional mapping from template placeholders to field names', isOptional: true },
+  { name: 'ctx', type: 'ParadocRendererContext', description: 'Optional context with locale, logger, serializers', isOptional: true },
+]} />
+
+## RendererLayer
+
+The resolved template content:
+
+<PropertiesTable properties={[
+  { name: 'type', type: '"text" | "docx" | "pdf" | string', description: 'Logical template type' },
+  { name: 'content', type: 'string | Uint8Array', description: 'Template payload (text or binary)' },
+  { name: 'mimeType', type: 'string', description: 'Media type (e.g., "text/html", "application/pdf")', isOptional: true },
+  { name: 'bindings', type: 'Bindings', description: 'Template-specific field mappings', isOptional: true },
+]} />
+
+## ParadocRendererContext
+
+Optional context for customizing renderer behavior:
+
+<PropertiesTable properties={[
+  { name: 'locale', type: 'string', description: 'Locale for formatting (e.g., "en-US")', isOptional: true },
+  { name: 'logger', type: '{ debug?, info?, warn?, error? }', description: 'Logger instance for debugging', isOptional: true },
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom formatters for field values', isOptional: true },
+]} />
+
+# Building Custom Renderers
+
+To create a custom renderer:
+
+1. Implement the `ParadocRenderer` interface
+2. Handle the template type(s) you support
+3. Use serializers for consistent value formatting
+
+```ts
+import type { ParadocRenderer, RenderRequest, RendererLayer } from '@paradoc/types'
+
+// Custom CSV renderer example
+export function csvRenderer(): ParadocRenderer<
+  RendererLayer & { type: 'text'; content: string },
+  string
+> {
+  return {
+    id: 'csv',
+    render(request: RenderRequest) {
+      const { form, data } = request
+
+      // Generate CSV from form fields and data
+      const headers = Object.keys(form.fields || {})
+      const values = headers.map(key => {
+        const value = data.fields?.[key]
+        return value != null ? String(value) : ''
+      })
+
+      return [headers.join(','), values.join(',')].join('\n')
+    }
+  }
+}
+```
+
+# Related
+
+- [Serialization](/sdk/serialization) - Value formatting for renderers
+- [Form Layers](/sdk/artifacts/form) - Template layer configuration

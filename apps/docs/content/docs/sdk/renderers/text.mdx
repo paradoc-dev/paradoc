@@ -1,0 +1,309 @@
+---
+title: textRenderer
+description: Render Paradoc artifacts to text-based formats
+---
+
+Render forms to text-based outputs like HTML, Markdown, or plain text using [Handlebars](https://handlebarsjs.com/) templating. Field values are automatically serialized based on their schema types.
+
+# Example
+
+```ts
+import { para } from '@paradoc/core'
+import { textRenderer } from '@paradoc/renderer-text'
+
+const form = para.form({
+  name: 'receipt',
+  fields: {
+    customer: { type: 'text', label: 'Customer' },
+    total: { type: 'money', label: 'Total' },
+    date: { type: 'date', label: 'Date' }
+  },
+  layers: {
+    html: {
+      kind: 'inline',
+      mimeType: 'text/html',
+      text: `
+        <h1>Receipt</h1>
+        <p>Customer: {{customer}}</p>
+        <p>Total: {{total}}</p>
+        <p>Date: {{date}}</p>
+      `
+    }
+  },
+  defaultLayer: 'html'
+})
+
+// Fill the form with data
+const filled = form.fill({
+  fields: {
+    customer: 'Acme Corp',
+    total: { amount: 250.00, currency: 'USD' },
+    date: '2024-03-15'
+  }
+})
+
+// Render the filled form
+const output = await filled.render({
+  renderer: textRenderer()
+})
+// Output:
+// <h1>Receipt</h1>
+// <p>Customer: Acme Corp</p>
+// <p>Total: $250.00</p>
+// <p>Date: March 15, 2024</p>
+```
+
+# Import
+
+From the umbrella package:
+
+```ts
+import { textRenderer } from '@paradoc/renderers'
+```
+
+Or from the individual package:
+
+```ts
+import { textRenderer } from '@paradoc/renderer-text'
+```
+
+# API
+
+## textRenderer()
+
+Factory function that creates a configured text renderer instance.
+
+```ts
+function textRenderer(options?: TextRendererOptions): ParadocRenderer<
+  RendererLayer & { type: 'text'; content: string },
+  string
+>
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'options', type: 'TextRendererOptions', description: 'Configuration options', isOptional: true },
+]} />
+
+### TextRendererOptions
+
+<PropertiesTable properties={[
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry for formatting field values. Defaults to USA serializers.', isOptional: true },
+  { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
+]} />
+
+### TextSignatureOptions
+
+<PropertiesTable properties={[
+  { name: 'format', type: "'text' | 'html' | 'markdown'", description: 'Output format for signatures. Defaults to "text".', isOptional: true },
+  { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
+  { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
+  { name: 'altText', type: 'string', description: 'Alt text for signature images (html format only).', isOptional: true },
+  { name: 'cssClass', type: 'string', description: 'CSS class for signature images (html format only).', isOptional: true },
+]} />
+
+### Returns
+
+Returns an `ParadocRenderer` object with:
+
+<PropertiesTable properties={[
+  { name: 'id', type: '"text"', description: 'Renderer identifier' },
+  { name: 'render', type: '(request: RenderRequest) => string', description: 'Render function that returns the populated template string', isMethod: true },
+]} />
+
+## renderText()
+
+Low-level function for direct template rendering without the full renderer interface.
+
+```ts
+function renderText(options: {
+  template: string
+  data: Record<string, unknown>
+  form?: Form
+  serializers?: SerializerRegistry
+  bindings?: Bindings
+  signatureOptions?: TextSignatureOptions
+}): string
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'template', type: 'string', description: 'Handlebars template string' },
+  { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
+  { name: 'form', type: 'Form', description: 'Form schema for automatic field type detection and serialization', isOptional: true },
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry. Defaults to USA serializers.', isOptional: true },
+  { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
+  { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
+]} />
+
+### Returns
+
+Returns the rendered template as a `string`.
+
+# Automatic Serialization
+
+When a form schema is provided, field values are automatically serialized based on their types:
+
+```ts
+const form = para.form({
+  name: 'demo',
+  fields: {
+    price: { type: 'money' },
+    percentage: { type: 'percentage' },
+    phone: { type: 'phone' }
+  },
+  layers: {
+    text: { kind: 'inline', mimeType: 'text/plain', text: '{{price}} {{percentage}} {{phone}}' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    price: { amount: 99.99, currency: 'USD' },
+    percentage: 0.15,
+    phone: { e164: '+14155551234' }
+  }
+})
+
+const output = await filled.render({
+  renderer: textRenderer()
+})
+// output: "$99.99 15% (415) 555-1234"
+```
+
+# Custom Serializers
+
+Use custom serializers for different locales or formatting preferences:
+
+```ts
+import { textRenderer } from '@paradoc/renderer-text'
+import { euSerializers } from '@paradoc/serialization'
+
+const renderer = textRenderer({
+  serializers: euSerializers
+})
+
+// Money formatted as "99,99 €" instead of "$99.99"
+```
+
+# Template Bindings
+
+Use bindings to map template placeholders to different field names:
+
+```ts
+const form = para.form({
+  name: 'contract',
+  fields: {
+    buyerFullName: { type: 'text' }
+  },
+  layers: {
+    text: {
+      kind: 'inline',
+      mimeType: 'text/plain',
+      text: 'Buyer: {{buyer_name}}',
+      bindings: {
+        buyer_name: 'buyerFullName'  // Maps {{buyer_name}} to buyerFullName field
+      }
+    }
+  }
+})
+```
+
+# Signature and Initials Helpers
+
+The text renderer includes Handlebars helpers for rendering signature and initials markers in templates.
+
+## Template Syntax
+
+```handlebars
+{{signature "locationId"}}  - Renders a signature placeholder or captured status
+{{initials "locationId"}}   - Renders an initials placeholder or captured status
+```
+
+The `locationId` identifies where in the document the signature appears (e.g., "final-sig", "page-3-init"). The helpers automatically infer the party role, party ID, and signer ID from the template context.
+
+**Important**: These helpers must be used inside a party or signatories loop to provide context.
+
+## Example with Signatures
+
+```ts
+const form = para.form({
+  name: 'lease',
+  fields: { /* ... */ },
+  parties: {
+    tenant: { label: 'Tenant', signature: { required: true } },
+    landlord: { label: 'Landlord', signature: { required: true } }
+  },
+  layers: {
+    html: {
+      kind: 'inline',
+      mimeType: 'text/html',
+      text: `
+        <h1>Lease Agreement</h1>
+
+        <h2>Tenants</h2>
+        {{#each parties.tenant}}
+        <p>Name: {{name}}</p>
+        <p>Signature: {{signature "final-sig"}}</p>
+        <p>Initials: {{initials "page-init"}}</p>
+        {{/each}}
+
+        <h2>Landlord</h2>
+        {{#each parties.landlord.signatories}}
+        <p>{{signer.person.name}}, {{capacity}}</p>
+        <p>Signature: {{signature "final-sig"}}</p>
+        {{/each}}
+      `
+    }
+  }
+})
+
+// Render with signature options
+const output = await form.fill(data).render({
+  renderer: textRenderer({ signatureOptions: { format: 'html' } })
+})
+```
+
+## Output Formats
+
+| Format | Unsigned | Signed (with image) |
+|--------|----------|---------------------|
+| `text` | `[SIGNATURE REQUIRED]` | `[Signature captured]` |
+| `html` | `<span class="signature-placeholder">...</span>` | `<img src="data:..." alt="Signature" class="signature-image" />` |
+| `markdown` | `_[SIGNATURE REQUIRED]_` | `![Signature](data:...)` |
+
+## Standalone Helper Registration
+
+For advanced use cases, you can register the helpers manually with a Handlebars instance:
+
+```ts
+import Handlebars from 'handlebars'
+import { registerSignatureHelpers } from '@paradoc/renderer-text'
+
+const hbs = Handlebars.create()
+registerSignatureHelpers(hbs, { format: 'html' })
+
+// Template must iterate over parties to provide context
+const template = hbs.compile(`
+  {{#each parties.tenant}}
+  Signature: {{signature "final-sig"}}
+  {{/each}}
+`)
+
+// Data must include augmented parties with _role, signatories, _signers, and _captures
+const output = template({
+  parties: {
+    tenant: [{ _role: 'tenant', id: 'tenant-0', signatories: [...] }]
+  },
+  _signers: { /* signer registry */ },
+  _captures: [ /* capture events */ ]
+})
+```
+
+# Related
+
+- [Renderers](/sdk/renderers) - Renderer interface overview
+- [Serialization](/sdk/serialization) - Value formatting
+- [Signature](/schemas/primitives/signature) - Signature data type

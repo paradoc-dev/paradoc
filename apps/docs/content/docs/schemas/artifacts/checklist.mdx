@@ -1,0 +1,250 @@
+---
+title: Checklist
+description: An artifact for tracking tasks and progress
+---
+
+A Checklist defines items to track within a workflow.
+
+Each item can have a boolean (done/not done) or enumerated status (e.g., pending, approved, rejected).
+
+Examples include a loan closing checklist, document review checklist, or onboarding checklist.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: '"checklist"',
+    description: 'Discriminator for checklist artifacts',
+  },
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Unique identifier; must follow slug constraints',
+  },
+  {
+    name: 'version',
+    type: 'string',
+    description: 'Artifact version (semantic versioning)',
+    isOptional: true,
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-friendly name presented to end users',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Long-form description or context',
+    isOptional: true,
+  },
+  {
+    name: 'code',
+    type: 'string',
+    description: 'Internal code or reference number',
+    isOptional: true,
+  },
+  {
+    name: 'releaseDate',
+    type: 'string',
+    description: 'ISO date string indicating when the artifact was released',
+    isOptional: true,
+  },
+  {
+    name: 'metadata',
+    type: 'Metadata',
+    description: 'Custom metadata map (keys must be alphanumeric with hyphens)',
+    isOptional: true,
+  },
+  {
+    name: 'instructions',
+    type: 'ContentRef',
+    description: 'Domain or compliance reference content (e.g., regulatory guidance)',
+    isOptional: true,
+  },
+  {
+    name: 'agentInstructions',
+    type: 'ContentRef',
+    description: 'LLM/agent prompts for presentation guidance',
+    isOptional: true,
+  },
+  {
+    name: 'items',
+    type: 'ChecklistItem[]',
+    description: 'Ordered list of checklist items',
+  },
+  {
+    name: 'layers',
+    type: 'Record<string, Layer>',
+    description: 'Named layers for rendering this checklist into different formats',
+    isOptional: true,
+  },
+  {
+    name: 'defaultLayer',
+    type: 'string',
+    description: 'Key of the default layer to use when none specified',
+    isOptional: true,
+  },
+]} />
+
+## ChecklistItem
+
+Template-time checklist item definition.
+
+<PropertiesTable properties={[
+  {
+    name: 'id',
+    type: 'string',
+    description: 'Item identifier',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Item title',
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Item description',
+    isOptional: true,
+  },
+  {
+    name: 'status',
+    type: 'StatusSpec',
+    description: 'Status specification for this item',
+    isOptional: true,
+    properties: [
+      {
+        type: 'BooleanStatusSpec',
+        description: 'Boolean status (done/not done)',
+        parameters: [
+          {
+            name: 'kind',
+            type: "'boolean'",
+            description: 'Boolean status type',
+          },
+          {
+            name: 'default',
+            type: 'boolean',
+            description: 'Default value',
+            isOptional: true,
+          },
+        ],
+      },
+      {
+        type: 'EnumStatusSpec',
+        description: 'Enumerated status with multiple options',
+        parameters: [
+          {
+            name: 'kind',
+            type: "'enum'",
+            description: 'Enum status type',
+          },
+          {
+            name: 'options',
+            type: 'EnumStatusOption[]',
+            description: 'Available status options',
+            properties: [
+              {
+                type: 'EnumStatusOption',
+                parameters: [
+                  {
+                    name: 'value',
+                    type: 'string',
+                    description: 'Option value',
+                  },
+                  {
+                    name: 'label',
+                    type: 'string',
+                    description: 'Display label',
+                  },
+                  {
+                    name: 'description',
+                    type: 'string',
+                    description: 'Option description',
+                    isOptional: true,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            name: 'default',
+            type: 'string',
+            description: 'Default option value',
+            isOptional: true,
+          },
+        ],
+      },
+    ],
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+kind: checklist
+name: loan-closing
+version: "1.0.0"
+title: Loan Closing Checklist
+
+items:
+  - id: title-search
+    title: Title Search
+    description: Complete title search and review
+    status:
+      kind: boolean
+      default: false
+
+  - id: appraisal
+    title: Appraisal
+    status:
+      kind: enum
+      options:
+        - value: pending
+          label: Pending
+        - value: approved
+          label: Approved
+        - value: rejected
+          label: Rejected
+      default: pending
+```
+
+```json tab="JSON"
+{
+  "kind": "checklist",
+  "name": "loan-closing",
+  "version": "1.0.0",
+  "title": "Loan Closing Checklist",
+  "items": [
+    {
+      "id": "title-search",
+      "title": "Title Search",
+      "description": "Complete title search and review",
+      "status": {
+        "kind": "boolean",
+        "default": false
+      }
+    },
+    {
+      "id": "appraisal",
+      "title": "Appraisal",
+      "status": {
+        "kind": "enum",
+        "options": [
+          { "value": "pending", "label": "Pending" },
+          { "value": "approved", "label": "Approved" },
+          { "value": "rejected", "label": "Rejected" }
+        ],
+        "default": "pending"
+      }
+    }
+  ]
+}
+```
+
+# Related
+
+- [Layer](/schemas/artifacts/shared/layer) - Layer specification

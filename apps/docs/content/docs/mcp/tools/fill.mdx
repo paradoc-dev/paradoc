@@ -1,0 +1,71 @@
+---
+title: fill
+description: Fill an Paradoc form or checklist with data, apply defaults, and validate
+ogTitle: fill — Paradoc MCP
+ogDescription: Fill an Paradoc form or checklist with data using the MCP server
+---
+
+Validates data against an Paradoc artifact before rendering. Pass the full artifact JSON and a data object. Call `get_artifact` first to inspect field and party definitions. Use this to catch errors before calling `render`.
+
+<Callout type="info">
+  Only forms and checklists support filling. Passing a document or bundle will return an error.
+</Callout>
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `artifact` | `object` | Yes | The Paradoc artifact (form or checklist) definition |
+| `data` | `object` | Yes | Data to fill. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the data passed validation |
+| `artifactKind` | `string` | Detected kind: `form` or `checklist` |
+| `data` | `object` | The validated data with defaults applied (on success) |
+| `errors` | `array` | List of validation errors, each with `field` and `message` |
+| `error` | `string` | Error message if filling could not be performed |
+
+# Examples
+
+## Successful fill
+
+```json
+// Request
+{
+  "artifact": { "kind": "form", "..." : "..." },
+  "data": { "fields": { "firstName": "Jane", "age": 30 } }
+}
+
+// Response
+{
+  "valid": true,
+  "artifactKind": "form",
+  "data": { "firstName": "Jane", "age": 30 }
+}
+```
+
+The `data` field in the response contains the validated data with any default values applied by the artifact definition.
+
+## Failed validation
+
+```json
+// Request
+{
+  "artifact": { "kind": "form", "..." : "..." },
+  "data": { "fields": { "firstName": "Jane", "age": "thirty" } }
+}
+
+// Response
+{
+  "valid": false,
+  "artifactKind": "form",
+  "errors": [
+    { "field": "age", "message": "Expected number, received string" }
+  ]
+}
+```
+
+Each error includes the `field` name and a `message` describing the validation failure.

@@ -1,0 +1,64 @@
+---
+title: registry compile
+description: Compile registry artifacts
+ogTitle: para registry compile
+ogDescription: Validate and compile Paradoc registry artifacts for deployment
+---
+
+Compile a registry by validating all artifacts, computing checksums, and generating output files for deployment.
+
+# Usage
+
+```bash
+para registry compile [options]
+```
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `-r, --registry <path>` | Path to registry.json (default: `./registry.json`) |
+| `-o, --output <path>` | Output directory for compiled registry items |
+| `--dry-run` | Show what would be compiled without writing files |
+
+# Description
+
+Reads the `registry.json` catalog, finds each artifact file (`.json`, `.yaml`, `.yml`), validates it against the Paradoc schema, computes SHA256 checksums for file-backed layers, and writes the compiled artifacts to the output directory (defaults to the `artifactsPath` defined in `registry.json`).
+
+# Examples
+
+Compile with defaults:
+
+```bash
+para registry compile
+```
+
+Compile to a custom output directory:
+
+```bash
+para registry compile -o ./dist/r
+```
+
+Preview without writing:
+
+```bash
+para registry compile --dry-run
+```
+
+# Output
+
+```
+Compiling registry: Acme Forms
+Output: /path/to/registry/r
+
+✓ w9-form: compiled
+✓ residential-lease: compiled
+✓ nda-template: compiled
+
+Compiled 3 artifact(s) successfully
+```
+
+# See also
+
+- [registry catalog](/cli/commands/registry/catalog) - Manage catalog items
+- [registry make](/cli/commands/registry/make) - Create a registry

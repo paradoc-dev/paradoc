@@ -1,0 +1,9 @@
+{
+  "title": "Schemas",
+  "pages": [
+    "index",
+    "artifacts",
+    "primitives"
+  ],
+  "defaultOpen": false
+}

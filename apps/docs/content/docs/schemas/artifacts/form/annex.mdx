@@ -1,0 +1,86 @@
+---
+title: FormAnnex
+description: Attachment slot definitions for forms
+---
+
+FormAnnex defines a placeholder for supplementary documents to be attached at runtime. Annexes can be required or optional, and their visibility can be controlled by logic expressions.
+
+# Properties
+
+Annexes are defined as a `Record<string, FormAnnex>` where the key is the annex identifier.
+
+<PropertiesTable properties={[
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Title for the annex slot',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Description of what document should be attached',
+    isOptional: true,
+  },
+  {
+    name: 'required',
+    type: 'boolean | string',
+    description: 'Whether required. Can be boolean or expression',
+    isOptional: true,
+  },
+  {
+    name: 'visible',
+    type: 'boolean | string',
+    description: 'Whether visible. Can be boolean or expression',
+    isOptional: true,
+  },
+  {
+    name: 'order',
+    type: 'number',
+    description: 'Display order for rendering',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+annexes:
+  government-id:
+    title: Government-Issued ID
+    description: Copy of passport, driver's license, or state ID
+    required: true
+    order: 1
+
+  proof-of-income:
+    title: Proof of Income
+    description: Recent pay stubs (last 2 months)
+    required: "isEmployed"
+    visible: "isEmployed"
+    order: 2
+```
+
+```json tab="JSON"
+{
+  "annexes": {
+    "government-id": {
+      "title": "Government-Issued ID",
+      "description": "Copy of passport, driver's license, or state ID",
+      "required": true,
+      "order": 1
+    },
+    "proof-of-income": {
+      "title": "Proof of Income",
+      "description": "Recent pay stubs (last 2 months)",
+      "required": "isEmployed",
+      "visible": "isEmployed",
+      "order": 2
+    }
+  }
+}
+```
+
+# Related
+
+- [Form](/schemas/artifacts/form) - Form artifact overview
+- [Attachment](/schemas/primitives/attachment) - Runtime attachment data

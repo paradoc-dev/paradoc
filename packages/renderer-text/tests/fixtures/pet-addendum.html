@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pet Addendum</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      h1 {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+      }
+      .pet-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+      .field {
+        margin: 10px 0;
+      }
+      .label {
+        font-weight: bold;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Pet Addendum</h1>
+
+    <div class="pet-info">
+      <h2>Pet Information</h2>
+      <div class="field"><span class="label">Pet Name:</span> {{name}}</div>
+      <div class="field"><span class="label">Species:</span> {{species}}</div>
+      <div class="field"><span class="label">Weight:</span> {{weight}} lbs</div>
+      <div class="field">
+        <span class="label">Has Vaccination:</span> {{hasVaccination}}
+      </div>
+    </div>
+  </body>
+</html>

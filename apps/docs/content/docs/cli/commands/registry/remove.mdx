@@ -1,0 +1,44 @@
+---
+title: registry remove
+description: Remove a registry configuration
+ogTitle: para registry remove
+ogDescription: Remove a configured Paradoc registry
+---
+
+Remove a registry configuration.
+
+# Usage
+
+```bash
+para registry remove <namespace> [options]
+para registry rm <namespace> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `namespace` | Registry namespace to remove |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--global` | Remove from global config |
+| `--project` | Remove from project config |
+
+# Description
+
+Removes a registry from your configuration. If neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
+
+# Examples
+
+```bash
+para registry remove @acme
+para registry rm @acme --global
+```
+
+# See also
+
+- [registry add](/cli/commands/registry/add) - Add a registry
+- [registry list](/cli/commands/registry/list) - List configured registries

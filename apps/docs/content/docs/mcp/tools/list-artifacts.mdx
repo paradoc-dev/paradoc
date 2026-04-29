@@ -1,0 +1,69 @@
+---
+title: list_artifacts
+description: Browse the Paradoc artifact registry sorted by popularity
+ogTitle: list_artifacts — Paradoc MCP
+ogDescription: Browse the Paradoc artifact registry sorted by popularity using the MCP server
+---
+
+Browse the Paradoc artifact registry. Returns a ranked list of artifacts sorted by popularity (all-time installs).
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `kind` | `"form"` \| `"checklist"` \| `"document"` \| `"bundle"` | No | Filter by artifact kind |
+| `limit` | `integer` (1--50) | No | Max results to return (default: `20`) |
+| `offset` | `integer` | No | Offset for pagination (default: `0`) |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `artifacts` | `array` | List of artifacts, each containing the fields below |
+| `artifacts[].registry_id` | `string` | Registry ID (for chaining into `get_artifact` or `render`) |
+| `artifacts[].artifact_name` | `string` | Artifact name (for chaining into `get_artifact` or `render`) |
+| `artifacts[].rank` | `integer` | Position in the leaderboard |
+| `artifacts[].title` | `string` | Display title |
+| `artifacts[].kind` | `string` | Artifact kind |
+| `artifacts[].description` | `string` | Artifact description |
+| `artifacts[].registry` | `object` | Registry info: `displayName`, `url` |
+| `artifacts[].stats` | `object` | Install stats: `installsTotal`, `installs24h`, `installs7d` |
+| `total` | `integer` | Number of results returned |
+| `limit` | `integer` | Limit used |
+| `offset` | `integer` | Offset used |
+
+# Example
+
+```json
+// Request
+{
+  "kind": "form",
+  "limit": 3
+}
+
+// Response
+{
+  "artifacts": [
+    {
+      "registry_id": "cly1abc123",
+      "artifact_name": "lease-agreement",
+      "rank": 1,
+      "title": "Lease Agreement",
+      "kind": "form",
+      "description": "Standard residential lease agreement",
+      "registry": {
+        "displayName": "acme/legal-forms",
+        "url": "https://example.com/registry"
+      },
+      "stats": {
+        "installsTotal": 1420,
+        "installs24h": 58,
+        "installs7d": 312
+      }
+    }
+  ],
+  "total": 1,
+  "limit": 3,
+  "offset": 0
+}
+```

@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/bundle.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "JSON Schema URI for this artifact instance."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
+      "description": "Unique artifact identifier. Must start with a letter or digit, can contain letters, numbers, and hyphens (no leading/trailing/consecutive hyphens)."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Artifact version (semantic versioning). Required for publishing to registry."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Human-readable title. Recommended for published/shared artifacts and directory browsing."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 2000,
+      "description": "Detailed description or context for the artifact."
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Optional user-defined internal code."
+    },
+    "releaseDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+      "description": "Artifact release date"
+    },
+    "metadata": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 500
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+    },
+    "instructions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "inline"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000000,
+              "description": "Inline text content"
+            }
+          },
+          "required": [
+            "kind",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "file"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Path to the content file"
+            },
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "MIME type of the file content"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Human-readable title"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Description of the content"
+            },
+            "checksum": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "SHA-256 checksum for integrity verification"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "mimeType"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "title": "ContentRef",
+      "description": "Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)"
+    },
+    "agentInstructions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "inline"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000000,
+              "description": "Inline text content"
+            }
+          },
+          "required": [
+            "kind",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "file"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Path to the content file"
+            },
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "MIME type of the file content"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Human-readable title"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Description of the content"
+            },
+            "checksum": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "SHA-256 checksum for integrity verification"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "mimeType"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "title": "ContentRef",
+      "description": "LLM/agent prompts for field ordering, grouping, tone, and presentation guidance"
+    },
+    "kind": {
+      "type": "string",
+      "const": "bundle"
+    },
+    "defs": {
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/DefsSection"
+    },
+    "contents": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/BundleContentItem"
+      },
+      "description": "Ordered bundle contents. Each item has a key and is either an inline artifact, path reference, or registry reference."
+    }
+  },
+  "required": [
+    "name",
+    "kind",
+    "contents"
+  ],
+  "additionalProperties": false,
+  "id": "Bundle",
+  "title": "Bundle"
+}

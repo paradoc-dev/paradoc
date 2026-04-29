@@ -1,0 +1,10 @@
+{
+  "artifacts": {
+    "test-form": {
+      "path": "test-form.json",
+      "kind": "form",
+      "version": "1.0.0",
+      "last_modified": "2025-11-20T04:41:20.869Z"
+    }
+  }
+}

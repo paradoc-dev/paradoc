@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/formfieldset.json",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Title or heading for the fieldset"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "Description or summary of the fieldset"
+    },
+    "fields": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Field identifier (camelCase, starts with lowercase letter)"
+      },
+      "additionalProperties": {
+        "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FormField"
+      }
+    },
+    "required": {
+      "type": "boolean",
+      "description": "Whether fieldset is required"
+    },
+    "order": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Display order (lower numbers appear first)"
+    }
+  },
+  "required": [
+    "fields"
+  ],
+  "additionalProperties": false,
+  "id": "FormFieldset",
+  "title": "FormFieldset"
+}

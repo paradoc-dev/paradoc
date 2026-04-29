@@ -1,0 +1,150 @@
+---
+title: time
+description: Validate time strings
+---
+
+Validate time strings in ISO 8601 format (HH:mm:ss). The Time primitive ensures times are properly formatted and represent valid clock times.
+
+# Examples
+
+## Creating times
+
+```ts
+// Direct validation
+const time = para.time('14:30:00')
+
+// Parse unknown input
+const time = para.time.parse(jsonData)
+
+// Get current time
+const now = para.time.now()
+
+// Check validity without throwing
+if (para.time.isValid('23:59:59')) {
+  console.log('Valid time')
+}
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const time = para.time.parse(userInput)
+
+// Safe parsing (returns result object)
+const result = para.time.safeParse(userInput)
+if (result.success) {
+  console.log(`Time: ${result.data}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'schedule',
+  fields: {
+    startTime: { type: 'time', label: 'Start Time' },
+    endTime: { type: 'time', label: 'End Time' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    startTime: para.time('09:00:00'),
+    endTime: para.time('17:00:00')
+  }
+})
+```
+
+# API
+
+## Direct Call
+
+```ts
+para.time(input: string): string
+```
+
+Pass a time string for validation. Returns the validated string or throws on error.
+
+```ts
+const time = para.time('14:30:00')
+```
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'string', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<string>', description: 'Parse unknown input (returns result object)' },
+  { name: 'isValid', params: 'input: string', returns: 'boolean', description: 'Check if a string is a valid time' },
+  { name: 'now', params: '', returns: 'string', description: 'Get current time as ISO string' },
+]} />
+
+# Format
+
+The Time primitive expects and returns strings in ISO 8601 time format:
+
+```
+HH:mm:ss
+HH:mm:ss.sss
+```
+
+| Component | Description | Range |
+|-----------|-------------|-------|
+| `HH` | Hours (24-hour) | 00-23 |
+| `mm` | Minutes | 00-59 |
+| `ss` | Seconds | 00-59 |
+| `.sss` | Milliseconds (optional) | 000-999 |
+
+# Common Times
+
+| Time | Description |
+|------|-------------|
+| `00:00:00` | Midnight |
+| `06:00:00` | 6:00 AM |
+| `12:00:00` | Noon |
+| `13:00:00` | 1:00 PM |
+| `18:00:00` | 6:00 PM |
+| `23:59:59` | End of day |
+
+# Validation
+
+The Time primitive validates:
+
+- String must match `HH:mm:ss` or `HH:mm:ss.sss` format
+- Hours must be 00-23
+- Minutes must be 00-59
+- Seconds must be 00-59
+
+```ts
+// Valid
+para.time('00:00:00')
+para.time('12:30:00')
+para.time('23:59:59')
+para.time('14:30:00.123')
+
+// Invalid - throws Error
+para.time('24:00:00')
+// Error: Invalid Time: hours must be between 00 and 23
+
+para.time('12:60:00')
+// Error: Invalid Time: minutes must be between 00 and 59
+
+para.time('14:30')
+// Error: Invalid Time: must be in HH:mm:ss format
+
+para.time('2:30:00')
+// Error: Invalid Time: must be in HH:mm:ss format
+
+para.time('not-a-time')
+// Error: Invalid Time: must be in HH:mm:ss format
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Date](/sdk/primitives/date) - Date only
+- [Datetime](/sdk/primitives/datetime) - Combined date and time
+- [Time Field](/sdk/artifacts/form/field#time) - Time field type

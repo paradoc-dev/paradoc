@@ -1,0 +1,63 @@
+---
+title: Identification
+description: An identity document
+---
+
+An Identification is a structured primitive that represents an identity record such as a passport, driver's license, or Social Security number.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: 'string',
+    description: 'Identification type (passport, ssn, license, etc.).',
+  },
+  {
+    name: 'number',
+    type: 'string',
+    description: 'Document/identifier number.',
+  },
+  {
+    name: 'issuer',
+    type: 'string',
+    description: 'Issuing authority, country, or state.',
+    isOptional: true,
+  },
+  {
+    name: 'issueDate',
+    type: 'string',
+    description: 'Issue date in ISO 8601 format (YYYY-MM-DD).',
+    isOptional: true,
+  },
+  {
+    name: 'expiryDate',
+    type: 'string',
+    description: 'Expiration date in ISO 8601 format (YYYY-MM-DD).',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+
+
+```yaml tab="YAML"
+# Passport
+type: passport
+number: AB1234567
+issuer: United States
+issueDate: "2020-01-15"
+expiryDate: "2030-01-14"
+```
+
+
+```json tab="JSON"
+{
+  "type": "passport",
+  "number": "AB1234567",
+  "issuer": "United States",
+  "issueDate": "2020-01-15",
+  "expiryDate": "2030-01-14"
+}
+```

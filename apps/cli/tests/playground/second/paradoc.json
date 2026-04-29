@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.paradoc.dev/manifest/v1",
+  "name": "@org_01K96KQGBXA20D85KSCAYN5DYB/second",
+  "title": "Second",
+  "description": "Second repo",
+  "visibility": "private",
+  "homepage": "",
+  "keywords": [],
+  "remotes": {
+    "origin": "http://localhost:3001/hello/second"
+  }
+}

@@ -1,0 +1,113 @@
+---
+title: add
+description: Add an artifact from a registry
+ogTitle: para add
+ogDescription: Install artifacts from Paradoc registries into your project
+---
+
+Adds an artifact from a registry into your project.
+
+# Usage
+
+```bash
+para add <artifact> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Artifact reference (`@namespace/name`), namespace (`@namespace`), or direct URL |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--layers <layers>` | Layers to download (comma-separated, or `"all"`) |
+| `--output <format>` | Output format: `json`, `yaml` (default), `typed` (json + .d.ts), or `ts` (TypeScript module) |
+| `--header <header...>` | HTTP header for direct URL auth (format: `"Name: Value"`) |
+| `--cache-ttl <seconds>` | Cache TTL in seconds (`0` = no cache, default: use config) |
+| `--no-cache` | Skip cache and fetch fresh |
+
+# Description
+
+The `add` command fetches an artifact from a configured registry and saves it to your project's artifacts directory. The artifact is validated before being saved, and a lock file entry is created to track the installation.
+
+By default, only the artifact definition is downloaded. Use `--layers` to also download associated files like PDFs or templates.
+
+**Content reference files** (`instructions`, `agentInstructions`) that use `kind: "file"` are downloaded automatically — no `--layers` flag needed. These are typically small text files essential for the artifact to function correctly. A checksum is required for security; files without a checksum are skipped with a warning.
+
+When called with just a namespace (`@namespace`), the command enters browse mode and lets you interactively select artifacts to install.
+
+# Examples
+
+Add an artifact:
+
+```bash
+para add @acme/residential-lease
+```
+
+Add with all layers:
+
+```bash
+para add @acme/residential-lease --layers all
+```
+
+Add specific layers:
+
+```bash
+para add @acme/residential-lease --layers pdf,markdown
+```
+
+Add with a specific output format:
+
+```bash
+para add @acme/residential-lease --output json
+```
+
+Add as a TypeScript module:
+
+```bash
+para add @acme/residential-lease --output ts
+```
+
+Browse all artifacts in a namespace:
+
+```bash
+para add @acme
+```
+
+Add from a direct URL:
+
+```bash
+para add https://registry.example.com/r/my-form.json
+```
+
+Add from a URL with authentication:
+
+```bash
+para add https://registry.example.com/r/my-form.json --header "Authorization: Bearer token123"
+```
+
+# Output
+
+```
+✓ Registry: https://registry.acme.com
+✓ Found residential-lease v1.0.0
+✓ Written: artifacts/@acme/residential-lease.yaml
+✓ Downloaded: artifacts/@acme/instructions.md
+
+✓ Added @acme/residential-lease v1.0.0
+
+Format: yaml
+  → artifacts/@acme/residential-lease.yaml
+Layers: pdf, markdown
+Content:
+  → artifacts/@acme/instructions.md
+```
+
+# See also
+
+- [search](/cli/commands/search) - Find artifacts in registries
+- [list](/cli/commands/list) - List installed artifacts
+- [show](/cli/commands/show) - View artifact details

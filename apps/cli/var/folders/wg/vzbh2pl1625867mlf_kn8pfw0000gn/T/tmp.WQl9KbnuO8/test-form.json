@@ -1,0 +1,8 @@
+{
+  "$schema": "https://paradoc.dev/schemas/form.schema.json",
+  "kind": "form",
+  "name": "test-form",
+  "title": "Test Form",
+  "version": "1.0.0",
+  "fields": {}
+}

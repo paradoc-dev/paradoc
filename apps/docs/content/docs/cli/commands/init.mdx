@@ -1,0 +1,83 @@
+---
+title: init
+description: Initialize a new Paradoc project
+ogTitle: para init
+ogDescription: Create a new Paradoc project with the CLI
+---
+
+Initializes a new Paradoc project in the current or specified directory.
+
+# Usage
+
+```bash
+para init [directory] [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `directory` | Directory to initialize (defaults to current directory) |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Non-interactive mode (skip prompts) |
+| `--name <name>` | Project title (required in non-interactive mode) |
+| `--description <desc>` | Project description |
+| `--visibility <public\|private>` | Project visibility (default: private) |
+| `--nested` | Allow creating nested project inside existing project |
+| `--dry-run` | Preview without creating files |
+
+# Description
+
+The `init` command creates a new Paradoc project with the following structure:
+
+```
+my-project/
+├── paradoc.json      # Project manifest
+└── .paradoc/               # CLI state directory
+    ├── HEAD
+    ├── index.json
+    ├── config.json
+    ├── commits/
+    └── objects/
+```
+
+In interactive mode, you'll be prompted for:
+- Project title
+- Description (optional)
+- Visibility (public or private)
+- Directory name
+
+# Examples
+
+Interactive initialization:
+
+```bash
+para init
+```
+
+Non-interactive with all options:
+
+```bash
+para init --yes --name "My Project" --visibility private
+```
+
+Initialize in a specific directory:
+
+```bash
+para init my-new-project
+```
+
+Preview what would be created:
+
+```bash
+para init --dry-run --yes --name "Test Project"
+```
+
+# See also
+
+- [Projects](/cli/projects) - Project structure and manifest
+- [add](/cli/commands/add) - Add artifacts to your project

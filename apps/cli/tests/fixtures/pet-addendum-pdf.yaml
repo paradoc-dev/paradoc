@@ -1,0 +1,36 @@
+name: pet-addendum
+version: 1.0.0
+title: Pet Addendum
+kind: form
+fields:
+  name:
+    label: Name
+    description: The name of the pet
+    required: true
+    type: text
+  species:
+    label: Species
+    description: The species of the pet
+    required: true
+    type: enum
+    enum:
+      - dog
+      - cat
+      - bird
+      - turtle
+  weight:
+    label: Weight in pounds
+    required: true
+    type: number
+    min: 0
+    max: 100
+  hasVaccination:
+    label: Has Vaccination
+    required: true
+    type: boolean
+defaultLayer: default
+layers:
+  default:
+    kind: file
+    mimeType: application/pdf
+    path: ./pet-addendum.pdf

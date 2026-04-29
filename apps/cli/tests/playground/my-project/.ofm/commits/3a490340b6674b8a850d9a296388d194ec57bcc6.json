@@ -1,0 +1,36 @@
+{
+  "id": "3a490340b6674b8a850d9a296388d194ec57bcc6",
+  "parent": "5b98857a07c46871f667e3517cb636d75f03707f",
+  "message": "Changed",
+  "timestamp": "2025-11-18T11:38:02.150Z",
+  "author": {
+    "name": "",
+    "email": ""
+  },
+  "artifacts": {
+    "test-binder": {
+      "path": "test-binder.json",
+      "kind": "binder",
+      "version": "1.0.0",
+      "content_hash": "9c7f881a73331682c37a35319884bcd3525e0d10276534dff2152a4dd7d20654",
+      "content": "{\n  \"$schema\": \"https://schema.paradoc.org/2025-12-01/binder.schema.json\",\n  \"kind\": \"binder\",\n  \"name\": \"test-binder\",\n  \"title\": \"Test Binder\",\n  \"version\": \"1.0.0\",\n  \"contents\": []\n}\n",
+      "status": "unchanged",
+      "file_dependencies": []
+    },
+    "hello": {
+      "path": "hello.json",
+      "kind": "binder",
+      "version": "1.2.0",
+      "content_hash": "2b214e4b423295c3a05e695875bcd2e331c9968be1b6f33dcfac2cd13b4dc5e2",
+      "content": "{\n  \"$schema\": \"https://schema.paradoc.org/2025-12-01/binder.schema.json\",\n  \"kind\": \"binder\",\n  \"name\": \"hello\",\n  \"title\": \"Hello Worldly\",\n  \"version\": \"1.2.0\",\n  \"contents\": []\n}\n",
+      "status": "modified",
+      "file_dependencies": []
+    }
+  },
+  "stats": {
+    "added": 0,
+    "modified": 1,
+    "deleted": 0,
+    "unchanged": 1
+  }
+}

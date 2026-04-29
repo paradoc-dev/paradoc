@@ -1,0 +1,67 @@
+---
+title: Bbox
+description: A geographic bounding box
+---
+
+A Bbox is a structured primitive that represents a geographic bounding box. It is defined by a pair of coordinates (southwest and northeast). It uses the [Coordinate](/schemas/primitives/coordinate) primitive.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'southWest',
+    type: 'Coordinate',
+    description: 'Southwest corner coordinate, representing minimum latitude/longitude.',
+    properties: [
+      {
+        type: 'Coordinate',
+        parameters: [
+          { name: 'lat', type: 'number', description: 'Latitude in decimal degrees, range -90 to 90.' },
+          { name: 'lon', type: 'number', description: 'Longitude in decimal degrees, range -180 to 180.' },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'northEast',
+    type: 'Coordinate',
+    description: 'Northeast corner coordinate, representing maximum latitude/longitude.',
+    properties: [
+      {
+        type: 'Coordinate',
+        parameters: [
+          { name: 'lat', type: 'number', description: 'Latitude in decimal degrees, range -90 to 90.' },
+          { name: 'lon', type: 'number', description: 'Longitude in decimal degrees, range -180 to 180.' },
+        ],
+      },
+    ],
+  },
+]} />
+
+# Examples
+
+
+
+```yaml tab="YAML"
+# San Francisco Bay Area
+southWest:
+  lat: 37.2
+  lon: -122.5
+northEast:
+  lat: 37.9
+  lon: -121.8
+```
+
+
+```json tab="JSON"
+{
+  "southWest": {
+    "lat": 37.2,
+    "lon": -122.5
+  },
+  "northEast": {
+    "lat": 37.9,
+    "lon": -121.8
+  }
+}
+```

@@ -1,0 +1,90 @@
+---
+title: render
+description: Render artifact layers to output
+ogTitle: para render
+ogDescription: Generate output from Paradoc artifact layers
+---
+
+Renders an artifact layer to a file or stdout.
+
+# Usage
+
+```bash
+para render <artifact> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Artifact file (JSON/YAML) or `-` for stdin |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--data <pathOrJson>` | Data payload (path to JSON/YAML or inline JSON) |
+| `--bindings <pathOrJson>` | Renderer bindings (path to JSON/YAML or inline JSON) |
+| `--renderer <id>` | Force a renderer id: `text`, `pdf` |
+| `--out <file>` | Write output to file (defaults to stdout) |
+| `--format <style>` | Summary format: `pretty` or `json` (default: pretty) |
+| `--layer <key>` | Layer key to use (defaults to artifact.defaultLayer) |
+| `--dry-run` | Validate and resolve layer without rendering |
+
+# Description
+
+The `render` command reads an artifact, resolves the specified layer, and outputs its content. For file-backed layers, it reads the referenced file. For inline layers, it outputs the embedded content.
+
+# Examples
+
+Render default layer to stdout:
+
+```bash
+para render my-form.yaml
+```
+
+Render specific layer:
+
+```bash
+para render my-form.yaml --layer markdown
+```
+
+Render to file:
+
+```bash
+para render my-form.yaml --out output.md
+```
+
+Dry run (validate only):
+
+```bash
+para render my-form.yaml --dry-run
+```
+
+# Output
+
+When rendering to file:
+
+```
+✓ Layer rendered to output.md
+  Artifact: lease-agreement
+  Layer: markdown
+  Type: text/markdown
+```
+
+Dry run output:
+
+```
+Dry run summary:
+  Artifact:   lease-agreement (form)
+  Version:    1.0.0
+  Layer:      markdown
+  Layer kind: inline
+  MIME type:  text/markdown
+  Source:     lease-agreement.yaml
+```
+
+# See also
+
+- [show](/cli/commands/show) - Display artifact content
+- [inspect](/cli/commands/inspect) - Inspect PDF form fields

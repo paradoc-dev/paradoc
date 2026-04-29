@@ -1,0 +1,102 @@
+---
+title: apply
+description: Apply a unified diff patch
+ogTitle: para apply
+ogDescription: Apply patch files to modify artifacts
+---
+
+Applies a unified diff patch to the working directory.
+
+# Usage
+
+```bash
+para apply <patch-file> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `patch-file` | Patch file to apply |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--check` | Check if the patch can be applied cleanly |
+| `--reverse` | Apply the patch in reverse |
+| `--dry-run` | Show what would change without modifying files |
+
+# Description
+
+The `apply` command reads a unified diff patch file and applies the changes to the working directory. It supports creating new files, modifying existing files, and deleting files based on the patch content.
+
+After applying, modified artifacts are automatically validated.
+
+# Examples
+
+Apply a patch:
+
+```bash
+para apply changes.patch
+```
+
+Check if patch applies cleanly:
+
+```bash
+para apply changes.patch --check
+```
+
+Preview changes:
+
+```bash
+para apply changes.patch --dry-run
+```
+
+Reverse a patch:
+
+```bash
+para apply changes.patch --reverse
+```
+
+# Output
+
+Successful application:
+
+```
+Found 2 file(s) in patch changes.patch
+
+✓ Applied to lease-agreement.yaml
+✓ Applied to checklist.yaml
+
+Successfully applied 2 patch(es)
+
+Modified files:
+  lease-agreement.yaml
+  checklist.yaml
+
+Next steps:
+  para status
+  para diff
+  para add <files>
+  para commit -m "message"
+
+Validating modified artifacts...
+  ✓ lease-agreement.yaml is valid
+  ✓ checklist.yaml is valid
+```
+
+Check mode:
+
+```
+Checking patches...
+✓ lease-agreement.yaml: OK
+✗ checklist.yaml: FAILED
+
+Some patches cannot be applied (conflicts detected)
+```
+
+# See also
+
+- [diff](/cli/commands/diff) - Generate diffs between files
+- [validate](/cli/commands/validate) - Validate artifacts

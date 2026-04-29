@@ -1,0 +1,86 @@
+---
+title: list
+description: List installed artifacts
+ogTitle: para list
+ogDescription: View all artifacts installed in your Paradoc project
+---
+
+Lists all artifacts installed in the current project.
+
+# Usage
+
+```bash
+para list [options]
+para ls [options]
+```
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+| `--kind <kind>` | Filter by artifact kind: `form`, `document`, `checklist`, `bundle` |
+
+# Description
+
+The `list` command reads the project's lock file and displays all installed artifacts, grouped by namespace. It shows the artifact name, version, and number of downloaded layers.
+
+# Examples
+
+List all installed artifacts:
+
+```bash
+para list
+```
+
+Using the alias:
+
+```bash
+para ls
+```
+
+Output as JSON:
+
+```bash
+para list --json
+```
+
+# Output
+
+```
+Installed artifacts (3):
+
+@acme
+  residential-lease v1.0.0 (2 layers)
+  w9 v1.0.0 (1 layer)
+
+@internal
+  employee-onboarding v2.1.0
+```
+
+When no artifacts are installed:
+
+```
+No artifacts installed.
+Run 'para add @namespace/artifact-name' to install one.
+```
+
+# JSON output
+
+```json
+[
+  {
+    "ref": "@acme/residential-lease",
+    "version": "1.0.0",
+    "format": "yaml",
+    "path": "artifacts/@acme/residential-lease.yaml",
+    "installedAt": "2025-01-15T10:30:00.000Z",
+    "layers": ["pdf", "markdown"]
+  }
+]
+```
+
+# See also
+
+- [add](/cli/commands/add) - Install an artifact
+- [show](/cli/commands/show) - View artifact details

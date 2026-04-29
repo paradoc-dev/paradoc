@@ -1,0 +1,142 @@
+---
+title: data
+description: Data operations for artifacts
+ogTitle: para data
+ogDescription: Generate templates and fill forms with data
+---
+
+Data operations for Paradoc artifacts.
+
+# Usage
+
+```bash
+para data <command> [options]
+```
+
+# Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `template` | Generate an instance template from a form |
+| `fill` | Interactively fill form data |
+| `validate` | Validate data against a form schema |
+
+---
+
+# data template
+
+Generate an instance template from a form artifact.
+
+```bash
+para data template <file> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `file` | Form artifact file (JSON/YAML) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--out <file>` | Output file path (format detected from extension) |
+| `--json` | Force JSON output format |
+| `--yaml` | Force YAML output format |
+| `--silent` | Suppress console output |
+
+## Examples
+
+Generate template to stdout:
+
+```bash
+para data template my-form.yaml
+```
+
+Generate template to file:
+
+```bash
+para data template my-form.yaml --out data.yaml
+```
+
+## Output
+
+```yaml
+fields:
+  address: null
+  monthlyRent: null
+  startDate: null
+  endDate: null
+```
+
+---
+
+# data fill
+
+Interactively fill form data and save to an output file.
+
+```bash
+para data fill <file> --out <file>
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `file` | Form artifact file (JSON/YAML) |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--out <file>` | Output file path (required) |
+| `--json` | Force JSON output format |
+| `--yaml` | Force YAML output format |
+
+## Description
+
+The `fill` command walks you through each field in the form with interactive prompts. Field types are validated, and complex types (like addresses or money) can be entered as JSON.
+
+## Example
+
+```bash
+para data fill my-form.yaml --out filled-data.yaml
+```
+
+Interactive session:
+
+```
+Fill Form: Residential Lease Agreement
+
+? Address: 123 Main St
+? Monthly Rent (Enter as JSON): {"amount": 1500, "currency": "USD"}
+? Start Date: 2025-02-01
+? End Date: 2026-01-31
+
+✓ Form data saved
+  Output: filled-data.yaml
+  Format: YAML
+```
+
+---
+
+# data validate
+
+Validate data against a form's schema.
+
+```bash
+para data validate <form> <data>
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `form` | Form artifact file |
+| `data` | Data file to validate |
+
+# See also
+
+- [new](/cli/commands/new) - Create new form artifacts
+- [render](/cli/commands/render) - Render forms with data

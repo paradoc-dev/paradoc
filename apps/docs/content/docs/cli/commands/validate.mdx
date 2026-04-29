@@ -1,0 +1,168 @@
+---
+title: validate
+description: Validate artifacts against schemas
+ogTitle: para validate
+ogDescription: Check Paradoc artifacts for schema compliance and errors
+---
+
+Validates an Paradoc artifact against the core schema.
+
+# Usage
+
+```bash
+para validate <artifact> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Artifact file (JSON/YAML) or `-` for stdin |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output machine-readable JSON result |
+| `--silent` | Suppress console output (exit code only) |
+| `--expect-kind <kind>` | Assert artifact kind: `form`, `document`, `checklist`, `bundle` |
+| `--schema-only` | Only validate artifact schema (skip layer and content reference checks) |
+| `--layers-only` | Only validate layers (paths + checksums) |
+| `--checksum-only` | Only verify layer checksums |
+
+The scope flags (`--schema-only`, `--layers-only`, `--checksum-only`) are mutually exclusive.
+
+# Description
+
+The `validate` command parses an artifact file and runs up to three validation phases:
+
+1. **Schema** — checks the artifact structure against the Paradoc schema
+2. **Layers** — for file-backed layers, checks file existence and verifies checksums
+3. **Content references** — for file-backed `instructions` and `agentInstructions`, checks file existence and verifies checksums
+
+Content reference validation runs automatically for any artifact kind that has `instructions` or `agentInstructions` set with `kind: "file"`. It is skipped by `--schema-only` and when reading from stdin (no file context).
+
+The command exits with code `0` if valid (warnings are allowed), `1` if any errors are found.
+
+# Examples
+
+Validate an artifact:
+
+```bash
+para validate my-form.yaml
+```
+
+Validate from stdin:
+
+```bash
+cat my-form.yaml | para validate -
+```
+
+Assert expected kind:
+
+```bash
+para validate my-form.yaml --expect-kind form
+```
+
+Schema only (skip file checks):
+
+```bash
+para validate my-form.yaml --schema-only
+```
+
+Get JSON output:
+
+```bash
+para validate my-form.yaml --json
+```
+
+Silent mode (for scripts):
+
+```bash
+para validate my-form.yaml --silent && echo "Valid"
+```
+
+# Output
+
+When valid:
+
+```
+✓ Schema
+  Kind:    form
+  Name:    lease-agreement
+  Version: 1.0.0
+  Source:  lease-agreement.yaml
+
+Layers:
+  ✓ pdf [file, application/pdf]
+      path: ./lease-template.pdf
+      file:     found
+      checksum: verified
+
+Content References:
+  ⚠ instructions [file, text/markdown]
+      path: ./instructions.md
+      file:     found
+      checksum: not set
+
+✓ Valid (1 warning)
+```
+
+When invalid:
+
+```
+✗ Schema validation failed:
+  ✗ fields.rent: Expected type "object" but received "string"
+  ✗ version: Required field missing
+
+✗ Validation failed
+```
+
+# JSON output
+
+The JSON output includes `layers` and `contentRefs` arrays when present:
+
+```json
+{
+  "ok": true,
+  "source": "my-form.yaml",
+  "artifact": {
+    "name": "lease-agreement",
+    "kind": "form",
+    "version": "1.0.0"
+  },
+  "errors": [],
+  "warnings": [
+    {
+      "message": "No checksum set. Run `para fix` to add one.",
+      "path": ["instructions", "checksum"]
+    }
+  ],
+  "layers": [
+    {
+      "key": "pdf",
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "./lease-template.pdf",
+      "fileExists": true,
+      "checksumMatch": true,
+      "ok": true
+    }
+  ],
+  "contentRefs": [
+    {
+      "field": "instructions",
+      "kind": "file",
+      "mimeType": "text/markdown",
+      "path": "./instructions.md",
+      "fileExists": true,
+      "ok": true
+    }
+  ]
+}
+```
+
+# See also
+
+- [fix](/cli/commands/fix) - Auto-fix common issues
+- [new](/cli/commands/new) - Create new artifacts

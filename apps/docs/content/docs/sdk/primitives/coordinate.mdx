@@ -1,0 +1,152 @@
+---
+title: coordinate
+description: Build and validate geographic coordinates
+---
+
+Build and validate geographic coordinates. The Coordinate primitive represents a point on Earth using latitude and longitude values.
+
+# Examples
+
+## Creating coordinates
+
+```ts
+// Object pattern
+const location = para.coordinate({ lat: 40.7128, lon: -74.0060 })
+
+// Builder pattern
+const location = para.coordinate()
+  .lat(40.7128)
+  .lon(-74.0060)
+  .build()
+
+// Using point shorthand
+const location = para.coordinate()
+  .point(40.7128, -74.0060)
+  .build()
+
+// Copy and modify
+const nearby = para.coordinate()
+  .from(location)
+  .lat(40.7130)
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const location = para.coordinate.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.coordinate.safeParse(jsonData)
+if (result.success) {
+  console.log(`Location: ${result.data.lat}, ${result.data.lon}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'location',
+  fields: {
+    meetingPoint: { type: 'coordinate', label: 'Meeting Point' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    meetingPoint: para.coordinate().point(51.5074, -0.1278).build()
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.coordinate(input: Coordinate): Coordinate
+```
+
+Pass a Coordinate object for validation. Returns the validated Coordinate or throws on error.
+
+```ts
+const location = para.coordinate({ lat: 48.8566, lon: 2.3522 })
+```
+
+## Builder Pattern
+
+Chain methods to build a Coordinate value incrementally:
+
+<MethodChain
+  starter="para.coordinate()"
+  methods={[
+    { name: 'lat', params: 'value: number', description: 'Set latitude (-90 to 90)' },
+    { name: 'lon', params: 'value: number', description: 'Set longitude (-180 to 180)' },
+    { name: 'point', params: 'lat: number, lon: number', description: 'Set both lat and lon at once' },
+    { name: 'from', params: 'value: Coordinate', description: 'Initialize from existing Coordinate' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'CoordinateBuilder', terminal: 'Coordinate' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Coordinate', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Coordinate>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'lat', type: 'number', description: 'Latitude in decimal degrees (-90 to 90). Positive is north, negative is south.' },
+  { name: 'lon', type: 'number', description: 'Longitude in decimal degrees (-180 to 180). Positive is east, negative is west.' },
+]} />
+
+# Validation
+
+The Coordinate primitive validates:
+
+- `lat` must be a number between -90 and 90 (inclusive)
+- `lon` must be a number between -180 and 180 (inclusive)
+- Neither value can be NaN or Infinity
+
+```ts
+// Valid
+para.coordinate({ lat: 40.7128, lon: -74.0060 })   // New York
+para.coordinate({ lat: -33.8688, lon: 151.2093 })  // Sydney
+para.coordinate({ lat: 0, lon: 0 })                // Null Island
+para.coordinate({ lat: 90, lon: 0 })               // North Pole
+para.coordinate({ lat: -90, lon: 0 })              // South Pole
+
+// Invalid - throws Error
+para.coordinate({ lat: 91, lon: 0 })
+// Error: Invalid Coordinate: lat must be between -90 and 90
+
+para.coordinate({ lat: 0, lon: 181 })
+// Error: Invalid Coordinate: lon must be between -180 and 180
+
+para.coordinate({ lat: NaN, lon: 0 })
+// Error: Invalid Coordinate: lat must be a valid number
+```
+
+# Common Coordinates
+
+| Location | Latitude | Longitude |
+|----------|----------|-----------|
+| New York | 40.7128 | -74.0060 |
+| London | 51.5074 | -0.1278 |
+| Tokyo | 35.6762 | 139.6503 |
+| Sydney | -33.8688 | 151.2093 |
+| Paris | 48.8566 | 2.3522 |
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Bbox](/sdk/primitives/bbox) - Bounding box using coordinates
+- [Coordinate Field](/sdk/artifacts/form/field#coordinate) - Coordinate field type
+- [Coordinate Schema](/schemas/primitives/coordinate) - JSON Schema definition

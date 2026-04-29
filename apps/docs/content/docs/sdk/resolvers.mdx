@@ -1,0 +1,199 @@
+---
+title: Resolvers
+description: Load file-based layers and templates for rendering
+---
+
+Resolvers provide a unified interface for loading file-based content (templates, assets) when rendering forms. They abstract away the underlying storage mechanism, whether in-memory, filesystem, or remote.
+
+<Callout type="warn">
+The `@paradoc/resolvers` package contains environment-specific resolvers (like filesystem) and is **not included in the SDK**. Install it separately for Node.js environments. For browser environments, use `createMemoryResolver` from `@paradoc/core`.
+</Callout>
+
+# Resolver Interface
+
+All resolvers implement this simple interface:
+
+```ts
+interface Resolver {
+  read(path: string): Promise<Uint8Array>
+}
+```
+
+Resolvers are passed to renderers when forms use file-based layers instead of inline content.
+
+# Memory Resolver (Browser-Compatible)
+
+The `createMemoryResolver` function is exported from `@paradoc/core` and works in any environment, including browsers.
+
+```ts
+import { createMemoryResolver } from '@paradoc/core'
+
+const resolver = createMemoryResolver({
+  contents: {
+    '/templates/receipt.html': '<h1>Receipt for {{customer}}</h1>',
+    '/templates/contract.docx': docxTemplateBytes,
+    '/assets/logo.png': logoBytes,
+  }
+})
+
+// Use with a form that has file-based layers
+const filled = form.fill({
+  fields: { customer: 'Acme Corp' }
+})
+
+const output = await filled.render({
+  renderer: textRenderer(),
+  resolver
+})
+```
+
+## createMemoryResolver
+
+```ts
+function createMemoryResolver(options: MemoryResolverOptions): Resolver
+```
+
+### MemoryResolverOptions
+
+<PropertiesTable properties={[
+  { name: 'contents', type: 'Record<string, Uint8Array | string>', description: 'Map of paths to content. Strings are UTF-8 encoded automatically.' },
+]} />
+
+# Filesystem Resolver (Node.js Only)
+
+<Callout type="warn">
+The filesystem resolver requires Node.js and is in a separate package. Install with `npm install @paradoc/resolvers`.
+</Callout>
+
+```ts
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({
+  root: process.cwd()
+})
+
+// Reads files relative to the root directory
+const bytes = await resolver.read('/templates/form.docx')
+```
+
+## Installation
+
+```bash
+npm install @paradoc/resolvers
+```
+
+## createFsResolver
+
+```ts
+function createFsResolver(options: FsResolverOptions): Resolver
+```
+
+### FsResolverOptions
+
+<PropertiesTable properties={[
+  { name: 'root', type: 'string', description: 'Absolute path to the root directory. All paths are resolved relative to this.' },
+]} />
+
+<Callout type="info">
+The filesystem resolver validates that all paths stay within the root directory. Attempting to access files outside the root (e.g., using `../`) will throw an error: `Path traversal detected: "..." resolves outside root directory`.
+</Callout>
+
+# Usage with File-Based Layers
+
+Resolvers are needed when forms define file-based layers:
+
+```ts
+import { para } from '@paradoc/core'
+import { createFsResolver } from '@paradoc/resolvers'
+import { pdfRenderer } from '@paradoc/renderer-pdf'
+
+const form = para.form({
+  name: 'w9',
+  fields: {
+    name: { type: 'text' },
+    taxId: { type: 'text' }
+  },
+  layers: {
+    pdf: {
+      kind: 'file',                    // File-based layer
+      mimeType: 'application/pdf',
+      path: '/templates/w9-form.pdf',  // Resolved via resolver
+      bindings: { /* ... */ }
+    }
+  },
+  defaultLayer: 'pdf'
+})
+
+const resolver = createFsResolver({ root: process.cwd() })
+
+const filled = form.fill({
+  fields: { name: 'John Smith', taxId: '12-3456789' }
+})
+
+const output = await filled.render({
+  renderer: pdfRenderer(),
+  resolver
+})
+```
+
+# Inline vs File Layers
+
+- **Inline layers** (`kind: 'inline'`) embed content directly in the form definition. No resolver needed.
+- **File layers** (`kind: 'file'`) reference external files by path. A resolver is required.
+
+```ts
+// Inline layer - no resolver needed
+layers: {
+  html: {
+    kind: 'inline',
+    mimeType: 'text/html',
+    text: '<h1>{{title}}</h1>'
+  }
+}
+
+// File layer - resolver required
+layers: {
+  pdf: {
+    kind: 'file',
+    mimeType: 'application/pdf',
+    path: '/templates/form.pdf'
+  }
+}
+```
+
+# Custom Resolvers
+
+Implement the `Resolver` interface for custom storage backends:
+
+```ts
+import type { Resolver } from '@paradoc/types'
+
+// Example: HTTP resolver
+function createHttpResolver(baseUrl: string): Resolver {
+  return {
+    async read(path: string): Promise<Uint8Array> {
+      const response = await fetch(`${baseUrl}${path}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${path}`)
+      }
+      const buffer = await response.arrayBuffer()
+      return new Uint8Array(buffer)
+    }
+  }
+}
+
+// Example: S3 resolver
+function createS3Resolver(bucket: string, s3Client: S3Client): Resolver {
+  return {
+    async read(path: string): Promise<Uint8Array> {
+      const response = await s3Client.getObject({ Bucket: bucket, Key: path })
+      return new Uint8Array(await response.Body.transformToByteArray())
+    }
+  }
+}
+```
+
+# Related
+
+- [Renderers](/sdk/renderers) - How renderers use resolvers
+- [Form Layers](/sdk/artifacts/form) - Layer configuration

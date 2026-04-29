@@ -1,0 +1,318 @@
+---
+title: Form Schema
+description: An artifact for dynamic documents with fields, annexes, and parties
+---
+
+A Form is the workhorse of Paradoc. It defines dynamic documents that can be populated at runtime with:
+- data fields
+- parties (including roles and signature/witness requirements)
+- annexes (attachments that can be appended at runtime)
+
+It can be used to create a simple consent form with a few fields to complex forms with multiple nested fields, annexes, signatory requirements, and conditional rendering logic.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: "'form'",
+    description: 'Literal "form" discriminator',
+  },
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Unique identifier; must follow slug constraints',
+  },
+  {
+    name: 'version',
+    type: 'string',
+    description: 'Artifact version (semantic versioning)',
+    isOptional: true,
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-friendly name presented to end users',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Long-form description or context',
+    isOptional: true,
+  },
+  {
+    name: 'code',
+    type: 'string',
+    description: 'Internal code or reference number',
+    isOptional: true,
+  },
+  {
+    name: 'releaseDate',
+    type: 'string',
+    description: 'ISO date string indicating when the artifact was released',
+    isOptional: true,
+  },
+  {
+    name: 'metadata',
+    type: 'Metadata',
+    description: 'Custom metadata map (keys must be alphanumeric with hyphens)',
+    isOptional: true,
+  },
+  {
+    name: 'instructions',
+    type: 'ContentRef',
+    description: 'Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)',
+    isOptional: true,
+  },
+  {
+    name: 'agentInstructions',
+    type: 'ContentRef',
+    description: 'LLM/agent prompts for field ordering, grouping, tone, and presentation guidance',
+    isOptional: true,
+  },
+  {
+    name: 'defs',
+    type: 'DefsSection',
+    description: 'Named typed computed values that can be referenced in field/annex conditions',
+    isOptional: true,
+  },
+  {
+    name: 'rules',
+    type: 'RulesSection',
+    description: 'Form-level validation rules evaluated at fill time',
+    isOptional: true,
+  },
+  {
+    name: 'fields',
+    type: 'Record<string, FormField>',
+    description: 'Field definitions keyed by identifier',
+    isOptional: true,
+  },
+  {
+    name: 'layers',
+    type: 'Record<string, Layer>',
+    description: 'Named layers for rendering this form into different formats',
+    isOptional: true,
+  },
+  {
+    name: 'defaultLayer',
+    type: 'string',
+    description: 'Key of the default layer to use when none specified',
+    isOptional: true,
+  },
+  {
+    name: 'allowAdditionalAnnexes',
+    type: 'boolean',
+    description: 'Whether additional ad-hoc annexes can be attached beyond those defined in the annexes record',
+    isOptional: true,
+  },
+  {
+    name: 'annexes',
+    type: 'Record<string, FormAnnex>',
+    description: 'Predefined annex slots keyed by identifier',
+    isOptional: true,
+  },
+  {
+    name: 'parties',
+    type: 'Record<string, FormParty>',
+    description: 'Party role definitions keyed by role identifier, with constraints and signature requirements',
+    isOptional: true,
+  },
+]} />
+
+# Form Components
+
+| Component                                              | Description                                    |
+| ------------------------------------------------------ | ---------------------------------------------- |
+| [FormField](/schemas/artifacts/form/field)             | Field definitions for capturing user input     |
+| [FormFieldset](/schemas/artifacts/form/fieldset)       | Logical grouping of fields rendered as sections |
+| [FormAnnex](/schemas/artifacts/form/annex)             | Attachment slot definitions                    |
+| [FormParty](/schemas/artifacts/form/party)             | Party role definitions with signature requirements |
+
+# Examples
+
+```yaml tab="YAML"
+kind: form
+name: lease-agreement
+version: "1.0.0"
+title: Residential Lease Agreement
+description: Standard residential lease agreement
+
+defs:
+  hasPets:
+    type: boolean
+    value: "fields.petsAllowed == true"
+
+fields:
+  propertyAddress:
+    type: address
+    label: Property Address
+    required: true
+  monthlyRent:
+    type: money
+    label: Monthly Rent
+    required: true
+  leaseStart:
+    type: date
+    label: Lease Start Date
+    required: true
+  leaseTerm:
+    type: enum
+    label: Lease Term
+    enum: ["12 months", "24 months", "Month-to-month"]
+  petsAllowed:
+    type: boolean
+    label: Pets Allowed
+    default: false
+  petDeposit:
+    type: money
+    label: Pet Deposit
+    visible: hasPets
+    required: hasPets
+
+parties:
+  landlord:
+    label: Landlord
+    partyType: any
+    required: true
+    signature:
+      required: true
+  tenant:
+    label: Tenant
+    partyType: person
+    min: 1
+    max: 4  # allows 1-4 tenants (array format)
+    required: true
+    signature:
+      required: true
+      witnesses: 1
+
+layers:
+  pdf:
+    kind: file
+    mimeType: application/pdf
+    path: /templates/lease-agreement.pdf
+    bindings:
+      property_address: propertyAddress
+      monthly_rent: monthlyRent
+  html:
+    kind: file
+    mimeType: text/html
+    path: /templates/lease-agreement.html
+
+defaultLayer: pdf
+
+annexes:
+  identification:
+    title: Tenant Identification
+    description: Copy of government-issued ID
+    required: true
+  proof-of-income:
+    title: Proof of Income
+    description: Recent pay stubs or tax returns
+    required: false
+```
+
+```json tab="JSON"
+{
+  "kind": "form",
+  "name": "lease-agreement",
+  "version": "1.0.0",
+  "title": "Residential Lease Agreement",
+  "description": "Standard residential lease agreement",
+  "defs": {
+    "hasPets": {
+      "type": "boolean",
+      "value": "fields.petsAllowed == true"
+    }
+  },
+  "fields": {
+    "propertyAddress": {
+      "type": "address",
+      "label": "Property Address",
+      "required": true
+    },
+    "monthlyRent": {
+      "type": "money",
+      "label": "Monthly Rent",
+      "required": true
+    },
+    "leaseStart": {
+      "type": "date",
+      "label": "Lease Start Date",
+      "required": true
+    },
+    "leaseTerm": {
+      "type": "enum",
+      "label": "Lease Term",
+      "enum": ["12 months", "24 months", "Month-to-month"]
+    },
+    "petsAllowed": {
+      "type": "boolean",
+      "label": "Pets Allowed",
+      "default": false
+    },
+    "petDeposit": {
+      "type": "money",
+      "label": "Pet Deposit",
+      "visible": "hasPets",
+      "required": "hasPets"
+    }
+  },
+  "parties": {
+    "landlord": {
+      "label": "Landlord",
+      "partyType": "any",
+      "required": true,
+      "signature": {
+        "required": true
+      }
+    },
+    "tenant": {
+      "label": "Tenant",
+      "partyType": "person",
+      "min": 1,
+      "max": 4,
+      "required": true,
+      "signature": {
+        "required": true,
+        "witnesses": 1
+      }
+    }
+  },
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "/templates/lease-agreement.pdf",
+      "bindings": {
+        "property_address": "propertyAddress",
+        "monthly_rent": "monthlyRent"
+      }
+    },
+    "html": {
+      "kind": "file",
+      "mimeType": "text/html",
+      "path": "/templates/lease-agreement.html"
+    }
+  },
+  "defaultLayer": "pdf",
+  "annexes": {
+    "identification": {
+      "title": "Tenant Identification",
+      "description": "Copy of government-issued ID",
+      "required": true
+    },
+    "proof-of-income": {
+      "title": "Proof of Income",
+      "description": "Recent pay stubs or tax returns",
+      "required": false
+    }
+  }
+}
+```
+
+# Related
+
+- [Layer](/schemas/artifacts/shared/layer) - Layer specification

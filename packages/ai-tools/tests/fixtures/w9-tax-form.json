@@ -1,0 +1,43 @@
+{
+  "kind": "form",
+  "name": "w9-tax-form",
+  "fields": {
+    "name": { "type": "text", "label": "Name", "required": true },
+    "businessName": { "type": "text", "label": "Business Name" },
+    "taxClassification": {
+      "type": "enum",
+      "label": "Tax Classification",
+      "enum": ["individual", "c_corp", "s_corp", "partnership", "llc"],
+      "required": true
+    },
+    "llcTaxCode": { "type": "text", "label": "LLC Tax Code" },
+    "address": { "type": "address", "label": "Address", "required": true },
+    "ssn": { "type": "text", "label": "SSN" },
+    "ein": { "type": "text", "label": "EIN" }
+  },
+  "defaultLayer": "pdf",
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "pdfs/w9.pdf",
+      "bindings": {
+        "topmostSubform[0].Page1[0].f1_01[0]": "name",
+        "topmostSubform[0].Page1[0].f1_02[0]": "businessName",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[0]": "taxClassification:individual",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[1]": "taxClassification:c_corp",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[2]": "taxClassification:s_corp",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[3]": "taxClassification:partnership",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].c1_1[5]": "taxClassification:llc",
+        "topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0].f1_03[0]": "llcTaxCode",
+        "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_07[0]": "address.line1",
+        "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_08[0]": "address.locality,address.region,address.postalCode",
+        "topmostSubform[0].Page1[0].f1_11[0]": "ssn:1",
+        "topmostSubform[0].Page1[0].f1_12[0]": "ssn:2",
+        "topmostSubform[0].Page1[0].f1_13[0]": "ssn:3",
+        "topmostSubform[0].Page1[0].f1_14[0]": "ein:1",
+        "topmostSubform[0].Page1[0].f1_15[0]": "ein:2"
+      }
+    }
+  }
+}

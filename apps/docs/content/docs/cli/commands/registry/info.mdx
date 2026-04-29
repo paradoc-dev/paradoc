@@ -1,0 +1,48 @@
+---
+title: registry info
+description: Show registry information
+ogTitle: para registry info
+ogDescription: View details about an Paradoc registry
+---
+
+Show detailed information about a registry.
+
+# Usage
+
+```bash
+para registry info <namespace> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `namespace` | Registry namespace |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+# Output
+
+```
+Acme Forms Registry
+
+Official forms and documents for Acme Corp
+
+URL: https://registry.acme.com
+Homepage: https://acme.com/forms
+Artifacts: 15
+
+By kind:
+  form: 10
+  checklist: 3
+  document: 2
+```
+
+# See also
+
+- [registry list](/cli/commands/registry/list) - List configured registries
+- [search](/cli/commands/search) - Search registry artifacts

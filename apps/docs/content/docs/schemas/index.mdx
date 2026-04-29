@@ -1,0 +1,63 @@
+---
+title: About Schemas
+description: Paradoc schema reference
+ogTitle: Paradoc Schema Reference
+ogDescription: JSON Schema definitions for Paradoc artifacts, blocks, and primitives
+---
+Paradoc is built on JSON Schema standard [Draft 2020-12](https://json-schema.org/specification).
+
+
+# Installation
+
+The schemas are available as a bundle and as individual schemas.
+
+# Hosted server
+
+| Schema           | URL                                                 |
+| ---------------- | --------------------------------------------------- |
+| Latest bundle    | `https://schema.paradoc.dev/schema.json`          |
+| Versioned bundle | `https://schema.paradoc.dev/2026-01-01.json`      |
+| Individual items | `https://schema.paradoc.dev/2026-01-01/form.json`, `bundle.json`, `checklist.json`, `document.json` |
+
+# Package dependency
+
+**Installation**
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/schemas
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/schemas
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/schemas
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/schemas
+    ```
+  </Tab>
+</Tabs>
+
+**Usage**
+
+```typescript
+import bundledSchema from '@paradoc/schemas/schema.json'
+```
+
+# Schema Reference
+
+The Paradoc schemas are broken down into 2 categories:
+
+
+| Category                           | Description                                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [Artifacts](/schemas/artifacts)    | Top-level artifact types that define document structures.                                                                           |
+| [Primitives](/schemas/primitives)  | Low-level types for representing common data types like addresses, monetary amounts, and more. |

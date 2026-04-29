@@ -1,0 +1,12 @@
+[submodule "platform"]
+	path = platform
+	url = https://github.com/paradoc-dev/platform.git
+[submodule "incubator"]
+	path = incubator
+	url = https://github.com/paradoc-dev/incubator.git
+[submodule "artifacts"]
+	path = artifacts
+	url = https://github.com/paradoc-dev/artifacts.git
+[submodule "skills"]
+	path = skills
+	url = https://github.com/paradoc-dev/skills.git
