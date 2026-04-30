@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { form, runtimeFormFromJSON } from '@/artifacts'
 import type { DraftForm, SignableForm } from '@/artifacts'
-import type { Sealer, SigningField, Signer } from '@paradoc/types'
+import type { Sealer, SigningField, Signer, SignatureBlock } from '@paradoc/types'
 import { fromYAML } from '@/serialization'
 
 /**
@@ -15,7 +15,7 @@ describe('Formal Signing', () => {
 	// Test Fixtures
 	// ============================================================================
 
-	const createFormWithSignature = () =>
+	const createFormWithSignature = (signatureBlocks?: Record<string, SignatureBlock>) =>
 		form()
 			.name('lease-agreement')
 			.version('1.0.0')
@@ -38,7 +38,11 @@ describe('Formal Signing', () => {
 					signature: { required: true },
 				},
 			})
-			.inlineLayer('docx', { mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', text: 'Lease template' })
+			.inlineLayer('docx', {
+				mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+				text: 'Lease template',
+				...(signatureBlocks && { signatureBlocks }),
+			})
 			.defaultLayer('docx')
 			.build()
 
@@ -628,6 +632,195 @@ describe('Formal Signing', () => {
 
 			// Verify it's a deep clone
 			expect(cloned.signatureMap).not.toBe(formal.signatureMap)
+		})
+	})
+
+	// ============================================================================
+	// Capacity & Printed Name Captures
+	// ============================================================================
+
+	describe('Capacity & Printed Name captures', () => {
+		const buildSignableForm = () =>
+			createFormWithSignature()
+				.fill({
+					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
+					},
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSigner('tenant-signer', createTenantSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+				.prepareForSigning()
+
+		test('captureCapacity adds a capture with type capacity and text', () => {
+			const signed = buildSignableForm().captureCapacity(
+				'landlord',
+				'landlord-0',
+				'landlord-signer',
+				'sb-cap',
+				'President',
+			)
+
+			const capture = signed.getCapture('landlord', 'landlord-0', 'landlord-signer', 'sb-cap', 'capacity')
+			expect(capture).toBeDefined()
+			expect(capture?.type).toBe('capacity')
+			expect(capture?.text).toBe('President')
+			expect(capture?.image).toBeUndefined()
+			expect(capture?.timestamp).toBeDefined()
+		})
+
+		test('capturePrintedName adds a capture with type printed_name and text', () => {
+			const signed = buildSignableForm().capturePrintedName(
+				'tenant',
+				'tenant-0',
+				'tenant-signer',
+				'sb-print',
+				'JANE A TENANT',
+			)
+
+			const capture = signed.getCapture('tenant', 'tenant-0', 'tenant-signer', 'sb-print', 'printed_name')
+			expect(capture).toBeDefined()
+			expect(capture?.type).toBe('printed_name')
+			expect(capture?.text).toBe('JANE A TENANT')
+			expect(capture?.image).toBeUndefined()
+		})
+
+		test('captureCapacity respects custom timestamp and method', () => {
+			const ts = '2024-06-01T12:00:00.000Z'
+			const signed = buildSignableForm().captureCapacity(
+				'landlord',
+				'landlord-0',
+				'landlord-signer',
+				'sb-cap',
+				'Trustee',
+				{ timestamp: ts, method: 'typed' },
+			)
+
+			const capture = signed.getCapture('landlord', 'landlord-0', 'landlord-signer', 'sb-cap', 'capacity')
+			expect(capture?.timestamp).toBe(ts)
+			expect(capture?.method).toBe('typed')
+		})
+
+		test('getCapture distinguishes capacity from signature at the same locationId', () => {
+			const signed = buildSignableForm()
+				.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sb-shared')
+				.captureCapacity('landlord', 'landlord-0', 'landlord-signer', 'sb-shared', 'CEO')
+
+			const sig = signed.getCapture('landlord', 'landlord-0', 'landlord-signer', 'sb-shared', 'signature')
+			const cap = signed.getCapture('landlord', 'landlord-0', 'landlord-signer', 'sb-shared', 'capacity')
+
+			expect(sig?.type).toBe('signature')
+			expect(cap?.type).toBe('capacity')
+			expect(cap?.text).toBe('CEO')
+		})
+
+		test('captureCapacity throws when signerId is unknown', () => {
+			expect(() =>
+				buildSignableForm().captureCapacity('landlord', 'landlord-0', 'unknown-signer', 'sb-cap', 'President'),
+			).toThrow(/Signer with ID "unknown-signer" not found/)
+		})
+	})
+
+	// ============================================================================
+	// Sigblock → SigningField pass-through (v2-minimal)
+	// ============================================================================
+
+	describe('Sigblock seal pass-through for new types', () => {
+		const sigBlocks: Record<string, SignatureBlock> = {
+			'sb-landlord-sig': {
+				type: 'signature',
+				page: 1,
+				x: 100,
+				y: 500,
+				width: 200,
+				height: 30,
+				partyRole: 'landlord',
+				label: 'Landlord signature',
+			},
+			'sb-landlord-cap': {
+				type: 'capacity',
+				page: 1,
+				x: 100,
+				y: 540,
+				width: 200,
+				height: 14,
+				partyRole: 'landlord',
+				label: 'Landlord capacity',
+			},
+			'sb-landlord-print': {
+				type: 'printed_name',
+				page: 1,
+				x: 100,
+				y: 560,
+				width: 200,
+				height: 14,
+				partyRole: 'landlord',
+				label: 'Landlord printed name',
+			},
+			'sb-landlord-date': {
+				type: 'date',
+				page: 1,
+				x: 320,
+				y: 500,
+				width: 100,
+				height: 14,
+				partyRole: 'landlord',
+				label: 'Date',
+			},
+		}
+
+		const buildDraft = () =>
+			createFormWithSignature(sigBlocks)
+				.fill({
+					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
+					},
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSigner('tenant-signer', createTenantSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer', capacity: 'President' })
+				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+
+		test('seal generates SigningField with type capacity for capacity sigblocks', async () => {
+			const formal = await buildDraft().seal(createMockAdapter())
+
+			const capacityField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-cap')
+			expect(capacityField).toBeDefined()
+			expect(capacityField?.type).toBe('capacity')
+			expect(capacityField?.signerId).toBe('landlord-signer')
+		})
+
+		test('seal generates SigningField with type printed_name for printed_name sigblocks', async () => {
+			const formal = await buildDraft().seal(createMockAdapter())
+
+			const printedField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-print')
+			expect(printedField).toBeDefined()
+			expect(printedField?.type).toBe('printed_name')
+			expect(printedField?.signerId).toBe('landlord-signer')
+		})
+
+		test('seal still translates date sigblocks to date_signed (regression)', async () => {
+			const formal = await buildDraft().seal(createMockAdapter())
+
+			const dateField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-date')
+			expect(dateField).toBeDefined()
+			expect(dateField?.type).toBe('date_signed')
+		})
+
+		test('seal preserves signature sigblocks alongside new types', async () => {
+			const formal = await buildDraft().seal(createMockAdapter())
+
+			const sigField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-sig')
+			expect(sigField).toBeDefined()
+			expect(sigField?.type).toBe('signature')
+
+			// All four blocks should be in the signatureMap (definition mode uses core's generated map)
+			expect(formal.signatureMap).toHaveLength(4)
 		})
 	})
 })

@@ -204,7 +204,10 @@ export type FormInput = Omit<Form, 'kind'> & { kind?: 'form' }
  * Capture options for signatures
  */
 export interface CaptureOptions {
+	/** For 'signature' / 'initials' captures: glyph image (data URI or base64). */
 	image?: string
+	/** For 'capacity' / 'printed_name' captures: typed text value. */
+	text?: string
 	method?: 'drawn' | 'typed' | 'uploaded' | 'certificate'
 	timestamp?: string
 }
@@ -589,7 +592,9 @@ export interface SignableForm<F extends Form> extends RuntimeFormBase<F> {
 	// Capture Methods
 	captureSignature(role: string, partyId: string, signerId: string, locationId: string, options?: CaptureOptions): SignableForm<F>
 	captureInitials(role: string, partyId: string, signerId: string, locationId: string, options?: CaptureOptions): SignableForm<F>
-	getCapture(role: string, partyId: string, signerId: string, locationId: string, type: 'signature' | 'initials'): SignatureCapture | undefined
+	captureCapacity(role: string, partyId: string, signerId: string, locationId: string, text: string, options?: Omit<CaptureOptions, 'text'>): SignableForm<F>
+	capturePrintedName(role: string, partyId: string, signerId: string, locationId: string, text: string, options?: Omit<CaptureOptions, 'text'>): SignableForm<F>
+	getCapture(role: string, partyId: string, signerId: string, locationId: string, type: 'signature' | 'initials' | 'capacity' | 'printed_name'): SignatureCapture | undefined
 	getCapturesForLocation(locationId: string): SignatureCapture[]
 	getCapturesForParty(roleId: string, partyId: string): SignatureCapture[]
 	getCapturesForSigner(signerId: string): SignatureCapture[]
@@ -645,7 +650,7 @@ export interface ExecutedForm<F extends Form> extends RuntimeFormBase<F> {
 	readonly canonicalPdfHash: string | undefined
 
 	// Capture read-only access
-	getCapture(role: string, partyId: string, signerId: string, locationId: string, type: 'signature' | 'initials'): SignatureCapture | undefined
+	getCapture(role: string, partyId: string, signerId: string, locationId: string, type: 'signature' | 'initials' | 'capacity' | 'printed_name'): SignatureCapture | undefined
 	getCapturesForLocation(locationId: string): SignatureCapture[]
 	getCapturesForParty(roleId: string, partyId: string): SignatureCapture[]
 	getCapturesForSigner(signerId: string): SignatureCapture[]
@@ -1226,12 +1231,68 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			})
 		},
 
+		captureCapacity(
+			role: string,
+			partyId: string,
+			signerId: string,
+			locationId: string,
+			text: string,
+			options?: Omit<CaptureOptions, 'text'>,
+		): RuntimeForm<F> {
+			ensureSignable('captureCapacity')
+			if (!signerValues[signerId]) {
+				throw new Error(`Signer with ID "${signerId}" not found in registry`)
+			}
+			const capture: SignatureCapture = {
+				role,
+				partyId,
+				signerId,
+				locationId,
+				type: 'capacity',
+				text,
+				timestamp: options?.timestamp ?? new Date().toISOString(),
+				...(options?.method && { method: options.method }),
+			}
+			return createRuntimeForm({
+				...config,
+				captures: [...captures, capture],
+			})
+		},
+
+		capturePrintedName(
+			role: string,
+			partyId: string,
+			signerId: string,
+			locationId: string,
+			text: string,
+			options?: Omit<CaptureOptions, 'text'>,
+		): RuntimeForm<F> {
+			ensureSignable('capturePrintedName')
+			if (!signerValues[signerId]) {
+				throw new Error(`Signer with ID "${signerId}" not found in registry`)
+			}
+			const capture: SignatureCapture = {
+				role,
+				partyId,
+				signerId,
+				locationId,
+				type: 'printed_name',
+				text,
+				timestamp: options?.timestamp ?? new Date().toISOString(),
+				...(options?.method && { method: options.method }),
+			}
+			return createRuntimeForm({
+				...config,
+				captures: [...captures, capture],
+			})
+		},
+
 		getCapture(
 			role: string,
 			partyId: string,
 			signerId: string,
 			locationId: string,
-			type: 'signature' | 'initials',
+			type: 'signature' | 'initials' | 'capacity' | 'printed_name',
 		): SignatureCapture | undefined {
 			return captures.find(
 				(c) =>

@@ -299,3 +299,157 @@ describe('signatureDate helper', () => {
     expect(output).toContain('[DATE]')
   })
 })
+
+describe('capacity helper', () => {
+  const makePartyData = (opts?: { capacity?: string; captures?: unknown[] }) => ({
+    _role: 'taxpayer',
+    id: 'taxpayer-1',
+    signatories: [
+      {
+        signerId: 'signer-1',
+        capacity: opts?.capacity ?? 'President',
+        signer: {
+          id: 'signer-1',
+          person: { name: 'Jane Smith' },
+        },
+      },
+    ],
+    _captures: opts?.captures,
+    _signers: {
+      'signer-1': {
+        id: 'signer-1',
+        person: { name: 'Jane Smith' },
+      },
+    },
+  })
+
+  test('renders signatory.capacity when no capture exists', () => {
+    const output = renderText({
+      template: '{{#with this}}{{capacity "sb-cap"}}{{/with}}',
+      data: makePartyData(),
+    })
+    expect(output).toBe('President')
+  })
+
+  test('renders capture.text when capture exists (priority over signatory.capacity)', () => {
+    const captures = [
+      {
+        role: 'taxpayer',
+        partyId: 'taxpayer-1',
+        signerId: 'signer-1',
+        locationId: 'sb-cap',
+        type: 'capacity',
+        text: 'Trustee',
+        timestamp: '2024-06-15T14:30:00Z',
+      },
+    ]
+    const output = renderText({
+      template: '{{#with this}}{{capacity "sb-cap"}}{{/with}}',
+      data: makePartyData({ capacity: 'President', captures }),
+    })
+    expect(output).toBe('Trustee')
+  })
+
+  test('renders placeholder when neither capture nor signatory.capacity is set', () => {
+    const data = makePartyData({ capacity: undefined as unknown as string })
+    // Manually clear capacity since the factory defaults it
+    data.signatories[0]!.capacity = undefined as unknown as string
+    const output = renderText({
+      template: '{{#with this}}{{capacity "sb-cap"}}{{/with}}',
+      data,
+    })
+    expect(output).toBe('[CAPACITY]')
+  })
+
+  test('renders custom placeholder', () => {
+    const data = makePartyData()
+    data.signatories[0]!.capacity = undefined as unknown as string
+    const output = renderText({
+      template: '{{#with this}}{{capacity "sb-cap"}}{{/with}}',
+      data,
+      signatureOptions: { placeholder: { capacity: '__title__' } },
+    })
+    expect(output).toBe('__title__')
+  })
+})
+
+describe('printedName helper', () => {
+  const makePartyData = (opts?: { name?: string; captures?: unknown[] }) => ({
+    _role: 'taxpayer',
+    id: 'taxpayer-1',
+    signatories: [
+      {
+        signerId: 'signer-1',
+        signer: {
+          id: 'signer-1',
+          person: { name: opts?.name ?? 'Jane Smith' },
+        },
+      },
+    ],
+    _captures: opts?.captures,
+    _signers: {
+      'signer-1': {
+        id: 'signer-1',
+        person: { name: opts?.name ?? 'Jane Smith' },
+      },
+    },
+  })
+
+  test('renders signer.person.name when no capture exists', () => {
+    const output = renderText({
+      template: '{{#with this}}{{printedName "sb-print"}}{{/with}}',
+      data: makePartyData(),
+    })
+    expect(output).toBe('Jane Smith')
+  })
+
+  test('renders capture.text when capture exists (priority over signer.person.name)', () => {
+    const captures = [
+      {
+        role: 'taxpayer',
+        partyId: 'taxpayer-1',
+        signerId: 'signer-1',
+        locationId: 'sb-print',
+        type: 'printed_name',
+        text: 'JANE A SMITH',
+        timestamp: '2024-06-15T14:30:00Z',
+      },
+    ]
+    const output = renderText({
+      template: '{{#with this}}{{printedName "sb-print"}}{{/with}}',
+      data: makePartyData({ name: 'Jane Smith', captures }),
+    })
+    expect(output).toBe('JANE A SMITH')
+  })
+
+  test('renders placeholder when there is no signer and no capture', () => {
+    const data = {
+      _role: 'taxpayer',
+      id: 'taxpayer-1',
+      signatories: [],
+      _captures: undefined,
+      _signers: {},
+    }
+    const output = renderText({
+      template: '{{#with this}}{{printedName "sb-print"}}{{/with}}',
+      data,
+    })
+    expect(output).toBe('[PRINTED NAME]')
+  })
+
+  test('renders custom placeholder', () => {
+    const data = {
+      _role: 'taxpayer',
+      id: 'taxpayer-1',
+      signatories: [],
+      _captures: undefined,
+      _signers: {},
+    }
+    const output = renderText({
+      template: '{{#with this}}{{printedName "sb-print"}}{{/with}}',
+      data,
+      signatureOptions: { placeholder: { printedName: '__name__' } },
+    })
+    expect(output).toBe('__name__')
+  })
+})

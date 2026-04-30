@@ -21,6 +21,10 @@ export interface PdfSignatureOptions {
     signature?: SignaturePlaceholderValue
     /** Placeholder for initials. String or function. */
     initials?: SignaturePlaceholderValue
+    /** Placeholder for signer capacity (role/title). String or function. */
+    capacity?: SignaturePlaceholderValue
+    /** Placeholder for printed name. String or function. */
+    printedName?: SignaturePlaceholderValue
   }
 
   /** Captured options (after capture) */
@@ -29,11 +33,17 @@ export interface PdfSignatureOptions {
     signature?: SignatureCapturedValue
     /** Text/rendering for captured initials. String or function. */
     initials?: SignatureCapturedValue
+    /** Text/rendering for captured capacity. String or function. */
+    capacity?: SignatureCapturedValue
+    /** Text/rendering for captured printed name. String or function. */
+    printedName?: SignatureCapturedValue
   }
 }
 
 const DEFAULT_PLACEHOLDER_SIGNATURE = '_____________________________'
 const DEFAULT_PLACEHOLDER_INITIALS = '______'
+const DEFAULT_PLACEHOLDER_CAPACITY = '________________'
+const DEFAULT_PLACEHOLDER_PRINTED_NAME = '_______________________'
 const DEFAULT_CAPTURED_SIGNATURE = '[Signed]'
 const DEFAULT_CAPTURED_INITIALS = '[Initialed]'
 
@@ -44,10 +54,14 @@ export interface ResolvedPdfSignatureOptions {
   placeholder: {
     signature: string
     initials: string
+    capacity: string
+    printedName: string
   }
   captured: {
     signature: string
     initials: string
+    capacity: string
+    printedName: string
   }
 }
 
@@ -63,10 +77,14 @@ export function resolvePdfSignatureOptions(
     placeholder: {
       signature: options.placeholder?.signature ?? DEFAULT_PLACEHOLDER_SIGNATURE,
       initials: options.placeholder?.initials ?? DEFAULT_PLACEHOLDER_INITIALS,
+      capacity: options.placeholder?.capacity ?? DEFAULT_PLACEHOLDER_CAPACITY,
+      printedName: options.placeholder?.printedName ?? DEFAULT_PLACEHOLDER_PRINTED_NAME,
     },
     captured: {
       signature: options.captured?.signature ?? DEFAULT_CAPTURED_SIGNATURE,
       initials: options.captured?.initials ?? DEFAULT_CAPTURED_INITIALS,
+      capacity: options.captured?.capacity ?? DEFAULT_PLACEHOLDER_CAPACITY,
+      printedName: options.captured?.printedName ?? DEFAULT_PLACEHOLDER_PRINTED_NAME,
     },
   }
 }

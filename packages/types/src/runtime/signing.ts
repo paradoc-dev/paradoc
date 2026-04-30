@@ -20,8 +20,13 @@ import type { Party, Signer, PartySignatory } from './index'
  * SigningFieldType
  *
  * The type of field that can be placed on a document for e-signing.
+ *
+ * - 'signature' / 'initials': glyph capture (image)
+ * - 'date_signed': signing date (rendered from capture timestamp)
+ * - 'capacity': signer's role/title (rendered from PartySignatory.capacity or capture text)
+ * - 'printed_name': typed-out name (rendered from Signer.person.name or capture text)
  */
-export type SigningFieldType = 'signature' | 'initials' | 'date_signed'
+export type SigningFieldType = 'signature' | 'initials' | 'date_signed' | 'capacity' | 'printed_name'
 
 /**
  * SigningField

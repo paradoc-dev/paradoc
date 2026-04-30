@@ -55,6 +55,10 @@ export interface TextSignatureOptions {
     initials?: SignaturePlaceholderValue
     /** Placeholder for signature date. String or function. */
     signatureDate?: SignaturePlaceholderValue
+    /** Placeholder for signer capacity (role/title). String or function. */
+    capacity?: SignaturePlaceholderValue
+    /** Placeholder for printed name. String or function. */
+    printedName?: SignaturePlaceholderValue
   }
 
   /** Captured options (after capture) */
@@ -65,6 +69,10 @@ export interface TextSignatureOptions {
     initials?: SignatureCapturedValue
     /** Text/rendering for captured signature date. String or function. */
     signatureDate?: SignatureCapturedValue
+    /** Text/rendering for captured capacity. String or function. */
+    capacity?: SignatureCapturedValue
+    /** Text/rendering for captured printed name. String or function. */
+    printedName?: SignatureCapturedValue
   }
 
   /** Alt text for signature images (html format only) */
@@ -76,6 +84,8 @@ export interface TextSignatureOptions {
 const DEFAULT_PLACEHOLDER_SIGNATURE = '[SIGNATURE]'
 const DEFAULT_PLACEHOLDER_INITIALS = '[INITIALS]'
 const DEFAULT_PLACEHOLDER_DATE = '[DATE]'
+const DEFAULT_PLACEHOLDER_CAPACITY = '[CAPACITY]'
+const DEFAULT_PLACEHOLDER_PRINTED_NAME = '[PRINTED NAME]'
 const DEFAULT_CAPTURED_SIGNATURE = '[Signed]'
 const DEFAULT_CAPTURED_INITIALS = '[Initialed]'
 
@@ -128,7 +138,7 @@ function findCapture(
   partyId: string,
   signerId: string,
   locationId: string,
-  type: 'signature' | 'initials'
+  type: 'signature' | 'initials' | 'capacity' | 'printed_name'
 ): SignatureCapture | undefined {
   if (!captures) return undefined
   return captures.find(
@@ -613,7 +623,161 @@ export function createSignatureDateHelper(options: TextSignatureOptions = {}): H
 }
 
 /**
- * Register signature, initials, and signatureDate helpers with a Handlebars instance
+ * Create the capacity helper function (1-argument pattern)
+ *
+ * Template usage: {{capacity "locationId"}}
+ *
+ * Renders the signer's capacity (role/title) — e.g., "President", "Trustee", "Attorney-in-fact".
+ * Resolution order:
+ * 1. Capture of type 'capacity' at locationId (capture.text takes priority)
+ * 2. PartySignatory.capacity from the runtime context
+ * 3. Configured / default placeholder
+ *
+ * @example
+ * ```handlebars
+ * {{#each parties.taxpayer.signatories}}
+ * Signature: {{signature "sig-1"}}
+ * Title: {{capacity "sig-1"}}
+ * {{/each}}
+ * ```
+ */
+export function createCapacityHelper(options: TextSignatureOptions = {}): HelperDelegate {
+  return function (
+    this: Record<string, unknown>,
+    locationId: string,
+    handlebarsOptions?: { data?: { root?: Record<string, unknown> } }
+  ): string {
+    if (typeof locationId !== 'string') {
+      return '[Invalid capacity helper: expected (locationId)]'
+    }
+
+    const sigCtx = extractSignatureContext(this)
+    if (!sigCtx) {
+      return '[Capacity helper error: could not determine context. Use inside party or signatories loop.]'
+    }
+
+    const rootContext = handlebarsOptions?.data?.root ?? this
+    const signer = sigCtx.signer ?? getSigner(rootContext._signers as Record<string, Signer> | undefined, sigCtx.signerId)
+
+    const ctx: SignaturePlaceholderContext = {
+      role: sigCtx.role,
+      partyId: sigCtx.partyId,
+      signerId: sigCtx.signerId ?? '',
+      locationId,
+      party: sigCtx.party,
+      signer,
+      capacity: sigCtx.capacity,
+    }
+
+    // 1. Capture takes priority
+    if (sigCtx.signerId) {
+      const capture = findCapture(
+        rootContext._captures as SignatureCapture[] | undefined,
+        sigCtx.role,
+        sigCtx.partyId,
+        sigCtx.signerId,
+        locationId,
+        'capacity'
+      )
+      if (capture) {
+        const capturedCtx: SignatureCapturedContext = { ...ctx, capture }
+        const capturedValue = options.captured?.capacity
+        const defaultCaptured = capture.text ?? sigCtx.capacity ?? DEFAULT_PLACEHOLDER_CAPACITY
+        if (capturedValue !== undefined) {
+          return resolveValue(capturedValue, capturedCtx, defaultCaptured)
+        }
+        if (capture.text) return capture.text
+      }
+    }
+
+    // 2. Fall back to PartySignatory.capacity
+    if (sigCtx.capacity) return sigCtx.capacity
+
+    // 3. Placeholder
+    const placeholderValue = options.placeholder?.capacity
+    return resolveValue(placeholderValue, ctx, DEFAULT_PLACEHOLDER_CAPACITY)
+  }
+}
+
+/**
+ * Create the printedName helper function (1-argument pattern)
+ *
+ * Template usage: {{printedName "locationId"}}
+ *
+ * Renders the typed-out name accompanying a signature.
+ * Resolution order:
+ * 1. Capture of type 'printed_name' at locationId (capture.text takes priority)
+ * 2. Signer.person.name from the runtime context
+ * 3. Configured / default placeholder
+ *
+ * @example
+ * ```handlebars
+ * {{#each parties.taxpayer.signatories}}
+ * Signature: {{signature "sig-1"}}
+ * Print name: {{printedName "sig-1"}}
+ * {{/each}}
+ * ```
+ */
+export function createPrintedNameHelper(options: TextSignatureOptions = {}): HelperDelegate {
+  return function (
+    this: Record<string, unknown>,
+    locationId: string,
+    handlebarsOptions?: { data?: { root?: Record<string, unknown> } }
+  ): string {
+    if (typeof locationId !== 'string') {
+      return '[Invalid printedName helper: expected (locationId)]'
+    }
+
+    const sigCtx = extractSignatureContext(this)
+    if (!sigCtx) {
+      return '[PrintedName helper error: could not determine context. Use inside party or signatories loop.]'
+    }
+
+    const rootContext = handlebarsOptions?.data?.root ?? this
+    const signer = sigCtx.signer ?? getSigner(rootContext._signers as Record<string, Signer> | undefined, sigCtx.signerId)
+
+    const ctx: SignaturePlaceholderContext = {
+      role: sigCtx.role,
+      partyId: sigCtx.partyId,
+      signerId: sigCtx.signerId ?? '',
+      locationId,
+      party: sigCtx.party,
+      signer,
+      capacity: sigCtx.capacity,
+    }
+
+    // 1. Capture takes priority
+    if (sigCtx.signerId) {
+      const capture = findCapture(
+        rootContext._captures as SignatureCapture[] | undefined,
+        sigCtx.role,
+        sigCtx.partyId,
+        sigCtx.signerId,
+        locationId,
+        'printed_name'
+      )
+      if (capture) {
+        const capturedCtx: SignatureCapturedContext = { ...ctx, capture }
+        const capturedValue = options.captured?.printedName
+        const defaultCaptured = capture.text ?? signer?.person.name ?? DEFAULT_PLACEHOLDER_PRINTED_NAME
+        if (capturedValue !== undefined) {
+          return resolveValue(capturedValue, capturedCtx, defaultCaptured)
+        }
+        if (capture.text) return capture.text
+      }
+    }
+
+    // 2. Fall back to Signer.person.name
+    if (signer?.person.name) return signer.person.name
+
+    // 3. Placeholder
+    const placeholderValue = options.placeholder?.printedName
+    return resolveValue(placeholderValue, ctx, DEFAULT_PLACEHOLDER_PRINTED_NAME)
+  }
+}
+
+/**
+ * Register signature, initials, signatureDate, capacity, and printedName helpers with a Handlebars instance
  */
 export function registerSignatureHelpers(
   handlebars: typeof Handlebars,
@@ -622,4 +786,6 @@ export function registerSignatureHelpers(
   handlebars.registerHelper('signature', createSignatureHelper(options))
   handlebars.registerHelper('initials', createInitialsHelper(options))
   handlebars.registerHelper('signatureDate', createSignatureDateHelper(options))
+  handlebars.registerHelper('capacity', createCapacityHelper(options))
+  handlebars.registerHelper('printedName', createPrintedNameHelper(options))
 }

@@ -102,13 +102,15 @@ export interface SignatureCapture {
 	signerId: string;
 	/** Unique identifier for this location in the template. */
 	locationId: string;
-	/** Whether this is a full signature or initials. */
-	type: 'signature' | 'initials';
+	/** Capture event type. */
+	type: 'signature' | 'initials' | 'capacity' | 'printed_name';
 	/** ISO 8601 date-time when the capture occurred. */
 	timestamp: string;
-	/** Override image (if different from signer's adopted signature). */
+	/** For 'signature' / 'initials': override image (if different from signer's adopted signature). */
 	image?: string;
-	/** Override method (if different from signer's adopted signature). */
+	/** For 'capacity' / 'printed_name': captured text value typed at signing time. */
+	text?: string;
+	/** Capture method (typically 'typed' for capacity/printed_name; 'drawn' / 'uploaded' / 'certificate' for glyph captures). */
 	method?: 'drawn' | 'typed' | 'uploaded' | 'certificate';
 }
 

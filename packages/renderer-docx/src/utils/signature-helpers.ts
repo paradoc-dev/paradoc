@@ -56,6 +56,10 @@ export interface DocxSignatureOptions {
     initials?: SignaturePlaceholderValue
     /** Placeholder for signature date. String or function. */
     signatureDate?: SignaturePlaceholderValue
+    /** Placeholder for signer capacity (role/title). String or function. */
+    capacity?: SignaturePlaceholderValue
+    /** Placeholder for printed name. String or function. */
+    printedName?: SignaturePlaceholderValue
   }
 
   /** Captured options (after capture) */
@@ -66,12 +70,18 @@ export interface DocxSignatureOptions {
     initials?: SignatureCapturedValue
     /** Text/rendering for captured signature date. String or function. */
     signatureDate?: SignatureCapturedValue
+    /** Text/rendering for captured capacity. String or function. */
+    capacity?: SignatureCapturedValue
+    /** Text/rendering for captured printed name. String or function. */
+    printedName?: SignatureCapturedValue
   }
 }
 
 const DEFAULT_PLACEHOLDER_SIGNATURE = '_____________________________'
 const DEFAULT_PLACEHOLDER_INITIALS = '______'
 const DEFAULT_PLACEHOLDER_DATE = '__________'
+const DEFAULT_PLACEHOLDER_CAPACITY = '________________'
+const DEFAULT_PLACEHOLDER_PRINTED_NAME = '_______________________'
 const DEFAULT_CAPTURED_SIGNATURE = '[Signed]'
 const DEFAULT_CAPTURED_INITIALS = '[Initialed]'
 
@@ -126,7 +136,7 @@ function findCapture(
   partyId: string,
   signerId: string,
   locationId: string,
-  type: 'signature' | 'initials'
+  type: 'signature' | 'initials' | 'capacity' | 'printed_name'
 ): SignatureCapture | undefined {
   if (!captures) return undefined
   return captures.find(
@@ -190,6 +200,8 @@ export function createDocxSignatureHelpers(
   signature: (partyOrSignatory: PartyOrSignatory, locationId: string) => string
   initials: (partyOrSignatory: PartyOrSignatory, locationId: string) => string
   signatureDate: (partyOrSignatory: PartyOrSignatory, locationId: string) => string
+  capacity: (partyOrSignatory: PartyOrSignatory, locationId: string) => string
+  printedName: (partyOrSignatory: PartyOrSignatory, locationId: string) => string
 } {
   // Capture data via closure
   const signers = rootData._signers
@@ -455,6 +467,177 @@ export function createDocxSignatureHelpers(
 
       // No capture - render placeholder
       return resolveValue(options.placeholder?.signatureDate, ctx, DEFAULT_PLACEHOLDER_DATE)
+    },
+
+    /**
+     * Capacity helper - renders the signer's capacity (role/title)
+     *
+     * Resolution order:
+     * 1. Capture of type 'capacity' at locationId (capture.text takes priority)
+     * 2. PartySignatory.capacity from the runtime context
+     * 3. Configured / default placeholder
+     *
+     * @param partyOrSignatory - The party or signatory object from template loop
+     * @param locationId - The location ID for this capacity block
+     */
+    capacity(partyOrSignatory: PartyOrSignatory, locationId: string): string {
+      if (!partyOrSignatory || typeof partyOrSignatory !== 'object') {
+        return '[Invalid capacity: expected (party/signatory, locationId)]'
+      }
+      if (typeof locationId !== 'string') {
+        return '[Invalid capacity: expected (party/signatory, locationId)]'
+      }
+
+      let role: string
+      let partyId: string
+      let signerId: string | undefined
+      let party: RuntimeParty | undefined
+      let signer: Signer | undefined
+      let capacity: string | undefined
+
+      if (isSignatory(partyOrSignatory)) {
+        role = partyOrSignatory._role
+        partyId = partyOrSignatory._partyId
+        signerId = partyOrSignatory.signerId
+        signer = partyOrSignatory.signer
+        capacity = partyOrSignatory.capacity
+        party = undefined
+      } else {
+        const augmentedParty = partyOrSignatory as AugmentedParty
+        role = augmentedParty._role
+        partyId = augmentedParty.id
+        party = augmentedParty
+        const firstSignatory = augmentedParty.signatories?.[0]
+        if (firstSignatory) {
+          signerId = firstSignatory.signerId
+          signer = firstSignatory.signer
+          capacity = firstSignatory.capacity
+        }
+      }
+
+      if (!role || !partyId) {
+        return '[Capacity error: invalid party/signatory context]'
+      }
+
+      const ctx: SignaturePlaceholderContext = {
+        role,
+        partyId,
+        signerId: signerId ?? '',
+        locationId,
+        party,
+        signer,
+        capacity,
+      }
+
+      // 1. Capture takes priority
+      if (signerId) {
+        const capture = findCapture(captures, role, partyId, signerId, locationId, 'capacity')
+        if (capture) {
+          if (!signer) {
+            signer = getSigner(signers, signerId)
+            ctx.signer = signer
+          }
+          const capturedCtx: SignatureCapturedContext = { ...ctx, capture }
+          const capturedValue = options.captured?.capacity
+          const defaultCaptured = capture.text ?? capacity ?? DEFAULT_PLACEHOLDER_CAPACITY
+          if (capturedValue !== undefined) {
+            return resolveValue(capturedValue, capturedCtx, defaultCaptured)
+          }
+          if (capture.text) return capture.text
+        }
+      }
+
+      // 2. Fall back to PartySignatory.capacity
+      if (capacity) return capacity
+
+      // 3. Placeholder
+      return resolveValue(options.placeholder?.capacity, ctx, DEFAULT_PLACEHOLDER_CAPACITY)
+    },
+
+    /**
+     * Printed name helper - renders the typed-out name accompanying a signature
+     *
+     * Resolution order:
+     * 1. Capture of type 'printed_name' at locationId (capture.text takes priority)
+     * 2. Signer.person.name from the runtime context
+     * 3. Configured / default placeholder
+     *
+     * @param partyOrSignatory - The party or signatory object from template loop
+     * @param locationId - The location ID for this printed name block
+     */
+    printedName(partyOrSignatory: PartyOrSignatory, locationId: string): string {
+      if (!partyOrSignatory || typeof partyOrSignatory !== 'object') {
+        return '[Invalid printedName: expected (party/signatory, locationId)]'
+      }
+      if (typeof locationId !== 'string') {
+        return '[Invalid printedName: expected (party/signatory, locationId)]'
+      }
+
+      let role: string
+      let partyId: string
+      let signerId: string | undefined
+      let party: RuntimeParty | undefined
+      let signer: Signer | undefined
+      let capacity: string | undefined
+
+      if (isSignatory(partyOrSignatory)) {
+        role = partyOrSignatory._role
+        partyId = partyOrSignatory._partyId
+        signerId = partyOrSignatory.signerId
+        signer = partyOrSignatory.signer
+        capacity = partyOrSignatory.capacity
+        party = undefined
+      } else {
+        const augmentedParty = partyOrSignatory as AugmentedParty
+        role = augmentedParty._role
+        partyId = augmentedParty.id
+        party = augmentedParty
+        const firstSignatory = augmentedParty.signatories?.[0]
+        if (firstSignatory) {
+          signerId = firstSignatory.signerId
+          signer = firstSignatory.signer
+          capacity = firstSignatory.capacity
+        }
+      }
+
+      if (!role || !partyId) {
+        return '[PrintedName error: invalid party/signatory context]'
+      }
+
+      const ctx: SignaturePlaceholderContext = {
+        role,
+        partyId,
+        signerId: signerId ?? '',
+        locationId,
+        party,
+        signer,
+        capacity,
+      }
+
+      if (!signer && signerId) {
+        signer = getSigner(signers, signerId)
+        ctx.signer = signer
+      }
+
+      // 1. Capture takes priority
+      if (signerId) {
+        const capture = findCapture(captures, role, partyId, signerId, locationId, 'printed_name')
+        if (capture) {
+          const capturedCtx: SignatureCapturedContext = { ...ctx, capture }
+          const capturedValue = options.captured?.printedName
+          const defaultCaptured = capture.text ?? signer?.person.name ?? DEFAULT_PLACEHOLDER_PRINTED_NAME
+          if (capturedValue !== undefined) {
+            return resolveValue(capturedValue, capturedCtx, defaultCaptured)
+          }
+          if (capture.text) return capture.text
+        }
+      }
+
+      // 2. Fall back to Signer.person.name
+      if (signer?.person.name) return signer.person.name
+
+      // 3. Placeholder
+      return resolveValue(options.placeholder?.printedName, ctx, DEFAULT_PLACEHOLDER_PRINTED_NAME)
     },
   }
 }

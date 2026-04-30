@@ -4,11 +4,13 @@
 
 /**
  * Type of signature block field.
- * - 'signature': Full signature capture
- * - 'initials': Initials capture
+ * - 'signature': Full signature capture (glyph)
+ * - 'initials': Initials capture (glyph)
  * - 'date': Date field for signing date
+ * - 'capacity': Signer's role/title (e.g., "President", "Trustee", "Attorney-in-fact")
+ * - 'printed_name': Typed-out name accompanying the signature
  */
-export type SignatureBlockType = 'signature' | 'initials' | 'date';
+export type SignatureBlockType = 'signature' | 'initials' | 'date' | 'capacity' | 'printed_name';
 
 /**
  * Pre-defined signature block for layers (typically PDF).

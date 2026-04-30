@@ -3,8 +3,8 @@ import { z } from 'zod';
 /**
  * Type of signature block field.
  */
-export const SignatureBlockTypeSchema = z.enum(['signature', 'initials', 'date'])
-	.describe('Type of signature block: signature, initials, or date');
+export const SignatureBlockTypeSchema = z.enum(['signature', 'initials', 'date', 'capacity', 'printed_name'])
+	.describe('Type of signature block: signature/initials (glyph), date (signing date), capacity (signer role/title), or printed_name (typed-out name)');
 
 /**
  * Pre-defined signature block for layers.
