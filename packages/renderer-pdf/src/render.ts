@@ -2,7 +2,7 @@
  * Pure function to render PDF templates using pdf-lib
  */
 
-import { PDFDocument, PDFCheckBox, PDFRadioGroup, PDFTextField } from 'pdf-lib'
+import { PDFDocument, PDFCheckBox, PDFRadioGroup, PDFTextField, PDFDropdown, PDFOptionList } from 'pdf-lib'
 import type { Form, FormField, BinaryContent, SerializerRegistry } from '@paradoc/types'
 import { usaSerializers, preprocessFieldData } from '@paradoc/serialization'
 import { createSerializedFieldWrapper } from './utils/field-serializer'
@@ -157,6 +157,8 @@ export async function renderPdf({
             pdfField.select(String(value))
           } else if (pdfField instanceof PDFTextField) {
             pdfField.setText(String(value))
+          } else if (pdfField instanceof PDFDropdown || pdfField instanceof PDFOptionList) {
+            pdfField.select(String(value))
           }
         }
       } catch {
@@ -182,6 +184,8 @@ export async function renderPdf({
             pdfField.select(String(value))
           } else if (pdfField instanceof PDFTextField) {
             pdfField.setText(String(value))
+          } else if (pdfField instanceof PDFDropdown || pdfField instanceof PDFOptionList) {
+            pdfField.select(String(value))
           }
         } catch {
           // Skip if field not found

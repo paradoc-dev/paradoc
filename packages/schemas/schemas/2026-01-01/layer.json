@@ -61,9 +61,11 @@
                 "enum": [
                   "signature",
                   "initials",
-                  "date"
+                  "date",
+                  "capacity",
+                  "printed_name"
                 ],
-                "description": "Type of signature block: signature, initials, or date"
+                "description": "Type of signature block: signature/initials (glyph), date (signing date), capacity (signer role/title), or printed_name (typed-out name)"
               },
               "page": {
                 "type": "integer",
@@ -203,9 +205,11 @@
                 "enum": [
                   "signature",
                   "initials",
-                  "date"
+                  "date",
+                  "capacity",
+                  "printed_name"
                 ],
-                "description": "Type of signature block: signature, initials, or date"
+                "description": "Type of signature block: signature/initials (glyph), date (signing date), capacity (signer role/title), or printed_name (typed-out name)"
               },
               "page": {
                 "type": "integer",
