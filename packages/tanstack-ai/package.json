@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/tanstack-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TanStack AI adapter for Paradoc tools — wraps @paradoc/ai-tools with toolDefinition().server()",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/renderers",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Umbrella package for Paradoc framework renderers - re-exports all renderers from @paradoc/renderer-docx, @paradoc/renderer-pdf, and @paradoc/renderer-text",
   "type": "module",
   "main": "./dist/index.js",
