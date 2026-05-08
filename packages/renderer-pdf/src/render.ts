@@ -112,14 +112,22 @@ export async function renderPdf({
           const rootFieldName = fieldName.split('.')[0] ?? fieldName
           const fieldDef = rootFieldName ? form.fields?.[rootFieldName] : undefined
 
-          if (fieldDef?.type === 'enum' || fieldDef?.type === 'boolean') {
-            // Enum checkbox: check if value matches qualifier
-            // e.g., "taxClassification:llc" -> check if taxClassification === 'llc'
+          if (fieldDef?.type === 'enum' || fieldDef?.type === 'boolean' || fieldDef?.type === 'multiselect') {
+            // Checkbox binding: check iff the qualifier matches the field's value.
+            // - boolean: truthy value → checked
+            // - enum:    string equality with qualifier → checked
+            // - multiselect: qualifier is one of the selected array values → checked
             const checkbox = acroForm.getCheckBox(pdfFieldName)
             if (fieldDef.type === 'boolean') {
               // For boolean with qualifier, check if value is truthy
               if (value) checkbox.check()
               else checkbox.uncheck()
+            } else if (fieldDef.type === 'multiselect') {
+              // Multiselect array: check if qualifier appears in the selected values
+              // e.g., "recordTypes:lab_results" -> check if recordTypes includes 'lab_results'
+              if (Array.isArray(value) && value.includes(qualifier)) {
+                checkbox.check()
+              }
             } else {
               // For enum, check if value matches the qualifier
               if (String(value) === qualifier) {
