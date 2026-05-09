@@ -3,6 +3,8 @@ packages:
   - "packages/*"
   - "platform/apps/*"
   - "platform/packages/*"
+  - "internal/apps/*"
+  - "internal/packages/*"
   - "incubator/apps/*"
   - "incubator/packages/*"
   - "artifacts"
