@@ -10,3 +10,6 @@
 [submodule "skills"]
 	path = skills
 	url = https://github.com/paradoc-dev/skills.git
+[submodule "internal"]
+	path = internal
+	url = https://github.com/paradoc-dev/internal.git
