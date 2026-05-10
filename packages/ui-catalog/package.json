@@ -1,0 +1,70 @@
+{
+  "name": "@paradoc/ui-catalog",
+  "version": "0.0.0",
+  "description": "Headless catalog of input UI primitives for Paradoc artifacts. Maps form fields to renderable spec fragments — bring your own renderer.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "forms",
+    "ui",
+    "catalog",
+    "generative-ui",
+    "json-render"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Paradoc",
+    "url": "https://paradoc.dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@paradoc/types": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/schemas": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
