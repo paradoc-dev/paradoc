@@ -12,5 +12,12 @@ export type {
 
 export { compile, compileToJsonSchema } from './form-payload'
 
+export type { CompositePropertySpec, CompositeShape } from './composite-shapes'
+export {
+  CANONICAL_SHAPES,
+  isCompositeType,
+  describeCompositeShape,
+} from './composite-shapes'
+
 // Re-export InferChecklistPayload from checklist
 export type { InferChecklistPayload } from '@/artifacts/checklist'

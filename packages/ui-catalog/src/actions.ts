@@ -20,11 +20,34 @@ export type SubmitFieldValueAction = {
 };
 
 /**
- * The user dismissed/cancelled a rendered input without submitting.
- * Useful when the agent should retract the question or move on.
+ * The user wants to defer this field — come back to it later. Valid for both
+ * required and optional fields. Hosts should record this as a "deferred"
+ * state and offer to revisit after other fields are answered.
  */
-export type CancelFieldAction = {
-	type: "cancelField";
+export type DeferFieldAction = {
+	type: "deferField";
+	fieldPath: string;
+	note?: string;
+};
+
+/**
+ * The user wants to skip this field altogether — they're opting out of
+ * answering. Only valid for optional fields; required fields can only be
+ * deferred. Hosts that receive a skip for a required field should reject.
+ */
+export type SkipFieldAction = {
+	type: "skipField";
+	fieldPath: string;
+	note?: string;
+};
+
+/**
+ * The user dismissed the rendered input without submitting, defer, or skip.
+ * UI-only — the host should hide the input but not record any backend state
+ * change. Typical use: user wants to type the answer naturally in the chat.
+ */
+export type DismissFieldAction = {
+	type: "dismissField";
 	fieldPath: string;
 };
 
@@ -41,13 +64,17 @@ export type EditFilledFieldAction = {
 /** Discriminated union of all catalog actions. */
 export type CatalogAction =
 	| SubmitFieldValueAction
-	| CancelFieldAction
+	| DeferFieldAction
+	| SkipFieldAction
+	| DismissFieldAction
 	| EditFilledFieldAction;
 
 /** All catalog action `type` strings. */
 export const CATALOG_ACTION_TYPES = [
 	"submitFieldValue",
-	"cancelField",
+	"deferField",
+	"skipField",
+	"dismissField",
 	"editFilledField",
 ] as const;
 

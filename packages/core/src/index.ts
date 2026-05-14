@@ -297,10 +297,18 @@ export type {
   FieldToDataType,
   FieldsToDataType,
   InferFormData,
+  CompositePropertySpec,
+  CompositeShape,
   // InferFormPayload is already exported from ./artifacts
 } from "./inference";
 
-export { compile, compileToJsonSchema } from "./inference";
+export {
+  compile,
+  compileToJsonSchema,
+  CANONICAL_SHAPES,
+  isCompositeType,
+  describeCompositeShape,
+} from "./inference";
 
 // ============================================================================
 // SERIALIZATION

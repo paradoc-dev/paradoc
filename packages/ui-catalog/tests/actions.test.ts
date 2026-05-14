@@ -3,15 +3,19 @@ import { CATALOG_ACTION_TYPES } from "../src/actions.js";
 import type {
 	CatalogAction,
 	SubmitFieldValueAction,
-	CancelFieldAction,
+	DeferFieldAction,
+	SkipFieldAction,
+	DismissFieldAction,
 	EditFilledFieldAction,
 } from "../src/actions.js";
 
 describe("actions", () => {
-	it("exposes the three action types", () => {
+	it("exposes the five action types", () => {
 		expect(CATALOG_ACTION_TYPES).toEqual([
 			"submitFieldValue",
-			"cancelField",
+			"deferField",
+			"skipField",
+			"dismissField",
 			"editFilledField",
 		]);
 	});
@@ -27,12 +31,30 @@ describe("actions", () => {
 		expect(a.value).toBe("cat");
 	});
 
-	it("typechecks CancelFieldAction shape", () => {
-		const a: CancelFieldAction = {
-			type: "cancelField",
+	it("typechecks DeferFieldAction shape", () => {
+		const a: DeferFieldAction = {
+			type: "deferField",
+			fieldPath: "/foo",
+			note: "later",
+		};
+		expect(a.type).toBe("deferField");
+		expect(a.note).toBe("later");
+	});
+
+	it("typechecks SkipFieldAction shape", () => {
+		const a: SkipFieldAction = {
+			type: "skipField",
 			fieldPath: "/foo",
 		};
-		expect(a.type).toBe("cancelField");
+		expect(a.type).toBe("skipField");
+	});
+
+	it("typechecks DismissFieldAction shape", () => {
+		const a: DismissFieldAction = {
+			type: "dismissField",
+			fieldPath: "/foo",
+		};
+		expect(a.type).toBe("dismissField");
 	});
 
 	it("typechecks EditFilledFieldAction shape", () => {
@@ -51,7 +73,6 @@ describe("actions", () => {
 		};
 
 		if (action.type === "submitFieldValue") {
-			// TS should infer `value: unknown` here, narrowed to SubmitFieldValueAction
 			expect(action.value).toBe(42);
 		} else {
 			throw new Error("expected submitFieldValue branch");
