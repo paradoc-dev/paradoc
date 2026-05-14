@@ -1,0 +1,91 @@
+---
+title: search
+description: Search Paradoc artifacts and registries by keyword
+ogTitle: search — Paradoc MCP
+ogDescription: Search Paradoc artifacts and registries by keyword using the MCP server
+---
+
+Search Paradoc artifacts and registries by keyword. Returns matching artifacts and registries ranked by popularity.
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | `string` (min 2 chars) | Yes | Search query |
+| `kind` | `"form"` \| `"checklist"` \| `"document"` \| `"bundle"` | No | Filter artifacts by kind |
+| `limit` | `integer` (1--50) | No | Max results to return (default: `20`) |
+
+# Response
+
+The response contains a mixed `results` array with two types of entries: artifacts and registries.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | `array` | Mixed list of artifact and registry matches |
+| `total` | `integer` | Total number of results |
+| `query` | `string` | The search query that was used |
+
+Each artifact result:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"artifact"` | Result type |
+| `registry_id` | `string` | Registry ID (for chaining into `get_artifact` or `render`) |
+| `artifact_name` | `string` | Artifact name (for chaining into `get_artifact` or `render`) |
+| `artifact.title` | `string` | Display title |
+| `artifact.kind` | `string` | Artifact kind |
+| `artifact.description` | `string` | Artifact description |
+| `artifact.registry.displayName` | `string` | Registry display name |
+| `artifact.installsTotal` | `integer` | Total installs |
+
+Each registry result:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"registry"` | Result type |
+| `registry.id` | `string` | Registry ID |
+| `registry.name` | `string` | Registry name |
+| `registry.displayName` | `string` | Display name |
+| `registry.description` | `string` | Registry description |
+
+# Example
+
+```json
+// Request
+{
+  "query": "lease",
+  "kind": "form",
+  "limit": 5
+}
+
+// Response
+{
+  "results": [
+    {
+      "type": "artifact",
+      "registry_id": "cly1abc123",
+      "artifact_name": "lease-agreement",
+      "artifact": {
+        "title": "Lease Agreement",
+        "kind": "form",
+        "description": "Standard residential lease agreement",
+        "registry": {
+          "displayName": "acme/legal-forms"
+        },
+        "installsTotal": 1420
+      }
+    },
+    {
+      "type": "registry",
+      "registry": {
+        "id": "cly2def456",
+        "name": "lease-templates",
+        "displayName": "realty/lease-templates",
+        "description": "Collection of lease and rental agreement templates"
+      }
+    }
+  ],
+  "total": 2,
+  "query": "lease"
+}
+```

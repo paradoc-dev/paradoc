@@ -1,0 +1,64 @@
+---
+title: list_registries
+description: List Paradoc artifact registries with artifact counts and total installs
+ogTitle: list_registries — Paradoc MCP
+ogDescription: List Paradoc artifact registries using the MCP server
+---
+
+List Paradoc artifact registries with artifact counts and total installs.
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `status` | `"verified"` \| `"pending"` \| `"bad"` \| `"all"` | No | Filter by registry status (default: `"verified"`) |
+| `limit` | `integer` (1--50) | No | Max results to return (default: `20`) |
+| `offset` | `integer` | No | Offset for pagination (default: `0`) |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `registries` | `array` | List of registries, each containing the fields below |
+| `registries[].id` | `string` | Registry ID |
+| `registries[].name` | `string` | Registry name |
+| `registries[].displayName` | `string` | Display name (e.g. `owner/repo`) |
+| `registries[].url` | `string` | Registry URL |
+| `registries[].description` | `string` | Registry description |
+| `registries[].homepage` | `string` | Homepage URL |
+| `registries[].status` | `string` | Registry status |
+| `registries[].artifactCount` | `integer` | Number of artifacts in the registry |
+| `registries[].totalInstalls` | `integer` | Total installs across all artifacts |
+| `total` | `integer` | Number of results returned |
+| `limit` | `integer` | Limit used |
+| `offset` | `integer` | Offset used |
+
+# Example
+
+```json
+// Request
+{
+  "status": "verified",
+  "limit": 2
+}
+
+// Response
+{
+  "registries": [
+    {
+      "id": "reg_abc",
+      "name": "legal-forms",
+      "displayName": "acme/legal-forms",
+      "url": "https://example.com/registry",
+      "description": "Standard legal form templates",
+      "homepage": "https://example.com",
+      "status": "verified",
+      "artifactCount": 12,
+      "totalInstalls": 4350
+    }
+  ],
+  "total": 1,
+  "limit": 2,
+  "offset": 0
+}
+```

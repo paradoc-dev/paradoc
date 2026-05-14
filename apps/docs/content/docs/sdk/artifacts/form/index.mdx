@@ -1,0 +1,492 @@
+---
+title: Form Builder
+description: Create Form artifacts with fields, parties, and signing flows
+---
+
+Create Form artifacts for interactive forms with fields, signing parties, and document annexes.
+
+# Examples
+
+## Creating a form
+
+```ts
+// Object pattern
+const form = para.form({
+  name: 'lease-agreement',
+  version: '1.0.0',
+  title: 'Residential Lease Agreement',
+  fields: {
+    tenantName: { type: 'text', label: 'Tenant Name', required: true },
+    moveInDate: { type: 'date', label: 'Move-in Date' },
+    monthlyRent: { type: 'money', label: 'Monthly Rent', min: 0 }
+  },
+  parties: {
+    tenant: { label: 'Tenant', partyType: 'person', signature: { required: true } },
+    landlord: { label: 'Landlord', signature: { required: true, witnesses: 1 } }
+  },
+  annexes: {
+    photoId: { title: 'Photo ID', required: true }
+  },
+  layers: {
+    html: { kind: 'inline', mimeType: 'text/html', text: '<p>Tenant: {{tenantName}}</p>' }
+  },
+  defaultLayer: 'html'
+})
+
+// Builder pattern
+const form = para.form()
+  .name('lease-agreement')
+  .version('1.0.0')
+  .title('Residential Lease Agreement')
+  .field('tenantName', field.text().label('Tenant Name').required().build())
+  .field('moveInDate', field.date().label('Move-in Date').build())
+  .field('monthlyRent', field.money().label('Monthly Rent').min(0).build())
+  .party('tenant', party().label('Tenant').partyType('person')
+    .signature({ required: true }).build())
+  .party('landlord', party().label('Landlord')
+    .signature({ required: true, witnesses: 1 }).build())
+  .annex('photoId', annex().title('Photo ID').required().build())
+  .inlineLayer('html', { mimeType: 'text/html', text: '<p>Tenant: {{tenantName}}</p>' })
+  .defaultLayer('html')
+  .build()
+```
+
+## Adding instructions
+
+```ts
+// Inline instructions
+const form = para.form({
+  name: 'w9-form',
+  instructions: { kind: 'inline', text: 'See IRS instructions for Form W-9...' },
+  agentInstructions: { kind: 'inline', text: 'Present fields in this order: name, TIN, address.' },
+  // ...fields, parties, layers
+})
+
+// File-backed instructions (builder pattern)
+const form = para.form()
+  .name('w9-form')
+  .instructions({ kind: 'file', path: './w9-instructions.md', mimeType: 'text/markdown' })
+  .agentInstructions({ kind: 'inline', text: 'Present fields in this order: name, TIN, address.' })
+  .build()
+```
+
+## Loading from external data
+
+```ts
+// Parse and validate unknown input (throws on error)
+const form = para.form.from(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.form.safeFrom(jsonData)
+if (result.success) {
+  const form = result.data
+}
+```
+
+## Form Lifecycle
+
+Forms follow a three-phase lifecycle: Draft → Signable → Executed.
+
+```ts
+// 1. Fill form to create DraftForm (mutable data)
+const draft = form.fill({
+  fields: { tenantName: 'John Doe', moveInDate: '2024-02-01' },
+  parties: {
+    tenant: { id: 'tenant-0', name: 'John Doe' },
+    landlord: { id: 'landlord-0', name: 'ABC Property LLC' }
+  }
+})
+
+// 2. Configure signers and signatories
+const ready = draft
+  .addSigner('john', {
+    person: { name: 'John Doe' },
+    adopted: { signature: { image: 'data:...', method: 'drawn' } }
+  })
+  .addSignatory('tenant', 'tenant-0', { signerId: 'john' })
+
+// 3. Prepare for signing (SignableForm - data frozen)
+const signable = ready.prepareForSigning()
+
+// 4. Capture signatures
+const signed = signable.captureSignature('tenant', 'tenant-0', 'john', 'final-sig')
+
+// 5. Finalize (ExecutedForm - fully frozen)
+const executed = signed.finalize()
+
+// 6. Render the executed form
+const output = await executed.render({ renderer: textRenderer })
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.form(input: FormInput): FormInstance
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
+  { name: 'version', type: 'string', description: 'Artifact version (semantic versioning)', isOptional: true },
+  { name: 'title', type: 'string', description: 'Human-friendly name presented to end users', isOptional: true },
+  { name: 'description', type: 'string', description: 'Long-form description or context', isOptional: true },
+  { name: 'code', type: 'string', description: 'Internal code or reference number', isOptional: true },
+  { name: 'releaseDate', type: 'string', description: 'ISO date when artifact was released', isOptional: true },
+  { name: 'metadata', type: 'Metadata', description: 'Custom metadata map', isOptional: true },
+  { name: 'instructions', type: 'ContentRef', description: 'Domain or compliance reference content', isOptional: true },
+  { name: 'agentInstructions', type: 'ContentRef', description: 'LLM/agent prompts for presentation guidance', isOptional: true },
+  { name: 'defs', type: 'DefsSection', description: 'Named typed computed values for conditional logic', isOptional: true },
+  { name: 'rules', type: 'RulesSection', description: 'Form-level validation rules', isOptional: true },
+  { name: 'fields', type: 'Record<string, FormField>', description: 'Field definitions keyed by identifier', isOptional: true },
+  { name: 'layers', type: 'Record<string, Layer>', description: 'Named layers for rendering', isOptional: true },
+  { name: 'defaultLayer', type: 'string', description: 'Key of default layer for rendering', isOptional: true },
+  { name: 'annexes', type: 'Record<string, FormAnnex>', description: 'Predefined annex slots keyed by identifier', isOptional: true },
+  { name: 'allowAdditionalAnnexes', type: 'boolean', description: 'Allow ad-hoc annexes beyond defined slots', isOptional: true },
+  { name: 'parties', type: 'Record<string, FormParty>', description: 'Party role definitions', isOptional: true },
+]} />
+
+### Returns
+
+Returns a `FormInstance` with the following properties and methods:
+
+<PropertiesTable properties={[
+  { name: 'kind', type: "'form'", description: 'Artifact discriminator' },
+  { name: 'name', type: 'string', description: 'Form name' },
+  { name: 'version', type: 'string | undefined', description: 'Semantic version' },
+  { name: 'title', type: 'string | undefined', description: 'Human-readable title' },
+  { name: 'description', type: 'string | undefined', description: 'Description text' },
+  { name: 'code', type: 'string | undefined', description: 'Internal code' },
+  { name: 'releaseDate', type: 'string | undefined', description: 'ISO date string' },
+  { name: 'metadata', type: 'Metadata | undefined', description: 'Custom metadata map' },
+  { name: 'instructions', type: 'ContentRef | undefined', description: 'Domain or compliance reference content' },
+  { name: 'agentInstructions', type: 'ContentRef | undefined', description: 'LLM/agent prompts for presentation guidance' },
+  { name: 'defs', type: 'DefsSection | undefined', description: 'Named typed computed values' },
+  { name: 'fields', type: 'Record<string, FormField> | undefined', description: 'Field definitions' },
+  { name: 'layers', type: 'Record<string, Layer> | undefined', description: 'Render layers' },
+  { name: 'defaultLayer', type: 'string | undefined', description: 'Default layer key' },
+  { name: 'annexes', type: 'Record<string, FormAnnex> | undefined', description: 'Annex slot definitions' },
+  { name: 'allowAdditionalAnnexes', type: 'boolean | undefined', description: 'Allow ad-hoc annexes' },
+  { name: 'parties', type: 'Record<string, FormParty> | undefined', description: 'Party role definitions' },
+  { name: 'parseData', type: '(data: Record<string, unknown>) => InferFormPayload', description: 'Validate data against form (throws on error)', isMethod: true },
+  { name: 'safeParseData', type: '(data: Record<string, unknown>) => ValidationResult', description: 'Validate data (returns result object)', isMethod: true },
+  { name: 'validateFieldInput', type: '(input: { fieldPath: string | string[]; value: unknown }) => ProgressiveValidationResult<unknown>', description: 'Validate one field input at fields.<path>', isMethod: true },
+  { name: 'validateFieldsPatch', type: '(fields: unknown) => ProgressiveValidationResult<Record<string, unknown>>', description: 'Validate a partial fields patch without requiring unrelated fields', isMethod: true },
+  { name: 'validatePartyInput', type: '(input: { roleId: string; index?: number; value: unknown }) => ProgressiveValidationResult<{ roleId; index; party }>', description: 'Validate one party input and normalize runtime party id', isMethod: true },
+  { name: 'validatePartiesPatch', type: '(parties: unknown) => ProgressiveValidationResult<Record<string, RuntimeParty | RuntimeParty[]>>', description: 'Validate a partial parties patch', isMethod: true },
+  { name: 'validateAnnexInput', type: '(input: { annexId: string; value: unknown }) => ProgressiveValidationResult<unknown>', description: 'Validate one annex input key/value', isMethod: true },
+  { name: 'validateAnnexesPatch', type: '(annexes: unknown) => ProgressiveValidationResult<Record<string, unknown>>', description: 'Validate a partial annexes patch', isMethod: true },
+  { name: 'fill', type: '(data: FillOptions) => DraftForm', description: 'Create a DraftForm with validated data', isMethod: true },
+  { name: 'safeFill', type: '(data: FillOptions) => Result<DraftForm>', description: 'Create DraftForm (returns result object)', isMethod: true },
+  { name: 'partialFill', type: '(seed?: Partial<Payload>, options?: PartialFillOptions) => DraftForm', description: 'Create a DraftForm from partial or empty data for progressive filling', isMethod: true },
+  { name: 'safePartialFill', type: '(seed?: Partial<Payload>, options?: PartialFillOptions) => SafePartialFillResult', description: 'Safely create a DraftForm from partial data (returns result object)', isMethod: true },
+  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render using a renderer', isMethod: true },
+  { name: 'clone', type: '() => FormInstance', description: 'Deep clone the instance', isMethod: true },
+  { name: 'validate', type: '(options?: ValidateOptions) => StandardSchemaV1.Result', description: 'Validate the form definition', isMethod: true },
+  { name: 'isValid', type: '(options?: ValidateOptions) => boolean', description: 'Check if form is valid', isMethod: true },
+  { name: 'toJSON', type: '(options?: SerializationOptions) => object', description: 'Serialize to JSON', isMethod: true },
+  { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML', isMethod: true },
+]} />
+
+## Builder Pattern
+
+Chain methods to build a form incrementally:
+
+<MethodChain
+  starter="para.form()"
+  methods={[
+    { name: 'name', params: 'value: string', description: 'Set form name (required)' },
+    { name: 'version', params: 'value: string', description: 'Set semantic version' },
+    { name: 'title', params: 'value: string', description: 'Set human-readable title' },
+    { name: 'description', params: 'value: string', description: 'Set description' },
+    { name: 'code', params: 'value: string', description: 'Set external reference code' },
+    { name: 'releaseDate', params: 'value: string', description: 'Set release date (ISO format)' },
+    { name: 'metadata', params: 'value: Metadata', description: 'Set custom metadata' },
+    { name: 'instructions', params: 'value: ContentRef', description: 'Set domain/compliance reference content' },
+    { name: 'agentInstructions', params: 'value: ContentRef', description: 'Set LLM/agent presentation guidance' },
+    { name: 'defs', params: 'value: DefsSection', description: 'Set all typed computed values' },
+    { name: 'def', params: 'name: string, expression: string | Expression', description: 'Add a single typed computed value' },
+    { name: 'field', params: 'id: string, field: FormField', description: 'Add a single field' },
+    { name: 'fields', params: 'fields: Record<string, FormField>', description: 'Set all fields at once' },
+    { name: 'layers', params: 'value: Record<string, Layer>', description: 'Set all layers at once' },
+    { name: 'layer', params: 'key: string, layer: Layer', description: 'Add a layer' },
+    { name: 'inlineLayer', params: 'key: string, layer: { mimeType, text, ... }', description: 'Add inline text layer' },
+    { name: 'fileLayer', params: 'key: string, layer: { mimeType, path, ... }', description: 'Add file-backed layer' },
+    { name: 'defaultLayer', params: 'key: string', description: 'Set default layer for rendering' },
+    { name: 'annex', params: 'annexId: string, annex: FormAnnex', description: 'Add a single annex slot' },
+    { name: 'annexes', params: 'annexes: Record<string, FormAnnex>', description: 'Set all annexes at once' },
+    { name: 'allowAdditionalAnnexes', params: 'value: boolean', description: 'Allow ad-hoc annexes' },
+    { name: 'party', params: 'roleId: string, party: FormParty', description: 'Add a party role' },
+    { name: 'parties', params: 'parties: Record<string, FormParty>', description: 'Set all parties at once' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'FormBuilder', terminal: 'FormInstance' }}
+/>
+
+## Static Methods
+
+Parse forms from unknown data sources:
+
+<MethodTable methods={[
+  { name: 'from', params: 'input: unknown', returns: 'FormInstance', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeFrom', params: 'input: unknown', returns: 'Result<FormInstance>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Data Validation
+
+FormInstance provides Zod-style methods for validating data:
+
+```ts
+// Throws FormValidationError if validation fails
+const validated = form.parseData({ fields: { tenantName: 'John' } })
+
+// Returns result object
+const result = form.safeParseData({ fields: { tenantName: 'John' } })
+if (result.success) {
+  console.log(result.data)
+} else {
+  console.error(result.errors)
+}
+```
+
+# Progressive Validation
+
+Use progressive validators to validate one user answer at a time before calling `fill()`.
+
+## Return shape
+
+All progressive validators return:
+
+```ts
+type ProgressiveValidationResult<T> =
+  | { success: true; value: T; errors: null }
+  | { success: false; value: null; errors: ValidationError[] }
+```
+
+## Field input validation
+
+```ts
+const species = form.validateFieldInput({
+  fieldPath: 'species',
+  value: 'cat',
+})
+
+const nested = form.validateFieldInput({
+  fieldPath: ['profile', 'nickname'],
+  value: 'Toby',
+})
+
+const partialFields = form.validateFieldsPatch({
+  species: 'dog',
+  weight: 20,
+})
+```
+
+## Party input validation
+
+```ts
+const tenantResult = form.validatePartyInput({
+  roleId: 'tenant',
+  value: { name: 'John Smith' },
+})
+
+// For multi-party roles, pass an index.
+const witnessResult = form.validatePartyInput({
+  roleId: 'witness',
+  index: 1,
+  value: { name: 'Jane Witness' },
+})
+
+const partiesPatch = form.validatePartiesPatch({
+  tenant: { name: 'John Smith' },
+  landlord: { name: 'Acme Inc', legalName: 'Acme Inc' },
+})
+```
+
+`validatePartyInput` normalizes runtime IDs using `{roleId}-{index}` (for example `tenant-0`).
+
+## Annex input validation
+
+```ts
+const annexResult = form.validateAnnexInput({
+  annexId: 'photoId',
+  value: { name: 'photo-id.pdf', mimeType: 'application/pdf' },
+})
+
+const annexPatch = form.validateAnnexesPatch({
+  photoId: { name: 'photo-id.pdf', mimeType: 'application/pdf' },
+})
+```
+
+When `allowAdditionalAnnexes` is `false`, unknown annex keys are rejected.
+
+# Incremental Filling
+
+Use `partialFill` to create a DraftForm from partial (or empty) data, then progressively fill it with `update`. This is the recommended pattern for AI agents and step-by-step UIs that collect data one field at a time.
+
+## Creating a draft from partial data
+
+```ts
+// Start with empty data
+const draft = form.partialFill()
+
+// Start with some known values
+const draft = form.partialFill({
+  fields: { tenantName: 'John Doe' },
+  parties: { tenant: { id: 'tenant-0', name: 'John Doe' } }
+})
+
+// Safe variant (returns result object)
+const result = form.safePartialFill({ fields: { tenantName: 'John' } })
+if (result.success) {
+  const draft = result.data
+}
+```
+
+## Updating a draft progressively
+
+```ts
+// Merge additional data into the draft
+const updated = draft.update({
+  fields: { moveInDate: '2024-06-01' }
+})
+
+// Safe variant
+const result = draft.safeUpdate({ fields: { monthlyRent: { amount: 1500, currency: 'USD' } } })
+if (result.success) {
+  const updated = result.data
+}
+```
+
+## Querying fill state
+
+`getFillState()` returns a snapshot of progress, including what's open, what's blocked behind conditional visibility, and what to ask next. See [Fill State](/sdk/artifacts/form/fill-state) for full type reference.
+
+```ts
+const state = draft.getFillState()
+
+// Progress
+state.summary.completionPercent  // 0–100
+state.summary.requiredRemaining  // fields/parties still needed
+
+// What to ask next
+state.next       // FillTarget | null — first candidate
+state.candidates // FillTarget[] — all visible, unfilled targets
+
+// Items blocked by conditional visibility
+state.blocked    // FillItemState[] — will unblock when dependencies are filled
+
+// Shorthand helpers
+const next = draft.getNextFillTarget()
+const all = draft.getAvailableFillTargets()
+```
+
+## Validation modes
+
+Both `partialFill` and `update` accept a `validate` option:
+
+| Mode | Behavior |
+|------|----------|
+| `"patch"` (default) | Validate only the provided fields |
+| `"full"` | Validate entire payload including required fields |
+| `"none"` | Skip validation entirely |
+
+```ts
+// Skip validation (useful when data is pre-validated)
+const draft = form.partialFill(data, { validate: 'none' })
+
+// Full validation (same as fill())
+const draft = form.partialFill(data, { validate: 'full' })
+
+// Also evaluate rules
+const draft = form.partialFill(data, { validate: 'patch', rules: true })
+```
+
+# Lifecycle Types
+
+The `fill()` method returns a `DraftForm` that follows the form lifecycle:
+
+| Type | Phase | Data | Signatures |
+|------|-------|------|------------|
+| `DraftForm` | Draft | Mutable | Configure signers/signatories |
+| `SignableForm` | Signable | Frozen | Capture signatures |
+| `ExecutedForm` | Executed | Frozen | Frozen (complete) |
+
+## DraftForm
+
+Created by `form.fill()` or `form.partialFill()`. Mutable data and signer configuration.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
+  { name: 'form', type: 'Form', description: 'The embedded form definition' },
+  { name: 'data', type: 'InferFormPayload', description: 'The validated data payload' },
+  { name: 'parties', type: 'Record<string, Party | Party[]>', description: 'Party data by role ID' },
+  { name: 'signers', type: 'Record<string, Signer>', description: 'Global signer registry' },
+  { name: 'signatories', type: 'Record<string, Record<string, PartySignatory[]>>', description: 'Signatories by role/party' },
+  { name: 'targetLayer', type: 'string', description: 'Current rendering layer' },
+  { name: 'runtimeState', type: 'FormRuntimeState', description: 'Evaluated logic state' },
+  { name: 'getField', type: '(fieldId: string) => T | undefined', description: 'Get a field value', isMethod: true },
+  { name: 'getAllFields', type: '() => Record<string, unknown>', description: 'Get all field values', isMethod: true },
+  { name: 'setField', type: '(fieldId: string, value: T) => DraftForm', description: 'Update a field (immutable)', isMethod: true },
+  { name: 'updateFields', type: '(partial: Record<string, unknown>) => DraftForm', description: 'Update multiple fields', isMethod: true },
+  { name: 'getParty', type: '(roleId: string) => Party | Party[] | undefined', description: 'Get party for role', isMethod: true },
+  { name: 'setParty', type: '(roleId: string, party: Party | Party[]) => DraftForm', description: 'Set party (immutable)', isMethod: true },
+  { name: 'addParty', type: '(roleId: string, party: Party) => DraftForm', description: 'Add party to role', isMethod: true },
+  { name: 'addSigner', type: '(signerId: string, signer: Signer) => DraftForm', description: 'Add signer to registry', isMethod: true },
+  { name: 'addSignatory', type: '(roleId, partyId, signatory) => DraftForm', description: 'Link signer to party', isMethod: true },
+  { name: 'update', type: '(patch: Partial<Payload>, options?: UpdateOptions) => DraftForm', description: 'Merge a patch into current data and return a new DraftForm', isMethod: true },
+  { name: 'safeUpdate', type: '(patch: Partial<Payload>, options?: UpdateOptions) => SafePartialFillResult', description: 'Safely merge a patch (returns result object)', isMethod: true },
+  { name: 'getFillState', type: '(options?: FillTargetOptions) => FillState', description: 'Compute full fill state: open/blocked/done items, candidates, progress summary', isMethod: true },
+  { name: 'getNextFillTarget', type: '(options?: FillTargetOptions) => FillTarget | null', description: 'Get the next recommended fill target, or null if all required are done', isMethod: true },
+  { name: 'getAvailableFillTargets', type: '(options?: FillTargetOptions) => FillTarget[]', description: 'Get all available fill targets in declaration order', isMethod: true },
+  { name: 'prepareForSigning', type: '() => SignableForm', description: 'Transition to signable phase', isMethod: true },
+  { name: 'seal', type: '(adapter: Sealer) => Promise<SignableForm>', description: 'Seal for formal e-signing', isMethod: true },
+  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render with embedded data', isMethod: true },
+  { name: 'toJSON', type: '() => DraftFormJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'toYAML', type: '() => string', description: 'Serialize to YAML', isMethod: true },
+]} />
+
+## SignableForm
+
+Created by `draft.prepareForSigning()` or `draft.seal()`. Frozen data, signature capture allowed.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'signable'", description: 'Phase discriminator' },
+  { name: 'isFormal', type: 'boolean', description: 'True if created via seal()' },
+  { name: 'signatureMap', type: 'SigningField[] | undefined', description: 'Signature field coordinates (formal only)' },
+  { name: 'canonicalPdfHash', type: 'string | undefined', description: 'PDF hash (formal only)' },
+  { name: 'captures', type: 'SignatureCapture[]', description: 'Captured signatures' },
+  { name: 'witnesses', type: 'WitnessParty[]', description: 'Declared witnesses' },
+  { name: 'attestations', type: 'Attestation[]', description: 'Witness attestations' },
+  { name: 'captureSignature', type: '(role, partyId, signerId, locationId, options?) => SignableForm', description: 'Capture signature at location', isMethod: true },
+  { name: 'captureInitials', type: '(role, partyId, signerId, locationId, options?) => SignableForm', description: 'Capture initials at location', isMethod: true },
+  { name: 'addWitness', type: '(witness: WitnessParty) => SignableForm', description: 'Add a witness', isMethod: true },
+  { name: 'addAttestation', type: '(attestation: Attestation) => SignableForm', description: 'Add attestation', isMethod: true },
+  { name: 'getSignatureStatus', type: '(roleId: string) => SignatureStatus', description: 'Get status for role', isMethod: true },
+  { name: 'getOverallSignatureStatus', type: '() => OverallSignatureStatus', description: 'Get overall progress', isMethod: true },
+  { name: 'finalize', type: '() => ExecutedForm', description: 'Transition to executed phase', isMethod: true },
+]} />
+
+## ExecutedForm
+
+Created by `signable.finalize()`. Fully frozen, ready for archival.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'executed'", description: 'Phase discriminator' },
+  { name: 'executedAt', type: 'string', description: 'ISO timestamp of execution' },
+  { name: 'getCaptures', type: '() => SignatureCapture[]', description: 'Get all captures', isMethod: true },
+  { name: 'getWitnesses', type: '() => WitnessParty[]', description: 'Get all witnesses', isMethod: true },
+  { name: 'getAttestations', type: '() => Attestation[]', description: 'Get all attestations', isMethod: true },
+  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render the executed form', isMethod: true },
+  { name: 'toJSON', type: '() => ExecutedFormJSON', description: 'Serialize to JSON', isMethod: true },
+]} />
+
+# Related
+
+- [field](/sdk/artifacts/form/field) - Field definitions
+- [annex](/sdk/artifacts/form/annex) - Annex slot definitions
+- [party](/sdk/artifacts/form/party) - Party role definitions
+- [fill-state](/sdk/artifacts/form/fill-state) - Fill state types and progressive filling
+- [Form Schema](/schemas/artifacts/form)

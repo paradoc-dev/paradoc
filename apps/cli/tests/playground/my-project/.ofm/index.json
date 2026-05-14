@@ -1,0 +1,16 @@
+{
+  "artifacts": {
+    "test-binder": {
+      "path": "test-binder.json",
+      "kind": "binder",
+      "version": "1.0.0",
+      "last_modified": "2025-11-18T11:46:19.778Z"
+    },
+    "hello": {
+      "path": "hello.json",
+      "kind": "binder",
+      "version": "1.2.0",
+      "last_modified": "2025-11-18T11:46:19.778Z"
+    }
+  }
+}

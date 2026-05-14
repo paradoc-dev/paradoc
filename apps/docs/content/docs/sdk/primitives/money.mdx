@@ -1,0 +1,156 @@
+---
+title: money
+description: Build and validate monetary amounts
+---
+
+Build and validate monetary amounts with currency. The Money primitive pairs a numeric amount with an ISO 4217 currency code.
+
+# Examples
+
+## Creating money values
+
+```ts
+// Object pattern
+const price = para.money({ amount: 99.99, currency: 'USD' })
+
+// Builder pattern
+const price = para.money()
+  .amount(99.99)
+  .currency('USD')
+  .build()
+
+// Copy and modify
+const discounted = para.money()
+  .from(price)
+  .amount(79.99)
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const price = para.money.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.money.safeParse(jsonData)
+if (result.success) {
+  console.log(`${result.data.currency} ${result.data.amount}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+// As a field default
+const form = para.form({
+  name: 'product',
+  fields: {
+    price: {
+      type: 'money',
+      label: 'Price',
+      default: { amount: 0, currency: 'USD' }
+    }
+  }
+})
+
+// When filling a form
+const filled = form.fill({
+  fields: {
+    price: para.money({ amount: 29.99, currency: 'USD' })
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.money(input: Money): Money
+```
+
+Pass a Money object for validation. Returns the validated Money or throws on error.
+
+```ts
+const price = para.money({ amount: 150.00, currency: 'EUR' })
+```
+
+## Builder Pattern
+
+Chain methods to build a Money value incrementally:
+
+<MethodChain
+  starter="para.money()"
+  methods={[
+    { name: 'amount', params: 'value: number', description: 'Set the monetary amount' },
+    { name: 'currency', params: 'value: string', description: 'Set ISO 4217 currency code' },
+    { name: 'from', params: 'value: Money', description: 'Initialize from existing Money' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'MoneyBuilder', terminal: 'Money' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Money', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Money>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'amount', type: 'number', description: 'Amount expressed in decimal form. Supports negative values for credits/refunds.' },
+  { name: 'currency', type: 'string', description: 'ISO 4217 alpha-3 currency code (e.g., USD, EUR, GBP, JPY).' },
+]} />
+
+# Validation
+
+The Money primitive validates:
+
+- `amount` must be a valid finite number (not NaN or Infinity)
+- `currency` must be a non-empty string
+
+```ts
+// Valid
+para.money({ amount: 100, currency: 'USD' })
+para.money({ amount: -50, currency: 'USD' })  // Negative allowed
+para.money({ amount: 0, currency: 'EUR' })    // Zero allowed
+para.money({ amount: 99.999, currency: 'BTC' }) // Decimals allowed
+
+// Invalid - throws Error
+para.money({ amount: NaN, currency: 'USD' })
+// Error: Invalid Money: amount must be a valid number
+
+para.money({ amount: Infinity, currency: 'USD' })
+// Error: Invalid Money: amount cannot be Infinity
+
+para.money({ amount: 100 })
+// Error: Invalid Money: currency is required
+```
+
+# Common Currency Codes
+
+| Code | Currency |
+|------|----------|
+| `USD` | US Dollar |
+| `EUR` | Euro |
+| `GBP` | British Pound |
+| `JPY` | Japanese Yen |
+| `CAD` | Canadian Dollar |
+| `AUD` | Australian Dollar |
+| `CHF` | Swiss Franc |
+| `CNY` | Chinese Yuan |
+| `INR` | Indian Rupee |
+| `MXN` | Mexican Peso |
+
+See [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) for the complete list.
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Money Field](/sdk/artifacts/form/field#money) - Money field type
+- [Money Schema](/schemas/primitives/money) - JSON Schema definition

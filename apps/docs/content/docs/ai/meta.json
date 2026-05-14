@@ -1,0 +1,5 @@
+{
+  "title": "AI",
+  "pages": ["index", "tools", "ai-sdk", "tanstack-ai"],
+  "defaultOpen": false
+}

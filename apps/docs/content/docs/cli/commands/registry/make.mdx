@@ -1,0 +1,68 @@
+---
+title: registry make
+description: Create a new registry.json file
+ogTitle: para registry make
+ogDescription: Initialize a new Paradoc artifact registry
+---
+
+Create a new `registry.json` file for hosting your own artifact registry.
+
+# Usage
+
+```bash
+para registry make [directory] [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `directory` | Directory to create registry in (default: current directory) |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `-n, --name <name>` | Registry name |
+| `--description <description>` | Registry description |
+| `--homepage <url>` | Registry homepage URL |
+| `--artifacts-path <path>` | Path prefix for artifacts (default: `/r`) |
+| `--no-telemetry` | Disable usage telemetry for this registry |
+| `--no-directory` | Do not list this registry in the Paradoc Hub |
+| `-y, --yes` | Skip confirmation prompts |
+
+# Description
+
+Creates a `registry.json` file that defines a new artifact registry. This is the first step in hosting your own Paradoc registry. The command prompts for a name and description interactively, or you can pass them via options.
+
+# Examples
+
+Create a registry interactively:
+
+```bash
+para registry make
+```
+
+Create in a specific directory with options:
+
+```bash
+para registry make ./my-registry \
+  --name "Acme Forms" \
+  --description "Internal form templates" \
+  --homepage https://acme.com/forms \
+  -y
+```
+
+# Next steps
+
+After creating a registry:
+
+1. Add artifacts with `para registry catalog add <artifact>`
+2. Compile the registry with `para registry compile`
+3. Deploy the output directory to your hosting provider
+
+# See also
+
+- [registry catalog](/cli/commands/registry/catalog) - Manage catalog items
+- [registry compile](/cli/commands/registry/compile) - Compile registry artifacts
+- [Creating registries](/cli/registries) - Full registry hosting guide

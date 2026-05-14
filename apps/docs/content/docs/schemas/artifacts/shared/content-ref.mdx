@@ -1,0 +1,142 @@
+---
+title: ContentRef
+description: Inline text or file-backed content reference
+---
+
+A ContentRef attaches reference content to any artifact. It is a discriminated union keyed on `kind`:
+
+```typescript
+type ContentRef = InlineContentRef | FileContentRef
+```
+
+ContentRef is used by two optional fields on [ArtifactBase](/schemas/artifacts) (available on all artifact kinds):
+
+| Field | Purpose |
+|-------|---------|
+| `instructions` | Domain or compliance reference content (e.g., IRS instructions, regulatory guidance) |
+| `agentInstructions` | LLM/agent prompts for field ordering, grouping, tone, and presentation guidance |
+
+# ContentRef Types
+
+## InlineContentRef
+
+Inline content with embedded text. Use when the content is short enough to live directly in the artifact definition.
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: "'inline'",
+    description: 'Discriminator for inline content',
+  },
+  {
+    name: 'text',
+    type: 'string',
+    description: 'The text content (max 1,000,000 characters)',
+  },
+]} />
+
+## FileContentRef
+
+File-backed content reference. Use when the content is large or maintained separately (e.g., a Markdown document alongside the artifact file).
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: "'file'",
+    description: 'Discriminator for file content',
+  },
+  {
+    name: 'path',
+    type: 'string',
+    description: 'Relative path to the content file from the artifact directory',
+  },
+  {
+    name: 'mimeType',
+    type: 'string',
+    description: 'MIME type of the file content (e.g., text/markdown, text/plain)',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-readable title',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Description of the content',
+    isOptional: true,
+  },
+  {
+    name: 'checksum',
+    type: 'string',
+    description: 'SHA-256 checksum for integrity verification (format: sha256:<64 hex chars>)',
+    isOptional: true,
+  },
+]} />
+
+# Checksums
+
+The `checksum` field is optional in the schema but recommended for file-backed content references. When present, the CLI verifies integrity during [`validate`](/cli/commands/validate) and [`add`](/cli/commands/add).
+
+- Format: `sha256:` followed by 64 lowercase hex characters
+- Use [`para fix`](/cli/commands/fix) to compute or update checksums automatically
+- The CLI refuses to download file-backed content references from a registry without a checksum
+
+# Examples
+
+```yaml tab="YAML"
+# Inline instructions (short text)
+instructions:
+  kind: inline
+  text: |
+    Complete all fields. Landlord and tenant must both sign.
+    Monthly rent is due on the first of each month.
+
+# File-backed instructions (large document)
+instructions:
+  kind: file
+  path: ./instructions.md
+  mimeType: text/markdown
+  title: Form Instructions
+  checksum: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+# Agent instructions (inline)
+agentInstructions:
+  kind: inline
+  text: |
+    Present fields in this order: parties first, then property
+    details, then financial terms. Use formal tone.
+```
+
+```json tab="JSON"
+{
+  "instructions": {
+    "kind": "file",
+    "path": "./instructions.md",
+    "mimeType": "text/markdown",
+    "title": "Form Instructions",
+    "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "agentInstructions": {
+    "kind": "inline",
+    "text": "Present fields in this order: parties first, then property details, then financial terms. Use formal tone."
+  }
+}
+```
+
+# CLI Support
+
+| Command | Behavior |
+|---------|----------|
+| [`validate`](/cli/commands/validate) | Checks file existence and verifies checksums for file-backed content references |
+| [`fix`](/cli/commands/fix) | Computes or updates checksums for file-backed content references |
+| [`add`](/cli/commands/add) | Automatically downloads file-backed content reference files from the registry |
+| [`show`](/cli/commands/show) | Displays content reference info; `--deps` lists referenced files |
+| [`attach`](/cli/commands/attach) | Attaches a file as instructions or agent instructions (`--as instructions`) |
+| [`detach`](/cli/commands/detach) | Removes a content reference from an artifact |
+
+# Related
+
+- [Artifact Base Properties](/schemas/artifacts) - Base fields shared by all artifact kinds
+- [Layer](/schemas/artifacts/shared/layer) - Rendering output specification (similar file/inline pattern)

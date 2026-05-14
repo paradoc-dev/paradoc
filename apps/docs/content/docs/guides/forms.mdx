@@ -1,0 +1,305 @@
+---
+title: Forms
+description: Create, fill, and render a simple lease agreement
+ogTitle: Create a form with Paradoc
+ogDescription: Build a lease agreement with fields, parties, templates, and rendering
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+This guide walks through creating a lease agreement, filling it with data, and rendering the output.
+
+<Steps>
+
+<Step>
+## Create a new project
+
+Create a new project, set up the directory structure, and download the W-9 form:
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    mkdir my-form && cd my-form
+    npm init -y
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    mkdir my-form && cd my-form
+    pnpm init -y
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    mkdir my-form && cd my-form
+    yarn init -y
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    mkdir my-form && cd my-form
+    bun init -y
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+
+<Step>
+## Install the SDK
+
+Install the SDK and the filesystem resolver.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/sdk
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step>
+## Define the Form
+
+A form needs a name, fields, and parties. Here's a simple lease agreement:
+
+```ts tab="Object Pattern"
+import { para } from '@paradoc/sdk'
+
+const lease = para.form({
+  name: 'lease-agreement',
+  version: '1.0.0',
+  title: 'Residential Lease Agreement',
+  parties: {
+    landlord: { label: 'Landlord', signature: { required: true } },
+    tenant: { label: 'Tenant', signature: { required: true } },
+  },
+  fields: {
+    address: { type: 'address', label: 'Property Address', required: true },
+    monthlyRent: { type: 'money', label: 'Monthly Rent', required: true },
+    startDate: { type: 'date', label: 'Start Date', required: true },
+    endDate: { type: 'date', label: 'End Date', required: true },
+  },
+})
+```
+
+```ts tab="Builder Pattern"
+import { para } from '@paradoc/sdk'
+
+const lease = para
+  .form()
+  .name('lease-agreement')
+  .version('1.0.0')
+  .title('Residential Lease Agreement')
+  .parties({
+    landlord: para.party().label('Landlord').signature({ required: true }),
+    tenant: para.party().label('Tenant').signature({ required: true }),
+  })
+  .fields({
+    address: para.field.address().label('Property Address').required(),
+    monthlyRent: para.field.money().label('Monthly Rent').required(),
+    startDate: para.field.date().label('Start Date').required(),
+    endDate: para.field.date().label('End Date').required(),
+  })
+  .build()
+```
+</Step>
+
+<Step>
+## Add a Layer
+
+Templates define how forms render. Add an inline Markdown template using Handlebars syntax:
+
+```ts tab="Object Pattern"
+const lease = para.form({
+  name: 'lease-agreement',
+  // ...fields and parties
+  defaultLayer: 'markdown',
+  layers: {
+    markdown: {
+      kind: 'inline',
+      mimeType: 'text/markdown',
+      text: `
+# Residential Lease Agreement
+
+**Property:** {{address}}
+**Monthly Rent:** {{monthlyRent}}
+**Term:** {{startDate}} to {{endDate}}
+
+**Landlord:** {{parties.landlord.name}}
+**Tenant:** {{parties.tenant.name}}
+      `,
+    },
+  },
+})
+```
+
+```ts tab="Builder Pattern"
+const lease = para
+  .form()
+  .name('lease-agreement')
+  // ...fields and parties
+  .defaultLayer('markdown')
+  .layers({
+    markdown: para.layer.inline().mimeType('text/markdown').text(`
+# Residential Lease Agreement
+
+**Property:** {{address}}
+**Monthly Rent:** {{monthlyRent}}
+**Term:** {{startDate}} to {{endDate}}
+
+**Landlord:** {{parties.landlord.name}}
+**Tenant:** {{parties.tenant.name}}
+    `),
+  })
+  .build()
+```
+</Step>
+
+<Step>
+## Fill the Form
+
+Use `.fill()` to create a runtime instance with data:
+
+```ts
+const filled = lease.fill({
+  parties: {
+    landlord: { id: 'landlord-1', name: 'Jane Smith' },
+    tenant: { id: 'tenant-1', name: 'John Doe' },
+  },
+  fields: {
+    address: {
+      line1: '123 Main St',
+      locality: 'Portland',
+      region: 'OR',
+      postalCode: '97201',
+      country: 'USA',
+    },
+    monthlyRent: { amount: 1500, currency: 'USD' },
+    startDate: '2025-02-01',
+    endDate: '2026-01-31',
+  },
+})
+```
+
+Party data requires an `id` field—this is used for signature tracking.
+</Step>
+
+<Step>
+## Render the Form
+
+Render the filled form using the text renderer:
+
+```ts
+import { textRenderer } from '@paradoc/renderer-text'
+
+const output = await filled.render({
+  renderer: textRenderer(),
+})
+
+console.log(output)
+```
+
+Output:
+
+```markdown
+# Residential Lease Agreement
+
+**Property:** 123 Main St, Portland, OR 97201, USA
+**Monthly Rent:** $1,500.00
+**Term:** February 1, 2025 to January 31, 2026
+
+**Landlord:** Jane Smith
+**Tenant:** John Doe
+```
+
+Fields are automatically serialized—`money` becomes `$1,500.00`, `address` becomes a formatted string.
+</Step>
+
+<Step>
+## Save the Artifact
+
+Export the form to JSON or YAML for storage or version control:
+
+```ts
+const json = lease.toJSON() // or lease.toYAML()
+console.log(JSON.stringify(json, null, 2))
+```
+
+```json tab="JSON"
+{
+  "$schema": "https://schemas.paradoc.dev/schema.json",
+  "kind": "form",
+  "name": "lease-agreement",
+  "version": "1.0.0",
+  "title": "Residential Lease Agreement",
+  "fields": {
+    "address": { "type": "address", "label": "Property Address", "required": true },
+    "monthlyRent": { "type": "money", "label": "Monthly Rent", "required": true },
+    "startDate": { "type": "date", "label": "Start Date", "required": true },
+    "endDate": { "type": "date", "label": "End Date", "required": true }
+  },
+  "parties": {
+    "landlord": { "label": "Landlord", "signature": { "required": true } },
+    "tenant": { "label": "Tenant", "signature": { "required": true } }
+  }
+}
+```
+
+```yaml tab="YAML"
+# yaml-language-server: $schema=https://schemas.paradoc.dev/schema.json
+kind: form
+name: lease-agreement
+version: 1.0.0
+title: Residential Lease Agreement
+fields:
+  address:
+    type: address
+    label: Property Address
+    required: true
+  monthlyRent:
+    type: money
+    label: Monthly Rent
+    required: true
+  startDate:
+    type: date
+    label: Start Date
+    required: true
+  endDate:
+    type: date
+    label: End Date
+    required: true
+parties:
+  landlord:
+    label: Landlord
+    signature:
+      required: true
+  tenant:
+    label: Tenant
+    signature:
+      required: true
+```
+
+Load it back with `para.load()`:
+
+```ts
+const loaded = para.load(jsonString) // works with JSON or YAML
+```
+</Step>
+</Steps>

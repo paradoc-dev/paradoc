@@ -1,0 +1,11 @@
+kind: document
+version: 1.0.0
+name: pet-care-guide
+title: Pet Care Guide
+description: Helpful reference for new adopters
+defaultLayer: default
+layers:
+  default:
+    kind: file
+    mimeType: application/pdf
+    path: ./Pet Care Guide.pdf

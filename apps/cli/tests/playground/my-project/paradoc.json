@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.paradoc.dev/manifest/v1",
+  "name": "@your-org/my-test-project",
+  "title": "My Test Project",
+  "description": "",
+  "visibility": "private",
+  "homepage": "",
+  "keywords": []
+}

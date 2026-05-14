@@ -1,0 +1,107 @@
+---
+title: Artifact Schemas
+description: The four artifact types in Paradoc
+---
+
+Paradoc has 4 basic artifacts:
+
+| Artifact                                  | Description                                                                                                                                                                               |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Document](/schemas/artifacts/document)   | Static documents (e.g., disclosures, pamphlets)                                                                                 |
+| [Form](/schemas/artifacts/form)           | Dynamic documents that have parties, fields, annexes, and/or logic (e.g., contracts, applications, certificates) |
+| [Checklist](/schemas/artifacts/checklist) | Compliance documents that track the completion of tasks or requirements (e.g., closing checklist)                                                               |
+| [Bundle](/schemas/artifacts/bundle)       | Containers for Documents, Forms, Checklists and even other Bundles (e.g., loan application packet)                                                                                   |
+
+# Base properties
+
+All artifacts share the same base properties:
+
+<PropertiesTable properties={[
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Unique identifier; must follow slug constraints',
+  },
+  {
+    name: 'version',
+    type: 'string',
+    description: 'Artifact version (semantic versioning). Required for publishing to registry',
+    isOptional: true,
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-friendly name presented to end users. Recommended for published/shared artifacts and directory browsing',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Long-form description or context',
+    isOptional: true,
+  },
+  {
+    name: 'code',
+    type: 'string',
+    description: 'Internal code or reference number',
+    isOptional: true,
+  },
+  {
+    name: 'releaseDate',
+    type: 'string',
+    description: 'ISO date string indicating when the artifact was released/published',
+    isOptional: true,
+  },
+  {
+    name: 'metadata',
+    type: 'Metadata',
+    description: 'Custom metadata map',
+    isOptional: true,
+    properties: [
+      {
+        type: 'Metadata',
+        parameters: [
+          {
+            name: '[key: string]',
+            type: 'string | number | boolean | null',
+            description: 'Keys must be alphanumeric with hyphens. Values can be strings, numbers, booleans, or null',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'instructions',
+    type: 'ContentRef',
+    description: 'Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)',
+    isOptional: true,
+    properties: [
+      {
+        type: 'InlineContentRef',
+        description: 'Inline text content',
+        parameters: [
+          { name: 'kind', type: "'inline'", description: 'Discriminator for inline content' },
+          { name: 'text', type: 'string', description: 'The text content' },
+        ],
+      },
+      {
+        type: 'FileContentRef',
+        description: 'File-backed content reference',
+        parameters: [
+          { name: 'kind', type: "'file'", description: 'Discriminator for file content' },
+          { name: 'path', type: 'string', description: 'Path to the content file' },
+          { name: 'mimeType', type: 'string', description: 'MIME type of the file content' },
+          { name: 'title', type: 'string', description: 'Human-readable title', isOptional: true },
+          { name: 'description', type: 'string', description: 'Description of the content', isOptional: true },
+          { name: 'checksum', type: 'string', description: 'SHA-256 checksum for integrity verification', isOptional: true },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'agentInstructions',
+    type: 'ContentRef',
+    description: 'LLM/agent prompts for field ordering, grouping, tone, and presentation guidance',
+    isOptional: true,
+  },
+]} />

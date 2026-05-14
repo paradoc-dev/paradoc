@@ -1,0 +1,88 @@
+---
+title: Anatomy of a Form
+description: Fields, parties, and annexes
+ogTitle: Anatomy of a Form
+ogDescription: Define form structure with typed fields, party roles, signatures, and attachments
+---
+
+Forms are the central artifact of Paradoc. They can be used to create anything from a simple purchase order to a complex multi-party agreement involving numerous nested fields, annexes, and logic.
+
+In this section, we introduce the fundamental building blocks of a Form.
+
+# Fields
+
+Fields define what data a form collects. They are strongly typed, can represent different data types, and can be grouped into fieldsets. All fields have common base properties such as `label`, `description`, `required`, and `visible` that define their behavior in a form.
+
+```ts
+const form = para.form()
+  .name("application")
+  .fields({
+    fullName: { type: "text", label: "Full Name", required: true },
+    age: { type: "number", label: "Age" },
+    startDate: { type: "date", label: "Start Date" },
+  })
+  .build()
+```
+
+## Primitives
+
+Beyond basic types, Paradoc includes **primitives** for common real-world data—`address`, `money`, `phone`, `person`, `organization`, and others. Primitives carry semantic meaning: a `money` field includes currency and can be serialized appropriately for different locales.
+
+```ts
+fields: {
+  propertyAddress: { type: "address", label: "Property Address" },
+  monthlyRent: { type: "money", label: "Monthly Rent" },
+  tenantPhone: { type: "phone", label: "Phone Number" },
+}
+```
+
+See [Primitives](/schemas/primitives) for the complete list of field types.
+
+---
+
+# Parties
+
+Parties are the roles that interact with a form. A lease might have `landlord` and `tenant` parties. An employment agreement might have `employer` and `employee`.
+
+Parties define **roles**, not identities. At runtime, actual people or organizations are assigned to these roles.
+
+```ts
+const form = para.form()
+  .name("lease")
+  .parties({
+    landlord: para.party().label("Landlord"),
+    tenant: para.party().label("Tenant").multiple(true).max(4),
+  })
+  .build()
+```
+
+## Signatures
+
+Signature requirements are defined per party. You can specify whether signatures are required, must be witnessed, or need notarization.
+
+```ts
+parties: {
+  buyer: para.party().label("Buyer").signature({ required: true, witnesses: 1 }),
+  seller: para.party().label("Seller").signature({ required: true }),
+}
+```
+
+Signature requirements are part of the artifact definition. How signatures are captured and rendered depends on the runtime and layer.
+
+---
+
+# Annexes
+
+Annexes are file attachments that accompany the form—things like photo IDs, proof of income, or supporting documents.
+
+```ts
+const form = para.form()
+  .name("lease-application")
+  .annexes({
+    photoId: para.annex().title("Photo ID").required(true),
+    proofOfIncome: para.annex().title("Proof of Income").required(true),
+  })
+  .build()
+```
+
+Annexes can have conditional visibility and requirements using [Logic](/concepts/logic).

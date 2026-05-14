@@ -1,0 +1,842 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/defssection.json",
+  "type": "object",
+  "propertyNames": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 100,
+    "pattern": "^[a-z][a-zA-Z0-9_]*$",
+    "description": "Definition identifier (camelCase, starts with lowercase letter)"
+  },
+  "additionalProperties": {
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "boolean"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to a boolean"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "string"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to a string"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "number"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to a number"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "integer"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to an integer"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "percentage"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to a percentage (0-100)"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "rating"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to a rating value"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "date"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to an ISO 8601 date (YYYY-MM-DD)"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "time"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to a time (HH:MM:SS)"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "datetime"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to an ISO 8601 datetime"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "duration"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Expression that evaluates to an ISO 8601 duration string"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "money"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "amount",
+              "currency"
+            ],
+            "additionalProperties": false,
+            "description": "Money object with amount and currency expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "address"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "line1": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "line2": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "locality": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "region": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "postalCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "country": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "line1",
+              "locality",
+              "region",
+              "postalCode",
+              "country"
+            ],
+            "additionalProperties": false,
+            "description": "Address object with component expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "phone"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "extension": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "number"
+            ],
+            "additionalProperties": false,
+            "description": "Phone object with number and optional type/extension expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "coordinate"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "lon": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "lat",
+              "lon"
+            ],
+            "additionalProperties": false,
+            "description": "Coordinate object with latitude and longitude expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "bbox"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "north": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "south": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "east": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "west": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "north",
+              "south",
+              "east",
+              "west"
+            ],
+            "additionalProperties": false,
+            "description": "Bounding box with north, south, east, west boundary expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "person"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "firstName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "middleName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "lastName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "suffix": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Person object with name component expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "organization"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "legalName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "domicile": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "entityType": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "taxId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Organization object with component expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Display label for the computed value"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Description or documentation of the computed value"
+          },
+          "type": {
+            "type": "string",
+            "const": "identification"
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "number": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "issuer": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "issueDate": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              },
+              "expiryDate": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Expression string to evaluate"
+              }
+            },
+            "required": [
+              "type",
+              "number"
+            ],
+            "additionalProperties": false,
+            "description": "Identification object with type, number, and optional issuer/date expressions"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    ],
+    "title": "Expression",
+    "description": "A typed computed value with optional metadata (label, description). The type property determines the expected result type and value schema."
+  },
+  "id": "DefsSection",
+  "title": "DefsSection"
+}

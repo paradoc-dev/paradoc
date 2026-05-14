@@ -1,0 +1,134 @@
+{
+  "$schema": "https://schema.paradoc.dev/schema.json",
+  "kind": "form",
+  "name": "pet-addendum",
+  "version": "1.0.0",
+  "title": "Pet Addendum to Lease Agreement",
+  "description": "Addendum to a residential lease agreement permitting a tenant to keep a pet on the premises, subject to the terms and conditions outlined herein.",
+  "parties": {
+    "tenant": {
+      "label": "Tenant",
+      "description": "The tenant requesting permission to keep a pet on the leased premises",
+      "partyType": "person",
+      "min": 1,
+      "max": 1,
+      "signature": {
+        "required": true,
+        "witnesses": 0,
+        "notarized": false
+      }
+    },
+    "landlord": {
+      "label": "Landlord",
+      "description": "The landlord granting permission for the tenant to keep a pet",
+      "partyType": "any",
+      "min": 1,
+      "max": 1,
+      "signature": {
+        "required": true,
+        "witnesses": 0,
+        "notarized": false
+      }
+    }
+  },
+  "fields": {
+    "petName": {
+      "label": "Pet name",
+      "description": "Name of the pet",
+      "type": "text",
+      "required": true,
+      "maxLength": 100
+    },
+    "species": {
+      "label": "Species",
+      "description": "Species of the pet",
+      "type": "enum",
+      "required": true,
+      "enum": ["dog", "cat", "fish"]
+    },
+    "weight": {
+      "label": "Weight (lbs)",
+      "description": "Weight of the pet in pounds",
+      "type": "number",
+      "required": true,
+      "min": 0
+    },
+    "isVaccinated": {
+      "label": "Vaccinated",
+      "description": "Whether the pet is up to date on all required vaccinations",
+      "type": "boolean",
+      "required": true
+    }
+  },
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "title": "PDF Template",
+      "description": "Fillable PDF form with acrofields",
+      "path": "pet-addendum.pdf",
+      "checksum": "sha256:78df9be52df40928e524c8eb24d8d0f881dd31607b88f0e234ba731bba391869",
+      "signatureBlocks": {
+        "sb1": {
+          "type": "signature",
+          "page": 1,
+          "x": 164,
+          "y": 130,
+          "width": 200,
+          "height": 18,
+          "partyRole": "tenant",
+          "partyIndex": 0,
+          "label": "Tenant signature"
+        },
+        "sb2": {
+          "type": "date",
+          "page": 1,
+          "x": 429,
+          "y": 130,
+          "width": 100,
+          "height": 18,
+          "partyRole": "tenant",
+          "partyIndex": 0,
+          "label": "Tenant date"
+        },
+        "sb3": {
+          "type": "signature",
+          "page": 1,
+          "x": 164,
+          "y": 98,
+          "width": 200,
+          "height": 18,
+          "partyRole": "landlord",
+          "partyIndex": 0,
+          "label": "Landlord signature"
+        },
+        "sb4": {
+          "type": "date",
+          "page": 1,
+          "x": 429,
+          "y": 98,
+          "width": 100,
+          "height": 18,
+          "partyRole": "landlord",
+          "partyIndex": 0,
+          "label": "Landlord date"
+        }
+      },
+      "bindings": {
+        "landlord_name": "parties.landlord.name",
+        "tenant_name": "parties.tenant.name",
+        "pet_name": "petName",
+        "species": "species",
+        "weight": "weight",
+        "is_vaccinated": "isVaccinated"
+      }
+    },
+    "markdown": {
+      "kind": "file",
+      "mimeType": "text/markdown",
+      "path": "pet-addendum.md",
+      "checksum": "sha256:635ff729240963f5e152dd37ee440578e98fb7ecb3b24bee93a416c8d4e60ea9"
+    }
+  },
+  "defaultLayer": "pdf"
+}

@@ -1,0 +1,235 @@
+---
+title: Documents
+description: Create and render static documents with layers
+ogTitle: Create a document with Paradoc
+ogDescription: Build static documents with multiple layers for different output formats
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+This guide walks through creating a static document with multiple layers and rendering it.
+
+<Steps>
+<Step>
+## Define the Document
+
+A document needs a name, version, and title. Unlike forms, documents don't have fields or parties—they're static content with one or more layers.
+
+```ts tab="Object Pattern"
+import { para } from '@paradoc/core'
+
+const privacyPolicy = para.document({
+  name: 'privacy-policy',
+  version: '1.0.0',
+  title: 'Privacy Policy',
+  description: 'Our privacy policy document',
+  code: 'DOC-PRIVACY-001',
+})
+```
+
+```ts tab="Builder Pattern"
+import { para } from '@paradoc/core'
+
+const privacyPolicy = para
+  .document()
+  .name('privacy-policy')
+  .version('1.0.0')
+  .title('Privacy Policy')
+  .description('Our privacy policy document')
+  .code('DOC-PRIVACY-001')
+  .build()
+```
+</Step>
+
+<Step>
+## Add Layers
+
+Documents support multiple layers for different formats. Add inline layers for text, HTML, or Markdown content.
+
+```ts tab="Object Pattern"
+const privacyPolicy = para.document({
+  name: 'privacy-policy',
+  version: '1.0.0',
+  title: 'Privacy Policy',
+  defaultLayer: 'markdown',
+  layers: {
+    markdown: {
+      kind: 'inline',
+      mimeType: 'text/markdown',
+      text: `
+# Privacy Policy
+
+Last Updated: January 2025
+
+## Data Collection
+
+We collect information you provide directly to us, including name, email, and usage data.
+
+## Data Usage
+
+Your data is used to provide and improve our services.
+      `,
+    },
+    html: {
+      kind: 'inline',
+      mimeType: 'text/html',
+      text: '<h1>Privacy Policy</h1><p>Last Updated: January 2025</p>',
+    },
+  },
+})
+```
+
+```ts tab="Builder Pattern"
+const privacyPolicy = para
+  .document()
+  .name('privacy-policy')
+  .version('1.0.0')
+  .title('Privacy Policy')
+  .inlineLayer('markdown', {
+    mimeType: 'text/markdown',
+    text: `
+# Privacy Policy
+
+Last Updated: January 2025
+
+## Data Collection
+
+We collect information you provide directly to us, including name, email, and usage data.
+
+## Data Usage
+
+Your data is used to provide and improve our services.
+    `,
+  })
+  .inlineLayer('html', {
+    mimeType: 'text/html',
+    text: '<h1>Privacy Policy</h1><p>Last Updated: January 2025</p>',
+  })
+  .defaultLayer('markdown')
+  .build()
+```
+</Step>
+
+<Step>
+## Add File Layers
+
+You can also reference external files instead of inline content.
+
+```ts tab="Object Pattern"
+const privacyPolicy = para.document({
+  name: 'privacy-policy',
+  version: '1.0.0',
+  title: 'Privacy Policy',
+  defaultLayer: 'pdf',
+  layers: {
+    pdf: {
+      kind: 'file',
+      mimeType: 'application/pdf',
+      path: '/documents/privacy-policy.pdf',
+    },
+    markdown: {
+      kind: 'file',
+      mimeType: 'text/markdown',
+      path: '/documents/privacy-policy.md',
+    },
+  },
+})
+```
+
+```ts tab="Builder Pattern"
+const privacyPolicy = para
+  .document()
+  .name('privacy-policy')
+  .version('1.0.0')
+  .title('Privacy Policy')
+  .fileLayer('pdf', {
+    mimeType: 'application/pdf',
+    path: '/documents/privacy-policy.pdf',
+  })
+  .fileLayer('markdown', {
+    mimeType: 'text/markdown',
+    path: '/documents/privacy-policy.md',
+  })
+  .defaultLayer('pdf')
+  .build()
+```
+</Step>
+
+<Step>
+## Render the Document
+
+Documents return raw content directly—no renderer needed. Use the default layer or specify one explicitly.
+
+```ts
+// Render using default layer
+const output = await privacyPolicy.render()
+console.log(output)
+
+// Render specific layer
+const htmlOutput = await privacyPolicy.render({ layer: 'html' })
+console.log(htmlOutput)
+```
+
+For file layers, provide a resolver:
+
+```ts
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: process.cwd() })
+const pdfBytes = await privacyPolicy.render({ resolver })
+```
+</Step>
+
+<Step>
+## Save the Artifact
+
+Export the document to JSON or YAML for storage or version control.
+
+```ts
+const json = privacyPolicy.toJSON()
+const yaml = privacyPolicy.toYAML()
+```
+
+```json tab="JSON"
+{
+  "$schema": "https://schemas.paradoc.dev/schema.json",
+  "kind": "document",
+  "name": "privacy-policy",
+  "version": "1.0.0",
+  "title": "Privacy Policy",
+  "description": "Our privacy policy document",
+  "code": "DOC-PRIVACY-001",
+  "layers": {
+    "markdown": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "..."
+    }
+  },
+  "defaultLayer": "markdown"
+}
+```
+
+```yaml tab="YAML"
+$schema: https://schemas.paradoc.dev/schema.json
+kind: document
+name: privacy-policy
+version: 1.0.0
+title: Privacy Policy
+description: Our privacy policy document
+code: DOC-PRIVACY-001
+layers:
+  markdown:
+    kind: inline
+    mimeType: text/markdown
+    text: "..."
+defaultLayer: markdown
+```
+
+Load it back with `para.load()`:
+
+```ts
+const loaded = para.load(jsonString) // works with JSON or YAML
+```
+</Step>
+</Steps>

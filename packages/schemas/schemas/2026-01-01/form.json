@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/form.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "JSON Schema URI for this artifact instance."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
+      "description": "Unique artifact identifier. Must start with a letter or digit, can contain letters, numbers, and hyphens (no leading/trailing/consecutive hyphens)."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Artifact version (semantic versioning). Required for publishing to registry."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Human-readable title. Recommended for published/shared artifacts and directory browsing."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 2000,
+      "description": "Detailed description or context for the artifact."
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Optional user-defined internal code."
+    },
+    "releaseDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+      "description": "Artifact release date"
+    },
+    "metadata": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 500
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+    },
+    "instructions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "inline"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000000,
+              "description": "Inline text content"
+            }
+          },
+          "required": [
+            "kind",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "file"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Path to the content file"
+            },
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "MIME type of the file content"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Human-readable title"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Description of the content"
+            },
+            "checksum": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "SHA-256 checksum for integrity verification"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "mimeType"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "title": "ContentRef",
+      "description": "Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)"
+    },
+    "agentInstructions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "inline"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000000,
+              "description": "Inline text content"
+            }
+          },
+          "required": [
+            "kind",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "file"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Path to the content file"
+            },
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "MIME type of the file content"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Human-readable title"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Description of the content"
+            },
+            "checksum": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "SHA-256 checksum for integrity verification"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "mimeType"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "title": "ContentRef",
+      "description": "LLM/agent prompts for field ordering, grouping, tone, and presentation guidance"
+    },
+    "kind": {
+      "type": "string",
+      "const": "form"
+    },
+    "defs": {
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/DefsSection"
+    },
+    "rules": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Validation rule identifier (camelCase, starts with lowercase letter)"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "expr": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Boolean expression that must evaluate to true for the form to be valid. Has access to field values directly (e.g., \"ssn or ein\") and defs section values."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Error message displayed when the rule fails (expression evaluates to false)"
+          },
+          "severity": {
+            "default": "error",
+            "description": "Severity level: error (default) blocks submission, warning allows but warns",
+            "type": "string",
+            "enum": [
+              "error",
+              "warning"
+            ]
+          }
+        },
+        "required": [
+          "expr",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "title": "RulesSection",
+      "description": "Form-level validation rules for cross-field constraints. Rules use expr-eval-fork expressions with direct access to field values and defs section values."
+    },
+    "fields": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Field identifier (camelCase, starts with lowercase letter)"
+      },
+      "additionalProperties": {
+        "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FormField"
+      },
+      "description": "Form field definitions keyed by field identifier. Fields define the input structure and validation rules for the form"
+    },
+    "layers": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Layer identifier (camelCase, starts with lowercase letter)"
+      },
+      "additionalProperties": {
+        "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Layer"
+      },
+      "description": "Named layers for rendering this form into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
+    },
+    "defaultLayer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Key of the default layer to use when none specified at render time"
+    },
+    "allowAdditionalAnnexes": {
+      "default": false,
+      "description": "Whether additional ad-hoc annexes can be attached beyond those defined in the annexes record",
+      "type": "boolean"
+    },
+    "annexes": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Annex identifier (camelCase, starts with lowercase letter)"
+      },
+      "additionalProperties": {
+        "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FormAnnex"
+      },
+      "description": "Predefined annex slots keyed by identifier. Each slot can be marked as required (must be filled at runtime) or optional"
+    },
+    "parties": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Party role identifier (e.g., buyer, seller, landlord, buyerRepresentative)"
+      },
+      "additionalProperties": {
+        "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FormParty"
+      },
+      "description": "Party role definitions keyed by role identifier. Each role specifies constraints on who can fill it (person/organization) and signature requirements."
+    }
+  },
+  "required": [
+    "name",
+    "kind"
+  ],
+  "additionalProperties": false,
+  "id": "Form",
+  "title": "Form"
+}

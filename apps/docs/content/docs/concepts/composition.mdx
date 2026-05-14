@@ -1,0 +1,82 @@
+---
+title: Composition
+description: Reusing definitions and building bundles
+ogTitle: Composing and reusing artifacts
+ogDescription: Define once, reuse everywhere — share fields across forms and combine into bundles
+---
+
+Paradoc is designed to be composed. Instead of duplicating definitions, you build from reusable parts and combine artifacts into larger structures.
+
+---
+
+# Why Composition Matters
+
+Real document systems have repetition—the same address fields in multiple forms, the same disclosures accompanying different agreements. Without composition, you copy and paste. Over time, copies drift.
+
+Composition solves this: define once, reuse everywhere. Changes propagate automatically.
+
+---
+
+# Reusing Fields
+
+Define common fields once, spread them into multiple forms:
+
+```ts
+// common/fields.ts
+export const contactFields = {
+  fullName: { type: "text", label: "Full Name", required: true },
+  email: { type: "text", label: "Email", required: true },
+  phone: { type: "phone", label: "Phone Number" },
+}
+
+// forms/application.ts
+import { contactFields } from "../common/fields"
+
+const application = para.form()
+  .name("application")
+  .fields({
+    ...contactFields,
+    applicationDate: { type: "date", required: true },
+  })
+  .build()
+```
+
+Update `contactFields` and every form using it reflects the change.
+
+---
+
+# Bundles
+
+Bundles compose multiple artifacts into a single package. A lease transaction isn't one document—it's a lease agreement, disclosures, and a checklist, all bundled together.
+
+```ts
+const leasePackage = para.bundle()
+  .name("lease-package")
+  .title("Complete Lease Package")
+  .contents([
+    { type: "inline", key: "lease", artifact: leaseAgreement },
+    { type: "inline", key: "disclosure", artifact: leadPaintDisclosure },
+    { type: "inline", key: "checklist", artifact: applicationChecklist },
+  ])
+  .build()
+```
+
+Bundle contents can be **inline** (embedded directly) or **referenced** (loaded from a path at runtime).
+
+---
+
+# Inline vs Referenced
+
+When composing, you choose between:
+- **Inline** — content is embedded directly. Good for one-off definitions or keeping everything in one place.
+- **Referenced** — content is loaded from elsewhere. Good for shared definitions or large systems.
+
+This applies to fields, annexes, layers, and bundle contents.
+
+---
+
+# Composition is Design-Time
+
+All composition happens at design time. When you spread fields or build bundles, you're constructing a static artifact definition.
+
+The final artifact is still immutable and deterministic—it doesn't "know" it was composed. It's just a complete definition.

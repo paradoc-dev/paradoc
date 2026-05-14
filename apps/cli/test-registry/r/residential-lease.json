@@ -1,0 +1,133 @@
+{
+  "$schema": "https://schema.paradoc.dev/registry-item.json",
+  "kind": "form",
+  "name": "residential-lease",
+  "version": "1.0.0",
+  "title": "Residential Lease Agreement",
+  "description": "Standard residential property lease agreement between landlord and tenant",
+  "fields": {
+    "landlordName": {
+      "type": "text",
+      "label": "Landlord Name",
+      "description": "Full legal name of the property owner/landlord",
+      "required": true
+    },
+    "landlordAddress": {
+      "type": "text",
+      "label": "Landlord Address",
+      "description": "Mailing address of the landlord",
+      "required": true
+    },
+    "tenantName": {
+      "type": "text",
+      "label": "Tenant Name",
+      "description": "Full legal name of the primary tenant",
+      "required": true
+    },
+    "tenantEmail": {
+      "type": "email",
+      "label": "Tenant Email",
+      "description": "Email address of the tenant",
+      "required": true
+    },
+    "tenantPhone": {
+      "type": "text",
+      "label": "Tenant Phone",
+      "description": "Phone number of the tenant",
+      "required": false
+    },
+    "propertyAddress": {
+      "type": "text",
+      "label": "Property Address",
+      "description": "Full address of the rental property",
+      "required": true
+    },
+    "propertyType": {
+      "type": "enum",
+      "label": "Property Type",
+      "description": "Type of residential property",
+      "enum": ["apartment", "house", "condo", "townhouse", "studio", "other"],
+      "required": true
+    },
+    "bedrooms": {
+      "type": "number",
+      "label": "Number of Bedrooms",
+      "min": 0,
+      "max": 20,
+      "required": true
+    },
+    "bathrooms": {
+      "type": "number",
+      "label": "Number of Bathrooms",
+      "min": 1,
+      "max": 10,
+      "required": true
+    },
+    "monthlyRent": {
+      "type": "number",
+      "label": "Monthly Rent",
+      "description": "Monthly rent amount in USD",
+      "min": 0,
+      "required": true
+    },
+    "securityDeposit": {
+      "type": "number",
+      "label": "Security Deposit",
+      "description": "Security deposit amount in USD",
+      "min": 0,
+      "required": true
+    },
+    "leaseStartDate": {
+      "type": "text",
+      "label": "Lease Start Date",
+      "description": "Date when the lease begins",
+      "required": true
+    },
+    "leaseEndDate": {
+      "type": "text",
+      "label": "Lease End Date",
+      "description": "Date when the lease ends",
+      "required": true
+    },
+    "petAllowed": {
+      "type": "boolean",
+      "label": "Pets Allowed",
+      "description": "Whether pets are permitted on the property",
+      "required": true
+    },
+    "petDeposit": {
+      "type": "number",
+      "label": "Pet Deposit",
+      "description": "Additional deposit required for pets",
+      "min": 0,
+      "required": false
+    },
+    "parkingIncluded": {
+      "type": "boolean",
+      "label": "Parking Included",
+      "description": "Whether parking is included in the rent",
+      "required": true
+    },
+    "utilitiesIncluded": {
+      "type": "multiselect",
+      "label": "Utilities Included",
+      "description": "Which utilities are included in the rent",
+      "enum": ["water", "electricity", "gas", "internet", "trash", "none"],
+      "required": true
+    }
+  },
+  "layers": {
+    "default": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# RESIDENTIAL LEASE AGREEMENT\n\n## PARTIES\n\nThis Residential Lease Agreement (\"Agreement\") is entered into on this date by and between:\n\n**LANDLORD:**\n- Name: {{landlordName}}\n- Address: {{landlordAddress}}\n\n**TENANT:**\n- Name: {{tenantName}}\n- Email: {{tenantEmail}}\n- Phone: {{tenantPhone}}\n\n## PROPERTY\n\nThe Landlord agrees to lease to the Tenant the following property:\n\n- **Address:** {{propertyAddress}}\n- **Property Type:** {{propertyType}}\n- **Bedrooms:** {{bedrooms}}\n- **Bathrooms:** {{bathrooms}}\n\n## LEASE TERM\n\n- **Start Date:** {{leaseStartDate}}\n- **End Date:** {{leaseEndDate}}\n\n## RENT AND DEPOSITS\n\n- **Monthly Rent:** ${{monthlyRent}}\n- **Security Deposit:** ${{securityDeposit}}\n- **Pet Deposit:** ${{petDeposit}}\n\nRent is due on the 1st of each month. A late fee will be charged for payments received after the 5th.\n\n## PROPERTY RULES\n\n- **Pets Allowed:** {{petAllowed}}\n- **Parking Included:** {{parkingIncluded}}\n- **Utilities Included:** {{utilitiesIncluded}}\n\n## SIGNATURES\n\n_____________________________\nLandlord Signature & Date\n\n_____________________________\nTenant Signature & Date\n"
+    },
+    "legal": {
+      "kind": "file",
+      "mimeType": "text/markdown",
+      "path": "residential-lease-legal.md",
+      "url": "http://localhost:4567/files/residential-lease-legal.md"
+    }
+  },
+  "defaultLayer": "default"
+}

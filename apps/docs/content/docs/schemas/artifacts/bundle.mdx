@@ -1,0 +1,237 @@
+---
+title: Bundle
+description: A container artifact for grouping related artifacts together
+---
+
+A Bundle is a recursive container for content artifacts. Bundles group together documents, forms, checklists, and other bundles into a single distributable unit.
+
+Examples include a loan application packet, new hire paperwork, or compliance submission.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: "'bundle'",
+    description: 'Literal "bundle" discriminator',
+  },
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Unique identifier; must follow slug constraints',
+  },
+  {
+    name: 'version',
+    type: 'string',
+    description: 'Artifact version (semantic versioning)',
+    isOptional: true,
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-friendly name presented to end users',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Long-form description or context',
+    isOptional: true,
+  },
+  {
+    name: 'code',
+    type: 'string',
+    description: 'Internal code or reference number',
+    isOptional: true,
+  },
+  {
+    name: 'releaseDate',
+    type: 'string',
+    description: 'ISO date string indicating when the artifact was released',
+    isOptional: true,
+  },
+  {
+    name: 'metadata',
+    type: 'Metadata',
+    description: 'Custom metadata map (keys must be alphanumeric with hyphens)',
+    isOptional: true,
+  },
+  {
+    name: 'instructions',
+    type: 'ContentRef',
+    description: 'Domain or compliance reference content (e.g., regulatory guidance)',
+    isOptional: true,
+  },
+  {
+    name: 'agentInstructions',
+    type: 'ContentRef',
+    description: 'LLM/agent prompts for presentation guidance',
+    isOptional: true,
+  },
+  {
+    name: 'defs',
+    type: 'DefsSection',
+    description: 'Named typed computed values that can be referenced in include conditions',
+    isOptional: true,
+  },
+  {
+    name: 'contents',
+    type: 'BundleContentItem[]',
+    description: 'Ordered list of bundle contents with keys',
+  },
+]} />
+
+## BundleContentItem
+
+Bundle contents can be inline artifacts, path references, or registry references.
+
+```typescript
+type BundleContentItem = InlineBundleItem | PathBundleItem | RegistryBundleItem
+```
+
+<PropertiesTable properties={[
+  {
+    name: 'type',
+    type: "'inline' | 'path' | 'registry'",
+    description: 'Content item type discriminator',
+    properties: [
+      {
+        type: 'inline',
+        description: 'Inline artifact definition embedded directly in the bundle',
+        parameters: [
+          {
+            name: 'key',
+            type: 'string',
+            description: 'Unique key for this content item within the bundle',
+          },
+          {
+            name: 'artifact',
+            type: 'Document | Form | Checklist | Bundle',
+            description: 'Inline artifact definition',
+          },
+        ],
+      },
+      {
+        type: 'path',
+        description: 'Reference to a local artifact file',
+        parameters: [
+          {
+            name: 'key',
+            type: 'string',
+            description: 'Unique key for this content item within the bundle',
+          },
+          {
+            name: 'path',
+            type: 'string',
+            description: 'Absolute path from repo root to the artifact',
+          },
+          {
+            name: 'include',
+            type: 'CondExpr',
+            description: 'Conditional expression controlling inclusion',
+            isOptional: true,
+          },
+        ],
+      },
+      {
+        type: 'registry',
+        description: 'Reference to a registry artifact',
+        parameters: [
+          {
+            name: 'key',
+            type: 'string',
+            description: 'Unique key for this content item within the bundle',
+          },
+          {
+            name: 'slug',
+            type: 'string',
+            description: 'Registry artifact slug (e.g., @paradoc/irs/w9@1.0.0)',
+          },
+          {
+            name: 'include',
+            type: 'CondExpr',
+            description: 'Conditional expression controlling inclusion',
+            isOptional: true,
+          },
+        ],
+      },
+    ],
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+kind: bundle
+name: loan-application
+version: "1.0.0"
+title: Loan Application Packet
+
+defs:
+  needsW9:
+    type: boolean
+    value: "applicant.type == 'contractor'"
+
+contents:
+  # Inline artifact
+  - type: inline
+    key: welcome-doc
+    artifact:
+      kind: document
+      name: welcome
+      title: Welcome Letter
+
+  # Path reference
+  - type: path
+    key: borrower-info
+    path: /forms/borrower-info.yaml
+
+  # Registry reference with conditional include
+  - type: registry
+    key: w9
+    slug: "@paradoc/irs/w9@1.0.0"
+    include: needsW9
+```
+
+```json tab="JSON"
+{
+  "kind": "bundle",
+  "name": "loan-application",
+  "version": "1.0.0",
+  "title": "Loan Application Packet",
+  "defs": {
+    "needsW9": {
+      "type": "boolean",
+      "value": "applicant.type == 'contractor'"
+    }
+  },
+  "contents": [
+    {
+      "type": "inline",
+      "key": "welcome-doc",
+      "artifact": {
+        "kind": "document",
+        "name": "welcome",
+        "title": "Welcome Letter"
+      }
+    },
+    {
+      "type": "path",
+      "key": "borrower-info",
+      "path": "/forms/borrower-info.yaml"
+    },
+    {
+      "type": "registry",
+      "key": "w9",
+      "slug": "@paradoc/irs/w9@1.0.0",
+      "include": "needsW9"
+    }
+  ]
+}
+```
+
+# Related
+
+- [Form](/schemas/artifacts/form) - Interactive form artifact
+- [Document](/schemas/artifacts/document) - Static document artifact
+- [Checklist](/schemas/artifacts/checklist) - Task tracking artifact

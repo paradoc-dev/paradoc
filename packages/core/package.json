@@ -1,0 +1,94 @@
+{
+	"name": "@paradoc/core",
+	"version": "0.1.1",
+	"description": "Core package for Paradoc framework - schemas, builders, validation, and serialization utilities",
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"sideEffects": false,
+	"files": [
+		"dist",
+		"README.md",
+		"CHANGELOG.md",
+		"LICENSE"
+	],
+	"keywords": [
+		"paradoc",
+		"paradoc",
+		"forms",
+		"schema",
+		"validation",
+		"documents",
+		"documents-as-code",
+		"artifacts",
+		"pdf",
+		"typebox",
+		"json-schema"
+	],
+	"license": "MIT",
+	"author": {
+		"name": "Paradoc",
+		"url": "https://paradoc.dev"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/paradoc-dev/paradoc.git",
+		"directory": "packages/core"
+	},
+	"homepage": "https://paradoc.dev",
+	"bugs": {
+		"url": "https://github.com/paradoc-dev/paradoc/issues"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsup",
+		"postbuild": "node scripts/fix-json-imports.mjs",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist",
+		"prebuild": "pnpm run clean",
+		"pack:dry": "pnpm run build && npm pack --dry-run",
+		"prepublishOnly": "pnpm run build",
+		"lint": "eslint .",
+		"check-types": "tsc --noEmit",
+		"check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\"",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"export:all-schemas": "tsx scripts/export-all-schemas.ts",
+		"export:root-schema": "tsx scripts/export-root-schema.ts"
+	},
+	"dependencies": {
+		"@paradoc/schemas": "workspace:^",
+		"@paradoc/types": "workspace:^",
+		"@standard-schema/spec": "^1.0.0",
+		"expr-eval-fork": "^3.0.1",
+		"safe-regex": "^2.1.1",
+		"yaml": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@paradoc/eslint-config": "workspace:*",
+		"@paradoc/typescript-config": "workspace:*",
+		"@types/node": "catalog:",
+		"@types/safe-regex": "^1.1.6",
+		"@vitest/coverage-v8": "catalog:",
+		"eslint": "catalog:",
+		"tsup": "catalog:",
+		"tsx": "^4.20.6",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

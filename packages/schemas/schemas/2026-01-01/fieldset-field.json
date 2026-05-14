@@ -1,0 +1,1008 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/fieldsetfield.json",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Display label for the field"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "Description or help text for the field"
+    },
+    "required": {
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+    },
+    "visible": {
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+    },
+    "type": {
+      "type": "string",
+      "const": "fieldset"
+    },
+    "fields": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[a-z][a-zA-Z0-9_]*$",
+        "description": "Nested field identifier (camelCase, starts with lowercase letter)"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "description": "Minimum length"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "description": "Maximum length"
+                  },
+                  "pattern": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Regular expression pattern for validation"
+                  },
+                  "default": {
+                    "type": "string",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "boolean"
+                  },
+                  "default": {
+                    "type": "boolean",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "number"
+                  },
+                  "min": {
+                    "type": "number",
+                    "description": "Minimum value"
+                  },
+                  "max": {
+                    "type": "number",
+                    "description": "Maximum value"
+                  },
+                  "default": {
+                    "type": "number",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "coordinate"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Coordinate"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "bbox"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Bbox"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "money"
+                  },
+                  "min": {
+                    "type": "number",
+                    "description": "Minimum amount"
+                  },
+                  "max": {
+                    "type": "number",
+                    "description": "Maximum amount"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Money"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "address"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Address"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "phone"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Phone"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "duration"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Duration"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "email"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "description": "Minimum length"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "description": "Maximum length"
+                  },
+                  "default": {
+                    "type": "string",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "uuid"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "description": "Minimum length"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "description": "Maximum length"
+                  },
+                  "pattern": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Regular expression pattern for validation"
+                  },
+                  "default": {
+                    "type": "string",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "uri"
+                  },
+                  "minLength": {
+                    "type": "number",
+                    "description": "Minimum length"
+                  },
+                  "maxLength": {
+                    "type": "number",
+                    "description": "Maximum length"
+                  },
+                  "pattern": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Regular expression pattern for validation"
+                  },
+                  "default": {
+                    "type": "string",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "enum"
+                  },
+                  "enum": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "description": "Array of allowed values for the enum field"
+                  },
+                  "default": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type",
+                  "enum"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "date"
+                  },
+                  "min": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Minimum date (ISO 8601: YYYY-MM-DD)"
+                  },
+                  "max": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Maximum date (ISO 8601: YYYY-MM-DD)"
+                  },
+                  "default": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "datetime"
+                  },
+                  "min": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "description": "Minimum datetime (ISO 8601)"
+                  },
+                  "max": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "description": "Maximum datetime (ISO 8601)"
+                  },
+                  "default": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "time"
+                  },
+                  "min": {
+                    "type": "string",
+                    "description": "Minimum time (HH:MM:SS)"
+                  },
+                  "max": {
+                    "type": "string",
+                    "description": "Maximum time (HH:MM:SS)"
+                  },
+                  "default": {
+                    "type": "string",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "person"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Person"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "organization"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Organization"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "identification"
+                  },
+                  "allowedTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Allowed ID types (e.g., passport, drivers_license)"
+                  },
+                  "default": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Identification"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "multiselect"
+                  },
+                  "enum": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "description": "Available options"
+                  },
+                  "min": {
+                    "type": "number",
+                    "description": "Minimum selections required"
+                  },
+                  "max": {
+                    "type": "number",
+                    "description": "Maximum selections allowed"
+                  },
+                  "default": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "description": "Default selected values"
+                  }
+                },
+                "required": [
+                  "type",
+                  "enum"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "percentage"
+                  },
+                  "min": {
+                    "type": "number",
+                    "description": "Minimum value (default: 0)"
+                  },
+                  "max": {
+                    "type": "number",
+                    "description": "Maximum value (default: 100)"
+                  },
+                  "precision": {
+                    "type": "number",
+                    "description": "Decimal places (default: 2)"
+                  },
+                  "default": {
+                    "type": "number",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Display label for the field"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "description": "Description or help text for the field"
+                  },
+                  "required": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "visible": {
+                    "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "rating"
+                  },
+                  "min": {
+                    "type": "number",
+                    "description": "Minimum value (default: 1)"
+                  },
+                  "max": {
+                    "type": "number",
+                    "description": "Maximum value (default: 5)"
+                  },
+                  "step": {
+                    "type": "number",
+                    "description": "Increment step (e.g., 0.5 for half stars, default: 1)"
+                  },
+                  "default": {
+                    "type": "number",
+                    "description": "Default value"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          {
+            "$ref": "#"
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "type",
+    "fields"
+  ],
+  "additionalProperties": false,
+  "id": "FieldsetField",
+  "title": "FieldsetField"
+}

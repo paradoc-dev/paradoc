@@ -1,0 +1,141 @@
+---
+title: datetime
+description: Validate datetime strings
+---
+
+Validate datetime strings in ISO 8601 format. The Datetime primitive ensures timestamps are properly formatted with date, time, and timezone information.
+
+# Examples
+
+## Creating datetimes
+
+```ts
+// Direct validation
+const dt = para.datetime('2024-01-15T10:30:00Z')
+
+// Parse unknown input
+const dt = para.datetime.parse(jsonData)
+
+// Get current datetime
+const now = para.datetime.now()
+
+// Convert from Date object
+const dt = para.datetime.fromDate(new Date())
+
+// Check validity without throwing
+if (para.datetime.isValid('2024-01-15T10:30:00Z')) {
+  console.log('Valid datetime')
+}
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const dt = para.datetime.parse(userInput)
+
+// Safe parsing (returns result object)
+const result = para.datetime.safeParse(userInput)
+if (result.success) {
+  console.log(`Datetime: ${result.data}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'appointment',
+  fields: {
+    scheduledAt: { type: 'datetime', label: 'Appointment Time' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    scheduledAt: para.datetime('2024-06-15T14:30:00Z')
+  }
+})
+```
+
+# API
+
+## Direct Call
+
+```ts
+para.datetime(input: string): string
+```
+
+Pass a datetime string for validation. Returns the validated string or throws on error.
+
+```ts
+const dt = para.datetime('2024-01-15T10:30:00Z')
+```
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'string', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<string>', description: 'Parse unknown input (returns result object)' },
+  { name: 'isValid', params: 'input: string', returns: 'boolean', description: 'Check if a string is a valid datetime' },
+  { name: 'fromDate', params: 'date: Date', returns: 'string', description: 'Convert a JavaScript Date to ISO datetime string' },
+  { name: 'now', params: '', returns: 'string', description: 'Get current datetime as ISO string' },
+]} />
+
+# Format
+
+The Datetime primitive expects and returns strings in ISO 8601 datetime format:
+
+```
+YYYY-MM-DDTHH:mm:ssZ
+YYYY-MM-DDTHH:mm:ss.sssZ
+YYYY-MM-DDTHH:mm:ss±HH:mm
+```
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| `YYYY-MM-DD` | Date portion | 2024-01-15 |
+| `T` | Separator | T |
+| `HH:mm:ss` | Time (24-hour) | 10:30:00 |
+| `.sss` | Milliseconds (optional) | .123 |
+| `Z` | UTC timezone | Z |
+| `±HH:mm` | Timezone offset | +05:30 |
+
+# Validation
+
+The Datetime primitive validates:
+
+- String must be a valid ISO 8601 datetime format
+- Date portion must be valid (see [date](/sdk/primitives/date))
+- Time portion must be valid (see [time](/sdk/primitives/time))
+- Timezone must be specified (Z or offset)
+
+```ts
+// Valid
+para.datetime('2024-01-15T10:30:00Z')
+para.datetime('2024-01-15T10:30:00.123Z')
+para.datetime('2024-01-15T10:30:00+05:30')
+para.datetime('2024-01-15T10:30:00-08:00')
+
+// Invalid - throws Error
+para.datetime('2024-01-15')
+// Error: Invalid Datetime: missing time component
+
+para.datetime('2024-01-15T10:30:00')
+// Error: Invalid Datetime: missing timezone
+
+para.datetime('2024-01-15 10:30:00Z')
+// Error: Invalid Datetime: must use T separator
+
+para.datetime('not-a-datetime')
+// Error: Invalid Datetime: invalid format
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Date](/sdk/primitives/date) - Date only
+- [Time](/sdk/primitives/time) - Time only
+- [Datetime Field](/sdk/artifacts/form/field#datetime) - Datetime field type

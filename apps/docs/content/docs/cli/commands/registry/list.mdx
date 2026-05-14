@@ -1,0 +1,38 @@
+---
+title: registry list
+description: List configured registries
+ogTitle: para registry list
+ogDescription: View all configured Paradoc registries
+---
+
+List all configured registries.
+
+# Usage
+
+```bash
+para registry list [options]
+para registry ls [options]
+```
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+# Output
+
+```
+Configured registries (2):
+
+@acme [project]
+  https://registry.acme.com
+
+@company [global]
+  https://registry.company.com
+```
+
+# See also
+
+- [registry add](/cli/commands/registry/add) - Add a registry
+- [registry info](/cli/commands/registry/info) - Show registry details

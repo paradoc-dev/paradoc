@@ -1,0 +1,212 @@
+---
+title: Configuration
+description: Configure the Paradoc CLI
+ogTitle: Paradoc CLI Configuration
+ogDescription: Learn how to configure global settings, project overrides, environment variables, and more
+---
+
+The CLI reads settings from two places: a **global config** for user-wide preferences, and the **project manifest** for project-specific overrides. This page explains the configuration system, including environment variables, renderer plugins, cache, and proxy support.
+
+# Global configuration
+
+The global config lives at `~/.paradoc/config.json`. It applies to all projects unless overridden.
+
+```json
+{
+  "$schema": "https://schema.paradoc.dev/cli/global-config.json",
+  "defaults": {
+    "format": "yaml",
+    "artifactsDir": "artifacts",
+    "registry": "@paradoc"
+  },
+  "registries": {
+    "@company": "https://registry.company.com"
+  },
+  "cache": {
+    "ttl": 3600,
+    "directory": "~/.paradoc/cache"
+  },
+  "security": {
+    "allowedContentTypes": ["application/pdf", "text/markdown"]
+  }
+}
+```
+
+## Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `defaults.format` | string | `"yaml"` | Default output format (`json`, `yaml`, `typed`, `ts`) |
+| `defaults.artifactsDir` | string | `"artifacts"` | Default directory for downloaded artifacts |
+| `defaults.registry` | string | `"@paradoc"` | Registry namespace used when none is specified |
+| `registries` | object | — | Registry configuration by namespace |
+| `cache.ttl` | number | `3600` | Cache time-to-live in seconds |
+| `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory |
+| `security.allowedContentTypes` | array | — | Permitted content types for layer downloads |
+
+# Project overrides
+
+The `paradoc.json` manifest can override global settings on a per-project basis. These fields take precedence over the global config:
+
+- `artifacts.format` — output format
+- `artifacts.dir` — artifacts directory
+- `registries` — registry mappings
+- `cache.ttl` — cache duration
+- `security` — security restrictions
+
+See the [project manifest](/cli/projects#the-project-manifest) reference for full details.
+
+# Precedence
+
+When resolving a setting, the CLI checks in this order:
+
+1. **CLI flags** (highest priority)
+2. **Project config** (`paradoc.json`)
+3. **Global config** (`~/.paradoc/config.json`)
+4. **Built-in defaults** (lowest priority)
+
+For registries, a project-level namespace mapping always wins over the same namespace in the global config.
+
+# Global flags
+
+These flags can be passed to any command:
+
+| Flag | Description |
+|------|-------------|
+| `--no-telemetry` | Disable telemetry for this invocation |
+| `-h, --help` | Display help for the command |
+| `-v, --version` | Display the CLI version |
+
+```bash
+para --no-telemetry add @paradoc/w9
+```
+
+# The configure wizard
+
+The [`para configure`](/cli/commands/configure) command walks you through each setting interactively and saves results to the global config:
+
+```bash
+para configure
+```
+
+The wizard covers output format, artifacts directory, cache TTL, and default registry. Press Enter at any prompt to keep the current value.
+
+# Environment variables
+
+Registry URLs and headers support `${VAR_NAME}` expansion:
+
+```json
+{
+  "registries": {
+    "@private": {
+      "url": "${PRIVATE_REGISTRY_URL}",
+      "headers": {
+        "Authorization": "Bearer ${REGISTRY_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+The CLI will error if a referenced environment variable is not set. This works in both the global config and the project manifest.
+
+# Renderer plugins
+
+Renderers are not bundled with the CLI to keep the base install small (~1.1 MB). The first time you run [`render`](/cli/commands/render) or [`inspect`](/cli/commands/inspect), the required renderer is automatically installed to `~/.paradoc/renderers/`.
+
+Three renderers are available:
+
+| Renderer | Formats |
+|----------|---------|
+| `@paradoc/renderer-text` | Text, Markdown, HTML |
+| `@paradoc/renderer-pdf` | PDF |
+| `@paradoc/renderer-docx` | DOCX |
+
+Manage renderers manually with [`para renderers`](/cli/commands/renderers):
+
+```bash
+para renderers status    # Show installation status
+para renderers install   # Install all renderers
+para renderers update    # Update to match CLI version
+```
+
+# Cache
+
+Registry data is cached locally at `~/.paradoc/cache/` to speed up repeated operations. The default TTL is 1 hour (3600 seconds).
+
+Override the TTL globally in the config:
+
+```json
+{
+  "cache": {
+    "ttl": 7200
+  }
+}
+```
+
+Or per registry:
+
+```json
+{
+  "registries": {
+    "@acme": {
+      "url": "https://registry.acme.com",
+      "cache": {
+        "ttl": 300
+      }
+    }
+  }
+}
+```
+
+Manage the cache with [`para cache`](/cli/commands/cache):
+
+```bash
+para cache stats         # Show cache statistics
+para cache clear         # Clear all cached data
+para cache invalidate @acme  # Invalidate a specific registry
+```
+
+# Proxy support
+
+The CLI respects standard proxy environment variables for outbound HTTP requests:
+
+- `HTTPS_PROXY` / `https_proxy`
+- `HTTP_PROXY` / `http_proxy`
+
+```bash
+export HTTPS_PROXY=http://proxy.example.com:8080
+para search --query "lease"
+```
+
+# Telemetry
+
+The CLI collects anonymous usage data (commands run, artifact kinds installed) to help improve the tool. No personal information or artifact content is collected.
+
+Telemetry can be disabled in three ways:
+
+**CLI flag** (per invocation):
+
+```bash
+para --no-telemetry add @paradoc/w9
+```
+
+**Global config** (persistent):
+
+```json
+{
+  "telemetry": {
+    "enabled": false
+  }
+}
+```
+
+**Environment variables:**
+
+| Variable | Purpose |
+|----------|---------|
+| `OFM_TELEMETRY_DISABLED=1` | Disable telemetry |
+| `DO_NOT_TRACK=1` | Disable telemetry (cross-tool standard) |
+| `OFM_TELEMETRY_DEBUG=1` | Log telemetry events to console |
+
+When multiple settings conflict, the CLI checks in this order: CLI flag, environment variables, global config. Any opt-out at any level disables telemetry entirely.

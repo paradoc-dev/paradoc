@@ -1,0 +1,147 @@
+---
+title: Document
+description: An artifact for static documents
+---
+
+A Document is a static document. It is the simplest artifact in Paradoc.
+
+Documents are used for disclosures, pamphlets, statutory notices, or any other static content.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: '"document"',
+    description: 'Literal "document" discriminator',
+  },
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Unique identifier; must follow slug constraints',
+  },
+  {
+    name: 'version',
+    type: 'string',
+    description: 'Artifact version (semantic versioning)',
+    isOptional: true,
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-friendly name presented to end users',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Long-form description or context',
+    isOptional: true,
+  },
+  {
+    name: 'code',
+    type: 'string',
+    description: 'Internal code or reference number',
+    isOptional: true,
+  },
+  {
+    name: 'releaseDate',
+    type: 'string',
+    description: 'ISO date string indicating when the artifact was released',
+    isOptional: true,
+  },
+  {
+    name: 'metadata',
+    type: 'Metadata',
+    description: 'Custom metadata map (keys must be alphanumeric with hyphens)',
+    isOptional: true,
+  },
+  {
+    name: 'instructions',
+    type: 'ContentRef',
+    description: 'Domain or compliance reference content (e.g., regulatory guidance)',
+    isOptional: true,
+  },
+  {
+    name: 'agentInstructions',
+    type: 'ContentRef',
+    description: 'LLM/agent prompts for presentation guidance',
+    isOptional: true,
+  },
+  {
+    name: 'layers',
+    type: 'Record<string, Layer>',
+    description: 'Named layers for rendering this document into different formats',
+    isOptional: true,
+  },
+  {
+    name: 'defaultLayer',
+    type: 'string',
+    description: 'Key of the default layer to use when none specified',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+kind: document
+name: lead-paint-disclosure
+version: "1.0.0"
+title: Lead Paint Disclosure
+description: Required disclosure for properties built before 1978
+
+layers:
+  pdf:
+    kind: file
+    mimeType: application/pdf
+    path: /disclosures/lead-paint.pdf
+    title: PDF Version
+
+  markdown:
+    kind: inline
+    mimeType: text/markdown
+    text: |
+      # Lead Paint Disclosure
+
+      This property was built before 1978 and may contain lead-based paint.
+
+      # Important Information
+
+      Lead from paint, paint chips, and dust can pose health hazards...
+
+defaultLayer: pdf
+```
+
+```json tab="JSON"
+{
+  "kind": "document",
+  "name": "lead-paint-disclosure",
+  "version": "1.0.0",
+  "title": "Lead Paint Disclosure",
+  "description": "Required disclosure for properties built before 1978",
+  "code": "EPA-747-K-12-001",
+  "metadata": {
+    "agency": "EPA/HUD"
+  },
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "/disclosures/lead-paint.pdf",
+      "title": "Lead Paint Disclosure"
+    },
+    "markdown": {
+      "kind": "file",
+      "mimeType": "text/markdown",
+      "path": "/disclosures/lead-paint.md",
+      "title": "Lead Paint Disclosure"
+    }
+  },
+  "defaultLayer": "pdf"
+}
+```
+
+# Related
+
+- [Layer](/schemas/artifacts/shared/layer) - Layer specification details

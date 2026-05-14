@@ -1,0 +1,68 @@
+---
+title: About the Skill
+description: Install the Paradoc agent skill into Claude Code or Claude.ai for inline guidance while building with Paradoc
+ogTitle: Paradoc Agent Skill
+ogDescription: Static reference and workflow guidance for AI coding assistants working with Paradoc
+---
+
+The Paradoc agent skill is a static reference package that teaches AI coding assistants how to use Paradoc. Once installed, your assistant has inline knowledge of every Paradoc surface (SDK, CLI, raw schemas, MCP) and end-to-end workflows for creating new forms or converting PDFs — without needing to read the docs site mid-task.
+
+The skill is loaded on demand: only relevant references are pulled into the context window when the assistant works on a Paradoc task.
+
+# What's covered
+
+The skill ships with three categories of references:
+
+| Category | Files | What they cover |
+|---|---|---|
+| **Surface** | `sdk`, `cli`, `schemas`, `mcp` | How to express things on each surface — TypeScript SDK, `para` CLI, raw JSON/YAML, hosted MCP |
+| **Topic** | `artifacts`, `fields`, `parties`, `annexes`, `logic`, `layers`, `rendering`, `serialization`, `instructions`, `pdf-bindings` | Canonical concept knowledge — surface-agnostic |
+| **Workflow** | `workflow-create-form`, `workflow-convert-pdf` | Staged interactive pipelines |
+
+# Installation
+
+<Tabs items={['Claude Code', 'Claude.ai', 'Other agents']} groupId="skill-client" persist>
+  <Tab value="Claude Code">
+    ```bash
+    npx skills add https://github.com/paradoc-dev/skills --skill paradoc
+    ```
+
+    Once installed, the skill activates automatically when Claude Code detects Paradoc-related work — `@paradoc/*` imports, the `para` CLI, JSON/YAML artifacts, or `mcp.paradoc.dev`.
+
+    To install manually:
+
+    ```bash
+    git clone https://github.com/paradoc-dev/skills.git
+    cp -r skills/skills/paradoc ~/.claude/skills/
+    ```
+  </Tab>
+  <Tab value="Claude.ai">
+    Add the skill to your project knowledge:
+
+    1. Clone the [skills repo](https://github.com/paradoc-dev/skills)
+    2. Upload `skills/paradoc/SKILL.md` and any relevant references from `skills/paradoc/references/` to your Claude.ai project knowledge
+  </Tab>
+  <Tab value="Other agents">
+    The skill follows the [Agent Skills specification](https://agentskills.io/specification.md), so it works with any agent that supports the spec (Cursor, Windsurf, Codex, etc.).
+
+    ```bash
+    git clone https://github.com/paradoc-dev/skills.git
+    ```
+
+    Point your agent's skill loader at `skills/skills/paradoc/SKILL.md`.
+  </Tab>
+</Tabs>
+
+# Pairing with MCP
+
+The skill and the [hosted MCP server](/mcp) are complementary — install both for the strongest setup:
+
+| | Skill | MCP |
+|---|---|---|
+| **Provides** | Static reference and workflow guidance | Runtime tools (validate, fill, render, search) |
+| **Loaded** | On demand by the agent | Connected as a tool server |
+| **Best for** | Writing code, designing artifacts, debugging | Browsing the registry, rendering live artifacts |
+
+# Source
+
+The skill lives at [github.com/paradoc-dev/skills](https://github.com/paradoc-dev/skills). Issues, contributions, and proposed reference additions welcome there.

@@ -1,0 +1,17 @@
+{
+  "title": "Paradoc Documentation",
+  "pages": [
+    "index",
+    "quickstart",
+    "concepts",
+    "guides",
+    "--- Reference ---",
+    "schemas",
+    "sdk",
+    "cli",
+    "mcp",
+    "skill",
+    "ai"
+  ],
+  "defaultOpen": true
+}

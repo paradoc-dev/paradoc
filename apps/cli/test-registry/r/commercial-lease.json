@@ -1,0 +1,139 @@
+{
+  "$schema": "https://schema.paradoc.dev/registry-item.json",
+  "kind": "form",
+  "name": "commercial-lease",
+  "version": "1.0.0",
+  "title": "Commercial Lease Agreement",
+  "description": "Commercial property lease agreement for business tenants",
+  "fields": {
+    "landlordName": {
+      "type": "text",
+      "label": "Landlord/Property Owner",
+      "description": "Legal name of the property owner or management company",
+      "required": true
+    },
+    "landlordAddress": {
+      "type": "text",
+      "label": "Landlord Address",
+      "required": true
+    },
+    "businessName": {
+      "type": "text",
+      "label": "Business Name",
+      "description": "Legal name of the tenant business entity",
+      "required": true
+    },
+    "businessType": {
+      "type": "enum",
+      "label": "Business Type",
+      "enum": ["LLC", "Corporation", "Partnership", "Sole Proprietorship", "Non-Profit"],
+      "required": true
+    },
+    "contactName": {
+      "type": "text",
+      "label": "Primary Contact",
+      "description": "Name of the primary business contact",
+      "required": true
+    },
+    "contactEmail": {
+      "type": "email",
+      "label": "Contact Email",
+      "required": true
+    },
+    "propertyAddress": {
+      "type": "text",
+      "label": "Property Address",
+      "description": "Address of the commercial property",
+      "required": true
+    },
+    "suiteNumber": {
+      "type": "text",
+      "label": "Suite/Unit Number",
+      "required": false
+    },
+    "squareFootage": {
+      "type": "number",
+      "label": "Square Footage",
+      "description": "Total rentable square footage",
+      "min": 1,
+      "required": true
+    },
+    "zoning": {
+      "type": "enum",
+      "label": "Zoning Classification",
+      "enum": ["retail", "office", "industrial", "mixed-use", "warehouse"],
+      "required": true
+    },
+    "permittedUse": {
+      "type": "text",
+      "label": "Permitted Use",
+      "description": "Description of the permitted business use of the premises",
+      "required": true
+    },
+    "monthlyBaseRent": {
+      "type": "number",
+      "label": "Monthly Base Rent",
+      "description": "Base monthly rent amount in USD",
+      "min": 0,
+      "required": true
+    },
+    "camCharges": {
+      "type": "number",
+      "label": "CAM Charges",
+      "description": "Common Area Maintenance charges per month",
+      "min": 0,
+      "required": true
+    },
+    "securityDeposit": {
+      "type": "number",
+      "label": "Security Deposit",
+      "min": 0,
+      "required": true
+    },
+    "leaseTermYears": {
+      "type": "number",
+      "label": "Lease Term (Years)",
+      "min": 1,
+      "max": 30,
+      "required": true
+    },
+    "leaseStartDate": {
+      "type": "text",
+      "label": "Lease Start Date",
+      "required": true
+    },
+    "renewalOption": {
+      "type": "boolean",
+      "label": "Renewal Option",
+      "description": "Whether tenant has option to renew",
+      "required": true
+    },
+    "renewalTermYears": {
+      "type": "number",
+      "label": "Renewal Term (Years)",
+      "min": 1,
+      "max": 10,
+      "required": false
+    },
+    "tenantImprovements": {
+      "type": "boolean",
+      "label": "Tenant Improvements Allowed",
+      "description": "Whether tenant may make improvements to the space",
+      "required": true
+    }
+  },
+  "layers": {
+    "default": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# COMMERCIAL LEASE AGREEMENT\n\n## PARTIES\n\n**LANDLORD:**\n- Name: {{landlordName}}\n- Address: {{landlordAddress}}\n\n**TENANT:**\n- Business Name: {{businessName}}\n- Business Type: {{businessType}}\n- Contact: {{contactName}}\n- Email: {{contactEmail}}\n\n## PREMISES\n\n- **Address:** {{propertyAddress}}\n- **Suite/Unit:** {{suiteNumber}}\n- **Square Footage:** {{squareFootage}} sq ft\n- **Zoning:** {{zoning}}\n- **Permitted Use:** {{permittedUse}}\n\n## LEASE TERM\n\n- **Term:** {{leaseTermYears}} years\n- **Start Date:** {{leaseStartDate}}\n- **Renewal Option:** {{renewalOption}}\n- **Renewal Term:** {{renewalTermYears}} years\n\n## RENT AND CHARGES\n\n- **Monthly Base Rent:** ${{monthlyBaseRent}}\n- **CAM Charges:** ${{camCharges}}/month\n- **Total Monthly:** ${{monthlyBaseRent}} + ${{camCharges}}\n- **Security Deposit:** ${{securityDeposit}}\n\n## TENANT IMPROVEMENTS\n\n- **Improvements Allowed:** {{tenantImprovements}}\n\n## SIGNATURES\n\n_____________________________\nLandlord Signature & Date\n\n_____________________________\nTenant Signature & Date\n"
+    },
+    "legal": {
+      "kind": "file",
+      "mimeType": "text/markdown",
+      "path": "commercial-lease-legal.md",
+      "url": "http://localhost:4567/files/commercial-lease-legal.md"
+    }
+  },
+  "defaultLayer": "default"
+}

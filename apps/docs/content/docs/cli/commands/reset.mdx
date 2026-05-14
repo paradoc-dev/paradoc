@@ -1,0 +1,81 @@
+---
+title: reset
+description: Reset CLI to factory defaults
+ogTitle: para reset
+ogDescription: Reset the Paradoc CLI to factory default settings
+---
+
+Reset the Paradoc CLI to factory defaults.
+
+# Usage
+
+```bash
+para reset [options]
+```
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Skip confirmation prompt |
+| `--keep-registries` | Keep registry configurations |
+| `--keep-cache` | Keep cached data |
+
+# Description
+
+Performs a factory reset of the CLI by:
+
+1. Clearing the registry cache (`~/.paradoc/cache`)
+2. Removing all installed renderer plugins (`~/.paradoc/renderers`)
+3. Creating a fresh default configuration (`~/.paradoc/config.json`)
+
+You will be prompted for confirmation unless `--yes` is passed.
+
+# Examples
+
+Full reset:
+
+```bash
+para reset -y
+```
+
+Reset but keep registries:
+
+```bash
+para reset --keep-registries
+```
+
+Reset but keep cache:
+
+```bash
+para reset --keep-cache
+```
+
+# Output
+
+```
+Paradoc CLI Reset
+
+This will:
+  • Create fresh default config (~/.paradoc/config.json)
+    - Registry configurations will be removed
+  • Clear cache (~/.paradoc/cache) - 45.2 KB
+✓ Cleared 12 cached entries
+✓ Cleared installed renderers
+✓ Created default configuration
+
+✓ Paradoc CLI has been reset to factory defaults
+
+Default settings:
+  Output format: json
+  Artifacts directory: artifacts
+  Cache TTL: 3600s (1 hour)
+  Cache directory: ~/.paradoc/cache
+  Telemetry: enabled
+```
+
+# See also
+
+- [configure](/cli/commands/configure) - Interactive configuration wizard
+- [cache](/cli/commands/cache) - Manage registry cache
+- [renderers](/cli/commands/renderers) - Manage renderer plugins

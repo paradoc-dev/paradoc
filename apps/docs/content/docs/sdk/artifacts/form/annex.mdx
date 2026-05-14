@@ -1,0 +1,148 @@
+---
+title: annex
+description: Define supplementary document slots
+---
+
+Define annex slots for supplementary documents that can be attached to a form. Annexes are predefined placeholders for supporting documents like IDs, contracts, or receipts.
+
+# Examples
+
+## Creating annexes
+
+```ts
+// Required document
+const photoId = annex()
+  .title('Photo ID')
+  .description('Upload a government-issued photo ID')
+  .required()
+  .order(1)
+  .build()
+
+// Optional document
+const proofOfAddress = annex()
+  .title('Proof of Address')
+  .description('Utility bill or bank statement')
+  .build()
+
+// Conditionally required (using logic expression)
+const parentConsent = annex()
+  .title('Parental Consent Form')
+  .required('!isAdult')
+  .visible('!isAdult')
+  .build()
+```
+
+## Adding annexes to forms
+
+```ts
+// Object pattern
+const form = para.form({
+  name: 'application',
+  annexes: {
+    photoId: { title: 'Photo ID', required: true },
+    proofOfAddress: { title: 'Proof of Address' }
+  },
+  allowAdditionalAnnexes: true  // Allow additional ad-hoc attachments
+})
+
+// Builder pattern
+const form = para.form()
+  .name('application')
+  .annex('photoId', annex().title('Photo ID').required().build())
+  .annex('proofOfAddress', annex().title('Proof of Address').build())
+  .allowAdditionalAnnexes(true)
+  .build()
+```
+
+# API
+
+## Object Pattern
+
+Create annex definitions directly as objects:
+
+```ts
+const annexDef: FormAnnex = {
+  title: 'Photo ID',
+  description: 'Government-issued photo identification',
+  required: true,
+  visible: true,
+  order: 1
+}
+```
+
+### Properties
+
+<PropertiesTable properties={[
+  { name: 'title', type: 'string', description: 'Display title for the annex slot', isOptional: true },
+  { name: 'description', type: 'string', description: 'Description of what document to attach', isOptional: true },
+  { name: 'required', type: 'boolean | string', description: 'Whether annex must be filled. Can be an expression.', isOptional: true },
+  { name: 'visible', type: 'boolean | string', description: 'Whether annex is visible. Can be an expression.', isOptional: true },
+  { name: 'order', type: 'number', description: 'Display order for rendering', isOptional: true },
+]} />
+
+## Builder Pattern
+
+Chain methods to build an annex incrementally:
+
+<MethodChain
+  starter="annex()"
+  methods={[
+    { name: 'title', params: 'value: string', description: 'Set display title' },
+    { name: 'description', params: 'value: string', description: 'Set description text' },
+    { name: 'required', params: 'value?: boolean | string', description: 'Mark as required (default: true). Accepts expression.' },
+    { name: 'visible', params: 'value?: boolean | string', description: 'Set visibility (default: true). Accepts expression.' },
+    { name: 'order', params: 'value: number', description: 'Set display order for rendering' },
+    { name: 'from', params: 'value: FormAnnex', description: 'Initialize from existing annex' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'FormAnnexBuilder', terminal: 'FormAnnex' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'FormAnnex', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<FormAnnex>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Conditional Annexes
+
+Use defs for conditional requirements:
+
+```ts
+const form = para.form()
+  .name('loan-application')
+  .def('isLargeAmount', 'amount > 50000')
+  .def('isMinor', 'age < 18')
+  .annex('financialStatements', annex()
+    .title('Financial Statements')
+    .description('Required for loans over $50,000')
+    .required('isLargeAmount')
+    .visible('isLargeAmount')
+    .build())
+  .annex('parentConsent', annex()
+    .title('Parental Consent')
+    .required('isMinor')
+    .visible('isMinor')
+    .build())
+  .build()
+```
+
+# Ad-hoc Annexes
+
+Set `allowAdditionalAnnexes: true` on the form to permit additional attachments beyond predefined slots:
+
+```ts
+const form = para.form({
+  name: 'application',
+  annexes: {
+    requiredDoc: { title: 'Required Document', required: true }
+  },
+  allowAdditionalAnnexes: true  // Users can attach additional documents
+})
+```
+
+# Related
+
+- [form](/sdk/artifacts/form) - Parent form artifact
+- [Annex Schema](/schemas/artifacts/form/annex)

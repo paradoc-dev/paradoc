@@ -1,0 +1,38 @@
+---
+title: Money
+description: A monetary amount with currency
+---
+
+A Money is a structured primitive that represents a monetary amount paired with an ISO 4217 currency code.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'amount',
+    type: 'number',
+    description: 'Amount expressed in decimal form (supports negative values).',
+  },
+  {
+    name: 'currency',
+    type: 'string',
+    description: 'ISO 4217 alpha-3 currency code (e.g., USD, EUR).',
+  },
+]} />
+
+# Examples
+
+
+
+```yaml tab="YAML"
+amount: 99.99
+currency: USD
+```
+
+
+```json tab="JSON"
+{
+  "amount": 99.99,
+  "currency": "USD"
+}
+```

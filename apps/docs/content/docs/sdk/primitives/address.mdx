@@ -1,0 +1,174 @@
+---
+title: address
+description: Build and validate postal addresses
+---
+
+Build and validate postal addresses with structured components. The Address primitive provides a standardized structure for capturing location information.
+
+# Examples
+
+## Creating addresses
+
+```ts
+// Object pattern
+const addr = para.address({
+  line1: '123 Main Street',
+  locality: 'New York',
+  region: 'NY',
+  postalCode: '10001',
+  country: 'US'
+})
+
+// Builder pattern
+const addr = para.address()
+  .line1('123 Main Street')
+  .line2('Suite 400')
+  .locality('New York')
+  .region('NY')
+  .postalCode('10001')
+  .country('US')
+  .build()
+
+// Copy and modify
+const updated = para.address()
+  .from(addr)
+  .line2('Suite 500')
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const addr = para.address.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.address.safeParse(jsonData)
+if (result.success) {
+  console.log(`${result.data.locality}, ${result.data.region}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'shipping',
+  fields: {
+    shippingAddress: { type: 'address', label: 'Shipping Address' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    shippingAddress: para.address()
+      .line1('456 Oak Avenue')
+      .locality('Los Angeles')
+      .region('CA')
+      .postalCode('90001')
+      .country('US')
+      .build()
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.address(input: Address): Address
+```
+
+Pass an Address object for validation. Returns the validated Address or throws on error.
+
+```ts
+const addr = para.address({
+  line1: '123 Main St',
+  locality: 'Boston',
+  region: 'MA',
+  postalCode: '02101',
+  country: 'US'
+})
+```
+
+## Builder Pattern
+
+Chain methods to build an Address value incrementally:
+
+<MethodChain
+  starter="para.address()"
+  methods={[
+    { name: 'line1', params: 'value: string', description: 'Set primary street address' },
+    { name: 'line2', params: 'value: string | undefined', description: 'Set secondary address (apt, suite)' },
+    { name: 'locality', params: 'value: string', description: 'Set city or town' },
+    { name: 'region', params: 'value: string', description: 'Set state, province, or region' },
+    { name: 'postalCode', params: 'value: string', description: 'Set postal or ZIP code' },
+    { name: 'country', params: 'value: string', description: 'Set country code (ISO 3166-1 alpha-2)' },
+    { name: 'from', params: 'value: Address', description: 'Initialize from existing Address' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'AddressBuilder', terminal: 'Address' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Address', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Address>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'line1', type: 'string', description: 'Primary street address line.' },
+  { name: 'line2', type: 'string?', description: 'Secondary address line (apartment, suite, unit).' },
+  { name: 'locality', type: 'string', description: 'City, town, or locality name.' },
+  { name: 'region', type: 'string', description: 'State, province, or region.' },
+  { name: 'postalCode', type: 'string', description: 'Postal code or ZIP code.' },
+  { name: 'country', type: 'string', description: 'Country code (ISO 3166-1 alpha-2 recommended).' },
+]} />
+
+# Validation
+
+The Address primitive validates:
+
+- `line1` must be a non-empty string
+- `locality` must be a non-empty string
+- `region` must be a non-empty string
+- `postalCode` must be a non-empty string
+- `country` must be a non-empty string
+- `line2` is optional
+
+```ts
+// Valid
+para.address({
+  line1: '123 Main St',
+  locality: 'NYC',
+  region: 'NY',
+  postalCode: '10001',
+  country: 'US'
+})
+
+// With optional line2
+para.address({
+  line1: '123 Main St',
+  line2: 'Apt 4B',
+  locality: 'NYC',
+  region: 'NY',
+  postalCode: '10001',
+  country: 'US'
+})
+
+// Invalid - throws Error
+para.address({ line1: '123 Main St' })
+// Error: Invalid Address: locality is required
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Address Field](/sdk/artifacts/form/field#address) - Address field type
+- [Address Schema](/schemas/primitives/address) - JSON Schema definition

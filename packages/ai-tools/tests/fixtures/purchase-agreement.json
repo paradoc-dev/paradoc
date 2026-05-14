@@ -1,0 +1,29 @@
+{
+  "kind": "form",
+  "name": "purchase-agreement",
+  "title": "Purchase Agreement",
+  "version": "1.0.0",
+  "fields": {
+    "quantity": { "type": "number", "label": "Quantity", "required": true },
+    "price": { "type": "money", "label": "Price", "required": true },
+    "date": { "type": "date", "label": "Date", "required": true }
+  },
+  "parties": {
+    "buyer": {
+      "label": "Buyer",
+      "signature": { "required": true }
+    },
+    "seller": {
+      "label": "Seller",
+      "signature": { "required": true }
+    }
+  },
+  "defaultLayer": "markdown",
+  "layers": {
+    "markdown": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# Purchase Agreement\n\n{{parties.buyer.name}} agrees to purchase {{quantity}} units at {{price}} each.\n{{parties.seller.name}} agrees to deliver by {{date}}."
+    }
+  }
+}

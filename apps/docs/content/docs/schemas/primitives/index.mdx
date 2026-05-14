@@ -1,0 +1,23 @@
+---
+title: Primitive Schemas
+description: Reusable schemas for common data types
+---
+
+Primitives are schemas that are used to represent common data types such as people or addresses.
+
+These are defined in Paradoc as schemas to encourage re-use and consistency across library implementations.
+
+| Primitive | Description |
+|-----------|-------------|
+| [Address](/schemas/primitives/address) | Postal address with street, locality, region, postal code, and country |
+| [Attachment](/schemas/primitives/attachment) | Attached document data (file name, MIME type, checksum) |
+| [Bbox](/schemas/primitives/bbox) | Geographic bounding box defined by southwest and northeast coordinates |
+| [Coordinate](/schemas/primitives/coordinate) | Geographic coordinate in WGS84 with latitude/longitude in decimal degrees |
+| [Duration](/schemas/primitives/duration) | ISO 8601 duration string (e.g., `P1Y`, `PT30M`, `P1DT12H`) |
+| [Identification](/schemas/primitives/identification) | Identification document details (passport, SSN, driver's license) |
+| [Metadata](/schemas/primitives/metadata) | Custom key-value pairs for domain-specific data |
+| [Money](/schemas/primitives/money) | Monetary amount paired with ISO 4217 currency code |
+| [Organization](/schemas/primitives/organization) | Organization identity with legal and registration details |
+| [Person](/schemas/primitives/person) | Person name information with required `name` and optional components |
+| [Phone](/schemas/primitives/phone) | Phone number in E.164 format with optional type/extension |
+| [Signature](/schemas/primitives/signature) | Captured signature data (image, timestamp, method) |

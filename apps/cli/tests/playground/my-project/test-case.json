@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.paradoc.org/2025-12-01/case.schema.json",
+  "kind": "case",
+  "name": "test-case",
+  "title": "Test Case",
+  "version": "1.0.0",
+  "contents": []
+}
+

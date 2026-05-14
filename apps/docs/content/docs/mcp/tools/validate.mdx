@@ -1,0 +1,76 @@
+---
+title: validate
+description: Validate an Paradoc artifact against the schema and logic rules
+ogTitle: validate — Paradoc MCP
+ogDescription: Validate an Paradoc artifact against the schema and logic rules using the MCP server
+---
+
+Validates an Paradoc artifact (form, document, bundle, or checklist) against the Paradoc schema and optionally checks logic expressions.
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `artifact` | `object` | Yes | The Paradoc artifact object to validate |
+| `options.schema` | `boolean` | No | Validate schema structure (default: `true`) |
+| `options.logic` | `boolean` | No | Validate logic expressions (default: `true`) |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the artifact passed validation |
+| `detectedKind` | `string` | Detected artifact kind: `form`, `document`, `bundle`, or `checklist` |
+| `issues` | `array` | List of validation issues, each with `message` and optional `path` |
+| `error` | `string` | Error message if validation could not be performed (returned instead of `detectedKind` and `issues`) |
+
+# Example
+
+```json
+// Request
+{
+  "artifact": {
+    "kind": "form",
+    "title": "My Form",
+    "schema": "2026-01-01",
+    "fields": []
+  }
+}
+
+// Response
+{
+  "valid": true,
+  "detectedKind": "form"
+}
+```
+
+When validation fails, the response includes the list of issues:
+
+```json
+{
+  "valid": false,
+  "detectedKind": "form",
+  "issues": [
+    {
+      "message": "Required property 'title' is missing",
+      "path": ["title"]
+    }
+  ]
+}
+```
+
+# Disabling checks
+
+You can disable schema or logic validation independently using the `options` parameter:
+
+```json
+{
+  "artifact": { "kind": "form", "..." : "..." },
+  "options": {
+    "schema": true,
+    "logic": false
+  }
+}
+```
+
+This is useful when you want to validate only the structure without checking logic expressions, or vice versa.

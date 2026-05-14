@@ -1,0 +1,277 @@
+---
+title: Registries
+description: Consuming and creating Paradoc artifact registries
+ogTitle: Paradoc Registries
+ogDescription: Learn how to use artifact registries and host your own
+---
+
+A registry is a hosted collection of Paradoc artifacts. Registries can be public or private. The CLI uses them to discover, install, and manage artifacts in your projects.
+
+# Using registries
+
+## Adding a registry
+
+Add a registry to your project by editing `paradoc.json`:
+
+```json
+{
+  "registries": {
+    "@acme": "https://registry.acme.com"
+  }
+}
+```
+
+Or add one globally so it's available across all projects:
+
+```bash
+para registry add @acme https://registry.acme.com --global
+```
+
+For registries that require authentication, use the extended format:
+
+```json
+{
+  "registries": {
+    "@private": {
+      "url": "https://registry.example.com",
+      "headers": {
+        "Authorization": "Bearer ${REGISTRY_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `url` | Registry base URL |
+| `headers` | Custom headers (supports `${ENV_VAR}` expansion) |
+| `allowInsecure` | Allow HTTP URLs (for local development only) |
+| `cache.ttl` | Per-registry cache TTL override in seconds |
+
+## Searching for artifacts
+
+Use [`para search`](/cli/commands/search) to query a registry:
+
+```bash
+para search --query "lease"
+para search --kind form --tags legal
+para search --registry @acme "tax"
+```
+
+The query matches against artifact names, titles, and descriptions. Filter by `--kind` or `--tags` to narrow results.
+
+## Installing artifacts
+
+Use [`para add`](/cli/commands/add) to install an artifact. The CLI resolves the namespace to a registry, downloads the definition, writes it to your artifacts directory, and updates the lock file:
+
+```bash
+para add @acme/residential-lease
+```
+
+Download layers alongside the definition:
+
+```bash
+para add @acme/residential-lease --layers all
+```
+
+## Viewing artifact details
+
+View metadata for an installed artifact:
+
+```bash
+para registry view @acme/residential-lease
+```
+
+## Direct URL installs
+
+Install from a URL directly, bypassing namespace resolution:
+
+```bash
+para add https://example.com/artifacts/my-form.yaml
+```
+
+## Private registries
+
+For private registries, configure authentication headers with environment variable tokens:
+
+```json
+{
+  "registries": {
+    "@private": {
+      "url": "https://registry.example.com",
+      "headers": {
+        "Authorization": "Bearer ${REGISTRY_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+```bash
+export REGISTRY_TOKEN="your-token-here"
+para add @private/internal-form
+```
+
+For local development servers running over HTTP, set `allowInsecure`:
+
+```json
+{
+  "registries": {
+    "@local": {
+      "url": "http://localhost:4567",
+      "allowInsecure": true
+    }
+  }
+}
+```
+
+## Managing registries
+
+List all configured registries (project and global):
+
+```bash
+para registry list
+```
+
+Remove a registry:
+
+```bash
+para registry remove @acme --global
+```
+
+See the [`registry`](/cli/commands/registry) command reference for all subcommands.
+
+---
+
+# Creating registries
+
+## Registry structure
+
+A registry is a directory containing a `registry.json` index file and individual artifact files:
+
+```
+my-registry/
+├── registry.json           # Registry index
+└── artifacts/
+    ├── residential-lease/
+    │   ├── artifact.yaml   # Artifact definition
+    │   └── lease.pdf       # Layer files
+    └── w9/
+        ├── artifact.yaml
+        └── w9.pdf
+```
+
+## Registry index
+
+The `registry.json` file lists all available artifacts:
+
+```json
+{
+  "$schema": "https://schema.paradoc.dev/registry.json",
+  "name": "@acme",
+  "title": "Acme Forms Registry",
+  "description": "Official forms and documents for Acme Corp",
+  "artifacts": [
+    {
+      "name": "residential-lease",
+      "version": "1.0.0",
+      "kind": "form",
+      "title": "Residential Lease Agreement",
+      "description": "Standard residential lease agreement",
+      "tags": ["legal", "real-estate", "lease"],
+      "path": "artifacts/residential-lease/artifact.yaml"
+    }
+  ]
+}
+```
+
+### Index fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `$schema` | string | No | JSON schema URL |
+| `name` | string | Yes | Registry namespace (e.g., `@acme`) |
+| `title` | string | Yes | Human-readable registry name |
+| `description` | string | No | Registry description |
+| `artifacts` | array | Yes | List of artifact entries |
+
+### Artifact entry fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Artifact identifier (slug) |
+| `version` | string | Yes | Semantic version |
+| `kind` | string | Yes | Artifact type: `form`, `checklist`, `document`, `bundle` |
+| `title` | string | Yes | Human-readable name |
+| `description` | string | No | Artifact description |
+| `tags` | array | No | Searchable tags |
+| `path` | string | Yes | Path to artifact file (relative to registry root) |
+
+## Workflow
+
+The CLI provides commands to scaffold and manage a registry:
+
+1. **Create the registry** — [`para registry make`](/cli/commands/registry/make) generates a `registry.json` with your namespace and metadata.
+
+2. **Add artifacts to the catalog** — [`para registry catalog`](/cli/commands/registry/catalog) manages the artifacts listed in the index.
+
+3. **Compile** — [`para registry compile`](/cli/commands/registry/compile) validates all artifacts and prepares the registry for publishing.
+
+```bash
+para registry make --name @acme --title "Acme Forms Registry"
+para registry catalog add residential-lease ./artifacts/residential-lease/artifact.yaml
+para registry compile
+```
+
+## Hosting
+
+A registry is just static files served over HTTPS. Any hosting provider or web server works:
+
+- **GitHub Pages** — free for public repositories
+- **Netlify / Vercel** — deploy from a Git repository
+- **AWS S3 + CloudFront** — scalable, cost-effective
+- **nginx / Apache** — self-hosted
+
+For local development, serve the directory with a static file server:
+
+```bash
+npx serve my-registry -l 4567
+```
+
+Then configure the local registry with `allowInsecure`:
+
+```json
+{
+  "registries": {
+    "@local": {
+      "url": "http://localhost:4567",
+      "allowInsecure": true
+    }
+  }
+}
+```
+
+## Example: GitHub Pages
+
+1. Create a repository with your registry structure (`registry.json` + `artifacts/`)
+2. Enable GitHub Pages in repository settings (serve from the root or `docs/` folder)
+3. Configure the registry in your project:
+
+```json
+{
+  "registries": {
+    "@myorg": "https://myorg.github.io/paradoc-registry"
+  }
+}
+```
+
+The CLI fetches `https://myorg.github.io/paradoc-registry/registry.json` to discover available artifacts.
+
+## Best practices
+
+1. **Version your artifacts** — use semantic versioning for all artifacts
+2. **Add descriptive tags** — help users discover artifacts through search
+3. **Include descriptions** — add descriptions to the registry, artifacts, and fields
+4. **Validate before publishing** — run `para validate` on all artifacts before compiling
+5. **Use HTTPS** — always use HTTPS in production (HTTP only for local development)

@@ -1,0 +1,194 @@
+{
+  "$schema": "https://schema.paradoc.dev/registry-item.json",
+  "kind": "checklist",
+  "name": "property-inspection",
+  "version": "1.0.0",
+  "title": "Property Inspection Checklist",
+  "description": "Comprehensive move-in/move-out property condition inspection checklist",
+  "fields": {
+    "propertyAddress": {
+      "type": "text",
+      "label": "Property Address",
+      "required": true
+    },
+    "inspectionDate": {
+      "type": "text",
+      "label": "Inspection Date",
+      "required": true
+    },
+    "inspectionType": {
+      "type": "enum",
+      "label": "Inspection Type",
+      "enum": ["move-in", "move-out", "periodic", "maintenance"],
+      "required": true
+    },
+    "inspectorName": {
+      "type": "text",
+      "label": "Inspector Name",
+      "required": true
+    },
+    "tenantName": {
+      "type": "text",
+      "label": "Tenant Name",
+      "required": false
+    },
+    "tenantPresent": {
+      "type": "boolean",
+      "label": "Tenant Present",
+      "description": "Was tenant present during inspection?",
+      "required": true
+    }
+  },
+  "items": {
+    "exterior": {
+      "title": "Exterior",
+      "description": "External property condition",
+      "items": {
+        "ext-walls": {
+          "title": "Exterior Walls",
+          "description": "Check for cracks, damage, or needed repairs"
+        },
+        "ext-windows": {
+          "title": "Windows (exterior)",
+          "description": "Check seals, frames, and glass condition"
+        },
+        "ext-doors": {
+          "title": "Entry Doors",
+          "description": "Check locks, hinges, and weatherstripping"
+        },
+        "ext-roof": {
+          "title": "Roof (visible)",
+          "description": "Check for missing shingles or visible damage"
+        },
+        "ext-gutters": {
+          "title": "Gutters & Downspouts",
+          "description": "Check for clogs and proper drainage"
+        },
+        "ext-landscaping": {
+          "title": "Landscaping",
+          "description": "Lawn, plants, trees condition"
+        }
+      }
+    },
+    "interior-general": {
+      "title": "Interior - General",
+      "description": "General interior condition",
+      "items": {
+        "int-walls": {
+          "title": "Walls",
+          "description": "Check for holes, cracks, stains"
+        },
+        "int-ceilings": {
+          "title": "Ceilings",
+          "description": "Check for water stains, cracks, peeling"
+        },
+        "int-floors": {
+          "title": "Floors",
+          "description": "Check flooring condition throughout"
+        },
+        "int-doors": {
+          "title": "Interior Doors",
+          "description": "Check operation, locks, handles"
+        },
+        "int-windows": {
+          "title": "Windows (interior)",
+          "description": "Check locks, screens, operation"
+        },
+        "int-lighting": {
+          "title": "Light Fixtures",
+          "description": "Check all fixtures and bulbs"
+        }
+      }
+    },
+    "kitchen": {
+      "title": "Kitchen",
+      "description": "Kitchen area inspection",
+      "items": {
+        "kit-cabinets": {
+          "title": "Cabinets",
+          "description": "Check doors, drawers, hinges"
+        },
+        "kit-countertops": {
+          "title": "Countertops",
+          "description": "Check for chips, stains, damage"
+        },
+        "kit-sink": {
+          "title": "Sink & Faucet",
+          "description": "Check for leaks, proper drainage"
+        },
+        "kit-stove": {
+          "title": "Stove/Oven",
+          "description": "Test all burners and oven"
+        },
+        "kit-refrigerator": {
+          "title": "Refrigerator",
+          "description": "Check operation, seals, ice maker"
+        },
+        "kit-dishwasher": {
+          "title": "Dishwasher",
+          "description": "Test operation and check for leaks"
+        }
+      }
+    },
+    "bathrooms": {
+      "title": "Bathrooms",
+      "description": "Bathroom inspection",
+      "items": {
+        "bath-toilet": {
+          "title": "Toilet",
+          "description": "Check flush operation and seals"
+        },
+        "bath-sink": {
+          "title": "Sink & Faucet",
+          "description": "Check for leaks and drainage"
+        },
+        "bath-tub": {
+          "title": "Tub/Shower",
+          "description": "Check caulking, tiles, drain"
+        },
+        "bath-exhaust": {
+          "title": "Exhaust Fan",
+          "description": "Test operation"
+        },
+        "bath-mirror": {
+          "title": "Mirror/Medicine Cabinet",
+          "description": "Check condition and mounting"
+        }
+      }
+    },
+    "systems": {
+      "title": "Building Systems",
+      "description": "Major systems inspection",
+      "items": {
+        "sys-hvac": {
+          "title": "HVAC System",
+          "description": "Test heating and cooling"
+        },
+        "sys-water-heater": {
+          "title": "Water Heater",
+          "description": "Check operation and condition"
+        },
+        "sys-electrical": {
+          "title": "Electrical Panel",
+          "description": "Check breakers and labeling"
+        },
+        "sys-smoke-detectors": {
+          "title": "Smoke Detectors",
+          "description": "Test all detectors"
+        },
+        "sys-co-detectors": {
+          "title": "CO Detectors",
+          "description": "Test carbon monoxide detectors"
+        }
+      }
+    }
+  },
+  "layers": {
+    "default": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# PROPERTY INSPECTION CHECKLIST\n\n## Property Information\n\n- **Address:** {{propertyAddress}}\n- **Inspection Date:** {{inspectionDate}}\n- **Inspection Type:** {{inspectionType}}\n- **Inspector:** {{inspectorName}}\n- **Tenant:** {{tenantName}}\n- **Tenant Present:** {{tenantPresent}}\n\n---\n\n## EXTERIOR\n\n- [ ] Exterior Walls - Check for cracks, damage, or needed repairs\n- [ ] Windows (exterior) - Check seals, frames, and glass condition\n- [ ] Entry Doors - Check locks, hinges, and weatherstripping\n- [ ] Roof (visible) - Check for missing shingles or visible damage\n- [ ] Gutters & Downspouts - Check for clogs and proper drainage\n- [ ] Landscaping - Lawn, plants, trees condition\n\n## INTERIOR - GENERAL\n\n- [ ] Walls - Check for holes, cracks, stains\n- [ ] Ceilings - Check for water stains, cracks, peeling\n- [ ] Floors - Check flooring condition throughout\n- [ ] Interior Doors - Check operation, locks, handles\n- [ ] Windows (interior) - Check locks, screens, operation\n- [ ] Light Fixtures - Check all fixtures and bulbs\n\n## KITCHEN\n\n- [ ] Cabinets - Check doors, drawers, hinges\n- [ ] Countertops - Check for chips, stains, damage\n- [ ] Sink & Faucet - Check for leaks, proper drainage\n- [ ] Stove/Oven - Test all burners and oven\n- [ ] Refrigerator - Check operation, seals, ice maker\n- [ ] Dishwasher - Test operation and check for leaks\n\n## BATHROOMS\n\n- [ ] Toilet - Check flush operation and seals\n- [ ] Sink & Faucet - Check for leaks and drainage\n- [ ] Tub/Shower - Check caulking, tiles, drain\n- [ ] Exhaust Fan - Test operation\n- [ ] Mirror/Medicine Cabinet - Check condition and mounting\n\n## BUILDING SYSTEMS\n\n- [ ] HVAC System - Test heating and cooling\n- [ ] Water Heater - Check operation and condition\n- [ ] Electrical Panel - Check breakers and labeling\n- [ ] Smoke Detectors - Test all detectors\n- [ ] CO Detectors - Test carbon monoxide detectors\n\n---\n\n## NOTES\n\n_________________________________________________________________\n\n_________________________________________________________________\n\n_________________________________________________________________\n\n## SIGNATURES\n\n_____________________________\nInspector Signature & Date\n\n_____________________________\nTenant Signature & Date (if present)\n"
+    }
+  },
+  "defaultLayer": "default"
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Primitives",
+  "pages": [
+    "index",
+    "address",
+    "bbox",
+    "coordinate",
+    "date",
+    "datetime",
+    "duration",
+    "identification",
+    "money",
+    "organization",
+    "percentage",
+    "person",
+    "phone",
+    "rating",
+    "time"
+  ],
+  "defaultOpen": false
+}

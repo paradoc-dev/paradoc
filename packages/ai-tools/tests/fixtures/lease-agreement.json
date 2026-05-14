@@ -1,0 +1,42 @@
+{
+  "kind": "form",
+  "name": "lease-agreement",
+  "title": "Residential Lease Agreement",
+  "fields": {
+    "address": { "type": "address", "label": "Property Address", "required": true },
+    "propertyType": {
+      "type": "enum",
+      "label": "Property Type",
+      "enum": ["apartment", "house", "condo", "townhouse"],
+      "required": true
+    },
+    "bedrooms": { "type": "number", "label": "Bedrooms", "min": 0, "max": 10, "required": true },
+    "startDate": { "type": "date", "label": "Lease Start Date", "required": true },
+    "leaseTerm": { "type": "duration", "label": "Lease Term", "required": true },
+    "monthlyRent": { "type": "money", "label": "Monthly Rent", "required": true },
+    "petsAllowed": { "type": "boolean", "label": "Pets Allowed", "default": false },
+    "smokingAllowed": { "type": "boolean", "label": "Smoking Allowed", "default": false }
+  },
+  "parties": {
+    "landlord": {
+      "label": "Landlord",
+      "min": 1,
+      "max": 1,
+      "signature": { "required": true }
+    },
+    "tenant": {
+      "label": "Tenant",
+      "min": 1,
+      "max": 4,
+      "signature": { "required": true }
+    }
+  },
+  "defaultLayer": "markdown",
+  "layers": {
+    "markdown": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# RESIDENTIAL LEASE AGREEMENT\n\nThis Lease Agreement is entered into on **{{startDate}}** between:\n\n**LANDLORD:** {{parties.landlord.name}}\n\n**TENANT(S):**\n{{#each parties.tenant}}\n- {{name}}\n{{/each}}\n\n---\n\n## 1. PROPERTY\n\nThe Landlord agrees to rent to the Tenant the property located at:\n\n{{address}}\n\n**Property Type:** {{propertyType}}\n**Bedrooms:** {{bedrooms}}\n\n---\n\n## 2. TERM\n\nThe lease term shall be **{{leaseTerm}}**, starting on **{{startDate}}**.\n\n---\n\n## 3. RENT\n\nThe Tenant agrees to pay **{{monthlyRent}}** per month, due on the first of each month.\n\n---\n\n## 4. RULES\n\n{{#if petsAllowed}}\nPets are **permitted** with prior written approval.\n{{else}}\nPets are **not permitted** on the premises.\n{{/if}}\n\n{{#if smokingAllowed}}\nSmoking is **permitted** in designated areas only.\n{{else}}\nSmoking is **not permitted** on the premises.\n{{/if}}\n\n---\n\n## 5. SIGNATURES\n\n**LANDLORD:**\n\nName: {{parties.landlord.name}}\n\nSignature: ___________________________  Date: ____________\n\n\n**TENANT(S):**\n\n{{#each parties.tenant}}\nName: {{name}}\n\nSignature: ___________________________  Date: ____________\n\n{{/each}}"
+    }
+  }
+}

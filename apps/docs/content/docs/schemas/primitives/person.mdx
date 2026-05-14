@@ -1,0 +1,68 @@
+---
+title: Person
+description: A person's name
+---
+
+A Person is a structured primitive that represents a natural person.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Full name as a single string.',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Prefix or honorific (Mr., Dr., etc.).',
+    isOptional: true,
+  },
+  {
+    name: 'firstName',
+    type: 'string',
+    description: 'First/given name.',
+    isOptional: true,
+  },
+  {
+    name: 'middleName',
+    type: 'string',
+    description: 'Middle name or initial.',
+    isOptional: true,
+  },
+  {
+    name: 'lastName',
+    type: 'string',
+    description: 'Last/family name.',
+    isOptional: true,
+  },
+  {
+    name: 'suffix',
+    type: 'string',
+    description: 'Suffix (Jr., Sr., III, etc.).',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+name: Dr. Jane Marie Smith, Ph.D.
+title: Dr.
+firstName: Jane
+middleName: Marie
+lastName: Smith
+suffix: Ph.D.
+```
+
+```json tab="JSON"
+{
+  "name": "Dr. Jane Marie Smith, Ph.D.",
+  "title": "Dr.",
+  "firstName": "Jane",
+  "middleName": "Marie",
+  "lastName": "Smith",
+  "suffix": "Ph.D."
+}
+```

@@ -1,0 +1,27 @@
+{
+  "id": "cc6869810e4f56b1b22f204725d0a7e177613e47",
+  "parent": "8f8e66cc22e6ab67385e65dce804726e8ab26a19",
+  "message": "Second commit",
+  "timestamp": "2025-11-18T01:38:20.610Z",
+  "author": {
+    "name": "",
+    "email": ""
+  },
+  "artifacts": {
+    "hello": {
+      "path": "hello.json",
+      "kind": "binder",
+      "version": "1.0.0",
+      "content_hash": "7731af49d20470f5b85e2510a4a1bc8df71454276d2c8dd3fc2b2c5fdca2927c",
+      "content": "{\n  \"$schema\": \"https://schema.paradoc.org/2025-12-01/binder.schema.json\",\n  \"kind\": \"binder\",\n  \"name\": \"hello\",\n  \"title\": \"Hello People\",\n  \"version\": \"1.0.0\",\n  \"contents\": []\n}\n",
+      "status": "modified",
+      "file_dependencies": []
+    }
+  },
+  "stats": {
+    "added": 0,
+    "modified": 1,
+    "deleted": 0,
+    "unchanged": 0
+  }
+}

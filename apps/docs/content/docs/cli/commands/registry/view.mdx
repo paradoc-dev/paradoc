@@ -1,0 +1,86 @@
+---
+title: registry view
+description: View details of an installed artifact
+ogTitle: para registry view
+ogDescription: Inspect installed artifact metadata and content
+---
+
+Shows detailed information about an installed artifact.
+
+# Usage
+
+```bash
+para registry view <artifact> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Artifact reference in `@namespace/name` format |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+# Description
+
+Displays comprehensive information about an installed artifact, including:
+
+- Version and kind
+- Title and description
+- Installation timestamp
+- File path and source URL
+- Downloaded and available layers
+
+# Examples
+
+View an artifact:
+
+```bash
+para registry view @acme/residential-lease
+```
+
+Output as JSON:
+
+```bash
+para registry view @acme/residential-lease --json
+```
+
+# Output
+
+```
+@acme/residential-lease
+
+Version: 1.0.0
+Kind: form
+Title: Residential Lease Agreement
+Description: Standard residential lease agreement
+
+Installed: 1/15/2025, 10:30:00 AM
+Output: yaml
+Path: artifacts/@acme/residential-lease.yaml
+Source: https://registry.acme.com/r/residential-lease.json
+
+Layers:
+  pdf: residential-lease.pdf
+  markdown: residential-lease.md
+
+Available layers (not installed): html
+```
+
+# Error handling
+
+If the artifact is not installed:
+
+```
+Artifact not installed: @acme/residential-lease
+Run 'para add @acme/residential-lease' to install it.
+```
+
+# See also
+
+- [list](/cli/commands/list) - List all installed artifacts
+- [add](/cli/commands/add) - Install an artifact

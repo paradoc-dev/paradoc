@@ -1,0 +1,213 @@
+/* Fonts */
+@import "@fontsource/geist-sans";
+@import "@fontsource-variable/geist-mono";
+
+/* Tailwind */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Fumadocs */
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
+
+/* UI package */
+@source "../../platform-packages/common/src";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.99 0.003 75);
+  --foreground: oklch(0.3194 0.008 75);
+  --card: oklch(0.999 0.003 75);
+  --card-foreground: oklch(0.3345 0.015 75);
+  --popover: oklch(0.999 0.003 75);
+  --popover-foreground: oklch(0.2671 0.015 75);
+  --primary: oklch(0.5 0.17 40);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0.003 75);
+  --secondary-foreground: oklch(0.3345 0.015 75);
+  --muted: oklch(0.97 0.003 75);
+  --muted-foreground: oklch(0.55 0.008 75);
+  --accent: oklch(0.98 0.0045 75);
+  --accent-foreground: oklch(0.2671 0.015 75);
+  --destructive: oklch(0.1908 0.002 106.5859);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9067 0.006 75);
+  --input: oklch(0.8 0.003 75);
+  --ring: oklch(0.86 0.01 75);
+  --sidebar: oklch(0.98 0.0045 75);
+  --sidebar-primary: oklch(0.4838 0.0635 38.4004);
+  --sidebar-primary-foreground: oklch(0.9881 0 0);
+  --sidebar-accent: oklch(0.9654 0.004 75);
+  --sidebar-accent-foreground: oklch(0.325 0.008 75);
+  --sidebar-border: oklch(0.9067 0.006 75);
+  --sidebar-ring: oklch(0.8522 0.01 75);
+  --radius: 0.5rem;
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 1.5px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0;
+  --shadow-color: oklch(0 0 0);
+  --shadow-2xs: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
+  --shadow-xs: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
+  --shadow-sm:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow: 0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow-md:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 2px 4px -1px hsl(0 0% 0% / 0);
+  --shadow-lg:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 4px 6px -1px hsl(0 0% 0% / 0);
+  --shadow-xl:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 8px 10px -1px hsl(0 0% 0% / 0);
+  --shadow-2xl: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  /* Fumadocs overrides — mirror base shadcn tokens so all surfaces stay in sync */
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-card: var(--card);
+  --color-fd-card-foreground: var(--card-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-secondary: var(--secondary);
+  --color-fd-secondary-foreground: var(--secondary-foreground);
+  --color-fd-accent: var(--accent);
+  --color-fd-accent-foreground: var(--accent-foreground);
+}
+
+.dark {
+  --background: oklch(0.21 0.004 42);
+  --foreground: oklch(0.91 0.003 42);
+  --card: oklch(0.27 0.004 42);
+  --card-foreground: oklch(0.89 0.003 42);
+  --popover: oklch(0.3 0.004 42);
+  --popover-foreground: oklch(0.93 0.003 42);
+  --primary: oklch(0.6 0.13 45);
+  --primary-foreground: oklch(0.9702 0 0);
+  --secondary: oklch(0.24 0.004 42);
+  --secondary-foreground: oklch(0.81 0.003 42);
+  --muted: oklch(0.24 0.004 42);
+  --muted-foreground: oklch(0.75 0.005 42);
+  --accent: oklch(0.31 0.004 42);
+  --accent-foreground: oklch(0.96 0.003 42);
+  --destructive: oklch(0.6368 0.197 25.3313);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.32 0.004 42);
+  --input: oklch(0.33 0.004 42);
+  --ring: oklch(0.44 0.004 42);
+  --chart-1: oklch(0.5583 0.1212 42.9956);
+  --chart-2: oklch(0.6898 0.1502 290.4107);
+  --chart-3: oklch(0.213 0.0074 50);
+  --chart-4: oklch(0.3074 0.049 289.323);
+  --chart-5: oklch(0.5608 0.1281 42.0584);
+  --sidebar: oklch(0.24 0.004 42);
+  --sidebar-foreground: oklch(0.783 0.003 42);
+  --sidebar-primary: oklch(0.365 0.004 42);
+  --sidebar-primary-foreground: oklch(0.9881 0 0);
+  --sidebar-accent: oklch(0.27 0.004 42);
+  --sidebar-accent-foreground: oklch(0.8074 0.003 42);
+  --sidebar-border: oklch(0.29 0.004 42);
+  --sidebar-ring: oklch(0.77 0.004 42);
+  --radius: 0.5rem;
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 1.5px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0;
+  --shadow-color: oklch(0 0 0);
+  --shadow-2xs: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
+  --shadow-xs: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
+  --shadow-sm:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow: 0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow-md:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 2px 4px -1px hsl(0 0% 0% / 0);
+  --shadow-lg:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 4px 6px -1px hsl(0 0% 0% / 0);
+  --shadow-xl:
+    0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 8px 10px -1px hsl(0 0% 0% / 0);
+  --shadow-2xl: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
+  /* Fumadocs overrides — mirror base shadcn tokens so all surfaces stay in sync */
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-card: var(--card);
+  --color-fd-card-foreground: var(--card-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-secondary: var(--secondary);
+  --color-fd-secondary-foreground: var(--secondary-foreground);
+  --color-fd-accent: var(--accent);
+  --color-fd-accent-foreground: var(--accent-foreground);
+}
+
+@theme inline {
+  --font-sans: "Geist Sans Variable", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply font-sans bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+  code {
+    @apply font-mono;
+  }
+
+  h1 {
+    @apply text-2xl font-medium;
+  }
+
+  h2 {
+    @apply text-xl font-medium;
+  }
+
+  h3 {
+    @apply text-lg font-semibold;
+  }
+}

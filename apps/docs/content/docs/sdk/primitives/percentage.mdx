@@ -1,0 +1,145 @@
+---
+title: percentage
+description: Validate percentage values
+---
+
+Validate percentage values. The Percentage primitive ensures numeric values represent valid percentages with optional range constraints.
+
+# Examples
+
+## Creating percentages
+
+```ts
+// Direct validation
+const pct = para.percentage(75.5)
+
+// Parse with options
+const pct = para.percentage.parse(input, { min: 0, max: 100 })
+
+// Convert from decimal (0.755 → 75.5)
+const pct = para.percentage.fromDecimal(0.755)
+
+// Convert to decimal (75.5 → 0.755)
+const decimal = para.percentage.toDecimal(75.5)
+
+// Check validity without throwing
+if (para.percentage.isValid(50)) {
+  console.log('Valid percentage')
+}
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const pct = para.percentage.parse(userInput)
+
+// Safe parsing (returns result object)
+const result = para.percentage.safeParse(userInput)
+if (result.success) {
+  console.log(`Percentage: ${result.data}%`)
+} else {
+  console.error(result.error.message)
+}
+
+// Parse with range constraints
+const pct = para.percentage.parse(userInput, { min: 0, max: 100 })
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'discount',
+  fields: {
+    discountRate: { type: 'percentage', label: 'Discount Rate', min: 0, max: 50 },
+    taxRate: { type: 'percentage', label: 'Tax Rate' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    discountRate: para.percentage(15),
+    taxRate: para.percentage(8.25)
+  }
+})
+```
+
+# API
+
+## Direct Call
+
+```ts
+para.percentage(input: number): number
+```
+
+Pass a number for validation. Returns the validated number or throws on error.
+
+```ts
+const pct = para.percentage(75.5)
+```
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown, options?: PercentageOptions', returns: 'number', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown, options?: PercentageOptions', returns: 'Result<number>', description: 'Parse unknown input (returns result object)' },
+  { name: 'isValid', params: 'input: number', returns: 'boolean', description: 'Check if a number is a valid percentage' },
+  { name: 'fromDecimal', params: 'decimal: number', returns: 'number', description: 'Convert decimal to percentage (0.5 → 50)' },
+  { name: 'toDecimal', params: 'percentage: number', returns: 'number', description: 'Convert percentage to decimal (50 → 0.5)' },
+]} />
+
+## PercentageOptions
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `min` | `number?` | Minimum allowed value |
+| `max` | `number?` | Maximum allowed value |
+| `precision` | `number?` | Decimal places to round to (default: 2) |
+
+# Conversion Helpers
+
+```ts
+// Decimal to percentage
+para.percentage.fromDecimal(0.5)    // → 50
+para.percentage.fromDecimal(0.125)  // → 12.5
+para.percentage.fromDecimal(1.5)    // → 150
+
+// Percentage to decimal
+para.percentage.toDecimal(50)       // → 0.5
+para.percentage.toDecimal(12.5)     // → 0.125
+para.percentage.toDecimal(150)      // → 1.5
+```
+
+# Validation
+
+The Percentage primitive validates:
+
+- Value must be a finite number (not NaN or Infinity)
+- Value must satisfy min/max constraints if provided
+
+```ts
+// Valid
+para.percentage(0)
+para.percentage(100)
+para.percentage(50.5)
+para.percentage(-10)   // Negative allowed by default
+para.percentage(150)   // Over 100 allowed by default
+
+// With constraints
+para.percentage.parse(50, { min: 0, max: 100 })  // Valid
+para.percentage.parse(150, { min: 0, max: 100 }) // Throws
+
+// Invalid - throws Error
+para.percentage(NaN)
+// Error: Invalid Percentage: value must be a valid number
+
+para.percentage(Infinity)
+// Error: Invalid Percentage: value cannot be Infinity
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Rating](/sdk/primitives/rating) - Similar numeric validation
+- [Percentage Field](/sdk/artifacts/form/field#percentage) - Percentage field type

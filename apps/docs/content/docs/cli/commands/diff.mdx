@@ -1,0 +1,81 @@
+---
+title: diff
+description: Compare two artifacts
+ogTitle: para diff
+ogDescription: Show differences between artifact files
+---
+
+Shows differences between two artifact files.
+
+# Usage
+
+```bash
+para diff <file1> <file2> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `file1` | First artifact file to compare |
+| `file2` | Second artifact file to compare |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--name-only` | Show only if files differ (no content diff) |
+
+# Description
+
+The `diff` command compares two artifact files and displays the differences in unified diff format. It attempts to parse both files as artifacts to show artifact names in the output.
+
+# Examples
+
+Compare two files:
+
+```bash
+para diff form-v1.yaml form-v2.yaml
+```
+
+Check if files differ:
+
+```bash
+para diff form-v1.yaml form-v2.yaml --name-only
+```
+
+# Output
+
+When files differ:
+
+```
+--- lease-agreement (form)
++++ lease-agreement (form)
+
+@@ -5,7 +5,7 @@
+ version: 1.0.0
+ title: Residential Lease Agreement
+ fields:
+-  monthlyRent:
++  rentAmount:
+     type: money
+     label: Monthly Rent
+     required: true
+```
+
+When files are identical:
+
+```
+Files are identical
+```
+
+With `--name-only`:
+
+```
+Files differ
+```
+
+# See also
+
+- [apply](/cli/commands/apply) - Apply a patch file
+- [show](/cli/commands/show) - Display artifact content

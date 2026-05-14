@@ -1,0 +1,182 @@
+---
+title: document
+description: Create Document artifacts for static content
+---
+
+Create Document artifacts for disclosures, pamphlets, or any static content that can be rendered to different formats via layers.
+
+# Examples
+
+## Creating a document
+
+```ts
+// Object pattern
+const doc = para.document({
+  name: 'privacy-disclosure',
+  version: '1.0.0',
+  title: 'Privacy Disclosure',
+  layers: {
+    html: { kind: 'inline', mimeType: 'text/html', text: '<p>...</p>' }
+  },
+  defaultLayer: 'html'
+})
+
+// Builder pattern
+const doc = para.document()
+  .name('privacy-disclosure')
+  .version('1.0.0')
+  .title('Privacy Disclosure')
+  .inlineLayer('html', { mimeType: 'text/html', text: '<p>...</p>' })
+  .defaultLayer('html')
+  .build()
+```
+
+## Loading from external data
+
+```ts
+// Parse and validate unknown input (throws on error)
+const doc = para.document.from(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.document.safeFrom(jsonData)
+if (result.success) {
+  const doc = result.data
+}
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.document(input: DocumentInput): DocumentInstance
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
+  { name: 'version', type: 'string', description: 'Artifact version (semantic versioning)', isOptional: true },
+  { name: 'title', type: 'string', description: 'Human-friendly name presented to end users', isOptional: true },
+  { name: 'description', type: 'string', description: 'Long-form description or context', isOptional: true },
+  { name: 'code', type: 'string', description: 'Internal code or reference number', isOptional: true },
+  { name: 'releaseDate', type: 'string', description: 'ISO date string indicating when the artifact was released', isOptional: true },
+  { name: 'metadata', type: 'Metadata', description: 'Custom metadata map (keys must be alphanumeric with hyphens)', isOptional: true },
+  { name: 'instructions', type: 'ContentRef', description: 'Domain or compliance reference content', isOptional: true },
+  { name: 'agentInstructions', type: 'ContentRef', description: 'LLM/agent prompts for presentation guidance', isOptional: true },
+  { name: 'layers', type: 'Record<string, Layer>', description: 'Named layers for rendering into different formats', isOptional: true },
+  { name: 'defaultLayer', type: 'string', description: 'Key of the default layer to use when none specified', isOptional: true },
+]} />
+
+### Returns
+
+Returns a `DocumentInstance` with the following properties and methods:
+
+<PropertiesTable properties={[
+  { name: 'kind', type: "'document'", description: 'Artifact discriminator' },
+  { name: 'name', type: 'string', description: 'Document name' },
+  { name: 'version', type: 'string | undefined', description: 'Semantic version' },
+  { name: 'title', type: 'string | undefined', description: 'Human-readable title' },
+  { name: 'description', type: 'string | undefined', description: 'Description text' },
+  { name: 'code', type: 'string | undefined', description: 'Internal code or reference number' },
+  { name: 'releaseDate', type: 'string | undefined', description: 'ISO date string' },
+  { name: 'metadata', type: 'Metadata | undefined', description: 'Custom metadata map' },
+  { name: 'instructions', type: 'ContentRef | undefined', description: 'Domain or compliance reference content' },
+  { name: 'agentInstructions', type: 'ContentRef | undefined', description: 'LLM/agent prompts for presentation guidance' },
+  { name: 'layers', type: 'Record<string, Layer> | undefined', description: 'Render layers' },
+  { name: 'defaultLayer', type: 'string | undefined', description: 'Default layer key' },
+  { name: 'validate', type: '(options?: ValidateOptions) => StandardSchemaV1.Result', description: 'Validate the document definition', isMethod: true },
+  { name: 'isValid', type: '(options?: ValidateOptions) => boolean', description: 'Check if document is valid', isMethod: true },
+  { name: 'toJSON', type: '(options?: SerializationOptions) => object', description: 'Serialize to JSON (includes $schema by default)', isMethod: true },
+  { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML', isMethod: true },
+  { name: 'clone', type: '() => DocumentInstance', description: 'Deep clone the instance', isMethod: true },
+  { name: 'prepare', type: '(targetLayer?: string) => DraftDocument', description: 'Create a runtime document in draft phase', isMethod: true },
+  { name: 'render', type: '(options?: LayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render document content', isMethod: true },
+]} />
+
+## Builder Pattern
+
+Chain methods to build a document incrementally:
+
+<MethodChain
+  starter="para.document()"
+  methods={[
+    { name: 'name', params: 'value: string', description: 'Set document name (required)' },
+    { name: 'version', params: 'value: string', description: 'Set semantic version' },
+    { name: 'title', params: 'value: string', description: 'Set human-readable title' },
+    { name: 'description', params: 'value: string', description: 'Set description' },
+    { name: 'code', params: 'value: string', description: 'Set external reference code' },
+    { name: 'releaseDate', params: 'value: string', description: 'Set release date (ISO format)' },
+    { name: 'metadata', params: 'value: Metadata', description: 'Set custom metadata' },
+    { name: 'instructions', params: 'value: ContentRef', description: 'Set domain/compliance reference content' },
+    { name: 'agentInstructions', params: 'value: ContentRef', description: 'Set LLM/agent presentation guidance' },
+    { name: 'layers', params: 'value: Record<string, Layer>', description: 'Set all layers at once' },
+    { name: 'layer', params: 'key: string, layer: Layer', description: 'Add a layer from a Layer object' },
+    { name: 'inlineLayer', params: 'key: string, layer: { mimeType, text, ... }', description: 'Add inline text layer' },
+    { name: 'fileLayer', params: 'key: string, layer: { mimeType, path, ... }', description: 'Add file-backed layer' },
+    { name: 'defaultLayer', params: 'key: string', description: 'Set default layer for rendering' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'DocumentBuilder', terminal: 'DocumentInstance' }}
+/>
+
+## Static Methods
+
+Parse documents from unknown data sources:
+
+<MethodTable methods={[
+  { name: 'from', params: 'input: unknown', returns: 'DocumentInstance', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeFrom', params: 'input: unknown', returns: 'Result<DocumentInstance>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Lifecycle Types
+
+Documents follow a two-phase lifecycle:
+
+| Type | Phase | Description |
+|------|-------|-------------|
+| `DraftDocument` | Draft | Document ready for finalization |
+| `FinalDocument` | Final | Frozen document, ready for archival |
+
+```ts
+// Prepare document (DraftDocument)
+const draft = doc.prepare('html')
+
+// Finalize (FinalDocument)
+const final = draft.finalize()
+
+// final.finalizedAt === ISO timestamp
+// Render
+const output = await final.render({ renderer: textRenderer() })
+```
+
+## DraftDocument
+
+Created by `doc.resolve()`. Contains resolved layer content.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
+  { name: 'document', type: 'Document', description: 'The underlying document definition' },
+  { name: 'resolvedContent', type: 'string | Uint8Array', description: 'Resolved layer content' },
+  { name: 'targetLayer', type: 'string', description: 'Target layer key' },
+  { name: 'finalize', type: '() => FinalDocument', description: 'Transition to final phase', isMethod: true },
+  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render the document', isMethod: true },
+  { name: 'toJSON', type: '() => DraftDocumentJSON', description: 'Serialize to JSON', isMethod: true },
+]} />
+
+## FinalDocument
+
+Created by `draft.finalize()`. Fully frozen.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'final'", description: 'Phase discriminator' },
+  { name: 'finalizedAt', type: 'string', description: 'ISO timestamp of finalization' },
+  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render the document', isMethod: true },
+  { name: 'toJSON', type: '() => FinalDocumentJSON', description: 'Serialize to JSON', isMethod: true },
+]} />
+
+# Related
+
+- [Document Schema](/schemas/artifacts/document)
+- [Renderers](/sdk/renderers)
+- [Serialization](/sdk/serialization)

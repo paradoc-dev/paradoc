@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/attachment.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Original file name"
+    },
+    "mimeType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "MIME type of the attached file"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 checksum for integrity verification"
+    }
+  },
+  "required": [
+    "name",
+    "mimeType"
+  ],
+  "additionalProperties": false,
+  "id": "Attachment",
+  "title": "Attachment"
+}

@@ -1,0 +1,286 @@
+---
+title: field
+description: Define form fields for data capture
+---
+
+Define form fields for capturing user input. Paradoc supports 21 field types covering text, numeric, temporal, entity, spatial, and selection inputs.
+
+# Examples
+
+## Creating fields
+
+```ts
+// Text field with validation
+const nameField = field.text()
+  .label('Full Name')
+  .description('Enter your legal name')
+  .required()
+  .minLength(2)
+  .maxLength(100)
+  .build()
+
+// Enum/select field
+const statusField = field.enum()
+  .label('Status')
+  .options(['active', 'inactive', 'pending'])
+  .default('pending')
+  .build()
+
+// Nested fieldset
+const addressField = field.fieldset()
+  .label('Address')
+  .fields({
+    street: { type: 'text', label: 'Street' },
+    city: { type: 'text', label: 'City' },
+    zip: { type: 'text', label: 'ZIP Code' }
+  })
+  .build()
+```
+
+## Adding fields to forms
+
+```ts
+// Object pattern
+const form = para.form({
+  name: 'contact-form',
+  fields: {
+    name: { type: 'text', label: 'Name', required: true },
+    email: { type: 'email', label: 'Email', required: true },
+    age: { type: 'number', label: 'Age', min: 0, max: 150 }
+  }
+})
+
+// Builder pattern
+const form = para.form()
+  .name('contact-form')
+  .field('name', field.text().label('Name').required().build())
+  .field('email', field.email().label('Email').required().build())
+  .field('age', field.number().label('Age').min(0).max(150).build())
+  .build()
+```
+
+# Field Types
+
+## Text-based
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `text` | Free-form text input | `field.text()` |
+| `email` | Email address | `field.email()` |
+| `uuid` | UUID string | `field.uuid()` |
+| `uri` | URL/URI | `field.uri()` |
+
+## Numeric
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `number` | Numeric input | `field.number()` |
+| `percentage` | Percentage (0-100) | `field.percentage()` |
+| `rating` | Rating scale (1-5 default) | `field.rating()` |
+| `money` | Monetary amount | `field.money()` |
+
+## Boolean
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `boolean` | Checkbox/toggle | `field.boolean()` |
+
+## Selection
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `enum` | Single-select dropdown | `field.enum()` |
+| `multiselect` | Multi-select | `field.multiselect()` |
+
+## Temporal
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `date` | Date (YYYY-MM-DD) | `field.date()` |
+| `datetime` | Date and time | `field.datetime()` |
+| `time` | Time only | `field.time()` |
+| `duration` | ISO 8601 duration | `field.duration()` |
+
+## Entity
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `person` | Person information | `field.person()` |
+| `organization` | Organization info | `field.organization()` |
+| `identification` | ID document | `field.identification()` |
+
+## Spatial
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `coordinate` | Lat/lng point | `field.coordinate()` |
+| `bbox` | Bounding box | `field.bbox()` |
+| `address` | Postal address | `field.address()` |
+| `phone` | Phone number | `field.phone()` |
+
+## Container
+
+| Type | Description | Builder |
+|------|-------------|---------|
+| `fieldset` | Nested fields | `field.fieldset()` |
+
+# API
+
+## Field Builder
+
+The `field` function creates field builders:
+
+```ts
+field()                     // Returns TextFieldBuilder (default)
+field(input: FormField)     // Validates and returns FormField
+field.text()                // Returns TextFieldBuilder
+field.number()              // Returns NumberFieldBuilder
+// ... etc for each field type
+```
+
+## Common Builder Methods
+
+All field builders share these methods:
+
+<MethodChain
+  starter="field.*()"
+  methods={[
+    { name: 'label', params: 'value: string', description: 'Set human-readable label' },
+    { name: 'description', params: 'value: string', description: 'Set helper text' },
+    { name: 'required', params: 'value?: boolean | string', description: 'Mark as required (default: true). Accepts expression.' },
+    { name: 'visible', params: 'value?: boolean | string', description: 'Set visibility (default: true). Accepts expression.' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'FieldBuilder', terminal: 'FormField' }}
+/>
+
+## Type-Specific Methods
+
+### Text / Email / UUID / URI
+
+<PropertiesTable properties={[
+  { name: 'minLength', type: '(value: number) => this', description: 'Minimum character length' },
+  { name: 'maxLength', type: '(value: number) => this', description: 'Maximum character length' },
+  { name: 'pattern', type: '(value: string) => this', description: 'Regex pattern for validation' },
+  { name: 'default', type: '(value: string) => this', description: 'Default value' },
+]} />
+
+### Number
+
+<PropertiesTable properties={[
+  { name: 'min', type: '(value: number) => this', description: 'Minimum allowed value' },
+  { name: 'max', type: '(value: number) => this', description: 'Maximum allowed value' },
+  { name: 'default', type: '(value: number) => this', description: 'Default value' },
+]} />
+
+### Money
+
+<PropertiesTable properties={[
+  { name: 'min', type: '(value: number) => this', description: 'Minimum amount' },
+  { name: 'max', type: '(value: number) => this', description: 'Maximum amount' },
+  { name: 'default', type: '(value: Money) => this', description: 'Default value ({ amount, currency })' },
+]} />
+
+### Boolean
+
+<PropertiesTable properties={[
+  { name: 'default', type: '(value: boolean) => this', description: 'Default value' },
+]} />
+
+### Enum
+
+<PropertiesTable properties={[
+  { name: 'options', type: '(values: (string | number)[]) => this', description: 'Available options' },
+  { name: 'default', type: '(value: string | number) => this', description: 'Default selection' },
+]} />
+
+### Multiselect
+
+<PropertiesTable properties={[
+  { name: 'options', type: '(values: (string | number)[]) => this', description: 'Available options' },
+  { name: 'min', type: '(value: number) => this', description: 'Minimum selections required' },
+  { name: 'max', type: '(value: number) => this', description: 'Maximum selections allowed' },
+  { name: 'default', type: '(value: (string | number)[]) => this', description: 'Default selections' },
+]} />
+
+### Date / Datetime / Time
+
+<PropertiesTable properties={[
+  { name: 'min', type: '(value: string) => this', description: 'Minimum date/time (ISO format)' },
+  { name: 'max', type: '(value: string) => this', description: 'Maximum date/time (ISO format)' },
+  { name: 'default', type: '(value: string) => this', description: 'Default value (ISO format)' },
+]} />
+
+### Percentage
+
+<PropertiesTable properties={[
+  { name: 'min', type: '(value: number) => this', description: 'Minimum percentage' },
+  { name: 'max', type: '(value: number) => this', description: 'Maximum percentage' },
+  { name: 'precision', type: '(value: number) => this', description: 'Decimal places' },
+  { name: 'default', type: '(value: number) => this', description: 'Default value' },
+]} />
+
+### Rating
+
+<PropertiesTable properties={[
+  { name: 'min', type: '(value: number) => this', description: 'Minimum rating' },
+  { name: 'max', type: '(value: number) => this', description: 'Maximum rating' },
+  { name: 'step', type: '(value: number) => this', description: 'Rating increment' },
+  { name: 'default', type: '(value: number) => this', description: 'Default value' },
+]} />
+
+### Identification
+
+<PropertiesTable properties={[
+  { name: 'allowedTypes', type: '(...types: string[]) => this', description: 'Allowed ID document types' },
+  { name: 'default', type: '(value: Identification) => this', description: 'Default value' },
+]} />
+
+### Fieldset
+
+<PropertiesTable properties={[
+  { name: 'fields', type: '(fields: Record<string, FormField>) => this', description: 'Nested field definitions' },
+]} />
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'FormField', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<FormField>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Common Properties
+
+All fields share these base properties:
+
+<PropertiesTable properties={[
+  { name: 'type', type: 'string', description: 'Field type discriminator' },
+  { name: 'label', type: 'string', description: 'Human-readable label', isOptional: true },
+  { name: 'description', type: 'string', description: 'Helper text displayed in UI', isOptional: true },
+  { name: 'required', type: 'boolean | string', description: 'Whether field is required. Can be an expression.', isOptional: true },
+  { name: 'visible', type: 'boolean | string', description: 'Whether field is visible. Can be an expression.', isOptional: true },
+  { name: 'disabled', type: 'boolean | string', description: 'Whether field is read-only. Can be an expression.', isOptional: true },
+  { name: 'attrs', type: 'Record<string, string | number | boolean>', description: 'Custom metadata attributes', isOptional: true },
+]} />
+
+# Conditional Logic
+
+The `required`, `visible`, and `disabled` properties can be expressions that reference defs keys:
+
+```ts
+const form = para.form()
+  .name('age-form')
+  .def('isAdult', 'age >= 18')
+  .field('age', field.number().label('Age').required().build())
+  .field('drivingLicense', field.text()
+    .label('Driving License')
+    .visible('isAdult')
+    .required('isAdult')
+    .build())
+  .build()
+```
+
+# Related
+
+- [form](/sdk/artifacts/form) - Parent form artifact
+- [Field Schema](/schemas/artifacts/form/field)

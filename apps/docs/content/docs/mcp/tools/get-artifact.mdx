@@ -1,0 +1,67 @@
+---
+title: get_artifact
+description: Get the full Paradoc artifact JSON and metadata
+ogTitle: get_artifact — Paradoc MCP
+ogDescription: Get the full Paradoc artifact JSON and metadata using the MCP server
+---
+
+Get the full Paradoc artifact JSON and metadata. Fetches the artifact from its verified registry. Use `registry_id` and `artifact_name` from `list_artifacts` or `search`.
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `registry_id` | `string` | Yes | Registry ID |
+| `artifact_name` | `string` | Yes | Artifact name |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `registry_id` | `string` | Registry ID |
+| `artifact_name` | `string` | Artifact name |
+| `artifact` | `object` | The full artifact JSON object (form, document, bundle, or checklist) |
+| `metadata.title` | `string` | Display title |
+| `metadata.kind` | `string` | Artifact kind |
+| `metadata.description` | `string` | Artifact description |
+| `metadata.registry` | `object` | Registry info: `id`, `displayName`, `url`, `homepage` |
+| `metadata.stats` | `object` | Install stats: `installsTotal`, `installs24h`, `installs7d` |
+| `error` | `string` | Error message if the artifact was not found or registry is not verified |
+
+# Example
+
+```json
+// Request
+{
+  "registry_id": "cly1abc123",
+  "artifact_name": "lease-agreement"
+}
+
+// Response
+{
+  "registry_id": "cly1abc123",
+  "artifact_name": "lease-agreement",
+  "artifact": {
+    "kind": "form",
+    "title": "Lease Agreement",
+    "schema": "2026-01-01",
+    "fields": ["..."]
+  },
+  "metadata": {
+    "title": "Lease Agreement",
+    "kind": "form",
+    "description": "Standard residential lease agreement",
+    "registry": {
+      "id": "cly1abc123",
+      "displayName": "acme/legal-forms",
+      "url": "https://example.com/registry",
+      "homepage": "https://example.com"
+    },
+    "stats": {
+      "installsTotal": 1420,
+      "installs24h": 58,
+      "installs7d": 312
+    }
+  }
+}
+```

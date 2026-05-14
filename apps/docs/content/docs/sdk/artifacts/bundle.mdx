@@ -1,0 +1,349 @@
+---
+title: bundle
+description: Create Bundle artifacts to group multiple artifacts together
+---
+
+Create Bundle artifacts to group multiple documents, forms, and checklists into a single distributable package. Bundles support conditional includes and can reference content inline, by file path, or by registry slug.
+
+# Examples
+
+## Creating a bundle
+
+```ts
+// Object pattern
+const bundle = para.bundle({
+  name: 'lease-package',
+  version: '1.0.0',
+  title: 'Residential Lease Package',
+  defs: { hasPets: { type: 'boolean', value: 'data.pets.length > 0' } },
+  contents: [
+    { type: 'registry', key: 'lease', slug: 'residential-lease@1.0.0' },
+    { type: 'path', key: 'addendum', path: './pet-addendum.json', include: 'hasPets' },
+    { type: 'inline', key: 'disclosure', artifact: disclosureDoc }
+  ]
+})
+
+// Builder pattern
+const bundle = para.bundle()
+  .name('lease-package')
+  .version('1.0.0')
+  .title('Residential Lease Package')
+  .def('hasPets', 'data.pets.length > 0')
+  .registry('lease', 'residential-lease@1.0.0')
+  .path('addendum', './pet-addendum.json', 'hasPets')
+  .inline('disclosure', disclosureDoc)
+  .build()
+```
+
+## Loading from external data
+
+```ts
+// Parse and validate unknown input (throws on error)
+const bundle = para.bundle.from(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.bundle.safeFrom(jsonData)
+if (result.success) {
+  const bundle = result.data
+}
+```
+
+## Assembling a bundle
+
+Bundles can be assembled to resolve all contents and optionally render forms:
+
+```ts
+// Basic assembly
+const assembled = await bundle.assemble({
+  resolver,
+  includeDocumentBytes: true,
+})
+
+// Assembly with form rendering
+const assembled = await bundle.assemble({
+  resolver,
+  formData: {
+    lease: leaseFormData,
+    addendum: petAddendumData,
+  },
+  renderForm: async (form, data, resolver) => ({
+    content: await renderFormToPDF(form, data, resolver),
+    filename: `${form.name}.pdf`,
+    mimeType: 'application/pdf',
+  }),
+})
+
+// Access assembled items
+for (const item of assembled.items) {
+  if (item.kind === 'form' && item.rendered) {
+    // item.rendered contains the PDF bytes
+    // item.filename is the suggested filename
+  }
+}
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.bundle(input: BundleInput): BundleInstance
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
+  { name: 'version', type: 'string', description: 'Artifact version (semantic versioning)', isOptional: true },
+  { name: 'title', type: 'string', description: 'Human-friendly name presented to end users', isOptional: true },
+  { name: 'description', type: 'string', description: 'Long-form description or context', isOptional: true },
+  { name: 'code', type: 'string', description: 'Internal code or reference number', isOptional: true },
+  { name: 'releaseDate', type: 'string', description: 'ISO date string indicating when the artifact was released', isOptional: true },
+  { name: 'metadata', type: 'Metadata', description: 'Custom metadata map (keys must be alphanumeric with hyphens)', isOptional: true },
+  { name: 'instructions', type: 'ContentRef', description: 'Domain or compliance reference content', isOptional: true },
+  { name: 'agentInstructions', type: 'ContentRef', description: 'LLM/agent prompts for presentation guidance', isOptional: true },
+  { name: 'defs', type: 'DefsSection', description: 'Named typed computed values for conditional includes', isOptional: true },
+  { name: 'contents', type: 'BundleContentItem[]', description: 'Ordered list of bundle content items' },
+]} />
+
+### Returns
+
+Returns a `BundleInstance` with the following properties and methods:
+
+<PropertiesTable properties={[
+  { name: 'kind', type: "'bundle'", description: 'Artifact discriminator' },
+  { name: 'name', type: 'string', description: 'Bundle name' },
+  { name: 'version', type: 'string | undefined', description: 'Semantic version' },
+  { name: 'title', type: 'string | undefined', description: 'Human-readable title' },
+  { name: 'description', type: 'string | undefined', description: 'Description text' },
+  { name: 'code', type: 'string | undefined', description: 'Internal code or reference number' },
+  { name: 'releaseDate', type: 'string | undefined', description: 'ISO date string' },
+  { name: 'metadata', type: 'Metadata | undefined', description: 'Custom metadata map' },
+  { name: 'instructions', type: 'ContentRef | undefined', description: 'Domain or compliance reference content' },
+  { name: 'agentInstructions', type: 'ContentRef | undefined', description: 'LLM/agent prompts for presentation guidance' },
+  { name: 'defs', type: 'DefsSection | undefined', description: 'Named typed computed values' },
+  { name: 'contents', type: 'BundleContentItem[]', description: 'Bundle content items' },
+  { name: 'validate', type: '(options?: ValidateOptions) => StandardSchemaV1.Result', description: 'Validate the bundle definition', isMethod: true },
+  { name: 'isValid', type: '(options?: ValidateOptions) => boolean', description: 'Check if bundle is valid', isMethod: true },
+  { name: 'toJSON', type: '(options?: SerializationOptions) => object', description: 'Serialize to JSON (includes $schema by default)', isMethod: true },
+  { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML', isMethod: true },
+  { name: 'clone', type: '() => BundleInstance', description: 'Deep clone the instance', isMethod: true },
+  { name: 'assemble', type: '(options: BundleAssemblyOptions) => Promise<AssembledBundle>', description: 'Resolve contents and render runtime instances', isMethod: true },
+  { name: 'prepare', type: '(contents?: RuntimeBundleContents) => DraftBundle', description: 'Create runtime bundle in draft phase', isMethod: true },
+]} />
+
+## Builder Pattern
+
+Chain methods to build a bundle incrementally:
+
+<MethodChain
+  starter="para.bundle()"
+  methods={[
+    { name: 'name', params: 'value: string', description: 'Set bundle name (required)' },
+    { name: 'version', params: 'value: string', description: 'Set semantic version' },
+    { name: 'title', params: 'value: string', description: 'Set human-readable title' },
+    { name: 'description', params: 'value: string', description: 'Set description' },
+    { name: 'code', params: 'value: string', description: 'Set external reference code' },
+    { name: 'releaseDate', params: 'value: string', description: 'Set release date (ISO format)' },
+    { name: 'metadata', params: 'value: Metadata', description: 'Set custom metadata' },
+    { name: 'instructions', params: 'value: ContentRef', description: 'Set domain/compliance reference content' },
+    { name: 'agentInstructions', params: 'value: ContentRef', description: 'Set LLM/agent presentation guidance' },
+    { name: 'defs', params: 'defsDef: DefsSection', description: 'Set all typed computed values' },
+    { name: 'def', params: 'name: string, expression: string | Expression', description: 'Add a single typed computed value' },
+    { name: 'registry', params: 'key: string, slug: string, include?: CondExpr', description: 'Add registry reference' },
+    { name: 'path', params: 'key: string, path: string, include?: CondExpr', description: 'Add path reference' },
+    { name: 'inline', params: 'key: string, artifact: Artifact', description: 'Add inline artifact' },
+    { name: 'contents', params: 'items: BundleContentItem[]', description: 'Set all contents at once' },
+    { name: 'removeContent', params: 'predicate: (item, index) => boolean', description: 'Remove matching content' },
+    { name: 'clearContents', params: '', description: 'Remove all contents' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'BundleBuilder', terminal: 'BundleInstance' }}
+/>
+
+## Static Methods
+
+Parse bundles from unknown data sources:
+
+<MethodTable methods={[
+  { name: 'from', params: 'input: unknown', returns: 'BundleInstance', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeFrom', params: 'input: unknown', returns: 'Result<BundleInstance>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Bundle Content Types
+
+Bundles can contain content from three sources:
+
+## Adding content
+
+Use builder methods to add content:
+
+```ts
+// Registry reference - published artifacts
+.registry('lease', 'residential-lease@1.0.0')
+
+// Path reference - local files
+.path('addendum', './pet-addendum.yaml', 'hasPets')
+
+// Inline - embedded artifacts
+.inline('disclosure', para.document({...}))
+```
+
+## Content Item Types
+
+### InlineBundleItem
+
+Embed an artifact directly in the bundle:
+
+<PropertiesTable properties={[
+  { name: 'type', type: "'inline'", description: 'Discriminator for inline bundle item' },
+  { name: 'key', type: 'string', description: 'Unique key for this item within the bundle' },
+  { name: 'artifact', type: 'Document | Form | Checklist | Bundle', description: 'The embedded artifact' },
+]} />
+
+### PathBundleItem
+
+Reference an artifact by file path:
+
+<PropertiesTable properties={[
+  { name: 'type', type: "'path'", description: 'Discriminator for path-based bundle item' },
+  { name: 'key', type: 'string', description: 'Unique key for this item within the bundle' },
+  { name: 'path', type: 'string', description: 'File path to the artifact definition' },
+  { name: 'include', type: 'CondExpr', description: 'Conditional expression for including this item', isOptional: true },
+]} />
+
+### RegistryBundleItem
+
+Reference a published artifact by slug:
+
+<PropertiesTable properties={[
+  { name: 'type', type: "'registry'", description: 'Discriminator for registry-based bundle item' },
+  { name: 'key', type: 'string', description: 'Unique key for this item within the bundle' },
+  { name: 'slug', type: 'string', description: 'Registry slug identifying the artifact' },
+  { name: 'include', type: 'CondExpr', description: 'Conditional expression for including this item', isOptional: true },
+]} />
+
+## Conditional Includes
+
+Path and registry items support conditional inclusion using defs:
+
+```ts
+const bundle = para.bundle()
+  .name('lease-package')
+  // Define typed computed values
+  .def('hasPets', 'data.pets.length > 0')
+  .def('hasVehicles', 'data.vehicles.length > 0')
+  // Always include
+  .registry('lease', 'residential-lease@1.0.0')
+  // Include only if hasPets evaluates to true
+  .path('pet-addendum', './pet-addendum.yaml', 'hasPets')
+  // Include only if hasVehicles evaluates to true
+  .path('parking-addendum', './parking.yaml', 'hasVehicles')
+  .build()
+```
+
+# Assembly Options
+
+The `assemble()` method accepts the following options:
+
+<PropertiesTable properties={[
+  { name: 'resolver', type: 'Resolver | ArtifactResolver', description: 'Resolver for loading files and artifacts' },
+  { name: 'formData', type: 'Record<string, Data>', description: 'Data to use when rendering forms, keyed by content key', isOptional: true },
+  { name: 'renderForm', type: '(form, data, resolver) => Promise<RenderResult>', description: 'Function to render a form with its data', isOptional: true },
+  { name: 'includeDocumentBytes', type: 'boolean', description: 'Whether to include document layer bytes (default: true)', isOptional: true },
+  { name: 'assembleNestedBundles', type: 'boolean', description: 'Whether to recursively assemble nested bundles (default: true)', isOptional: true },
+]} />
+
+# Lifecycle Types
+
+Bundles follow a three-phase lifecycle similar to forms (since bundles can contain forms that require signatures):
+
+| Type | Phase | Description |
+|------|-------|-------------|
+| `DraftBundle` | Draft | Mutable contents, configure signers |
+| `SignableBundle` | Signable | Frozen data, capture signatures |
+| `ExecutedBundle` | Executed | Fully frozen, ready for archival |
+
+```ts
+// Prepare bundle with runtime contents (DraftBundle)
+const draft = bundle.prepare({
+  lease: filledLeaseForm,
+  disclosure: preparedDocument,
+  checklist: filledChecklist,
+})
+
+// Prepare for signing (SignableBundle)
+const signable = draft.prepareForSigning()
+
+// Capture signatures across forms
+const signed = signable.captureSignature('lease', 'tenant', 'tenant-0', 'john', 'sig-1')
+
+// Finalize (ExecutedBundle)
+const executed = signed.finalize()
+
+// executed.executedAt === ISO timestamp
+```
+
+## DraftBundle
+
+Created by `bundle.prepare()`. Contains runtime instances of all artifacts.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
+  { name: 'bundle', type: 'Bundle', description: 'The underlying bundle definition' },
+  { name: 'executedAt', type: 'undefined', description: 'Execution timestamp (always undefined for draft)' },
+  { name: 'getContentKeys', type: '() => string[]', description: 'Get all content keys', isMethod: true },
+  { name: 'getContent', type: '(key: string) => RuntimeInstance | undefined', description: 'Get runtime instance by key', isMethod: true },
+  { name: 'hasContent', type: '(key: string) => boolean', description: 'Check if content exists', isMethod: true },
+  { name: 'getAllContents', type: '() => RuntimeBundleContents', description: 'Get all contents', isMethod: true },
+  { name: 'setContent', type: '(key: string, instance: RuntimeInstance) => DraftBundle', description: 'Set content instance', isMethod: true },
+  { name: 'removeContent', type: '(key: string) => DraftBundle', description: 'Remove content by key', isMethod: true },
+  { name: 'updateContents', type: '(contents: RuntimeBundleContents) => DraftBundle', description: 'Update multiple contents', isMethod: true },
+  { name: 'prepareForSigning', type: '() => SignableBundle', description: 'Transition to signable phase', isMethod: true },
+  { name: 'render', type: '(options: RuntimeBundleRenderOptions) => Promise<RuntimeBundleRendered>', description: 'Render all contents', isMethod: true },
+  { name: 'toJSON', type: '() => RuntimeBundleJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'clone', type: '() => DraftBundle', description: 'Create exact copy', isMethod: true },
+]} />
+
+## SignableBundle
+
+Created by `draft.prepareForSigning()`. Contains signable instances.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'signable'", description: 'Phase discriminator' },
+  { name: 'bundle', type: 'Bundle', description: 'The underlying bundle definition' },
+  { name: 'executedAt', type: 'undefined', description: 'Execution timestamp (always undefined for signable)' },
+  { name: 'getContentKeys', type: '() => string[]', description: 'Get all content keys', isMethod: true },
+  { name: 'getContent', type: '(key: string) => RuntimeInstance | undefined', description: 'Get runtime instance by key', isMethod: true },
+  { name: 'hasContent', type: '(key: string) => boolean', description: 'Check if content exists', isMethod: true },
+  { name: 'getAllContents', type: '() => RuntimeBundleContents', description: 'Get all contents', isMethod: true },
+  { name: 'updateContent', type: '(key: string, instance: RuntimeInstance) => SignableBundle', description: 'Update content (for signature capture)', isMethod: true },
+  { name: 'finalize', type: '() => ExecutedBundle', description: 'Transition to executed phase', isMethod: true },
+  { name: 'render', type: '(options: RuntimeBundleRenderOptions) => Promise<RuntimeBundleRendered>', description: 'Render all contents', isMethod: true },
+  { name: 'toJSON', type: '() => RuntimeBundleJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'clone', type: '() => SignableBundle', description: 'Create exact copy', isMethod: true },
+]} />
+
+## ExecutedBundle
+
+Created by `signable.finalize()`. Fully frozen.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'executed'", description: 'Phase discriminator' },
+  { name: 'bundle', type: 'Bundle', description: 'The underlying bundle definition' },
+  { name: 'executedAt', type: 'string', description: 'ISO timestamp of execution' },
+  { name: 'getContentKeys', type: '() => string[]', description: 'Get all content keys', isMethod: true },
+  { name: 'getContent', type: '(key: string) => RuntimeInstance | undefined', description: 'Get runtime instance by key', isMethod: true },
+  { name: 'hasContent', type: '(key: string) => boolean', description: 'Check if content exists', isMethod: true },
+  { name: 'getAllContents', type: '() => RuntimeBundleContents', description: 'Get all contents', isMethod: true },
+  { name: 'render', type: '(options: RuntimeBundleRenderOptions) => Promise<RuntimeBundleRendered>', description: 'Render all contents', isMethod: true },
+  { name: 'toJSON', type: '() => RuntimeBundleJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'clone', type: '() => ExecutedBundle', description: 'Create exact copy', isMethod: true },
+]} />
+
+# Related
+
+- [Bundle Schema](/schemas/artifacts/bundle)
+- [Document](/sdk/artifacts/document)
+- [Form](/sdk/artifacts/form)
+- [Checklist](/sdk/artifacts/checklist)

@@ -1,0 +1,164 @@
+---
+title: organization
+description: Build and validate organization information
+---
+
+Build and validate organization information. The Organization primitive captures business entity details including legal names, registration numbers, and jurisdiction.
+
+# Examples
+
+## Creating organizations
+
+```ts
+// Object pattern
+const org = para.organization({
+  name: 'Acme Corporation'
+})
+
+// Builder pattern
+const org = para.organization()
+  .name('Acme Corporation')
+  .legalName('Acme Corporation, Inc.')
+  .domicile('Delaware')
+  .entityType('corporation')
+  .entityId('12345678')
+  .taxId('12-3456789')
+  .build()
+
+// Copy and modify
+const updated = para.organization()
+  .from(org)
+  .domicile('Nevada')
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const org = para.organization.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.organization.safeParse(jsonData)
+if (result.success) {
+  console.log(`Organization: ${result.data.name}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'vendor',
+  fields: {
+    company: { type: 'organization', label: 'Company Information' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    company: para.organization()
+      .name('Tech Solutions LLC')
+      .entityType('llc')
+      .domicile('California')
+      .build()
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.organization(input: Organization): Organization
+```
+
+Pass an Organization object for validation. Returns the validated Organization or throws on error.
+
+```ts
+const org = para.organization({ name: 'Global Enterprises' })
+```
+
+## Builder Pattern
+
+Chain methods to build an Organization value incrementally:
+
+<MethodChain
+  starter="para.organization()"
+  methods={[
+    { name: 'name', params: 'value: string', description: 'Set organization display name' },
+    { name: 'legalName', params: 'value: string | undefined', description: 'Set full legal name' },
+    { name: 'domicile', params: 'value: string | undefined', description: 'Set jurisdiction of incorporation' },
+    { name: 'entityType', params: 'value: string | undefined', description: 'Set entity type (corporation, llc, etc.)' },
+    { name: 'entityId', params: 'value: string | undefined', description: 'Set registration/entity ID number' },
+    { name: 'taxId', params: 'value: string | undefined', description: 'Set tax identification number' },
+    { name: 'from', params: 'value: Organization', description: 'Initialize from existing Organization' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'OrganizationBuilder', terminal: 'Organization' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Organization', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Organization>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'name', type: 'string', description: 'Organization display name.' },
+  { name: 'legalName', type: 'string?', description: 'Full legal name as registered.' },
+  { name: 'domicile', type: 'string?', description: 'Jurisdiction of incorporation or registration.' },
+  { name: 'entityType', type: 'string?', description: 'Type of legal entity.' },
+  { name: 'entityId', type: 'string?', description: 'Registration or entity identification number.' },
+  { name: 'taxId', type: 'string?', description: 'Tax identification number (EIN, VAT, etc.).' },
+]} />
+
+# Common Entity Types
+
+| Type | Description |
+|------|-------------|
+| `corporation` | C-Corporation |
+| `s_corp` | S-Corporation |
+| `llc` | Limited Liability Company |
+| `llp` | Limited Liability Partnership |
+| `partnership` | General Partnership |
+| `sole_proprietorship` | Sole Proprietorship |
+| `nonprofit` | Non-profit Organization |
+| `trust` | Trust Entity |
+
+# Validation
+
+The Organization primitive validates:
+
+- `name` must be a non-empty string
+- All other fields are optional
+
+```ts
+// Valid
+para.organization({ name: 'Acme Inc' })
+para.organization({
+  name: 'Acme Inc',
+  legalName: 'Acme Incorporated',
+  entityType: 'corporation',
+  domicile: 'Delaware'
+})
+
+// Invalid - throws Error
+para.organization({})
+// Error: Invalid Organization: name is required
+
+para.organization({ name: '' })
+// Error: Invalid Organization: name cannot be empty
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Person](/sdk/primitives/person) - Individual person information
+- [Organization Field](/sdk/artifacts/form/field#organization) - Organization field type

@@ -1,0 +1,11 @@
+{
+  "fields": {
+    "quantity": 100,
+    "price": { "amount": 25, "currency": "USD" },
+    "date": "2025-03-01"
+  },
+  "parties": {
+    "buyer": { "id": "buyer-1", "name": "Alice Johnson" },
+    "seller": { "id": "seller-1", "name": "Bob Smith" }
+  }
+}

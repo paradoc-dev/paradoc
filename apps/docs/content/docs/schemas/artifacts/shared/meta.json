@@ -1,0 +1,10 @@
+{
+  "title": "Shared schemas",
+  "pages": [
+    "index",
+    "layer",
+    "content-ref",
+    "logic"
+  ],
+  "defaultOpen": false
+}

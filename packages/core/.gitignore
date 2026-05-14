@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+
+# Environment files
+.env*
+
+# TypeScript
+*.tsbuildinfo
+
+# Generated files in src (should only be in dist)
+src/**/*.d.ts
+src/**/*.d.ts.map
+src/**/*.js
+src/**/*.js.map
+
+# Testing
+coverage
+
+# Misc
+.DS_Store
+

@@ -1,0 +1,71 @@
+---
+title: About MCP
+description: Validate, fill, render, and browse Paradoc artifacts using the hosted MCP server
+ogTitle: Paradoc MCP Server
+ogDescription: Connect AI assistants to the Paradoc MCP server for artifact validation, filling, rendering, and registry browsing
+---
+
+The Paradoc MCP server lets AI assistants validate, fill, render, and browse artifacts over the [Model Context Protocol](https://modelcontextprotocol.io). It's a hosted service — no installation, no authentication, and no API keys required.
+
+# Endpoints
+
+| Endpoint | URL |
+|----------|-----|
+| MCP | `https://mcp.paradoc.dev/mcp` |
+| Health check | `https://mcp.paradoc.dev/health` |
+
+# Connecting
+
+<Tabs items={['Claude Desktop', 'Claude Code']} groupId="mcp-client" persist>
+  <Tab value="Claude Desktop">
+    Add to your Claude Desktop configuration file (`claude_desktop_config.json`):
+
+    ```json
+    {
+      "mcpServers": {
+        "Paradoc": {
+          "url": "https://mcp.paradoc.dev/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="Claude Code">
+    Add to your project's `.mcp.json` or global `~/.claude/mcp.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "Paradoc": {
+          "url": "https://mcp.paradoc.dev/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Once connected, all tools are available to the AI assistant automatically.
+
+# Tools
+
+## Core
+
+- [`validate`](/mcp/tools/validate) — Validate an artifact against the Paradoc schema
+- [`fill`](/mcp/tools/fill) — Fill a form or checklist with data, apply defaults, and validate
+
+## Rendering
+
+- [`render`](/mcp/tools/render) — Render a form from a verified registry as text, PDF, or DOCX
+
+## Registry
+
+- [`list_artifacts`](/mcp/tools/list-artifacts) — Browse artifacts ranked by popularity
+- [`get_artifact`](/mcp/tools/get-artifact) — Get the full artifact JSON and metadata
+- [`list_registries`](/mcp/tools/list-registries) — List registries with artifact counts and install stats
+- [`get_registry`](/mcp/tools/get-registry) — Get details for a specific registry and its artifacts
+- [`search`](/mcp/tools/search) — Search artifacts and registries by keyword
+
+# Rate limits
+
+The production server (`mcp.paradoc.dev`) allows **~120 requests per hour** per IP (2 requests per 60-second window). The development server (`mcp-dev.paradoc.dev`) has a higher limit of ~3,600 requests per hour (60 per 60-second window).

@@ -1,0 +1,27 @@
+{
+  "id": "140bfc231e34d521e6842cacc5b2bc396bbe8dbd",
+  "parent": "6350aa642d91c408d6a9bd89796811774b95b3e2",
+  "message": "Commit all",
+  "timestamp": "2025-11-18T02:20:33.610Z",
+  "author": {
+    "name": "",
+    "email": ""
+  },
+  "artifacts": {
+    "test-binder": {
+      "path": "test-binder.json",
+      "kind": "binder",
+      "version": "1.0.0",
+      "content_hash": "9c7f881a73331682c37a35319884bcd3525e0d10276534dff2152a4dd7d20654",
+      "content": "{\n  \"$schema\": \"https://schema.paradoc.org/2025-12-01/binder.schema.json\",\n  \"kind\": \"binder\",\n  \"name\": \"test-binder\",\n  \"title\": \"Test Binder\",\n  \"version\": \"1.0.0\",\n  \"contents\": []\n}\n",
+      "status": "added",
+      "file_dependencies": []
+    }
+  },
+  "stats": {
+    "added": 1,
+    "modified": 0,
+    "deleted": 0,
+    "unchanged": 0
+  }
+}

@@ -1,0 +1,130 @@
+---
+title: render
+description: Render an Paradoc form to PDF, markdown, or DOCX
+ogTitle: render — Paradoc AI Tools
+ogDescription: Render an Paradoc form artifact to PDF, markdown, or DOCX using three input modes
+---
+
+Renders a form artifact to PDF, markdown, or DOCX. Validates, fills with data, and renders via the appropriate renderer. Output is always inline (base64 for binary, utf-8 for text).
+
+<Callout type="info">
+  Only form artifacts can be rendered.
+</Callout>
+
+# Input modes
+
+The render tool accepts three input modes via a discriminated union on the `source` field:
+
+| Mode | Fields | Resolution |
+|------|--------|------------|
+| `source: "artifact"` | `artifact`, `baseUrl?` | Direct — no artifact fetch needed. File-backed layers use `baseUrl` to fetch templates. |
+| `source: "url"` | `url` | Fetches artifact JSON, derives baseUrl from URL dirname |
+| `source: "registry"` | `registryUrl`, `artifactName` | Fetches registry.json, finds item, fetches artifact |
+
+All modes share these fields:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `data` | `Record<string, unknown>` | Yes | Data to fill before rendering |
+| `layer` | `string` | No | Layer key to render. Falls back to `defaultLayer`, then first layer |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether the render completed successfully |
+| `artifactKind` | `string` | Detected artifact kind |
+| `content` | `string` | Rendered content |
+| `encoding` | `string` | Content encoding: `utf-8` or `base64` |
+| `mimeType` | `string` | MIME type of the rendered output |
+| `error` | `string` | Error message if rendering failed |
+| `errors` | `array` | List of fill errors, each with `field` and `message` |
+| `validationIssues` | `array` | List of schema validation issues, each with `message` and optional `path` |
+
+# Direct usage
+
+## From artifact JSON
+
+```typescript
+import { executeRender } from "@paradoc/ai-tools"
+
+const result = await executeRender({
+  source: "artifact",
+  artifact: myFormArtifact,
+  data: { fields: { name: "Jane Doe" } },
+  layer: "markdown",
+})
+```
+
+All execute functions (`executeRender`, `executeValidateArtifact`, `executeFill`, `executeGetRegistry`, `executeGetArtifact`) accept an optional second `config` parameter for custom fetch or proxy text renderer settings. See the [configuration reference](/ai#configuration).
+
+## From URL
+
+```typescript
+const result = await executeRender({
+  source: "url",
+  url: "https://public.paradoc.dev/pet-addendum/pet-addendum.json",
+  data: {
+    fields: { petName: "Buddy", species: "dog" },
+    parties: { tenant: { id: "t1", name: "Jane Doe" } },
+  },
+  layer: "markdown",
+})
+```
+
+## From registry
+
+```typescript
+const result = await executeRender({
+  source: "registry",
+  registryUrl: "https://public.paradoc.dev",
+  artifactName: "pet-addendum",
+  data: {
+    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
+    parties: {
+      tenant: { id: "t1", name: "Jane Doe" },
+      landlord: { id: "l1", name: "Acme Properties LLC" },
+    },
+  },
+  layer: "pdf",
+})
+// result.encoding === "base64", result.mimeType === "application/pdf"
+```
+
+# Example responses
+
+## Successful text render
+
+```json
+{
+  "success": true,
+  "artifactKind": "form",
+  "content": "# Pet Addendum\n\nPet Name: Buddy\nSpecies: dog\n...",
+  "encoding": "utf-8",
+  "mimeType": "text/markdown"
+}
+```
+
+## Successful PDF render
+
+```json
+{
+  "success": true,
+  "artifactKind": "form",
+  "content": "JVBERi0xLjcK...",
+  "encoding": "base64",
+  "mimeType": "application/pdf"
+}
+```
+
+## Fill validation failure
+
+```json
+{
+  "success": false,
+  "artifactKind": "form",
+  "errors": [
+    { "field": "petName", "message": "Missing required field: petName" }
+  ]
+}
+```

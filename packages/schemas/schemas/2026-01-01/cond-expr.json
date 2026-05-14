@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/condexpr.json",
+  "anyOf": [
+    {
+      "type": "boolean",
+      "description": "Literal boolean value"
+    },
+    {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "Expression string - either inline expression or reference to a defs key"
+    }
+  ],
+  "id": "CondExpr",
+  "title": "CondExpr"
+}

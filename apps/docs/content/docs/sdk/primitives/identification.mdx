@@ -1,0 +1,169 @@
+---
+title: identification
+description: Build and validate identification documents
+---
+
+Build and validate identification document information. The Identification primitive captures ID document details like passports, driver's licenses, and national IDs.
+
+# Examples
+
+## Creating identifications
+
+```ts
+// Object pattern
+const id = para.identification({
+  type: 'passport',
+  number: 'AB1234567'
+})
+
+// Builder pattern
+const id = para.identification()
+  .type('passport')
+  .number('AB1234567')
+  .issuer('US')
+  .issueDate('2020-01-15')
+  .expiryDate('2030-01-14')
+  .build()
+
+// Copy and modify
+const renewed = para.identification()
+  .from(id)
+  .issueDate('2024-01-15')
+  .expiryDate('2034-01-14')
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const id = para.identification.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.identification.safeParse(jsonData)
+if (result.success) {
+  console.log(`${result.data.type}: ${result.data.number}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'kyc',
+  fields: {
+    primaryId: { type: 'identification', label: 'Primary ID' },
+    secondaryId: { type: 'identification', label: 'Secondary ID' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    primaryId: para.identification()
+      .type('drivers_license')
+      .number('D1234567')
+      .issuer('CA')
+      .expiryDate('2028-06-30')
+      .build()
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.identification(input: Identification): Identification
+```
+
+Pass an Identification object for validation. Returns the validated Identification or throws on error.
+
+```ts
+const id = para.identification({
+  type: 'national_id',
+  number: '123-45-6789'
+})
+```
+
+## Builder Pattern
+
+Chain methods to build an Identification value incrementally:
+
+<MethodChain
+  starter="para.identification()"
+  methods={[
+    { name: 'type', params: 'val: string', description: 'Set document type (passport, drivers_license, etc.)' },
+    { name: 'number', params: 'val: string', description: 'Set document number' },
+    { name: 'issuer', params: 'val: string | undefined', description: 'Set issuing authority or country' },
+    { name: 'issueDate', params: 'val: string | undefined', description: 'Set issue date (YYYY-MM-DD)' },
+    { name: 'expiryDate', params: 'val: string | undefined', description: 'Set expiry date (YYYY-MM-DD)' },
+    { name: 'from', params: 'value: Identification', description: 'Initialize from existing Identification' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'IdentificationBuilder', terminal: 'Identification' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Identification', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Identification>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'type', type: 'string', description: 'Type of identification document.' },
+  { name: 'number', type: 'string', description: 'Document number or identifier.' },
+  { name: 'issuer', type: 'string?', description: 'Issuing authority, country, or organization.' },
+  { name: 'issueDate', type: 'string?', description: 'Date of issue in YYYY-MM-DD format.' },
+  { name: 'expiryDate', type: 'string?', description: 'Expiration date in YYYY-MM-DD format.' },
+]} />
+
+# Common ID Types
+
+| Type | Description |
+|------|-------------|
+| `passport` | International travel passport |
+| `drivers_license` | Driver's license |
+| `national_id` | National identity card |
+| `ssn` | Social Security Number (US) |
+| `tax_id` | Tax identification number |
+| `voter_id` | Voter registration card |
+| `military_id` | Military identification |
+
+# Validation
+
+The Identification primitive validates:
+
+- `type` must be a non-empty string
+- `number` must be a non-empty string
+- `issueDate` and `expiryDate` must be valid dates if provided
+
+```ts
+// Valid
+para.identification({ type: 'passport', number: 'AB123456' })
+para.identification({
+  type: 'drivers_license',
+  number: 'D9876543',
+  issuer: 'CA',
+  expiryDate: '2028-12-31'
+})
+
+// Invalid - throws Error
+para.identification({ type: 'passport' })
+// Error: Invalid Identification: number is required
+
+para.identification({ type: '', number: 'AB123456' })
+// Error: Invalid Identification: type cannot be empty
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Person](/sdk/primitives/person) - Person information
+- [Identification Field](/sdk/artifacts/form/field#identification) - Identification field type
+- [Identification Schema](/schemas/primitives/identification) - JSON Schema definition

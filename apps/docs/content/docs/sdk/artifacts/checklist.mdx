@@ -1,0 +1,301 @@
+---
+title: checklist
+description: Create Checklist artifacts for task lists and verification
+---
+
+Create Checklist artifacts for tracking tasks, requirements, or verification items. Each item can have a boolean (done/not done) or enumerated status type.
+
+# Examples
+
+## Creating a checklist
+
+```ts
+// Object pattern
+const checklist = para.checklist({
+  name: 'move-in-checklist',
+  version: '1.0.0',
+  title: 'Move-In Inspection',
+  items: [
+    { id: 'keys', title: 'Keys received', status: { kind: 'boolean' } },
+    { id: 'condition', title: 'Property condition', status: {
+      kind: 'enum',
+      options: [
+        { value: 'excellent', label: 'Excellent' },
+        { value: 'good', label: 'Good' },
+        { value: 'fair', label: 'Fair' },
+        { value: 'poor', label: 'Poor' }
+      ]
+    }}
+  ]
+})
+
+// Builder pattern
+const checklist = para.checklist()
+  .name('move-in-checklist')
+  .version('1.0.0')
+  .title('Move-In Inspection')
+  .itemWithBooleanStatus('keys', 'Keys received')
+  .itemWithEnumStatus('condition', 'Property condition', {
+    statusOptions: [
+      { value: 'excellent', label: 'Excellent' },
+      { value: 'good', label: 'Good' },
+      { value: 'fair', label: 'Fair' },
+      { value: 'poor', label: 'Poor' }
+    ]
+  })
+  .build()
+```
+
+## Loading from external data
+
+```ts
+// Parse and validate unknown input (throws on error)
+const checklist = para.checklist.from(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.checklist.safeFrom(jsonData)
+if (result.success) {
+  const checklist = result.data
+}
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.checklist(input: ChecklistInput): ChecklistInstance
+```
+
+### Parameters
+
+<PropertiesTable properties={[
+  { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
+  { name: 'version', type: 'string', description: 'Artifact version (semantic versioning)', isOptional: true },
+  { name: 'title', type: 'string', description: 'Human-friendly name presented to end users', isOptional: true },
+  { name: 'description', type: 'string', description: 'Long-form description or context', isOptional: true },
+  { name: 'code', type: 'string', description: 'Internal code or reference number', isOptional: true },
+  { name: 'releaseDate', type: 'string', description: 'ISO date string indicating when the artifact was released', isOptional: true },
+  { name: 'metadata', type: 'Metadata', description: 'Custom metadata map (keys must be alphanumeric with hyphens)', isOptional: true },
+  { name: 'instructions', type: 'ContentRef', description: 'Domain or compliance reference content', isOptional: true },
+  { name: 'agentInstructions', type: 'ContentRef', description: 'LLM/agent prompts for presentation guidance', isOptional: true },
+  { name: 'items', type: 'ChecklistItem[]', description: 'Ordered list of checklist items to track' },
+  { name: 'layers', type: 'Record<string, Layer>', description: 'Named layers for rendering into different formats', isOptional: true },
+  { name: 'defaultLayer', type: 'string', description: 'Key of the default layer to use when none specified', isOptional: true },
+]} />
+
+### Returns
+
+Returns a `ChecklistInstance` with the following properties and methods:
+
+<PropertiesTable properties={[
+  { name: 'kind', type: "'checklist'", description: 'Artifact discriminator' },
+  { name: 'name', type: 'string', description: 'Checklist name' },
+  { name: 'version', type: 'string | undefined', description: 'Semantic version' },
+  { name: 'title', type: 'string | undefined', description: 'Human-readable title' },
+  { name: 'description', type: 'string | undefined', description: 'Description text' },
+  { name: 'code', type: 'string | undefined', description: 'Internal code or reference number' },
+  { name: 'releaseDate', type: 'string | undefined', description: 'ISO date string' },
+  { name: 'metadata', type: 'Metadata | undefined', description: 'Custom metadata map' },
+  { name: 'instructions', type: 'ContentRef | undefined', description: 'Domain or compliance reference content' },
+  { name: 'agentInstructions', type: 'ContentRef | undefined', description: 'LLM/agent prompts for presentation guidance' },
+  { name: 'items', type: 'ChecklistItem[]', description: 'Ordered list of checklist items' },
+  { name: 'layers', type: 'Record<string, Layer> | undefined', description: 'Render layers' },
+  { name: 'defaultLayer', type: 'string | undefined', description: 'Default layer key' },
+  { name: 'validate', type: '(options?: ValidateOptions) => StandardSchemaV1.Result', description: 'Validate the checklist definition', isMethod: true },
+  { name: 'isValid', type: '(options?: ValidateOptions) => boolean', description: 'Check if checklist is valid', isMethod: true },
+  { name: 'toJSON', type: '(options?: SerializationOptions) => object', description: 'Serialize to JSON (includes $schema by default)', isMethod: true },
+  { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML', isMethod: true },
+  { name: 'clone', type: '() => ChecklistInstance', description: 'Deep clone the instance', isMethod: true },
+  { name: 'validateItemInput', type: '(input: { itemId: string; value: unknown }) => ProgressiveValidationResult<boolean | string>', description: 'Validate one checklist item input', isMethod: true },
+  { name: 'validateItemsPatch', type: '(items: unknown) => ProgressiveValidationResult<Record<string, boolean | string>>', description: 'Validate a partial checklist items patch', isMethod: true },
+  { name: 'fill', type: '(data: InferChecklistPayload) => DraftChecklist', description: 'Create runtime checklist with item status data', isMethod: true },
+  { name: 'safeFill', type: '(data: InferChecklistPayload) => Result<DraftChecklist>', description: 'Safely fill with error handling', isMethod: true },
+  { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render checklist content', isMethod: true },
+]} />
+
+## Builder Pattern
+
+Chain methods to build a checklist incrementally:
+
+<MethodChain
+  starter="para.checklist()"
+  methods={[
+    { name: 'name', params: 'value: string', description: 'Set checklist name (required)' },
+    { name: 'version', params: 'value: string', description: 'Set semantic version' },
+    { name: 'title', params: 'value: string', description: 'Set human-readable title' },
+    { name: 'description', params: 'value: string', description: 'Set description' },
+    { name: 'code', params: 'value: string', description: 'Set external reference code' },
+    { name: 'releaseDate', params: 'value: string', description: 'Set release date (ISO format)' },
+    { name: 'metadata', params: 'value: Metadata', description: 'Set custom metadata' },
+    { name: 'instructions', params: 'value: ContentRef', description: 'Set domain/compliance reference content' },
+    { name: 'agentInstructions', params: 'value: ContentRef', description: 'Set LLM/agent presentation guidance' },
+    { name: 'item', params: 'itemDef: ChecklistItem', description: 'Add a single item' },
+    { name: 'items', params: 'items: ChecklistItem[]', description: 'Set all items at once' },
+    { name: 'itemWithBooleanStatus', params: 'id: string, title: string, options?', description: 'Add item with boolean status' },
+    { name: 'itemWithEnumStatus', params: 'id: string, title: string, options', description: 'Add item with enum status' },
+    { name: 'layers', params: 'value: Record<string, Layer>', description: 'Set all layers at once' },
+    { name: 'layer', params: 'key: string, layer: Layer', description: 'Add a layer from a Layer object' },
+    { name: 'inlineLayer', params: 'key: string, layer: { mimeType, text, ... }', description: 'Add inline text layer' },
+    { name: 'fileLayer', params: 'key: string, layer: { mimeType, path, ... }', description: 'Add file-backed layer' },
+    { name: 'defaultLayer', params: 'key: string', description: 'Set default layer for rendering' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'ChecklistBuilder', terminal: 'ChecklistInstance' }}
+/>
+
+## Static Methods
+
+Parse checklists from unknown data sources:
+
+<MethodTable methods={[
+  { name: 'from', params: 'input: unknown', returns: 'ChecklistInstance', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeFrom', params: 'input: unknown', returns: 'Result<ChecklistInstance>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Progressive Item Validation
+
+Use progressive validators when collecting checklist answers interactively (for example in chat flows).
+
+## Return shape
+
+```ts
+type ProgressiveValidationResult<T> =
+  | { success: true; value: T; errors: null }
+  | { success: false; value: null; errors: ValidationError[] }
+```
+
+## Validate a single item answer
+
+```ts
+const status = checklist.validateItemInput({
+  itemId: 'condition',
+  value: 'good',
+})
+```
+
+## Validate a partial patch
+
+```ts
+const patch = checklist.validateItemsPatch({
+  keys: true,
+  condition: 'excellent',
+})
+```
+
+Unknown item IDs and invalid enum/boolean values return structured `ValidationError[]`.
+
+# Checklist Item Types
+
+## ChecklistItem
+
+Each item in a checklist has the following properties:
+
+<PropertiesTable properties={[
+  { name: 'id', type: 'string', description: 'Unique item identifier within the checklist' },
+  { name: 'title', type: 'string', description: 'Title or label displayed for this item' },
+  { name: 'description', type: 'string', description: 'Additional detail about the item', isOptional: true },
+  { name: 'status', type: 'StatusSpec', description: 'Status specification (boolean or enum)', isOptional: true },
+]} />
+
+## Status Types
+
+Checklist items can have either boolean or enumerated status tracking:
+
+### BooleanStatusSpec
+
+Simple done/not-done tracking:
+
+<PropertiesTable properties={[
+  { name: 'kind', type: "'boolean'", description: 'Discriminator for boolean status type' },
+  { name: 'default', type: 'boolean', description: 'Default status value', isOptional: true },
+]} />
+
+### EnumStatusSpec
+
+Multiple status states (e.g., excellent/good/fair/poor):
+
+<PropertiesTable properties={[
+  { name: 'kind', type: "'enum'", description: 'Discriminator for enum status type' },
+  { name: 'options', type: 'EnumStatusOption[]', description: 'Available status options' },
+  { name: 'default', type: 'string', description: 'Default status value', isOptional: true },
+]} />
+
+### EnumStatusOption
+
+Each option in an enum status:
+
+<PropertiesTable properties={[
+  { name: 'value', type: 'string', description: 'The status value' },
+  { name: 'label', type: 'string', description: 'Human-readable label for the status' },
+  { name: 'description', type: 'string', description: 'Additional description of this status', isOptional: true },
+]} />
+
+# Lifecycle Types
+
+Checklists follow a two-phase lifecycle:
+
+| Type | Phase | Description |
+|------|-------|-------------|
+| `DraftChecklist` | Draft | Mutable item status, can update items |
+| `CompletedChecklist` | Completed | Frozen checklist, ready for archival |
+
+```ts
+// Fill checklist with initial data (DraftChecklist)
+const draft = checklist.fill({
+  keys: true,
+  condition: 'good',
+})
+
+// Update items
+const updated = draft.setItem('keys', true)
+
+// Complete the checklist (CompletedChecklist)
+const completed = draft.complete()
+
+// completed.completedAt === ISO timestamp
+// Render
+const output = await completed.render({ renderer: textRenderer() })
+```
+
+## DraftChecklist
+
+Created by `checklist.fill()`. Mutable item status tracking.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
+  { name: 'checklist', type: 'Checklist', description: 'The underlying checklist definition' },
+  { name: 'targetLayer', type: 'string', description: 'Target layer key' },
+  { name: 'completedAt', type: 'undefined', description: 'Completion timestamp (always undefined for draft)' },
+  { name: 'getItem', type: '(itemId: string) => boolean | string', description: 'Get status for an item', isMethod: true },
+  { name: 'getAllItems', type: '() => Record<string, boolean | string>', description: 'Get all item statuses', isMethod: true },
+  { name: 'setItem', type: '(itemId: string, value: boolean | string) => DraftChecklist', description: 'Set item status (returns new instance)', isMethod: true },
+  { name: 'updateItems', type: '(updates: Partial<Payload>) => DraftChecklist', description: 'Update multiple items at once', isMethod: true },
+  { name: 'setTargetLayer', type: '(layer: string) => DraftChecklist', description: 'Change target layer', isMethod: true },
+  { name: 'complete', type: '() => CompletedChecklist', description: 'Transition to completed phase', isMethod: true },
+  { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render the checklist', isMethod: true },
+  { name: 'toJSON', type: '() => RuntimeChecklistJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'clone', type: '() => DraftChecklist', description: 'Create exact copy', isMethod: true },
+]} />
+
+## CompletedChecklist
+
+Created by `draft.complete()`. Fully frozen.
+
+<PropertiesTable properties={[
+  { name: 'phase', type: "'completed'", description: 'Phase discriminator' },
+  { name: 'checklist', type: 'Checklist', description: 'The underlying checklist definition' },
+  { name: 'targetLayer', type: 'string', description: 'Target layer key' },
+  { name: 'completedAt', type: 'string', description: 'ISO timestamp of completion' },
+  { name: 'getItem', type: '(itemId: string) => boolean | string', description: 'Get status for an item', isMethod: true },
+  { name: 'getAllItems', type: '() => Record<string, boolean | string>', description: 'Get all item statuses', isMethod: true },
+  { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render the checklist', isMethod: true },
+  { name: 'toJSON', type: '() => RuntimeChecklistJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'clone', type: '() => CompletedChecklist', description: 'Create exact copy', isMethod: true },
+]} />
+
+# Related
+
+- [Checklist Schema](/schemas/artifacts/checklist)
+- [Renderers](/sdk/renderers)
+- [Serialization](/sdk/serialization)

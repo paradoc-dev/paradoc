@@ -1,0 +1,42 @@
+---
+title: Duration
+description: A time period in ISO 8601 format
+---
+
+A Duration is a string primitive that represents a time period expressed as an ISO 8601 duration string.
+
+# Format
+
+A duration is a string following the ISO 8601 duration format:
+
+```
+P[n]Y[n]M[n]DT[n]H[n]M[n]S
+```
+
+| Component | Description |
+|-----------|-------------|
+| `P` | Duration designator (required prefix) |
+| `[n]Y` | Number of years |
+| `[n]M` | Number of months |
+| `[n]D` | Number of days |
+| `T` | Time designator (separates date and time) |
+| `[n]H` | Number of hours |
+| `[n]M` | Number of minutes |
+| `[n]S` | Number of seconds |
+
+# Examples
+
+```yaml tab="YAML"
+# One year duration
+duration: P1Y
+
+# Thirty minutes
+timeout: PT30M
+```
+
+```json tab="JSON"
+{
+  "duration": "P1Y",
+  "timeout": "PT30M"
+}
+```

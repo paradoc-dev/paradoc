@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/manifest.json",
+  "title": "Paradoc Project Manifest",
+  "description": "Schema for paradoc.json project manifest files",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "JSON Schema URI for validation"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 214,
+      "pattern": "^@[a-z0-9-]+\\/[a-z0-9-]+$",
+      "description": "Scoped package name (@org/repo-name)"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Human-readable project title"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Project description"
+    },
+    "visibility": {
+      "default": "private",
+      "description": "Project visibility",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "public"
+        },
+        {
+          "type": "string",
+          "const": "private"
+        }
+      ]
+    },
+    "registries": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^@[a-zA-Z0-9][a-zA-Z0-9-_]*$",
+        "description": "Registry namespace (must start with @)"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string",
+            "format": "uri",
+            "description": "Simple registry URL"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Registry base URL"
+              },
+              "headers": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "HTTP headers for authentication (supports ${ENV_VAR} expansion)"
+              },
+              "params": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Query parameters to include in requests"
+              },
+              "cache": {
+                "type": "object",
+                "properties": {
+                  "ttl": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Cache TTL in seconds. 0 disables caching for this registry."
+                  }
+                },
+                "additionalProperties": false,
+                "title": "ManifestRegistryCacheConfig",
+                "description": "Per-registry cache settings"
+              }
+            },
+            "required": [
+              "url"
+            ],
+            "additionalProperties": false,
+            "title": "ManifestRegistryEntryObject",
+            "description": "Registry configuration with authentication options"
+          }
+        ],
+        "title": "ManifestRegistryEntry",
+        "description": "Registry configuration - URL string or object with authentication"
+      },
+      "description": "Custom registries for this project (overrides global config)"
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "dir": {
+          "default": "artifacts",
+          "description": "Directory for installed artifacts (default: \"artifacts\")",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "output": {
+          "default": "json",
+          "description": "Default output format for artifacts: json, yaml, typed (json + .d.ts), or ts (TypeScript module)",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "json"
+            },
+            {
+              "type": "string",
+              "const": "yaml"
+            },
+            {
+              "type": "string",
+              "const": "typed"
+            },
+            {
+              "type": "string",
+              "const": "ts"
+            }
+          ],
+          "title": "ArtifactOutputFormat"
+        }
+      },
+      "additionalProperties": false,
+      "title": "ManifestArtifactConfig",
+      "description": "Configuration for artifact management"
+    },
+    "cache": {
+      "type": "object",
+      "properties": {
+        "ttl": {
+          "default": 3600,
+          "description": "Default cache TTL in seconds. 0 disables caching. Default: 3600 (1 hour)",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "title": "ManifestCacheConfig",
+      "description": "Project-level cache configuration (overrides global config)"
+    }
+  },
+  "required": [
+    "name",
+    "title",
+    "visibility"
+  ],
+  "additionalProperties": false
+}

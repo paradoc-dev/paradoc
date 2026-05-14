@@ -1,0 +1,250 @@
+---
+title: Quickstart
+description: Create your first form in minutes
+icon: Rocket
+ogTitle: Quickstart
+ogDescription: Build your first form in minutes
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Let's build a simple purchase agreement to grasp the basics of Paradoc. We'll define the agreement, populate it with data, validate it, and render the output.
+
+<Steps>
+
+<Step>
+### Install the SDK
+
+Let's make a new project and install the SDK.
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    mkdir quickstart && cd quickstart
+    npm init -y
+    npm install @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    mkdir quickstart && cd quickstart
+    pnpm init -y
+    pnpm add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    mkdir quickstart && cd quickstart
+    yarn init -y
+    yarn add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    mkdir quickstart && cd quickstart
+    bun init -y
+    bun add @paradoc/sdk @paradoc/resolvers
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+
+<Step>
+### Define the Form
+
+Let's define a simple purchase agreement with 2 parties and 3 fields. It will have a single layer that is a Markdown file.
+
+```ts
+import { para } from '@paradoc/sdk'
+
+const purchaseAgreement = para
+  .form()
+  .name('purchase-agreement') // required
+  .title('Purchase Agreement')
+  .version('1.0.0')
+  .parties({
+    buyer: para.party().label('Buyer').signature({ required: true }),
+    seller: para.party().label('Seller').signature({ required: true }),
+  })
+  .fields({
+    quantity: para.field.number().label('Quantity').required(),
+    price: para.field.money().label('Price').required(),
+    date: para.field.date().label('Date').required(),
+  })
+  .layers({
+    markdown: para.layer().file().mimeType('text/markdown').path('purchase-agreement.md'),
+  })
+  .defaultLayer('markdown')
+  .build()
+```
+</Step>
+
+In this Quickstart, we're using the fluent builder pattern to define the form. You can also use the object pattern if you prefer.
+
+<Step>
+### Create the Layer
+
+Next, let's create the layer. We'll use Handlebars syntax to map the form parties/fields to the layer template.
+
+```md title="purchase-agreement.md"
+# Purchase Agreement
+
+{{parties.buyer.name}} agrees to purchase {{quantity}} units at {{price}} each.
+{{parties.seller.name}} agrees to deliver by {{date}}.
+```
+
+Paradoc is agonstic to the rendering engine and file format you choose. You can use any rendering engine and file format you want.
+
+</Step>
+
+<Step>
+### Populate
+
+Let's populate the form with data by using the `.fill()` method.
+
+```ts
+const draft = purchaseAgreement.fill({
+  fields: {
+    quantity: 100,
+    price: { amount: 25, currency: 'USD' },
+    date: '2025-03-01',
+  },
+  parties: {
+    buyer: { id: 'buyer-1', name: 'Alice Johnson' },
+    seller: { id: 'seller-1', name: 'Bob Smith' },
+  },
+})
+```
+</Step>
+
+<Step>
+### Validate
+
+Next, let's check that the data is valid by using the `.isValid()` method.
+
+```ts
+if (draft.isValid()) {
+  console.log('Purchase agreement is valid')
+} else {
+  console.log('Errors:', draft.validate().errors)
+}
+```
+</Step>
+
+<Step>
+### Render
+
+Let's render the purchase agreement with the data using the `.render()` method.
+
+```ts
+import { textRenderer } from '@paradoc/sdk'
+import { createFsResolver } from '@paradoc/resolvers'
+
+const renderer = textRenderer()
+const resolver = createFsResolver({ root: process.cwd() })
+
+const output = await draft.render({ renderer, resolver, layer: 'markdown' })
+
+console.log(output)
+// Purchase Agreement
+//
+// Alice Johnson agrees to purchase 100 units at $25.00 each.
+// Bob Smith agrees to deliver by March 1, 2025.
+```
+</Step>
+
+<Step>
+### Save Artifact
+
+If we want to save our form for future use, we can either save it as a typescript file, or we can serialize it to JSON/YAML for future loading.
+
+<Tabs items={['JSON', 'YAML']} groupId="output-format" persist>
+  <Tab value="JSON">
+    ```ts
+    import { writeFileSync } from 'node:fs'
+
+    writeFileSync('purchase-agreement.json', purchaseAgreement.toJSON())
+    ```
+  </Tab>
+  <Tab value="YAML">
+    ```ts
+    import { writeFileSync } from 'node:fs'
+
+    writeFileSync('purchase-agreement.yaml', purchaseAgreement.toYAML())
+    ```
+  </Tab>
+</Tabs>
+
+<Tabs items={['JSON', 'YAML']} groupId="output-format" persist>
+  <Tab value="JSON">
+    ```json
+    {
+      "$schema": "https://paradoc.sh/schemas/2026-01-01.json",
+      "kind": "form",
+      "name": "purchase-agreement",
+      "title": "Purchase Agreement",
+      "version": "1.0.0",
+      "fields": {
+        "quantity": { "type": "number", "label": "Quantity", "required": true },
+        "price": { "type": "money", "label": "Price", "required": true },
+        "date": { "type": "date", "label": "Date", "required": true }
+      },
+      "parties": {
+        "buyer": { "label": "Buyer", "signature": { "required": true } },
+        "seller": { "label": "Seller", "signature": { "required": true } }
+      },
+      "layers": {
+        "text": { "kind": "inline", "mimeType": "text/plain", "text": "..." }
+      },
+      "defaultLayer": "text"
+    }
+    ```
+  </Tab>
+  <Tab value="YAML">
+    ```yaml
+    $schema: https://paradoc.sh/schemas/2026-01-01.json
+    kind: form
+    name: purchase-agreement
+    title: Purchase Agreement
+    version: 1.0.0
+    fields:
+      quantity:
+        type: number
+        label: Quantity
+        required: true
+      price:
+        type: money
+        label: Price
+        required: true
+      date:
+        type: date
+        label: Date
+        required: true
+    parties:
+      buyer:
+        label: Buyer
+        signature:
+          required: true
+      seller:
+        label: Seller
+        signature:
+          required: true
+    layers:
+      text:
+        kind: inline
+        mimeType: text/plain
+        text: "..."
+    defaultLayer: text
+    ```
+  </Tab>
+</Tabs>
+</Step>
+</Steps>
+
+That's it! You've created a basic form that shows how Paradoc works at design time (defining the schema) and runtime (filling and rendering). As a next step, explore the concepts section or jump into the guides to learn more.
+
+## Next Steps
+
+- [Concepts](/concepts) — learn about the core concepts
+- [Guides](/guides) — step-by-step tutorials

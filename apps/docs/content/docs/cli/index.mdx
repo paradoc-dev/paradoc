@@ -1,0 +1,58 @@
+---
+title: About CLI
+description: Command-line interface for managing Paradoc artifacts
+ogTitle: Paradoc CLI
+ogDescription: Install and manage Paradoc artifacts from registries using the CLI
+---
+
+The Paradoc CLI (`para`) is a command-line tool for working with Paradoc artifacts — structured definitions of forms, documents, checklists, and bundles. It takes a registry-first approach: discover and install pre-built artifacts from shared registries, then validate, render, and manage them locally. It's also an authoring tool for creating new artifacts from scratch.
+
+# Key capabilities
+
+- Install artifacts from public or private registries
+- Create new artifacts (forms, documents, checklists, bundles)
+- Validate artifacts against the Paradoc JSON Schema
+- Render layers to PDF, DOCX, or Markdown
+- Diff and patch artifacts
+- Build and host your own registries
+- Generate TypeScript types from artifacts
+
+# Installation
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install -g paradoc
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add -g paradoc
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn global add paradoc
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add -g paradoc
+    ```
+  </Tab>
+</Tabs>
+
+Verify the installation:
+
+```bash
+paradoc --version
+```
+
+The package registers two commands: `paradoc` and the shorthand alias `para`. Both are identical — use whichever you prefer. These docs use `para` throughout for brevity.
+
+# Next steps
+
+- [Projects](/cli/projects) - Project structure, manifest, lock file, and output formats
+- [Configuration](/cli/configuration) - Global and project settings, environment variables, renderers, and cache
+- [Registries](/cli/registries) - Consuming and creating artifact registries
+- [Command reference](/cli/commands) - Full list of available commands

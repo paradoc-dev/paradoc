@@ -1,0 +1,177 @@
+---
+title: phone
+description: Build and validate phone numbers
+---
+
+Build and validate phone numbers. The Phone primitive captures phone numbers with optional type classification and extension.
+
+# Examples
+
+## Creating phone numbers
+
+```ts
+// Object pattern
+const phone = para.phone({
+  number: '+14155552671'
+})
+
+// Builder pattern
+const phone = para.phone()
+  .number('+14155552671')
+  .type('mobile')
+  .extension('123')
+  .build()
+
+// Copy and modify
+const updated = para.phone()
+  .from(phone)
+  .type('work')
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const phone = para.phone.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.phone.safeParse(jsonData)
+if (result.success) {
+  console.log(`Phone: ${result.data.number}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'contact',
+  fields: {
+    mobilePhone: { type: 'phone', label: 'Mobile Phone' },
+    workPhone: { type: 'phone', label: 'Work Phone' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    mobilePhone: para.phone()
+      .number('+14155552671')
+      .type('mobile')
+      .build(),
+    workPhone: para.phone()
+      .number('+14155551234')
+      .type('work')
+      .extension('567')
+      .build()
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.phone(input: Phone): Phone
+```
+
+Pass a Phone object for validation. Returns the validated Phone or throws on error.
+
+```ts
+const phone = para.phone({ number: '+442071234567' })
+```
+
+## Builder Pattern
+
+Chain methods to build a Phone value incrementally:
+
+<MethodChain
+  starter="para.phone()"
+  methods={[
+    { name: 'number', params: 'value: string', description: 'Set phone number (E.164 format recommended)' },
+    { name: 'type', params: 'value: string | undefined', description: 'Set phone type (mobile, home, work, etc.)' },
+    { name: 'extension', params: 'value: string | undefined', description: 'Set extension number' },
+    { name: 'from', params: 'value: Phone', description: 'Initialize from existing Phone' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'PhoneBuilder', terminal: 'Phone' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Phone', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Phone>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'number', type: 'string', description: 'Phone number. E.164 format recommended (+[country][number]).' },
+  { name: 'type', type: 'string?', description: 'Type of phone (mobile, home, work, fax).' },
+  { name: 'extension', type: 'string?', description: 'Extension number for business lines.' },
+]} />
+
+# E.164 Format
+
+The recommended format for phone numbers is E.164:
+
+```
++[country code][subscriber number]
+```
+
+| Country | Format | Example |
+|---------|--------|---------|
+| USA/Canada | +1XXXXXXXXXX | +14155552671 |
+| UK | +44XXXXXXXXXX | +442071234567 |
+| Germany | +49XXXXXXXXX | +4930123456 |
+| Japan | +81XXXXXXXXX | +81312345678 |
+| Australia | +61XXXXXXXXX | +61212345678 |
+
+# Phone Types
+
+| Type | Description |
+|------|-------------|
+| `mobile` | Mobile/cell phone |
+| `home` | Residential landline |
+| `work` | Business/office line |
+| `fax` | Fax machine |
+| `other` | Other phone type |
+
+# Validation
+
+The Phone primitive validates:
+
+- `number` must be a non-empty string
+- `type` and `extension` are optional
+
+```ts
+// Valid
+para.phone({ number: '+14155552671' })
+para.phone({
+  number: '+14155552671',
+  type: 'mobile'
+})
+para.phone({
+  number: '+14155551234',
+  type: 'work',
+  extension: '567'
+})
+
+// Invalid - throws Error
+para.phone({})
+// Error: Invalid Phone: number is required
+
+para.phone({ number: '' })
+// Error: Invalid Phone: number cannot be empty
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Address](/sdk/primitives/address) - Physical address
+- [Phone Field](/sdk/artifacts/form/field#phone) - Phone field type
+- [Phone Schema](/schemas/primitives/phone) - JSON Schema definition

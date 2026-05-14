@@ -1,0 +1,152 @@
+---
+title: Layer
+description: Rendering output specification for artifacts
+---
+
+A Layer defines how an artifact can be rendered into a specific format. Layers enable artifacts to have multiple output representations (PDF, HTML, Markdown, etc.).
+
+```typescript
+type Layer = InlineLayer | FileLayer
+```
+
+# Layer Types
+
+## InlineLayer
+
+Inline layer with embedded text content. Used when content is stored directly in the artifact definition.
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: "'inline'",
+    description: 'Discriminator for inline layer type',
+  },
+  {
+    name: 'mimeType',
+    type: 'string',
+    description: 'MIME type of the content (e.g., text/markdown, text/html)',
+  },
+  {
+    name: 'text',
+    type: 'string',
+    description: 'Layer content with interpolation placeholders',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-readable title for this layer',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Description of what this layer represents',
+    isOptional: true,
+  },
+  {
+    name: 'bindings',
+    type: 'Record<string, string>',
+    description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',
+    isOptional: true,
+  },
+]} />
+
+## FileLayer
+
+File-backed layer with external file reference. Used when content is stored in a separate file.
+
+<PropertiesTable properties={[
+  {
+    name: 'kind',
+    type: "'file'",
+    description: 'Discriminator for file layer type',
+  },
+  {
+    name: 'mimeType',
+    type: 'string',
+    description: 'MIME type of the file (e.g., application/pdf)',
+  },
+  {
+    name: 'path',
+    type: 'string',
+    description: 'Absolute path from repo root to the layer file',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Human-readable title for this layer',
+    isOptional: true,
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Description of what this layer represents',
+    isOptional: true,
+  },
+  {
+    name: 'checksum',
+    type: 'string',
+    description: 'SHA-256 checksum for integrity verification',
+    isOptional: true,
+  },
+  {
+    name: 'bindings',
+    type: 'Record<string, string>',
+    description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+```yaml tab="YAML"
+layers:
+  # Inline layer with markdown content
+  markdown:
+    kind: inline
+    mimeType: text/markdown
+    title: Markdown Version
+    text: |
+      # Welcome
+
+      This is the content of the document with {{ fields.name }} placeholder.
+
+  # File layer referencing external PDF
+  pdf:
+    kind: file
+    mimeType: application/pdf
+    path: /templates/contract.pdf
+    title: PDF Version
+    bindings:
+      client_name: clientName
+      contract_date: contractDate
+```
+
+```json tab="JSON"
+{
+  "layers": {
+    "markdown": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "title": "Markdown Version",
+      "text": "# Welcome\n\nThis is the content of the document with {{ fields.name }} placeholder."
+    },
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "/templates/contract.pdf",
+      "title": "PDF Version",
+      "bindings": {
+        "client_name": "clientName",
+        "contract_date": "contractDate"
+      }
+    }
+  }
+}
+```
+
+# Related
+
+- [Document](/schemas/artifacts/document) - Static content artifact
+- [Form](/schemas/artifacts/form) - Interactive form artifact
+- [Checklist](/schemas/artifacts/checklist) - Task tracking artifact

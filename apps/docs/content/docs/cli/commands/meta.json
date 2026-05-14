@@ -1,0 +1,33 @@
+{
+  "title": "Commands",
+  "pages": [
+    "index",
+    "about",
+    "add",
+    "apply",
+    "attach",
+    "cache",
+    "configure",
+    "console",
+    "data",
+    "detach",
+    "diff",
+    "docs",
+    "fix",
+    "generate",
+    "hash",
+    "init",
+    "inspect",
+    "list",
+    "new",
+    "registry",
+    "render",
+    "renderers",
+    "reset",
+    "search",
+    "show",
+    "validate",
+    "version"
+  ],
+  "defaultOpen": false
+}

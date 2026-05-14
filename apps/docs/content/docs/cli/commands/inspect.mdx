@@ -1,0 +1,102 @@
+---
+title: inspect
+description: Inspect PDF form fields
+ogTitle: para inspect
+ogDescription: Analyze PDF form fields to configure bindings
+---
+
+Inspects PDF form fields to aid in bindings configuration.
+
+# Usage
+
+```bash
+para inspect <pdf> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `pdf` | PDF template file (path or `-` for stdin) |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--format <format>` | Output format: `table` or `json` (default: table) |
+| `--filter <pattern>` | Filter field names by glob pattern (e.g., `party_*`) |
+| `--summary` | Show totals only (no field listing) |
+| `--include-buttons` | Include button fields in the output |
+| `--include-signatures` | Include signature fields in the output |
+| `--out <file>` | Write inspection result to JSON file |
+
+# Description
+
+The `inspect` command extracts and displays all AcroForm fields from a PDF file. This helps you understand the PDF's field structure when configuring form bindings.
+
+# Examples
+
+Inspect a PDF:
+
+```bash
+para inspect form-template.pdf
+```
+
+Filter fields by pattern:
+
+```bash
+para inspect form-template.pdf --filter "address_*"
+```
+
+Output as JSON:
+
+```bash
+para inspect form-template.pdf --format json
+```
+
+Get summary only:
+
+```bash
+para inspect form-template.pdf --summary
+```
+
+Save to file:
+
+```bash
+para inspect form-template.pdf --out fields.json
+```
+
+# Output
+
+Table format:
+
+```
+Fields from form-template.pdf:
+┌──────────────────┬──────────┬──────────┬─────────┐
+│ Name             │ Type     │ Required │ Value   │
+├──────────────────┼──────────┼──────────┼─────────┤
+│ full_name        │ text     │ yes      │         │
+│ address_line1    │ text     │ yes      │         │
+│ address_city     │ text     │ yes      │         │
+│ agree_terms      │ checkbox │ no       │ false   │
+└──────────────────┴──────────┴──────────┴─────────┘
+```
+
+Summary format:
+
+```json
+{
+  "source": "form-template.pdf",
+  "total": 15,
+  "breakdown": {
+    "text": 10,
+    "checkbox": 3,
+    "dropdown": 2
+  }
+}
+```
+
+# See also
+
+- [render](/cli/commands/render) - Render artifact layers
+- [attach](/cli/commands/attach) - Attach PDF files to artifacts

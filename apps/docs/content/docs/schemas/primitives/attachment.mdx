@@ -1,0 +1,63 @@
+---
+title: Attachment
+description: Attached document data
+---
+
+An Attachment is a structured primitive that identifies a file. It is used at runtime to specify a [Form Annex](/schemas/artifacts/form/annex) that is attached to a [Form](/schemas/artifacts/form).
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Original file name',
+  },
+  {
+    name: 'mimeType',
+    type: 'string',
+    description: 'MIME type of the attached file',
+  },
+  {
+    name: 'checksum',
+    type: 'string',
+    description: 'SHA-256 checksum for integrity verification',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+Attachments are stored as a record keyed by the annex identifier (the key from `form.annexes`):
+
+```yaml tab="YAML"
+annexes:
+  government-id:
+    name: drivers-license.pdf
+    mimeType: application/pdf
+    checksum: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+  proof-of-income:
+    name: pay-stubs.pdf
+    mimeType: application/pdf
+```
+
+```json tab="JSON"
+{
+  "annexes": {
+    "government-id": {
+      "name": "drivers-license.pdf",
+      "mimeType": "application/pdf",
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "proof-of-income": {
+      "name": "pay-stubs.pdf",
+      "mimeType": "application/pdf"
+    }
+  }
+}
+```
+
+# Related
+
+- [FormAnnex](/schemas/artifacts/form/annex) - Design-time annex slot definitions

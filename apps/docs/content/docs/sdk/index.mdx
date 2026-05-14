@@ -1,0 +1,49 @@
+---
+title: About SDK
+description: TypeScript SDK for creating and working with Paradoc artifacts
+ogTitle: Paradoc SDK Reference
+ogDescription: TypeScript SDK for creating and working with Paradoc artifacts
+---
+
+The `@paradoc/sdk` package is an umbrella package for creating, validating, rendering Paradoc artifacts.
+
+# Installation
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/sdk
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/sdk
+    ```
+  </Tab>
+</Tabs>
+
+
+
+# Package Overview
+
+The SDK is an umbrella package that re-exports functionality from:
+
+| Package | Description |
+|---------|-------------|
+| `@paradoc/core` | Builders, instances, and lifecycle types for all artifact types |
+| `@paradoc/types` | TypeScript type definitions |
+| `@paradoc/renderer-pdf` | PDF output |
+| `@paradoc/renderer-docx` | DOCX output |
+| `@paradoc/renderer-text` | Plain text and markdown output |
+| `@paradoc/serialization` | Locale-aware value formatting for rendering |
+

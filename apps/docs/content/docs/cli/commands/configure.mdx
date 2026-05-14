@@ -1,0 +1,54 @@
+---
+title: configure
+description: Interactive configuration wizard
+ogTitle: para configure
+ogDescription: Interactively configure Paradoc CLI settings
+---
+
+Interactive configuration wizard for the Paradoc CLI.
+
+# Usage
+
+```bash
+para configure
+para config
+```
+
+# Description
+
+Walks you through each CLI setting interactively. Press Enter to keep the current value, or select a new one. Settings are saved to `~/.paradoc/config.json`.
+
+The wizard configures:
+
+1. **Output format** - How artifacts are saved when downloaded (`json`, `yaml`, `typed`, `ts`)
+2. **Artifacts directory** - Where downloaded artifacts are stored (relative to project root)
+3. **Cache duration** - How long to cache registry data before fetching fresh
+4. **Default registry** - Registry to use when no namespace is specified
+
+# Examples
+
+```bash
+para configure
+```
+
+```
+Paradoc CLI Configuration
+Walk through each setting to configure the CLI.
+Press Enter to keep the current value, or select a new one.
+
+──────────────────────────────────────────────────
+
+1. Output Format
+   How artifacts are saved when downloaded from a registry.
+
+? Output format (current: json)
+  ❯ JSON — Portable, widely supported
+    YAML — Human-readable, easy to edit
+    Typed — JSON + TypeScript declarations (.d.ts)
+    TypeScript — Full TS modules with embedded types
+```
+
+# See also
+
+- [reset](/cli/commands/reset) - Reset CLI to factory defaults
+- [cache](/cli/commands/cache) - Manage registry cache

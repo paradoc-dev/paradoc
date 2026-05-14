@@ -1,0 +1,58 @@
+---
+title: getRegistry
+description: Fetch registry.json from a URL, returns available artifacts
+ogTitle: getRegistry — Paradoc AI Tools
+ogDescription: Fetch an Paradoc registry index to discover available artifacts
+---
+
+Fetches `registry.json` from a registry URL and returns the list of available artifacts.
+
+# Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `registryUrl` | `string` | Yes | Registry base URL (e.g. `https://public.paradoc.dev`) |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | The registry URL |
+| `artifactsPath` | `string` | Base path for artifact files within the registry |
+| `items` | `array` | List of artifacts, each with `name` and optional `path` |
+| `error` | `string` | Error message if the fetch failed |
+
+# Direct usage
+
+```typescript
+import { executeGetRegistry } from "@paradoc/ai-tools"
+
+const result = await executeGetRegistry({
+  registryUrl: "https://public.paradoc.dev",
+})
+// {
+//   name: "https://public.paradoc.dev",
+//   items: [
+//     { name: "pet-addendum", path: "pet-addendum/pet-addendum.json" },
+//     { name: "w-9", path: "w-9/w-9.json" },
+//   ]
+// }
+```
+
+# Example response
+
+```json
+{
+  "name": "https://public.paradoc.dev",
+  "items": [
+    {
+      "name": "pet-addendum",
+      "path": "pet-addendum/pet-addendum.json"
+    },
+    {
+      "name": "w-9",
+      "path": "w-9/w-9.json"
+    }
+  ]
+}
+```

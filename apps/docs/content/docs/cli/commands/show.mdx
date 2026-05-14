@@ -1,0 +1,114 @@
+---
+title: show
+description: Display artifact content
+ogTitle: para show
+ogDescription: View artifact metadata, fields, and structure
+---
+
+Shows details about an artifact file.
+
+# Usage
+
+```bash
+para show <artifact> [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `artifact` | Path to artifact file |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--raw` | Show raw file content without parsing |
+| `--deps` | Show file dependencies |
+
+# Description
+
+The `show` command parses an artifact file and displays its structure in a human-readable format. It shows metadata, content references (`instructions`, `agentInstructions`), fields (for forms), items (for checklists), contents (for bundles), and layers.
+
+Content references are displayed after the description. Inline references show a truncated preview; file references show the path, MIME type, and checksum status.
+
+The `--deps` flag lists all file dependencies, including file-backed layer paths and content reference paths, with a check mark indicating whether each file exists.
+
+# Examples
+
+Show artifact details:
+
+```bash
+para show my-form.yaml
+```
+
+Show raw content:
+
+```bash
+para show my-form.yaml --raw
+```
+
+Show with file dependencies:
+
+```bash
+para show my-form.yaml --deps
+```
+
+# Output
+
+For a form artifact:
+
+```
+Artifact: lease-agreement
+Kind:     form
+Version:  1.0.0
+Title:    Residential Lease Agreement
+Description:
+  Standard residential lease agreement
+Instructions: ./instructions.md [text/markdown, checksum]
+Agent instructions: [inline] Use standard completion flow for all...
+
+Fields:
+  * address (address)
+  * monthlyRent (money)
+    startDate (date)
+    endDate (date)
+
+Layers:
+  - pdf (file)
+  - markdown (inline)
+
+File: my-form.yaml
+```
+
+For a checklist:
+
+```
+Artifact: property-inspection
+Kind:     checklist
+Version:  1.0.0
+Title:    Property Inspection Checklist
+
+Items:
+  □ Check smoke detectors
+  □ Inspect HVAC system
+  □ Test plumbing
+
+File: inspection.yaml
+```
+
+With dependencies:
+
+```
+File dependencies:
+  ✓ ./lease-template.pdf
+  ✓ ./instructions.md
+  ✗ ./missing-file.txt
+
+File: my-form.yaml
+```
+
+# See also
+
+- [validate](/cli/commands/validate) - Check artifact validity
+- [render](/cli/commands/render) - Render artifact layers

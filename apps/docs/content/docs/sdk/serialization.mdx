@@ -1,0 +1,182 @@
+---
+title: Serialization
+description: Locale-aware formatting of primitive values for rendering
+---
+
+Convert Paradoc primitive types (Money, Address, Phone, etc.) to locale-aware formatted strings for use in templates. This package powers automatic value formatting in all [renderers](/sdk/renderers).
+
+# Installation
+
+```bash
+npm install @paradoc/serialization
+```
+
+Or use via the SDK:
+
+```ts
+import { usaSerializers, createSerializer } from '@paradoc/sdk'
+```
+
+# Example
+
+```ts
+import { usaSerializers } from '@paradoc/serialization'
+
+// Format a money value
+usaSerializers.money.stringify({ amount: 1500.50, currency: 'USD' })
+// "$1,500.50"
+
+// Format an address
+usaSerializers.address.stringify({
+  line1: '123 Main Street',
+  locality: 'San Francisco',
+  region: 'CA',
+  postalCode: '94105',
+  country: 'USA'
+})
+// "123 Main Street, San Francisco, CA 94105, USA"
+
+// Format a phone number
+usaSerializers.phone.stringify({ number: '+14155551234' })
+// "+14155551234"
+
+// Format a person's name
+usaSerializers.person.stringify({ firstName: 'John', lastName: 'Smith' })
+// "John Smith"
+```
+
+# Pre-built Registries
+
+Two pre-configured serializer registries are available:
+
+| Registry | Locale | Currency | Address Format |
+|----------|--------|----------|----------------|
+| `usaSerializers` | en-US | USD | US style (City, State ZIP) |
+| `euSerializers` | de-DE | EUR | EU style (PostalCode City) |
+
+```ts
+import { usaSerializers, euSerializers } from '@paradoc/serialization'
+
+const price = { amount: 1299.99, currency: 'EUR' }
+
+usaSerializers.money.stringify(price)   // "€1,299.99"
+euSerializers.money.stringify(price)    // "1.299,99 €"
+```
+
+# Creating Custom Serializers
+
+Use `createSerializer()` to create a registry with custom configuration:
+
+```ts
+import { createSerializer } from '@paradoc/serialization'
+
+const customSerializers = createSerializer({
+  regionFormat: 'eu',
+  fallbacks: {
+    money: 'N/A',
+    address: '—',
+    phone: 'Not provided'
+  }
+})
+
+// Uses fallback when serialization fails
+customSerializers.money.stringify(null)  // "N/A"
+```
+
+## SerializerConfig
+
+<PropertiesTable properties={[
+  { name: 'regionFormat', type: '"us" | "eu"', description: 'Regional format preference for addresses and numbers', isOptional: true },
+  { name: 'fallbacks', type: 'SerializerFallbacks', description: 'Fallback values when serialization fails', isOptional: true },
+]} />
+
+## SerializerFallbacks
+
+<PropertiesTable properties={[
+  { name: 'money', type: 'string', description: 'Fallback for money values', isOptional: true },
+  { name: 'address', type: 'string', description: 'Fallback for address values', isOptional: true },
+  { name: 'phone', type: 'string', description: 'Fallback for phone values', isOptional: true },
+  { name: 'person', type: 'string', description: 'Fallback for person values', isOptional: true },
+  { name: 'organization', type: 'string', description: 'Fallback for organization values', isOptional: true },
+  { name: 'party', type: 'string', description: 'Fallback for party values', isOptional: true },
+  { name: 'coordinate', type: 'string', description: 'Fallback for coordinate values', isOptional: true },
+  { name: 'bbox', type: 'string', description: 'Fallback for bounding box values', isOptional: true },
+  { name: 'duration', type: 'string', description: 'Fallback for duration values', isOptional: true },
+  { name: 'identification', type: 'string', description: 'Fallback for identification values', isOptional: true },
+  { name: 'attachment', type: 'string', description: 'Fallback for attachment values', isOptional: true },
+  { name: 'signature', type: 'string', description: 'Fallback for signature values', isOptional: true },
+]} />
+
+# Supported Types
+
+The `SerializerRegistry` provides stringifiers for all Paradoc primitive types:
+
+| Type | Input | Example Output |
+|------|-------|----------------|
+| `money` | `Money \| number` | `$1,500.00` |
+| `address` | `Address` | `123 Main St, City, ST 12345` |
+| `phone` | `Phone \| string` | `+15551234567` |
+| `person` | `Person` | `Dr. John Smith Jr.` |
+| `organization` | `Organization` | `Acme Corp (Tax ID: 12-3456789)` |
+| `party` | `Party` | Person or Organization format |
+| `coordinate` | `Coordinate` | `37.7749,-122.4194` |
+| `bbox` | `Bbox` | `37.7,-122.5,37.8,-122.4` |
+| `duration` | `Duration \| string` | `1 year, 2 months, 3 days` |
+| `identification` | `Identification` | `PASSPORT: AB123456` |
+| `attachment` | `Attachment` | `contract.pdf (application/pdf)` |
+| `signature` | `Signature` | `Signed 2024-01-15T10:30:00Z (drawn)` |
+
+## SerializerRegistry
+
+<PropertiesTable properties={[
+  { name: 'money', type: 'Stringifier<Money>', description: 'Formats monetary amounts with currency symbols' },
+  { name: 'address', type: 'Stringifier<Address>', description: 'Formats postal addresses by region' },
+  { name: 'phone', type: 'Stringifier<Phone>', description: 'Formats phone numbers in E.164 format' },
+  { name: 'person', type: 'Stringifier<Person>', description: 'Formats person names with title/suffix' },
+  { name: 'organization', type: 'Stringifier<Organization>', description: 'Formats organization name with tax ID' },
+  { name: 'party', type: 'Stringifier<Party>', description: 'Delegates to person or organization' },
+  { name: 'coordinate', type: 'Stringifier<Coordinate>', description: 'Formats lat/lng coordinates' },
+  { name: 'bbox', type: 'Stringifier<Bbox>', description: 'Formats bounding boxes' },
+  { name: 'duration', type: 'Stringifier<Duration>', description: 'Formats ISO 8601 durations' },
+  { name: 'identification', type: 'Stringifier<Identification>', description: 'Formats ID documents' },
+  { name: 'attachment', type: 'Stringifier<Attachment>', description: 'Formats attachment metadata' },
+  { name: 'signature', type: 'Stringifier<Signature>', description: 'Formats signature information' },
+]} />
+
+# Usage with Renderers
+
+Renderers automatically use serializers to format field values based on their schema types. You can customize serialization by passing a `SerializerRegistry` via the renderer context:
+
+```ts
+import { para } from '@paradoc/core'
+import { textRenderer } from '@paradoc/renderer-text'
+import { euSerializers } from '@paradoc/serialization'
+
+const form = para.form({
+  name: 'invoice',
+  fields: {
+    total: { type: 'money' }
+  },
+  layers: {
+    text: { kind: 'inline', mimeType: 'text/plain', text: 'Total: {{total}}' }
+  }
+})
+
+// Fill form with data
+const filled = form.fill({
+  fields: { total: { amount: 1000, currency: 'EUR' } }
+})
+
+// Use EU formatting
+const output = await filled.render({
+  renderer: textRenderer({ serializers: euSerializers })
+})
+// "Total: 1.000,00 €"
+```
+
+See [Renderers](/sdk/renderers) for more details on the `ParadocRendererContext` and how serializers integrate with rendering.
+
+# Related
+
+- [Renderers](/sdk/renderers) - How renderers use serialization
+- [Primitives](/sdk/primitives) - Primitive type definitions

@@ -1,0 +1,107 @@
+---
+title: Layers & Rendering
+description: How artifacts become output documents
+ogTitle: Layers and rendering in Paradoc
+ogDescription: Transform artifacts into Markdown, PDF, HTML, or DOCX using templates and renderers
+---
+
+Artifacts define structure. **Layers** define how that structure becomes output.
+
+A single artifact can have multiple layers—Markdown for AI agents, PDF for printing, HTML for web display—all representing the same underlying data.
+
+---
+
+# What Layers Are
+
+A layer is a **view** of an artifact. It combines a template with the artifact's data to produce output.
+
+Layers are not transformations—they don't change the artifact. They're representations: different ways of looking at the same source of truth.
+
+```ts
+const form = para.form()
+  .name("invoice")
+  .fields({
+    customer: { type: "text" },
+    total: { type: "money" },
+  })
+  .defaultLayer("markdown")
+  .layers({
+    markdown: para.layer().inline().mimeType("text/markdown").text(`
+# Invoice
+Customer: {{customer}}
+Total: {{total}}
+    `),
+    pdf: para.layer().file().mimeType("application/pdf").path("templates/invoice.pdf"),
+  })
+  .build()
+```
+
+---
+
+# Inline vs File Layers
+
+**Inline layers** define the template directly in the artifact—good for simple templates or keeping everything in one place.
+
+**File layers** reference an external template file—good for complex templates or when designers maintain templates separately.
+
+---
+
+# Templates and Bindings
+
+Text-based layers (Markdown, HTML, plain text) use [Handlebars](https://handlebarsjs.com/) templating. Field values are inserted using `{{fieldName}}` syntax.
+
+PDF layers work differently—they use **bindings** to map form fields to PDF form fields:
+
+```ts
+pdf: para.layer()
+  .file()
+  .mimeType("application/pdf")
+  .path("templates/lease.pdf")
+  .bindings({
+    "PDFFieldName": "formFieldName",
+  })
+```
+
+---
+
+# Resolution
+
+When layers reference external files, **resolvers** tell Paradoc how to load them. This makes Paradoc environment-agnostic—the same artifact works in Node, browsers, or custom environments.
+
+```ts
+const output = await form.render({
+  renderer: pdfRenderer(),
+  resolver: fileResolver({ basePath: "./templates" })
+})
+```
+
+See [Resolvers](/sdk/resolvers) for available resolvers and how to write custom ones.
+
+---
+
+# Serialization
+
+When rendering, field values are converted to strings. A `money` value becomes `"$1,500.00"`, a `date` becomes `"March 15, 2024"`.
+
+**Serializers** control this formatting. Different serializers produce different formats (US vs EU localization, for example).
+
+```ts
+const output = await form.render({
+  renderer: textRenderer({ serializers: euSerializers })
+})
+```
+
+See [Serialization](/sdk/serialization) for details on formatting and localization.
+
+---
+
+# Renderers
+
+Renderers produce the final output. Each renderer handles a specific format—`textRenderer` for Markdown/HTML/text, `pdfRenderer` for PDFs, `docxRenderer` for Word documents.
+
+```ts
+const markdown = await filled.render({ renderer: textRenderer() })
+const pdf = await filled.render({ renderer: pdfRenderer() })
+```
+
+See [Renderers](/sdk/renderers) for the full API.

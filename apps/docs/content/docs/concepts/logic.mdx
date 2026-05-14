@@ -1,0 +1,112 @@
+---
+title: Logic
+description: Conditional visibility, validation rules, and expressions
+ogTitle: Conditional logic in Paradoc
+ogDescription: Control field visibility, requirements, and validation using expressions
+---
+
+Logic adds dynamic behavior to forms. Instead of static structures, you can define rules that control when fields appear, when they're required, and what values are valid.
+
+Logic is defined at design time but evaluated at runtime, when the form is filled with data.
+
+---
+
+# Where Logic Applies
+
+Logic expressions can control:
+- **`visible`** — whether a field or annex appears
+- **`required`** — whether a field or annex must be filled
+- **`readonly`** — whether a field can be edited
+
+```ts
+const form = para.form()
+  .name("application")
+  .fields({
+    hasVehicle: { type: "boolean", label: "Do you have a vehicle?" },
+    vehicleMake: {
+      type: "text",
+      label: "Vehicle Make",
+      visible: "fields.hasVehicle.value",
+      required: "fields.hasVehicle.value",
+    },
+  })
+  .build()
+```
+
+When `hasVehicle` is true, `vehicleMake` becomes visible and required. When false, it's hidden.
+
+---
+
+# Expression Syntax
+
+Expressions are strings that reference field values and use logical operators:
+
+```ts
+// Access field values
+visible: "fields.age.value >= 18"
+
+// Logical operators: and, or, not
+visible: "fields.isOwner.value or fields.isAgent.value"
+required: "fields.age.value >= 18 and fields.hasLicense.value"
+visible: "not fields.isMinor.value"
+
+// Comparison: ==, !=, >, >=, <, <=
+visible: "fields.country.value == 'USA'"
+```
+
+---
+
+# Named Expressions
+
+When the same logic appears in multiple places, define it once in the `.logic` section and reference it by name:
+
+```ts
+const form = para.form()
+  .name("application")
+  .fields({
+    age: { type: "number" },
+    drivingLicense: { type: "text", visible: "isAdult", required: "isAdult" },
+    parentConsent: { type: "boolean", visible: "not isAdult", required: "not isAdult" },
+  })
+  .logic({
+    isAdult: { type: "boolean", value: "fields.age.value >= 18" },
+  })
+  .build()
+```
+
+Named expressions reduce duplication and create a single source of truth for business rules.
+
+---
+
+# Logic in Annexes
+
+Annexes support the same logic properties as fields:
+
+```ts
+const form = para.form()
+  .name("lease-application")
+  .fields({
+    hasPets: { type: "boolean", label: "Do you have pets?" },
+  })
+  .annexes({
+    petPhoto: para.annex()
+      .title("Pet Photo")
+      .visible("fields.hasPets.value")
+      .required("fields.hasPets.value"),
+  })
+  .build()
+```
+
+---
+
+# Design Time vs Runtime
+
+Logic expressions are **defined** at design time but **evaluated** at runtime. The form definition doesn't change—the same logic produces different results based on the data:
+
+```ts
+const filled1 = form.fill({ fields: { age: 15 } })
+// drivingLicense is hidden, parentConsent is visible
+
+const filled2 = form.fill({ fields: { age: 21 } })
+// drivingLicense is visible, parentConsent is hidden
+```

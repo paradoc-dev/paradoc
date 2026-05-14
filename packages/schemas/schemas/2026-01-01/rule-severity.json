@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/ruleseverity.json",
+  "type": "string",
+  "enum": [
+    "error",
+    "warning"
+  ],
+  "description": "Severity level: error blocks submission, warning allows but warns",
+  "title": "RuleSeverity"
+}

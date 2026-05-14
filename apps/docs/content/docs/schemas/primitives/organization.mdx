@@ -1,0 +1,71 @@
+---
+title: Organization
+description: An organization's identity and legal details
+---
+
+An Organization is a structured primitive that represents a legal entity, such as a company, agency, or organization.
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'name',
+    type: 'string',
+    description: 'Common or trade name.',
+  },
+  {
+    name: 'legalName',
+    type: 'string',
+    description: 'Registered/legal name.',
+    isOptional: true,
+  },
+  {
+    name: 'domicile',
+    type: 'string',
+    description: 'Country/region of domicile.',
+    isOptional: true,
+  },
+  {
+    name: 'entityType',
+    type: 'string',
+    description: 'Legal entity type (corporation, LLC, etc.).',
+    isOptional: true,
+  },
+  {
+    name: 'entityId',
+    type: 'string',
+    description: 'Business identification number.',
+    isOptional: true,
+  },
+  {
+    name: 'taxId',
+    type: 'string',
+    description: 'Tax identification number.',
+    isOptional: true,
+  },
+]} />
+
+# Examples
+
+
+
+```yaml tab="YAML"
+name: Acme Corp
+legalName: Acme Corporation, Inc.
+domicile: United States
+entityType: corporation
+entityId: "12345678"
+taxId: "12-3456789"
+```
+
+
+```json tab="JSON"
+{
+  "name": "Acme Corp",
+  "legalName": "Acme Corporation, Inc.",
+  "domicile": "United States",
+  "entityType": "corporation",
+  "entityId": "12345678",
+  "taxId": "12-3456789"
+}
+```

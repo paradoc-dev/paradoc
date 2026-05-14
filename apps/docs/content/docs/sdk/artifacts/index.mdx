@@ -1,0 +1,43 @@
+---
+title: Artifact Builders
+description: Builder functions for top-level Paradoc artifacts
+---
+
+# Artifact Builders
+
+Artifact builders create top-level schema types that can be validated, serialized, and rendered independently.
+
+# Available Builders
+
+| Builder | Description | Badge |
+|---------|-------------|-------|
+| [document](/sdk/artifacts/document) | Static content (disclosures, pamphlets) | Design-time |
+| [form](/sdk/artifacts/form) | Interactive forms with fields and parties | Design-time |
+| [checklist](/sdk/artifacts/checklist) | Task lists and verification items | Design-time |
+| [bundle](/sdk/artifacts/bundle) | Collection of multiple artifacts | Design-time |
+
+# Common Features
+
+All artifact builders share common functionality:
+
+## Static Methods
+
+- `.from(input)` - Parse unknown input, throws on error
+- `.safeFrom(input)` - Parse unknown input, returns result object
+
+## Instance Methods
+
+- `.validate()` - Validate the schema definition
+- `.isValid()` - Check if schema is valid
+- `.toJSON()` - Serialize to JSON
+- `.toYAML()` - Serialize to YAML
+- `.clone()` - Deep clone the instance
+
+## Instance Properties
+
+- `_data` - Raw artifact data
+- `kind` - Artifact type discriminator
+- `name` - Artifact name
+- `version` - Semantic version
+- `instructions` - Domain/compliance reference content ([ContentRef](/schemas/artifacts/shared/content-ref))
+- `agentInstructions` - LLM/agent presentation guidance ([ContentRef](/schemas/artifacts/shared/content-ref))

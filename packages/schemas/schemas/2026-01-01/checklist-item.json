@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/checklistitem.json",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Unique identifier for the checklist item (e.g., \"task-1\", \"step-a\"). Used to link to runtime status."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Title or label for the checklist item"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "Detailed description or instructions for the item"
+    },
+    "status": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "boolean"
+            },
+            "default": {
+              "type": "boolean",
+              "description": "Default status value (true/false) for new instances"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false,
+          "title": "BooleanStatusSpec",
+          "description": "Boolean status (e.g., incomplete/complete) with an optional default value."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "enum"
+            },
+            "options": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "Internal status value (e.g., \"todo\", \"in-progress\", \"done\")"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Human-readable label for the status option"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Optional description or help text for this status option"
+                  }
+                },
+                "required": [
+                  "value",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Allowed status options"
+            },
+            "default": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "description": "Default status value for new instances (must match one of the option values)"
+            }
+          },
+          "required": [
+            "kind",
+            "options"
+          ],
+          "additionalProperties": false,
+          "title": "EnumStatusSpec",
+          "description": "Enum-based status with a set of allowed options and an optional default."
+        }
+      ],
+      "title": "StatusSpec",
+      "description": "Specification for how checklist item status should be represented (boolean or enum)."
+    }
+  },
+  "required": [
+    "id",
+    "title"
+  ],
+  "additionalProperties": false,
+  "id": "ChecklistItem",
+  "title": "ChecklistItem"
+}

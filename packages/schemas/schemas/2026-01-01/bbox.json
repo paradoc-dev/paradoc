@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/bbox.json",
+  "type": "object",
+  "properties": {
+    "southWest": {
+      "description": "Southwest corner coordinate (minimum latitude and longitude)",
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Coordinate"
+    },
+    "northEast": {
+      "description": "Northeast corner coordinate (maximum latitude and longitude)",
+      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Coordinate"
+    }
+  },
+  "required": [
+    "southWest",
+    "northEast"
+  ],
+  "additionalProperties": false,
+  "id": "Bbox",
+  "title": "Bbox"
+}

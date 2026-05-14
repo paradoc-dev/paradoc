@@ -1,0 +1,83 @@
+---
+title: Introduction
+description: The core abstraction in Paradoc
+ogTitle: Understanding Artifacts
+ogDescription: Learn about forms, documents, checklists, and bundles — the core building blocks
+---
+
+# About Artifacts
+
+At the heart of Paradoc is the **artifact**.
+
+An artifact is a structured definition of a document (or a collection of documents) that describes its origin, metadata, parties, fields, logic, and/or content(s).
+
+Paradoc defines four artifact types:
+
+| Artifact   | Description                                                                                                                         |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| Document   | Static documents (e.g., disclosures, pamphlets)                                                                                    |
+| Form       | Dynamic documents that have parties, fields, annexes, and/or logic (e.g., contracts, applications, certificates)                   |
+| Checklist  | Compliance documents that track the completion of tasks or requirements (e.g., closing checklist)                                  |
+| Bundle     | Containers for Documents, Forms, Checklists and even other Bundles (e.g., loan application packet)                                 |
+
+
+Each type serves a different purpose, but all share the same foundational properties: they're typed, immutable, and machine-readable.
+
+---
+
+# Design Time vs Runtime
+
+Paradoc draws a hard line between **design time** and **runtime**.
+
+**Design time** is when you define artifacts—what fields exist, what rules apply, what layers are available. **Runtime** is when you use those definitions—fill fields, validate inputs, render outputs, collect signatures.
+
+```ts
+// Design time: define the form
+const lease = para.form()
+  .name("lease")
+  .fields({
+    tenant: { type: "text", required: true },
+    rent: { type: "money", required: true },
+  })
+  .build()
+
+// Runtime: fill and render
+const filled = lease.fill({ fields: { tenant: "Jane Doe", rent: { amount: 1500, currency: "USD" } } })
+const output = await filled.render({ renderer: pdfRenderer() })
+```
+
+Runtime never mutates the artifact. The definition remains stable while runtime operations execute against it.
+
+---
+
+# Immutability
+
+Artifacts are **immutable**. Once defined, they don't change.
+
+This enables versioning (artifacts can be stored, diffed, and audited), determinism (same artifact + same input = same output), and trust (downstream systems can rely on stable definitions).
+
+Because artifacts are plain JSON, they integrate naturally with version control, compliance systems, and AI agents.
+
+---
+
+# Schema-Driven
+
+Artifacts follow the Paradoc JSON Schema specification. This means:
+- Artifacts can be validated with any JSON Schema validator
+- Tooling can provide autocomplete and type checking
+- AI agents can read the schema to generate valid artifacts or validate outputs
+
+```json
+{
+  "$schema": "https://schemas.paradoc.dev/schema.json",
+  "kind": "form",
+  "name": "residential-lease",
+  "version": "1.0.0",
+  "fields": {
+    "propertyAddress": { "type": "address", "required": true },
+    "monthlyRent": { "type": "money", "required": true }
+  }
+}
+```
+
+You can author artifacts in JSON, YAML, or using the TypeScript SDK.

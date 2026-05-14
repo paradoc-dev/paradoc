@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/signature.json",
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Base64-encoded signature image or data URI"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+      "description": "ISO 8601 date-time when the signature was captured"
+    },
+    "method": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "drawn"
+        },
+        {
+          "type": "string",
+          "const": "typed"
+        },
+        {
+          "type": "string",
+          "const": "uploaded"
+        },
+        {
+          "type": "string",
+          "const": "certificate"
+        }
+      ],
+      "description": "Method used to capture the signature"
+    },
+    "type": {
+      "default": "signature",
+      "description": "Whether this is a full signature or initials",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "signature"
+        },
+        {
+          "type": "string",
+          "const": "initials"
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {},
+      "description": "Additional metadata (IP address, device info, etc.)"
+    }
+  },
+  "required": [
+    "timestamp",
+    "method"
+  ],
+  "additionalProperties": false,
+  "id": "Signature",
+  "title": "Signature"
+}

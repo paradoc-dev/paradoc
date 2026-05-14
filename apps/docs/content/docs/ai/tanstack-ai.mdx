@@ -1,0 +1,100 @@
+---
+title: TanStack AI
+description: Use Paradoc tools with TanStack AI
+ogTitle: TanStack AI — Paradoc AI
+ogDescription: Integrate Paradoc tools into TanStack AI applications with @paradoc/tanstack-ai
+---
+
+`@paradoc/tanstack-ai` wraps `@paradoc/ai-tools` with TanStack AI's `toolDefinition().server()` pattern. Tools run server-side and work with TanStack AI's chat, agent, and server handler APIs.
+
+# Installation
+
+```bash
+npm install @paradoc/tanstack-ai @tanstack/ai zod
+```
+
+Peer dependencies: `@tanstack/ai` and `zod` ^4.0.0.
+
+# Usage
+
+```typescript
+import { paradocTools } from "@paradoc/tanstack-ai"
+
+const tools = paradocTools({
+  defaultRegistryUrl: "https://public.paradoc.dev",
+})
+
+// Use with TanStack AI's chat, agent, or server handler
+```
+
+# Composing with other tools
+
+Spread alongside your own tools:
+
+```typescript
+import { paradocTools } from "@paradoc/tanstack-ai"
+import { toolDefinition } from "@tanstack/ai"
+import { z } from "zod"
+
+const lookupCustomer = toolDefinition({
+  name: "lookupCustomer",
+  description: "Look up a customer by ID",
+  inputSchema: z.object({ id: z.string() }),
+}).server(async ({ id }) => fetchCustomer(id))
+
+const allTools = {
+  ...paradocTools(),
+  lookupCustomer,
+}
+```
+
+Or pick individual tools:
+
+```typescript
+const { validateArtifact, render } = paradocTools()
+```
+
+# Configuration
+
+```typescript
+paradocTools({
+  defaultRegistryUrl: "https://public.paradoc.dev",
+  proxyTextRenderer: {
+    url: "https://your-documents-service.example.com",
+    apiKey: "your-api-key",
+  },
+  fetch: customFetchWithAuth,
+})
+```
+
+See the [configuration reference](/ai#configuration) for details on each option.
+
+# API
+
+## `paradocTools(config?)`
+
+Returns an object with five server tools:
+
+| Key | Tool name | Description |
+|-----|-----------|-------------|
+| `validateArtifact` | `validateArtifact` | Validates an Paradoc artifact against its schema |
+| `fill` | `fill` | Fills an Paradoc artifact with data and validates |
+| `render` | `render` | Renders an Paradoc artifact to PDF, markdown, or DOCX |
+| `getRegistry` | `getRegistry` | Fetches registry.json from a URL, returns available artifacts |
+| `getArtifact` | `getArtifact` | Fetches artifact JSON from a registry by name |
+
+## Re-exports
+
+The package also re-exports all output types from `@paradoc/ai-tools`:
+
+```typescript
+import type {
+  ParadocToolsConfig,
+  ProxyTextRendererConfig,
+  ValidateOutput,
+  FillOutput,
+  RenderOutput,
+  GetRegistryOutput,
+  GetArtifactOutput,
+} from "@paradoc/tanstack-ai"
+```

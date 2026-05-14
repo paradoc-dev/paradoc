@@ -1,0 +1,17 @@
+{
+  "extends": "../typescript-config/base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@paradoc/sdk": ["../sdk/src/index.ts"],
+      "@paradoc/core": ["../core/src/index.ts"],
+      "@paradoc/renderers": ["../renderers/src/index.ts"],
+      "@/*": ["../core/src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

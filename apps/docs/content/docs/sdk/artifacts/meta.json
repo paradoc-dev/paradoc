@@ -1,0 +1,11 @@
+{
+  "title": "Artifacts",
+  "pages": [
+    "index",
+    "document",
+    "form",
+    "checklist",
+    "bundle"
+  ],
+  "defaultOpen": false
+}

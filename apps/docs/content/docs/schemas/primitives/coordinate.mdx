@@ -1,0 +1,39 @@
+---
+title: Coordinate
+description: A geographic coordinate
+---
+
+A Coordinate is a structured primitive that represents a single geographic coordinate with latitude and longitude in decimal degrees (WGS84).
+
+# Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'lat',
+    type: 'number',
+    description: 'Latitude in decimal degrees, range -90 to 90.',
+  },
+  {
+    name: 'lon',
+    type: 'number',
+    description: 'Longitude in decimal degrees, range -180 to 180.',
+  },
+]} />
+
+# Examples
+
+
+
+```yaml tab="YAML"
+# San Francisco, CA
+lat: 37.7749
+lon: -122.4194
+```
+
+
+```json tab="JSON"
+{
+  "lat": 37.7749,
+  "lon": -122.4194
+}
+```

@@ -1,0 +1,89 @@
+---
+title: Command Reference
+description: Complete reference for all Paradoc CLI commands
+ogTitle: Paradoc CLI Command Reference
+ogDescription: Full documentation for all para commands
+---
+
+The Paradoc CLI provides commands for managing projects, working with registries, authoring artifacts, and more.
+
+# Usage
+
+```bash
+para <command> [options]
+```
+
+Global options:
+
+| Option | Description |
+|--------|-------------|
+| `-h, --help` | Display help for a command |
+| `-v, --version` | Display CLI version |
+
+# Project
+
+Commands for initializing and managing Paradoc projects.
+
+| Command | Description |
+|---------|-------------|
+| [init](/cli/commands/init) | Initialize a new Paradoc project |
+
+# Registry
+
+Commands for discovering and installing artifacts from registries.
+
+| Command | Description |
+|---------|-------------|
+| [add](/cli/commands/add) | Add an artifact from a registry |
+| [search](/cli/commands/search) | Search for artifacts in registries |
+| [list](/cli/commands/list) | List installed artifacts |
+| [registry](/cli/commands/registry) | Manage registry configurations |
+
+# Authoring
+
+Commands for creating and modifying artifacts.
+
+| Command | Description |
+|---------|-------------|
+| [new](/cli/commands/new) | Create a new artifact (form, checklist, document, bundle) |
+| [validate](/cli/commands/validate) | Validate artifacts against schemas |
+| [fix](/cli/commands/fix) | Auto-fix common artifact issues |
+| [version](/cli/commands/version) | Bump artifact version numbers |
+| [attach](/cli/commands/attach) | Attach files to artifacts as layers |
+| [detach](/cli/commands/detach) | Detach a layer from an artifact |
+| [generate](/cli/commands/generate) | Generate TypeScript types from artifacts |
+| [hash](/cli/commands/hash) | Compute SHA256 checksums for layer definitions |
+
+# Working with artifacts
+
+Commands for inspecting, rendering, and working with artifact data.
+
+| Command | Description |
+|---------|-------------|
+| [inspect](/cli/commands/inspect) | Inspect artifact structure and metadata |
+| [render](/cli/commands/render) | Render an artifact layer to output |
+| [show](/cli/commands/show) | Display artifact content |
+| [data](/cli/commands/data) | Data operations (fill, template) |
+| [diff](/cli/commands/diff) | Compare two artifacts |
+| [apply](/cli/commands/apply) | Apply changes to artifacts |
+
+# Settings
+
+Commands for configuring the CLI.
+
+| Command | Description |
+|---------|-------------|
+| [configure](/cli/commands/configure) | Interactive configuration wizard |
+| [cache](/cli/commands/cache) | Manage registry cache |
+| [renderers](/cli/commands/renderers) | Manage renderer plugins |
+| [reset](/cli/commands/reset) | Reset CLI to factory defaults |
+
+# Utility
+
+Helpful utility commands.
+
+| Command | Description |
+|---------|-------------|
+| [docs](/cli/commands/docs) | Open documentation in browser |
+| [console](/cli/commands/console) | Open web console |
+| [about](/cli/commands/about) | Display information about Paradoc |

@@ -1,0 +1,12 @@
+$schema: https://paradoc.dev/schemas/document.schema.json
+kind: document
+name: pet-care-guide
+title: Pet Care Guide
+version: 1.0.0
+defaultLayer: default
+layers:
+  default:
+    kind: file
+    mimeType: application/pdf
+    path: ./Pet Care Guide.pdf
+    checksum: sha256:3a2bad1c2094698a54ef75dd864a12c1daf5b023f9333653dbfc7733121b8ba6

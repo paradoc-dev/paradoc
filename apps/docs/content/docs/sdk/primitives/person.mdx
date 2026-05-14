@@ -1,0 +1,178 @@
+---
+title: person
+description: Build and validate person information
+---
+
+Build and validate person information. The Person primitive captures individual name components and personal details.
+
+# Examples
+
+## Creating persons
+
+```ts
+// Object pattern
+const person = para.person({
+  name: 'John Michael Smith'
+})
+
+// Builder pattern
+const person = para.person()
+  .name('John Michael Smith')
+  .title('Dr.')
+  .firstName('John')
+  .middleName('Michael')
+  .lastName('Smith')
+  .suffix('Jr.')
+  .build()
+
+// Copy and modify
+const updated = para.person()
+  .from(person)
+  .title('Prof.')
+  .build()
+```
+
+## Parsing external data
+
+```ts
+// Parse unknown input (throws on error)
+const person = para.person.parse(jsonData)
+
+// Safe parsing (returns result object)
+const result = para.person.safeParse(jsonData)
+if (result.success) {
+  console.log(`Name: ${result.data.name}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+## Using with forms
+
+```ts
+const form = para.form({
+  name: 'registration',
+  fields: {
+    applicant: { type: 'person', label: 'Applicant Information' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    applicant: para.person()
+      .name('Jane Doe')
+      .firstName('Jane')
+      .lastName('Doe')
+      .build()
+  }
+})
+```
+
+# API
+
+## Object Pattern
+
+```ts
+para.person(input: Person): Person
+```
+
+Pass a Person object for validation. Returns the validated Person or throws on error.
+
+```ts
+const person = para.person({ name: 'Jane Doe' })
+```
+
+## Builder Pattern
+
+Chain methods to build a Person value incrementally:
+
+<MethodChain
+  starter="para.person()"
+  methods={[
+    { name: 'name', params: 'value: string', description: 'Set full display name' },
+    { name: 'title', params: 'value: string | undefined', description: 'Set honorific (Mr., Dr., etc.)' },
+    { name: 'firstName', params: 'value: string | undefined', description: 'Set given/first name' },
+    { name: 'middleName', params: 'value: string | undefined', description: 'Set middle name(s)' },
+    { name: 'lastName', params: 'value: string | undefined', description: 'Set family/last name' },
+    { name: 'suffix', params: 'value: string | undefined', description: 'Set suffix (Jr., III, etc.)' },
+    { name: 'from', params: 'value: Person', description: 'Initialize from existing Person' },
+    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+  ]}
+  returns={{ intermediate: 'PersonBuilder', terminal: 'Person' }}
+/>
+
+## Static Methods
+
+<MethodTable methods={[
+  { name: 'parse', params: 'input: unknown', returns: 'Person', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeParse', params: 'input: unknown', returns: 'Result<Person>', description: 'Parse unknown input (returns result object)' },
+]} />
+
+# Properties
+
+<PropertiesTable properties={[
+  { name: 'name', type: 'string', description: 'Complete display name.' },
+  { name: 'title', type: 'string?', description: 'Honorific or title (Mr., Mrs., Dr., Prof.).' },
+  { name: 'firstName', type: 'string?', description: 'Given name or first name.' },
+  { name: 'middleName', type: 'string?', description: 'Middle name(s).' },
+  { name: 'lastName', type: 'string?', description: 'Family name or surname.' },
+  { name: 'suffix', type: 'string?', description: 'Name suffix (Jr., Sr., III, PhD, Esq.).' },
+]} />
+
+# Common Titles
+
+| Title | Usage |
+|-------|-------|
+| `Mr.` | Adult male |
+| `Mrs.` | Married female |
+| `Ms.` | Female (marital status neutral) |
+| `Miss` | Unmarried female |
+| `Dr.` | Doctor (medical or academic) |
+| `Prof.` | Professor |
+| `Rev.` | Religious leader |
+| `Hon.` | Judge or official |
+
+# Common Suffixes
+
+| Suffix | Meaning |
+|--------|---------|
+| `Jr.` | Junior (same name as father) |
+| `Sr.` | Senior |
+| `II`, `III`, `IV` | Generational |
+| `PhD` | Doctor of Philosophy |
+| `MD` | Medical Doctor |
+| `Esq.` | Esquire (attorney) |
+| `CPA` | Certified Public Accountant |
+
+# Validation
+
+The Person primitive validates:
+
+- `name` must be a non-empty string
+- All other fields are optional
+
+```ts
+// Valid
+para.person({ name: 'John Doe' })
+para.person({
+  name: 'Dr. John Michael Smith Jr.',
+  title: 'Dr.',
+  firstName: 'John',
+  middleName: 'Michael',
+  lastName: 'Smith',
+  suffix: 'Jr.'
+})
+
+// Invalid - throws Error
+para.person({})
+// Error: Invalid Person: name is required
+
+para.person({ name: '' })
+// Error: Invalid Person: name cannot be empty
+```
+
+# Related
+
+- [Primitives Overview](/sdk/primitives) - All available primitives
+- [Organization](/sdk/primitives/organization) - Organization information
+- [Person Field](/sdk/artifacts/form/field#person) - Person field type

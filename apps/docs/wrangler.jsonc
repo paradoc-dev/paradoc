@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "paradoc-docs",
+  "compatibility_date": "2025-10-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    { "pattern": "docs.paradoc.dev", "custom_domain": true }
+  ]
+}

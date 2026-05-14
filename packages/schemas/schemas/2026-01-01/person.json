@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/person.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Person's full name (complete name as a single string)"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "Name prefix or title (e.g., Mr., Mrs., Dr., Prof.)"
+    },
+    "firstName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Person's first or given name"
+    },
+    "middleName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Person's middle name or initial"
+    },
+    "lastName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Person's last name or surname"
+    },
+    "suffix": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "Name suffix (e.g., Jr., Sr., III, Esq.)"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false,
+  "id": "Person",
+  "title": "Person"
+}

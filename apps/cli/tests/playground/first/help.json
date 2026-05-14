@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "name": "Henry",
+    "species": "cat",
+    "weight": 10,
+    "hasVaccination": false
+  },
+  "annexes": []
+}

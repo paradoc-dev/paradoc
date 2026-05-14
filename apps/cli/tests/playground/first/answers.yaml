@@ -1,0 +1,5 @@
+fields:
+  name: Helpme
+  species: turtle
+  weight: 12
+  hasVaccination: true

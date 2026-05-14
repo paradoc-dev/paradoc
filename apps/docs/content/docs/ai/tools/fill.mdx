@@ -1,0 +1,118 @@
+---
+title: fill
+description: Fill an Paradoc form or checklist with data, apply defaults, and validate
+ogTitle: fill — Paradoc AI Tools
+ogDescription: Fill an Paradoc form or checklist with data and validate the result
+---
+
+Fills a form or checklist with data, applies defaults, and validates the result. Use this to catch errors before calling `render`.
+
+<Callout type="info">
+  Only forms and checklists support filling. Passing a document or bundle returns an error.
+</Callout>
+
+# Input modes
+
+The fill tool accepts three input modes via a discriminated union on the `source` field:
+
+| Mode | Fields | Resolution |
+|------|--------|------------|
+| `source: "artifact"` | `artifact`, `baseUrl?` | Direct — artifact JSON provided inline |
+| `source: "url"` | `url` | Fetches artifact JSON from a URL |
+| `source: "registry"` | `registryUrl`, `artifactName` | Fetches registry.json, finds item, fetches artifact |
+
+All modes share these fields:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `data` | `Record<string, unknown>` | Yes | Data to fill. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
+
+# Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the data passed validation |
+| `artifactKind` | `string` | Detected kind: `form` or `checklist` |
+| `data` | `object` | The validated data with defaults applied (on success) |
+| `errors` | `array` | List of validation errors, each with `field` and `message` |
+| `error` | `string` | Error message if filling could not be performed |
+
+# Direct usage
+
+## From artifact JSON
+
+```typescript
+import { executeFill } from "@paradoc/ai-tools"
+
+const result = await executeFill({
+  source: "artifact",
+  artifact: {
+    kind: "form",
+    name: "my-form",
+    fields: {
+      name: { type: "text", label: "Name", required: true },
+      email: { type: "email", label: "Email" },
+    },
+  },
+  data: {
+    fields: { name: "Jane Doe", email: "jane@example.com" },
+  },
+})
+// { valid: true, artifactKind: "form", data: { name: "Jane Doe", email: "jane@example.com" } }
+```
+
+The `executeFill` function accepts an optional second `config` parameter for custom fetch settings. See the [configuration reference](/ai#configuration).
+
+## From URL
+
+```typescript
+const result = await executeFill({
+  source: "url",
+  url: "https://public.paradoc.dev/pet-addendum/pet-addendum.json",
+  data: {
+    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
+    parties: { tenant: { id: "t1", name: "Jane Doe" } },
+  },
+})
+```
+
+## From registry
+
+```typescript
+const result = await executeFill({
+  source: "registry",
+  registryUrl: "https://public.paradoc.dev",
+  artifactName: "pet-addendum",
+  data: {
+    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
+    parties: {
+      tenant: { id: "t1", name: "Jane Doe" },
+      landlord: { id: "l1", name: "Acme Properties LLC" },
+    },
+  },
+})
+```
+
+# Example responses
+
+## Successful fill
+
+```json
+{
+  "valid": true,
+  "artifactKind": "form",
+  "data": { "name": "Jane Doe", "email": "jane@example.com" }
+}
+```
+
+## Failed validation
+
+```json
+{
+  "valid": false,
+  "artifactKind": "form",
+  "errors": [
+    { "field": "name", "message": "Missing required field: name" }
+  ]
+}
+```

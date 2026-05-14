@@ -1,0 +1,16 @@
+{
+  "name": "paradoc",
+  "version": "0.1.0",
+  "author": "paradoc",
+  "date": "2026-04-26",
+  "abstract": "Unified Paradoc skill covering all surfaces (TypeScript SDK, para CLI, raw JSON/YAML schemas, remote mcp.paradoc.dev MCP service) and end-to-end workflows (creating new forms, converting PDFs). Topic-organized references for fields, parties, annexes, logic, layers, rendering, serialization, instructions, and PDF bindings.",
+  "references": [
+    "https://docs.paradoc.dev",
+    "https://github.com/paradoc-dev/paradoc",
+    "https://schema.paradoc.dev/2026-01-01/form.json",
+    "https://schema.paradoc.dev/2026-01-01/document.json",
+    "https://schema.paradoc.dev/2026-01-01/bundle.json",
+    "https://schema.paradoc.dev/2026-01-01/checklist.json",
+    "https://mcp.paradoc.dev"
+  ]
+}

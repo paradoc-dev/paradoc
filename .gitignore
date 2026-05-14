@@ -1,0 +1,67 @@
+.npmrc
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.output/
+.turbo/
+*.tgz
+
+# TypeScript
+*.tsbuildinfo
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+**/tests/output/
+**/tests/debug/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Deployment
+.vercel/
+.vercel
+*.pem
+
+# Misc
+.cache/
+
+# Tools
+.agents/
+.obsidian/
+.goose/
+.cursor/
+.codex/
+.claude/
+.cursor/
+.vscode/
+.mcp.json
+# Cloudflare Workers
+.wrangler/

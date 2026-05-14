@@ -1,0 +1,84 @@
+{
+  "name": "@paradoc/tanstack-ai",
+  "version": "0.1.1",
+  "description": "TanStack AI adapter for Paradoc tools — wraps @paradoc/ai-tools with toolDefinition().server()",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "paradoc",
+    "ai",
+    "tanstack",
+    "tools",
+    "llm",
+    "agent"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Paradoc",
+    "url": "https://paradoc.dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git",
+    "directory": "packages/tanstack-ai"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean",
+    "pack:dry": "pnpm run build && npm pack --dry-run",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types && echo \"All checks passed\" || echo \"Checks failed\""
+  },
+  "dependencies": {
+    "@paradoc/ai-tools": "workspace:*",
+    "@paradoc/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "@tanstack/ai": "*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@tanstack/ai": "^0.6.0",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  }
+}

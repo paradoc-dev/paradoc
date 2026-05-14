@@ -1,0 +1,98 @@
+---
+title: search
+description: Search for artifacts in registries
+ogTitle: para search
+ogDescription: Discover Paradoc artifacts across registries
+---
+
+Searches for artifacts in a registry.
+
+# Usage
+
+```bash
+para search [query] [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `query` | Search query (matches name, title, or description) |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--registry <namespace>` | Registry namespace to search (default: @paradoc) |
+| `--kind <kind>` | Filter by artifact kind: `form`, `document`, `checklist`, `bundle` |
+| `--tags <tags>` | Filter by tags (comma-separated) |
+| `--json` | Output as JSON |
+
+# Description
+
+The `search` command queries a registry's index to find matching artifacts. You can filter results by kind, tags, or a text query that matches against artifact names, titles, and descriptions.
+
+# Examples
+
+Search all artifacts:
+
+```bash
+para search
+```
+
+Search with a query:
+
+```bash
+para search "lease agreement"
+```
+
+Filter by kind:
+
+```bash
+para search --kind form
+```
+
+Filter by tags:
+
+```bash
+para search --tags legal,real-estate
+```
+
+Search a specific registry:
+
+```bash
+para search --registry @acme "tax"
+```
+
+Output as JSON:
+
+```bash
+para search --json
+```
+
+# Output
+
+```
+Found 3 artifacts:
+
+@acme/residential-lease v1.0.0
+  Residential Lease Agreement
+  Standard residential lease agreement for property rentals
+  form · #legal #real-estate · 2 layers
+
+@acme/commercial-lease v1.0.0
+  Commercial Lease Agreement
+  Commercial property lease agreement
+  form · #legal #commercial · 2 layers
+
+@acme/lease-addendum v1.0.0
+  Lease Addendum
+  form · #legal · 1 layer
+
+Run 'para add @acme/<name>' to install an artifact.
+```
+
+# See also
+
+- [add](/cli/commands/add) - Install an artifact
+- [registry](/cli/commands/registry) - Manage registry configurations

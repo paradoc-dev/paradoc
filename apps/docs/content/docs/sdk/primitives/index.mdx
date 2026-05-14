@@ -1,0 +1,112 @@
+---
+title: Primitive Reference
+description: Build and validate primitive data types
+---
+
+Primitives are structured data types used throughout Paradoc for representing common values like money, addresses, coordinates, and more. Each primitive has:
+
+- **Object pattern**: Pass a plain object for validation
+- **Builder pattern**: Chain methods for incremental construction
+- **Static methods**: `parse()` and `safeParse()` for validation
+
+# Available Primitives
+
+| Primitive | Description |
+|-----------|-------------|
+| [address](/sdk/primitives/address) | Postal address |
+| [bbox](/sdk/primitives/bbox) | Bounding box |
+| [coordinate](/sdk/primitives/coordinate) | Lat/lng point |
+| [date](/sdk/primitives/date) | Date (YYYY-MM-DD) |
+| [datetime](/sdk/primitives/datetime) | Date and time |
+| [duration](/sdk/primitives/duration) | ISO 8601 duration |
+| [identification](/sdk/primitives/identification) | ID document |
+| [money](/sdk/primitives/money) | Monetary amount with currency |
+| [organization](/sdk/primitives/organization) | Organization info |
+| [percentage](/sdk/primitives/percentage) | Percentage value |
+| [person](/sdk/primitives/person) | Person name |
+| [phone](/sdk/primitives/phone) | Phone number (E.164) |
+| [rating](/sdk/primitives/rating) | Rating value |
+| [time](/sdk/primitives/time) | Time only |
+
+# Usage Patterns
+
+## Object Pattern
+
+Pass a plain object for immediate validation:
+
+```ts
+import { money } from '@paradoc/core'
+
+// Validates and returns the Money object
+const price = money({ amount: 99.99, currency: 'USD' })
+
+// Throws if invalid
+const invalid = money({ amount: 'not a number', currency: 'USD' })
+// Error: Invalid Money: amount must be a number
+```
+
+## Builder Pattern
+
+Chain methods to construct incrementally:
+
+```ts
+import { money } from '@paradoc/core'
+
+const price = money()
+  .amount(99.99)
+  .currency('USD')
+  .build()
+```
+
+## Static Methods
+
+Parse unknown data from external sources:
+
+```ts
+import { money } from '@paradoc/core'
+
+// Throws on error
+const price = money.parse(jsonData)
+
+// Returns result object
+const result = money.safeParse(jsonData)
+if (result.success) {
+  console.log(result.data.amount)
+} else {
+  console.error(result.error)
+}
+```
+
+# Using with Forms
+
+Primitives are commonly used when filling form data:
+
+```ts
+import { para, money, address } from '@paradoc/core'
+
+const form = para.form({
+  name: 'invoice',
+  fields: {
+    total: { type: 'money', label: 'Total Amount' },
+    billingAddress: { type: 'address', label: 'Billing Address' }
+  }
+})
+
+const filled = form.fill({
+  fields: {
+    total: money({ amount: 150.00, currency: 'USD' }),
+    billingAddress: address()
+      .line1('123 Main Street')
+      .locality('New York')
+      .region('NY')
+      .postalCode('10001')
+      .country('US')
+      .build()
+  }
+})
+```
+
+# Related
+
+- [Form Fields](/sdk/artifacts/form/field) - Field types that use primitives
+- [Primitive Schemas](/schemas/primitives) - JSON Schema definitions

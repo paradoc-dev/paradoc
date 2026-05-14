@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-01-01/organization.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Organization name"
+    },
+    "legalName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Legal or registered name of the organization"
+    },
+    "domicile": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Domicile"
+    },
+    "entityType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Legal entity type of the organization"
+    },
+    "entityId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Business identification number"
+    },
+    "taxId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Tax identification number"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false,
+  "id": "Organization",
+  "title": "Organization"
+}
