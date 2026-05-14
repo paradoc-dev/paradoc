@@ -1,5 +1,3 @@
-.npmrc
-
 # Dependencies
 node_modules/
 .pnp/

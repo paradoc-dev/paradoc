@@ -19,13 +19,9 @@
     "build:public": "turbo run build --filter='./packages/*' --filter='@paradoc/cli'",
     "test:public": "turbo run test --filter='./packages/*' --filter='@paradoc/cli'",
     "check:public": "turbo run lint check-types --filter='./packages/*' --filter='@paradoc/cli'",
-    "verify:public": "pnpm check:public && pnpm test:public && pnpm build:public",
-    "changeset": "changeset",
-    "changeset:version": "changeset version",
-    "changeset:publish": "changeset publish"
+    "verify:public": "pnpm check:public && pnpm test:public && pnpm build:public"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
     "docx": "^9.5.1",
     "turbo": "^2.5.0"
   },
