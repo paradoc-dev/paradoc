@@ -98,6 +98,6 @@ A full reference registry implementation for the Paradoc landing playground live
 When this package graduates to public npm publishing:
 
 - `"private": true` → removed
-- Added to `publish-public.sh` PACKAGES array (after `@paradoc/types` and `@paradoc/schemas`, before `@paradoc/sdk`)
+- Added to `publish-npm-paradoc.sh` PACKAGES array (after `@paradoc/types` and `@paradoc/schemas`, before `@paradoc/sdk`)
 - Inaugural `0.1.0` `CHANGELOG.md` entry
 - Lockstep version-bumped with the rest of the public packages from that release on
