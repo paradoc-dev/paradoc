@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { createServerFn } from "@tanstack/react-start";
@@ -201,7 +202,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
 function Page() {
   const data = Route.useLoaderData();
   const { pageTree } = useFumadocsLoader(data);
-  const Content = clientLoader.getComponent(data.path);
+  const Content = clientLoader.getComponent(data.path) as unknown as ComponentType;
 
   return (
     <DocsLayout
