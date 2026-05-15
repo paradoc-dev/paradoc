@@ -14,10 +14,10 @@ fields:
     required: true
     type: enum
     enum:
-      - dog
-      - cat
-      - bird
-      - turtle
+      - value: dog
+      - value: cat
+      - value: bird
+      - value: turtle
   weight:
     label: Weight in pounds
     required: true

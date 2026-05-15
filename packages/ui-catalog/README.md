@@ -15,7 +15,7 @@ import type { FormField } from "@paradoc/types";
 const animalField: FormField = {
   type: "enum",
   label: "Pet species",
-  enum: ["dog", "cat", "fish"],
+  enum: [{ value: "dog", label: "Dog" }, { value: "cat", label: "Cat" }, { value: "fish", label: "Fish" }],
 };
 
 const spec = fieldToSpec(animalField, { fieldPath: "/pet/species" });
@@ -24,9 +24,9 @@ const spec = fieldToSpec(animalField, { fieldPath: "/pet/species" });
 //     props: {
 //       label: "Pet species",
 //       options: [
-//         { label: "dog", value: "dog" },
-//         { label: "cat", value: "cat" },
-//         { label: "fish", value: "fish" },
+//         { label: "Dog", value: "dog" },
+//         { label: "Cat", value: "cat" },
+//         { label: "Fish", value: "fish" },
 //       ],
 //     },
 //     bindings: { value: { $bindState: "/pet/species" } },

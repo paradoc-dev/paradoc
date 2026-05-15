@@ -2244,6 +2244,7 @@ export interface FormBuilderInterface<
 	title(value?: string): FormBuilderInterface<TFields, TParties, TAnnexes>
 	description(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
 	code(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
+	language(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
 	releaseDate(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
 	metadata(value: Metadata): FormBuilderInterface<TFields, TParties, TAnnexes>
 	instructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes>
@@ -2329,6 +2330,7 @@ function createFormBuilder<
 		title: undefined,
 		description: undefined,
 		code: undefined,
+		language: undefined,
 		releaseDate: undefined,
 		metadata: {},
 		instructions: undefined,
@@ -2351,6 +2353,7 @@ function createFormBuilder<
 			_def.title = parsed.title
 			_def.description = parsed.description
 			_def.code = parsed.code
+			_def.language = parsed.language
 			_def.releaseDate = parsed.releaseDate
 			_def.metadata = parsed.metadata ? { ...parsed.metadata } : {}
 			_def.instructions = parsed.instructions
@@ -2395,6 +2398,11 @@ function createFormBuilder<
 
 		code(value: string) {
 			_def.code = value
+			return builder
+		},
+
+		language(value: string) {
+			_def.language = value
 			return builder
 		},
 

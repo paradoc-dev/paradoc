@@ -356,6 +356,7 @@ export interface DocumentBuilderInterface {
 	title(value?: string): DocumentBuilderInterface
 	description(value: string): DocumentBuilderInterface
 	code(value: string): DocumentBuilderInterface
+	language(value: string): DocumentBuilderInterface
 	releaseDate(value: string): DocumentBuilderInterface
 	metadata(value: Metadata): DocumentBuilderInterface
 	instructions(value: ContentRef): DocumentBuilderInterface
@@ -385,6 +386,7 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 		title: undefined,
 		description: undefined,
 		code: undefined,
+		language: undefined,
 		releaseDate: undefined,
 		metadata: {},
 		instructions: undefined,
@@ -401,6 +403,7 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 			_def.title = doc.title
 			_def.description = doc.description
 			_def.code = doc.code
+			_def.language = doc.language
 			_def.releaseDate = doc.releaseDate
 			_def.metadata = doc.metadata ? { ...doc.metadata } : {}
 			_def.instructions = doc.instructions
@@ -434,6 +437,11 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 
 		code(value: string) {
 			_def.code = value
+			return builder
+		},
+
+		language(value: string) {
+			_def.language = value
 			return builder
 		},
 

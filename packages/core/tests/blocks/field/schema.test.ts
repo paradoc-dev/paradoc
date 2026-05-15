@@ -6,6 +6,7 @@ import type {
 	BooleanField,
 	EmailField,
 	EnumField,
+	MultiselectField,
 	MoneyField,
 	AddressField,
 	PhoneField,
@@ -158,29 +159,42 @@ describe('Field', () => {
 			});
 
 			describe('EnumField - success cases', () => {
-				test('creates enum field with string values', () => {
+				test('creates enum field with string value options', () => {
 					const input: EnumField = {
 						type: 'enum',
-						enum: ['red', 'green', 'blue'],
+						enum: [{ value: 'red' }, { value: 'green' }, { value: 'blue' }],
 					};
 					const result = field(input);
 					expect(result).toEqual(input);
 				});
 
-				test('creates enum field with number values', () => {
+				test('creates enum field with number value options', () => {
 					const input: EnumField = {
 						type: 'enum',
-						enum: [1, 2, 3, 4, 5],
+						enum: [{ value: 1 }, { value: 2 }, { value: 3 }, { value: 4 }, { value: 5 }],
 					};
 					const result = field(input);
 					expect(result).toEqual(input);
 				});
 
-				test('creates enum field with mixed values', () => {
+				test('creates enum field with mixed value options', () => {
 					const input: EnumField = {
 						type: 'enum',
 						label: 'Priority',
-						enum: ['low', 1, 'medium', 2, 'high', 3],
+						enum: [{ value: 'low' }, { value: 1 }, { value: 'medium' }, { value: 2 }],
+					};
+					const result = field(input);
+					expect(result).toEqual(input);
+				});
+
+				test('creates enum field with labeled options', () => {
+					const input: EnumField = {
+						type: 'enum',
+						label: 'Priority',
+						enum: [
+							{ value: 'low', label: 'Low priority' },
+							{ value: 'high', label: 'High priority' },
+						],
 					};
 					const result = field(input);
 					expect(result).toEqual(input);
@@ -189,10 +203,25 @@ describe('Field', () => {
 				test('creates enum field with single value', () => {
 					const input: EnumField = {
 						type: 'enum',
-						enum: ['single'],
+						enum: [{ value: 'single' }],
 					};
 					const result = field(input);
 					expect((result as any).enum).toHaveLength(1);
+				});
+			});
+
+			describe('MultiselectField - success cases', () => {
+				test('creates multiselect field with labeled options and raw defaults', () => {
+					const input: MultiselectField = {
+						type: 'multiselect',
+						enum: [
+							{ value: 'peanut', label: 'Peanut' },
+							{ value: 'dairy', label: 'Dairy' },
+						],
+						default: ['peanut'],
+					};
+					const result = field(input);
+					expect(result).toEqual(input);
 				});
 			});
 
@@ -406,6 +435,22 @@ describe('Field', () => {
 					expect(() => field(input)).toThrow();
 				});
 
+				test('throws error when enum option is scalar', () => {
+					const input = {
+						type: 'enum',
+						enum: ['a'],
+					} as any;
+					expect(() => field(input)).toThrow();
+				});
+
+				test('throws error when multiselect option is scalar', () => {
+					const input = {
+						type: 'multiselect',
+						enum: ['a'],
+					} as any;
+					expect(() => field(input)).toThrow();
+				});
+
 				test('throws error when pattern exceeds maxLength', () => {
 					const input = {
 						type: 'text',
@@ -442,7 +487,7 @@ describe('Field', () => {
 				});
 
 				test('parses valid enum field', () => {
-					const input = { type: 'enum', enum: ['a', 'b', 'c'] };
+					const input = { type: 'enum', enum: [{ value: 'a' }, { value: 'b' }, { value: 'c' }] };
 					const result = field.parse(input);
 					expect(result).toEqual(input);
 				});
@@ -670,33 +715,65 @@ describe('Field', () => {
 			});
 
 			describe('EnumField builder - success cases', () => {
-				test('builds enum field with string values', () => {
-					const result = field.enum().options(['red', 'green', 'blue']).build();
-					expect(result.enum).toEqual(['red', 'green', 'blue']);
+				test('builds enum field with string value options', () => {
+					const result = field.enum().options([{ value: 'red' }, { value: 'green' }, { value: 'blue' }]).build();
+					expect(result.enum).toEqual([{ value: 'red' }, { value: 'green' }, { value: 'blue' }]);
 				});
 
-				test('builds enum field with number values', () => {
-					const result = field.enum().options([1, 2, 3, 4, 5]).build();
-					expect(result.enum).toEqual([1, 2, 3, 4, 5]);
+				test('builds enum field with number value options', () => {
+					const result = field.enum().options([{ value: 1 }, { value: 2 }, { value: 3 }]).build();
+					expect(result.enum).toEqual([{ value: 1 }, { value: 2 }, { value: 3 }]);
 				});
 
-				test('builds enum field with mixed values', () => {
+				test('builds enum field with mixed value options', () => {
 					const result = field
 						.enum()
 						.label('Priority')
-						.options(['low', 1, 'medium', 2, 'high', 3])
+						.options([{ value: 'low' }, { value: 1 }, { value: 'medium' }, { value: 2 }])
 						.build();
-					expect(result.enum).toEqual(['low', 1, 'medium', 2, 'high', 3]);
+					expect(result.enum).toEqual([{ value: 'low' }, { value: 1 }, { value: 'medium' }, { value: 2 }]);
+				});
+
+				test('builds enum field with labeled options', () => {
+					const result = field
+						.enum()
+						.options([
+							{ value: 'low', label: 'Low priority' },
+							{ value: 'high', label: 'High priority' },
+						])
+						.build();
+					expect(result.enum).toEqual([
+						{ value: 'low', label: 'Low priority' },
+						{ value: 'high', label: 'High priority' },
+					]);
 				});
 
 				test('builds enum field with single value', () => {
-					const result = field.enum().options(['single']).build();
+					const result = field.enum().options([{ value: 'single' }]).build();
 					expect(result.enum).toHaveLength(1);
 				});
 
 				test('allows overwriting enum values', () => {
-					const result = field.enum().options(['a', 'b']).options(['x', 'y', 'z']).build();
-					expect(result.enum).toEqual(['x', 'y', 'z']);
+					const result = field.enum().options([{ value: 'a' }]).options([{ value: 'x' }, { value: 'y' }]).build();
+					expect(result.enum).toEqual([{ value: 'x' }, { value: 'y' }]);
+				});
+			});
+
+			describe('MultiselectField builder - success cases', () => {
+				test('builds multiselect field with labeled options and raw defaults', () => {
+					const result = field
+						.multiselect()
+						.options([
+							{ value: 'peanut', label: 'Peanut' },
+							{ value: 'dairy', label: 'Dairy' },
+						])
+						.default(['peanut'])
+						.build();
+					expect(result.enum).toEqual([
+						{ value: 'peanut', label: 'Peanut' },
+						{ value: 'dairy', label: 'Dairy' },
+					]);
+					expect(result.default).toEqual(['peanut']);
 				});
 			});
 
@@ -973,7 +1050,11 @@ describe('Field', () => {
 				});
 
 				test('creates enum for dropdown', () => {
-					const result = field.enum().label('Country').options(['US', 'CA', 'MX', 'UK']).build();
+					const result = field
+						.enum()
+						.label('Country')
+						.options([{ value: 'US' }, { value: 'CA' }, { value: 'MX' }, { value: 'UK' }])
+						.build();
 					expect(result.enum).toHaveLength(4);
 				});
 

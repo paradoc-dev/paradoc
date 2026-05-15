@@ -18,7 +18,7 @@ const myForm = para
       .build(),
     type: para.field
       .enum()
-      .options(["dog", "cat", "bird", "turtle"])
+      .options([{ value: "dog" }, { value: "cat" }, { value: "bird" }, { value: "turtle" }])
       .label("Species")
       .description("The species of the pet")
       .required(true)

@@ -39,7 +39,7 @@ import { para, toYAML } from '@paradoc/core';
 				label: 'Species',
 				description: 'The species of the pet',
 				required: true,
-				enum: ['dog', 'cat', 'bird', 'turtle'],
+				enum: [{ value: 'dog' }, { value: 'cat' }, { value: 'bird' }, { value: 'turtle' }],
 			},
 			age: {
 				type: 'number',

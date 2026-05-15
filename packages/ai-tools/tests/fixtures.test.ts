@@ -6,7 +6,7 @@
  * - apps/docs/tests/   — docs test vectors (lease, purchase agreement, checklist)
  *
  * Each artifact has a corresponding .data.json with valid fill data.
- * File-backed render tests use the public registry.
+ * File-backed render tests use a mocked public registry.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -27,6 +27,36 @@ function loadFixture(name: string) {
   return { artifact, data }
 }
 
+function createPetAddendumRegistryFetch(artifact: unknown): typeof globalThis.fetch {
+  return async (input) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
+
+    if (url.endsWith('/registry.json')) {
+      return Response.json({
+        items: [{ name: 'pet-addendum', path: 'pet-addendum/pet-addendum.json' }],
+      })
+    }
+
+    if (url.endsWith('/pet-addendum/pet-addendum.json')) {
+      return Response.json(artifact)
+    }
+
+    if (url.endsWith('/pet-addendum/pet-addendum.md')) {
+      return new Response(readFileSync(join(fixturesDir, 'pet-addendum.md'), 'utf-8'), {
+        headers: { 'content-type': 'text/markdown' },
+      })
+    }
+
+    if (url.endsWith('/pet-addendum/pet-addendum.pdf')) {
+      return new Response(new Uint8Array(readFileSync(join(fixturesDir, 'pet-addendum.pdf'))), {
+        headers: { 'content-type': 'application/pdf' },
+      })
+    }
+
+    return new Response('Not found', { status: 404 })
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Pet Addendum — real production artifact from artifacts/staging/.
 // Has file-backed PDF + markdown layers, signature blocks, bindings.
@@ -34,6 +64,7 @@ function loadFixture(name: string) {
 
 describe('pet-addendum fixture (production artifact)', () => {
   const { artifact, data } = loadFixture('pet-addendum')
+  const fixtureRegistryConfig = { fetch: createPetAddendumRegistryFetch(artifact) }
 
   it('validates successfully', async () => {
     const result = await executeValidateArtifact({ source: 'artifact' as const, artifact })
@@ -103,13 +134,16 @@ describe('pet-addendum fixture (production artifact)', () => {
   })
 
   it('renders markdown via public registry', async () => {
-    const result = await executeRender({
-      source: 'registry' as const,
-      registryUrl: PUBLIC_REGISTRY_URL,
-      artifactName: 'pet-addendum',
-      data,
-      layer: 'markdown',
-    })
+    const result = await executeRender(
+      {
+        source: 'registry' as const,
+        registryUrl: PUBLIC_REGISTRY_URL,
+        artifactName: 'pet-addendum',
+        data,
+        layer: 'markdown',
+      },
+      fixtureRegistryConfig,
+    )
 
     if (!result.success) {
       // eslint-disable-next-line no-console
@@ -128,19 +162,22 @@ describe('pet-addendum fixture (production artifact)', () => {
   })
 
   it('renders markdown when party id is omitted (auto-normalized)', async () => {
-    const result = await executeRender({
-      source: 'registry' as const,
-      registryUrl: PUBLIC_REGISTRY_URL,
-      artifactName: 'pet-addendum',
-      data: {
-        fields: data.fields,
-        parties: {
-          tenant: { name: 'Alice Tenant' },
-          landlord: { name: 'Bob Landlord' },
+    const result = await executeRender(
+      {
+        source: 'registry' as const,
+        registryUrl: PUBLIC_REGISTRY_URL,
+        artifactName: 'pet-addendum',
+        data: {
+          fields: data.fields,
+          parties: {
+            tenant: { name: 'Alice Tenant' },
+            landlord: { name: 'Bob Landlord' },
+          },
         },
+        layer: 'markdown',
       },
-      layer: 'markdown',
-    })
+      fixtureRegistryConfig,
+    )
 
     expect(result.success).toBe(true)
     expect(result.artifactKind).toBe('form')
@@ -149,13 +186,16 @@ describe('pet-addendum fixture (production artifact)', () => {
   })
 
   it('renders PDF via public registry', async () => {
-    const result = await executeRender({
-      source: 'registry' as const,
-      registryUrl: PUBLIC_REGISTRY_URL,
-      artifactName: 'pet-addendum',
-      data,
-      layer: 'pdf',
-    })
+    const result = await executeRender(
+      {
+        source: 'registry' as const,
+        registryUrl: PUBLIC_REGISTRY_URL,
+        artifactName: 'pet-addendum',
+        data,
+        layer: 'pdf',
+      },
+      fixtureRegistryConfig,
+    )
 
     expect(result.success).toBe(true)
     expect(result.artifactKind).toBe('form')

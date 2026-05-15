@@ -15,10 +15,10 @@ fields:
     required: true
     type: enum
     enum:
-      - dog
-      - cat
-      - bird
-      - turtle
+      - value: dog
+      - value: cat
+      - value: bird
+      - value: turtle
     default: 'cat'
   weight:
     label: Weight in pounds

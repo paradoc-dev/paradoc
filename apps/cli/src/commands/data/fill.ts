@@ -64,7 +64,10 @@ async function promptForField(
 
   // Handle enum fields with list selection
   if (field.type === 'enum') {
-    const choices = field.enum.map((val: string | number) => ({ value: String(val), title: String(val) }))
+    const choices = field.enum.map((option) => ({
+      value: String(option.value),
+      title: option.label ?? String(option.value),
+    }))
     const defaultVal = defaultValue !== undefined ? String(defaultValue) : choices[0]?.value
     const initialIndex = choices.findIndex((c: { value: string; title: string }) => c.value === defaultVal)
 
@@ -78,8 +81,8 @@ async function promptForField(
     if (selectedValue === undefined) throw new Error('User force closed the prompt')
 
     // Convert back to original type (string or number)
-    const originalValue = field.enum.find((val: string | number) => String(val) === selectedValue)
-    return originalValue !== undefined ? originalValue : selectedValue
+    const originalOption = field.enum.find((option) => String(option.value) === selectedValue)
+    return originalOption !== undefined ? originalOption.value : selectedValue
   }
 
   // Handle boolean fields

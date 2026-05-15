@@ -46,7 +46,7 @@
       "type": "enum",
       "label": "Property Type",
       "description": "Type of residential property",
-      "enum": ["apartment", "house", "condo", "townhouse", "studio", "other"],
+      "enum": [{ "value": "apartment" }, { "value": "house" }, { "value": "condo" }, { "value": "townhouse" }, { "value": "studio" }, { "value": "other" }],
       "required": true
     },
     "bedrooms": {
@@ -112,7 +112,7 @@
       "type": "multiselect",
       "label": "Utilities Included",
       "description": "Which utilities are included in the rent",
-      "enum": ["water", "electricity", "gas", "internet", "trash", "none"],
+      "enum": [{ "value": "water" }, { "value": "electricity" }, { "value": "gas" }, { "value": "internet" }, { "value": "trash" }, { "value": "none" }],
       "required": true
     }
   },

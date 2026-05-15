@@ -25,6 +25,17 @@ const BaseFieldSchema = z.object({
 	visible: CondExprSchema.optional(),
 });
 
+const EnumOptionValueSchema = z.union([z.string(), z.number()]);
+
+const EnumOptionSchema = z.object({
+	value: EnumOptionValueSchema.describe('Internal option value'),
+	label: z.string()
+		.min(1)
+		.max(200)
+		.describe('Human-readable label for the option in the artifact source language')
+		.optional(),
+});
+
 const TextFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('text'),
 	minLength: z.number().describe('Minimum length').optional(),
@@ -114,10 +125,10 @@ const UriFieldSchema = BaseFieldSchema.extend({
 
 const EnumFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('enum'),
-	enum: z.array(z.union([z.string(), z.number()]))
+	enum: z.array(EnumOptionSchema)
 		.min(1)
-		.describe('Array of allowed values for the enum field'),
-	default: z.union([z.string(), z.number()])
+		.describe('Array of allowed options for the enum field'),
+	default: EnumOptionValueSchema
 		.describe('Default value')
 		.optional(),
 });
@@ -171,12 +182,12 @@ const IdentificationFieldSchema = BaseFieldSchema.extend({
 
 const MultiselectFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('multiselect'),
-	enum: z.array(z.union([z.string(), z.number()]))
+	enum: z.array(EnumOptionSchema)
 		.min(1)
 		.describe('Available options'),
 	min: z.number().describe('Minimum selections required').optional(),
 	max: z.number().describe('Maximum selections allowed').optional(),
-	default: z.array(z.union([z.string(), z.number()]))
+	default: z.array(EnumOptionValueSchema)
 		.describe('Default selected values')
 		.optional(),
 });

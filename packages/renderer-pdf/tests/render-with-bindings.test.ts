@@ -33,7 +33,7 @@ describe('renderPdf with bindings', () => {
       },
       species: {
         type: 'enum',
-        enum: ['dog', 'cat', 'bird', 'rabbit', 'hamster'],
+        enum: [{ value: 'dog' }, { value: 'cat' }, { value: 'bird' }, { value: 'rabbit' }, { value: 'hamster' }],
         label: 'Species',
       },
       weight: {
@@ -132,12 +132,12 @@ describe('renderPdf with multiselect bindings', () => {
     fields: {
       recordTypes: {
         type: 'multiselect',
-        enum: ['clinic_visit_notes', 'lab_results', 'discharge_summary'],
+        enum: [{ value: 'clinic_visit_notes' }, { value: 'lab_results' }, { value: 'discharge_summary' }],
         label: 'Record types',
       },
       status: {
         type: 'enum',
-        enum: ['active', 'inactive'],
+        enum: [{ value: 'active' }, { value: 'inactive' }],
         label: 'Status',
       },
     },

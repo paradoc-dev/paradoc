@@ -16,7 +16,7 @@ const form = para.form({
   fields: {
     name: { type: 'text', label: 'Name' },
     businessName: { type: 'text', label: 'Business Name' },
-    taxClassification: { type: 'enum', enum: ['individual', 'llc', 'corporation'] },
+    taxClassification: { type: 'enum', enum: [{ value: 'individual' }, { value: 'llc' }, { value: 'corporation' }] },
     address: { type: 'text', label: 'Address' },
     ssn: { type: 'text', label: 'SSN' }
   },

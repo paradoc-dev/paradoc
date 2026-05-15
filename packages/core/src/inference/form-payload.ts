@@ -1,5 +1,8 @@
 import type { Form, FormField, FormAnnex, FormParty, Person, Organization, Attachment } from '@paradoc/types'
 
+type EnumOptionValue<T> = T extends { value: infer V } ? V : never
+type RuntimeEnumOption = { value: string | number }
+
 // JSON Schema type for compiled output
 export type JsonSchema = {
   type?: string
@@ -63,7 +66,7 @@ export type FieldToDataType<F> = F extends { type: 'text' }
                         ? string
                         : F extends { type: 'enum'; enum: infer E }
                           ? E extends readonly (infer U)[]
-                            ? U
+                            ? EnumOptionValue<U>
                             : never
                           // New field types:
                           : F extends { type: 'date' }
@@ -100,7 +103,7 @@ export type FieldToDataType<F> = F extends { type: 'text' }
                                         }
                                       : F extends { type: 'multiselect'; enum: infer E }
                                         ? E extends readonly (infer U)[]
-                                          ? U[]
+                                          ? EnumOptionValue<U>[]
                                           : (string | number)[]
                                         : F extends { type: 'percentage' }
                                           ? number
@@ -525,7 +528,7 @@ function compileField(field: FormField): JsonSchema {
 
     case 'enum':
       if ('enum' in field && Array.isArray(field.enum) && field.enum.length > 0) {
-        const anyOf = field.enum.map((val: string | number) => ({ const: val }))
+        const anyOf = (field.enum as RuntimeEnumOption[]).map((option) => ({ const: option.value }))
         return {
           anyOf,
           ...('default' in field && field.default !== undefined && { default: field.default }),
@@ -607,7 +610,7 @@ function compileField(field: FormField): JsonSchema {
     case 'multiselect':
       if ('enum' in field && Array.isArray(field.enum) && field.enum.length > 0) {
         const itemSchema: JsonSchema = {
-          anyOf: field.enum.map((val: string | number) => ({ const: val })),
+          anyOf: (field.enum as RuntimeEnumOption[]).map((option) => ({ const: option.value })),
         }
         const schema: JsonSchema = {
           type: 'array',

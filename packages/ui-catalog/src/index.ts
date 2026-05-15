@@ -19,7 +19,7 @@ export type { SpecNode, StateBinding, StateRead } from "./spec.js";
 
 // Mapper
 export { fieldToSpec } from "./mapper.js";
-export type { MapperContext } from "./mapper.js";
+export type { MapperContext, TranslateOptionInput } from "./mapper.js";
 
 // Action types
 export {
@@ -27,7 +27,9 @@ export {
 } from "./actions.js";
 export type {
 	SubmitFieldValueAction,
-	CancelFieldAction,
+	DeferFieldAction,
+	SkipFieldAction,
+	DismissFieldAction,
 	EditFilledFieldAction,
 	CatalogAction,
 	CatalogActionType,

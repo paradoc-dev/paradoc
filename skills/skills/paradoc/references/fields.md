@@ -140,13 +140,19 @@ No type-specific properties.
 
 | Property | Required | Type | Description |
 |----------|----------|------|-------------|
-| `enum` | YES | (string\|number)[] | Allowed values (min 1 item) |
+| `enum` | YES | `{ value: string\|number; label?: string }[]` | Allowed options (min 1 item) |
 
 ```json
 "employmentStatus": {
   "type": "enum",
   "label": "Employment Status",
-  "enum": ["employed", "self-employed", "unemployed", "retired", "student"],
+  "enum": [
+    { "value": "employed" },
+    { "value": "self-employed" },
+    { "value": "unemployed" },
+    { "value": "retired" },
+    { "value": "student" }
+  ],
   "required": true
 }
 ```
@@ -155,7 +161,7 @@ No type-specific properties.
 
 | Property | Required | Type | Description |
 |----------|----------|------|-------------|
-| `enum` | YES | (string\|number)[] | Available options |
+| `enum` | YES | `{ value: string\|number; label?: string }[]` | Available options |
 | `min` | No | number | Minimum selections |
 | `max` | No | number | Maximum selections |
 
@@ -289,7 +295,7 @@ fields: {
 fields: {
   name: para.field.text().label("Full Name").required().maxLength(100),
   amount: para.field.money().label("Amount").required().min(0),
-  status: para.field.enum().options(["a", "b"]).label("Status").required(),
+  status: para.field.enum().options([{ value: "a" }, { value: "b" }]).label("Status").required(),
 }
 ```
 

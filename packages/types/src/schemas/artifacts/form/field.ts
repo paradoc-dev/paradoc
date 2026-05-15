@@ -33,6 +33,17 @@ export interface BaseField {
   description?: string;
 }
 
+/** Primitive value used by enum-style form fields. */
+export type EnumOptionValue = string | number;
+
+/** Option object used by enum-style form fields. */
+export interface EnumOption {
+  /** Internal option value submitted by the field. */
+  value: EnumOptionValue;
+  /** Optional human-readable label in the artifact source language. */
+  label?: string;
+}
+
 /**
  * A fieldset field that contains nested fields.
  * This is a specific discriminated type where type is always 'fieldset'.
@@ -237,9 +248,9 @@ export interface EnumField extends BaseField {
   /** Discriminator for enum field type. */
   type: "enum";
   /** Available options for selection. */
-  enum: readonly (string | number)[];
+  enum: readonly EnumOption[];
   /** Default value for the field. */
-  default?: string | number;
+  default?: EnumOptionValue;
 }
 
 /**
@@ -323,13 +334,13 @@ export interface MultiselectField extends BaseField {
   /** Discriminator for multiselect field type. */
   type: "multiselect";
   /** Available options for selection. */
-  enum: readonly (string | number)[];
+  enum: readonly EnumOption[];
   /** Minimum number of selections required. */
   min?: number;
   /** Maximum number of selections allowed. */
   max?: number;
   /** Default value for the field. */
-  default?: readonly (string | number)[];
+  default?: readonly EnumOptionValue[];
 }
 
 /**
@@ -363,4 +374,3 @@ export interface RatingField extends BaseField {
   /** Default value for the field. */
   default?: number;
 }
-

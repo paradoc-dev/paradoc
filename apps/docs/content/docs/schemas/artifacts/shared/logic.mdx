@@ -98,7 +98,7 @@ fields:
   employmentStatus:
     type: enum
     label: Employment Status
-    enum: ["employed", "self-employed", "unemployed", "retired"]
+    enum: [{ value: "employed" }, { value: "self-employed" }, { value: "unemployed" }, { value: "retired" }]
 
   creditScore:
     type: number
@@ -158,7 +158,12 @@ fields:
     "employmentStatus": {
       "type": "enum",
       "label": "Employment Status",
-      "enum": ["employed", "self-employed", "unemployed", "retired"]
+      "enum": [
+        { "value": "employed" },
+        { "value": "self-employed" },
+        { "value": "unemployed" },
+        { "value": "retired" }
+      ]
     },
     "creditScore": {
       "type": "number",

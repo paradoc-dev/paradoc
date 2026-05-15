@@ -38,7 +38,7 @@ const createMultiBranchForm = () =>
 		.version('1.0.0')
 		.title('Multi Branch')
 		.fields({
-			entityType: { type: 'enum', label: 'Entity Type', enum: ['person', 'org'], required: true },
+			entityType: { type: 'enum', label: 'Entity Type', enum: [{ value: 'person' }, { value: 'org' }], required: true },
 			personName: { type: 'text', label: 'Person Name', visible: 'fields.entityType == "person"', required: 'fields.entityType == "person"' },
 			orgName: { type: 'text', label: 'Org Name', visible: 'fields.entityType == "org"', required: 'fields.entityType == "org"' },
 			email: { type: 'email', label: 'Email', required: true },

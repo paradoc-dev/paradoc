@@ -92,6 +92,8 @@ export type {
   // Form
   Form,
   BaseField,
+  EnumOption,
+  EnumOptionValue,
   FieldsetField,
   FormField,
   TextField,

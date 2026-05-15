@@ -22,7 +22,7 @@
       "type": "enum",
       "label": "Federal Tax Classification",
       "description": "Check appropriate box for federal tax classification",
-      "enum": ["individual", "c_corp", "s_corp", "partnership", "trust_estate", "llc", "other"],
+      "enum": [{ "value": "individual" }, { "value": "c_corp" }, { "value": "s_corp" }, { "value": "partnership" }, { "value": "trust_estate" }, { "value": "llc" }, { "value": "other" }],
       "required": true
     },
     "llcTaxCode": {

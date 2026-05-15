@@ -42,7 +42,7 @@ describe("@paradoc/renderer-pdf - README Examples", () => {
         },
         species: {
           type: "enum",
-          enum: ["dog", "cat", "bird", "rabbit"],
+          enum: [{ value: "dog" }, { value: "cat" }, { value: "bird" }, { value: "rabbit" }],
           label: "Species",
         },
         hasVaccination: {
@@ -124,7 +124,7 @@ describe("@paradoc/renderer-pdf - README Examples", () => {
             },
             species: {
               type: "enum",
-              enum: ["dog", "cat", "bird", "rabbit"],
+              enum: [{ value: "dog" }, { value: "cat" }, { value: "bird" }, { value: "rabbit" }],
               label: "Species",
             },
             hasVaccination: {

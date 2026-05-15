@@ -163,6 +163,9 @@ export interface IArtifactInstance<T extends Artifact> {
   /** Optional internal code. */
   readonly code: string | undefined
 
+  /** Optional BCP 47-style source language. */
+  readonly language: string | undefined
+
   /** Optional release date (ISO string). */
   readonly releaseDate: string | undefined
 

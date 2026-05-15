@@ -513,16 +513,32 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "description": "Internal option value"
                   },
-                  {
-                    "type": "number"
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the option in the artifact source language"
                   }
-                ]
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
               },
-              "description": "Array of allowed values for the enum field"
+              "description": "Array of allowed options for the enum field"
             },
             "default": {
               "anyOf": [
@@ -821,14 +837,30 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "description": "Internal option value"
                   },
-                  {
-                    "type": "number"
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the option in the artifact source language"
                   }
-                ]
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
               },
               "description": "Available options"
             },

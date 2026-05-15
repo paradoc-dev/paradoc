@@ -115,7 +115,7 @@ const advancedLease = para
     monthlyRent: { type: "money", label: "Monthly Rent", required: true },
     petPolicy: {
       type: "enum",
-      enum: ["no-pets", "small-pets", "all-pets"],
+      enum: [{ value: "no-pets" }, { value: "small-pets" }, { value: "all-pets" }],
       label: "Pet Policy",
       required: true,
     },

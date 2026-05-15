@@ -46,7 +46,7 @@ const result = await executeGetArtifact({
     "name": "pet-addendum",
     "fields": {
       "petName": { "type": "text", "label": "Pet Name", "required": true },
-      "species": { "type": "enum", "label": "Species" },
+      "species": { "type": "enum", "label": "Species", "enum": [{ "value": "dog" }, { "value": "cat" }] },
       "weight": { "type": "number", "label": "Weight (lbs)" },
       "isVaccinated": { "type": "boolean", "label": "Vaccinated" }
     }

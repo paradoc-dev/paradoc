@@ -109,10 +109,10 @@ function validateFieldValue(fieldId: string, field: FormField, value: unknown): 
       break
 
     case 'enum':
-      if (!field.enum.includes(value as string | number)) {
+      if (!field.enum.some((option) => option.value === value)) {
         return {
           field: `fields.${fieldId}`,
-          message: `"${field.label || fieldId}" must be one of: ${field.enum.join(', ')}`,
+          message: `"${field.label || fieldId}" must be one of: ${field.enum.map((option) => option.label ?? String(option.value)).join(', ')}`,
           value,
         }
       }
@@ -127,7 +127,7 @@ function validateFieldValue(fieldId: string, field: FormField, value: unknown): 
         }
       }
       for (const item of value) {
-        if (!field.enum.includes(item as string | number)) {
+        if (!field.enum.some((option) => option.value === item)) {
           return {
             field: `fields.${fieldId}`,
             message: `Invalid option in "${field.label || fieldId}": ${item}`,

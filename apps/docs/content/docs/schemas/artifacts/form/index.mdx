@@ -48,6 +48,12 @@ It can be used to create a simple consent form with a few fields to complex form
     isOptional: true,
   },
   {
+    name: 'language',
+    type: 'string',
+    description: 'BCP 47-style source language tag. Defaults to en when omitted',
+    isOptional: true,
+  },
+  {
     name: 'releaseDate',
     type: 'string',
     description: 'ISO date string indicating when the artifact was released',
@@ -160,7 +166,7 @@ fields:
   leaseTerm:
     type: enum
     label: Lease Term
-    enum: ["12 months", "24 months", "Month-to-month"]
+    enum: [{ value: "12 months" }, { value: "24 months" }, { value: "Month-to-month" }]
   petsAllowed:
     type: boolean
     label: Pets Allowed
@@ -246,7 +252,7 @@ annexes:
     "leaseTerm": {
       "type": "enum",
       "label": "Lease Term",
-      "enum": ["12 months", "24 months", "Month-to-month"]
+      "enum": [{ "value": "12 months" }, { "value": "24 months" }, { "value": "Month-to-month" }]
     },
     "petsAllowed": {
       "type": "boolean",

@@ -29,6 +29,7 @@ describe('FormInstance', () => {
       .title('Test Form')
       .description('A test form')
       .code('TEST-001')
+      .language('en-US')
       .metadata({ author: 'Test', version: '1.0' })
       .fields({
         name: { type: 'text', label: 'Full Name', required: true },
@@ -93,6 +94,16 @@ describe('FormInstance', () => {
     test('returns undefined code when not set', () => {
       const instance = createMinimalForm()
       expect(instance.code).toBeUndefined()
+    })
+
+    test('returns language when set', () => {
+      const instance = createFormWithFields()
+      expect(instance.language).toBe('en-US')
+    })
+
+    test('returns undefined language when not set', () => {
+      const instance = createMinimalForm()
+      expect(instance.language).toBeUndefined()
     })
 
     test('returns releaseDate when set', () => {

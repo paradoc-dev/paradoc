@@ -37,6 +37,8 @@ export interface Form extends ArtifactBase {
 // Re-export all form-related types
 export type {
   BaseField,
+  EnumOption,
+  EnumOptionValue,
   FieldsetField,
   FormField,
   TextField,

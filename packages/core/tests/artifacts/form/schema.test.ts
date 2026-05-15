@@ -56,7 +56,7 @@ describe('Form', () => {
               numberField: { type: 'number', label: 'Number' },
               booleanField: { type: 'boolean', label: 'Boolean' },
               emailField: { type: 'email', label: 'Email' },
-              enumField: { type: 'enum', enum: ['a', 'b', 'c'], label: 'Enum' } as EnumField,
+              enumField: { type: 'enum', enum: [{ value: 'a' }, { value: 'b' }, { value: 'c' }], label: 'Enum' } as EnumField,
               moneyField: { type: 'money', label: 'Money' },
               addressField: { type: 'address', label: 'Address' },
               phoneField: { type: 'phone', label: 'Phone' },
@@ -222,6 +222,18 @@ describe('Form', () => {
           }
           const result = form(input)
           expect(result.code).toBe('FORM-001')
+        })
+
+        test('creates form with source language', () => {
+          const input: Form = {
+            kind: 'form',
+            version: '1.0.0',
+            name: 'spanish-form',
+            title: 'Spanish Form',
+            language: 'es',
+          }
+          const result = form(input)
+          expect(result.language).toBe('es')
         })
 
         test('creates form with metadata', () => {
@@ -497,6 +509,11 @@ describe('Form', () => {
 
         test('throws error when code is empty string', () => {
           const input = { kind: 'form', version: '1.0.0', name: 'test', title: 'Test', code: '' } as any
+          expect(() => form(input)).toThrow()
+        })
+
+        test('throws error when language has invalid format', () => {
+          const input = { kind: 'form', version: '1.0.0', name: 'test', title: 'Test', language: 'english' } as any
           expect(() => form(input)).toThrow()
         })
 
@@ -802,7 +819,7 @@ describe('Form', () => {
               numberField: { type: 'number', label: 'Number', min: 0, max: 100 },
               booleanField: { type: 'boolean', label: 'Boolean' },
               emailField: { type: 'email', label: 'Email' },
-              enumField: { type: 'enum', enum: ['a', 'b', 'c'], label: 'Enum' },
+              enumField: { type: 'enum', enum: [{ value: 'a' }, { value: 'b' }, { value: 'c' }], label: 'Enum' },
               moneyField: { type: 'money', label: 'Money' },
               addressField: { type: 'address', label: 'Address' },
               phoneField: { type: 'phone', label: 'Phone' },
@@ -945,6 +962,16 @@ describe('Form', () => {
             .code('FORM-001')
             .build()
           expect(result.code).toBe('FORM-001')
+        })
+
+        test('builds form with source language', () => {
+          const result = form()
+            .name('spanish-form')
+            .version('1.0.0')
+            .title('Spanish Form')
+            .language('es')
+            .build()
+          expect(result.language).toBe('es')
         })
 
         test('builds form with metadata', () => {
@@ -1215,6 +1242,10 @@ describe('Form', () => {
 
         test('throws error when code is empty string', () => {
           expect(() => form().name('test').version('1.0.0').title('Test').code('').build()).toThrow()
+        })
+
+        test('throws error when language has invalid format', () => {
+          expect(() => form().name('test').version('1.0.0').title('Test').language('english').build()).toThrow()
         })
 
         test('throws error when name has invalid pattern (starts with dash)', () => {

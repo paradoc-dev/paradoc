@@ -37,6 +37,9 @@ export interface ArtifactMethods<T extends Artifact> {
 	/** Artifact code */
 	readonly code: string | undefined
 
+	/** Artifact source language */
+	readonly language: string | undefined
+
 	/** Release date (ISO 8601) */
 	readonly releaseDate: string | undefined
 
@@ -103,6 +106,7 @@ export function withArtifactMethods<T extends Artifact>(data: T): ArtifactMethod
 		title: data.title,
 		description: data.description,
 		code: data.code,
+		language: data.language,
 		releaseDate: data.releaseDate,
 		metadata: data.metadata,
 		instructions: data.instructions,

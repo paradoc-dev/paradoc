@@ -27,7 +27,7 @@ describe('Text Layers Guide', () => {
       propertyType: {
         type: 'enum',
         label: 'Property Type',
-        enum: ['apartment', 'house', 'condo', 'townhouse'],
+        enum: [{ value: 'apartment' }, { value: 'house' }, { value: 'condo' }, { value: 'townhouse' }],
         required: true,
       },
       bedrooms: { type: 'number', label: 'Bedrooms', min: 0, max: 10, required: true },

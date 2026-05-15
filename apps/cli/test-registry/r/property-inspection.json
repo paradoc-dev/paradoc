@@ -19,7 +19,7 @@
     "inspectionType": {
       "type": "enum",
       "label": "Inspection Type",
-      "enum": ["move-in", "move-out", "periodic", "maintenance"],
+      "enum": [{ "value": "move-in" }, { "value": "move-out" }, { "value": "periodic" }, { "value": "maintenance" }],
       "required": true
     },
     "inspectorName": {

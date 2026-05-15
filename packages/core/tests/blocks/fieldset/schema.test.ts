@@ -143,7 +143,7 @@ describe('Fieldset', () => {
 							numberField: { type: 'number' },
 							booleanField: { type: 'boolean' },
 							emailField: { type: 'email' },
-							enumField: { type: 'enum', enum: ['a', 'b', 'c'] } as EnumField,
+							enumField: { type: 'enum', enum: [{ value: 'a' }, { value: 'b' }, { value: 'c' }] } as EnumField,
 							moneyField: { type: 'money' },
 							addressField: { type: 'address' },
 							phoneField: { type: 'phone' },
@@ -480,7 +480,7 @@ describe('Fieldset', () => {
 							numberField: field.number().build(),
 							booleanField: field.boolean().build(),
 							emailField: field.email().build(),
-							enumField: field.enum().options(['a', 'b', 'c']).build(),
+							enumField: field.enum().options([{ value: 'a' }, { value: 'b' }, { value: 'c' }]).build(),
 							moneyField: field.money().build(),
 							addressField: field.address().build(),
 							phoneField: field.phone().build(),
@@ -771,7 +771,7 @@ describe('Fieldset', () => {
 						.fields({
 							newsletter: field.boolean().label('Subscribe to newsletter').build(),
 							notifications: field.boolean().label('Enable notifications').build(),
-							theme: field.enum().label('Theme').options(['light', 'dark']).build(),
+							theme: field.enum().label('Theme').options([{ value: 'light' }, { value: 'dark' }]).build(),
 						})
 						.required(false)
 						.order(99)

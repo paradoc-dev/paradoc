@@ -84,7 +84,7 @@ describe("fieldToSpec", () => {
 			const field: FormField = {
 				type: "enum",
 				label: "Pet species",
-				enum: ["dog", "cat", "fish"],
+				enum: [{ value: "dog" }, { value: "cat" }, { value: "fish" }],
 			};
 			const spec = fieldToSpec(field, { fieldPath: "/pet/species" });
 			expect(spec.type).toBe("EnumPicker");
@@ -98,7 +98,14 @@ describe("fieldToSpec", () => {
 			const field: FormField = {
 				type: "enum",
 				label: "State",
-				enum: ["CA", "NY", "TX", "FL", "WA", "IL"],
+				enum: [
+					{ value: "CA" },
+					{ value: "NY" },
+					{ value: "TX" },
+					{ value: "FL" },
+					{ value: "WA" },
+					{ value: "IL" },
+				],
 			};
 			const spec = fieldToSpec(field);
 			expect(spec.props?.display).toBe("dropdown");
@@ -108,16 +115,67 @@ describe("fieldToSpec", () => {
 			const field: FormField = {
 				type: "enum",
 				label: "Pet species",
-				enum: ["dog", "cat", "fish"],
+				enum: [
+					{ value: "dog", label: "Dog" },
+					{ value: "cat", label: "Cat" },
+					{ value: "fish", label: "Fish" },
+				],
 			};
+			const calls: unknown[] = [];
 			const spec = fieldToSpec(field, {
-				language: "es",
-				translateOption: (v) =>
-					({ dog: "perro", cat: "gato", fish: "pez" })[v as string] ?? String(v),
+				sourceLanguage: "en",
+				targetLanguage: "es",
+				translateOption: (option) => {
+					calls.push(option);
+					return ({ dog: "perro", cat: "gato", fish: "pez" })[option.value as string] ?? String(option.value);
+				},
 			});
 			const options = spec.props?.options as Array<{ value: string; label: string }>;
 			expect(options[0]).toEqual({ label: "perro", value: "dog" });
 			expect(options[1]).toEqual({ label: "gato", value: "cat" });
+			expect(calls[0]).toEqual({
+				value: "dog",
+				label: "Dog",
+				sourceLanguage: "en",
+				targetLanguage: "es",
+			});
+		});
+
+		it("uses explicit option labels when provided", () => {
+			const field: FormField = {
+				type: "enum",
+				label: "Pet species",
+				enum: [
+					{ value: "dog", label: "Dog" },
+					{ value: "cat", label: "Cat" },
+				],
+			};
+			const spec = fieldToSpec(field);
+			const options = spec.props?.options as Array<{ value: string; label: string }>;
+			expect(options[0]).toEqual({ label: "Dog", value: "dog" });
+			expect(options[1]).toEqual({ label: "Cat", value: "cat" });
+		});
+
+		it("defaults translation source language to en", () => {
+			const field: FormField = {
+				type: "enum",
+				enum: [{ value: "dog", label: "Dog" }],
+			};
+			const calls: unknown[] = [];
+			fieldToSpec(field, {
+				targetLanguage: "fr",
+				translateOption: (option) => {
+					calls.push(option);
+					return "Chien";
+				},
+			});
+
+			expect(calls[0]).toEqual({
+				value: "dog",
+				label: "Dog",
+				sourceLanguage: "en",
+				targetLanguage: "fr",
+			});
 		});
 	});
 
@@ -125,7 +183,11 @@ describe("fieldToSpec", () => {
 		const field: FormField = {
 			type: "multiselect",
 			label: "Allergies",
-			enum: ["peanut", "dairy", "gluten"],
+			enum: [
+				{ value: "peanut", label: "Peanut" },
+				{ value: "dairy", label: "Dairy" },
+				{ value: "gluten" },
+			],
 			min: 0,
 			max: 3,
 		};
@@ -133,6 +195,9 @@ describe("fieldToSpec", () => {
 		expect(spec.type).toBe("MultiSelectChips");
 		expect(spec.props?.min).toBe(0);
 		expect(spec.props?.max).toBe(3);
+		const options = spec.props?.options as Array<{ value: string; label: string }>;
+		expect(options).toContainEqual({ label: "Peanut", value: "peanut" });
+		expect(options).toContainEqual({ label: "gluten", value: "gluten" });
 	});
 
 	it("maps a date field to DateInput", () => {

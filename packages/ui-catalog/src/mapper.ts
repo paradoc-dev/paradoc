@@ -11,6 +11,8 @@
 import type {
 	FormField,
 	FieldsetField,
+	EnumOption,
+	EnumOptionValue,
 	EnumField,
 	MultiselectField,
 	TextField,
@@ -43,26 +45,45 @@ import type { SpecNode } from "./spec.js";
  *
  * - `fieldPath`: artifact path (e.g. "/pet/species") attached to the spec
  *   so the resulting `submitFieldValue` action carries it through.
- * - `language`: BCP-47 code. Reserved for future localization. The current
- *   implementation passes through field labels unchanged; consumers handle
- *   their own translation. (See README — translation source-of-truth is
- *   the consumer's responsibility.)
- * - `translateOption`: optional translator function for enum option labels.
- *   Called as `translateOption(value, language)`. If absent, labels mirror
- *   canonical values.
+ * - `sourceLanguage`: BCP 47-style source language tag for authored labels.
+ * - `targetLanguage`: BCP 47-style target language tag for rendered labels.
+ * - `language`: deprecated alias for `targetLanguage`.
+ * - `translateOption`: optional translator function for enum option labels. If
+ *   absent, labels come from `option.label` and fall back to the canonical value.
  */
+export type TranslateOptionInput = {
+	value: EnumOptionValue;
+	label?: string;
+	sourceLanguage?: string;
+	targetLanguage?: string;
+};
+
 export type MapperContext = {
 	fieldPath?: string;
+	sourceLanguage?: string;
+	targetLanguage?: string;
 	language?: string;
-	translateOption?: (
-		value: string | number,
-		language?: string,
-	) => string;
+	translateOption?: (option: TranslateOptionInput) => string;
 };
 
 /**
  * Map a paradoc form field to a catalog spec node.
  */
+function optionToCatalogOption(option: EnumOption, ctx: MapperContext): CatalogOption {
+	const sourceLanguage = ctx.sourceLanguage ?? "en";
+	const targetLanguage = ctx.targetLanguage ?? ctx.language;
+	const label = ctx.translateOption
+		? ctx.translateOption({
+			value: option.value,
+			label: option.label,
+			sourceLanguage,
+			targetLanguage,
+		})
+		: option.label ?? String(option.value);
+
+	return { label, value: option.value };
+}
+
 export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode {
 	const baseProps = {
 		label: field.label,
@@ -133,12 +154,7 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 
 		case "enum": {
 			const f = field as EnumField;
-			const options: CatalogOption[] = f.enum.map((value) => ({
-				label: ctx.translateOption
-					? ctx.translateOption(value, ctx.language)
-					: String(value),
-				value,
-			}));
+			const options: CatalogOption[] = f.enum.map((option) => optionToCatalogOption(option, ctx));
 			return {
 				type: "EnumPicker",
 				props: {
@@ -153,12 +169,7 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 
 		case "multiselect": {
 			const f = field as MultiselectField;
-			const options: CatalogOption[] = f.enum.map((value) => ({
-				label: ctx.translateOption
-					? ctx.translateOption(value, ctx.language)
-					: String(value),
-				value,
-			}));
+			const options: CatalogOption[] = f.enum.map((option) => optionToCatalogOption(option, ctx));
 			return {
 				type: "MultiSelectChips",
 				props: {

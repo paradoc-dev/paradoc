@@ -26,7 +26,7 @@
     "businessType": {
       "type": "enum",
       "label": "Business Type",
-      "enum": ["LLC", "Corporation", "Partnership", "Sole Proprietorship", "Non-Profit"],
+      "enum": [{ "value": "LLC" }, { "value": "Corporation" }, { "value": "Partnership" }, { "value": "Sole Proprietorship" }, { "value": "Non-Profit" }],
       "required": true
     },
     "contactName": {
@@ -61,7 +61,7 @@
     "zoning": {
       "type": "enum",
       "label": "Zoning Classification",
-      "enum": ["retail", "office", "industrial", "mixed-use", "warehouse"],
+      "enum": [{ "value": "retail" }, { "value": "office" }, { "value": "industrial" }, { "value": "mixed-use" }, { "value": "warehouse" }],
       "required": true
     },
     "permittedUse": {

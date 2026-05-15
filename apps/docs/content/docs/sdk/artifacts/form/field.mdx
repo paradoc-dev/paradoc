@@ -22,7 +22,7 @@ const nameField = field.text()
 // Enum/select field
 const statusField = field.enum()
   .label('Status')
-  .options(['active', 'inactive', 'pending'])
+  .options([{ value: 'active' }, { value: 'inactive' }, { value: 'pending' }])
   .default('pending')
   .build()
 
@@ -190,17 +190,17 @@ All field builders share these methods:
 ### Enum
 
 <PropertiesTable properties={[
-  { name: 'options', type: '(values: (string | number)[]) => this', description: 'Available options' },
+  { name: 'options', type: '(values: EnumOption[]) => this', description: 'Available options' },
   { name: 'default', type: '(value: string | number) => this', description: 'Default selection' },
 ]} />
 
 ### Multiselect
 
 <PropertiesTable properties={[
-  { name: 'options', type: '(values: (string | number)[]) => this', description: 'Available options' },
+  { name: 'options', type: '(values: EnumOption[]) => this', description: 'Available options' },
   { name: 'min', type: '(value: number) => this', description: 'Minimum selections required' },
   { name: 'max', type: '(value: number) => this', description: 'Maximum selections allowed' },
-  { name: 'default', type: '(value: (string | number)[]) => this', description: 'Default selections' },
+  { name: 'default', type: '(value: EnumOptionValue[]) => this', description: 'Default selections' },
 ]} />
 
 ### Date / Datetime / Time

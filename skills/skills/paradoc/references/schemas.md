@@ -136,7 +136,7 @@ Common mismatches:
 "status": { "type": "enum", "label": "Status" }   // wrong
 ```
 
-Fix: `"enum": ["active", "inactive"]`.
+Fix: `"enum": [{ "value": "active" }, { "value": "inactive" }]`.
 
 ### Missing `contents` on bundle
 

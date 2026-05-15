@@ -43,7 +43,7 @@ function getFieldDefault(field: FormField): unknown {
 
     case 'enum':
       // Default to first option if available
-      return field.enum && field.enum.length > 0 ? field.enum[0] : null
+      return field.enum && field.enum.length > 0 ? field.enum[0]?.value : null
 
     case 'multiselect':
       return []

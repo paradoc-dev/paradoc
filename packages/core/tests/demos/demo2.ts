@@ -21,7 +21,7 @@ const myForm = para.form({
       type: 'enum',
       label: 'Species',
       description: 'The species of the pet',
-      enum: ['dog', 'cat', 'bird', 'turtle'],
+      enum: [{ value: 'dog' }, { value: 'cat' }, { value: 'bird' }, { value: 'turtle' }],
       required: true,
     },
     age: {

@@ -20,6 +20,8 @@ import type {
 	EmailField,
 	UuidField,
 	UriField,
+	EnumOption,
+	EnumOptionValue,
 	EnumField,
 	DateField,
 	DatetimeField,
@@ -187,8 +189,8 @@ export interface EnumFieldBuilder {
 	description(value: string): EnumFieldBuilder;
 	required(value?: CondExpr): EnumFieldBuilder;
 	visible(value?: CondExpr): EnumFieldBuilder;
-	options(values: (string | number)[]): EnumFieldBuilder;
-	default(value: string | number): EnumFieldBuilder;
+	options(values: EnumOption[]): EnumFieldBuilder;
+	default(value: EnumOptionValue): EnumFieldBuilder;
 	build(): EnumField;
 }
 
@@ -258,10 +260,10 @@ export interface MultiselectFieldBuilder {
 	description(value: string): MultiselectFieldBuilder;
 	required(value?: CondExpr): MultiselectFieldBuilder;
 	visible(value?: CondExpr): MultiselectFieldBuilder;
-	options(values: (string | number)[]): MultiselectFieldBuilder;
+	options(values: EnumOption[]): MultiselectFieldBuilder;
 	min(value: number): MultiselectFieldBuilder;
 	max(value: number): MultiselectFieldBuilder;
-	default(value: (string | number)[]): MultiselectFieldBuilder;
+	default(value: EnumOptionValue[]): MultiselectFieldBuilder;
 	build(): MultiselectField;
 }
 
@@ -481,8 +483,8 @@ export function enumField(): EnumFieldBuilder {
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
 		visible(value: CondExpr = true) { _def.visible = value; return self; },
-		options(values: (string | number)[]) { _def.enum = values; return self; },
-		default(value: string | number) { _def.default = value; return self; },
+		options(values: EnumOption[]) { _def.enum = values; return self; },
+		default(value: EnumOptionValue) { _def.default = value; return self; },
 		build() { return parseField(_def) as EnumField; },
 	};
 	return self;
@@ -580,10 +582,10 @@ export function multiselectField(): MultiselectFieldBuilder {
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
 		visible(value: CondExpr = true) { _def.visible = value; return self; },
-		options(values: (string | number)[]) { _def.enum = values; return self; },
+		options(values: EnumOption[]) { _def.enum = values; return self; },
 		min(value: number) { _def.min = value; return self; },
 		max(value: number) { _def.max = value; return self; },
-		default(value: (string | number)[]) { _def.default = value; return self; },
+		default(value: EnumOptionValue[]) { _def.default = value; return self; },
 		build() { return parseField(_def) as MultiselectField; },
 	};
 	return self;

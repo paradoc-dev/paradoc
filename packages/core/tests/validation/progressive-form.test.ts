@@ -16,7 +16,7 @@ function createPetAddendumLikeForm(options?: { allowAdditionalAnnexes?: boolean 
 		.title('Pet Addendum')
 		.fields({
 			petName: { type: 'text', label: 'Pet name', required: true, maxLength: 100 },
-			species: { type: 'enum', label: 'Species', required: true, enum: ['dog', 'cat', 'fish'] },
+			species: { type: 'enum', label: 'Species', required: true, enum: [{ value: 'dog' }, { value: 'cat' }, { value: 'fish' }] },
 			weight: { type: 'number', label: 'Weight', required: true, min: 0 },
 			profile: {
 				type: 'fieldset',

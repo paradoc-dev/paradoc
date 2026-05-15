@@ -163,7 +163,7 @@ Single-select dropdown field.
   },
   {
     name: 'enum',
-    type: '(string | number)[]',
+    type: '{ value: string | number; label?: string }[]',
     description: 'Available options for selection',
   },
   {
@@ -186,7 +186,7 @@ Multi-select field allowing multiple selections.
   },
   {
     name: 'enum',
-    type: '(string | number)[]',
+    type: '{ value: string | number; label?: string }[]',
     description: 'Available options for selection',
   },
   {
@@ -203,7 +203,7 @@ Multi-select field allowing multiple selections.
   },
   {
     name: 'default',
-    type: '(string | number)[]',
+    type: 'EnumOptionValue[]',
     description: 'Default value for the field',
     isOptional: true,
   },
@@ -692,7 +692,7 @@ fields:
   preferredContact:
     type: enum
     label: Preferred Contact Method
-    enum: ["email", "phone", "mail"]
+    enum: [{ value: "email" }, { value: "phone" }, { value: "mail" }]
     default: email
 
   # Money field
@@ -748,7 +748,7 @@ fields:
     "preferredContact": {
       "type": "enum",
       "label": "Preferred Contact Method",
-      "enum": ["email", "phone", "mail"],
+      "enum": [{ "value": "email" }, { "value": "phone" }, { "value": "mail" }],
       "default": "email"
     },
     "annualIncome": {

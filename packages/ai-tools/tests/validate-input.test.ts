@@ -10,7 +10,7 @@ describe('executeValidateInput', () => {
         type: 'enum' as const,
         label: 'Species',
         required: true,
-        enum: ['dog', 'cat', 'fish'],
+        enum: [{ value: 'dog' }, { value: 'cat' }, { value: 'fish' }],
       },
       profile: {
         type: 'fieldset' as const,

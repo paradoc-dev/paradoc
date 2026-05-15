@@ -44,7 +44,7 @@
       "description": "Species of the pet",
       "type": "enum",
       "required": true,
-      "enum": ["dog", "cat", "fish"]
+      "enum": [{ "value": "dog" }, { "value": "cat" }, { "value": "fish" }]
     },
     "weight": {
       "label": "Weight (lbs)",

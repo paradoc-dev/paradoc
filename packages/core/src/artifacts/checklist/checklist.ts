@@ -763,6 +763,7 @@ export interface ChecklistBuilderInterface<TItems extends ChecklistItem[] = []> 
 	title(value?: string): ChecklistBuilderInterface<TItems>
 	description(value: string | undefined): ChecklistBuilderInterface<TItems>
 	code(value: string | undefined): ChecklistBuilderInterface<TItems>
+	language(value: string): ChecklistBuilderInterface<TItems>
 	releaseDate(value: string | undefined): ChecklistBuilderInterface<TItems>
 	metadata(value: Metadata | undefined): ChecklistBuilderInterface<TItems>
 	instructions(value: ContentRef): ChecklistBuilderInterface<TItems>
@@ -821,6 +822,7 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 		title: undefined,
 		description: undefined,
 		code: undefined,
+		language: undefined,
 		releaseDate: undefined,
 		metadata: {},
 		instructions: undefined,
@@ -838,6 +840,7 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 			_def.title = checklistValue.title
 			_def.description = checklistValue.description
 			_def.code = checklistValue.code
+			_def.language = checklistValue.language
 			_def.releaseDate = checklistValue.releaseDate
 			_def.metadata = checklistValue.metadata ? { ...checklistValue.metadata } : {}
 			_def.instructions = checklistValue.instructions
@@ -872,6 +875,11 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 
 		code(value: string | undefined) {
 			_def.code = value
+			return builder
+		},
+
+		language(value: string) {
+			_def.language = value
 			return builder
 		},
 

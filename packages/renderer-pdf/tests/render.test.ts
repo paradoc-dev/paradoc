@@ -32,7 +32,7 @@ describe('renderPdf', () => {
       },
       species: {
         type: 'enum',
-        enum: ['dog', 'cat', 'bird', 'rabbit', 'hamster'],
+        enum: [{ value: 'dog' }, { value: 'cat' }, { value: 'bird' }, { value: 'rabbit' }, { value: 'hamster' }],
         label: 'Species',
       },
       weight: {

@@ -20,6 +20,8 @@ export interface ArtifactBase {
   description?: string;
   /** Optional internal code or reference number. */
   code?: string;
+  /** BCP 47-style source language tag for this artifact. Defaults to "en" when omitted. */
+  language?: string;
   /** Optional ISO date string indicating when the artifact was released/published. */
   releaseDate?: string;
   /** Optional custom metadata map. */

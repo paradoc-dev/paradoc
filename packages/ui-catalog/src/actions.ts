@@ -9,8 +9,8 @@
 /**
  * The user submitted a value for a specific field.
  *
- * `value` is the canonical value (e.g. canonical English enum keys, not
- * the localized labels the user saw). The component is responsible for
+ * `value` is the canonical field value (e.g. enum option values, not the
+ * localized labels the user saw). The component is responsible for
  * mapping localized inputs back to canonical values before emitting.
  */
 export type SubmitFieldValueAction = {

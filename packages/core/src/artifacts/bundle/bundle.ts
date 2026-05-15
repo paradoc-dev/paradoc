@@ -835,6 +835,7 @@ export interface BundleBuilderInterface {
 	title(value?: string): BundleBuilderInterface
 	description(value: string): BundleBuilderInterface
 	code(value: string): BundleBuilderInterface
+	language(value: string): BundleBuilderInterface
 	releaseDate(value: string): BundleBuilderInterface
 	metadata(value: Metadata): BundleBuilderInterface
 	instructions(value: ContentRef): BundleBuilderInterface
@@ -861,6 +862,7 @@ function createBundleBuilder(): BundleBuilderInterface {
 		title: undefined,
 		description: undefined,
 		code: undefined,
+		language: undefined,
 		releaseDate: undefined,
 		metadata: {},
 		instructions: undefined,
@@ -878,6 +880,7 @@ function createBundleBuilder(): BundleBuilderInterface {
 			_def.title = parsed.title
 			_def.description = parsed.description
 			_def.code = parsed.code
+			_def.language = parsed.language
 			_def.releaseDate = parsed.releaseDate
 			_def.metadata = parsed.metadata ? { ...parsed.metadata } : {}
 			_def.instructions = parsed.instructions
@@ -909,6 +912,11 @@ function createBundleBuilder(): BundleBuilderInterface {
 
 		code(value: string) {
 			_def.code = value
+			return builder
+		},
+
+		language(value: string) {
+			_def.language = value
 			return builder
 		},
 

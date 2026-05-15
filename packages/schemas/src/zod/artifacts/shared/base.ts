@@ -31,6 +31,12 @@ export const ArtifactSchema = z.object({
 		.max(200)
 		.describe('Optional user-defined internal code.')
 		.optional(),
+	language: z.string()
+		.min(2)
+		.max(35)
+		.regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/)
+		.describe('BCP 47-style source language tag for this artifact. Defaults to en when omitted.')
+		.optional(),
 	releaseDate: z.iso.date()
 		.describe('Artifact release date')
 		.optional(),

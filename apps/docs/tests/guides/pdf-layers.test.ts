@@ -59,7 +59,7 @@ describe('PDF Layers Guide', () => {
         taxClassification: {
           type: 'enum',
           label: 'Tax Classification',
-          enum: ['individual', 'c_corp', 's_corp', 'partnership', 'llc'],
+          enum: [{ value: 'individual' }, { value: 'c_corp' }, { value: 's_corp' }, { value: 'partnership' }, { value: 'llc' }],
           required: true,
         },
         llcTaxCode: { type: 'text', label: 'LLC Tax Code' },
