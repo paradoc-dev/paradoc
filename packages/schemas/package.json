@@ -59,7 +59,7 @@
     "prepublishOnly": "pnpm run build",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\"",
+    "check": "pnpm lint && pnpm check-types",
     "export:bundled-schema": "tsx scripts/export-root-schema-zod.ts",
     "export:individual-schemas": "tsx scripts/export-all-schemas-zod.ts",
     "export:manifest": "tsx scripts/export-manifest-schema-zod.ts",

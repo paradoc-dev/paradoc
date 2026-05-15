@@ -57,7 +57,7 @@
     "prepublishOnly": "pnpm run build",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "check": "pnpm lint && pnpm check-types && echo \"✅ All checks passed\" || echo \"❌ Checks failed\"",
+    "check": "pnpm lint && pnpm check-types",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

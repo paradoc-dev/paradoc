@@ -61,7 +61,7 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "check": "pnpm lint && pnpm check-types && echo \"All checks passed\" || echo \"Checks failed\""
+    "check": "pnpm lint && pnpm check-types"
   },
   "dependencies": {
     "@paradoc/ai-tools": "workspace:*",
