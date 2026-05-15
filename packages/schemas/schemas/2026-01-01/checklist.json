@@ -262,6 +262,5 @@
     "items"
   ],
   "additionalProperties": false,
-  "id": "Checklist",
   "title": "Checklist"
 }

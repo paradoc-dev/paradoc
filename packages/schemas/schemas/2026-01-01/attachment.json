@@ -26,6 +26,5 @@
     "mimeType"
   ],
   "additionalProperties": false,
-  "id": "Attachment",
   "title": "Attachment"
 }

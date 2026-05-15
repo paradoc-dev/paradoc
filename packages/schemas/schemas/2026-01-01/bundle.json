@@ -245,6 +245,5 @@
     "contents"
   ],
   "additionalProperties": false,
-  "id": "Bundle",
   "title": "Bundle"
 }

@@ -3,6 +3,5 @@
   "$id": "https://schema.paradoc.dev/2026-01-01/duration.json",
   "type": "string",
   "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
-  "id": "Duration",
   "title": "Duration"
 }

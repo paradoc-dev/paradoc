@@ -13,6 +13,5 @@
       "description": "Expression string - either inline expression or reference to a defs key"
     }
   ],
-  "id": "CondExpr",
   "title": "CondExpr"
 }

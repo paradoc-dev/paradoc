@@ -27,6 +27,5 @@
     "number"
   ],
   "additionalProperties": false,
-  "id": "Phone",
   "title": "Phone"
 }

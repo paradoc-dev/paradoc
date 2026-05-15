@@ -993,6 +993,5 @@
       "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FieldsetField"
     }
   ],
-  "id": "FormField",
   "title": "FormField"
 }

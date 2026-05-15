@@ -837,6 +837,5 @@
     "title": "Expression",
     "description": "A typed computed value with optional metadata (label, description). The type property determines the expected result type and value schema."
   },
-  "id": "DefsSection",
   "title": "DefsSection"
 }

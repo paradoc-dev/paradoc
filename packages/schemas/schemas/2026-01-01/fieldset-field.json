@@ -1035,6 +1035,5 @@
     "fields"
   ],
   "additionalProperties": false,
-  "id": "FieldsetField",
   "title": "FieldsetField"
 }

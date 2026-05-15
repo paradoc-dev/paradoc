@@ -76,6 +76,5 @@
     "label"
   ],
   "additionalProperties": false,
-  "id": "FormParty",
   "title": "FormParty"
 }

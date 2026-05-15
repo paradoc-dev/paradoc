@@ -17,6 +17,5 @@
     "northEast"
   ],
   "additionalProperties": false,
-  "id": "Bbox",
   "title": "Bbox"
 }

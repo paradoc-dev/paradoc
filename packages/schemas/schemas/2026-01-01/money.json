@@ -20,6 +20,5 @@
     "currency"
   ],
   "additionalProperties": false,
-  "id": "Money",
   "title": "Money"
 }

@@ -21,6 +21,5 @@
     "lon"
   ],
   "additionalProperties": false,
-  "id": "Coordinate",
   "title": "Coordinate"
 }

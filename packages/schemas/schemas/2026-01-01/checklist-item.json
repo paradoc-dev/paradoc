@@ -107,6 +107,5 @@
     "title"
   ],
   "additionalProperties": false,
-  "id": "ChecklistItem",
   "title": "ChecklistItem"
 }

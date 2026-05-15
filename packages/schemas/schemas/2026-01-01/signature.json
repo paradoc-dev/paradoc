@@ -63,6 +63,5 @@
     "method"
   ],
   "additionalProperties": false,
-  "id": "Signature",
   "title": "Signature"
 }

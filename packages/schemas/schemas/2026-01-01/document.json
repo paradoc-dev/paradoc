@@ -254,6 +254,5 @@
     "kind"
   ],
   "additionalProperties": false,
-  "id": "Document",
   "title": "Document"
 }

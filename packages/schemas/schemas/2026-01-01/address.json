@@ -48,6 +48,5 @@
     "country"
   ],
   "additionalProperties": false,
-  "id": "Address",
   "title": "Address"
 }

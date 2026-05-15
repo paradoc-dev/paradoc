@@ -88,6 +88,5 @@
       "additionalProperties": false
     }
   ],
-  "id": "BundleContentItem",
   "title": "BundleContentItem"
 }
