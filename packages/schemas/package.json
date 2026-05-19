@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/schemas",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "JSON Schema definitions for Paradoc framework artifacts, blocks, and primitives",
   "type": "module",
   "main": "./dist/index.js",

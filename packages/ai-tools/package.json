@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/ai-tools",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Core AI tool protocol for Paradoc — neutral tool definitions, execute functions, schemas, and registry HTTP client",
   "type": "module",
   "main": "./dist/index.js",

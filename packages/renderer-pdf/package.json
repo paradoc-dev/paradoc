@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/renderer-pdf",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "PDF renderer package for Paradoc framework",
   "type": "module",
   "main": "./dist/index.js",

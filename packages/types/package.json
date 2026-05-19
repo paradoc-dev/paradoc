@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/types",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Core types and formatting utilities for Paradoc framework - renderer interfaces, templates, and field formatters",
   "type": "module",
   "main": "./dist/index.js",

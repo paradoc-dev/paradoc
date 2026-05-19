@@ -1,5 +1,9 @@
 # @paradoc/renderer-docx
 
+## 0.2.0
+
+Internal version bump for fixed-group consistency. No source changes.
+
 ## 0.1.1
 
 Add helpers for `capacity` and `printed_name` signature blocks.

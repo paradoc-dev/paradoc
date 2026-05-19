@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/ai-sdk",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Vercel AI SDK adapter for Paradoc tools — wraps @paradoc/ai-tools with AI SDK tool()",
   "type": "module",
   "main": "./dist/index.js",
