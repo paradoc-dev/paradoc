@@ -21,51 +21,84 @@
 
 ## Package overview
 
-A curated collection of ready-to-use Paradoc artifacts for commonly needed business forms. Install the package, import an artifact, fill it with data, and render it — no manual schema authoring required.
-
-- **IRS** — W-9, W-8BEN, SS-4, 4506-T, 1099-NEC, 1099-MISC
-- **NACHA** — ACH debit authorization, ACH credit authorization, ACH change, direct deposit, bank account info
-- **USCIS** — I-9
-- **HIPAA** — notices, authorizations
-- **ACORD** — insurance forms
-- **Business** — NDA and other general business agreements
-
-Each artifact ships with pre-built layers (markdown, PDF where available) so you can render them immediately.
+A curated collection of common business artifacts ready to use with the Paradoc SDK. Each artifact ships with its full spec and pre-built layers (markdown and PDF) bundled in — no separate downloads, no resolver setup.
 
 ## Installation
 
 ```bash
-npm install @paradoc/essentials
-```
-
-## Usage
-
-```typescript
-import { irs } from "@paradoc/essentials";
-
-// Access the W-9 artifact
-const w9 = irs.w9;
-
-// Fill with data and render
-const filled = w9.fill({
-  fields: {
-    name: "Jane Doe",
-    taxClassification: "individual",
-    // ...
-  },
-});
+npm install @paradoc/essentials @paradoc/sdk
 ```
 
 ## Included artifacts
 
-| Category | Artifacts |
-|----------|-----------|
-| IRS | W-9, W-8BEN, SS-4, 4506-T, 1099-NEC, 1099-MISC |
-| NACHA | ACH debit authorization, ACH credit authorization, ACH change, direct deposit, bank account info |
-| USCIS | I-9 |
-| HIPAA | *(coming soon)* |
-| ACORD | *(coming soon)* |
-| Business | NDA |
+| Domain     | Import                     | Form                                                                       |
+| ---------- | -------------------------- | -------------------------------------------------------------------------- |
+| tax        | `w9`                       | IRS W-9 — Request for Taxpayer Identification Number                       |
+| tax        | `f1099NEC`                 | IRS 1099-NEC — Nonemployee Compensation                                    |
+| tax        | `f1099MISC`                | IRS 1099-MISC — Miscellaneous Information                                  |
+| tax        | `f4506T`                   | IRS 4506-T — Request for Transcript of Tax Return                          |
+| employment | `i9`                       | USCIS I-9 — Employment Eligibility Verification                            |
+| banking    | `achBankAccountInfo`       | ACH Bank Account Information                                               |
+| banking    | `achChangeForm`            | ACH Change Form                                                            |
+| banking    | `achCreditAuthorization`   | ACH Credit Authorization                                                   |
+| banking    | `achDebitAuthorization`    | ACH Debit Authorization                                                    |
+| banking    | `achDirectDeposit`         | ACH Direct Deposit Authorization                                           |
+
+Import by domain or from the root:
+
+```typescript
+import { w9 } from "@paradoc/essentials/tax";
+import { i9 } from "@paradoc/essentials/employment";
+import { achDirectDeposit } from "@paradoc/essentials/banking";
+
+// or flat
+import { w9, i9, achDirectDeposit } from "@paradoc/essentials";
+```
+
+## Usage
+
+Fill a W-9 and render its markdown layer:
+
+```typescript
+import { w9 } from "@paradoc/essentials/tax";
+import { textRenderer } from "@paradoc/sdk";
+
+const markdown = await w9
+  .fill({
+    parties: {
+      taxpayer: { id: "taxpayer-0", name: "Jane Q. Public" },
+    },
+    fields: {
+      taxClassification: "individual_or_sole_proprietor",
+      ssn: "123-45-6789",
+      mailingAddress: {
+        line1: "1 Main St",
+        locality: "Springfield",
+        region: "IL",
+        postalCode: "62704",
+        country: "US",
+      },
+    },
+  })
+  .render({ renderer: textRenderer(), layer: "markdown" });
+```
+
+Render the official PDF layer instead by swapping the renderer:
+
+```typescript
+import { pdfRenderer } from "@paradoc/sdk";
+
+const pdf = await w9.fill(data).render({ renderer: pdfRenderer(), layer: "pdf" });
+```
+
+Each artifact's bundled resolver is applied automatically — you don't need to pass one. Validate without filling using `safeParseData`:
+
+```typescript
+const result = w9.safeParseData(rawInput);
+if (result.success) {
+  // result.data is fully typed
+}
+```
 
 ## Changelog
 
@@ -73,11 +106,9 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/packages/e
 
 ## Related packages
 
-- [`@paradoc/core`](../core) - Core builders and validation
 - [`@paradoc/sdk`](../sdk) - Complete framework with renderers
-- [`@paradoc/types`](../types) - TypeScript utilities and types
-- [`@paradoc/schemas`](../schemas) - JSON Schema definitions
-- [`@paradoc/renderers`](../renderers) - All renderers (PDF, DOCX, Text)
+- [`@paradoc/core`](../core) - Core builders and validation
+- [`@paradoc/renderers`](../renderers) - PDF, DOCX, and Text renderers
 
 ## Contributing
 

@@ -1,6 +1,5 @@
 {
   "name": "@paradoc/essentials",
-  "private": true,
   "version": "0.1.0",
   "description": "Ready-to-use Paradoc artifacts for common business forms — IRS, NACHA, USCIS, HIPAA, ACORD, and more",
   "type": "module",
@@ -12,6 +11,21 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./tax": {
+      "types": "./dist/tax/index.d.ts",
+      "import": "./dist/tax/index.js",
+      "default": "./dist/tax/index.js"
+    },
+    "./banking": {
+      "types": "./dist/banking/index.d.ts",
+      "import": "./dist/banking/index.js",
+      "default": "./dist/banking/index.js"
+    },
+    "./employment": {
+      "types": "./dist/employment/index.d.ts",
+      "import": "./dist/employment/index.js",
+      "default": "./dist/employment/index.js"
     }
   },
   "sideEffects": false,
@@ -78,6 +92,7 @@
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/sdk": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
