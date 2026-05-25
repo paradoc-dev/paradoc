@@ -375,7 +375,7 @@ describe('CLI Data Commands', () => {
     })
 
     it('should fail for non-form artifact', async () => {
-      const docPath = path.join(fixturesDir, 'enclosure.yaml')
+      const docPath = path.join(fixturesDir, 'pet-care-guide.yaml')
       const outPath = path.join(tempDir, 'fail.json')
 
       const result = await executeCliCommand([

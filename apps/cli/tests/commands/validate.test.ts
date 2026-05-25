@@ -225,7 +225,7 @@ describe('CLI Validate Command', () => {
 
   describe('validate document artifact', () => {
     it('should validate a document artifact', async () => {
-      const docPath = path.join(fixturesDir, 'enclosure.yaml')
+      const docPath = path.join(fixturesDir, 'pet-care-guide.yaml')
       const result = await executeCliCommand(['validate', docPath])
 
       expect(result.exitCode).toBe(0)
@@ -233,7 +233,7 @@ describe('CLI Validate Command', () => {
     })
 
     it('should fail expect-kind form on a document', async () => {
-      const docPath = path.join(fixturesDir, 'enclosure.yaml')
+      const docPath = path.join(fixturesDir, 'pet-care-guide.yaml')
       const result = await executeCliCommand(['validate', docPath, '--expect-kind', 'form'])
 
       expect(result.exitCode).toBe(1)
