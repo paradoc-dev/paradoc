@@ -14,6 +14,8 @@
 
 export { evaluateFormDefs } from './evaluation'
 export { evaluateRules, evaluateFormRules } from './evaluation'
+export { resolvePartyPayment } from './evaluation'
+export { buildFormContext } from './evaluation'
 
 // ============================================================================
 // Public API - Types
@@ -26,4 +28,6 @@ export type {
   RuleValidationResult,
   FormRulesValidationResult,
   EvaluationContext,
+  ResolvedPayment,
+  FormDataPayload,
 } from './evaluation'

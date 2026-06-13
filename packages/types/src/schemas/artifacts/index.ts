@@ -120,6 +120,8 @@ export type {
   FormParty,
   // Signature
   FormSignature,
+  // Payment
+  FormPayment,
 } from "./form";
 
 // Union types

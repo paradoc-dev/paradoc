@@ -121,7 +121,7 @@ const DurationExpressionSchema = BaseExpressionSchema.extend({
 // Object Types (value is an object with expression strings for each property)
 // ============================================================================
 
-const MoneyExpressionSchema = BaseExpressionSchema.extend({
+export const MoneyExpressionSchema = BaseExpressionSchema.extend({
 	type: z.literal('money'),
 	value: z.object({
 		amount: ExpressionString,

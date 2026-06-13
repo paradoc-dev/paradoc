@@ -54,6 +54,12 @@ export {
   type FormEvaluationOptions,
 } from './form-evaluator'
 
+// Payment resolution
+export {
+  resolvePartyPayment,
+  type ResolvedPayment,
+} from './payment-resolver'
+
 // Rule evaluation
 export {
   evaluateRule,

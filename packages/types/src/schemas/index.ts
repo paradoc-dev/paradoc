@@ -123,6 +123,7 @@ export type {
   FormAnnex,
   FormParty,
   FormSignature,
+  FormPayment,
   // Unions
   Artifact,
 } from "./artifacts";

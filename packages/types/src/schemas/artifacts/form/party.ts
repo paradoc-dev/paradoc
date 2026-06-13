@@ -2,6 +2,9 @@
  * Form party type for design-time party role definitions
  */
 
+import type { Money } from "../../primitives";
+import type { MoneyExpression } from "../shared/expressions/expression";
+
 export interface FormSignature {
   /** Whether signature is required. Defaults to false. */
   required?: boolean;
@@ -9,6 +12,28 @@ export interface FormSignature {
   witnesses?: number;
   /** Whether at least one witness must be a notary. */
   notarized?: boolean;
+}
+
+/**
+ * Design-time payment requirement for a party role.
+ *
+ * Declares that a party owes a payment. The amount is either a fixed `Money`
+ * (amount + currency known at authoring time) or a `MoneyExpression` whose
+ * amount/currency resolve from the respondent's filled data at request time
+ * (via the same expression engine that drives field `visible`/`required`).
+ *
+ * A payment requirement is a separate phase from data collection — analogous to
+ * a signature, it is settled outside the web form (in the payment ceremony), so
+ * declaring it does not block web-form submission.
+ */
+export interface FormPayment {
+  /** Whether payment is required. Defaults to false. */
+  required?: boolean;
+  /**
+   * The amount owed: a fixed `Money` value, or a `MoneyExpression` resolved
+   * from filled data at request time.
+   */
+  amount: Money | MoneyExpression;
 }
 
 /**
@@ -36,4 +61,6 @@ export interface FormParty {
   required?: boolean | string;
   /** Signature requirements for this role. */
   signature?: FormSignature;
+  /** Payment requirement for this role. */
+  payment?: FormPayment;
 }

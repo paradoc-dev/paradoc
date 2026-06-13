@@ -67,4 +67,4 @@ export type {
 
 export type { FormFieldset } from "./fieldset";
 export type { FormAnnex } from "./annex";
-export type { FormParty, FormSignature } from "./party";
+export type { FormParty, FormSignature, FormPayment } from "./party";

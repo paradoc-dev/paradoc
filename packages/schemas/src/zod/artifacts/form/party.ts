@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { CondExprSchema } from '../expressions/cond-expr';
+import { MoneyExpressionSchema } from '../expressions/expression';
+import { MoneySchema } from '../../primitives';
 
 const FormSignatureSchema = z.object({
 	required: z.boolean()
@@ -18,6 +20,20 @@ const FormSignatureSchema = z.object({
 }).meta({
 	title: 'FormSignature',
 	description: 'Design-time signature requirements for a party role',
+});
+
+const FormPaymentSchema = z.object({
+	required: z.boolean()
+		.default(false)
+		.describe('Whether payment is required for this role')
+		.optional(),
+	amount: z.union([
+		MoneySchema,
+		MoneyExpressionSchema,
+	]).describe('Amount owed: a fixed Money value, or a MoneyExpression resolved from filled data at request time'),
+}).meta({
+	title: 'FormPayment',
+	description: 'Design-time payment requirement for a party role',
 });
 
 /**
@@ -52,6 +68,7 @@ export const FormPartySchema = z.object({
 		.optional(),
 	required: CondExprSchema.optional(),
 	signature: FormSignatureSchema.optional(),
+	payment: FormPaymentSchema.optional(),
 }).meta({
 	title: 'FormParty',
 	description: 'Design-time party role definition. Defines what roles exist and what constraints apply when filling a form.',
