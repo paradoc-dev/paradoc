@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { form, runtimeFormFromJSON } from '@/artifacts'
 import type { DraftForm, SignableForm } from '@/artifacts'
-import type { Sealer, SigningField, Signer, SignatureBlock } from '@paradoc/types'
+import type { Sealer, SigningField, Signer, SignatureBlock, AnchorBlock } from '@paradoc/types'
 import { fromYAML } from '@/serialization'
 
 /**
@@ -393,7 +393,7 @@ describe('Formal Signing', () => {
 				.addSignatory('signer', 'signer-0', { signerId: 'test-signer' })
 
 			await expect(draft.seal(createMockAdapter())).rejects.toThrow(
-				/layer "pdf" has no signatureBlocks and is not PDF-convertible/
+				/layer "pdf" has no signatureBlocks.*and is not PDF-convertible/
 			)
 		})
 
@@ -821,6 +821,272 @@ describe('Formal Signing', () => {
 
 			// All four blocks should be in the signatureMap (definition mode uses core's generated map)
 			expect(formal.signatureMap).toHaveLength(4)
+		})
+	})
+
+	// ============================================================================
+	// Anchor mode: SigningField placement from anchorBlocks
+	// ============================================================================
+
+	describe('Anchor mode seal (anchorBlocks, no signatureBlocks)', () => {
+		const anchorBlocks: Record<string, AnchorBlock> = {
+			'anc-landlord-sig': {
+				type: 'signature',
+				anchor: { text: 'LANDLORD SIGNATURE:', offsetX: 0, offsetY: 10 },
+				width: 200,
+				height: 40,
+				partyRole: 'landlord',
+				label: 'Landlord signature',
+				required: true,
+			},
+			'anc-tenant-sig': {
+				type: 'signature',
+				anchor: { text: 'TENANT SIGNATURE:', offsetX: 0, offsetY: 10 },
+				width: 200,
+				height: 40,
+				partyRole: 'tenant',
+				label: 'Tenant signature',
+			},
+		}
+
+		const createFormWithAnchorBlocks = () =>
+			form()
+				.name('anchor-lease')
+				.version('1.0.0')
+				.title('Anchor Lease Agreement')
+				.fields({
+					rentAmount: { type: 'number', label: 'Rent Amount', required: true },
+				})
+				.parties({
+					landlord: {
+						label: 'Landlord',
+						types: ['person'],
+						signature: { required: true },
+					},
+					tenant: {
+						label: 'Tenant',
+						types: ['person'],
+						signature: { required: true },
+					},
+				})
+				.inlineLayer('docx', {
+					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+					text: 'LANDLORD SIGNATURE:\n\n\nTENANT SIGNATURE:\n\n',
+					anchorBlocks,
+				})
+				.defaultLayer('docx')
+				.build()
+
+		// A mock adapter that simulates anchor-text resolution: it receives anchorFields
+		// with signer bindings and returns them with resolved coordinates.
+		const createAnchorAdapter = (): Sealer => ({
+			async seal(request) {
+				const fields = request.anchorFields ?? []
+				// Simulate resolution: map anchor text to page/x/y positions
+				const anchorPositions: Record<string, { page: number; x: number; y: number }> = {
+					'LANDLORD SIGNATURE:': { page: 1, x: 72, y: 300 },
+					'TENANT SIGNATURE:': { page: 1, x: 72, y: 400 },
+				}
+				const signatureMap: SigningField[] = fields.map((f) => ({
+					...f,
+					...(f.anchor && anchorPositions[f.anchor.text]
+						? {
+								page: anchorPositions[f.anchor.text]!.page,
+								x: anchorPositions[f.anchor.text]!.x + f.anchor.offsetX,
+								y: anchorPositions[f.anchor.text]!.y + f.anchor.offsetY,
+							}
+						: {}),
+				}))
+				return { signatureMap, canonicalPdfHash: 'sha256:anchor-test' }
+			},
+		})
+
+		const buildAnchorDraft = () =>
+			createFormWithAnchorBlocks()
+				.fill({
+					fields: { rentAmount: 1200 },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: { id: 'tenant-0', name: 'Jane Tenant' },
+					},
+				})
+				.addSigner('landlord-signer', { person: { name: 'John Landlord' } })
+				.addSigner('tenant-signer', { person: { name: 'Jane Tenant' } })
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+
+		test('anchor mode passes anchorFields to adapter with correct signer bindings', async () => {
+			let capturedRequest: Parameters<Sealer['seal']>[0] | undefined
+			const spyAdapter: Sealer = {
+				async seal(req) {
+					capturedRequest = req
+					return {
+						signatureMap: [],
+						canonicalPdfHash: 'sha256:spy',
+					}
+				},
+			}
+
+			await buildAnchorDraft().seal(spyAdapter)
+
+			// Core must pass pre-built anchor fields with signer bindings resolved
+			expect(capturedRequest?.anchorFields).toBeDefined()
+			expect(capturedRequest?.anchorFields).toHaveLength(2)
+
+			const landlordField = capturedRequest?.anchorFields?.find((f) => f.id === 'anc-landlord-sig')
+			expect(landlordField?.signerId).toBe('landlord-signer')
+			expect(landlordField?.type).toBe('signature')
+			expect(landlordField?.anchor?.text).toBe('LANDLORD SIGNATURE:')
+			expect(landlordField?.anchor?.offsetX).toBe(0)
+			expect(landlordField?.anchor?.offsetY).toBe(10)
+			expect(landlordField?.width).toBe(200)
+			expect(landlordField?.height).toBe(40)
+			expect(landlordField?.required).toBe(true)
+			expect(landlordField?.label).toBe('Landlord signature')
+
+			const tenantField = capturedRequest?.anchorFields?.find((f) => f.id === 'anc-tenant-sig')
+			expect(tenantField?.signerId).toBe('tenant-signer')
+			expect(tenantField?.anchor?.text).toBe('TENANT SIGNATURE:')
+		})
+
+		test('anchor mode seal produces signatureMap with adapter-resolved positions', async () => {
+			const formal = await buildAnchorDraft().seal(createAnchorAdapter())
+
+			// Adapter resolved anchor text to actual page/x/y positions
+			expect(formal.signatureMap).toHaveLength(2)
+
+			const landlordField = formal.signatureMap?.find((f) => f.id === 'anc-landlord-sig')
+			expect(landlordField?.page).toBe(1)
+			expect(landlordField?.x).toBe(72)   // anchorPositions.x + offsetX (0)
+			expect(landlordField?.y).toBe(310)  // anchorPositions.y + offsetY (10)
+			expect(landlordField?.signerId).toBe('landlord-signer')
+			expect(landlordField?.anchor?.text).toBe('LANDLORD SIGNATURE:')
+
+			const tenantField = formal.signatureMap?.find((f) => f.id === 'anc-tenant-sig')
+			expect(tenantField?.page).toBe(1)
+			expect(tenantField?.x).toBe(72)
+			expect(tenantField?.y).toBe(410)    // 400 + 10
+			expect(tenantField?.signerId).toBe('tenant-signer')
+		})
+
+		test('anchor mode date block type maps to date_signed in anchor fields', async () => {
+			const dateAnchorBlocks: Record<string, AnchorBlock> = {
+				'anc-date': {
+					type: 'date',
+					anchor: { text: 'DATE:', offsetX: 50, offsetY: 0 },
+					width: 100,
+					height: 20,
+					partyRole: 'landlord',
+				},
+			}
+			const formWithDate = form()
+				.name('anchor-date-form')
+				.version('1.0.0')
+				.title('Date Anchor Form')
+				.fields({ name: { type: 'text', label: 'Name' } })
+				.parties({
+					landlord: { label: 'Landlord', types: ['person'], signature: { required: true } },
+				})
+				.inlineLayer('docx', {
+					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+					text: 'DATE:',
+					anchorBlocks: dateAnchorBlocks,
+				})
+				.defaultLayer('docx')
+				.build()
+
+			let capturedFields: SigningField[] | undefined
+			const spyAdapter: Sealer = {
+				async seal(req) {
+					capturedFields = req.anchorFields
+					return { signatureMap: req.anchorFields ?? [], canonicalPdfHash: 'sha256:date-test' }
+				},
+			}
+
+			await formWithDate
+				.fill({ fields: { name: 'Test' }, parties: { landlord: { id: 'landlord-0', name: 'Landlord' } } })
+				.addSigner('l-sig', { person: { name: 'Landlord' } })
+				.addSignatory('landlord', 'landlord-0', { signerId: 'l-sig' })
+				.seal(spyAdapter)
+
+			// date block must map to date_signed (mirrors definition mode behavior)
+			expect(capturedFields?.[0]?.type).toBe('date_signed')
+		})
+
+		test('neither signatureBlocks nor anchorBlocks on non-PDF-convertible layer throws actionable error', async () => {
+			const formDef = form()
+				.name('no-blocks-pdf')
+				.version('1.0.0')
+				.title('No Blocks PDF')
+				.fields({ name: { type: 'text', label: 'Name' } })
+				.parties({
+					signer: { label: 'Signer', types: ['person'], signature: { required: true } },
+				})
+				.inlineLayer('pdf', { mimeType: 'application/pdf', text: 'PDF content' })
+				.defaultLayer('pdf')
+				.build()
+
+			const draft = formDef
+				.fill({ fields: { name: 'Test' }, parties: { signer: { id: 'signer-0', name: 'Signer' } } })
+				.addSigner('s-sig', { person: { name: 'Signer' } })
+				.addSignatory('signer', 'signer-0', { signerId: 's-sig' })
+
+			await expect(draft.seal(createMockAdapter())).rejects.toThrow(
+				/no signatureBlocks.*no anchorBlocks.*not PDF-convertible/,
+			)
+		})
+
+		test('signatureBlocks (definition mode) behavior is unchanged when both are present — signatureBlocks wins', async () => {
+			// When BOTH signatureBlocks and anchorBlocks exist, definition mode takes precedence
+			const sigBlock: SignatureBlock = {
+				type: 'signature',
+				page: 1,
+				x: 100,
+				y: 500,
+				width: 200,
+				height: 50,
+				partyRole: 'landlord',
+			}
+			const formWithBoth = form()
+				.name('both-blocks-form')
+				.version('1.0.0')
+				.title('Both Blocks Form')
+				.fields({ rentAmount: { type: 'number', label: 'Rent' } })
+				.parties({
+					landlord: { label: 'Landlord', types: ['person'], signature: { required: true } },
+					tenant: { label: 'Tenant', types: ['person'] },
+				})
+				.inlineLayer('docx', {
+					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+					text: 'Template',
+					signatureBlocks: { 'sig-1': sigBlock },
+					anchorBlocks: { 'anc-1': anchorBlocks['anc-landlord-sig']! },
+				})
+				.defaultLayer('docx')
+				.build()
+
+			let capturedRequest: Parameters<Sealer['seal']>[0] | undefined
+			const spyAdapter: Sealer = {
+				async seal(req) {
+					capturedRequest = req
+					return { signatureMap: [], canonicalPdfHash: 'sha256:both' }
+				},
+			}
+
+			await formWithBoth
+				.fill({
+					fields: { rentAmount: 1500 },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: { id: 'tenant-0', name: 'Jane Tenant' },
+					},
+				})
+				.addSigner('landlord-signer', { person: { name: 'John Landlord' } })
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.seal(spyAdapter)
+
+			// Definition mode: anchorFields must NOT be set; signatureBlocks drove placement
+			expect(capturedRequest?.anchorFields).toBeUndefined()
 		})
 	})
 })

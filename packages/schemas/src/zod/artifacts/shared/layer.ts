@@ -52,6 +52,52 @@ export const SignatureBlockSchema = z.object({
 }).strict();
 
 /**
+ * Anchor block for layers where signature position is derived from text in the document.
+ * Used when exact coordinates are unknown at design time. The Sealer adapter locates
+ * the anchor text in the rendered document and resolves the final position.
+ */
+export const AnchorBlockSchema = z.object({
+	type: SignatureBlockTypeSchema,
+	anchor: z.object({
+		text: z.string()
+			.min(1)
+			.max(500)
+			.describe('Text string to search for in the rendered document'),
+		offsetX: z.number()
+			.describe('Horizontal offset in points from the left of the found text'),
+		offsetY: z.number()
+			.describe('Vertical offset in points from the top of the found text'),
+	}).describe('Text anchor identifying where to place this field in the document'),
+	width: z.number()
+		.min(1)
+		.describe('Width of the field in points'),
+	height: z.number()
+		.min(1)
+		.describe('Height of the field in points'),
+	partyRole: z.string()
+		.min(1)
+		.max(100)
+		.describe('Party role this block is bound to (e.g., "taxpayer", "tenant")')
+		.optional(),
+	partyIndex: z.number()
+		.int()
+		.min(0)
+		.describe('0-based index for multi-party roles. Defaults to 0 (first party)')
+		.optional(),
+	label: z.string()
+		.min(1)
+		.max(200)
+		.describe('Human-readable label for the block')
+		.optional(),
+	required: z.boolean()
+		.describe('Whether this block is required. Defaults to true')
+		.optional(),
+}).meta({
+	title: 'AnchorBlock',
+	description: 'Anchor-based signature block for layers where position is derived from text in the rendered document',
+}).strict();
+
+/**
  * Common fields shared by all layer types.
  */
 const LayerBaseSchema = z.object({
@@ -82,7 +128,12 @@ const LayerBaseSchema = z.object({
 	signatureBlocks: z.record(
 		z.string().min(1).max(100).describe('Location ID for the signature block'),
 		SignatureBlockSchema,
-	).describe('Pre-defined signature blocks keyed by locationId')
+	).describe('Pre-defined signature blocks keyed by locationId (coordinate-based)')
+		.optional(),
+	anchorBlocks: z.record(
+		z.string().min(1).max(100).describe('Location ID for the anchor block'),
+		AnchorBlockSchema,
+	).describe('Anchor-based signature blocks keyed by locationId; position resolved from anchor text by the Sealer adapter')
 		.optional(),
 });
 

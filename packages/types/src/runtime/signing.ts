@@ -95,6 +95,14 @@ export interface SealingRequest<F extends Form = Form> {
 	signatories: Record<string, Record<string, PartySignatory[]>>
 	/** Target layer key for rendering (e.g., 'docx', 'markdown'). */
 	targetLayer: string
+	/**
+	 * Pre-built anchor fields requiring position resolution.
+	 * Present only in anchor mode (layer has anchorBlocks, no signatureBlocks).
+	 * Each field has signer bindings and anchor info populated; the adapter
+	 * must resolve the anchor text to actual page/x/y coordinates and return
+	 * completed SigningField[] in SealingResult.signatureMap.
+	 */
+	anchorFields?: SigningField[]
 	/** Optional configuration for PDF generation. */
 	options?: {
 		/** Renderer to use for PDF conversion. */

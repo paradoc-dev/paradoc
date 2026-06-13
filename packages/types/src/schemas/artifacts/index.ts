@@ -11,6 +11,7 @@ export type {
   ContentRef,
   SignatureBlockType,
   SignatureBlock,
+  AnchorBlock,
   Layer,
   InlineLayer,
   FileLayer,

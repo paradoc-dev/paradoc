@@ -4,7 +4,7 @@
 
 export type { ArtifactBase } from "./base";
 export type { InlineContentRef, FileContentRef, ContentRef } from "./content-ref";
-export type { SignatureBlockType, SignatureBlock, InlineLayer, FileLayer, Layer, Bindings } from "./layer";
+export type { SignatureBlockType, SignatureBlock, AnchorBlock, InlineLayer, FileLayer, Layer, Bindings } from "./layer";
 export type {
   CondExpr,
   // Expression types

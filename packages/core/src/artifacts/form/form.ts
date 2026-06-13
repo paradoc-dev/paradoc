@@ -11,6 +11,8 @@ import type {
 	FormAnnex,
 	FormParty,
 	Layer,
+	SignatureBlock,
+	AnchorBlock,
 	Metadata,
 	Party,
 	RuntimeParty,
@@ -1662,12 +1664,109 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				})
 			}
 
+			// Anchor mode: Build signatureMap hints from anchor blocks, let adapter resolve positions
+			const hasAnchorBlocks = layerSpec?.anchorBlocks &&
+				Object.keys(layerSpec.anchorBlocks).length > 0
+
+			if (hasAnchorBlocks) {
+				const anchorBlocks = layerSpec!.anchorBlocks!
+				const anchorFields: SigningField[] = []
+				let anchorSignerIndex = 0
+
+				// Build signerMap (same logic as definition mode)
+				const anchorSignerMap = new Map<string, string>() // key: "role:index" -> signerId
+
+				for (const [roleId, roleSignatories] of Object.entries(signatoryValues)) {
+					const parties = partyValues[roleId]
+					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
+
+					for (let i = 0; i < partyArray.length; i++) {
+						const party = partyArray[i] as { id?: string }
+						const partyId = party.id ?? `${roleId}-${i}`
+						const partySignatories = roleSignatories[partyId] ?? []
+						if (partySignatories.length > 0) {
+							anchorSignerMap.set(`${roleId}:${i}`, partySignatories[0]!.signerId)
+						}
+					}
+				}
+
+				// Build anchor-based SigningField hints (coordinates are placeholder zeros;
+				// the Sealer adapter is responsible for resolving actual positions from anchor text)
+				for (const [locationId, block] of Object.entries(anchorBlocks as Record<string, AnchorBlock>)) {
+					const partyRole = block.partyRole
+					const partyIndex = block.partyIndex ?? 0
+
+					// Skip blocks without a party role binding
+					if (!partyRole) continue
+
+					// Check if the party exists at this index
+					const parties = partyValues[partyRole]
+					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
+					if (partyIndex >= partyArray.length) continue
+
+					// Get the signer for this party
+					const signerId = anchorSignerMap.get(`${partyRole}:${partyIndex}`)
+					if (!signerId) continue
+
+					// Map SignatureBlockType to SigningFieldType
+					const fieldType: SigningFieldType = block.type === 'date' ? 'date_signed' : block.type
+
+					const anchorField: SigningField = {
+						id: locationId,
+						signerIndex: anchorSignerIndex++,
+						signerId,
+						type: fieldType,
+						// Placeholder coordinates: adapter resolves these from anchor.text
+						page: 1,
+						x: 0,
+						y: 0,
+						width: block.width,
+						height: block.height,
+						anchor: block.anchor,
+						...(block.required !== undefined && { required: block.required }),
+						...(block.label && { label: block.label }),
+					}
+
+					anchorFields.push(anchorField)
+				}
+
+				if (anchorFields.length === 0) {
+					throw new Error(
+						'Cannot seal: no anchor blocks could be mapped to signatories. ' +
+						'Ensure parties have signatories assigned.',
+					)
+				}
+
+				const anchorRequest: SealingRequest<F> = {
+					form: formDef,
+					fields: fieldValues,
+					parties: partyValues,
+					signers: signerValues,
+					signatories: signatoryValues,
+					targetLayer,
+					anchorFields,
+				}
+
+				const anchorResult = await adapter.seal(anchorRequest)
+
+				return createRuntimeForm({
+					...config,
+					phase: 'signable',
+					captures: [],
+					witnesses: [],
+					attestations: [],
+					signatureMap: anchorResult.signatureMap,
+					canonicalPdfHash: anchorResult.canonicalPdfHash,
+					executedAt: undefined,
+				})
+			}
+
 			// Extraction mode: Use adapter to extract from placeholders
 			// Validation 1: Check layer is PDF-convertible
 			if (!PDF_CONVERTIBLE_LAYERS.includes(targetLayer as (typeof PDF_CONVERTIBLE_LAYERS)[number])) {
 				throw new Error(
-					`Cannot seal: layer "${targetLayer}" has no signatureBlocks and is not PDF-convertible. ` +
-					`Either add signatureBlocks to the layer or use a supported layer: ${PDF_CONVERTIBLE_LAYERS.join(', ')}`,
+					`Cannot seal: layer "${targetLayer}" has no signatureBlocks, no anchorBlocks, and is not PDF-convertible. ` +
+					`Add signatureBlocks or anchorBlocks to the layer, or use a supported layer: ${PDF_CONVERTIBLE_LAYERS.join(', ')}`,
 				)
 			}
 
@@ -2271,6 +2370,8 @@ export interface FormBuilderInterface<
 			title?: string
 			description?: string
 			bindings?: Record<string, string>
+			signatureBlocks?: Record<string, SignatureBlock>
+			anchorBlocks?: Record<string, AnchorBlock>
 		},
 	): FormBuilderInterface<TFields, TParties, TAnnexes>
 	fileLayer(
@@ -2282,6 +2383,8 @@ export interface FormBuilderInterface<
 			description?: string
 			checksum?: string
 			bindings?: Record<string, string>
+			signatureBlocks?: Record<string, SignatureBlock>
+			anchorBlocks?: Record<string, AnchorBlock>
 		},
 	): FormBuilderInterface<TFields, TParties, TAnnexes>
 	defaultLayer(key: string): FormBuilderInterface<TFields, TParties, TAnnexes>

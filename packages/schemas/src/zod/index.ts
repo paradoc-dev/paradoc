@@ -28,7 +28,7 @@ export { FieldsetFieldSchema } from './artifacts/form/field';
 // Shared
 export { ArtifactSchema } from './artifacts/shared/base';
 export { ContentRefSchema } from './artifacts/shared/content-ref';
-export { LayerSchema, SignatureBlockSchema, SignatureBlockTypeSchema } from './artifacts/shared/layer';
+export { LayerSchema, SignatureBlockSchema, SignatureBlockTypeSchema, AnchorBlockSchema } from './artifacts/shared/layer';
 
 // Primitives
 export {

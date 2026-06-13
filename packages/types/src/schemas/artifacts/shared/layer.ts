@@ -41,6 +41,39 @@ export interface SignatureBlock {
 }
 
 /**
+ * Anchor block for layers where signature position is derived from text in the document.
+ * Used when exact coordinates are unknown at design time. The Sealer adapter locates
+ * the anchor text in the rendered document and resolves the final position.
+ *
+ * Coordinates use PDF standard: points from origin, where 1 point = 1/72 inch.
+ */
+export interface AnchorBlock {
+  /** Type of signature field to place at the anchor location. */
+  type: SignatureBlockType;
+  /** Text anchor identifying where to place this field in the document. */
+  anchor: {
+    /** Text string to search for in the rendered document. */
+    text: string;
+    /** Horizontal offset in points from the left of the found text. */
+    offsetX: number;
+    /** Vertical offset in points from the top of the found text. */
+    offsetY: number;
+  };
+  /** Width of the field in points. */
+  width: number;
+  /** Height of the field in points. */
+  height: number;
+  /** Party role this block is bound to (e.g., "taxpayer", "tenant"). */
+  partyRole?: string;
+  /** 0-based index for multi-party roles. Defaults to 0 (first party). */
+  partyIndex?: number;
+  /** Human-readable label for the block. */
+  label?: string;
+  /** Whether this block is required. Defaults to true. */
+  required?: boolean;
+}
+
+/**
  * Inline layer with embedded text content.
  * Used for layers where content is stored directly in the artifact definition.
  */
@@ -59,8 +92,10 @@ export interface InlineLayer {
   bindings?: Record<string, string>;
   /** Key of a sibling layer whose bindings this layer reuses. */
   bindingsFrom?: string;
-  /** Pre-defined signature blocks keyed by locationId. */
+  /** Pre-defined signature blocks keyed by locationId (coordinate-based). */
   signatureBlocks?: Record<string, SignatureBlock>;
+  /** Anchor-based signature blocks keyed by locationId. Position is resolved from anchor text by the Sealer adapter. */
+  anchorBlocks?: Record<string, AnchorBlock>;
 }
 
 /**
@@ -84,8 +119,10 @@ export interface FileLayer {
   bindings?: Record<string, string>;
   /** Key of a sibling layer whose bindings this layer reuses. */
   bindingsFrom?: string;
-  /** Pre-defined signature blocks keyed by locationId. */
+  /** Pre-defined signature blocks keyed by locationId (coordinate-based). */
   signatureBlocks?: Record<string, SignatureBlock>;
+  /** Anchor-based signature blocks keyed by locationId. Position is resolved from anchor text by the Sealer adapter. */
+  anchorBlocks?: Record<string, AnchorBlock>;
 }
 
 /**
