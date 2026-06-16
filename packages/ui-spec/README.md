@@ -1,15 +1,15 @@
-# @paradoc/ui-catalog
+# @paradoc/ui-spec
 
 > **In development; not yet published.** This package is currently `private: true` and lives in the Paradoc workspace for internal consumers (e.g. the landing playground). It will graduate to public npm publishing in a future release.
 
-A **headless catalog** of input UI primitives for Paradoc artifacts. Maps form fields to renderable spec fragments — bring your own renderer.
+A **headless UI specification** for Paradoc artifacts. Maps form fields to renderable spec fragments — bring your own renderer. The companion private package `@paradoc/ui-catalog` binds this spec to shadcn controls.
 
 ## What it does
 
 Given a `FormField` from `@paradoc/types` (text, number, enum, address, person, etc.), produces a JSON spec describing which input component should render it and with what props. The spec format is compatible with [json-render](https://github.com/vercel-labs/json-render), but the package itself has **no React, no shadcn, and no rendering runtime** — consumers wire the catalog component names to their own React (or Vue, or Svelte) implementations.
 
 ```ts
-import { fieldToSpec } from "@paradoc/ui-catalog";
+import { fieldToSpec } from "@paradoc/ui-spec";
 import type { FormField } from "@paradoc/types";
 
 const animalField: FormField = {

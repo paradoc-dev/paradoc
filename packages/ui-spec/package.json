@@ -1,7 +1,7 @@
 {
-  "name": "@paradoc/ui-catalog",
+  "name": "@paradoc/ui-spec",
   "version": "0.0.0",
-  "description": "Headless catalog of input UI primitives for Paradoc artifacts. Maps form fields to renderable spec fragments — bring your own renderer.",
+  "description": "Headless UI specification for Paradoc artifacts. Maps form fields to renderable spec fragments — bring your own renderer.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

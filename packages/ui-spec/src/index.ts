@@ -1,7 +1,7 @@
 /**
- * @paradoc/ui-catalog
+ * @paradoc/ui-spec
  *
- * Headless catalog of input UI primitives for Paradoc artifacts.
+ * Headless UI specification for Paradoc artifacts.
  * See README.md for usage.
  */
 
