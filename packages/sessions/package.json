@@ -1,7 +1,8 @@
 {
-  "name": "@paradoc/sdk",
-  "version": "0.2.0",
-  "description": "Umbrella package for Paradoc framework - re-exports @paradoc/core, @paradoc/renderers, and @paradoc/serialization",
+  "name": "@paradoc/sessions",
+  "version": "0.0.0",
+  "description": "Deterministic form-completion session engine for Paradoc artifacts. Event-sourced command/view core with a storage-agnostic persistence port.",
+  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -22,12 +23,10 @@
   ],
   "keywords": [
     "paradoc",
-    "paradoc",
-    "sdk",
     "forms",
-    "rendering",
-    "schemas",
-    "validation"
+    "sessions",
+    "event-sourcing",
+    "form-completion"
   ],
   "license": "MIT",
   "author": {
@@ -37,41 +36,32 @@
   "engines": {
     "node": ">=18"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/paradoc-dev/paradoc.git",
-    "directory": "packages/sdk"
-  },
-  "homepage": "https://paradoc.dev",
-  "bugs": {
-    "url": "https://github.com/paradoc-dev/paradoc/issues"
-  },
   "publishConfig": {
-    "access": "public"
+    "access": "restricted"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "prebuild": "pnpm run clean",
-    "pack:dry": "pnpm run build && npm pack --dry-run",
-    "prepublishOnly": "pnpm run build",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "check": "pnpm lint && pnpm check-types"
+    "check": "pnpm lint && pnpm check-types",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@paradoc/core": "workspace:*",
-    "@paradoc/renderers": "workspace:*",
-    "@paradoc/serialization": "workspace:*",
-    "@paradoc/sessions": "workspace:*"
+    "@paradoc/core": "workspace:*"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "tsup": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

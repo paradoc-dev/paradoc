@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
 	entry: ['src/index.ts'],
-	format: ['esm'], // ESM only
+	format: ['esm'],
 	dts: {
 		resolve: true,
 	},
@@ -10,9 +10,6 @@ export default defineConfig({
 	sourcemap: false,
 	clean: true,
 	external: [
-		// Mark workspace dependencies as external (they'll be installed separately)
 		'@paradoc/core',
-		'@paradoc/renderers',
-		'@paradoc/sessions',
 	],
 })

@@ -13,3 +13,6 @@ export * from '@paradoc/renderers'
 
 // Re-export from @paradoc/serialization
 export * from '@paradoc/serialization'
+
+// Re-export from @paradoc/sessions
+export * from '@paradoc/sessions'
