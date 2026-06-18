@@ -712,8 +712,8 @@ fields:
   spouseName:
     type: person
     label: Spouse Information
-    visible: "fields.maritalStatus.value == 'married'"
-    required: "fields.maritalStatus.value == 'married'"
+    visible: "fields.maritalStatus == 'married'"
+    required: "fields.maritalStatus == 'married'"
 
   # Nested fieldset
   emergencyContact:
@@ -765,8 +765,8 @@ fields:
     "spouseName": {
       "type": "person",
       "label": "Spouse Information",
-      "visible": "fields.maritalStatus.value == 'married'",
-      "required": "fields.maritalStatus.value == 'married'"
+      "visible": "fields.maritalStatus == 'married'",
+      "required": "fields.maritalStatus == 'married'"
     },
     "emergencyContact": {
       "type": "fieldset",
@@ -788,7 +788,18 @@ fields:
 }
 ```
 
+# Visibility cascade
+
+`visible` and `required` compose into one effective status (`hidden < optional < required`), and that status cascades through fieldsets:
+
+- A hidden fieldset hides its whole subtree. Children of a hidden container are hidden regardless of their own `visible`.
+- `required` follows effective visibility: a field is only required if it is also visible. A hidden field is never required.
+- A parent's `required` does not force its children. An optional fieldset can still hold required children, and a required fieldset does not make its children required.
+
+So you author two conditions (`visible`, `required`), and the engine resolves them into a single status per field, with hidden winning over everything below it.
+
 # Related
 
 - [Form](/schemas/artifacts/form) - Form artifact overview
+- [Logic](/concepts/logic) - The expression language for `visible` / `required`
 - [Primitives](/schemas/primitives) - Primitive types used as field defaults

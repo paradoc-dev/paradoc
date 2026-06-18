@@ -65,9 +65,12 @@ type CondExpr = boolean | string
 
 When a string is provided, it can reference:
 - Named defs from the `defs` section
-- Field values using `fields.<fieldName>`
+- Field values using `fields.<fieldName>` (composite parts as `fields.<fieldName>.<part>`, e.g. `fields.rent.amount`)
 - Comparison operators (`==`, `!=`, `>`, `<`, `>=`, `<=`)
-- Logical operators (`&&`, `||`, `!`)
+- Logical operators (`and`, `or`, `not`)
+- Membership operators (`in`, `not in`)
+
+Validation rules (`rules`) may also reference field values unprefixed (e.g. `creditScore`). See [Logic](/concepts/logic) for the full expression language.
 
 # Examples
 

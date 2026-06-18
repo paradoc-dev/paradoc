@@ -7,7 +7,7 @@ ogDescription: Control field visibility, requirements, and validation using expr
 
 Logic adds dynamic behavior to forms. Instead of static structures, you can define rules that control when fields appear, when they're required, and what values are valid.
 
-Logic is defined at design time but evaluated at runtime, when the form is filled with data.
+Logic is defined at design time but evaluated at runtime, when the form is filled with data. Expressions are written in `@paradoc/expr`, a small typed language built for intra-artifact logic. The same typed grammar drives both runtime evaluation and authoring-time checking, so an expression that type-checks cannot disagree with how it runs.
 
 ---
 
@@ -26,8 +26,8 @@ const form = para.form()
     vehicleMake: {
       type: "text",
       label: "Vehicle Make",
-      visible: "fields.hasVehicle.value",
-      required: "fields.hasVehicle.value",
+      visible: "fields.hasVehicle",
+      required: "fields.hasVehicle",
     },
   })
   .build()
@@ -37,28 +37,125 @@ When `hasVehicle` is true, `vehicleMake` becomes visible and required. When fals
 
 ---
 
-# Expression Syntax
+# Referencing Fields
 
-Expressions are strings that reference field values and use logical operators:
+A field's value is addressed as `fields.<id>`, for example `fields.hasVehicle` or `fields.age`. The reference resolves to the field's value directly; there is no `.value` suffix. Composite fields expose their parts with a further segment, e.g. `fields.rent.amount` and `fields.rent.currency` for a `money` field.
 
 ```ts
-// Access field values
-visible: "fields.age.value >= 18"
+// A boolean field is the boolean itself
+visible: "fields.hasVehicle"
 
-// Logical operators: and, or, not
-visible: "fields.isOwner.value or fields.isAgent.value"
-required: "fields.age.value >= 18 and fields.hasLicense.value"
-visible: "not fields.isMinor.value"
+// A money field's parts
+visible: "fields.rent.amount > 2000"
+```
 
+Validation rules (`rules`) are the one exception: there, field values are also available unprefixed (`creditScore` as well as `fields.creditScore`).
+
+---
+
+# Operators
+
+```ts
 // Comparison: ==, !=, >, >=, <, <=
-visible: "fields.country.value == 'USA'"
+visible: "fields.country == 'USA'"
+
+// Logical: and, or, not
+visible: "fields.isOwner or fields.isAgent"
+required: "fields.age >= 18 and fields.hasLicense"
+visible: "not fields.isMinor"
+
+// Membership: in, not in
+visible: "fields.state in ['CA', 'NY', 'TX']"
+required: "fields.role not in ['guest', 'observer']"
+
+// Arithmetic: + - * / %  (+ is polymorphic)
+required: "fields.income + fields.bonus > 50000"
+
+// Ternary
+visible: "fields.tier == 'gold' ? fields.optedIn : false"
+```
+
+`+` is polymorphic: it adds numbers and concatenates strings, resolved by operand type. Use it to build display strings (`fields.firstName + ' ' + fields.lastName`); there is no `||` concatenation operator.
+
+`==` is equality; `=` is not an operator. `&&` and `||` are not part of the language; write `and` / `or`.
+
+---
+
+# Functions
+
+Strings:
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `contains(haystack, needle)` | boolean | substring / membership test |
+| `startsWith(value, prefix)` | boolean | |
+| `endsWith(value, suffix)` | boolean | |
+| `matches(value, pattern)` | boolean | regular-expression match |
+| `trim(value)` | string | |
+| `lower(value)` / `upper(value)` | string | |
+| `length(value)` | number | |
+| `isEmpty(value)` / `isNotEmpty(value)` | boolean | |
+| `coalesce(a, b, …)` | first non-null | |
+
+Numbers (decimal-aware):
+
+| Function | Returns |
+|----------|---------|
+| `round(value, digits?)` | number |
+| `floor(value)` / `ceil(value)` / `abs(value)` | number |
+| `min(a, b, …)` / `max(a, b, …)` | number |
+
+Dates:
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `today()` / `now()` | date / datetime | the as-of clock, supplied by the host |
+| `yearsBetween(from, to)` | number | |
+| `dateDiff(from, to, unit?)` | number | |
+| `addDays(date, days)` | date | |
+| `addDuration(date, duration)` | date | |
+
+Party and witness predicates: `partyCount(role)`, `signedCount(role)`, `allSigned(role)`, `anySigned(role)`, `partyType(role)`, `witnessCount()`, `allWitnessesSigned()`, `anyWitnessSigned()`.
+
+```ts
+visible: "isNotEmpty(fields.notes)"
+required: "yearsBetween(fields.birthDate, today()) >= 18"
+visible: "partyCount('cosigner') > 0"
+```
+
+To replace the old `indexOf(...) >= 0` idiom, use `contains(...)`.
+
+---
+
+# Types
+
+Field references carry their type into the expression, and the checker enforces it.
+
+- **Exact decimals.** Numbers and money are exact: `0.1 + 0.2 == 0.3` holds, so amount math is reliable.
+- **Temporal types.** `date`, `time`, `datetime`, and `duration` are first-class. `today()` and `now()` provide the current values; `addDays` / `addDuration` / `dateDiff` / `yearsBetween` operate on them.
+- **Null-safe access.** A missing or unfilled reference is `null` rather than an error. `null` is a first-class value you can test for, and member access on `null` stays `null` instead of throwing.
+
+---
+
+# Authoring-Time Checking
+
+Because evaluation and checking share one type system, mistakes surface when the artifact is authored, not when a user fills it. Building or validating a form runs the checker over every expression, which catches:
+
+- unknown references (`fields.hasVehicle.value` — there is no `.value`)
+- unknown functions
+- type mismatches (comparing a string field to a number)
+- gates that don't evaluate to a boolean
+
+```ts
+// Flagged at authoring time: "Unknown variable: fields.hasVehicle.value"
+visible: "fields.hasVehicle.value"
 ```
 
 ---
 
 # Named Expressions
 
-When the same logic appears in multiple places, define it once in the `.logic` section and reference it by name:
+When the same logic appears in multiple places, define it once in the `defs` section and reference it by name:
 
 ```ts
 const form = para.form()
@@ -68,13 +165,13 @@ const form = para.form()
     drivingLicense: { type: "text", visible: "isAdult", required: "isAdult" },
     parentConsent: { type: "boolean", visible: "not isAdult", required: "not isAdult" },
   })
-  .logic({
-    isAdult: { type: "boolean", value: "fields.age.value >= 18" },
+  .defs({
+    isAdult: { type: "boolean", value: "fields.age >= 18" },
   })
   .build()
 ```
 
-Named expressions reduce duplication and create a single source of truth for business rules.
+A def's `value` is an expression over the same `fields.<id>` references. Named expressions reduce duplication and create a single source of truth for business rules.
 
 ---
 
@@ -91,8 +188,8 @@ const form = para.form()
   .annexes({
     petPhoto: para.annex()
       .title("Pet Photo")
-      .visible("fields.hasPets.value")
-      .required("fields.hasPets.value"),
+      .visible("fields.hasPets")
+      .required("fields.hasPets"),
   })
   .build()
 ```
@@ -104,9 +201,9 @@ const form = para.form()
 Logic expressions are **defined** at design time but **evaluated** at runtime. The form definition doesn't change—the same logic produces different results based on the data:
 
 ```ts
-const filled1 = form.fill({ fields: { age: 15 } })
+const filled1 = form.fill({ fields: { age: 15, drivingLicense: '', parentConsent: true } })
 // drivingLicense is hidden, parentConsent is visible
 
-const filled2 = form.fill({ fields: { age: 21 } })
+const filled2 = form.fill({ fields: { age: 21, drivingLicense: 'A-12345', parentConsent: false } })
 // drivingLicense is visible, parentConsent is hidden
 ```

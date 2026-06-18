@@ -74,3 +74,13 @@ You can disable schema or logic validation independently using the `options` par
 ```
 
 This is useful when you want to validate only the structure without checking logic expressions, or vice versa.
+
+# Logic checking
+
+When `options.logic` is on, every `visible` / `required` / `def` / `rule` expression is run through the typed `@paradoc/expr` checker. Each issue names the offending expression and its path in the artifact, and the checker catches:
+
+- unknown references (for example `fields.hasVehicle.value` — fields are addressed as `fields.<id>`, with no `.value`) and unknown functions
+- type mismatches (comparing a string field to a number)
+- gates that don't evaluate to a boolean
+
+Because the checker shares its type system with runtime evaluation, an expression that passes here will not fail differently when the form is filled.

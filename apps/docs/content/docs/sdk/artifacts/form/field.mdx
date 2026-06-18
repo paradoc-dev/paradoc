@@ -265,12 +265,12 @@ All fields share these base properties:
 
 # Conditional Logic
 
-The `required`, `visible`, and `disabled` properties can be expressions that reference defs keys:
+The `required`, `visible`, and `disabled` properties can be expressions that reference defs keys or field values (`fields.<id>`):
 
 ```ts
 const form = para.form()
   .name('age-form')
-  .def('isAdult', 'age >= 18')
+  .def('isAdult', 'fields.age >= 18')
   .field('age', field.number().label('Age').required().build())
   .field('drivingLicense', field.text()
     .label('Driving License')
@@ -279,6 +279,8 @@ const form = para.form()
     .build())
   .build()
 ```
+
+`visible` and `required` compose into one effective status that cascades through fieldsets: a hidden fieldset hides its whole subtree, and a field is only required when it is also visible. A parent's `required` does not force its children. See [Logic](/concepts/logic) for the expression language.
 
 # Related
 

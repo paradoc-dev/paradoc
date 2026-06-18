@@ -111,3 +111,7 @@ await executeValidateArtifact({
   options: { schema: true, logic: false },
 })
 ```
+
+# Logic checking
+
+With `options.logic` on, every `visible` / `required` / `def` / `rule` expression is checked by the typed `@paradoc/expr` checker. Each issue names the offending expression and its path, catching unknown references (fields are addressed as `fields.<id>`, with no `.value`), unknown functions, type mismatches, and gates that don't return a boolean. The checker shares its type system with runtime evaluation, so a passing artifact won't behave differently when filled.

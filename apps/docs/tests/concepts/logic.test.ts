@@ -4,6 +4,18 @@
 import { describe, test, expect } from 'vitest'
 import { para } from '@paradoc/sdk'
 
+/** Find an item's runtime state in a draft's fill state, across all buckets. */
+function fieldState(draft: { getFillState: () => ReturnType<DraftFillState> }, key: string) {
+  const fs = draft.getFillState()
+  return [...fs.openRequired, ...fs.openOptional, ...fs.blocked, ...fs.done].find((i) => i.key === key)
+}
+type DraftFillState = () => {
+  openRequired: { key: string; visible: boolean; status: string }[]
+  openOptional: { key: string; visible: boolean; status: string }[]
+  blocked: { key: string; visible: boolean; status: string }[]
+  done: { key: string; visible: boolean; status: string }[]
+}
+
 describe('Logic Concept', () => {
   // ============================================================================
   // Where Logic Applies
@@ -18,16 +30,28 @@ describe('Logic Concept', () => {
         vehicleMake: {
           type: 'text',
           label: 'Vehicle Make',
-          visible: 'fields.hasVehicle.value',
-          required: 'fields.hasVehicle.value',
+          visible: 'fields.hasVehicle',
+          required: 'fields.hasVehicle',
         },
       })
       .build()
 
-    test('defines conditional visibility and required', () => {
+    test('defines conditional visibility and required with fields.<id> addressing', () => {
       expect(form.kind).toBe('form')
-      expect(form.fields!.vehicleMake.visible).toBe('fields.hasVehicle.value')
-      expect(form.fields!.vehicleMake.required).toBe('fields.hasVehicle.value')
+      expect(form.fields!.vehicleMake.visible).toBe('fields.hasVehicle')
+      expect(form.fields!.vehicleMake.required).toBe('fields.hasVehicle')
+    })
+
+    test('fields.<id> gate actually drives runtime visibility', () => {
+      // hasVehicle true => vehicleMake visible & required
+      const shown = fieldState(form.partialFill({ fields: { hasVehicle: true } }), 'vehicleMake')
+      expect(shown?.visible).toBe(true)
+      expect(shown?.status).toBe('required')
+
+      // hasVehicle false => vehicleMake hidden
+      const hidden = fieldState(form.partialFill({ fields: { hasVehicle: false } }), 'vehicleMake')
+      expect(hidden?.visible).toBe(false)
+      expect(hidden?.status).toBe('hidden')
     })
   })
 
@@ -45,13 +69,13 @@ describe('Logic Concept', () => {
         parentConsent: { type: 'boolean', visible: 'not isAdult', required: 'not isAdult' },
       })
       .defs({
-        isAdult: { type: 'boolean', value: 'fields.age.value >= 18' },
+        isAdult: { type: 'boolean', value: 'fields.age >= 18' },
       })
       .build()
 
-    test('defines named logic expressions', () => {
+    test('defines named logic expressions over fields.<id>', () => {
       expect(form.defs).toBeDefined()
-      expect(form.defs!.isAdult).toEqual({ type: 'boolean', value: 'fields.age.value >= 18' })
+      expect(form.defs!.isAdult).toEqual({ type: 'boolean', value: 'fields.age >= 18' })
       expect(form.fields!.drivingLicense.visible).toBe('isAdult')
       expect(form.fields!.parentConsent.visible).toBe('not isAdult')
     })
@@ -60,17 +84,23 @@ describe('Logic Concept', () => {
     // Design Time vs Runtime
     // ============================================================================
 
-    test('evaluates logic differently based on data', () => {
-      // Note: .fill() validates required fields statically, so all conditionally-required
-      // fields must be provided. At runtime, logic expressions determine actual visibility.
+    test('the same def evaluates to different visibility per data', () => {
+      // age 15 => isAdult false => drivingLicense hidden, parentConsent visible
+      const minor = form.partialFill({ fields: { age: 15 } })
+      expect(fieldState(minor, 'drivingLicense')?.visible).toBe(false)
+      expect(fieldState(minor, 'parentConsent')?.visible).toBe(true)
+
+      // age 21 => isAdult true => drivingLicense visible, parentConsent hidden
+      const adult = form.partialFill({ fields: { age: 21 } })
+      expect(fieldState(adult, 'drivingLicense')?.visible).toBe(true)
+      expect(fieldState(adult, 'parentConsent')?.visible).toBe(false)
+    })
+
+    test('full fill round-trips with conditional fields satisfied', () => {
       const filled1 = form.fill({ fields: { age: 15, drivingLicense: '', parentConsent: true } })
-      // drivingLicense is hidden, parentConsent is visible
-      expect(filled1).toBeDefined()
       expect(filled1.getField('age')).toBe(15)
 
       const filled2 = form.fill({ fields: { age: 21, drivingLicense: 'A-12345', parentConsent: false } })
-      // drivingLicense is visible, parentConsent is hidden
-      expect(filled2).toBeDefined()
       expect(filled2.getField('age')).toBe(21)
     })
   })
@@ -90,14 +120,19 @@ describe('Logic Concept', () => {
         petPhoto: para
           .annex()
           .title('Pet Photo')
-          .visible('fields.hasPets.value')
-          .required('fields.hasPets.value'),
+          .visible('fields.hasPets')
+          .required('fields.hasPets'),
       })
       .build()
 
     test('defines conditional annex visibility and required', () => {
       expect(form.annexes).toBeDefined()
       expect(form.annexes!.petPhoto).toBeDefined()
+    })
+
+    test('fields.<id> annex gate drives annex visibility', () => {
+      expect(fieldState(form.partialFill({ fields: { hasPets: true } }), 'petPhoto')?.visible).toBe(true)
+      expect(fieldState(form.partialFill({ fields: { hasPets: false } }), 'petPhoto')?.visible).toBe(false)
     })
   })
 })

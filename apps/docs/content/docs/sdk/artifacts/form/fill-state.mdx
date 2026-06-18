@@ -130,8 +130,9 @@ Extended fill target with runtime state. Used in `openRequired`, `openOptional`,
   { name: 'required', type: 'boolean', description: 'Whether this target is required' },
   { name: 'order', type: 'number', description: 'Declaration order in schema' },
   { name: 'visible', type: 'boolean', description: 'Whether this item is currently visible' },
+  { name: 'status', type: "'hidden' | 'optional' | 'required'", description: 'Effective status combining visible and required. hidden < optional < required; required implies visible, so "hidden but required" cannot occur' },
   { name: 'filled', type: 'boolean', description: 'Whether this item has been filled' },
-  { name: 'blockedBy', type: 'string[]', description: 'IDs of unfilled fields/parties this depends on for visibility' },
+  { name: 'blockedBy', type: 'string[]', description: 'Transitive unfilled prerequisites gating this item\'s visibility (the full chain, not just the direct dependency)' },
 ]} />
 
 ## FillTargetKind
@@ -195,10 +196,12 @@ FillState evaluates conditional `visible` and `required` expressions on fields, 
 
 - **openRequired** — visible, required, not yet filled. These are what the user needs to answer.
 - **openOptional** — visible, optional, not yet filled. Available but not blocking completion.
-- **blocked** — not visible because a dependency hasn't been filled yet. The `blockedBy` array shows which field or party needs a value first. Blocked items unblock automatically when their dependencies are filled.
+- **blocked** — not visible because a dependency hasn't been filled yet. The `blockedBy` array lists the transitive chain of unfilled prerequisites: if A gates B and B gates C, C's `blockedBy` includes both A and B. Blocked items unblock automatically when their dependencies are filled.
 - **done** — already filled, regardless of visibility.
 
-The `candidates` array contains all open (visible, unfilled) targets in declaration order. When `requiredFirst` is true (the default), required targets appear before optional ones.
+Each item also carries a `status` ordinal (`hidden < optional < required`) that folds `visible` and `required` together; `required` implies `visible`, so a "hidden but required" item cannot exist.
+
+The `candidates` array contains all open (visible, unfilled) targets in dependency (DAG) order: prerequisites come before the items they gate, and declaration order breaks ties within a rank. When `requiredFirst` is true (the default), required targets appear before optional ones. `next` is the first candidate, so following `next` repeatedly walks the form in an order where nothing is asked before what it depends on.
 
 # Related
 
