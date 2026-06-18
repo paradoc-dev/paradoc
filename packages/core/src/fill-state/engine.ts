@@ -6,12 +6,12 @@
  * B. Runtime state computation from form + current data
  */
 
-import type { Form, FormField, FieldsetField, FormParty, FormAnnex } from '@paradoc/types'
+import type { Form, FormField, FieldsetField } from '@paradoc/types'
 import type {
 	FillTarget,
-	FillTargetKind,
 	FillTargetOptions,
 	FillItemState,
+	FillItemStatus,
 	FillState,
 } from './types'
 import type { FormRuntimeState } from '@/logic/runtime/evaluation/types'
@@ -19,6 +19,12 @@ import { parseExpression } from '@/logic/design-time/validation/expression-parse
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { evaluateFormRules } from '@/logic/runtime/evaluation/rule-evaluator'
 import type { EvaluationContext } from '@/logic/runtime/evaluation/types'
+import { buildFieldDependencyGraph, transitiveBlockers } from './dependency-graph'
+
+/** A field/annex's effective status from its visibility and required flags. */
+function statusOf(visible: boolean, required: boolean): FillItemStatus {
+	return !visible ? 'hidden' : required ? 'required' : 'optional'
+}
 
 /** Known function names that should not be treated as field dependencies */
 const KNOWN_FUNCTIONS = new Set([
@@ -182,7 +188,7 @@ export function computeFillState(
 	const requiredFirst = options?.requiredFirst !== false
 	const includeOptional = options?.includeOptional === true
 
-	const depMap = buildDependencyMap(form)
+	const graph = buildFieldDependencyGraph(form)
 	const unfilledIds = getUnfilledIds(form, fieldValues, partyValues, annexValues)
 
 	const openRequired: FillItemState[] = []
@@ -203,6 +209,7 @@ export function computeFillState(
 				required,
 				order: order++,
 				visible: true, // parties are always visible
+				status: statusOf(true, required),
 				filled,
 				blockedBy: [],
 			}
@@ -235,16 +242,8 @@ export function computeFillState(
 			const visible = fieldState?.visible ?? true
 			const isRequired = fieldState?.required ?? false
 
-			// Compute blockedBy: visibility deps that are unfilled
-			const visibilityDeps = depMap.get(fullId)
-			const blockedBy: string[] = []
-			if (visibilityDeps) {
-				for (const dep of visibilityDeps) {
-					if (unfilledIds.has(dep)) {
-						blockedBy.push(dep)
-					}
-				}
-			}
+			// Transitive unfilled prerequisites that gate this field's visibility.
+			const blockedBy = transitiveBlockers(graph, fullId, unfilledIds)
 
 			const item: FillItemState = {
 				kind: 'field',
@@ -252,6 +251,7 @@ export function computeFillState(
 				required: isRequired,
 				order: order++,
 				visible,
+				status: statusOf(visible, isRequired),
 				filled,
 				blockedBy,
 			}
@@ -280,21 +280,13 @@ export function computeFillState(
 
 	// --- Annexes ---
 	if (form.annexes) {
-		for (const [annexId, annexDef] of Object.entries(form.annexes)) {
+		for (const annexId of Object.keys(form.annexes)) {
 			const filled = isAnnexFilled(annexValues, annexId)
 			const annexState = runtimeState.annexes.get(annexId)
 			const visible = annexState?.visible ?? true
 			const isRequired = annexState?.required ?? false
 
-			const visibilityDeps = depMap.get(annexId)
-			const blockedBy: string[] = []
-			if (visibilityDeps) {
-				for (const dep of visibilityDeps) {
-					if (unfilledIds.has(dep)) {
-						blockedBy.push(dep)
-					}
-				}
-			}
+			const blockedBy = transitiveBlockers(graph, annexId, unfilledIds)
 
 			const item: FillItemState = {
 				kind: 'annex',
@@ -302,6 +294,7 @@ export function computeFillState(
 				required: isRequired,
 				order: order++,
 				visible,
+				status: statusOf(visible, isRequired),
 				filled,
 				blockedBy,
 			}
@@ -340,25 +333,28 @@ export function computeFillState(
 		defsValues[k] = v
 	}
 
-	// --- Candidates ---
+	// --- Candidates (DAG order: prerequisites first, declaration order within a rank) ---
+	const byDag = (a: FillItemState, b: FillItemState): number => {
+		const ra = graph.topoRank.get(a.key) ?? Number.MAX_SAFE_INTEGER
+		const rb = graph.topoRank.get(b.key) ?? Number.MAX_SAFE_INTEGER
+		return ra !== rb ? ra - rb : a.order - b.order
+	}
+	const toTarget = (item: FillItemState): FillTarget => ({
+		kind: item.kind,
+		key: item.key,
+		required: item.required,
+		order: item.order,
+	})
 	const candidates: FillTarget[] = []
 
 	if (requiredFirst) {
-		for (const item of openRequired) {
-			candidates.push({ kind: item.kind, key: item.key, required: item.required, order: item.order })
-		}
+		for (const item of [...openRequired].sort(byDag)) candidates.push(toTarget(item))
 		if (includeOptional) {
-			for (const item of openOptional) {
-				candidates.push({ kind: item.kind, key: item.key, required: item.required, order: item.order })
-			}
+			for (const item of [...openOptional].sort(byDag)) candidates.push(toTarget(item))
 		}
 	} else {
-		// Interleave by declaration order
 		const combined = includeOptional ? [...openRequired, ...openOptional] : [...openRequired]
-		combined.sort((a, b) => a.order - b.order)
-		for (const item of combined) {
-			candidates.push({ kind: item.kind, key: item.key, required: item.required, order: item.order })
-		}
+		for (const item of combined.sort(byDag)) candidates.push(toTarget(item))
 	}
 
 	return {

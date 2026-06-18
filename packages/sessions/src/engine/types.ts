@@ -92,13 +92,27 @@ export type FieldValidation =
  * adapter; in tests it's built directly. Keeping the shape minimal keeps the
  * engine independent of core's evolution and makes tests cheap.
  */
+/** A field's effective status; `required` implies visible (see @paradoc/core). */
+export type FieldStatus = "hidden" | "optional" | "required";
+
 export type FillStateSnapshot = {
 	/** Required, unanswered, visible fields — in artifact declaration order. */
-	openRequired: Array<{ fieldPath: string; order: number }>;
+	openRequired: Array<{ fieldPath: string; order: number; status?: FieldStatus }>;
 	/** Optional, unanswered, visible fields — in artifact declaration order. */
-	openOptional: Array<{ fieldPath: string; order: number }>;
+	openOptional: Array<{ fieldPath: string; order: number; status?: FieldStatus }>;
 	/** Party roles that still need filling — in artifact declaration order. */
 	openRequiredParties: Array<{ roleId: string; label?: string; order: number }>;
+	/**
+	 * Hidden fields whose visibility is gated by unanswered prerequisites.
+	 * `blockedBy` is the transitive set of unfilled fields/parties to answer first.
+	 * Populated by the @paradoc/core adapter; omitted by minimal test fakes.
+	 */
+	blocked?: Array<{ fieldPath: string; order: number; blockedBy: string[] }>;
+	/**
+	 * The canonical DAG-ordered, required-first candidate sequence (fields and
+	 * parties), straight from core — the single source of next-field order.
+	 */
+	candidates?: Array<{ kind: "field" | "party" | "annex"; key: string; required: boolean; order: number }>;
 };
 
 /**

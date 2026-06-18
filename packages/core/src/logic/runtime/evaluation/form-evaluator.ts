@@ -50,18 +50,27 @@ interface EvaluationState {
 /**
  * Recursively evaluates fields including nested fieldsets.
  *
+ * Visibility cascades: a child's effective visibility is its own `visible`
+ * gate AND its parent fieldset's effective visibility, so a hidden container
+ * hides its entire subtree. Required is gated by effective visibility (a field
+ * that is not effectively visible can never be required); a parent's
+ * `required` does NOT force its children, since an optional fieldset may still
+ * contain required children once it is shown.
+ *
  * @param fields - Field definitions
  * @param data - Field data values
  * @param context - Evaluation context
  * @param state - Evaluation state to accumulate results
  * @param prefix - Path prefix for nested fields
+ * @param parentVisible - Effective visibility of the enclosing fieldset
  */
 function evaluateFields(
   fields: Record<string, FormField> | undefined,
   data: Record<string, unknown> | undefined,
   context: EvaluationContext,
   state: EvaluationState,
-  prefix: string = ''
+  prefix: string = '',
+  parentVisible: boolean = true
 ): void {
   if (!fields) return
 
@@ -76,9 +85,9 @@ function evaluateFields(
       value = data[fieldId]
     }
 
-    // Evaluate conditional expressions
-    const visible = evaluateBooleanExpression(field.visible, context, DEFAULTS.visible)
-    const required = evaluateBooleanExpression(field.required, context, DEFAULTS.required)
+    // Effective visibility cascades from the parent; required follows from it.
+    const visible = parentVisible && evaluateBooleanExpression(field.visible, context, DEFAULTS.visible)
+    const required = visible && evaluateBooleanExpression(field.required, context, DEFAULTS.required)
 
     // Create field runtime state
     // Note: disabled is not yet in the schema, so we default to false
@@ -92,12 +101,13 @@ function evaluateFields(
 
     state.fields.set(fullId, fieldState)
 
-    // Recursively handle fieldsets
+    // Recursively handle fieldsets, threading this fieldset's effective
+    // visibility down so a hidden container hides its children.
     if (field.type === 'fieldset') {
       const fieldset = field as FieldsetField
       const nestedData = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined
 
-      evaluateFields(fieldset.fields, nestedData, context, state, fullId)
+      evaluateFields(fieldset.fields, nestedData, context, state, fullId, visible)
     }
   }
 }

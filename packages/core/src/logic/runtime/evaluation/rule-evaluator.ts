@@ -1,7 +1,7 @@
 /**
  * Rule Evaluator - evaluates form-level validation rules.
  *
- * Rules use expr-eval-fork expressions with a flat context where:
+ * Rules use @paradoc/expr expressions with a flat context where:
  * - Field values are directly accessible: `ssn` instead of `fields.ssn`
  * - Defs values are accessible by name: `isIndividual`
  * - Party functions are available: `partyCount("buyer")`
@@ -182,9 +182,9 @@ export function evaluateRules(
 /**
  * Evaluates rules for a form with convenience data extraction.
  *
- * Pre-populates all form-defined fields in the context so that missing
- * optional fields resolve to `null` (falsy) rather than throwing
- * "undefined variable" errors in expr-eval-fork.
+ * Pre-populates all form-defined fields in the context so missing optional
+ * fields resolve to `null` (falsy). @paradoc/expr already resolves unknown
+ * references to null, so this is defensive but keeps the flat context explicit.
  *
  * @param form - The form definition
  * @param fieldValues - Field values (flat Record<string, unknown>)

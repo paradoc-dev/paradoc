@@ -34,7 +34,7 @@ export interface ValidateLogicOptions {
  * Validates all logic expressions in an artifact.
  *
  * Supports Form and Bundle artifacts. For each:
- * - Validates expression syntax using expr-eval-fork parser
+ * - Validates expression syntax using the @paradoc/expr parser
  * - Validates that variable references exist (for inline artifacts only)
  * - Recursively validates nested inline artifacts
  *

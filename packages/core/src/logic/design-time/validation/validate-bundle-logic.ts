@@ -154,7 +154,7 @@ function collectBundleFieldPaths(
  * Validates all defs expressions in a Bundle artifact.
  *
  * Checks:
- * 1. Expression syntax using expr-eval-fork parser
+ * 1. Expression syntax using the @paradoc/expr parser
  * 2. Variable references exist for inline artifacts only
  * 3. Recursively validates inline form and bundle artifacts
  *

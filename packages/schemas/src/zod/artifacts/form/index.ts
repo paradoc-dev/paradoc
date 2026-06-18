@@ -17,7 +17,7 @@ export const FormSchema = ArtifactSchema.extend({
 	kind: z.literal('form'),
 	defs: DefsSectionSchema.optional(),
 	rules: RulesSectionSchema
-		.describe('Form-level validation rules for cross-field constraints. Rules use expr-eval-fork expressions with direct access to field values and defs section values.')
+		.describe('Form-level validation rules for cross-field constraints. Rules use expressions with direct access to field values and defs section values.')
 		.optional(),
 	fields: z.record(
 		z.string()

@@ -163,9 +163,14 @@ export function deriveView(
 	const pendingParties = fillState.openRequiredParties;
 
 	// Pick the next required-and-non-deferred item across BOTH fields and
-	// parties, in artifact declaration order. This matches the order the
-	// artifact author wrote them in — typically parties (signers) before
-	// content fields, so the user is asked who they are before what's in it.
+	// parties, ordered by core's single canonical candidate sequence (DAG order:
+	// prerequisites first, then declaration order within a rank). Falls back to
+	// declaration order when a fake runtime doesn't supply candidates.
+	const candidateRank = new Map<string, number>();
+	(fillState.candidates ?? []).forEach((c, i) => candidateRank.set(c.key, i));
+	const rankOf = (key: string, order: number): number =>
+		candidateRank.has(key) ? (candidateRank.get(key) as number) : order + 1_000_000;
+
 	const interleaved: Array<
 		| { kind: "field"; order: number; fieldPath: string }
 		| { kind: "party"; order: number; roleId: string; label?: string }
@@ -181,7 +186,11 @@ export function deriveView(
 			roleId: p.roleId,
 			...(p.label !== undefined ? { label: p.label } : {}),
 		})),
-	].sort((a, b) => a.order - b.order);
+	].sort(
+		(a, b) =>
+			rankOf(a.kind === "field" ? a.fieldPath : a.roleId, a.order) -
+			rankOf(b.kind === "field" ? b.fieldPath : b.roleId, b.order),
+	);
 
 	if (interleaved.length > 0) {
 		phase = "collecting-required";

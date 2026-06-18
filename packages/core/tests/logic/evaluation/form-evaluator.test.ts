@@ -427,3 +427,79 @@ describe('form-evaluator', () => {
     })
   })
 })
+
+describe('cascade — fieldset visibility', () => {
+  const cascadeForm = (): Form => ({
+    kind: 'form',
+    name: 'cascade',
+    version: '1.0.0',
+    title: 'Cascade',
+    fields: {
+      showSection: { type: 'boolean' },
+      section: {
+        type: 'fieldset',
+        visible: 'fields.showSection == true',
+        fields: {
+          detail: { type: 'text', required: true },
+          note: { type: 'text', visible: 'false' },
+        },
+      },
+    },
+  })
+
+  function fieldsFor(showSection: boolean) {
+    const result = evaluateFormDefs(cascadeForm(), { fields: { showSection } })
+    if (!('value' in result)) throw new Error('evaluation failed')
+    return result.value.fields
+  }
+
+  test('a hidden fieldset hides its entire subtree', () => {
+    const f = fieldsFor(false)
+    expect(f.get('section')?.visible).toBe(false)
+    expect(f.get('section.detail')?.visible).toBe(false)
+    expect(f.get('section.note')?.visible).toBe(false)
+  })
+
+  test('a required child of a hidden fieldset is not required (gated by visibility)', () => {
+    expect(fieldsFor(false).get('section.detail')?.required).toBe(false)
+  })
+
+  test('a visible fieldset shows its children; required follows the child\'s own gate', () => {
+    const f = fieldsFor(true)
+    expect(f.get('section')?.visible).toBe(true)
+    expect(f.get('section.detail')?.visible).toBe(true)
+    // The fieldset itself has no `required`, yet a required child is required once shown.
+    expect(f.get('section.detail')?.required).toBe(true)
+  })
+
+  test("a child's own visible=false hides it even when the parent is visible", () => {
+    expect(fieldsFor(true).get('section.note')?.visible).toBe(false)
+  })
+
+  test('cascade is transitive through nested fieldsets', () => {
+    const nested: Form = {
+      kind: 'form',
+      name: 'nested',
+      version: '1.0.0',
+      title: 'Nested',
+      fields: {
+        show: { type: 'boolean' },
+        outer: {
+          type: 'fieldset',
+          visible: 'fields.show == true',
+          fields: {
+            inner: {
+              type: 'fieldset',
+              fields: { leaf: { type: 'text', required: true } },
+            },
+          },
+        },
+      },
+    }
+    const result = evaluateFormDefs(nested, { fields: { show: false } })
+    if (!('value' in result)) throw new Error('evaluation failed')
+    const leaf = result.value.fields.get('outer.inner.leaf')
+    expect(leaf?.visible).toBe(false)
+    expect(leaf?.required).toBe(false)
+  })
+})

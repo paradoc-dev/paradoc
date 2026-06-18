@@ -1,12 +1,11 @@
 /**
- * Expression type inference system (Internal).
+ * Design-time type checking (Internal).
  *
- * This module provides stack-based type inference for expressions,
- * ensuring that expressions in boolean contexts (required, visible, include)
- * will resolve to boolean at runtime.
+ * Builds an @paradoc/expr type environment from an artifact and validates that
+ * boolean-gate expressions (required, visible, include) resolve to boolean.
  *
- * These are internal implementation details used by validateLogic().
- * For public API, use validateLogic() from '@paradoc/core'.
+ * These are internal implementation details used by validateLogic(). For the
+ * public API, use validateLogic() from '@paradoc/core'.
  *
  * @internal
  */
@@ -22,22 +21,10 @@ export type {
   TypeValidationResult,
 } from './inferred-types'
 
-// Field type mapping
-export { FIELD_TYPE_TO_VALUE_TYPE, getFieldValueType } from './field-type-map'
+// The type environment is @paradoc/expr's TypeEnv; aliased for existing callers.
+export type { TypeEnv as TypeEnvironment } from '@paradoc/expr'
 
-// Type environment
-export type { TypeEnvironment, FunctionSignature } from './type-environment'
-export {
-  BUILTIN_FUNCTIONS,
-  createTypeEnvironment,
-  getVariableType,
-  getFunctionSignature,
-} from './type-environment'
-
-// Type inference
-export { inferExpressionType } from './type-inferrer'
-
-// Environment building
+// Environment building + circular-dependency detection
 export type { TopologicalSortResult } from './build-type-environment'
 export {
   topologicalSortDefsKeys,
@@ -45,5 +32,5 @@ export {
   buildBundleTypeEnvironment,
 } from './build-type-environment'
 
-// Boolean type validation
+// Boolean-gate type validation
 export { validateBooleanType } from './validate-boolean-type'

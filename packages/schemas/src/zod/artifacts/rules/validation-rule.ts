@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Validation Rule Schema
  *
- * Defines a form-level validation rule that uses expr-eval-fork expressions.
+ * Defines a form-level validation rule that uses expressions.
  * Rules evaluate to boolean - true means valid, false means invalid.
  */
 

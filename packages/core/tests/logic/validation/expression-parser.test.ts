@@ -115,11 +115,11 @@ describe('expression-parser', () => {
         expect(result.error).toBeDefined()
       })
 
-      test('handles unary plus operators', () => {
-        // expr-eval-fork treats ++ as two unary plus operators
-        // so 'x ++ y' is parsed as 'x + (+y)' which is valid
+      test('rejects the ++ double-plus form (no unary plus operator)', () => {
+        // @paradoc/expr deliberately has no unary '+', so 'x ++ y' is a syntax
+        // error rather than the expr-eval-fork 'x + (+y)' interpretation.
         const result = parseExpression('x ++ y')
-        expect(result.success).toBe(true)
+        expect(result.success).toBe(false)
       })
 
       test('returns empty variables on error', () => {

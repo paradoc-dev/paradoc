@@ -78,7 +78,7 @@ export interface PartyContextEntry {
 
 /**
  * Context object passed to expression evaluation.
- * This is the shape expr-eval-fork receives.
+ * This is the shape the @paradoc/expr context adapter receives.
  *
  * @example
  * ```typescript

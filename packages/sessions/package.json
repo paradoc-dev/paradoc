@@ -1,8 +1,7 @@
 {
   "name": "@paradoc/sessions",
-  "version": "0.0.0",
+  "version": "0.3.0",
   "description": "Deterministic form-completion session engine for Paradoc artifacts. Event-sourced command/view core with a storage-agnostic persistence port.",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -37,7 +36,7 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "scripts": {
     "build": "tsup",
@@ -52,7 +51,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@paradoc/core": "workspace:*"
+    "@paradoc/core": "workspace:^"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",

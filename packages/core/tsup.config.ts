@@ -14,13 +14,13 @@ export default defineConfig({
   preserveImportMeta: true, // Preserve JSON import attributes
   external: [
     // Mark workspace dependencies as external (they'll be installed separately)
+    "@paradoc/expr",
     "@paradoc/schemas", // Schema JSON is imported directly from package root
     "@paradoc/serialization",
     "@paradoc/types",
     // Mark runtime dependencies as external (they're in package.json dependencies)
     "zod",
     "yaml",
-    "expr-eval-fork",
     "@standard-schema/spec",
   ],
 });

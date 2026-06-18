@@ -1313,7 +1313,7 @@
             "additionalProperties": false
           },
           "title": "RulesSection",
-          "description": "Form-level validation rules for cross-field constraints. Rules use expr-eval-fork expressions with direct access to field values and defs section values."
+          "description": "Form-level validation rules for cross-field constraints. Rules use expressions with direct access to field values and defs section values."
         },
         "fields": {
           "type": "object",

@@ -60,7 +60,7 @@ describe('Expression evaluation', () => {
           name: {
             type: 'string',
             label: 'Full Name',
-            value: 'fields.firstName || " " || fields.lastName',
+            value: 'fields.firstName + " " + fields.lastName',
           },
         },
       }
@@ -234,7 +234,7 @@ describe('Expression evaluation', () => {
             type: 'phone',
             label: 'Full Phone Number',
             value: {
-              number: '"+" || fields.countryCode || fields.phoneNumber',
+              number: '"+" + fields.countryCode + fields.phoneNumber',
             },
           },
         },
@@ -269,7 +269,7 @@ describe('Expression evaluation', () => {
             type: 'person',
             label: 'Formal Person',
             value: {
-              name: 'fields.honorific || " " || fields.firstName || " " || fields.lastName',
+              name: 'fields.honorific + " " + fields.firstName + " " + fields.lastName',
               title: 'fields.honorific',
               firstName: 'fields.firstName',
               lastName: 'fields.lastName',

@@ -12,7 +12,7 @@ export type RuleSeverity = 'error' | 'warning';
 /**
  * A form-level validation rule.
  *
- * Rules use expr-eval-fork expressions to validate cross-field constraints.
+ * Rules use expressions to validate cross-field constraints.
  * The expression has direct access to field values (e.g., "ssn or ein")
  * and defs section values.
  */

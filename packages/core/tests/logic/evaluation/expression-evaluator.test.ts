@@ -184,20 +184,20 @@ describe('expression-evaluator', () => {
         expect(result.error).toBeDefined()
       })
 
-      test('returns undefined for missing field access', () => {
+      test('returns null for missing field access', () => {
         const context = createSimpleContext()
-        // Accessing a missing field returns undefined (not an error)
+        // A missing field resolves to null (graceful), not an error
         const result = evaluateExpression('fields.missing', context)
         expect(result.success).toBe(true)
-        expect(result.value).toBe(undefined)
+        expect(result.value).toBe(null)
       })
 
-      test('returns error for deep missing property access', () => {
+      test('deep missing property access is null-safe (does not throw)', () => {
         const context = createSimpleContext()
-        // Accessing a nested property on undefined throws
+        // Navigating through a missing parent yields null rather than crashing
         const result = evaluateExpression('fields.missing.nested', context)
-        expect(result.success).toBe(false)
-        expect(result.error).toBeDefined()
+        expect(result.success).toBe(true)
+        expect(result.value).toBe(null)
       })
 
       test('throws with throwOnError option', () => {
@@ -320,10 +320,10 @@ describe('expression-evaluator', () => {
       expect(result).toBe(42)
     })
 
-    test('returns default when expression fails', () => {
+    test('returns default when evaluation fails', () => {
       const context = createSimpleContext()
-      // Accessing a nested property on undefined fails, so default is returned
-      const result = evaluateExpressionOrDefault('fields.missing.nested', context, 'default')
+      // A genuine runtime failure (division by zero) returns the default
+      const result = evaluateExpressionOrDefault('1 / 0', context, 'default')
       expect(result).toBe('default')
     })
   })

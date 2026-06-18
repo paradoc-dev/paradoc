@@ -5,8 +5,6 @@
  * AI agents and step-by-step UIs build forms turn-by-turn.
  */
 
-import type { Form } from '@paradoc/types'
-
 /**
  * Validation mode for partial fill and update operations.
  * - "patch": validate only provided fields (progressive validation)
@@ -65,14 +63,23 @@ export interface FillTarget {
 }
 
 /**
+ * A field's effective status: the single ordinal that composes `visible` and
+ * `required`. `hidden` < `optional` < `required`; `required` implies `visible`,
+ * so the impossible "hidden but required" combination cannot be represented.
+ */
+export type FillItemStatus = 'hidden' | 'optional' | 'required'
+
+/**
  * Extended fill target with runtime state information.
  */
 export interface FillItemState extends FillTarget {
 	/** Whether this item is currently visible */
 	visible: boolean
+	/** Effective status: hidden | optional | required (required implies visible) */
+	status: FillItemStatus
 	/** Whether this item has been filled (has a non-null value) */
 	filled: boolean
-	/** IDs of unfilled fields/parties this depends on for visibility */
+	/** Transitive unfilled fillable prerequisites gating this item's visibility */
 	blockedBy: string[]
 }
 

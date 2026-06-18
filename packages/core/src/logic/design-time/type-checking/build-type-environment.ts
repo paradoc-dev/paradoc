@@ -1,12 +1,12 @@
 /**
- * Builds type environments from artifact definitions.
+ * Builds @paradoc/expr type environments from artifact definitions, and
+ * topologically sorts defs keys for circular-dependency detection.
  *
- * Type environments are built in two passes:
- * 1. Register field types from field definitions
- * 2. Infer defs key types in topological order (dependencies first)
- *
- * This ensures that when a defs key references another defs key,
- * the referenced key's type is already known.
+ * Field reference paths (fields.<id>, nested complex-type properties such as
+ * fields.rent.amount, and fieldset children) are mapped to their @paradoc/expr
+ * types. Defs key types are INFERRED from their value expressions (via the
+ * @paradoc/expr checker) in dependency order, so a key declared one type whose
+ * expression returns another is detected transitively where it is used.
  */
 
 import type {
@@ -18,14 +18,12 @@ import type {
   DefsSection,
   ScalarExpressionType,
 } from '@paradoc/types'
-import type { TypeEnvironment } from './type-environment'
-import { createTypeEnvironment } from './type-environment'
-import { getFieldValueType } from './field-type-map'
-import { inferExpressionType } from './type-inferrer'
+import { check, createTypeEnv, T, type ExprType, type TypeEnv } from '@paradoc/expr'
 import { parseExpression } from '../validation/expression-parser'
 import { isInlineBundleArtifact, isFormArtifact, isBundleArtifact } from '../validation/shared'
+import { topologicalSort } from '../../shared/topological-sort'
 
-/** Scalar expression types (value is a string expression) */
+/** Scalar expression types (value is a string expression). */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
   'boolean',
   'string',
@@ -39,38 +37,134 @@ const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
   'duration',
 ])
 
-/**
- * Check if an expression type is a scalar type.
- */
 function isScalarExpressionType(type: string): type is ScalarExpressionType {
   return SCALAR_EXPRESSION_TYPES.has(type)
 }
 
-/**
- * Extracts a concatenated expression string from an Expression for parsing.
- *
- * For scalar types, returns the value directly.
- * For object types, concatenates all property expressions.
- *
- * @param expr - The Expression
- * @returns Combined expression string
- */
+// ============================================================================
+// Field type mapping (Paradoc field types -> @paradoc/expr ExprType)
+// ============================================================================
+
+const FIELD_TYPE_TO_EXPR: Record<string, ExprType> = {
+  text: T.string,
+  email: T.string,
+  uuid: T.string,
+  uri: T.string,
+  number: T.number,
+  integer: T.number,
+  percentage: T.number,
+  rating: T.number,
+  boolean: T.boolean,
+  date: T.date,
+  datetime: T.datetime,
+  time: T.time,
+  duration: T.duration,
+  money: T.money,
+  enum: T.string,
+  multiselect: T.array(T.unknown),
+  coordinate: T.object,
+  address: T.object,
+  phone: T.object,
+  bbox: T.object,
+  person: T.object,
+  organization: T.object,
+  identification: T.object,
+  signature: T.object,
+  fieldset: T.object,
+}
+
+/** Nested property types for complex field types (mirrors field-paths.ts). */
+const COMPLEX_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
+  money: { amount: T.number, currency: T.string },
+  address: {
+    line1: T.string,
+    line2: T.string,
+    locality: T.string,
+    region: T.string,
+    postalCode: T.string,
+    country: T.string,
+  },
+  phone: { number: T.string, type: T.string, extension: T.string },
+  coordinate: { lat: T.number, lon: T.number },
+  bbox: { north: T.number, south: T.number, east: T.number, west: T.number },
+  duration: {
+    years: T.number,
+    months: T.number,
+    weeks: T.number,
+    days: T.number,
+    hours: T.number,
+    minutes: T.number,
+    seconds: T.number,
+  },
+  person: {
+    name: T.string,
+    firstName: T.string,
+    middleName: T.string,
+    lastName: T.string,
+    suffix: T.string,
+    title: T.string,
+  },
+  organization: { name: T.string, legalName: T.string, entityType: T.string, domicile: T.string },
+  identification: {
+    idType: T.string,
+    idNumber: T.string,
+    issuingAuthority: T.string,
+    issuedDate: T.date,
+    expiryDate: T.date,
+  },
+}
+
+function fieldExprType(fieldType: string): ExprType {
+  return FIELD_TYPE_TO_EXPR[fieldType] ?? T.unknown
+}
+
+/** The declared type of an object-valued defs key (scalars are inferred). */
+function objectDefsExprType(expr: Expression): ExprType {
+  return expr.type === 'money' ? T.money : T.object
+}
+
+/** Registers field reference paths and their types into the accumulator. */
+function registerFieldTypes(
+  fields: Record<string, FormField> | undefined,
+  prefix: string,
+  acc: Record<string, ExprType>
+): void {
+  if (!fields) return
+
+  for (const [fieldId, field] of Object.entries(fields)) {
+    const fieldPath = `${prefix}.${fieldId}`
+    acc[fieldPath] = fieldExprType(field.type)
+
+    const props = COMPLEX_PROPERTY_TYPES[field.type]
+    if (props) {
+      for (const [prop, propType] of Object.entries(props)) {
+        acc[`${fieldPath}.${prop}`] = propType
+      }
+    }
+
+    if (field.type === 'fieldset') {
+      const fieldset = field as FieldsetField
+      if (fieldset.fields) {
+        registerFieldTypes(fieldset.fields, fieldPath, acc)
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Topological sort of defs keys (circular-dependency detection)
+// ============================================================================
+
 function getExpressionString(expr: Expression): string {
   if (isScalarExpressionType(expr.type)) {
     return expr.value as string
   }
-  // Object type: concatenate all property expressions
-  // Use ' and ' as delimiter to create a valid parseable expression
   const valueObj = expr.value as unknown as Record<string, string | undefined>
-  return Object.values(valueObj).filter((v): v is string => v !== undefined).join(' and ')
+  return Object.values(valueObj)
+    .filter((v): v is string => v !== undefined)
+    .join(' and ')
 }
 
-/**
- * Extracts expression strings from a DefsSection for dependency sorting.
- *
- * @param logic - The defs section
- * @returns Record of key → expression string(s) for sorting
- */
 function extractExpressionsForSorting(logic: DefsSection): Record<string, string> {
   const result: Record<string, string> = {}
   for (const [key, expr] of Object.entries(logic)) {
@@ -101,261 +195,91 @@ export interface TopologicalSortResult {
 export function topologicalSortDefsKeys(logic: Record<string, string>): TopologicalSortResult {
   const keys = Object.keys(logic)
   const keySet = new Set(keys)
-  const visited = new Set<string>()
-  const sorted: string[] = []
-  const cyclicKeys: string[] = []
 
-  // Build dependency graph
+  // Each key depends on the other defs keys its expression references.
   const dependencies = new Map<string, string[]>()
   for (const key of keys) {
     const expr = logic[key]
-    if (expr) {
-      const parseResult = parseExpression(expr)
-      if (parseResult.success) {
-        // Find which defs keys this expression references
-        const deps = parseResult.variables.filter((v) => keySet.has(v))
-        dependencies.set(key, deps)
-      } else {
-        dependencies.set(key, [])
-      }
-    }
+    const parsed = expr ? parseExpression(expr) : undefined
+    dependencies.set(key, parsed && parsed.success ? parsed.variables.filter((v) => keySet.has(v)) : [])
   }
 
-  // Kahn's algorithm for topological sort
-  const inDegree = new Map<string, number>()
-  for (const key of keys) {
-    inDegree.set(key, 0)
-  }
-
-  for (const [, deps] of dependencies) {
-    for (const dep of deps) {
-      inDegree.set(dep, (inDegree.get(dep) ?? 0) + 1)
-    }
-  }
-
-  // Start with keys that have no dependencies on other defs keys
-  const queue: string[] = []
-  for (const key of keys) {
-    if ((dependencies.get(key)?.length ?? 0) === 0) {
-      queue.push(key)
-    }
-  }
-
-  while (queue.length > 0) {
-    const key = queue.shift()!
-    if (visited.has(key)) continue
-    visited.add(key)
-    sorted.push(key)
-
-    // Find keys that depend on this one
-    for (const [otherKey, deps] of dependencies) {
-      if (deps.includes(key) && !visited.has(otherKey)) {
-        const remaining = deps.filter((d) => !visited.has(d))
-        if (remaining.length === 0) {
-          queue.push(otherKey)
-        }
-      }
-    }
-  }
-
-  // Handle any remaining keys (cycles or complex dependencies)
-  for (const key of keys) {
-    if (!visited.has(key)) {
-      cyclicKeys.push(key)
-      sorted.push(key)
-    }
-  }
-
-  return { sorted, cyclicKeys }
+  const { sorted, cyclic } = topologicalSort(keys, (k) => dependencies.get(k) ?? [])
+  return { sorted, cyclicKeys: [...cyclic] }
 }
 
+// ============================================================================
+// Type environment construction
+// ============================================================================
+
 /**
- * Registers field types in the environment.
- *
- * @param fields - Field definitions
- * @param prefix - Path prefix (e.g., 'fields' or 'fields.address')
- * @param env - Type environment to update
+ * Infers each defs key's type from its value expression (in dependency order)
+ * and registers it under `keyPrefix + key`. Scalar defs are inferred via the
+ * checker; object-valued defs use their declared type.
  */
-function registerFieldTypes(
-  fields: Record<string, FormField> | undefined,
-  prefix: string,
-  env: TypeEnvironment
+function inferDefsInto(
+  defs: DefsSection,
+  acc: Record<string, ExprType>,
+  keyPrefix: string
 ): void {
-  if (!fields) return
-
-  for (const [fieldId, field] of Object.entries(fields)) {
-    const fieldPath = `${prefix}.${fieldId}`
-
-    // Register the field's value type
-    env.variables.set(fieldPath, {
-      type: getFieldValueType(field.type),
-      confidence: 'certain',
-    })
-
-    // Recurse into fieldsets
-    if (field.type === 'fieldset') {
-      const fieldset = field as FieldsetField
-      if (fieldset.fields) {
-        registerFieldTypes(fieldset.fields, fieldPath, env)
-      }
+  const { sorted } = topologicalSortDefsKeys(extractExpressionsForSorting(defs))
+  for (const key of sorted) {
+    const expr = defs[key]
+    if (!expr) continue
+    if (isScalarExpressionType(expr.type)) {
+      acc[`${keyPrefix}${key}`] = check(expr.value as string, createTypeEnv(acc)).type
+    } else {
+      acc[`${keyPrefix}${key}`] = objectDefsExprType(expr)
     }
   }
 }
 
-/**
- * Builds a type environment from a Form artifact.
- *
- * @param form - The Form artifact
- * @returns TypeEnvironment with field and defs key types
- *
- * @example
- * ```typescript
- * const form: Form = {
- *   kind: 'form',
- *   name: 'test',
- *   version: '1.0',
- *   title: 'Test',
- *   defs: {
- *     isAdult: {
- *       type: 'boolean',
- *       value: 'fields.age >= 18'
- *     },
- *     ageCalc: {
- *       type: 'number',
- *       value: 'fields.age + 10'
- *     }
- *   },
- *   fields: {
- *     age: { type: 'number' }
- *   }
- * }
- *
- * const env = buildFormTypeEnvironment(form)
- * // env.variables.get('fields.age') -> { type: 'number', confidence: 'certain' }
- * // env.variables.get('isAdult') -> { type: 'boolean', confidence: 'certain' }
- * // env.variables.get('ageCalc') -> { type: 'number', confidence: 'certain' }
- * ```
- */
-export function buildFormTypeEnvironment(form: Form): TypeEnvironment {
-  const env = createTypeEnvironment()
-
-  // Pass 1: Register field types
-  if (form.fields) {
-    registerFieldTypes(form.fields, 'fields', env)
-  }
-
-  // Pass 2: Infer logic expression types in dependency order
-  if (form.defs) {
-    // Extract expression strings for dependency sorting
-    const expressionsForSorting = extractExpressionsForSorting(form.defs)
-    const { sorted: sortedKeys } = topologicalSortDefsKeys(expressionsForSorting)
-
-    for (const key of sortedKeys) {
-      const logicExpr = form.defs[key]
-      if (logicExpr) {
-        // Get the expression string for type inference
-        const exprString = getExpressionString(logicExpr)
-        const inferredType = inferExpressionType(exprString, env)
-        env.variables.set(key, inferredType)
-      }
-    }
-  }
-
-  return env
+/** Field + inferred-defs types for a Form, in form-local paths. */
+function buildFormTypeAcc(form: Form): Record<string, ExprType> {
+  const acc: Record<string, ExprType> = {}
+  registerFieldTypes(form.fields, 'fields', acc)
+  if (form.defs) inferDefsInto(form.defs, acc, '')
+  return acc
 }
 
 /**
- * Registers types from a bundle's inline contents.
- *
- * @param bundle - The Bundle artifact
- * @param env - Type environment to update
- * @param prefix - Optional prefix for nested bundles
+ * Builds an @paradoc/expr type environment from a Form artifact, with the
+ * default function registry (which includes the party/witness predicates).
  */
-function registerBundleContentTypes(
-  bundle: Bundle,
-  env: TypeEnvironment,
-  prefix = ''
-): void {
+export function buildFormTypeEnvironment(form: Form): TypeEnv {
+  return createTypeEnv(buildFormTypeAcc(form))
+}
+
+/** Field + inferred-defs types for a Bundle, with forms.<k>./bundles.<k>. prefixes. */
+function buildBundleTypeAcc(bundle: Bundle): Record<string, ExprType> {
+  const acc: Record<string, ExprType> = {}
+
   for (const item of bundle.contents) {
-    if (isInlineBundleArtifact(item)) {
-      if (isFormArtifact(item.artifact)) {
-        const form = item.artifact
-        const formKey = item.key
-        const formPrefix = prefix ? `${prefix}.forms.${formKey}` : `forms.${formKey}`
-
-        // Register fields with forms.<key>.fields prefix
-        if (form.fields) {
-          registerFieldTypes(form.fields, `${formPrefix}.fields`, env)
-        }
-
-        // Register form's defs keys with forms.<key>. prefix
-        if (form.defs) {
-          const formEnv = buildFormTypeEnvironment(form)
-          for (const [logicKey, logicType] of formEnv.variables) {
-            // Only add defs keys (not field paths)
-            if (!logicKey.startsWith('fields.')) {
-              env.variables.set(`${formPrefix}.${logicKey}`, logicType)
-            }
-          }
-        }
-      } else if (isBundleArtifact(item.artifact)) {
-        const nestedBundle = item.artifact
-        const bundleKey = item.key
-        const bundlePrefix = prefix ? `${prefix}.bundles.${bundleKey}` : `bundles.${bundleKey}`
-
-        // Recursively register nested bundle content types
-        registerBundleContentTypes(nestedBundle, env, bundlePrefix)
-
-        // Register nested bundle's defs keys
-        if (nestedBundle.defs) {
-          const expressionsForSorting = extractExpressionsForSorting(nestedBundle.defs)
-          const { sorted: sortedKeys } = topologicalSortDefsKeys(expressionsForSorting)
-          for (const key of sortedKeys) {
-            const logicExpr = nestedBundle.defs[key]
-            if (logicExpr) {
-              const exprString = getExpressionString(logicExpr)
-              const inferredType = inferExpressionType(exprString, env)
-              env.variables.set(`${bundlePrefix}.${key}`, inferredType)
-            }
-          }
-        }
+    if (!isInlineBundleArtifact(item)) continue
+    if (isFormArtifact(item.artifact)) {
+      const formAcc = buildFormTypeAcc(item.artifact)
+      for (const [path, type] of Object.entries(formAcc)) {
+        acc[`forms.${item.key}.${path}`] = type
+      }
+    } else if (isBundleArtifact(item.artifact)) {
+      const nestedAcc = buildBundleTypeAcc(item.artifact)
+      for (const [path, type] of Object.entries(nestedAcc)) {
+        acc[`bundles.${item.key}.${path}`] = type
       }
     }
   }
+
+  // Bundle-level defs are inferred last, so they see the inline content paths.
+  if (bundle.defs) inferDefsInto(bundle.defs, acc, '')
+  return acc
 }
 
 /**
- * Builds a type environment from a Bundle artifact.
+ * Builds an @paradoc/expr type environment from a Bundle artifact.
  *
- * For inline forms, their fields are registered with the path:
- * `forms.<key>.fields.<fieldId>`
- *
- * For nested bundles, paths are prefixed with:
- * `bundles.<key>.forms.<formKey>.fields.<fieldId>`
- *
- * @param bundle - The Bundle artifact
- * @returns TypeEnvironment with form field and defs key types
+ * Inline form fields are registered as `forms.<key>.fields.<fieldId>`; nested
+ * bundles are prefixed with `bundles.<key>.`.
  */
-export function buildBundleTypeEnvironment(bundle: Bundle): TypeEnvironment {
-  const env = createTypeEnvironment()
-
-  // Register inline content types
-  registerBundleContentTypes(bundle, env)
-
-  // Infer bundle-level logic types
-  if (bundle.defs) {
-    const expressionsForSorting = extractExpressionsForSorting(bundle.defs)
-    const { sorted: sortedKeys } = topologicalSortDefsKeys(expressionsForSorting)
-
-    for (const key of sortedKeys) {
-      const logicExpr = bundle.defs[key]
-      if (logicExpr) {
-        const exprString = getExpressionString(logicExpr)
-        const inferredType = inferExpressionType(exprString, env)
-        env.variables.set(key, inferredType)
-      }
-    }
-  }
-
-  return env
+export function buildBundleTypeEnvironment(bundle: Bundle): TypeEnv {
+  return createTypeEnv(buildBundleTypeAcc(bundle))
 }

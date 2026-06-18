@@ -1,4 +1,4 @@
-import { Parser } from 'expr-eval-fork'
+import { parse, extractReferences } from '@paradoc/expr'
 
 /**
  * Result of parsing an expression
@@ -12,13 +12,12 @@ export interface ParseResult {
   error?: string
 }
 
-// Singleton parser instance with member access enabled
-const parser = new Parser({
-  allowMemberAccess: true,
-})
-
 /**
  * Parses an expression string and extracts referenced variables.
+ *
+ * Backed by @paradoc/expr: the parser reports a positioned syntax error, and
+ * `extractReferences` returns the identifier-rooted dotted paths the expression
+ * depends on (function names are not references).
  *
  * @param expr - The expression string to parse
  * @returns ParseResult with success status and extracted variables
@@ -29,21 +28,19 @@ const parser = new Parser({
  * // { success: true, variables: ['fields.age'] }
  *
  * parseExpression('fields.age >=')
- * // { success: false, variables: [], error: 'Unexpected end of expression' }
+ * // { success: false, variables: [], error: '...' }
  * ```
  */
 export function parseExpression(expr: string): ParseResult {
-  try {
-    const parsed = parser.parse(expr)
-    const variables = parsed.variables({ withMembers: true })
-    return { success: true, variables }
-  } catch (e) {
+  const { ast, errors } = parse(expr)
+  if (!ast) {
     return {
       success: false,
       variables: [],
-      error: e instanceof Error ? e.message : 'Unknown parse error',
+      error: errors[0]?.message ?? 'Unknown parse error',
     }
   }
+  return { success: true, variables: [...extractReferences(ast).paths] }
 }
 
 /**

@@ -288,3 +288,36 @@ describe("deriveView — purity", () => {
 		expect(v1.progress).toEqual(v2.progress);
 	});
 });
+
+describe("deriveView — canonical candidate ordering", () => {
+	it("orders next by core's DAG-ordered candidates, not declaration order", () => {
+		const session = emptySession();
+		// Declaration order is /a then /b, but core's candidate sequence puts /b
+		// first (e.g. /a's visibility depends on /b). next must follow candidates.
+		const rt: ArtifactRuntime = {
+			hasField: (fp) => fp === "/a" || fp === "/b",
+			hasParty: () => false,
+			getFillState: () => ({
+				openRequired: [
+					{ fieldPath: "/a", order: 0, status: "required" },
+					{ fieldPath: "/b", order: 1, status: "required" },
+				],
+				openOptional: [],
+				openRequiredParties: [],
+				candidates: [
+					{ kind: "field", key: "/b", required: true, order: 1 },
+					{ kind: "field", key: "/a", required: true, order: 0 },
+				],
+			}),
+			validateField: (_fp, v) => ({ ok: true, value: v }),
+			validateParty: (_r, v) => ({ ok: true, value: v }),
+			listFields: () => [
+				{ fieldPath: "/a", required: true },
+				{ fieldPath: "/b", required: true },
+			],
+			listParties: () => [],
+		};
+		const view = deriveView(session, rt);
+		expect(view.next?.fieldPath).toBe("/b");
+	});
+});

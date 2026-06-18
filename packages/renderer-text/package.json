@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/renderer-text",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Text renderer package for Paradoc framework",
   "type": "module",
   "main": "./dist/index.js",

@@ -63,6 +63,14 @@ export function resolvePartyPayment(
       `Could not resolve the payment amount expression "${expr.value.amount}": ${amountResult.error}`
     )
   }
+  // A missing/unresolved amount is null under the engine's null-safe semantics;
+  // reject it explicitly so it cannot be coerced (Number(null) === 0) into a
+  // silent zero-amount payment.
+  if (amountResult.value === null || amountResult.value === undefined) {
+    throw new Error(
+      `The payment amount expression "${expr.value.amount}" did not resolve to a value.`
+    )
+  }
   const amount = Number(amountResult.value)
   if (!Number.isFinite(amount)) {
     throw new Error(

@@ -1,6 +1,6 @@
 {
 	"name": "@paradoc/core",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Core package for Paradoc framework - schemas, builders, validation, and serialization utilities",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -71,10 +71,10 @@
 		"export:root-schema": "tsx scripts/export-root-schema.ts"
 	},
 	"dependencies": {
+		"@paradoc/expr": "workspace:^",
 		"@paradoc/schemas": "workspace:^",
 		"@paradoc/types": "workspace:^",
 		"@standard-schema/spec": "^1.0.0",
-		"expr-eval-fork": "^3.0.1",
 		"safe-regex": "^2.1.1",
 		"yaml": "catalog:",
 		"zod": "catalog:"

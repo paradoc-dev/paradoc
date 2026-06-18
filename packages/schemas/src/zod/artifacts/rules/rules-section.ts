@@ -16,5 +16,5 @@ export const RulesSectionSchema = z.record(
 	ValidationRuleSchema,
 ).meta({
 	title: 'RulesSection',
-	description: 'Form-level validation rules keyed by rule identifier. Rules use expr-eval-fork expressions to validate cross-field constraints.',
+	description: 'Form-level validation rules keyed by rule identifier. Rules use expressions to validate cross-field constraints.',
 });

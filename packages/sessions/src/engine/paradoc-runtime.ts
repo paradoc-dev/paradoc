@@ -58,10 +58,10 @@ export function createParadocRuntime(
 		return {
 			openRequired: fillState.openRequired
 				.filter((item) => item.kind === "field")
-				.map((item) => ({ fieldPath: item.key, order: item.order })),
+				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
 			openOptional: fillState.openOptional
 				.filter((item) => item.kind === "field")
-				.map((item) => ({ fieldPath: item.key, order: item.order })),
+				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
 			openRequiredParties: fillState.openRequired
 				.filter((item) => item.kind === "party")
 				.map((item) => ({
@@ -71,6 +71,16 @@ export function createParadocRuntime(
 						: {}),
 					order: item.order,
 				})),
+			// Canonical — no longer discarded: the full blocked + DAG-ordered candidates.
+			blocked: fillState.blocked
+				.filter((item) => item.kind === "field")
+				.map((item) => ({ fieldPath: item.key, order: item.order, blockedBy: item.blockedBy })),
+			candidates: fillState.candidates.map((c) => ({
+				kind: c.kind,
+				key: c.key,
+				required: c.required,
+				order: c.order,
+			})),
 		};
 	}
 
