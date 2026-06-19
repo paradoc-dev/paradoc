@@ -37,7 +37,7 @@ For React packages, use `react-library.json` instead.
 
 ## Changelog
 
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/packages/typescript-config/CHANGELOG.md) for updates.
+View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
 
 ## Related packages
 

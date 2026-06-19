@@ -70,7 +70,7 @@ console.log(textString); // => "Hello Alice"
 
 ## Changelog
 
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/packages/renderers/CHANGELOG.md) for updates.
+View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
 
 ## Related packages
 

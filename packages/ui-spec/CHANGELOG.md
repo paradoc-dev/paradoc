@@ -1,1 +1,0 @@
-# @paradoc/ui-spec

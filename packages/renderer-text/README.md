@@ -127,7 +127,7 @@ console.log(output);
 
 ## Changelog
 
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/packages/renderer-text/CHANGELOG.md) for updates.
+View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
 
 ## Related packages
 

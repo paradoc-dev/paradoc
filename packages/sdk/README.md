@@ -263,7 +263,7 @@ For a complete production example, see `/incubator/apps/demo/src/demos/leasing`.
 
 ## Changelog
 
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/packages/sdk/CHANGELOG.md) for updates.
+View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
 
 ## Related packages
 

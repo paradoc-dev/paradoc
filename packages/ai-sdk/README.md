@@ -93,7 +93,7 @@ const tools = paradocTools({
 
 ## Changelog
 
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/packages/ai-sdk/CHANGELOG.md) for updates.
+View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
 
 ## Related packages
 

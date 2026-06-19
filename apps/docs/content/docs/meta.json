@@ -11,7 +11,8 @@
     "cli",
     "mcp",
     "skill",
-    "ai"
+    "ai",
+    "changelog"
   ],
   "defaultOpen": true
 }

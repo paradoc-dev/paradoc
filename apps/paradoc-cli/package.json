@@ -10,7 +10,6 @@
   "files": [
     "bin.js",
     "README.md",
-    "CHANGELOG.md",
     "LICENSE"
   ],
   "keywords": [

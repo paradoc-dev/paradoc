@@ -37,11 +37,11 @@ export const Route = createFileRoute("/$")({
       },
       {
         property: "og:title",
-        content: loaderData?.title ?? "Paradoc Documentation",
+        content: loaderData?.ogTitle ?? loaderData?.title ?? "Paradoc Documentation",
       },
       {
         property: "og:description",
-        content: loaderData?.description ?? "Documents as code for developers and AI agents",
+        content: loaderData?.ogDescription ?? loaderData?.description ?? "Documents as code for developers and AI agents",
       },
       {
         property: "og:image",
@@ -57,11 +57,11 @@ export const Route = createFileRoute("/$")({
       },
       {
         name: "twitter:title",
-        content: loaderData?.title ?? "Paradoc Documentation",
+        content: loaderData?.ogTitle ?? loaderData?.title ?? "Paradoc Documentation",
       },
       {
         name: "twitter:description",
-        content: loaderData?.description ?? "Documents as code for developers and AI agents",
+        content: loaderData?.ogDescription ?? loaderData?.description ?? "Documents as code for developers and AI agents",
       },
       {
         name: "twitter:image",
@@ -102,6 +102,8 @@ const serverLoader = createServerFn({
       pageTree: await source.serializePageTree(source.getPageTree()),
       title: page.data.title,
       description: page.data.description,
+      ogTitle: page.data.ogTitle ?? page.data.title,
+      ogDescription: page.data.ogDescription ?? page.data.description,
       ogImageUrl: ogImage.url,
     };
   });

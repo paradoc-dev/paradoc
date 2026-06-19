@@ -263,7 +263,7 @@ For rendering artifacts to PDF, DOCX, HTML, or other formats, use `@paradoc/sdk`
 
 ## Changelog
 
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/packages/core/CHANGELOG.md) for updates.
+View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
 
 ## Related packages
 
