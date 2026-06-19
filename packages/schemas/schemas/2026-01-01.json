@@ -3443,6 +3443,79 @@
           "additionalProperties": false,
           "title": "FormSignature",
           "description": "Design-time signature requirements for a party role"
+        },
+        "payment": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "default": false,
+              "description": "Whether payment is required for this role",
+              "type": "boolean"
+            },
+            "amount": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Money"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Display label for the computed value"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000,
+                      "description": "Description or documentation of the computed value"
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "money"
+                    },
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "amount": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000,
+                          "description": "Expression string to evaluate"
+                        },
+                        "currency": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000,
+                          "description": "Expression string to evaluate"
+                        }
+                      },
+                      "required": [
+                        "amount",
+                        "currency"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Money object with amount and currency expressions"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "Amount owed: a fixed Money value, or a MoneyExpression resolved from filled data at request time"
+            }
+          },
+          "required": [
+            "amount"
+          ],
+          "additionalProperties": false,
+          "title": "FormPayment",
+          "description": "Design-time payment requirement for a party role"
         }
       },
       "required": [
@@ -3619,7 +3692,98 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Pre-defined signature blocks keyed by locationId"
+              "description": "Pre-defined signature blocks keyed by locationId (coordinate-based)"
+            },
+            "anchorBlocks": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Location ID for the anchor block"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "signature",
+                      "initials",
+                      "date",
+                      "capacity",
+                      "printed_name"
+                    ],
+                    "description": "Type of signature block: signature/initials (glyph), date (signing date), capacity (signer role/title), or printed_name (typed-out name)"
+                  },
+                  "anchor": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Text string to search for in the rendered document"
+                      },
+                      "offsetX": {
+                        "type": "number",
+                        "description": "Horizontal offset in points from the left of the found text"
+                      },
+                      "offsetY": {
+                        "type": "number",
+                        "description": "Vertical offset in points from the top of the found text"
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "offsetX",
+                      "offsetY"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Text anchor identifying where to place this field in the document"
+                  },
+                  "width": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Width of the field in points"
+                  },
+                  "height": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Height of the field in points"
+                  },
+                  "partyRole": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Party role this block is bound to (e.g., \"taxpayer\", \"tenant\")"
+                  },
+                  "partyIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0-based index for multi-party roles. Defaults to 0 (first party)"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the block"
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "description": "Whether this block is required. Defaults to true"
+                  }
+                },
+                "required": [
+                  "type",
+                  "anchor",
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Anchor-based signature blocks keyed by locationId; position resolved from anchor text by the Sealer adapter"
             },
             "kind": {
               "type": "string",
@@ -3763,7 +3927,98 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Pre-defined signature blocks keyed by locationId"
+              "description": "Pre-defined signature blocks keyed by locationId (coordinate-based)"
+            },
+            "anchorBlocks": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Location ID for the anchor block"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "signature",
+                      "initials",
+                      "date",
+                      "capacity",
+                      "printed_name"
+                    ],
+                    "description": "Type of signature block: signature/initials (glyph), date (signing date), capacity (signer role/title), or printed_name (typed-out name)"
+                  },
+                  "anchor": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Text string to search for in the rendered document"
+                      },
+                      "offsetX": {
+                        "type": "number",
+                        "description": "Horizontal offset in points from the left of the found text"
+                      },
+                      "offsetY": {
+                        "type": "number",
+                        "description": "Vertical offset in points from the top of the found text"
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "offsetX",
+                      "offsetY"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Text anchor identifying where to place this field in the document"
+                  },
+                  "width": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Width of the field in points"
+                  },
+                  "height": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Height of the field in points"
+                  },
+                  "partyRole": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Party role this block is bound to (e.g., \"taxpayer\", \"tenant\")"
+                  },
+                  "partyIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0-based index for multi-party roles. Defaults to 0 (first party)"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the block"
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "description": "Whether this block is required. Defaults to true"
+                  }
+                },
+                "required": [
+                  "type",
+                  "anchor",
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Anchor-based signature blocks keyed by locationId; position resolved from anchor text by the Sealer adapter"
             },
             "kind": {
               "type": "string",

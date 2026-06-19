@@ -70,6 +70,79 @@
       "additionalProperties": false,
       "title": "FormSignature",
       "description": "Design-time signature requirements for a party role"
+    },
+    "payment": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "default": false,
+          "description": "Whether payment is required for this role",
+          "type": "boolean"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/Money"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the computed value"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or documentation of the computed value"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "money"
+                },
+                "value": {
+                  "type": "object",
+                  "properties": {
+                    "amount": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000,
+                      "description": "Expression string to evaluate"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000,
+                      "description": "Expression string to evaluate"
+                    }
+                  },
+                  "required": [
+                    "amount",
+                    "currency"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Money object with amount and currency expressions"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Amount owed: a fixed Money value, or a MoneyExpression resolved from filled data at request time"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "additionalProperties": false,
+      "title": "FormPayment",
+      "description": "Design-time payment requirement for a party role"
     }
   },
   "required": [
