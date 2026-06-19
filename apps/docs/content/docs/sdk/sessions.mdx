@@ -1,0 +1,93 @@
+---
+title: Sessions
+description: Deterministic, event-sourced engine for form-completion sessions
+---
+
+A form-completion session is a back-and-forth: someone answers fields, defers others, revises earlier answers, and you track what's still open. `@paradoc/sessions` models this as an event-sourced engine. Every change is a command; the session's state is derived by replaying its event log. The engine is deterministic and storage-agnostic, so the same events always produce the same view, and you persist them wherever you like.
+
+# Installation
+
+```bash
+npm install @paradoc/sessions
+```
+
+Or use via the SDK:
+
+```ts
+import { execute, deriveView, createParadocRuntime } from '@paradoc/sdk'
+```
+
+# Core flow
+
+There are three moving parts: a **runtime** that knows the artifact, a **session** that holds the event log, and the **command/view** pair that mutates and reads it.
+
+## 1. Build a runtime
+
+`createParadocRuntime` wraps a Paradoc artifact in an `ArtifactRuntime`: the read-only interface the engine uses to look up fields, validate values, and compute fill-state. It's built from `@paradoc/core` and recomputed cheaply on every command.
+
+```ts
+import { createParadocRuntime } from '@paradoc/sessions'
+
+const runtime = createParadocRuntime(artifact)
+```
+
+## 2. Apply commands
+
+A `Command` is the only way to mutate a session. Tools submit commands; `execute` decides which events (if any) to append. It never mutates in place; it returns a new `FormSession` plus the events it emitted.
+
+```ts
+import { execute } from '@paradoc/sessions'
+
+const result = execute(
+  { kind: 'answer', fieldPath: 'age', value: 25, source: 'user' },
+  session,
+  runtime,
+)
+
+if (result.ok) {
+  session = result.session       // new session with the appended event
+  result.emitted                 // the events that were added
+} else {
+  result.code                    // e.g. 'field-not-found', 'field-not-visible'
+  result.reason                  // human-readable explanation
+}
+```
+
+Commands cover the full lifecycle: `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
+
+## 3. Derive the view
+
+State lives only in the event log. To read it, call `deriveView`, which replays the events into a `SessionView`: the current target field, phase, progress, and the derived `FillStateSnapshot` of what's open.
+
+```ts
+import { deriveView } from '@paradoc/sessions'
+
+const view = deriveView(session, runtime)
+
+view.phase            // where the session is in its lifecycle
+view.target           // the field to ask about next, if any
+view.progress         // ProgressSummary: answered vs. remaining
+```
+
+The fill-state buckets unanswered fields by status: `openRequired` (required, visible, unanswered), `openOptional`, and `openRequiredParties`. The engine reads these straight from `@paradoc/core`, so visibility and required cascades resolve the same way they do everywhere else.
+
+# Storage-agnostic persistence
+
+The engine holds no database. A `FormSession` is a plain object whose `events` array is the single source of truth; `execute` hands you back a new one to persist however you want. To rebuild state from any store, replay the log with `deriveView`. The package ships adapters for this seam, including `createSpineStateAdapter` for backing a session on an append-only event spine.
+
+```ts
+// Persist the new event log after each command.
+await store.save(session.formSessionId, result.session.events)
+
+// Rehydrate later from stored events.
+const session = { ...rest, events: await store.load(id) }
+const view = deriveView(session, runtime)
+```
+
+Because the log is the source of truth, the same events replayed against the same artifact always produce the same view. That makes sessions reproducible and easy to test: assert on the events, not on hidden internal state.
+
+# Related
+
+- [Logic](/concepts/logic) - The visibility and required cascade the fill-state honors
+- [Artifacts](/sdk/artifacts) - Loading the artifact a runtime wraps
+- [Expr](/sdk/expr) - The expression engine behind field gates

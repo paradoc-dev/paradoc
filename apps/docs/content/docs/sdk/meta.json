@@ -6,7 +6,9 @@
     "primitives",
     "renderers",
     "serialization",
-    "resolvers"
+    "resolvers",
+    "sessions",
+    "expr"
   ],
   "defaultOpen": false
 }

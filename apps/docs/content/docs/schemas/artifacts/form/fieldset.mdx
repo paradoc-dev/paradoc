@@ -143,6 +143,16 @@ fieldsets:
 }
 ```
 
+# Gate cascade
+
+A fieldset's `visible` and `required` gates cascade to its children, the same way they do for a [nested `FieldsetField`](/schemas/artifacts/form/field#visibility-cascade):
+
+- A hidden fieldset hides its entire subtree. Set `visible: false` (or a condition that resolves false) and every descendant is hidden, transitively through nested fieldsets, regardless of each child's own `visible`.
+- A child's `required` follows its effective visibility. A child inside a hidden fieldset is never required, because hidden wins over required.
+- A parent's `required` does not force its children. An optional section can still hold required fields, and marking a fieldset `required` does not make its children required.
+
+So a fieldset only ever loosens its children downward (by hiding them); it never tightens them into being required.
+
 # Related
 
 - [FormField](/schemas/artifacts/form/field) - Field definitions including FieldsetField

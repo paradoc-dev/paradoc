@@ -351,6 +351,12 @@ export type {
 
 export * from "./logic";
 
+// The expression engine (parser, evaluator, type checker, exact decimal) is
+// surfaced under the `expr` namespace. Namespaced rather than flat-re-exported
+// because @paradoc/expr and core's own logic surface share names (e.g.
+// EvaluationContext); a flat `export *` would silently drop the collisions.
+export * as expr from "@paradoc/expr";
+
 // ============================================================================
 // SCHEMAS (Type re-exports from @paradoc/types)
 // ============================================================================
