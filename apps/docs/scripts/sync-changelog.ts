@@ -27,12 +27,8 @@ function escapeYaml(value: string): string {
 
 function buildPage(markdown: string): string {
   const version = latestVersion(markdown);
-  const ogTitle = version
-    ? `Paradoc v${version} · Changelog`
-    : "Paradoc Changelog";
-  const description = version
-    ? `What changed in Paradoc, latest release v${version}.`
-    : "What changed in Paradoc across releases.";
+  const ogTitle = "Changelog";
+  const description = version ? `Release v${version}` : "Paradoc changelog";
 
   // Drop the leading `# Changelog` H1; fumadocs renders the title from
   // frontmatter, so a second H1 in the body would duplicate it.
