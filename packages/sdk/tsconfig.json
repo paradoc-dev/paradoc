@@ -9,7 +9,7 @@
       "@paradoc/core": ["../core/src/index.ts"],
       "@paradoc/renderers": ["../renderers/src/index.ts"],
       "@paradoc/client": ["../client/src/index.ts"],
-      "@paradoc/contracts": ["../contracts/src/index.ts"],
+      "@paradoc/api-surfaces": ["../contracts/src/index.ts"],
       "@paradoc/renderer-pdf": ["../renderer-pdf/src/index.ts"],
       "@paradoc/renderer-docx": ["../renderer-docx/src/index.ts"],
       "@paradoc/renderer-text": ["../renderer-text/src/index.ts"],
