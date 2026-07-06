@@ -46,7 +46,7 @@ export type {
 	WorkflowUsageTurn,
 } from "./state/usage";
 
-// ─── Session-spine adapter (web-ai chat over the Postgres ai_session log) ──
+// ─── Session-spine adapter (case-manager chat over the Postgres ai_session log) ──
 export {
 	createSpineStateAdapter,
 	spineEventToAgentEvent,

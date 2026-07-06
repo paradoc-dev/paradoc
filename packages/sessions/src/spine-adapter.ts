@@ -1,8 +1,8 @@
 /**
- * Postgres session-spine adapter for the form-completion agent (web-ai chat).
+ * Postgres session-spine adapter for the form-completion agent (case-manager chat).
  *
  * The landing playground stores the agent's `FormSession` event log in Redis as
- * its OWN store. The web-ai respondent surface has a different, authoritative
+ * its OWN store. The case-manager respondent surface has a different, authoritative
  * store: the `ai_session_event` Postgres log the typed respondent procedures
  * (answer/revise/defer/submit/...) already read and write. Per the design
  * (§4.4): chat is a transport, NOT a second source of truth — the agent's tool
