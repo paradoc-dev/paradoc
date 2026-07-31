@@ -39,3 +39,6 @@ catalog:
   stripe: "^20.0.0"
   cron-schedule: "^5.0.1"
   cronstrue: "^2.55.0"
+
+allowBuilds:
+  esbuild: true
