@@ -1,0 +1,5 @@
+export { renderDocx } from './docx/render'
+export type { DocxRenderOptions, DocxSignatureOptions, RenderDocxOptions } from './docx/render'
+export { docxRenderer } from './docx/renderer'
+export type { DocxRendererOptions } from './docx/renderer'
+export { createDocxSignatureHelpers } from './docx/signatures'
