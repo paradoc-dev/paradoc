@@ -116,6 +116,63 @@ describe('BundleInstance', () => {
     })
   })
 
+  describe('rendering', () => {
+    const createRenderableBundle = () => {
+      const formInstance = form()
+        .name('greeting-form')
+        .fields({ name: { type: 'text', required: true } })
+        .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello, {{name}}!' })
+        .defaultLayer('default')
+        .build()
+
+      const bundleInstance = bundle()
+        .name('greeting-bundle')
+        .inline('greeting', formInstance)
+        .build()
+
+      return {
+        bundleInstance,
+        filledForm: formInstance.fill({ fields: { name: 'Ada' } }),
+      }
+    }
+
+    test('assembles supported layers without a renderer registry', async () => {
+      const { bundleInstance, filledForm } = createRenderableBundle()
+
+      const assembled = await bundleInstance.assemble({
+        contents: { greeting: filledForm },
+      })
+
+      expect(new TextDecoder().decode(assembled.outputs.greeting?.content)).toBe('Hello, Ada!')
+    })
+
+    test('runtime bundles render supported layers without options', async () => {
+      const { bundleInstance, filledForm } = createRenderableBundle()
+
+      const rendered = await bundleInstance.prepare({ greeting: filledForm }).render()
+
+      expect(new TextDecoder().decode(rendered.outputs.greeting?.content)).toBe('Hello, Ada!')
+    })
+
+    test('uses an explicit MIME renderer as an override', async () => {
+      const { bundleInstance, filledForm } = createRenderableBundle()
+
+      const assembled = await bundleInstance.assemble({
+        contents: { greeting: filledForm },
+        renderers: {
+          'text/plain': {
+            id: 'custom-text',
+            async render() {
+              return 'Custom output'
+            },
+          },
+        },
+      })
+
+      expect(new TextDecoder().decode(assembled.outputs.greeting?.content)).toBe('Custom output')
+    })
+  })
+
   // ============================================================================
   // toJSON() Method
   // ============================================================================

@@ -33,6 +33,7 @@ import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-me
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RendererRegistry, ArtifactResolver } from '@/rendering'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
+import { renderLayer as createRenderer } from '@paradoc/render'
 
 // Import artifacts runtime types for content
 import type { RuntimeDocument, DraftDocument } from '../document'
@@ -74,8 +75,8 @@ export type RuntimeBundleContents = Record<string, RuntimeInstance>
 export interface RuntimeBundleRenderOptions {
 	/** Resolver for file-based layers (optional if all layers are inline) */
 	resolver?: Resolver | ArtifactResolver
-	/** Renderers keyed by MIME type */
-	renderers: RendererRegistry
+	/** Optional custom renderers keyed by MIME type. Supported layers render automatically. */
+	renderers?: RendererRegistry
 }
 
 /**
@@ -164,7 +165,7 @@ interface RuntimeBundleBase<B extends Bundle> {
 	getAllContents(): RuntimeBundleContents
 
 	// Rendering
-	render(options: RuntimeBundleRenderOptions): Promise<RuntimeBundleRendered<B>>
+	render(options?: RuntimeBundleRenderOptions): Promise<RuntimeBundleRendered<B>>
 
 	// Serialization
 	toJSON(): RuntimeBundleJSON<B>
@@ -565,7 +566,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		// Rendering
 		// ============================================================================
 
-		async render(options: RuntimeBundleRenderOptions): Promise<RuntimeBundleRendered<B>> {
+		async render(options: RuntimeBundleRenderOptions = {}): Promise<RuntimeBundleRendered<B>> {
 			const { resolver, renderers } = options
 			const outputs: Record<string, RuntimeBundleRenderedOutput> = {}
 
@@ -701,7 +702,7 @@ function transitionToExecuted(instance: RuntimeInstance): RuntimeInstance {
 async function renderInstance(
 	key: string,
 	instance: RuntimeInstance,
-	options: { resolver?: Resolver | ArtifactResolver; renderers: RendererRegistry }
+	options: { resolver?: Resolver | ArtifactResolver; renderers?: RendererRegistry }
 ): Promise<RuntimeBundleRenderedOutput> {
 	const { resolver, renderers } = options
 
@@ -723,13 +724,7 @@ async function renderInstance(
 	}
 
 	const mimeType = layer.mimeType
-	const renderer = renderers[mimeType]
-
-	if (!renderer) {
-		throw new Error(
-			`No renderer for MIME type "${mimeType}". ` + `Registered renderers: ${Object.keys(renderers).join(', ')}`
-		)
-	}
+	const renderer = renderers?.[mimeType] ?? createRenderer()
 
 	// Render based on instance type
 	let content: unknown

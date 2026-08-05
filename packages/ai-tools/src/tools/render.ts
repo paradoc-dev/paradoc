@@ -6,17 +6,14 @@ import {
   loadFromObject,
   FormValidationError,
   validate,
-  textRenderer,
-  pdfRenderer,
-  docxRenderer,
+  renderLayer,
 } from '@paradoc/sdk'
 import type { Resolver } from '@paradoc/sdk'
 import type { RenderInput } from '../schemas/render'
 import type { RenderOutput } from '../types'
-import type { ParadocToolsConfig, ProxyTextRendererConfig } from '../config'
+import type { ParadocToolsConfig } from '../config'
 import { safeFetch } from '../registry-client'
 import { resolveSource } from '../resolve-source'
-import { proxyTextRenderer } from '../proxy-text-renderer'
 
 const MAX_LAYER_FILE_SIZE = 20_971_520 // 20 MB
 
@@ -33,16 +30,6 @@ function createRegistryResolver(baseUrl: string, customFetch?: typeof globalThis
       return new Uint8Array(await res.arrayBuffer())
     },
   }
-}
-
-function selectRenderer(mimeType: string, proxyConfig?: ProxyTextRendererConfig, customFetch?: typeof globalThis.fetch) {
-  if (mimeType.startsWith('text/')) {
-    return proxyConfig ? proxyTextRenderer(proxyConfig, customFetch) : textRenderer()
-  }
-  if (mimeType === 'application/pdf') return pdfRenderer()
-  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    return docxRenderer()
-  throw new Error(`Unsupported layer mimeType: ${mimeType}`)
 }
 
 function detectKind(artifact: unknown): string | undefined {
@@ -163,14 +150,13 @@ export async function executeRender(
       }
     }
 
-    const renderer = selectRenderer(mimeType, config?.proxyTextRenderer, config?.fetch) as {
-      id: string
-      render(req: unknown): Promise<string | Uint8Array>
-    }
-
     const resolver = baseUrl ? createRegistryResolver(baseUrl, config?.fetch) : undefined
 
-    const output: string | Uint8Array = await draftForm.render({ renderer, resolver, layer: layerKey })
+    const output: string | Uint8Array = await draftForm.render({
+      renderer: renderLayer(),
+      resolver,
+      layer: layerKey,
+    })
 
     // Always inline output (no R2/links)
     const isBinary = typeof output !== 'string'

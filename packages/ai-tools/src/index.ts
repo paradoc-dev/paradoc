@@ -43,4 +43,4 @@ export type {
 } from './types'
 
 // Config
-export type { ParadocToolsConfig, ProxyTextRendererConfig } from './config'
+export type { ParadocToolsConfig } from './config'

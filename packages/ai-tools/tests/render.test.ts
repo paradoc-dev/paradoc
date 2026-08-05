@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { executeRender } from '../src/tools/render'
 
 const textForm = {
@@ -38,6 +38,23 @@ describe('executeRender', () => {
       expect(result.mimeType).toBe('text/markdown')
       expect(result.content).toContain('John Doe')
       expect(result.artifactKind).toBe('form')
+    })
+
+    it('renders locally without calling a document service', async () => {
+      const customFetch = vi.fn<typeof fetch>()
+
+      const result = await executeRender(
+        {
+          source: 'artifact' as const,
+          artifact: textForm,
+          data: { fields: { name: 'Local' } },
+        },
+        { fetch: customFetch },
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.content).toContain('Local')
+      expect(customFetch).not.toHaveBeenCalled()
     })
   })
 

@@ -18,7 +18,6 @@ import {
 
 export type { ParadocToolsConfig }
 export type {
-  ProxyTextRendererConfig,
   ValidateOutput,
   ValidateInputValueOutput,
   FillOutput,

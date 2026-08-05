@@ -66,6 +66,7 @@ describe('CLI render command', () => {
     expect(result.stdout).toContain('--format')
     expect(result.stdout).toContain('--data')
     expect(result.stdout).toContain('--dry-run')
+    expect(result.stdout).not.toContain('--renderer')
   })
 
   it('should render an inline layer to stdout', async () => {
@@ -147,6 +148,34 @@ describe('CLI render command', () => {
 
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('Luna')
+    })
+
+    it.each([
+      ['PDF', 'pet-addendum-pdf.yaml', 'output.pdf', '%PDF'],
+      ['DOCX', 'pet-addendum-docx.yaml', 'output.docx', 'PK'],
+    ])('should select the %s renderer from the layer MIME type', async (_format, fixtureName, outputName, signature) => {
+      const outPath = path.join(tempDir, outputName)
+      const data = JSON.stringify({
+        fields: {
+          name: 'Milo',
+          species: 'cat',
+          weight: 5,
+          hasVaccination: true,
+        },
+      })
+
+      const result = await executeCliCommand([
+        'render',
+        path.join(fixturesDir, fixtureName),
+        '--data',
+        data,
+        '--out',
+        outPath,
+      ])
+
+      expect(result.exitCode).toBe(0)
+      const content = await fs.readFile(outPath)
+      expect(content.subarray(0, signature.length).toString()).toBe(signature)
     })
 
     it('should write output to file with --out', async () => {

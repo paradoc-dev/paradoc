@@ -14,6 +14,7 @@ import type {
 import type { DraftForm } from '@/artifacts/form'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
+import { renderLayer } from '@paradoc/render'
 
 /**
  * A resolved artifact loaded from a path or slug.
@@ -48,14 +49,12 @@ export interface ArtifactResolver extends Resolver {
 // ============================================================================
 
 /**
- * Renderer registry keyed by MIME type.
+ * Optional custom renderer overrides keyed by MIME type.
  *
  * @example
  * ```typescript
  * const renderers: RendererRegistry = {
- *   'text/markdown': textRenderer(),
- *   'application/pdf': pdfRenderer(),
- *   'text/html': textRenderer(),
+ *   'application/x-custom': customRenderer(),
  * }
  * ```
  */
@@ -77,8 +76,8 @@ export interface BundleAssemblyOptions {
   /** Resolver for file-based layers (optional if all layers are inline) */
   resolver?: Resolver | ArtifactResolver
 
-  /** Renderers keyed by MIME type */
-  renderers: RendererRegistry
+  /** Optional custom renderers keyed by MIME type. Supported layers render automatically. */
+  renderers?: RendererRegistry
 
   /** Content entries keyed by bundle content key */
   contents: Record<string, AssemblyContentEntry>
@@ -153,10 +152,11 @@ function getLayersFromFilled(
  * This is the cleaner API for bundle assembly that:
  * - Accepts runtime instances (RuntimeForm, RuntimeChecklist, RuntimeDocument)
  * - Uses the targetLayer property to determine which layer to render
- * - Looks up renderers by the layer's MIME type
+ * - Selects the built-in renderer from each layer's MIME type
+ * - Accepts optional MIME-specific custom renderer overrides
  *
  * @param bundle - The bundle to assemble
- * @param options - Assembly options with renderers and runtime content instances
+ * @param options - Assembly options with runtime content instances and optional overrides
  * @returns An AssembledBundle with rendered outputs for each content key
  *
  * @example
@@ -167,10 +167,6 @@ function getLayersFromFilled(
  *
  * const assembled = await assembleBundle(bundle, {
  *   resolver,
- *   renderers: {
- *     'text/markdown': textRenderer(),
- *     'application/pdf': pdfRenderer(),
- *   },
  *   contents: {
  *     leaseAgreement: filledLease,
  *     checklist: filledChecklist,
@@ -215,14 +211,7 @@ export async function assembleBundle(
 
     const mimeType = layer.mimeType
 
-    // Find renderer for this MIME type
-    const renderer = renderers[mimeType]
-    if (!renderer) {
-      throw new Error(
-        `No renderer for MIME type "${mimeType}". ` +
-          `Registered renderers: ${Object.keys(renderers).join(', ')}`
-      )
-    }
+    const renderer = renderers?.[mimeType] ?? renderLayer()
 
     // Render the filled instance
     const renderOptions = {

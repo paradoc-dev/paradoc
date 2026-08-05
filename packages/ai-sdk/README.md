@@ -73,10 +73,6 @@ for await (const part of result.textStream) {
 ```typescript
 const tools = paradocTools({
   defaultRegistryUrl: "https://public.paradoc.dev",
-  proxyTextRenderer: {
-    url: "https://your-documents-service.example.com",
-    apiKey: "your-api-key",
-  },
   fetch: customFetchWithAuth,
 });
 ```

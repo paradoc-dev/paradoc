@@ -114,9 +114,9 @@ POST requests to `/mcp` are rate-limited per IP via Cloudflare's Rate Limiting b
 
 GET requests (health, service info, SSE) and non-`/mcp` routes are not rate-limited.
 
-## Text Rendering Proxy
+## Document Rendering
 
-Cloudflare Workers block `new Function()`, which Handlebars requires. To render `text/*` layers (HTML, Markdown, plain text), the MCP service delegates to a documents-service (Fly.io, Node.js) via `POST /render`. PDF and DOCX run locally on the Worker.
+The MCP service renders text, PDF, and DOCX layers locally with the MIME-driven `@paradoc/render` implementation. Hosted conversion and sealing use the Platform API rather than a rendering proxy.
 
 This is transparent to the MCP client — `render` works for all supported MIME types.
 

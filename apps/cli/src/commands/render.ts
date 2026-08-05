@@ -17,17 +17,11 @@ import { LocalFileSystem } from '../utils/local-fs.js'
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { parseDataInput, normalizeFormData } from '../utils/data-input.js'
 
-// MIME types that support data rendering
-const TEXT_MIME_TYPES = ['text/', 'application/json']
-const PDF_MIME_TYPE = 'application/pdf'
-const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-
 type OutputFormat = 'json' | 'pretty'
 
 interface RenderOptions {
   data?: string
   bindings?: string
-  renderer?: string
   out?: string
   format?: OutputFormat
   dryRun?: boolean
@@ -42,7 +36,6 @@ export function createRenderCommand(): Command {
     .description('Render an artifact layer')
     .option('--data <pathOrJson>', 'Data payload: file path, "-" for stdin, or inline JSON (for field substitution)')
     .option('--bindings <pathOrJson>', 'Renderer bindings (path to JSON/YAML or inline JSON)')
-    .option('--renderer <id>', 'Force a renderer id (text, pdf, docx)')
     .option('--out <file>', 'Write output to file (defaults to stdout)')
     .option('--format <style>', 'Summary format: pretty|json', 'pretty')
     .option('--layer <key>', 'Layer key to use (defaults to artifact.defaultLayer)')
@@ -103,18 +96,6 @@ export function createRenderCommand(): Command {
         // Determine the content to output
         let content: string | Uint8Array
 
-        // Validate --renderer flag if provided
-        const VALID_RENDERERS = ['text', 'pdf', 'docx'] as const
-        if (options.renderer && !VALID_RENDERERS.includes(options.renderer as any)) {
-          console.error(kleur.red(`Error: Unknown renderer "${options.renderer}". Must be one of: ${VALID_RENDERERS.join(', ')}`))
-          process.exit(1)
-        }
-
-        // Check layer type for data rendering support (--renderer overrides auto-detection)
-        const isTextLayer = options.renderer ? options.renderer === 'text' : TEXT_MIME_TYPES.some(prefix => layer.mimeType.startsWith(prefix))
-        const isPdfLayer = options.renderer ? options.renderer === 'pdf' : layer.mimeType === PDF_MIME_TYPE
-        const isDocxLayer = options.renderer ? options.renderer === 'docx' : layer.mimeType === DOCX_MIME_TYPE
-
         // Parse bindings if provided
         const parsedBindings = options.bindings
           ? (await parseDataInput(options.bindings)).data as Record<string, string>
@@ -127,44 +108,15 @@ export function createRenderCommand(): Command {
 
           const formInstance = formApi.from(artifact as Form)
 
-          if (isTextLayer) {
-            // Text-based layers: use FormInstance.render() with textRenderer
-            const mod = await rendererManager.loadModule('@paradoc/render/text')
-            const renderer = (mod.textRenderer as (...args: never[]) => any)()
-            content = await formInstance.render({
-              renderer,
-              resolver,
-              data: normalizedData,
-              layer: layerKey,
-              bindings: parsedBindings,
-            })
-          } else if (isPdfLayer) {
-            // PDF layers: fill the form first, then render with pdfRenderer
-            const mod = await rendererManager.loadModule('@paradoc/render/pdf')
-            const filledForm = formInstance.fill(normalizedData as Parameters<typeof formInstance.fill>[0])
-            const renderer = (mod.pdfRenderer as (...args: never[]) => any)()
-            content = await filledForm.render({
-              renderer,
-              resolver,
-              layer: layerKey,
-              bindings: parsedBindings,
-            })
-          } else if (isDocxLayer) {
-            // DOCX layers: use FormInstance.render() with docxRenderer
-            const mod = await rendererManager.loadModule('@paradoc/render/docx')
-            const renderer = (mod.docxRenderer as (...args: never[]) => any)()
-            content = await formInstance.render({
-              renderer,
-              resolver,
-              data: normalizedData,
-              layer: layerKey,
-              bindings: parsedBindings,
-            })
-          } else {
-            // Unsupported layer type for data rendering
-            console.error(kleur.yellow(`Warning: --data option is not supported for ${layer.mimeType} layers. Ignoring data.`))
-            content = await renderLayer(layers, layerKey, { resolver })
-          }
+          const mod = await rendererManager.loadModule('@paradoc/render')
+          const renderer = (mod.renderLayer as (...args: never[]) => any)()
+          content = await formInstance.render({
+            renderer,
+            resolver,
+            data: normalizedData,
+            layer: layerKey,
+            bindings: parsedBindings,
+          })
 
           // Log data source if not writing to file (when outputting to stdout)
           if (!options.out && format === 'pretty') {

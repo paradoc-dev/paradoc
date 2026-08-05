@@ -100,18 +100,14 @@ import type { ParadocToolsConfig } from "@paradoc/ai-tools";
 
 const config: ParadocToolsConfig = {
   defaultRegistryUrl: "https://public.paradoc.dev",
-  proxyTextRenderer: {
-    url: "https://your-documents-service.example.com",
-    apiKey: "your-api-key",
-  },
   fetch: customFetchWithAuth,
 };
 ```
 
 ### Edge compatibility
 
-- **PDF and DOCX renderers** work everywhere (pure JS)
-- **Text renderer** (Handlebars) requires Node.js. On edge runtimes, configure `proxyTextRenderer` to delegate to an HTTP service
+Text, PDF, and DOCX layers render locally in browsers, edge runtimes, and Node.js.
+No rendering proxy or runtime-specific configuration is required.
 
 ## Tools
 
