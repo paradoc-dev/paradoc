@@ -74,6 +74,17 @@ describe('PDF renderer parity', () => {
     expect(sourceText).toContain('(Ada) Tj')
   })
 
+  it('preserves PDFs without AcroForms when form data has no matching fields', async () => {
+    const source = await PDFDocument.create()
+    source.addPage([300, 300])
+    const output = await renderPdf({
+      template: await source.save(),
+      form: { fields: { email: { type: 'email' } } } as unknown as Form,
+      data: { email: 'a@b.co' },
+    })
+    expect((await PDFDocument.load(output)).getPageCount()).toBe(1)
+  })
+
   it('renders a transparent PNG image overlay without pdf-lib at runtime', async () => {
     const source = await PDFDocument.create()
     source.addPage([300, 300])
