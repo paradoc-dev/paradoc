@@ -1,8 +1,18 @@
 # @paradoc/render
 
 Dependency-light text, PDF, and DOCX rendering for Paradoc. It works in modern
-browsers and on the server. Use a format-specific entry point so an application
-only bundles the implementation it needs.
+browsers and on the server. For ordinary form rendering, use `renderLayer()`.
+It chooses the engine from the selected layer's MIME type and loads that engine
+only when needed.
+
+```ts
+import { renderLayer } from '@paradoc/render'
+
+const output = await filled.render({ renderer: renderLayer(), layer: 'final' })
+```
+
+Use a format-specific entry point for inspection, overlays, or other
+format-specific operations so an application only bundles that implementation.
 
 ```ts
 import { renderText } from '@paradoc/render/text'
@@ -10,8 +20,10 @@ import { renderPdf } from '@paradoc/render/pdf'
 import { renderDocx } from '@paradoc/render/docx'
 ```
 
-The package is additive. The existing `@paradoc/renderer-*` packages remain in
-place while consumers verify compatibility.
+`renderLayer()` supports `text/plain`, `text/markdown`, `text/html`,
+`application/pdf`, and DOCX Office MIME types. It fails loudly for an unknown
+MIME type rather than guessing. The existing `@paradoc/renderer-*` packages
+remain in place while consumers verify compatibility.
 
 ## Text templates
 

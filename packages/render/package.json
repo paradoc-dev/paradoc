@@ -87,9 +87,9 @@
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
-    "@paradoc/renderer-text": "workspace:*",
-    "@paradoc/renderer-pdf": "workspace:*",
     "@paradoc/renderer-docx": "workspace:*",
+    "@paradoc/renderer-pdf": "workspace:*",
+    "@paradoc/renderer-text": "workspace:*",
     "@paradoc/serialization": "workspace:^",
     "@paradoc/types": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
