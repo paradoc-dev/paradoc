@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import type { Form } from '@paradoc/types'
-import { flattenPdf, inspectAcroFormFields, inspectPdf, pdfRenderer, renderPdf } from '../src/pdf'
+import { flattenPdf, inspectAcroFormFields, inspectPdf, pdfRenderer, renderPdf, selectPdfPages } from '../src/pdf'
 import { compressedCheckboxPdf, pagePdf, textFieldsPdf } from './pdf-fixtures'
 
 const fixtures = ['pet-addendum.pdf', 'pet-addendum-2.pdf']
@@ -63,6 +63,31 @@ describe('PDF renderer behavior', () => {
         { page: 2, width: 612, height: 792 },
       ],
     })
+  })
+
+  it('selects requested PDF pages in source order without a heavyweight PDF dependency', async () => {
+    const selected = await selectPdfPages(pagePdf([[100, 200], [300, 400], [500, 600]]), [3, 1])
+
+    expect(await inspectPdf(selected)).toEqual({
+      pageCount: 2,
+      pages: [
+        { page: 1, width: 100, height: 200 },
+        { page: 2, width: 500, height: 600 },
+      ],
+    })
+  })
+
+  it('returns a byte-identical PDF when every page is selected', async () => {
+    const template = pagePdf([[100, 200], [300, 400]])
+    expect(await selectPdfPages(template, [1, 2])).toEqual(template)
+  })
+
+  it('rejects invalid PDF page selections', async () => {
+    const template = pagePdf([[100, 200]])
+    await expect(selectPdfPages(template, [])).rejects.toThrow('At least one PDF page')
+    await expect(selectPdfPages(template, [0])).rejects.toThrow('positive one-based')
+    await expect(selectPdfPages(template, [1, 1])).rejects.toThrow('must not contain duplicates')
+    await expect(selectPdfPages(template, [2])).rejects.toThrow('document has 1 pages')
   })
 
   it.each(fixtures)('inspects %s with the native PDF reader', async (fixture) => {

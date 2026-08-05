@@ -45,7 +45,8 @@ export function hostedSealAdapter(options: HostedSealAdapterOptions): SealAdapte
         },
         body: JSON.stringify({
           content_base64: encodeBase64(content),
-          mime_type: input.document.mimeType,
+          source_mime_type: input.document.mimeType,
+          target_mime_type: 'application/pdf',
         }),
       })
       if (!response.ok) {

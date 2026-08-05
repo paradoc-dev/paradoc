@@ -6,7 +6,8 @@ describe('hostedSealAdapter', () => {
     const pdf = new TextEncoder().encode('%PDF-test')
     const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as Record<string, string>
-      expect(body.mime_type).toBe('text/markdown')
+      expect(body.source_mime_type).toBe('text/markdown')
+      expect(body.target_mime_type).toBe('application/pdf')
       expect(atob(body.content_base64)).toBe('# Hello Ada')
       expect(init?.headers).toMatchObject({ 'x-api-key': 'test-key' })
       return Response.json({
