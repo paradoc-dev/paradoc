@@ -78,8 +78,8 @@ describe('CLI inspect command', () => {
     const pdf = path.join(fixturesDir, 'pet-addendum-bindings.pdf')
     const result = await executeCliCommand(['inspect', pdf, '--format', 'json'])
 
-    // If renderer-pdf is not installed this will fail with a renderer error,
-    // otherwise we get valid JSON output.
+    // A published CLI may install @paradoc/render on first use; either that
+    // succeeds and returns JSON or installation reports an actionable error.
     if (result.exitCode === 0) {
       const json = JSON.parse(result.stdout)
       expect(Array.isArray(json)).toBe(true)

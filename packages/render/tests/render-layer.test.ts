@@ -1,7 +1,8 @@
-import { PDFDocument } from 'pdf-lib'
 import { unzipSync, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { renderLayer } from '../src/index'
+import { inspectPdf } from '../src/pdf'
+import { pagePdf } from './pdf-fixtures'
 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
@@ -27,14 +28,12 @@ describe('renderLayer', () => {
   })
 
   it('chooses the PDF engine from application/pdf', async () => {
-    const source = await PDFDocument.create()
-    source.addPage([300, 300])
     const output = await renderLayer().render({
-      template: { type: 'pdf', mimeType: 'application/pdf', content: await source.save() },
+      template: { type: 'pdf', mimeType: 'application/pdf', content: pagePdf([[300, 300]]) },
       form,
       data: { fields: { name: 'Ada' } },
     } as never)
-    expect((await PDFDocument.load(output as Uint8Array)).getPageCount()).toBe(1)
+    expect((await inspectPdf(output as Uint8Array)).pageCount).toBe(1)
   })
 
   it('chooses the DOCX engine from the Office MIME type', async () => {

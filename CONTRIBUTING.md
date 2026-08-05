@@ -131,7 +131,7 @@ If your change affects a specific package, include it in the scope:
 
 ```
 feat(core): add validation utility
-fix(renderer-pdf): correct form field rendering
+fix(render): correct PDF form field rendering
 docs(schemas): update artifact schema documentation
 ```
 
@@ -146,10 +146,7 @@ packages/
 ├── types/             # Core types and interfaces
 ├── schemas/           # JSON Schema definitions
 ├── sdk/               # Umbrella SDK package
-├── renderers/         # All renderers (umbrella package)
-├── renderer-docx/     # DOCX renderer
-├── renderer-pdf/      # PDF renderer
-├── renderer-text/     # Text/HTML renderer
+├── render/            # Text, PDF, and DOCX rendering
 ├── typescript-config/ # Shared TypeScript config (internal)
 └── eslint-config/     # Shared ESLint config (internal)
 ```

@@ -495,7 +495,9 @@ Check `--verbose` output. Use `para fix` to auto-correct. Verify all field IDs i
 Check `para registry list` to verify the registry is configured. Inspect with `para registry info <namespace>`. Refresh auth tokens via `para configure`.
 
 **Render failures (`para render`)**
-Run `para renderers` to confirm renderer is available. Validate the artifact first. For PDF: ensure `renderer-pdf` is installed and rebuilt (build chain: core → renderer-pdf → renderers → sdk → cli).
+Run `para renderers status` to confirm `@paradoc/render` is available, then
+validate the artifact. In a workspace checkout, rebuild `render` before the SDK
+and CLI so their build-first outputs stay current.
 
 ## See Also
 

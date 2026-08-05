@@ -48,7 +48,9 @@ Total: {{total}}
 
 # Templates and Bindings
 
-Text-based layers (Markdown, HTML, plain text) use [Handlebars](https://handlebarsjs.com/) templating. Field values are inserted using `{{fieldName}}` syntax.
+Text-based layers (Markdown, HTML, plain text) use Paradoc's deterministic
+template syntax. Field values are inserted with `{{fieldName}}`; conditionals,
+loops, context blocks, and helpers are also supported.
 
 PDF layers work differently—they use **bindings** to map form fields to PDF form fields:
 

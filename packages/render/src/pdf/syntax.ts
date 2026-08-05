@@ -323,7 +323,9 @@ export class PdfModel {
         if (!Number.isInteger(object) || !Number.isInteger(offset)) continue
         try {
           const parser = new Parser(content, first + offset!)
-          this.objects.set(object!, { object: object!, generation: 0, value: parser.parse() })
+          if (!this.objects.has(object!)) {
+            this.objects.set(object!, { object: object!, generation: 0, value: parser.parse() })
+          }
         } catch {
           // A malformed member should not hide other readable AcroForm objects.
         }

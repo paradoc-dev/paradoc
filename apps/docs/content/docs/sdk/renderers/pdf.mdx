@@ -3,7 +3,9 @@ title: pdfRenderer
 description: Fill PDF forms with AcroForm field support
 ---
 
-Fill PDF forms by populating AcroForm fields with form data. Built on [pdf-lib](https://pdf-lib.js.org/), supporting text fields, checkboxes, dropdowns, and radio buttons with automatic field serialization.
+Fill PDF forms with Paradoc's dependency-light PDF implementation. It supports
+AcroForm text fields, checkboxes, dropdowns, and radio buttons with automatic
+field serialization, plus coordinate-based text and image overlays.
 
 # Example
 
@@ -59,13 +61,7 @@ fs.writeFileSync('w9-filled.pdf', output)
 
 # Import
 
-From the umbrella package:
-
-```ts
-import { pdfRenderer } from '@paradoc/render/pdf'
-```
-
-Or from the individual package:
+From the unified package's PDF entry point:
 
 ```ts
 import { pdfRenderer } from '@paradoc/render/pdf'

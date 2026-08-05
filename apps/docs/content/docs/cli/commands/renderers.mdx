@@ -2,7 +2,7 @@
 title: renderers
 description: Manage renderer plugins
 ogTitle: para renderers
-ogDescription: Manage Paradoc CLI renderer plugins for PDF, text, and DOCX output
+ogDescription: Manage the Paradoc CLI renderer package
 ---
 
 Manages renderer plugins used by the `render` and `inspect` commands.
@@ -15,15 +15,15 @@ para renderers <command>
 
 # Overview
 
-Renderers are not bundled with the CLI to keep the base install small (~1.1 MB). Instead, they are installed on demand the first time you run `render` or `inspect`. Installed renderers are cached in `~/.paradoc/renderers/`.
+`@paradoc/render` is not bundled with the CLI. It is installed on demand the
+first time you run `render` or `inspect`, then cached in
+`~/.paradoc/renderers/`.
 
 Available renderers:
 
-| Renderer | Used for | Heavy dependency |
-|----------|----------|-----------------|
-| `@paradoc/render/text` | Text/Markdown/HTML layers | handlebars |
-| `@paradoc/render/pdf` | PDF layers, `inspect` command | pdf-lib |
-| `@paradoc/render/docx` | DOCX layers | docx-templates |
+| Package | Used for | Runtime dependency |
+|---------|----------|--------------------|
+| `@paradoc/render` | Text, Markdown, HTML, PDF, DOCX, and `inspect` | `fflate` |
 
 # Subcommands
 
@@ -75,17 +75,17 @@ para renderers install [name]
 
 | Argument | Description |
 |----------|-------------|
-| `name` | Renderer to install: `text`, `pdf`, or `docx` (optional; installs all if omitted) |
+| `name` | `render`, `text`, `pdf`, or `docx` (all resolve to the unified package) |
 
 ## Examples
 
-Install all renderers:
+Install the renderer:
 
 ```bash
 para renderers install
 ```
 
-Install only the PDF renderer:
+The format aliases install the same unified package:
 
 ```bash
 para renderers install pdf
@@ -105,7 +105,7 @@ para renderers remove [name]
 
 | Argument | Description |
 |----------|-------------|
-| `name` | Renderer to remove: `text`, `pdf`, or `docx` (optional; removes all if omitted) |
+| `name` | `render`, `text`, `pdf`, or `docx` (all resolve to the unified package) |
 
 ---
 

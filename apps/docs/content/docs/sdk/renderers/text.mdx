@@ -3,7 +3,10 @@ title: textRenderer
 description: Render Paradoc artifacts to text-based formats
 ---
 
-Render forms to text-based outputs like HTML, Markdown, or plain text using [Handlebars](https://handlebarsjs.com/) templating. Field values are automatically serialized based on their schema types.
+Render forms to HTML, Markdown, or plain text with Paradoc's deterministic
+template syntax. It supports interpolation, nested paths, conditionals, loops,
+context blocks, and helpers without executing arbitrary JavaScript. Field
+values are automatically serialized from their schema types.
 
 # Example
 
@@ -273,34 +276,6 @@ const output = await form.fill(data).render({
 | `text` | `[SIGNATURE REQUIRED]` | `[Signature captured]` |
 | `html` | `<span class="signature-placeholder">...</span>` | `<img src="data:..." alt="Signature" class="signature-image" />` |
 | `markdown` | `_[SIGNATURE REQUIRED]_` | `![Signature](data:...)` |
-
-## Standalone Helper Registration
-
-For advanced use cases, you can register the helpers manually with a Handlebars instance:
-
-```ts
-import Handlebars from 'handlebars'
-import { registerSignatureHelpers } from '@paradoc/render/text'
-
-const hbs = Handlebars.create()
-registerSignatureHelpers(hbs, { format: 'html' })
-
-// Template must iterate over parties to provide context
-const template = hbs.compile(`
-  {{#each parties.tenant}}
-  Signature: {{signature "final-sig"}}
-  {{/each}}
-`)
-
-// Data must include augmented parties with _role, signatories, _signers, and _captures
-const output = template({
-  parties: {
-    tenant: [{ _role: 'tenant', id: 'tenant-0', signatories: [...] }]
-  },
-  _signers: { /* signer registry */ },
-  _captures: [ /* capture events */ ]
-})
-```
 
 # Related
 

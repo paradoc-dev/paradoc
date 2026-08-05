@@ -112,15 +112,16 @@ The CLI will error if a referenced environment variable is not set. This works i
 
 # Renderer plugins
 
-Renderers are not bundled with the CLI to keep the base install small (~1.1 MB). The first time you run [`render`](/cli/commands/render) or [`inspect`](/cli/commands/inspect), the required renderer is automatically installed to `~/.paradoc/renderers/`.
+The renderer is not bundled with the CLI to keep the base install small. The
+first time you run [`render`](/cli/commands/render) or
+[`inspect`](/cli/commands/inspect), `@paradoc/render` is installed to
+`~/.paradoc/renderers/`.
 
-Three renderers are available:
+One package provides MIME-driven rendering and format-specific entry points:
 
-| Renderer | Formats |
-|----------|---------|
-| `@paradoc/render/text` | Text, Markdown, HTML |
-| `@paradoc/render/pdf` | PDF |
-| `@paradoc/render/docx` | DOCX |
+| Package | Formats |
+|---------|---------|
+| `@paradoc/render` | Text, Markdown, HTML, PDF, and DOCX |
 
 Manage renderers manually with [`para renderers`](/cli/commands/renderers):
 

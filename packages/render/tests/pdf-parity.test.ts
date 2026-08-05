@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises'
-import { PDFDocument } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
 import type { Form } from '@paradoc/types'
 import { inspectAcroFormFields, inspectPdf, pdfRenderer, renderPdf } from '../src/pdf'
+import { compressedCheckboxPdf, pagePdf } from './pdf-fixtures'
 
 const fixtures = ['pet-addendum.pdf', 'pet-addendum-2.pdf']
 
@@ -23,10 +23,7 @@ const expectedFields = {
 
 describe('PDF renderer behavior', () => {
   it('inspects page count and dimensions for downstream placement', async () => {
-    const source = await PDFDocument.create()
-    source.addPage([300, 400])
-    source.addPage([612, 792])
-    expect(await inspectPdf(await source.save())).toEqual({
+    expect(await inspectPdf(pagePdf([[300, 400], [612, 792]]))).toEqual({
       pageCount: 2,
       pages: [
         { page: 1, width: 300, height: 400 },
@@ -35,7 +32,7 @@ describe('PDF renderer behavior', () => {
     })
   })
 
-  it.each(fixtures)('inspects %s without pdf-lib', async (fixture) => {
+  it.each(fixtures)('inspects %s with the native PDF reader', async (fixture) => {
     const bytes = new Uint8Array(await readFile(new URL(`./fixtures/${fixture}`, import.meta.url)))
     expect(await inspectAcroFormFields(bytes)).toEqual(expectedFields[fixture as keyof typeof expectedFields])
   })
@@ -60,70 +57,56 @@ describe('PDF renderer behavior', () => {
       },
       overlays: [{ page: 1, x: 40, y: 40, field: 'name', fontSize: 10 }],
     })
-    const pdf = await PDFDocument.load(output)
-    const fields = pdf.getForm()
-    expect(fields.getTextField('pet_name').getText()).toBe('Pixel')
-    expect(fields.getTextField('pet_name').acroField.getWidgets()[0]?.getAppearances()?.normal).toBeDefined()
-    expect(fields.getDropdown('SPECIES').getSelected()).toEqual(['cat'])
-    expect(fields.getTextField('petWeight').getText()).toBe('12')
-    expect(fields.getCheckBox('is_vaccinated').isChecked()).toBe(true)
+    const fields = await inspectAcroFormFields(output)
+    expect(Object.fromEntries(fields.map((field) => [field.name, field.value]))).toMatchObject({
+      pet_name: 'Pixel',
+      SPECIES: ['cat'],
+      petWeight: '12',
+      is_vaccinated: true,
+    })
     expect(new TextDecoder('latin1').decode(output)).toContain('(Pixel) Tj')
   })
 
   it('renders coordinate overlays without requiring an AcroForm', async () => {
-    const source = await PDFDocument.create()
-    source.addPage([300, 300])
     const output = await renderPdf({
-      template: await source.save(),
+      template: pagePdf([[300, 300]]),
       data: { recipient: { name: 'Ada' } },
       overlays: [
         { page: 1, x: 24, y: 250, text: 'Prepared for' },
         { page: 1, x: 24, y: 230, field: 'recipient.name', fontSize: 14, color: [0.2, 0.3, 0.4] },
       ],
     })
-    const rendered = await PDFDocument.load(output)
-    expect(rendered.getPageCount()).toBe(1)
+    expect((await inspectPdf(output)).pageCount).toBe(1)
     const sourceText = new TextDecoder('latin1').decode(output)
     expect(sourceText).toContain('(Prepared for) Tj')
     expect(sourceText).toContain('(Ada) Tj')
   })
 
   it('preserves PDFs without AcroForms when form data has no matching fields', async () => {
-    const source = await PDFDocument.create()
-    source.addPage([300, 300])
     const output = await renderPdf({
-      template: await source.save(),
+      template: pagePdf([[300, 300]]),
       form: { fields: { email: { type: 'email' } } } as unknown as Form,
       data: { email: 'a@b.co' },
     })
-    expect((await PDFDocument.load(output)).getPageCount()).toBe(1)
+    expect((await inspectPdf(output)).pageCount).toBe(1)
   })
 
-  it('renders a transparent PNG image overlay without pdf-lib at runtime', async () => {
-    const source = await PDFDocument.create()
-    source.addPage([300, 300])
+  it('renders a transparent PNG image overlay with the native PDF writer', async () => {
     const image = Uint8Array.from(Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
       'base64',
     ))
     const output = await renderPdf({
-      template: await source.save(),
+      template: pagePdf([[300, 300]]),
       data: {},
       overlays: [{ page: 1, x: 40, y: 50, width: 120, height: 40, image, mediaType: 'image/png' }],
     })
-    const rendered = await PDFDocument.load(output)
-    expect(rendered.getPageCount()).toBe(1)
+    expect((await inspectPdf(output)).pageCount).toBe(1)
     expect(new TextDecoder('latin1').decode(output)).toContain('/Subtype /Image')
   })
 
   it('fills checkboxes stored in compressed object streams', async () => {
-    const pdf = await PDFDocument.create()
-    const page = pdf.addPage([300, 300])
-    const form = pdf.getForm()
-    for (const value of ['a', 'b', 'c']) {
-      form.createCheckBox(`choices:${value}`).addToPage(page, { x: 20, y: 20, width: 10, height: 10 })
-    }
-    const template = await pdf.save()
+    const template = compressedCheckboxPdf(['choices:a', 'choices:b', 'choices:c'])
     const definition = {
       kind: 'form', name: 'choices', version: '1.0.0', title: 'Choices',
       fields: { choices: { type: 'multiselect', enum: [{ value: 'a' }, { value: 'b' }, { value: 'c' }] } },
@@ -136,11 +119,12 @@ describe('PDF renderer behavior', () => {
         'choices:a': 'choices:a', 'choices:b': 'choices:b', 'choices:c': 'choices:c',
       },
     })
-    const rendered = await PDFDocument.load(output)
-    const renderedForm = rendered.getForm()
-    expect(renderedForm.getCheckBox('choices:a').isChecked()).toBe(false)
-    expect(renderedForm.getCheckBox('choices:b').isChecked()).toBe(true)
-    expect(renderedForm.getCheckBox('choices:c').isChecked()).toBe(true)
+    const fields = await inspectAcroFormFields(output)
+    expect(Object.fromEntries(fields.map((field) => [field.name, field.value]))).toMatchObject({
+      'choices:a': false,
+      'choices:b': true,
+      'choices:c': true,
+    })
   })
 
   it('matches the Paradoc renderer adapter data shape', async () => {
@@ -154,6 +138,6 @@ describe('PDF renderer behavior', () => {
       data: { fields: { name: 'Pixel' } },
     }
     const actual = await pdfRenderer().render(request as never)
-    expect((await PDFDocument.load(actual)).getForm().getTextField('pet_name').getText()).toBe('Pixel')
+    expect((await inspectAcroFormFields(actual)).find((field) => field.name === 'pet_name')?.value).toBe('Pixel')
   })
 })

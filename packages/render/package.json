@@ -76,7 +76,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "benchmark": "pnpm --silent run build >/dev/null && node scripts/benchmark.mjs",
-    "size-report": "pnpm --silent run build >/dev/null && node scripts/benchmark.mjs"
+    "size-report": "pnpm --silent run build >/dev/null && node scripts/size-report.mjs"
   },
   "peerDependencies": {
     "@paradoc/serialization": ">=0.2.0",
@@ -92,8 +92,8 @@
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "esbuild": "^0.27.2",
     "eslint": "catalog:",
-    "pdf-lib": "^1.17.1",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

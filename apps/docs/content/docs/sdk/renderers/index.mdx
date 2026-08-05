@@ -7,26 +7,16 @@ Renderers transform Paradoc artifacts into output formats like text, PDF, and DO
 
 # Installation
 
-Install all renderers via the umbrella package:
+Install the unified renderer package:
 
 ```bash
 npm install @paradoc/render
 ```
 
-Or install individual renderer packages:
-
-```bash
-npm install @paradoc/render/text
-npm install @paradoc/render/pdf
-npm install @paradoc/render/docx
-```
-
 # Usage
 
 ```ts
-import { textRenderer } from '@paradoc/render/text'
-// Or from individual package:
-// import { textRenderer } from '@paradoc/render/text'
+import { renderLayer } from '@paradoc/render'
 
 import { para } from '@paradoc/core'
 
@@ -57,7 +47,7 @@ const filled = form.fill({
 
 // Render the filled form
 const output = await filled.render({
-  renderer: textRenderer()
+  renderer: renderLayer()
 })
 // output: "Invoice for Acme Corp\nTotal: $1,500.00"
 ```
@@ -66,7 +56,7 @@ const output = await filled.render({
 
 | Package | Description |
 |---------|-------------|
-| [Text](/sdk/renderers/text) | Handlebars-based text templating for HTML, Markdown, plain text |
+| [Text](/sdk/renderers/text) | Deterministic text templating for HTML, Markdown, plain text |
 | [PDF](/sdk/renderers/pdf) | Fill PDF forms with AcroForm field support |
 | [DOCX](/sdk/renderers/docx) | Generate Word documents from templates |
 

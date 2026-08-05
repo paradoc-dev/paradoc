@@ -11,10 +11,8 @@ import { isSerializableFieldType } from "./field-detector";
  * Preprocesses render data by applying a custom wrapping strategy to serializable fields.
  * This enables renderers to implement their own wrapping behavior while reusing field detection.
  *
- * Strategy pattern: Each renderer passes its own wrapper function:
- * - renderer-text: wraps with toString() override
- * - renderer-docx: wraps with form field binding
- * - renderer-pdf: wraps with AcroForm field binding
+ * Strategy pattern: Each format implementation passes its own wrapper function
+ * for text templates, DOCX bindings, or PDF AcroForm bindings.
  *
  * @param data - Raw render data
  * @param schema - Form schema containing field type definitions

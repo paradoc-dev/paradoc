@@ -22,8 +22,7 @@ import { renderDocx } from '@paradoc/render/docx'
 
 `renderLayer()` supports `text/plain`, `text/markdown`, `text/html`,
 `application/pdf`, and DOCX Office MIME types. It fails loudly for an unknown
-MIME type rather than guessing. The existing `@paradoc/renderer-*` packages
-remain in place while consumers verify compatibility.
+MIME type rather than guessing.
 
 ## Text templates
 
@@ -104,11 +103,12 @@ templates also support the signature helpers `signature`, `initials`,
 
 ## Benchmarking
 
-From a repository checkout, run `pnpm benchmark` from this package to record a
-current text-rendering timing. The historical comparison captured before legacy
+From a repository checkout, run `pnpm benchmark` from this package to record
+current text, PDF, and DOCX timings. The historical comparison captured before legacy
 package retirement lives in `benchmarks/legacy-baseline.json`. The benchmark is
 intentionally separate from the unit-test gate, so timing variance does not
 make ordinary tests flaky. Set
 `PARADOC_BENCHMARK_ITERATIONS` to change the number of measured iterations.
-Use `pnpm size-report` when only the bundle and package-size comparison is
-needed.
+Set `PARADOC_BINARY_BENCHMARK_ITERATIONS` for PDF and DOCX iterations. Use
+`pnpm size-report` to verify browser bundles, server imports, and the exact npm
+tarball contents and sizes without publishing.
