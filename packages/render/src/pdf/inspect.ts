@@ -146,7 +146,8 @@ export async function inspectAcroFormFields(
       ? kids.filter((kid) => {
           const child = model.dict(kid)
           const subtype = child?.entries.get('Subtype')
-          return !(isName(subtype) && subtype.value === 'Widget')
+          const isWidget = isName(subtype) && subtype.value === 'Widget'
+          return !isWidget || child?.entries.has('T') || child?.entries.has('FT') || child?.entries.has('Kids')
         })
       : []
     if (childFields.length > 0) {

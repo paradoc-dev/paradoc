@@ -63,11 +63,18 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
     const typeName = stringValue(dict.entries.get('FT')) ?? inherited.fieldType
     const flags = typeof dict.entries.get('Ff') === 'number' ? dict.entries.get('Ff') as number : inherited.flags ?? 0
     const kids = model.resolve(dict.entries.get('Kids'))
+    const isChildField = (child: PdfValue) => {
+      const childDict = model.dict(child)
+      return widget(model, child) === undefined
+        || childDict?.entries.has('T')
+        || childDict?.entries.has('FT')
+        || childDict?.entries.has('Kids')
+    }
     const widgets = Array.isArray(kids)
-      ? kids.map((child) => widget(model, child)).filter((item): item is AcroWidget => item !== undefined)
+      ? kids.filter((child) => !isChildField(child)).map((child) => widget(model, child)).filter((item): item is AcroWidget => item !== undefined)
       : []
     const childFields = Array.isArray(kids)
-      ? kids.filter((child) => widget(model, child) === undefined)
+      ? kids.filter(isChildField)
       : []
     if (childFields.length > 0) {
       childFields.forEach((child) => visit(child, { name, fieldType: typeName, flags }))
