@@ -284,7 +284,7 @@ View package Changelogs for update.
 - [`@paradoc/schemas`](https://github.com/paradoc-dev/paradoc/blob/main/packages/schemas) - JSON Schema definitions
 - [`@paradoc/serialization`](https://github.com/paradoc-dev/paradoc/blob/main/packages/serialization) - Locale-aware formatting
 - [`@paradoc/resolvers`](https://github.com/paradoc-dev/paradoc/blob/main/packages/resolvers) - File and environment resolvers
-- [`@paradoc/renderers`](https://github.com/paradoc-dev/paradoc/blob/main/packages/renderers) - All renderers (PDF, DOCX, Text)
+- [`@paradoc/render`](https://github.com/paradoc-dev/paradoc/blob/main/packages/renderers) - All renderers (PDF, DOCX, Text)
 
 ## Contributing
 

@@ -270,7 +270,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 - [`@paradoc/sdk`](../sdk) - Complete framework with renderers
 - [`@paradoc/types`](../types) - TypeScript utilities and types
 - [`@paradoc/schemas`](../schemas) - JSON Schema definitions
-- [`@paradoc/renderers`](../renderers) - All renderers (PDF, DOCX, Text)
+- [`@paradoc/render`](../renderers) - All renderers (PDF, DOCX, Text)
 - [`@paradoc/resolvers`](../resolvers) - File and environment resolvers
 
 ## Contributing

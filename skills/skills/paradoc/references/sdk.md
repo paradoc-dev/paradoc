@@ -1,6 +1,6 @@
 ---
 name: sdk
-description: TypeScript SDK surface — @paradoc/core, @paradoc/sdk, @paradoc/renderers — builder vs object pattern, fill lifecycle, type inference, runtime phases
+description: TypeScript SDK surface — @paradoc/core, @paradoc/sdk, @paradoc/render — builder vs object pattern, fill lifecycle, type inference, runtime phases
 metadata:
   tags: sdk, typescript, builder, object-pattern, fill, safefill, lifecycle, type-inference, partialfill, signers
 ---
@@ -9,7 +9,7 @@ metadata:
 
 TypeScript API for defining and operating on Paradoc artifacts. Use this surface when:
 
-- Importing from `@paradoc/core`, `@paradoc/sdk`, `@paradoc/renderers`, `@paradoc/renderer-*`, `@paradoc/serialization`, `@paradoc/resolvers`
+- Importing from `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`, `@paradoc/renderer-*`, `@paradoc/serialization`, `@paradoc/resolvers`
 - Defining artifacts in code (not editing JSON/YAML directly)
 - Filling, validating, signing, or rendering at runtime in a Node.js / Bun / browser app
 
@@ -21,9 +21,9 @@ ALWAYS import from public entry points. NEVER from `@paradoc/core/dist/...` or o
 
 ```typescript
 import { para, type InferFormPayload } from "@paradoc/core";
-import { textRenderer } from "@paradoc/renderer-text";
-import { pdfRenderer } from "@paradoc/renderer-pdf";
-import { docxRenderer } from "@paradoc/renderer-docx";
+import { textRenderer } from "@paradoc/render/text";
+import { pdfRenderer } from "@paradoc/render/pdf";
+import { docxRenderer } from "@paradoc/render/docx";
 import { createFsResolver } from "@paradoc/resolvers";
 import { createSerializer, usaSerializers } from "@paradoc/serialization";
 ```
@@ -351,7 +351,7 @@ Fix: End builder chains with `.build()`. For object pattern, define artifact in 
 
 **Wrong import paths — module not found**
 Cause: Importing from internal sub-paths (e.g., `@paradoc/core/dist/fields`).
-Fix: ALWAYS import from package root: `@paradoc/core`, `@paradoc/sdk`, `@paradoc/renderers`.
+Fix: ALWAYS import from package root: `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`.
 
 **Builder vs object pattern mixing**
 Cause: Passing a `para.field.money().label(...)` builder inside an object-pattern artifact, or vice versa.

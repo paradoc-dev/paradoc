@@ -9,7 +9,9 @@
       "@paradoc/ai-tools": ["../ai-tools/src/index.ts"],
       "@paradoc/sdk": ["../sdk/src/index.ts"],
       "@paradoc/core": ["../core/src/index.ts"],
-      "@paradoc/renderers": ["../renderers/src/index.ts"],
+      "@paradoc/render": ["../render/src/index.ts"],
+      "@paradoc/render/*": ["../render/src/*"],
+      "@paradoc/types": ["../types/src/index.ts"],
       "@/*": ["../core/src/*"]
     }
   },

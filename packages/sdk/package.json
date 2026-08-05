@@ -1,7 +1,7 @@
 {
   "name": "@paradoc/sdk",
   "version": "0.3.0",
-  "description": "Umbrella package for Paradoc framework - re-exports @paradoc/core, @paradoc/renderers, and @paradoc/serialization",
+  "description": "Umbrella package for Paradoc framework - re-exports @paradoc/core, @paradoc/render, and @paradoc/serialization",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -61,7 +61,7 @@
   },
   "dependencies": {
     "@paradoc/core": "workspace:*",
-    "@paradoc/renderers": "workspace:*",
+    "@paradoc/render": "workspace:*",
     "@paradoc/serialization": "workspace:*",
     "@paradoc/sessions": "workspace:*"
   },

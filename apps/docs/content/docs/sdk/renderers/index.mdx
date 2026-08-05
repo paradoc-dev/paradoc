@@ -10,23 +10,23 @@ Renderers transform Paradoc artifacts into output formats like text, PDF, and DO
 Install all renderers via the umbrella package:
 
 ```bash
-npm install @paradoc/renderers
+npm install @paradoc/render
 ```
 
 Or install individual renderer packages:
 
 ```bash
-npm install @paradoc/renderer-text
-npm install @paradoc/renderer-pdf
-npm install @paradoc/renderer-docx
+npm install @paradoc/render/text
+npm install @paradoc/render/pdf
+npm install @paradoc/render/docx
 ```
 
 # Usage
 
 ```ts
-import { textRenderer } from '@paradoc/renderers'
+import { textRenderer } from '@paradoc/render/text'
 // Or from individual package:
-// import { textRenderer } from '@paradoc/renderer-text'
+// import { textRenderer } from '@paradoc/render/text'
 
 import { para } from '@paradoc/core'
 

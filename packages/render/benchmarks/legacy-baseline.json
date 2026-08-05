@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-08-04",
+  "node": "26.5.0",
+  "legacy_comparison": {
+    "text_render_ms": { "unified": 0.022, "legacy": 0.324 },
+    "pdf_fill_ms": { "unified": 0.324, "legacy": 1.085 },
+    "docx_render_ms": { "unified": 0.892, "legacy": 3.742 },
+    "cold_import_ms": { "text": [1.74, 9.496], "pdf": [4.486, 27.924], "docx": [4.589, 13.482] }
+  },
+  "note": "Historical comparison retained after legacy package retirement. Timings are environment-sensitive."
+}

@@ -108,7 +108,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 
 - [`@paradoc/sdk`](../sdk) - Complete framework with renderers
 - [`@paradoc/core`](../core) - Core builders and validation
-- [`@paradoc/renderers`](../renderers) - PDF, DOCX, and Text renderers
+- [`@paradoc/render`](../renderers) - PDF, DOCX, and Text renderers
 
 ## Contributing
 

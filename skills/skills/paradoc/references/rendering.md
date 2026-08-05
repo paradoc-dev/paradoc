@@ -16,17 +16,17 @@ Paradoc renders artifacts to text (Markdown / HTML / plain text), PDF, and DOCX.
 ### Installation
 
 ```bash
-npm install @paradoc/renderer-text @paradoc/renderer-pdf @paradoc/renderer-docx
+npm install @paradoc/render/text @paradoc/render/pdf @paradoc/render/docx
 # or via the umbrella
-npm install @paradoc/renderers
+npm install @paradoc/render
 ```
 
 ### Pattern 1: form.fill().render() (recommended)
 
 ```typescript
-import { textRenderer } from "@paradoc/renderer-text";
-import { pdfRenderer } from "@paradoc/renderer-pdf";
-import { docxRenderer } from "@paradoc/renderer-docx";
+import { textRenderer } from "@paradoc/render/text";
+import { pdfRenderer } from "@paradoc/render/pdf";
+import { docxRenderer } from "@paradoc/render/docx";
 import { createFsResolver } from "@paradoc/resolvers";
 
 const resolver = createFsResolver({ root: process.cwd() });
@@ -60,9 +60,9 @@ fs.writeFileSync("output.docx", docx);
 ### Pattern 2: direct render functions
 
 ```typescript
-import { renderText } from "@paradoc/renderer-text";
-import { renderPdf } from "@paradoc/renderer-pdf";
-import { renderDocx } from "@paradoc/renderer-docx";
+import { renderText } from "@paradoc/render/text";
+import { renderPdf } from "@paradoc/render/pdf";
+import { renderDocx } from "@paradoc/render/docx";
 
 // Text — synchronous
 const text = renderText({
@@ -176,7 +176,7 @@ const output = await form.fill(data).render({
 ### SDK
 
 ```typescript
-import { inspectAcroFormFields } from "@paradoc/renderer-pdf";
+import { inspectAcroFormFields } from "@paradoc/render/pdf";
 
 const fields = await inspectAcroFormFields(template);
 // => [{ name: "PDF_MonthlyRent", type: "text", ... }, ...]

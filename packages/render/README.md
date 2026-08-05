@@ -104,11 +104,11 @@ templates also support the signature helpers `signature`, `initials`,
 
 ## Benchmarking
 
-From a repository checkout, run `pnpm benchmark` from this package to compare the supported render paths
-with their legacy counterparts and print timing, cold-import, browser-bundle,
-and package-size measurements. The benchmark uses committed PDF and DOCX
-fixtures and is intentionally separate from the unit-test gate, so timing
-variance does not make ordinary tests flaky. Set
+From a repository checkout, run `pnpm benchmark` from this package to record a
+current text-rendering timing. The historical comparison captured before legacy
+package retirement lives in `benchmarks/legacy-baseline.json`. The benchmark is
+intentionally separate from the unit-test gate, so timing variance does not
+make ordinary tests flaky. Set
 `PARADOC_BENCHMARK_ITERATIONS` to change the number of measured iterations.
 Use `pnpm size-report` when only the bundle and package-size comparison is
 needed.

@@ -93,9 +93,9 @@ export interface ParadocRendererContext {
  * Renderer plugin interface.
  *
  * Implement this in packages like:
- *   - @paradoc/renderer-text
- *   - @paradoc/renderer-docx
- *   - @paradoc/renderer-pdf
+ *   - @paradoc/render/text
+ *   - @paradoc/render/docx
+ *   - @paradoc/render/pdf
  */
 export interface ParadocRenderer<
   Input extends RendererLayer = RendererLayer,

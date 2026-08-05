@@ -13,7 +13,7 @@ export default defineConfig({
 		'@paradoc/ai-tools',
 		'@paradoc/sdk',
 		'@paradoc/core',
-		'@paradoc/renderers',
+		'@paradoc/render',
 		'@tanstack/ai',
 		'zod',
 	],

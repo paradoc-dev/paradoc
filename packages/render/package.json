@@ -76,7 +76,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "benchmark": "pnpm --silent run build >/dev/null && node scripts/benchmark.mjs",
-    "size-report": "pnpm --silent run build >/dev/null && node scripts/benchmark.mjs --size-only"
+    "size-report": "pnpm --silent run build >/dev/null && node scripts/benchmark.mjs"
   },
   "peerDependencies": {
     "@paradoc/serialization": ">=0.2.0",
@@ -87,9 +87,6 @@
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
-    "@paradoc/renderer-docx": "workspace:*",
-    "@paradoc/renderer-pdf": "workspace:*",
-    "@paradoc/renderer-text": "workspace:*",
     "@paradoc/serialization": "workspace:^",
     "@paradoc/types": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",

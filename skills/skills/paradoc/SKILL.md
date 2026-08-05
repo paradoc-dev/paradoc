@@ -3,8 +3,8 @@ name: paradoc
 description: >
   Paradoc — documents-as-code framework for type-safe artifacts (forms, documents,
   bundles, checklists). Activate for any work across all Paradoc surfaces:
-  TypeScript SDK (@paradoc/core, @paradoc/sdk, @paradoc/renderers, @paradoc/serialization,
-  @paradoc/resolvers, @paradoc/renderer-pdf, @paradoc/renderer-text, @paradoc/renderer-docx),
+  TypeScript SDK (@paradoc/core, @paradoc/sdk, @paradoc/render, @paradoc/serialization,
+  @paradoc/resolvers, @paradoc/render/pdf, @paradoc/render/text, @paradoc/render/docx),
   the para CLI (npx paradoc, para init, para new, para validate, para render, para add,
   para inspect), raw JSON/YAML artifacts (form.json, schema.paradoc.dev), and the
   remote MCP service (mcp.paradoc.dev). Also handles end-to-end workflows: creating

@@ -9,7 +9,7 @@ Fill PDF forms by populating AcroForm fields with form data. Built on [pdf-lib](
 
 ```ts
 import { para } from '@paradoc/core'
-import { pdfRenderer } from '@paradoc/renderer-pdf'
+import { pdfRenderer } from '@paradoc/render/pdf'
 
 const form = para.form({
   name: 'w9',
@@ -62,13 +62,13 @@ fs.writeFileSync('w9-filled.pdf', output)
 From the umbrella package:
 
 ```ts
-import { pdfRenderer } from '@paradoc/renderers'
+import { pdfRenderer } from '@paradoc/render/pdf'
 ```
 
 Or from the individual package:
 
 ```ts
-import { pdfRenderer } from '@paradoc/renderer-pdf'
+import { pdfRenderer } from '@paradoc/render/pdf'
 ```
 
 # API
@@ -175,7 +175,7 @@ async function inspectAcroFormFields(
 Use `inspectAcroFormFields()` to discover field names in a PDF template:
 
 ```ts
-import { inspectAcroFormFields } from '@paradoc/renderer-pdf'
+import { inspectAcroFormFields } from '@paradoc/render/pdf'
 import fs from 'fs'
 
 const template = fs.readFileSync('form.pdf')

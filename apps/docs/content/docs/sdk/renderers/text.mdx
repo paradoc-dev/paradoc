@@ -9,7 +9,7 @@ Render forms to text-based outputs like HTML, Markdown, or plain text using [Han
 
 ```ts
 import { para } from '@paradoc/core'
-import { textRenderer } from '@paradoc/renderer-text'
+import { textRenderer } from '@paradoc/render/text'
 
 const form = para.form({
   name: 'receipt',
@@ -58,13 +58,13 @@ const output = await filled.render({
 From the umbrella package:
 
 ```ts
-import { textRenderer } from '@paradoc/renderers'
+import { textRenderer } from '@paradoc/render/text'
 ```
 
 Or from the individual package:
 
 ```ts
-import { textRenderer } from '@paradoc/renderer-text'
+import { textRenderer } from '@paradoc/render/text'
 ```
 
 # API
@@ -178,7 +178,7 @@ const output = await filled.render({
 Use custom serializers for different locales or formatting preferences:
 
 ```ts
-import { textRenderer } from '@paradoc/renderer-text'
+import { textRenderer } from '@paradoc/render/text'
 import { euSerializers } from '@paradoc/serialization'
 
 const renderer = textRenderer({
@@ -280,7 +280,7 @@ For advanced use cases, you can register the helpers manually with a Handlebars 
 
 ```ts
 import Handlebars from 'handlebars'
-import { registerSignatureHelpers } from '@paradoc/renderer-text'
+import { registerSignatureHelpers } from '@paradoc/render/text'
 
 const hbs = Handlebars.create()
 registerSignatureHelpers(hbs, { format: 'html' })

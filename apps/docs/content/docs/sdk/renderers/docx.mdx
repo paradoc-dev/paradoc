@@ -9,7 +9,7 @@ Render forms to DOCX (Word) documents using template placeholders. Built on [doc
 
 ```ts
 import { para } from '@paradoc/core'
-import { docxRenderer } from '@paradoc/renderer-docx'
+import { docxRenderer } from '@paradoc/render/docx'
 
 const form = para.form({
   name: 'contract',
@@ -51,13 +51,13 @@ fs.writeFileSync('contract-filled.docx', output)
 From the umbrella package:
 
 ```ts
-import { docxRenderer } from '@paradoc/renderers'
+import { docxRenderer } from '@paradoc/render/docx'
 ```
 
 Or from the individual package:
 
 ```ts
-import { docxRenderer } from '@paradoc/renderer-docx'
+import { docxRenderer } from '@paradoc/render/docx'
 ```
 
 # API
@@ -173,7 +173,7 @@ When a form schema is provided, field values are automatically serialized:
 Use custom serializers for different locales:
 
 ```ts
-import { renderDocx } from '@paradoc/renderer-docx'
+import { renderDocx } from '@paradoc/render/docx'
 import { euSerializers } from '@paradoc/serialization'
 
 const output = await renderDocx({
