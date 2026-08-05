@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import type { Form } from '@paradoc/types'
-import { inspectAcroFormFields, inspectPdf, pdfRenderer, renderPdf } from '../src/pdf'
+import { flattenPdf, inspectAcroFormFields, inspectPdf, pdfRenderer, renderPdf } from '../src/pdf'
 import { compressedCheckboxPdf, pagePdf } from './pdf-fixtures'
 
 const fixtures = ['pet-addendum.pdf', 'pet-addendum-2.pdf']
@@ -65,6 +65,27 @@ describe('PDF renderer behavior', () => {
       is_vaccinated: true,
     })
     expect(new TextDecoder('latin1').decode(output)).toContain('(Pixel) Tj')
+  })
+
+  it('flattens filled AcroForm appearances into non-interactive page content', async () => {
+    const template = new Uint8Array(await readFile(new URL('./fixtures/pet-addendum-2.pdf', import.meta.url)))
+    const filled = await renderPdf({
+      template,
+      data: { pet_name: 'Pixel', is_vaccinated: true },
+    })
+
+    const flattened = await flattenPdf(filled)
+
+    expect(await inspectAcroFormFields(flattened)).toEqual([])
+    expect((await inspectPdf(flattened)).pageCount).toBe(1)
+    const source = new TextDecoder('latin1').decode(flattened)
+    expect(source).toContain('/PdrA0 Do')
+    expect(source).not.toMatch(/\/AcroForm\s+\d+\s+\d+\s+R(?=[^]*startxref[^]*%%EOF$)/)
+  })
+
+  it('leaves ordinary PDFs byte-for-byte unchanged when flattening is unnecessary', async () => {
+    const template = pagePdf([[300, 300]])
+    expect(await flattenPdf(template)).toEqual(template)
   })
 
   it('renders coordinate overlays without requiring an AcroForm', async () => {

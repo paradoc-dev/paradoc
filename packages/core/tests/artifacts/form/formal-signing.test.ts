@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { form, runtimeFormFromJSON } from '@/artifacts'
 import type { DraftForm, SignableForm } from '@/artifacts'
-import type { Sealer, SigningField, Signer, SignatureBlock, AnchorBlock } from '@paradoc/types'
+import type { SealAdapter, Sealer, SigningField, Signer, SignatureBlock, AnchorBlock } from '@paradoc/types'
 import { fromYAML } from '@/serialization'
 
 /**
@@ -364,8 +364,11 @@ describe('Formal Signing', () => {
 	// ============================================================================
 
 	describe('DraftForm.seal - Validation', () => {
-		test('throws error on non-PDF-convertible layer', async () => {
-			// Create a form with a PDF layer (which cannot be converted TO PDF)
+		test('seals a PDF layer locally without an adapter', async () => {
+			const pdf = Uint8Array.from(Buffer.from(
+				'JVBERi0xLjUKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMzAwXSAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNCAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjAzCiUlRU9GCg==',
+				'base64',
+			))
 			const formDef = form()
 				.name('pdf-form')
 				.version('1.0.0')
@@ -380,7 +383,15 @@ describe('Formal Signing', () => {
 						signature: { required: true },
 					},
 				})
-				.inlineLayer('pdf', { mimeType: 'application/pdf', text: 'PDF content' })
+				.fileLayer('pdf', {
+					mimeType: 'application/pdf',
+					path: '/forms/pdf-form.pdf',
+					signatureBlocks: {
+						'signer-signature': {
+							type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer',
+						},
+					},
+				})
 				.defaultLayer('pdf')
 				.build()
 
@@ -392,9 +403,56 @@ describe('Formal Signing', () => {
 				.addSigner('test-signer', { person: { name: 'Test Signer' } })
 				.addSignatory('signer', 'signer-0', { signerId: 'test-signer' })
 
-			await expect(draft.seal(createMockAdapter())).rejects.toThrow(
-				/layer "pdf" has no signatureBlocks.*and is not PDF-convertible/
-			)
+			const sealed = await draft.seal({ resolver: { read: async () => pdf } })
+
+			expect(sealed.canonicalPdfBytes).toEqual(pdf)
+			expect(sealed.canonicalPdfHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+			expect(sealed.signatureMap).toHaveLength(1)
+			expect(sealed.isFormal).toBe(true)
+		})
+
+		test('renders a non-PDF layer before passing it to the conversion adapter', async () => {
+			const pdf = Uint8Array.from(Buffer.from(
+				'JVBERi0xLjUKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMzAwXSAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNCAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjAzCiUlRU9GCg==',
+				'base64',
+			))
+			let receivedMimeType: string | undefined
+			let receivedContent: string | Uint8Array | undefined
+			const adapter: SealAdapter = {
+				async convert(request) {
+					receivedMimeType = request.document.mimeType
+					receivedContent = request.document.content
+					return { pdf }
+				},
+			}
+			const formDef = form()
+				.name('markdown-form')
+				.version('1.0.0')
+				.title('Markdown Form')
+				.fields({ name: { type: 'text', label: 'Name' } })
+				.parties({ signer: { label: 'Signer', types: ['person'], signature: { required: true } } })
+				.inlineLayer('markdown', {
+					mimeType: 'text/markdown',
+					text: '# Hello {{name}}',
+					signatureBlocks: {
+						'signer-signature': {
+							type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer',
+						},
+					},
+				})
+				.defaultLayer('markdown')
+				.build()
+			const draft = formDef
+				.fill({ fields: { name: 'Ada' }, parties: { signer: { id: 'signer-0', name: 'Ada' } } })
+				.addSigner('ada', { person: { name: 'Ada' } })
+				.addSignatory('signer', 'signer-0', { signerId: 'ada' })
+
+			const sealed = await draft.seal({ adapter })
+
+			expect(receivedMimeType).toBe('text/markdown')
+			expect(receivedContent).toContain('# Hello Ada')
+			expect(sealed.canonicalPdfBytes).toEqual(pdf)
+			expect(sealed.canonicalPdfHash).toMatch(/^sha256:[a-f0-9]{64}$/)
 		})
 
 		test('throws error when no parties exist', async () => {
@@ -921,7 +979,7 @@ describe('Formal Signing', () => {
 				async seal(req) {
 					capturedRequest = req
 					return {
-						signatureMap: [],
+						signatureMap: req.anchorFields ?? [],
 						canonicalPdfHash: 'sha256:spy',
 					}
 				},
@@ -1013,17 +1071,20 @@ describe('Formal Signing', () => {
 			expect(capturedFields?.[0]?.type).toBe('date_signed')
 		})
 
-		test('neither signatureBlocks nor anchorBlocks on non-PDF-convertible layer throws actionable error', async () => {
+		test('a non-PDF layer requires an adapter', async () => {
 			const formDef = form()
-				.name('no-blocks-pdf')
+				.name('no-blocks-docx')
 				.version('1.0.0')
-				.title('No Blocks PDF')
+				.title('No Blocks DOCX')
 				.fields({ name: { type: 'text', label: 'Name' } })
 				.parties({
 					signer: { label: 'Signer', types: ['person'], signature: { required: true } },
 				})
-				.inlineLayer('pdf', { mimeType: 'application/pdf', text: 'PDF content' })
-				.defaultLayer('pdf')
+				.inlineLayer('docx', {
+					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+					text: 'DOCX content',
+				})
+				.defaultLayer('docx')
 				.build()
 
 			const draft = formDef
@@ -1031,8 +1092,8 @@ describe('Formal Signing', () => {
 				.addSigner('s-sig', { person: { name: 'Signer' } })
 				.addSignatory('signer', 'signer-0', { signerId: 's-sig' })
 
-			await expect(draft.seal(createMockAdapter())).rejects.toThrow(
-				/no signatureBlocks.*no anchorBlocks.*not PDF-convertible/,
+			await expect(draft.seal()).rejects.toThrow(
+				/Cannot seal .* without an adapter/,
 			)
 		})
 

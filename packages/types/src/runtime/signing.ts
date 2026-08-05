@@ -129,6 +129,29 @@ export interface SealingResult {
 	canonicalPdfBytes?: Uint8Array
 }
 
+/** A rendered native layer supplied to a non-PDF sealing adapter. */
+export interface SealAdapterDocument {
+	content: string | Uint8Array
+	mimeType: string
+}
+
+/** Input to an adapter that converts a rendered layer into a PDF. */
+export interface SealAdapterRequest<F extends Form = Form> extends SealingRequest<F> {
+	document: SealAdapterDocument
+}
+
+/** Adapter output. Core flattens and hashes these PDF bytes after conversion. */
+export interface SealAdapterResult {
+	pdf: Uint8Array
+	/** Resolved fields for anchor/extraction modes, when applicable. */
+	signatureMap?: SigningField[]
+}
+
+/** Converts a rendered non-PDF document into PDF for the common sealing pipeline. */
+export interface SealAdapter {
+	convert<F extends Form>(request: SealAdapterRequest<F>): Promise<SealAdapterResult>
+}
+
 // ============================================================================
 // Adapter Interface
 // ============================================================================

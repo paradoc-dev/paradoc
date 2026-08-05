@@ -595,6 +595,10 @@ export type {
 	SigningField,
 	SealingRequest,
 	SealingResult,
+	SealAdapterDocument,
+	SealAdapterRequest,
+	SealAdapterResult,
+	SealAdapter,
 	Sealer,
 	// Legacy aliases (deprecated)
 	FormalSigningRequest,

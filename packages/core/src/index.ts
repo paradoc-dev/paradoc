@@ -76,6 +76,7 @@ export type {
   FieldKeys,
   PartyRoleKeys,
   CaptureOptions,
+  SealOptions,
   // Document types
   DocumentInstance,
   RuntimeDocument,
@@ -468,6 +469,10 @@ export type {
   SigningField,
   SealingRequest,
   SealingResult,
+  SealAdapterDocument,
+  SealAdapterRequest,
+  SealAdapterResult,
+  SealAdapter,
   Sealer,
   // Legacy aliases (deprecated)
   FormalSigningRequest,

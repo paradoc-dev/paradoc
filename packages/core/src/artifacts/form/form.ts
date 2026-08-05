@@ -28,12 +28,16 @@ import type {
 	SignableFormJSON,
 	ExecutedFormJSON,
 	Sealer,
+	SealAdapter,
 	SealingRequest,
 	DefsSection,
 	Expression,
 	Attachment,
 	ContentRef,
+	Resolver,
 } from '@paradoc/types'
+import { renderLayer as createRenderer } from '@paradoc/render'
+import { flattenPdf } from '@paradoc/render/pdf'
 import {
 	parseForm,
 	parseFormField,
@@ -108,6 +112,13 @@ export type PartyRoleKeys<F> = ExtractFormSchema<F> extends { parties: infer P }
 		? keyof P & string
 		: string
 	: string
+
+export interface SealOptions {
+	/** Adapter required when the target layer is not already a PDF. */
+	adapter?: SealAdapter
+	/** Resolves file-backed target layers before sealing. */
+	resolver?: Resolver
+}
 
 /**
  * Extracts parties record type with actual keys from a form type.
@@ -503,6 +514,7 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 
 	/** No canonical hash in draft */
 	readonly canonicalPdfHash: undefined
+	readonly canonicalPdfBytes: undefined
 
 	// Field Mutation
 	setField<K extends FieldKeys<F>>(fieldId: K, value: ExtractFields<F>[K]): DraftForm<F>
@@ -555,7 +567,7 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 
 	// Phase Transitions (draft → signable)
 	prepareForSigning(): SignableForm<F>
-	seal(adapter: Sealer): Promise<SignableForm<F>>
+	seal(options?: SealOptions | Sealer): Promise<SignableForm<F>>
 
 	// Formal signing helpers (always false in draft)
 	readonly isFormal: false
@@ -590,6 +602,8 @@ export interface SignableForm<F extends Form> extends RuntimeFormBase<F> {
 
 	/** SHA-256 hash of canonical PDF (when formal) */
 	readonly canonicalPdfHash: string | undefined
+	/** Exact flattened PDF bytes covered by canonicalPdfHash. */
+	readonly canonicalPdfBytes: Uint8Array | undefined
 
 	// Capture Methods
 	captureSignature(role: string, partyId: string, signerId: string, locationId: string, options?: CaptureOptions): SignableForm<F>
@@ -650,6 +664,7 @@ export interface ExecutedForm<F extends Form> extends RuntimeFormBase<F> {
 
 	/** SHA-256 hash of canonical PDF (when formal) */
 	readonly canonicalPdfHash: string | undefined
+	readonly canonicalPdfBytes: Uint8Array | undefined
 
 	// Capture read-only access
 	getCapture(role: string, partyId: string, signerId: string, locationId: string, type: 'signature' | 'initials' | 'capacity' | 'printed_name'): SignatureCapture | undefined
@@ -702,6 +717,7 @@ interface RuntimeFormConfigBase<F extends Form> {
 	attestations?: Attestation[]
 	signatureMap?: SigningField[]
 	canonicalPdfHash?: string
+	canonicalPdfBytes?: Uint8Array
 }
 
 interface RuntimeFormConfigDraft<F extends Form> extends RuntimeFormConfigBase<F> {
@@ -748,6 +764,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		executedAt,
 		signatureMap,
 		canonicalPdfHash,
+		canonicalPdfBytes,
 	} = config
 
 	// Cached runtime state
@@ -856,6 +873,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		executedAt,
 		signatureMap,
 		canonicalPdfHash,
+		canonicalPdfBytes,
 
 		// Convenience getters
 		get name() {
@@ -1558,11 +1576,55 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			})
 		},
 
-		async seal(adapter: Sealer): Promise<RuntimeForm<F>> {
+		async seal(input: SealOptions | Sealer = {}): Promise<RuntimeForm<F>> {
 			ensureDraft('seal')
+			const legacyAdapter = 'seal' in input ? input : undefined
+			const options = (legacyAdapter ? {} : input) as SealOptions
+			const layerSpec = formDef.layers?.[targetLayer]
+			if (!layerSpec) throw new Error(`Cannot seal: target layer "${targetLayer}" was not found`)
+
+			const renderNativeDocument = async (): Promise<string | Uint8Array> =>
+				runtime.render<string | Uint8Array>({
+					renderer: createRenderer(),
+					resolver: options.resolver,
+					layer: targetLayer,
+				})
+
+			const finalizePdf = async (
+				pdf: Uint8Array,
+				signatureMap: SigningField[] = [],
+			): Promise<import('@paradoc/types').SealingResult> => {
+				const canonicalPdfBytes = await flattenPdf(pdf)
+				const digest = await globalThis.crypto.subtle.digest(
+					'SHA-256',
+					Uint8Array.from(canonicalPdfBytes).buffer,
+				)
+				const canonicalPdfHash = `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`
+				return { signatureMap, canonicalPdfHash, canonicalPdfBytes }
+			}
+
+			const runSealer = async (request: SealingRequest<F>) => {
+				if (legacyAdapter) return legacyAdapter.seal(request)
+				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter) {
+					throw new Error(
+						`Cannot seal ${layerSpec.mimeType} without an adapter. ` +
+						'PDF layers seal locally; other MIME types require a seal adapter.',
+					)
+				}
+				const document = await renderNativeDocument()
+				if (layerSpec.mimeType === 'application/pdf') {
+					if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
+					return finalizePdf(document)
+				}
+				if (!options.adapter) throw new Error('Seal adapter was not resolved.')
+				const converted = await options.adapter.convert({
+					...request,
+					document: { content: document, mimeType: layerSpec.mimeType },
+				})
+				return finalizePdf(converted.pdf, converted.signatureMap)
+			}
 
 			// Check if layer has pre-defined signatureBlocks
-			const layerSpec = formDef.layers?.[targetLayer]
 			const hasDefinedBlocks = layerSpec?.signatureBlocks &&
 				Object.keys(layerSpec.signatureBlocks).length > 0
 
@@ -1650,7 +1712,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					targetLayer,
 				}
 
-				const result = await adapter.seal(request)
+				const result = await runSealer(request)
 
 				return createRuntimeForm({
 					...config,
@@ -1660,6 +1722,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					attestations: [],
 					signatureMap,
 					canonicalPdfHash: result.canonicalPdfHash,
+					canonicalPdfBytes: result.canonicalPdfBytes,
 					executedAt: undefined,
 				})
 			}
@@ -1669,6 +1732,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				Object.keys(layerSpec.anchorBlocks).length > 0
 
 			if (hasAnchorBlocks) {
+				if (!options.adapter && !legacyAdapter) {
+					throw new Error('Cannot seal anchor-based signature fields without an adapter that resolves their final PDF positions.')
+				}
 				const anchorBlocks = layerSpec!.anchorBlocks!
 				const anchorFields: SigningField[] = []
 				let anchorSignerIndex = 0
@@ -1747,7 +1813,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					anchorFields,
 				}
 
-				const anchorResult = await adapter.seal(anchorRequest)
+				const anchorResult = await runSealer(anchorRequest)
+				if (!anchorResult.signatureMap || anchorResult.signatureMap.length !== anchorFields.length) {
+					throw new Error(
+						'Seal adapter did not resolve every anchor-based signature field to final PDF coordinates.',
+					)
+				}
 
 				return createRuntimeForm({
 					...config,
@@ -1757,13 +1828,17 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					attestations: [],
 					signatureMap: anchorResult.signatureMap,
 					canonicalPdfHash: anchorResult.canonicalPdfHash,
+					canonicalPdfBytes: anchorResult.canonicalPdfBytes,
 					executedAt: undefined,
 				})
 			}
 
-			// Extraction mode: Use adapter to extract from placeholders
+			// Undeclared-field mode: seal without a precomputed signature map
 			// Validation 1: Check layer is PDF-convertible
-			if (!PDF_CONVERTIBLE_LAYERS.includes(targetLayer as (typeof PDF_CONVERTIBLE_LAYERS)[number])) {
+			if (
+				layerSpec.mimeType !== 'application/pdf'
+				&& !PDF_CONVERTIBLE_LAYERS.includes(targetLayer as (typeof PDF_CONVERTIBLE_LAYERS)[number])
+			) {
 				throw new Error(
 					`Cannot seal: layer "${targetLayer}" has no signatureBlocks, no anchorBlocks, and is not PDF-convertible. ` +
 					`Add signatureBlocks or anchorBlocks to the layer, or use a supported layer: ${PDF_CONVERTIBLE_LAYERS.join(', ')}`,
@@ -1798,7 +1873,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				targetLayer,
 			}
 
-			const result = await adapter.seal(request)
+			const result = await runSealer(request)
 
 			return createRuntimeForm({
 				...config,
@@ -1808,6 +1883,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				attestations: [],
 				signatureMap: result.signatureMap,
 				canonicalPdfHash: result.canonicalPdfHash,
+				canonicalPdfBytes: result.canonicalPdfBytes,
 				executedAt: undefined,
 			})
 		},

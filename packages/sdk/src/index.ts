@@ -12,6 +12,8 @@ export * from '@paradoc/core'
 // @paradoc/render/text, @paradoc/render/pdf, and @paradoc/render/docx.
 export { renderLayer } from '@paradoc/render'
 export type { RenderLayerOptions } from '@paradoc/render'
+export { hostedSealAdapter } from './hosted-seal-adapter'
+export type { HostedSealAdapterOptions } from './hosted-seal-adapter'
 
 import { renderLayer } from '@paradoc/render'
 import type { ParadocRenderer, RendererLayer } from '@paradoc/types'

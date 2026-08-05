@@ -1,5 +1,6 @@
 export { inspectAcroFormFields, inspectPdf } from './pdf/inspect'
 export type { InspectOptions, PdfFieldInfo, PdfFieldType, PdfInfo, PdfPageInfo } from './pdf/inspect'
+export { flattenPdf } from './pdf/flatten'
 export { renderPdf } from './pdf/render'
 export type { PdfSignatureOptions, RenderPdfOptions } from './pdf/render'
 export { pdfRenderer } from './pdf/renderer'

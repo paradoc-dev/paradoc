@@ -17,6 +17,7 @@ export type {
 	FieldKeys,
 	PartyRoleKeys,
 	CaptureOptions,
+	SealOptions,
 	FormBuilderInterface,
 	FillValidationOptions,
 	SafeFillResult,
