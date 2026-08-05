@@ -18,6 +18,20 @@ export interface InspectOptions {
   includeSignature?: boolean
 }
 
+export interface PdfPageInfo {
+  /** One-based page number. */
+  page: number
+  /** Page width in PDF points. */
+  width: number
+  /** Page height in PDF points. */
+  height: number
+}
+
+export interface PdfInfo {
+  pageCount: number
+  pages: PdfPageInfo[]
+}
+
 interface InheritedField {
   name?: string
   fieldType?: string
@@ -37,6 +51,34 @@ function catalog(model: PdfModel): PdfDict | undefined {
       const type = value.entries.get('Type')
       return isName(type) && type.value === 'Catalog'
     })
+}
+
+/** Inspect page count and dimensions without loading a full PDF toolkit. */
+export async function inspectPdf(template: BinaryContent): Promise<PdfInfo> {
+  const model = await PdfModel.load(template)
+  const root = catalog(model)
+  const pages: PdfPageInfo[] = []
+
+  const visit = (value: PdfValue | undefined, inheritedMediaBox?: PdfValue) => {
+    const dict = model.dict(value)
+    if (!dict) return
+    const mediaBox = dict.entries.get('MediaBox') ?? inheritedMediaBox
+    const type = dict.entries.get('Type')
+    if (isName(type) && type.value === 'Page') {
+      const box = model.resolve(mediaBox)
+      if (!Array.isArray(box) || box.length !== 4 || !box.every((item) => typeof item === 'number')) {
+        throw new Error(`PDF page ${pages.length + 1} has no readable MediaBox`)
+      }
+      const [left, bottom, right, top] = box as [number, number, number, number]
+      pages.push({ page: pages.length + 1, width: right - left, height: top - bottom })
+      return
+    }
+    const kids = model.resolve(dict.entries.get('Kids'))
+    if (Array.isArray(kids)) kids.forEach((kid) => visit(kid, mediaBox))
+  }
+
+  visit(root?.entries.get('Pages'))
+  return { pageCount: pages.length, pages }
 }
 
 function pageMap(model: PdfModel, root: PdfValue | undefined): Map<number, number> {

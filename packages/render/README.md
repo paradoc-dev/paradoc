@@ -36,7 +36,8 @@ helpers include `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `not`, `and`, `or`,
 
 ## PDF forms and overlays
 
-A PDF render can fill AcroForm fields, add coordinate-based text, or do both.
+A PDF render can fill AcroForm fields, add coordinate-based text or images, or
+combine all three.
 Overlay page numbers are one-based and coordinates use PDF points measured from
 the bottom-left corner.
 
@@ -49,11 +50,24 @@ const output = await renderPdf({
   overlays: [
     { page: 1, x: 48, y: 72, text: 'Prepared for' },
     { page: 1, x: 48, y: 54, field: 'name', fontSize: 11 },
+    {
+      page: 1,
+      x: 48,
+      y: 20,
+      width: 120,
+      height: 30,
+      image: signaturePng,
+      mediaType: 'image/png',
+      fit: 'contain',
+    },
   ],
 })
 ```
 
 `inspectAcroFormFields()` discovers fields without modifying a PDF.
+`inspectPdf()` returns its page count and page dimensions. PNG overlays support
+non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA images; JPEG
+overlays are also supported.
 
 ## DOCX templates
 

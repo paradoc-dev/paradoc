@@ -2,7 +2,7 @@ import { preprocessFieldData, usaSerializers } from '@paradoc/serialization'
 import type { BinaryContent, Form, FormField, SerializerRegistry } from '@paradoc/types'
 import { createSerializedFieldValue } from '../text/field-serializer'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
-import { applyTextOverlays, type PdfTextOverlay } from './overlay'
+import { applyPdfOverlays, type PdfOverlay } from './overlay'
 import type { PdfSignatureOptions } from './signatures'
 import { PdfModel } from './syntax'
 
@@ -15,7 +15,7 @@ export interface RenderPdfOptions {
   bindings?: Record<string, string>
   serializers?: SerializerRegistry
   signatureOptions?: PdfSignatureOptions
-  overlays?: PdfTextOverlay[]
+  overlays?: PdfOverlay[]
 }
 
 function getPath(value: Record<string, unknown>, path: string): unknown {
@@ -88,6 +88,6 @@ export async function renderPdf({
     }
   }
 
-  applyTextOverlays(model, overlays, preprocessed)
+  applyPdfOverlays(model, overlays, preprocessed)
   return model.save()
 }

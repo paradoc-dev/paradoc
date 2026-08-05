@@ -3,11 +3,24 @@ import { inspectAcroFormFields as inspectExisting, pdfRenderer as existingPdfRen
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
 import type { Form } from '@paradoc/types'
-import { inspectAcroFormFields, pdfRenderer, renderPdf } from '../src/pdf'
+import { inspectAcroFormFields, inspectPdf, pdfRenderer, renderPdf } from '../src/pdf'
 
 const fixtures = ['pet-addendum.pdf', 'pet-addendum-2.pdf']
 
 describe('PDF renderer parity', () => {
+  it('inspects page count and dimensions for downstream placement', async () => {
+    const source = await PDFDocument.create()
+    source.addPage([300, 400])
+    source.addPage([612, 792])
+    expect(await inspectPdf(await source.save())).toEqual({
+      pageCount: 2,
+      pages: [
+        { page: 1, width: 300, height: 400 },
+        { page: 2, width: 612, height: 792 },
+      ],
+    })
+  })
+
   it.each(fixtures)('inspects %s without pdf-lib', async (fixture) => {
     const bytes = new Uint8Array(await readFile(new URL(`../../renderer-pdf/tests/fixtures/${fixture}`, import.meta.url)))
     expect(await inspectAcroFormFields(bytes)).toEqual(await inspectExisting(bytes))
@@ -59,6 +72,23 @@ describe('PDF renderer parity', () => {
     const sourceText = new TextDecoder('latin1').decode(output)
     expect(sourceText).toContain('(Prepared for) Tj')
     expect(sourceText).toContain('(Ada) Tj')
+  })
+
+  it('renders a transparent PNG image overlay without pdf-lib at runtime', async () => {
+    const source = await PDFDocument.create()
+    source.addPage([300, 300])
+    const image = Uint8Array.from(Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    ))
+    const output = await renderPdf({
+      template: await source.save(),
+      data: {},
+      overlays: [{ page: 1, x: 40, y: 50, width: 120, height: 40, image, mediaType: 'image/png' }],
+    })
+    const rendered = await PDFDocument.load(output)
+    expect(rendered.getPageCount()).toBe(1)
+    expect(new TextDecoder('latin1').decode(output)).toContain('/Subtype /Image')
   })
 
   it('fills checkboxes stored in compressed object streams', async () => {
