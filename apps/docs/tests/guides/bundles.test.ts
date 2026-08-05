@@ -3,7 +3,6 @@
  */
 import { describe, test, expect } from 'vitest'
 import { para } from '@paradoc/core'
-import { textRenderer } from '@paradoc/render/text'
 
 describe('Bundles Guide', () => {
   // ============================================================================
@@ -143,10 +142,6 @@ describe('Bundles Guide', () => {
         })
 
         const assembled = await leaseBundle.assemble({
-          renderers: {
-            'text/markdown': textRenderer(),
-            'text/plain': textRenderer(),
-          },
           contents: {
             lease: filledLease,
             disclosure: disclosure.prepare(),

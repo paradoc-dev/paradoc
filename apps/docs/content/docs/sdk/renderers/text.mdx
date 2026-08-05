@@ -58,13 +58,7 @@ const output = await filled.render({
 
 # Import
 
-From the umbrella package:
-
-```ts
-import { textRenderer } from '@paradoc/render/text'
-```
-
-Or from the individual package:
+From the unified package's text entry point:
 
 ```ts
 import { textRenderer } from '@paradoc/render/text'
@@ -133,7 +127,7 @@ function renderText(options: {
 ### Parameters
 
 <PropertiesTable properties={[
-  { name: 'template', type: 'string', description: 'Handlebars template string' },
+  { name: 'template', type: 'string', description: 'Paradoc template string' },
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
   { name: 'form', type: 'Form', description: 'Form schema for automatic field type detection and serialization', isOptional: true },
   { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry. Defaults to USA serializers.', isOptional: true },
@@ -216,11 +210,11 @@ const form = para.form({
 
 # Signature and Initials Helpers
 
-The text renderer includes Handlebars helpers for rendering signature and initials markers in templates.
+The text renderer includes helpers for rendering signature and initials markers in templates.
 
 ## Template Syntax
 
-```handlebars
+```text
 {{signature "locationId"}}  - Renders a signature placeholder or captured status
 {{initials "locationId"}}   - Renders an initials placeholder or captured status
 ```

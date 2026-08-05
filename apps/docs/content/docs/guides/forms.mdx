@@ -48,27 +48,27 @@ Create a new project, set up the directory structure, and download the W-9 form:
 <Step>
 ## Install the SDK
 
-Install the SDK and the filesystem resolver.
+Install the SDK and unified renderer.
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
   <Tab value="npm">
     ```bash
-    npm install @paradoc/sdk
+    npm install @paradoc/sdk @paradoc/render
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
-    pnpm add @paradoc/sdk
+    pnpm add @paradoc/sdk @paradoc/render
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add @paradoc/sdk
+    yarn add @paradoc/sdk @paradoc/render
     ```
   </Tab>
   <Tab value="bun">
     ```bash
-    bun add @paradoc/sdk
+    bun add @paradoc/sdk @paradoc/render
     ```
   </Tab>
 </Tabs>
@@ -124,7 +124,8 @@ const lease = para
 <Step>
 ## Add a Layer
 
-Templates define how forms render. Add an inline Markdown template using Handlebars syntax:
+Templates define how forms render. Add an inline Markdown template using
+Paradoc's deterministic template syntax:
 
 ```ts tab="Object Pattern"
 const lease = para.form({
@@ -204,13 +205,14 @@ Party data requires an `id` field—this is used for signature tracking.
 <Step>
 ## Render the Form
 
-Render the filled form using the text renderer:
+Render the filled form. `renderLayer()` selects the text implementation from
+the layer's MIME type:
 
 ```ts
-import { textRenderer } from '@paradoc/render/text'
+import { renderLayer } from '@paradoc/render'
 
 const output = await filled.render({
-  renderer: textRenderer(),
+  renderer: renderLayer(),
 })
 
 console.log(output)

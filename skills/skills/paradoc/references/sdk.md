@@ -9,7 +9,7 @@ metadata:
 
 TypeScript API for defining and operating on Paradoc artifacts. Use this surface when:
 
-- Importing from `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`, `@paradoc/renderer-*`, `@paradoc/serialization`, `@paradoc/resolvers`
+- Importing from `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`, `@paradoc/serialization`, `@paradoc/resolvers`
 - Defining artifacts in code (not editing JSON/YAML directly)
 - Filling, validating, signing, or rendering at runtime in a Node.js / Bun / browser app
 
@@ -21,9 +21,7 @@ ALWAYS import from public entry points. NEVER from `@paradoc/core/dist/...` or o
 
 ```typescript
 import { para, type InferFormPayload } from "@paradoc/core";
-import { textRenderer } from "@paradoc/render/text";
-import { pdfRenderer } from "@paradoc/render/pdf";
-import { docxRenderer } from "@paradoc/render/docx";
+import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers";
 import { createSerializer, usaSerializers } from "@paradoc/serialization";
 ```
@@ -69,7 +67,7 @@ For artifact shapes (form / document / bundle / checklist), see [artifacts.md](.
 ## Core Pipeline
 
 ```
-define artifact → fill(data) → validate → render(renderer, layer)
+define artifact → fill(data) → validate → render(layer)
 ```
 
 Forms add parties and signatures between validate and render.
@@ -238,11 +236,10 @@ const signable = draft.prepareForSigning();
 const executed = signable.finalize();
 ```
 
-Assemble bundle outputs with multiple renderers:
+Assemble bundle outputs using each layer's MIME type:
 
 ```typescript
 const assembled = await bundle.assemble({
-  renderers: { text: textRenderer(), pdf: pdfRenderer() },
   resolver: createFsResolver({ root: process.cwd() }),
 });
 ```
@@ -337,7 +334,7 @@ For full renderer API, see [rendering.md](./rendering.md). Quick example:
 
 ```typescript
 const text = await form.fill(data).render({
-  renderer: textRenderer(),
+  renderer: renderLayer(),
   resolver: createFsResolver({ root: process.cwd() }),
   layer: "markdown",
 });
@@ -359,7 +356,7 @@ Fix: Pick one pattern per artifact. Object pattern uses plain objects; builder p
 
 **Render produces blank output**
 Cause: Missing layer, or rendering a form before `fill()`.
-Fix: Ensure at least one layer is defined. Call `fill()` before `render()`. Verify renderer matches layer's MIME type.
+Fix: Ensure at least one layer is defined and has a supported MIME type. Call `fill()` before `render()`.
 
 **Schema duplication errors when bundling**
 Cause: Forgot `{ includeSchema: false }` when inlining artifacts in a bundle.
@@ -371,7 +368,7 @@ Fix: ALWAYS pass `{ includeSchema: false }` to `toJSON()` when bundling.
 - [fields.md](./fields.md) — field types, builders, type inference
 - [parties.md](./parties.md) — party data, signature lifecycle
 - [logic.md](./logic.md) — defs, rules, runtime evaluation
-- [layers.md](./layers.md) — layer definitions, Handlebars
+- [layers.md](./layers.md) — layer definitions and Paradoc template syntax
 - [rendering.md](./rendering.md) — render API, resolvers
 - [serialization.md](./serialization.md) — locale-aware formatters
 - [cli.md](./cli.md) — `para` CLI surface

@@ -2,18 +2,11 @@
 name: paradoc
 description: >
   Paradoc — documents-as-code framework for type-safe artifacts (forms, documents,
-  bundles, checklists). Activate for any work across all Paradoc surfaces:
-  TypeScript SDK (@paradoc/core, @paradoc/sdk, @paradoc/render, @paradoc/serialization,
-  @paradoc/resolvers, @paradoc/render/pdf, @paradoc/render/text, @paradoc/render/docx),
-  the para CLI (npx paradoc, para init, para new, para validate, para render, para add,
-  para inspect), raw JSON/YAML artifacts (form.json, schema.paradoc.dev), and the
-  remote MCP service (mcp.paradoc.dev). Also handles end-to-end workflows: creating
-  a new form from requirements, and converting an existing PDF form into a Paradoc
-  artifact. Trigger phrases: paradoc, para, @paradoc/*, npx paradoc, JSON artifact,
-  YAML artifact, schema validation, render to PDF/DOCX, fill form, safeFill, partialFill,
-  layers, parties, signatures, fields, fieldsets, defs, rules, CondExpr, agentInstructions,
-  ContentRef, annexes, bundles, checklists, convert PDF, create form, AcroForm bindings,
-  signature blocks, mcp.paradoc.dev.
+  bundles, checklists). Activate for work with the TypeScript SDK (@paradoc/*),
+  para CLI, JSON/YAML artifacts, schema validation, or the remote MCP service.
+  Covers filling, validation, rendering, layers, fields, parties, signatures,
+  annexes, logic, bundles, form creation, and conversion of PDF forms into
+  Paradoc artifacts, including AcroForm bindings and signature blocks.
 metadata:
   author: paradoc
   version: "0.1.0"
@@ -38,7 +31,7 @@ These apply across every surface and workflow:
 - **Field/party/def/rule identifier pattern:** `^[a-z][a-zA-Z0-9_]*$` — camelCase, max 100 chars (50 for party roles).
 - **Versioning:** semver `MAJOR.MINOR.PATCH`. Major for breaking changes, minor for new optional, patch for cosmetic.
 - **Field types:** ALWAYS use the most specific type — NEVER `text` when a structured type fits (`money`, `date`, `email`, `phone`, `address`, etc.).
-- **Render templates (Handlebars):** field values are spread at top level — use `{{fieldName}}`, NOT `{{fields.fieldName}}`. Parties and annexes remain namespaced (`{{parties.tenant}}`, `{{annexes.photoId}}`).
+- **Paradoc templates:** field values are spread at top level — use `{{fieldName}}`, NOT `{{fields.fieldName}}`. Parties and annexes remain namespaced (`{{parties.tenant}}`, `{{annexes.photoId}}`).
 - **Signatures in templates:** use `{{signature "loc"}}`, `{{initials "loc"}}`, `{{signatureDate "loc"}}` helpers inside party blocks (`{{#with}}` or `{{#each}}`). NEVER manual underscore lines.
 
 ## Pick a Surface
@@ -63,7 +56,7 @@ Topic refs are surface-agnostic — they describe the underlying concept and con
 | Parties — roles, signatures, witnesses, notary | [references/parties.md](./references/parties.md) |
 | Annexes — file attachments | [references/annexes.md](./references/annexes.md) |
 | Logic — CondExpr, defs, rules | [references/logic.md](./references/logic.md) |
-| Layers — templates, MIME types, signature blocks, Handlebars | [references/layers.md](./references/layers.md) |
+| Layers — templates, MIME types, signature blocks, template syntax | [references/layers.md](./references/layers.md) |
 | PDF AcroForm bindings, signature block coordinates | [references/pdf-bindings.md](./references/pdf-bindings.md) |
 | Rendering — text, PDF, DOCX, resolvers | [references/rendering.md](./references/rendering.md) |
 | Serialization — locale-aware Money / Address / Phone / Person formatting | [references/serialization.md](./references/serialization.md) |

@@ -26,7 +26,7 @@ A curated collection of common business artifacts ready to use with the Paradoc 
 ## Installation
 
 ```bash
-npm install @paradoc/essentials @paradoc/sdk
+npm install @paradoc/essentials @paradoc/sdk @paradoc/render
 ```
 
 ## Included artifacts
@@ -61,7 +61,7 @@ Fill a W-9 and render its markdown layer:
 
 ```typescript
 import { w9 } from "@paradoc/essentials/tax";
-import { textRenderer } from "@paradoc/sdk";
+import { renderLayer } from "@paradoc/render";
 
 const markdown = await w9
   .fill({
@@ -80,15 +80,13 @@ const markdown = await w9
       },
     },
   })
-  .render({ renderer: textRenderer(), layer: "markdown" });
+  .render({ renderer: renderLayer(), layer: "markdown" });
 ```
 
-Render the official PDF layer instead by swapping the renderer:
+Render the official PDF layer with the same renderer entry point:
 
 ```typescript
-import { pdfRenderer } from "@paradoc/sdk";
-
-const pdf = await w9.fill(data).render({ renderer: pdfRenderer(), layer: "pdf" });
+const pdf = await w9.fill(data).render({ renderer: renderLayer(), layer: "pdf" });
 ```
 
 Each artifact's bundled resolver is applied automatically — you don't need to pass one. Validate without filling using `safeParseData`:

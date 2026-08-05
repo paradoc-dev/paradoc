@@ -13,37 +13,37 @@ Let's build a simple purchase agreement to grasp the basics of Paradoc. We'll de
 <Steps>
 
 <Step>
-### Install the SDK
+### Install the Packages
 
-Let's make a new project and install the SDK.
+Let's make a new project and install the SDK, renderer, and filesystem resolver.
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
   <Tab value="npm">
     ```bash
     mkdir quickstart && cd quickstart
     npm init -y
-    npm install @paradoc/sdk @paradoc/resolvers
+    npm install @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
     mkdir quickstart && cd quickstart
     pnpm init -y
-    pnpm add @paradoc/sdk @paradoc/resolvers
+    pnpm add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
     mkdir quickstart && cd quickstart
     yarn init -y
-    yarn add @paradoc/sdk @paradoc/resolvers
+    yarn add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="bun">
     ```bash
     mkdir quickstart && cd quickstart
     bun init -y
-    bun add @paradoc/sdk @paradoc/resolvers
+    bun add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
 </Tabs>
@@ -85,7 +85,8 @@ In this Quickstart, we're using the fluent builder pattern to define the form. Y
 <Step>
 ### Create the Layer
 
-Next, let's create the layer. We'll use Handlebars syntax to map the form parties/fields to the layer template.
+Next, let's create the layer. Paradoc's deterministic template syntax maps the
+form parties and fields into the layer.
 
 ```md title="purchase-agreement.md"
 # Purchase Agreement
@@ -138,10 +139,10 @@ if (draft.isValid()) {
 Let's render the purchase agreement with the data using the `.render()` method.
 
 ```ts
-import { textRenderer } from '@paradoc/sdk'
+import { renderLayer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers'
 
-const renderer = textRenderer()
+const renderer = renderLayer()
 const resolver = createFsResolver({ root: process.cwd() })
 
 const output = await draft.render({ renderer, resolver, layer: 'markdown' })

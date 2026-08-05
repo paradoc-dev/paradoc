@@ -242,7 +242,7 @@ The `.paradoc/lock.json` file tracks installed artifacts with their versions and
 - [`@paradoc/sdk`](../../packages/sdk) — All-in-one SDK package
 - [`@paradoc/core`](../../packages/core) — Core artifacts and builders
 - [`@paradoc/schemas`](../../packages/schemas) — JSON Schema definitions
-- [`@paradoc/render`](../../packages/renderers) — PDF, DOCX, Text renderers
+- [`@paradoc/render`](../../packages/render) — Unified PDF, DOCX, and text rendering
 
 ## Contributing
 

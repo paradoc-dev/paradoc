@@ -104,10 +104,10 @@ const custom: SerializerRegistry = {
 Pass serializers to any renderer (text, PDF, DOCX):
 
 ```typescript
-import { textRenderer } from "@paradoc/render/text";
+import { renderLayer } from "@paradoc/render";
 
 const output = await form.fill(data).render({
-  renderer: textRenderer({ serializers: mySerializers }),
+  renderer: renderLayer({ serializers: mySerializers }),
   layer: "markdown",
   resolver,
 });

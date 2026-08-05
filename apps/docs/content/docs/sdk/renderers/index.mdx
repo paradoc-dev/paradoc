@@ -52,13 +52,32 @@ const output = await filled.render({
 // output: "Invoice for Acme Corp\nTotal: $1,500.00"
 ```
 
-# Renderer Packages
+# Format Entry Points
 
-| Package | Description |
+`renderLayer()` is the default application entry point. Import a format subpath
+when you need its low-level functions or format-specific configuration.
+
+| Entry point | Description |
 |---------|-------------|
 | [Text](/sdk/renderers/text) | Deterministic text templating for HTML, Markdown, plain text |
 | [PDF](/sdk/renderers/pdf) | Fill PDF forms with AcroForm field support |
 | [DOCX](/sdk/renderers/docx) | Generate Word documents from templates |
+
+# renderLayer()
+
+```ts
+function renderLayer(options?: RenderLayerOptions): ParadocRenderer<
+  RendererLayer,
+  string | Uint8Array
+>
+```
+
+<PropertiesTable properties={[
+  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializers shared by every supported format.', isOptional: true },
+  { name: 'textSignatureOptions', type: 'TextSignatureOptions', description: 'Signature rendering options for text layers.', isOptional: true },
+  { name: 'pdfSignatureOptions', type: 'PdfSignatureOptions', description: 'Signature rendering options for PDF layers.', isOptional: true },
+  { name: 'docxSignatureOptions', type: 'DocxSignatureOptions', description: 'Signature rendering options for DOCX layers.', isOptional: true },
+]} />
 
 # Renderer Interface
 

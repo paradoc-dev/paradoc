@@ -3,7 +3,7 @@
  */
 import { describe, test, expect } from 'vitest'
 import { para } from '@paradoc/core'
-import { textRenderer } from '@paradoc/render/text'
+import { renderLayer } from '@paradoc/render'
 
 describe('Checklists Guide', () => {
   // ============================================================================
@@ -187,7 +187,7 @@ describe('Checklists Guide', () => {
         'completed-training': false,
       })
 
-      const output = await draft.render({ renderer: textRenderer() })
+      const output = await draft.render({ renderer: renderLayer() })
 
       expect(output).toContain('Employee Onboarding Checklist')
       expect(output).toContain('[x] Signed Employment Contract')

@@ -149,7 +149,7 @@ Renderers automatically use serializers to format field values based on their sc
 
 ```ts
 import { para } from '@paradoc/core'
-import { textRenderer } from '@paradoc/render/text'
+import { renderLayer } from '@paradoc/render'
 import { euSerializers } from '@paradoc/serialization'
 
 const form = para.form({
@@ -169,7 +169,7 @@ const filled = form.fill({
 
 // Use EU formatting
 const output = await filled.render({
-  renderer: textRenderer({ serializers: euSerializers })
+  renderer: renderLayer({ serializers: euSerializers })
 })
 // "Total: 1.000,00 €"
 ```

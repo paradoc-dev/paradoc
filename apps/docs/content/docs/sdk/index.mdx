@@ -5,7 +5,8 @@ ogTitle: Paradoc SDK Reference
 ogDescription: TypeScript SDK for creating and working with Paradoc artifacts
 ---
 
-The `@paradoc/sdk` package is an umbrella package for creating, validating, rendering Paradoc artifacts.
+The `@paradoc/sdk` package is the main framework entry point for creating,
+validating, rendering, and sealing Paradoc artifacts.
 
 # Installation
 
@@ -36,14 +37,15 @@ The `@paradoc/sdk` package is an umbrella package for creating, validating, rend
 
 # Package Overview
 
-The SDK is an umbrella package that re-exports functionality from:
+The SDK exposes:
 
 | Package | Description |
 |---------|-------------|
 | `@paradoc/core` | Builders, instances, and lifecycle types for all artifact types |
-| `@paradoc/types` | TypeScript type definitions |
-| `@paradoc/render/pdf` | PDF output |
-| `@paradoc/render/docx` | DOCX output |
-| `@paradoc/render/text` | Plain text and markdown output |
 | `@paradoc/serialization` | Locale-aware value formatting for rendering |
+| `@paradoc/sessions` | Stateful form sessions |
+| `@paradoc/render` | The MIME-selected `renderLayer()` entry point |
+| SDK adapter | `hostedSealAdapter()` for hosted non-PDF sealing |
 
+Install `@paradoc/render` directly when importing its format-specific subpaths
+or keeping rendering as an explicit application dependency.

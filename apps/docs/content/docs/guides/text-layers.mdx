@@ -57,7 +57,7 @@ Your project structure should look like this:
 ```
 my-lease-project/
 ├── layers/
-│   └── lease.md          # Your Handlebars template
+│   └── lease.md          # Your Paradoc template
 ├── src/                  # Your code goes here
 ├── output/               # Generated documents
 └── package.json
@@ -67,27 +67,27 @@ my-lease-project/
 <Step>
 ## Install
 
-Install the SDK and the filesystem resolver.
+Install the SDK, unified renderer, and filesystem resolver.
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
   <Tab value="npm">
     ```bash
-    npm install @paradoc/sdk @paradoc/resolvers
+    npm install @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
-    pnpm add @paradoc/sdk @paradoc/resolvers
+    pnpm add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add @paradoc/sdk @paradoc/resolvers
+    yarn add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="bun">
     ```bash
-    bun add @paradoc/sdk @paradoc/resolvers
+    bun add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
 </Tabs>
@@ -96,7 +96,7 @@ Install the SDK and the filesystem resolver.
 <Step>
 ## Create the Template
 
-Create a Handlebars template at `layers/lease.md`:
+Create a Paradoc template at `layers/lease.md`:
 
 ```markdown
 # RESIDENTIAL LEASE AGREEMENT
@@ -270,10 +270,10 @@ if (!filled.isValid()) {
 <Step>
 ## Render the Document
 
-Render the filled form using the text renderer:
+Render the filled form using the MIME-selected renderer:
 
 ```ts
-import { textRenderer } from '@paradoc/sdk'
+import { renderLayer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers'
 import { writeFileSync } from 'node:fs'
 
@@ -281,7 +281,7 @@ import { writeFileSync } from 'node:fs'
 const resolver = createFsResolver({ root: '.' })
 
 const output = await filled.render({
-  renderer: textRenderer(),
+  renderer: renderLayer(),
   resolver,
   layer: 'markdown',
 })
@@ -293,7 +293,9 @@ The output is a string containing your rendered Markdown document with all place
 </Step>
 </Steps>
 
-You've now created a form that generates lease agreements from a Handlebars template. The same approach works for HTML templates, plain text, and DOCX files — just change the `mimeType` and file extension.
+You've now created a form that generates lease agreements from a Paradoc
+template. The same rendering entry point works for HTML, plain text, PDF, and
+DOCX layers because selection follows the layer's `mimeType`.
 
 ## Template Syntax Reference
 

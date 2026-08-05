@@ -1,13 +1,13 @@
 ---
 name: layers
-description: Render templates (file and inline) — JSON shape, MIME types, bindings, signature blocks, Handlebars syntax
+description: Render templates (file and inline) — JSON shape, MIME types, bindings, signature blocks, Paradoc template syntax
 metadata:
-  tags: layers, templates, file, inline, mimeType, bindings, signature-blocks, handlebars, defaultLayer
+  tags: layers, templates, file, inline, mimeType, bindings, signature-blocks, defaultLayer
 ---
 
 # Layers
 
-**Contents:** [Layer kinds](#layer-kinds) · [MIME types](#common-mime-types) · [Bindings](#bindings) · [Signature blocks](#signature-blocks) · [Default layer](#default-layer) · [Handlebars syntax](#handlebars-template-syntax)
+**Contents:** [Layer kinds](#layer-kinds) · [MIME types](#common-mime-types) · [Bindings](#bindings) · [Signature blocks](#signature-blocks) · [Default layer](#default-layer) · [Template syntax](#paradoc-template-syntax)
 
 Layers are render templates attached to forms, documents, and checklists. Defined in the `layers` object, keyed by layer ID (pattern `^[a-z][a-zA-Z0-9_]*$`).
 
@@ -173,11 +173,15 @@ Set `defaultLayer` on the artifact to specify which layer is used when none is r
 
 The value MUST match a key in `layers`.
 
-## Handlebars Template Syntax
+## Paradoc Template Syntax
 
-Text-based templates (markdown, HTML, plain text) use Handlebars. When rendering via `form.fill(data).render()`, **field values are spread at the top level** — NOT nested under `fields.*`:
+Text-based templates (Markdown, HTML, plain text) use Paradoc's deterministic
+template syntax. It supports interpolation, escaping, conditionals, loops,
+context changes, and built-in helpers without executing arbitrary JavaScript.
+When rendering via `form.fill(data).render()`, **field values are spread at the
+top level** — NOT nested under `fields.*`:
 
-```handlebars
+```text
 # {{title}}
 
 **Tenant:** {{tenantName}}
@@ -191,7 +195,7 @@ Parties and annexes remain namespaced: `{{parties.landlord}}`, `{{annexes.photoI
 
 ### Conditional sections
 
-```handlebars
+```text
 {{#if hasPets}}
 ## Pet Information
 Number of pets: {{petCount}}
@@ -201,7 +205,7 @@ Pet deposit: {{petDeposit}}
 
 ### Iteration
 
-```handlebars
+```text
 Languages: {{#each languages}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 ```
 
@@ -221,7 +225,7 @@ The `locationId` is a **document-location string** (where in the document, NOT w
 
 #### Single-instance party
 
-```handlebars
+```text
 {{#with parties.tenant}}
 Tenant: {{name}}
 Signature: {{signature "final-sig"}}
@@ -237,7 +241,7 @@ Date: {{signatureDate "final-sig"}}
 
 #### Multi-instance party
 
-```handlebars
+```text
 {{#each parties.tenant}}
 Tenant: {{name}}
 Signature: {{signature "final-sig"}}
@@ -247,7 +251,7 @@ Date: {{signatureDate "final-sig"}}
 
 #### Multiple signatories per party
 
-```handlebars
+```text
 {{#each parties.landlord.signatories}}
 {{signer.person.name}}, {{capacity}}
 Signature: {{signature "final-sig"}}
@@ -258,7 +262,7 @@ Date: {{signatureDate "final-sig"}}
 
 #### Wrong — never do this
 
-```handlebars
+```text
 Tenant: _________________________ Date: _________
 Landlord: _________________________ Date: _________
 ```

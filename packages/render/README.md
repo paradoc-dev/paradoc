@@ -29,7 +29,7 @@ MIME type rather than guessing.
 Text rendering supports interpolation, nested paths, escaping, loops,
 conditionals, context changes, and a small set of deterministic helpers.
 
-```handlebars
+```text
 {{#if approved}}
 Approved for {{owner.name}}
 {{else}}

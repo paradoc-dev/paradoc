@@ -2,7 +2,8 @@
  * Tests for code snippets in concepts/rendering.mdx (Layers & Rendering)
  */
 import { describe, test, expect } from 'vitest'
-import { para, textRenderer } from '@paradoc/sdk'
+import { para } from '@paradoc/sdk'
+import { renderLayer } from '@paradoc/render'
 
 describe('Rendering Concept', () => {
   // ============================================================================
@@ -96,9 +97,9 @@ Total: {{total}}
       })
       .build()
 
-    test('renders with text renderer', async () => {
+    test('selects the renderer from the layer MIME type', async () => {
       const filled = form.fill({ fields: { name: 'World' } })
-      const markdown = await filled.render({ renderer: textRenderer() })
+      const markdown = await filled.render({ renderer: renderLayer() })
       expect(markdown).toContain('Hello')
       expect(markdown).toContain('World')
     })

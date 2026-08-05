@@ -115,7 +115,7 @@ const signed = signable.captureSignature('tenant', 'tenant-0', 'john', 'final-si
 const executed = signed.finalize()
 
 // 6. Render the executed form
-const output = await executed.render({ renderer: textRenderer })
+const output = await executed.render({ renderer: renderLayer() })
 ```
 
 # API

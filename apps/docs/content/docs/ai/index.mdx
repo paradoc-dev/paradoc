@@ -105,10 +105,6 @@ All adapters accept the same `ParadocToolsConfig`:
 ```typescript
 paradocTools({
   defaultRegistryUrl: "https://public.paradoc.dev",
-  proxyTextRenderer: {
-    url: "https://your-documents-service.example.com",
-    apiKey: "your-api-key",
-  },
   fetch: customFetchWithAuth,
 })
 ```
@@ -116,13 +112,12 @@ paradocTools({
 | Option | Type | Description |
 |--------|------|-------------|
 | `defaultRegistryUrl` | `string` | Default registry URL for getRegistry and getArtifact |
-| `proxyTextRenderer` | `{ url, apiKey }` | Edge-compatible proxy for Handlebars text rendering |
 | `fetch` | `typeof fetch` | Custom fetch for auth headers or test mocks |
 
-# Edge compatibility
+# Runtime compatibility
 
-- **PDF and DOCX renderers** work everywhere (pure JS, no `new Function()`)
-- **Text renderer** (Handlebars) requires Node.js. On edge runtimes, set `proxyTextRenderer` to delegate to an HTTP service
+Text, PDF, and DOCX layers render locally in browsers, edge runtimes, and
+Node.js. Rendering does not require a proxy or runtime-specific configuration.
 
 # Differences from MCP server
 

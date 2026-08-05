@@ -230,7 +230,7 @@ const onboarding = para
 Render the filled checklist using a renderer.
 
 ```ts
-import { textRenderer } from '@paradoc/render/text'
+import { renderLayer } from '@paradoc/render'
 
 const draft = onboarding.fill({
   'signed-contract': true,
@@ -238,7 +238,7 @@ const draft = onboarding.fill({
   'completed-training': false,
 })
 
-const output = await draft.render({ renderer: textRenderer() })
+const output = await draft.render({ renderer: renderLayer() })
 console.log(output)
 ```
 

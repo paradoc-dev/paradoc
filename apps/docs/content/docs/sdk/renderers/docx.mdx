@@ -50,13 +50,7 @@ fs.writeFileSync('contract-filled.docx', output)
 
 # Import
 
-From the umbrella package:
-
-```ts
-import { docxRenderer } from '@paradoc/render/docx'
-```
-
-Or from the individual package:
+From the unified package's DOCX entry point:
 
 ```ts
 import { docxRenderer } from '@paradoc/render/docx'
@@ -138,7 +132,7 @@ Returns a `Promise<Uint8Array>` containing the rendered DOCX document.
 
 # Template Syntax
 
-DOCX templates use Handlebars-style placeholders:
+DOCX templates use Paradoc's deterministic placeholder and block syntax:
 
 ```
 Contract for {{clientName}}

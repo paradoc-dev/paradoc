@@ -7,7 +7,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { para, inspectAcroFormFields, pdfRenderer } from '@paradoc/sdk'
+import { para } from '@paradoc/sdk'
+import { renderLayer } from '@paradoc/render'
+import { inspectAcroFormFields } from '@paradoc/render/pdf'
 import { createFsResolver } from '@paradoc/resolvers'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -140,7 +142,7 @@ describe('PDF Layers Guide', () => {
       const resolver = createFsResolver({ root: fixturesRoot })
 
       const output = await filled.render({
-        renderer: pdfRenderer(),
+        renderer: renderLayer(),
         resolver,
         layer: 'pdf',
       })

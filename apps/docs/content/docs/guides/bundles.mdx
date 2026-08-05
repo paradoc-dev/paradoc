@@ -175,8 +175,6 @@ Contains 3 artifacts
 Fill the artifacts and assemble the bundle for rendering:
 
 ```ts
-import { textRenderer } from '@paradoc/render/text'
-
 // Fill the lease form
 const filledLease = lease.fill({
   fields: {
@@ -193,10 +191,6 @@ const filledLease = lease.fill({
 
 // Assemble the bundle
 const assembled = await leaseBundle.assemble({
-  renderers: {
-    'text/markdown': textRenderer(),
-    'text/plain': textRenderer(),
-  },
   contents: {
     lease: filledLease,
     disclosure: disclosure.prepare(),
@@ -209,6 +203,9 @@ for (const [key, output] of Object.entries(assembled.outputs)) {
   console.log(`${key}: ${output.mimeType}`)
 }
 ```
+
+Bundle assembly selects the built-in renderer for each layer MIME type. Pass a
+`renderers` map only when a MIME type needs a custom override.
 
 Output:
 

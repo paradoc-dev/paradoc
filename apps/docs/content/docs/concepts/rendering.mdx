@@ -71,8 +71,10 @@ pdf: para.layer()
 When layers reference external files, **resolvers** tell Paradoc how to load them. This makes Paradoc environment-agnostic—the same artifact works in Node, browsers, or custom environments.
 
 ```ts
+import { renderLayer } from '@paradoc/render'
+
 const output = await form.render({
-  renderer: pdfRenderer(),
+  renderer: renderLayer(),
   resolver: fileResolver({ basePath: "./templates" })
 })
 ```
@@ -89,7 +91,7 @@ When rendering, field values are converted to strings. A `money` value becomes `
 
 ```ts
 const output = await form.render({
-  renderer: textRenderer({ serializers: euSerializers })
+  renderer: renderLayer({ serializers: euSerializers })
 })
 ```
 
@@ -99,11 +101,16 @@ See [Serialization](/sdk/serialization) for details on formatting and localizati
 
 # Renderers
 
-Renderers produce the final output. Each renderer handles a specific format—`textRenderer` for Markdown/HTML/text, `pdfRenderer` for PDFs, `docxRenderer` for Word documents.
+`renderLayer()` selects the built-in implementation from the layer's MIME type.
+The same call renders Markdown, HTML, plain text, PDF, or DOCX, so applications
+do not need their own format switch.
 
 ```ts
-const markdown = await filled.render({ renderer: textRenderer() })
-const pdf = await filled.render({ renderer: pdfRenderer() })
+import { renderLayer } from '@paradoc/render'
+
+const markdown = await filled.render({ renderer: renderLayer(), layer: 'markdown' })
+const pdf = await filled.render({ renderer: renderLayer(), layer: 'pdf' })
 ```
 
-See [Renderers](/sdk/renderers) for the full API.
+Format entry points remain available for low-level operations and specialized
+configuration. See [Renderers](/sdk/renderers) for the full API.

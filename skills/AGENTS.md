@@ -95,7 +95,7 @@ Keep references **one level deep** from `SKILL.md` (per the spec). NEVER nest su
 - **Imperative / infinitive form.** "Use the most specific type." NOT "You should use..."
 - **Prescriptive language for rules:** ALWAYS, NEVER, MUST, SHOULD, FORBIDDEN, DO NOT.
 - **Tables for reference data** — type matrices, decision matrices, command flags.
-- **Code blocks with language tags** — `json`, `typescript`, `bash`, `handlebars`.
+- **Code blocks with language tags** — `json`, `typescript`, `bash`, `text`.
 - **Bold key terms** sparingly. No emoji unless the user requests them.
 - **One concept per section.** Short paragraphs.
 - Cite real Paradoc APIs only — NEVER fabricate method names, package names, or schema URIs.
@@ -111,7 +111,7 @@ The skill itself enforces these — repeat them in any reference where they're d
 - Artifact name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` (kebab-case, no leading/trailing/consecutive hyphens)
 - Field/party/def/rule pattern: `^[a-z][a-zA-Z0-9_]*$` (camelCase preferred)
 - Field types: ALWAYS prefer the most specific type. NEVER `text` when a structured type fits
-- Handlebars: field values are spread at top level — use `{{fieldName}}`, NOT `{{fields.fieldName}}`
+- Paradoc templates: field values are spread at top level — use `{{fieldName}}`, NOT `{{fields.fieldName}}`
 - Signatures: ALWAYS use `{{signature "loc"}}` / `{{initials "loc"}}` / `{{signatureDate "loc"}}` helpers inside party blocks. NEVER manual underscore lines.
 
 ## Validation

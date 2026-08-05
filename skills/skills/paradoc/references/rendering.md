@@ -16,38 +16,35 @@ Paradoc renders artifacts to text (Markdown / HTML / plain text), PDF, and DOCX.
 ### Installation
 
 ```bash
-npm install @paradoc/render/text @paradoc/render/pdf @paradoc/render/docx
-# or via the umbrella
 npm install @paradoc/render
 ```
 
 ### Pattern 1: form.fill().render() (recommended)
 
 ```typescript
-import { textRenderer } from "@paradoc/render/text";
-import { pdfRenderer } from "@paradoc/render/pdf";
-import { docxRenderer } from "@paradoc/render/docx";
+import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers";
 
 const resolver = createFsResolver({ root: process.cwd() });
+const renderer = renderLayer();
 
 // Text / Markdown / HTML
 const text = await form.fill(data).render({
-  renderer: textRenderer(),
+  renderer,
   resolver,
   layer: "markdown",
 });
 
 // PDF (returns Uint8Array)
 const pdf = await form.fill(data).render({
-  renderer: pdfRenderer(),
+  renderer,
   resolver,
   layer: "pdf",
 });
 
 // DOCX (returns Uint8Array)
 const docx = await form.fill(data).render({
-  renderer: docxRenderer(),
+  renderer,
   resolver,
   layer: "docx",
 });
@@ -108,11 +105,8 @@ para render my-form.json --data payload.json
 # Render to file
 para render my-form.json --data payload.json --out output.pdf
 
-# Specify layer (renderer auto-detected from MIME type)
+# Specify layer (format is selected from its MIME type)
 para render my-form.json --data payload.json --layer markdown
-
-# Force renderer
-para render my-form.json --data payload.json --renderer pdf
 
 # With bindings (path or inline JSON)
 para render my-form.json --data payload.json --bindings bindings.json
@@ -124,7 +118,7 @@ para render my-form.json --data payload.json --format json
 para render my-form.json --data payload.json --dry-run
 ```
 
-When both `--renderer` and `--bindings` are provided, CLI bindings merge on top of layer-spec bindings (CLI wins).
+CLI bindings merge on top of layer-spec bindings (CLI wins).
 
 ### Data payload
 
@@ -136,7 +130,8 @@ para render form.json --data '{"fields":{"name":"Alice"}}'
 
 ### Renderer management
 
-Renderers (`text`, `pdf`, `docx`) auto-install on first use to `~/.paradoc/renderers/`.
+The unified `@paradoc/render` package auto-installs on first use under
+`~/.paradoc/renderers/`.
 
 ```bash
 para renderers status
@@ -165,7 +160,7 @@ import { createSerializer } from "@paradoc/serialization";
 const euSerializer = createSerializer({ regionFormat: "eu" });
 
 const output = await form.fill(data).render({
-  renderer: textRenderer({ serializers: euSerializer }),
+  renderer: renderLayer({ serializers: euSerializer }),
   layer: "markdown",
   resolver,
 });
@@ -234,7 +229,7 @@ ALWAYS use `createMemoryResolver` in tests. NEVER read from the filesystem in un
 
 ## See Also
 
-- [layers.md](./layers.md) — layer definitions, Handlebars syntax, signature helpers
+- [layers.md](./layers.md) — layer definitions, Paradoc template syntax, signature helpers
 - [serialization.md](./serialization.md) — locale-aware formatters
 - [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings
 - [sdk.md](./sdk.md) — `form.fill().render()` pipeline

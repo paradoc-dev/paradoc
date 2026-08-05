@@ -59,10 +59,6 @@ const { validateArtifact, render } = paradocTools()
 ```typescript
 paradocTools({
   defaultRegistryUrl: "https://public.paradoc.dev",
-  proxyTextRenderer: {
-    url: "https://your-documents-service.example.com",
-    apiKey: "your-api-key",
-  },
   fetch: customFetchWithAuth,
 })
 ```
@@ -90,7 +86,6 @@ The package also re-exports all output types from `@paradoc/ai-tools`:
 ```typescript
 import type {
   ParadocToolsConfig,
-  ProxyTextRendererConfig,
   ValidateOutput,
   FillOutput,
   RenderOutput,

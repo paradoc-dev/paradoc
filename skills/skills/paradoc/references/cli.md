@@ -383,7 +383,6 @@ ALWAYS validate before rendering. ALWAYS provide `--data` for forms — without 
 para render my-form.json --data payload.json
 para render my-form.json --data payload.json --out output.pdf
 para render my-form.json --data payload.json --layer markdown
-para render my-form.json --data payload.json --renderer pdf
 para render my-form.json --data payload.json --bindings bindings.json
 para render my-form.json --data payload.json --format json       # JSON summary
 para render my-form.json --data payload.json --dry-run
@@ -391,7 +390,8 @@ para render my-form.json --data payload.json --dry-run
 
 `--format <style>` accepts `pretty` (default) or `json`.
 
-Renderer auto-detected from layer MIME type. `--renderer` overrides. `--bindings` (CLI) merges on top of layer-spec bindings (CLI wins).
+The renderer is selected from the layer MIME type. `--bindings` (CLI) merges on
+top of layer-spec bindings (CLI wins).
 
 ### Data payload
 
@@ -403,11 +403,12 @@ para render form.json --data '{"fields":{"name":"Alice"}}'
 
 ### Renderer management
 
-Renderers (`text`, `pdf`, `docx`) auto-install on first use to `~/.paradoc/renderers/`.
+The unified `@paradoc/render` package auto-installs on first use under
+`~/.paradoc/renderers/`.
 
 ```bash
 para renderers status     # Check installation
-para renderers install    # Install (or reinstall) all renderers
+para renderers install    # Install (or reinstall) the renderer package
 para renderers update     # Reinstall to match the current CLI version
 para renderers remove     # Remove installed renderers
 ```

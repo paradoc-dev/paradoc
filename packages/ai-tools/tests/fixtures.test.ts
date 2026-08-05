@@ -154,7 +154,7 @@ describe('pet-addendum fixture (production artifact)', () => {
     expect(result.encoding).toBe('utf-8')
     expect(result.mimeType).toBe('text/markdown')
 
-    // Content from the Handlebars template
+    // Content from the Paradoc template
     expect(result.content).toContain('Pet Addendum')
     expect(result.content).toContain('Bella')
     expect(result.content).toContain('dog')
@@ -211,7 +211,7 @@ describe('pet-addendum fixture (production artifact)', () => {
 
 // ---------------------------------------------------------------------------
 // Lease Agreement — complex form: address, money, duration, enum, boolean,
-// multiple parties, conditionals in Handlebars template (inline layer)
+// multiple parties, conditionals in a Paradoc template (inline layer)
 // ---------------------------------------------------------------------------
 
 describe('lease-agreement fixture', () => {
@@ -297,7 +297,7 @@ describe('lease-agreement fixture', () => {
 
 // ---------------------------------------------------------------------------
 // Purchase Agreement — simpler form: number, money, date, parties with
-// signatures, inline Handlebars template
+// signatures, inline Paradoc template
 // ---------------------------------------------------------------------------
 
 describe('purchase-agreement fixture', () => {

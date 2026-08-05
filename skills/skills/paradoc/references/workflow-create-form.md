@@ -224,9 +224,9 @@ Wait for confirmation. Then validate.
 
 ## Stage 5: Create Layers
 
-**Goal:** generate Handlebars template files for requested output formats.
+**Goal:** generate Paradoc template files for requested output formats.
 
-**Load:** [layers.md](./layers.md) — layer kinds, MIME types, Handlebars syntax, signature helpers, design checklist.
+**Load:** [layers.md](./layers.md) — layer kinds, MIME types, Paradoc template syntax, signature helpers, design checklist.
 
 ### Workflow rules for this stage
 

@@ -27,6 +27,7 @@ The `createMemoryResolver` function is exported from `@paradoc/core` and works i
 
 ```ts
 import { createMemoryResolver } from '@paradoc/core'
+import { renderLayer } from '@paradoc/render'
 
 const resolver = createMemoryResolver({
   contents: {
@@ -42,7 +43,7 @@ const filled = form.fill({
 })
 
 const output = await filled.render({
-  renderer: textRenderer(),
+  renderer: renderLayer(),
   resolver
 })
 ```
@@ -105,7 +106,7 @@ Resolvers are needed when forms define file-based layers:
 ```ts
 import { para } from '@paradoc/core'
 import { createFsResolver } from '@paradoc/resolvers'
-import { pdfRenderer } from '@paradoc/render/pdf'
+import { renderLayer } from '@paradoc/render'
 
 const form = para.form({
   name: 'w9',
@@ -131,7 +132,7 @@ const filled = form.fill({
 })
 
 const output = await filled.render({
-  renderer: pdfRenderer(),
+  renderer: renderLayer(),
   resolver
 })
 ```

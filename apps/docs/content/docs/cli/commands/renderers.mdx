@@ -5,7 +5,8 @@ ogTitle: para renderers
 ogDescription: Manage the Paradoc CLI renderer package
 ---
 
-Manages renderer plugins used by the `render` and `inspect` commands.
+Manages the unified renderer package used by the `render` and `inspect`
+commands.
 
 # Usage
 
@@ -19,7 +20,7 @@ para renderers <command>
 first time you run `render` or `inspect`, then cached in
 `~/.paradoc/renderers/`.
 
-Available renderers:
+Available package:
 
 | Package | Used for | Runtime dependency |
 |---------|----------|--------------------|
@@ -52,14 +53,8 @@ para renderers status [options]
 
 ## Output
 
-```
-Renderer plugins
-
-Package                        Installed  Expected  Status  Size
-@paradoc/render/text       0.2.1      0.2.1     ok      245.3 KB
-@paradoc/render/pdf        0.2.1      0.2.1     ok      1.2 MB
-@paradoc/render/docx       not installed  0.2.1  -       -
-```
+The status table contains one row for `@paradoc/render`, including its installed
+version, the version expected by the CLI, status, and installed size.
 
 ---
 

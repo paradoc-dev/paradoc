@@ -25,7 +25,6 @@ para render <artifact> [options]
 |--------|-------------|
 | `--data <pathOrJson>` | Data payload (path to JSON/YAML or inline JSON) |
 | `--bindings <pathOrJson>` | Renderer bindings (path to JSON/YAML or inline JSON) |
-| `--renderer <id>` | Force a renderer id: `text`, `pdf` |
 | `--out <file>` | Write output to file (defaults to stdout) |
 | `--format <style>` | Summary format: `pretty` or `json` (default: pretty) |
 | `--layer <key>` | Layer key to use (defaults to artifact.defaultLayer) |
@@ -33,7 +32,10 @@ para render <artifact> [options]
 
 # Description
 
-The `render` command reads an artifact, resolves the specified layer, and outputs its content. For file-backed layers, it reads the referenced file. For inline layers, it outputs the embedded content.
+The `render` command reads an artifact and resolves the requested layer. With
+`--data`, it selects the text, PDF, or DOCX implementation automatically from
+the layer's MIME type and fills the output. Without data, it returns the raw
+layer content. File-backed layers resolve relative to the artifact file.
 
 # Examples
 
@@ -47,6 +49,12 @@ Render specific layer:
 
 ```bash
 para render my-form.yaml --layer markdown
+```
+
+Fill a PDF layer without choosing a renderer:
+
+```bash
+para render my-form.yaml --layer pdf --data answers.json --out completed.pdf
 ```
 
 Render to file:

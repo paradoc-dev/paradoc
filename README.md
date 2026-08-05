@@ -21,9 +21,9 @@
 
 ## Package overview
 
-An umbrella package containing the Paradoc core framework, serialization, and renderers.
+The Paradoc SDK plus the unified renderer and filesystem resolver used below.
 
-- 📦 **All-in-one** - Single install
+- 📦 **Focused packages** - Framework, rendering, and environment adapters stay explicit
 - 🏗️ **Type-safe builders** - Fluent API with full TypeScript support
 - 📄 **Multi-format rendering** - PDF, DOCX, HTML, Text from one definition
 - ✅ **Automatic validation** - Schema-driven constraints and validation
@@ -33,7 +33,7 @@ An umbrella package containing the Paradoc core framework, serialization, and re
 ## Installation
 
 ```bash
-npm install @paradoc/sdk
+npm install @paradoc/sdk @paradoc/render @paradoc/resolvers
 ```
 
 ## Usage
@@ -41,7 +41,8 @@ npm install @paradoc/sdk
 Define forms with parties, fields, and output layers:
 
 ```typescript
-import { para, textRenderer } from "@paradoc/sdk";
+import { para } from "@paradoc/sdk";
+import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers";
 
 const leaseAgreement = para
@@ -106,12 +107,12 @@ const filledLease = leaseAgreement.fill({
 // Render to multiple formats
 const resolver = createFsResolver({ root: process.cwd() });
 const markdown = await filledLease.render({
-  renderer: textRenderer(),
+  renderer: renderLayer(),
   resolver,
   layer: "markdown",
 });
 const html = await filledLease.render({
-  renderer: textRenderer(),
+  renderer: renderLayer(),
   resolver,
   layer: "html",
 });
@@ -284,7 +285,7 @@ View package Changelogs for update.
 - [`@paradoc/schemas`](https://github.com/paradoc-dev/paradoc/blob/main/packages/schemas) - JSON Schema definitions
 - [`@paradoc/serialization`](https://github.com/paradoc-dev/paradoc/blob/main/packages/serialization) - Locale-aware formatting
 - [`@paradoc/resolvers`](https://github.com/paradoc-dev/paradoc/blob/main/packages/resolvers) - File and environment resolvers
-- [`@paradoc/render`](https://github.com/paradoc-dev/paradoc/blob/main/packages/renderers) - All renderers (PDF, DOCX, Text)
+- [`@paradoc/render`](https://github.com/paradoc-dev/paradoc/blob/main/packages/render) - Unified PDF, DOCX, and text rendering
 
 ## Contributing
 

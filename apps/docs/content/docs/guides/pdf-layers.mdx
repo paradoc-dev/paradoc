@@ -71,27 +71,27 @@ my-w9-project/
 <Step>
 ## Install
 
-Install the SDK and the filesystem resolver.
+Install the SDK, unified renderer, and filesystem resolver.
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
   <Tab value="npm">
     ```bash
-    npm install @paradoc/sdk @paradoc/resolvers
+    npm install @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
-    pnpm add @paradoc/sdk @paradoc/resolvers
+    pnpm add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add @paradoc/sdk @paradoc/resolvers
+    yarn add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
   <Tab value="bun">
     ```bash
-    bun add @paradoc/sdk @paradoc/resolvers
+    bun add @paradoc/sdk @paradoc/render @paradoc/resolvers
     ```
   </Tab>
 </Tabs>
@@ -215,10 +215,11 @@ if (!filled.isValid()) {
 <Step>
 ## Render to PDF
 
-Render the filled form using the PDF renderer. The resolver loads the PDF template from the filesystem.
+Render the filled form. `renderLayer()` selects the PDF implementation from the
+layer's MIME type, and the resolver loads the template from the filesystem.
 
 ```ts
-import { pdfRenderer } from '@paradoc/sdk'
+import { renderLayer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 import { writeFileSync } from 'node:fs'
 
@@ -226,7 +227,7 @@ import { writeFileSync } from 'node:fs'
 const resolver = createFsResolver({ root: '.' })
 
 const output = await filled.render({
-  renderer: pdfRenderer(),
+  renderer: renderLayer(),
   resolver,
   layer: 'pdf',
 })

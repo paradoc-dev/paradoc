@@ -200,4 +200,4 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
 - [layers.md](./layers.md) — generic layer concepts, signature block schema
 - [rendering.md](./rendering.md) — `renderPdf`, `inspectAcroFormFields`, `para inspect`
 - [parties.md](./parties.md) — party roles for signature blocks
-- [cli.md](./cli.md) — `para inspect`, `para render --renderer pdf`
+- [cli.md](./cli.md) — `para inspect`, `para render --layer pdf`

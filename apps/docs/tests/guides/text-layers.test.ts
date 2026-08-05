@@ -7,7 +7,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { para, textRenderer } from '@paradoc/sdk'
+import { para } from '@paradoc/sdk'
+import { renderLayer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -115,11 +116,11 @@ describe('Text Layers Guide', () => {
   // Step 6: Render the Document
   // ============================================================================
 
-  test('renders lease agreement with all Handlebars patterns', async () => {
+  test('renders lease agreement with all template patterns', async () => {
     const resolver = createFsResolver({ root: fixturesRoot })
 
     const output = await filled.render({
-      renderer: textRenderer(),
+      renderer: renderLayer(),
       resolver,
       layer: 'markdown',
     })
@@ -147,7 +148,7 @@ describe('Text Layers Guide', () => {
   test('renders and writes to temp file', async () => {
     const resolver = createFsResolver({ root: fixturesRoot })
     const output = await filled.render({
-      renderer: textRenderer(),
+      renderer: renderLayer(),
       resolver,
       layer: 'markdown',
     })

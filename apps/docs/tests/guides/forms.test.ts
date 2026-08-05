@@ -2,7 +2,8 @@
  * Tests for code snippets in guides/forms.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { para, textRenderer } from '@paradoc/sdk'
+import { para } from '@paradoc/sdk'
+import { renderLayer } from '@paradoc/render'
 
 describe('Forms Guide', () => {
   // ============================================================================
@@ -143,9 +144,9 @@ describe('Forms Guide', () => {
     // Step 6: Render the Form
     // ============================================================================
 
-    test('renders the form with text renderer', async () => {
+    test('renders the form from its layer MIME type', async () => {
       const output = await filled.render({
-        renderer: textRenderer(),
+        renderer: renderLayer(),
       })
 
       expect(output).toContain('Residential Lease Agreement')
