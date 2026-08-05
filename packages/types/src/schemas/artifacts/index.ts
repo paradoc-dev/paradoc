@@ -89,6 +89,7 @@ export type {
   EnumOption,
   EnumOptionValue,
   FieldsetField,
+  ListField,
   FormField,
   TextField,
   BooleanField,

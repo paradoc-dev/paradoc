@@ -32,6 +32,7 @@ import type {
 	MultiselectField,
 	PercentageField,
 	RatingField,
+	ListField,
 	Coordinate,
 	Bbox,
 	Money,
@@ -298,6 +299,17 @@ export interface FieldsetFieldBuilder {
 	visible(value?: CondExpr): FieldsetFieldBuilder;
 	fields(fieldsObj: Record<string, FormField>): FieldsetFieldBuilder;
 	build(): FieldsetField;
+}
+
+export interface ListFieldBuilder {
+	label(value: string): ListFieldBuilder;
+	description(value: string): ListFieldBuilder;
+	required(value?: CondExpr): ListFieldBuilder;
+	visible(value?: CondExpr): ListFieldBuilder;
+	item(field: FormField): ListFieldBuilder;
+	minItems(value: number): ListFieldBuilder;
+	maxItems(value: number): ListFieldBuilder;
+	build(): ListField;
 }
 
 // ============================================================================
@@ -644,6 +656,21 @@ export function fieldsetField(): FieldsetFieldBuilder {
 	return self;
 }
 
+export function listField(): ListFieldBuilder {
+	const _def: Record<string, unknown> = { type: 'list' };
+	const self: ListFieldBuilder = {
+		label(value: string) { _def.label = value; return self; },
+		description(value: string) { _def.description = value; return self; },
+		required(value: CondExpr = true) { _def.required = value; return self; },
+		visible(value: CondExpr = true) { _def.visible = value; return self; },
+		item(value: FormField) { _def.item = parseField(value); return self; },
+		minItems(value: number) { _def.minItems = value; return self; },
+		maxItems(value: number) { _def.maxItems = value; return self; },
+		build() { return parseField(_def) as ListField; },
+	};
+	return self;
+}
+
 // ============================================================================
 // Field API
 // ============================================================================
@@ -674,6 +701,7 @@ export type FieldAPI = {
 	percentage(): PercentageFieldBuilder;
 	rating(): RatingFieldBuilder;
 	fieldset(): FieldsetFieldBuilder;
+	list(): ListFieldBuilder;
 	parse(input: unknown): FormField;
 	safeParse(input: unknown): { success: true; data: FormField } | { success: false; error: Error };
 };
@@ -711,6 +739,7 @@ export const field: FieldAPI = Object.assign(fieldImpl, {
 	percentage: percentageField,
 	rating: ratingField,
 	fieldset: fieldsetField,
+	list: listField,
 	parse: parseField,
 	safeParse: (input: unknown): { success: true; data: FormField } | { success: false; error: Error } => {
 		try {

@@ -239,6 +239,12 @@ const fieldsetProps = z.object({
 	...baseInputProps,
 });
 
+const listProps = z.object({
+	...baseInputProps,
+	minItems: z.number().int().nonnegative().optional(),
+	maxItems: z.number().int().nonnegative().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // The catalog
 // ---------------------------------------------------------------------------
@@ -272,6 +278,7 @@ export const CATALOG = {
 	IdentificationInput: { props: identificationInputProps },
 	RatingStars: { props: ratingStarsProps },
 	Fieldset: { props: fieldsetProps },
+	List: { props: listProps },
 } as const;
 
 export type CatalogComponentName = keyof typeof CATALOG;

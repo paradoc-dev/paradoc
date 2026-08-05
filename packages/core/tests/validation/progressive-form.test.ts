@@ -77,6 +77,14 @@ describe('progressive form validation', () => {
 			expect(result.success).toBe(true)
 		})
 
+		test('validates bracket-indexed paths inside recursive lists', () => {
+			const listForm = form().name('matrix').fields({
+				matrix: { type: 'list', item: { type: 'list', item: { type: 'number', min: 0 } } },
+			}).build()
+			expect(validateFieldInput(listForm, { fieldPath: 'matrix[0][1]', value: 4 }).success).toBe(true)
+			expect(validateFieldInput(listForm, { fieldPath: 'matrix[0][1]', value: -1 }).success).toBe(false)
+		})
+
 		test('validates partial field patch without requiring all required fields', () => {
 			const petForm = createPetAddendumLikeForm()
 			const result = validateFieldsPatch(petForm, {

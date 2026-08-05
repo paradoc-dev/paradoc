@@ -43,6 +43,7 @@ export {
 	percentageField,
 	ratingField,
 	fieldsetField,
+	listField,
 	// Party builder
 	party,
 	partyBuilder,
@@ -94,6 +95,7 @@ export type {
 	PercentageFieldBuilder,
 	RatingFieldBuilder,
 	FieldsetFieldBuilder,
+	ListFieldBuilder,
 	// Party builder types
 	PartyAPI,
 	PartyBuilder,

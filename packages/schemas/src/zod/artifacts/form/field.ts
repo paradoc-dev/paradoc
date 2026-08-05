@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { CondExprSchema } from '../expressions/cond-expr';
+import type { FieldsetField, FormField } from '@paradoc/types';
+import { BaseFieldSchema } from './base-field';
+import { ListFieldSchema } from './list';
 import { CoordinateSchema } from '../../primitives/coordinate';
 import { BboxSchema } from '../../primitives/bbox';
 import { MoneySchema } from '../../primitives/money';
@@ -9,21 +11,6 @@ import { DurationSchema } from '../../primitives/duration';
 import { PersonSchema } from '../../primitives/person';
 import { OrganizationSchema } from '../../primitives/organization';
 import { IdentificationSchema } from '../../primitives/identification';
-
-const BaseFieldSchema = z.object({
-	label: z.string()
-		.min(1)
-		.max(200)
-		.describe('Display label for the field')
-		.optional(),
-	description: z.string()
-		.min(1)
-		.max(1000)
-		.describe('Description or help text for the field')
-		.optional(),
-	required: CondExprSchema.optional(),
-	visible: CondExprSchema.optional(),
-});
 
 const EnumOptionValueSchema = z.union([z.string(), z.number()]);
 
@@ -238,28 +225,20 @@ const BaseFieldSchemaTypes = z.discriminatedUnion('type', [
 export type BaseField = z.infer<typeof BaseFieldSchemaTypes>;
 
 // FieldsetFieldSchema - a field that contains nested fields (recursive)
-export interface FieldsetField {
-	label?: string;
-	description?: string;
-	required?: boolean | string;
-	visible?: boolean | string;
-	type: 'fieldset';
-	fields: Record<string, BaseField | FieldsetField>;
-}
-
 export const FieldsetFieldSchema: z.ZodType<FieldsetField> = BaseFieldSchema.extend({
 	type: z.literal('fieldset'),
 	fields: z.lazy(() => z.record(
 		z.string().min(1).max(100).regex(/^[a-z][a-zA-Z0-9_]*$/).describe('Nested field identifier (camelCase, starts with lowercase letter)'),
-		z.union([BaseFieldSchemaTypes, FieldsetFieldSchema]),
+		FormFieldSchema,
 	)),
 }).meta({ id: 'FieldsetField' });
 
 // Complete Field union including FieldsetFieldSchema
-export const FormFieldSchema = z.union([
+export const FormFieldSchema: z.ZodType<FormField> = z.lazy(() => z.union([
 	BaseFieldSchemaTypes,
 	FieldsetFieldSchema,
-]).meta({
+	ListFieldSchema,
+])).meta({
 	title: 'FormField',
-	description: 'Single input/data element. Fields are keyed by their identifier and can be of various types (text, number, boolean, address, phone, etc.) or nested fieldsets',
+	description: 'Single input/data element, nested fieldset, or recursive list',
 });

@@ -59,6 +59,7 @@ The catalog defines the following input primitives. See `src/catalog.ts` for the
 | `IdentificationInput` | `identification` |
 | `RatingStars` | `rating` |
 | `Fieldset` | `fieldset` (recursive container) |
+| `List` | `list` (recursive repeatable container; its child is the item template) |
 
 ## Writing a registry (illustrative)
 

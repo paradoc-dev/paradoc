@@ -6,8 +6,8 @@ import {
 } from "../src/catalog.js";
 
 describe("catalog", () => {
-	it("exposes all 21 component names", () => {
-		expect(CATALOG_COMPONENT_NAMES.length).toBe(21);
+	it("exposes all 22 component names", () => {
+		expect(CATALOG_COMPONENT_NAMES.length).toBe(22);
 	});
 
 	it("includes the expected primitives", () => {
@@ -33,6 +33,7 @@ describe("catalog", () => {
 			"IdentificationInput",
 			"RatingStars",
 			"Fieldset",
+			"List",
 		];
 		for (const name of expected) {
 			expect(CATALOG_COMPONENT_NAMES).toContain(name);
@@ -85,6 +86,16 @@ describe("catalog", () => {
 				default: { line1: "123 Main", city: "Springfield" },
 			});
 			expect(parsed.default?.city).toBe("Springfield");
+		});
+
+		it("accepts bounded List props", () => {
+			const parsed = validateProps("List", {
+				label: "Line items",
+				minItems: 1,
+				maxItems: 20,
+			});
+			expect(parsed.minItems).toBe(1);
+			expect(parsed.maxItems).toBe(20);
 		});
 
 		it("rejects unknown props by erroring on type-narrow", () => {

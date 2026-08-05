@@ -49,9 +49,9 @@ export interface FnSignature {
 const fixed = (type: ExprType): ReturnSpec => ({ kind: 'fixed', type })
 
 /**
- * The default registry. Collection aggregates (`any`/`all`/`none`/`sum`/`join`)
- * are intentionally absent until a repeating-group field type exists; see
- * _docs/plans/paradoc-expr/language-spec.md.
+ * The default registry. List fields support indexing and `length`; higher-order
+ * collection aggregates remain separate language work because they require
+ * projection and predicate semantics.
  */
 export const DEFAULT_SIGNATURES: readonly FnSignature[] = [
 	// --- string ---

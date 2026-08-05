@@ -72,6 +72,7 @@ function toFieldPathSegments(fieldPath: string | string[]): string[] {
 	}
 
 	return fieldPath
+		.replace(/\[(\d+)\]/g, '.$1')
 		.split('.')
 		.map((segment) => segment.trim())
 		.filter((segment) => segment.length > 0)
@@ -91,6 +92,12 @@ function getSchemaAtPath(rootSchema: JsonSchemaObject, path: string[]): JsonSche
 	let currentSchema: JsonSchemaObject = rootSchema
 
 	for (const segment of path) {
+		if (currentSchema.type === 'array' && /^\d+$/.test(segment)) {
+			const items = currentSchema.items
+			if (!isRecord(items)) return null
+			currentSchema = items
+			continue
+		}
 		const properties = isRecord(currentSchema.properties)
 			? (currentSchema.properties as Record<string, unknown>)
 			: null
@@ -150,6 +157,11 @@ function collectUnknownKeysForObjectSchema(
 	value: unknown,
 	pathPrefix: string[] = [],
 ): ValidationError[] {
+	if (schema.type === 'array' && Array.isArray(value) && isRecord(schema.items)) {
+		return value.flatMap((item, index) =>
+			collectUnknownKeysForObjectSchema(schema.items as JsonSchemaObject, item, [...pathPrefix, String(index)]),
+		)
+	}
 	if (!isRecord(value)) return []
 	if (schema.type !== 'object') return []
 

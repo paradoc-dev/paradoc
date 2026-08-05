@@ -11,6 +11,7 @@
 import type {
 	FormField,
 	FieldsetField,
+	ListField,
 	EnumOption,
 	EnumOptionValue,
 	EnumField,
@@ -359,6 +360,9 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 		case "fieldset":
 			return mapFieldset(field as FieldsetField, ctx);
 
+		case "list":
+			return mapList(field as ListField, ctx);
+
 		default: {
 			// Exhaustiveness check: this should never compile if a new field
 			// type is added to @paradoc/types and not handled above.
@@ -409,6 +413,28 @@ function mapFieldset(field: FieldsetField, ctx: MapperContext): SpecNode {
 		},
 		...optionalFieldPath(ctx),
 		children,
+	};
+}
+
+function mapList(field: ListField, ctx: MapperContext): SpecNode {
+	const itemPath = ctx.fieldPath === undefined ? undefined : `${ctx.fieldPath}/*`;
+
+	return {
+		type: "List",
+		props: {
+			label: field.label,
+			description: field.description,
+			required: typeof field.required === "boolean" ? field.required : undefined,
+			minItems: field.minItems,
+			maxItems: field.maxItems,
+		},
+		...optionalFieldPath(ctx),
+		children: [
+			fieldToSpec(field.item, {
+				...ctx,
+				fieldPath: itemPath,
+			}),
+		],
 	};
 }
 

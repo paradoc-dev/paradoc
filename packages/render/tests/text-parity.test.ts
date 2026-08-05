@@ -18,6 +18,42 @@ const cases: Array<{ name: string; template: string; data: Record<string, unknow
 ]
 
 describe('text renderer behavior', () => {
+	it('renders lists and lists of lists into Markdown while serializing nested fields', () => {
+		const form = {
+			fields: {
+				groups: {
+					type: 'list',
+					item: {
+						type: 'fieldset',
+						fields: {
+							name: { type: 'text' },
+							amounts: { type: 'list', item: { type: 'money' } },
+						},
+					},
+				},
+			},
+		} as unknown as Form
+		const actual = renderText({
+			form,
+			template: '{{#each groups}}## {{name}}\n{{#each amounts}}- {{this}}\n{{/each}}{{/each}}',
+			data: {
+				groups: [
+					{ name: 'Labor', amounts: [{ amount: 100, currency: 'USD' }, { amount: 25, currency: 'USD' }] },
+					{ name: 'Parts', amounts: [{ amount: 50, currency: 'USD' }] },
+				],
+			},
+		})
+		expect(actual).toBe('## Labor\n- $100.00\n- $25.00\n## Parts\n- $50.00\n')
+	})
+
+	it('resolves bracket-indexed bindings for list items', () => {
+		expect(renderText({
+			template: '{{first}}/{{nested}}',
+			data: { matrix: [['a', 'b'], ['c']] },
+			bindings: { first: 'matrix[0][1]', nested: 'matrix[1][0]' },
+		})).toBe('b/c')
+	})
+
   it.each(cases)('$name', ({ template, data, expected }) => {
     expect(renderText({ template, data })).toBe(expected)
   })

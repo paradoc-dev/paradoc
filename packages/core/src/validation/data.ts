@@ -39,10 +39,12 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 
 	if (type === 'array') {
 		const items = jsonSchema.items as Record<string, unknown> | undefined
-		if (items) {
-			return z.array(jsonSchemaToZod(items))
-		}
-		return z.array(z.unknown())
+		let schema = z.array(items ? jsonSchemaToZod(items) : z.unknown())
+		const minItems = jsonSchema.minItems as number | undefined
+		const maxItems = jsonSchema.maxItems as number | undefined
+		if (minItems !== undefined) schema = schema.min(minItems)
+		if (maxItems !== undefined) schema = schema.max(maxItems)
+		return schema
 	}
 
 	if (type === 'string') {

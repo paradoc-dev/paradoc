@@ -47,6 +47,28 @@ interface EvaluationState {
   issues: EvaluationIssue[]
 }
 
+function evaluateRepeatedItem(
+  field: FormField,
+  value: unknown,
+  fullId: string,
+  context: EvaluationContext,
+  state: EvaluationState,
+  parentVisible: boolean,
+): void {
+  const visible = parentVisible && evaluateBooleanExpression(field.visible, context, DEFAULTS.visible)
+  const required = visible && evaluateBooleanExpression(field.required, context, DEFAULTS.required)
+  state.fields.set(fullId, { fieldId: fullId, visible, required, disabled: false, value })
+
+  if (field.type === 'fieldset') {
+    const nested = value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : undefined
+    evaluateFields(field.fields, nested, context, state, fullId, visible)
+  } else if (field.type === 'list' && Array.isArray(value)) {
+    value.forEach((item, index) => evaluateRepeatedItem(field.item, item, `${fullId}[${index}]`, context, state, visible))
+  }
+}
+
 /**
  * Recursively evaluates fields including nested fieldsets.
  *
@@ -108,6 +130,8 @@ function evaluateFields(
       const nestedData = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined
 
       evaluateFields(fieldset.fields, nestedData, context, state, fullId, visible)
+    } else if (field.type === 'list' && Array.isArray(value)) {
+      value.forEach((item, index) => evaluateRepeatedItem(field.item, item, `${fullId}[${index}]`, context, state, visible))
     }
   }
 }

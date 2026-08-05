@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import type { Form } from '@paradoc/types'
 import { flattenPdf, inspectAcroFormFields, inspectPdf, pdfRenderer, renderPdf } from '../src/pdf'
-import { compressedCheckboxPdf, pagePdf } from './pdf-fixtures'
+import { compressedCheckboxPdf, pagePdf, textFieldsPdf } from './pdf-fixtures'
 
 const fixtures = ['pet-addendum.pdf', 'pet-addendum-2.pdf']
 
@@ -22,6 +22,39 @@ const expectedFields = {
 } as const
 
 describe('PDF renderer behavior', () => {
+	it('fills fixed AcroForm slots from lists and lists of lists using bracket bindings', async () => {
+		const template = textFieldsPdf(['item_1', 'item_2', 'matrix_1_1', 'matrix_1_2', 'matrix_2_1'])
+		const form = {
+			kind: 'form', name: 'repeated-data', fields: {
+				items: { type: 'list', item: { type: 'text' } },
+				matrix: { type: 'list', item: { type: 'list', item: { type: 'text' } } },
+			},
+		} as unknown as Form
+		const output = await renderPdf({
+			template,
+			form,
+			data: { items: ['Labor', 'Parts'], matrix: [['a', 'b'], ['c']] },
+			bindings: {
+				item_1: 'items[0]', item_2: 'items[1]',
+				matrix_1_1: 'matrix[0][0]', matrix_1_2: 'matrix[0][1]', matrix_2_1: 'matrix[1][0]',
+			},
+		})
+		const values = Object.fromEntries((await inspectAcroFormFields(output)).map((field) => [field.name, field.value]))
+		expect(values).toMatchObject({ item_1: 'Labor', item_2: 'Parts', matrix_1_1: 'a', matrix_1_2: 'b', matrix_2_1: 'c' })
+	})
+
+	it('fails loudly when repeated data exceeds the fixed PDF binding capacity', async () => {
+		const form = {
+			kind: 'form', name: 'invoice', fields: { items: { type: 'list', item: { type: 'text' } } },
+		} as unknown as Form
+		await expect(renderPdf({
+			template: textFieldsPdf(['item_1', 'item_2']),
+			form,
+			data: { items: ['one', 'two', 'three'] },
+			bindings: { item_1: 'items[0]', item_2: 'items[1]' },
+		})).rejects.toThrow('support 2 list items, but received 3')
+	})
+
   it('inspects page count and dimensions for downstream placement', async () => {
     expect(await inspectPdf(pagePdf([[300, 400], [612, 792]]))).toEqual({
       pageCount: 2,

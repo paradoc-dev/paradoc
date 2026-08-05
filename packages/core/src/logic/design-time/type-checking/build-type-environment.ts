@@ -71,6 +71,7 @@ const FIELD_TYPE_TO_EXPR: Record<string, ExprType> = {
   identification: T.object,
   signature: T.object,
   fieldset: T.object,
+  list: T.array(T.unknown),
 }
 
 /** Nested property types for complex field types (mirrors field-paths.ts). */
@@ -114,8 +115,10 @@ const COMPLEX_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
   },
 }
 
-function fieldExprType(fieldType: string): ExprType {
-  return FIELD_TYPE_TO_EXPR[fieldType] ?? T.unknown
+function fieldExprType(field: FormField): ExprType {
+  return field.type === 'list'
+    ? T.array(fieldExprType(field.item))
+    : FIELD_TYPE_TO_EXPR[field.type] ?? T.unknown
 }
 
 /** The declared type of an object-valued defs key (scalars are inferred). */
@@ -133,7 +136,7 @@ function registerFieldTypes(
 
   for (const [fieldId, field] of Object.entries(fields)) {
     const fieldPath = `${prefix}.${fieldId}`
-    acc[fieldPath] = fieldExprType(field.type)
+    acc[fieldPath] = fieldExprType(field)
 
     const props = COMPLEX_PROPERTY_TYPES[field.type]
     if (props) {

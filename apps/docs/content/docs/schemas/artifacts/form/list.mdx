@@ -1,0 +1,34 @@
+---
+title: ListField
+description: Define ordered, variable-length form data
+---
+
+`ListField` is a recursive form field for repeated data. Its `item` may be any
+field, including a fieldset or another list.
+
+```yaml
+lineItems:
+  type: list
+  minItems: 1
+  item:
+    type: fieldset
+    fields:
+      description:
+        type: text
+        required: true
+      quantity:
+        type: number
+        min: 1
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `"list"` | List field discriminator |
+| `item` | `FormField` | Definition applied recursively to each item |
+| `minItems` | `number` | Minimum accepted item count |
+| `maxItems` | `number` | Maximum accepted item count |
+
+Lists are ordered and use zero-based bracket paths such as
+`lineItems[0].description`. Text and DOCX templates can loop dynamically. PDF
+AcroForm layers bind list items to the template's fixed slots and fail when
+bound data exceeds that capacity.

@@ -13,6 +13,7 @@ import type {
   Organization,
   Identification,
 } from "../../primitives";
+import type { ListField } from "./list";
 
 // ============================================================================
 // Base Field Properties
@@ -85,7 +86,8 @@ export type FormField =
   | MultiselectField
   | PercentageField
   | RatingField
-  | FieldsetField;
+  | FieldsetField
+  | ListField;
 
 // ============================================================================
 // Specific Field Types (Discriminated Union Types)

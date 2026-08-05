@@ -5,6 +5,16 @@ import type { LogicValidationIssue } from '@/logic/design-time/validation/valida
 
 describe('Expression Type Checking', () => {
 	describe('validateFormDefs - type checking', () => {
+		test('type-checks indexed access through lists of lists', () => {
+			const form: Form = {
+				kind: 'form', name: 'matrix', fields: {
+					matrix: { type: 'list', item: { type: 'list', item: { type: 'number' } } },
+					positive: { type: 'text', visible: 'fields.matrix[0][1] > 0' },
+				},
+			}
+			expect(validateFormDefs(form).issues).toBeUndefined()
+		})
+
 		test('passes when visible expression returns boolean (comparison)', () => {
 			const form: Form = {
 				kind: 'form',

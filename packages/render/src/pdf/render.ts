@@ -1,6 +1,7 @@
 import { preprocessFieldData, usaSerializers } from '@paradoc/serialization'
 import type { BinaryContent, Form, FormField, SerializerRegistry } from '@paradoc/types'
 import { createSerializedFieldValue } from '../text/field-serializer'
+import { getPath, pathSegments } from '../path'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
 import { applyPdfOverlays, type PdfOverlay } from './overlay'
 import type { PdfSignatureOptions } from './signatures'
@@ -18,16 +19,59 @@ export interface RenderPdfOptions {
   overlays?: PdfOverlay[]
 }
 
-function getPath(value: Record<string, unknown>, path: string): unknown {
-  return path.split('.').reduce<unknown>((current, key) => {
-    if (current === null || current === undefined || typeof current !== 'object') return undefined
-    return (current as Record<string, unknown>)[key]
-  }, value)
-}
-
 function assign(field: AcroField | undefined, value: unknown, model: PdfModel): void {
   if (!field || value === null || value === undefined) return
   setAcroFieldValue(model, field, value)
+}
+
+function sourcePaths(bindings: Record<string, string>): string[][] {
+  return Object.values(bindings).flatMap((binding) => binding.split(',').map((part) => {
+    const path = part.trim()
+    const qualifier = path.indexOf(':')
+    return pathSegments(qualifier === -1 ? path : path.slice(0, qualifier))
+  }))
+}
+
+function displayPath(segments: string[]): string {
+  return segments.reduce((path, segment) => /^\d+$/.test(segment)
+    ? `${path}[${segment}]`
+    : path ? `${path}.${segment}` : segment, '')
+}
+
+function assertListBindingCapacity(
+  form: Form | undefined,
+  data: Record<string, unknown>,
+  bindings: Record<string, string> | undefined,
+): void {
+  if (!form?.fields || !bindings) return
+  const paths = sourcePaths(bindings)
+
+  const visit = (field: FormField, value: unknown, prefix: string[]): void => {
+    if (field.type === 'list') {
+      if (!Array.isArray(value)) return
+      const indices = paths
+        .filter((path) => prefix.every((segment, index) => path[index] === segment))
+        .map((path) => path[prefix.length])
+        .filter((segment): segment is string => segment !== undefined && /^\d+$/.test(segment))
+        .map(Number)
+      if (indices.length > 0) {
+        const capacity = Math.max(...indices) + 1
+        if (value.length > capacity) {
+          throw new Error(`PDF bindings for "${displayPath(prefix)}" support ${capacity} list items, but received ${value.length}`)
+        }
+      }
+      value.forEach((item, index) => visit(field.item, item, [...prefix, String(index)]))
+      return
+    }
+
+    if (field.type === 'fieldset' && value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [key, nestedField] of Object.entries(field.fields)) {
+        visit(nestedField, (value as Record<string, unknown>)[key], [...prefix, key])
+      }
+    }
+  }
+
+  for (const [key, field] of Object.entries(form.fields)) visit(field, data[key], [key])
 }
 
 export async function renderPdf({
@@ -41,6 +85,7 @@ export async function renderPdf({
   const preprocessed = form
     ? preprocessFieldData(data, form, (value, fieldType) => createSerializedFieldValue(value, fieldType, serializers))
     : data
+  assertListBindingCapacity(form, data, bindings)
   const model = await PdfModel.load(template)
   const shouldFill = Boolean(bindings && Object.keys(bindings).length > 0)
     || Boolean(form?.fields && Object.keys(form.fields).length > 0)
@@ -74,7 +119,7 @@ export async function renderPdf({
             const fieldName = binding.slice(0, separator)
             const qualifier = binding.slice(separator + 1)
             const value = getPath(preprocessed, fieldName)
-            const rootName = fieldName.split('.')[0]
+            const rootName = pathSegments(fieldName)[0]
             const definition = rootName ? form?.fields?.[rootName] : undefined
             if (definition?.type === 'boolean') assign(field, Boolean(value), model)
             else if (definition?.type === 'multiselect') assign(field, Array.isArray(value) && value.includes(qualifier), model)

@@ -24,6 +24,7 @@ export {
 
 // Field types
 export { FieldsetFieldSchema } from './artifacts/form/field';
+export { ListFieldSchema } from './artifacts/form/list';
 
 // Shared
 export { ArtifactSchema } from './artifacts/shared/base';

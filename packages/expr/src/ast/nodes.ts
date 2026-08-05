@@ -52,7 +52,7 @@ export interface Member extends NodeBase {
 	readonly property: string
 }
 
-/** Indexed access `object[index]`. Reserved; not an author surface in v1. */
+/** Indexed access `object[index]`, including list-field values. */
 export interface Index extends NodeBase {
 	readonly kind: 'Index'
 	readonly object: Expr

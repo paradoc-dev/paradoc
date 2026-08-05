@@ -31,7 +31,8 @@ export type StateRead = { $state: string };
  *   `submitFieldValue` action so the consumer knows where the value belongs.
  * - `bindings`: optional. State bindings for component values (e.g.
  *   `{ value: { $bindState: "/name" } }`).
- * - `children`: optional. For container components (e.g. `Fieldset`).
+ * - `children`: optional. For container components. A `List` has one child
+ *   describing its item template; `*` marks the runtime item index in paths.
  */
 export type SpecNode = {
 	type: CatalogComponentName;

@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "field",
+    "list",
     "annex",
     "party",
     "fill-state",

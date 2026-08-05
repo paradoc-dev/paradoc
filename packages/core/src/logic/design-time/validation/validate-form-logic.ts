@@ -125,6 +125,14 @@ function validateFieldExpressions(
       ) {
         return false
       }
+    } else if (field.type === 'list') {
+      if (!validateFieldExpressions(
+        { item: field.item },
+        fieldPath,
+        validVariables,
+        issues,
+        collectAllErrors,
+      )) return false
     }
   }
 
@@ -274,6 +282,14 @@ function typeCheckFieldExpressions(
       ) {
         return false
       }
+    } else if (field.type === 'list') {
+      if (!typeCheckFieldExpressions(
+        { item: field.item },
+        fieldPath,
+        typeEnv,
+        issues,
+        collectAllErrors,
+      )) return false
     }
   }
 

@@ -383,6 +383,53 @@ describe("fieldToSpec", () => {
 		});
 	});
 
+	describe("list", () => {
+		it("maps the item as a repeatable child template", () => {
+			const field: FormField = {
+				type: "list",
+				label: "Line items",
+				minItems: 1,
+				maxItems: 10,
+				item: {
+					type: "fieldset",
+					fields: {
+						description: { type: "text", label: "Description" },
+						amount: { type: "money", label: "Amount" },
+					},
+				},
+			};
+
+			const spec = fieldToSpec(field, { fieldPath: "/lineItems" });
+
+			expect(spec.type).toBe("List");
+			expect(spec.fieldPath).toBe("/lineItems");
+			expect(spec.props?.minItems).toBe(1);
+			expect(spec.props?.maxItems).toBe(10);
+			expect(spec.children?.[0]?.type).toBe("Fieldset");
+			expect(spec.children?.[0]?.fieldPath).toBe("/lineItems/*");
+			expect(spec.children?.[0]?.children?.[0]?.fieldPath).toBe(
+				"/lineItems/*/description",
+			);
+		});
+
+		it("represents nested lists recursively", () => {
+			const field: FormField = {
+				type: "list",
+				item: {
+					type: "list",
+					item: { type: "number" },
+				},
+			};
+
+			const spec = fieldToSpec(field, { fieldPath: "/matrix" });
+
+			expect(spec.type).toBe("List");
+			expect(spec.children?.[0]?.type).toBe("List");
+			expect(spec.children?.[0]?.fieldPath).toBe("/matrix/*");
+			expect(spec.children?.[0]?.children?.[0]?.fieldPath).toBe("/matrix/*/*");
+		});
+	});
+
 	describe("optional fieldPath", () => {
 		it("omits fieldPath when not provided in context", () => {
 			const field: FormField = { type: "text", label: "Test" };

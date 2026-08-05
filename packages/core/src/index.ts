@@ -31,6 +31,7 @@ export {
   percentageField,
   ratingField,
   fieldsetField,
+  listField,
   fieldset,
   annex,
   party,
@@ -135,6 +136,7 @@ export type {
   PercentageFieldBuilder,
   RatingFieldBuilder,
   FieldsetFieldBuilder,
+  ListFieldBuilder,
   PartyAPI,
   PartyBuilder,
   FieldsetAPI,
@@ -386,6 +388,7 @@ export type {
 export type {
   FormField,
   FieldsetField,
+  ListField,
   TextField,
   NumberField,
   BooleanField,

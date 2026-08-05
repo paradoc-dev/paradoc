@@ -65,6 +65,8 @@ export type {
   RatingField,
 } from "./field";
 
+export type { ListField } from "./list";
+
 export type { FormFieldset } from "./fieldset";
 export type { FormAnnex } from "./annex";
 export type { FormParty, FormSignature, FormPayment } from "./party";

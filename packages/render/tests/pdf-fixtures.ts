@@ -95,3 +95,24 @@ export function compressedCheckboxPdf(names: string[]): Uint8Array {
     },
   ])
 }
+
+/** Build a real AcroForm PDF whose fixed text slots are controlled by the test. */
+export function textFieldsPdf(names: string[]): Uint8Array {
+  const fieldObjects = names.map((name, index) => {
+    const id = index + 4
+    const y = 250 - index * 24
+    return {
+      id,
+      body: `<< /FT /Tx /T (${name}) /Subtype /Widget /Rect [20 ${y} 280 ${y + 18}] /P 3 0 R /V () >>`,
+    }
+  })
+  const fields = fieldObjects.map(({ id }) => `${id} 0 R`).join(' ')
+  const acroFormId = fieldObjects.length + 4
+  return assemblePdf([
+    { id: 1, body: `<< /Type /Catalog /Pages 2 0 R /AcroForm ${acroFormId} 0 R >>` },
+    { id: 2, body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
+    { id: 3, body: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << >> /Annots [${fields}] >>` },
+    ...fieldObjects,
+    { id: acroFormId, body: `<< /Fields [${fields}] >>` },
+  ])
+}

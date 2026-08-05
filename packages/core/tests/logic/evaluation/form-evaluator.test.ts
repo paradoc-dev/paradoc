@@ -103,6 +103,23 @@ describe('form-evaluator', () => {
   // ============================================================================
 
   describe('evaluateFormDefs', () => {
+		test('creates indexed runtime states for fields inside recursive list items', () => {
+			const form: Form = {
+				kind: 'form', name: 'items', fields: {
+					items: {
+						type: 'list',
+						item: { type: 'fieldset', fields: { name: { type: 'text', required: true } } },
+					},
+				},
+			}
+			const result = evaluateFormDefs(form, { fields: { items: [{ name: 'A' }, {}] } })
+			expect('value' in result).toBe(true)
+			if ('value' in result) {
+				expect(result.value.fields.get('items[0].name')?.value).toBe('A')
+				expect(result.value.fields.get('items[1].name')?.required).toBe(true)
+			}
+		})
+
     describe('basic field evaluation', () => {
       test('evaluates form with boolean literal conditions', () => {
         const form = createSimpleForm()

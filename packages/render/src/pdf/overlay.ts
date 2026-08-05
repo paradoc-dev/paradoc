@@ -1,5 +1,6 @@
 import { unzlibSync, zlibSync } from 'fflate'
 import { isDict, isName, isRef, type PdfDict, type PdfObject, type PdfRef, PdfModel, type PdfValue } from './syntax'
+import { getPath } from '../path'
 
 interface PdfOverlayBase {
   /** One-based page number. */
@@ -112,10 +113,7 @@ function appendContent(model: PdfModel, page: PdfObject, stream: PdfRef): void {
 
 function textValue(overlay: PdfTextOverlay, data: Record<string, unknown>): unknown {
   if ('text' in overlay) return overlay.text
-  return overlay.field.split('.').reduce<unknown>((value, key) => {
-    if (value === null || value === undefined || typeof value !== 'object') return undefined
-    return (value as Record<string, unknown>)[key]
-  }, data)
+  return getPath(data, overlay.field)
 }
 
 function escapeText(value: unknown): string {

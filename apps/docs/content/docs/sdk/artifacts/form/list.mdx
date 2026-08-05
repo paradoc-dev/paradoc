@@ -1,0 +1,38 @@
+---
+title: Lists
+description: Capture and render repeated form data
+---
+
+Use `list` for ordered, variable-length data. The item definition is recursive,
+so lists may contain fieldsets or other lists.
+
+```ts
+const lineItems = field.list()
+  .item({
+    type: 'fieldset',
+    fields: {
+      description: { type: 'text', required: true },
+      quantity: { type: 'number', min: 1, required: true },
+      unitPrice: { type: 'money', required: true },
+    },
+  })
+  .minItems(1)
+  .build()
+```
+
+The inferred runtime value is an array of the item field's value type. Nested
+lists produce nested arrays.
+
+```ts
+const matrix = field.list()
+  .item({ type: 'list', item: { type: 'number' } })
+  .build()
+// number[][]
+```
+
+Use bracket notation for indexed paths: `lineItems[0].description` and
+`matrix[0][1]`.
+
+Text and DOCX layers render lists with nested loops. AcroForm PDFs have fixed
+capacity, so bind each available slot explicitly. Rendering fails rather than
+silently truncating list data beyond the bound slots.

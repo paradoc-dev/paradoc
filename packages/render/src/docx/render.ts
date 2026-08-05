@@ -4,6 +4,7 @@ import { unzipSync, zipSync } from 'fflate'
 import { applyBindings } from '../text/bindings'
 import { createSerializedFieldValue } from '../text/field-serializer'
 import { renderTemplate } from '../text/template'
+import { getPath } from '../path'
 import { createDocxTemplateHelpers, type DocxSignatureOptions } from './signatures'
 
 export type { DocxSignatureOptions } from './signatures'
@@ -72,13 +73,6 @@ function commandIn(paragraph: string, delimiters: [string, string]): string | un
   const value = visibleParagraph(paragraph)
   if (!value.startsWith(delimiters[0]) || !value.endsWith(delimiters[1])) return undefined
   return value.slice(delimiters[0].length, -delimiters[1].length).trim()
-}
-
-function getPath(data: Record<string, unknown>, path: string): unknown {
-  return path.split('.').filter(Boolean).reduce<unknown>((value, key) => {
-    if (value === null || value === undefined || typeof value !== 'object') return undefined
-    return (value as Record<string, unknown>)[key]
-  }, data)
 }
 
 function expressionValue(expression: string, data: Record<string, unknown>): unknown {

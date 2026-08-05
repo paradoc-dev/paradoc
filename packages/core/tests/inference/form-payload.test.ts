@@ -3,6 +3,26 @@ import type { Form } from '@paradoc/types'
 import { compile, type FieldToDataType } from '@/inference/form-payload'
 
 describe('form payload inference', () => {
+	test('infers recursive list item types', () => {
+		type Matrix = FieldToDataType<{
+			type: 'list'
+			item: { type: 'list'; item: { type: 'number' } }
+		}>
+		const matrix: Matrix = [[1, 2], [3]]
+		expect(matrix).toEqual([[1, 2], [3]])
+	})
+
+	test('compiles recursive lists to bounded JSON Schema arrays', () => {
+		const form: Form = {
+			kind: 'form', name: 'matrix', fields: {
+				matrix: { type: 'list', minItems: 1, maxItems: 2, item: { type: 'list', item: { type: 'number' } } },
+			},
+		}
+		const matrix = compile(form).properties?.fields?.properties?.matrix
+		expect(matrix).toMatchObject({ type: 'array', minItems: 1, maxItems: 2 })
+		expect(matrix?.items?.items).toMatchObject({ type: 'number' })
+	})
+
 	test('infers enum and multiselect data from option values', () => {
 		type Status = FieldToDataType<{
 			type: 'enum'

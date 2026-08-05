@@ -3,9 +3,33 @@
  * All renderers use this function with their own wrapping strategy
  */
 
-import type { Form } from "@paradoc/types";
-import { buildFieldTypeMap } from "./schema-field-mapper";
+import type { Form, FormField } from "@paradoc/types";
 import { isSerializableFieldType } from "./field-detector";
+
+function preprocessValue(
+  value: unknown,
+  field: FormField,
+  wrapperStrategy: (value: unknown, fieldType: string) => unknown,
+): unknown {
+  if (field.type === 'list') {
+    return Array.isArray(value)
+      ? value.map((item) => preprocessValue(item, field.item, wrapperStrategy))
+      : value;
+  }
+
+  if (field.type === 'fieldset') {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return value;
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(record).map(([key, nestedValue]) => {
+      const nestedField = field.fields[key];
+      return [key, nestedField ? preprocessValue(nestedValue, nestedField, wrapperStrategy) : nestedValue];
+    }));
+  }
+
+  return isSerializableFieldType(field.type)
+    ? wrapperStrategy(value, field.type)
+    : value;
+}
 
 /**
  * Preprocesses render data by applying a custom wrapping strategy to serializable fields.
@@ -28,19 +52,11 @@ export function preprocessFieldData(
     return data;
   }
 
-  const fieldTypeMap = buildFieldTypeMap(schema);
   const processedData: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(data)) {
-    const fieldType = fieldTypeMap[key];
-
-    if (fieldType && isSerializableFieldType(fieldType)) {
-      // Apply the renderer-specific wrapping strategy
-      processedData[key] = wrapperStrategy(value, fieldType);
-    } else {
-      // Pass through unchanged
-      processedData[key] = value;
-    }
+    const field = schema.fields[key];
+    processedData[key] = field ? preprocessValue(value, field, wrapperStrategy) : value;
   }
 
   return processedData;

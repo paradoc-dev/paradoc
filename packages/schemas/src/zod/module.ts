@@ -8,6 +8,7 @@ import { ChecklistSchema, ChecklistItemSchema } from './artifacts/checklist';
 
 // Form blocks (design-time)
 import { FormFieldSchema, FieldsetFieldSchema } from './artifacts/form/field';
+import { ListFieldSchema } from './artifacts/form/list';
 import { FormAnnexSchema } from './artifacts/form/annex';
 import { FormPartySchema } from './artifacts/form/party';
 import { FormFieldsetSchema } from './artifacts/form/fieldset';
@@ -56,6 +57,7 @@ ParadocRegistry.add(ChecklistItemSchema, { id: 'ChecklistItem' });
 
 ParadocRegistry.add(FormFieldSchema, { id: 'FormField' });
 // FieldsetFieldSchema already has id via .meta({ id: 'FieldsetField' }) - no need to add again
+// ListFieldSchema already has id via .meta({ id: 'ListField' }) - no need to add again
 ParadocRegistry.add(FormAnnexSchema, { id: 'FormAnnex' });
 ParadocRegistry.add(FormPartySchema, { id: 'FormParty' });
 ParadocRegistry.add(FormFieldsetSchema, { id: 'FormFieldset' });
@@ -112,6 +114,7 @@ export {
 	// Form blocks
 	FormFieldSchema,
 	FieldsetFieldSchema,
+	ListFieldSchema,
 	FormAnnexSchema,
 	FormPartySchema,
 	FormFieldsetSchema,

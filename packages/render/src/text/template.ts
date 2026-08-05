@@ -1,3 +1,5 @@
+import { pathSegments } from '../path'
+
 interface TextNode {
   type: 'text'
   value: string
@@ -206,7 +208,7 @@ function valueForToken(token: string, frame: Frame, root: Record<string, unknown
 function getPath(value: unknown, path: string): unknown {
   if (path === '') return value
   let current = value
-  for (const part of path.split(/[./]/).filter(Boolean)) {
+  for (const part of pathSegments(path)) {
     if (blockedProperties.has(part) || current === null || current === undefined) return undefined
     if (typeof current !== 'object' && typeof current !== 'function') return undefined
     current = (current as Record<string, unknown>)[part]

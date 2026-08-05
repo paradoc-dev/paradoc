@@ -248,6 +248,17 @@ describe('fill-state', () => {
 	// ========================================================================
 
 	describe('getFillState', () => {
+		test('tracks required fields inside list items with indexed paths', () => {
+			const repeated = form().name('repeated').fields({
+				items: {
+					type: 'list', required: true, minItems: 1,
+					item: { type: 'fieldset', fields: { name: { type: 'text', required: true } } },
+				},
+			}).build()
+			const state = repeated.partialFill({ fields: { items: [{}] } } as any).getFillState()
+			expect(state.openRequired.map((item) => item.key)).toContain('items[0].name')
+		})
+
 		test('reports all required as open when empty', () => {
 			const f = createSimpleForm()
 			const draft = f.partialFill()

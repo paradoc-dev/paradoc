@@ -32,6 +32,7 @@ export {
 	percentageField,
 	ratingField,
 	fieldsetField,
+	listField,
 	type FieldAPI,
 	type TextFieldBuilder,
 	type BooleanFieldBuilder,
@@ -56,6 +57,7 @@ export {
 	type PercentageFieldBuilder,
 	type RatingFieldBuilder,
 	type FieldsetFieldBuilder,
+	type ListFieldBuilder,
 } from './field';
 
 export {

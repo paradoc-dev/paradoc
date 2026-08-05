@@ -112,6 +112,11 @@ function isFilled(value: unknown): boolean {
 	return value !== null && value !== undefined
 }
 
+function isFieldFilled(field: FormField, value: unknown): boolean {
+	if (field.type !== 'list') return isFilled(value)
+	return Array.isArray(value) && value.length >= (field.minItems ?? 0)
+}
+
 /** Check if a party role is filled (has at least one party) */
 function isPartyFilled(parties: Record<string, unknown>, roleId: string): boolean {
 	const val = parties[roleId]
@@ -135,6 +140,16 @@ function getUnfilledIds(
 	annexValues: Record<string, unknown>,
 ): Set<string> {
 	const unfilled = new Set<string>()
+	const walkRepeated = (field: FormField, value: unknown, fullId: string): void => {
+		if (!isFieldFilled(field, value)) unfilled.add(fullId)
+		if (field.type === 'fieldset') {
+			const nested = value !== null && typeof value === 'object' && !Array.isArray(value)
+				? value as Record<string, unknown> : undefined
+			walkFieldIds(field.fields, nested, fullId)
+		} else if (field.type === 'list' && Array.isArray(value)) {
+			value.forEach((item, index) => walkRepeated(field.item, item, `${fullId}[${index}]`))
+		}
+	}
 
 	// Fields
 	function walkFieldIds(fields: Record<string, FormField> | undefined, data: Record<string, unknown> | undefined, prefix: string = '') {
@@ -142,12 +157,14 @@ function getUnfilledIds(
 		for (const [fieldId, field] of Object.entries(fields)) {
 			const fullId = prefix ? `${prefix}.${fieldId}` : fieldId
 			const value = data?.[fieldId]
-			if (!isFilled(value)) {
+			if (!isFieldFilled(field, value)) {
 				unfilled.add(fullId)
 			}
 			if (field.type === 'fieldset') {
 				const nested = typeof value === 'object' && value !== null ? value as Record<string, unknown> : undefined
 				walkFieldIds((field as FieldsetField).fields, nested, fullId)
+			} else if (field.type === 'list' && Array.isArray(value)) {
+				value.forEach((item, index) => walkRepeated(field.item, item, `${fullId}[${index}]`))
 			}
 		}
 	}
@@ -197,6 +214,28 @@ export function computeFillState(
 	const done: FillItemState[] = []
 
 	let order = 0
+	const addRepeatedState = (field: FormField, value: unknown, fullId: string): void => {
+		const filled = isFieldFilled(field, value)
+		const fieldState = runtimeState.fields.get(fullId)
+		const visible = fieldState?.visible ?? true
+		const isRequired = fieldState?.required ?? false
+		const item: FillItemState = {
+			kind: 'field', key: fullId, required: isRequired, order: order++, visible,
+			status: statusOf(visible, isRequired), filled, blockedBy: [],
+		}
+		if (filled) done.push(item)
+		else if (visible && isRequired) openRequired.push(item)
+		else if (visible) openOptional.push(item)
+		else blocked.push(item)
+
+		if (field.type === 'fieldset') {
+			const nested = value !== null && typeof value === 'object' && !Array.isArray(value)
+				? value as Record<string, unknown> : undefined
+			walkFieldsForState(field.fields, nested, fullId)
+		} else if (field.type === 'list' && Array.isArray(value)) {
+			value.forEach((nestedValue, index) => addRepeatedState(field.item, nestedValue, `${fullId}[${index}]`))
+		}
+	}
 
 	// --- Parties first ---
 	if (form.parties) {
@@ -236,7 +275,7 @@ export function computeFillState(
 		for (const [fieldId, field] of Object.entries(fields)) {
 			const fullId = prefix ? `${prefix}.${fieldId}` : fieldId
 			const value = data?.[fieldId]
-			const filled = isFilled(value)
+			const filled = isFieldFilled(field, value)
 
 			const fieldState = runtimeState.fields.get(fullId)
 			const visible = fieldState?.visible ?? true
@@ -273,6 +312,8 @@ export function computeFillState(
 			if (field.type === 'fieldset') {
 				const nested = typeof value === 'object' && value !== null ? value as Record<string, unknown> : undefined
 				walkFieldsForState((field as FieldsetField).fields, nested, fullId)
+			} else if (field.type === 'list' && Array.isArray(value)) {
+				value.forEach((itemValue, index) => addRepeatedState(field.item, itemValue, `${fullId}[${index}]`))
 			}
 		}
 	}

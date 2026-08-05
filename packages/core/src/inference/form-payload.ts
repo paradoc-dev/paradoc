@@ -113,7 +113,11 @@ export type FieldToDataType<F> = F extends { type: 'text' }
                                               ? Fields extends Record<string, FormField>
                                                 ? FieldsToDataType<Fields>
                                                 : never
-                                              : unknown
+                                              : F extends { type: 'list'; item: infer Item }
+                                                ? Item extends FormField
+                                                  ? FieldToDataType<Item>[]
+                                                  : never
+                                                : unknown
 
 /**
  * Helper type to check if a field should be treated as required.
@@ -668,6 +672,14 @@ function compileField(field: FormField): JsonSchema {
         return compileFields(field.fields)
       }
       return { type: 'object', additionalProperties: false }
+
+    case 'list':
+      return {
+        type: 'array',
+        items: compileField(field.item),
+        ...(field.minItems !== undefined && { minItems: field.minItems }),
+        ...(field.maxItems !== undefined && { maxItems: field.maxItems }),
+      }
 
     default:
       // Fallback for unknown types
