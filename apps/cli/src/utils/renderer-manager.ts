@@ -15,9 +15,7 @@ const RENDERER_VERSIONS: Record<string, string> =
   typeof __RENDERER_VERSIONS__ !== 'undefined'
     ? __RENDERER_VERSIONS__
     : {
-        '@paradoc/renderer-text': '0.2.1',
-        '@paradoc/renderer-pdf': '0.2.1',
-        '@paradoc/renderer-docx': '0.2.1',
+        '@paradoc/render': '0.3.0',
       }
 
 /** Peer deps installed as regular deps in the isolated renderer directories */
@@ -38,19 +36,21 @@ export interface RendererStatus {
 
 class RendererManager {
   private getRendererDir(pkg: string): string {
-    // @paradoc/renderer-text -> @paradoc+renderer-text
-    return join(RENDERERS_DIR, pkg.replace('/', '+'))
+    const packageName = getPackageName(pkg)
+    // @paradoc/render -> @paradoc+render
+    return join(RENDERERS_DIR, packageName.replace('/', '+'))
   }
 
   /** Ensure a renderer is installed and at the correct version. Returns its base dir. */
   async ensureRenderer(pkg: string): Promise<string> {
+    const packageName = getPackageName(pkg)
     const dir = this.getRendererDir(pkg)
-    const pkgJsonPath = join(dir, 'node_modules', pkg, 'package.json')
+    const pkgJsonPath = join(dir, 'node_modules', packageName, 'package.json')
 
     try {
       const content = await fs.readFile(pkgJsonPath, 'utf-8')
       const parsed = JSON.parse(content)
-      const expected = RENDERER_VERSIONS[pkg]
+      const expected = RENDERER_VERSIONS[packageName]
       if (parsed.version === expected) {
         return dir
       }
@@ -70,19 +70,23 @@ class RendererManager {
     } catch {
       // Published CLI — install into isolated directory
       const dir = await this.ensureRenderer(pkg)
-      const entryPath = join(dir, 'node_modules', pkg, 'dist', 'index.js')
+      const packageName = getPackageName(pkg)
+      const subpath = getPackageSubpath(pkg)
+      const entry = subpath ? `${subpath}.js` : 'index.js'
+      const entryPath = join(dir, 'node_modules', packageName, 'dist', entry)
       return await import(pathToFileURL(entryPath).href)
     }
   }
 
   /** Install a renderer into its isolated directory */
   async installRenderer(pkg: string): Promise<void> {
-    const version = RENDERER_VERSIONS[pkg]
+    const packageName = getPackageName(pkg)
+    const version = RENDERER_VERSIONS[packageName]
     if (!version) {
-      throw new Error(`Unknown renderer package: ${pkg}`)
+      throw new Error(`Unknown renderer package: ${packageName}`)
     }
 
-    const spinner = ora(`Installing ${pkg}@${version}...`).start()
+    const spinner = ora(`Installing ${packageName}@${version}...`).start()
 
     try {
       const dir = this.getRendererDir(pkg)
@@ -90,11 +94,11 @@ class RendererManager {
 
       // Write a minimal package.json with the renderer + peer deps as regular deps
       const pkgJson = {
-        name: `paradoc-plugin-${pkg.split('/').pop()}`,
+        name: `paradoc-plugin-${packageName.split('/').pop()}`,
         version: '1.0.0',
         private: true,
         dependencies: {
-          [pkg]: version,
+          [packageName]: version,
           ...PEER_DEPS,
         },
       }
@@ -107,9 +111,9 @@ class RendererManager {
         env: { ...process.env, NODE_ENV: 'production' },
       })
 
-      spinner.succeed(`Installed ${pkg}@${version}`)
+      spinner.succeed(`Installed ${packageName}@${version}`)
     } catch (error) {
-      spinner.fail(`Failed to install ${pkg}`)
+      spinner.fail(`Failed to install ${packageName}`)
       throw error
     }
   }
@@ -123,7 +127,7 @@ class RendererManager {
 
   /** Remove a single renderer */
   async removeRenderer(pkg: string): Promise<void> {
-    const dir = this.getRendererDir(pkg)
+    const dir = this.getRendererDir(getPackageName(pkg))
     await fs.rm(dir, { recursive: true, force: true })
   }
 
@@ -187,6 +191,16 @@ class RendererManager {
     }
     return totalSize
   }
+}
+
+function getPackageName(specifier: string): string {
+  if (specifier.startsWith('@')) return specifier.split('/').slice(0, 2).join('/')
+  return specifier.split('/')[0]!
+}
+
+function getPackageSubpath(specifier: string): string {
+  const packageName = getPackageName(specifier)
+  return specifier.slice(packageName.length).replace(/^\//, '')
 }
 
 export const rendererManager = new RendererManager()

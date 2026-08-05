@@ -46,7 +46,7 @@ export function createInspectCommand(): Command {
         const { data, sourcePath } = await readBinaryInput(pdfTarget)
 
         // Dynamically load the PDF renderer for inspectAcroFormFields
-        const mod = await rendererManager.loadModule('@paradoc/renderer-pdf')
+        const mod = await rendererManager.loadModule('@paradoc/render/pdf')
         const inspectAcroFormFields = mod.inspectAcroFormFields as (
           data: Uint8Array,
           options?: { includeButton?: boolean; includeSignature?: boolean }

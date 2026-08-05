@@ -76,6 +76,12 @@ describe('DOCX renderer parity', () => {
     }
   })
 
+  it('handles inline FOR blocks and legacy dollar-prefixed loop aliases', async () => {
+    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{FOR item IN items}}{{$item.name}}, {{END-FOR item}}</w:t></w:r></w:p></w:body></w:document>')
+    const output = await renderDocx({ template, data: { items: [{ name: 'A' }, { name: 'B' }] } })
+    expect(visibleText(output)).toBe('A, B, ')
+  })
+
   it('adds ELSE as a safe extension to the compatibility syntax', async () => {
     const paragraph = (text: string) => `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`
     const template = minimalDocx(`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${[

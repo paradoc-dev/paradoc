@@ -199,6 +199,7 @@ function valueForToken(token: string, frame: Frame, root: Record<string, unknown
   if (token === '@root') return root
   if (token.startsWith('@root.')) return getPath(root, token.slice(6))
   if (token.startsWith('@')) return targetFrame.data[token.slice(1)]
+  if (token.startsWith('$')) return getPath(targetFrame.context, token)
   return getPath(targetFrame.context, token)
 }
 

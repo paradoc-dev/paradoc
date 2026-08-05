@@ -58,11 +58,14 @@ function normalizeDelimiters(value: string, delimiters: [string, string]): strin
     .replace(new RegExp(regexEscape(delimiters[1]), 'g'), '}}')
 }
 
-function visibleParagraph(paragraph: string): string {
+function paragraphText(paragraph: string): string {
   return [...paragraph.matchAll(/<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g)]
     .map((match) => decodeXml(match[1] ?? ''))
     .join('')
-    .trim()
+}
+
+function visibleParagraph(paragraph: string): string {
+  return paragraphText(paragraph).trim()
 }
 
 function commandIn(paragraph: string, delimiters: [string, string]): string | undefined {
@@ -133,6 +136,36 @@ function controlsIn(xml: string, delimiters: [string, string]): Control[] {
       return { command, start: row?.start ?? start, end: row?.end ?? end }
     })
     .filter((item): item is Control => item.command !== undefined)
+}
+
+/**
+ * Word templates sometimes put a complete FOR/IF block, including its body,
+ * in one paragraph. Split that paragraph into standalone control paragraphs
+ * before expansion so the same syntax works whether Word kept the commands
+ * on separate lines or in one run.
+ */
+function normalizeInlineControls(xml: string): string {
+  const paragraphPattern = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g
+  const inlinePattern = /^(\s*)(\{\{(?:FOR|IF)\s+[^{}]+\}\})([\s\S]*?)(\{\{END-(?:FOR|IF)(?:\s+[^{}]+)?\}\})(\s*)$/
+
+  return xml.replace(paragraphPattern, (paragraph) => {
+    const match = paragraphText(paragraph).match(inlinePattern)
+    if (!match) return paragraph
+
+    const opening = paragraph.match(/^<w:p\b[^>]*>/)?.[0] ?? '<w:p>'
+    const properties = paragraph.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0] ?? ''
+    const makeParagraph = (text: string) => {
+      const content = text.length > 0
+        ? `<w:r><w:t xml:space="preserve">${encodeXml(text)}</w:t></w:r>`
+        : ''
+      return `${opening}${properties}${content}</w:p>`
+    }
+
+    return [match[1], match[2], match[3], match[4], match[5]]
+      .filter((text): text is string => Boolean(text))
+      .map(makeParagraph)
+      .join('')
+  })
 }
 
 type DocxHelpers = Record<string, import('../text/template').TemplateHelper>
@@ -270,7 +303,7 @@ export async function renderDocx({
   const processLineBreaks = options.processLineBreaks ?? true
   for (const [name, bytes] of Object.entries(files)) {
     if (!/^word\/(?:document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(name)) continue
-    const xml = textDecoder.decode(bytes)
+    const xml = normalizeInlineControls(textDecoder.decode(bytes))
     try {
       files[name] = textEncoder.encode(renderXml(xml, prepared, delimiters, helpers, processLineBreaks))
     } catch (error) {

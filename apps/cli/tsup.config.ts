@@ -4,11 +4,9 @@ import { resolve } from 'node:path'
 
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
-// Read renderer package versions for build-time injection
+// Read the unified renderer package version for build-time injection
 const rendererVersions = {
-  '@paradoc/renderer-text': JSON.parse(readFileSync(resolve('../../packages/renderer-text/package.json'), 'utf-8')).version,
-  '@paradoc/renderer-pdf': JSON.parse(readFileSync(resolve('../../packages/renderer-pdf/package.json'), 'utf-8')).version,
-  '@paradoc/renderer-docx': JSON.parse(readFileSync(resolve('../../packages/renderer-docx/package.json'), 'utf-8')).version,
+  '@paradoc/render': JSON.parse(readFileSync(resolve('../../packages/render/package.json'), 'utf-8')).version,
 }
 
 export default defineConfig({

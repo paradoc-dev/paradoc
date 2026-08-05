@@ -3,7 +3,7 @@
  */
 import { describe, test, expect } from 'vitest'
 import { para } from '@paradoc/core'
-import { textRenderer } from '@paradoc/renderer-text'
+import { textRenderer } from '@paradoc/render/text'
 
 describe('Checklists Guide', () => {
   // ============================================================================

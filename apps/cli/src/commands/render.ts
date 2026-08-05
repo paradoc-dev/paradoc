@@ -129,7 +129,7 @@ export function createRenderCommand(): Command {
 
           if (isTextLayer) {
             // Text-based layers: use FormInstance.render() with textRenderer
-            const mod = await rendererManager.loadModule('@paradoc/renderer-text')
+            const mod = await rendererManager.loadModule('@paradoc/render/text')
             const renderer = (mod.textRenderer as (...args: never[]) => any)()
             content = await formInstance.render({
               renderer,
@@ -140,7 +140,7 @@ export function createRenderCommand(): Command {
             })
           } else if (isPdfLayer) {
             // PDF layers: fill the form first, then render with pdfRenderer
-            const mod = await rendererManager.loadModule('@paradoc/renderer-pdf')
+            const mod = await rendererManager.loadModule('@paradoc/render/pdf')
             const filledForm = formInstance.fill(normalizedData as Parameters<typeof formInstance.fill>[0])
             const renderer = (mod.pdfRenderer as (...args: never[]) => any)()
             content = await filledForm.render({
@@ -151,7 +151,7 @@ export function createRenderCommand(): Command {
             })
           } else if (isDocxLayer) {
             // DOCX layers: use FormInstance.render() with docxRenderer
-            const mod = await rendererManager.loadModule('@paradoc/renderer-docx')
+            const mod = await rendererManager.loadModule('@paradoc/render/docx')
             const renderer = (mod.docxRenderer as (...args: never[]) => any)()
             content = await formInstance.render({
               renderer,

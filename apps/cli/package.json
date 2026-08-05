@@ -69,9 +69,7 @@
   "devDependencies": {
     "@paradoc/core": "workspace:*",
     "@paradoc/eslint-config": "workspace:*",
-    "@paradoc/renderer-text": "workspace:*",
-    "@paradoc/renderer-pdf": "workspace:*",
-    "@paradoc/renderer-docx": "workspace:*",
+    "@paradoc/render": "workspace:*",
     "zod": "catalog:",
     "@paradoc/schemas": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",

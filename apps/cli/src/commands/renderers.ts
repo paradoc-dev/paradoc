@@ -125,13 +125,15 @@ export function createRenderersCommand(): Command {
   return renderers
 }
 
-/** Resolve short renderer names (text, pdf, docx) to full package names */
+/** Resolve short renderer names (text, pdf, docx) to the unified package. */
 function resolveRendererName(name: string, packages: Record<string, string>): string {
   // If it's already a full package name, validate it
   if (name in packages) return name
 
-  // Try short name: "text" -> "@paradoc/renderer-text"
-  const fullName = `@paradoc/renderer-${name}`
+  // The format-specific entry points all live in @paradoc/render.
+  const fullName = ['text', 'pdf', 'docx'].includes(name) || name.startsWith('@paradoc/render/')
+    ? '@paradoc/render'
+    : name
   if (fullName in packages) return fullName
 
   const available = Object.keys(packages).map(p => p.split('/').pop()).join(', ')
