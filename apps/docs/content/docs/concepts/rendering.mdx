@@ -71,10 +71,7 @@ pdf: para.layer()
 When layers reference external files, **resolvers** tell Paradoc how to load them. This makes Paradoc environment-agnostic—the same artifact works in Node, browsers, or custom environments.
 
 ```ts
-import { renderLayer } from '@paradoc/render'
-
 const output = await form.render({
-  renderer: renderLayer(),
   resolver: fileResolver({ basePath: "./templates" })
 })
 ```
@@ -101,16 +98,15 @@ See [Serialization](/sdk/serialization) for details on formatting and localizati
 
 # Renderers
 
-`renderLayer()` selects the built-in implementation from the layer's MIME type.
-The same call renders Markdown, HTML, plain text, PDF, or DOCX, so applications
-do not need their own format switch.
+Paradoc selects the built-in implementation from the layer's MIME type. The
+same API renders Markdown, HTML, plain text, PDF, or DOCX, so applications do
+not need their own format switch.
 
 ```ts
-import { renderLayer } from '@paradoc/render'
-
-const markdown = await filled.render({ renderer: renderLayer(), layer: 'markdown' })
-const pdf = await filled.render({ renderer: renderLayer(), layer: 'pdf' })
+const markdown = await filled.render({ layer: 'markdown' })
+const pdf = await filled.render({ layer: 'pdf' })
 ```
 
-Format entry points remain available for low-level operations and specialized
-configuration. See [Renderers](/sdk/renderers) for the full API.
+Pass a custom renderer or configured `renderLayer()` through the optional
+`renderer` property. Format entry points remain available for low-level
+operations. See [Renderers](/sdk/renderers) for the full API.

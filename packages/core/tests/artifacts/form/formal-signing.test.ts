@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest'
+import { describe, test, expect, vi } from 'vitest'
 import { form, runtimeFormFromJSON } from '@/artifacts'
 import type { DraftForm, SignableForm } from '@/artifacts'
 import type { SealAdapter, Sealer, SigningField, Signer, SignatureBlock, AnchorBlock } from '@paradoc/types'
@@ -453,6 +453,47 @@ describe('Formal Signing', () => {
 			expect(receivedContent).toContain('# Hello Ada')
 			expect(sealed.canonicalPdfBytes).toEqual(pdf)
 			expect(sealed.canonicalPdfHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+		})
+
+		test('uses a custom renderer before passing a non-PDF layer to the conversion adapter', async () => {
+			const pdf = Uint8Array.from(Buffer.from(
+				'JVBERi0xLjUKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMzAwXSAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNCAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjAzCiUlRU9GCg==',
+				'base64',
+			))
+			let receivedContent: string | Uint8Array | undefined
+			const adapter: SealAdapter = {
+				async convert(request) {
+					receivedContent = request.document.content
+					return { pdf }
+				},
+			}
+			const render = vi.fn(async () => '# Custom document')
+			const formDef = form()
+				.name('custom-rendered-form')
+				.fields({ name: { type: 'text', label: 'Name' } })
+				.parties({ signer: { label: 'Signer', types: ['person'], signature: { required: true } } })
+				.inlineLayer('markdown', {
+					mimeType: 'text/markdown',
+					text: '# Built-in {{name}}',
+					signatureBlocks: {
+						signature: { type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer' },
+					},
+				})
+				.defaultLayer('markdown')
+				.build()
+			const draft = formDef
+				.fill({ fields: { name: 'Ada' }, parties: { signer: { id: 'signer-0', name: 'Ada' } } })
+				.addSigner('ada', { person: { name: 'Ada' } })
+				.addSignatory('signer', 'signer-0', { signerId: 'ada' })
+
+			const sealed = await draft.seal({
+				adapter,
+				renderer: { id: 'custom', render },
+			})
+
+			expect(render).toHaveBeenCalledOnce()
+			expect(receivedContent).toBe('# Custom document')
+			expect(sealed.canonicalPdfBytes).toEqual(pdf)
 		})
 
 		test('throws error when no parties exist', async () => {

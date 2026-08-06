@@ -42,7 +42,6 @@ Define forms with parties, fields, and output layers:
 
 ```typescript
 import { para } from "@paradoc/sdk";
-import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers";
 
 const leaseAgreement = para
@@ -107,12 +106,10 @@ const filledLease = leaseAgreement.fill({
 // Render to multiple formats
 const resolver = createFsResolver({ root: process.cwd() });
 const markdown = await filledLease.render({
-  renderer: renderLayer(),
   resolver,
   layer: "markdown",
 });
 const html = await filledLease.render({
-  renderer: renderLayer(),
   resolver,
   layer: "html",
 });
@@ -273,7 +270,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 - [`@paradoc/schemas`](../schemas) - JSON Schema definitions
 - [`@paradoc/serialization`](../serialization) - Locale-aware formatting
 - [`@paradoc/resolvers`](../resolvers) - File and environment resolvers
-- [`@paradoc/render`](../renderers) - All renderers (PDF, DOCX, Text)
+- [`@paradoc/render`](../render) - MIME-selected PDF, DOCX, and text rendering
 
 ## Contributing
 

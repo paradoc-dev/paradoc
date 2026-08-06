@@ -205,15 +205,11 @@ Party data requires an `id` field—this is used for signature tracking.
 <Step>
 ## Render the Form
 
-Render the filled form. `renderLayer()` selects the text implementation from
-the layer's MIME type:
+Render the filled form. Paradoc selects the built-in implementation from the
+layer's MIME type:
 
 ```ts
-import { renderLayer } from '@paradoc/render'
-
-const output = await filled.render({
-  renderer: renderLayer(),
-})
+const output = await filled.render()
 
 console.log(output)
 ```

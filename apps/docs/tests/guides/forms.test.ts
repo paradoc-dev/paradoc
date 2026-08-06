@@ -3,7 +3,6 @@
  */
 import { describe, test, expect } from 'vitest'
 import { para } from '@paradoc/sdk'
-import { renderLayer } from '@paradoc/render'
 
 describe('Forms Guide', () => {
   // ============================================================================
@@ -145,9 +144,7 @@ describe('Forms Guide', () => {
     // ============================================================================
 
     test('renders the form from its layer MIME type', async () => {
-      const output = await filled.render({
-        renderer: renderLayer(),
-      })
+      const output = await filled.render()
 
       expect(output).toContain('Residential Lease Agreement')
       expect(output).toContain('123 Main St')

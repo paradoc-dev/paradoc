@@ -214,16 +214,15 @@ export interface IArtifactInstance<T extends Artifact> {
  * @example
  * ```typescript
  * const output = await form.render({
- *   renderer: textRenderer,
  *   resolver: fileResolver,
  *   data: { name: 'John', age: 30 },
  *   layer: 'markdown'
  * })
  * ```
  */
-export interface RenderOptions<Output = unknown> {
-  /** The renderer to use (e.g., textRenderer, pdfRenderer, docxRenderer) */
-  renderer: ParadocRenderer<RendererLayer, Output>
+export interface RenderOptions<Output = string | Uint8Array> {
+  /** Custom renderer override. Supported layer MIME types use the built-in renderer by default. */
+  renderer?: ParadocRenderer<RendererLayer, Output>
 
   /** Resolver for auto-loading file-backed layers (only needs read method) */
   resolver?: Resolver
@@ -250,16 +249,14 @@ export interface RenderOptions<Output = unknown> {
  * ```typescript
  * const filled = form.fill({ name: 'John', age: 30 })
  *
- * // No data needed - it's already in the RuntimeForm
- * const output = await filled.render({
- *   renderer: textRenderer,
- *   layer: 'html'
- * })
+ * // No data or renderer needed - the form already contains the validated data,
+ * // and supported layer MIME types use the built-in renderer.
+ * const output = await filled.render({ layer: 'html' })
  * ```
  */
-export interface RuntimeFormRenderOptions<Output = unknown> {
-  /** The renderer to use (e.g., textRenderer, pdfRenderer, docxRenderer) */
-  renderer: ParadocRenderer<RendererLayer, Output>
+export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
+  /** Custom renderer override. Supported layer MIME types use the built-in renderer by default. */
+  renderer?: ParadocRenderer<RendererLayer, Output>
 
   /** Resolver for auto-loading file-backed layers (only needs read method) */
   resolver?: Resolver

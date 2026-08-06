@@ -2,6 +2,11 @@
 
 All notable changes to Paradoc. Packages are versioned in lockstep.
 
+## [Unreleased]
+
+### Changed
+- Form rendering and sealing now use the built-in MIME-selected renderer by default while preserving explicit custom renderer overrides.
+
 ## [0.3.0] - 2026-06-19
 
 ### Added

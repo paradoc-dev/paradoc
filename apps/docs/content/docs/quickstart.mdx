@@ -139,13 +139,11 @@ if (draft.isValid()) {
 Let's render the purchase agreement with the data using the `.render()` method.
 
 ```ts
-import { renderLayer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers'
 
-const renderer = renderLayer()
 const resolver = createFsResolver({ root: process.cwd() })
 
-const output = await draft.render({ renderer, resolver, layer: 'markdown' })
+const output = await draft.render({ resolver, layer: 'markdown' })
 
 console.log(output)
 // Purchase Agreement

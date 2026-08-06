@@ -259,7 +259,7 @@ if (result.success) {
 }
 ```
 
-For rendering artifacts to PDF, DOCX, HTML, or other formats, use `@paradoc/sdk` with the renderers package. For complete production examples, see `/incubator/apps/demo/src/demos/leasing`. For API reference and advanced patterns, visit [docs.paradoc.dev](https://docs.paradoc.dev).
+Forms render PDF, DOCX, HTML, Markdown, and text layers with the built-in MIME-selected renderer. Pass a custom renderer to `.render()` or `.seal()` only when overriding that default. For API reference and advanced patterns, visit [docs.paradoc.dev](https://docs.paradoc.dev).
 
 ## Changelog
 
@@ -270,7 +270,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 - [`@paradoc/sdk`](../sdk) - Complete framework with renderers
 - [`@paradoc/types`](../types) - TypeScript utilities and types
 - [`@paradoc/schemas`](../schemas) - JSON Schema definitions
-- [`@paradoc/render`](../renderers) - All renderers (PDF, DOCX, Text)
+- [`@paradoc/render`](../render) - MIME-selected PDF, DOCX, and text rendering
 - [`@paradoc/resolvers`](../resolvers) - File and environment resolvers
 
 ## Contributing

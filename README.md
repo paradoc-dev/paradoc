@@ -42,7 +42,6 @@ Define forms with parties, fields, and output layers:
 
 ```typescript
 import { para } from "@paradoc/sdk";
-import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers";
 
 const leaseAgreement = para
@@ -107,12 +106,10 @@ const filledLease = leaseAgreement.fill({
 // Render to multiple formats
 const resolver = createFsResolver({ root: process.cwd() });
 const markdown = await filledLease.render({
-  renderer: renderLayer(),
   resolver,
   layer: "markdown",
 });
 const html = await filledLease.render({
-  renderer: renderLayer(),
   resolver,
   layer: "html",
 });

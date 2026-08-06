@@ -3,7 +3,6 @@
  */
 import { describe, test, expect } from 'vitest'
 import { para } from '@paradoc/sdk'
-import { renderLayer } from '@paradoc/render'
 
 describe('Rendering Concept', () => {
   // ============================================================================
@@ -99,7 +98,7 @@ Total: {{total}}
 
     test('selects the renderer from the layer MIME type', async () => {
       const filled = form.fill({ fields: { name: 'World' } })
-      const markdown = await filled.render({ renderer: renderLayer() })
+      const markdown = await filled.render()
       expect(markdown).toContain('Hello')
       expect(markdown).toContain('World')
     })

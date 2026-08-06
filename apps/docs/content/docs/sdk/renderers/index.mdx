@@ -7,7 +7,8 @@ Renderers transform Paradoc artifacts into output formats like text, PDF, and DO
 
 # Installation
 
-Install the unified renderer package:
+`@paradoc/core` uses the unified renderer automatically. Install it directly
+when building custom integrations or using format-specific functions:
 
 ```bash
 npm install @paradoc/render
@@ -16,8 +17,6 @@ npm install @paradoc/render
 # Usage
 
 ```ts
-import { renderLayer } from '@paradoc/render'
-
 import { para } from '@paradoc/core'
 
 // Create a form with a template layer
@@ -46,11 +45,19 @@ const filled = form.fill({
 })
 
 // Render the filled form
-const output = await filled.render({
-  renderer: renderLayer()
-})
+const output = await filled.render()
 // output: "Invoice for Acme Corp\nTotal: $1,500.00"
 ```
+
+Use the optional `renderer` property to override the default for one call:
+
+```ts
+const output = await filled.render({ renderer: myRenderer })
+```
+
+The same optional override is available to `.seal({ renderer: myRenderer })`.
+Paradoc still applies its built-in PDF flattening and canonical hashing after
+the custom renderer or conversion adapter returns.
 
 # Format Entry Points
 

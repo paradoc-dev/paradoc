@@ -5,7 +5,6 @@ import { describe, test, expect } from 'vitest'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { para } from '@paradoc/sdk'
-import { renderLayer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -84,10 +83,9 @@ describe('Quickstart Guide', () => {
   // ============================================================================
 
   test('renders the purchase agreement', async () => {
-    const renderer = renderLayer()
     const resolver = createFsResolver({ root: fixturesRoot })
 
-    const output = await draft.render({ renderer, resolver, layer: 'markdown' })
+    const output = await draft.render({ resolver, layer: 'markdown' })
 
     expect(output).toContain('Purchase Agreement')
     expect(output).toContain('Alice Johnson')

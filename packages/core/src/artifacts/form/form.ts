@@ -35,6 +35,7 @@ import type {
 	Attachment,
 	ContentRef,
 	Resolver,
+	ParadocRenderer,
 } from '@paradoc/types'
 import { renderLayer as createRenderer } from '@paradoc/render'
 import { flattenPdf } from '@paradoc/render/pdf'
@@ -118,6 +119,8 @@ export interface SealOptions {
 	adapter?: SealAdapter
 	/** Resolves file-backed target layers before sealing. */
 	resolver?: Resolver
+	/** Custom renderer override used before PDF finalization or adapter conversion. */
+	renderer?: ParadocRenderer<RendererLayer, string | Uint8Array>
 }
 
 /**
@@ -386,7 +389,7 @@ export interface FormInstance<F extends Form> extends ArtifactMethods<F> {
 	/**
 	 * Render form content directly.
 	 */
-	render<Output>(options: RenderOptions<Output>): Promise<Output>
+	render<Output = string | Uint8Array>(options?: RenderOptions<Output>): Promise<Output>
 
 	/**
 	 * Create an exact copy of this instance.
@@ -485,7 +488,7 @@ interface RuntimeFormBase<F extends Form> {
 	validate(): FormValidationResult
 
 	// Serialization
-	render<Output>(options: RuntimeFormRenderOptions<Output>): Promise<Output>
+	render<Output = string | Uint8Array>(options?: RuntimeFormRenderOptions<Output>): Promise<Output>
 	toJSON(): RuntimeFormJSON<F>
 	toYAML(): string
 }
@@ -1585,7 +1588,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			const renderNativeDocument = async (): Promise<string | Uint8Array> =>
 				runtime.render<string | Uint8Array>({
-					renderer: createRenderer(),
+					renderer: options.renderer,
 					resolver: options.resolver,
 					layer: targetLayer,
 				})
@@ -1921,8 +1924,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// Rendering
 		// ============================================================================
 
-		async render<Output>(options: RuntimeFormRenderOptions<Output>): Promise<Output> {
-			const { renderer, resolver, layer: layerKey, bindings: optionsBindings } = options
+		async render<Output = string | Uint8Array>(options: RuntimeFormRenderOptions<Output> = {}): Promise<Output> {
+			const { renderer: rendererOverride, resolver, layer: layerKey, bindings: optionsBindings } = options
+			const renderer = rendererOverride ?? createRenderer()
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -2014,7 +2018,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				form: formDef,
 				data: { fields: fullData },
 				bindings,
-			})
+			}) as Output
 		},
 
 		// ============================================================================
@@ -2320,8 +2324,9 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 			}
 		},
 
-		async render<Output>(options: RenderOptions<Output>): Promise<Output> {
-			const { renderer, resolver, data = {}, layer: layerKey, bindings: optionsBindings } = options
+		async render<Output = string | Uint8Array>(options: RenderOptions<Output> = {}): Promise<Output> {
+			const { renderer: rendererOverride, resolver, data = {}, layer: layerKey, bindings: optionsBindings } = options
+			const renderer = rendererOverride ?? createRenderer()
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -2393,7 +2398,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 				form: formDef,
 				data: formData,
 				bindings,
-			})
+			}) as Output
 		},
 
 		clone(): FormInstance<F> {

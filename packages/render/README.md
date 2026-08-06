@@ -1,14 +1,23 @@
 # @paradoc/render
 
 Dependency-light text, PDF, and DOCX rendering for Paradoc. It works in modern
-browsers and on the server. For ordinary form rendering, use `renderLayer()`.
-It chooses the engine from the selected layer's MIME type and loads that engine
-only when needed.
+browsers and on the server. Forms use the MIME-selected renderer automatically
+and load only the selected layer engine.
+
+```ts
+const output = await filled.render({ layer: 'final' })
+```
+
+Pass `renderLayer()` explicitly when configuring the built-in renderer or
+provide any compatible custom renderer as an override.
 
 ```ts
 import { renderLayer } from '@paradoc/render'
 
-const output = await filled.render({ renderer: renderLayer(), layer: 'final' })
+const output = await filled.render({
+  renderer: renderLayer({ serializers }),
+  layer: 'final'
+})
 ```
 
 Use a format-specific entry point for inspection, overlays, or other
