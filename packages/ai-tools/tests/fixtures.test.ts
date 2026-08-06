@@ -146,7 +146,6 @@ describe('pet-addendum fixture (production artifact)', () => {
     )
 
     if (!result.success) {
-      // eslint-disable-next-line no-console
       console.error('Render failed:', result.error, result.errors, result.validationIssues)
     }
     expect(result.success).toBe(true)

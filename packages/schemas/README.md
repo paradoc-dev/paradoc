@@ -32,7 +32,7 @@ npm install @paradoc/schemas
 ## Usage
 
 ```typescript
-import { FormSchema, DocumentSchema, BundleSchema } from "@paradoc/schemas";
+import { FormSchema, DocumentSchema, BundleSchema, ListFieldSchema } from "@paradoc/schemas";
 
 // Validate form data
 const result = FormSchema.safeParse(myFormData);
@@ -42,6 +42,14 @@ if (!result.success) {
 
 // Parse and validate (throws on error)
 const form = FormSchema.parse(myFormData);
+
+// Lists are recursive, so their item may be any field, including another list.
+const list = ListFieldSchema.parse({
+  type: "list",
+  label: "Contacts",
+  item: { type: "email", label: "Email", required: true },
+  minItems: 1,
+});
 ```
 
 ## Changelog

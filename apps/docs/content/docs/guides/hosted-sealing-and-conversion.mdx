@@ -1,0 +1,86 @@
+---
+title: Hosted Sealing & Conversion
+description: Use the Paradoc Platform API to seal and convert documents
+---
+
+Paradoc provides hosted sealing and document conversion for applications that
+do not run their own conversion infrastructure.
+
+# Hosted seal adapter
+
+The SDK adapter converts a rendered HTML, Markdown, or DOCX layer to PDF before
+the framework flattens and hashes the canonical output.
+
+```ts
+import { hostedSealAdapter } from '@paradoc/sdk'
+
+const signable = await form
+  .fill(data)
+  .setTargetLayer('markdown')
+  .seal({
+    resolver,
+    adapter: hostedSealAdapter({
+      apiKey: process.env.PARADOC_API_KEY!,
+    }),
+  })
+```
+
+The adapter calls `POST /v1/execution/convert` and requires an API key.
+
+# Seal endpoint
+
+`POST /v1/execution/seal` fills an artifact and returns its canonical PDF,
+signature map, and integrity hash. It does not create an e-sign envelope or send
+anything to a signer.
+
+```json
+{
+  "artifact": { "source": "registry", "id": "@acme/forms/nda" },
+  "data": { "fields": { "effectiveDate": "2026-08-05" } },
+  "layer": "pdf"
+}
+```
+
+The response contains `valid`, `document`, `signature_map`, and
+`canonical_pdf_hash`. Sealing is metered once per successful call.
+
+# Convert endpoint
+
+`POST /v1/execution/convert` accepts base64-encoded document bytes:
+
+```json
+{
+  "content_base64": "JVBERi0xLjQK...",
+  "source_mime_type": "application/pdf",
+  "target_mime_type": "text/markdown",
+  "filename": "source.pdf",
+  "pages": "1,3-5"
+}
+```
+
+Send the API key in the `x-api-key` header. The response document contains
+`content_base64`, `mime_type`, `size_bytes`, and `pages` when the output is PDF.
+
+| Target | Supported sources |
+|--------|-------------------|
+| PDF | PDF, HTML, Markdown, DOCX |
+| Markdown | PDF, Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV |
+
+## Page selection
+
+`pages` is a flat, one-based expression such as `"1"`, `"2-4"`, or
+`"1,3-5"`. Its meaning follows the MIME pair:
+
+| Conversion | What `pages` selects |
+|------------|----------------------|
+| PDF → PDF | Source PDF pages |
+| PDF → Markdown | Source PDF pages before conversion |
+| HTML, Markdown, or DOCX → PDF | Generated PDF output pages |
+| Other document → Markdown | Not supported; omit `pages` |
+
+Malformed selectors fail request validation. If a selected page does not exist,
+the API returns `422` with `reason: "pages_out_of_range"`, the actual page count,
+and the invalid page numbers.
+
+PDF conversion is metered per returned page. Markdown conversion is metered as
+one parse operation.

@@ -55,7 +55,6 @@ Pass a resolver when rendering forms with file-based layers:
 
 ```typescript
 import { para } from "@paradoc/sdk";
-import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 
 const resolver = createFsResolver({ root: "./templates" });
@@ -67,7 +66,6 @@ const result = await form
     },
   })
   .render({
-    renderer: renderLayer(),
     resolver,
     layer: "pdf",
   });

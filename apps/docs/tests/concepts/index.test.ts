@@ -45,7 +45,7 @@ describe('Artifacts Concept', () => {
 
   test('loads JSON artifact', () => {
     const json = {
-      $schema: 'https://schemas.paradoc.dev/schema.json',
+      $schema: 'https://schema.paradoc.dev/schema.json',
       kind: 'form',
       name: 'residential-lease',
       version: '1.0.0',

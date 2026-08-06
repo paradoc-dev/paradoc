@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-01-01/listfield.json",
+  "$id": "https://schema.paradoc.dev/2026-08-06/listfield.json",
   "type": "object",
   "properties": {
     "label": {
@@ -16,17 +16,17 @@
       "description": "Description or help text for the field"
     },
     "required": {
-      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+      "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
     },
     "visible": {
-      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/CondExpr"
+      "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
     },
     "type": {
       "type": "string",
       "const": "list"
     },
     "item": {
-      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FormField"
+      "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/FormField"
     },
     "minItems": {
       "type": "integer",

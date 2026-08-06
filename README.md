@@ -23,7 +23,7 @@
 
 The Paradoc SDK plus the unified renderer and filesystem resolver used below.
 
-- 📦 **Focused packages** - Framework, rendering, and environment adapters stay explicit
+- 📦 **Focused packages** - The SDK includes the default renderer; environment adapters stay explicit
 - 🏗️ **Type-safe builders** - Fluent API with full TypeScript support
 - 📄 **Multi-format rendering** - PDF, DOCX, HTML, Text from one definition
 - ✅ **Automatic validation** - Schema-driven constraints and validation
@@ -33,7 +33,7 @@ The Paradoc SDK plus the unified renderer and filesystem resolver used below.
 ## Installation
 
 ```bash
-npm install @paradoc/sdk @paradoc/render @paradoc/resolvers
+npm install @paradoc/sdk @paradoc/resolvers
 ```
 
 ## Usage

@@ -36,10 +36,19 @@ import { createElement } from "react";
 import { docs } from "fumadocs-mdx:collections/server";
 import { loader } from "fumadocs-core/source";
 import type { InferPageType } from "fumadocs-core/source";
+import {
+  filterDocsFiles,
+  platformApiDocsEnabled,
+} from "@/lib/docs-features";
+
+const docsSource = docs.toFumadocsSource();
 
 export const source = loader({
   baseUrl: "/",
-  source: docs.toFumadocsSource(),
+  source: {
+    ...docsSource,
+    files: filterDocsFiles(docsSource.files, platformApiDocsEnabled),
+  },
   icon(icon) {
     if (!icon) {
       // You may set a default icon

@@ -8,6 +8,11 @@ import mdx from "fumadocs-mdx/vite";
 import * as MdxConfig from "./source.config";
 
 const config = defineConfig({
+  define: {
+    __PARADOC_DOCS_PLATFORM_API__: JSON.stringify(
+      process.env.PARADOC_DOCS_PLATFORM_API === "true",
+    ),
+  },
   ssr: {
     optimizeDeps: {
       include: [

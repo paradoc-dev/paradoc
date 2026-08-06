@@ -17,7 +17,7 @@ Annexes are defined as a top-level `annexes` object on a form. Each key is an an
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-01-01/form.json",
+  "$schema": "https://schema.paradoc.dev/2026-08-06/form.json",
   "name": "lease-application",
   "kind": "form",
   "annexes": {

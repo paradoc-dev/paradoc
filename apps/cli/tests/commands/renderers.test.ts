@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { rendererManager } from '../../src/utils/renderer-manager'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -52,6 +53,14 @@ async function executeCliCommand(
 }
 
 describe('CLI renderers command', () => {
+  it('keeps isolated renderer packages on the release version', () => {
+    expect(rendererManager.getRendererPackages()).toEqual({ '@paradoc/render': '0.4.0' })
+    expect(rendererManager.getRendererPeerDependencies()).toEqual({
+      '@paradoc/types': '0.4.0',
+      '@paradoc/serialization': '0.4.0',
+    })
+  })
+
   describe('help', () => {
     it('should list all sub-commands', async () => {
       const result = await executeCliCommand(['renderers', '--help'])

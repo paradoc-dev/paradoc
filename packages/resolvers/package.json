@@ -1,6 +1,6 @@
 {
 	"name": "@paradoc/resolvers",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Environment-specific resolvers for Paradoc - filesystem, S3, HTTP, etc.",
 	"type": "module",
 	"exports": {

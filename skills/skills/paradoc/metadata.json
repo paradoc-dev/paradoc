@@ -7,10 +7,10 @@
   "references": [
     "https://docs.paradoc.dev",
     "https://github.com/paradoc-dev/paradoc",
-    "https://schema.paradoc.dev/2026-01-01/form.json",
-    "https://schema.paradoc.dev/2026-01-01/document.json",
-    "https://schema.paradoc.dev/2026-01-01/bundle.json",
-    "https://schema.paradoc.dev/2026-01-01/checklist.json",
+    "https://schema.paradoc.dev/2026-08-06/form.json",
+    "https://schema.paradoc.dev/2026-08-06/document.json",
+    "https://schema.paradoc.dev/2026-08-06/bundle.json",
+    "https://schema.paradoc.dev/2026-08-06/checklist.json",
     "https://mcp.paradoc.dev"
   ]
 }

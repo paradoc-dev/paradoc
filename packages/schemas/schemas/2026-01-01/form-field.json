@@ -991,9 +991,6 @@
     },
     {
       "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FieldsetField"
-    },
-    {
-      "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/ListField"
     }
   ],
   "title": "FormField"

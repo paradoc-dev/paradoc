@@ -116,7 +116,7 @@ GET requests (health, service info, SSE) and non-`/mcp` routes are not rate-limi
 
 ## Document Rendering
 
-The MCP service renders text, PDF, and DOCX layers locally with the MIME-driven `@paradoc/render` implementation. Hosted conversion and sealing use the Platform API rather than a rendering proxy.
+The MCP service renders text, PDF, and DOCX layers locally with the MIME-driven `@paradoc/render` implementation.
 
 This is transparent to the MCP client — `render` works for all supported MIME types.
 

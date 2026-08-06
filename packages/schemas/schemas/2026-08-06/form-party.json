@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-08-06/formparty.json",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Display name for this role"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Description of this role"
+    },
+    "partyType": {
+      "default": "any",
+      "description": "Constraint on party type",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "person"
+        },
+        {
+          "type": "string",
+          "const": "organization"
+        },
+        {
+          "type": "string",
+          "const": "any"
+        }
+      ]
+    },
+    "min": {
+      "default": 1,
+      "description": "Minimum parties required",
+      "type": "number",
+      "minimum": 0
+    },
+    "max": {
+      "default": 1,
+      "description": "Maximum parties allowed",
+      "type": "number",
+      "minimum": 1
+    },
+    "required": {
+      "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+    },
+    "signature": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "default": false,
+          "description": "Whether signature is required for this role",
+          "type": "boolean"
+        },
+        "witnesses": {
+          "default": 0,
+          "description": "Number of witnesses required for this signature",
+          "type": "number",
+          "minimum": 0
+        },
+        "notarized": {
+          "default": false,
+          "description": "Whether at least one witness must be a notary",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "title": "FormSignature",
+      "description": "Design-time signature requirements for a party role"
+    },
+    "payment": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "default": false,
+          "description": "Whether payment is required for this role",
+          "type": "boolean"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Money"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Display label for the computed value"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Description or documentation of the computed value"
+                },
+                "type": {
+                  "type": "string",
+                  "const": "money"
+                },
+                "value": {
+                  "type": "object",
+                  "properties": {
+                    "amount": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000,
+                      "description": "Expression string to evaluate"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000,
+                      "description": "Expression string to evaluate"
+                    }
+                  },
+                  "required": [
+                    "amount",
+                    "currency"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Money object with amount and currency expressions"
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Amount owed: a fixed Money value, or a MoneyExpression resolved from filled data at request time"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "additionalProperties": false,
+      "title": "FormPayment",
+      "description": "Design-time payment requirement for a party role"
+    }
+  },
+  "required": [
+    "label"
+  ],
+  "additionalProperties": false,
+  "title": "FormParty"
+}

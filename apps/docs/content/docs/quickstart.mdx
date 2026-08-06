@@ -15,35 +15,35 @@ Let's build a simple purchase agreement to grasp the basics of Paradoc. We'll de
 <Step>
 ### Install the Packages
 
-Let's make a new project and install the SDK, renderer, and filesystem resolver.
+Let's make a new project and install the SDK and filesystem resolver. The SDK includes the default renderer.
 
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
   <Tab value="npm">
     ```bash
     mkdir quickstart && cd quickstart
     npm init -y
-    npm install @paradoc/sdk @paradoc/render @paradoc/resolvers
+    npm install @paradoc/sdk @paradoc/resolvers
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
     mkdir quickstart && cd quickstart
     pnpm init -y
-    pnpm add @paradoc/sdk @paradoc/render @paradoc/resolvers
+    pnpm add @paradoc/sdk @paradoc/resolvers
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
     mkdir quickstart && cd quickstart
     yarn init -y
-    yarn add @paradoc/sdk @paradoc/render @paradoc/resolvers
+    yarn add @paradoc/sdk @paradoc/resolvers
     ```
   </Tab>
   <Tab value="bun">
     ```bash
     mkdir quickstart && cd quickstart
     bun init -y
-    bun add @paradoc/sdk @paradoc/render @paradoc/resolvers
+    bun add @paradoc/sdk @paradoc/resolvers
     ```
   </Tab>
 </Tabs>
@@ -179,7 +179,7 @@ If we want to save our form for future use, we can either save it as a typescrip
   <Tab value="JSON">
     ```json
     {
-      "$schema": "https://paradoc.sh/schemas/2026-01-01.json",
+      "$schema": "https://schema.paradoc.dev/2026-08-06.json",
       "kind": "form",
       "name": "purchase-agreement",
       "title": "Purchase Agreement",
@@ -202,7 +202,7 @@ If we want to save our form for future use, we can either save it as a typescrip
   </Tab>
   <Tab value="YAML">
     ```yaml
-    $schema: https://paradoc.sh/schemas/2026-01-01.json
+    $schema: https://schema.paradoc.dev/2026-08-06.json
     kind: form
     name: purchase-agreement
     title: Purchase Agreement

@@ -13,14 +13,14 @@ For TypeScript SDK usage, see [sdk.md](./sdk.md). For CLI workflow, see [cli.md]
 
 ## Schema Version
 
-All artifacts use schema version `2026-01-01`. Set `$schema` to declare the artifact type:
+All artifacts use schema version `2026-08-06`. Set `$schema` to declare the artifact type:
 
 | Artifact | `$schema` URI |
 |----------|---------------|
-| Form | `https://schema.paradoc.dev/2026-01-01/form.json` |
-| Document | `https://schema.paradoc.dev/2026-01-01/document.json` |
-| Bundle | `https://schema.paradoc.dev/2026-01-01/bundle.json` |
-| Checklist | `https://schema.paradoc.dev/2026-01-01/checklist.json` |
+| Form | `https://schema.paradoc.dev/2026-08-06/form.json` |
+| Document | `https://schema.paradoc.dev/2026-08-06/document.json` |
+| Bundle | `https://schema.paradoc.dev/2026-08-06/bundle.json` |
+| Checklist | `https://schema.paradoc.dev/2026-08-06/checklist.json` |
 
 ## Validation Command
 

@@ -15,7 +15,7 @@ Interactive pipeline that guides creation of a new Paradoc form artifact through
 
 ## Setup
 
-- All artifacts use schema version `2026-01-01` (`$schema` per [artifacts.md](./artifacts.md))
+- All artifacts use schema version `2026-08-06` (`$schema` per [artifacts.md](./artifacts.md))
 - ALWAYS use `npx paradoc validate <file>` after every significant change — see [schemas.md](./schemas.md)
 - File MUST be named `<name>.json` or `<name>.yaml`. Name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`
 

@@ -21,9 +21,9 @@
 
 ## Package overview
 
-The Paradoc SDK plus the unified renderer and filesystem resolver used below.
+The Paradoc SDK includes the default renderer. Install a resolver when layers reference external files.
 
-- 📦 **Focused packages** - Framework, rendering, and environment adapters stay explicit
+- 📦 **Focused packages** - The SDK includes the default renderer; environment adapters stay explicit
 - 🏗️ **Type-safe builders** - Fluent API with full TypeScript support
 - 📄 **Multi-format rendering** - PDF, DOCX, HTML, Text from one definition
 - ✅ **Automatic validation** - Schema-driven constraints and validation
@@ -33,7 +33,7 @@ The Paradoc SDK plus the unified renderer and filesystem resolver used below.
 ## Installation
 
 ```bash
-npm install @paradoc/sdk @paradoc/render @paradoc/resolvers
+npm install @paradoc/sdk @paradoc/resolvers
 ```
 
 ## Usage
@@ -162,6 +162,17 @@ const advancedLease = para
       required: true,
     },
   })
+  .build();
+```
+
+Define repeated values with recursive List fields:
+
+```typescript
+const contacts = para.field
+  .list()
+  .label("Contacts")
+  .item(para.field.email().label("Email").required().build())
+  .minItems(1)
   .build();
 ```
 

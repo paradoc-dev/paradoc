@@ -9,20 +9,24 @@ import ora from 'ora'
 const execFileAsync = promisify(execFile)
 
 declare const __RENDERER_VERSIONS__: Record<string, string> | undefined
+declare const __RENDERER_PEER_VERSIONS__: Record<string, string> | undefined
 
 /** Renderer package versions, injected at build time via tsup define */
 const RENDERER_VERSIONS: Record<string, string> =
   typeof __RENDERER_VERSIONS__ !== 'undefined'
     ? __RENDERER_VERSIONS__
     : {
-        '@paradoc/render': '0.3.0',
+        '@paradoc/render': '0.4.0',
       }
 
 /** Peer deps installed as regular deps in the isolated renderer directories */
-const PEER_DEPS: Record<string, string> = {
-  '@paradoc/types': '0.2.1',
-  '@paradoc/serialization': '0.2.1',
-}
+const RENDERER_PEER_VERSIONS: Record<string, string> =
+  typeof __RENDERER_PEER_VERSIONS__ !== 'undefined'
+    ? __RENDERER_PEER_VERSIONS__
+    : {
+        '@paradoc/types': '0.4.0',
+        '@paradoc/serialization': '0.4.0',
+      }
 
 const RENDERERS_DIR = join(homedir(), '.paradoc', 'renderers')
 
@@ -99,7 +103,7 @@ class RendererManager {
         private: true,
         dependencies: {
           [packageName]: version,
-          ...PEER_DEPS,
+          ...RENDERER_PEER_VERSIONS,
         },
       }
 
@@ -171,6 +175,11 @@ class RendererManager {
   /** Get the known renderer package names and their expected versions */
   getRendererPackages(): Record<string, string> {
     return { ...RENDERER_VERSIONS }
+  }
+
+  /** Get the renderer peer packages installed alongside isolated renderers */
+  getRendererPeerDependencies(): Record<string, string> {
+    return { ...RENDERER_PEER_VERSIONS }
   }
 
   private async getDirectorySize(dirPath: string): Promise<number> {

@@ -8,6 +8,10 @@ const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
 const rendererVersions = {
   '@paradoc/render': JSON.parse(readFileSync(resolve('../../packages/render/package.json'), 'utf-8')).version,
 }
+const rendererPeerVersions = {
+  '@paradoc/types': JSON.parse(readFileSync(resolve('../../packages/types/package.json'), 'utf-8')).version,
+  '@paradoc/serialization': JSON.parse(readFileSync(resolve('../../packages/serialization/package.json'), 'utf-8')).version,
+}
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -33,5 +37,6 @@ export default defineConfig({
   define: {
     __VERSION__: JSON.stringify(packageJson.version),
     __RENDERER_VERSIONS__: JSON.stringify(rendererVersions),
+    __RENDERER_PEER_VERSIONS__: JSON.stringify(rendererPeerVersions),
   },
 })

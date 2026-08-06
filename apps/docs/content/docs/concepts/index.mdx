@@ -32,8 +32,6 @@ Paradoc draws a hard line between **design time** and **runtime**.
 **Design time** is when you define artifacts—what fields exist, what rules apply, what layers are available. **Runtime** is when you use those definitions—fill fields, validate inputs, render outputs, collect signatures.
 
 ```ts
-import { renderLayer } from '@paradoc/render'
-
 // Design time: define the form
 const lease = para.form()
   .name("lease")
@@ -45,7 +43,7 @@ const lease = para.form()
 
 // Runtime: fill and render
 const filled = lease.fill({ fields: { tenant: "Jane Doe", rent: { amount: 1500, currency: "USD" } } })
-const output = await filled.render({ renderer: renderLayer() })
+const output = await filled.render()
 ```
 
 Runtime never mutates the artifact. The definition remains stable while runtime operations execute against it.
@@ -71,7 +69,7 @@ Artifacts follow the Paradoc JSON Schema specification. This means:
 
 ```json
 {
-  "$schema": "https://schemas.paradoc.dev/schema.json",
+  "$schema": "https://schema.paradoc.dev/schema.json",
   "kind": "form",
   "name": "residential-lease",
   "version": "1.0.0",

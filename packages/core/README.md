@@ -81,6 +81,17 @@ const leaseAgreement = para
   .build();
 ```
 
+Define repeated values with recursive List fields:
+
+```typescript
+const contacts = para.field
+  .list()
+  .label("Contacts")
+  .item(para.field.email().label("Email").required().build())
+  .minItems(1)
+  .build();
+```
+
 Add file attachments and advanced field types:
 
 ```typescript

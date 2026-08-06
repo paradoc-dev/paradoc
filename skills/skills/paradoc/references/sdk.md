@@ -21,7 +21,6 @@ ALWAYS import from public entry points. NEVER from `@paradoc/core/dist/...` or o
 
 ```typescript
 import { para, type InferFormPayload } from "@paradoc/core";
-import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers";
 import { createSerializer, usaSerializers } from "@paradoc/serialization";
 ```
@@ -334,7 +333,6 @@ For full renderer API, see [rendering.md](./rendering.md). Quick example:
 
 ```typescript
 const text = await form.fill(data).render({
-  renderer: renderLayer(),
   resolver: createFsResolver({ root: process.cwd() }),
   layer: "markdown",
 });

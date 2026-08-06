@@ -19,7 +19,7 @@ Interactive pipeline that converts an existing PDF form into a valid Paradoc for
 
 ## Setup
 
-- All output uses schema version `2026-01-01` (`$schema: https://schema.paradoc.dev/2026-01-01/form.json`)
+- All output uses schema version `2026-08-06` (`$schema: https://schema.paradoc.dev/2026-08-06/form.json`)
 - ALWAYS run `npx paradoc validate <file>` after every significant change — see [schemas.md](./schemas.md)
 - ALWAYS use camelCase for field IDs, kebab-case for artifact names
 - ALWAYS present findings and wait for user confirmation at each checkpoint
