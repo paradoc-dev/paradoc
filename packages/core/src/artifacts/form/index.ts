@@ -4,7 +4,8 @@
  */
 
 export { form, runtimeFormFromJSON, FormValidationError, FormRuleViolationError } from './form'
-export { SealConfigError } from './seal-slots'
+export { SealConfigError, buildSlotPlan, compileLegacySignatureSlots } from './seal-slots'
+export type { SlotPlan } from './seal-slots'
 export type { PlacementProvenance, SealPreparation } from './seal-slots'
 export type {
 	FormInstance,

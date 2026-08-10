@@ -15,6 +15,7 @@ export {
 	MAX_FIELD_TYPE,
 	MAX_SIGNER_INDEX,
 	containsEncoding,
+	decode,
 	decodeAll,
 	encode,
 	fieldTypeToString,

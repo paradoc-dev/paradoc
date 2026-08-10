@@ -7,6 +7,8 @@ export {
   FormValidationError,
   FormRuleViolationError,
   SealConfigError,
+  buildSlotPlan,
+  compileLegacySignatureSlots,
   form,
   field,
   textField,

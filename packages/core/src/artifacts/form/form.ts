@@ -43,7 +43,7 @@ import { renderLayer as createRenderer } from '@paradoc/render'
 import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
 import { encode as encodeMarker } from '@paradoc/render/pdf'
 import type { TextSignatureOptions } from '@paradoc/render/text'
-import { SealConfigError, buildSlotPlan, hasSignatureSlots } from './seal-slots'
+import { SealConfigError, buildSlotPlan, compileLegacySignatureSlots, hasSignatureSlots } from './seal-slots'
 import type { PlacementProvenance, SealPreparation } from './seal-slots'
 import {
 	parseForm,
@@ -1605,10 +1605,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const options = input
 			const layerSpec = formDef.layers?.[targetLayer]
 			if (!layerSpec) throw new Error(`Cannot prepare seal: target layer "${targetLayer}" was not found`)
-			if (!hasSignatureSlots(layerSpec)) {
+			const declaredSlots = hasSignatureSlots(layerSpec) ? layerSpec.signatures : undefined
+			const legacySlots = declaredSlots ? undefined : compileLegacySignatureSlots(layerSpec)
+			if (!declaredSlots && !legacySlots) {
 				throw new Error(
-					'prepareSeal requires a layer that declares signature slots (`signatures`). ' +
-					'Layers using legacy signatureBlocks/anchorBlocks seal directly through seal().',
+					'prepareSeal requires a layer with signature slots (`signatures`) or legacy signatureBlocks/anchorBlocks.',
 				)
 			}
 			if (layerSpec.mimeType !== 'application/pdf' && !options.adapter) {
@@ -1619,9 +1620,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			}
 			const plan = buildSlotPlan({
 				formDef,
-				slots: layerSpec.signatures,
+				slots: declaredSlots ?? legacySlots!,
 				partyValues,
 				signatoryValues,
+				legacy: !declaredSlots,
 			})
 			if (plan.auto.length > 0) {
 				const problems: string[] = []

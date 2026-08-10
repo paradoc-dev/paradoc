@@ -55,6 +55,12 @@ export interface DecodedEncodingWithPosition extends DecodedEncoding {
   position: number
 }
 
+/** Decode the first complete encoding found in `text`, or null. */
+export function decode(text: string): DecodedEncoding | null {
+  const first = decodeAll(text)[0]
+  return first ? { signerIndex: first.signerIndex, fieldType: first.fieldType } : null
+}
+
 export function decodeAll(text: string): DecodedEncodingWithPosition[] {
   const results: DecodedEncodingWithPosition[] = []
   let found: number[] = []

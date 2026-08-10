@@ -62,6 +62,12 @@ interface PlanInput {
 	slots: Record<string, SignatureSlot>
 	partyValues: Record<string, unknown>
 	signatoryValues: Record<string, Record<string, { signerId: string }[]>>
+	/**
+	 * Slots compiled from legacy signatureBlocks/anchorBlocks keep legacy
+	 * seal() semantics: no formality check, and slots whose party has no
+	 * signatory are skipped instead of failing.
+	 */
+	legacy?: boolean
 }
 
 const partyArrayFor = (partyValues: Record<string, unknown>, role: string): unknown[] => {
@@ -77,7 +83,7 @@ const partyArrayFor = (partyValues: Record<string, unknown>, role: string): unkn
  * party index has no filled party: multi-party templates legitimately
  * declare more slots than a given fill uses.
  */
-export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues }: PlanInput): SlotPlan {
+export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues, legacy }: PlanInput): SlotPlan {
 	const problems: string[] = []
 	const definedRoles = new Set(Object.keys(formDef.parties ?? {}))
 
@@ -88,8 +94,9 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues }: 
 	}
 
 	// Fail-loud formality: a party whose signature is required but that no
-	// slot places would produce an unsignable "sealed" document.
-	for (const [role, party] of Object.entries(formDef.parties ?? {})) {
+	// slot places would produce an unsignable "sealed" document. Legacy
+	// compilation skips this: legacy seal() never enforced it.
+	for (const [role, party] of Object.entries(legacy ? {} : (formDef.parties ?? {}))) {
 		const requiresSignature = (party as { signature?: { required?: boolean } }).signature?.required
 		if (!requiresSignature) continue
 		const hasSlot = Object.values(slots).some((slot) => slot.party.role === role)
@@ -133,7 +140,9 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues }: 
 
 		const signerId = signerMap.get(`${slot.party.role}:${partyIndex}`)
 		if (!signerId) {
-			if (slot.required !== false) {
+			if (legacy) {
+				plan.skipped.push(`slot "${slotId}" skipped: ${slot.party.role}[${partyIndex}] has no signatory`)
+			} else if (slot.required !== false) {
 				missingSignatories.push(`slot "${slotId}" (${slot.party.role}[${partyIndex}]) has no signatory`)
 			}
 			continue
@@ -193,12 +202,56 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues }: 
 
 	if (plan.resolved.length + plan.anchors.length + plan.auto.length === 0) {
 		throw new SealConfigError(
-			'Cannot seal: no signature slots could be mapped to signatories. Ensure parties have signatories assigned.',
-			['no mappable slots'],
+			'Cannot seal: no signature slots could be mapped to signatories. Ensure parties have signatories assigned.' +
+				(plan.skipped.length > 0 ? ` (${plan.skipped.join('; ')})` : ''),
+			plan.skipped.length > 0 ? plan.skipped : ['no mappable slots'],
 		)
 	}
 
 	return plan
+}
+
+
+/**
+ * Compile legacy signatureBlocks/anchorBlocks into unified slots so that
+ * prepareSeal() serves layers authored before the `signatures` field.
+ * Faithful to legacy seal(): blocks without a party role are skipped, and
+ * the legacy 'date' type maps to 'date_signed'.
+ */
+export function compileLegacySignatureSlots(layer: Layer): Record<string, SignatureSlot> | undefined {
+	const slots: Record<string, SignatureSlot> = {}
+	const mapType = (type: string): SignatureSlot['type'] =>
+		(type === 'date' ? 'date_signed' : type) as SignatureSlot['type']
+
+	for (const [locationId, block] of Object.entries(layer.signatureBlocks ?? {})) {
+		if (!block.partyRole) continue
+		slots[locationId] = {
+			party: { role: block.partyRole, ...(block.partyIndex !== undefined && { index: block.partyIndex }) },
+			type: mapType(block.type),
+			...(block.required !== undefined && { required: block.required }),
+			...(block.label && { label: block.label }),
+			placement: { page: block.page, x: block.x, y: block.y, width: block.width, height: block.height },
+		}
+	}
+	for (const [locationId, block] of Object.entries(layer.anchorBlocks ?? {})) {
+		if (!block.partyRole) continue
+		slots[locationId] = {
+			party: { role: block.partyRole, ...(block.partyIndex !== undefined && { index: block.partyIndex }) },
+			type: mapType(block.type),
+			...(block.required !== undefined && { required: block.required }),
+			...(block.label && { label: block.label }),
+			placement: {
+				anchor: {
+					text: block.anchor.text,
+					offsetX: block.anchor.offsetX,
+					offsetY: block.anchor.offsetY,
+				},
+				width: block.width,
+				height: block.height,
+			},
+		}
+	}
+	return Object.keys(slots).length > 0 ? slots : undefined
 }
 
 /** True when the layer declares unified signature slots. */
