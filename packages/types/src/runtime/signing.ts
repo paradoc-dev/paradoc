@@ -103,13 +103,6 @@ export interface SealingRequest<F extends Form = Form> {
 	 * completed SigningField[] in SealingResult.signatureMap.
 	 */
 	anchorFields?: SigningField[]
-	/** Optional configuration for PDF generation. */
-	options?: {
-		/** Renderer to use for PDF conversion. */
-		renderer?: 'puppeteer' | 'libreoffice'
-		/** Output format (currently only PDF supported). */
-		format?: 'pdf'
-	}
 }
 
 /**
@@ -150,6 +143,39 @@ export interface SealAdapterResult {
 /** Converts a rendered non-PDF document into PDF for the common sealing pipeline. */
 export interface SealAdapter {
 	convert<F extends Form>(request: SealAdapterRequest<F>): Promise<SealAdapterResult>
+}
+
+// ============================================================================
+// Placement Locator
+// ============================================================================
+
+/** A placement query resolved against converted PDF bytes. */
+export interface AnchorLocateQuery {
+	id: string
+	kind: 'anchor'
+	/** Literal document text to find. Must be unique unless `occurrence` picks one. */
+	text: string
+	/** 1-based match index in reading order when the text appears more than once. */
+	occurrence?: number
+}
+
+/** A resolved placement in PDF points, y measured from the top page edge. */
+export interface LocateHit {
+	id: string
+	/** 1-based page number. */
+	page: number
+	x: number
+	y: number
+	width: number
+	height: number
+}
+
+/**
+ * Resolves placement queries against a converted PDF. Implementations must be
+ * all-or-nothing: throw when any query cannot be resolved deterministically.
+ */
+export interface SealLocator {
+	locate(pdf: Uint8Array, queries: AnchorLocateQuery[]): Promise<LocateHit[]>
 }
 
 // ============================================================================

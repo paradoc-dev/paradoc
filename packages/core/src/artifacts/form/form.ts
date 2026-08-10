@@ -29,7 +29,9 @@ import type {
 	ExecutedFormJSON,
 	Sealer,
 	SealAdapter,
+	SealLocator,
 	SealingRequest,
+	SignatureSlot,
 	DefsSection,
 	Expression,
 	Attachment,
@@ -38,7 +40,11 @@ import type {
 	ParadocRenderer,
 } from '@paradoc/types'
 import { renderLayer as createRenderer } from '@paradoc/render'
-import { flattenPdf } from '@paradoc/render/pdf'
+import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
+import { encode as encodeMarker } from '@paradoc/render/pdf'
+import type { TextSignatureOptions } from '@paradoc/render/text'
+import { SealConfigError, buildSlotPlan, hasSignatureSlots } from './seal-slots'
+import type { PlacementProvenance, SealPreparation } from './seal-slots'
 import {
 	parseForm,
 	parseFormField,
@@ -117,6 +123,12 @@ export type PartyRoleKeys<F> = ExtractFormSchema<F> extends { parties: infer P }
 export interface SealOptions {
 	/** Adapter required when the target layer is not already a PDF. */
 	adapter?: SealAdapter
+	/**
+	 * Resolves anchor-block positions against the converted PDF when the
+	 * adapter returns no signature map. Lets pure byte converters (such as the
+	 * hosted converter) seal anchor-based layers.
+	 */
+	locate?: SealLocator
 	/** Resolves file-backed target layers before sealing. */
 	resolver?: Resolver
 	/** Custom renderer override used before PDF finalization or adapter conversion. */
@@ -571,6 +583,13 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	// Phase Transitions (draft → signable)
 	prepareForSigning(): SignableForm<F>
 	seal(options?: SealOptions | Sealer): Promise<SignableForm<F>>
+
+	/**
+	 * Resolve the signature map and the exact converted PDF it describes,
+	 * without flattening, hashing, or changing phase. Requires a layer that
+	 * declares unified signature slots (`signatures`).
+	 */
+	prepareSeal(options?: SealOptions): Promise<SealPreparation>
 
 	// Formal signing helpers (always false in draft)
 	readonly isFormal: false
@@ -1579,6 +1598,175 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			})
 		},
 
+		// NOTE: keep the pipeline below in sync with seal()'s slot branch; they
+		// unify once the legacy block modes retire at the next major.
+		async prepareSeal(input: SealOptions = {}): Promise<SealPreparation> {
+			ensureDraft('prepareSeal')
+			const options = input
+			const layerSpec = formDef.layers?.[targetLayer]
+			if (!layerSpec) throw new Error(`Cannot prepare seal: target layer "${targetLayer}" was not found`)
+			if (!hasSignatureSlots(layerSpec)) {
+				throw new Error(
+					'prepareSeal requires a layer that declares signature slots (`signatures`). ' +
+					'Layers using legacy signatureBlocks/anchorBlocks seal directly through seal().',
+				)
+			}
+			if (layerSpec.mimeType !== 'application/pdf' && !options.adapter) {
+				throw new SealConfigError(
+					`Cannot prepare seal for ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); PDF layers prepare locally.`,
+					['missing converter'],
+				)
+			}
+			const plan = buildSlotPlan({
+				formDef,
+				slots: layerSpec.signatures,
+				partyValues,
+				signatoryValues,
+			})
+			if (plan.auto.length > 0) {
+				const problems: string[] = []
+				for (const field of plan.auto) {
+					if (field.type !== 'signature' && field.type !== 'initials') {
+						problems.push(`slot "${field.id}" has placement 'auto' with type "${field.type}"; auto supports signature and initials`)
+					}
+				}
+				if (layerSpec.mimeType === 'application/pdf') {
+					problems.push("'auto' placement needs a text-template layer; PDF layers use absolute or anchor placement")
+				}
+				if (options.renderer) {
+					problems.push("'auto' placement is incompatible with a custom renderer override; core must inject markers during rendering")
+				}
+				if (problems.length > 0) {
+					throw new SealConfigError(`Cannot prepare seal: ${problems.join('; ')}`, problems)
+				}
+			}
+
+			const SIGNATURE_UNDERSCORES = '________________'
+			const INITIALS_UNDERSCORES = '______'
+			const autoById = new Map(plan.auto.map((field) => [field.id, field]))
+			const textOptions = (withMarkers: boolean): TextSignatureOptions => ({
+				format: 'text',
+				placeholder: {
+					signature: (context) => {
+						const field = withMarkers ? autoById.get(context.locationId) : undefined
+						const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
+						return prefix + SIGNATURE_UNDERSCORES
+					},
+					initials: (context) => {
+						const field = withMarkers ? autoById.get(context.locationId) : undefined
+						const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
+						return prefix + INITIALS_UNDERSCORES
+					},
+				},
+			})
+			const renderPass = (withMarkers: boolean): Promise<string | Uint8Array> =>
+				runtime.render<string | Uint8Array>({
+					renderer: createRenderer({ textSignatureOptions: textOptions(withMarkers) }),
+					resolver: options.resolver,
+					layer: targetLayer,
+				})
+
+			const prepareRequest: SealingRequest<F> = {
+				form: formDef,
+				fields: fieldValues,
+				parties: partyValues,
+				signers: signerValues,
+				signatories: signatoryValues,
+				targetLayer,
+				...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
+			}
+
+			const provenance: Record<string, PlacementProvenance> = {}
+			const map: SigningField[] = [...plan.resolved]
+			for (const field of plan.resolved) provenance[field.id] = 'declared'
+			const autoResolved: SigningField[] = []
+			let pdf: Uint8Array
+
+			if (layerSpec.mimeType === 'application/pdf') {
+				const document = await renderPass(false)
+				if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
+				pdf = document
+			} else {
+				if (plan.auto.length > 0) {
+					const encodedContent = await renderPass(true)
+					const encodedPdf = (await options.adapter!.convert({
+						...prepareRequest,
+						document: { content: encodedContent, mimeType: layerSpec.mimeType },
+					})).pdf
+					const markerHits = await locatePlacements(
+						encodedPdf,
+						plan.auto.map((field) => ({
+							id: field.id,
+							kind: 'marker' as const,
+							signerIndex: field.signerIndex,
+							fieldType: field.type === 'signature' ? FieldType.SIGNATURE : FieldType.INITIALS,
+						})),
+					)
+					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
+					for (const field of plan.auto) {
+						const hit = markersById.get(field.id)
+						if (!hit) throw new Error(`Marker for auto slot "${field.id}" was not found in the converted PDF.`)
+						autoResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
+					}
+				}
+				const cleanContent = await renderPass(false)
+				pdf = (await options.adapter!.convert({
+					...prepareRequest,
+					document: { content: cleanContent, mimeType: layerSpec.mimeType },
+				})).pdf
+				if (autoResolved.length > 0) {
+					const cleanPages = await pageTextRuns(pdf)
+					for (const field of autoResolved) {
+						const page = cleanPages[field.page - 1]
+						if (!page) throw new Error(`Auto slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
+						const pageHeight = page.mediaBox[3] - page.mediaBox[1]
+						const expectedRawY = pageHeight - field.y - field.height + page.mediaBox[1]
+						const expectedX = field.x + page.mediaBox[0]
+						const near = page.runs.some(
+							(run) =>
+								Math.abs(run.y - expectedRawY) <= 3 &&
+								run.text.includes('_') &&
+								run.x - 3 <= expectedX &&
+								expectedX <= run.x + run.width + 3,
+						)
+						if (!near) {
+							throw new Error(
+								`Auto slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
+								'The marker run likely changed a line wrap; use anchor placement for this slot or widen its placeholder.',
+							)
+						}
+					}
+				}
+			}
+
+			for (const field of autoResolved) {
+				map.push(field)
+				provenance[field.id] = 'marker'
+			}
+			if (plan.anchors.length > 0) {
+				const slotLocator = options.locate ?? { locate: locatePlacements }
+				const hits = await slotLocator.locate(
+					pdf,
+					plan.anchors.map((entry) => ({
+						id: entry.field.id,
+						kind: 'anchor' as const,
+						text: entry.text,
+						...(entry.occurrence !== undefined && { occurrence: entry.occurrence }),
+					})),
+				)
+				const hitsById = new Map(hits.map((hit) => [hit.id, hit]))
+				for (const entry of plan.anchors) {
+					const hit = hitsById.get(entry.field.id)
+					if (!hit) throw new Error(`Locator did not resolve anchor slot "${entry.field.id}".`)
+					map.push({ ...entry.field, page: hit.page, x: hit.x + entry.offsetX, y: hit.y + entry.offsetY })
+					provenance[entry.field.id] = 'anchor'
+				}
+			}
+			map.sort((a, b) => a.signerIndex - b.signerIndex)
+
+			return { pdf, signatureMap: map, provenance, warnings: [...plan.skipped] }
+		},
+
 		async seal(input: SealOptions | Sealer = {}): Promise<RuntimeForm<F>> {
 			ensureDraft('seal')
 			const legacyAdapter = 'seal' in input ? input : undefined
@@ -1625,6 +1813,189 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					document: { content: document, mimeType: layerSpec.mimeType },
 				})
 				return finalizePdf(converted.pdf, converted.signatureMap)
+			}
+
+			// Unified slot mode: the layer declares `signatures`. One engine for
+			// every placement strategy; legacy signatureBlocks/anchorBlocks keep
+			// their original paths below during the deprecation window.
+			if (hasSignatureSlots(layerSpec)) {
+				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !legacyAdapter) {
+					throw new SealConfigError(
+						`Cannot seal ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); PDF layers seal locally.`,
+						['missing converter'],
+					)
+				}
+				const plan = buildSlotPlan({
+					formDef,
+					slots: layerSpec.signatures,
+					partyValues,
+					signatoryValues,
+				})
+				if (plan.auto.length > 0) {
+					const problems: string[] = []
+					for (const field of plan.auto) {
+						if (field.type !== 'signature' && field.type !== 'initials') {
+							problems.push(`slot "${field.id}" has placement 'auto' with type "${field.type}"; auto supports signature and initials`)
+						}
+					}
+					if (layerSpec.mimeType === 'application/pdf') {
+						problems.push("'auto' placement needs a text-template layer; PDF layers use absolute or anchor placement")
+					}
+					if (options.renderer) {
+						problems.push("'auto' placement is incompatible with a custom renderer override; core must inject markers during rendering")
+					}
+					if (!options.adapter) {
+						problems.push("'auto' placement requires a SealAdapter (converter)")
+					}
+					if (problems.length > 0) {
+						throw new SealConfigError(`Cannot seal: ${problems.join('; ')}`, problems)
+					}
+				}
+
+				const slotRequest: SealingRequest<F> = {
+					form: formDef,
+					fields: fieldValues,
+					parties: partyValues,
+					signers: signerValues,
+					signatories: signatoryValues,
+					targetLayer,
+					...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
+				}
+				// The auto path renders twice: pass one carries invisible markers to
+				// locate placeholders in the converted PDF; pass two renders clean and
+				// becomes the canonical document. Both passes share identical visible
+				// placeholders, so located coordinates transfer to the clean PDF.
+				const SIGNATURE_UNDERSCORES = '________________'
+				const INITIALS_UNDERSCORES = '______'
+				const slotTextOptions = (withMarkers: boolean): TextSignatureOptions => {
+					const autoById = new Map(plan.auto.map((field) => [field.id, field]))
+					return {
+						format: 'text',
+						placeholder: {
+							signature: (context) => {
+								const field = withMarkers ? autoById.get(context.locationId) : undefined
+								const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
+								return prefix + SIGNATURE_UNDERSCORES
+							},
+							initials: (context) => {
+								const field = withMarkers ? autoById.get(context.locationId) : undefined
+								const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
+								return prefix + INITIALS_UNDERSCORES
+							},
+						},
+					}
+				}
+				const renderForSlots = (withMarkers: boolean): Promise<string | Uint8Array> =>
+					runtime.render<string | Uint8Array>({
+						renderer: createRenderer({ textSignatureOptions: slotTextOptions(withMarkers) }),
+						resolver: options.resolver,
+						layer: targetLayer,
+					})
+
+				let slotResult: import('@paradoc/types').SealingResult
+				const autoResolved: SigningField[] = []
+				if (plan.auto.length > 0) {
+					const encodedContent = await renderForSlots(true)
+					const encodedPdf = (await options.adapter!.convert({
+						...slotRequest,
+						document: { content: encodedContent, mimeType: layerSpec.mimeType },
+					})).pdf
+					const markerHits = await locatePlacements(
+						encodedPdf,
+						plan.auto.map((field) => ({
+							id: field.id,
+							kind: 'marker' as const,
+							signerIndex: field.signerIndex,
+							fieldType: field.type === 'signature' ? FieldType.SIGNATURE : FieldType.INITIALS,
+						})),
+					)
+					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
+					for (const field of plan.auto) {
+						const hit = markersById.get(field.id)
+						if (!hit) throw new Error(`Marker for auto slot "${field.id}" was not found in the converted PDF.`)
+						autoResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
+					}
+
+					const cleanContent = await renderForSlots(false)
+					const cleanPdf = (await options.adapter!.convert({
+						...slotRequest,
+						document: { content: cleanContent, mimeType: layerSpec.mimeType },
+					})).pdf
+
+					// Marker glyphs occupy width, so wraps or page breaks can shift
+					// between passes. Verify each resolved box still points at a text
+					// run in the clean PDF; drift becomes a loud error, never a
+					// silently misplaced signature.
+					const cleanPages = await pageTextRuns(cleanPdf)
+					for (const field of autoResolved) {
+						const page = cleanPages[field.page - 1]
+						if (!page) throw new Error(`Auto slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
+						const pageHeight = page.mediaBox[3] - page.mediaBox[1]
+						const expectedRawY = pageHeight - field.y - field.height + page.mediaBox[1]
+						const expectedX = field.x + page.mediaBox[0]
+						// The clean render merges the label and placeholder into one text
+						// run, so the box must fall INSIDE a run on the same line that
+						// still carries the placeholder underscores.
+						const near = page.runs.some(
+							(run) =>
+								Math.abs(run.y - expectedRawY) <= 3 &&
+								run.text.includes('_') &&
+								run.x - 3 <= expectedX &&
+								expectedX <= run.x + run.width + 3,
+						)
+						if (!near) {
+							throw new Error(
+								`Auto slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
+								'The marker run likely changed a line wrap; use anchor placement for this slot or widen its placeholder.',
+							)
+						}
+					}
+
+					slotResult = await finalizePdf(cleanPdf)
+				} else {
+					slotResult = await runSealer(slotRequest)
+				}
+
+				const slotMap = [...plan.resolved, ...autoResolved]
+				if (plan.anchors.length > 0) {
+					if (!slotResult.canonicalPdfBytes) {
+						throw new Error('Cannot locate anchor positions: the seal result carries no canonical PDF bytes.')
+					}
+					const slotLocator = options.locate ?? { locate: locatePlacements }
+					const hits = await slotLocator.locate(
+						slotResult.canonicalPdfBytes,
+						plan.anchors.map((entry) => ({
+							id: entry.field.id,
+							kind: 'anchor' as const,
+							text: entry.text,
+							...(entry.occurrence !== undefined && { occurrence: entry.occurrence }),
+						})),
+					)
+					const hitsById = new Map(hits.map((hit) => [hit.id, hit]))
+					for (const entry of plan.anchors) {
+						const hit = hitsById.get(entry.field.id)
+						if (!hit) throw new Error(`Locator did not resolve anchor slot "${entry.field.id}".`)
+						slotMap.push({
+							...entry.field,
+							page: hit.page,
+							x: hit.x + entry.offsetX,
+							y: hit.y + entry.offsetY,
+						})
+					}
+				}
+				slotMap.sort((a, b) => a.signerIndex - b.signerIndex)
+
+				return createRuntimeForm({
+					...config,
+					phase: 'signable',
+					captures: [],
+					witnesses: [],
+					attestations: [],
+					signatureMap: slotMap,
+					canonicalPdfHash: slotResult.canonicalPdfHash,
+					canonicalPdfBytes: slotResult.canonicalPdfBytes,
+					executedAt: undefined,
+				})
 			}
 
 			// Check if layer has pre-defined signatureBlocks
@@ -1817,9 +2188,36 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				}
 
 				const anchorResult = await runSealer(anchorRequest)
-				if (!anchorResult.signatureMap || anchorResult.signatureMap.length !== anchorFields.length) {
+				let anchorMap = anchorResult.signatureMap
+				const adapterResolved = anchorMap && anchorMap.length === anchorFields.length
+				// The built-in locator resolves anchors against the converted PDF, so
+				// pure byte converters work with zero configuration. Passing `locate`
+				// overrides it (custom tiers, hosted resolution).
+				const anchorLocator = options.locate ?? { locate: locatePlacements }
+				if (!adapterResolved) {
+					if (!anchorResult.canonicalPdfBytes) {
+						throw new Error('Cannot locate anchor positions: the seal result carries no canonical PDF bytes.')
+					}
+					const hits = await anchorLocator.locate(
+						anchorResult.canonicalPdfBytes,
+						anchorFields.map((field) => ({ id: field.id, kind: 'anchor' as const, text: field.anchor!.text })),
+					)
+					const hitsById = new Map(hits.map((hit) => [hit.id, hit]))
+					anchorMap = anchorFields.map((field) => {
+						const hit = hitsById.get(field.id)
+						if (!hit) throw new Error(`Locator did not resolve anchor field "${field.id}".`)
+						return {
+							...field,
+							page: hit.page,
+							x: hit.x + (field.anchor?.offsetX ?? 0),
+							y: hit.y + (field.anchor?.offsetY ?? 0),
+						}
+					})
+				}
+				if (!anchorMap || anchorMap.length !== anchorFields.length) {
 					throw new Error(
-						'Seal adapter did not resolve every anchor-based signature field to final PDF coordinates.',
+						'Seal adapter did not resolve every anchor-based signature field to final PDF coordinates. ' +
+						'Pass a locate option to override the built-in locator when the adapter is a pure converter.',
 					)
 				}
 
@@ -1829,7 +2227,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					captures: [],
 					witnesses: [],
 					attestations: [],
-					signatureMap: anchorResult.signatureMap,
+					signatureMap: anchorMap,
 					canonicalPdfHash: anchorResult.canonicalPdfHash,
 					canonicalPdfBytes: anchorResult.canonicalPdfBytes,
 					executedAt: undefined,
@@ -2453,6 +2851,7 @@ export interface FormBuilderInterface<
 			bindings?: Record<string, string>
 			signatureBlocks?: Record<string, SignatureBlock>
 			anchorBlocks?: Record<string, AnchorBlock>
+			signatures?: Record<string, SignatureSlot>
 		},
 	): FormBuilderInterface<TFields, TParties, TAnnexes>
 	fileLayer(
@@ -2466,6 +2865,7 @@ export interface FormBuilderInterface<
 			bindings?: Record<string, string>
 			signatureBlocks?: Record<string, SignatureBlock>
 			anchorBlocks?: Record<string, AnchorBlock>
+			signatures?: Record<string, SignatureSlot>
 		},
 	): FormBuilderInterface<TFields, TParties, TAnnexes>
 	defaultLayer(key: string): FormBuilderInterface<TFields, TParties, TAnnexes>

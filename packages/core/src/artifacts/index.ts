@@ -133,6 +133,8 @@ export type {
 
 // Form artifact
 export { form, runtimeFormFromJSON, FormValidationError, FormRuleViolationError } from './form'
+export { SealConfigError } from './form'
+export type { PlacementProvenance, SealPreparation } from './form'
 export type {
 	FormInstance,
 	RuntimeForm,

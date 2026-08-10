@@ -73,6 +73,48 @@ export interface AnchorBlock {
   required?: boolean;
 }
 
+
+/**
+ * Field type for a unified signature slot. Mirrors SigningFieldType: unlike
+ * the legacy SignatureBlockType, the signing date is 'date_signed'.
+ */
+export type SignatureSlotType = 'signature' | 'initials' | 'date_signed' | 'capacity' | 'printed_name';
+
+/**
+ * Where a signature slot lands in the sealed PDF.
+ * - 'auto': the render stage injects an invisible marker at the slot's
+ *   placeholder; the placement stage locates it after conversion.
+ * - absolute: fixed coordinates known at design time (PDF templates).
+ * - anchor: found by literal document text after conversion; text must be
+ *   unique unless `occurrence` picks a match (1-based, reading order).
+ */
+export type SignatureSlotPlacement =
+  | 'auto'
+  | { page: number; x: number; y: number; width: number; height: number }
+  | {
+      anchor: { text: string; offsetX?: number; offsetY?: number; occurrence?: number };
+      width: number;
+      height: number;
+    };
+
+/**
+ * Unified signature slot: one signing field on a layer, keyed by slot id.
+ * Supersedes signatureBlocks/anchorBlocks, which remain readable during the
+ * deprecation window.
+ */
+export interface SignatureSlot {
+  /** Party this slot binds to. index is 0-based for multi-party roles (default 0). */
+  party: { role: string; index?: number };
+  /** Type of signing field. */
+  type: SignatureSlotType;
+  /** Whether the slot must be signed. Defaults to true. */
+  required?: boolean;
+  /** Human-readable label. */
+  label?: string;
+  /** Placement specification. */
+  placement: SignatureSlotPlacement;
+}
+
 /**
  * Inline layer with embedded text content.
  * Used for layers where content is stored directly in the artifact definition.
@@ -96,6 +138,8 @@ export interface InlineLayer {
   signatureBlocks?: Record<string, SignatureBlock>;
   /** Anchor-based signature blocks keyed by locationId. Position is resolved from anchor text by the Sealer adapter. */
   anchorBlocks?: Record<string, AnchorBlock>;
+  /** Unified signature slots keyed by slot id. Supersedes signatureBlocks/anchorBlocks. */
+  signatures?: Record<string, SignatureSlot>;
 }
 
 /**
@@ -123,6 +167,8 @@ export interface FileLayer {
   signatureBlocks?: Record<string, SignatureBlock>;
   /** Anchor-based signature blocks keyed by locationId. Position is resolved from anchor text by the Sealer adapter. */
   anchorBlocks?: Record<string, AnchorBlock>;
+  /** Unified signature slots keyed by slot id. Supersedes signatureBlocks/anchorBlocks. */
+  signatures?: Record<string, SignatureSlot>;
 }
 
 /**

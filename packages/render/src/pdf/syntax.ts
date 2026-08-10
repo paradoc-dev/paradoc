@@ -187,6 +187,7 @@ export class PdfModel {
   static async load(bytes: Uint8Array): Promise<PdfModel> {
     const source = decoder.decode(bytes)
     const objects = new Map<number, PdfObject>()
+    const indirectLengths: { object: number; start: number; length: PdfRef }[] = []
     const pattern = /(?:^|[\r\n])\s*(\d+)\s+(\d+)\s+obj\b/g
     for (const match of source.matchAll(pattern)) {
       const object = Number(match[1])
@@ -204,6 +205,7 @@ export class PdfModel {
           if (typeof declaredLength === 'number') {
             stream = bytes.slice(start, start + declaredLength)
           } else {
+            if (isRef(declaredLength)) indirectLengths.push({ object, start, length: declaredLength })
             let end = source.indexOf('endstream', start)
             if (end !== -1) {
               if (bytes[end - 1] === 0x0a) end--
@@ -215,6 +217,17 @@ export class PdfModel {
         objects.set(object, { object, generation, value, stream })
       } catch {
         // Byte patterns inside compressed streams can resemble object headers.
+      }
+    }
+
+    // An indirect /Length can only be resolved once every object is parsed;
+    // re-slice those streams exactly, since the endstream fallback can trim
+    // trailing bytes that belong to the compressed data.
+    for (const pending of indirectLengths) {
+      const length = objects.get(pending.length.object)?.value
+      const record = objects.get(pending.object)
+      if (typeof length === 'number' && record) {
+        record.stream = bytes.slice(pending.start, pending.start + length)
       }
     }
 

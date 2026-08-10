@@ -97,6 +97,54 @@ export const AnchorBlockSchema = z.object({
 	description: 'Anchor-based signature block for layers where position is derived from text in the rendered document',
 }).strict();
 
+
+/**
+ * Field type for a unified signature slot (mirrors SigningFieldType).
+ */
+export const SignatureSlotTypeSchema = z.enum(['signature', 'initials', 'date_signed', 'capacity', 'printed_name'])
+	.describe('Type of signing field: signature/initials (glyph), date_signed, capacity (signer role/title), or printed_name');
+
+const AbsolutePlacementSchema = z.object({
+	page: z.number().int().min(1).describe('1-based page number'),
+	x: z.number().min(0).describe('X in points from the left page edge'),
+	y: z.number().min(0).describe('Y in points from the top page edge'),
+	width: z.number().min(1).describe('Width in points'),
+	height: z.number().min(1).describe('Height in points'),
+}).meta({ title: 'AbsolutePlacement' }).strict();
+
+const AnchorPlacementSchema = z.object({
+	anchor: z.object({
+		text: z.string().min(1).max(500).describe('Literal document text to find; must be unique unless occurrence is set'),
+		offsetX: z.number().describe('Horizontal offset in points from the left of the found text').optional(),
+		offsetY: z.number().describe('Vertical offset in points from the top of the found text').optional(),
+		occurrence: z.number().int().min(1).describe('1-based match index in reading order when the text repeats').optional(),
+	}).strict(),
+	width: z.number().min(1).describe('Width in points'),
+	height: z.number().min(1).describe('Height in points'),
+}).meta({ title: 'AnchorPlacement' }).strict();
+
+/**
+ * Unified signature slot. Supersedes signatureBlocks/anchorBlocks, which
+ * remain readable during the deprecation window.
+ */
+export const SignatureSlotSchema = z.object({
+	party: z.object({
+		role: z.string().min(1).max(100).describe('Party role this slot binds to'),
+		index: z.number().int().min(0).describe('0-based index for multi-party roles; defaults to 0').optional(),
+	}).strict(),
+	type: SignatureSlotTypeSchema,
+	required: z.boolean().describe('Whether this slot must be signed. Defaults to true').optional(),
+	label: z.string().min(1).max(200).describe('Human-readable label').optional(),
+	placement: z.union([
+		z.literal('auto').describe('Marker-based: injected at render, located after conversion'),
+		AbsolutePlacementSchema,
+		AnchorPlacementSchema,
+	]).describe("Placement: 'auto', absolute coordinates, or a text anchor"),
+}).meta({
+	title: 'SignatureSlot',
+	description: 'Unified signature slot binding a party to a placement on this layer',
+}).strict();
+
 /**
  * Common fields shared by all layer types.
  */
@@ -134,6 +182,11 @@ const LayerBaseSchema = z.object({
 		z.string().min(1).max(100).describe('Location ID for the anchor block'),
 		AnchorBlockSchema,
 	).describe('Anchor-based signature blocks keyed by locationId; position resolved from anchor text by the Sealer adapter')
+		.optional(),
+	signatures: z.record(
+		z.string().min(1).max(100).describe('Slot ID'),
+		SignatureSlotSchema,
+	).describe('Unified signature slots keyed by slot id. Supersedes signatureBlocks/anchorBlocks')
 		.optional(),
 });
 

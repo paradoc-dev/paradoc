@@ -29,7 +29,7 @@ export { ListFieldSchema } from './artifacts/form/list';
 // Shared
 export { ArtifactSchema } from './artifacts/shared/base';
 export { ContentRefSchema } from './artifacts/shared/content-ref';
-export { LayerSchema, SignatureBlockSchema, SignatureBlockTypeSchema, AnchorBlockSchema } from './artifacts/shared/layer';
+export { LayerSchema, SignatureBlockSchema, SignatureBlockTypeSchema, AnchorBlockSchema, SignatureSlotSchema, SignatureSlotTypeSchema } from './artifacts/shared/layer';
 
 // Primitives
 export {

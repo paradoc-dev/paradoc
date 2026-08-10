@@ -6,6 +6,7 @@ export {
   // Form
   FormValidationError,
   FormRuleViolationError,
+  SealConfigError,
   form,
   field,
   textField,
@@ -476,6 +477,9 @@ export type {
   SealAdapterRequest,
   SealAdapterResult,
   SealAdapter,
+  AnchorLocateQuery,
+  LocateHit,
+  SealLocator,
   Sealer,
   // Legacy aliases (deprecated)
   FormalSigningRequest,

@@ -599,6 +599,9 @@ export type {
 	SealAdapterRequest,
 	SealAdapterResult,
 	SealAdapter,
+	AnchorLocateQuery,
+	LocateHit,
+	SealLocator,
 	Sealer,
 	// Legacy aliases (deprecated)
 	FormalSigningRequest,

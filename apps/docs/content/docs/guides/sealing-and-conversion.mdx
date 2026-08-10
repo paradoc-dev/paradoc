@@ -5,18 +5,61 @@ description: Prepare canonical PDFs for signing
 
 Rendering produces a document in its native layer format. **Sealing** prepares a
 filled form for signing by producing one canonical, flattened PDF, its SHA-256
-hash, and the declared signature-field map.
+hash, and the signature-field map. Conversion may happen anywhere; placement
+and hashing always run locally, so both are verifiable.
 
-# Seal a PDF locally
+# Declare signature slots
 
-PDF layers need no adapter or network call. Paradoc renders the layer, flattens
-its fields, hashes the exact canonical bytes, and returns a `SignableForm`.
+A layer declares its signing fields once, in a `signatures` map. Each slot
+binds a party to a placement:
 
 ```ts
-const draft = form
-  .fill(data)
-  .setTargetLayer('pdf')
+.inlineLayer('agreement', {
+  mimeType: 'text/markdown',
+  text: '... {{#with parties.client}}Sign: {{signature "client-sig"}}{{/with}} ...',
+  signatures: {
+    'client-sig': {
+      party: { role: 'client' },
+      type: 'signature',
+      placement: 'auto',                                   // marker-located
+    },
+    'witness-sig': {
+      party: { role: 'witness' },
+      type: 'signature',
+      placement: {
+        anchor: { text: 'Witnessed by:', offsetY: 12 },     // text-located
+        width: 200,
+        height: 40,
+      },
+    },
+    'client-date': {
+      party: { role: 'client' },
+      type: 'date_signed',
+      placement: { page: 2, x: 400, y: 700, width: 100, height: 20 },  // fixed
+    },
+  },
+})
+```
 
+Three placement strategies, one engine:
+
+| Placement | How the position is found | Use when |
+|-----------|---------------------------|----------|
+| `'auto'` | An invisible marker is injected at the slot's placeholder during rendering and located in the converted PDF | Flowing text templates (markdown, HTML) |
+| `anchor` | Literal document text is found in the converted PDF; `occurrence` picks a match when the text repeats, otherwise it must be unique | Text known at design time, position unknown |
+| absolute | Declared page/x/y coordinates | PDF templates, fixed layouts |
+
+Misconfiguration fails **before** any rendering or conversion with a
+`SealConfigError` naming every problem: unknown party roles, a
+required-signature party no slot places, or a required slot without a
+signatory.
+
+# Seal a PDF layer locally
+
+PDF layers need no adapter or network call. Paradoc renders the layer,
+resolves placements, flattens, and hashes the exact canonical bytes:
+
+```ts
 const signable = await draft.seal({ resolver })
 
 signable.canonicalPdfBytes // Uint8Array
@@ -24,35 +67,71 @@ signable.canonicalPdfHash  // sha256:...
 signable.signatureMap      // provider-neutral PDF coordinates
 ```
 
-Pass a resolver for file-backed layers. Bundled artifacts may supply one
-automatically.
+# Seal markdown, HTML, or DOCX
 
-# Seal HTML, Markdown, or DOCX
+Non-PDF layers need a **converter**: a `SealAdapter` that turns the rendered
+document into PDF bytes and nothing else. Placement is not the converter's
+job — core locates anchors and markers itself with the built-in locator, so a
+pure byte converter works with zero configuration:
 
-Non-PDF layers require a `SealAdapter` that converts the already-rendered native
-document to PDF. Core still owns the common finalization step: it flattens and
-hashes the adapter's PDF output.
+```ts
+import { hostedSealAdapter } from '@paradoc/sdk'
 
-A custom adapter implements the narrow conversion boundary:
+const signable = await draft.seal({
+  adapter: hostedSealAdapter({ apiKey }),
+})
+```
+
+A custom converter is one honest function:
 
 ```ts
 import type { SealAdapter } from '@paradoc/core'
 
 const adapter: SealAdapter = {
   async convert({ document }) {
-    const pdf = await convertToPdf(document.content, document.mimeType)
-    return { pdf }
+    return { pdf: await myHtmlToPdf(document.content) }
   },
 }
 ```
 
-Calling `.seal()` without an adapter is therefore valid only when the selected
-layer is already a PDF.
+If an adapter does resolve placements itself (returning a complete
+`signatureMap`), core respects it and skips the locator. Pass `locate` to
+substitute a custom locator tier.
+
+For `'auto'` slots, core renders twice: a marker pass locates every
+placeholder in the converted PDF, then a clean render becomes the canonical
+document. If the marker's width shifts a line wrap between passes, sealing
+fails loud rather than misplacing a field.
+
+# Inspect before sealing
+
+`prepareSeal()` resolves the signature map without flattening, hashing, or
+leaving the draft phase — useful for envelope flows that need coordinates
+before committing:
+
+```ts
+const prep = await draft.prepareSeal({ adapter })
+
+prep.pdf           // the converted PDF the coordinates describe (pre-flatten)
+prep.signatureMap  // resolved fields
+prep.provenance    // per field: 'declared' | 'anchor' | 'marker'
+prep.warnings      // e.g. slots skipped for unfilled party indexes
+
+const signable = await draft.seal({ adapter })  // same map, canonicalized
+```
+
+# Legacy blocks
+
+Layers using `signatureBlocks` (absolute) and `anchorBlocks` (text anchors)
+continue to seal unchanged during the deprecation window. New artifacts
+should declare `signatures`; the legacy fields will be removed in a future
+major release.
 
 # Which operation to use
 
 | Goal | Operation |
 |------|-----------|
 | Fill a layer in its native format | `renderLayer()` |
+| Resolve placements without sealing | `.prepareSeal({ adapter? })` |
 | Prepare a PDF layer for signing | `.seal()` |
 | Prepare a non-PDF layer for signing | `.seal({ adapter })` |

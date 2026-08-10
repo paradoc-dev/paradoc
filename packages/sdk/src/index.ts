@@ -15,6 +15,22 @@ export type { RenderLayerOptions } from '@paradoc/render'
 export { hostedSealAdapter } from './hosted-seal-adapter'
 export type { HostedSealAdapterOptions } from './hosted-seal-adapter'
 
+// Placement: locate signature markers and anchor text in converted PDFs.
+// Complements sealing with pure converters such as hostedSealAdapter.
+export {
+	FieldType,
+	LocateError,
+	containsEncoding,
+	decodeAll,
+	encode,
+	extractFieldsFromPdf,
+	locate,
+	locator,
+	pdfContainsEncoding,
+	stripEncoding,
+} from '@paradoc/render/pdf'
+export type { ExtractedField, LocateQuery } from '@paradoc/render/pdf'
+
 import { renderLayer } from '@paradoc/render'
 import type { ParadocRenderer, RendererLayer } from '@paradoc/types'
 import type { TextRendererOptions } from '@paradoc/render/text'
