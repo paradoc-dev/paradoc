@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = '2026-08-06' as const;
+export const SCHEMA_VERSION = '2026-08-10' as const;
 export const SCHEMA_BASE = 'https://schema.paradoc.dev';
 export const SCHEMA_ROOT_ID = `${SCHEMA_BASE}/schema.json`;
 export const SCHEMA_VERSIONED_ID = `${SCHEMA_BASE}/${SCHEMA_VERSION}.json`;

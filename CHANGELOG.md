@@ -4,6 +4,29 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-10
+
+### Added
+
+- Unified `signatures` slot map on layers. Each slot binds a party to a placement: `'auto'` (an invisible marker injected at render time and located after conversion), a text `anchor` (unique in the document, or selected with `occurrence`), or absolute coordinates. One placement engine resolves all three, and misconfiguration fails before rendering with a `SealConfigError` naming every problem. Legacy `signatureBlocks`/`anchorBlocks` still parse and seal unchanged.
+- A built-in placement locator in `@paradoc/render`: a dependency-light PDF text scanner (`locate`, `extractFieldsFromPdf`, `pageTextRuns`, marker encoding) that resolves signature positions in converted PDFs without a PDF rendering engine. Exported from `@paradoc/render/pdf` and re-exported by `@paradoc/sdk`.
+- `prepareSeal()` on draft forms: resolves the signature map and returns the exact pre-flatten PDF it describes, with per-field provenance (`declared` | `anchor` | `marker`) and warnings, without changing the form's phase.
+- `SealOptions.locate` to substitute a custom placement locator.
+- The schema version `2026-08-10` adds the `SignatureSlot` layer schema; the published `2026-08-06` schemas remain available unchanged.
+
+### Changed
+
+- Anchor-based sealing works with pure byte converters, including `hostedSealAdapter`, with zero configuration: core locates anchor text itself in the converted PDF. Adapters that resolve placements themselves still take precedence.
+- The sealing guide is rewritten around signature slots, placement strategies, and pure converters.
+
+### Fixed
+
+- `PdfModel` resolves indirect `/Length` stream references, so PDFs written by LibreOffice no longer lose trailing stream bytes.
+
+### Removed
+
+- The unused `SealingRequest.options` block (`renderer`, `format`). It was never read by any implementation.
+
 ## [0.4.0] - 2026-08-06
 
 ### Changed

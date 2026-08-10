@@ -49,6 +49,12 @@ Inline layer with embedded text content. Used when content is stored directly in
     description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',
     isOptional: true,
   },
+  {
+    name: 'signatures',
+    type: 'Record<string, SignatureSlot>',
+    description: 'Unified signature slots keyed by slot id, each binding a party to a placement',
+    isOptional: true,
+  },
 ]} />
 
 ## FileLayer
@@ -95,7 +101,63 @@ File-backed layer with external file reference. Used when content is stored in a
     description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',
     isOptional: true,
   },
+  {
+    name: 'signatures',
+    type: 'Record<string, SignatureSlot>',
+    description: 'Unified signature slots keyed by slot id, each binding a party to a placement',
+    isOptional: true,
+  },
 ]} />
+
+# SignatureSlot
+
+A signature slot declares one signing field on a layer. Each slot binds a party
+to a placement; the seal pipeline resolves every slot to concrete PDF
+coordinates.
+
+<PropertiesTable properties={[
+  {
+    name: 'party',
+    type: '{ role: string; index?: number }',
+    description: 'Party this slot binds to. index is 0-based for multi-party roles and defaults to 0',
+  },
+  {
+    name: 'type',
+    type: "'signature' | 'initials' | 'date_signed' | 'capacity' | 'printed_name'",
+    description: 'Type of signing field',
+  },
+  {
+    name: 'placement',
+    type: "SignatureSlotPlacement",
+    description: "Where the field lands: 'auto' (marker located after conversion), a text anchor, or absolute coordinates",
+  },
+  {
+    name: 'required',
+    type: 'boolean',
+    description: 'Whether this slot must be signed. Defaults to true',
+    isOptional: true,
+  },
+  {
+    name: 'label',
+    type: 'string',
+    description: 'Human-readable label',
+    isOptional: true,
+  },
+]} />
+
+```typescript
+type SignatureSlotPlacement =
+  | 'auto'
+  | { page: number; x: number; y: number; width: number; height: number }
+  | {
+      anchor: { text: string; offsetX?: number; offsetY?: number; occurrence?: number }
+      width: number
+      height: number
+    }
+```
+
+The legacy `signatureBlocks` and `anchorBlocks` layer fields remain readable
+during their deprecation window; new artifacts should declare `signatures`.
 
 # Examples
 

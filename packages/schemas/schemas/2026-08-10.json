@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/schema.json",
+  "$id": "https://schema.paradoc.dev/2026-08-10.json",
   "title": "Paradoc Schema",
-  "description": "Paradoc JSON Schema specification (latest version)",
+  "description": "Paradoc JSON Schema specification version 2026-08-10",
   "$ref": "#/$defs/Paradoc",
   "$defs": {
     "ListField": {

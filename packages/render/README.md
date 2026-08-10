@@ -89,6 +89,30 @@ const output = await renderPdf({
 non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA images; JPEG
 overlays are also supported.
 
+## Signature placement
+
+The `@paradoc/render/pdf` subpath locates signature positions in converter-
+produced PDFs without a PDF rendering engine. It reads the PDF text layer with
+a built-in content-stream scanner, so it runs anywhere the renderer runs.
+
+```ts
+import { locate, extractFieldsFromPdf, encode, FieldType } from '@paradoc/render/pdf'
+
+// Find invisible markers injected during rendering, and literal anchor text.
+const hits = await locate(pdf, [
+  { id: 'client-sig', kind: 'marker', signerIndex: 0, fieldType: FieldType.SIGNATURE },
+  { id: 'witness-sig', kind: 'anchor', text: 'Witnessed by:' },
+])
+// [{ id, page, x, y, width, height }] in PDF points, y from the top edge
+```
+
+`locate()` is all-or-nothing: an unresolved or ambiguous query throws a
+`LocateError` naming every failed id, so a seal pipeline can never proceed on
+a silently incomplete signature map. Anchor text must be unique unless the
+query picks an `occurrence`. `extractFieldsFromPdf()` returns every marker in
+a document; `pageTextRuns()` exposes positioned text runs for verification and
+layout tooling.
+
 ## DOCX templates
 
 DOCX rendering supports direct values, commands split across Word runs, custom

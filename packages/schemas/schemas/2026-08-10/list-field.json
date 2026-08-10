@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-08-10/listfield.json",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Display label for the field"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "Description or help text for the field"
+    },
+    "required": {
+      "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/CondExpr"
+    },
+    "visible": {
+      "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/CondExpr"
+    },
+    "type": {
+      "type": "string",
+      "const": "list"
+    },
+    "item": {
+      "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/FormField"
+    },
+    "minItems": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Minimum number of items"
+    },
+    "maxItems": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Maximum number of items"
+    }
+  },
+  "required": [
+    "type",
+    "item"
+  ],
+  "additionalProperties": false,
+  "title": "ListField"
+}
