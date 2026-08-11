@@ -6,13 +6,13 @@ import { containsEncoding } from '@paradoc/render/pdf'
 import type { SealAdapter, SignatureSlot } from '@paradoc/types'
 
 /**
- * 'auto' placement, end to end: core renders twice (markers, then clean),
+ * 'flow' placement, end to end: core renders twice (markers, then clean),
  * the converter turns each render into a PDF, markers resolve to boxes, and
  * the clean render becomes the canonical document. The fixture pair was
  * produced by a real Chromium conversion of identical visible content, so
  * coordinates behave exactly as the production converter path behaves.
  */
-describe("'auto' placement", () => {
+describe("'flow' placement", () => {
 	const fixture = (name: string): Uint8Array =>
 		new Uint8Array(readFileSync(join(__dirname, 'fixtures', name)))
 
@@ -26,12 +26,12 @@ describe("'auto' placement", () => {
 		}),
 	})
 
-	const AUTO_SLOTS: Record<string, SignatureSlot> = {
-		'client-sig': { party: { role: 'client' }, type: 'signature', placement: 'auto' },
-		'client-ini': { party: { role: 'client' }, type: 'initials', placement: 'auto' },
+	const FLOW_SLOTS: Record<string, SignatureSlot> = {
+		'client-sig': { party: { role: 'client' }, type: 'signature', placement: 'flow' },
+		'client-ini': { party: { role: 'client' }, type: 'initials', placement: 'flow' },
 	}
 
-	const draft = (slots: Record<string, SignatureSlot> = AUTO_SLOTS) =>
+	const draft = (slots: Record<string, SignatureSlot> = FLOW_SLOTS) =>
 		form()
 			.name('auto-contract')
 			.version('1.0.0')
@@ -84,16 +84,16 @@ describe("'auto' placement", () => {
 		await expect(draft().seal({ adapter: chromishConverter(driftedClean) })).rejects.toThrow(/drifted/)
 	})
 
-	test("'auto' on unsupported field types is a config error before rendering", async () => {
+	test("'flow' on unsupported field types is a config error before rendering", async () => {
 		await expect(
 			draft({
-				'client-date': { party: { role: 'client' }, type: 'date_signed', placement: 'auto' },
-				...AUTO_SLOTS,
+				'client-date': { party: { role: 'client' }, type: 'date_signed', placement: 'flow' },
+				...FLOW_SLOTS,
 			}).seal({ adapter: chromishConverter() }),
 		).rejects.toThrowError(SealConfigError)
 	})
 
-	test("'auto' without a converter is a config error", async () => {
+	test("'flow' without a converter is a config error", async () => {
 		await expect(draft().seal()).rejects.toThrowError(SealConfigError)
 	})
 })

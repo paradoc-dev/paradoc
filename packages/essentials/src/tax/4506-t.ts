@@ -211,64 +211,84 @@ const schema = {
         "topmostSubform[0].Page1[0].f1_26[0]": "period4:1",
         "topmostSubform[0].Page1[0].c1_6[0]": "attestationAck"
       },
-      "signatureBlocks": {
+      "signatures": {
         "taxpayerSignature": {
+          "party": {
+            "role": "taxpayer",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 65.2,
-          "y": 686.4,
-          "width": 180,
-          "height": 12,
-          "partyRole": "taxpayer",
-          "partyIndex": 0,
-          "label": "Signature of taxpayer"
+          "label": "Signature of taxpayer",
+          "placement": {
+            "page": 1,
+            "x": 65.2,
+            "y": 686.4,
+            "width": 180,
+            "height": 12
+          }
         },
         "taxpayerDate": {
-          "type": "date",
-          "page": 1,
-          "x": 352.6,
-          "y": 686.4,
-          "width": 80,
-          "height": 12,
-          "partyRole": "taxpayer",
-          "partyIndex": 0,
-          "label": "Date of taxpayer signature"
+          "party": {
+            "role": "taxpayer",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Date of taxpayer signature",
+          "placement": {
+            "page": 1,
+            "x": 352.6,
+            "y": 686.4,
+            "width": 80,
+            "height": 12
+          }
         },
         "taxpayerCapacity": {
+          "party": {
+            "role": "taxpayer",
+            "index": 0
+          },
           "type": "capacity",
-          "page": 1,
-          "x": 65.2,
-          "y": 711.6,
-          "width": 250,
-          "height": 12,
-          "partyRole": "taxpayer",
-          "partyIndex": 0,
           "required": false,
-          "label": "Title (corp/partnership/estate/trust signers only)"
+          "label": "Title (corp/partnership/estate/trust signers only)",
+          "placement": {
+            "page": 1,
+            "x": 65.2,
+            "y": 711.6,
+            "width": 250,
+            "height": 12
+          }
         },
         "spouseSignature": {
+          "party": {
+            "role": "spouse",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 65.2,
-          "y": 735.2,
-          "width": 180,
-          "height": 10,
-          "partyRole": "spouse",
-          "partyIndex": 0,
           "required": false,
-          "label": "Spouse signature (optional)"
+          "label": "Spouse signature (optional)",
+          "placement": {
+            "page": 1,
+            "x": 65.2,
+            "y": 735.2,
+            "width": 180,
+            "height": 10
+          }
         },
         "spouseDate": {
-          "type": "date",
-          "page": 1,
-          "x": 352.5,
-          "y": 735.2,
-          "width": 80,
-          "height": 10,
-          "partyRole": "spouse",
-          "partyIndex": 0,
+          "party": {
+            "role": "spouse",
+            "index": 0
+          },
+          "type": "date_signed",
           "required": false,
-          "label": "Date of spouse signature"
+          "label": "Date of spouse signature",
+          "placement": {
+            "page": 1,
+            "x": 352.5,
+            "y": 735.2,
+            "width": 80,
+            "height": 10
+          }
         }
       }
     }

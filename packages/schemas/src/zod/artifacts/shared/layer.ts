@@ -136,10 +136,10 @@ export const SignatureSlotSchema = z.object({
 	required: z.boolean().describe('Whether this slot must be signed. Defaults to true').optional(),
 	label: z.string().min(1).max(200).describe('Human-readable label').optional(),
 	placement: z.union([
-		z.literal('auto').describe('Marker-based: injected at render, located after conversion'),
+		z.literal('flow').describe('In-flow: the field sits where the template content places it; located after conversion via an injected marker'),
 		AbsolutePlacementSchema,
 		AnchorPlacementSchema,
-	]).describe("Placement: 'auto', absolute coordinates, or a text anchor"),
+	]).describe("Placement: 'flow', absolute coordinates, or a text anchor"),
 }).meta({
 	title: 'SignatureSlot',
 	description: 'Unified signature slot binding a party to a placement on this layer',

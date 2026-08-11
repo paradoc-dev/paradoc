@@ -1625,18 +1625,18 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				signatoryValues,
 				legacy: !declaredSlots,
 			})
-			if (plan.auto.length > 0) {
+			if (plan.flow.length > 0) {
 				const problems: string[] = []
-				for (const field of plan.auto) {
+				for (const field of plan.flow) {
 					if (field.type !== 'signature' && field.type !== 'initials') {
-						problems.push(`slot "${field.id}" has placement 'auto' with type "${field.type}"; auto supports signature and initials`)
+						problems.push(`slot "${field.id}" has placement 'flow' with type "${field.type}"; flow supports signature and initials`)
 					}
 				}
 				if (layerSpec.mimeType === 'application/pdf') {
-					problems.push("'auto' placement needs a text-template layer; PDF layers use absolute or anchor placement")
+					problems.push("'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement")
 				}
 				if (options.renderer) {
-					problems.push("'auto' placement is incompatible with a custom renderer override; core must inject markers during rendering")
+					problems.push("'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering")
 				}
 				if (problems.length > 0) {
 					throw new SealConfigError(`Cannot prepare seal: ${problems.join('; ')}`, problems)
@@ -1645,17 +1645,17 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			const SIGNATURE_UNDERSCORES = '________________'
 			const INITIALS_UNDERSCORES = '______'
-			const autoById = new Map(plan.auto.map((field) => [field.id, field]))
+			const flowById = new Map(plan.flow.map((field) => [field.id, field]))
 			const textOptions = (withMarkers: boolean): TextSignatureOptions => ({
 				format: 'text',
 				placeholder: {
 					signature: (context) => {
-						const field = withMarkers ? autoById.get(context.locationId) : undefined
+						const field = withMarkers ? flowById.get(context.locationId) : undefined
 						const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
 						return prefix + SIGNATURE_UNDERSCORES
 					},
 					initials: (context) => {
-						const field = withMarkers ? autoById.get(context.locationId) : undefined
+						const field = withMarkers ? flowById.get(context.locationId) : undefined
 						const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
 						return prefix + INITIALS_UNDERSCORES
 					},
@@ -1681,7 +1681,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const provenance: Record<string, PlacementProvenance> = {}
 			const map: SigningField[] = [...plan.resolved]
 			for (const field of plan.resolved) provenance[field.id] = 'declared'
-			const autoResolved: SigningField[] = []
+			const flowResolved: SigningField[] = []
 			let pdf: Uint8Array
 
 			if (layerSpec.mimeType === 'application/pdf') {
@@ -1689,7 +1689,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
 				pdf = document
 			} else {
-				if (plan.auto.length > 0) {
+				if (plan.flow.length > 0) {
 					const encodedContent = await renderPass(true)
 					const encodedPdf = (await options.adapter!.convert({
 						...prepareRequest,
@@ -1697,7 +1697,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					})).pdf
 					const markerHits = await locatePlacements(
 						encodedPdf,
-						plan.auto.map((field) => ({
+						plan.flow.map((field) => ({
 							id: field.id,
 							kind: 'marker' as const,
 							signerIndex: field.signerIndex,
@@ -1705,10 +1705,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						})),
 					)
 					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
-					for (const field of plan.auto) {
+					for (const field of plan.flow) {
 						const hit = markersById.get(field.id)
-						if (!hit) throw new Error(`Marker for auto slot "${field.id}" was not found in the converted PDF.`)
-						autoResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
+						if (!hit) throw new Error(`Marker for flow slot "${field.id}" was not found in the converted PDF.`)
+						flowResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
 					}
 				}
 				const cleanContent = await renderPass(false)
@@ -1716,11 +1716,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					...prepareRequest,
 					document: { content: cleanContent, mimeType: layerSpec.mimeType },
 				})).pdf
-				if (autoResolved.length > 0) {
+				if (flowResolved.length > 0) {
 					const cleanPages = await pageTextRuns(pdf)
-					for (const field of autoResolved) {
+					for (const field of flowResolved) {
 						const page = cleanPages[field.page - 1]
-						if (!page) throw new Error(`Auto slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
+						if (!page) throw new Error(`Flow slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
 						const pageHeight = page.mediaBox[3] - page.mediaBox[1]
 						const expectedRawY = pageHeight - field.y - field.height + page.mediaBox[1]
 						const expectedX = field.x + page.mediaBox[0]
@@ -1733,7 +1733,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						)
 						if (!near) {
 							throw new Error(
-								`Auto slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
+								`Flow slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
 								'The marker run likely changed a line wrap; use anchor placement for this slot or widen its placeholder.',
 							)
 						}
@@ -1741,7 +1741,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				}
 			}
 
-			for (const field of autoResolved) {
+			for (const field of flowResolved) {
 				map.push(field)
 				provenance[field.id] = 'marker'
 			}
@@ -1833,21 +1833,21 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					partyValues,
 					signatoryValues,
 				})
-				if (plan.auto.length > 0) {
+				if (plan.flow.length > 0) {
 					const problems: string[] = []
-					for (const field of plan.auto) {
+					for (const field of plan.flow) {
 						if (field.type !== 'signature' && field.type !== 'initials') {
-							problems.push(`slot "${field.id}" has placement 'auto' with type "${field.type}"; auto supports signature and initials`)
+							problems.push(`slot "${field.id}" has placement 'flow' with type "${field.type}"; flow supports signature and initials`)
 						}
 					}
 					if (layerSpec.mimeType === 'application/pdf') {
-						problems.push("'auto' placement needs a text-template layer; PDF layers use absolute or anchor placement")
+						problems.push("'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement")
 					}
 					if (options.renderer) {
-						problems.push("'auto' placement is incompatible with a custom renderer override; core must inject markers during rendering")
+						problems.push("'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering")
 					}
 					if (!options.adapter) {
-						problems.push("'auto' placement requires a SealAdapter (converter)")
+						problems.push("'flow' placement requires a SealAdapter (converter)")
 					}
 					if (problems.length > 0) {
 						throw new SealConfigError(`Cannot seal: ${problems.join('; ')}`, problems)
@@ -1863,24 +1863,24 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					targetLayer,
 					...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
 				}
-				// The auto path renders twice: pass one carries invisible markers to
+				// The flow path renders twice: pass one carries invisible markers to
 				// locate placeholders in the converted PDF; pass two renders clean and
 				// becomes the canonical document. Both passes share identical visible
 				// placeholders, so located coordinates transfer to the clean PDF.
 				const SIGNATURE_UNDERSCORES = '________________'
 				const INITIALS_UNDERSCORES = '______'
 				const slotTextOptions = (withMarkers: boolean): TextSignatureOptions => {
-					const autoById = new Map(plan.auto.map((field) => [field.id, field]))
+					const flowById = new Map(plan.flow.map((field) => [field.id, field]))
 					return {
 						format: 'text',
 						placeholder: {
 							signature: (context) => {
-								const field = withMarkers ? autoById.get(context.locationId) : undefined
+								const field = withMarkers ? flowById.get(context.locationId) : undefined
 								const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
 								return prefix + SIGNATURE_UNDERSCORES
 							},
 							initials: (context) => {
-								const field = withMarkers ? autoById.get(context.locationId) : undefined
+								const field = withMarkers ? flowById.get(context.locationId) : undefined
 								const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
 								return prefix + INITIALS_UNDERSCORES
 							},
@@ -1895,8 +1895,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					})
 
 				let slotResult: import('@paradoc/types').SealingResult
-				const autoResolved: SigningField[] = []
-				if (plan.auto.length > 0) {
+				const flowResolved: SigningField[] = []
+				if (plan.flow.length > 0) {
 					const encodedContent = await renderForSlots(true)
 					const encodedPdf = (await options.adapter!.convert({
 						...slotRequest,
@@ -1904,7 +1904,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					})).pdf
 					const markerHits = await locatePlacements(
 						encodedPdf,
-						plan.auto.map((field) => ({
+						plan.flow.map((field) => ({
 							id: field.id,
 							kind: 'marker' as const,
 							signerIndex: field.signerIndex,
@@ -1912,10 +1912,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						})),
 					)
 					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
-					for (const field of plan.auto) {
+					for (const field of plan.flow) {
 						const hit = markersById.get(field.id)
-						if (!hit) throw new Error(`Marker for auto slot "${field.id}" was not found in the converted PDF.`)
-						autoResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
+						if (!hit) throw new Error(`Marker for flow slot "${field.id}" was not found in the converted PDF.`)
+						flowResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
 					}
 
 					const cleanContent = await renderForSlots(false)
@@ -1929,9 +1929,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					// run in the clean PDF; drift becomes a loud error, never a
 					// silently misplaced signature.
 					const cleanPages = await pageTextRuns(cleanPdf)
-					for (const field of autoResolved) {
+					for (const field of flowResolved) {
 						const page = cleanPages[field.page - 1]
-						if (!page) throw new Error(`Auto slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
+						if (!page) throw new Error(`Flow slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
 						const pageHeight = page.mediaBox[3] - page.mediaBox[1]
 						const expectedRawY = pageHeight - field.y - field.height + page.mediaBox[1]
 						const expectedX = field.x + page.mediaBox[0]
@@ -1947,7 +1947,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						)
 						if (!near) {
 							throw new Error(
-								`Auto slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
+								`Flow slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
 								'The marker run likely changed a line wrap; use anchor placement for this slot or widen its placeholder.',
 							)
 						}
@@ -1958,7 +1958,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					slotResult = await runSealer(slotRequest)
 				}
 
-				const slotMap = [...plan.resolved, ...autoResolved]
+				const slotMap = [...plan.resolved, ...flowResolved]
 				if (plan.anchors.length > 0) {
 					if (!slotResult.canonicalPdfBytes) {
 						throw new Error('Cannot locate anchor positions: the seal result carries no canonical PDF bytes.')

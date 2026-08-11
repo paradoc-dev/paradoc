@@ -409,50 +409,66 @@ const schema = {
         "priorAccountType_checking": "priorAccountType:checking",
         "priorAccountType_savings": "priorAccountType:savings"
       },
-      "signatureBlocks": {
+      "signatures": {
         "accountHolderSignature": {
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 90,
-          "y": 730,
-          "width": 220,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Signature of Account Holder"
+          "label": "Signature of Account Holder",
+          "placement": {
+            "page": 1,
+            "x": 90,
+            "y": 730,
+            "width": 220,
+            "height": 12
+          }
         },
         "accountHolderDate": {
-          "type": "date",
-          "page": 1,
-          "x": 350,
-          "y": 730,
-          "width": 90,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Date"
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Date",
+          "placement": {
+            "page": 1,
+            "x": 350,
+            "y": 730,
+            "width": 90,
+            "height": 12
+          }
         },
         "accountHolderPrintedName": {
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
           "type": "printed_name",
-          "page": 1,
-          "x": 110,
-          "y": 752,
-          "width": 230,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Printed name"
+          "label": "Printed name",
+          "placement": {
+            "page": 1,
+            "x": 110,
+            "y": 752,
+            "width": 230,
+            "height": 12
+          }
         },
         "accountHolderCapacity": {
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
           "type": "capacity",
-          "page": 1,
-          "x": 380,
-          "y": 752,
-          "width": 150,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Title / capacity (organization signers)"
+          "label": "Title / capacity (organization signers)",
+          "placement": {
+            "page": 1,
+            "x": 380,
+            "y": 752,
+            "width": 150,
+            "height": 12
+          }
         }
       }
     },

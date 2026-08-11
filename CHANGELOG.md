@@ -4,6 +4,11 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+### Changed
+
+- The marker-based placement literal is `'flow'` (was `'auto'`): the field sits where the template content places it, mirroring flow/anchored/absolute positioning. Clean rename, no alias; artifacts published with `'auto'` under 0.5.0 must update the literal.
+- The bundled essentials forms and example artifacts declare `signatures` slot maps instead of legacy `signatureBlocks`. Legacy blocks remain readable during the deprecation window.
+
 ## [0.5.0] - 2026-08-10
 
 ### Added

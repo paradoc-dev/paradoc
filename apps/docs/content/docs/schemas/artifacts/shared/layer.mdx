@@ -129,7 +129,7 @@ coordinates.
   {
     name: 'placement',
     type: "SignatureSlotPlacement",
-    description: "Where the field lands: 'auto' (marker located after conversion), a text anchor, or absolute coordinates",
+    description: "Where the field lands: 'flow' (in the content flow; located after conversion), a text anchor, or absolute coordinates",
   },
   {
     name: 'required',
@@ -147,7 +147,7 @@ coordinates.
 
 ```typescript
 type SignatureSlotPlacement =
-  | 'auto'
+  | 'flow'
   | { page: number; x: number; y: number; width: number; height: number }
   | {
       anchor: { text: string; offsetX?: number; offsetY?: number; occurrence?: number }

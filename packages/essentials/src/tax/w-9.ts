@@ -363,28 +363,36 @@ const schema = {
         "topmostSubform[0].Page1[0].f1_14[0]": "ein:1",
         "topmostSubform[0].Page1[0].f1_15[0]": "ein:2"
       },
-      "signatureBlocks": {
+      "signatures": {
         "sb1": {
+          "party": {
+            "role": "taxpayer",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 175,
-          "y": 586,
-          "width": 195,
-          "height": 14,
-          "partyRole": "taxpayer",
-          "partyIndex": 0,
-          "label": "Signature of U.S. person"
+          "label": "Signature of U.S. person",
+          "placement": {
+            "page": 1,
+            "x": 175,
+            "y": 586,
+            "width": 195,
+            "height": 14
+          }
         },
         "sb2": {
-          "type": "date",
-          "page": 1,
-          "x": 410,
-          "y": 586,
-          "width": 80,
-          "height": 14,
-          "partyRole": "taxpayer",
-          "partyIndex": 0,
-          "label": "Date"
+          "party": {
+            "role": "taxpayer",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Date",
+          "placement": {
+            "page": 1,
+            "x": 410,
+            "y": 586,
+            "width": 80,
+            "height": 14
+          }
         }
       }
     }

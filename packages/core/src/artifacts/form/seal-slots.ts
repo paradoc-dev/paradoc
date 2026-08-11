@@ -6,7 +6,7 @@ import type { Form, Layer, SignatureSlot, SigningField } from '@paradoc/types'
  * A layer's `signatures` map declares every signing field once, with a
  * placement spec per slot. Planning turns those declarations into concrete
  * SigningFields (absolute placements) plus pending resolutions (anchor and
- * auto placements, resolved against the converted PDF by the placement
+ * flow placements, resolved against the converted PDF by the placement
  * locator). Misconfiguration fails here, before any rendering, conversion,
  * or billing happens.
  */
@@ -35,8 +35,8 @@ export interface SlotPlan {
 	resolved: SigningField[]
 	/** Fields awaiting anchor-text resolution against the converted PDF. */
 	anchors: AnchorResolution[]
-	/** Fields awaiting marker resolution ('auto' placement). */
-	auto: SigningField[]
+	/** Fields awaiting marker resolution ('flow' placement). */
+	flow: SigningField[]
 	/** Slots skipped because their party index is unfilled. */
 	skipped: string[]
 }
@@ -124,7 +124,7 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues, le
 		}
 	}
 
-	const plan: SlotPlan = { resolved: [], anchors: [], auto: [], skipped: [] }
+	const plan: SlotPlan = { resolved: [], anchors: [], flow: [], skipped: [] }
 	const missingSignatories: string[] = []
 	let signerIndex = 0
 
@@ -162,8 +162,8 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues, le
 			...(slot.label && { label: slot.label }),
 		}
 
-		if (slot.placement === 'auto') {
-			plan.auto.push(base)
+		if (slot.placement === 'flow') {
+			plan.flow.push(base)
 		} else if ('anchor' in slot.placement) {
 			plan.anchors.push({
 				field: {
@@ -200,7 +200,7 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues, le
 		)
 	}
 
-	if (plan.resolved.length + plan.anchors.length + plan.auto.length === 0) {
+	if (plan.resolved.length + plan.anchors.length + plan.flow.length === 0) {
 		throw new SealConfigError(
 			'Cannot seal: no signature slots could be mapped to signatories. Ensure parties have signatories assigned.' +
 				(plan.skipped.length > 0 ? ` (${plan.skipped.join('; ')})` : ''),

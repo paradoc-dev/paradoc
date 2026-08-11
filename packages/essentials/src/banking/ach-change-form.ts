@@ -335,50 +335,66 @@ const schema = {
         "newFrequency_other": "newFrequency:other",
         "effectiveDate": "effectiveDate"
       },
-      "signatureBlocks": {
+      "signatures": {
         "accountHolderSignature": {
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 110,
-          "y": 660,
-          "width": 230,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Signature of Account Holder"
+          "label": "Signature of Account Holder",
+          "placement": {
+            "page": 1,
+            "x": 110,
+            "y": 660,
+            "width": 230,
+            "height": 12
+          }
         },
         "accountHolderDate": {
-          "type": "date",
-          "page": 1,
-          "x": 392,
-          "y": 660,
-          "width": 90,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Date"
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Date",
+          "placement": {
+            "page": 1,
+            "x": 392,
+            "y": 660,
+            "width": 90,
+            "height": 12
+          }
         },
         "accountHolderPrintedName": {
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
           "type": "printed_name",
-          "page": 1,
-          "x": 130,
-          "y": 682,
-          "width": 230,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Printed name"
+          "label": "Printed name",
+          "placement": {
+            "page": 1,
+            "x": 130,
+            "y": 682,
+            "width": 230,
+            "height": 12
+          }
         },
         "accountHolderCapacity": {
+          "party": {
+            "role": "accountHolder",
+            "index": 0
+          },
           "type": "capacity",
-          "page": 1,
-          "x": 460,
-          "y": 682,
-          "width": 100,
-          "height": 12,
-          "partyRole": "accountHolder",
-          "partyIndex": 0,
-          "label": "Title / capacity (organizations)"
+          "label": "Title / capacity (organizations)",
+          "placement": {
+            "page": 1,
+            "x": 460,
+            "y": 682,
+            "width": 100,
+            "height": 12
+          }
         }
       }
     },

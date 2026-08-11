@@ -545,50 +545,66 @@ const schema = {
       "title": "PDF Form",
       "path": "ach-credit-authorization.pdf",
       "checksum": "sha256:ea92869947c8311643f3e777a396b8508ea3b207d2fdf029e769b6e2f8feaa13",
-      "signatureBlocks": {
+      "signatures": {
         "payeeSignature": {
+          "party": {
+            "role": "payee",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 128,
-          "y": 522,
-          "width": 230,
-          "height": 14,
-          "partyRole": "payee",
-          "partyIndex": 0,
-          "label": "Signature of Payee"
+          "label": "Signature of Payee",
+          "placement": {
+            "page": 1,
+            "x": 128,
+            "y": 522,
+            "width": 230,
+            "height": 14
+          }
         },
         "payeeDate": {
-          "type": "date",
-          "page": 1,
-          "x": 410,
-          "y": 522,
-          "width": 90,
-          "height": 14,
-          "partyRole": "payee",
-          "partyIndex": 0,
-          "label": "Date"
+          "party": {
+            "role": "payee",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Date",
+          "placement": {
+            "page": 1,
+            "x": 410,
+            "y": 522,
+            "width": 90,
+            "height": 14
+          }
         },
         "payeePrintedName": {
+          "party": {
+            "role": "payee",
+            "index": 0
+          },
           "type": "printed_name",
-          "page": 1,
-          "x": 146,
-          "y": 550,
-          "width": 200,
-          "height": 14,
-          "partyRole": "payee",
-          "partyIndex": 0,
-          "label": "Printed name"
+          "label": "Printed name",
+          "placement": {
+            "page": 1,
+            "x": 146,
+            "y": 550,
+            "width": 200,
+            "height": 14
+          }
         },
         "payeeCapacity": {
+          "party": {
+            "role": "payee",
+            "index": 0
+          },
           "type": "capacity",
-          "page": 1,
-          "x": 505,
-          "y": 550,
-          "width": 53,
-          "height": 14,
-          "partyRole": "payee",
-          "partyIndex": 0,
-          "label": "Title (organizations only)"
+          "label": "Title (organizations only)",
+          "placement": {
+            "page": 1,
+            "x": 505,
+            "y": 550,
+            "width": 53,
+            "height": 14
+          }
         }
       },
       "bindings": {

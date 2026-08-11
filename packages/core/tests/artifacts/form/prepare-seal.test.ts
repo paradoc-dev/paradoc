@@ -25,8 +25,8 @@ describe('prepareSeal', () => {
 	}
 
 	const SLOTS: Record<string, SignatureSlot> = {
-		'client-sig': { party: { role: 'client' }, type: 'signature', placement: 'auto' },
-		'client-ini': { party: { role: 'client' }, type: 'initials', placement: 'auto' },
+		'client-sig': { party: { role: 'client' }, type: 'signature', placement: 'flow' },
+		'client-ini': { party: { role: 'client' }, type: 'initials', placement: 'flow' },
 		'agency-stamp': {
 			party: { role: 'client' },
 			type: 'capacity',
@@ -112,7 +112,7 @@ describe('prepareSeal', () => {
 				mimeType: 'text/markdown',
 				text: 'Sign: {{#with parties.client}}{{signature "c0"}}{{/with}}',
 				signatures: {
-					c0: { party: { role: 'client' }, type: 'signature', placement: 'auto' },
+					c0: { party: { role: 'client' }, type: 'signature', placement: 'flow' },
 					c1: {
 						party: { role: 'client', index: 2 },
 						type: 'signature',

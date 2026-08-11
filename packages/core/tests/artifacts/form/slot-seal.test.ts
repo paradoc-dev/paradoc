@@ -145,7 +145,7 @@ describe('Unified signature slots', () => {
 				bad: {
 					party: { role: 'ghost' },
 					type: 'signature',
-					placement: 'auto',
+					placement: 'flow',
 				},
 			}).seal({ adapter: trackingConverter }),
 		).rejects.toThrowError(SealConfigError)

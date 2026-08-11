@@ -21,7 +21,7 @@ binds a party to a placement:
     'client-sig': {
       party: { role: 'client' },
       type: 'signature',
-      placement: 'auto',                                   // marker-located
+      placement: 'flow',                                   // sits where the text puts it
     },
     'witness-sig': {
       party: { role: 'witness' },
@@ -45,7 +45,7 @@ Three placement strategies, one engine:
 
 | Placement | How the position is found | Use when |
 |-----------|---------------------------|----------|
-| `'auto'` | An invisible marker is injected at the slot's placeholder during rendering and located in the converted PDF | Flowing text templates (markdown, HTML) |
+| `'flow'` | An invisible marker is injected at the slot's placeholder during rendering and located in the converted PDF | Flowing text templates (markdown, HTML) |
 | `anchor` | Literal document text is found in the converted PDF; `occurrence` picks a match when the text repeats, otherwise it must be unique | Text known at design time, position unknown |
 | absolute | Declared page/x/y coordinates | PDF templates, fixed layouts |
 
@@ -98,7 +98,7 @@ If an adapter does resolve placements itself (returning a complete
 `signatureMap`), core respects it and skips the locator. Pass `locate` to
 substitute a custom locator tier.
 
-For `'auto'` slots, core renders twice: a marker pass locates every
+For `'flow'` slots, core renders twice: a marker pass locates every
 placeholder in the converted PDF, then a clean render becomes the canonical
 document. If the marker's width shifts a line wrap between passes, sealing
 fails loud rather than misplacing a field.

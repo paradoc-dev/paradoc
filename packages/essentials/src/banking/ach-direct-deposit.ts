@@ -608,39 +608,51 @@ const schema = {
         "account4AllotmentType_netremainder": "account4AllotmentType:net_remainder",
         "account4VoidedCheck": "account4VoidedCheckAttached"
       },
-      "signatureBlocks": {
+      "signatures": {
         "employeeSignature": {
+          "party": {
+            "role": "employee",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 128,
-          "y": 680,
-          "width": 230,
-          "height": 12,
-          "partyRole": "employee",
-          "partyIndex": 0,
-          "label": "Signature of Employee"
+          "label": "Signature of Employee",
+          "placement": {
+            "page": 1,
+            "x": 128,
+            "y": 680,
+            "width": 230,
+            "height": 12
+          }
         },
         "employeeDate": {
-          "type": "date",
-          "page": 1,
-          "x": 410,
-          "y": 680,
-          "width": 90,
-          "height": 12,
-          "partyRole": "employee",
-          "partyIndex": 0,
-          "label": "Date"
+          "party": {
+            "role": "employee",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Date",
+          "placement": {
+            "page": 1,
+            "x": 410,
+            "y": 680,
+            "width": 90,
+            "height": 12
+          }
         },
         "employeePrintedName": {
+          "party": {
+            "role": "employee",
+            "index": 0
+          },
           "type": "printed_name",
-          "page": 1,
-          "x": 146,
-          "y": 702,
-          "width": 280,
-          "height": 12,
-          "partyRole": "employee",
-          "partyIndex": 0,
-          "label": "Printed name"
+          "label": "Printed name",
+          "placement": {
+            "page": 1,
+            "x": 146,
+            "y": 702,
+            "width": 280,
+            "height": 12
+          }
         }
       }
     },

@@ -695,222 +695,294 @@ const schema = {
       "title": "Form I-9 PDF Template",
       "path": "i-9.pdf",
       "checksum": "sha256:6c2bf804b2887319818ab977a00abe7b67576f83a8c5f23de29f29bc865e582f",
-      "signatureBlocks": {
+      "signatures": {
         "sb01_employee_signature": {
+          "party": {
+            "role": "employee",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 42.08,
-          "y": 360.2,
-          "width": 200,
-          "height": 11,
-          "partyRole": "employee",
-          "partyIndex": 0,
+          "required": true,
           "label": "Signature of Employee (Section 1)",
-          "required": true
+          "placement": {
+            "page": 1,
+            "x": 42.08,
+            "y": 360.2,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb02_employee_date": {
-          "type": "date",
-          "page": 1,
-          "x": 372.44,
-          "y": 360.2,
-          "width": 85,
-          "height": 11,
-          "partyRole": "employee",
-          "partyIndex": 0,
+          "party": {
+            "role": "employee",
+            "index": 0
+          },
+          "type": "date_signed",
+          "required": true,
           "label": "Today's Date — Employee (Section 1)",
-          "required": true
+          "placement": {
+            "page": 1,
+            "x": 372.44,
+            "y": 360.2,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb03_employer_s2_signature": {
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
           "type": "signature",
-          "page": 1,
-          "x": 294.28,
-          "y": 701.36,
-          "width": 191,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "required": true,
           "label": "Signature of Employer or Authorized Representative (Section 2)",
-          "required": true
+          "placement": {
+            "page": 1,
+            "x": 294.28,
+            "y": 701.36,
+            "width": 191,
+            "height": 11
+          }
         },
         "sb04_employer_s2_date": {
-          "type": "date",
-          "page": 1,
-          "x": 482.85,
-          "y": 701.36,
-          "width": 85,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
+          "type": "date_signed",
+          "required": true,
           "label": "Today's Date — Employer (Section 2)",
-          "required": true
+          "placement": {
+            "page": 1,
+            "x": 482.85,
+            "y": 701.36,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb05_preparer0_signature": {
+          "party": {
+            "role": "preparer",
+            "index": 0
+          },
           "type": "signature",
-          "page": 2,
-          "x": 39.32,
-          "y": 240.2,
-          "width": 200,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 0,
+          "required": false,
           "label": "Signature of Preparer or Translator (Supplement A — Entry 1)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 39.32,
+            "y": 240.2,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb06_preparer0_date": {
-          "type": "date",
-          "page": 2,
-          "x": 417.56,
-          "y": 240.2,
-          "width": 85,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 0,
+          "party": {
+            "role": "preparer",
+            "index": 0
+          },
+          "type": "date_signed",
+          "required": false,
           "label": "Date — Preparer (Supplement A — Entry 1)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 417.56,
+            "y": 240.2,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb07_preparer1_signature": {
+          "party": {
+            "role": "preparer",
+            "index": 1
+          },
           "type": "signature",
-          "page": 2,
-          "x": 39.16,
-          "y": 365.92,
-          "width": 200,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 1,
+          "required": false,
           "label": "Signature of Preparer or Translator (Supplement A — Entry 2)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 39.16,
+            "y": 365.92,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb08_preparer1_date": {
-          "type": "date",
-          "page": 2,
-          "x": 417.4,
-          "y": 365.92,
-          "width": 85,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 1,
+          "party": {
+            "role": "preparer",
+            "index": 1
+          },
+          "type": "date_signed",
+          "required": false,
           "label": "Date — Preparer (Supplement A — Entry 2)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 417.4,
+            "y": 365.92,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb09_preparer2_signature": {
+          "party": {
+            "role": "preparer",
+            "index": 2
+          },
           "type": "signature",
-          "page": 2,
-          "x": 39.16,
-          "y": 492.2,
-          "width": 200,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 2,
+          "required": false,
           "label": "Signature of Preparer or Translator (Supplement A — Entry 3)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 39.16,
+            "y": 492.2,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb10_preparer2_date": {
-          "type": "date",
-          "page": 2,
-          "x": 417.56,
-          "y": 492.2,
-          "width": 85,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 2,
+          "party": {
+            "role": "preparer",
+            "index": 2
+          },
+          "type": "date_signed",
+          "required": false,
           "label": "Date — Preparer (Supplement A — Entry 3)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 417.56,
+            "y": 492.2,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb11_preparer3_signature": {
+          "party": {
+            "role": "preparer",
+            "index": 3
+          },
           "type": "signature",
-          "page": 2,
-          "x": 39.16,
-          "y": 618.2,
-          "width": 200,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 3,
+          "required": false,
           "label": "Signature of Preparer or Translator (Supplement A — Entry 4)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 39.16,
+            "y": 618.2,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb12_preparer3_date": {
-          "type": "date",
-          "page": 2,
-          "x": 418.21,
-          "y": 618.2,
-          "width": 85,
-          "height": 11,
-          "partyRole": "preparer",
-          "partyIndex": 3,
+          "party": {
+            "role": "preparer",
+            "index": 3
+          },
+          "type": "date_signed",
+          "required": false,
           "label": "Date — Preparer (Supplement A — Entry 4)",
-          "required": false
+          "placement": {
+            "page": 2,
+            "x": 418.21,
+            "y": 618.2,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb13_employer_supb0_signature": {
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
           "type": "signature",
-          "page": 3,
-          "x": 246.08,
-          "y": 330.11,
-          "width": 200,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "required": false,
           "label": "Signature of Employer (Supplement B — Reverification 1)",
-          "required": false
+          "placement": {
+            "page": 3,
+            "x": 246.08,
+            "y": 330.11,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb14_employer_supb0_date": {
-          "type": "date",
-          "page": 3,
-          "x": 473.75,
-          "y": 330.11,
-          "width": 85,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
+          "type": "date_signed",
+          "required": false,
           "label": "Today's Date — Employer (Supplement B — Reverification 1)",
-          "required": false
+          "placement": {
+            "page": 3,
+            "x": 473.75,
+            "y": 330.11,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb15_employer_supb1_signature": {
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
           "type": "signature",
-          "page": 3,
-          "x": 245.29,
-          "y": 515.45,
-          "width": 200,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "required": false,
           "label": "Signature of Employer (Supplement B — Reverification 2)",
-          "required": false
+          "placement": {
+            "page": 3,
+            "x": 245.29,
+            "y": 515.45,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb16_employer_supb1_date": {
-          "type": "date",
-          "page": 3,
-          "x": 474.08,
-          "y": 515.45,
-          "width": 85,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
+          "type": "date_signed",
+          "required": false,
           "label": "Today's Date — Employer (Supplement B — Reverification 2)",
-          "required": false
+          "placement": {
+            "page": 3,
+            "x": 474.08,
+            "y": 515.45,
+            "width": 85,
+            "height": 11
+          }
         },
         "sb17_employer_supb2_signature": {
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
           "type": "signature",
-          "page": 3,
-          "x": 245.29,
-          "y": 701.76,
-          "width": 200,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "required": false,
           "label": "Signature of Employer (Supplement B — Reverification 3)",
-          "required": false
+          "placement": {
+            "page": 3,
+            "x": 245.29,
+            "y": 701.76,
+            "width": 200,
+            "height": 11
+          }
         },
         "sb18_employer_supb2_date": {
-          "type": "date",
-          "page": 3,
-          "x": 474.08,
-          "y": 701.76,
-          "width": 85,
-          "height": 11,
-          "partyRole": "employer",
-          "partyIndex": 0,
+          "party": {
+            "role": "employer",
+            "index": 0
+          },
+          "type": "date_signed",
+          "required": false,
           "label": "Today's Date — Employer (Supplement B — Reverification 3)",
-          "required": false
+          "placement": {
+            "page": 3,
+            "x": 474.08,
+            "y": 701.76,
+            "width": 85,
+            "height": 11
+          }
         }
       },
       "bindings": {

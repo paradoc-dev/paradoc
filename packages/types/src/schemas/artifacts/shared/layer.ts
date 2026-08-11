@@ -82,14 +82,15 @@ export type SignatureSlotType = 'signature' | 'initials' | 'date_signed' | 'capa
 
 /**
  * Where a signature slot lands in the sealed PDF.
- * - 'auto': the render stage injects an invisible marker at the slot's
- *   placeholder; the placement stage locates it after conversion.
+ * - 'flow': the field sits where the template content places it — the render
+ *   stage injects an invisible marker at the slot's placeholder and the
+ *   placement stage locates it after conversion.
  * - absolute: fixed coordinates known at design time (PDF templates).
  * - anchor: found by literal document text after conversion; text must be
  *   unique unless `occurrence` picks a match (1-based, reading order).
  */
 export type SignatureSlotPlacement =
-  | 'auto'
+  | 'flow'
   | { page: number; x: number; y: number; width: number; height: number }
   | {
       anchor: { text: string; offsetX?: number; offsetY?: number; occurrence?: number };
