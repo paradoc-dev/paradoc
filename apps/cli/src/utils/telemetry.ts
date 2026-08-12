@@ -17,7 +17,8 @@ import { platform, arch, release } from 'node:os'
 import { configManager } from './config.js'
 import { VERSION } from '../constants.js'
 
-const TELEMETRY_ENDPOINT = 'https://telemetry.paradoc.dev/v1/events'
+const TELEMETRY_ENDPOINT = 'https://telemetry.paradoc.dev/v1/events/anonymous'
+const DIRECTORY_EVENTS_ENDPOINT = 'https://tasks.paradoc.dev/v1/directory-events'
 const SEND_TIMEOUT_MS = 5_000
 
 // Session ID — unique per process invocation
@@ -153,12 +154,44 @@ async function sendEvents(events: TelemetryEvent[]): Promise<void> {
     await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(events),
+      body: JSON.stringify({
+        schema_version: 1,
+        resource: { service_name: 'paradoc-cli', service_version: VERSION, platform: 'cli' },
+        events: events.map((event) => ({
+          name: event.type,
+          timestamp: event.timestamp,
+          severity: event.success ? 'info' : 'error',
+          attributes: {
+            cli_version: event.cliVersion,
+            node_version: event.nodeVersion,
+            os: event.os,
+            arch: event.arch,
+            ci: event.ci,
+            success: event.success,
+            ...(event.durationMs !== undefined ? { duration_ms: event.durationMs } : {}),
+            ...Object.fromEntries(Object.entries(event.properties ?? {})
+              .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
+              .map(([key, value]) => [key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`), value])),
+          },
+        })),
+        anonymous: { anonymous_id: events[0]?.anonymousId, session_id: sessionId },
+      }),
       signal: controller.signal,
     })
   } finally {
     clearTimeout(timeout)
   }
+}
+
+async function sendDirectoryEvent(event: Record<string, string>): Promise<void> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS)
+  try {
+    await fetch(DIRECTORY_EVENTS_ENDPOINT, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(event), signal: controller.signal,
+    })
+  } finally { clearTimeout(timeout) }
 }
 
 /**
@@ -284,7 +317,10 @@ export async function trackInstall(
       kind,
       isUpdate,
     },
-  })
+  }).then(() => sendDirectoryEvent({
+    type: 'artifact.installed', registryUrl, artifactName: artifact,
+    artifactKind: kind, version,
+  }).catch(() => {}))
 }
 
 /**
@@ -310,5 +346,5 @@ export async function trackRegistryAdd(
 
   return trackEvent('registry.added', {
     properties: { registryType, registryUrl: url },
-  })
+  }).then(() => sendDirectoryEvent({ type: 'registry.added', registryUrl: url }).catch(() => {}))
 }
