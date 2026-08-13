@@ -11,7 +11,6 @@
 @import "fumadocs-ui/css/preset.css";
 
 /* UI package */
-@source "../../platform-packages/common/src";
 
 @custom-variant dark (&:is(.dark *));
 
