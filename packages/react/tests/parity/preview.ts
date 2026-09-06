@@ -141,6 +141,81 @@ async function assertUnscaled(page: Page, paper: PageDimensions): Promise<void> 
 }
 
 /**
+ * How far into each capture the corner sample sits, as a fraction of the
+ * screenshot's shorter side.
+ *
+ * Every reference document's margin — 48 or 56 pixels, on paper 794 to 1123
+ * pixels wide — is comfortably wider than this fraction of either side, so a
+ * sample this close to a corner always lands on the sheet's own margin and
+ * never on a keep's content.
+ */
+const CORNER_SAMPLE_FRACTION = 0.03;
+
+/** One sampled pixel, as its RGB channels. */
+type Corner = readonly [number, number, number];
+
+/**
+ * Runs inside the browser. Decodes the capture and reads back its four
+ * corners, each inset by `fraction` of the shorter side.
+ *
+ * Self-contained on purpose: `page.evaluate` sends the source of this
+ * function to the page, so it can close over nothing.
+ */
+async function sampleCorners(base64: string, fraction: number): Promise<Corner[]> {
+  const image = new Image();
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("the capture did not decode"));
+    image.src = `data:image/png;base64,${base64}`;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d");
+  if (context === null) throw new Error("no 2d context");
+  context.drawImage(image, 0, 0);
+  const inset = Math.round(Math.min(canvas.width, canvas.height) * fraction);
+  const points: Array<[number, number]> = [
+    [inset, inset],
+    [canvas.width - inset, inset],
+    [inset, canvas.height - inset],
+    [canvas.width - inset, canvas.height - inset],
+  ];
+  return points.map(([x, y]) => {
+    const [r, g, b] = context.getImageData(x, y, 1, 1).data;
+    return [r ?? 0, g ?? 0, b ?? 0] as const;
+  });
+}
+
+/** True once a corner reads as the sheet's own paper rather than as ink or frame. */
+function isPaperWhite([r, g, b]: Corner): boolean {
+  return r >= 250 && g >= 250 && b >= 250;
+}
+
+/**
+ * Fails a capture that shows the lab's own frame instead of the sheet's paper.
+ *
+ * `capture()` screenshots the sheet element itself right after switching tabs
+ * to it. A sheet that has not painted yet reads back as whatever sat behind it
+ * before the switch — the lab's grey frame around the sheet — rather than the
+ * paper white every sheet's margin is by design, the same way `readPlan`
+ * refuses a preview that drew no sheet at all: a capture that measures nothing
+ * would otherwise pass every criterion downstream without comparing anything.
+ * All four corners sit inside that margin, so a painted sheet reads white at
+ * every one of them; a mistimed capture reads the frame's grey at all four,
+ * since nothing about the document painted at all.
+ */
+export async function assertPainted(page: Page, capture: PreviewCapture): Promise<void> {
+  const corners = await page.evaluate(sampleCorners, capture.png, CORNER_SAMPLE_FRACTION);
+  if (corners.every((corner) => !isPaperWhite(corner))) {
+    throw new Error(
+      `page ${capture.number}: every sampled corner reads ${JSON.stringify(corners[0])}, ` +
+        "not paper white. The sheet had not painted when it was screenshotted."
+    );
+  }
+}
+
+/**
  * Opens the lab and returns the handle the suite drives it with.
  *
  * `deviceScaleFactor` is the capture resolution. The comparison happens at the
@@ -193,13 +268,29 @@ export async function openPreview(
 
   const capture = async (): Promise<PreviewCapture[]> => {
     await page.bringToFront();
+    // A tab that is not on top stops receiving frames from the compositor.
+    // `bringToFront` makes it the foreground tab again, but that alone does
+    // not wait for a frame to be drawn against the current DOM: on a loaded
+    // runner the very next screenshot can land before that frame does, and it
+    // then captures whatever was on screen before the switch — the lab's own
+    // frame around the sheet — rather than the sheet itself. Two ticks rather
+    // than one: the first is the frame the switch itself triggers, and the
+    // sheet's own paint is scheduled for the one after it.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        })
+    );
     const { pageCount } = await readPlan(page);
     const captures: PreviewCapture[] = [];
     for (let number = 1; number <= pageCount; number++) {
       const sheet = await page.$(`[data-page="${number}"]`);
       if (sheet === null) throw new Error(`the preview has no page ${number}`);
       const png = await sheet.screenshot({ type: "png", encoding: "base64" });
-      captures.push({ number, png });
+      const one: PreviewCapture = { number, png };
+      await assertPainted(page, one);
+      captures.push(one);
     }
     return captures;
   };
