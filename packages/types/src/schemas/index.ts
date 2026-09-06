@@ -77,6 +77,7 @@ export type {
   Layer,
   InlineLayer,
   FileLayer,
+  ReactLayerMimeType,
   Bindings,
   // Document
   Document,

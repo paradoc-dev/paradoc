@@ -184,9 +184,19 @@ export {
 
 export { assembleBundle } from "./rendering";
 
+export {
+  InlineReactLayerError,
+  isReactLayerMimeType,
+  reactLayersOf,
+  REACT_LAYER_MIME_TYPES,
+  REACT_LAYER_RULE,
+  UnregisteredLayerRendererError,
+} from "./rendering";
+
 export type {
   ResolvedArtifact,
   ArtifactResolver,
+  ReactLayerEntry,
   RendererRegistry,
   AssemblyContentEntry,
   BundleAssemblyOptions,

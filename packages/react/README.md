@@ -295,13 +295,87 @@ sheet: a sheet is a full page tall by construction, so its `scrollHeight` never
 reports less than 960 and a document that fits looks exactly like one that
 fills the page.
 
-## The artifact declares one layer, and it describes no layout
+## The React layer
+
+An artifact points at a composition with a file layer whose MIME type is
+`text/tsx` or `text/jsx` and whose path names the module. Like every layer path,
+it is **relative to the artifact file that declares it**.
+
+```ts
+layers: {
+  composition: {
+    kind: "file",
+    mimeType: "text/tsx",
+    path: "purchase-order.tsx",
+  },
+},
+```
+
+The layer is a pointer and nothing more. Core does not read the file, does not
+execute it, and does not depend on React: it selects a renderer by the layer's
+MIME type and hands it the path and the layer key. An **inline** layer of either
+type is rejected at validation, because source where a pointer belongs is not a
+document. MIME types compare without regard to case, so `TEXT/TSX` is the same
+layer, and validation and dispatch read it the same way.
+
+Registering the renderer is one line at the render call.
+
+```ts
+import { reactLayerRenderers } from "@paradoc/react/pdf";
+import { PurchaseOrder } from "./orders/purchase-order";
+
+const pdf = await order.render<Uint8Array>({
+  layer: "composition",
+  renderers: reactLayerRenderers({
+    components: { "purchase-order.tsx": PurchaseOrder },
+    pdf: { images: [logo] },
+  }),
+});
+```
+
+It is registered by the caller rather than inside `@paradoc/render` because this
+package depends on `@paradoc/render`; registering there would be a cycle.
+`reactLayersOf(artifact)` in `@paradoc/core` reports which layers need one.
+
+The renderer binds the module two ways, in this order:
+
+1. a `components` map keyed by the layer's path or by its key, which is what a
+   bundled application uses;
+2. an import of the module the path names, resolved against `baseDir`, taking
+   the module's `default` export.
+
+A path neither covers fails with `UnboundReactLayerError` naming the path and
+both options. A React layer with no renderer registered fails from core with
+`UnregisteredLayerRendererError` naming the layer and the `renderers` option.
+
+**Import binding executes the module the artifact names.** That is what it is
+for, and it is worth stating plainly: an artifact is data, and this is the one
+place data becomes code. So the path is confined. It must be relative and it
+must resolve inside `baseDir` — an absolute path, or one that climbs out, is
+refused rather than loaded. Set `baseDir` to the artifact file's own directory.
+If you do not control the artifact you are rendering, bind through `components`
+and leave `baseDir` unset.
+
+Nothing here compiles TypeScript. Importing a `.tsx` module works where the
+runtime already transforms one; elsewhere point the layer at built JavaScript,
+or use the `components` map. The error says so when Node refuses the extension.
+
+The composition receives `{ artifact, data }`, so a component written for the
+direct call renders unchanged through the layer.
+`tests/react-layer.test.tsx` hashes both and asserts they are the same bytes.
+
+## The sample's two layers, and neither describes layout
 
 The React tree is the only description of this document's layout, which is the
 specification's central invariant. A markdown or PDF layer beside it would be a
 second one.
 
-The seal flow will not place a signature slot that no layer declares, and flow
+`composition` is the React layer above: MIME type `text/tsx`, the path
+`proposal-document.tsx` beside the artifact file, no text, no bindings, no
+slots.
+
+`signing` is what the seal flow needs and the composition layer cannot yet give
+it. The seal will not place a signature slot that no layer declares, and flow
 placement needs a text layer core can render its marker into, so `proposal.ts`
 carries the smallest layer that satisfies both: two slot declarations, and one
 line per slot whose whole content is the slot id, a tab, and the placeholder
@@ -314,12 +388,11 @@ customer-signature	{{#with parties.customer}}{{signature "customer-signature"}}{
 
 Nothing the document shows appears there: no title, no field, no heading, no
 total. `tests/proposal-artifact.test.ts` asserts the shape line by line, so a
-line of document text cannot be added to it without failing a test. `src/pdf/seal.tsx`
+line of document text cannot be added to it without failing a test. `src/examples/seal.tsx`
 reads the placeholders back and puts each one in the tree's own signature block.
 
-The artifact declares no `defaultLayer`. With one layer, core resolves the seal
-target to it, and naming a default would say the document has a default
-rendering when the rendering is the React tree.
+`defaultLayer` names `signing`. It is the layer the seal targets, and with a
+second layer in the artifact the first key is no longer the one the seal needs.
 
 ## A path that does not resolve is a fault
 

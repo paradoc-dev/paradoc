@@ -77,6 +77,7 @@ import type { FieldsToDataType } from '@/inference'
 import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesValidationResult } from '@/logic'
 import { evaluateFormDefs, evaluateFormRules } from '@/logic'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
+import { buildRendererLayer, selectLayerRenderer } from '../shared/render-layer'
 import type {
 	PartialFillOptions,
 	UpdateOptions,
@@ -835,8 +836,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		return _runtimeState
 	}
 
-	const augmentPartiesForRender = (): Record<string, unknown> => {
-		const augmented: Record<string, unknown> = {}
+	const augmentPartiesForRender = (): Record<string, Party | Party[]> => {
+		const augmented: Record<string, Party | Party[]> = {}
 
 		for (const [roleId, partyOrParties] of Object.entries(partyValues)) {
 			const roleSignatories = signatoryValues[roleId] ?? {}
@@ -2325,8 +2326,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		async render<Output = string | Uint8Array>(options: RuntimeFormRenderOptions<Output> = {}): Promise<Output> {
-			const { renderer: rendererOverride, resolver, layer: layerKey, bindings: optionsBindings } = options
-			const renderer = rendererOverride ?? createRenderer()
+			const { renderer: rendererOverride, renderers, resolver, layer: layerKey, bindings: optionsBindings } = options
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -2342,28 +2342,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(formDef.layers).join(', ')}`)
 			}
 
-			// Determine content based on layer spec type
-			let layerContent: string | Uint8Array | Buffer
-			let bindings: Record<string, string> | undefined
+			const renderer = selectLayerRenderer<Output>(key, layerSpec, rendererOverride, renderers)
 
-			if (layerSpec.kind === 'inline') {
-				layerContent = layerSpec.text
-				bindings = layerSpec.bindings
-			} else if (layerSpec.kind === 'file') {
-				if (resolver) {
-					const bytes = await resolver.read(layerSpec.path)
-					if (layerSpec.mimeType.startsWith('text/') || layerSpec.mimeType === 'application/json') {
-						layerContent = new TextDecoder().decode(bytes)
-					} else {
-						layerContent = bytes
-					}
-				} else {
-					throw new Error(`Layer "${key}" is file-backed but no resolver was provided.`)
-				}
-				bindings = layerSpec.bindings
-			} else {
-				throw new Error('Unknown layer spec kind')
-			}
+			let bindings: Record<string, string> | undefined = layerSpec.bindings
 
 			// Resolve bindingsFrom reference if no direct bindings
 			if (!bindings && layerSpec.bindingsFrom) {
@@ -2398,7 +2379,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					metadata: formDef.metadata,
 				},
 				...fieldValues,
-				...(Object.keys(augmentedParties).length > 0 && { parties: augmentedParties }),
 				...(Object.keys(annexValues).length > 0 && { annexes: annexValues }),
 				...(Object.keys(signerValues).length > 0 && { _signers: signerValues }),
 				...(captures.length > 0 && { _captures: captures }),
@@ -2406,17 +2386,19 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				...(executedAt && { _executedAt: executedAt }),
 			}
 
-			const template: RendererLayer = {
-				type: 'text',
-				content: layerContent,
-				mimeType: layerSpec.mimeType,
-				...(bindings && { bindings }),
-			}
+			const template = await buildRendererLayer(key, layerSpec, bindings, resolver)
 
+			// Parties travel beside the fields, where `FormData` declares them. A
+			// template that names `parties.landlord` still reads them: the text,
+			// PDF and DOCX renderers take them from either place, and one place
+			// is enough.
 			return await renderer.render({
 				template,
 				form: formDef,
-				data: { fields: fullData },
+				data: {
+					fields: fullData,
+					...(Object.keys(augmentedParties).length > 0 && { parties: augmentedParties }),
+				},
 				bindings,
 			}) as Output
 		},
@@ -2725,8 +2707,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 		},
 
 		async render<Output = string | Uint8Array>(options: RenderOptions<Output> = {}): Promise<Output> {
-			const { renderer: rendererOverride, resolver, data = {}, layer: layerKey, bindings: optionsBindings } = options
-			const renderer = rendererOverride ?? createRenderer()
+			const { renderer: rendererOverride, renderers, resolver, data = {}, layer: layerKey, bindings: optionsBindings } = options
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -2742,27 +2723,9 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 				throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(formDef.layers).join(', ')}`)
 			}
 
-			let layerContent: string | Uint8Array | Buffer
-			let bindings: Record<string, string> | undefined
+			const renderer = selectLayerRenderer<Output>(key, layerSpec, rendererOverride, renderers)
 
-			if (layerSpec.kind === 'inline') {
-				layerContent = layerSpec.text
-				bindings = layerSpec.bindings
-			} else if (layerSpec.kind === 'file') {
-				if (resolver) {
-					const bytes = await resolver.read(layerSpec.path)
-					if (layerSpec.mimeType.startsWith('text/') || layerSpec.mimeType === 'application/json') {
-						layerContent = new TextDecoder().decode(bytes)
-					} else {
-						layerContent = bytes
-					}
-				} else {
-					throw new Error(`Layer "${key}" is file-backed but no resolver was provided.`)
-				}
-				bindings = layerSpec.bindings
-			} else {
-				throw new Error('Unknown layer spec kind')
-			}
+			let bindings: Record<string, string> | undefined = layerSpec.bindings
 
 			// Resolve bindingsFrom reference if no direct bindings
 			if (!bindings && layerSpec.bindingsFrom) {
@@ -2778,12 +2741,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 				bindings = { ...bindings, ...optionsBindings }
 			}
 
-			const template: RendererLayer = {
-				type: 'text',
-				content: layerContent,
-				mimeType: layerSpec.mimeType,
-				...(bindings && { bindings }),
-			}
+			const template = await buildRendererLayer(key, layerSpec, bindings, resolver)
 
 			// Build FormData payload
 			let formData: { fields: Record<string, unknown> }

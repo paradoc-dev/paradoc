@@ -30,6 +30,12 @@ export { ListFieldSchema } from './artifacts/form/list';
 export { ArtifactSchema } from './artifacts/shared/base';
 export { ContentRefSchema } from './artifacts/shared/content-ref';
 export { LayerSchema, SignatureBlockSchema, SignatureBlockTypeSchema, AnchorBlockSchema, SignatureSlotSchema, SignatureSlotTypeSchema } from './artifacts/shared/layer';
+export {
+	isReactLayerMimeType,
+	REACT_LAYER_MIME_PATTERN,
+	REACT_LAYER_MIME_TYPES,
+	REACT_LAYER_RULE,
+} from './artifacts/shared/layer';
 
 // Primitives
 export {

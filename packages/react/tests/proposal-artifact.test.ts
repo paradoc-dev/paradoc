@@ -3,6 +3,8 @@ import { evaluateFormDefs } from "@paradoc/core";
 import {
   proposal,
   proposalForm,
+  PROPOSAL_REACT_LAYER,
+  PROPOSAL_REACT_LAYER_PATH,
   PROPOSAL_SIGNATURE_SLOTS,
   PROPOSAL_SIGNING_LAYER,
   overflowProposalData,
@@ -17,16 +19,31 @@ describe("the proposal artifact", () => {
     expect(proposal.parties?.customer.signature?.required).toBe(true);
   });
 
-  it("declares one layer, and it describes no layout", () => {
+  it("names its composition in a React layer that carries no content", () => {
     // The React tree is the only layout description, which is the
-    // specification's central invariant. The seal flow will not place a slot a
-    // layer does not declare, so the artifact carries the smallest layer that
-    // satisfies it: two slot declarations, and one line per slot whose whole
-    // content is the placeholder core renders. Nothing the document shows —
-    // no title, no field, no heading, no total — appears here.
-    expect(Object.keys(proposalForm.layers ?? {})).toEqual([PROPOSAL_SIGNING_LAYER]);
-    // No defaultLayer: with one layer, core resolves the seal target to it.
-    expect(proposalForm.defaultLayer).toBeUndefined();
+    // specification's central invariant. The layer that declares it is a
+    // pointer to the module and nothing more: no text, no bindings, no slots.
+    const layer = proposalForm.layers?.[PROPOSAL_REACT_LAYER];
+    if (!layer || layer.kind !== "file") throw new Error("the composition layer is not a file layer");
+    expect(layer.mimeType).toBe("text/tsx");
+    expect(layer.path).toBe(PROPOSAL_REACT_LAYER_PATH);
+    expect(layer.signatures).toBeUndefined();
+    expect(layer.bindings).toBeUndefined();
+  });
+
+  it("declares two layers, and neither describes layout", () => {
+    // The seal flow will not place a slot a layer does not declare, so beside
+    // the composition the artifact carries the smallest layer that satisfies
+    // it: two slot declarations, and one line per slot whose whole content is
+    // the placeholder core renders. Nothing the document shows — no title, no
+    // field, no heading, no total — appears here.
+    expect(Object.keys(proposalForm.layers ?? {})).toEqual([
+      PROPOSAL_REACT_LAYER,
+      PROPOSAL_SIGNING_LAYER,
+    ]);
+    // The seal target is named rather than inferred: with a second layer, the
+    // first key is no longer the one the seal flow needs.
+    expect(proposalForm.defaultLayer).toBe(PROPOSAL_SIGNING_LAYER);
 
     const layer = proposalForm.layers?.[PROPOSAL_SIGNING_LAYER];
     if (!layer || layer.kind !== "inline") throw new Error("the signing layer is not inline");

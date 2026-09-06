@@ -6,14 +6,21 @@
  * the two signing parties. The React components read this artifact and never carry
  * their own copy of a label, a format, or a total.
  *
- * The one layer it declares describes no layout. `prepareSeal` and `seal` will
- * only place signature slots that a layer declares, and flow placement needs a
- * text layer core can render markers into, so the artifact carries the smallest
- * layer that satisfies that: two slot declarations and one line per slot whose
- * whole content is the signature placeholder core produces. The React tree stays
- * the only description of the document, which is the specification's central
- * invariant; `src/examples/seal.tsx` reads the placeholders out of this layer and puts
- * them in the tree's signature blocks.
+ * It declares two layers, neither of which describes layout. The `composition`
+ * layer is the document: a file layer of MIME type `text/tsx` naming the module
+ * that holds the React tree. Nothing reads that file; `render` selecting the
+ * layer dispatches to the renderer registered for `text/tsx`, which binds the
+ * module and produces the PDF.
+ *
+ * The `signing` layer is what the seal flow needs and the composition layer
+ * cannot yet give it. `prepareSeal` and `seal` will only place signature slots
+ * that a layer declares, and flow placement needs a text layer core can render
+ * markers into, so the artifact carries the smallest layer that satisfies that:
+ * two slot declarations and one line per slot whose whole content is the
+ * signature placeholder core produces. It stays the default layer so the seal
+ * path is unchanged. `src/examples/seal.tsx` reads the placeholders out of it
+ * and puts them in the tree's signature blocks. The React tree remains the only
+ * description of the document, which is the specification's central invariant.
  *
  * One limitation shapes the design. The expression language indexes lists and
  * reads their length, but it has no aggregate over a list, so a subtotal cannot be
@@ -27,6 +34,20 @@ import type { Form } from "@paradoc/types";
 
 /** The layer the seal flow targets. The document itself is the React tree. */
 export const PROPOSAL_SIGNING_LAYER = "signing";
+
+/** The layer that names the composition. */
+export const PROPOSAL_REACT_LAYER = "composition";
+
+/**
+ * The composition module the React layer points at, as the layer declares it.
+ *
+ * Relative to the artifact file that declares it, which is this one, so it names
+ * the sibling module and nothing more. A consumer who renders the sample through
+ * its layer either maps this path to `ProposalDocument` or lets the renderer
+ * import it with `baseDir` set to this directory. Either way the string is the
+ * key, so it is exported rather than written twice.
+ */
+export const PROPOSAL_REACT_LAYER_PATH = "proposal-document.tsx";
 
 /**
  * The artifact's signature slots, by the party role each one binds to. The seal
@@ -263,7 +284,16 @@ export const proposalSpec = {
       },
     },
   },
+  defaultLayer: PROPOSAL_SIGNING_LAYER,
   layers: {
+    [PROPOSAL_REACT_LAYER]: {
+      kind: "file",
+      mimeType: "text/tsx",
+      path: PROPOSAL_REACT_LAYER_PATH,
+      title: "Composition",
+      description:
+        "The React composition this document is. The path is a pointer: nothing reads the file, and the renderer registered for text/tsx binds the module.",
+    },
     [PROPOSAL_SIGNING_LAYER]: {
       kind: "inline",
       mimeType: "text/plain",

@@ -31,7 +31,7 @@
 import { containsEncoding } from "@paradoc/render/pdf";
 import type { Form, Person, SealAdapter } from "@paradoc/types";
 
-import type { DocumentData } from "../components/document-context";
+import type { ProposalData } from "./proposal-data";
 import { renderPdf } from "../pdf/render";
 import type { PdfImage } from "../pdf/resources";
 import { parseSigningMarks } from "../pdf/signing-marks";
@@ -75,7 +75,7 @@ export class MissingSignerError extends Error {
 /** What the adapter needs to rebuild the document for a seal pass. */
 export interface ProposalSealAdapterOptions {
   /** The proposal data the document renders. */
-  data: DocumentData;
+  data: ProposalData;
   /** Pre-fetched image bytes, exactly as `renderPdf` takes them. */
   images?: readonly PdfImage[];
   /** Overrides the artifact, for tests that vary it. */
@@ -117,7 +117,7 @@ export function proposalSealAdapter({
 }
 
 /** The person who signs for a party. @throws {MissingSignerError} */
-function signerPerson(data: DocumentData, role: ProposalPartyRole): Person {
+function signerPerson(data: ProposalData, role: ProposalPartyRole): Person {
   const field = SIGNER_CONTACT_FIELD[role];
   const contact = data.fields[field];
   if (typeof contact !== "object" || contact === null || typeof (contact as Person).name !== "string") {
@@ -127,7 +127,7 @@ function signerPerson(data: DocumentData, role: ProposalPartyRole): Person {
 }
 
 /** The id the data carries for the party filling a role. `RuntimeParty` requires one. */
-function partyId(data: DocumentData, role: ProposalPartyRole): string {
+function partyId(data: ProposalData, role: ProposalPartyRole): string {
   const party = data.parties[role];
   return (Array.isArray(party) ? party[0]! : party!).id;
 }
@@ -138,7 +138,7 @@ function partyId(data: DocumentData, role: ProposalPartyRole): string {
  * Exported so a test can seal the same draft through an adapter of its own; use
  * `sealProposal` for the ordinary path.
  */
-export function fillProposalForSeal(data: DocumentData) {
+export function fillProposalForSeal(data: ProposalData) {
   // DocumentData carries `Record<string, unknown>` fields, which is what the
   // components need to read a path they are given as a string, and core infers
   // a fully typed payload from the artifact. Nothing published bridges the two,
@@ -159,7 +159,7 @@ export function fillProposalForSeal(data: DocumentData) {
 /** What `sealProposal` needs. */
 export interface SealProposalOptions {
   /** The proposal data the document renders. */
-  data: DocumentData;
+  data: ProposalData;
   /** Pre-fetched image bytes, exactly as `renderPdf` takes them. */
   images?: readonly PdfImage[];
 }

@@ -25,6 +25,14 @@ export {
 } from "./render";
 export { takumiAdapter } from "./adapters/takumi";
 export {
+  reactLayerRenderers,
+  reactRenderer,
+  UnboundReactLayerError,
+  type ReactLayerComponent,
+  type ReactLayerComponentProps,
+  type ReactLayerRendererOptions,
+} from "./layer";
+export {
   documentFontFiles,
   markerFont,
   markerFontFile,

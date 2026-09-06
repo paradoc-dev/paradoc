@@ -5,13 +5,35 @@
  * with a single file using closures and composition.
  */
 
-import type { Document, Layer, Metadata, ContentRef } from '@paradoc/types'
+import type { Document, Form, Layer, Metadata, ContentRef } from '@paradoc/types'
 import type { DraftDocumentJSON, FinalDocumentJSON } from '@paradoc/types'
 import { parseDocument, parseLayer } from '@/validation/artifact-parsers'
 import { toYAML } from '@/serialization/serialization'
 import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
-import { resolveAndRenderLayer, type LayerRenderOptions } from '../shared/render-layer'
+import { resolveAndRenderLayer, type LayerRenderContext, type LayerRenderOptions } from '../shared/render-layer'
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
+
+/**
+ * The artifact context a registered renderer receives for a document.
+ *
+ * A `Document` carries content, not field data, so there is no payload to hand
+ * a renderer and no `Form` to name. The renderer contract wants both, so the
+ * document stands in for the artifact and the payload is empty. A renderer that
+ * reads fields will find none, which is the truth about a document.
+ */
+function documentRenderContext(doc: Document): LayerRenderContext {
+	return {
+		form: {
+			kind: 'form',
+			name: doc.name,
+			version: doc.version,
+			title: doc.title,
+			description: doc.description,
+			fields: {},
+		} as unknown as Form,
+		data: { fields: {} },
+	}
+}
 
 // ============================================================================
 // Types
@@ -170,7 +192,7 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 
 	// Shared render function
 	const render = (options?: LayerRenderOptions): Promise<string | Uint8Array> => {
-		return resolveAndRenderLayer(doc.layers, targetLayer, doc.defaultLayer, options)
+		return resolveAndRenderLayer(doc.layers, targetLayer, doc.defaultLayer, options, documentRenderContext(doc))
 	}
 
 	// Draft phase
@@ -334,7 +356,7 @@ function createDocumentInstance<D extends Document>(doc: D): DocumentInstance<D>
 		},
 
 		render(options?: LayerRenderOptions): Promise<string | Uint8Array> {
-			return resolveAndRenderLayer(doc.layers, undefined, doc.defaultLayer, options)
+			return resolveAndRenderLayer(doc.layers, undefined, doc.defaultLayer, options, documentRenderContext(doc))
 		},
 
 		clone(): DocumentInstance<D> {

@@ -8,13 +8,12 @@ import type {
   BinaryContent,
   Resolver,
   Layer,
-  ParadocRenderer,
-  RendererLayer,
 } from '@paradoc/types'
 import type { DraftForm } from '@/artifacts/form'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import { renderLayer } from '@paradoc/render'
+import { findRegisteredRenderer, type RendererRegistry } from './renderer-registry'
 
 /**
  * A resolved artifact loaded from a path or slug.
@@ -47,18 +46,6 @@ export interface ArtifactResolver extends Resolver {
 // ============================================================================
 // Bundle Assembly API
 // ============================================================================
-
-/**
- * Optional custom renderer overrides keyed by MIME type.
- *
- * @example
- * ```typescript
- * const renderers: RendererRegistry = {
- *   'application/x-custom': customRenderer(),
- * }
- * ```
- */
-export type RendererRegistry = Record<string, ParadocRenderer<RendererLayer, unknown>>
 
 /**
  * Content entry for bundle assembly.
@@ -211,7 +198,7 @@ export async function assembleBundle(
 
     const mimeType = layer.mimeType
 
-    const renderer = renderers?.[mimeType] ?? renderLayer()
+    const renderer = findRegisteredRenderer(renderers, mimeType) ?? renderLayer()
 
     // Render the filled instance
     const renderOptions = {

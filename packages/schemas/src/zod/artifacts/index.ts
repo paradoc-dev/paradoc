@@ -16,4 +16,12 @@ export { SCALAR_EXPRESSION_TYPES, OBJECT_EXPRESSION_TYPES, ALL_EXPRESSION_TYPES 
 export type { ScalarExpressionType, ObjectExpressionType, ExpressionType } from './expressions';
 
 // Shared
-export { ArtifactSchema, ContentRefSchema, LayerSchema } from './shared';
+export {
+	ArtifactSchema,
+	ContentRefSchema,
+	isReactLayerMimeType,
+	LayerSchema,
+	REACT_LAYER_MIME_PATTERN,
+	REACT_LAYER_MIME_TYPES,
+	REACT_LAYER_RULE,
+} from './shared';

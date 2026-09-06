@@ -15,6 +15,8 @@
  */
 
 import { computeLineAmounts, type LineItemInput } from "../lib/totals";
+import type { RuntimeParty } from "@paradoc/types";
+
 import type { DocumentData } from "../components/document-context";
 
 const CURRENCY = "USD";
@@ -94,12 +96,23 @@ const OVERFLOW_ITEMS: LineItemInput[] = OVERFLOW_TASKS.flatMap((task, index) => 
   },
 ]);
 
+/**
+ * The sample's data, whose parties carry runtime ids.
+ *
+ * A document only prints a party, so `DocumentData` asks for the wider `Party`.
+ * The seal binds a signer to a party by id, so the sample states that its own
+ * parties have one rather than asserting it later.
+ */
+export interface ProposalData extends DocumentData {
+  parties: Record<string, RuntimeParty | RuntimeParty[]>;
+}
+
 function build(
   items: LineItemInput[],
   proposalNumber: string,
   summary: string,
   terms: string
-): DocumentData {
+): ProposalData {
   const { lineItems, subtotalAmount } = computeLineAmounts(items, CURRENCY);
   return {
     fields: {
@@ -143,7 +156,7 @@ function build(
 }
 
 /** A short proposal, measured to fit inside one page of content. */
-export const shortProposalData: DocumentData = build(
+export const shortProposalData: ProposalData = build(
   SHORT_ITEMS,
   "PRO-2026-0148",
   "Replace the legacy dispatch system with one integrated platform.",
@@ -151,7 +164,7 @@ export const shortProposalData: DocumentData = build(
 );
 
 /** A long proposal, measured to run past three pages. */
-export const overflowProposalData: DocumentData = build(
+export const overflowProposalData: ProposalData = build(
   OVERFLOW_ITEMS,
   "PRO-2026-0149",
   "Full replacement programme for the dispatch, driver, and settlement systems, delivered in two phases across every operating region.",

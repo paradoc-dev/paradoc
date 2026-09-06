@@ -59,6 +59,8 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "export:bundled-schema": "tsx scripts/export-root-schema-zod.ts",
     "export:individual-schemas": "tsx scripts/export-all-schemas-zod.ts",
     "export:manifest": "tsx scripts/export-manifest-schema-zod.ts",

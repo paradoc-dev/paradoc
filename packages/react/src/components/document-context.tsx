@@ -7,7 +7,7 @@
  */
 
 import { createContext, useContext } from "react";
-import type { Form, FormField, RuntimeParty, SerializerRegistry } from "@paradoc/types";
+import type { Form, FormField, Party, SerializerRegistry } from "@paradoc/types";
 
 import { itemField, readValue, resolveField } from "../lib/fields";
 import { formatByType, type DocumentFormatter, type ValueFormatter } from "../lib/format";
@@ -16,8 +16,14 @@ import { formatByType, type DocumentFormatter, type ValueFormatter } from "../li
 export interface DocumentData {
   /** Field values keyed the way the artifact names its fields. */
   fields: Record<string, unknown>;
-  /** Parties keyed by role. */
-  parties: Record<string, RuntimeParty | RuntimeParty[]>;
+  /**
+   * Parties keyed by role, exactly as `FormData` carries them.
+   *
+   * A document prints a party; it never needs the runtime id one carries, so
+   * this is the wider `Party` rather than `RuntimeParty`. That is what a render
+   * request hands over, so nothing has to assert an id that may not be there.
+   */
+  parties: Record<string, Party | Party[]>;
 }
 
 /**
@@ -53,7 +59,7 @@ export interface DocumentContextValue {
   /** Formats one computed def by name, through the serializer its type names. */
   defText: (name: string) => string;
   /** Reads the parties filling one role. */
-  party: (role: string) => RuntimeParty[];
+  party: (role: string) => Party[];
   /**
    * The signing placeholder the seal flow rendered for a party's signature
    * slot, if this render is a seal pass. Undefined everywhere else, and the
@@ -87,7 +93,7 @@ export function createDocumentContext(
   const field = (path: string) => resolveField(form, path);
   const value = (path: string) => readValue(data.fields, path);
 
-  const party = (role: string): RuntimeParty[] => {
+  const party = (role: string): Party[] => {
     const entry = data.parties[role];
     if (!entry) return [];
     return Array.isArray(entry) ? entry : [entry];

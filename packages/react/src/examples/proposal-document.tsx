@@ -42,7 +42,13 @@ export interface ProposalDocumentProps {
   format?: FormatOptions;
 }
 
-/** The composed proposal. */
+/**
+ * The composed proposal.
+ *
+ * Exported by name and as the module's default. The default is what a React
+ * layer binds to when the renderer imports the module the layer's path names,
+ * which is the convention a composition module follows.
+ */
 export function ProposalDocument({
   data,
   artifact = proposalForm,
@@ -128,3 +134,5 @@ export function ProposalDocument({
     </Bundle>
   );
 }
+
+export default ProposalDocument;

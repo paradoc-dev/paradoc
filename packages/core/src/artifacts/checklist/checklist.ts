@@ -5,7 +5,13 @@
  * with a single file using closures and composition.
  */
 
-import type { Checklist, ChecklistItem, Layer, Metadata, RendererLayer, Form, ContentRef } from '@paradoc/types'
+import type { Checklist, ChecklistItem, Layer, Metadata, ParadocRenderer, RendererLayer, Form, ContentRef } from '@paradoc/types'
+import { buildRendererLayer } from '../shared/render-layer'
+import {
+	findRegisteredRenderer,
+	isReactLayerMimeType,
+	UnregisteredLayerRendererError,
+} from '@/rendering/renderer-registry'
 import type { DraftChecklistJSON, CompletedChecklistJSON } from '@paradoc/types'
 import { parseChecklist, parseChecklistItem, parseLayer } from '@/validation/artifact-parsers'
 import {
@@ -331,28 +337,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(layers).join(', ')}`)
 		}
 
-		// Get layer content
-		let layerContent: string | Uint8Array | Buffer
-		let bindings: Record<string, string> | undefined
-
-		if (layerSpec.kind === 'inline') {
-			layerContent = layerSpec.text
-			bindings = layerSpec.bindings
-		} else if (layerSpec.kind === 'file') {
-			if (options?.resolver) {
-				const bytes = await options.resolver.read(layerSpec.path)
-				if (layerSpec.mimeType.startsWith('text/') || layerSpec.mimeType === 'application/json') {
-					layerContent = new TextDecoder().decode(bytes)
-				} else {
-					layerContent = bytes
-				}
-			} else {
-				throw new Error(`Layer "${key}" is file-backed but no resolver was provided.`)
-			}
-			bindings = layerSpec.bindings
-		} else {
-			throw new Error('Unknown layer spec kind')
-		}
+		let bindings: Record<string, string> | undefined = layerSpec.bindings
 
 		// Resolve bindingsFrom reference if no direct bindings
 		if (!bindings && layerSpec.bindingsFrom) {
@@ -363,10 +348,23 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			bindings = refLayer.bindings
 		}
 
-		// If no renderer provided, return raw layer content
-		if (!options?.renderer) {
-			return layerContent as Output
+		// An explicit renderer wins, then one registered for the layer's MIME
+		// type. With neither, a checklist returns its raw layer content — except
+		// for a React layer, which has none, and fails naming the option.
+		const renderer =
+			options?.renderer ?? (findRegisteredRenderer(options?.renderers, layerSpec.mimeType) as
+				| ParadocRenderer<RendererLayer, Output>
+				| undefined)
+
+		if (!renderer) {
+			if (isReactLayerMimeType(layerSpec.mimeType)) {
+				throw new UnregisteredLayerRendererError(key, layerSpec.mimeType)
+			}
+			const raw = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
+			return raw.content as Output
 		}
+
+		const template = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
 
 		// Build checklist data for rendering
 		// Convert items to array format with values for template iteration
@@ -397,13 +395,6 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			...getAllItems(),
 		}
 
-		const template: RendererLayer = {
-			type: 'text',
-			content: layerContent,
-			mimeType: layerSpec.mimeType,
-			...(bindings && { bindings }),
-		}
-
 		// Create a minimal form-like object for the renderer
 		// Renderers mainly use template and data, form is just context
 		const formContext = {
@@ -415,7 +406,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			fields: {},
 		} as unknown as Form
 
-		return await options.renderer.render({
+		return await renderer.render({
 			template,
 			form: formContext,
 			data: { fields: fullData },
@@ -659,28 +650,7 @@ function createChecklistInstance<C extends Checklist>(checklistDef: C): Checklis
 				throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(layers).join(', ')}`)
 			}
 
-			// Get layer content
-			let layerContent: string | Uint8Array | Buffer
-			let bindings: Record<string, string> | undefined
-
-			if (layerSpec.kind === 'inline') {
-				layerContent = layerSpec.text
-				bindings = layerSpec.bindings
-			} else if (layerSpec.kind === 'file') {
-				if (options?.resolver) {
-					const bytes = await options.resolver.read(layerSpec.path)
-					if (layerSpec.mimeType.startsWith('text/') || layerSpec.mimeType === 'application/json') {
-						layerContent = new TextDecoder().decode(bytes)
-					} else {
-						layerContent = bytes
-					}
-				} else {
-					throw new Error(`Layer "${key}" is file-backed but no resolver was provided.`)
-				}
-				bindings = layerSpec.bindings
-			} else {
-				throw new Error('Unknown layer spec kind')
-			}
+			let bindings: Record<string, string> | undefined = layerSpec.bindings
 
 			// Resolve bindingsFrom reference if no direct bindings
 			if (!bindings && layerSpec.bindingsFrom) {
@@ -691,10 +661,22 @@ function createChecklistInstance<C extends Checklist>(checklistDef: C): Checklis
 				bindings = refLayer.bindings
 			}
 
-			// If no renderer provided, return raw layer content
-			if (!options?.renderer) {
-				return layerContent as Output
+			// As in the filled path: an explicit renderer, then the registry, then
+			// raw content — and a React layer, which has none, fails instead.
+			const renderer =
+				options?.renderer ?? (findRegisteredRenderer(options?.renderers, layerSpec.mimeType) as
+					| ParadocRenderer<RendererLayer, Output>
+					| undefined)
+
+			if (!renderer) {
+				if (isReactLayerMimeType(layerSpec.mimeType)) {
+					throw new UnregisteredLayerRendererError(key, layerSpec.mimeType)
+				}
+				const raw = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
+				return raw.content as Output
 			}
+
+			const template = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
 
 			// Build checklist data for rendering (no item values since not filled)
 			const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
@@ -720,13 +702,6 @@ function createChecklistInstance<C extends Checklist>(checklistDef: C): Checklis
 				items: itemsWithoutValues,
 			}
 
-			const template: RendererLayer = {
-				type: 'text',
-				content: layerContent,
-				mimeType: layerSpec.mimeType,
-				...(bindings && { bindings }),
-			}
-
 			const formContext = {
 				kind: 'form' as const,
 				name: checklistDef.name,
@@ -736,7 +711,7 @@ function createChecklistInstance<C extends Checklist>(checklistDef: C): Checklis
 				fields: {},
 			} as unknown as Form
 
-			return await options.renderer.render({
+			return await renderer.render({
 				template,
 				form: formContext,
 				data: { fields: fullData },

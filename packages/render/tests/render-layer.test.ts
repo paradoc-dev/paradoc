@@ -52,4 +52,29 @@ describe('renderLayer', () => {
       data: { fields: { name: 'Ada' } },
     } as never)).rejects.toThrow('Unsupported render layer MIME type: (missing)')
   })
+
+  it('fails naming the type when a layer of a supported type carries no content', async () => {
+    // A layer that names its content rather than carrying it — a React
+    // composition — belongs to a renderer registered for its MIME type. These
+    // engines render a payload, so reaching one without a payload is a fault.
+    for (const mimeType of ['text/markdown', 'application/pdf', DOCX_MIME_TYPE]) {
+      await expect(renderLayer().render({
+        template: { type: 'text', mimeType },
+        form,
+        data: { fields: { name: 'Ada' } },
+      } as never)).rejects.toThrow(
+        `Render layer of MIME type ${mimeType} carries no content.`,
+      )
+    }
+  })
+
+  it('reports an unsupported type as unsupported even when it carries no content', async () => {
+    // Both faults at once. Naming the type it cannot render is the answer that
+    // helps, so the dispatch decides before the content check runs.
+    await expect(renderLayer().render({
+      template: { type: 'react', mimeType: 'text/tsx' },
+      form,
+      data: { fields: {} },
+    } as never)).rejects.toThrow('Unsupported render layer MIME type: text/tsx')
+  })
 })

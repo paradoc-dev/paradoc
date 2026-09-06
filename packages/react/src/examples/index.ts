@@ -18,10 +18,12 @@ export {
   proposal,
   proposalForm,
   proposalSpec,
+  PROPOSAL_REACT_LAYER,
+  PROPOSAL_REACT_LAYER_PATH,
   PROPOSAL_SIGNATURE_SLOTS,
   PROPOSAL_SIGNING_LAYER,
 } from "./proposal";
-export { overflowProposalData, shortProposalData } from "./proposal-data";
+export { overflowProposalData, shortProposalData, type ProposalData } from "./proposal-data";
 export { ProposalDocument, type ProposalDocumentProps } from "./proposal-document";
 export {
   PROPOSAL_LOGO_HEIGHT_PX,

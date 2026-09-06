@@ -117,13 +117,27 @@ export interface SignatureSlot {
 }
 
 /**
+ * MIME types that name a React composition module.
+ *
+ * A composition is a React component in a `.tsx` or `.jsx` file. The layer that
+ * declares one is a pointer to that module, so it is always a `FileLayer`: an
+ * `InlineLayer` carrying one of these types is rejected at validation. Nothing
+ * reads the file as content; the module is bound at render time.
+ */
+export type ReactLayerMimeType = 'text/tsx' | 'text/jsx';
+
+/**
  * Inline layer with embedded text content.
  * Used for layers where content is stored directly in the artifact definition.
  */
 export interface InlineLayer {
   /** Discriminator for inline layer type. */
   kind: "inline";
-  /** MIME type of the content (e.g., text/markdown, text/html). */
+  /**
+   * MIME type of the content (e.g., text/markdown, text/html).
+   * Never a {@link ReactLayerMimeType}: a React layer names a module and must
+   * be a {@link FileLayer}.
+   */
   mimeType: string;
   /** Layer content with interpolation placeholders. */
   text: string;
@@ -150,9 +164,18 @@ export interface InlineLayer {
 export interface FileLayer {
   /** Discriminator for file layer type. */
   kind: "file";
-  /** MIME type of the file (e.g., application/pdf). */
+  /**
+   * MIME type of the file (e.g., application/pdf). A
+   * {@link ReactLayerMimeType} declares a React composition.
+   */
   mimeType: string;
-  /** Absolute path from repo root to the layer file. */
+  /**
+   * Path to the layer file, relative to the artifact file that declares it.
+   *
+   * For a React layer it is a pointer to the composition module, never read as
+   * content. Binding that module by import executes it, so a renderer that does
+   * so confines the path to the artifact's own directory.
+   */
   path: string;
   /** Optional human-readable title for this layer. */
   title?: string;

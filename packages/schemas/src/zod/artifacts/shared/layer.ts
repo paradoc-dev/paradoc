@@ -146,6 +146,57 @@ export const SignatureSlotSchema = z.object({
 }).strict();
 
 /**
+ * MIME types that name a React composition module.
+ *
+ * A composition is a React component in a `.tsx` or `.jsx` file. The layer that
+ * declares one points at the module, so it is always a file layer: an inline
+ * layer of one of these types carries source where a pointer belongs and is
+ * rejected here.
+ *
+ * This is the one definition. `@paradoc/core` imports it for its render
+ * dispatch rather than restating it, so validation and dispatch cannot drift.
+ */
+export const REACT_LAYER_MIME_TYPES = ['text/tsx', 'text/jsx'] as const;
+
+/**
+ * Whether a MIME type names a React composition module.
+ *
+ * Case-insensitive, because MIME types are: RFC 2045 says the type and subtype
+ * are compared without regard to case, and a layer written `TEXT/TSX` is the
+ * same layer. Validation and render dispatch agree on that, or one would accept
+ * what the other refuses.
+ */
+export function isReactLayerMimeType(mimeType: string | undefined): boolean {
+	return mimeType !== undefined && (REACT_LAYER_MIME_TYPES as readonly string[]).includes(mimeType.toLowerCase());
+}
+
+/** The rule an inline React layer breaks, stated once so every error reads the same. */
+export const REACT_LAYER_RULE =
+	`React layers must be file layers: ${REACT_LAYER_MIME_TYPES.join(' and ')} name a composition module by path, ` +
+	'so an inline layer cannot declare one';
+
+/** One MIME type as a case-insensitive regular-expression alternative. */
+function caseInsensitiveAlternative(value: string): string {
+	return [...value]
+		.map((character) =>
+			/[a-z]/i.test(character)
+				? `[${character.toLowerCase()}${character.toUpperCase()}]`
+				: character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+		)
+		.join('');
+}
+
+/**
+ * The exclusion as a JSON Schema `pattern`, matching the predicate's case rule.
+ *
+ * A Zod refinement validates and then vanishes from the generated schema, so the
+ * rule is attached as a keyword too. It is a pattern rather than an `enum`
+ * because an enum would compare case-sensitively and let `TEXT/TSX` through the
+ * published schema while the framework rejected it.
+ */
+export const REACT_LAYER_MIME_PATTERN = `^(?:${REACT_LAYER_MIME_TYPES.map(caseInsensitiveAlternative).join('|')})$`;
+
+/**
  * Common fields shared by all layer types.
  */
 const LayerBaseSchema = z.object({
@@ -195,6 +246,14 @@ const LayerBaseSchema = z.object({
  */
 const InlineLayerSchema = LayerBaseSchema.extend({
 	kind: z.literal('inline'),
+	// The exclusion is stated to JSON Schema as well as to Zod: a refinement
+	// alone would validate at runtime and vanish from the published schema.
+	mimeType: z.string()
+		.min(1)
+		.max(100)
+		.refine((value) => !isReactLayerMimeType(value), { error: REACT_LAYER_RULE })
+		.describe('MIME type of the layer content (e.g., text/markdown). Never a React composition type')
+		.meta({ not: { pattern: REACT_LAYER_MIME_PATTERN } }),
 	text: z.string()
 		.min(1)
 		.max(1000000)
@@ -212,7 +271,7 @@ const FileLayerSchema = LayerBaseSchema.extend({
 	path: z.string()
 		.min(1)
 		.max(1000)
-		.describe('Absolute path from repo root to the layer file'),
+		.describe('Path to the layer file, relative to the artifact file that declares it'),
 	checksum: z.string()
 		.min(1)
 		.max(100)

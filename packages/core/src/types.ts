@@ -24,6 +24,8 @@ import type {
   RendererLayer,
 } from '@paradoc/types'
 
+import type { RendererRegistry } from './rendering/renderer-registry'
+
 // Re-export RendererLayer for convenience
 export type { RendererLayer } from '@paradoc/types'
 
@@ -224,6 +226,13 @@ export interface RenderOptions<Output = string | Uint8Array> {
   /** Custom renderer override. Supported layer MIME types use the built-in renderer by default. */
   renderer?: ParadocRenderer<RendererLayer, Output>
 
+  /**
+   * Renderers keyed by layer MIME type, consulted when no `renderer` override
+   * is given and before the built-in engines. This is how a format core does
+   * not ship, such as a React composition, reaches the render call.
+   */
+  renderers?: RendererRegistry
+
   /** Resolver for auto-loading file-backed layers (only needs read method) */
   resolver?: Resolver
 
@@ -257,6 +266,13 @@ export interface RenderOptions<Output = string | Uint8Array> {
 export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
   /** Custom renderer override. Supported layer MIME types use the built-in renderer by default. */
   renderer?: ParadocRenderer<RendererLayer, Output>
+
+  /**
+   * Renderers keyed by layer MIME type, consulted when no `renderer` override
+   * is given and before the built-in engines. This is how a format core does
+   * not ship, such as a React composition, reaches the render call.
+   */
+  renderers?: RendererRegistry
 
   /** Resolver for auto-loading file-backed layers (only needs read method) */
   resolver?: Resolver
@@ -293,6 +309,12 @@ export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
 export interface RuntimeChecklistRenderOptions<Output = unknown> {
   /** The renderer to use for template processing. If not provided, returns raw layer content. */
   renderer?: ParadocRenderer<RendererLayer, Output>
+
+  /**
+   * Renderers keyed by layer MIME type, consulted after an explicit `renderer`
+   * and before falling back to raw layer content.
+   */
+  renderers?: RendererRegistry
 
   /** Resolver for auto-loading file-backed layers (only needs read method) */
   resolver?: Resolver

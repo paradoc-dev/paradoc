@@ -32,6 +32,7 @@ import { toYAML } from '@/serialization/serialization'
 import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RendererRegistry, ArtifactResolver } from '@/rendering'
+import { findRegisteredRenderer } from '@/rendering/renderer-registry'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
 import { renderLayer as createRenderer } from '@paradoc/render'
 
@@ -724,7 +725,7 @@ async function renderInstance(
 	}
 
 	const mimeType = layer.mimeType
-	const renderer = renderers?.[mimeType] ?? createRenderer()
+	const renderer = findRegisteredRenderer(renderers, mimeType) ?? createRenderer()
 
 	// Render based on instance type
 	let content: unknown

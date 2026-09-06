@@ -33,20 +33,36 @@ export type BinaryContent = Uint8Array;
 export interface RendererLayer {
   /**
    * Logical template type understood by renderers.
-   * Typically 'text', 'docx', 'pdf', etc., but you can extend it.
+   * Typically 'text', 'docx', 'pdf', 'react', etc., but you can extend it.
    */
-  type: "text" | "docx" | "pdf" | string;
+  type: "text" | "docx" | "pdf" | "react" | string;
 
   /**
    * Template payload in memory: either text or binary.
+   *
+   * Absent when the layer names its content rather than carrying it. A React
+   * composition is the case that exists today: its module is bound at render
+   * time from `path`, and reading the source would tell a renderer nothing.
    */
-  content: string | BinaryContent;
+  content?: string | BinaryContent;
 
   /**
    * Original media type, when known.
-   * e.g. 'text/markdown', 'application/pdf', etc.
+   * e.g. 'text/markdown', 'application/pdf', 'text/tsx', etc.
    */
   mimeType?: string;
+
+  /**
+   * Key the artifact declares this layer under, when it came from one.
+   * A renderer that binds a module may key its lookup on it.
+   */
+  key?: string;
+
+  /**
+   * Path of a file-backed layer, exactly as the artifact declares it.
+   * It is a pointer: nothing here reads or executes it.
+   */
+  path?: string;
 
   /**
    * Optional engine-specific metadata.
