@@ -82,7 +82,7 @@ const COLOR = `black|white|transparent|(?:${PALETTE})-(?:50|100|200|300|400|500|
  * same family through the renderer's font stack, so it is a no-op here rather
  * than a silent loss.
  */
-const NON_UTILITY_CLASSES = new Set(["paradoc-document"]);
+const NON_UTILITY_CLASSES = new Set(["paradoc-document", "paradoc-ltr-isolate"]);
 
 /** Which fragment makes a family's effect visible. */
 export type ProbeHarness = "layout" | "narrow" | "text";

@@ -3,6 +3,7 @@
  */
 
 export type {
+  RegionFormat,
   SerializerRegistry,
   SerializerConfig,
   SerializerFallbacks,

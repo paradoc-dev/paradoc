@@ -388,6 +388,10 @@ describe("the paper is resolved from the element, so a static render has it", ()
     ["pageSize", { pageSize: "a4" } as const],
     ["fontFamily", { fontFamily: SERIF_FONT_NAME }],
     ["marginPx", { marginPx: 72 }],
+    ["dir", { dir: "rtl" } as const],
+    // A Latin language, so the mismatch is the tag itself rather than a script
+    // the default family could not have set either way.
+    ["lang", { lang: "fr" }],
   ])("fails loudly when a composition hides %s from the furniture", (token, hidden) => {
     // The walk never calls a component, so a composition that brands itself
     // internally is invisible to the sheet. The document catches it rather than
@@ -498,6 +502,10 @@ describe("paper and typeface are declared once, at the root", () => {
     ["fontFamily", { fontFamily: SERIF_FONT_NAME }],
     ["pageSize", { pageSize: "a4" }],
     ["marginPx", { marginPx: 72 }],
+    ["dir", { dir: "rtl" }],
+    // A Latin language for the reason above: what is under test is the rule,
+    // not whether the bundle's family carries the script.
+    ["lang", { lang: "fr" }],
   ])("refuses a nested document that sets %s, naming the token", (token, tokens) => {
     expect(() => renderToStaticMarkup(nested(tokens))).toThrow(NestedPaperTokenError);
     expect(() => renderToStaticMarkup(nested(tokens))).toThrow(new RegExp(token));
@@ -552,9 +560,18 @@ describe("every token is checked before a renderer sees it", () => {
 describe("comparing two resolved sets", () => {
   it("covers every field the type declares", () => {
     expect(DOCUMENT_TOKEN_KEYS).toEqual(
-      expect.arrayContaining(["fontFamily", "fontStack", "accentColor", "pageSize", "marginPx", "logo"])
+      expect.arrayContaining([
+        "fontFamily",
+        "fontStack",
+        "accentColor",
+        "pageSize",
+        "marginPx",
+        "logo",
+        "dir",
+        "lang",
+      ])
     );
-    expect(DOCUMENT_TOKEN_KEYS).toHaveLength(6);
+    expect(DOCUMENT_TOKEN_KEYS).toHaveLength(8);
   });
 
   it("is true only when nothing about the document moved", () => {

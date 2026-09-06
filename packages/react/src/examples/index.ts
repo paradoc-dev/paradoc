@@ -1,12 +1,13 @@
 /**
  * `@paradoc/react/examples` — the sample document this package is measured on.
  *
- * **Sample material, not a stable API.** It is a services proposal: an artifact,
- * two data sets, and one composition. It ships so that the pagination tests,
- * the class probe suite and the parity suite have a real document to measure,
- * and so that a reader has a whole composition to copy from rather than a
- * fragment. Nothing here is framework surface, and anything here may change
- * without a major version.
+ * **Sample material, not a stable API.** Two documents: a services proposal —
+ * an artifact, two data sets, two token sets and one composition — and a short
+ * Arabic order-confirmation letter written right to left. They ship so that the
+ * pagination tests, the class probe suite and the parity suite have real
+ * documents to measure, and so that a reader has a whole composition to copy
+ * from rather than a fragment. Nothing here is framework surface, and anything
+ * here may change without a major version.
  *
  * This entry is isomorphic: it is the artifact, the data and the tree. The
  * Node-only half — the logo bytes and the seal wiring — is
@@ -34,3 +35,16 @@ export {
   brandedProposalTokens,
   BRANDED_ACCENT_COLOR,
 } from "./tokens";
+export {
+  arabicLetter,
+  arabicLetterForm,
+  arabicLetterSpec,
+  arabicLetterTokens,
+  ARABIC_LETTER_REACT_LAYER,
+  ARABIC_LETTER_REACT_LAYER_PATH,
+} from "./arabic-letter";
+export { arabicLetterData, type ArabicLetterData } from "./arabic-letter-data";
+export {
+  ArabicLetterDocument,
+  type ArabicLetterDocumentProps,
+} from "./arabic-letter-document";

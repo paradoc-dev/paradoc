@@ -13,7 +13,9 @@
 
 export {
   renderPdf,
+  assertDirectionSupported,
   MissingAdapterPeerError,
+  UnsupportedDirectionError,
   UnsupportedPdfContentError,
   type PdfAdapter,
   type PdfAdapterName,

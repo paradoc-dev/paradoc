@@ -126,8 +126,11 @@ describe("the emitted files", () => {
   });
 
   it("takes the substrate from the package", () => {
+    // `Field` reads the document context and the resolved tokens — the second
+    // to decide whether a phone number needs isolating — and both reach an
+    // installed file through the package rather than through a copy of theirs.
     expect(byName.get("field")?.files[0]?.content).toContain(
-      `import { useDocument } from "${SUBSTRATE_PACKAGE}";`
+      `import { useDocument, useDocumentTokens } from "${SUBSTRATE_PACKAGE}";`
     );
   });
 

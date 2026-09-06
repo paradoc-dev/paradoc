@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 import type { PageDimensions } from "../../src/lib/tokens";
 import type { PdfAdapterName } from "../../src/pdf";
-import type { Branding, DataSet } from "./preview";
+import type { Branding, DataSet, LabDocument } from "./preview";
 
 /** Which side decided the page breaks. */
 export type PaginationMode = "engine" | "hint";
@@ -42,6 +42,17 @@ export interface PageReport {
    */
   previewFirstKeep: string | null;
   pdfFirstKeep: string | null;
+  /**
+   * The same keep read from the page's *words* rather than its figures.
+   *
+   * Recorded on every page of every run, including the ones the criterion is
+   * read from digits instead, because it is the measurement behind the claim
+   * that a script does not survive a PDF's text layer. Null on every page of
+   * the Arabic letter is that claim; a non-null one would retire it.
+   */
+  pdfFirstKeepByText: string | null;
+  /** Which reading the criterion was taken from. */
+  identifiedBy: "text" | "digits";
   firstKeepMatches: boolean;
   /** Share of the page the preview paints on, as a percentage. */
   inkPercent: number;
@@ -74,6 +85,8 @@ export interface PageReport {
 export interface RunReport {
   /** Which engine wrote the PDF. */
   adapter: PdfAdapterName;
+  /** Which sample document was measured. */
+  document: LabDocument;
   dataSet: DataSet;
   /** Which token set the document was branded with. */
   branding: Branding;
@@ -97,7 +110,38 @@ export interface RunReport {
   worstDriftPixels: number;
   /** True when every page's raw difference is under one percent. Recorded. */
   everyPageUnderOnePercent: boolean;
+  /**
+   * Whether a page of this document can be identified from the PDF's *words*.
+   *
+   * Not every script survives a PDF text layer. Shaped Arabic reaches the file
+   * as contextual presentation forms in visual order, which neither engine maps
+   * back to the characters the document was written in. The criterion is not
+   * dropped for such a run: it is read from the page's figures instead, which
+   * do survive, so a page that opened on the wrong row is still caught. What
+   * this flag says is which reading the run used, and it is asserted either way
+   * — a run whose words do come back and whose keeps still disagree is a
+   * failure, and a run whose words come back where this says they cannot is a
+   * finding that has expired.
+   */
+  firstKeepsReadable: boolean;
   pages: PageReport[];
+}
+
+/**
+ * An engine that refused a document, recorded as a result.
+ *
+ * A refusal is a measurement: the suite asked every engine for every document
+ * and one of them said no, by name. Recording it here is what keeps "takumi
+ * cannot lay out right to left" a fact this run produced rather than a claim
+ * the README makes on its own.
+ */
+export interface RefusalReport {
+  adapter: PdfAdapterName;
+  document: LabDocument;
+  /** The error class the adapter seam raised. */
+  error: string;
+  /** What it said, in full. */
+  message: string;
 }
 
 /** The run that proves the measurement responds to a change on one side only. */
@@ -133,6 +177,8 @@ export interface ParityReport {
   /** How far a band may sit from its counterpart, in pixels. */
   driftLimitPixels: number;
   runs: RunReport[];
+  /** Engines that refused a document rather than laying it out wrongly. */
+  refusals: RefusalReport[];
   sensitivity: SensitivityReport | null;
 }
 
@@ -187,17 +233,23 @@ export function printReport(report: ParityReport): void {
     for (const run of report.runs.filter((candidate) => candidate.adapter === adapter)) {
       lines.push("");
       lines.push(
-        `${run.dataSet} / ${run.branding} tokens / ${run.mode} breaks on ` +
+        `${run.document} / ${run.dataSet} / ${run.branding} tokens / ${run.mode} breaks on ` +
           `${run.paper.widthPx}x${run.paper.heightPx}: preview ${run.previewPages} pages, ` +
           `PDF ${run.pdfPages} pages` +
           (run.unknownBreaks.length > 0 ? `, stale breaks ${run.unknownBreaks.join(",")}` : "") +
-          (run.unknownRepeats.length > 0 ? `, stale repeats ${run.unknownRepeats.join(",")}` : "")
+          (run.unknownRepeats.length > 0 ? `, stale repeats ${run.unknownRepeats.join(",")}` : "") +
+          (run.firstKeepsReadable
+            ? ""
+            : ", first keeps read from the page's figures (the PDF text layer does not " +
+              "round-trip this script)")
       );
 
       const header = [
         "page",
         "preview first keep",
         "pdf first keep",
+        "from",
+        "by text",
         "same",
         "ink%",
         "diff%",
@@ -211,6 +263,8 @@ export function printReport(report: ParityReport): void {
         String(page.number),
         page.previewFirstKeep ?? "-",
         page.pdfFirstKeep ?? "-",
+        page.identifiedBy,
+        page.pdfFirstKeepByText ?? "-",
         page.firstKeepMatches ? "yes" : "NO",
         page.inkPercent.toFixed(2),
         page.differingPercent.toFixed(2),
@@ -225,6 +279,14 @@ export function printReport(report: ParityReport): void {
       );
       lines.push(row(header, widths));
       for (const cells of body) lines.push(row(cells, widths));
+    }
+  }
+
+  if (report.refusals.length > 0) {
+    lines.push("");
+    for (const refusal of report.refusals) {
+      lines.push(`${refusal.adapter} refused ${refusal.document}: ${refusal.error}.`);
+      lines.push(`  ${refusal.message}`);
     }
   }
 

@@ -162,14 +162,21 @@ export function documentTokensOf(
   element: ReactNode,
   override?: DocumentTokensInput
 ): DocumentTokens {
-  const roots: FoundRoot[] = [];
-  walk(element, { tokens: undefined, override: undefined, overridden: false }, roots);
-
-  if (roots.length > 1) throw new MultipleDocumentRootsError(roots.length);
-
-  const root = roots[0];
+  const root = onlyRoot(element);
   return resolveDocumentTokens(
     root?.tokens,
     root?.overridden === true ? root.override : override
   );
+}
+
+/**
+ * The root the element declares, or `undefined` when it declares none.
+ *
+ * @throws {MultipleDocumentRootsError} when the element holds more than one.
+ */
+function onlyRoot(element: ReactNode): FoundRoot | undefined {
+  const roots: FoundRoot[] = [];
+  walk(element, { tokens: undefined, override: undefined, overridden: false }, roots);
+  if (roots.length > 1) throw new MultipleDocumentRootsError(roots.length);
+  return roots[0];
 }

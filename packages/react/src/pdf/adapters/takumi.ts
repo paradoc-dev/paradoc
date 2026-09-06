@@ -36,12 +36,26 @@ import { preparePdfTree, recordOnce } from "../tree";
 export const takumiAdapter: PdfAdapter = {
   name: "takumi",
 
+  // Left to right only, and measured rather than assumed. The engine reverses a
+  // flex container's main axis for `dir="rtl"`, so a row's columns do come out
+  // in the right order, but it has no `direction` property: an inline run in a
+  // block box starts on the left edge whatever `dir` says, and `text-start`
+  // renders byte-identical to `text-left`. So a right-to-left document would be
+  // a document with its columns reversed and every line still left-aligned,
+  // which is worse than a refusal. See "Right to left" in the README.
+  directions: ["ltr"],
+
   async render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult> {
     const { node, stylesheets } = await fromJsx(input.element);
 
     const prepared = preparePdfTree(node, {
       plan: input.plan,
       imageSources: input.images.map((image) => image.src),
+      // The resolved text is checked against the resolved family here, where
+      // both exist: a document written in a script the family cannot set
+      // reaches this engine as null glyphs and no error.
+      fontFamily: input.tokens.fontFamily,
+      lang: options.lang,
     });
 
     const badImages = [...prepared.missingImages];

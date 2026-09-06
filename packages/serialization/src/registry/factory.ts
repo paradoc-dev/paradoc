@@ -4,7 +4,7 @@ import type {
   Stringifier,
   SerializerFallbacks,
 } from "@paradoc/types";
-import { usaSerializers, euSerializers } from "./base";
+import { REGION_REGISTRIES } from "./base";
 
 function createWrappedStringifier<T>(
   baseStringify: (value: T) => string,
@@ -69,8 +69,19 @@ function applyFallbacks(
  * ```
  */
 export function createSerializer(config: SerializerConfig): SerializerRegistry {
-  const baseRegistry =
-    config.regionFormat === "eu" ? euSerializers : usaSerializers;
+  // `REGION_REGISTRIES` is exhaustive over `RegionFormat` by construction, so
+  // typed code cannot reach the guard below. A caller that casts past the type
+  // gets an error naming what it asked for rather than a different region's
+  // formatting: a document quietly rendered in dollars because its registry
+  // name was misspelt is the kind of wrong answer nobody reads as wrong.
+  const requested = config.regionFormat ?? "us";
+  const baseRegistry = REGION_REGISTRIES[requested];
+  if (baseRegistry === undefined) {
+    throw new Error(
+      `No serializer registry named ${JSON.stringify(requested)}. ` +
+        `Available: ${Object.keys(REGION_REGISTRIES).join(", ")}.`
+    );
+  }
 
   return applyFallbacks(baseRegistry, config.fallbacks);
 }

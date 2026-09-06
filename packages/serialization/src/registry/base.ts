@@ -10,7 +10,7 @@ import type {
   Organization,
   Party,
 } from "@paradoc/types";
-import type { SerializerRegistry } from "@paradoc/types";
+import type { RegionFormat, SerializerRegistry } from "@paradoc/types";
 import {
   phoneStringifier,
   personStringifier,
@@ -200,3 +200,50 @@ export const euSerializers = createRegionRegistry({
   defaultCurrency: "EUR",
   addressFormat: "eu",
 });
+
+/**
+ * Arabic-language formatting, with Western digits.
+ *
+ * **The numbering system is pinned, and that is the decision this registry
+ * makes.** `ar` alone would leave the digits to the runtime's CLDR data, which
+ * has changed which system it defaults to between ICU releases; a registry
+ * whose output moves with the runtime is not deterministic, which is the one
+ * property every registry here holds. So the tag carries `-u-nu-latn` and the
+ * digits are `0123456789` on every machine.
+ *
+ * **Latin digits rather than Arabic-Indic (`٠١٢٣`) is a choice, not a
+ * limitation.** Both are correct Arabic; which one a document uses is
+ * regional. Contracts, invoices and statements across the Gulf and the Levant
+ * are set in Western digits, Egypt and Sudan in Arabic-Indic, and a registry
+ * has to pick one. Western digits also survive a PDF's text layer intact,
+ * where the shaped Arabic around them does not, so a reader can still search a
+ * rendered document for an amount or a reference number.
+ *
+ * A document that needs Arabic-Indic digits has no registry here yet. It is
+ * `ar-u-nu-arab` and one more entry; nothing in the design prevents it, and
+ * nothing in this program needed it.
+ *
+ * The address order is the US/international one — street, locality, region,
+ * postal code — which is what Arabic postal addresses use; only the language
+ * of the words differs, and those come from the data.
+ */
+export const arSerializers = createRegionRegistry({
+  locale: "ar-u-nu-latn",
+  defaultCurrency: "SAR",
+  addressFormat: "us",
+});
+
+/**
+ * Every built-in registry, by the name a caller asks for it by.
+ *
+ * One map, exported, because every consumer that lets a document choose a
+ * registry needs exactly this and a second copy would be a second list to keep
+ * in step. `satisfies` makes it exhaustive: a `RegionFormat` added without an
+ * entry here fails to compile, so nothing can select a registry that does not
+ * exist and no caller needs a fallback for one.
+ */
+export const REGION_REGISTRIES = {
+  us: usaSerializers,
+  eu: euSerializers,
+  ar: arSerializers,
+} satisfies Record<RegionFormat, SerializerRegistry>;

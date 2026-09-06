@@ -19,6 +19,9 @@ import type { Browser, ElementHandle, Page } from "puppeteer";
 import type { PageDimensions } from "../../src/lib/tokens";
 
 /** Which sample document the lab is showing. */
+export type LabDocument = "proposal" | "arabic-letter";
+
+/** Which of the proposal's data sets the lab is showing. */
 export type DataSet = "short" | "overflow";
 
 /** Which token set the lab is showing it under. */
@@ -64,8 +67,13 @@ export interface PreviewCapture {
 /** The lab, opened and settled on one data set. */
 export interface Preview {
   page: Page;
-  /** Shows `set` under `branding` on `paper`, and waits until its pages are drawn. */
-  show: (set: DataSet, branding: Branding, paper: PageDimensions) => Promise<PreviewPlan>;
+  /** Shows one document, on `paper`, and waits until its pages are drawn. */
+  show: (
+    doc: LabDocument,
+    set: DataSet,
+    branding: Branding,
+    paper: PageDimensions
+  ) => Promise<PreviewPlan>;
   /** One image per drawn page. */
   capture: () => Promise<PreviewCapture[]>;
   /** Adds a stylesheet to the preview, for the run that proves the suite can fail. */
@@ -80,8 +88,39 @@ export interface Preview {
  */
 interface PlanStamp {
   revision: number;
+  document: LabDocument | null;
   dataSet: DataSet | null;
   branding: Branding | null;
+}
+
+/**
+ * Which document, in which configuration, a plan is a plan of.
+ *
+ * The document is always part of it. Its data set and token set are the
+ * proposal's alone: the Arabic letter has one of each, the lab draws no control
+ * for them and stamps neither, so a variant of it is named by its document and
+ * two nulls.
+ */
+export interface VariantStamp {
+  document: LabDocument;
+  dataSet: DataSet | null;
+  branding: Branding | null;
+}
+
+/** The stamp the lab publishes for one variant. */
+function stampFor(doc: LabDocument, set: DataSet, branding: Branding): VariantStamp {
+  return doc === "proposal"
+    ? { document: doc, dataSet: set, branding }
+    : { document: doc, dataSet: null, branding: null };
+}
+
+/** True when a plan already on screen is a plan of the variant being asked for. */
+function sameStamp(stamp: PlanStamp, wanted: VariantStamp): boolean {
+  return (
+    stamp.document === wanted.document &&
+    stamp.dataSet === wanted.dataSet &&
+    stamp.branding === wanted.branding
+  );
 }
 
 /**
@@ -89,9 +128,10 @@ interface PlanStamp {
  */
 function readPlanStamp(): PlanStamp {
   const readout = document.querySelector("[data-plan-revision]");
-  if (readout === null) return { revision: 0, dataSet: null, branding: null };
+  if (readout === null) return { revision: 0, document: null, dataSet: null, branding: null };
   return {
     revision: Number(readout.getAttribute("data-plan-revision")),
+    document: readout.getAttribute("data-plan-document") as LabDocument | null,
     dataSet: readout.getAttribute("data-plan-data-set") as DataSet | null,
     branding: readout.getAttribute("data-plan-branding") as Branding | null,
   };
@@ -112,10 +152,7 @@ function readPlanStamp(): PlanStamp {
  * stamped for a different variant is refused here rather than silently
  * compared as if it were the one asked for.
  */
-async function readPlan(
-  page: Page,
-  expected?: { dataSet: DataSet; branding: Branding }
-): Promise<PreviewPlan> {
+async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPlan> {
   const read = await page.evaluate(() => {
     const sheets = [...document.querySelectorAll("[data-page]")];
     const pageKeeps = sheets.map((sheet) =>
@@ -135,6 +172,7 @@ async function readPlan(
         )
       ),
       breaks: firstKeeps.slice(1),
+      stampedDocument: readout?.getAttribute("data-plan-document") ?? null,
       stampedDataSet: readout?.getAttribute("data-plan-data-set") ?? null,
       stampedBranding: readout?.getAttribute("data-plan-branding") ?? null,
     };
@@ -144,18 +182,33 @@ async function readPlan(
     throw new Error("The preview drew no sheet at all. Nothing measured against it means anything.");
   }
 
+  const name = (stamp: {
+    document: string | null;
+    dataSet: string | null;
+    branding: string | null;
+  }) => [stamp.document, stamp.dataSet, stamp.branding].filter(Boolean).join("/") || "no plan";
+
   if (
     expected !== undefined &&
-    (read.stampedDataSet !== expected.dataSet || read.stampedBranding !== expected.branding)
+    (read.stampedDocument !== expected.document ||
+      read.stampedDataSet !== expected.dataSet ||
+      read.stampedBranding !== expected.branding)
   ) {
     throw new Error(
-      `the preview's plan is stamped ${read.stampedDataSet ?? "no plan"}/` +
-        `${read.stampedBranding ?? "no plan"}, not the requested ${expected.dataSet}/` +
-        `${expected.branding}. It has not caught up with the switch.`
+      `the preview's plan is stamped ${name({
+        document: read.stampedDocument,
+        dataSet: read.stampedDataSet,
+        branding: read.stampedBranding,
+      })}, not the requested ${name(expected)}. It has not caught up with the switch.`
     );
   }
 
-  const { stampedDataSet: _stampedDataSet, stampedBranding: _stampedBranding, ...plan } = read;
+  const {
+    stampedDocument: _stampedDocument,
+    stampedDataSet: _stampedDataSet,
+    stampedBranding: _stampedBranding,
+    ...plan
+  } = read;
   return plan;
 }
 
@@ -370,16 +423,23 @@ export async function openPreview(
   await page.waitForSelector("[data-page]", { timeout: 60_000 });
 
   const show = async (
+    doc: LabDocument,
     set: DataSet,
     branding: Branding,
     paper: PageDimensions
   ): Promise<PreviewPlan> => {
     await page.bringToFront();
     const before = await page.evaluate(readPlanStamp);
-    // The branding is chosen first: it changes the paper, and a plan measured
-    // on one paper and captured on another would compare two documents.
-    await page.click(`[data-choice="branding"] [data-choice-option="${branding}"]`);
-    await page.click(`[data-choice="data-set"] [data-choice-option="${set}"]`);
+    // The document is chosen first, because the lab offers the proposal's data
+    // set and token set only while the proposal is on screen: the letter has
+    // one of each and controls that could not change it are not drawn.
+    await page.click(`[data-choice="document"] [data-choice-option="${doc}"]`);
+    if (doc === "proposal") {
+      // The branding next: it changes the paper, and a plan measured on one
+      // paper and captured on another would compare two documents.
+      await page.click(`[data-choice="branding"] [data-choice-option="${branding}"]`);
+      await page.click(`[data-choice="data-set"] [data-choice-option="${set}"]`);
+    }
     // If the readout already names the variant being asked for, nothing was
     // switched — the clicks landed on the options already selected, as the
     // very first call always does — and there is no later plan to wait for.
@@ -387,24 +447,28 @@ export async function openPreview(
     // "this plan is the previous variant's, and just happens to paginate to
     // the same number of pages", which is exactly how a stale plan passed
     // this wait before: the readout's own variant and revision can.
-    if (before.dataSet !== set || before.branding !== branding) {
+    const wanted = stampFor(doc, set, branding);
+    if (!sameStamp(before, wanted)) {
       await page.waitForFunction(
-        (expectedSet: DataSet, expectedBranding: Branding, baselineRevision: number) => {
+        (expected: VariantStamp, baselineRevision: number) => {
           const readout = document.querySelector("[data-plan-revision]");
           if (readout === null) return false;
           const revision = Number(readout.getAttribute("data-plan-revision"));
           return (
             revision > baselineRevision &&
-            readout.getAttribute("data-plan-data-set") === expectedSet &&
-            readout.getAttribute("data-plan-branding") === expectedBranding
+            readout.getAttribute("data-plan-document") === expected.document &&
+            // The proposal's data set and token set are the proposal's alone.
+            // The letter has one of each and the lab stamps neither, so a wait
+            // that insisted on them would never be satisfied.
+            readout.getAttribute("data-plan-data-set") === expected.dataSet &&
+            readout.getAttribute("data-plan-branding") === expected.branding
           );
         },
         // Polled on a timer rather than on animation frames. The suite also holds
         // a rasterizing tab, and a browser that is not showing this one stops
         // producing frames for it, which would leave a frame-polled wait hanging.
         { timeout: 60_000, polling: 100 },
-        set,
-        branding,
+        wanted,
         before.revision
       );
     }
@@ -416,7 +480,7 @@ export async function openPreview(
     // real.
     await assertSheetsMatchReadout(page);
     await assertUnscaled(page, paper);
-    return readPlan(page, { dataSet: set, branding });
+    return readPlan(page, stampFor(doc, set, branding));
   };
 
   const capture = async (): Promise<PreviewCapture[]> => {

@@ -15,6 +15,7 @@
 
 import type { ReactNode } from "react";
 
+import type { TextDirection } from "../lib/script";
 import type { DocumentTokens } from "../lib/tokens";
 import type { PdfFontFile, PdfImage } from "./resources";
 import type { PageBreakPlan } from "./tree";
@@ -64,6 +65,8 @@ export interface PreparedPdfInput {
 export interface PdfAdapterOptions {
   /** BCP-47 language written to the document. */
   lang: string;
+  /** Which way the document's lines run, written to the document root. */
+  dir: TextDirection;
   /** True when the tree carries the seal flow's invisible marker codepoints. */
   signingMarkers: boolean;
 }
@@ -90,8 +93,83 @@ export interface PdfRenderResult {
 export interface PdfAdapter {
   /** The name a caller asks for it by. */
   readonly name: PdfAdapterName;
+  /**
+   * The writing directions this engine was **measured** to lay out, not the
+   * ones it is expected to.
+   *
+   * Direction is not a property of the text: it decides which edge a line
+   * starts on and which end of a row the first column sits at. An engine that
+   * has no `direction` still draws every glyph, so a right-to-left document
+   * comes out looking merely wrong rather than failing, which is the silent
+   * loss this package exists to rule out. So the capability is declared beside
+   * the engine that has it and `renderPdf` refuses the pairing it cannot make.
+   */
+  readonly directions: readonly TextDirection[];
   /** Writes the PDF, and reports every hint the tree could not honour. */
   render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult>;
+}
+
+/** A document whose writing direction the chosen engine does not lay out. */
+export class UnsupportedDirectionError extends Error {
+  /** The engine that was asked. */
+  readonly adapter: PdfAdapterName;
+  /** The direction the document needs. */
+  readonly direction: TextDirection;
+  /** The script it is written in, as an ISO 15924 code. */
+  readonly script: string;
+  /** The language tag that script was read from. */
+  readonly lang: string;
+  /** The directions the engine does lay out. */
+  readonly directions: readonly TextDirection[];
+
+  constructor(
+    adapter: PdfAdapterName,
+    direction: TextDirection,
+    script: string,
+    lang: string,
+    directions: readonly TextDirection[]
+  ) {
+    super(
+      `The "${adapter}" adapter cannot lay a document out ${direction === "rtl" ? "right to left" : "left to right"}, ` +
+        `and this document is written in ${script} (lang="${lang}", dir="${direction}"). ` +
+        `It lays out ${directions.join(" and ")} only. Rendering it anyway would put every ` +
+        "line on the wrong edge and every row's first column at the wrong end, which is a " +
+        "document that looks wrong rather than a render that failed. Choose an adapter " +
+        "that declares the direction.",
+    );
+    this.name = "UnsupportedDirectionError";
+    this.adapter = adapter;
+    this.direction = direction;
+    this.script = script;
+    this.lang = lang;
+    this.directions = directions;
+  }
+}
+
+/**
+ * Fails unless the engine lays out the direction the document is written in.
+ *
+ * Takes the capability rather than the whole adapter, so the check is the same
+ * function whether it is asked about a resolved engine or about the declaration
+ * a new one makes.
+ *
+ * @throws {UnsupportedDirectionError} naming the adapter and the script.
+ */
+export function assertDirectionSupported(
+  adapter: Pick<PdfAdapter, "name" | "directions">,
+  direction: TextDirection,
+  script: string,
+  lang: string
+): void {
+  if (!adapter.directions.includes(direction)) {
+    throw new UnsupportedDirectionError(
+      adapter.name,
+      direction,
+      script,
+      lang,
+      adapter.directions
+    );
+  }
 }
 
 /** What the render refused, with every offender named. */

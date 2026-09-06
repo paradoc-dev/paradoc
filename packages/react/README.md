@@ -17,15 +17,16 @@ Seven entries, because they need different things of the machine they run on:
 | `@paradoc/react/chromium`     | Node   | The experimental Chromium adapter.                                 |
 | `@paradoc/react/check`        | Node   | `checkComposition`: the same tree walk, without rendering a PDF.   |
 | `@paradoc/react/discovery`    | Node   | The conventions binding a composition to its artifact and its sample. |
-| `@paradoc/react/examples`     | Either | Sample material: one artifact, two data sets, two token sets, one composition. |
-| `@paradoc/react/examples/pdf` | Node   | That sample's logo bytes and seal wiring.                          |
+| `@paradoc/react/examples`     | Either | Sample material: two documents, their artifacts, data and token sets. |
+| `@paradoc/react/examples/pdf` | Node   | The proposal's logo bytes and seal wiring.                          |
 
-**The two `examples` entries are sample material, not a stable API.** They ship a
-worked services proposal so the pagination tests, the class probe suite and the
-parity suite have a real document to measure, and so a reader has a whole
-composition to copy from rather than a fragment. Anything under `examples` may
-change without a major version. Nothing under it is framework surface, and
-nothing in the framework entries depends on it.
+**The two `examples` entries are sample material, not a stable API.** They ship
+two worked documents so the pagination tests, the class probe suite and the
+parity suite have real documents to measure, and so a reader has a whole
+composition to copy from rather than a fragment: a services proposal, and a
+short Arabic order-confirmation letter written right to left. Anything under
+`examples` may change without a major version. Nothing under it is framework
+surface, and nothing in the framework entries depends on it.
 
 `@paradoc/react/styles.css` carries the document's typefaces and the custom
 property that selects between them. Import it once, beside your own stylesheet.
@@ -375,6 +376,13 @@ sheet: a sheet is a full page tall by construction, so its `scrollHeight` never
 reports less than 960 and a document that fits looks exactly like one that
 fills the page.
 
+The Arabic letter has one data set, `arabicLetterData`: 26 rows of schedule,
+which the preview plans onto two pages of US Letter breaking at `items:14`. It
+overflows on purpose. A single-page right-to-left document would say nothing
+about pagination in a right-to-left document, and the questions worth measuring
+are whether both sides break on the same row and whether the repeated table
+header comes back on the right edge of the continued page.
+
 ## The React layer
 
 An artifact points at a composition with a file layer whose MIME type is
@@ -544,7 +552,7 @@ measurements behind it, is in `_docs/architecture/react-document-composition-spi
 
 - **No list aggregate in the expression language.** `defs` can index a list and read its length, but there is no `sum`, `map` or `reduce`, so a subtotal cannot be written as an expression. The example artifact materializes one into a hidden field instead.
 - **No serializer for booleans or enums.** `isSerializableFieldType` now covers every scalar and composite primitive that has one meaning across an artifact — money, address, phone, person, organization, party, coordinate, bbox, duration, identification, attachment, signature, date, datetime, time, number, and percentage. Booleans, enums, and multiselects have no registry entry, because their display depends on the field definition itself (an enum's label, a multiselect's join), not on the value alone, so `createValueFormatter` still formats those three from the field definition directly. There is also no published `(artifact, path, value) => string` helper, and `getFieldType` does not descend into `list.item`, so `resolveField` walks the schema itself.
-- **The phone serializer does not localize.** It returns the E.164 string verbatim.
+- **The phone serializer does not localize.** It returns the E.164 string verbatim. That string has no direction of its own, so `Field` isolates a `phone` or `identification` value in a right-to-left document rather than changing what the serializer produced; see "Right to left".
 - **Flow placement needs braille coverage in the renderer's fonts, and core says so nowhere.** A renderer whose fonts do not cover core's four marker codepoints loses the marker in silence, and core's own failure is `locate` reporting every slot "not found". The React renderer embeds a braille face on any pass that carries a marker and verifies the marker reached the PDF, so the failure names the slot and the cause; nothing makes core say it.
 - **A flow slot is sized off an underscore run**, so a signature rule drawn as a border gives the field nothing to measure. `Signature` draws core's own placeholder.
 - **Core does not export that placeholder.** `SIGNATURE_RULE` is a second copy of a private constant; a test catches core changing it, but nothing prevents it.
@@ -559,12 +567,17 @@ measurements behind it, is in `_docs/architecture/react-document-composition-spi
 - **The engine-paginated PDF does not repeat the table header.** The engine offers no per-page header option, so this is an engine-mode difference: hint mode copies the header itself.
 - **The font registry is global to the process.** Once any render embeds the marker face, `signingMarkers` is advisory for every later render in that process, which is why `tests/seal-marker-font.test.tsx` stands alone and the vitest config states `isolate: true`.
 - **It does not initialize itself in the browser.** `takumi-pdf` exports no `browser` condition, and a second initialization on one page faults. PDF rendering is Node only.
+- **It has no `direction`.** It shapes Arabic and it reverses a flex main axis for `dir="rtl"`, but an inline run in a block box starts on the left edge whatever the document declares, and `direction: rtl` is dropped from both inline styles and stylesheets. So it declares `directions: ["ltr"]` and refuses a right-to-left document by name. See "Right to left".
 
 **In this package.**
 
 - **The date rule beside a signature is drawn as underscores too.** Nothing places a slot on it; it matches the signature rule for consistency. Whether a signing block should draw rules as text at all is still open.
 - **A section heading can end a page.** The orphan rule covers table headers only, so a heading can be the last keep on a page with its content on the next.
 - **The lab's PDF endpoint answers any HTTP method** and validates nothing it is sent. It is a comparison viewer on a dev server, and it is not published.
+- **A PDF's text layer does not round-trip a shaped script.** Both engines write Arabic as contextual presentation forms in visual order with no map back to the characters the document was written in, so the parity suite's first-keep criterion cannot be read on the Arabic letter and the suite asserts that finding instead. This is a property of PDF text extraction rather than of either engine, and nothing in this package can change it.
+- **No parity coverage of a right-to-left bundle.** A `Bundle` takes `dir` and `lang` like any other root and renders a packet right to left; every parity variant is a single document, so the page sequence across documents in a right-to-left script is measured nowhere.
+- **`Table`'s `align` is physical.** `left` and `right`, not `start` and `end`, so a right-to-left composition states the physical edge it means. Logical alignment would be the better API; it was left out for scope, not because anything here prevents it.
+- **The script check knows four scripts.** `DOCUMENT_SCRIPTS` covers Latin, Cyrillic, Greek and Arabic, which is what the registered families carry. A document in a script no family here carries — Han, Devanagari — is not reported, because naming a failure this package has no remedy for would say nothing useful. It still reaches paper as null glyphs.
 
 ## The typeface
 
@@ -575,9 +588,15 @@ package, subsets, weights and CSS stack — that the preview and the PDF both re
 Consumers import that stylesheet rather than declaring a family themselves, so
 the preview and the PDF embed the same files.
 
-Two families are registered: `Inter Variable`, which is the default and what
-`DOCUMENT_FONT_NAME` names, and `Source Serif 4 Variable`, which `SERIF_FONT_NAME`
-names. A document chooses between them with the `fontFamily` token.
+Three families are registered:
+
+| Family                    | Named by              | Scripts            |
+| ------------------------- | --------------------- | ------------------ |
+| `Inter Variable`          | `DOCUMENT_FONT_NAME`  | Latn, Cyrl, Grek   |
+| `Source Serif 4 Variable` | `SERIF_FONT_NAME`     | Latn, Cyrl, Grek   |
+| `Noto Sans Arabic Variable` | `ARABIC_FONT_NAME`  | Arab, Latn         |
+
+A document chooses between them with the `fontFamily` token.
 
 **A family that is not registered fails the render, naming it.** Not falling back:
 the browser would substitute something and the engine would write null glyphs,
@@ -585,13 +604,67 @@ and the two would be different documents with no error between them.
 `UnregisteredFontFamilyError` names the family asked for and lists the ones the
 package carries files for.
 
-Registering a third is a package change — a dependency, an `@import` in
+**A registered family that does not carry the document's script fails the same
+way, one level down.** A registration declares the scripts it has glyphs for, as
+ISO 15924 codes, and the `lang` token decides which one the document needs —
+`Intl.Locale` maximizes the tag rather than this package carrying a table that
+would drift from the CLDR. An Arabic document set in Inter is null glyphs on
+paper and a browser substitution on screen, so `UnsupportedScriptError` names
+the script, the family, and the family that would work. It is thrown while the
+tokens resolve, which is the one place both sides pass through.
+
+**The tag is a declaration, so the text is checked too.** A composition that
+names no language is set in Inter by default and fails nothing — and if it is
+Arabic anyway, every letter of it is a null glyph on paper. So the same error is
+raised from the document's own text, on both sides and from different vantage
+points: the document root reads the artifact's labels and the data's values in
+one memoized pass as it resolves, and the PDF path's tree walk reads every text
+node after the components have run, which is the last place the resolved text
+exists before an engine sees it. `scriptsIn` decides what a string is written in
+with Unicode property escapes, so the codepoint-to-script mapping is the
+runtime's rather than a table here.
+
+Registering a fourth is a package change — a dependency, an `@import` in
 `styles.css`, an entry in `DOCUMENT_FONT_FAMILIES` — because the files have to
 travel with the package for the PDF to embed them. It is also a build-size
 decision: `styles.css` cannot be conditional, so every registered family's faces
 are in the stylesheet every consumer imports, whether or not any document names
-it. Two variable families are about 300 KB of woff2 across their subsets. Weigh a
-third against that rather than adding one because a document asked for it.
+it. The three registered families are about 480 KB of woff2 across their
+subsets. Weigh a fourth against that rather than adding one because a document
+asked for it.
+
+**Every subset the stylesheet loads is embedded, including the ones a script
+does not obviously need.** Noto Sans Arabic ships `math` and `symbols` faces
+alongside `arabic`, `latin` and `latin-ext`, and the package's own stylesheet
+loads all five. The set has to match, or a codepoint the preview reaches is a
+null glyph on paper with no error at all.
+
+**The preview waits for the faces, not for the font set.**
+`document.fonts.ready` is a promise about the faces the page has *already* asked
+for, so on a cold page it is resolved before layout requests a single glyph and
+a plan measured behind it is a plan of fallback glyphs. `Pages` therefore calls
+`document.fonts.load` for the resolved family, gated on `document.fonts.check`,
+and awaits `ready` after that. This was a real failure rather than a precaution:
+the parity job was red on a cold CI runner while every local run passed, with
+page 1 measuring 7.73% ink against the 6.40% the same document measures once the
+face is there.
+
+**The request names a letter per script, because the default names a space.**
+`document.fonts.load(font)` defaults its text to `" "`, and a fontsource family
+is one face per subset with its own `unicode-range`: a space is answered by the
+Latin face alone, so a default-text request leaves every other face of the
+family unloaded — including the Arabic one, which is the only face an Arabic
+document is measured against. `scriptProbeText` therefore builds the text from
+the registration's own `scripts`, one representative codepoint each
+(`DOCUMENT_SCRIPTS`), so the browser loads every face the document could reach.
+
+**The weight list is this package's, not the faces'.** `DOCUMENT_FONT_WEIGHTS`
+is 400, 500 and 600 — the default, `font-medium` and `font-semibold`. Every
+registered family is variable and its one file per subset serves the whole
+declared range, so the three requests resolve to the same files and the second
+and third cost nothing; the list exists because the browser matches a *request*
+against the faces it has. A weight added to a component belongs in it, or the
+preview measures that weight before it arrives.
 
 **The browser reaches the family through a custom property.** `styles.css` sets
 `font-family: var(--paradoc-font-family, <the Inter stack>)` on
@@ -612,6 +685,25 @@ overridable per render:
 | `pageSize`    | `letter`             | The sheet: `letter` (816 x 1056) or `a4` (794 x 1123).   |
 | `marginPx`    | `48`                 | The margin on all four sides of every page.              |
 | `logo`        | none                 | The organization's mark, as bytes or as a source string. |
+| `dir`         | `ltr`                | Which way the lines run, as HTML's `dir` means it.       |
+| `lang`        | `en`                 | The language, as HTML's `lang` means it. Decides the script. |
+
+**The script is a token, and that is a deliberate widening of what a token is.**
+Direction and language are not styling. They are the other thing tokens are for:
+values both outputs have to resolve identically before either draws, whose
+disagreement is invisible in each output on its own. A page laid out left to
+right in the browser and right to left on paper is two documents, and so is one
+whose typeface carries no glyphs for its script. Making them tokens is what
+gives them the machinery the typeface already had — one resolution read off the
+element, the root-only rule, `RootTokenMismatchError` for a composition that
+hides them, and the render override — instead of a second, parallel way to say
+the same thing.
+
+The document root writes `dir` and `lang` onto its own element, exactly as HTML
+carries them, but **only when they are not the defaults**: stamping
+`dir="ltr" lang="en"` onto every document that never asked about its script
+would change the node tree and the bytes of every rendered PDF to say what they
+already said.
 
 ```tsx
 <Bundle tokens={tokens}>
@@ -647,17 +739,20 @@ own prop and forward them.
 `memo`, someone else's provider — is transparent. What it does not follow is
 what a component *renders*.
 
-**Paper and typeface are declared once, at the root.** A `Document` inside a
-`Bundle` that sets `fontFamily`, `pageSize` or `marginPx` fails with
-`NestedPaperTokenError` naming the token: a bundle is one sequence of pages in
-one typeface, and both outputs read that one declaration. A nested document may
-still set `accentColor` and `logo`, which are its own.
+**Paper, typeface and script are declared once, at the root.** A `Document`
+inside a `Bundle` that sets `fontFamily`, `pageSize`, `marginPx`, `dir` or
+`lang` fails with `NestedPaperTokenError` naming the token: a bundle is one
+sequence of pages in one typeface running one way, and both outputs read that
+one declaration. A nested document may still set `accentColor` and `logo`, which
+are its own.
 
 **A composition that hides its tokens fails loudly.** A composition that sets its
 own tokens *inside* itself is invisible to whatever is drawing it. So the
-document root compares every root-only token — `pageSize`, `marginPx` and
-`fontFamily` — against what the furniture or the render resolved, and throws
-`RootTokenMismatchError` naming the one that disagrees.
+document root compares every root-only token — `pageSize`, `marginPx`,
+`fontFamily`, `dir` and `lang` — against what the furniture or the render
+resolved, and throws `RootTokenMismatchError` naming the one that disagrees.
+This is why the sample Arabic letter takes `arabicLetterTokens` as a prop rather
+than declaring the Arabic family inside itself.
 
 The check runs on **both** sides: `renderPdf` supplies the same context `Pages`
 and `Paper` do. It has to, because that hidden-token shape is exactly what a
@@ -824,6 +919,11 @@ engine the parity numbers below were measured on and the only one that needs no
 browser, so a call that names no adapter keeps reaching it whether or not a
 Chrome exists on the machine.
 
+**An adapter declares the writing directions it was measured to lay out**, and
+`renderPdf` refuses a pairing it cannot make rather than producing a document
+that merely looks wrong. takumi declares `ltr`; Chromium declares both. See
+**Right to left** below for what that was measured on.
+
 **The Chromium adapter prints the same tree through the browser that draws the
 preview.** `src/pdf/adapters/chromium.ts`, Node only. `react-dom/server` renders
 the element to static markup; Tailwind v4 is compiled in Node from the package's
@@ -859,6 +959,91 @@ nothing either, and a render whose faces did not load fails rather than printing
 against a fallback. What it does not do is check classes against the verified
 vocabulary: that list exists because takumi drops what it cannot express in
 silence, and the browser is the thing the list was written against.
+
+### Right to left
+
+`@paradoc/react/examples` ships an Arabic order-confirmation letter —
+`ArabicLetterDocument`, `arabicLetterData`, `arabicLetterTokens` — set in
+`Noto Sans Arabic Variable` with `dir="rtl"` and `lang="ar"`. It is a second
+document rather than a translated proposal, because a translation would share
+the first document's geometry and prove only that the words changed.
+
+It is composed from the same components as everything else. The only thing it
+states that a left-to-right document does not is its column alignment:
+`Table`'s `align` is physical, so the description column asks for `right` — the
+edge a right-to-left row starts at — and the figures ask for `left`. Writing
+that out is what makes both engines agree about it rather than each resolving
+`start` for itself.
+
+**takumi cannot lay a document out right to left, and it says so by name.** This
+was measured, not assumed. The engine does two of the three things:
+
+- it shapes Arabic correctly, joining and reordering a run into visual order;
+- it reverses a flex container's main axis for `dir="rtl"`, so a table row's
+  columns do come out in the right order;
+- but it has **no `direction` property**. `direction: rtl` in an inline style or
+  a stylesheet is dropped, and `dir` is not inherited by a box that does not
+  carry it, so an inline run in a stretched block starts on the left edge
+  whatever the document says. `text-start` renders byte-identical to
+  `text-left`, which is the same fact from the allow-list's side.
+
+A document whose columns are right to left and whose every line is still
+left-aligned is worse than a refusal, so the takumi adapter declares
+`directions: ["ltr"]` and `renderPdf` throws `UnsupportedDirectionError` naming
+the adapter, the direction and the script. The parity suite asks it for the
+letter every run and records the refusal in `parity-report.json`, so the claim
+is a result rather than a note.
+
+**Chromium lays it out, and it is measured against the same four criteria with
+nothing loosened.** It is Blink, which is the engine that drew the preview, so
+the same code lays out both sides. The numbers are in **The numbers** below.
+
+**One criterion is read differently on it, and the suite says how.** A page is
+normally identified by reading the first keep out of the PDF's own text. Shaped
+Arabic does not survive a PDF text layer: both engines write the contextual
+presentation forms in visual order, and neither maps them back to the characters
+the letter was written in, so `pdfjs` reads `العالمب  اب مرح` where the document
+says `مرحبا بالعالم`.
+
+The figures beside them do survive, so the criterion is read from those instead.
+`digitTokens` reduces a keep and a page to the numbers they carry — `1,850.00`
+stays one token — and a page opens on the keep whose tokens are the page's first
+tokens, compared as a multiset because a right-to-left row may report its own
+figures in a different order from the one the tree wrote them in. A repeated
+table header carries no figures, so it is read past without a rule of its own.
+Page 2 of the letter names `items:14` on both sides, out of the file rather than
+out of the plan that was sent, which is the whole point of the criterion.
+
+The finding is still asserted rather than assumed: every page of every run
+records `pdfFirstKeepByText`, and the Arabic run's are all null. The day an
+engine round-trips the script, that assertion fails and the variant goes back to
+matching on words.
+
+**Latin digits are what makes an amount searchable in the file.** The
+`ar` serializer registry pins `ar-u-nu-latn`, so figures reach the PDF intact
+even though the Arabic around them does not. See `@paradoc/serialization` for
+why that registry chose Latin digits over Arabic-Indic. It is also what lets the
+parity suite still name the keep a page opens on: see **The numbers** below.
+
+**A value with no direction of its own is isolated, in the component.** A phone
+number in E.164 and an identification number are runs of digits and punctuation,
+which the bidirectional algorithm gives no strong direction: inside a
+right-to-left paragraph it resolves them against the paragraph and moves the
+leading `+` to the visual end, so `+966112345678` reads as `966112345678+`. The
+value is not wrong, its direction is, so `Field` wraps a `phone` or
+`identification` value in `direction: ltr; unicode-bidi: isolate` — the
+`paradoc-ltr-isolate` class for the browser and the same rule inline for a
+renderer that reads no stylesheet of ours. It is not a serializer change:
+`stringify` still returns the same E.164 string. And it is applied only where
+the document runs right to left, so no left-to-right document's tree, or bytes,
+changes at all.
+
+**A right-to-left packet works; nothing measures one.** `dir` and `lang` are
+root-only tokens and a `Bundle` is a root, so a bundle carries them and writes
+them onto its own element exactly as a `Document` does — a packet of
+right-to-left documents renders. What does not exist is coverage: every parity
+run is a single document, so a bundle's page sequence in a right-to-left script
+is untested rather than unsupported.
 
 ### Hint mode
 
@@ -919,15 +1104,24 @@ reads it from `useDocumentTokens()` and falls back to `logoSrc`. Bytes become a
 ### The lab's PDF pane
 
 `react-lab` renders the PDF in the dev server's Node process behind
-`/api/proposal.pdf` and shows it in an iframe beside the preview. It is a
+`/api/document.pdf` and shows it in an iframe beside the preview. It is a
 comparison viewer, not a service.
 
+The header's document switch chooses which sample is on screen. The proposal's
+data set, token set and serializer registry are offered only while the proposal
+is showing: the Arabic letter has one of each, and a control that could not
+change it is not drawn.
+
 The pane's mode switch chooses who paginates. **Engine breaks** is a
-`GET ?set=short|overflow&branding=default|branded`, and the engine paginates the
-tree. **Preview breaks** is a `POST` carrying `{ set, branding, plan }`, the plan
-the preview just published, and the PDF breaks where the preview did. The data
-set and the token set travel in one place either way: the query string for a GET,
-the body for a POST.
+`GET ?doc=…&set=…&branding=…&adapter=…`, and the engine paginates the tree.
+**Preview breaks** is a `POST` carrying `{ doc, set, branding, adapter, plan }`,
+the plan the preview just published, and the PDF breaks where the preview did.
+Everything travels in one place either way: the query string for a GET, the body
+for a POST.
+
+The pane also has an engine switch, and the Arabic letter is what it is worth
+having for: choose takumi and the pane shows `UnsupportedDirectionError` beside a
+preview that is perfectly fine, which is the refusal doing its job.
 
 The header's branding switch chooses the token set, and it changes both panes at
 once because both read it from the same document: the tokens go on
@@ -1036,9 +1230,9 @@ and says the likeliest cause is glyph coverage.
 
 Is a page of the PDF the page of the preview it came from? A suite answers it by
 measurement rather than by assertion about the code: it starts the lab, drives
-one Chrome, and compares both adapters in both pagination modes on three
-variants — the short document, the overflow document, and the overflow document
-under the sample's second token set. Chrome screenshots the preview sheet and
+one Chrome, and compares both adapters in both pagination modes on four
+variants — the short proposal, the overflow proposal, the overflow proposal
+under the sample's second token set, and the Arabic letter. Chrome screenshots the preview sheet and
 pdf.js paints the PDF into a canvas in that same Chrome, so one rasterizer draws
 both sides; both are drawn at twice the paper size and averaged down to the paper
 the run's own tokens chose, and a pixel counts as differing when its grayscale
@@ -1048,6 +1242,10 @@ The branded variant is what proves the tokens: it is measured on A4 with a 56
 pixel margin in the serif, against the same four criteria with nothing loosened,
 and it paginates at different rows from the unbranded one because the page is a
 different page.
+
+The Arabic variant is what proves the direction, and it is the one place the two
+engines part company: takumi refuses it by name and the refusal is recorded as a
+result, so only Chromium is measured. See **Right to left** above.
 
 ### The criteria
 
@@ -1088,6 +1286,10 @@ takumi, the default:
 | overflow / default / hint   | 816 x 1056 | 4 = 4 | all match   | 4.45%          | 6 px        | yes      |
 | overflow / branded / engine | 794 x 1123 | 4 = 4 | all match   | 8.44%          | 12 px       | recorded |
 | overflow / branded / hint   | 794 x 1123 | 4 = 4 | all match   | 3.44%          | 7 px        | yes      |
+| Arabic letter               | —          | —     | —           | —              | —           | **refused** |
+
+takumi refuses the Arabic letter with `UnsupportedDirectionError`, naming itself
+and the script. It is not a page count that failed: the render never happens.
 
 Chromium, experimental, measured against the same criteria with nothing loosened:
 
@@ -1099,6 +1301,16 @@ Chromium, experimental, measured against the same criteria with nothing loosened
 | overflow / default / hint   | 816 x 1056 | 4 = 4 | all match   | 3.47%          | 0 px        | yes      |
 | overflow / branded / engine | 794 x 1123 | 4 = 4 | two differ  | 8.34%          | 12 px       | recorded |
 | overflow / branded / hint   | 794 x 1123 | 4 = 4 | all match   | 3.44%          | 1 px        | yes      |
+| Arabic / engine             | 816 x 1056 | 2 = 2 | all match   | 2.66%          | 12 px       | recorded |
+| Arabic / hint               | 816 x 1056 | 2 = 2 | all match   | 2.66%          | 0 px        | yes      |
+
+**The Arabic letter reaches parity, and it does it with no drift at all.** Hint
+mode is 2.66% and 1.59% residual on its two pages with zero band drift, which is
+the two rasterizers and nothing else — the same result the proposal gets on
+Chromium, in a script laid out the other way. Its first keeps match on both
+pages, read from the figures each page carries rather than from its words: see
+**Right to left** above for why the words cannot be read on this script and what
+the report records about it.
 
 **Hint mode passes on the branded document too, on both engines.** Its numbers
 sit inside the unbranded ones rather than beside them: the serif is a little
@@ -1146,6 +1358,11 @@ nothing here downloads a browser. The Chromium adapter's own tests are in `pnpm
 test` and **fail** where there is no Chrome, because a suite that skipped on its
 own subject would cover nothing quietly; set `PARADOC_SKIP_CHROMIUM_TESTS=1` to
 opt out of that file deliberately.
+
+**The refusal is measured, not asserted from memory.** The suite asks every
+engine for every variant and records what a refusal said in
+`parity-report.json` under `refusals`, so "takumi cannot lay out right to left"
+is a result this run produced.
 
 **The parity numbers are not regression-checked.** Nothing in CI re-measures
 them yet, and `parity/parity-report.json` is gitignored, so there is no committed

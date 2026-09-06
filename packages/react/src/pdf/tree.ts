@@ -7,7 +7,7 @@
  * a walk is possible: above it the tree is function components that have not
  * run yet, below it the classes have already become styles.
  *
- * The walk does four things and nothing else:
+ * The walk does five things and nothing else:
  *
  * 1. Moves `className` to `tw`, which is the property the engine reads, after
  *    checking the combined value against the verified vocabulary. A node may
@@ -21,6 +21,12 @@
  *    there.
  * 4. Collects the images the render needs bytes for, because the engine fetches
  *    nothing.
+ * 5. Reads every text node and fails when the document is written in a script
+ *    the family it is set in carries no glyphs for. This is the last place the
+ *    document's *resolved* text exists before an engine sees it, which is what
+ *    makes it the right place: a document that declares no language and is
+ *    Arabic anyway reaches the engine as a page of null glyphs with no error at
+ *    all, and neither its tokens nor its data would have said so.
  *
  * A repeated header is the one node the walk adds, and it is a translation of a
  * node that is already in the tree rather than new markup: the tree the PDF
@@ -31,6 +37,7 @@ import type { CSSProperties } from "react";
 import type { Node } from "@takumi-rs/helpers";
 
 import type { PagePlan } from "../lib/plan";
+import { assertTextScriptsCovered } from "../lib/script";
 import { unsupportedClasses } from "./tailwind";
 
 /** The attribute that marks a pagination unit, shared with the preview. */
@@ -54,6 +61,15 @@ export interface PrepareOptions {
   plan?: PageBreakPlan;
   /** `src` values the caller supplied bytes for. */
   imageSources?: Iterable<string>;
+  /**
+   * The registered family the document is set in. Given, every text node is
+   * checked against the scripts it carries glyphs for; omitted, the walk makes
+   * no claim about the text, which is what a caller translating a fragment
+   * rather than a document wants.
+   */
+  fontFamily?: string;
+  /** The document's language, for the error to name. Defaults to `en`. */
+  lang?: string;
 }
 
 export interface PreparedTree {
@@ -154,6 +170,7 @@ export function preparePdfTree(root: Node, options: PrepareOptions = {}): Prepar
   const offendingClasses: string[] = [];
   const missing: string[] = [];
   const applied: string[] = [];
+  const text: string[] = [];
 
   const walk = (node: Node, context: WalkContext = {}): Node => {
     const { className, ...rest } = node;
@@ -182,6 +199,8 @@ export function preparePdfTree(root: Node, options: PrepareOptions = {}): Prepar
       // overridden by a class the document happens to carry.
       translated.style = { ...translated.style, ...pagination };
     }
+
+    if (translated.type === "text") text.push(translated.text);
 
     if (translated.type === "image") {
       const { src } = translated;
@@ -214,6 +233,12 @@ export function preparePdfTree(root: Node, options: PrepareOptions = {}): Prepar
   };
 
   const node = walk(root);
+
+  // After the walk rather than during it, so the error names the document's
+  // script rather than whichever node happened to carry the first letter of it.
+  if (options.fontFamily !== undefined) {
+    assertTextScriptsCovered(options.fontFamily, options.lang ?? "en", text);
+  }
 
   return {
     node,

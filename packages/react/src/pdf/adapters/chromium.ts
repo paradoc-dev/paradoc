@@ -155,10 +155,14 @@ function dataUri(data: Uint8Array): string | undefined {
 }
 
 /** The page, as one file a browser can open. */
-function documentHtml(markup: string, css: string, lang: string): string {
+function documentHtml(markup: string, css: string, lang: string, dir: string): string {
   return [
     "<!doctype html>",
-    `<html lang="${lang}">`,
+    // The direction is on the root the way HTML puts it there, so it reaches
+    // the page box and the body as well as the document element. The document
+    // element carries its own `dir` too, which is what the preview renders; the
+    // two agree because both are read from the one declaration on the root.
+    `<html lang="${lang}" dir="${dir}">`,
     "<head>",
     '<meta charset="utf-8">',
     `<style>\n${css}\n</style>`,
@@ -285,6 +289,12 @@ async function settle(page: Page): Promise<void> {
 export const chromiumAdapter: PdfAdapter = {
   name: "chromium",
 
+  // Both directions. It is Blink, which is the engine that draws the preview,
+  // so a document laid out right to left on screen is laid out right to left
+  // here by the same code. The parity suite measures that claim rather than
+  // taking it: see "Right to left" in the README.
+  directions: ["ltr", "rtl"],
+
   async render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult> {
     const images: Record<string, string> = {};
     const undecodable: string[] = [];
@@ -297,7 +307,7 @@ export const chromiumAdapter: PdfAdapter = {
 
     const markup = renderToStaticMarkup(input.element);
     const css = await chromiumStylesheet(markup, input.fonts, input.geometry, input.tokens);
-    const html = documentHtml(markup, css, options.lang);
+    const html = documentHtml(markup, css, options.lang, options.dir);
 
     // The page is written outside the repository, because it is a render's
     // scratch file and not an artefact of it.

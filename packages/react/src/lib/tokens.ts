@@ -20,9 +20,17 @@
  * value it cannot read drops the declaration silently, which is the loss this
  * package exists to rule out.
  *
+ * **The script is a token too.** Which language a document is written in and
+ * which way its lines run are not styling, but they are exactly what the
+ * tokens are for: values both outputs have to resolve identically before
+ * either draws, whose disagreement is invisible in each output on its own. A
+ * page laid out left to right in the browser and right to left on paper is two
+ * documents; so is one whose typeface carries no glyphs for its script. Both
+ * failures are the root-token machinery's, unchanged.
+ *
  * **The defaults are today's document.** A document that names no tokens
  * renders exactly what it rendered before there were tokens: US Letter at 96
- * dpi with a 48 pixel margin, Inter, no accent, no mark.
+ * dpi with a 48 pixel margin, Inter, no accent, no mark, English left to right.
  */
 
 import type { CSSProperties } from "react";
@@ -33,6 +41,13 @@ import {
   type FontFamilyRegistration,
 } from "./font";
 import { imageDataUri } from "./image";
+import {
+  assertScriptCovered,
+  isTextDirection,
+  DEFAULT_DOCUMENT_LANG,
+  DEFAULT_TEXT_DIRECTION,
+  type TextDirection,
+} from "./script";
 
 /** The papers a document may be laid out on. */
 export type PageSize = "letter" | "a4";
@@ -84,6 +99,17 @@ export interface DocumentTokensInput {
    * anything approaching a megabyte belongs behind a URL instead.
    */
   logo?: Uint8Array | string;
+  /**
+   * Which way the document's lines run, as HTML's `dir` means it. `rtl` puts
+   * the start of every line and the first column of every row on the right.
+   * An adapter that cannot lay the direction out fails naming itself.
+   */
+  dir?: TextDirection;
+  /**
+   * BCP-47 language tag, as HTML's `lang` means it. It decides the script the
+   * document is written in, which the typeface has to carry glyphs for.
+   */
+  lang?: string;
 }
 
 /** One document's branding, complete. */
@@ -100,6 +126,10 @@ export interface DocumentTokens {
   marginPx: number;
   /** The organization's mark, as a source both outputs can read. */
   logo?: string;
+  /** Which way the document's lines run. */
+  dir: TextDirection;
+  /** The language the document is written in. */
+  lang: string;
 }
 
 /**
@@ -116,6 +146,8 @@ const DOCUMENT_TOKEN_FIELDS = {
   pageSize: true,
   marginPx: true,
   logo: true,
+  dir: true,
+  lang: true,
 } satisfies Record<keyof DocumentTokens, true>;
 
 /** The field names, for anything that walks a resolved set. */
@@ -134,6 +166,8 @@ const DOCUMENT_TOKEN_INPUT_FIELDS = {
   pageSize: true,
   marginPx: true,
   logo: true,
+  dir: true,
+  lang: true,
 } satisfies Record<keyof DocumentTokensInput, true>;
 
 /** The settable names, for anything that has to recognise a token set. */
@@ -142,12 +176,15 @@ export const DOCUMENT_TOKEN_INPUT_KEYS = Object.keys(
 ) as (keyof DocumentTokensInput)[];
 
 /**
- * The tokens that describe the paper and the typeface.
+ * The tokens that describe the paper, the typeface and the script.
  *
  * They are the ones both outputs have to agree on, which is why only a document
- * root may set them: see `useDocumentRootTokens`.
+ * root may set them: see `useDocumentRootTokens`. Direction and language belong
+ * here for the reason the typeface does — a bundle is one sequence of pages
+ * running one way, and the loss when the two sides disagree is invisible in
+ * either of them alone.
  */
-export const ROOT_ONLY_TOKEN_KEYS = ["fontFamily", "pageSize", "marginPx"] as const;
+export const ROOT_ONLY_TOKEN_KEYS = ["fontFamily", "pageSize", "marginPx", "dir", "lang"] as const;
 
 /** A token whose value a renderer could not act on. */
 export class InvalidDocumentTokenError extends Error {
@@ -174,6 +211,8 @@ export const DEFAULT_DOCUMENT_TOKENS: DocumentTokens = {
   fontStack: documentFontFamily(DOCUMENT_FONT_NAME).stack,
   pageSize: "letter",
   marginPx: DEFAULT_PAGE_MARGIN_PX,
+  dir: DEFAULT_TEXT_DIRECTION,
+  lang: DEFAULT_DOCUMENT_LANG,
 };
 
 /** The sheet and the box inside it, in the CSS pixels both outputs share. */
@@ -312,6 +351,31 @@ function assertValidTokens(tokens: DocumentTokens): DocumentTokens {
     );
   }
 
+  if (!isTextDirection(tokens.dir)) {
+    throw new InvalidDocumentTokenError(
+      "dir",
+      tokens.dir,
+      'is not "ltr" or "rtl", which are the directions HTML admits and the only two an ' +
+        "adapter declares"
+    );
+  }
+
+  try {
+    new Intl.Locale(tokens.lang);
+  } catch {
+    throw new InvalidDocumentTokenError(
+      "lang",
+      tokens.lang,
+      "is not a BCP-47 language tag: the script the document is written in is read from it, " +
+        "and a tag nothing can parse names no script"
+    );
+  }
+
+  // The last check, because it is about two tokens rather than one: the family
+  // has to carry glyphs for the script the language names, or the browser
+  // substitutes a face and the engine writes nulls, with nothing between them.
+  assertScriptCovered(tokens.fontFamily, tokens.lang);
+
   return tokens;
 }
 
@@ -325,6 +389,8 @@ function assertValidTokens(tokens: DocumentTokens): DocumentTokens {
  * the accent keeps the paper the document chose.
  *
  * @throws {UnregisteredFontFamilyError} when a layer names a family with no files.
+ * @throws {UnsupportedScriptError} when the family it settles on carries no
+ * glyphs for the script the language names.
  * @throws {UndecodableImageError} when logo bytes are not an image.
  * @throws {InvalidDocumentTokenError} when a value is one no renderer can act on.
  */
@@ -343,6 +409,8 @@ export function resolveDocumentTokens(
       pageSize: layer.pageSize ?? resolved.pageSize,
       marginPx: layer.marginPx ?? resolved.marginPx,
       logo: resolveLogo(layer.logo) ?? resolved.logo,
+      dir: layer.dir ?? resolved.dir,
+      lang: layer.lang ?? resolved.lang,
     };
   }
 
@@ -368,6 +436,22 @@ export const FONT_FAMILY_PROPERTY = "--paradoc-font-family";
  */
 export function fontFamilyStyle(tokens: DocumentTokens): CSSProperties {
   return { [FONT_FAMILY_PROPERTY]: tokens.fontStack } as CSSProperties;
+}
+
+/**
+ * The `dir` and `lang` attributes a resolved set puts on the document root,
+ * when they are not the ones both outputs already apply.
+ *
+ * A document that never asked about its script is left alone: HTML's initial
+ * direction is `ltr`, the Chromium adapter writes the language on `<html>`
+ * anyway, and stamping the defaults onto every root would change the node tree
+ * and the bytes of every rendered PDF to say what they already said.
+ */
+export function localeAttributes(tokens: DocumentTokens): { dir?: TextDirection; lang?: string } {
+  return {
+    ...(tokens.dir === DEFAULT_TEXT_DIRECTION ? {} : { dir: tokens.dir }),
+    ...(tokens.lang === DEFAULT_DOCUMENT_LANG ? {} : { lang: tokens.lang }),
+  };
 }
 
 /** True when two resolved sets describe the same document. */

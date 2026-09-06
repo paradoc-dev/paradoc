@@ -11,7 +11,7 @@
 
 import type { ReactNode } from "react";
 
-import { fontFamilyStyle, type DocumentTokensInput } from "../lib/tokens";
+import { fontFamilyStyle, localeAttributes, type DocumentTokensInput } from "../lib/tokens";
 import {
   DocumentTokensProvider,
   markDocumentRoot,
@@ -38,6 +38,10 @@ export function Bundle({ id, tokens, className, children }: BundleProps) {
     <DocumentTokensProvider tokens={branding.tokens}>
       <div
         data-bundle-id={id ?? "bundle"}
+        // The bundle is the root when there is one, so the script is declared
+        // here for the same reason the typeface is: one sequence of pages runs
+        // one way.
+        {...(branding.isRoot ? localeAttributes(branding.tokens) : {})}
         className={className ?? "flex flex-col gap-12"}
         style={branding.isRoot ? fontFamilyStyle(branding.tokens) : undefined}
       >

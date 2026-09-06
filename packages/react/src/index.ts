@@ -121,14 +121,31 @@ export {
 } from "./lib/format";
 export {
   documentFontFamily,
+  loadDocumentFaces,
+  scriptProbeText,
+  ARABIC_FONT_NAME,
+  DOCUMENT_SCRIPTS,
   DOCUMENT_FONT_FAMILIES,
   DOCUMENT_FONT_FAMILY,
   DOCUMENT_FONT_NAME,
   DOCUMENT_FONT_PACKAGE,
+  DOCUMENT_FONT_WEIGHTS,
   SERIF_FONT_NAME,
   UnregisteredFontFamilyError,
   type FontFamilyRegistration,
 } from "./lib/font";
+export {
+  assertScriptCovered,
+  assertTextScriptsCovered,
+  collectStrings,
+  isTextDirection,
+  scriptOf,
+  scriptsIn,
+  DEFAULT_DOCUMENT_LANG,
+  DEFAULT_TEXT_DIRECTION,
+  UnsupportedScriptError,
+  type TextDirection,
+} from "./lib/script";
 export {
   imageDataUri,
   imageFormat,
@@ -137,6 +154,7 @@ export {
 } from "./lib/image";
 export {
   fontFamilyStyle,
+  localeAttributes,
   isCssColor,
   pageGeometry,
   resolveDocumentTokens,

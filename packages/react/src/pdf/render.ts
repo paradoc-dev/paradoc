@@ -30,14 +30,23 @@
 import type { ReactNode } from "react";
 
 import { documentTokensOf } from "../lib/document-tokens";
+import { scriptOf } from "../lib/script";
 import { pageGeometry, type DocumentTokensInput } from "../lib/tokens";
-import type { PdfAdapter, PdfAdapterName, PdfRenderResult, PreparedPdfInput } from "./adapter";
+import {
+  assertDirectionSupported,
+  type PdfAdapter,
+  type PdfAdapterName,
+  type PdfRenderResult,
+  type PreparedPdfInput,
+} from "./adapter";
 import { takumiAdapter } from "./adapters/takumi";
 import { documentFontFiles, markerFontFile, type PdfImage } from "./resources";
 import { withDrawnPaper, withTokenOverride } from "./token-override";
 import type { PageBreakPlan } from "./tree";
 
 export {
+  assertDirectionSupported,
+  UnsupportedDirectionError,
   UnsupportedPdfContentError,
   type PdfAdapter,
   type PdfAdapterName,
@@ -64,13 +73,12 @@ export interface RenderPdfOptions {
    */
   plan?: PageBreakPlan;
   /**
-   * Tenant branding for this render alone: typeface, accent colour, paper and
-   * mark. It is the last layer over whatever the document declares, so a render
-   * that changes only the accent keeps the paper the document chose.
+   * Tenant branding for this render alone: typeface, accent colour, paper,
+   * mark, and the script the document is written in. It is the last layer over
+   * whatever the document declares, so a render that changes only the accent
+   * keeps the paper the document chose.
    */
   tokens?: DocumentTokensInput;
-  /** BCP-47 language written to the document. Defaults to `en`. */
-  lang?: string;
   /**
    * Embeds the face that carries the core seal flow's invisible marker
    * codepoints. Only the seal path sets it: without the face the engine writes
@@ -149,6 +157,11 @@ async function resolveAdapter(name: PdfAdapterName): Promise<PdfAdapter> {
  * @throws {UnregisteredFontFamilyError} when the document names a family this
  * package carries no files for. A family the engine cannot embed would be
  * written as null glyphs rather than as a fallback.
+ * @throws {UnsupportedScriptError} when the family it does name carries no
+ * glyphs for the script the document's language is written in, which is the
+ * same loss one level down.
+ * @throws {UnsupportedDirectionError} when the chosen engine does not lay out
+ * the direction the document is written in, naming the adapter and the script.
  * @throws {UnsupportedPdfContentError} when the tree uses a class or an image
  * the chosen engine cannot express. Every offender is listed in one error.
  */
@@ -159,6 +172,9 @@ export async function renderPdf(
   const signingMarkers = options.signingMarkers ?? false;
   // Read off the element, synchronously, by the same function the preview's
   // furniture uses. Nothing is rendered to find out: see `lib/document-tokens.ts`.
+  // Resolving them is what checks them: a family with no glyphs for the
+  // document's script fails here, before an engine is even chosen, because that
+  // refusal is the same one whichever engine would have been asked.
   const tokens = documentTokensOf(element, options.tokens);
 
   const fonts = [...(await documentFontFiles(tokens.fontFamily))];
@@ -178,5 +194,8 @@ export async function renderPdf(
   };
 
   const adapter = await resolveAdapter(options.adapter ?? "takumi");
-  return adapter.render(input, { lang: options.lang ?? "en", signingMarkers });
+  // The engine, which is the question this render alone asks: whether the one
+  // chosen lays the document's direction out at all.
+  assertDirectionSupported(adapter, tokens.dir, scriptOf(tokens.lang), tokens.lang);
+  return adapter.render(input, { lang: tokens.lang, dir: tokens.dir, signingMarkers });
 }

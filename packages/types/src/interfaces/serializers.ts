@@ -44,11 +44,21 @@ export interface SerializerFallbacks {
 }
 
 /**
+ * The registries a caller may format a document through.
+ *
+ * `ar` is Arabic-language formatting, and it is a locale rather than a region:
+ * it names the language every label and month name is written in, not a
+ * jurisdiction whose address order differs. Its numbering system is pinned in
+ * the registry itself rather than left to the runtime's CLDR default.
+ */
+export type RegionFormat = "us" | "eu" | "ar";
+
+/**
  * Configuration options for creating region-specific serializers.
  */
 export interface SerializerConfig {
   /** Regional format preference. Determines address/phone/money formatting patterns. */
-  regionFormat?: "us" | "eu";
+  regionFormat?: RegionFormat;
   /** Fallback values for each serializer type when serialization fails. Defaults to empty string if not specified. */
   fallbacks?: SerializerFallbacks;
 }

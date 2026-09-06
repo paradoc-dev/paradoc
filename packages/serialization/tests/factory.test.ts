@@ -47,10 +47,14 @@ describe("createSerializer factory", () => {
     expect(result).toContain("€");
   });
 
-  it("ignores unknown regions and defaults to US", () => {
-    const Serializers = createSerializer({ regionFormat: "XX" as any });
-    const result = Serializers.money.stringify(1000);
-    expect(result).toContain("$");
+  it("refuses an unknown region, naming it and the ones there are", () => {
+    // Unreachable from typed code: `REGION_REGISTRIES` is exhaustive over
+    // `RegionFormat`. A caller that casts past the type gets an error rather
+    // than a different region's formatting, because a document quietly
+    // rendered in dollars because its registry name was misspelt is a wrong
+    // answer nobody reads as wrong.
+    expect(() => createSerializer({ regionFormat: "XX" as any })).toThrow(/XX/);
+    expect(() => createSerializer({ regionFormat: "XX" as any })).toThrow(/us, eu, ar/);
   });
 
   it("returns different Serializer instances", () => {

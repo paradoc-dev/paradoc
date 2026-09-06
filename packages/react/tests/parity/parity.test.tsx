@@ -41,6 +41,17 @@
  * the sample's second token set — A4 with a wider margin and a serif — against
  * the same criteria, on the paper that set chose.
  *
+ * **Both directions are measured.** The Arabic letter is a fourth variant, and
+ * it is where the two engines part company. takumi declares left to right only
+ * and refuses it by name, so the refusal is recorded as a result and Chromium is
+ * measured instead, against the same four criteria with nothing loosened. The
+ * one thing that changes for it is how a page is identified: shaped Arabic
+ * reaches a PDF's text layer as presentation forms in visual order, which
+ * neither engine maps back to the characters the letter was written in, so the
+ * first-keep criterion has nothing to read. The suite says so per run and
+ * asserts the finding rather than skipping the criterion, so the day an engine
+ * starts round-tripping the script this file fails and someone turns it back on.
+ *
  * **Both adapters are measured, on the same preview captures.** `renderPdf` has
  * two engines behind it, and the whole point of the second is a number: how
  * close does the PDF get when the engine laying it out is the engine that laid
@@ -58,7 +69,11 @@
 import type { Browser } from "puppeteer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fromJsx } from "@takumi-rs/helpers/jsx";
+import type { ReactElement } from "react";
 import {
+  arabicLetterData,
+  ArabicLetterDocument,
+  arabicLetterTokens,
   brandedProposalTokens,
   overflowProposalData,
   ProposalDocument,
@@ -74,9 +89,22 @@ import {
 import { renderPdf, type PdfAdapterName, type PdfImage } from "../../src/pdf";
 import { closeChromium } from "../../src/pdf/adapters/chromium";
 import { readPdf, type ReadPage } from "../pdf-reader";
-import { normalizeText, treeKeeps, type TreeKeep } from "../tree-keeps";
+import {
+  digitTokens,
+  normalizeText,
+  opensWithTokens,
+  treeKeeps,
+  type TreeKeep,
+} from "../tree-keeps";
 import { launchBrowser, startLab, type Lab } from "./lab";
-import { openPreview, type Branding, type DataSet, type Preview, type PreviewPlan } from "./preview";
+import {
+  openPreview,
+  type Branding,
+  type DataSet,
+  type LabDocument,
+  type Preview,
+  type PreviewPlan,
+} from "./preview";
 import { DIFFERENCE_TOLERANCE, openRasterizer, type Rasterizer } from "./raster";
 import {
   percent,
@@ -85,6 +113,7 @@ import {
   type PageReport,
   type PaginationMode,
   type ParityReport,
+  type RefusalReport,
   type RunReport,
   type SensitivityReport,
 } from "./report";
@@ -149,26 +178,63 @@ const BRANDINGS: Record<Branding, DocumentTokensInput | undefined> = {
  * would cost a preview capture and two renders per adapter for nothing new.
  */
 interface Variant {
+  /** Which sample document. */
+  document: LabDocument;
   dataSet: DataSet;
   branding: Branding;
+  /**
+   * The engines measured on it. takumi lays out left to right only, so the
+   * Arabic letter is Chromium's alone and takumi's refusal is recorded instead.
+   */
+  adapters: PdfAdapterName[];
+  /**
+   * Whether a page of this document can be identified from the PDF's own text.
+   * False for the Arabic letter: see the note at the top of this file.
+   */
+  firstKeepsReadable: boolean;
 }
 
 const VARIANTS: Variant[] = [
-  { dataSet: "short", branding: "default" },
-  { dataSet: "overflow", branding: "default" },
-  { dataSet: "overflow", branding: "branded" },
+  { document: "proposal", dataSet: "short", branding: "default", adapters: ["takumi", "chromium"], firstKeepsReadable: true },
+  { document: "proposal", dataSet: "overflow", branding: "default", adapters: ["takumi", "chromium"], firstKeepsReadable: true },
+  { document: "proposal", dataSet: "overflow", branding: "branded", adapters: ["takumi", "chromium"], firstKeepsReadable: true },
+  { document: "arabic-letter", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: false },
 ];
 
+/** The token set a variant's document is drawn with. */
+function tokensOf(variant: Variant): DocumentTokensInput | undefined {
+  return variant.document === "arabic-letter" ? arabicLetterTokens : BRANDINGS[variant.branding];
+}
+
+/** The composed document one variant renders, on either side. */
+function elementOf(variant: Variant): ReactElement {
+  return variant.document === "arabic-letter" ? (
+    <ArabicLetterDocument data={arabicLetterData} tokens={arabicLetterTokens} />
+  ) : (
+    <ProposalDocument data={DATA_SETS[variant.dataSet]} tokens={BRANDINGS[variant.branding]} />
+  );
+}
+
 /** The paper one variant's tokens choose, which both sides are compared at. */
-function paperOf(branding: Branding): PageDimensions {
-  const { widthPx, heightPx } = pageGeometry(resolveDocumentTokens(BRANDINGS[branding]));
+function paperOf(variant: Variant): PageDimensions {
+  const { widthPx, heightPx } = pageGeometry(resolveDocumentTokens(tokensOf(variant)));
   return { widthPx, heightPx };
 }
 
 /** The label a variant is named by, in the report and in the test titles. */
 function variantName(variant: Variant): string {
-  return `${variant.dataSet} / ${variant.branding} tokens`;
+  return variant.document === "arabic-letter"
+    ? "Arabic letter"
+    : `${variant.dataSet} / ${variant.branding} tokens`;
 }
+
+/** The variants one engine is measured on. */
+function variantsFor(adapter: PdfAdapterName): Variant[] {
+  return VARIANTS.filter((variant) => variant.adapters.includes(adapter));
+}
+
+/** The variants no engine refuses, which is where the sensitivity check lives. */
+const PROPOSAL_VARIANTS = VARIANTS.filter((variant) => variant.document === "proposal");
 
 const MODES: PaginationMode[] = ["engine", "hint"];
 
@@ -195,7 +261,9 @@ const SENSITIVITY_CSS = '[data-page] [data-keep-id^="line-items:"] { background:
 
 /** The adapter, variant and page the check is made on: a full page of table rows. */
 const SENSITIVITY_ADAPTER: PdfAdapterName = "takumi";
-const SENSITIVITY_VARIANT: Variant = { dataSet: "overflow", branding: "default" };
+const SENSITIVITY_VARIANT: Variant = PROPOSAL_VARIANTS.find(
+  (variant) => variant.dataSet === "overflow" && variant.branding === "default"
+)!;
 const SENSITIVITY_PAGE = 2;
 
 /** What one measured run holds beyond its report. */
@@ -210,10 +278,11 @@ let rasterizer: Rasterizer;
 let logo: PdfImage;
 
 const runs = new Map<string, Run>();
+const refusals: RefusalReport[] = [];
 let sensitivity: SensitivityReport | null = null;
 
 const key = (adapter: PdfAdapterName, variant: Variant, mode: PaginationMode) =>
-  `${adapter}/${variant.dataSet}/${variant.branding}/${mode}`;
+  `${adapter}/${variant.document}/${variant.dataSet}/${variant.branding}/${mode}`;
 
 /** The run for one adapter, variant and mode, or a clear failure if it was never measured. */
 function run(adapter: PdfAdapterName, variant: Variant, mode: PaginationMode): Run {
@@ -255,6 +324,50 @@ function pdfFirstKeeps(pages: readonly ReadPage[], keeps: readonly TreeKeep[]): 
 }
 
 /**
+ * The keep a PDF page starts on, read back from the figures the page carries.
+ *
+ * The second way to identify a page, for a document whose words a PDF's text
+ * layer cannot give back. Shaped Arabic reaches the file as presentation forms
+ * with no map to the characters the document was written in; the Western digits
+ * beside them survive intact, so a keep that carries figures is still nameable
+ * from the PDF's own text — which is the property that keeps this criterion
+ * from being a statement about the plan that was sent.
+ *
+ * A repeated table header carries no figures at all, so it is read past without
+ * a rule of its own: the first keep with digits is the first keep that is not
+ * the header copy.
+ */
+function pdfFirstKeepsByDigits(
+  pages: readonly ReadPage[],
+  keeps: readonly TreeKeep[]
+): (string | null)[] {
+  const candidates = keeps
+    .map((keep) => ({ id: keep.id, tokens: digitTokens(keep.text) }))
+    .filter((keep) => keep.tokens.length > 0);
+
+  return pages.map((page) => {
+    const tokens = digitTokens(page.text);
+    // Longest first: a one-figure keep's tokens can be the opening of a longer
+    // keep's, and only one of the two is the keep that opened the page.
+    const matches = candidates
+      .filter((keep) => opensWithTokens(tokens, keep.tokens))
+      .sort((a, b) => b.tokens.length - a.tokens.length);
+    return matches[0]?.id ?? null;
+  });
+}
+
+/** The first keep of each preview page that carries figures, matched the same way. */
+function previewFirstKeepsByDigits(
+  plan: PreviewPlan,
+  keeps: readonly TreeKeep[]
+): (string | null)[] {
+  const numbered = new Set(
+    keeps.filter((keep) => digitTokens(keep.text).length > 0).map((keep) => keep.id)
+  );
+  return plan.pageKeeps.map((ownKeeps) => ownKeeps.find((id) => numbered.has(id)) ?? null);
+}
+
+/**
  * The first keep of each preview page that a PDF page could be identified by.
  *
  * The preview's own first keep can be the masthead's logo, which carries no
@@ -286,30 +399,36 @@ async function measure(
   images: Map<string, string>
 ): Promise<Run> {
   const { dataSet, branding } = variant;
-  const paper = paperOf(branding);
-  const rendered = await renderPdf(
-    <ProposalDocument data={DATA_SETS[dataSet]} tokens={BRANDINGS[branding]} />,
-    {
-      adapter,
-      images: [logo],
-      plan: mode === "hint" ? { breaks: plan.breaks, repeats: plan.repeats } : undefined,
-    }
-  );
+  const paper = paperOf(variant);
+  const rendered = await renderPdf(elementOf(variant), {
+    adapter,
+    images: [logo],
+    plan: mode === "hint" ? { breaks: plan.breaks, repeats: plan.repeats } : undefined,
+  });
 
   const read = await readPdf(rendered.bytes);
   const difference = await rasterizer.compare(rendered.bytes, captures, paper);
-  const fromPdf = pdfFirstKeeps(read, keeps);
-  const fromPreview = previewFirstKeeps(plan, keeps);
+  // Two readings of the same question. The text one is the criterion wherever a
+  // PDF gives the words back, and it is *recorded* everywhere so the claim that
+  // a script does not round-trip is a measurement rather than an assumption.
+  // The digit one is what identifies a page whose words it cannot.
+  const fromPdfByText = pdfFirstKeeps(read, keeps);
+  const fromPdf = variant.firstKeepsReadable ? fromPdfByText : pdfFirstKeepsByDigits(read, keeps);
+  const fromPreview = variant.firstKeepsReadable
+    ? previewFirstKeeps(plan, keeps)
+    : previewFirstKeepsByDigits(plan, keeps);
 
   const pages: PageReport[] = difference.pages.map((page) => {
     const index = page.number - 1;
-    const image = `${adapter}-${dataSet}-${branding}-${mode}-page-${page.number}.png`;
+    const image = `${adapter}-${variant.document}-${dataSet}-${branding}-${mode}-page-${page.number}.png`;
     images.set(image, page.image);
     const differingPercent = percent(page.differingPixels, page.totalPixels);
     return {
       number: page.number,
       previewFirstKeep: fromPreview[index] ?? null,
       pdfFirstKeep: fromPdf[index] ?? null,
+      pdfFirstKeepByText: fromPdfByText[index] ?? null,
+      identifiedBy: variant.firstKeepsReadable ? "text" : "digits",
       firstKeepMatches:
         fromPreview[index] !== null &&
         fromPreview[index] !== undefined &&
@@ -329,6 +448,7 @@ async function measure(
   return {
     key: key(adapter, variant, mode),
     adapter,
+    document: variant.document,
     dataSet,
     branding,
     paper,
@@ -349,8 +469,29 @@ async function measure(
     worstAlignedPercent: Math.max(0, ...pages.map((page) => page.alignedPercent)),
     worstDriftPixels: Math.max(0, ...pages.map((page) => page.driftPixels)),
     everyPageUnderOnePercent: pages.length > 0 && pages.every((page) => page.underOnePercent),
+    firstKeepsReadable: variant.firstKeepsReadable,
     pages,
   };
+}
+
+/**
+ * Asks one engine for one document and records what it said if it refused.
+ *
+ * A refusal is measured rather than assumed: the suite puts the question to the
+ * engine and writes the answer into the report, so "takumi cannot lay out right
+ * to left" is a result of this run.
+ */
+async function refusalOf(
+  adapter: PdfAdapterName,
+  variant: Variant
+): Promise<RefusalReport | null> {
+  try {
+    await renderPdf(elementOf(variant), { adapter, images: [logo] });
+    return null;
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    return { adapter, document: variant.document, error: error.name, message: error.message };
+  }
 }
 
 beforeAll(async () => {
@@ -364,24 +505,28 @@ beforeAll(async () => {
   const measured = new Map<string, { plan: PreviewPlan; keeps: TreeKeep[] }>();
 
   for (const variant of VARIANTS) {
-    const { dataSet, branding } = variant;
-    const paper = paperOf(branding);
-    const plan = await preview.show(dataSet, branding, paper);
+    const paper = paperOf(variant);
+    const plan = await preview.show(variant.document, variant.dataSet, variant.branding, paper);
     const captures = (await preview.capture()).map((capture) => capture.png);
-    const { node } = await fromJsx(
-      <ProposalDocument data={DATA_SETS[dataSet]} tokens={BRANDINGS[branding]} />
-    );
+    const { node } = await fromJsx(elementOf(variant));
     const keeps = treeKeeps(node);
     measured.set(variantName(variant), { plan, keeps });
 
     // The preview is captured once per variant and every adapter is measured
     // against those same images. Re-capturing per adapter would compare each
     // PDF against a different screenshot of the same page.
-    for (const adapter of ADAPTERS) {
+    for (const adapter of variant.adapters) {
       for (const mode of MODES) {
         const result = await measure(adapter, variant, mode, plan, captures, keeps, images);
         runs.set(result.key, result);
       }
+    }
+
+    // Every engine the variant does not list is asked anyway, so the reason it
+    // is not measured is a recorded refusal rather than an omission.
+    for (const adapter of ADAPTERS.filter((name) => !variant.adapters.includes(name))) {
+      const refused = await refusalOf(adapter, variant);
+      if (refused !== null) refusals.push(refused);
     }
   }
 
@@ -392,9 +537,14 @@ beforeAll(async () => {
     const name = variantName(SENSITIVITY_VARIANT);
     const context = measured.get(name);
     if (context === undefined) throw new Error(`${name} was never shown`);
-    const paper = paperOf(SENSITIVITY_VARIANT.branding);
+    const paper = paperOf(SENSITIVITY_VARIANT);
     const before = run(SENSITIVITY_ADAPTER, SENSITIVITY_VARIANT, "hint");
-    await preview.show(SENSITIVITY_VARIANT.dataSet, SENSITIVITY_VARIANT.branding, paper);
+    await preview.show(
+      SENSITIVITY_VARIANT.document,
+      SENSITIVITY_VARIANT.dataSet,
+      SENSITIVITY_VARIANT.branding,
+      paper
+    );
     await preview.restyle(SENSITIVITY_CSS, paper);
     const restyled = (await preview.capture()).map((capture) => capture.png);
     const after = await measure(
@@ -423,12 +573,13 @@ beforeAll(async () => {
 
   const report: ParityReport = {
     generatedAt: new Date().toISOString(),
-    geometry: paperOf("default"),
+    geometry: paperOf(PROPOSAL_VARIANTS[0]!),
     captureScale: CAPTURE_SCALE,
     tolerance: DIFFERENCE_TOLERANCE,
     residualThresholdPercent: RESIDUAL_THRESHOLD_PERCENT,
     driftLimitPixels: DRIFT_LIMIT_PX,
     runs: [...runs.values()].map(({ key: _key, ...rest }) => rest),
+    refusals,
     sensitivity,
   };
   writeReport(report, images);
@@ -450,7 +601,7 @@ afterAll(async () => {
  * the preview's pages out is an adapter that failed, and the numbers say so.
  */
 describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
-  describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const))(
+  describe.each(variantsFor(adapter).map((variant) => [variantName(variant), variant] as const))(
     "on the %s",
     (_name, variant) => {
     it("gives the PDF the page count the preview drew", () => {
@@ -469,29 +620,51 @@ describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
       expect(measured.unknownRepeats).toEqual([]);
     });
 
-    it("starts every page on the keep the preview started it on", () => {
-      const measured = run(adapter, variant, "hint");
-      // Comparing the two lists directly would let a page pass on two nulls,
-      // which is the case where neither side could name a keep at all. So each
-      // page has to name one on both sides, and the match is read from the
-      // null-safe flag rather than from an equality that treats absence as
-      // agreement.
-      expect(
-        measured.pages
-          .filter(
-            (page) =>
-              page.previewFirstKeep === null ||
-              page.pdfFirstKeep === null ||
-              !page.firstKeepMatches
-          )
-          .map(
-            (page) =>
-              `page ${page.number}: preview ${page.previewFirstKeep ?? "none"}, ` +
-              `pdf ${page.pdfFirstKeep ?? "none"}`
-          )
-      ).toEqual([]);
-      expect(measured.firstKeepsMatch).toBe(true);
-    });
+    it(
+      "starts every page on the keep the preview started it on",
+      () => {
+        const measured = run(adapter, variant, "hint");
+        // Comparing the two lists directly would let a page pass on two nulls,
+        // which is the case where neither side could name a keep at all. So each
+        // page has to name one on both sides, and the match is read from the
+        // null-safe flag rather than from an equality that treats absence as
+        // agreement.
+        expect(
+          measured.pages
+            .filter(
+              (page) =>
+                page.previewFirstKeep === null ||
+                page.pdfFirstKeep === null ||
+                !page.firstKeepMatches
+            )
+            .map(
+              (page) =>
+                `page ${page.number}: preview ${page.previewFirstKeep ?? "none"}, ` +
+                `pdf ${page.pdfFirstKeep ?? "none"}`
+            )
+        ).toEqual([]);
+        expect(measured.firstKeepsMatch).toBe(true);
+      }
+    );
+
+    it.runIf(!variant.firstKeepsReadable)(
+      "names those keeps from the page's figures, because its words do not survive",
+      () => {
+        const measured = run(adapter, variant, "hint");
+        // The finding, still asserted. Shaped Arabic reaches a PDF's text layer
+        // as contextual presentation forms in visual order and neither engine
+        // writes a ToUnicode map back to the characters the letter was written
+        // in, so no page's *words* name a keep. The day an engine round-trips
+        // the script this fails and the variant goes back to text matching.
+        expect(measured.pages.map((page) => page.pdfFirstKeepByText)).toEqual(
+          measured.pages.map(() => null)
+        );
+        // And the criterion above still held, read from the figures instead.
+        expect(measured.pages.map((page) => page.identifiedBy)).toEqual(
+          measured.pages.map(() => "digits")
+        );
+      }
+    );
 
     it("lays every page out where the preview laid it out", () => {
       const measured = run(adapter, variant, "hint");
@@ -547,7 +720,7 @@ describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
  * takumi's page count and first keeps are still asserted, because that is what
  * the README records and nothing here loosens it.
  */
-describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const))(
+describe.each(variantsFor("takumi").map((variant) => [variantName(variant), variant] as const))(
   "takumi in engine mode on the %s",
   (_name, variant) => {
   it("paginates onto the same page count the preview planned, and is measured", () => {
@@ -587,7 +760,7 @@ describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const
   }
 );
 
-describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const))(
+describe.each(variantsFor("chromium").map((variant) => [variantName(variant), variant] as const))(
   "chromium in engine mode on the %s",
   (_name, variant) => {
     it("is measured, and what Blink decided is recorded rather than required", () => {
@@ -616,13 +789,55 @@ describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const
  */
 describe("the second token set is measured on its own paper", () => {
   it.each(ADAPTERS)("puts the %s run on A4", (adapter) => {
-    const branded = VARIANTS.filter((variant) => variant.branding === "branded");
+    const branded = variantsFor(adapter).filter((variant) => variant.branding === "branded");
     expect(branded.length).toBeGreaterThan(0);
     for (const variant of branded) {
       const measured = run(adapter, variant, "hint");
       expect(measured.paper).toEqual({ widthPx: 794, heightPx: 1123 });
-      expect(measured.paper).not.toEqual(paperOf("default"));
+      expect(measured.paper).not.toEqual(paperOf(PROPOSAL_VARIANTS[0]!));
     }
+  });
+});
+
+/**
+ * The right-to-left result, stated as data rather than as a claim.
+ *
+ * One engine lays the letter out and one refuses it, and both halves are worth
+ * asserting: a refusal that stopped happening would mean takumi had gained a
+ * `direction` and nobody had noticed, and a Chromium run that quietly stopped
+ * being measured would leave the ticket's acceptance criterion untested.
+ */
+describe("the Arabic letter is laid out right to left by the engine that can", () => {
+  const arabic = VARIANTS.find((variant) => variant.document === "arabic-letter")!;
+
+  it("is measured on Chromium, and passes the same criteria as every other variant", () => {
+    const measured = run("chromium", arabic, "hint");
+    expect(measured.previewPages).toBeGreaterThan(1);
+    expect(measured.pdfPages).toBe(measured.previewPages);
+    expect(measured.meetsCriteria).toBe(true);
+    expect(measured.firstKeepsMatch).toBe(true);
+    expect(measured.unknownBreaks).toEqual([]);
+    expect(measured.unknownRepeats).toEqual([]);
+  });
+
+  it("opens its second page on the row the preview broke at", () => {
+    // The one page start that matters on this document, named from the PDF's
+    // own figures. A hint mode that had simply been believed would name it too;
+    // what makes this not a tautology is that the row comes back out of the
+    // file rather than out of the plan that was sent.
+    const measured = run("chromium", arabic, "hint");
+    expect(measured.pages[1]?.pdfFirstKeep).toBe("items:14");
+    expect(measured.pages[1]?.previewFirstKeep).toBe("items:14");
+  });
+
+  it("was refused by takumi, which said so by name", () => {
+    const refused = refusals.find(
+      (refusal) => refusal.document === "arabic-letter" && refusal.adapter === "takumi"
+    );
+    expect(refused).toBeDefined();
+    expect(refused!.error).toBe("UnsupportedDirectionError");
+    expect(refused!.message).toContain("takumi");
+    expect(refused!.message).toContain("Arab");
   });
 });
 

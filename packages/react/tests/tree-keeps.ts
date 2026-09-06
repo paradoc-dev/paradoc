@@ -56,3 +56,41 @@ export function treeKeeps(node: Node, into: TreeKeep[] = []): TreeKeep[] {
 export function normalizeText(text: string): string {
   return text.replaceAll(/\s+/gu, "").toUpperCase();
 }
+
+/**
+ * The digits a piece of text carries, as tokens, in the order they appear.
+ *
+ * A second way to say which keep a page opened on, for a document whose words a
+ * PDF's text layer cannot give back. Shaped Arabic reaches the file as
+ * contextual presentation forms with no map to the characters it was written
+ * in, but a run of Western digits is a run of Western digits on both sides:
+ * `1,850.00` comes back as `1,850.00`. So a keep that carries figures — a table
+ * row, a total, a reference number — is still identifiable from the PDF's own
+ * text, which is the property the criterion needs.
+ *
+ * Digits only, with the separators inside a number kept so `1,850.00` is one
+ * token rather than three. Anything else is dropped, because everything else is
+ * exactly what does not survive.
+ */
+export function digitTokens(text: string): string[] {
+  return (text.match(/\d[\d.,]*\d|\d/gu) ?? []).filter((token) => token.length > 0);
+}
+
+/**
+ * True when the first `tokens.length` of `page` are the same tokens as `tokens`,
+ * regardless of their order.
+ *
+ * A prefix comparison, because "the page opens on this keep" is a statement
+ * about the start of the page. A *multiset* comparison, because a right-to-left
+ * row is emitted column by column and the bidirectional algorithm may report a
+ * row's own figures in a different order from the one the tree wrote them in.
+ * The row is still the unit, so the tokens are the same tokens either way, and
+ * a page that opened on a different row would carry different figures rather
+ * than the same ones rearranged.
+ */
+export function opensWithTokens(page: readonly string[], tokens: readonly string[]): boolean {
+  if (tokens.length === 0 || tokens.length > page.length) return false;
+  const head = [...page.slice(0, tokens.length)].sort();
+  const wanted = [...tokens].sort();
+  return head.every((token, index) => token === wanted[index]);
+}

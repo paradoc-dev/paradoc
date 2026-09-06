@@ -11,6 +11,19 @@
  * The seal's flow markers enter here too, but from the other direction: the
  * layer's renderer supplies them and this reads them, so a composition never
  * threads a seal-only prop.
+ *
+ * The script is branding too. `dir` and `lang` are root-only tokens, so the
+ * root writes them onto its element as HTML writes them, and the render reads
+ * the same resolution off the same element. A document that names a language
+ * its typeface carries no glyphs for fails while it resolves, rather than
+ * rendering null glyphs on paper and a substituted face on screen.
+ *
+ * The tag is a declaration, though, and a document that declares nothing is the
+ * case it cannot catch. So the root also reads the text it is about to print —
+ * one pass over the artifact's labels and the data's values, memoized on both —
+ * and fails the same way when that text is in a script the family cannot set.
+ * That is the case `<ArabicLetterDocument data={...} />` with no tokens is: a
+ * whole document of null glyphs that nothing else would have reported.
  */
 
 import { useMemo, type ReactNode } from "react";
@@ -19,7 +32,8 @@ import type { Form } from "@paradoc/types";
 
 import { useUnresolvedPathCollector } from "./check-context";
 import { createValueFormatter, type FormatOptions } from "../lib/format";
-import { fontFamilyStyle, type DocumentTokensInput } from "../lib/tokens";
+import { assertTextScriptsCovered, collectStrings } from "../lib/script";
+import { fontFamilyStyle, localeAttributes, type DocumentTokensInput } from "../lib/tokens";
 import {
   createDocumentContext,
   DocumentContextProvider,
@@ -66,6 +80,15 @@ export function Document({
   children,
 }: DocumentProps) {
   const branding = useDocumentRootTokens(tokens);
+  // The text, not the tag. Memoized on the artifact, the data and the family,
+  // which is every input it has, so it is one pass per document rather than one
+  // per render. Only the root checks: a nested document is set in the bundle's
+  // family and the bundle already answered for it.
+  const { fontFamily, lang } = branding.tokens;
+  useMemo(() => {
+    if (!branding.isRoot) return;
+    assertTextScriptsCovered(fontFamily, lang, collectStrings([artifact, data]));
+  }, [branding.isRoot, fontFamily, lang, artifact, data]);
   // The seal's flow markers arrive from the layer's renderer, not from the
   // composition: a document is written once and rendered in both seal passes.
   const marks = useSigningMarks();
@@ -84,6 +107,11 @@ export function Document({
       <DocumentContextProvider value={context}>
         <article
           data-document-id={id ?? artifact.name}
+          // Only the root, and only when they are not the initial values both
+          // outputs already apply: writing `dir="ltr" lang="en"` onto every
+          // document that never asked about its script would change the bytes
+          // of every rendered PDF for nothing.
+          {...(branding.isRoot ? localeAttributes(branding.tokens) : {})}
           className={className ?? "flex flex-col gap-6 text-sm leading-relaxed text-neutral-900"}
           // The browser reaches the typeface through this property, which
           // `styles.css` reads; the PDF reaches the same files through the

@@ -75,6 +75,21 @@ const price = usaSerializers.money.stringify({
 // -> "$99.99"
 ```
 
+Three registries are built in: `us` (en-US, USD), `eu` (de-DE, EUR) and `ar`
+(Arabic, SAR).
+
+`ar` is a language rather than a region, and it makes one decision worth
+knowing about: **its digits are Latin.** The locale tag is `ar-u-nu-latn`, so
+the month names, the meridiem and the currency name are Arabic while the
+figures are `0123456789`. Two reasons. The numbering system a runtime defaults
+`ar` to has changed between ICU releases, and a registry whose output moves with
+the runtime is not deterministic, which every registry here is. And Western
+digits are what contracts and invoices across the Gulf and the Levant are set
+in; Egypt and Sudan use Arabic-Indic, and a registry has to pick one.
+
+A document that needs Arabic-Indic digits has no registry yet. It is
+`ar-u-nu-arab` and one more entry in `src/registry/base.ts`.
+
 ### Configuring Fallbacks
 
 Configure fallback values that are used when serialization fails (e.g., when data is null or invalid). The default is an empty string ("").

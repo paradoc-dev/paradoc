@@ -17,22 +17,22 @@
  * degrading silently to `String(value)`. `createSerializer`'s fallback
  * wrapping exists precisely to swallow that kind of error into an empty
  * string for callers that want graceful degradation; this package does not
- * use it, and reads the plain `usaSerializers`/`euSerializers` registries
- * directly instead, so a rejected value always throws. A value the data does
+ * use it, and reads the plain registries from `REGION_REGISTRIES` directly
+ * instead, so a rejected value always throws. A value the data does
  * not carry at all (`null`, `undefined`, `""`) is not an invalid value: it is
  * handled before any serializer sees it, and prints as `blank`.
  */
 
-import { euSerializers, isSerializableFieldType, usaSerializers } from "@paradoc/serialization";
-import type { FormField, SerializerRegistry } from "@paradoc/types";
+import { isSerializableFieldType, REGION_REGISTRIES } from "@paradoc/serialization";
+import type { FormField, RegionFormat, SerializerRegistry } from "@paradoc/types";
 
 /** Shown in place of a value the data does not carry. */
 export const BLANK = "—";
 
 /** How a document formats the values the serializer registry does not cover. */
 export interface FormatOptions {
-  /** Region the serializer registry formats for. Defaults to `us`. */
-  regionFormat?: "us" | "eu";
+  /** Registry the values are serialized through. Defaults to `us`. */
+  regionFormat?: RegionFormat;
   /** Shown in place of a missing value. Defaults to `BLANK`. */
   blank?: string;
 }
@@ -127,7 +127,11 @@ function enumLabel(field: FormField, value: unknown): string {
 /** Builds a formatter bound to one serializer registry. */
 export function createValueFormatter(options: FormatOptions = {}): DocumentFormatter {
   const blank = options.blank ?? BLANK;
-  const serializers = options.regionFormat === "eu" ? euSerializers : usaSerializers;
+  // The plain registries, not `createSerializer`: its fallback wrapping turns a
+  // rejected value into an empty string, and this package throws instead. The
+  // map is the serialization package's own, and it is exhaustive over
+  // `RegionFormat`, so there is nothing to fall back to.
+  const serializers = REGION_REGISTRIES[options.regionFormat ?? "us"];
 
   const format: ValueFormatter = (field, value, location) => {
     if (isBlank(value)) return blank;
