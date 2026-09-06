@@ -116,7 +116,14 @@ async function chromium(): Promise<Browser> {
       executablePath,
       headless: true,
       protocolTimeout: 600_000,
-      args: ["--font-render-hinting=none", "--disable-lcd-text", "--hide-scrollbars"],
+      args: [
+        "--font-render-hinting=none",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        // GitHub's Ubuntu runners restrict user namespaces, which the sandbox
+        // needs; unsandboxed only in CI, never on a developer's machine.
+        ...(process.env.CI ? ["--no-sandbox", "--disable-setuid-sandbox"] : []),
+      ],
     });
     // A browser outliving the process that started it would be a leaked Chrome
     // per render. `close` cannot be awaited from an exit handler, so the child
