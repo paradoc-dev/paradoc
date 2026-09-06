@@ -20,7 +20,6 @@
 import { fromJsx } from "@takumi-rs/helpers/jsx";
 import { render } from "takumi-pdf";
 
-import { DOCUMENT_FONT_NAME } from "../../lib/font";
 import {
   UnsupportedPdfContentError,
   type PdfAdapter,
@@ -28,8 +27,9 @@ import {
   type PdfRenderResult,
   type PreparedPdfInput,
 } from "../adapter";
+import { tokenFontFamily } from "../../lib/tokens";
 import { PDF_RESET_STYLESHEET } from "../reset";
-import { documentFonts, imageFormat, markerFont } from "../resources";
+import { imageFormat, pdfFonts } from "../resources";
 import { preparePdfTree, recordOnce } from "../tree";
 
 /** The engine the parity numbers are measured on, and the default `renderPdf` reaches for. */
@@ -53,14 +53,18 @@ export const takumiAdapter: PdfAdapter = {
       throw new UnsupportedPdfContentError(prepared.unsupportedClasses, badImages);
     }
 
-    const fonts = [...(await documentFonts())];
-    if (options.signingMarkers) fonts.push(await markerFont());
+    // The faces are the prepared input's, loaded rather than resolved again:
+    // the Chromium adapter is handed the same list as `@font-face` rules, and
+    // two adapters that looked their own files up could embed different ones.
+    const fonts = await pdfFonts(input.fonts);
 
     const bytes = await render(prepared.node, {
       size: { width: input.geometry.widthPx, height: input.geometry.heightPx },
       margin: input.geometry.marginPx,
       fonts,
-      fontFamilies: [DOCUMENT_FONT_NAME, "sans-serif"],
+      // The generic comes from the family's own registration: a serif that fell
+      // back to a sans would be a different document.
+      fontFamilies: [input.tokens.fontFamily, tokenFontFamily(input.tokens).fallback],
       images: input.images.map((image) => ({ src: image.src, data: image.data })),
       stylesheets: [PDF_RESET_STYLESHEET, ...stylesheets],
       lang: options.lang,

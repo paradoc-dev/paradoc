@@ -4,10 +4,15 @@
  * Every amount it shows comes from the artifact's `defs`, evaluated by
  * `@paradoc/core`, and is formatted by the serializer its declared type names.
  * The component does no arithmetic of its own. It is one pagination unit.
+ *
+ * The rule above the emphasised row is the second place a tenant's accent
+ * colour lands, for the reason `Section` states: an arbitrary colour is an
+ * inline style in both outputs, never a class.
  */
 
 import { KeepTogether } from "./keep-together";
 import { useDocument } from "./document-context";
+import { useDocumentTokens } from "./tokens-context";
 
 /** One computed row. */
 export interface TotalRow {
@@ -32,6 +37,7 @@ export interface TotalsProps {
 /** The computed totals keep. */
 export function Totals({ rows, id, className }: TotalsProps) {
   const { form, defText, text } = useDocument();
+  const { accentColor } = useDocumentTokens();
 
   return (
     <KeepTogether keepId={id ?? "totals"} className={className ?? "flex w-1/2 flex-col gap-1 self-end"}>
@@ -43,6 +49,9 @@ export function Totals({ rows, id, className }: TotalsProps) {
             row.emphasis
               ? "flex w-full justify-between border-t border-neutral-800 pt-1 text-base font-semibold"
               : "flex w-full justify-between text-sm"
+          }
+          style={
+            row.emphasis && accentColor !== undefined ? { borderColor: accentColor } : undefined
           }
         >
           <span className="text-neutral-600">

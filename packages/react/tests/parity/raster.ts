@@ -27,7 +27,7 @@
 import type { Browser, Page } from "puppeteer";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../../src/components/paper";
+import type { PageDimensions } from "../../src/lib/tokens";
 
 const require = createRequire(import.meta.url);
 
@@ -97,8 +97,18 @@ export interface Difference {
 /** The rasterizer page, and what it can be asked. */
 export interface Rasterizer {
   page: Page;
-  /** Rasterizes every page of `pdf` and measures it against the preview captures. */
-  compare: (pdf: Uint8Array, previews: readonly string[]) => Promise<Difference>;
+  /**
+   * Rasterizes every page of `pdf` and measures it against the preview captures.
+   *
+   * The paper is passed rather than looked up: a run measures the document on
+   * the paper its own tokens chose, and a comparison that assumed US Letter
+   * would refuse every A4 page as the wrong shape.
+   */
+  compare: (
+    pdf: Uint8Array,
+    previews: readonly string[],
+    paper: PageDimensions
+  ) => Promise<Difference>;
 }
 
 /** Base64 for bytes, without going through a Buffer in the page. */
@@ -138,13 +148,17 @@ export async function openRasterizer(browser: Browser, labUrl: string): Promise<
     worker
   );
 
-  const compare = async (pdf: Uint8Array, previews: readonly string[]): Promise<Difference> => {
+  const compare = async (
+    pdf: Uint8Array,
+    previews: readonly string[],
+    paper: PageDimensions
+  ): Promise<Difference> => {
     // Shown, because a browser gives a hidden tab no frames and rendering a PDF
     // page into a canvas is rendering.
     await page.bringToFront();
     return page.evaluate(measureInPage, encode(pdf), [...previews], {
-      width: PAPER_WIDTH_PX,
-      height: PAPER_HEIGHT_PX,
+      width: paper.widthPx,
+      height: paper.heightPx,
       tolerance: DIFFERENCE_TOLERANCE,
       band: BAND_HEIGHT,
       maxDrift: MAX_DRIFT,

@@ -34,6 +34,13 @@
  * engine repeats no table header, and that gap is a finding the README states
  * rather than a failure it reports every run.
  *
+ * **Both token sets are measured.** Branding changes the paper, the typeface,
+ * the accent and the mark, and a suite that only ever measured the unbranded
+ * document would say nothing about whether the two outputs still agree once a
+ * tenant has changed all four. So the overflow document is measured again under
+ * the sample's second token set — A4 with a wider margin and a serif — against
+ * the same criteria, on the paper that set chose.
+ *
  * **Both adapters are measured, on the same preview captures.** `renderPdf` has
  * two engines behind it, and the whole point of the second is a number: how
  * close does the PDF get when the engine laying it out is the engine that laid
@@ -51,19 +58,25 @@
 import type { Browser } from "puppeteer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fromJsx } from "@takumi-rs/helpers/jsx";
-import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../../src/components/paper";
 import {
+  brandedProposalTokens,
   overflowProposalData,
   ProposalDocument,
   shortProposalData,
 } from "../../src/examples";
 import { proposalLogoImage } from "../../src/examples/pdf";
+import {
+  pageGeometry,
+  resolveDocumentTokens,
+  type DocumentTokensInput,
+  type PageDimensions,
+} from "../../src/lib/tokens";
 import { renderPdf, type PdfAdapterName, type PdfImage } from "../../src/pdf";
 import { closeChromium } from "../../src/pdf/adapters/chromium";
 import { readPdf, type ReadPage } from "../pdf-reader";
 import { normalizeText, treeKeeps, type TreeKeep } from "../tree-keeps";
 import { launchBrowser, startLab, type Lab } from "./lab";
-import { openPreview, type DataSet, type Preview, type PreviewPlan } from "./preview";
+import { openPreview, type Branding, type DataSet, type Preview, type PreviewPlan } from "./preview";
 import { DIFFERENCE_TOLERANCE, openRasterizer, type Rasterizer } from "./raster";
 import {
   percent,
@@ -121,6 +134,42 @@ const DATA_SETS: Record<DataSet, typeof shortProposalData> = {
   overflow: overflowProposalData,
 };
 
+/** The token sets the lab offers, keyed the way its branding control is. */
+const BRANDINGS: Record<Branding, DocumentTokensInput | undefined> = {
+  default: undefined,
+  branded: brandedProposalTokens,
+};
+
+/**
+ * One document under one token set: what a run is measured on.
+ *
+ * The overflow document is measured under both sets and the short one under the
+ * default alone. Branding is proved by a document that paginates — a second
+ * paper only means something across a page break — and a fourth combination
+ * would cost a preview capture and two renders per adapter for nothing new.
+ */
+interface Variant {
+  dataSet: DataSet;
+  branding: Branding;
+}
+
+const VARIANTS: Variant[] = [
+  { dataSet: "short", branding: "default" },
+  { dataSet: "overflow", branding: "default" },
+  { dataSet: "overflow", branding: "branded" },
+];
+
+/** The paper one variant's tokens choose, which both sides are compared at. */
+function paperOf(branding: Branding): PageDimensions {
+  const { widthPx, heightPx } = pageGeometry(resolveDocumentTokens(BRANDINGS[branding]));
+  return { widthPx, heightPx };
+}
+
+/** The label a variant is named by, in the report and in the test titles. */
+function variantName(variant: Variant): string {
+  return `${variant.dataSet} / ${variant.branding} tokens`;
+}
+
 const MODES: PaginationMode[] = ["engine", "hint"];
 
 /**
@@ -144,9 +193,9 @@ const ADAPTERS: PdfAdapterName[] = ["takumi", "chromium"];
  */
 const SENSITIVITY_CSS = '[data-page] [data-keep-id^="line-items:"] { background: #d4d4d4 }';
 
-/** The adapter, data set and page the check is made on: a full page of table rows. */
+/** The adapter, variant and page the check is made on: a full page of table rows. */
 const SENSITIVITY_ADAPTER: PdfAdapterName = "takumi";
-const SENSITIVITY_SET: DataSet = "overflow";
+const SENSITIVITY_VARIANT: Variant = { dataSet: "overflow", branding: "default" };
 const SENSITIVITY_PAGE = 2;
 
 /** What one measured run holds beyond its report. */
@@ -163,13 +212,13 @@ let logo: PdfImage;
 const runs = new Map<string, Run>();
 let sensitivity: SensitivityReport | null = null;
 
-const key = (adapter: PdfAdapterName, dataSet: DataSet, mode: PaginationMode) =>
-  `${adapter}/${dataSet}/${mode}`;
+const key = (adapter: PdfAdapterName, variant: Variant, mode: PaginationMode) =>
+  `${adapter}/${variant.dataSet}/${variant.branding}/${mode}`;
 
-/** The run for one adapter, data set and mode, or a clear failure if it was never measured. */
-function run(adapter: PdfAdapterName, dataSet: DataSet, mode: PaginationMode): Run {
-  const measured = runs.get(key(adapter, dataSet, mode));
-  if (measured === undefined) throw new Error(`${key(adapter, dataSet, mode)} was not measured`);
+/** The run for one adapter, variant and mode, or a clear failure if it was never measured. */
+function run(adapter: PdfAdapterName, variant: Variant, mode: PaginationMode): Run {
+  const measured = runs.get(key(adapter, variant, mode));
+  if (measured === undefined) throw new Error(`${key(adapter, variant, mode)} was not measured`);
   return measured;
 }
 
@@ -226,30 +275,35 @@ function previewFirstKeeps(plan: PreviewPlan, keeps: readonly TreeKeep[]): (stri
   return plan.pageKeeps.map((ownKeeps) => ownKeeps.find((id) => texted.has(id)) ?? null);
 }
 
-/** Renders one data set one way through one adapter and compares every page. */
+/** Renders one variant one way through one adapter and compares every page. */
 async function measure(
   adapter: PdfAdapterName,
-  dataSet: DataSet,
+  variant: Variant,
   mode: PaginationMode,
   plan: PreviewPlan,
   captures: readonly string[],
   keeps: readonly TreeKeep[],
   images: Map<string, string>
 ): Promise<Run> {
-  const rendered = await renderPdf(<ProposalDocument data={DATA_SETS[dataSet]} />, {
-    adapter,
-    images: [logo],
-    plan: mode === "hint" ? { breaks: plan.breaks, repeats: plan.repeats } : undefined,
-  });
+  const { dataSet, branding } = variant;
+  const paper = paperOf(branding);
+  const rendered = await renderPdf(
+    <ProposalDocument data={DATA_SETS[dataSet]} tokens={BRANDINGS[branding]} />,
+    {
+      adapter,
+      images: [logo],
+      plan: mode === "hint" ? { breaks: plan.breaks, repeats: plan.repeats } : undefined,
+    }
+  );
 
   const read = await readPdf(rendered.bytes);
-  const difference = await rasterizer.compare(rendered.bytes, captures);
+  const difference = await rasterizer.compare(rendered.bytes, captures, paper);
   const fromPdf = pdfFirstKeeps(read, keeps);
   const fromPreview = previewFirstKeeps(plan, keeps);
 
   const pages: PageReport[] = difference.pages.map((page) => {
     const index = page.number - 1;
-    const image = `${adapter}-${dataSet}-${mode}-page-${page.number}.png`;
+    const image = `${adapter}-${dataSet}-${branding}-${mode}-page-${page.number}.png`;
     images.set(image, page.image);
     const differingPercent = percent(page.differingPixels, page.totalPixels);
     return {
@@ -273,9 +327,11 @@ async function measure(
   });
 
   return {
-    key: key(adapter, dataSet, mode),
+    key: key(adapter, variant, mode),
     adapter,
     dataSet,
+    branding,
+    paper,
     mode,
     previewPages: plan.pageCount,
     pdfPages: difference.pdfPageCount,
@@ -305,39 +361,45 @@ beforeAll(async () => {
   logo = await proposalLogoImage();
 
   const images = new Map<string, string>();
-  const measured = new Map<DataSet, { plan: PreviewPlan; keeps: TreeKeep[] }>();
+  const measured = new Map<string, { plan: PreviewPlan; keeps: TreeKeep[] }>();
 
-  for (const dataSet of Object.keys(DATA_SETS) as DataSet[]) {
-    const plan = await preview.show(dataSet);
+  for (const variant of VARIANTS) {
+    const { dataSet, branding } = variant;
+    const paper = paperOf(branding);
+    const plan = await preview.show(dataSet, branding, paper);
     const captures = (await preview.capture()).map((capture) => capture.png);
-    const { node } = await fromJsx(<ProposalDocument data={DATA_SETS[dataSet]} />);
+    const { node } = await fromJsx(
+      <ProposalDocument data={DATA_SETS[dataSet]} tokens={BRANDINGS[branding]} />
+    );
     const keeps = treeKeeps(node);
-    measured.set(dataSet, { plan, keeps });
+    measured.set(variantName(variant), { plan, keeps });
 
-    // The preview is captured once per data set and every adapter is measured
+    // The preview is captured once per variant and every adapter is measured
     // against those same images. Re-capturing per adapter would compare each
     // PDF against a different screenshot of the same page.
     for (const adapter of ADAPTERS) {
       for (const mode of MODES) {
-        const result = await measure(adapter, dataSet, mode, plan, captures, keeps, images);
+        const result = await measure(adapter, variant, mode, plan, captures, keeps, images);
         runs.set(result.key, result);
       }
     }
   }
 
-  // The sensitivity check runs last and asks for its data set by name. Doing it
+  // The sensitivity check runs last and asks for its variant by name. Doing it
   // inside the loop would have made it depend on which key happened to come
   // last, and it injects a stylesheet the pages after it must not see.
   {
-    const context = measured.get(SENSITIVITY_SET);
-    if (context === undefined) throw new Error(`${SENSITIVITY_SET} was never shown`);
-    const before = run(SENSITIVITY_ADAPTER, SENSITIVITY_SET, "hint");
-    await preview.show(SENSITIVITY_SET);
-    await preview.restyle(SENSITIVITY_CSS);
+    const name = variantName(SENSITIVITY_VARIANT);
+    const context = measured.get(name);
+    if (context === undefined) throw new Error(`${name} was never shown`);
+    const paper = paperOf(SENSITIVITY_VARIANT.branding);
+    const before = run(SENSITIVITY_ADAPTER, SENSITIVITY_VARIANT, "hint");
+    await preview.show(SENSITIVITY_VARIANT.dataSet, SENSITIVITY_VARIANT.branding, paper);
+    await preview.restyle(SENSITIVITY_CSS, paper);
     const restyled = (await preview.capture()).map((capture) => capture.png);
     const after = await measure(
       SENSITIVITY_ADAPTER,
-      SENSITIVITY_SET,
+      SENSITIVITY_VARIANT,
       "hint",
       context.plan,
       restyled,
@@ -347,7 +409,8 @@ beforeAll(async () => {
     const page = SENSITIVITY_PAGE - 1;
     sensitivity = {
       adapter: SENSITIVITY_ADAPTER,
-      dataSet: SENSITIVITY_SET,
+      dataSet: SENSITIVITY_VARIANT.dataSet,
+      branding: SENSITIVITY_VARIANT.branding,
       mode: "hint",
       page: SENSITIVITY_PAGE,
       css: SENSITIVITY_CSS,
@@ -360,7 +423,7 @@ beforeAll(async () => {
 
   const report: ParityReport = {
     generatedAt: new Date().toISOString(),
-    geometry: { widthPx: PAPER_WIDTH_PX, heightPx: PAPER_HEIGHT_PX },
+    geometry: paperOf("default"),
     captureScale: CAPTURE_SCALE,
     tolerance: DIFFERENCE_TOLERANCE,
     residualThresholdPercent: RESIDUAL_THRESHOLD_PERCENT,
@@ -387,20 +450,27 @@ afterAll(async () => {
  * the preview's pages out is an adapter that failed, and the numbers say so.
  */
 describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
-  describe.each(Object.keys(DATA_SETS) as DataSet[])("on the %s set", (dataSet) => {
+  describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const))(
+    "on the %s",
+    (_name, variant) => {
     it("gives the PDF the page count the preview drew", () => {
-      const measured = run(adapter, dataSet, "hint");
+      const measured = run(adapter, variant, "hint");
       expect(measured.pdfPages).toBe(measured.previewPages);
+      // Every criterion below reads `pages`, and `every` on an empty list is
+      // true. A run whose sides never met — no preview capture, no PDF page —
+      // would otherwise pass all of them without measuring anything.
+      expect(measured.pages).toHaveLength(measured.previewPages);
+      expect(measured.pageCountMatches).toBe(true);
     });
 
     it("honours every hint it was given", () => {
-      const measured = run(adapter, dataSet, "hint");
+      const measured = run(adapter, variant, "hint");
       expect(measured.unknownBreaks).toEqual([]);
       expect(measured.unknownRepeats).toEqual([]);
     });
 
     it("starts every page on the keep the preview started it on", () => {
-      const measured = run(adapter, dataSet, "hint");
+      const measured = run(adapter, variant, "hint");
       // Comparing the two lists directly would let a page pass on two nulls,
       // which is the case where neither side could name a keep at all. So each
       // page has to name one on both sides, and the match is read from the
@@ -424,7 +494,7 @@ describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
     });
 
     it("lays every page out where the preview laid it out", () => {
-      const measured = run(adapter, dataSet, "hint");
+      const measured = run(adapter, variant, "hint");
       // Two limits, one assertion, because they are one criterion: a page whose
       // bands sit close to their counterparts and still differ is a page laid out
       // differently, and a page that had to slide a long way to match is a page
@@ -453,7 +523,7 @@ describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
     });
 
     it("records whether the page clears the one percent clause", () => {
-      const measured = run(adapter, dataSet, "hint");
+      const measured = run(adapter, variant, "hint");
       // Recorded, never asserted. The clause was replaced on this suite's own
       // evidence, and a second engine reaching it would not put it back: what
       // the verdict is for is saying, page by page, how far each engine sits
@@ -465,7 +535,8 @@ describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
         expect(page.underOnePercent).toBe(page.differingPercent < 1);
       }
     });
-  });
+    }
+  );
 });
 
 /**
@@ -476,9 +547,11 @@ describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
  * takumi's page count and first keeps are still asserted, because that is what
  * the README records and nothing here loosens it.
  */
-describe.each(Object.keys(DATA_SETS) as DataSet[])("takumi in engine mode on the %s set", (dataSet) => {
+describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const))(
+  "takumi in engine mode on the %s",
+  (_name, variant) => {
   it("paginates onto the same page count the preview planned, and is measured", () => {
-    const measured = run("takumi", dataSet, "engine");
+    const measured = run("takumi", variant, "engine");
     expect(measured.pdfPages).toBe(measured.previewPages);
     // The residual and the drift are recorded for engine mode, not asserted:
     // the engine repeats no table header, so a continued page sits a header
@@ -494,7 +567,7 @@ describe.each(Object.keys(DATA_SETS) as DataSet[])("takumi in engine mode on the
   });
 
   it("starts every page on the keep the preview started it on", () => {
-    const measured = run("takumi", dataSet, "engine");
+    const measured = run("takumi", variant, "engine");
     // Null-safe for the same reason as hint mode: two pages that could not be
     // identified are not two pages that agree.
     expect(
@@ -511,13 +584,14 @@ describe.each(Object.keys(DATA_SETS) as DataSet[])("takumi in engine mode on the
     ).toEqual([]);
     expect(measured.firstKeepsMatch).toBe(true);
   });
-});
+  }
+);
 
-describe.each(Object.keys(DATA_SETS) as DataSet[])(
-  "chromium in engine mode on the %s set",
-  (dataSet) => {
+describe.each(VARIANTS.map((variant) => [variantName(variant), variant] as const))(
+  "chromium in engine mode on the %s",
+  (_name, variant) => {
     it("is measured, and what Blink decided is recorded rather than required", () => {
-      const measured = run("chromium", dataSet, "engine");
+      const measured = run("chromium", variant, "engine");
       // Blink's own pagination is not the preview's plan and was never asked to
       // be. Asserting a page count here would turn a recorded finding into a
       // requirement the adapter never took on.
@@ -529,6 +603,28 @@ describe.each(Object.keys(DATA_SETS) as DataSet[])(
     });
   }
 );
+
+/**
+ * The branded runs are the token set's own proof.
+ *
+ * Everything above measures them against the same criteria as the unbranded
+ * ones, which is the point: a tenant that changes the paper, the typeface, the
+ * accent and the mark still gets a PDF that is the preview. What is asserted
+ * here is only that they were measured on the paper the tokens chose rather
+ * than on US Letter, because a comparison that quietly fell back to the default
+ * would pass for the wrong reason.
+ */
+describe("the second token set is measured on its own paper", () => {
+  it.each(ADAPTERS)("puts the %s run on A4", (adapter) => {
+    const branded = VARIANTS.filter((variant) => variant.branding === "branded");
+    expect(branded.length).toBeGreaterThan(0);
+    for (const variant of branded) {
+      const measured = run(adapter, variant, "hint");
+      expect(measured.paper).toEqual({ widthPx: 794, heightPx: 1123 });
+      expect(measured.paper).not.toEqual(paperOf("default"));
+    }
+  });
+});
 
 describe("the measurement responds to a change made on one side only", () => {
   it("fails the criteria when the preview alone is restyled", () => {

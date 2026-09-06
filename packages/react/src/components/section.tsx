@@ -9,12 +9,19 @@
  * A section renders on every page that holds one of its keeps and collapses
  * entirely on the pages that hold none, so a continued page carries no empty
  * container and no stray gap.
+ *
+ * The heading is one of the two places a tenant's accent colour lands. It is an
+ * inline style rather than a class because the accent is an arbitrary colour and
+ * the PDF path admits only the palette classes it has verified; inline style is
+ * what both the browser and the engine honour for a colour neither of them knew
+ * about when the document was written.
  */
 
 import type { ReactNode } from "react";
 
 import { KeepTogether } from "./keep-together";
 import { useSectionVisible } from "./page-context";
+import { useDocumentTokens } from "./tokens-context";
 
 export interface SectionProps {
   /** Stable section id. */
@@ -28,6 +35,7 @@ export interface SectionProps {
 /** A titled container. */
 export function Section({ id, title, className, children }: SectionProps) {
   const visible = useSectionVisible(id);
+  const { accentColor } = useDocumentTokens();
   if (!visible) return null;
 
   return (
@@ -37,6 +45,7 @@ export function Section({ id, title, className, children }: SectionProps) {
           as="h2"
           keepId={`heading:${id}`}
           className="text-xs font-semibold uppercase tracking-wider text-neutral-500"
+          style={accentColor === undefined ? undefined : { color: accentColor }}
         >
           {title}
         </KeepTogether>

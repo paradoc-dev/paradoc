@@ -16,8 +16,9 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type { PageDimensions } from "../../src/lib/tokens";
 import type { PdfAdapterName } from "../../src/pdf";
-import type { DataSet } from "./preview";
+import type { Branding, DataSet } from "./preview";
 
 /** Which side decided the page breaks. */
 export type PaginationMode = "engine" | "hint";
@@ -74,6 +75,10 @@ export interface RunReport {
   /** Which engine wrote the PDF. */
   adapter: PdfAdapterName;
   dataSet: DataSet;
+  /** Which token set the document was branded with. */
+  branding: Branding;
+  /** The paper that token set chose, which both sides were compared at. */
+  paper: PageDimensions;
   mode: PaginationMode;
   previewPages: number;
   pdfPages: number;
@@ -99,6 +104,7 @@ export interface RunReport {
 export interface SensitivityReport {
   adapter: PdfAdapterName;
   dataSet: DataSet;
+  branding: Branding;
   mode: PaginationMode;
   page: number;
   css: string;
@@ -113,8 +119,11 @@ export interface SensitivityReport {
 /** Everything one invocation of the suite measured. */
 export interface ParityReport {
   generatedAt: string;
-  /** The size both sides are compared at, in CSS pixels. */
-  geometry: { widthPx: number; heightPx: number };
+  /**
+   * The paper the unbranded runs are compared at, in CSS pixels. A branded run
+   * states its own in `paper`, because a token set may choose another.
+   */
+  geometry: PageDimensions;
   /** How much larger than that both sides were drawn before being averaged down. */
   captureScale: number;
   /** Grayscale levels a pixel may move by, out of 255, before it counts. */
@@ -157,8 +166,9 @@ export function printReport(report: ParityReport): void {
   const lines: string[] = [];
   lines.push("");
   lines.push(
-    `Parity at ${report.geometry.widthPx} x ${report.geometry.heightPx} CSS px, drawn at ` +
-      `${report.captureScale}x and averaged down, grayscale, tolerance ${report.tolerance}/255.`
+    `Parity at ${report.geometry.widthPx} x ${report.geometry.heightPx} CSS px unless a run ` +
+      `says otherwise, drawn at ${report.captureScale}x and averaged down, grayscale, ` +
+      `tolerance ${report.tolerance}/255.`
   );
   lines.push(
     `A page passes on aligned% under ${report.residualThresholdPercent} and drift within ` +
@@ -177,7 +187,8 @@ export function printReport(report: ParityReport): void {
     for (const run of report.runs.filter((candidate) => candidate.adapter === adapter)) {
       lines.push("");
       lines.push(
-        `${run.dataSet} / ${run.mode} breaks: preview ${run.previewPages} pages, ` +
+        `${run.dataSet} / ${run.branding} tokens / ${run.mode} breaks on ` +
+          `${run.paper.widthPx}x${run.paper.heightPx}: preview ${run.previewPages} pages, ` +
           `PDF ${run.pdfPages} pages` +
           (run.unknownBreaks.length > 0 ? `, stale breaks ${run.unknownBreaks.join(",")}` : "") +
           (run.unknownRepeats.length > 0 ? `, stale repeats ${run.unknownRepeats.join(",")}` : "")
@@ -222,7 +233,8 @@ export function printReport(report: ParityReport): void {
     lines.push("");
     lines.push(
       `A style change on the preview alone (${check.css}) moved ` +
-        `${check.adapter} ${check.dataSet} / ${check.mode} page ${check.page} from ` +
+        `${check.adapter} ${check.dataSet} / ${check.branding} tokens / ${check.mode} ` +
+        `page ${check.page} from ` +
         `${check.beforeAlignedPercent.toFixed(2)}% to ` +
         `${check.afterAlignedPercent.toFixed(2)}% aligned, which fails the criteria ` +
         `(raw difference ${check.beforePercent.toFixed(2)}% to ${check.afterPercent.toFixed(2)}%).`

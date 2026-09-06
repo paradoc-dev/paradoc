@@ -24,6 +24,7 @@ export {
   type RenderPdfOptions,
 } from "./render";
 export { takumiAdapter } from "./adapters/takumi";
+export { withDrawnPaper, withTokenOverride } from "./token-override";
 export {
   reactLayerRenderers,
   reactRenderer,
@@ -34,8 +35,8 @@ export {
 } from "./layer";
 export {
   documentFontFiles,
-  markerFont,
   markerFontFile,
+  pdfFonts,
   type PdfFontFile,
   type PdfImage,
 } from "./resources";

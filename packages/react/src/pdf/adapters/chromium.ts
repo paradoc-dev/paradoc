@@ -41,7 +41,6 @@ import { pathToFileURL } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Browser, Page } from "puppeteer";
 
-import { DOCUMENT_FONT_NAME } from "../../lib/font";
 import {
   UnsupportedPdfContentError,
   type PdfAdapter,
@@ -297,7 +296,7 @@ export const chromiumAdapter: PdfAdapter = {
     if (undecodable.length > 0) throw new UnsupportedPdfContentError([], undecodable);
 
     const markup = renderToStaticMarkup(input.element);
-    const css = await chromiumStylesheet(markup, input.fonts, input.geometry);
+    const css = await chromiumStylesheet(markup, input.fonts, input.geometry, input.tokens);
     const html = documentHtml(markup, css, options.lang);
 
     // The page is written outside the repository, because it is a render's
@@ -321,7 +320,7 @@ export const chromiumAdapter: PdfAdapter = {
             },
         images,
         { keep: KEEP_ID_ATTRIBUTE, repeat: KEEP_REPEAT_ATTRIBUTE },
-        DOCUMENT_FONT_NAME
+        input.tokens.fontFamily
       );
 
       if (outcome.missingImages.length > 0) {
@@ -331,7 +330,7 @@ export const chromiumAdapter: PdfAdapter = {
       await settle(page);
       if (!outcome.fontsLoaded) {
         throw new Error(
-          `The Chromium adapter could not load the document face "${DOCUMENT_FONT_NAME}". ` +
+          `The Chromium adapter could not load the document face "${input.tokens.fontFamily}". ` +
             "A page printed against a fallback is not the page the preview drew."
         );
       }

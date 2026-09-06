@@ -26,6 +26,8 @@ export {
   Paper,
   Sheet,
   useFitToWidth,
+  usePaperGeometry,
+  DEFAULT_PAGE_GEOMETRY,
   PAGE_CONTENT_HEIGHT_PX,
   PAGE_CONTENT_WIDTH_PX,
   PAGE_GAP_PX,
@@ -36,6 +38,18 @@ export {
   type PaperProps,
   type SheetProps,
 } from "./components/paper";
+export {
+  DocumentTokensProvider,
+  NestedPaperTokenError,
+  RootTokenMismatchError,
+  TokenOverrideProvider,
+  useDocumentTokens,
+  type TokenOverrideProviderProps,
+} from "./components/tokens-context";
+export {
+  documentTokensOf,
+  MultipleDocumentRootsError,
+} from "./lib/document-tokens";
 export { Section, type SectionProps } from "./components/section";
 export { DATE_RULE, Signature, SIGNATURE_RULE, type SignatureProps } from "./components/signature";
 export { Table, type TableColumn, type TableProps } from "./components/table";
@@ -58,10 +72,42 @@ export {
   type ValueFormatter,
 } from "./lib/format";
 export {
+  documentFontFamily,
+  DOCUMENT_FONT_FAMILIES,
   DOCUMENT_FONT_FAMILY,
   DOCUMENT_FONT_NAME,
   DOCUMENT_FONT_PACKAGE,
+  SERIF_FONT_NAME,
+  UnregisteredFontFamilyError,
+  type FontFamilyRegistration,
 } from "./lib/font";
+export {
+  imageDataUri,
+  imageFormat,
+  imageMediaType,
+  UndecodableImageError,
+} from "./lib/image";
+export {
+  fontFamilyStyle,
+  isCssColor,
+  pageGeometry,
+  resolveDocumentTokens,
+  disagreeingRootToken,
+  sameDocumentTokens,
+  tokenFontFamily,
+  DEFAULT_DOCUMENT_TOKENS,
+  DEFAULT_PAGE_MARGIN_PX,
+  DOCUMENT_TOKEN_KEYS,
+  FONT_FAMILY_PROPERTY,
+  InvalidDocumentTokenError,
+  PAGE_SIZES,
+  ROOT_ONLY_TOKEN_KEYS,
+  type DocumentTokens,
+  type DocumentTokensInput,
+  type PageDimensions,
+  type PageGeometry,
+  type PageSize,
+} from "./lib/tokens";
 export { measureKeeps } from "./lib/measure";
 export {
   planPages,

@@ -2,9 +2,10 @@
  * The font and image bytes the PDF render needs, read from disk.
  *
  * The specification's invariant is that the PDF embeds the same font files the
- * preview loads. `styles.css` loads `@fontsource-variable/inter` through the
- * bundler; this reads the same package's files through Node's resolver, so
- * neither side can name a different family or a different file.
+ * preview loads. `styles.css` loads every registered family through the bundler;
+ * this reads the same packages' files through Node's resolver, from the same
+ * registrations in `src/lib/font.ts`, so neither side can name a different
+ * family or a different file.
  *
  * Node only. The browser cannot read these paths, which is why `@paradoc/react/pdf`
  * is a separate subpath.
@@ -15,36 +16,9 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import type { FontLoader } from "takumi-pdf";
 
-import { DOCUMENT_FONT_NAME, DOCUMENT_FONT_PACKAGE } from "../lib/font";
+import { documentFontFamily, DOCUMENT_FONT_NAME } from "../lib/font";
 
 const require = createRequire(import.meta.url);
-
-/**
- * Every variable Inter face `@fontsource-variable/inter`'s stylesheet loads.
- *
- * The *set* has to match, not the order: a face the preview has and the PDF
- * lacks renders as null glyphs on paper with no error at all, which is exactly
- * the silent loss this package is meant to rule out. Order is immaterial
- * because every face carries its own `unicode-range`, read below from the
- * package's own `unicode.json`, so coverage decides which face a codepoint
- * reaches rather than declaration order does.
- */
-const FONT_SUBSETS = [
-  "cyrillic-ext",
-  "cyrillic",
-  "greek-ext",
-  "greek",
-  "latin-ext",
-  "latin",
-  "vietnamese",
-];
-
-const FONT_FILES = FONT_SUBSETS.map(
-  (subset) => `${DOCUMENT_FONT_PACKAGE}/files/inter-${subset}-wght-normal.woff2`
-);
-
-/** The weight axis every variable Inter face carries, in CSS syntax. */
-const FONT_WEIGHT_RANGE = "100 900";
 
 /**
  * One font file, named the way each engine keys a face.
@@ -68,10 +42,10 @@ export interface PdfFontFile {
 }
 
 /**
- * The coverage the fontsource package declares for each of its subsets.
+ * The coverage a fontsource package declares for each of its subsets.
  *
  * Read from the package's own `unicode.json` rather than restated here, because
- * a face with the wrong range is a face the browser never reaches: seven faces
+ * a face with the wrong range is a face the browser never reaches: several faces
  * of one family with no ranges at all would leave only the last one usable. The
  * file sits beside the `files` directory the faces themselves come from, which
  * is how it is found without depending on the package exporting it.
@@ -81,59 +55,60 @@ async function subsetCoverage(fontFile: string): Promise<Record<string, string>>
   return JSON.parse(json) as Record<string, string>;
 }
 
-let fontFiles: Promise<PdfFontFile[]> | undefined;
+const fontFiles = new Map<string, Promise<PdfFontFile[]>>();
 
 /**
- * The document typeface as files, resolved once per process.
+ * One family as files, resolved once per family per process.
  *
  * This is the engine-neutral half of the font story: paths and CSS descriptors,
- * with no opinion about how an engine wants the bytes. `documentFonts` reads it
- * for takumi's registry and the Chromium adapter writes `@font-face` rules from
- * the same list, so the two adapters cannot embed different files.
- */
-export function documentFontFiles(): Promise<PdfFontFile[]> {
-  fontFiles ??= (async () => {
-    const coverage = await subsetCoverage(FONT_FILES[0]!);
-    return FONT_FILES.map((file, index) => ({
-      name: `${DOCUMENT_FONT_NAME} ${index}`,
-      family: DOCUMENT_FONT_NAME,
-      path: require.resolve(file),
-      weight: FONT_WEIGHT_RANGE,
-      unicodeRange: coverage[FONT_SUBSETS[index]!],
-    }));
-  })().catch((error: unknown) => {
-    fontFiles = undefined;
-    throw error;
-  });
-  return fontFiles;
-}
-
-let fonts: Promise<FontLoader[]> | undefined;
-
-/**
- * The document typeface, loaded once per process. Every face is registered as
- * a coverage subset of one logical family, so `font-family: Inter Variable`
- * reaches whichever face covers the text.
+ * with no opinion about how an engine wants the bytes. `pdfFonts` turns it into
+ * takumi's registry and the Chromium adapter writes `@font-face` rules from the
+ * same list, so the two adapters cannot embed different files.
  *
  * A failed read is not cached: one transient error would otherwise poison every
  * later render in the process.
+ *
+ * @throws {UnregisteredFontFamilyError} when the family carries no files here.
  */
-export function documentFonts(): Promise<FontLoader[]> {
-  fonts ??= documentFontFiles()
-    .then((files) =>
-      Promise.all(
-        files.map(async (file) => ({
-          name: file.name,
-          subsetOf: file.family,
-          data: await readFile(file.path),
-        }))
-      )
-    )
-    .catch((error: unknown) => {
-      fonts = undefined;
+export function documentFontFiles(family: string = DOCUMENT_FONT_NAME): Promise<PdfFontFile[]> {
+  const registration = documentFontFamily(family);
+  let files = fontFiles.get(family);
+  if (files === undefined) {
+    files = (async () => {
+      const coverage = await subsetCoverage(registration.file(registration.subsets[0]!));
+      return registration.subsets.map((subset, index) => ({
+        name: `${registration.name} ${index}`,
+        family: registration.name,
+        path: require.resolve(registration.file(subset)),
+        weight: registration.weight,
+        unicodeRange: coverage[subset],
+      }));
+    })().catch((error: unknown) => {
+      fontFiles.delete(family);
       throw error;
     });
-  return fonts;
+    fontFiles.set(family, files);
+  }
+  return files;
+}
+
+/**
+ * The faces one render embeds, as the engine's own loaders.
+ *
+ * Built from the prepared input's file list rather than resolved again here, so
+ * the two adapters cannot embed different files: one is given the list as
+ * `@font-face` rules and the other as loaders, and both lists are the same list.
+ * Every face is registered as a coverage subset of one logical family, so
+ * `font-family: <the document's family>` reaches whichever face covers the text.
+ */
+export function pdfFonts(files: readonly PdfFontFile[]): Promise<FontLoader[]> {
+  return Promise.all(
+    files.map(async (file) => ({
+      name: file.name,
+      subsetOf: file.family,
+      data: await readFile(file.path),
+    }))
+  );
 }
 
 /**
@@ -157,48 +132,36 @@ const MARKER_FONT_SUBSET = "braille";
 /** The one weight the marker face carries. */
 const MARKER_FONT_WEIGHT = "400";
 
-let markerFaceFile: Promise<PdfFontFile> | undefined;
+const markerFaceFiles = new Map<string, Promise<PdfFontFile>>();
 
 /**
- * The marker face as a file, resolved once per process.
+ * The marker face as a file, resolved once per document family per process.
  *
- * It carries the document family's name rather than its own, for the reason
- * `markerFont` gives: it is a coverage subset of the document family, so the
- * tree still names one font. Its range is the braille block alone, which is
- * what keeps it out of the way of every other glyph on the page.
+ * It carries the document family's name rather than its own: it is a coverage
+ * subset of whichever family the document is set in, so the tree still names one
+ * font. Its range is the braille block alone, which is what keeps it out of the
+ * way of every other glyph on the page.
  */
-export function markerFontFile(): Promise<PdfFontFile> {
-  markerFaceFile ??= (async () => {
-    const coverage = await subsetCoverage(MARKER_FONT_FILE);
-    return {
-      name: `${DOCUMENT_FONT_NAME} marker`,
-      family: DOCUMENT_FONT_NAME,
-      path: require.resolve(MARKER_FONT_FILE),
-      weight: MARKER_FONT_WEIGHT,
-      unicodeRange: coverage[MARKER_FONT_SUBSET],
-    };
-  })().catch((error: unknown) => {
-    markerFaceFile = undefined;
-    throw error;
-  });
-  return markerFaceFile;
-}
-
-let markerFace: Promise<FontLoader> | undefined;
-
-/** The marker face, loaded once per process. Only the seal path needs it. */
-export function markerFont(): Promise<FontLoader> {
-  markerFace ??= markerFontFile()
-    .then(async (file) => ({
-      name: file.name,
-      subsetOf: file.family,
-      data: await readFile(file.path),
-    }))
-    .catch((error: unknown) => {
-      markerFace = undefined;
+export function markerFontFile(family: string = DOCUMENT_FONT_NAME): Promise<PdfFontFile> {
+  const registration = documentFontFamily(family);
+  let file = markerFaceFiles.get(family);
+  if (file === undefined) {
+    file = (async () => {
+      const coverage = await subsetCoverage(MARKER_FONT_FILE);
+      return {
+        name: `${registration.name} marker`,
+        family: registration.name,
+        path: require.resolve(MARKER_FONT_FILE),
+        weight: MARKER_FONT_WEIGHT,
+        unicodeRange: coverage[MARKER_FONT_SUBSET],
+      };
+    })().catch((error: unknown) => {
+      markerFaceFiles.delete(family);
       throw error;
     });
-  return markerFace;
+    markerFaceFiles.set(family, file);
+  }
+  return file;
 }
 
 /** An image the engine renders, keyed by the `src` the tree names. */
@@ -207,32 +170,4 @@ export interface PdfImage {
   data: Uint8Array;
 }
 
-/**
- * The encodings the engine decodes. Bytes it cannot decode are rejected before
- * the render rather than after, so the error can name the image that is wrong
- * instead of reporting a failure from inside the engine with no source.
- */
-const IMAGE_SIGNATURES: readonly { format: string; magic: readonly (number | null)[] }[] = [
-  { format: "png", magic: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
-  { format: "jpeg", magic: [0xff, 0xd8, 0xff] },
-  { format: "gif", magic: [0x47, 0x49, 0x46, 0x38] },
-  // A RIFF container is only WebP when its form type says so; the same header
-  // fronts WAV and AVI, which the engine cannot decode.
-  {
-    format: "webp",
-    magic: [0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50],
-  },
-];
-
-/** The encoding of `data`, or `undefined` when the engine cannot decode it. */
-export function imageFormat(data: Uint8Array): string | undefined {
-  for (const { format, magic } of IMAGE_SIGNATURES) {
-    if (magic.every((byte, index) => byte === null || data[index] === byte)) {
-      return format;
-    }
-  }
-  // SVG embeds as vectors and arrives as text rather than a binary header.
-  const head = new TextDecoder().decode(data.subarray(0, 256)).trimStart();
-  if (head.startsWith("<svg") || head.startsWith("<?xml")) return "svg";
-  return undefined;
-}
+export { imageFormat } from "../lib/image";

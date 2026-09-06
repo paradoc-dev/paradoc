@@ -17,18 +17,28 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Pages } from "../src/components/pages";
 import type { PagePlan } from "../src/lib/plan";
-import { ProposalDocument, overflowProposalData, shortProposalData } from "../src/examples";
+import {
+  brandedProposalTokens,
+  ProposalDocument,
+  overflowProposalData,
+  shortProposalData,
+} from "../src/examples";
 
 let container: HTMLDivElement;
 let root: Root;
 let loadFonts: () => void;
 
-beforeEach(() => {
-  (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+/** Replaces `document.fonts.ready` with a promise the test settles by hand. */
+function pendingFonts(): void {
   const ready = new Promise<void>((resolve) => {
     loadFonts = resolve;
   });
   Object.defineProperty(document, "fonts", { value: { ready }, configurable: true });
+}
+
+beforeEach(() => {
+  (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  pendingFonts();
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -98,6 +108,40 @@ describe("nothing is paginated before the fonts load", () => {
     expect(onPaginate).toHaveBeenCalled();
     const plan = onPaginate.mock.calls.at(-1)![0] as PagePlan;
     expect(plan.pages).toHaveLength(pageCount());
+  });
+});
+
+describe("changing the typeface waits for the fonts again", () => {
+  it("measures no plan until the family it is now set in has loaded", async () => {
+    const onPaginate = vi.fn();
+    const render = (tokens?: typeof brandedProposalTokens) =>
+      root.render(
+        <Pages onPaginate={onPaginate}>
+          <ProposalDocument data={shortProposalData} tokens={tokens} />
+        </Pages>
+      );
+
+    act(() => render());
+    await act(async () => {
+      loadFonts();
+    });
+    expect(onPaginate).toHaveBeenCalled();
+    const measured = onPaginate.mock.calls.length;
+
+    // The serif is a family the browser has not been asked for yet, so the wait
+    // starts over. The plan already on screen stays — dropping it would unmount
+    // every sheet — but no new one is measured, because a plan measured against
+    // whatever the serif falls back to is a plan of a document nobody will see.
+    pendingFonts();
+    await act(async () => {
+      render(brandedProposalTokens);
+    });
+    expect(onPaginate).toHaveBeenCalledTimes(measured);
+
+    await act(async () => {
+      loadFonts();
+    });
+    expect(pageCount()).toBeGreaterThan(0);
   });
 });
 

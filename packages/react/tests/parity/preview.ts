@@ -10,15 +10,19 @@
  * CSS transform to fit its pane, and a transformed screenshot is a resample: it
  * would compare the PDF against a smoothed copy of the preview and call the
  * blur a difference. So the window is opened wide enough for the pane to hold a
- * full sheet, and the sheet's measured width is asserted rather than assumed.
+ * full sheet, and the sheet's measured size is asserted against the paper the
+ * document's own tokens chose rather than assumed to be US Letter.
  */
 
 import type { Browser, Page } from "puppeteer";
 
-import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../../src/components/paper";
+import type { PageDimensions } from "../../src/lib/tokens";
 
 /** Which sample document the lab is showing. */
 export type DataSet = "short" | "overflow";
+
+/** Which token set the lab is showing it under. */
+export type Branding = "default" | "branded";
 
 /**
  * Wide enough that the preview pane, which is half the window less its padding,
@@ -60,17 +64,24 @@ export interface PreviewCapture {
 /** The lab, opened and settled on one data set. */
 export interface Preview {
   page: Page;
-  /** Shows `set` and waits until its pages are drawn. */
-  show: (set: DataSet) => Promise<PreviewPlan>;
+  /** Shows `set` under `branding` on `paper`, and waits until its pages are drawn. */
+  show: (set: DataSet, branding: Branding, paper: PageDimensions) => Promise<PreviewPlan>;
   /** One image per drawn page. */
   capture: () => Promise<PreviewCapture[]>;
   /** Adds a stylesheet to the preview, for the run that proves the suite can fail. */
-  restyle: (css: string) => Promise<void>;
+  restyle: (css: string, paper: PageDimensions) => Promise<void>;
 }
 
-/** Reads the plan off the rendered sheets. */
+/**
+ * Reads the plan off the rendered sheets.
+ *
+ * A preview showing no sheet is not a preview of a document with no pages: it
+ * is a preview that has not settled, or one that dropped its plan between the
+ * wait and the read. Everything downstream treats an empty page list as
+ * vacuously passing, so it is refused here instead.
+ */
 async function readPlan(page: Page): Promise<PreviewPlan> {
-  return page.evaluate(() => {
+  const plan = await page.evaluate(() => {
     const sheets = [...document.querySelectorAll("[data-page]")];
     const pageKeeps = sheets.map((sheet) =>
       [...sheet.querySelectorAll("[data-keep-id]")]
@@ -90,23 +101,41 @@ async function readPlan(page: Page): Promise<PreviewPlan> {
       breaks: firstKeeps.slice(1),
     };
   });
+
+  if (plan.pageCount === 0) {
+    throw new Error("The preview drew no sheet at all. Nothing measured against it means anything.");
+  }
+  return plan;
 }
 
-/** Fails unless every sheet is exactly one sheet of paper on screen. */
-async function assertUnscaled(page: Page): Promise<void> {
+/**
+ * Fails unless every sheet is exactly one sheet of the expected paper on screen.
+ *
+ * The expected paper comes from the token set the run is measuring, so this is
+ * two checks in one: the preview is not being scaled, and the paper the document
+ * declared is the paper the furniture drew.
+ */
+async function assertUnscaled(page: Page, paper: PageDimensions): Promise<void> {
   const sizes = await page.evaluate(() =>
     [...document.querySelectorAll("[data-page]")].map((sheet) => {
       const box = sheet.getBoundingClientRect();
       return { width: Math.round(box.width), height: Math.round(box.height) };
     })
   );
+  if (sizes.length === 0) {
+    throw new Error(
+      "The preview drew no sheet to measure. A run with nothing on screen passes every " +
+        "criterion below without comparing anything."
+    );
+  }
   const wrong = sizes.filter(
-    (size) => size.width !== PAPER_WIDTH_PX || size.height !== PAPER_HEIGHT_PX
+    (size) => size.width !== paper.widthPx || size.height !== paper.heightPx
   );
   if (wrong.length > 0) {
     throw new Error(
-      `The preview is scaled: sheets measured ${JSON.stringify(wrong)} rather than ` +
-        `${PAPER_WIDTH_PX}x${PAPER_HEIGHT_PX}. Widen the window the suite opens.`
+      `The preview is scaled or on the wrong paper: sheets measured ` +
+        `${JSON.stringify(wrong)} rather than ${paper.widthPx}x${paper.heightPx}. ` +
+        "Widen the window the suite opens, or check the document's page-size token."
     );
   }
 }
@@ -133,8 +162,15 @@ export async function openPreview(
   await page.goto(labUrl, { waitUntil: "networkidle0" });
   await page.waitForSelector("[data-page]", { timeout: 60_000 });
 
-  const show = async (set: DataSet): Promise<PreviewPlan> => {
+  const show = async (
+    set: DataSet,
+    branding: Branding,
+    paper: PageDimensions
+  ): Promise<PreviewPlan> => {
     await page.bringToFront();
+    // The branding is chosen first: it changes the paper, and a plan measured
+    // on one paper and captured on another would compare two documents.
+    await page.click(`[data-choice="branding"] [data-choice-option="${branding}"]`);
     await page.click(`[data-choice="data-set"] [data-choice-option="${set}"]`);
     // The readout publishes the plan's page count; the sheets are drawn from
     // the same plan. Waiting for the two to agree waits for a settled plan
@@ -151,7 +187,7 @@ export async function openPreview(
       // producing frames for it, which would leave a frame-polled wait hanging.
       { timeout: 60_000, polling: 100 }
     );
-    await assertUnscaled(page);
+    await assertUnscaled(page, paper);
     return readPlan(page);
   };
 
@@ -168,13 +204,13 @@ export async function openPreview(
     return captures;
   };
 
-  const restyle = async (css: string): Promise<void> => {
+  const restyle = async (css: string, paper: PageDimensions): Promise<void> => {
     await page.bringToFront();
     await page.addStyleTag({ content: css });
     // A repaint, not a repagination: the caller's rule must not move a keep,
     // or the comparison would be against a different document.
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
-    await assertUnscaled(page);
+    await assertUnscaled(page, paper);
   };
 
   return { page, show, capture, restyle };

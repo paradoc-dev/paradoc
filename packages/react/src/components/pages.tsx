@@ -30,38 +30,40 @@ import {
 
 import { measureKeeps } from "../lib/measure";
 import { planPages, type PagePlan } from "../lib/plan";
-import {
-  PAGE_CONTENT_HEIGHT_PX,
-  PAGE_CONTENT_WIDTH_PX,
-  PAGE_GAP_PX,
-  PAPER_HEIGHT_PX,
-  PAPER_WIDTH_PX,
-  Sheet,
-  useFitToWidth,
-} from "./paper";
+import { PAGE_GAP_PX, Sheet, useFitToWidth, usePaperFor } from "./paper";
+import { DrawnPaperProvider, usePaperGeometry } from "./paper-geometry";
 import { PageContextProvider, type PageContextValue } from "./page-context";
 
-/** True once the document's own fonts have loaded, so measurement is not of fallbacks. */
-function useFontsReady(): boolean {
-  const [ready, setReady] = useState(false);
+/**
+ * True once the document's own fonts have loaded, so measurement is not of
+ * fallbacks.
+ *
+ * The gate is per family, not once per mount. Switching a tenant's typeface
+ * asks the browser for faces it may not have loaded yet, and a plan measured
+ * against the fallback while they arrive is a plan of a document nobody will
+ * see. So the answer is which family the wait settled for, and a family that is
+ * not that one is not ready.
+ */
+function useFontsReady(family: string): boolean {
+  const [settled, setSettled] = useState<string | null>(null);
 
   useEffect(() => {
     // An environment with no font-loading API has nothing to wait for.
     const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
     if (!fonts?.ready) {
-      setReady(true);
+      setSettled(family);
       return;
     }
     let live = true;
     void fonts.ready.then(() => {
-      if (live) setReady(true);
+      if (live) setSettled(family);
     });
     return () => {
       live = false;
     };
-  }, []);
+  }, [family]);
 
-  return ready;
+  return settled === family;
 }
 
 export interface PageProps {
@@ -86,9 +88,10 @@ export function Page({ plan, index, children }: PageProps) {
   );
 
   const overflowing = plan.oversize.filter((keep) => value.keeps.has(keep.id));
+  const geometry = usePaperGeometry();
 
   return (
-    <Sheet page={index + 1} style={{ height: PAPER_HEIGHT_PX }}>
+    <Sheet page={index + 1} style={{ height: geometry.heightPx }}>
       {overflowing.map((keep) => (
         <div
           key={keep.id}
@@ -110,21 +113,28 @@ export interface PagesProps {
   children: ReactNode;
 }
 
-/** A document laid out as US Letter pages, stacked and scaled to fit its container. */
+/** A document laid out as pages of its own paper, stacked and scaled to fit its container. */
 export function Pages({ className, onPaginate, children }: PagesProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [plan, setPlan] = useState<PagePlan | null>(null);
-  const fit = useFitToWidth(frameRef, stackRef);
-  const fontsReady = useFontsReady();
+  const { drawn, tokens, geometry, sheetStyle } = usePaperFor(children);
+  const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
+  const fontsReady = useFontsReady(tokens.fontFamily);
 
+  // The paper is part of what a plan is a plan of. It needs no invalidation of
+  // its own: the measuring container is the width the new margin leaves, the
+  // budget is the new page's, and the measurement after the commit answers with
+  // a different plan. A page break never paints against the old paper because
+  // that measurement runs before paint.
+  const budget = geometry.contentHeightPx;
   const repaginate = useCallback(() => {
     const container = measureRef.current;
     if (!container) return;
-    const next = planPages(measureKeeps(container), PAGE_CONTENT_HEIGHT_PX);
+    const next = planPages(measureKeeps(container), budget);
     setPlan((previous) => (samePlan(previous, next) ? previous : next));
-  }, []);
+  }, [budget]);
 
   // React builds a new element tree on every render, so children identity says
   // nothing about whether the document changed. Measure after every commit and
@@ -163,18 +173,19 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   const sheets = plan === null ? 0 : Math.max(1, plan.pages.length);
 
   return (
-    <>
+    <DrawnPaperProvider value={drawn}>
       <div ref={frameRef} className={className ?? "w-full overflow-hidden bg-neutral-200 p-6"}>
         <div
           className="mx-auto"
-          style={{ width: PAPER_WIDTH_PX * fit.scale, height: fit.height || undefined }}
+          style={{ width: geometry.widthPx * fit.scale, height: fit.height || undefined }}
         >
           <div
             ref={stackRef}
             data-page-stack="true"
             className="flex flex-col"
             style={{
-              width: PAPER_WIDTH_PX,
+              ...sheetStyle,
+              width: geometry.widthPx,
               gap: PAGE_GAP_PX,
               transform: `scale(${fit.scale})`,
               transformOrigin: "top left",
@@ -196,17 +207,18 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
         data-paper-measure="true"
         className="paradoc-document"
         style={{
+          ...sheetStyle,
           position: "fixed",
           top: 0,
           left: -10000,
-          width: PAGE_CONTENT_WIDTH_PX,
+          width: geometry.contentWidthPx,
           visibility: "hidden",
           pointerEvents: "none",
         }}
       >
         {children}
       </div>
-    </>
+    </DrawnPaperProvider>
   );
 }
 

@@ -9,11 +9,13 @@
  *
  * Three things are added to it and nothing else:
  *
- * 1. `@font-face` rules for the files `resources.ts` names, as `file://` URLs.
- *    The package's own stylesheet loads them through the bundler with relative
- *    paths, which resolve to nothing in a temporary directory, so the faces are
- *    restated from the same list rather than imported. The families, weights
- *    and unicode ranges are the fontsource package's own.
+ * 1. `@font-face` rules for the files `resources.ts` names, as `file://` URLs,
+ *    and the custom property that selects the document's family.
+ *    The package's own stylesheet loads the faces through the bundler with
+ *    relative paths, which resolve to nothing in a temporary directory, so they
+ *    are restated from the same list rather than imported. The families, weights
+ *    and unicode ranges are the fontsource packages' own, and only the family the
+ *    document names is restated: a render embeds the faces it uses.
  * 2. The page box. The preview's sheet is 816 x 1056 CSS pixels with a 48 pixel
  *    padding; a printed page is the same size with that 48 as its page margin,
  *    so every page carries it rather than only the first. That is the same
@@ -32,6 +34,7 @@ import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { compile } from "tailwindcss";
 
+import { FONT_FAMILY_PROPERTY, type DocumentTokens } from "../../lib/tokens";
 import type { PdfFontFile } from "../resources";
 import type { PdfPageGeometry } from "../adapter";
 
@@ -47,14 +50,15 @@ const require = createRequire(import.meta.url);
 const STYLES_PATH = require.resolve("@paradoc/react/styles.css");
 
 /**
- * The import the published stylesheet uses to load Inter through a bundler.
+ * The imports the published stylesheet uses to load the registered families
+ * through a bundler.
  *
- * It is dropped rather than resolved: its `url()`s are relative to the
- * fontsource package, and nothing rewrites them on the way through Tailwind, so
- * a printed page would silently lose every face. The same files come back below
- * as absolute `file://` URLs.
+ * They are dropped rather than resolved: their `url()`s are relative to the
+ * fontsource packages, and nothing rewrites them on the way through Tailwind, so
+ * a printed page would silently lose every face. The files the render actually
+ * needs come back below as absolute `file://` URLs.
  */
-const FONT_PACKAGE_IMPORT = /@import\s+["']@fontsource-variable\/inter["']\s*;?/gu;
+const FONT_PACKAGE_IMPORTS = /@import\s+["']@fontsource[^"']*["']\s*;?/gu;
 
 /** CSS pixels per inch, which is what makes 816 x 1056 US Letter. */
 const CSS_PIXELS_PER_INCH = 96;
@@ -131,6 +135,17 @@ function fontFace(font: PdfFontFile): string {
   return `@font-face {\n${lines.join("\n")}\n}`;
 }
 
+/**
+ * The document's family, as the property `styles.css` reads it from.
+ *
+ * The preview writes the same property on the sheet from the same resolved
+ * tokens, so the browser printing this page and the browser drawing the preview
+ * select the same faces.
+ */
+function familyProperty(tokens: DocumentTokens): string {
+  return [`.paradoc-document {`, `  ${FONT_FAMILY_PROPERTY}: ${tokens.fontStack};`, `}`].join("\n");
+}
+
 /** The page box, in the inches a printer takes and the pixels the preview states. */
 function pageBox(geometry: PdfPageGeometry): string {
   return [
@@ -154,15 +169,17 @@ function pageBox(geometry: PdfPageGeometry): string {
 export async function chromiumStylesheet(
   markup: string,
   fonts: readonly PdfFontFile[],
-  geometry: PdfPageGeometry
+  geometry: PdfPageGeometry,
+  tokens: DocumentTokens
 ): Promise<string> {
-  const published = (await readFile(STYLES_PATH, "utf8")).replace(FONT_PACKAGE_IMPORT, "");
+  const published = (await readFile(STYLES_PATH, "utf8")).replace(FONT_PACKAGE_IMPORTS, "");
   const source = `@import "tailwindcss";\n${published}`;
   const compiled = await compile(source, { base: dirname(STYLES_PATH), loadStylesheet });
 
   return [
     compiled.build(classCandidates(markup)),
     fonts.map(fontFace).join("\n\n"),
+    familyProperty(tokens),
     pageBox(geometry),
   ].join("\n\n");
 }

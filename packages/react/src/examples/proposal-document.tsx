@@ -18,13 +18,42 @@ import { Field } from "../components/field";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
 import { Table } from "../components/table";
+import { useDocumentTokens } from "../components/tokens-context";
 import { Totals } from "../components/totals";
+import type { DocumentTokensInput } from "../lib/tokens";
 import { proposalForm } from "./proposal";
 import {
   PROPOSAL_LOGO_HEIGHT_PX,
   PROPOSAL_LOGO_SRC,
   PROPOSAL_LOGO_WIDTH_PX,
 } from "./logo";
+
+/**
+ * The masthead's organization mark.
+ *
+ * It is a component of its own so it can read the document's tokens: a hook
+ * called in `ProposalDocument`'s own body would sit above the `Document` that
+ * supplies them and would see the package's defaults instead. The `logo` token
+ * wins when the tenant sets one, and the sample's own mark is what a document
+ * with no tokens still shows.
+ */
+function ProposalMark({ fallbackSrc }: { fallbackSrc: string }) {
+  const { logo } = useDocumentTokens();
+
+  return (
+    // Decorative: the organization is named beside it. The mark sits in the row
+    // rather than above it so it costs the page no height.
+    <KeepTogether
+      as="img"
+      keepId="logo"
+      src={logo ?? fallbackSrc}
+      alt=""
+      width={PROPOSAL_LOGO_WIDTH_PX}
+      height={PROPOSAL_LOGO_HEIGHT_PX}
+      className="h-10 w-10"
+    />
+  );
+}
 
 export interface ProposalDocumentProps {
   /** The proposal data to render. */
@@ -40,6 +69,8 @@ export interface ProposalDocumentProps {
   marks?: SigningMarks;
   /** How values the serializer registry does not cover are formatted, and which registry (US or EU) covers the rest. */
   format?: FormatOptions;
+  /** Tenant branding. See `src/examples/tokens.ts` for the sample's second set. */
+  tokens?: DocumentTokensInput;
 }
 
 /**
@@ -55,23 +86,14 @@ export function ProposalDocument({
   logoSrc = PROPOSAL_LOGO_SRC,
   marks,
   format,
+  tokens,
 }: ProposalDocumentProps) {
   return (
-    <Bundle id="proposal-bundle">
+    <Bundle id="proposal-bundle" tokens={tokens}>
       <Document artifact={artifact} data={data} marks={marks} format={format} id="proposal">
         <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
           <div className="flex basis-1/2 flex-row gap-3">
-            {/* Decorative: the organization is named beside it. The mark sits in
-                the row rather than above it so it costs the page no height. */}
-            <KeepTogether
-              as="img"
-              keepId="logo"
-              src={logoSrc}
-              alt=""
-              width={PROPOSAL_LOGO_WIDTH_PX}
-              height={PROPOSAL_LOGO_HEIGHT_PX}
-              className="h-10 w-10"
-            />
+            <ProposalMark fallbackSrc={logoSrc} />
             <div className="flex flex-col gap-1">
               <KeepTogether as="span" keepId="title" className="text-lg font-semibold text-neutral-900">
                 {artifact.title}

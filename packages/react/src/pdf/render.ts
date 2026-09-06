@@ -29,10 +29,12 @@
 
 import type { ReactNode } from "react";
 
-import { PAPER_HEIGHT_PX, PAPER_MARGIN_PX, PAPER_WIDTH_PX } from "../components/paper";
+import { documentTokensOf } from "../lib/document-tokens";
+import { pageGeometry, type DocumentTokensInput } from "../lib/tokens";
 import type { PdfAdapter, PdfAdapterName, PdfRenderResult, PreparedPdfInput } from "./adapter";
 import { takumiAdapter } from "./adapters/takumi";
 import { documentFontFiles, markerFontFile, type PdfImage } from "./resources";
+import { withDrawnPaper, withTokenOverride } from "./token-override";
 import type { PageBreakPlan } from "./tree";
 
 export {
@@ -61,6 +63,12 @@ export interface RenderPdfOptions {
    * one carries above its first row. Absent, the engine paginates on its own.
    */
   plan?: PageBreakPlan;
+  /**
+   * Tenant branding for this render alone: typeface, accent colour, paper and
+   * mark. It is the last layer over whatever the document declares, so a render
+   * that changes only the accent keeps the paper the document chose.
+   */
+  tokens?: DocumentTokensInput;
   /** BCP-47 language written to the document. Defaults to `en`. */
   lang?: string;
   /**
@@ -127,12 +135,20 @@ async function resolveAdapter(name: PdfAdapterName): Promise<PdfAdapter> {
 /**
  * Renders a composed document to PDF.
  *
- * The page is US Letter with the preview's margin, both stated in the CSS
- * pixels `Paper` exports, so a page of PDF holds exactly the content a page of
- * preview holds. The margin belongs to the page rather than to the tree:
- * padding on the tree would only indent the first page, and every page carries
- * the same margin.
+ * The page is the paper the document's own tokens chose — US Letter with a 48
+ * pixel margin when they choose nothing — stated in the CSS pixels the preview
+ * lays out in, so a page of PDF holds exactly the content a page of preview
+ * holds. The tokens are read from the document rather than restated here, and
+ * `options.tokens` is a layer over them rather than a second opinion. The margin
+ * belongs to the page rather than to the tree: padding on the tree would only
+ * indent the first page, and every page carries the same margin.
  *
+ * @throws {RootTokenMismatchError} when the document root resolves a paper or a
+ * typeface this render did not, which is what a composition that hides its own
+ * tokens from the element walk produces.
+ * @throws {UnregisteredFontFamilyError} when the document names a family this
+ * package carries no files for. A family the engine cannot embed would be
+ * written as null glyphs rather than as a fallback.
  * @throws {UnsupportedPdfContentError} when the tree uses a class or an image
  * the chosen engine cannot express. Every offender is listed in one error.
  */
@@ -141,19 +157,24 @@ export async function renderPdf(
   options: RenderPdfOptions = {}
 ): Promise<PdfRenderResult> {
   const signingMarkers = options.signingMarkers ?? false;
-  const fonts = [...(await documentFontFiles())];
-  if (signingMarkers) fonts.push(await markerFontFile());
+  // Read off the element, synchronously, by the same function the preview's
+  // furniture uses. Nothing is rendered to find out: see `lib/document-tokens.ts`.
+  const tokens = documentTokensOf(element, options.tokens);
+
+  const fonts = [...(await documentFontFiles(tokens.fontFamily))];
+  if (signingMarkers) fonts.push(await markerFontFile(tokens.fontFamily));
 
   const input: PreparedPdfInput = {
-    element,
+    // The override goes on first so the document resolves it, and what this
+    // render resolved goes on outside it so the document can check itself
+    // against it. Both are contexts and neither emits markup, so the tree an
+    // engine lays out is the tree the caller wrote.
+    element: withDrawnPaper(withTokenOverride(element, options.tokens), tokens),
+    tokens,
     plan: options.plan,
     images: options.images ?? [],
     fonts,
-    geometry: {
-      widthPx: PAPER_WIDTH_PX,
-      heightPx: PAPER_HEIGHT_PX,
-      marginPx: PAPER_MARGIN_PX,
-    },
+    geometry: pageGeometry(tokens),
   };
 
   const adapter = await resolveAdapter(options.adapter ?? "takumi");

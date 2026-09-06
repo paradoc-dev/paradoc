@@ -15,6 +15,7 @@
 
 import type { ReactNode } from "react";
 
+import type { DocumentTokens } from "../lib/tokens";
 import type { PdfFontFile, PdfImage } from "./resources";
 import type { PageBreakPlan } from "./tree";
 
@@ -41,6 +42,14 @@ export interface PdfPageGeometry {
 export interface PreparedPdfInput {
   /** The composed document. Components, not markup: every engine resolves it itself. */
   element: ReactNode;
+  /**
+   * The document's resolved branding.
+   *
+   * It travels with the input for the reason the geometry does: the typeface is
+   * a name each engine has to be told, and a family each adapter looked up for
+   * itself could drift from the one the preview loaded.
+   */
+  tokens: DocumentTokens;
   /** The preview's page plan. Absent, the engine paginates on its own. */
   plan?: PageBreakPlan;
   /** Pre-fetched bytes for every image the tree names. */

@@ -15,7 +15,7 @@ Five entries, because they need different things of the machine they run on:
 | `@paradoc/react`              | Either | The components, the document context, the plan, the preview.       |
 | `@paradoc/react/pdf`          | Node   | `renderPdf`, the adapter seam, the default engine, the seal seam.  |
 | `@paradoc/react/chromium`     | Node   | The experimental Chromium adapter.                                 |
-| `@paradoc/react/examples`     | Either | Sample material: one artifact, two data sets, one composition.     |
+| `@paradoc/react/examples`     | Either | Sample material: one artifact, two data sets, two token sets, one composition. |
 | `@paradoc/react/examples/pdf` | Node   | That sample's logo bytes and seal wiring.                          |
 
 **The two `examples` entries are sample material, not a stable API.** They ship a
@@ -25,8 +25,8 @@ composition to copy from rather than a fragment. Anything under `examples` may
 change without a major version. Nothing under it is framework surface, and
 nothing in the framework entries depends on it.
 
-`@paradoc/react/styles.css` carries the document's typeface. Import it once,
-beside your own stylesheet.
+`@paradoc/react/styles.css` carries the document's typefaces and the custom
+property that selects between them. Import it once, beside your own stylesheet.
 
 `react` and `react-dom` are peer dependencies. `puppeteer` and `tailwindcss` are
 optional peers that only the Chromium adapter needs, so `@paradoc/react/pdf`
@@ -133,6 +133,9 @@ format, or a total.
 | `Signature` | Names a party and renders its signing block.                            |
 | `Paper`     | Shows the document at paper width, scaled to fit its container.         |
 
+`Bundle` and `Document` also take `tokens`, which is where a tenant's branding
+enters. See [Branding](#branding).
+
 ## The pagination rule
 
 `Pages` reads `[data-keep-id]` in document order and assigns each one to a
@@ -211,11 +214,15 @@ never read, so a host that passes an inline object, or that sets state from
 `Table` renders flex rows. A document that used real table markup on screen could
 not be the same tree the PDF renders.
 
-**One fixed paper geometry.** `Paper` takes no geometry props: US Letter at
-96 dpi (816 x 1056 CSS pixels) with a 48 pixel margin, exported as constants. The
-preview and the PDF have to agree on it, so a caller must not be able to vary it.
-The sheet keeps its 816 pixel width at every window size and only a CSS transform
-changes, so line wrapping on screen is the wrapping the PDF will have.
+**One paper per document, declared once.** The page furniture takes no geometry
+props and never has: `Paper`, `Pages` and `Sheet` draw the paper the *document*
+chose, which it declares in its tokens and which both outputs read. Unbranded
+that is US Letter at 96 dpi (816 x 1056 CSS pixels) with a 48 pixel margin,
+still exported as constants. What a caller must not be able to do is set the
+paper on one side only, and stating it on the document rather than on the
+furniture is what rules that out. The sheet keeps its full width at every window
+size and only a CSS transform changes, so line wrapping on screen is the
+wrapping the PDF will have.
 
 ## Hand-off to the PDF path
 
@@ -277,8 +284,9 @@ here rather than stated as a rule the pagination pass does not enforce.
 
 ## The sample data and the page budget
 
-One page holds `PAGE_CONTENT_HEIGHT_PX`, which is 960 pixels once both margins
-are taken. Measured in the lab at a 1280 pixel window:
+An unbranded page holds `PAGE_CONTENT_HEIGHT_PX`, which is 960 pixels once both
+margins are taken; a branded one holds whatever its own paper and margin leave.
+Measured in the lab at a 1280 pixel window, unbranded:
 
 | Data set               | Line items | Content height | Pages |
 | ---------------------- | ---------- | -------------- | ----- |
@@ -435,11 +443,153 @@ measurements behind it, is in `_docs/architecture/react-document-composition-spi
 
 ## The typeface
 
-`@paradoc/react` owns the document, so it owns the font: it declares
-`@fontsource-variable/inter` and exports it through `@paradoc/react/styles.css`
-plus the `DOCUMENT_FONT_*` constants. Consumers import that stylesheet rather
-than declaring Inter themselves, so the preview and the PDF embed the same
-files.
+`@paradoc/react` owns the document, so it owns the fonts. It declares each
+family as a dependency, imports every one of them from
+`@paradoc/react/styles.css`, and describes each in one registration —
+package, subsets, weights and CSS stack — that the preview and the PDF both read.
+Consumers import that stylesheet rather than declaring a family themselves, so
+the preview and the PDF embed the same files.
+
+Two families are registered: `Inter Variable`, which is the default and what
+`DOCUMENT_FONT_NAME` names, and `Source Serif 4 Variable`, which `SERIF_FONT_NAME`
+names. A document chooses between them with the `fontFamily` token.
+
+**A family that is not registered fails the render, naming it.** Not falling back:
+the browser would substitute something and the engine would write null glyphs,
+and the two would be different documents with no error between them.
+`UnregisteredFontFamilyError` names the family asked for and lists the ones the
+package carries files for.
+
+Registering a third is a package change — a dependency, an `@import` in
+`styles.css`, an entry in `DOCUMENT_FONT_FAMILIES` — because the files have to
+travel with the package for the PDF to embed them. It is also a build-size
+decision: `styles.css` cannot be conditional, so every registered family's faces
+are in the stylesheet every consumer imports, whether or not any document names
+it. Two variable families are about 300 KB of woff2 across their subsets. Weigh a
+third against that rather than adding one because a document asked for it.
+
+**The browser reaches the family through a custom property.** `styles.css` sets
+`font-family: var(--paradoc-font-family, <the Inter stack>)` on
+`.paradoc-document`, and the document root and the page furniture write that
+property from the resolved tokens. The PDF reaches the same files through the
+engine's own font registry instead. One family name, two mechanisms, stated
+once.
+
+## Branding
+
+A document carries a small set of tenant tokens, supplied at its root and
+overridable per render:
+
+| Token         | Default              | What it changes                                          |
+| ------------- | -------------------- | -------------------------------------------------------- |
+| `fontFamily`  | `Inter Variable`     | The faces both outputs embed, and the browser's stack.   |
+| `accentColor` | none                 | Section headings, and the rule above the emphasised total. |
+| `pageSize`    | `letter`             | The sheet: `letter` (816 x 1056) or `a4` (794 x 1123).   |
+| `marginPx`    | `48`                 | The margin on all four sides of every page.              |
+| `logo`        | none                 | The organization's mark, as bytes or as a source string. |
+
+```tsx
+<Bundle tokens={tokens}>
+  <Document artifact={purchaseOrder} data={data}>…</Document>
+</Bundle>
+```
+
+**A fresh token object costs nothing.** `Pages` re-measures after every commit
+and replaces its plan only when the measurement differs, so an object literal in
+a component that re-renders does not repaginate the preview. The paper is
+re-resolved from the element on each render and compared by value for the same
+reason.
+
+**They are declared on the document, and everything above reads them off the
+element.** `Bundle` and `Document` both take them and a document layers its own
+over the bundle's, field by field. The page furniture and `renderPdf` sit above
+the document and cannot be handed anything by a descendant, so both call one
+pure function, `documentTokensOf(element)`, which walks the element it was given
+and reads the `tokens` prop of the first root it finds. Nothing is rendered to
+find out, nothing travels upward, and the very first render is already on the
+right paper, in the browser and in a static render alike.
+
+A root is `Document`, `Bundle`, or **any element whose `tokens` prop is shaped
+like a token set**. That second clause is what lets a composition forward them:
+`<PurchaseOrder tokens={t} />` declares the paper even though the walk cannot see
+the `Bundle` inside it. The shape test keeps an unrelated third-party `tokens`
+prop out of it; one that happened to hold only keys this package defines would
+still collide, and a composition in that position should take the tokens as its
+own prop and forward them.
+
+**The walk never calls a component.** It walks the children a component was
+*given*, which are already-built elements, so a wrapper — an error boundary, a
+`memo`, someone else's provider — is transparent. What it does not follow is
+what a component *renders*.
+
+**Paper and typeface are declared once, at the root.** A `Document` inside a
+`Bundle` that sets `fontFamily`, `pageSize` or `marginPx` fails with
+`NestedPaperTokenError` naming the token: a bundle is one sequence of pages in
+one typeface, and both outputs read that one declaration. A nested document may
+still set `accentColor` and `logo`, which are its own.
+
+**A composition that hides its tokens fails loudly.** A composition that sets its
+own tokens *inside* itself is invisible to whatever is drawing it. So the
+document root compares every root-only token — `pageSize`, `marginPx` and
+`fontFamily` — against what the furniture or the render resolved, and throws
+`RootTokenMismatchError` naming the one that disagrees.
+
+The check runs on **both** sides: `renderPdf` supplies the same context `Pages`
+and `Paper` do. It has to, because that hidden-token shape is exactly what a
+React layer renders — the renderer builds the composition from an artifact and
+its data with no `tokens` prop at all — and because the typeface is the token
+whose loss is invisible: a PDF with the serif silently dropped is byte-identical
+to one that never asked for a serif.
+
+Two document roots handed to one `Pages` fail the same way, with
+`MultipleDocumentRootsError`: wrap them in a `Bundle`, which is one root holding
+many documents.
+
+**A render may override them.** `renderPdf(element, { tokens })` layers one
+tenant's set over whatever the document declares, so the same composition renders
+branded without being rewritten. The override is a layer, not a replacement: a
+render that names only the accent keeps the paper the document chose.
+
+`TokenOverrideProvider` is the preview's equivalent of that option. Put it above
+the page furniture and it brands whatever document is below it, exactly as the
+render option does:
+
+```tsx
+<TokenOverrideProvider tokens={tenant}>
+  <Pages>
+    <PurchaseOrder data={data} />
+  </Pages>
+</TokenOverrideProvider>
+```
+
+**Every token is checked before a renderer sees it.** An accent that is not a CSS
+colour, a page size that arrived from a database as a string, a margin that is
+not a whole number of pixels or that leaves no content box on its own paper: each
+fails with `InvalidDocumentTokenError` naming the token. An engine handed a value
+it cannot read drops the declaration and says nothing, which is the loss this
+package exists to rule out.
+
+**The defaults are the document this package rendered before there were tokens.**
+The four reference outputs hash byte for byte to what they hashed before, which
+is what makes every token comparison mean something: the same document with the
+same tokens renders the same bytes, so a difference is the token.
+
+**The accent is an inline style, not a class.** It is an arbitrary colour and the
+PDF path admits only the palette classes it has verified against the engine;
+inline style is what both the browser and the engine honour for a colour neither
+knew about when the document was written.
+
+**A4 is rounded to whole pixels.** 210 x 297 mm is 793.70 x 1122.52 CSS pixels at
+96 dpi, and `PAGE_SIZES.a4` states 794 x 1123. The preview lays out on a pixel
+grid, so a fractional sheet would put the two outputs a subpixel apart on every
+page; the rounding is at most half a pixel, well inside the parity suite's own
+eight pixel drift limit.
+
+**The mark is bytes or a source.** Bytes become a `data:` URI, which is the one
+image source neither the browser nor an engine has to fetch. A composition places
+it: `useDocumentTokens()` returns the resolved set, and the sample's
+`ProposalMark` is a component of its own precisely so it can call that hook
+below the `Document` that supplies them.
 
 ## The PDF
 
@@ -637,6 +787,10 @@ under, and the lab passes the URL Vite resolves for the same PNG as `logoSrc`.
 The mark sits in the masthead row rather than above the title so it costs the
 page no height, which keeps the measured budget above intact.
 
+A tenant's own mark arrives as the `logo` token instead, and wins: `ProposalMark`
+reads it from `useDocumentTokens()` and falls back to `logoSrc`. Bytes become a
+`data:` URI, which carries its own image and needs no `images` entry at all.
+
 ### The lab's PDF pane
 
 `react-lab` renders the PDF in the dev server's Node process behind
@@ -644,10 +798,15 @@ page no height, which keeps the measured budget above intact.
 comparison viewer, not a service.
 
 The pane's mode switch chooses who paginates. **Engine breaks** is a
-`GET ?set=short|overflow`, and the engine paginates the tree. **Preview breaks**
-is a `POST` carrying `{ set, plan }`, the plan the preview just published, and
-the PDF breaks where the preview did. The data set travels in one place either
-way: the query string for a GET, the body for a POST. The lab fetches the bytes
+`GET ?set=short|overflow&branding=default|branded`, and the engine paginates the
+tree. **Preview breaks** is a `POST` carrying `{ set, branding, plan }`, the plan
+the preview just published, and the PDF breaks where the preview did. The data
+set and the token set travel in one place either way: the query string for a GET,
+the body for a POST.
+
+The header's branding switch chooses the token set, and it changes both panes at
+once because both read it from the same document: the tokens go on
+`ProposalDocument`, not on the render call. The lab fetches the bytes
 rather than pointing the frame at the URL, because the render reports what it
 could not honour on `X-Paradoc-Unknown-Breaks` and `X-Paradoc-Unknown-Repeats`
 and a frame navigating to a URL never shows a header to the page. A render that
@@ -731,11 +890,18 @@ non-text layer. Both are framework changes, and both are ahead of this package.
 
 Is a page of the PDF the page of the preview it came from? A suite answers it by
 measurement rather than by assertion about the code: it starts the lab, drives
-one Chrome, and compares both adapters on both sample data sets in both
-pagination modes. Chrome screenshots the preview sheet and pdf.js paints the PDF
-into a canvas in that same Chrome, so one rasterizer draws both sides; both are
-drawn at twice the paper size and averaged down to 816 x 1056, and a pixel counts
-as differing when its grayscale value moves by more than 32 of 255.
+one Chrome, and compares both adapters in both pagination modes on three
+variants — the short document, the overflow document, and the overflow document
+under the sample's second token set. Chrome screenshots the preview sheet and
+pdf.js paints the PDF into a canvas in that same Chrome, so one rasterizer draws
+both sides; both are drawn at twice the paper size and averaged down to the paper
+the run's own tokens chose, and a pixel counts as differing when its grayscale
+value moves by more than 32 of 255.
+
+The branded variant is what proves the tokens: it is measured on A4 with a 56
+pixel margin in the serif, against the same four criteria with nothing loosened,
+and it paginates at different rows from the unbranded one because the page is a
+different page.
 
 ### The criteria
 
@@ -768,21 +934,34 @@ preview's page starts.
 
 takumi, the default:
 
-| Set and mode      | Pages | First keeps | Worst residual | Worst drift | Passes   |
-| ----------------- | ----- | ----------- | -------------- | ----------- | -------- |
-| short / engine    | 1 = 1 | all match   | 2.17%          | 2 px        | recorded |
-| short / hint      | 1 = 1 | all match   | 2.17%          | 2 px        | yes      |
-| overflow / engine | 4 = 4 | all match   | 9.45%          | 12 px       | recorded |
-| overflow / hint   | 4 = 4 | all match   | 4.45%          | 6 px        | yes      |
+| Variant and mode            | Paper      | Pages | First keeps | Worst residual | Worst drift | Passes   |
+| --------------------------- | ---------- | ----- | ----------- | -------------- | ----------- | -------- |
+| short / default / engine    | 816 x 1056 | 1 = 1 | all match   | 2.17%          | 2 px        | recorded |
+| short / default / hint      | 816 x 1056 | 1 = 1 | all match   | 2.17%          | 2 px        | yes      |
+| overflow / default / engine | 816 x 1056 | 4 = 4 | all match   | 9.45%          | 12 px       | recorded |
+| overflow / default / hint   | 816 x 1056 | 4 = 4 | all match   | 4.45%          | 6 px        | yes      |
+| overflow / branded / engine | 794 x 1123 | 4 = 4 | all match   | 8.44%          | 12 px       | recorded |
+| overflow / branded / hint   | 794 x 1123 | 4 = 4 | all match   | 3.44%          | 7 px        | yes      |
 
 Chromium, experimental, measured against the same criteria with nothing loosened:
 
-| Set and mode      | Pages | First keeps | Worst residual | Worst drift | Passes   |
-| ----------------- | ----- | ----------- | -------------- | ----------- | -------- |
-| short / engine    | 1 = 1 | all match   | 1.99%          | 0 px        | recorded |
-| short / hint      | 1 = 1 | all match   | 1.99%          | 0 px        | recorded |
-| overflow / engine | 4 = 4 | all match   | 8.74%          | 12 px       | recorded |
-| overflow / hint   | 4 = 4 | all match   | 3.47%          | 0 px        | yes      |
+| Variant and mode            | Paper      | Pages | First keeps | Worst residual | Worst drift | Passes   |
+| --------------------------- | ---------- | ----- | ----------- | -------------- | ----------- | -------- |
+| short / default / engine    | 816 x 1056 | 1 = 1 | all match   | 1.99%          | 0 px        | recorded |
+| short / default / hint      | 816 x 1056 | 1 = 1 | all match   | 1.99%          | 0 px        | recorded |
+| overflow / default / engine | 816 x 1056 | 4 = 4 | all match   | 8.74%          | 12 px       | recorded |
+| overflow / default / hint   | 816 x 1056 | 4 = 4 | all match   | 3.47%          | 0 px        | yes      |
+| overflow / branded / engine | 794 x 1123 | 4 = 4 | two differ  | 8.34%          | 12 px       | recorded |
+| overflow / branded / hint   | 794 x 1123 | 4 = 4 | all match   | 3.44%          | 1 px        | yes      |
+
+**Hint mode passes on the branded document too, on both engines.** Its numbers
+sit inside the unbranded ones rather than beside them: the serif is a little
+lighter than Inter, so there is marginally less ink to disagree about, and the
+narrower page changes where the rows fall without changing how well the two
+sides agree about them. Blink's own pagination is the one place branding shows:
+in engine mode on A4 it lands two of the four pages on different keeps, which is
+recorded rather than required, because Blink was never asked to honour the
+preview's plan.
 
 **Hint mode is the mode that reaches parity, on both engines.** Chromium's
 hint-mode drift is zero on every page and its residual is its raw difference,

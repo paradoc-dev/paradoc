@@ -30,3 +30,8 @@ export {
   PROPOSAL_LOGO_SRC,
   PROPOSAL_LOGO_WIDTH_PX,
 } from "./logo";
+export {
+  brandedProposalLogo,
+  brandedProposalTokens,
+  BRANDED_ACCENT_COLOR,
+} from "./tokens";
