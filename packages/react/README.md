@@ -8,13 +8,14 @@ and the PDF that document renders to.
 pnpm add @paradoc/react
 ```
 
-Five entries, because they need different things of the machine they run on:
+Six entries, because they need different things of the machine they run on:
 
 | Entry                         | Runs   | Holds                                                              |
 | ----------------------------- | ------ | ------------------------------------------------------------------ |
 | `@paradoc/react`              | Either | The components, the document context, the plan, the preview.       |
 | `@paradoc/react/pdf`          | Node   | `renderPdf`, the adapter seam, the default engine, the layer renderer. |
 | `@paradoc/react/chromium`     | Node   | The experimental Chromium adapter.                                 |
+| `@paradoc/react/check`        | Node   | `checkComposition`: the same tree walk, without rendering a PDF.   |
 | `@paradoc/react/examples`     | Either | Sample material: one artifact, two data sets, two token sets, one composition. |
 | `@paradoc/react/examples/pdf` | Node   | That sample's logo bytes and seal wiring.                          |
 
@@ -482,6 +483,28 @@ both rather than guessing which block is which.
 `resolveField` throws `UnknownFieldPathError` naming the path and the form. A
 typo in a composition is a bug, not a blank value, and rendering it as an em dash
 would hide it until someone read the finished document.
+
+## Checking a composition without rendering it
+
+`@paradoc/react/check` walks the same tree the takumi adapter walks and reports
+what a render would refuse, without producing PDF bytes:
+
+```ts
+import { checkComposition } from "@paradoc/react/check";
+
+const result = await checkComposition({ artifact: invoiceForm, composition: Invoice, data });
+// { unsupportedClasses: [], unresolvedPaths: [], missingImages: [] }
+```
+
+An unresolved `Field`/`Table` path or `Signature` party role would otherwise
+throw from inside that component's own render, before the rest of the tree
+can be walked. `checkComposition` runs the composition in a check mode that
+records each one instead and keeps going, so a composition with several faults
+of different kinds — an unsupported class and an unresolved path, say — is
+reported for all of them in one call rather than only the first one reached.
+`unsupportedClasses` is checked against `takumi`'s verified vocabulary by
+default; pass `adapter: "chromium"` to skip it, since a real browser accepts
+whatever CSS the tree produces. This is what `para check` runs.
 
 ## Known limitations
 

@@ -22,6 +22,11 @@
       "import": "./dist/chromium.js",
       "default": "./dist/chromium.js"
     },
+    "./check": {
+      "types": "./dist/check/index.d.ts",
+      "import": "./dist/check/index.js",
+      "default": "./dist/check/index.js"
+    },
     "./examples": {
       "types": "./dist/examples/index.d.ts",
       "import": "./dist/examples/index.js",

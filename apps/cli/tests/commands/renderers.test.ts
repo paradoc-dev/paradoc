@@ -54,10 +54,19 @@ async function executeCliCommand(
 
 describe('CLI renderers command', () => {
   it('keeps isolated renderer packages on the release version', () => {
-    expect(rendererManager.getRendererPackages()).toEqual({ '@paradoc/render': '0.4.0' })
+    expect(rendererManager.getRendererPackages()).toEqual({
+      '@paradoc/render': '0.4.0',
+      '@paradoc/react': '0.4.0',
+    })
     expect(rendererManager.getRendererPeerDependencies()).toEqual({
-      '@paradoc/types': '0.4.0',
-      '@paradoc/serialization': '0.4.0',
+      '@paradoc/render': {
+        '@paradoc/types': '0.4.0',
+        '@paradoc/serialization': '0.4.0',
+      },
+      '@paradoc/react': {
+        react: '19.2.3',
+        'react-dom': '19.2.3',
+      },
     })
   })
 

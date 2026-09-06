@@ -90,6 +90,7 @@ para view @acme/residential-lease
 | `para new bundle <name>` | Create a new bundle |
 | `para validate <artifact>` | Validate an artifact |
 | `para fix <artifact>` | Fix artifact metadata |
+| `para check <composition-or-artifact>` | Check a React composition against its artifact, without rendering a PDF |
 
 ### Project commands
 

@@ -90,6 +90,7 @@ describe("the manifest covers the package", () => {
     // in the package and are imported from it.
     const uncovered = exported.filter((name) => !carried.has(name ?? ""));
     expect(uncovered.sort()).toEqual([
+      "check-context",
       "document-context",
       "page-context",
       "paper-geometry",

@@ -9,9 +9,10 @@
 import { createContext, useContext } from "react";
 import type { Form, FormField, Party, SerializerRegistry } from "@paradoc/types";
 
-import { itemField, readValue, resolveField } from "../lib/fields";
+import { itemField, readValue, resolveField, UnknownFieldPathError } from "../lib/fields";
 import { findSigningMark, type SigningMarks, type SigningMarkType } from "./signing-context";
 import { formatByType, type DocumentFormatter, type ValueFormatter } from "../lib/format";
+import type { UnresolvedPathCollector } from "./check-context";
 
 /** The data one composed document renders. */
 export interface DocumentData {
@@ -75,18 +76,61 @@ export function useDocument(): DocumentContextValue {
   return context;
 }
 
-/** Builds the context value from an artifact, its data, and its computed defs. */
+/**
+ * A placeholder field a check renders in place of one an unresolved path would
+ * have named. It carries the path as its label so the composition still shows
+ * something legible in place of the missing value, rather than nothing: check
+ * mode's job is to keep the walk going, not to make the missing path invisible.
+ */
+function placeholderField(path: string): FormField {
+  return { type: "text", label: path, required: false, visible: true };
+}
+
+/**
+ * Runs `attempt`, reporting an `UnknownFieldPathError` to `collector` and
+ * returning `placeholderField(path)` in its place. Outside check mode
+ * (`collector` undefined) `attempt` runs unguarded, so a normal render still
+ * throws exactly as it always has.
+ */
+function resolveOrCollect(
+  collector: UnresolvedPathCollector | undefined,
+  path: string,
+  attempt: () => FormField
+): FormField {
+  if (!collector) return attempt();
+  try {
+    return attempt();
+  } catch (error) {
+    if (error instanceof UnknownFieldPathError) {
+      collector.report(path);
+      return placeholderField(path);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Builds the context value from an artifact, its data, and its computed defs.
+ *
+ * `collector`, present only for a composition check, turns an unresolved
+ * `Field`/`Table` path or `Signature` party role into a recorded fault instead
+ * of a thrown one — see `check-context.tsx`.
+ */
 export function createDocumentContext(
   form: Form,
   data: DocumentData,
   defs: Map<string, unknown>,
   formatter: DocumentFormatter,
-  marks: SigningMarks = {}
+  marks: SigningMarks = {},
+  collector?: UnresolvedPathCollector
 ): DocumentContextValue {
-  const field = (path: string) => resolveField(form, path);
+  const field = (path: string) => resolveOrCollect(collector, path, () => resolveField(form, path));
   const value = (path: string) => readValue(data.fields, path);
 
   const party = (role: string): Party[] => {
+    if (collector && form.parties?.[role] === undefined) {
+      collector.report(`party:${role}`);
+    }
     const entry = data.parties[role];
     if (!entry) return [];
     return Array.isArray(entry) ? entry : [entry];
@@ -100,7 +144,7 @@ export function createDocumentContext(
     blank: formatter.blank,
     format: formatter.format,
     field,
-    item: (path: string) => itemField(form, path),
+    item: (path: string) => resolveOrCollect(collector, path, () => itemField(form, path)),
     value,
     text: (path: string) => formatter.format(field(path), value(path), path),
     mark: (role: string, index: number, type: SigningMarkType) => findSigningMark(marks, role, index, type),

@@ -20,6 +20,16 @@ export {
   type DocumentContextValue,
   type DocumentData,
 } from "./components/document-context";
+// `Document` reads this on every render, checking or not, so it is substrate
+// an installed `document.tsx` must reach through this package rather than a
+// copy of its own — the same reason `useSigningMarks` is exported here.
+// `@paradoc/react/check` is the only caller that ever supplies one.
+export {
+  CheckModeProvider,
+  useUnresolvedPathCollector,
+  type CheckModeProviderProps,
+  type UnresolvedPathCollector,
+} from "./components/check-context";
 // The provider is the seal's, and the seal is Node: it is exported from
 // `@paradoc/react/pdf`. The hook is not — `Document` calls it on every render,
 // sealing or not — so it belongs to the browser entry alongside the vocabulary

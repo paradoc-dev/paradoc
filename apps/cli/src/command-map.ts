@@ -28,6 +28,8 @@ export const commandEntries: CommandEntry[] = [
 		load: () => import('./commands/inspect.js').then(m => m.createInspectCommand()) },
 	{ name: 'render', description: 'Render an artifact layer', group: 'Artifacts',
 		load: () => import('./commands/render.js').then(m => m.createRenderCommand()) },
+	{ name: 'check', description: 'Check a composition against its artifact without rendering a PDF', group: 'Artifacts',
+		load: () => import('./commands/check.js').then(m => m.createCheckCommand()) },
 	{ name: 'new', description: 'Create new Paradoc artifacts', group: 'Artifacts',
 		load: () => import('./commands/new/index.js').then(m => m.createNewCommand()) },
 	{ name: 'fix', description: 'Fix artifact metadata (e.g., file checksums in layers)', group: 'Artifacts',

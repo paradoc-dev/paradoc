@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.paradoc.dev/schema.json",
+  "kind": "form",
+  "name": "check-cli-missing-layer",
+  "version": "1.0.0",
+  "title": "Check CLI missing-layer fixture",
+  "fields": {
+    "name": {
+      "type": "text",
+      "label": "Name",
+      "required": true,
+      "visible": true
+    }
+  }
+}

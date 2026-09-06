@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.paradoc.dev/schema.json",
+  "kind": "form",
+  "name": "check-cli-unsupported-class",
+  "version": "1.0.0",
+  "title": "Check CLI unsupported-class fixture",
+  "fields": {
+    "name": {
+      "type": "text",
+      "label": "Name",
+      "required": true,
+      "visible": true
+    }
+  },
+  "layers": {
+    "composition": {
+      "kind": "file",
+      "mimeType": "text/tsx",
+      "path": "unsupported-class-composition.tsx",
+      "title": "Composition"
+    }
+  }
+}

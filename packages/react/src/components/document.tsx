@@ -17,6 +17,7 @@ import { useMemo, type ReactNode } from "react";
 import { evaluateFormDefs } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
+import { useUnresolvedPathCollector } from "./check-context";
 import { createValueFormatter, type FormatOptions } from "../lib/format";
 import { fontFamilyStyle, type DocumentTokensInput } from "../lib/tokens";
 import {
@@ -68,12 +69,15 @@ export function Document({
   // The seal's flow markers arrive from the layer's renderer, not from the
   // composition: a document is written once and rendered in both seal passes.
   const marks = useSigningMarks();
-
+  // Present only inside `@paradoc/react/check`'s `CheckModeProvider`; every
+  // other render sees `undefined` and `createDocumentContext` throws exactly
+  // as it always has.
+  const collector = useUnresolvedPathCollector();
 
   const context = useMemo(() => {
     const formatter = createValueFormatter(format);
-    return createDocumentContext(artifact, data, evaluateDefs(artifact, data), formatter, marks);
-  }, [artifact, data, format, marks]);
+    return createDocumentContext(artifact, data, evaluateDefs(artifact, data), formatter, marks, collector);
+  }, [artifact, data, format, marks, collector]);
 
   return (
     <DocumentTokensProvider tokens={branding.tokens}>

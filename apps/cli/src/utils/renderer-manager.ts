@@ -9,7 +9,7 @@ import ora from 'ora'
 const execFileAsync = promisify(execFile)
 
 declare const __RENDERER_VERSIONS__: Record<string, string> | undefined
-declare const __RENDERER_PEER_VERSIONS__: Record<string, string> | undefined
+declare const __RENDERER_PEER_VERSIONS__: Record<string, Record<string, string>> | undefined
 
 /** Renderer package versions, injected at build time via tsup define */
 const RENDERER_VERSIONS: Record<string, string> =
@@ -17,15 +17,27 @@ const RENDERER_VERSIONS: Record<string, string> =
     ? __RENDERER_VERSIONS__
     : {
         '@paradoc/render': '0.4.0',
+        '@paradoc/react': '0.4.0',
       }
 
-/** Peer deps installed as regular deps in the isolated renderer directories */
-const RENDERER_PEER_VERSIONS: Record<string, string> =
+/**
+ * Peer deps installed as regular deps in the isolated renderer directories,
+ * keyed by the renderer package that needs them. Kept per-package rather than
+ * one shared set: `@paradoc/react` needs `react` and `react-dom`, which a
+ * text/DOCX/PDF-only install of `@paradoc/render` has no reason to carry.
+ */
+const RENDERER_PEER_VERSIONS: Record<string, Record<string, string>> =
   typeof __RENDERER_PEER_VERSIONS__ !== 'undefined'
     ? __RENDERER_PEER_VERSIONS__
     : {
-        '@paradoc/types': '0.4.0',
-        '@paradoc/serialization': '0.4.0',
+        '@paradoc/render': {
+          '@paradoc/types': '0.4.0',
+          '@paradoc/serialization': '0.4.0',
+        },
+        '@paradoc/react': {
+          react: '19.2.3',
+          'react-dom': '19.2.3',
+        },
       }
 
 const RENDERERS_DIR = join(homedir(), '.paradoc', 'renderers')
@@ -96,14 +108,14 @@ class RendererManager {
       const dir = this.getRendererDir(pkg)
       await fs.mkdir(dir, { recursive: true })
 
-      // Write a minimal package.json with the renderer + peer deps as regular deps
+      // Write a minimal package.json with the renderer + its own peer deps as regular deps
       const pkgJson = {
         name: `paradoc-plugin-${packageName.split('/').pop()}`,
         version: '1.0.0',
         private: true,
         dependencies: {
           [packageName]: version,
-          ...RENDERER_PEER_VERSIONS,
+          ...RENDERER_PEER_VERSIONS[packageName],
         },
       }
 
@@ -177,8 +189,8 @@ class RendererManager {
     return { ...RENDERER_VERSIONS }
   }
 
-  /** Get the renderer peer packages installed alongside isolated renderers */
-  getRendererPeerDependencies(): Record<string, string> {
+  /** Get the renderer peer packages installed alongside isolated renderers, keyed by renderer package. */
+  getRendererPeerDependencies(): Record<string, Record<string, string>> {
     return { ...RENDERER_PEER_VERSIONS }
   }
 

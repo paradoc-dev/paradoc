@@ -130,8 +130,16 @@ function documentData(request: RenderRequest<RendererLayer>): DocumentData {
   return { fields: request.data.fields, parties: request.data.parties ?? {} };
 }
 
-/** The component a layer names. @throws {UnboundReactLayerError} */
-async function bindComponent(
+/**
+ * Binds a layer's `path` or `key` to a component, exactly as {@link reactRenderer}
+ * does before it renders. Exported for callers that need the component itself
+ * rather than PDF bytes: `para check` binds a composition this way to check it
+ * without rendering it, and a planned `para dev` preview is expected to bind
+ * the same way to run one live.
+ *
+ * @throws {UnboundReactLayerError}
+ */
+export async function bindComponent(
   template: RendererLayer,
   options: ReactLayerRendererOptions
 ): Promise<ReactLayerComponent> {

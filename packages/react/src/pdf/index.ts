@@ -31,6 +31,7 @@ export {
   type SigningMarkerProviderProps,
 } from "../components/signing-context";
 export {
+  bindComponent,
   MissingSigningMarkerError,
   reactLayerRenderers,
   reactRenderer,

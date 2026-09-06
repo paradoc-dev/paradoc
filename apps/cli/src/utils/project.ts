@@ -8,23 +8,35 @@ import type { Artifact } from '@paradoc/core'
 // --------------------------------------------
 
 /**
- * Find the root of the project by looking for .paradoc directory
+ * Find the root of the project by looking for its `.paradoc` directory and
+ * `paradoc.json` together — both are what `para init` writes, and both are
+ * required: a `.paradoc` directory alone is not proof of a project, because
+ * the CLI also writes one under the user's home directory for its own global
+ * config (cache, saved preferences), with no `paradoc.json` beside it. Without
+ * requiring both, a walk starting anywhere under the user's home directory
+ * would stop at that global config directory and report it as the project
+ * root.
+ *
+ * `startDir` defaults to `process.cwd()`; passed explicitly for testing.
  */
-export async function findRepoRoot(): Promise<string | null> {
+export async function findRepoRoot(startDir: string = process.cwd()): Promise<string | null> {
   const storage = new LocalFileSystem()
-  let currentDir = storage.getAbsolutePath(process.cwd())
+  let currentDir = storage.getAbsolutePath(startDir)
 
   while (true) {
-    // Check if .paradoc directory exists in current directory
     const paradocPath = storage.joinPath(currentDir, '.paradoc')
+    const manifestPath = storage.joinPath(currentDir, 'paradoc.json')
 
     try {
-      const stats = await storage.stat(paradocPath)
-      if (stats.isDirectory) {
+      const [dirStats, manifestExists] = await Promise.all([
+        storage.stat(paradocPath),
+        storage.exists(manifestPath),
+      ])
+      if (dirStats.isDirectory && manifestExists) {
         return currentDir
       }
     } catch {
-      // Directory doesn't exist, continue searching
+      // .paradoc doesn't exist here, continue searching
     }
 
     // Move up one directory
