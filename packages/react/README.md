@@ -199,9 +199,11 @@ still take the section's flex gap, and the rendered page would then be taller
 than the flow the plan was measured against.
 
 **Fonts gate the whole thing.** No page renders until `document.fonts.ready`
-resolves, so a page break never reflects a fallback face. The preview
-repaginates when the data changes and when the measuring container resizes, and
-keeps the previous plan object when nothing moved.
+resolves, so a page break never reflects a fallback face. The preview measures
+again after every render and when the measuring container resizes, and keeps the
+previous plan object unless the measurement moved something. Prop identity is
+never read, so a host that passes an inline object, or that sets state from
+`onPaginate`, still gets one plan and keeps its sheets mounted.
 
 ## Two constraints that shaped the design
 

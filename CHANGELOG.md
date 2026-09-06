@@ -15,6 +15,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 - `@paradoc/types`: `RendererLayer.content` is optional, because a layer that names its content rather than carrying it — a React composition — has none. `key` and `path` are added, so a renderer that binds a module knows which layer it is rendering. A `FileLayer`'s `path` is documented as relative to the artifact file that declares it, which is what artifacts have always written; it previously said "absolute path from repo root".
 - `@paradoc/render`: `renderLayer` fails naming the MIME type when a layer of a type it renders carries no content. An unsupported type is still reported as unsupported.
+- `@paradoc/react`: `Pages` decides a repagination from the measurement, not from the identity of its children. It measures again after every render, before paint, and replaces the plan only when the new plan differs, so a host that passes an inline object prop or sets state from `onPaginate` publishes one plan instead of looping, and the sheets that survive an edit keep their DOM nodes.
 - The marker-based placement literal is `'flow'` (was `'auto'`): the field sits where the template content places it, mirroring flow/anchored/absolute positioning. Clean rename, no alias; artifacts published with `'auto'` under 0.5.0 must update the literal.
 - The bundled essentials forms and example artifacts declare `signatures` slot maps instead of legacy `signatureBlocks`. Legacy blocks remain readable during the deprecation window.
 

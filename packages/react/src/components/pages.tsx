@@ -10,12 +10,18 @@
  *
  * Measurement never runs against fallback fonts: nothing is planned or rendered
  * until `document.fonts.ready` resolves.
+ *
+ * A plan is replaced only when a fresh measurement differs from it, and prop
+ * identity is never consulted. A host that hands `Pages` a new element tree on
+ * every render, which is what an inline object prop or state set from
+ * `onPaginate` produces, measures to the same plan, so nothing changes and no
+ * sheet is unmounted.
  */
 
 import {
-  isValidElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -110,19 +116,8 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   const stackRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [plan, setPlan] = useState<PagePlan | null>(null);
-  const [revision, setRevision] = useState(0);
   const fit = useFitToWidth(frameRef, stackRef);
   const fontsReady = useFontsReady();
-
-  // A plan describes one document. When the document changes, drop it here
-  // rather than rendering the new tree against the old page assignments for a
-  // commit. Re-rendering the same document is not a change, so this settles.
-  const rendered = useRef(children);
-  if (!sameChildren(rendered.current, children)) {
-    rendered.current = children;
-    setPlan(null);
-    setRevision((previous) => previous + 1);
-  }
 
   const repaginate = useCallback(() => {
     const container = measureRef.current;
@@ -131,9 +126,18 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
     setPlan((previous) => (samePlan(previous, next) ? previous : next));
   }, []);
 
-  useEffect(() => {
+  // React builds a new element tree on every render, so children identity says
+  // nothing about whether the document changed. Measure after every commit and
+  // let the measurement answer: an equal document plans to an equal plan and no
+  // state changes, while a real edit produces exactly one new plan. The plan is
+  // never dropped, so the sheets that survive an edit keep their DOM nodes and a
+  // host that re-renders on every plan has nothing to re-render.
+  //
+  // Before paint, not after: an edit that moves a page break would otherwise
+  // paint the new document against the old page assignments for one frame.
+  useLayoutEffect(() => {
     if (fontsReady) repaginate();
-  }, [fontsReady, revision, repaginate]);
+  });
 
   useEffect(() => {
     if (!fontsReady || typeof ResizeObserver === "undefined") return;
@@ -144,9 +148,16 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
     return () => observer.disconnect();
   }, [fontsReady, repaginate]);
 
+  // A host that sets state from onPaginate hands back a new callback on every
+  // render. Publishing on the callback's identity would then call it forever, so
+  // the plan alone decides when a plan is published, and the callback is only
+  // ever the latest one.
+  const publish = useRef(onPaginate);
+  publish.current = onPaginate;
+
   useEffect(() => {
-    if (plan) onPaginate?.(plan);
-  }, [plan, onPaginate]);
+    if (plan) publish.current?.(plan);
+  }, [plan]);
 
   // A document with no keeps is still a sheet of paper.
   const sheets = plan === null ? 0 : Math.max(1, plan.pages.length);
@@ -210,41 +221,23 @@ function sameRows(a: readonly (readonly string[])[], b: readonly (readonly strin
   );
 }
 
-/** Two plans are the same when nothing about the pages changed. */
+/**
+ * Two plans are the same when nothing about the pages changed.
+ *
+ * This is the only thing that decides whether the preview repaginates, so it
+ * compares every field of the plan a page reads.
+ */
 function samePlan(a: PagePlan | null, b: PagePlan): boolean {
   return (
     a !== null &&
     a.budget === b.budget &&
     sameRows(a.pages, b.pages) &&
     sameRows(a.repeats, b.repeats) &&
+    sameRows(a.sections, b.sections) &&
     sameRows([a.breaks], [b.breaks]) &&
     a.oversize.length === b.oversize.length &&
     a.oversize.every(
       (keep, index) => keep.id === b.oversize[index]!.id && keep.height === b.oversize[index]!.height
     )
-  );
-}
-
-/**
- * True when two children describe the same document.
- *
- * React builds new element objects on every render, so identity alone would
- * call every parent render a new document. Same type, same key and the same
- * props by reference is the same document.
- */
-function sameChildren(a: ReactNode, b: ReactNode): boolean {
-  if (a === b) return true;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((child, index) => sameChildren(child, b[index]));
-  }
-  if (!isValidElement(a) || !isValidElement(b)) return false;
-  if (a.type !== b.type || a.key !== b.key) return false;
-
-  const before = a.props as Record<string, unknown>;
-  const after = b.props as Record<string, unknown>;
-  const names = Object.keys(before);
-  return (
-    names.length === Object.keys(after).length &&
-    names.every((name) => Object.is(before[name], after[name]))
   );
 }
