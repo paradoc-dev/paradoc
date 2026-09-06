@@ -21,7 +21,6 @@ export {
   PROPOSAL_REACT_LAYER,
   PROPOSAL_REACT_LAYER_PATH,
   PROPOSAL_SIGNATURE_SLOTS,
-  PROPOSAL_SIGNING_LAYER,
 } from "./proposal";
 export { overflowProposalData, shortProposalData, type ProposalData } from "./proposal-data";
 export { ProposalDocument, type ProposalDocumentProps } from "./proposal-document";

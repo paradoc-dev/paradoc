@@ -28,6 +28,14 @@
  * `.tsx` module works where the runtime already transforms one, and the
  * `components` map is the answer everywhere else.
  *
+ * **Sealing.** Core's flow placement needs an invisible marker in front of each
+ * signature placeholder. It cannot write one into a composition, so on the seal's
+ * marker pass it hands the markers to this renderer instead, and the renderer
+ * puts them in the signing context the `Signature` block reads. The face that
+ * carries the codepoints is embedded on that pass and on no other, and a marker
+ * the PDF did not receive fails here naming the slot and the coverage that
+ * probably lost it rather than surfacing later as an unlocatable slot.
+ *
  * **Import binding executes the module the artifact names.** That is the point
  * of it, and it is worth saying plainly: an artifact is data, and this is the
  * one place data becomes code. So the path is confined. It must be relative,
@@ -41,15 +49,18 @@ import { isAbsolute, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createElement, type ReactNode } from "react";
+import { pageTextRuns } from "@paradoc/render/pdf";
 import type {
   Form,
   ParadocRenderer,
   ReactLayerMimeType,
   RendererLayer,
   RenderRequest,
+  SigningMarker,
 } from "@paradoc/types";
 
 import type { DocumentData } from "../components/document-context";
+import { SigningMarkerProvider, type SigningMarks } from "../components/signing-context";
 import { renderPdf, type RenderPdfOptions } from "./render";
 
 /** What a composition receives when core renders it through its layer. */
@@ -189,6 +200,58 @@ async function bindComponent(
   return exported as ReactLayerComponent;
 }
 
+/** The markers keyed by slot id, the way the document context reads them. */
+function signingMarks(markers: readonly SigningMarker[]): SigningMarks {
+  const marks: SigningMarks = {};
+  for (const marker of markers) marks[marker.slot] = marker;
+  return marks;
+}
+
+/**
+ * Thrown when a seal's marker pass produced a PDF the markers did not reach.
+ *
+ * Almost always glyph coverage. A marker is eight braille codepoints, an engine
+ * writes U+0000 for a codepoint no embedded font covers, and the document face
+ * covers no braille. Without this check the loss is silent and the seal fails
+ * two steps later as `locate` reporting every slot "not found", with nothing
+ * naming a font.
+ */
+export class MissingSigningMarkerError extends Error {
+  /** Slot ids whose marker did not reach the PDF, in the order the seal asked for them. */
+  readonly slots: readonly string[];
+
+  constructor(slots: readonly string[]) {
+    super(
+      `The seal's marker pass rendered a PDF without ${slots.length === 1 ? "the marker" : "markers"} for ` +
+        `${slots.join(", ")}. A marker is eight braille codepoints and an engine writes U+0000 for any ` +
+        "codepoint its embedded fonts do not cover, so the likeliest cause is glyph coverage: render with " +
+        "`signingMarkers: true` so the braille face is embedded. Otherwise the `Signature` block for that " +
+        "party is missing from the tree, or its marker is not in the same text run as its rule."
+    );
+    this.name = "MissingSigningMarkerError";
+    this.slots = slots;
+  }
+}
+
+/**
+ * Checks the marker pass carried every marker into the PDF.
+ *
+ * The seal locates markers itself and would fail without this, but it fails
+ * naming the slots and nothing else. This names the cause while the render that
+ * produced it is still in hand.
+ *
+ * @throws {MissingSigningMarkerError} when a marker did not reach the PDF.
+ */
+async function assertMarkersSurvived(
+  bytes: Uint8Array,
+  markers: readonly SigningMarker[]
+): Promise<void> {
+  const pages = await pageTextRuns(bytes);
+  const text = pages.map((page) => page.runs.map((run) => run.text).join("\n")).join("\n");
+  const missing = markers.filter((marker) => !text.includes(marker.marker)).map((marker) => marker.slot);
+  if (missing.length > 0) throw new MissingSigningMarkerError(missing);
+}
+
 /**
  * A renderer for one React layer MIME type.
  *
@@ -206,11 +269,24 @@ export function reactRenderer(
     id: "react",
     async render(request: RenderRequest<RendererLayer>): Promise<Uint8Array> {
       const Composition = await bindComponent(request.template, options);
-      const element = createElement(Composition, {
-        artifact: request.form,
-        data: documentData(request),
+      const markers = request.ctx?.signing?.markers ?? [];
+      const element = createElement(
+        SigningMarkerProvider,
+        { marks: signingMarks(markers) },
+        createElement(Composition, {
+          artifact: request.form,
+          data: documentData(request),
+        })
+      );
+      // The marker face is embedded exactly when there is a marker to carry,
+      // unless the caller states otherwise. `signingMarkers: false` against a
+      // marker pass is the only way to render one without the face, which is
+      // what the coverage test needs and nothing else wants.
+      const { bytes } = await renderPdf(element, {
+        ...options.pdf,
+        signingMarkers: options.pdf?.signingMarkers ?? (markers.length > 0),
       });
-      const { bytes } = await renderPdf(element, options.pdf);
+      if (markers.length > 0) await assertMarkersSurvived(bytes, markers);
       return bytes;
     },
   };

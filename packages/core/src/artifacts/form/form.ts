@@ -78,6 +78,14 @@ import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesV
 import { evaluateFormDefs, evaluateFormRules } from '@/logic'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
 import { buildRendererLayer, selectLayerRenderer } from '../shared/render-layer'
+import type { RendererRegistry } from '@/rendering/renderer-registry'
+import {
+	createSealPass,
+	locateFlowMarkers,
+	selectSealRenderer,
+	signingMarkersFor,
+	type SealRenderer,
+} from './seal-renderer'
 import type {
 	PartialFillOptions,
 	UpdateOptions,
@@ -122,7 +130,13 @@ export type PartyRoleKeys<F> = ExtractFormSchema<F> extends { parties: infer P }
 	: string
 
 export interface SealOptions {
-	/** Adapter required when the target layer is not already a PDF. */
+	/**
+	 * Adapter required when the target layer is not already a PDF.
+	 *
+	 * Not required for a layer whose registered renderer produces the PDF
+	 * itself. A React composition is that case: its renderer writes PDF bytes,
+	 * so there is nothing left to convert.
+	 */
 	adapter?: SealAdapter
 	/**
 	 * Resolves anchor-block positions against the converted PDF when the
@@ -132,8 +146,31 @@ export interface SealOptions {
 	locate?: SealLocator
 	/** Resolves file-backed target layers before sealing. */
 	resolver?: Resolver
-	/** Custom renderer override used before PDF finalization or adapter conversion. */
+	/**
+	 * Custom renderer override for the layer being sealed.
+	 *
+	 * Honoured on every pass except a flow one: flow placement is core writing
+	 * an invisible marker into the text it renders, and an override is opaque to
+	 * that, so `prepareSeal` and `seal` refuse the combination rather than
+	 * dropping the markers. See `renderers` for the whole order.
+	 */
 	renderer?: ParadocRenderer<RendererLayer, string | Uint8Array>
+	/**
+	 * Renderers keyed by layer MIME type, the same registry `render` takes.
+	 *
+	 * **Which renderer the seal runs, in order.**
+	 *
+	 * 1. A renderer registered for a React layer's MIME type. It is handed the
+	 *    flow markers and writes the PDF itself, so it wins over `renderer` and
+	 *    needs no `adapter`.
+	 * 2. Core's own text renderer, whenever the layer places a slot in flow.
+	 *    Nothing else can inject core's markers, so neither `renderer` nor an
+	 *    entry here is consulted; an override alongside flow placement is a
+	 *    `SealConfigError` before anything renders.
+	 * 3. Otherwise `renderer`, then an entry here for the layer's MIME type,
+	 *    then core's own — the order `render` itself uses.
+	 */
+	renderers?: RendererRegistry
 }
 
 /**
@@ -1613,7 +1650,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					'prepareSeal requires a layer with signature slots (`signatures`) or legacy signatureBlocks/anchorBlocks.',
 				)
 			}
-			if (layerSpec.mimeType !== 'application/pdf' && !options.adapter) {
+			// A layer whose registered renderer writes the PDF needs no converter:
+			// there is nothing left to convert.
+			const sealRenderer = selectSealRenderer(layerSpec, options.renderers)
+			if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !sealRenderer) {
 				throw new SealConfigError(
 					`Cannot prepare seal for ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); PDF layers prepare locally.`,
 					['missing converter'],
@@ -1636,7 +1676,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				if (layerSpec.mimeType === 'application/pdf') {
 					problems.push("'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement")
 				}
-				if (options.renderer) {
+				// An override is opaque: core cannot inject a marker into it. A
+				// registered renderer is not — it is handed the markers and draws
+				// them itself — so the incompatibility is the override's alone.
+				if (options.renderer && !sealRenderer) {
 					problems.push("'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering")
 				}
 				if (problems.length > 0) {
@@ -1662,13 +1705,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					},
 				},
 			})
-			const renderPass = (withMarkers: boolean): Promise<string | Uint8Array> =>
-				runtime.render<string | Uint8Array>({
-					renderer: createRenderer({ textSignatureOptions: textOptions(withMarkers) }),
-					resolver: options.resolver,
-					layer: targetLayer,
-				})
-
 			const prepareRequest: SealingRequest<F> = {
 				form: formDef,
 				fields: fieldValues,
@@ -1679,6 +1715,29 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
 			}
 
+			const pass = createSealPass({
+				layerSpec,
+				flow: plan.flow.length > 0,
+				sealRenderer,
+				markers: signingMarkersFor(declaredSlots ?? legacySlots!, plan.flow),
+				textRenderer: (withMarkers) => createRenderer({ textSignatureOptions: textOptions(withMarkers) }),
+				override: options.renderer,
+				renderers: options.renderers,
+				render: (renderer) =>
+					runtime.render<string | Uint8Array>({
+						renderer,
+						resolver: options.resolver,
+						layer: targetLayer,
+					}),
+				convert: async (content) =>
+					(
+						await options.adapter!.convert({
+							...prepareRequest,
+							document: { content, mimeType: layerSpec.mimeType },
+						})
+					).pdf,
+			})
+
 			const provenance: Record<string, PlacementProvenance> = {}
 			const map: SigningField[] = [...plan.resolved]
 			for (const field of plan.resolved) provenance[field.id] = 'declared'
@@ -1686,25 +1745,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			let pdf: Uint8Array
 
 			if (layerSpec.mimeType === 'application/pdf') {
-				const document = await renderPass(false)
+				const document = await pass.render(false)
 				if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
 				pdf = document
 			} else {
 				if (plan.flow.length > 0) {
-					const encodedContent = await renderPass(true)
-					const encodedPdf = (await options.adapter!.convert({
-						...prepareRequest,
-						document: { content: encodedContent, mimeType: layerSpec.mimeType },
-					})).pdf
-					const markerHits = await locatePlacements(
-						encodedPdf,
-						plan.flow.map((field) => ({
-							id: field.id,
-							kind: 'marker' as const,
-							signerIndex: field.signerIndex,
-							fieldType: field.type === 'signature' ? FieldType.SIGNATURE : FieldType.INITIALS,
-						})),
-					)
+					const markerHits = await locateFlowMarkers(await pass.pdf(true), plan.flow)
 					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
 					for (const field of plan.flow) {
 						const hit = markersById.get(field.id)
@@ -1712,11 +1758,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						flowResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
 					}
 				}
-				const cleanContent = await renderPass(false)
-				pdf = (await options.adapter!.convert({
-					...prepareRequest,
-					document: { content: cleanContent, mimeType: layerSpec.mimeType },
-				})).pdf
+				pdf = await pass.pdf(false)
 				if (flowResolved.length > 0) {
 					const cleanPages = await pageTextRuns(pdf)
 					for (const field of flowResolved) {
@@ -1777,11 +1819,39 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const layerSpec = formDef.layers?.[targetLayer]
 			if (!layerSpec) throw new Error(`Cannot seal: target layer "${targetLayer}" was not found`)
 
-			const renderNativeDocument = async (): Promise<string | Uint8Array> =>
-				runtime.render<string | Uint8Array>({
-					renderer: options.renderer,
-					resolver: options.resolver,
-					layer: targetLayer,
+			// A layer whose registered renderer writes the PDF is sealed through
+			// that renderer and needs no adapter. For every other layer the
+			// override and the registry apply in `render`'s own order, except on
+			// a flow pass, which only core's text renderer can produce.
+			const sealRenderer = selectSealRenderer(layerSpec, options.renderers)
+			/** One seal pass over the target layer. See `createSealPass`. */
+			const sealPassFor = (
+				request: SealingRequest<F>,
+				flow: readonly SigningField[],
+				slots: Record<string, SignatureSlot>,
+				textRenderer: (withMarkers: boolean) => SealRenderer,
+			) =>
+				createSealPass({
+					layerSpec,
+					flow: flow.length > 0,
+					sealRenderer,
+					markers: signingMarkersFor(slots, flow),
+					textRenderer,
+					override: options.renderer,
+					renderers: options.renderers,
+					render: (renderer) =>
+						runtime.render<string | Uint8Array>({
+							renderer,
+							resolver: options.resolver,
+							layer: targetLayer,
+						}),
+					convert: async (content) =>
+						(
+							await options.adapter!.convert({
+								...request,
+								document: { content, mimeType: layerSpec.mimeType },
+							})
+						).pdf,
 				})
 
 			const finalizePdf = async (
@@ -1799,18 +1869,25 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			const runSealer = async (request: SealingRequest<F>) => {
 				if (legacyAdapter) return legacyAdapter.seal(request)
-				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter) {
+				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !sealRenderer) {
 					throw new Error(
 						`Cannot seal ${layerSpec.mimeType} without an adapter. ` +
-						'PDF layers seal locally; other MIME types require a seal adapter.',
+						'PDF layers seal locally; other MIME types require a seal adapter, ' +
+						'unless a renderer registered for the type produces the PDF itself.',
 					)
 				}
-				const document = await renderNativeDocument()
+				// No flow slots on this path, so nothing needs core's marker
+				// injection: the override and the registry apply in render's order.
+				const pass = sealPassFor(request, [], {}, () => createRenderer())
+				if (sealRenderer) return finalizePdf(await pass.pdf(false))
+				const document = await pass.render(false)
 				if (layerSpec.mimeType === 'application/pdf') {
 					if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
 					return finalizePdf(document)
 				}
 				if (!options.adapter) throw new Error('Seal adapter was not resolved.')
+				// The adapter's own signature map is kept here, which is why this
+				// converts itself rather than going through `pass.pdf`.
 				const converted = await options.adapter.convert({
 					...request,
 					document: { content: document, mimeType: layerSpec.mimeType },
@@ -1822,7 +1899,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			// every placement strategy; legacy signatureBlocks/anchorBlocks keep
 			// their original paths below during the deprecation window.
 			if (hasSignatureSlots(layerSpec)) {
-				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !legacyAdapter) {
+				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !legacyAdapter && !sealRenderer) {
 					throw new SealConfigError(
 						`Cannot seal ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); PDF layers seal locally.`,
 						['missing converter'],
@@ -1844,10 +1921,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					if (layerSpec.mimeType === 'application/pdf') {
 						problems.push("'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement")
 					}
-					if (options.renderer) {
+					// See prepareSeal: an override is opaque to the marker
+					// injection, a registered renderer is handed the markers.
+					if (options.renderer && !sealRenderer) {
 						problems.push("'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering")
 					}
-					if (!options.adapter) {
+					if (!options.adapter && !sealRenderer) {
 						problems.push("'flow' placement requires a SealAdapter (converter)")
 					}
 					if (problems.length > 0) {
@@ -1888,30 +1967,14 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						},
 					}
 				}
-				const renderForSlots = (withMarkers: boolean): Promise<string | Uint8Array> =>
-					runtime.render<string | Uint8Array>({
-						renderer: createRenderer({ textSignatureOptions: slotTextOptions(withMarkers) }),
-						resolver: options.resolver,
-						layer: targetLayer,
-					})
+				const slotTextOptionsRenderer = (withMarkers: boolean) =>
+					createRenderer({ textSignatureOptions: slotTextOptions(withMarkers) })
+				const slotPass = sealPassFor(slotRequest, plan.flow, layerSpec.signatures, slotTextOptionsRenderer)
 
 				let slotResult: import('@paradoc/types').SealingResult
 				const flowResolved: SigningField[] = []
 				if (plan.flow.length > 0) {
-					const encodedContent = await renderForSlots(true)
-					const encodedPdf = (await options.adapter!.convert({
-						...slotRequest,
-						document: { content: encodedContent, mimeType: layerSpec.mimeType },
-					})).pdf
-					const markerHits = await locatePlacements(
-						encodedPdf,
-						plan.flow.map((field) => ({
-							id: field.id,
-							kind: 'marker' as const,
-							signerIndex: field.signerIndex,
-							fieldType: field.type === 'signature' ? FieldType.SIGNATURE : FieldType.INITIALS,
-						})),
-					)
+					const markerHits = await locateFlowMarkers(await slotPass.pdf(true), plan.flow)
 					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
 					for (const field of plan.flow) {
 						const hit = markersById.get(field.id)
@@ -1919,11 +1982,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						flowResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
 					}
 
-					const cleanContent = await renderForSlots(false)
-					const cleanPdf = (await options.adapter!.convert({
-						...slotRequest,
-						document: { content: cleanContent, mimeType: layerSpec.mimeType },
-					})).pdf
+					const cleanPdf = await slotPass.pdf(false)
 
 					// Marker glyphs occupy width, so wraps or page breaks can shift
 					// between passes. Verify each resolved box still points at a text

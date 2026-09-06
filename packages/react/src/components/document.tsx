@@ -7,6 +7,10 @@
  * whatever a `Bundle` above already set and whatever the render overrides, and
  * the result is supplied to the tree below and published to the page furniture
  * above, so the preview's sheet and the PDF's page are the same paper.
+ *
+ * The seal's flow markers enter here too, but from the other direction: the
+ * layer's renderer supplies them and this reads them, so a composition never
+ * threads a seal-only prop.
  */
 
 import { useMemo, type ReactNode } from "react";
@@ -19,8 +23,8 @@ import {
   createDocumentContext,
   DocumentContextProvider,
   type DocumentData,
-  type SigningMarks,
 } from "./document-context";
+import { useSigningMarks } from "./signing-context";
 import {
   DocumentTokensProvider,
   markDocumentRoot,
@@ -39,11 +43,6 @@ export interface DocumentProps {
    * keeps the value the bundle above set, or the package's default.
    */
   tokens?: DocumentTokensInput;
-  /**
-   * Signing placeholders for a seal pass, keyed `role:index`. Absent for every
-   * ordinary render, and a signature block then draws its own rule.
-   */
-  marks?: SigningMarks;
   /** Stable identifier for this document within its bundle. */
   id?: string;
   className?: string;
@@ -61,12 +60,15 @@ export function Document({
   data,
   format,
   tokens,
-  marks,
   id,
   className,
   children,
 }: DocumentProps) {
   const branding = useDocumentRootTokens(tokens);
+  // The seal's flow markers arrive from the layer's renderer, not from the
+  // composition: a document is written once and rendered in both seal passes.
+  const marks = useSigningMarks();
+
 
   const context = useMemo(() => {
     const formatter = createValueFormatter(format);

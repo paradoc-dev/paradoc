@@ -10,6 +10,7 @@ import { createContext, useContext } from "react";
 import type { Form, FormField, Party, SerializerRegistry } from "@paradoc/types";
 
 import { itemField, readValue, resolveField } from "../lib/fields";
+import { findSigningMark, type SigningMarks, type SigningMarkType } from "./signing-context";
 import { formatByType, type DocumentFormatter, type ValueFormatter } from "../lib/format";
 
 /** The data one composed document renders. */
@@ -25,17 +26,6 @@ export interface DocumentData {
    */
   parties: Record<string, Party | Party[]>;
 }
-
-/**
- * Signing placeholders for one seal pass, keyed `role:index`.
- *
- * The core seal flow renders a layer twice — once with an invisible marker
- * before each signature placeholder, once clean — and locates the marker in the
- * converted PDF. `src/examples/seal.tsx` reads the two renders and hands the result
- * here so the marker lands in the tree's own signature block rather than in a
- * second description of the document.
- */
-export type SigningMarks = Record<string, string>;
 
 /** What every component below `Document` can read. */
 export interface DocumentContextValue {
@@ -61,11 +51,14 @@ export interface DocumentContextValue {
   /** Reads the parties filling one role. */
   party: (role: string) => Party[];
   /**
-   * The signing placeholder the seal flow rendered for a party's signature
-   * slot, if this render is a seal pass. Undefined everywhere else, and the
-   * signature block draws its own rule.
+   * The invisible flow marker the seal wants in front of one party's
+   * placeholder of one field type, if this render is the seal's marker pass.
+   * Undefined for every other render, and the block draws its rule alone.
+   *
+   * @throws {AmbiguousSigningMarkError} when two flow slots on that party place
+   * the same field type.
    */
-  mark: (role: string, index?: number) => string | undefined;
+  mark: (role: string, index: number, type: SigningMarkType) => string | undefined;
 }
 
 const DocumentContext = createContext<DocumentContextValue | null>(null);
@@ -110,7 +103,7 @@ export function createDocumentContext(
     item: (path: string) => itemField(form, path),
     value,
     text: (path: string) => formatter.format(field(path), value(path), path),
-    mark: (role: string, index = 0) => marks[`${role}:${index}`],
+    mark: (role: string, index: number, type: SigningMarkType) => findSigningMark(marks, role, index, type),
     defText: (name: string) =>
       formatByType(form.defs?.[name]?.type, defs.get(name), formatter.serializers, formatter.blank, `defs.${name}`),
     party,

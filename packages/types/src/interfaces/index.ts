@@ -16,6 +16,8 @@ export type {
   ParadocRendererContext,
   ParadocRenderer,
   BaseRendererOptions,
+  SigningMarker,
+  SigningMarkerRequest,
 } from "./renderer";
 
 export type { Resolver } from "./resolver";

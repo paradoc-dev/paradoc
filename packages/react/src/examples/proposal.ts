@@ -6,21 +6,17 @@
  * the two signing parties. The React components read this artifact and never carry
  * their own copy of a label, a format, or a total.
  *
- * It declares two layers, neither of which describes layout. The `composition`
- * layer is the document: a file layer of MIME type `text/tsx` naming the module
- * that holds the React tree. Nothing reads that file; `render` selecting the
- * layer dispatches to the renderer registered for `text/tsx`, which binds the
- * module and produces the PDF.
+ * It declares one layer, and that layer describes no layout. `composition` is
+ * the document: a file layer of MIME type `text/tsx` naming the module that
+ * holds the React tree. Nothing reads that file; `render` selecting the layer
+ * dispatches to the renderer registered for `text/tsx`, which binds the module
+ * and produces the PDF. The React tree is the only description of the document,
+ * which is the specification's central invariant.
  *
- * The `signing` layer is what the seal flow needs and the composition layer
- * cannot yet give it. `prepareSeal` and `seal` will only place signature slots
- * that a layer declares, and flow placement needs a text layer core can render
- * markers into, so the artifact carries the smallest layer that satisfies that:
- * two slot declarations and one line per slot whose whole content is the
- * signature placeholder core produces. It stays the default layer so the seal
- * path is unchanged. `src/examples/seal.tsx` reads the placeholders out of it
- * and puts them in the tree's signature blocks. The React tree remains the only
- * description of the document, which is the specification's central invariant.
+ * The same layer is the seal target. It declares a flow-placed signature slot
+ * per party, and the renderer registered for it draws the marker for each slot
+ * where the `Signature` block for that party sits. Nothing else describes where
+ * a signature goes.
  *
  * One limitation shapes the design. The expression language indexes lists and
  * reads their length, but it has no aggregate over a list, so a subtotal cannot be
@@ -32,10 +28,7 @@
 import { para } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
-/** The layer the seal flow targets. The document itself is the React tree. */
-export const PROPOSAL_SIGNING_LAYER = "signing";
-
-/** The layer that names the composition. */
+/** The layer that names the composition, and the layer the seal targets. */
 export const PROPOSAL_REACT_LAYER = "composition";
 
 /**
@@ -50,9 +43,9 @@ export const PROPOSAL_REACT_LAYER = "composition";
 export const PROPOSAL_REACT_LAYER_PATH = "proposal-document.tsx";
 
 /**
- * The artifact's signature slots, by the party role each one binds to. The seal
- * adapter maps a slot's rendered placeholder onto the `Signature` block for the
- * same role, so this map is the one place the two are tied together.
+ * The artifact's signature slots, by the party role each one binds to. A slot
+ * names its role, so the seal puts each marker on the `Signature` block for that
+ * role without anything mapping the two.
  */
 export const PROPOSAL_SIGNATURE_SLOTS = {
   provider: "provider-signature",
@@ -284,7 +277,7 @@ export const proposalSpec = {
       },
     },
   },
-  defaultLayer: PROPOSAL_SIGNING_LAYER,
+  defaultLayer: PROPOSAL_REACT_LAYER,
   layers: {
     [PROPOSAL_REACT_LAYER]: {
       kind: "file",
@@ -292,18 +285,7 @@ export const proposalSpec = {
       path: PROPOSAL_REACT_LAYER_PATH,
       title: "Composition",
       description:
-        "The React composition this document is. The path is a pointer: nothing reads the file, and the renderer registered for text/tsx binds the module.",
-    },
-    [PROPOSAL_SIGNING_LAYER]: {
-      kind: "inline",
-      mimeType: "text/plain",
-      title: "Signing slots",
-      description:
-        "Slot declarations for the seal flow. One line per slot: the slot id, a tab, and the placeholder core renders for it. No layout, no document text.",
-      text: [
-        `${PROPOSAL_SIGNATURE_SLOTS.provider}\t{{#with parties.provider}}{{signature "${PROPOSAL_SIGNATURE_SLOTS.provider}"}}{{/with}}`,
-        `${PROPOSAL_SIGNATURE_SLOTS.customer}\t{{#with parties.customer}}{{signature "${PROPOSAL_SIGNATURE_SLOTS.customer}"}}{{/with}}`,
-      ].join("\n"),
+        "The React composition this document is. The path is a pointer: nothing reads the file, and the renderer registered for text/tsx binds the module and seals it.",
       signatures: {
         [PROPOSAL_SIGNATURE_SLOTS.provider]: {
           party: { role: "provider" },

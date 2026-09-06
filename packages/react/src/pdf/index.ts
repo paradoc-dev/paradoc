@@ -3,9 +3,9 @@
  * into PDF bytes and seals it.
  *
  * Everything here is re-exported from a module beside it. `render.ts` holds the
- * one render call, `adapters/` the engines behind it, `signing-marks.ts` the
- * seam a composition seals through, and the rest is the vocabulary those are
- * checked against.
+ * one render call, `adapters/` the engines behind it, `layer.ts` the renderer
+ * core dispatches to and seals through, and the rest is the vocabulary those
+ * are checked against.
  *
  * The sample document's own seal wiring is not here. It is
  * `@paradoc/react/examples/pdf`, because it is sample material.
@@ -26,6 +26,12 @@ export {
 export { takumiAdapter } from "./adapters/takumi";
 export { withDrawnPaper, withTokenOverride } from "./token-override";
 export {
+  SigningMarkerProvider,
+  useSigningMarks,
+  type SigningMarkerProviderProps,
+} from "../components/signing-context";
+export {
+  MissingSigningMarkerError,
   reactLayerRenderers,
   reactRenderer,
   UnboundReactLayerError,
@@ -49,7 +55,6 @@ export {
   type PreparedTree,
 } from "./tree";
 export { PDF_RESET_STYLESHEET } from "./reset";
-export { MissingSigningMarkError, parseSigningMarks } from "./signing-marks";
 export {
   INITIAL_VALUE_CLASSES,
   isSupportedClass,

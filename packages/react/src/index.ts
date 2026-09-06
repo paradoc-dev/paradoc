@@ -17,8 +17,15 @@ export {
   useDocument,
   type DocumentContextValue,
   type DocumentData,
-  type SigningMarks,
 } from "./components/document-context";
+// The provider and the hook that feeds it are the seal's, and the seal is Node:
+// they are exported from `@paradoc/react/pdf`. What a browser build needs is the
+// vocabulary a document context is described in.
+export {
+  AmbiguousSigningMarkError,
+  type SigningMarks,
+  type SigningMarkType,
+} from "./components/signing-context";
 export { Field, type FieldProps } from "./components/field";
 export { usePagePlan } from "./components/page-context";
 export { Page, Pages, type PageProps, type PagesProps } from "./components/pages";
@@ -51,7 +58,13 @@ export {
   MultipleDocumentRootsError,
 } from "./lib/document-tokens";
 export { Section, type SectionProps } from "./components/section";
-export { DATE_RULE, Signature, SIGNATURE_RULE, type SignatureProps } from "./components/signature";
+export {
+  DATE_RULE,
+  INITIALS_RULE,
+  Signature,
+  SIGNATURE_RULE,
+  type SignatureProps,
+} from "./components/signature";
 export { Table, type TableColumn, type TableProps } from "./components/table";
 export { Totals, type TotalRow, type TotalsProps } from "./components/totals";
 

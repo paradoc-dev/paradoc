@@ -13,7 +13,7 @@ import { KeepTogether } from "../components/keep-together";
 import { Bundle } from "../components/bundle";
 import { Document } from "../components/document";
 import type { FormatOptions } from "../lib/format";
-import type { DocumentData, SigningMarks } from "../components/document-context";
+import type { DocumentData } from "../components/document-context";
 import { Field } from "../components/field";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
@@ -65,8 +65,6 @@ export interface ProposalDocumentProps {
    * path supplies bytes under; a browser caller passes a URL it can fetch.
    */
   logoSrc?: string;
-  /** Signing placeholders for a seal pass. See `src/examples/seal.tsx`. */
-  marks?: SigningMarks;
   /** How values the serializer registry does not cover are formatted, and which registry (US or EU) covers the rest. */
   format?: FormatOptions;
   /** Tenant branding. See `src/examples/tokens.ts` for the sample's second set. */
@@ -84,13 +82,12 @@ export function ProposalDocument({
   data,
   artifact = proposalForm,
   logoSrc = PROPOSAL_LOGO_SRC,
-  marks,
   format,
   tokens,
 }: ProposalDocumentProps) {
   return (
     <Bundle id="proposal-bundle" tokens={tokens}>
-      <Document artifact={artifact} data={data} marks={marks} format={format} id="proposal">
+      <Document artifact={artifact} data={data} format={format} id="proposal">
         <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
           <div className="flex basis-1/2 flex-row gap-3">
             <ProposalMark fallbackSrc={logoSrc} />

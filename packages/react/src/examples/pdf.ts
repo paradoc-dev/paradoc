@@ -3,16 +3,17 @@
  *
  * **Sample material, not a stable API**, for the reason `./examples` gives. It
  * is here rather than beside the document because it reads files and drives the
- * seal, and `./examples` has to load in a browser.
+ * seal through the Node-only renderer, and `./examples` has to load in a
+ * browser.
  */
 
 export { proposalLogoImage } from "./logo-image";
 export {
   fillProposalForSeal,
   MissingSignerError,
-  proposalSealAdapter,
+  proposalRenderers,
   sealProposal,
   type ProposalPartyRole,
-  type ProposalSealAdapterOptions,
+  type ProposalRenderersOptions,
   type SealProposalOptions,
 } from "./seal";

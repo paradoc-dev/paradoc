@@ -13,7 +13,7 @@ Five entries, because they need different things of the machine they run on:
 | Entry                         | Runs   | Holds                                                              |
 | ----------------------------- | ------ | ------------------------------------------------------------------ |
 | `@paradoc/react`              | Either | The components, the document context, the plan, the preview.       |
-| `@paradoc/react/pdf`          | Node   | `renderPdf`, the adapter seam, the default engine, the seal seam.  |
+| `@paradoc/react/pdf`          | Node   | `renderPdf`, the adapter seam, the default engine, the layer renderer. |
 | `@paradoc/react/chromium`     | Node   | The experimental Chromium adapter.                                 |
 | `@paradoc/react/examples`     | Either | Sample material: one artifact, two data sets, two token sets, one composition. |
 | `@paradoc/react/examples/pdf` | Node   | That sample's logo bytes and seal wiring.                          |
@@ -130,7 +130,7 @@ format, or a total.
 | `Field`     | Names a path, renders the value through the artifact's serializers.     |
 | `Table`     | Renders a list field as rows.                                           |
 | `Totals`    | Renders the artifact's computed defs.                                   |
-| `Signature` | Names a party and renders its signing block.                            |
+| `Signature` | One signing block: a party, a field type, and the seal's marker.   |
 | `Paper`     | Shows the document at paper width, scaled to fit its container.         |
 
 `Bundle` and `Document` also take `tokens`, which is where a tenant's branding
@@ -374,35 +374,40 @@ The composition receives `{ artifact, data }`, so a component written for the
 direct call renders unchanged through the layer.
 `tests/react-layer.test.tsx` hashes both and asserts they are the same bytes.
 
-## The sample's two layers, and neither describes layout
+## The sample's one layer, and it describes no layout
 
 The React tree is the only description of this document's layout, which is the
 specification's central invariant. A markdown or PDF layer beside it would be a
-second one.
+second one, so there is no layer beside it.
 
-`composition` is the React layer above: MIME type `text/tsx`, the path
-`proposal-document.tsx` beside the artifact file, no text, no bindings, no
-slots.
+`composition` is the React layer: MIME type `text/tsx`, the path
+`proposal-document.tsx` beside the artifact file, no text and no bindings. It is
+also the seal target and the default layer. It declares a flow-placed signature
+slot per party, and a slot names only the party role it binds to:
 
-`signing` is what the seal flow needs and the composition layer cannot yet give
-it. The seal will not place a signature slot that no layer declares, and flow
-placement needs a text layer core can render its marker into, so `proposal.ts`
-carries the smallest layer that satisfies both: two slot declarations, and one
-line per slot whose whole content is the slot id, a tab, and the placeholder
-core renders for it.
-
-```
-provider-signature	{{#with parties.provider}}{{signature "provider-signature"}}{{/with}}
-customer-signature	{{#with parties.customer}}{{signature "customer-signature"}}{{/with}}
+```ts
+signatures: {
+  "provider-signature": { party: { role: "provider" }, type: "signature", placement: "flow" },
+  "customer-signature": { party: { role: "customer" }, type: "signature", placement: "flow" },
+}
 ```
 
-Nothing the document shows appears there: no title, no field, no heading, no
-total. `tests/proposal-artifact.test.ts` asserts the shape line by line, so a
-line of document text cannot be added to it without failing a test. `src/examples/seal.tsx`
-reads the placeholders back and puts each one in the tree's own signature block.
+Where those signatures land is the composition's business. The seal hands the
+layer's renderer one marker per slot, keyed by slot id, and each `Signature`
+block finds its own by naming the party and the field type it draws, then writes
+it in front of its rule. Nothing describes a position twice.
 
-`defaultLayer` names `signing`. It is the layer the seal targets, and with a
-second layer in the artifact the first key is no longer the one the seal needs.
+A block draws one slot, so a party that signs and initials is two blocks:
+
+```tsx
+<Signature party="tenant" />
+<Signature party="tenant" type="initials" />
+```
+
+A party may carry one flow slot per field type. Two of a type on one party is an
+authoring error, and the lookup fails with `AmbiguousSigningMarkError` naming
+both rather than guessing which block is which.
+`tests/seal-two-slots.test.tsx` seals that shape end to end.
 
 ## A path that does not resolve is a fault
 
@@ -420,12 +425,12 @@ measurements behind it, is in `_docs/architecture/react-document-composition-spi
 - **No list aggregate in the expression language.** `defs` can index a list and read its length, but there is no `sum`, `map` or `reduce`, so a subtotal cannot be written as an expression. The example artifact materializes one into a hidden field instead.
 - **No serializer for booleans or enums.** `isSerializableFieldType` now covers every scalar and composite primitive that has one meaning across an artifact — money, address, phone, person, organization, party, coordinate, bbox, duration, identification, attachment, signature, date, datetime, time, number, and percentage. Booleans, enums, and multiselects have no registry entry, because their display depends on the field definition itself (an enum's label, a multiselect's join), not on the value alone, so `createValueFormatter` still formats those three from the field definition directly. There is also no published `(artifact, path, value) => string` helper, and `getFieldType` does not descend into `list.item`, so `resolveField` walks the schema itself.
 - **The phone serializer does not localize.** It returns the E.164 string verbatim.
-- **Flow placement needs braille coverage in the renderer's fonts, and says so nowhere.** A renderer whose fonts do not cover core's four marker codepoints loses the marker in silence, and the failure surfaces as `locate` reporting every slot "not found". The seal path embeds a braille face for the marker pass.
+- **Flow placement needs braille coverage in the renderer's fonts, and core says so nowhere.** A renderer whose fonts do not cover core's four marker codepoints loses the marker in silence, and core's own failure is `locate` reporting every slot "not found". The React renderer embeds a braille face on any pass that carries a marker and verifies the marker reached the PDF, so the failure names the slot and the cause; nothing makes core say it.
 - **A flow slot is sized off an underscore run**, so a signature rule drawn as a border gives the field nothing to measure. `Signature` draws core's own placeholder.
-- **Core does not export that placeholder.** `SIGNATURE_RULE` is a third copy of a private constant; a test catches core changing it, but nothing prevents it.
+- **Core does not export that placeholder.** `SIGNATURE_RULE` is a second copy of a private constant; a test catches core changing it, but nothing prevents it.
 - **`Signer.person` is always a `Person`**, so an organization party cannot sign. A composition has to name a contact person.
 - **A form payload and the components' data do not line up.** `DocumentData` holds `Record<string, unknown>` because a component is given a path as a string; `fill` takes a payload core infers from the artifact. Nothing published bridges the two.
-- **One key per role**, so a multi-party role would seal only its first party. A role admitting several parties needs a slot and a key per index.
+- **`Signature` takes an index but the sample declares one party per role.** A marker names its party's role and index, so a role admitting several parties works as soon as the artifact declares a slot per index; the sample has none to exercise it.
 
 **In the default engine.**
 
@@ -815,13 +820,13 @@ the preview that still shows it.
 
 ## The seal
 
-The generated PDF seals through the existing core seal flow, and the signature
-map resolves a box for both parties. `@paradoc/core` runs the whole flow: it
-binds signers, renders the layer twice, locates the markers, checks for drift
-between the two passes, flattens and hashes the canonical document. This
-package supplies one thing core does not have, a converter from the layer to a
-PDF, and
-builds that PDF from the same tree the preview renders.
+The composition seals through the core seal flow with no auxiliary layer and no
+converter, and the signature map resolves a box for both parties.
+`@paradoc/core` runs the whole flow: it binds signers, renders the layer twice
+through the renderer registered for `text/tsx`, locates the markers, checks for
+drift between the two passes, flattens and hashes the canonical document. The
+renderer is the same one an ordinary `render` uses, so the sealed document comes
+off the same tree the preview draws.
 
 ```ts
 import { overflowProposalData } from "@paradoc/react/examples";
@@ -835,11 +840,33 @@ const sealed = await sealProposal({
 // sealed.canonicalPdfHash: sha256 of the flattened document
 ```
 
+`sealProposal` is one line around `seal({ renderers })`:
+
+```ts
+fillProposalForSeal(data).seal({ renderers: proposalRenderers({ images }) });
+```
+
+**Where the marker comes from.** Core places a flow slot by writing eight
+invisible codepoints in front of the slot's placeholder and finding them again in
+the PDF. It writes them into the text for a layer it renders itself. It cannot
+write into a composition, so it hands them to the layer's renderer as
+`ctx.signing` — each one naming the slot, its party role and index, and the
+marker string — and `@paradoc/react/pdf` puts them in the signing context. The
+`Signature` block for that party and field type writes its marker immediately
+before its rule, in the same text run, which is what the locator measures. Every
+other render carries no markers and the block draws its rule alone.
+
+Core says something too. When a marker pass produces a PDF carrying no marker
+codepoint at all, core appends the glyph-coverage sentence to its own
+`LocateError`, so a renderer that does not read its output back still fails
+naming the cause.
+
 Measured on the overflow set: both fields land on page 4, the acceptance page,
 at the same height, 77 by 26 points, the provider at x 36 and the customer at
-x 321. `tests/seal.test.tsx` pins those numbers, so this paragraph checks itself
-rather than recording one run. The short set seals both onto its one page. Two
-seals of the same data give the same hash and the same map.
+x 321. The short set seals both onto its one page, at x 36 and x 321 again and y
+700. `tests/seal.test.tsx` pins both sets, so this paragraph checks itself rather
+than recording one run. Two seals of the same data give the same hash and the
+same map.
 
 **Who signs.** Core binds a signer to a `Person`, never an organization, and
 both of the proposal's parties are organizations. The artifact names a contact
@@ -849,26 +876,26 @@ signature block on the page names the party through the artifact's own party
 serializer, as it always did.
 
 **The sealed document is the document.** Core's flow path renders the layer
-twice: once with an invisible marker before each placeholder, once clean. The
-clean pass hands the adapter core's bare placeholder, which is exactly what the
-signature block draws on its own, so the canonical PDF carries the same text as
-a plain `renderPdf` of the same tree. `tests/seal.test.tsx` asserts it page by
-page.
+twice: once with the markers, once clean. The clean pass carries none, so the
+renderer runs exactly as an ordinary render runs and the canonical PDF is byte
+for byte a plain `renderPdf` of the same tree. `tests/seal.test.tsx` asserts the
+text page by page, asserts the two byte streams are equal, and asserts no marker
+survives into the canonical document.
 
 **Flow placement imposes a font requirement nothing documents.** Core's marker is
 eight braille codepoints. The encoding is base 4, so the eight are drawn from
 four values: U+2800, U+2801, U+2802 and U+2804. The engine writes U+0000 for a
 codepoint no embedded font covers, and Inter covers no braille, so with the
 document face alone the marker reaches the PDF as eight nulls and
-`locate` throws `Could not resolve 2 of 2 placements: provider-signature (not
-found), customer-signature (not found)` with nothing naming the cause. The seal
-path passes `renderPdf({ signingMarkers: true })`, which embeds the braille
-subset of Noto Sans Symbols 2 as a coverage subset of the document family. The
-document still names one font and its typography does not change.
+core's own `locate` would throw `Could not resolve 2 of 2 placements:
+provider-signature (not found), customer-signature (not found)` with nothing
+naming the cause. The renderer embeds the braille subset of Noto Sans Symbols 2,
+as a coverage subset of the document family, on any pass that carries a marker.
+The document still names one font and its typography does not change.
 `tests/seal-marker-font.test.tsx` holds the evidence and holds it alone: an
-unmarked render writing nulls, a whole seal through an unmarked converter
-failing with `LocateError` naming both slots and nothing about a font, and then
-the same seal resolving once the face is embedded. It stands alone because the
+unmarked render writing nulls, a whole seal rendered with the face turned off
+failing with `MissingSigningMarkerError` naming both slots and the coverage, and
+then the same seal resolving once the face is embedded. It stands alone because the
 engine's font registry is global to the process, so once any render embeds the
 marker face every later render in that process can reach it. The package's
 vitest config states `isolate: true` for that reason.
@@ -879,12 +906,11 @@ nothing to measure. `Signature` draws core's own placeholder — sixteen
 underscores, exported as `SIGNATURE_RULE` — which is also why the clean pass and
 the plain render agree.
 
-**What the React layer still owes.** The layer is the seam's cost: the
-artifact carries two lines that exist only so core has somewhere to put a
-marker, and the adapter parses them back out. A component model that graduates
-should be able to declare its slots on the composition itself and hand core the
-positions directly, or core should accept a renderer that injects markers into a
-non-text layer. Both are framework changes, and both are ahead of this package.
+**A marker the PDF did not receive fails at the render.** The renderer reads back
+the PDF it just wrote and checks every marker arrived. Without that the loss is
+silent and the seal fails two steps later as `locate` reporting each slot "not
+found", with nothing naming a font. `MissingSigningMarkerError` names the slots
+and says the likeliest cause is glyph coverage.
 
 ## Measured parity
 

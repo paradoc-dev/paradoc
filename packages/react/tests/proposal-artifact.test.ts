@@ -6,7 +6,6 @@ import {
   PROPOSAL_REACT_LAYER,
   PROPOSAL_REACT_LAYER_PATH,
   PROPOSAL_SIGNATURE_SLOTS,
-  PROPOSAL_SIGNING_LAYER,
   overflowProposalData,
   shortProposalData,
 } from "../src/examples";
@@ -22,46 +21,32 @@ describe("the proposal artifact", () => {
   it("names its composition in a React layer that carries no content", () => {
     // The React tree is the only layout description, which is the
     // specification's central invariant. The layer that declares it is a
-    // pointer to the module and nothing more: no text, no bindings, no slots.
+    // pointer to the module and nothing more: no text and no bindings.
     const layer = proposalForm.layers?.[PROPOSAL_REACT_LAYER];
     if (!layer || layer.kind !== "file") throw new Error("the composition layer is not a file layer");
     expect(layer.mimeType).toBe("text/tsx");
     expect(layer.path).toBe(PROPOSAL_REACT_LAYER_PATH);
-    expect(layer.signatures).toBeUndefined();
     expect(layer.bindings).toBeUndefined();
+    expect(layer).not.toHaveProperty("text");
   });
 
-  it("declares two layers, and neither describes layout", () => {
-    // The seal flow will not place a slot a layer does not declare, so beside
-    // the composition the artifact carries the smallest layer that satisfies
-    // it: two slot declarations, and one line per slot whose whole content is
-    // the placeholder core renders. Nothing the document shows — no title, no
-    // field, no heading, no total — appears here.
-    expect(Object.keys(proposalForm.layers ?? {})).toEqual([
-      PROPOSAL_REACT_LAYER,
-      PROPOSAL_SIGNING_LAYER,
-    ]);
-    // The seal target is named rather than inferred: with a second layer, the
-    // first key is no longer the one the seal flow needs.
-    expect(proposalForm.defaultLayer).toBe(PROPOSAL_SIGNING_LAYER);
+  it("declares one layer, and that layer is the seal target too", () => {
+    // The composition is the whole artifact's rendering surface. There is no
+    // auxiliary layer holding signature placeholders: the slots sit on the
+    // composition and the renderer draws their markers.
+    expect(Object.keys(proposalForm.layers ?? {})).toEqual([PROPOSAL_REACT_LAYER]);
+    expect(proposalForm.defaultLayer).toBe(PROPOSAL_REACT_LAYER);
 
-    const layer = proposalForm.layers?.[PROPOSAL_SIGNING_LAYER];
-    if (!layer || layer.kind !== "inline") throw new Error("the signing layer is not inline");
-    expect(layer.mimeType).toBe("text/plain");
-    expect(Object.keys(layer.signatures ?? {})).toEqual(Object.values(PROPOSAL_SIGNATURE_SLOTS));
-    for (const slot of Object.values(layer.signatures ?? {})) {
+    const layer = proposalForm.layers?.[PROPOSAL_REACT_LAYER];
+    expect(Object.keys(layer?.signatures ?? {})).toEqual(Object.values(PROPOSAL_SIGNATURE_SLOTS));
+    for (const slot of Object.values(layer?.signatures ?? {})) {
       expect(slot.placement).toBe("flow");
       expect(slot.type).toBe("signature");
     }
-
-    const lines = layer.text.split("\n");
-    expect(lines).toHaveLength(Object.keys(PROPOSAL_SIGNATURE_SLOTS).length);
-    for (const line of lines) {
-      // A slot id, a tab, and one signature helper. Nothing else.
-      expect(line).toMatch(
-        /^[a-z-]+\t\{\{#with parties\.[a-z]+\}\}\{\{signature "[a-z-]+"\}\}\{\{\/with\}\}$/
-      );
-    }
+    // Each slot names the party it binds to, which is the whole binding: the
+    // seal puts the marker on the Signature block for that role.
+    expect(layer?.signatures?.[PROPOSAL_SIGNATURE_SLOTS.provider]?.party).toEqual({ role: "provider" });
+    expect(layer?.signatures?.[PROPOSAL_SIGNATURE_SLOTS.customer]?.party).toEqual({ role: "customer" });
   });
 
   it("accepts both sample data sets, so DocumentData is the payload core expects", () => {

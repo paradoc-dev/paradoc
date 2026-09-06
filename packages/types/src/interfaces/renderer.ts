@@ -83,6 +83,51 @@ export interface RenderRequest<Input extends RendererLayer = RendererLayer> {
 }
 
 /**
+ * One flow-placed signature slot the seal asks a renderer to mark.
+ *
+ * Flow placement works by writing an invisible marker in front of the slot's
+ * placeholder and finding it again in the PDF. For a layer core renders itself
+ * that injection is core's own, through the text renderer's placeholder hooks.
+ * A layer core does not render — a React composition — is drawn by its
+ * renderer, so the marker has to travel to it: this is what travels.
+ *
+ * The party is named rather than the signer, because the renderer places the
+ * marker where the document draws that party's signature block.
+ */
+export interface SigningMarker {
+  /** Slot id, exactly as the layer's `signatures` map keys it. */
+  slot: string;
+  /** Party role the slot binds to. */
+  role: string;
+  /** 0-based index of the party within the role. */
+  index: number;
+  /** Kind of signing field. Flow placement supports these two. */
+  type: "signature" | "initials";
+  /**
+   * The invisible marker itself: eight braille codepoints encoding the signer
+   * index and the field type. Write it immediately before the slot's visible
+   * placeholder, in the same text run, or the locator cannot size the field.
+   *
+   * A renderer must embed a face that covers the codepoints. Without one an
+   * engine writes U+0000 for each and the marker is lost with nothing saying so.
+   */
+  marker: string;
+}
+
+/**
+ * The marker pass of a seal, as a renderer sees it.
+ *
+ * Present on the pass that carries markers and absent on every other render,
+ * including the seal's own clean pass. A renderer that ignores it renders an
+ * ordinary document, and the seal then fails on placement rather than sealing
+ * a document with misplaced fields.
+ */
+export interface SigningMarkerRequest {
+  /** Every flow slot on the layer being sealed, in slot declaration order. */
+  markers: readonly SigningMarker[];
+}
+
+/**
  * Context passed to renderers. Kept intentionally loose/optional so you can
  * grow it over time (logger, locale, flags, etc.) without breaking plugins.
  */
@@ -99,6 +144,11 @@ export interface ParadocRendererContext {
    * If not provided, renderers use their default formatters.
    */
   serializers?: SerializerRegistry;
+  /**
+   * Set by the seal on the render pass that must carry flow markers, and only
+   * then. See {@link SigningMarkerRequest}.
+   */
+  signing?: SigningMarkerRequest;
   // Room for future options:
   // e.g. dryRun?: boolean;
   //      timezone?: string;

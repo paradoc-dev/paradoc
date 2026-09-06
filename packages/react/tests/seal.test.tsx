@@ -4,20 +4,29 @@
  * The criterion the specification sets is a signature map with a location for
  * every party, so these assertions read the map core returned and check the
  * boxes land on a real page of the document the seal produced. Nothing here
- * reaches inside the seal: `@paradoc/core` runs it, and this package supplies only
- * the converter.
+ * reaches inside the seal: `@paradoc/core` runs it, and this package supplies
+ * only the renderer its React layer is registered under. There is no auxiliary
+ * layer and no converter; the composition is the seal target.
  */
 
+import { containsEncoding } from "@paradoc/render/pdf";
 import type { SigningField } from "@paradoc/types";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   ProposalDocument,
   overflowProposalData,
+  proposalForm,
   shortProposalData,
+  PROPOSAL_REACT_LAYER,
   PROPOSAL_SIGNATURE_SLOTS,
 } from "../src/examples";
-import { MissingSigningMarkError, parseSigningMarks, renderPdf, type PdfImage } from "../src/pdf";
-import { proposalLogoImage, sealProposal } from "../src/examples/pdf";
+import { renderPdf, type PdfImage } from "../src/pdf";
+import {
+  fillProposalForSeal,
+  proposalLogoImage,
+  proposalRenderers,
+  sealProposal,
+} from "../src/examples/pdf";
 import { SIGNATURE_RULE } from "../src/components/signature";
 import { readPdf, type ReadPage } from "./pdf-reader";
 
@@ -105,10 +114,22 @@ describe("the seal flow places both parties", () => {
     expect(again.signatureMap).toEqual(sealed.signatureMap);
   }, 120_000);
 
-  it("seals the short set on its one page", async () => {
+  it("seals the short set onto its one page, at boxes of its own", async () => {
+    // Pinned the way the overflow set's are: the short document is one page, so
+    // both blocks sit on page 1 and the row is lower down it.
     const one = await sealProposal({ data: shortProposalData, images: [logo] });
     expect(one.signatureMap).toHaveLength(2);
-    for (const field of one.signatureMap!) expect(field.page).toBe(1);
+    const box = (field: SigningField) => ({
+      page: field.page,
+      x: Math.round(field.x),
+      y: Math.round(field.y),
+      width: field.width,
+      height: field.height,
+    });
+    const [provider, customer] = one.signatureMap!;
+    expect(box(provider!)).toEqual({ page: 1, x: 36, y: 700, width: 77, height: 26 });
+    expect(box(customer!)).toEqual({ page: 1, x: 321, y: 700, width: 77, height: 26 });
+    expect(customer!.y).toBeCloseTo(provider!.y, 1);
   }, 120_000);
 });
 
@@ -129,34 +150,33 @@ describe("the sealed document is the document", () => {
     expect(SIGNATURE_RULE).toBe("________________");
     expect(pages[3]!.text).toContain(SIGNATURE_RULE);
   });
+
+  it("leaves no marker in the canonical document", () => {
+    // The marker exists only on the pass core locates against. A canonical PDF
+    // carrying one would be a document with invisible text in it.
+    for (const page of pages) expect(containsEncoding(page.text)).toBe(false);
+  });
 });
 
-describe("reading the signing layer back", () => {
-  it("keys each placeholder by the party its slot binds to", () => {
-    const marks = parseSigningMarks(
-      `${PROPOSAL_SIGNATURE_SLOTS.provider}\t${SIGNATURE_RULE}\n` +
-        `${PROPOSAL_SIGNATURE_SLOTS.customer}\t${SIGNATURE_RULE}`,
-      PROPOSAL_SIGNATURE_SLOTS
+describe("the composition is the only description of the document", () => {
+  it("seals against the layer that names the composition, with no second layer", () => {
+    // The whole point of the ticket: the artifact declares one layer, the seal
+    // targets it, and the slots ride on it.
+    const layers = proposalForm.layers ?? {};
+    expect(Object.keys(layers)).toEqual([PROPOSAL_REACT_LAYER]);
+    expect(proposalForm.defaultLayer).toBe(PROPOSAL_REACT_LAYER);
+    expect(Object.keys(layers[PROPOSAL_REACT_LAYER]?.signatures ?? {})).toEqual(
+      Object.values(PROPOSAL_SIGNATURE_SLOTS)
     );
-    expect(marks).toEqual({ "provider:0": SIGNATURE_RULE, "customer:0": SIGNATURE_RULE });
   });
 
-  it("names every slot the render did not carry rather than sealing without it", () => {
-    expect.assertions(3);
-    expect(() =>
-      parseSigningMarks(
-        `${PROPOSAL_SIGNATURE_SLOTS.provider}\t${SIGNATURE_RULE}`,
-        PROPOSAL_SIGNATURE_SLOTS
-      )
-    ).toThrowError(MissingSigningMarkError);
-
-    try {
-      parseSigningMarks("", PROPOSAL_SIGNATURE_SLOTS);
-    } catch (error) {
-      expect(error).toBeInstanceOf(MissingSigningMarkError);
-      expect((error as MissingSigningMarkError).slots).toEqual(
-        Object.values(PROPOSAL_SIGNATURE_SLOTS)
-      );
-    }
-  });
+  it("renders the composition to PDF through the layer core selects", async () => {
+    // The same registry the seal uses, rendering with no seal in sight, is the
+    // plain document. The seal adds a marker pass and nothing else.
+    const bytes = await fillProposalForSeal(shortProposalData).render<Uint8Array>({
+      renderers: proposalRenderers({ images: [logo] }),
+    });
+    const plain = await renderPdf(<ProposalDocument data={shortProposalData} />, { images: [logo] });
+    expect(bytes).toEqual(plain.bytes);
+  }, 120_000);
 });
