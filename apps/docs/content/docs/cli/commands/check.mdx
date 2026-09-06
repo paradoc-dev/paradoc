@@ -56,20 +56,10 @@ if present; only when none exists does discovery fall back to a named
 still runs with empty data — every `Field`/`Table` path is checked against
 the artifact's schema regardless of whether data is present.
 
-The command exits non-zero when it finds any fault.
-
-# Current limitations
-
-Tracked under a follow-up ticket (`make-para-check-runnable-from-the-shipped-cli`)
-and will be removed from this page once it ships:
-
-- A composition using `Totals` over a def needs sample data to check
-  cleanly — with no data, the def's computed value fails to format and the
-  check throws instead of reporting it as a fault. Pass `--data` or ship a
-  sample file for any composition with a `Totals` block.
-- The published `para` binary has no TypeScript/JSX loader, so checking a
-  real `.tsx` composition today needs a TypeScript-aware Node, for example
-  `npx tsx $(which para) check ...`.
+The command exits non-zero when it finds any fault. A composition using
+`Totals` over a def checks cleanly with no sample data at all: a value with
+no data anywhere in it is not treated as a fault, only a value that carries
+real data a serializer still rejects is.
 
 # Examples
 

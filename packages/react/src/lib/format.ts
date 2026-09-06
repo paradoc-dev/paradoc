@@ -76,6 +76,40 @@ function isBlank(value: unknown): boolean {
 }
 
 /**
+ * True when `value` is a plain object — `{}` or `Object.create(null)`, not
+ * an instance of some other class. `isDeeplyBlank` only recurses into one of
+ * these: a `Date`, a `RegExp`, a `Map`, or any other class instance carries
+ * its state outside its own enumerable properties, so `Object.values` on one
+ * reports empty and would read as blank when it plainly is not — a `Date` is
+ * about as real a value as a value gets.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * True when `value` carries no data anywhere inside it: itself blank, or a
+ * plain object or array whose every leaf is. A def computed from fields the
+ * caller's sample data never set is exactly this shape — `{ amount: null,
+ * currency: null }` for a money def, say — not blank at the top level
+ * (`isBlank` says no), but not a real value either. Used only by a
+ * composition check to tell "there is no data yet" apart from "there is data
+ * and a serializer rejects it": the first is not a fault, the second is.
+ *
+ * A non-plain object (a `Date`, an `Attachment` instance, anything with its
+ * own class) is never blank, deeply or otherwise, however few enumerable
+ * properties it carries — see {@link isPlainObject}.
+ */
+export function isDeeplyBlank(value: unknown): boolean {
+  if (isBlank(value)) return true;
+  if (Array.isArray(value)) return value.every(isDeeplyBlank);
+  if (isPlainObject(value)) return Object.values(value).every(isDeeplyBlank);
+  return false;
+}
+
+/**
  * The registry's own rendering of a value, or `undefined` when it has no
  * serializer for the type. Throws the serializer's own error, uncaught, when
  * the type is serializable but the value fails that serializer's validation.

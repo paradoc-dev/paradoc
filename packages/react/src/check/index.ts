@@ -19,6 +19,20 @@
  * runs over the whole tree in one pass. Nothing outside this module ever
  * supplies a collector, so ordinary rendering is unchanged.
  *
+ * **A resolved path can still fail to format, and that is not always a
+ * fault.** A `Totals` def, or a `Field`, formats the value it resolves to,
+ * and a money/percentage/etc. serializer throws `InvalidFieldValueError` on
+ * a value it rejects — including `{ amount: null, currency: null }`, what a
+ * money def computes from fields the caller's sample data never set.
+ * `text`/`defText` catch that throw the same collector catches everything
+ * else with, and tell the two cases apart: a value with no data anywhere in
+ * it is exactly what "no sample data" looks like and is substituted with the
+ * blank placeholder unreported, so a composition with a `Totals` block still
+ * checks its schema with no sample data at all, exactly as the module doc
+ * above claims; a value that does carry data and is still rejected is a real
+ * problem and is reported into `unresolvedPaths` at the failing location
+ * (`defs.<name>` for a def, the field path for a `Field`).
+ *
  * **A component, or an already-built element.** `checkComposition` builds the
  * element itself from a component and `artifact`/`data`, which is what a layer
  * binds to. A caller that has already built the element — `para dev`, which
@@ -53,6 +67,7 @@ import type { Form } from "@paradoc/types";
 import { CheckModeProvider, type UnresolvedPathCollector } from "../components/check-context";
 import type { DocumentData } from "../components/document-context";
 import { UnknownFieldPathError } from "../lib/fields";
+import { InvalidFieldValueError, isDeeplyBlank } from "../lib/format";
 import type { ReactLayerComponent } from "../pdf/layer";
 import { preparePdfTree } from "../pdf/tree";
 import type { PdfAdapterName } from "../pdf/adapter";
@@ -95,9 +110,14 @@ export interface CompositionCheckResult {
   /** Classes outside the chosen adapter's verified vocabulary, in document order. */
   unsupportedClasses: string[];
   /**
-   * `Field`/`Table` paths the artifact does not declare, and any `Signature`
-   * party role it does not declare (reported as `party:<role>`), in the order
-   * the tree first names each one, each named once.
+   * `Field`/`Table` paths the artifact does not declare, any `Signature`
+   * party role it does not declare (reported as `party:<role>`), and any
+   * `Field` path or `Totals` def whose resolved value carries real data a
+   * serializer still rejects (a def reported as `defs.<name>`) — in the
+   * order the tree first names each one, each named once. A value with no
+   * data anywhere in it (a def computed from fields the sample never set,
+   * say) is not reported here: that is what running with no sample data
+   * looks like, not a fault.
    */
   unresolvedPaths: string[];
   /** Image `src` values that are not `data:` URIs, in document order. */
@@ -153,18 +173,23 @@ export async function checkElement(
 
   const wrapped: ReactNode = createElement(CheckModeProvider, { collector }, element);
 
-  // Check mode means every `Field`/`Table`/`Signature` fault the tree carries
-  // is collected above rather than thrown, so this should never reject with
-  // `UnknownFieldPathError`. The catch stays as a defensive fallback for a
-  // composition that resolves a path itself, outside the document context
-  // check mode instruments — reported the same way rather than escaping
-  // uncaught and losing whatever classes and images the walk found first.
+  // Check mode means every `Field`/`Table`/`Signature` fault the tree carries,
+  // and every value a `Totals` def or a `Field` formats, is collected above
+  // rather than thrown, so this should never reject with either error. The
+  // catch stays as a defensive fallback for a composition that resolves a
+  // path or formats a value itself, outside the document context check mode
+  // instruments — reported the same way rather than escaping uncaught and
+  // losing whatever classes and images the walk found first.
   let node: Awaited<ReturnType<typeof fromJsx>>["node"];
   try {
     ({ node } = await fromJsx(wrapped));
   } catch (error) {
     if (error instanceof UnknownFieldPathError) {
       collector.report(error.path);
+      return { unsupportedClasses: [], unresolvedPaths, missingImages: [] };
+    }
+    if (error instanceof InvalidFieldValueError) {
+      if (!isDeeplyBlank(error.value)) collector.report(error.location);
       return { unsupportedClasses: [], unresolvedPaths, missingImages: [] };
     }
     throw error;

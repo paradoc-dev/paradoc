@@ -8,7 +8,6 @@ metadata:
 # `para check` and `para add`
 
 **Contents:** [Checking a composition](#checking-a-composition) ·
-[Current limitations](#current-limitations) ·
 [Installing components](#installing-components) ·
 [The registry index](#the-registry-index)
 
@@ -76,25 +75,6 @@ export const sample: DocumentData = {
 };
 ```
 
-### Current limitations
-
-Both of these are tracked and will be deleted from this reference once
-`make-para-check-runnable-from-the-shipped-cli` ships:
-
-- **A composition that uses `Totals` over a def needs sample data to check
-  cleanly.** With no data, a def like `subtotal` evaluates to a value a
-  money/percentage serializer rejects, and `checkComposition` throws that
-  formatter error rather than reporting it as a fault — the check does not
-  finish. Give `--data` or ship a sample (see above) for any composition with
-  a `Totals` block, even a composition with no other faults to find.
-- **Running `para check` on a `.tsx` composition needs a TypeScript-aware
-  Node.** The shipped `para` binary has no TypeScript/JSX loader of its own,
-  so `para check` on a real composition today needs to run under one, for
-  example:
-  ```bash
-  npx tsx $(which para) check ./compositions/change-order.tsx
-  ```
-
 ## Installing components
 
 Components are shadcn registry items served at `docs.paradoc.dev`. Install
@@ -112,19 +92,15 @@ then runs the same install:
 para add field
 ```
 
-**`para add` takes one name per invocation today** — it does not accept
-several names in one call. Install more than one component with separate
-commands:
+Install more than one component in one call:
 
 ```bash
-para add field
-para add table
-para add signature
+para add field table signature
 ```
 
-A component that depends on another brings it along automatically within a
-single `para add`: installing `field` also installs `keep-together`, since
-`field` is built on it.
+A component that depends on another brings it along automatically:
+installing `field` also installs `keep-together`, since `field` is built on
+it.
 
 Files land under `components/paradoc/<name>.tsx` and are the project's own
 from that point — editing one is expected and safe, because the parts that

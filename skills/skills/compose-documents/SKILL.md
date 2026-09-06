@@ -156,9 +156,8 @@ import with no corresponding prop. `data` is a `DocumentData`:
 1. Read the artifact (or the form spec) to learn its fields, defs, parties,
    and the React layer's declared path. `reactLayersOf(artifact)` (from
    `@paradoc/core`) lists the layers that need a component bound.
-2. Install the components you need, one `para add` per name today —
-   `para add field`, then `para add table`, then `para add signature` (or
-   `npx shadcn@4 add @paradoc/<name>` per name). See
+2. Install the components you need: `para add field table signature` (or
+   `npx shadcn@4 add @paradoc/<name>`). See
    [cli.md](./references/cli.md#installing-components) — installing `field`
    also brings `keep-together` along, since `field` depends on it. If the
    components already exist in the project (e.g. `@paradoc/react` components

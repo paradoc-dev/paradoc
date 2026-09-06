@@ -323,3 +323,73 @@ describe('para registry', () => {
     expect(result.stdout).toContain('--json')
   })
 })
+
+describe('para add (variadic document components)', () => {
+  let project: string
+
+  beforeEach(async () => {
+    project = await fs.mkdtemp(join(tmpdir(), 'para-add-variadic-'))
+    await fs.writeFile(
+      join(project, 'components.json'),
+      `${JSON.stringify({ style: 'new-york' }, null, 2)}\n`,
+      'utf8',
+    )
+  })
+
+  afterEach(async () => {
+    await fs.rm(project, { recursive: true, force: true })
+  })
+
+  it('takes several component names, not just the first', async () => {
+    // Before the fix, `<artifact>` was a single positional argument, so
+    // `table` and `signature` were silently dropped and only `field`
+    // installed. `--dry-run` proves all three reached a shadcn command —
+    // one per name, so each gets a real, independent result rather than
+    // one exit code shared across all of them.
+    const result = await executeCliCommand(['add', 'field', 'table', 'signature', '--dry-run'], {
+      cwd: project,
+    })
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('npx shadcn@4 add @paradoc/field --yes')
+    expect(result.stdout).toContain('npx shadcn@4 add @paradoc/table --yes')
+    expect(result.stdout).toContain('npx shadcn@4 add @paradoc/signature --yes')
+  })
+
+  it('reports each name independently rather than one combined result', async () => {
+    // A directory with no `components.json` at all: `addComponents` fails
+    // deterministically and immediately for every name, before ever
+    // reaching npx or the network, so this proves two things without any
+    // flakiness — every requested name is actually attempted (not just the
+    // first, and not stopped after the first failure), and each gets its
+    // own reported outcome rather than one exit code standing in for both.
+    const bareProject = await fs.mkdtemp(join(tmpdir(), 'para-add-no-config-'))
+    try {
+      const result = await executeCliCommand(['add', 'field', 'table'], { cwd: bareProject })
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stdout).toContain('✗ field')
+      expect(result.stdout).toContain('✗ table')
+      // Both failures are independently diagnosed, not a single shared one.
+      const occurrences = result.stderr.split('No components.json found.').length - 1
+      expect(occurrences).toBe(2)
+    } finally {
+      await fs.rm(bareProject, { recursive: true, force: true })
+    }
+  }, 30000)
+
+  it('rejects mixing a component name with an artifact reference', async () => {
+    const result = await executeCliCommand(['add', 'field', '@acme/w9'], { cwd: project })
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('@acme/w9')
+    expect(result.stderr.toLowerCase()).toContain('component')
+  })
+
+  it('still installs a single named component exactly as before', async () => {
+    const result = await executeCliCommand(['add', 'field', '--dry-run'], { cwd: project })
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('npx shadcn@4 add @paradoc/field --yes')
+  })
+})

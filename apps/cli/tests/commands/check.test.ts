@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { spawn } from 'node:child_process'
 import { promises as fs } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { tmpdir } from 'node:os'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -198,4 +200,159 @@ describe('CLI check command', () => {
     expect(result.exitCode).toBe(1)
     expect(result.stderr).toContain('File not found')
   }, 30000)
+
+  it('checks cleanly when a Totals def has no sample data to format', async () => {
+    // `total` evaluates to `{ amount: null, currency: null }` with no data at
+    // all, which the money serializer rejects — but a value with no data
+    // anywhere in it is what running with no sample data looks like, not a
+    // fault, so this must pass rather than throw or report `defs.total`.
+    const result = await executeCliCommand([
+      'check',
+      path.join(fixturesDir, 'totals-no-data-artifact.json'),
+    ])
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('No unsupported classes, unresolved paths, or missing images')
+  }, 30000)
+
+  it('reports a Totals def whose real sample data a serializer rejects', async () => {
+    // `amount` carries an actual value here, just not one the money
+    // serializer accepts, so unlike the no-data case above this is a real
+    // fault and must be reported rather than swallowed as blank.
+    const result = await executeCliCommand([
+      'check',
+      path.join(fixturesDir, 'totals-bad-data-artifact.json'),
+    ])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stdout).toContain('Unresolved field paths')
+    expect(result.stdout).toContain('defs.total')
+  }, 30000)
+})
+
+describe('CLI check command (built binary)', () => {
+  const builtCliPath = path.resolve(__dirname, '../../dist/index.js')
+
+  // Fail loudly rather than skip silently: the package's own turbo.json
+  // makes `test` depend on `build`, so the built binary is expected to exist
+  // whenever this suite runs through the task graph. A missing dist here
+  // means that dependency broke, or the suite ran outside it (a bare
+  // `vitest run` with no prior build) — either way, a skipped test would
+  // hide exactly the regression this describe block exists to catch.
+  beforeAll(() => {
+    if (!existsSync(builtCliPath)) {
+      throw new Error(
+        `Built binary not found at ${builtCliPath}. Run 'pnpm build' first, or run this suite through ` +
+          "'pnpm turbo run test --filter=@paradoc/cli', which builds before testing."
+      )
+    }
+  })
+
+  async function executeBuiltCommand(args: string[], options?: { cwd?: string }): Promise<CliResult> {
+    return new Promise((resolve, reject) => {
+      const child = spawn('node', [builtCliPath, ...args], {
+        cwd: options?.cwd,
+        env: { ...process.env },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      child.stdout.setEncoding('utf8')
+      child.stderr.setEncoding('utf8')
+      let stdout = ''
+      let stderr = ''
+      const timer = setTimeout(() => {
+        child.kill()
+        reject(new Error('Command timed out'))
+      }, 30000)
+      child.stdout.on('data', (chunk: string) => {
+        stdout += chunk
+      })
+      child.stderr.on('data', (chunk: string) => {
+        stderr += chunk
+      })
+      child.on('close', (code) => {
+        clearTimeout(timer)
+        resolve({ stdout, stderr, exitCode: code ?? 0 })
+      })
+      child.on('error', (error) => {
+        clearTimeout(timer)
+        reject(error)
+      })
+    })
+  }
+
+  it(
+    'checks a .tsx composition from the built binary with no loader flags',
+    async () => {
+      const result = await executeBuiltCommand(['check', path.join(fixturesDir, 'clean-artifact.json')])
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('No unsupported classes, unresolved paths, or missing images')
+    },
+    30000
+  )
+
+  it(
+    'checks a Totals def with no sample data cleanly from the built binary',
+    async () => {
+      const result = await executeBuiltCommand(['check', path.join(fixturesDir, 'totals-no-data-artifact.json')])
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('No unsupported classes, unresolved paths, or missing images')
+    },
+    30000
+  )
+
+  it(
+    'ignores an unrelated tsconfig at cwd when the composition has none of its own',
+    async () => {
+      // The composition and its artifact are copied into an isolated
+      // directory with no tsconfig.json anywhere above it (unlike every
+      // fixture above, which lives under this package's own tsconfig
+      // declaring `jsx: "react-jsx"`). `cwd` for the process, though, is a
+      // *different* directory that does declare one with the same setting —
+      // the exact shape of the leak this guards against: a tsconfig that
+      // happens to govern wherever the shell is sitting, not the
+      // composition's own project. If `ensureTsLoader` ever fell back to
+      // `register()`'s own cwd-based discovery again, this misleading
+      // config would make the transform depend on the caller's cwd instead
+      // of the composition's location, and the two runs below would answer
+      // differently depending only on where the process happened to start.
+      const isolatedDir = await fs.mkdtemp(path.join(tmpdir(), 'para-check-no-tsconfig-'))
+      const misleadingCwd = await fs.mkdtemp(path.join(tmpdir(), 'para-check-misleading-cwd-'))
+      try {
+        await fs.copyFile(
+          path.join(fixturesDir, 'clean-artifact.json'),
+          path.join(isolatedDir, 'clean-artifact.json')
+        )
+        await fs.copyFile(
+          path.join(fixturesDir, 'clean-composition.tsx'),
+          path.join(isolatedDir, 'clean-composition.tsx')
+        )
+        await fs.writeFile(
+          path.join(misleadingCwd, 'tsconfig.json'),
+          JSON.stringify({ compilerOptions: { jsx: 'react-jsx' } }, null, 2)
+        )
+
+        const fromIsolatedCwd = await executeBuiltCommand(
+          ['check', path.join(isolatedDir, 'clean-artifact.json')],
+          { cwd: isolatedDir }
+        )
+        const fromMisleadingCwd = await executeBuiltCommand(
+          ['check', path.join(isolatedDir, 'clean-artifact.json')],
+          { cwd: misleadingCwd }
+        )
+
+        // Neither directory near the composition declares a tsconfig, so
+        // both runs must resolve `tsconfig: false` and answer identically
+        // regardless of which directory the process was started from — the
+        // misleading cwd's `react-jsx` setting must have no effect at all.
+        expect(fromMisleadingCwd.exitCode).toBe(fromIsolatedCwd.exitCode)
+        expect(fromMisleadingCwd.stdout).toBe(fromIsolatedCwd.stdout)
+      } finally {
+        await fs.rm(isolatedDir, { recursive: true, force: true })
+        await fs.rm(misleadingCwd, { recursive: true, force: true })
+      }
+    },
+    30000
+  )
 })

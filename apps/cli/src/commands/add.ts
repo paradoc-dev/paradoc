@@ -347,8 +347,8 @@ export function createAddCommand(): Command {
   const add = new Command('add')
 
   add
-    .argument('<artifact>', 'Artifact reference (@namespace/name), namespace (@namespace), direct URL (https://...), or document component name')
-    .description('Add an artifact from a registry, or a document component from the Paradoc component registry')
+    .argument('<targets...>', 'Artifact reference (@namespace/name), namespace (@namespace), direct URL (https://...), or one or more document component names')
+    .description('Add an artifact from a registry, or one or more document components from the Paradoc component registry')
     .option('--layers <layers>', 'Layers to download (comma-separated, or "all")')
     .option('--output <output>', 'Output format: json, yaml, typed (json + .d.ts), or ts (TypeScript module)')
     .option('--header <header...>', 'HTTP header for direct URL auth (format: "Name: Value")')
@@ -356,7 +356,7 @@ export function createAddCommand(): Command {
     .option('--no-cache', 'Skip cache and fetch fresh')
     .option('--registry <url>', `Component registry URL template for ${COMPONENT_NAMESPACE} (must contain {name})`)
     .option('--dry-run', 'For a component, print the install command instead of running it')
-    .action(async (artifact: string, options: AddOptions & { header?: string[]; cache?: boolean; registry?: string; dryRun?: boolean }) => {
+    .action(async (targets: string[], options: AddOptions & { header?: string[]; cache?: boolean; registry?: string; dryRun?: boolean }) => {
       const spinner = ora()
 
       try {
@@ -365,6 +365,48 @@ export function createAddCommand(): Command {
         // namespaced or a URL, so the two cannot be confused for one another.
         // A bare name that is not an item falls through and is rejected below,
         // naming both forms, rather than reaching the shadcn CLI to 404.
+        //
+        // `para add` is variadic so several components install in one call:
+        // more than one target requires every one of them to be a known
+        // component (mixing a component with an artifact reference, or
+        // naming more than one artifact, is not supported), and each target
+        // gets its own reported result even though the underlying shadcn
+        // install is one combined invocation.
+        if (targets.length > 1) {
+          const unknown = targets.filter((target) => !isComponentName(target))
+          if (unknown.length > 0) {
+            console.error(
+              kleur.red(
+                `Not a document component: ${unknown.join(', ')}. ` +
+                  'Several targets in one `para add` must all be component names ' +
+                  `(${COMPONENT_ITEMS.join(', ')}); an artifact reference is added one at a time.`,
+              ),
+            )
+            process.exit(1)
+          }
+
+          // One `addComponents` call per name, not one combined shadcn
+          // invocation for all of them: each name's result has to be real,
+          // and a single call sharing one exit code across several items
+          // cannot tell a failure in one from a failure in all. shadcn is
+          // fast enough per item that this costs nothing worth avoiding.
+          let exitCode = 0
+          for (const target of targets) {
+            const code = await addComponents([target], {
+              registry: options.registry,
+              dryRun: options.dryRun,
+            })
+            if (!options.dryRun) {
+              console.log(code === 0 ? kleur.green(`✓ Added ${target}`) : kleur.red(`✗ ${target}`))
+            }
+            if (code !== 0) exitCode = code
+          }
+          if (exitCode !== 0) process.exit(exitCode)
+          return
+        }
+
+        const artifact = targets[0]!
+
         if (isComponentName(artifact)) {
           const code = await addComponents([artifact], {
             registry: options.registry,

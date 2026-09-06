@@ -13,6 +13,7 @@ import { Document } from "../src/components/document";
 import { Field } from "../src/components/field";
 import { KeepTogether } from "../src/components/keep-together";
 import { Signature } from "../src/components/signature";
+import { Totals } from "../src/components/totals";
 import type { DocumentData } from "../src/components/document-context";
 import type { ReactLayerComponent } from "../src/pdf/layer";
 
@@ -44,6 +45,34 @@ const spec = {
 const fixtureForm: Form = para.form(spec).toJSON() as Form;
 
 const fixtureData: DocumentData = { fields: { name: "Ada Lovelace" }, parties: {} };
+
+const totalsSpec = {
+  $schema: "https://schema.paradoc.dev/schema.json",
+  kind: "form",
+  name: "check-totals-fixture",
+  version: "1.0.0",
+  title: "Check totals fixture",
+  fields: {
+    amount: { type: "number", label: "Amount", required: true, visible: true },
+    currency: { type: "text", label: "Currency", required: true, visible: true },
+  },
+  defs: {
+    total: {
+      type: "money",
+      label: "Total",
+      value: { amount: "fields.amount", currency: "fields.currency" },
+    },
+  },
+} as const;
+
+const totalsForm: Form = para.form(totalsSpec).toJSON() as Form;
+
+/** A composition whose only content is a `Totals` block over a money def. */
+const TotalsOverDef: ReactLayerComponent = ({ artifact, data }) => (
+  <Document artifact={artifact} data={data}>
+    <Totals rows={[{ def: "total" }]} />
+  </Document>
+);
 
 /** A composition with only classes from the verified vocabulary and a valid path. */
 const Clean: ReactLayerComponent = ({ artifact, data }) => (
@@ -174,6 +203,28 @@ describe("checkComposition", () => {
     expect(result.missingImages).toEqual(["https://example.com/logo.png"]);
     expect(result.unsupportedClasses).toEqual([]);
     expect(result.unresolvedPaths).toEqual([]);
+  });
+});
+
+describe("checking a Totals def with no data to format", () => {
+  it("passes with no sample data at all, even though the def has no value to format", async () => {
+    // `total` evaluates to `{ amount: null, currency: null }` with empty
+    // fields, which the money serializer rejects — but a value with no data
+    // anywhere in it is what running a check with no sample data looks
+    // like, not a fault, so this must report nothing.
+    const result = await checkComposition({ artifact: totalsForm, composition: TotalsOverDef });
+
+    expect(result).toEqual({ unsupportedClasses: [], unresolvedPaths: [], missingImages: [] });
+  });
+
+  it("reports the def when its resolved value carries real data a serializer still rejects", async () => {
+    const result = await checkComposition({
+      artifact: totalsForm,
+      composition: TotalsOverDef,
+      data: { fields: { amount: "not-a-number", currency: "USD" }, parties: {} },
+    });
+
+    expect(result.unresolvedPaths).toEqual(["defs.total"]);
   });
 });
 

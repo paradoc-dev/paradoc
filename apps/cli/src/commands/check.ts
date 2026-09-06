@@ -14,6 +14,7 @@ import { LocalFileSystem } from '../utils/local-fs.js'
 import { normalizeFormData, parseDataInput } from '../utils/data-input.js'
 import { findRepoRoot } from '../utils/project.js'
 import { rendererManager } from '../utils/renderer-manager.js'
+import { ensureTsLoader } from '../utils/ts-loader.js'
 
 type AdapterName = 'takumi' | 'chromium'
 
@@ -99,6 +100,7 @@ export function createCheckCommand(): Command {
         const resolved = await resolveCompositionLayer(resolvedTarget, options.layer)
         const compositionPath = resolve(resolved.artifactDir, resolved.layer.path)
 
+        await ensureTsLoader(dirname(compositionPath))
         const bind = await loadBindComponent()
         const composition = await bind(
           { type: 'react', mimeType: resolved.layer.mimeType, key: resolved.layer.key, path: resolved.layer.path },

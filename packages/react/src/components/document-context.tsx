@@ -11,7 +11,7 @@ import type { Form, FormField, Party, SerializerRegistry } from "@paradoc/types"
 
 import { itemField, readValue, resolveField, UnknownFieldPathError } from "../lib/fields";
 import { findSigningMark, type SigningMarks, type SigningMarkType } from "./signing-context";
-import { formatByType, type DocumentFormatter, type ValueFormatter } from "../lib/format";
+import { formatByType, InvalidFieldValueError, isDeeplyBlank, type DocumentFormatter, type ValueFormatter } from "../lib/format";
 import type { UnresolvedPathCollector } from "./check-context";
 
 /** The data one composed document renders. */
@@ -110,6 +110,37 @@ function resolveOrCollect(
 }
 
 /**
+ * Runs `attempt`, catching an `InvalidFieldValueError` in place of letting it
+ * throw. Outside check mode `attempt` runs unguarded, so a normal render
+ * still throws exactly as it always has.
+ *
+ * A value with no data anywhere in it — `{ amount: null, currency: null }`
+ * for a money def computed from fields the sample never set — is not a
+ * fault: a `Field`/`Table` path and a `Totals` def both resolve against the
+ * artifact with no data at all, and the schema check must not need any, so
+ * this reports nothing for it and returns `blank`. A value that does carry
+ * data and is still rejected is a real problem — a rate stored as a string,
+ * a stray field the artifact half-declares — and is reported to `collector`
+ * at the location the error names, same as an unresolved path.
+ */
+function formatOrCollect(
+  collector: UnresolvedPathCollector | undefined,
+  blank: string,
+  attempt: () => string
+): string {
+  if (!collector) return attempt();
+  try {
+    return attempt();
+  } catch (error) {
+    if (error instanceof InvalidFieldValueError) {
+      if (!isDeeplyBlank(error.value)) collector.report(error.location);
+      return blank;
+    }
+    throw error;
+  }
+}
+
+/**
  * Builds the context value from an artifact, its data, and its computed defs.
  *
  * `collector`, present only for a composition check, turns an unresolved
@@ -146,10 +177,13 @@ export function createDocumentContext(
     field,
     item: (path: string) => resolveOrCollect(collector, path, () => itemField(form, path)),
     value,
-    text: (path: string) => formatter.format(field(path), value(path), path),
+    text: (path: string) =>
+      formatOrCollect(collector, formatter.blank, () => formatter.format(field(path), value(path), path)),
     mark: (role: string, index: number, type: SigningMarkType) => findSigningMark(marks, role, index, type),
     defText: (name: string) =>
-      formatByType(form.defs?.[name]?.type, defs.get(name), formatter.serializers, formatter.blank, `defs.${name}`),
+      formatOrCollect(collector, formatter.blank, () =>
+        formatByType(form.defs?.[name]?.type, defs.get(name), formatter.serializers, formatter.blank, `defs.${name}`)
+      ),
     party,
   };
 }
