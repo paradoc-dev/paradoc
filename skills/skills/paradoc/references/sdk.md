@@ -235,11 +235,13 @@ const signable = draft.prepareForSigning();
 const executed = signable.finalize();
 ```
 
-Assemble bundle outputs using each layer's MIME type:
+Assemble bundle outputs using each layer's MIME type. A bundle takes no
+resolver of its own: each content entry is an artifact instance that carries
+the resolver bound when it was constructed.
 
 ```typescript
 const assembled = await bundle.assemble({
-  resolver: createFsResolver({ root: process.cwd() }),
+  contents: { lease: filledLeaseDraft },
 });
 ```
 
@@ -332,11 +334,14 @@ Use descriptive kebab-case names: `"residential-lease-agreement"`, NOT `"form1"`
 For full renderer API, see [rendering.md](./rendering.md). Quick example:
 
 ```typescript
+const form = para.form(schema, { resolver: createFsResolver({ root: process.cwd() }) });
+
 const text = await form.fill(data).render({
-  resolver: createFsResolver({ root: process.cwd() }),
   layer: "markdown",
 });
 ```
+
+The resolver is bound once, at construction — `render()` doesn't take one.
 
 ## Common SDK Issues
 

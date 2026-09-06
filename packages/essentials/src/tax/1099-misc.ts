@@ -1251,39 +1251,16 @@ const contents: Record<string, string | Uint8Array> = {
   "1099-misc.md": __c_1099_misc_md,
 };
 
-const baseForm = para.form(schema);
 const resolver = createMemoryResolver({ contents });
-
-const originalFill = baseForm.fill.bind(baseForm);
-const originalSafeFill = baseForm.safeFill.bind(baseForm);
-
-type Draft = ReturnType<typeof baseForm.fill>;
-type RenderArg = Parameters<Draft["render"]>[0];
-
-function bindResolver(draft: Draft): Draft {
-  const originalRender = draft.render.bind(draft);
-  draft.render = ((opts: RenderArg) => originalRender({ resolver, ...opts })) as Draft["render"];
-  return draft;
-}
 
 /**
  * Miscellaneous Information
  *
  * U.S. federal information return filed by a payer to report miscellaneous payments — rents, royalties, other income, fishing/farming proceeds, medical and health-care payments, attorney gross proceeds, NQDC deferrals, and similar — made to a recipient during a calendar year. Copy A goes to the IRS; Copy 1 to the state tax department; Copies B and 2 to the recipient.
  */
-export const f1099MISC = Object.assign(baseForm, {
-  /** Pre-populated resolver containing every layer and instruction file this artifact references. */
-  resolver,
+export const f1099MISC = Object.assign(para.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/tax/1099-misc/. */
   spec: schema,
-  fill(data: Parameters<typeof originalFill>[0], options?: Parameters<typeof originalFill>[1]) {
-    return bindResolver(originalFill(data, options));
-  },
-  safeFill(data: Parameters<typeof originalSafeFill>[0], options?: Parameters<typeof originalSafeFill>[1]) {
-    const result = originalSafeFill(data, options);
-    if (result.success) bindResolver(result.data);
-    return result;
-  },
 });
 
 export default f1099MISC;

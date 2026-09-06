@@ -64,8 +64,14 @@ if (result.success) {
 ## Object Pattern
 
 ```ts
-para.checklist(input: ChecklistInput): ChecklistInstance
+para.checklist(input: ChecklistInput, options?: ArtifactInstanceOptions): ChecklistInstance
 ```
+
+`options.resolver` reads the bytes of any file-backed layer this checklist
+declares. It's bound once here, at construction, and every instance derived
+from the checklist — every `fill`, mutator, and `clone` — carries it;
+`render()` itself takes no resolver. See
+[ArtifactInstanceOptions](/sdk/resolvers#artifactinstanceoptions).
 
 ### Parameters
 
@@ -142,18 +148,20 @@ Chain methods to build a checklist incrementally:
     { name: 'inlineLayer', params: 'key: string, layer: { mimeType, text, ... }', description: 'Add inline text layer' },
     { name: 'fileLayer', params: 'key: string, layer: { mimeType, path, ... }', description: 'Add file-backed layer' },
     { name: 'defaultLayer', params: 'key: string', description: 'Set default layer for rendering' },
-    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+    { name: 'build', params: 'options?: ArtifactInstanceOptions', description: 'Build and validate; bind a resolver for file-backed layers', terminal: true },
   ]}
   returns={{ intermediate: 'ChecklistBuilder', terminal: 'ChecklistInstance' }}
 />
 
 ## Static Methods
 
-Parse checklists from unknown data sources:
+Parse checklists from unknown data sources. Both accept an
+[`ArtifactInstanceOptions`](/sdk/resolvers#artifactinstanceoptions) to bind a
+resolver for any file-backed layer:
 
 <MethodTable methods={[
-  { name: 'from', params: 'input: unknown', returns: 'ChecklistInstance', description: 'Parse unknown input (throws on error)' },
-  { name: 'safeFrom', params: 'input: unknown', returns: 'Result<ChecklistInstance>', description: 'Parse unknown input (returns result object)' },
+  { name: 'from', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'ChecklistInstance', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeFrom', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'Result<ChecklistInstance>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
 # Progressive Item Validation

@@ -180,10 +180,15 @@ Key syntax patterns:
 <Step>
 ## Define the Form
 
-Create a form that references the template file:
+Create a form that references the template file. The `markdown` layer is
+file-backed, so bind a resolver when you construct the form — every instance
+you derive from `leaseAgreement` later carries the same resolver.
 
 ```ts
 import { para } from '@paradoc/sdk'
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: '.' })
 
 const leaseAgreement = para.form({
   name: 'lease-agreement',
@@ -225,7 +230,7 @@ const leaseAgreement = para.form({
       path: 'layers/lease.md',
     },
   },
-})
+}, { resolver })
 ```
 </Step>
 
@@ -270,19 +275,16 @@ if (!filled.isValid()) {
 <Step>
 ## Render the Document
 
-Render the filled form using the MIME-selected renderer:
+Render the filled form using the MIME-selected renderer. The resolver bound
+to `leaseAgreement` travels with `filled`, so the render call doesn't repeat
+it:
 
 ```ts
 import { renderLayer } from '@paradoc/render'
-import { createFsResolver } from '@paradoc/resolvers'
 import { writeFileSync } from 'node:fs'
-
-// Point the resolver to your project root where layers/ lives
-const resolver = createFsResolver({ root: '.' })
 
 const output = await filled.render({
   renderer: renderLayer(),
-  resolver,
   layer: 'markdown',
 })
 

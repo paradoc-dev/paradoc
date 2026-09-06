@@ -53,6 +53,8 @@ describe('PDF Layers Guide', () => {
   // ============================================================================
 
   describe('form with PDF layer and bindings', () => {
+    const resolver = createFsResolver({ root: fixturesRoot })
+
     const w9Form = para.form({
       name: 'w9-tax-form',
       fields: {
@@ -94,7 +96,7 @@ describe('PDF Layers Guide', () => {
           },
         },
       },
-    })
+    }, { resolver })
 
     test('defines form with PDF layer and bindings', () => {
       expect(w9Form.kind).toBe('form')
@@ -139,11 +141,8 @@ describe('PDF Layers Guide', () => {
     // ============================================================================
 
     test('renders filled form to PDF', async () => {
-      const resolver = createFsResolver({ root: fixturesRoot })
-
       const output = await filled.render({
         renderer: renderLayer(),
-        resolver,
         layer: 'pdf',
       })
 

@@ -109,7 +109,6 @@ import { renderLayer } from "@paradoc/render";
 const output = await form.fill(data).render({
   renderer: renderLayer({ serializers: mySerializers }),
   layer: "markdown",
-  resolver,
 });
 ```
 

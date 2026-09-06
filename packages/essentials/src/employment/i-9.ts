@@ -1696,39 +1696,16 @@ const contents: Record<string, string | Uint8Array> = {
   "i-9.md": __c_i_9_md,
 };
 
-const baseForm = para.form(schema);
 const resolver = createMemoryResolver({ contents });
-
-const originalFill = baseForm.fill.bind(baseForm);
-const originalSafeFill = baseForm.safeFill.bind(baseForm);
-
-type Draft = ReturnType<typeof baseForm.fill>;
-type RenderArg = Parameters<Draft["render"]>[0];
-
-function bindResolver(draft: Draft): Draft {
-  const originalRender = draft.render.bind(draft);
-  draft.render = ((opts: RenderArg) => originalRender({ resolver, ...opts })) as Draft["render"];
-  return draft;
-}
 
 /**
  * Employment Eligibility Verification
  *
  * Used by U.S. employers to verify the identity and employment authorization of every new hire. Section 1 captures the employee's self-attestation of citizenship or immigration status; Section 2 captures the employer's certification that they physically examined acceptable List A or List B+C documents.
  */
-export const i9 = Object.assign(baseForm, {
-  /** Pre-populated resolver containing every layer and instruction file this artifact references. */
-  resolver,
+export const i9 = Object.assign(para.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/employment/i-9/. */
   spec: schema,
-  fill(data: Parameters<typeof originalFill>[0], options?: Parameters<typeof originalFill>[1]) {
-    return bindResolver(originalFill(data, options));
-  },
-  safeFill(data: Parameters<typeof originalSafeFill>[0], options?: Parameters<typeof originalSafeFill>[1]) {
-    const result = originalSafeFill(data, options);
-    if (result.success) bindResolver(result.data);
-    return result;
-  },
 });
 
 export default i9;

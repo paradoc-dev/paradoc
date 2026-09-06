@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { document } from '@/artifacts'
+import { document, UnboundResolverError } from '@/artifacts'
 import { load } from '@/serialization'
 
 /**
@@ -314,7 +314,7 @@ describe('DocumentInstance', () => {
       expect(output).toBe('First content')
     })
 
-    test('throws error when file layer but no resolver', async () => {
+    test('throws the named error when a file layer has no bound resolver', async () => {
       const instance = document()
         .name('doc')
         .version('1.0.0')
@@ -323,9 +323,12 @@ describe('DocumentInstance', () => {
         .defaultLayer('pdf')
         .build()
 
-      await expect(instance.render()).rejects.toThrow(
-        'no resolver was provided'
-      )
+      await expect(instance.render()).rejects.toThrow(UnboundResolverError)
+      // A document resolves its layer through the same primitives the free
+      // `renderLayer` uses, but it is an artifact, so the remedy is its
+      // constructor rather than those options. Nothing about that is the
+      // caller's to choose: the site follows the entry point the render took.
+      await expect(instance.render()).rejects.toThrow(/no resolver is bound to this artifact/)
     })
 
     test('returns raw bytes for binary file layers', async () => {
@@ -340,9 +343,9 @@ describe('DocumentInstance', () => {
         .title('Doc')
         .fileLayer('pdf', { mimeType: 'application/pdf', path: '/templates/doc.pdf' })
         .defaultLayer('pdf')
-        .build()
+        .build({ resolver: mockResolver })
 
-      const output = await instance.render({ resolver: mockResolver })
+      const output = await instance.render()
       expect(output).toBeInstanceOf(Uint8Array)
       expect(output).toEqual(pdfContent)
     })
@@ -359,9 +362,9 @@ describe('DocumentInstance', () => {
         .title('Doc')
         .fileLayer('text', { mimeType: 'text/plain', path: '/templates/doc.txt' })
         .defaultLayer('text')
-        .build()
+        .build({ resolver: mockResolver })
 
-      const output = await instance.render({ resolver: mockResolver })
+      const output = await instance.render()
       expect(typeof output).toBe('string')
       expect(output).toBe('Hello from file!')
     })

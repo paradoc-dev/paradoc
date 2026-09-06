@@ -70,10 +70,19 @@ pdf: para.layer()
 
 When layers reference external files, **resolvers** tell Paradoc how to load them. This makes Paradoc environment-agnostic—the same artifact works in Node, browsers, or custom environments.
 
+A resolver is bound once, when the artifact is built or loaded. Every instance
+you derive from it afterward—every `fill`, every render, every mutator—carries
+that same resolver, so render calls don't repeat it.
+
 ```ts
-const output = await form.render({
-  resolver: fileResolver({ basePath: "./templates" })
-})
+import { createFsResolver } from "@paradoc/resolvers";
+
+const form = para.form()
+  .name("invoice")
+  // ...fields, layers...
+  .build({ resolver: createFsResolver({ root: "./templates" }) })
+
+const output = await form.render({ layer: "pdf" })
 ```
 
 See [Resolvers](/sdk/resolvers) for available resolvers and how to write custom ones.

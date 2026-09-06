@@ -17,7 +17,6 @@ import type {
 	Expression,
 	CondExpr,
 	BinaryContent,
-	Resolver,
 	DraftBundleJSON,
 	SignableBundleJSON,
 	ExecutedBundleJSON,
@@ -31,7 +30,7 @@ import {
 import { toYAML } from '@/serialization/serialization'
 import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
-import type { RendererRegistry, ArtifactResolver } from '@/rendering'
+import type { RendererRegistry } from '@/rendering'
 import { findRegisteredRenderer } from '@/rendering/renderer-registry'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
 import { renderLayer as createRenderer } from '@paradoc/render'
@@ -74,9 +73,13 @@ export type RuntimeBundleContents = Record<string, RuntimeInstance>
  * Options for rendering a RuntimeBundle.
  */
 export interface RuntimeBundleRenderOptions {
-	/** Resolver for file-based layers (optional if all layers are inline) */
-	resolver?: Resolver | ArtifactResolver
-	/** Optional custom renderers keyed by MIME type. Supported layers render automatically. */
+	/**
+	 * Optional custom renderers keyed by MIME type. Supported layers render
+	 * automatically.
+	 *
+	 * There is no resolver here: a bundle's parts are artifact instances that
+	 * each carry the resolver bound when they were constructed.
+	 */
 	renderers?: RendererRegistry
 }
 
@@ -568,11 +571,11 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		// ============================================================================
 
 		async render(options: RuntimeBundleRenderOptions = {}): Promise<RuntimeBundleRendered<B>> {
-			const { resolver, renderers } = options
+			const { renderers } = options
 			const outputs: Record<string, RuntimeBundleRenderedOutput> = {}
 
 			for (const [key, instance] of Object.entries(contentValues)) {
-				const output = await renderInstance(key, instance, { resolver, renderers })
+				const output = await renderInstance(key, instance, { renderers })
 				outputs[key] = output
 			}
 
@@ -703,15 +706,15 @@ function transitionToExecuted(instance: RuntimeInstance): RuntimeInstance {
 async function renderInstance(
 	key: string,
 	instance: RuntimeInstance,
-	options: { resolver?: Resolver | ArtifactResolver; renderers?: RendererRegistry }
+	options: { renderers?: RendererRegistry }
 ): Promise<RuntimeBundleRenderedOutput> {
-	const { resolver, renderers } = options
+	const { renderers } = options
 
 	const { layers, targetLayer } = getInstanceLayerInfo(instance)
 
 	// Handle nested bundles (no direct layer rendering)
 	if ('bundle' in instance && instance.phase !== undefined) {
-		const nestedResult = await (instance as RuntimeBundle<Bundle>).render({ resolver, renderers })
+		const nestedResult = await (instance as RuntimeBundle<Bundle>).render({ renderers })
 		const firstKey = Object.keys(nestedResult.outputs)[0]
 		if (firstKey && nestedResult.outputs[firstKey]) {
 			return nestedResult.outputs[firstKey]!
@@ -731,11 +734,11 @@ async function renderInstance(
 	let content: unknown
 
 	if ('form' in instance && 'fields' in instance) {
-		content = await (instance as RuntimeForm<Form>).render({ renderer, resolver, layer: targetLayer })
+		content = await (instance as RuntimeForm<Form>).render({ renderer, layer: targetLayer })
 	} else if ('checklist' in instance) {
-		content = await (instance as RuntimeChecklist<Checklist>).render({ resolver, layer: targetLayer })
+		content = await (instance as RuntimeChecklist<Checklist>).render({ layer: targetLayer })
 	} else if ('document' in instance) {
-		content = await (instance as RuntimeDocument<Document>).render({ resolver, layer: targetLayer })
+		content = await (instance as RuntimeDocument<Document>).render({ layer: targetLayer })
 	} else {
 		throw new Error('Unknown instance type')
 	}

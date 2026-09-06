@@ -27,4 +27,3 @@ export type {
 	SafePartialFillResult,
 	FormValidationResult,
 } from './form'
-export type { LayerRenderOptions } from '../shared/render-layer'

@@ -4,6 +4,7 @@ import { form, type FormInstance } from '@/artifacts/form'
 import { document, type DocumentInstance } from '@/artifacts/document'
 import { bundle, type BundleInstance } from '@/artifacts/bundle'
 import { checklist, type ChecklistInstance } from '@/artifacts/checklist'
+import type { ArtifactInstanceOptions } from '@/artifacts/shared/render-layer'
 
 // ============================================================================
 // Type definitions
@@ -17,6 +18,25 @@ export type AnyArtifactInstance =
   | DocumentInstance<Document>
   | BundleInstance<Bundle>
   | ChecklistInstance<Checklist>
+
+/**
+ * A resolver was supplied for a bundle.
+ *
+ * A bundle binds none: its parts are artifact instances that each carry the
+ * resolver they were constructed with, so one handed to the bundle would have
+ * nothing to bind to and would be silently dropped. The typed `<'bundle'>`
+ * overloads of the loaders take no options at all; this catches the untyped
+ * path, where the kind is only known once the object is parsed.
+ */
+export class BundleResolverError extends Error {
+  constructor() {
+    super(
+      'A bundle takes no resolver: its parts are artifact instances that each carry the ' +
+        'resolver they were constructed with. Bind the resolver on each part instead.'
+    )
+    this.name = 'BundleResolverError'
+  }
+}
 
 /**
  * Error thrown when loading an artifact fails
@@ -91,12 +111,12 @@ export function isChecklistInstance(instance: AnyArtifactInstance): instance is 
  * }
  * ```
  */
-export function load<_K extends 'form'>(content: string): FormInstance<Form>;
-export function load<_K extends 'document'>(content: string): DocumentInstance<Document>;
+export function load<_K extends 'form'>(content: string, options?: ArtifactInstanceOptions): FormInstance<Form>;
+export function load<_K extends 'document'>(content: string, options?: ArtifactInstanceOptions): DocumentInstance<Document>;
 export function load<_K extends 'bundle'>(content: string): BundleInstance<Bundle>;
-export function load<_K extends 'checklist'>(content: string): ChecklistInstance<Checklist>;
-export function load(content: string): AnyArtifactInstance;
-export function load(content: string): AnyArtifactInstance {
+export function load<_K extends 'checklist'>(content: string, options?: ArtifactInstanceOptions): ChecklistInstance<Checklist>;
+export function load(content: string, options?: ArtifactInstanceOptions): AnyArtifactInstance;
+export function load(content: string, options?: ArtifactInstanceOptions): AnyArtifactInstance {
   let parsed: unknown
 
   try {
@@ -108,7 +128,7 @@ export function load(content: string): AnyArtifactInstance {
     )
   }
 
-  return loadFromObject(parsed)
+  return loadFromObject(parsed, options)
 }
 
 /**
@@ -137,16 +157,16 @@ export function load(content: string): AnyArtifactInstance {
  * const form = loadFromObject(obj) // TypeScript infers FormInstance<Form>
  * ```
  */
-export function loadFromObject<_K extends 'form'>(obj: unknown): FormInstance<Form>;
-export function loadFromObject<_K extends 'document'>(obj: unknown): DocumentInstance<Document>;
+export function loadFromObject<_K extends 'form'>(obj: unknown, options?: ArtifactInstanceOptions): FormInstance<Form>;
+export function loadFromObject<_K extends 'document'>(obj: unknown, options?: ArtifactInstanceOptions): DocumentInstance<Document>;
 export function loadFromObject<_K extends 'bundle'>(obj: unknown): BundleInstance<Bundle>;
-export function loadFromObject<_K extends 'checklist'>(obj: unknown): ChecklistInstance<Checklist>;
-export function loadFromObject<T extends { kind: 'form' }>(obj: T): FormInstance<Form>;
-export function loadFromObject<T extends { kind: 'document' }>(obj: T): DocumentInstance<Document>;
+export function loadFromObject<_K extends 'checklist'>(obj: unknown, options?: ArtifactInstanceOptions): ChecklistInstance<Checklist>;
+export function loadFromObject<T extends { kind: 'form' }>(obj: T, options?: ArtifactInstanceOptions): FormInstance<Form>;
+export function loadFromObject<T extends { kind: 'document' }>(obj: T, options?: ArtifactInstanceOptions): DocumentInstance<Document>;
 export function loadFromObject<T extends { kind: 'bundle' }>(obj: T): BundleInstance<Bundle>;
-export function loadFromObject<T extends { kind: 'checklist' }>(obj: T): ChecklistInstance<Checklist>;
-export function loadFromObject(obj: unknown): AnyArtifactInstance;
-export function loadFromObject(obj: unknown): AnyArtifactInstance {
+export function loadFromObject<T extends { kind: 'checklist' }>(obj: T, options?: ArtifactInstanceOptions): ChecklistInstance<Checklist>;
+export function loadFromObject(obj: unknown, options?: ArtifactInstanceOptions): AnyArtifactInstance;
+export function loadFromObject(obj: unknown, options?: ArtifactInstanceOptions): AnyArtifactInstance {
   if (!obj || typeof obj !== 'object') {
     throw new LoadError('Invalid artifact: expected an object')
   }
@@ -157,19 +177,27 @@ export function loadFromObject(obj: unknown): AnyArtifactInstance {
 
   const kind = obj.kind
 
+  // Outside the try, so it surfaces as itself rather than as a LoadError about
+  // a bundle that is in fact perfectly loadable. The typed bundle overloads
+  // take no options at all; this is the untyped path, where the kind is only
+  // known once the object has been read.
+  if (kind === 'bundle' && options?.resolver) throw new BundleResolverError()
+
   try {
     switch (kind) {
       case 'form':
-        return form.from(obj) as FormInstance<Form>
+        return form.from(obj, options) as FormInstance<Form>
 
       case 'document':
-        return document.from(obj) as DocumentInstance<Document>
+        return document.from(obj, options) as DocumentInstance<Document>
 
+      // A bundle binds no resolver: its parts are artifact instances that
+      // each carry their own. Guarded above.
       case 'bundle':
         return bundle.from(obj) as BundleInstance<Bundle>
 
       case 'checklist':
-        return checklist.from(obj) as ChecklistInstance<Checklist>
+        return checklist.from(obj, options) as ChecklistInstance<Checklist>
 
       default:
         throw new LoadError(`Unknown artifact kind: "${kind}"`)
@@ -213,25 +241,30 @@ export function loadFromObject(obj: unknown): AnyArtifactInstance {
  * ```
  */
 export function safeLoad<_K extends 'form'>(
-  content: string
+  content: string,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: FormInstance<Form> } | { success: false; error: LoadError };
 export function safeLoad<_K extends 'document'>(
-  content: string
+  content: string,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: DocumentInstance<Document> } | { success: false; error: LoadError };
 export function safeLoad<_K extends 'bundle'>(
   content: string
 ): { success: true; data: BundleInstance<Bundle> } | { success: false; error: LoadError };
 export function safeLoad<_K extends 'checklist'>(
-  content: string
+  content: string,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: ChecklistInstance<Checklist> } | { success: false; error: LoadError };
 export function safeLoad(
-  content: string
+  content: string,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: AnyArtifactInstance } | { success: false; error: LoadError };
 export function safeLoad(
-  content: string
+  content: string,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: AnyArtifactInstance } | { success: false; error: LoadError } {
   try {
-    const artifact = load(content)
+    const artifact = load(content, options)
     return { success: true, data: artifact }
   } catch (err) {
     const error = err instanceof LoadError ? err : new LoadError(String(err), err instanceof Error ? err : undefined)
@@ -270,37 +303,45 @@ export function safeLoad(
  * ```
  */
 export function safeLoadFromObject<_K extends 'form'>(
-  obj: unknown
+  obj: unknown,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: FormInstance<Form> } | { success: false; error: LoadError };
 export function safeLoadFromObject<_K extends 'document'>(
-  obj: unknown
+  obj: unknown,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: DocumentInstance<Document> } | { success: false; error: LoadError };
 export function safeLoadFromObject<_K extends 'bundle'>(
   obj: unknown
 ): { success: true; data: BundleInstance<Bundle> } | { success: false; error: LoadError };
 export function safeLoadFromObject<_K extends 'checklist'>(
-  obj: unknown
+  obj: unknown,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: ChecklistInstance<Checklist> } | { success: false; error: LoadError };
 export function safeLoadFromObject<T extends { kind: 'form' }>(
-  obj: T
+  obj: T,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: FormInstance<Form> } | { success: false; error: LoadError };
 export function safeLoadFromObject<T extends { kind: 'document' }>(
-  obj: T
+  obj: T,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: DocumentInstance<Document> } | { success: false; error: LoadError };
 export function safeLoadFromObject<T extends { kind: 'bundle' }>(
   obj: T
 ): { success: true; data: BundleInstance<Bundle> } | { success: false; error: LoadError };
 export function safeLoadFromObject<T extends { kind: 'checklist' }>(
-  obj: T
+  obj: T,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: ChecklistInstance<Checklist> } | { success: false; error: LoadError };
 export function safeLoadFromObject(
-  obj: unknown
+  obj: unknown,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: AnyArtifactInstance } | { success: false; error: LoadError };
 export function safeLoadFromObject(
-  obj: unknown
+  obj: unknown,
+  options?: ArtifactInstanceOptions
 ): { success: true; data: AnyArtifactInstance } | { success: false; error: LoadError } {
   try {
-    const artifact = loadFromObject(obj)
+    const artifact = loadFromObject(obj, options)
     return { success: true, data: artifact }
   } catch (err) {
     const error = err instanceof LoadError ? err : new LoadError(String(err), err instanceof Error ? err : undefined)

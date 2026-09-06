@@ -393,7 +393,7 @@ describe('Formal Signing', () => {
 					},
 				})
 				.defaultLayer('pdf')
-				.build()
+				.build({ resolver: { read: async () => pdf } })
 
 			const draft = formDef
 				.fill({
@@ -403,7 +403,7 @@ describe('Formal Signing', () => {
 				.addSigner('test-signer', { person: { name: 'Test Signer' } })
 				.addSignatory('signer', 'signer-0', { signerId: 'test-signer' })
 
-			const sealed = await draft.seal({ resolver: { read: async () => pdf } })
+			const sealed = await draft.seal()
 
 			expect(sealed.canonicalPdfBytes).toEqual(pdf)
 			expect(sealed.canonicalPdfHash).toMatch(/^sha256:[a-f0-9]{64}$/)

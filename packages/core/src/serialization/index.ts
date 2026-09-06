@@ -32,6 +32,7 @@ export {
   loadFromObject,
   safeLoad,
   safeLoadFromObject,
+  BundleResolverError,
   LoadError,
   // Type guards for artifact instances
   isFormInstance,

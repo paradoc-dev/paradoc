@@ -21,31 +21,36 @@ npm install @paradoc/render
 
 ### Pattern 1: form.fill().render() (recommended)
 
+A file-backed layer's bytes come from a resolver, and the resolver is bound
+once, when the form is constructed — `para.form(schema, { resolver })` or a
+builder's `.build({ resolver })`. Every instance derived from it — every
+`fill`, every mutator, every render call — carries that resolver, so render
+options never repeat it.
+
 ```typescript
+import { para } from "@paradoc/sdk";
 import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers";
 
 const resolver = createFsResolver({ root: process.cwd() });
+const form = para.form(schema, { resolver });
 const renderer = renderLayer();
 
 // Text / Markdown / HTML
 const text = await form.fill(data).render({
   renderer,
-  resolver,
   layer: "markdown",
 });
 
 // PDF (returns Uint8Array)
 const pdf = await form.fill(data).render({
   renderer,
-  resolver,
   layer: "pdf",
 });
 
 // DOCX (returns Uint8Array)
 const docx = await form.fill(data).render({
   renderer,
-  resolver,
   layer: "docx",
 });
 
@@ -53,6 +58,10 @@ import fs from "node:fs";
 fs.writeFileSync("output.pdf", pdf);
 fs.writeFileSync("output.docx", docx);
 ```
+
+Render a file-backed layer with no resolver bound and Paradoc throws
+`UnboundResolverError`, naming the layer, the path it wanted, and where to
+bind one.
 
 ### Pattern 2: direct render functions
 
@@ -162,7 +171,6 @@ const euSerializer = createSerializer({ regionFormat: "eu" });
 const output = await form.fill(data).render({
   renderer: renderLayer({ serializers: euSerializer }),
   layer: "markdown",
-  resolver,
 });
 ```
 
@@ -203,6 +211,11 @@ Computes a SHA-256 checksum for use in layer `checksum` properties.
 ## Resolvers
 
 Resolvers load layer files (templates, PDFs, DOCX) at render time. Required when layers use `kind: "file"`. NOT needed for `kind: "inline"`.
+
+Bind a resolver once, where the artifact is constructed —
+`para.form(schema, { resolver })`, a builder's `.build({ resolver })`, or
+`para.load(content, { resolver })`. Every instance derived from it afterward
+carries the same resolver. There is no per-call resolver option anymore.
 
 ### Filesystem resolver (Node.js)
 

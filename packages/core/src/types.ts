@@ -19,7 +19,6 @@ import type {
   Party,
   Signer,
   PartySignatory,
-  Resolver,
   ParadocRenderer,
   RendererLayer,
 } from '@paradoc/types'
@@ -216,7 +215,6 @@ export interface IArtifactInstance<T extends Artifact> {
  * @example
  * ```typescript
  * const output = await form.render({
- *   resolver: fileResolver,
  *   data: { name: 'John', age: 30 },
  *   layer: 'markdown'
  * })
@@ -232,9 +230,6 @@ export interface RenderOptions<Output = string | Uint8Array> {
    * not ship, such as a React composition, reaches the render call.
    */
   renderers?: RendererRegistry
-
-  /** Resolver for auto-loading file-backed layers (only needs read method) */
-  resolver?: Resolver
 
   /** Field values to populate the layer with */
   data?: Record<string, unknown>
@@ -274,9 +269,6 @@ export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
    */
   renderers?: RendererRegistry
 
-  /** Resolver for auto-loading file-backed layers (only needs read method) */
-  resolver?: Resolver
-
   /** Key of the layer to use. If not provided, uses defaultLayer or first available. */
   layer?: string
 
@@ -315,9 +307,6 @@ export interface RuntimeChecklistRenderOptions<Output = unknown> {
    * and before falling back to raw layer content.
    */
   renderers?: RendererRegistry
-
-  /** Resolver for auto-loading file-backed layers (only needs read method) */
-  resolver?: Resolver
 
   /** Key of the layer to use. If not provided, uses defaultLayer or first available. */
   layer?: string

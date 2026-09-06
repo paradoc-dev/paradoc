@@ -11,28 +11,31 @@ const canonicalPdf = readFileSync(path.resolve(__dirname, '../fixtures/pdfs/w9.p
 
 describe('Sealing and Conversion Guide', () => {
   test('seals a PDF layer locally without an adapter', async () => {
-    const form = para.form({
-      name: 'local-pdf',
-      fields: {},
-      parties: { signer: { label: 'Signer', signature: { required: true } } },
-      layers: {
-        pdf: {
-          kind: 'file',
-          mimeType: 'application/pdf',
-          path: 'w9.pdf',
-          signatureBlocks: {
-            signature: { type: 'signature', page: 1, x: 50, y: 50, width: 120, height: 30, partyRole: 'signer' },
+    const form = para.form(
+      {
+        name: 'local-pdf',
+        fields: {},
+        parties: { signer: { label: 'Signer', signature: { required: true } } },
+        layers: {
+          pdf: {
+            kind: 'file',
+            mimeType: 'application/pdf',
+            path: 'w9.pdf',
+            signatureBlocks: {
+              signature: { type: 'signature', page: 1, x: 50, y: 50, width: 120, height: 30, partyRole: 'signer' },
+            },
           },
         },
+        defaultLayer: 'pdf',
       },
-      defaultLayer: 'pdf',
-    })
+      { resolver: { read: async () => Uint8Array.from(canonicalPdf) } },
+    )
 
     const signable = await form
       .fill({ fields: {}, parties: { signer: { id: 'signer-1', name: 'Ada' } } })
       .addSigner('ada', { person: { name: 'Ada' } })
       .addSignatory('signer', 'signer-1', { signerId: 'ada' })
-      .seal({ resolver: { read: async () => Uint8Array.from(canonicalPdf) } })
+      .seal()
 
     expect(signable.canonicalPdfBytes).toBeInstanceOf(Uint8Array)
     expect(signable.canonicalPdfHash).toMatch(/^sha256:/)

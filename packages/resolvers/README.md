@@ -51,13 +51,17 @@ const bytes = await resolver.read("/templates/form.md");
 
 ### With form rendering
 
-Pass a resolver when rendering forms with file-based layers:
+Bind a resolver once, when a form with file-based layers is constructed.
+Every instance you derive from it afterward — every `fill`, every render —
+carries the same resolver:
 
 ```typescript
 import { para } from "@paradoc/sdk";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 
 const resolver = createFsResolver({ root: "./templates" });
+
+const form = para.form(formSchema, { resolver });
 
 const result = await form
   .fill({
@@ -66,7 +70,6 @@ const result = await form
     },
   })
   .render({
-    resolver,
     layer: "pdf",
   });
 ```

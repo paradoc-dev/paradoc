@@ -73,7 +73,6 @@ beforeAll(async () => {
   packet = await sealVendorPacket({
     taxpayer: taxpayerDraft(taxpayer),
     insurance: await insuranceCertificateFixture(),
-    resolver: w9.resolver,
     purchaseOrderData: purchaseOrderDocumentData(order.payload),
   });
   pages = await pageTextRuns(packet.pdf);

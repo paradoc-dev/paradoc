@@ -42,7 +42,6 @@ import type {
   Checklist,
   Document,
   Form,
-  Resolver,
   SealAdapter,
   SealLocator,
   SigningField,
@@ -54,7 +53,6 @@ import type { DraftDocument } from '@/artifacts/document'
 import {
   assembleBundle,
   isAssemblyBytesEntry,
-  type ArtifactResolver,
   type AssemblyContentEntry,
 } from './bundle-assembler'
 import type { RendererRegistry } from './renderer-registry'
@@ -155,9 +153,13 @@ export interface SealedBundle {
 
 /** What `sealBundle` needs. */
 export interface BundleSealOptions {
-  /** Resolver for file-backed layers. */
-  resolver?: Resolver | ArtifactResolver
-  /** Renderers keyed by layer MIME type, reaching every part's render and every part's seal. */
+  /**
+   * Renderers keyed by layer MIME type, reaching every part's render and every
+   * part's seal.
+   *
+   * There is no resolver here: each part is an artifact instance that carries
+   * the resolver bound when it was constructed.
+   */
   renderers?: RendererRegistry
   /** Converter for a part whose layer is neither PDF nor drawn by a registered renderer. */
   adapter?: SealAdapter
@@ -322,7 +324,7 @@ function partFailure(key: string, action: string, error: unknown): BundleSealErr
  * @throws {PdfMergeError} when a part reached a PDF the merge cannot read.
  */
 export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Promise<SealedBundle> {
-  const { contents, renderers, resolver, adapter, locate } = options
+  const { contents, renderers, adapter, locate } = options
 
   const problems: string[] = []
   const declared = bundle.contents.map((content) => content.key)
@@ -390,7 +392,7 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
     const form = sealableForm(entry)
     if (form) {
       try {
-        const preparation = await form.prepareSeal({ resolver, renderers, adapter, locate })
+        const preparation = await form.prepareSeal({ renderers, adapter, locate })
         sealedParts.set(key, { pdf: preparation.pdf, map: preparation.signatureMap })
         warnings.push(...preparation.warnings.map((warning) => `${key}: ${warning}`))
       } catch (error) {
@@ -399,7 +401,7 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
       continue
     }
     try {
-      const assembled = await assembleBundle(bundle, { resolver, renderers, contents: { [key]: entry } })
+      const assembled = await assembleBundle(bundle, { renderers, contents: { [key]: entry } })
       renderedParts.set(key, assembled.outputs[key]!)
     } catch (error) {
       throw partFailure(key, 'rendering', error)

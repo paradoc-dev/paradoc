@@ -57,10 +57,13 @@ signatory.
 # Seal a PDF layer locally
 
 PDF layers need no adapter or network call. Paradoc renders the layer,
-resolves placements, flattens, and hashes the exact canonical bytes:
+resolves placements, flattens, and hashes the exact canonical bytes. The
+resolver that reads the PDF template's bytes is bound where the form is
+constructed — `para.form(schema, { resolver })` — so `draft` already carries
+it:
 
 ```ts
-const signable = await draft.seal({ resolver })
+const signable = await draft.seal()
 
 signable.canonicalPdfBytes // Uint8Array
 signable.canonicalPdfHash  // sha256:...

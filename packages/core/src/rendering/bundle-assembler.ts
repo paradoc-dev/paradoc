@@ -6,7 +6,6 @@ import type {
   Document,
   Checklist,
   BinaryContent,
-  Resolver,
   Layer,
 } from '@paradoc/types'
 import type { DraftForm } from '@/artifacts/form'
@@ -14,34 +13,6 @@ import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import { renderLayer } from '@paradoc/render'
 import { findRegisteredRenderer, isReactLayerMimeType, type RendererRegistry } from './renderer-registry'
-
-/**
- * A resolved artifact loaded from a path or slug.
- * Note: Bundle is recursive, so a resolved Bundle may contain nested Bundles.
- */
-export type ResolvedArtifact = Form | Document | Checklist | Bundle
-
-/**
- * Extension of Resolver that can also resolve artifact definitions.
- *
- * Implementations handle:
- *  - Reading raw bytes (inherited from Resolver)
- *  - Loading and parsing YAML/JSON artifact files
- *  - Resolving slugs to artifacts (e.g., from a registry)
- */
-export interface ArtifactResolver extends Resolver {
-  /**
-   * Load an artifact from a path.
-   * The path is relative to some base directory or can be a URL.
-   */
-  loadArtifact(path: string): Promise<ResolvedArtifact>
-
-  /**
-   * Load an artifact by its slug (e.g., "@acme/forms/application").
-   * This requires access to a registry or resolver service.
-   */
-  loadArtifactBySlug?(slug: string): Promise<ResolvedArtifact>
-}
 
 // ============================================================================
 // Bundle Assembly API
@@ -87,10 +58,13 @@ export function isAssemblyBytesEntry(entry: AssemblyContentEntry): entry is Asse
  * Options for the new bundle assembly API.
  */
 export interface BundleAssemblyOptions {
-  /** Resolver for file-based layers (optional if all layers are inline) */
-  resolver?: Resolver | ArtifactResolver
-
-  /** Optional custom renderers keyed by MIME type. Supported layers render automatically. */
+  /**
+   * Optional custom renderers keyed by MIME type. Supported layers render
+   * automatically.
+   *
+   * There is no resolver here: each entry is an artifact instance that carries
+   * the resolver bound when it was constructed.
+   */
   renderers?: RendererRegistry
 
   /** Content entries keyed by bundle content key */
@@ -193,7 +167,6 @@ function getLayersFromFilled(
  * const filledDoc = disclosure.prepare()  // Uses defaultLayer
  *
  * const assembled = await assembleBundle(bundle, {
- *   resolver,
  *   contents: {
  *     leaseAgreement: filledLease,
  *     checklist: filledChecklist,
@@ -211,7 +184,7 @@ export async function assembleBundle(
   bundle: Bundle,
   options: BundleAssemblyOptions
 ): Promise<AssembledBundle> {
-  const { resolver, renderers, contents } = options
+  const { renderers, contents } = options
   const outputs: Record<string, AssembledBundleOutput> = {}
 
   // Validate all content keys exist in bundle
@@ -249,13 +222,7 @@ export async function assembleBundle(
 
     const renderer = findRegisteredRenderer(renderers, mimeType) ?? renderLayer()
 
-    // Render the filled instance
-    const renderOptions = {
-      renderer,
-      resolver,
-    }
-
-    const content = await filled.render(renderOptions)
+    const content = await filled.render({ renderer })
 
     // Convert to binary if needed
     const binaryContent: BinaryContent =

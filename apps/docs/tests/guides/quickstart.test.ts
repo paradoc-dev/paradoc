@@ -16,6 +16,8 @@ describe('Quickstart Guide', () => {
   // Step 2: Define the Form
   // ============================================================================
 
+  const resolver = createFsResolver({ root: fixturesRoot })
+
   const purchaseAgreement = para
     .form()
     .name('purchase-agreement')
@@ -34,7 +36,7 @@ describe('Quickstart Guide', () => {
       markdown: para.layer().file().mimeType('text/markdown').path('purchase-agreement.md'),
     })
     .defaultLayer('markdown')
-    .build()
+    .build({ resolver })
 
   test('defines the form correctly', () => {
     expect(purchaseAgreement).toBeDefined()
@@ -83,9 +85,7 @@ describe('Quickstart Guide', () => {
   // ============================================================================
 
   test('renders the purchase agreement', async () => {
-    const resolver = createFsResolver({ root: fixturesRoot })
-
-    const output = await draft.render({ resolver, layer: 'markdown' })
+    const output = await draft.render({ layer: 'markdown' })
 
     expect(output).toContain('Purchase Agreement')
     expect(output).toContain('Alice Johnson')

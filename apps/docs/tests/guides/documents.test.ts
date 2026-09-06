@@ -2,7 +2,7 @@
  * Tests for code snippets in guides/documents.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/core'
+import { para, UnboundResolverError } from '@paradoc/core'
 
 describe('Documents Guide', () => {
   // ============================================================================
@@ -114,24 +114,35 @@ Your data is used to provide and improve our services.
   // ============================================================================
 
   describe('document with file layers', () => {
-    const privacyPolicy = para.document({
-      name: 'privacy-policy',
-      version: '1.0.0',
-      title: 'Privacy Policy',
-      defaultLayer: 'pdf',
-      layers: {
-        pdf: {
-          kind: 'file',
-          mimeType: 'application/pdf',
-          path: '/documents/privacy-policy.pdf',
-        },
-        markdown: {
-          kind: 'file',
-          mimeType: 'text/markdown',
-          path: '/documents/privacy-policy.md',
-        },
+    const mockContent = new TextEncoder().encode('# Privacy Policy from file')
+    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46])
+    const resolver = {
+      read: async (path: string) => (path.endsWith('.pdf') ? pdfBytes : mockContent),
+    }
+
+    const layers = {
+      pdf: {
+        kind: 'file' as const,
+        mimeType: 'application/pdf',
+        path: '/documents/privacy-policy.pdf',
       },
-    })
+      markdown: {
+        kind: 'file' as const,
+        mimeType: 'text/markdown',
+        path: '/documents/privacy-policy.md',
+      },
+    }
+
+    const privacyPolicy = para.document(
+      {
+        name: 'privacy-policy',
+        version: '1.0.0',
+        title: 'Privacy Policy',
+        defaultLayer: 'pdf',
+        layers,
+      },
+      { resolver },
+    )
 
     test('creates document with file layers', () => {
       expect(privacyPolicy.defaultLayer).toBe('pdf')
@@ -139,29 +150,27 @@ Your data is used to provide and improve our services.
       expect(Object.keys(privacyPolicy.layers!)).toEqual(['pdf', 'markdown'])
     })
 
-    test('renders file layer with resolver', async () => {
-      const mockContent = new TextEncoder().encode('# Privacy Policy from file')
-      const resolver = {
-        read: async (_path: string) => mockContent,
-      }
-
-      const output = await privacyPolicy.render({ resolver, layer: 'markdown' })
+    test('renders file layer bound to a resolver', async () => {
+      const output = await privacyPolicy.render({ layer: 'markdown' })
       expect(output).toBe('# Privacy Policy from file')
     })
 
-    test('renders binary file layer with resolver', async () => {
-      const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46])
-      const resolver = {
-        read: async (_path: string) => pdfBytes,
-      }
-
-      const output = await privacyPolicy.render({ resolver })
+    test('renders binary file layer bound to a resolver', async () => {
+      const output = await privacyPolicy.render()
       expect(output).toBeInstanceOf(Uint8Array)
       expect(output).toEqual(pdfBytes)
     })
 
-    test('throws when no resolver provided for file layer', async () => {
-      await expect(privacyPolicy.render()).rejects.toThrow()
+    test('throws UnboundResolverError when no resolver is bound', async () => {
+      const unbound = para.document({
+        name: 'privacy-policy',
+        version: '1.0.0',
+        title: 'Privacy Policy',
+        defaultLayer: 'pdf',
+        layers,
+      })
+
+      await expect(unbound.render()).rejects.toThrow(UnboundResolverError)
     })
   })
 

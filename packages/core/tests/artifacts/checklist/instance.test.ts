@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { checklist } from '@/artifacts'
+import { checklist, UnboundResolverError } from '@/artifacts'
 import { load } from '@/serialization'
 
 /**
@@ -262,7 +262,7 @@ describe('ChecklistInstance', () => {
       expect(output).toBeDefined()
     })
 
-    test('throws error when file layer but no resolver', async () => {
+    test('throws the named error when a file layer has no bound resolver', async () => {
       const instance = checklist()
         .name('checklist')
         .version('1.0.0')
@@ -272,9 +272,7 @@ describe('ChecklistInstance', () => {
         .defaultLayer('html')
         .build()
 
-      await expect(instance.render()).rejects.toThrow(
-        'no resolver was provided'
-      )
+      await expect(instance.render()).rejects.toThrow(UnboundResolverError)
     })
 
   })

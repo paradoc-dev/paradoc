@@ -58,6 +58,7 @@ export {
   renderLayer,
   resolveLayerKey,
   resolveAndRenderLayer,
+  UnboundResolverError,
   // Unified namespace
   para,
 } from "./artifacts";
@@ -113,7 +114,10 @@ export type {
   RuntimeBundleRendered,
   // Shared types
   ArtifactMethods,
+  ArtifactInstanceOptions,
+  ArtifactLayerRenderOptions,
   LayerRenderOptions,
+  ResolverBindingSite,
   // Builder types
   FieldAPI,
   TextFieldBuilder,
@@ -196,8 +200,6 @@ export {
 } from "./rendering";
 
 export type {
-  ResolvedArtifact,
-  ArtifactResolver,
   ReactLayerEntry,
   RendererRegistry,
   AssemblyBytesEntry,
@@ -457,6 +459,7 @@ export {
   safeLoad,
   loadFromObject,
   safeLoadFromObject,
+  BundleResolverError,
   LoadError,
   // Type guards for artifact discrimination
   isFormInstance,

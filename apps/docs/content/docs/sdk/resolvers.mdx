@@ -19,14 +19,36 @@ interface Resolver {
 }
 ```
 
-Resolvers are passed to renderers when forms use file-based layers instead of inline content.
+A resolver is bound once, when an artifact is constructed — `para.form(schema, { resolver })`, a builder's `.build({ resolver })`, or `para.load(content, { resolver })`. Every instance you derive from it afterward — every `fill`, every mutator, every render call — carries that same resolver, so you never pass it again.
+
+# ArtifactInstanceOptions
+
+The options object every construction entry point accepts:
+
+```ts
+interface ArtifactInstanceOptions {
+  resolver?: Resolver
+}
+```
+
+It's accepted by:
+
+- `para.form(input, options?)`, `form.from(input, options?)`, `form.safeFrom(input, options?)`, and a form builder's `.build(options?)` — and the same four entry points for `document` and `checklist`.
+- `load`, `loadFromObject`, `safeLoad`, and `safeLoadFromObject`, when reconstructing a form, document, or checklist. (Loading a bundle takes no `resolver`: a bundle has no file-backed layers of its own, only content entries that carry their own.)
+- `runtimeFormFromJSON`, `runtimeDocumentFromJSON`, and `runtimeChecklistFromJSON`, when rebuilding a runtime (filled) instance from its JSON.
+
+`resolver` is the only field, and it's optional: pass it only when the artifact has file-backed layers. It's bound once, at construction, and every instance you derive afterward — every `fill`, mutator, and `clone` — carries it. A render call never takes one.
+
+Render a file-backed layer with no resolver bound, and Paradoc throws
+`UnboundResolverError`, naming the layer, the path it wanted, and where to
+bind one.
 
 # Memory Resolver (Browser-Compatible)
 
 The `createMemoryResolver` function is exported from `@paradoc/core` and works in any environment, including browsers.
 
 ```ts
-import { createMemoryResolver } from '@paradoc/core'
+import { para, createMemoryResolver } from '@paradoc/core'
 
 const resolver = createMemoryResolver({
   contents: {
@@ -36,14 +58,14 @@ const resolver = createMemoryResolver({
   }
 })
 
-// Use with a form that has file-based layers
+// Bind the resolver when the form is built — the form has file-based layers
+const form = para.form(formSchema, { resolver })
+
 const filled = form.fill({
   fields: { customer: 'Acme Corp' }
 })
 
-const output = await filled.render({
-  resolver
-})
+const output = await filled.render()
 ```
 
 ## createMemoryResolver
@@ -105,6 +127,8 @@ Resolvers are needed when forms define file-based layers:
 import { para } from '@paradoc/core'
 import { createFsResolver } from '@paradoc/resolvers'
 
+const resolver = createFsResolver({ root: process.cwd() })
+
 const form = para.form({
   name: 'w9',
   fields: {
@@ -120,23 +144,23 @@ const form = para.form({
     }
   },
   defaultLayer: 'pdf'
-})
-
-const resolver = createFsResolver({ root: process.cwd() })
+}, { resolver })
 
 const filled = form.fill({
   fields: { name: 'John Smith', taxId: '12-3456789' }
 })
 
-const output = await filled.render({
-  resolver
-})
+const output = await filled.render()
 ```
+
+Render a file layer with no resolver bound and Paradoc throws
+`UnboundResolverError`, naming the layer, the path it wanted, and where to
+bind one.
 
 # Inline vs File Layers
 
 - **Inline layers** (`kind: 'inline'`) embed content directly in the form definition. No resolver needed.
-- **File layers** (`kind: 'file'`) reference external files by path. A resolver is required.
+- **File layers** (`kind: 'file'`) reference external files by path. A resolver must be bound when the artifact is constructed.
 
 ```ts
 // Inline layer - no resolver needed

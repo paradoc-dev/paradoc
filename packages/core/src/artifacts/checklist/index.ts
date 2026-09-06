@@ -17,4 +17,3 @@ export type {
 } from './checklist'
 
 // Re-export layer render options from shared
-export type { LayerRenderOptions } from '../shared/render-layer'

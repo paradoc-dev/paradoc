@@ -12,6 +12,9 @@ delimiters, split Word runs, and automatic field serialization.
 ```ts
 import { para } from '@paradoc/core'
 import { docxRenderer } from '@paradoc/render/docx'
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: process.cwd() })
 
 const form = para.form({
   name: 'contract',
@@ -28,7 +31,7 @@ const form = para.form({
     }
   },
   defaultLayer: 'docx'
-})
+}, { resolver })
 
 // Fill the form with data
 const filled = form.fill({
@@ -39,7 +42,8 @@ const filled = form.fill({
   }
 })
 
-// Render the filled form
+// The resolver was bound when the form was constructed, so every instance
+// derived from it — filled included — carries it. render() doesn't take one.
 const output = await filled.render({
   renderer: docxRenderer()
 })
@@ -183,9 +187,14 @@ const output = await renderDocx({
 
 # Template Bindings
 
-Map template placeholders to different field names:
+Map template placeholders to different field names. As with any file-backed
+layer, bind a resolver when the form is constructed:
 
 ```ts
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: process.cwd() })
+
 const form = para.form({
   name: 'contract',
   fields: {
@@ -201,7 +210,7 @@ const form = para.form({
       }
     }
   }
-})
+}, { resolver })
 ```
 
 # Related

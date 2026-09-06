@@ -246,8 +246,8 @@ The W-9 stays the consumer's to fill. `@paradoc/react` does not depend on
 `@paradoc/essentials` and should not, so the sample carries the taxpayer's values
 rather than the form, and the block declares `@paradoc/essentials` as a
 dependency without importing it: the packet's second part cannot be filled or
-sealed without that artifact and its resolver. `VendorPacketDocument` still takes
-both PDFs as props.
+sealed without that artifact, which binds its own resolver — the consumer
+never supplies one. `VendorPacketDocument` still takes both PDFs as props.
 
 The forms it reads are named, default, namespace and side-effect imports, and
 named re-exports. A default or namespace clause pointed at the substrate is an

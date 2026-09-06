@@ -17,7 +17,7 @@ import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 
 import { sealBundle, type DraftForm, type SealedBundle } from "@paradoc/core";
-import type { Form, Person, Resolver } from "@paradoc/types";
+import type { Form, Person } from "@paradoc/types";
 
 import { reactLayerRenderers, type ReactLayerRendererOptions } from "../pdf/layer";
 import { renderPdf, type RenderPdfOptions } from "../pdf/render";
@@ -196,8 +196,6 @@ export interface SealVendorPacketOptions {
   insurance?: Uint8Array;
   /** The purchase order data. Defaults to the sample's own. */
   purchaseOrderData?: PurchaseOrderData;
-  /** Resolves the W-9's PDF layer. `@paradoc/essentials` exports one per artifact. */
-  resolver?: Resolver;
   /** Passed through to `renderPdf` for the composition parts. */
   pdf?: RenderPdfOptions;
   /**
@@ -216,7 +214,6 @@ export interface SealVendorPacketOptions {
  */
 export async function sealVendorPacket(options: SealVendorPacketOptions): Promise<SealedBundle> {
   return sealBundle(vendorPacketBundle, {
-    resolver: options.resolver,
     renderers: vendorPacketRenderers({ pdf: options.pdf }),
     ...(options.signers !== undefined && { signers: options.signers }),
     contents: {

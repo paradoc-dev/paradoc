@@ -16,11 +16,25 @@ import {
 } from '@/rendering/renderer-registry'
 
 /**
- * Options for resolving/rendering layer content
+ * Runtime wiring bound to an artifact instance when it is constructed.
+ *
+ * A file-backed layer's bytes come from a resolver, and the resolver is bound
+ * once: `para.form(schema, { resolver })`. Every instance derived from that
+ * one — every fill, every mutator, every clone — carries it. There is no
+ * per-call resolver, because a runtime artifact is immutable by
+ * reconstruction: a mutator builds a fresh instance from the config, and a
+ * resolver that arrived with a render call would not survive the next one.
  */
-export interface LayerRenderOptions {
-	/** Resolver for file-backed layers. Required if the target layer is file-backed. */
+export interface ArtifactInstanceOptions {
+	/** Reads the bytes of this artifact's file-backed layers. */
 	resolver?: Resolver
+}
+
+/**
+ * What an artifact instance's own `render` accepts. The resolver is not here:
+ * it is bound at construction. See {@link ArtifactInstanceOptions}.
+ */
+export interface ArtifactLayerRenderOptions {
 	/** Override the target layer for this render call. */
 	layer?: string
 	/**
@@ -30,6 +44,58 @@ export interface LayerRenderOptions {
 	 * that otherwise only resolves bytes.
 	 */
 	renderers?: RendererRegistry
+}
+
+/**
+ * Options for the free `renderLayer` / `resolveAndRenderLayer` primitives,
+ * which read a bare layers record rather than an artifact instance and so are
+ * handed the resolver directly.
+ */
+export interface LayerRenderOptions extends ArtifactLayerRenderOptions {
+	/** Reads the bytes of a file-backed layer. */
+	resolver?: Resolver
+}
+
+/**
+ * Where the missing resolver was meant to come from.
+ *
+ * `artifact` is a render or seal on an artifact instance, whose resolver is
+ * bound at construction. `layers` is one of the free primitives below, which
+ * read a bare layers record with no artifact to have bound anything, and so
+ * are handed the resolver in their own options.
+ */
+export type ResolverBindingSite = 'artifact' | 'layers'
+
+/** How each site says the resolver should have arrived. */
+const REMEDY: Record<ResolverBindingSite, string> = {
+	artifact:
+		'no resolver is bound to this artifact. Bind one where the artifact is constructed, as the ' +
+		'second argument to para.form, para.document or para.checklist, so every instance derived ' +
+		'from it carries the resolver.',
+	layers:
+		'this call was given no resolver. `renderLayer` reads a bare layers record rather than an ' +
+		'artifact, so there is nothing a resolver could have been bound to: pass one in its options.',
+}
+
+/**
+ * A file-backed layer was rendered with no resolver to read its bytes.
+ *
+ * The remedy depends on where the render started, so `site` chooses it: an
+ * artifact instance carries a resolver bound at construction, while the free
+ * `renderLayer` primitive is handed one per call.
+ */
+export class UnboundResolverError extends Error {
+	readonly layerKey: string
+	readonly path: string
+	readonly site: ResolverBindingSite
+
+	constructor(layerKey: string, path: string, site: ResolverBindingSite) {
+		super(`Layer "${layerKey}" is file-backed ("${path}") but ${REMEDY[site]}`)
+		this.name = 'UnboundResolverError'
+		this.layerKey = layerKey
+		this.path = path
+		this.site = site
+	}
 }
 
 /**
@@ -106,6 +172,24 @@ export async function renderLayer(
 	options?: LayerRenderOptions,
 	context?: LayerRenderContext,
 ): Promise<string | Uint8Array> {
+	return renderLayerAt(layers, layerKey, 'layers', options, context)
+}
+
+/**
+ * The body of `renderLayer`, told which remedy a missing resolver should name.
+ *
+ * The site is not an option, because it is not the caller's to choose: it is
+ * decided by which entry point was reached. Everything public here reads a
+ * bare layers record and passes `layers`; an artifact rendering its own layer
+ * reaches this through `resolveAndRenderArtifactLayer` and passes `artifact`.
+ */
+async function renderLayerAt(
+	layers: Record<string, Layer> | undefined,
+	layerKey: string,
+	site: ResolverBindingSite,
+	options?: LayerRenderOptions,
+	context?: LayerRenderContext,
+): Promise<string | Uint8Array> {
 	if (!layers) {
 		throw new Error('No layers defined')
 	}
@@ -123,7 +207,7 @@ export async function renderLayer(
 					'context for it. Render the layer through the artifact that declares it.',
 			)
 		}
-		const template = await buildRendererLayer(layerKey, layerSpec, layerSpec.bindings, options?.resolver)
+		const template = await buildRendererLayer(layerKey, layerSpec, layerSpec.bindings, options?.resolver, site)
 		return (await registered.render({
 			template,
 			form: context.form,
@@ -146,10 +230,7 @@ export async function renderLayer(
 	// Handle file-backed layers - requires resolver
 	if (layerSpec.kind === 'file') {
 		if (!options?.resolver) {
-			throw new Error(
-				`Layer "${layerKey}" is file-backed but no resolver was provided. ` +
-					'Pass a resolver in the options object to load file layers.',
-			)
+			throw new UnboundResolverError(layerKey, layerSpec.path, site)
 		}
 
 		const bytes = await options.resolver.read(layerSpec.path)
@@ -182,7 +263,27 @@ export async function resolveAndRenderLayer(
 	context?: LayerRenderContext,
 ): Promise<string | Uint8Array> {
 	const key = resolveLayerKey(layers, targetLayer, defaultLayer, options)
-	return renderLayer(layers, key, options, context)
+	return renderLayerAt(layers, key, 'layers', options, context)
+}
+
+/**
+ * `resolveAndRenderLayer` for an artifact rendering its own layer.
+ *
+ * Not part of the package's public surface: it exists because a `Document`
+ * resolves its layer through these primitives while carrying a resolver bound
+ * at construction, so a missing one has to name the constructor rather than
+ * these options. Forms and checklists reach `buildRendererLayer` directly and
+ * name the site there.
+ */
+export async function resolveAndRenderArtifactLayer(
+	layers: Record<string, Layer> | undefined,
+	targetLayer: string | undefined,
+	defaultLayer: string | undefined,
+	options?: LayerRenderOptions,
+	context?: LayerRenderContext,
+): Promise<string | Uint8Array> {
+	const key = resolveLayerKey(layers, targetLayer, defaultLayer, options)
+	return renderLayerAt(layers, key, 'artifact', options, context)
 }
 
 
@@ -225,13 +326,19 @@ export function selectLayerRenderer<Output>(
  * is a pointer to a composition module, which the renderer binds; core neither
  * reads nor executes it, so no resolver is needed and none is asked for.
  *
+ * @param site - Where the resolver was meant to come from, so a missing one
+ * names the right remedy. An artifact instance passes `artifact`; the free
+ * primitives above pass `layers`.
+ *
  * @throws {InlineReactLayerError} when a React MIME type is declared inline.
+ * @throws {UnboundResolverError} when a file layer has no resolver to read it.
  */
 export async function buildRendererLayer(
 	layerKey: string,
 	layerSpec: Layer,
 	bindings: Record<string, string> | undefined,
 	resolver: Resolver | undefined,
+	site: ResolverBindingSite,
 ): Promise<RendererLayer> {
 	if (isReactLayerMimeType(layerSpec.mimeType)) {
 		if (layerSpec.kind !== 'file') throw new InlineReactLayerError(layerKey)
@@ -249,7 +356,7 @@ export async function buildRendererLayer(
 		content = layerSpec.text
 	} else if (layerSpec.kind === 'file') {
 		if (!resolver) {
-			throw new Error(`Layer "${layerKey}" is file-backed but no resolver was provided.`)
+			throw new UnboundResolverError(layerKey, layerSpec.path, site)
 		}
 		const bytes = await resolver.read(layerSpec.path)
 		content =

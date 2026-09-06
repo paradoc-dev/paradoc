@@ -106,13 +106,12 @@ export function createRenderCommand(): Command {
           const { data: rawData, source: dataSource } = await parseDataInput(options.data)
           const normalizedData = normalizeFormData(rawData)
 
-          const formInstance = formApi.from(artifact as Form)
+          const formInstance = formApi.from(artifact as Form, { resolver })
 
           const mod = await rendererManager.loadModule('@paradoc/render')
           const renderer = (mod.renderLayer as (...args: never[]) => any)()
           content = await formInstance.render({
             renderer,
-            resolver,
             data: normalizedData,
             layer: layerKey,
             bindings: parsedBindings,

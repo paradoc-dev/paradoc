@@ -70,7 +70,6 @@ beforeAll(async () => {
   packet = await sealVendorPacket({
     taxpayer: taxpayerDraft(),
     insurance: annex,
-    resolver: w9.resolver,
   });
   pages = await pageTextRuns(packet.pdf);
 }, 180_000);
@@ -127,7 +126,7 @@ describe("the checked-in annex", () => {
   }, 180_000);
 
   it("is what the packet uses when the caller supplies no annex", async () => {
-    const sealed = await sealVendorPacket({ taxpayer: taxpayerDraft(), resolver: w9.resolver });
+    const sealed = await sealVendorPacket({ taxpayer: taxpayerDraft() });
     const carried = sealed.parts.find((part) => part.key === VENDOR_PACKET_KEYS.insurance)!;
     expect(carried.attached).toBe(false);
     expect(carried.pageCount).toBe((await inspectPdf(annex)).pageCount);
@@ -197,7 +196,6 @@ describe("the packet has one signature map", () => {
     const sealed = await sealVendorPacket({
       taxpayer: taxpayerDraft(),
       insurance: annex,
-      resolver: w9.resolver,
       signers: {
         [`${VENDOR_PACKET_KEYS.purchaseOrder}/supplier-signer`]: "northgate-principal",
         [`${VENDOR_PACKET_KEYS.taxpayer}/taxpayer-signer`]: "northgate-principal",
@@ -258,7 +256,6 @@ describe("an annex nobody can paint is still in the packet", () => {
     // entry declares before it tries to paint them.
     const scan = new Uint8Array([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00]);
     const sealed = await sealBundle(vendorPacketBundle, {
-      resolver: w9.resolver,
       renderers: vendorPacketRenderers(),
       contents: {
         [VENDOR_PACKET_KEYS.purchaseOrder]: fillPurchaseOrderForSeal(),

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { document, runtimeDocumentFromJSON } from '@/artifacts'
+import { document, runtimeDocumentFromJSON, UnboundResolverError } from '@/artifacts'
 
 /**
  * Tests for closure-based document implementation (closure-based).
@@ -209,7 +209,7 @@ describe('closure-based Document', () => {
 				expect(output).toBe('First content')
 			})
 
-			test('throws error when file layer but no resolver', async () => {
+			test('throws the named error when a file layer has no bound resolver', async () => {
 				const instance = document()
 					.name('doc')
 					.version('1.0.0')
@@ -218,7 +218,7 @@ describe('closure-based Document', () => {
 					.defaultLayer('pdf')
 					.build()
 
-				await expect(instance.render()).rejects.toThrow('no resolver was provided')
+				await expect(instance.render()).rejects.toThrow(UnboundResolverError)
 			})
 
 			test('returns raw bytes for binary file layers', async () => {
@@ -233,9 +233,9 @@ describe('closure-based Document', () => {
 					.title('Doc')
 					.fileLayer('pdf', { mimeType: 'application/pdf', path: '/templates/doc.pdf' })
 					.defaultLayer('pdf')
-					.build()
+					.build({ resolver: mockResolver })
 
-				const output = await instance.render({ resolver: mockResolver })
+				const output = await instance.render()
 				expect(output).toBeInstanceOf(Uint8Array)
 				expect(output).toEqual(pdfContent)
 			})
@@ -252,9 +252,9 @@ describe('closure-based Document', () => {
 					.title('Doc')
 					.fileLayer('text', { mimeType: 'text/plain', path: '/templates/doc.txt' })
 					.defaultLayer('text')
-					.build()
+					.build({ resolver: mockResolver })
 
-				const output = await instance.render({ resolver: mockResolver })
+				const output = await instance.render()
 				expect(typeof output).toBe('string')
 				expect(output).toBe('Hello from file!')
 			})

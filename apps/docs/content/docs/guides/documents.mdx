@@ -113,9 +113,15 @@ Your data is used to provide and improve our services.
 <Step>
 ## Add File Layers
 
-You can also reference external files instead of inline content.
+You can also reference external files instead of inline content. A file-backed
+layer's bytes come from a resolver, and the resolver is bound once, when the
+document is constructed — every instance derived from it afterward carries it.
 
 ```ts tab="Object Pattern"
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: process.cwd() })
+
 const privacyPolicy = para.document({
   name: 'privacy-policy',
   version: '1.0.0',
@@ -133,10 +139,14 @@ const privacyPolicy = para.document({
       path: '/documents/privacy-policy.md',
     },
   },
-})
+}, { resolver })
 ```
 
 ```ts tab="Builder Pattern"
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: process.cwd() })
+
 const privacyPolicy = para
   .document()
   .name('privacy-policy')
@@ -151,7 +161,7 @@ const privacyPolicy = para
     path: '/documents/privacy-policy.md',
   })
   .defaultLayer('pdf')
-  .build()
+  .build({ resolver })
 ```
 </Step>
 
@@ -170,14 +180,15 @@ const htmlOutput = await privacyPolicy.render({ layer: 'html' })
 console.log(htmlOutput)
 ```
 
-For file layers, provide a resolver:
+A document with file layers, built with a bound resolver as shown above,
+renders the same way — no resolver in the render call:
 
 ```ts
-import { createFsResolver } from '@paradoc/resolvers'
-
-const resolver = createFsResolver({ root: process.cwd() })
-const pdfBytes = await privacyPolicy.render({ resolver })
+const pdfBytes = await privacyPolicy.render()
 ```
+
+Render a file layer with no resolver bound and Paradoc throws
+`UnboundResolverError`, naming the layer and the path it wanted.
 </Step>
 
 <Step>

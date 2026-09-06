@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, test, expect } from 'vitest'
 import { pageTextRuns } from '@paradoc/render/pdf'
 import type { Bundle, ParadocRenderer, RendererLayer, RenderRequest, SignatureSlot } from '@paradoc/types'
-import { form, SealConfigError } from '@/artifacts'
+import { form, SealConfigError, UnboundResolverError } from '@/artifacts'
 import { assembleBundle, BundleSealError, sealBundle } from '@/rendering'
 
 /**
@@ -399,5 +399,92 @@ describe('assembling a bundle', () => {
 			contents: { annex: { kind: 'bytes', content: pdf, mimeType: 'application/pdf' } },
 		})
 		expect(assembled.outputs.annex!.filename).toBe('annex.pdf')
+	})
+})
+
+/**
+ * A packet takes no resolver of its own.
+ *
+ * Its parts are artifact instances, and each one carries the resolver it was
+ * constructed with. That is the whole reason the bundle-level option is gone,
+ * so it is worth pinning both halves: a bound part reads its file layer, and
+ * an unbound one fails naming itself rather than reaching for a resolver the
+ * packet was never given.
+ */
+describe('a packet whose parts carry their own resolvers', () => {
+	const pdf = new Uint8Array(
+		readFileSync(join(__dirname, '..', 'artifacts', 'form', 'fixtures', 'auto-clean.pdf')),
+	)
+
+	/** A one-slot contract whose PDF layer is file-backed, so it needs a resolver. */
+	const fileBackedContract = (name: string, options?: { resolver: { read(path: string): Promise<Uint8Array> } }) =>
+		form()
+			.name(name)
+			.version('1.0.0')
+			.title(name)
+			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
+			.parties({ client: { label: 'client', types: ['person'], signature: { required: true } } })
+			.fileLayer('pdf', {
+				mimeType: 'application/pdf',
+				path: `${name}.pdf`,
+				signatures: {
+					'client-sig': {
+						party: { role: 'client' },
+						type: 'signature',
+						placement: { page: 1, x: 50, y: 200, width: 120, height: 30 },
+					},
+				},
+			})
+			.defaultLayer('pdf')
+			.build(options)
+			.fill({ fields: { amount: 10 }, parties: { client: { id: 'client-0', name: 'client' } } })
+			.addSigner(`${name}-signer`, { person: { name: 'client' } })
+			.addSignatory('client', 'client-0', { signerId: `${name}-signer` })
+
+	const twoParts: Bundle = {
+		kind: 'bundle',
+		name: 'mixed-binding-packet',
+		version: '1.0.0',
+		title: 'Mixed binding packet',
+		contents: [
+			{ type: 'inline', key: 'bound', artifact: { kind: 'document', name: 'bound', version: '1.0.0', title: 'Bound' } },
+			{ type: 'inline', key: 'unbound', artifact: { kind: 'document', name: 'unbound', version: '1.0.0', title: 'Unbound' } },
+		],
+	}
+
+	const resolver = { read: async (): Promise<Uint8Array> => pdf }
+
+	test('seals a part whose resolver is bound, and fails on the one whose is not', async () => {
+		const error = await sealBundle(twoParts, {
+			contents: {
+				bound: fileBackedContract('bound', { resolver }),
+				unbound: fileBackedContract('unbound'),
+			},
+		}).then(
+			() => undefined,
+			(err: unknown) => err,
+		)
+
+		// The bound part is first in bundle order and sealed without complaint;
+		// the failure belongs to the second, and says so.
+		expect(error).toBeInstanceOf(BundleSealError)
+		const failure = error as BundleSealError
+		expect(failure.part).toBe('unbound')
+		expect(failure.message).toContain('sealing part "unbound" failed')
+		expect(failure.cause).toBeInstanceOf(UnboundResolverError)
+		expect((failure.cause as UnboundResolverError).site).toBe('artifact')
+		expect((failure.cause as UnboundResolverError).path).toBe('unbound.pdf')
+	})
+
+	test('seals both parts once both are bound', async () => {
+		const packet = await sealBundle(twoParts, {
+			contents: {
+				bound: fileBackedContract('bound', { resolver }),
+				unbound: fileBackedContract('unbound', { resolver }),
+			},
+		})
+
+		expect(packet.parts.map((part) => part.key)).toEqual(['bound', 'unbound'])
+		expect(packet.signatureMap.map((field) => field.id)).toEqual(['bound/client-sig', 'unbound/client-sig'])
 	})
 })

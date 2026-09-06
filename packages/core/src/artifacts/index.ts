@@ -13,8 +13,14 @@
  */
 
 // Shared utilities
-export { withArtifactMethods, renderLayer, resolveLayerKey, resolveAndRenderLayer } from './shared'
-export type { ArtifactMethods, LayerRenderOptions } from './shared'
+export { withArtifactMethods, renderLayer, resolveLayerKey, resolveAndRenderLayer, UnboundResolverError } from './shared'
+export type {
+	ArtifactMethods,
+	ArtifactInstanceOptions,
+	ArtifactLayerRenderOptions,
+	LayerRenderOptions,
+	ResolverBindingSite,
+} from './shared'
 
 // Closure-based builders (independent from artifacts/)
 export {

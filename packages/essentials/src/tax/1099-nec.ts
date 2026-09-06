@@ -1115,39 +1115,16 @@ const contents: Record<string, string | Uint8Array> = {
   "1099-nec-2.pdf": __c_1099_nec_2_pdf,
 };
 
-const baseForm = para.form(schema);
 const resolver = createMemoryResolver({ contents });
-
-const originalFill = baseForm.fill.bind(baseForm);
-const originalSafeFill = baseForm.safeFill.bind(baseForm);
-
-type Draft = ReturnType<typeof baseForm.fill>;
-type RenderArg = Parameters<Draft["render"]>[0];
-
-function bindResolver(draft: Draft): Draft {
-  const originalRender = draft.render.bind(draft);
-  draft.render = ((opts: RenderArg) => originalRender({ resolver, ...opts })) as Draft["render"];
-  return draft;
-}
 
 /**
  * Nonemployee Compensation
  *
  * An IRS information return filed by a payer to report nonemployee compensation, excess golden parachute payments, and any federal or state tax withheld for a recipient over a calendar year. Copy A is filed with the IRS, Copy 1 with the state tax department, and Copies B and 2 are furnished to the recipient.
  */
-export const f1099NEC = Object.assign(baseForm, {
-  /** Pre-populated resolver containing every layer and instruction file this artifact references. */
-  resolver,
+export const f1099NEC = Object.assign(para.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/tax/1099-nec/. */
   spec: schema,
-  fill(data: Parameters<typeof originalFill>[0], options?: Parameters<typeof originalFill>[1]) {
-    return bindResolver(originalFill(data, options));
-  },
-  safeFill(data: Parameters<typeof originalSafeFill>[0], options?: Parameters<typeof originalSafeFill>[1]) {
-    const result = originalSafeFill(data, options);
-    if (result.success) bindResolver(result.data);
-    return result;
-  },
 });
 
 export default f1099NEC;

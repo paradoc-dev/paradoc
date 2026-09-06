@@ -123,8 +123,13 @@ const output = await executed.render()
 ## Object Pattern
 
 ```ts
-para.form(input: FormInput): FormInstance
+para.form(input: FormInput, options?: ArtifactInstanceOptions): FormInstance
 ```
+
+`options.resolver` reads the bytes of any file-backed layer this form
+declares. It's bound once here, at construction, and every instance derived
+from the form — every `fill`, mutator, and `clone` — carries it; `render()`
+itself takes no resolver. See [ArtifactInstanceOptions](/sdk/resolvers#artifactinstanceoptions).
 
 ### Parameters
 
@@ -223,18 +228,20 @@ Chain methods to build a form incrementally:
     { name: 'allowAdditionalAnnexes', params: 'value: boolean', description: 'Allow ad-hoc annexes' },
     { name: 'party', params: 'roleId: string, party: FormParty', description: 'Add a party role' },
     { name: 'parties', params: 'parties: Record<string, FormParty>', description: 'Set all parties at once' },
-    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+    { name: 'build', params: 'options?: ArtifactInstanceOptions', description: 'Build and validate; bind a resolver for file-backed layers', terminal: true },
   ]}
   returns={{ intermediate: 'FormBuilder', terminal: 'FormInstance' }}
 />
 
 ## Static Methods
 
-Parse forms from unknown data sources:
+Parse forms from unknown data sources. Both accept an
+[`ArtifactInstanceOptions`](/sdk/resolvers#artifactinstanceoptions) to bind a
+resolver for any file-backed layer:
 
 <MethodTable methods={[
-  { name: 'from', params: 'input: unknown', returns: 'FormInstance', description: 'Parse unknown input (throws on error)' },
-  { name: 'safeFrom', params: 'input: unknown', returns: 'Result<FormInstance>', description: 'Parse unknown input (returns result object)' },
+  { name: 'from', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'FormInstance', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeFrom', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'Result<FormInstance>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
 # Data Validation

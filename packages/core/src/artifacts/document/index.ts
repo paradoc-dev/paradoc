@@ -14,4 +14,4 @@ export type {
 } from './document'
 
 // Re-export layer render options from shared
-export type { LayerRenderOptions } from '../shared/render-layer'
+export type { ArtifactLayerRenderOptions } from '../shared/render-layer'

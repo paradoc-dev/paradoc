@@ -65,11 +65,25 @@ describe("i-9", () => {
     expect(parsed.success).toBe(true);
   });
 
-  it("renders the markdown layer with the bundled resolver", async () => {
+  it("renders the markdown layer on the bound resolver", async () => {
     const parsed = i9.safeParseData(happyPathInputs as any);
     if (!parsed.success) throw new Error("happy-path vector should parse");
     const filled = i9.fill(parsed.data, { rules: false });
     const output = await filled.render({
+      renderer: textRenderer(),
+      layer: "markdown",
+    });
+    expect(typeof output).toBe("string");
+    expect(output.length).toBeGreaterThan(0);
+  });
+
+  it("still renders after a mutator reconstructs the form", async () => {
+    const parsed = i9.safeParseData(happyPathInputs as any);
+    if (!parsed.success) throw new Error("happy-path vector should parse");
+    const mutated = i9
+      .fill(parsed.data, { rules: false })
+      .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
+    const output = await mutated.render({
       renderer: textRenderer(),
       layer: "markdown",
     });

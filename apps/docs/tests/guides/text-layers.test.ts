@@ -20,6 +20,8 @@ describe('Text Layers Guide', () => {
   // Step 4: Define the Form
   // ============================================================================
 
+  const resolver = createFsResolver({ root: fixturesRoot })
+
   const leaseAgreement = para.form({
     name: 'lease-agreement',
     title: 'Residential Lease Agreement',
@@ -60,7 +62,7 @@ describe('Text Layers Guide', () => {
         path: 'lease.md',
       },
     },
-  })
+  }, { resolver })
 
   test('defines form with file layer', () => {
     expect(leaseAgreement.kind).toBe('form')
@@ -117,11 +119,8 @@ describe('Text Layers Guide', () => {
   // ============================================================================
 
   test('renders lease agreement with all template patterns', async () => {
-    const resolver = createFsResolver({ root: fixturesRoot })
-
     const output = await filled.render({
       renderer: renderLayer(),
-      resolver,
       layer: 'markdown',
     })
 
@@ -146,10 +145,8 @@ describe('Text Layers Guide', () => {
   })
 
   test('renders and writes to temp file', async () => {
-    const resolver = createFsResolver({ root: fixturesRoot })
     const output = await filled.render({
       renderer: renderLayer(),
-      resolver,
       layer: 'markdown',
     })
 

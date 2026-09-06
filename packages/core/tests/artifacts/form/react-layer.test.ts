@@ -251,6 +251,7 @@ describe('React layers dispatch by MIME type', () => {
 				{ kind: 'inline', mimeType: 'text/tsx', text: 'export default () => null' },
 				undefined,
 				undefined,
+				'artifact',
 			),
 		).rejects.toThrow(InlineReactLayerError)
 		await expect(
@@ -259,6 +260,7 @@ describe('React layers dispatch by MIME type', () => {
 				{ kind: 'inline', mimeType: 'text/tsx', text: 'export default () => null' },
 				undefined,
 				undefined,
+				'artifact',
 			),
 		).rejects.toThrow(/React layers must be file layers/)
 	})

@@ -5,12 +5,17 @@
  * with a single file using closures and composition.
  */
 
-import type { Document, Form, Layer, Metadata, ContentRef } from '@paradoc/types'
+import type { Document, Form, Layer, Metadata, ContentRef, Resolver } from '@paradoc/types'
 import type { DraftDocumentJSON, FinalDocumentJSON } from '@paradoc/types'
 import { parseDocument, parseLayer } from '@/validation/artifact-parsers'
 import { toYAML } from '@/serialization/serialization'
 import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
-import { resolveAndRenderLayer, type LayerRenderContext, type LayerRenderOptions } from '../shared/render-layer'
+import {
+	resolveAndRenderArtifactLayer,
+	type ArtifactInstanceOptions,
+	type ArtifactLayerRenderOptions,
+	type LayerRenderContext,
+} from '../shared/render-layer'
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 
 /**
@@ -69,9 +74,13 @@ export interface DocumentInstance<D extends Document> extends ArtifactMethods<D>
 
 	/**
 	 * Render document content directly.
-	 * @param options - Render options including resolver and layer override
+	 *
+	 * The resolver for a file-backed layer is bound at construction —
+	 * `para.document(definition, { resolver })` — not passed here.
+	 *
+	 * @param options - Layer override and renderer registry
 	 */
-	render(options?: LayerRenderOptions): Promise<string | Uint8Array>
+	render(options?: ArtifactLayerRenderOptions): Promise<string | Uint8Array>
 
 	/**
 	 * Create an exact copy of this instance.
@@ -102,7 +111,7 @@ interface RuntimeDocumentBase<D extends Document> {
 	/**
 	 * Render the document content.
 	 */
-	render(options?: LayerRenderOptions): Promise<string | Uint8Array>
+	render(options?: ArtifactLayerRenderOptions): Promise<string | Uint8Array>
 
 	/**
 	 * Serialize to JSON.
@@ -169,12 +178,16 @@ export type RuntimeDocument<D extends Document> = DraftDocument<D> | FinalDocume
 interface RuntimeDocumentConfigDraft<D extends Document> {
 	document: D
 	targetLayer: string
+	/** Reads the bytes of file-backed layers. Bound at construction. */
+	resolver?: Resolver
 	finalizedAt?: undefined
 }
 
 interface RuntimeDocumentConfigFinal<D extends Document> {
 	document: D
 	targetLayer: string
+	/** Reads the bytes of file-backed layers. Bound at construction. */
+	resolver?: Resolver
 	finalizedAt: string
 }
 
@@ -188,11 +201,17 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfigFinal<D>): FinalDocument<D>
 function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig<D>): RuntimeDocument<D>
 function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig<D>): RuntimeDocument<D> {
-	const { document: doc, targetLayer, finalizedAt } = config
+	const { document: doc, targetLayer, resolver, finalizedAt } = config
 
 	// Shared render function
-	const render = (options?: LayerRenderOptions): Promise<string | Uint8Array> => {
-		return resolveAndRenderLayer(doc.layers, targetLayer, doc.defaultLayer, options, documentRenderContext(doc))
+	const render = (options?: ArtifactLayerRenderOptions): Promise<string | Uint8Array> => {
+		return resolveAndRenderArtifactLayer(
+			doc.layers,
+			targetLayer,
+			doc.defaultLayer,
+			{ ...options, resolver },
+			documentRenderContext(doc),
+		)
 	}
 
 	// Draft phase
@@ -225,13 +244,14 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 						`Layer "${layer}" not found in document. Available layers: ${Object.keys(layers).join(', ') || 'none'}`,
 					)
 				}
-				return createRuntimeDocument({ document: doc, targetLayer: layer })
+				return createRuntimeDocument({ document: doc, targetLayer: layer, resolver })
 			},
 
 			finalize(): FinalDocument<D> {
 				return createRuntimeDocument({
 					document: doc,
 					targetLayer,
+					resolver,
 					finalizedAt: new Date().toISOString(),
 				})
 			},
@@ -252,6 +272,7 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 				return createRuntimeDocument({
 					document: structuredClone(doc),
 					targetLayer,
+					resolver,
 				})
 			},
 		}
@@ -297,6 +318,7 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 			return createRuntimeDocument({
 				document: structuredClone(doc),
 				targetLayer,
+				resolver,
 				finalizedAt,
 			})
 		},
@@ -305,12 +327,19 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 }
 
 /**
- * Load a RuntimeDocument from JSON
+ * Load a RuntimeDocument from JSON.
+ *
+ * A resolver is behavior, not data, so it is not in the JSON: bind it here to
+ * give the rehydrated document its file-backed layers back.
  */
-export function runtimeDocumentFromJSON<D extends Document>(json: RuntimeDocumentJSON<D>): RuntimeDocument<D> {
+export function runtimeDocumentFromJSON<D extends Document>(
+	json: RuntimeDocumentJSON<D>,
+	options?: ArtifactInstanceOptions,
+): RuntimeDocument<D> {
 	return createRuntimeDocument({
 		document: json.document,
 		targetLayer: json.targetLayer,
+		resolver: options?.resolver,
 		finalizedAt: 'finalizedAt' in json ? json.finalizedAt : undefined,
 	})
 }
@@ -322,8 +351,12 @@ export function runtimeDocumentFromJSON<D extends Document>(json: RuntimeDocumen
 /**
  * Creates a DocumentInstance object (replaces DocumentInstance class)
  */
-function createDocumentInstance<D extends Document>(doc: D): DocumentInstance<D> {
+function createDocumentInstance<D extends Document>(
+	doc: D,
+	options?: ArtifactInstanceOptions,
+): DocumentInstance<D> {
 	const artifactMethods = withArtifactMethods(doc)
+	const resolver = options?.resolver
 
 	const instance: DocumentInstance<D> = {
 		...artifactMethods,
@@ -352,15 +385,22 @@ function createDocumentInstance<D extends Document>(doc: D): DocumentInstance<D>
 			return createRuntimeDocument({
 				document: doc,
 				targetLayer: resolvedTargetLayer,
+				resolver,
 			})
 		},
 
-		render(options?: LayerRenderOptions): Promise<string | Uint8Array> {
-			return resolveAndRenderLayer(doc.layers, undefined, doc.defaultLayer, options, documentRenderContext(doc))
+		render(renderOptions?: ArtifactLayerRenderOptions): Promise<string | Uint8Array> {
+			return resolveAndRenderArtifactLayer(
+				doc.layers,
+				undefined,
+				doc.defaultLayer,
+				{ ...renderOptions, resolver },
+				documentRenderContext(doc),
+			)
 		},
 
 		clone(): DocumentInstance<D> {
-			return createDocumentInstance(structuredClone(doc))
+			return createDocumentInstance(structuredClone(doc), options)
 		},
 	}
 
@@ -394,7 +434,7 @@ export interface DocumentBuilderInterface {
 		layer: { mimeType: string; path: string; title?: string; description?: string; checksum?: string },
 	): DocumentBuilderInterface
 	defaultLayer(key: string): DocumentBuilderInterface
-	build(): DocumentInstance<Document>
+	build(options?: ArtifactInstanceOptions): DocumentInstance<Document>
 }
 
 /**
@@ -524,10 +564,10 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 			return builder
 		},
 
-		build(): DocumentInstance<Document> {
+		build(options?: ArtifactInstanceOptions): DocumentInstance<Document> {
 			const payload = Object.fromEntries(Object.entries(_def).filter(([, value]) => value !== undefined))
 			const parsed = parseDocument(payload)
-			return createDocumentInstance(parsed)
+			return createDocumentInstance(parsed, options)
 		},
 	}
 
@@ -540,37 +580,48 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 
 type DocumentAPI = {
 	(): DocumentBuilderInterface
-	<const T extends DocumentInput>(input: T): DocumentInstance<T & { kind: 'document' }>
-	from(input: unknown): DocumentInstance<Document>
-	safeFrom(input: unknown): { success: true; data: DocumentInstance<Document> } | { success: false; error: Error }
+	<const T extends DocumentInput>(
+		input: T,
+		options?: ArtifactInstanceOptions,
+	): DocumentInstance<T & { kind: 'document' }>
+	from(input: unknown, options?: ArtifactInstanceOptions): DocumentInstance<Document>
+	safeFrom(
+		input: unknown,
+		options?: ArtifactInstanceOptions,
+	): { success: true; data: DocumentInstance<Document> } | { success: false; error: Error }
 }
 
 function documentImpl(): DocumentBuilderInterface
-function documentImpl<const T extends DocumentInput>(input: T): DocumentInstance<T & { kind: 'document' }>
+function documentImpl<const T extends DocumentInput>(
+	input: T,
+	options?: ArtifactInstanceOptions,
+): DocumentInstance<T & { kind: 'document' }>
 function documentImpl<const T extends DocumentInput>(
 	input?: T,
+	options?: ArtifactInstanceOptions,
 ): DocumentBuilderInterface | DocumentInstance<T & { kind: 'document' }> {
 	if (input !== undefined) {
 		const withKind = { ...input, kind: 'document' as const }
 		const parsed = parseDocument(withKind) as T & { kind: 'document' }
-		return createDocumentInstance(parsed)
+		return createDocumentInstance(parsed, options)
 	}
 	return createDocumentBuilder()
 }
 
 export const document: DocumentAPI = Object.assign(documentImpl, {
-	from: (input: unknown): DocumentInstance<Document> => {
+	from: (input: unknown, options?: ArtifactInstanceOptions): DocumentInstance<Document> => {
 		const parsed = parseDocument(input) as Document
-		return createDocumentInstance(parsed)
+		return createDocumentInstance(parsed, options)
 	},
 	safeFrom: (
 		input: unknown,
+		options?: ArtifactInstanceOptions,
 	): { success: true; data: DocumentInstance<Document> } | { success: false; error: Error } => {
 		try {
 			const parsed = parseDocument(input) as Document
 			return {
 				success: true,
-				data: createDocumentInstance(parsed),
+				data: createDocumentInstance(parsed, options),
 			}
 		} catch (err) {
 			return { success: false, error: err as Error }

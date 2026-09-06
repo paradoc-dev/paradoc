@@ -44,6 +44,11 @@ Define forms with parties, fields, and output layers:
 import { para } from "@paradoc/sdk";
 import { createFsResolver } from "@paradoc/resolvers";
 
+// A file-backed layer's bytes come from a resolver, bound once when the form
+// is built. Every instance derived from it — every fill, every render —
+// carries the same resolver.
+const resolver = createFsResolver({ root: process.cwd() });
+
 const leaseAgreement = para
   .form()
   .name("residential-lease-agreement")
@@ -85,7 +90,7 @@ const leaseAgreement = para
     monthlyRent: { type: "money", label: "Monthly Rent", required: true },
     leaseStartDate: { type: "date", label: "Lease Start Date", required: true },
   })
-  .build();
+  .build({ resolver });
 
 // Fill with data (automatic validation)
 const filledLease = leaseAgreement.fill({
@@ -103,14 +108,11 @@ const filledLease = leaseAgreement.fill({
   },
 });
 
-// Render to multiple formats
-const resolver = createFsResolver({ root: process.cwd() });
+// Render to multiple formats — no resolver here, it travels with the instance
 const markdown = await filledLease.render({
-  resolver,
   layer: "markdown",
 });
 const html = await filledLease.render({
-  resolver,
   layer: "html",
 });
 ```

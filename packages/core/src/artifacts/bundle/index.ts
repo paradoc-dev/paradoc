@@ -19,4 +19,3 @@ export type {
 	RuntimeBundleRendered,
 	BundleBuilderInterface,
 } from './bundle'
-export type { LayerRenderOptions } from '../shared/render-layer'

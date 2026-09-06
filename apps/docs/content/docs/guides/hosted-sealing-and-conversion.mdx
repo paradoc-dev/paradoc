@@ -9,7 +9,10 @@ do not run their own conversion infrastructure.
 # Hosted seal adapter
 
 The SDK adapter converts a rendered HTML, Markdown, or DOCX layer to PDF before
-the framework flattens and hashes the canonical output.
+the framework flattens and hashes the canonical output. If the target layer is
+file-backed, bind its resolver where `form` is constructed —
+`para.form(schema, { resolver })` — rather than passing it here; `seal` no
+longer takes one.
 
 ```ts
 import { hostedSealAdapter } from '@paradoc/sdk'
@@ -18,7 +21,6 @@ const signable = await form
   .fill(data)
   .setTargetLayer('markdown')
   .seal({
-    resolver,
     adapter: hostedSealAdapter({
       apiKey: process.env.PARADOC_API_KEY!,
     }),

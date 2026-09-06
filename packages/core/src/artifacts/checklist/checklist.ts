@@ -5,8 +5,9 @@
  * with a single file using closures and composition.
  */
 
-import type { Checklist, ChecklistItem, Layer, Metadata, ParadocRenderer, RendererLayer, Form, ContentRef } from '@paradoc/types'
+import type { Checklist, ChecklistItem, Layer, Metadata, ParadocRenderer, RendererLayer, Form, ContentRef, Resolver } from '@paradoc/types'
 import { buildRendererLayer } from '../shared/render-layer'
+import type { ArtifactInstanceOptions } from '../shared/render-layer'
 import {
 	findRegisteredRenderer,
 	isReactLayerMimeType,
@@ -261,6 +262,8 @@ interface RuntimeChecklistConfigDraft<C extends Checklist> {
 	checklist: C
 	items: Record<string, boolean | string>
 	targetLayer: string
+	/** Reads the bytes of file-backed layers. Bound at construction. */
+	resolver?: Resolver
 	completedAt?: undefined
 }
 
@@ -268,6 +271,8 @@ interface RuntimeChecklistConfigCompleted<C extends Checklist> {
 	checklist: C
 	items: Record<string, boolean | string>
 	targetLayer: string
+	/** Reads the bytes of file-backed layers. Bound at construction. */
+	resolver?: Resolver
 	completedAt: string
 }
 
@@ -281,7 +286,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistConfigCompleted<C>): CompletedChecklist<C>
 function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistConfig<C>): RuntimeChecklist<C>
 function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistConfig<C>): RuntimeChecklist<C> {
-	const { checklist: checklistDef, items: itemValues, targetLayer, completedAt } = config
+	const { checklist: checklistDef, items: itemValues, targetLayer, resolver, completedAt } = config
 
 	// Build item lookup map and validate
 	const itemDefs = new Map<string, ChecklistItem>()
@@ -360,11 +365,11 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			if (isReactLayerMimeType(layerSpec.mimeType)) {
 				throw new UnregisteredLayerRendererError(key, layerSpec.mimeType)
 			}
-			const raw = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
+			const raw = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 			return raw.content as Output
 		}
 
-		const template = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
+		const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
 		// Build checklist data for rendering
 		// Convert items to array format with values for template iteration
@@ -452,6 +457,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 					checklist: checklistDef,
 					items: newItems as Record<string, boolean | string>,
 					targetLayer,
+					resolver,
 				})
 			},
 
@@ -461,6 +467,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 					checklist: checklistDef,
 					items: newItems as Record<string, boolean | string>,
 					targetLayer,
+					resolver,
 				})
 			},
 
@@ -475,6 +482,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 					checklist: checklistDef,
 					items: getAllItems() as Record<string, boolean | string>,
 					targetLayer: layer,
+					resolver,
 				})
 			},
 
@@ -483,6 +491,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 					checklist: checklistDef,
 					items: getAllItems() as Record<string, boolean | string>,
 					targetLayer,
+					resolver,
 					completedAt: new Date().toISOString(),
 				})
 			},
@@ -505,6 +514,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 					checklist: structuredClone(checklistDef),
 					items: structuredClone(getAllItems() as Record<string, boolean | string>),
 					targetLayer,
+					resolver,
 				})
 			},
 		}
@@ -558,6 +568,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 				checklist: structuredClone(checklistDef),
 				items: structuredClone(getAllItems() as Record<string, boolean | string>),
 				targetLayer,
+				resolver,
 				completedAt,
 			})
 		},
@@ -566,13 +577,20 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 }
 
 /**
- * Load a RuntimeChecklist from JSON
+ * Load a RuntimeChecklist from JSON.
+ *
+ * A resolver is behavior, not data, so it is not in the JSON: bind it here to
+ * give the rehydrated checklist its file-backed layers back.
  */
-export function runtimeChecklistFromJSON<C extends Checklist>(json: RuntimeChecklistJSON<C>): RuntimeChecklist<C> {
+export function runtimeChecklistFromJSON<C extends Checklist>(
+	json: RuntimeChecklistJSON<C>,
+	options?: ArtifactInstanceOptions,
+): RuntimeChecklist<C> {
 	return createRuntimeChecklist({
 		checklist: json.checklist,
 		items: json.items,
 		targetLayer: json.targetLayer,
+		resolver: options?.resolver,
 		completedAt: 'completedAt' in json ? json.completedAt : undefined,
 	})
 }
@@ -584,8 +602,12 @@ export function runtimeChecklistFromJSON<C extends Checklist>(json: RuntimeCheck
 /**
  * Creates a ChecklistInstance object (replaces ChecklistInstance class)
  */
-function createChecklistInstance<C extends Checklist>(checklistDef: C): ChecklistInstance<C> {
+function createChecklistInstance<C extends Checklist>(
+	checklistDef: C,
+	options?: ArtifactInstanceOptions,
+): ChecklistInstance<C> {
 	const artifactMethods = withArtifactMethods(checklistDef)
+	const resolver = options?.resolver
 
 	const instance: ChecklistInstance<C> = {
 		...artifactMethods,
@@ -615,6 +637,7 @@ function createChecklistInstance<C extends Checklist>(checklistDef: C): Checklis
 				checklist: checklistDef,
 				items: data as Record<string, boolean | string>,
 				targetLayer,
+				resolver,
 			})
 		},
 
@@ -672,11 +695,11 @@ function createChecklistInstance<C extends Checklist>(checklistDef: C): Checklis
 				if (isReactLayerMimeType(layerSpec.mimeType)) {
 					throw new UnregisteredLayerRendererError(key, layerSpec.mimeType)
 				}
-				const raw = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
+				const raw = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 				return raw.content as Output
 			}
 
-			const template = await buildRendererLayer(key, layerSpec, bindings, options?.resolver)
+			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
 			// Build checklist data for rendering (no item values since not filled)
 			const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
@@ -720,7 +743,7 @@ function createChecklistInstance<C extends Checklist>(checklistDef: C): Checklis
 		},
 
 		clone(): ChecklistInstance<C> {
-			return createChecklistInstance(structuredClone(checklistDef))
+			return createChecklistInstance(structuredClone(checklistDef), options)
 		},
 	}
 
@@ -783,7 +806,7 @@ export interface ChecklistBuilderInterface<TItems extends ChecklistItem[] = []> 
 		},
 	): ChecklistBuilderInterface<TItems>
 	defaultLayer(key: string): ChecklistBuilderInterface<TItems>
-	build(): ChecklistInstance<Omit<Checklist, 'items'> & { items: TItems }>
+	build(options?: ArtifactInstanceOptions): ChecklistInstance<Omit<Checklist, 'items'> & { items: TItems }>
 }
 
 /**
@@ -979,10 +1002,10 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 			return builder
 		},
 
-		build(): ChecklistInstance<Omit<Checklist, 'items'> & { items: TItems }> {
+		build(options?: ArtifactInstanceOptions): ChecklistInstance<Omit<Checklist, 'items'> & { items: TItems }> {
 			const payload = Object.fromEntries(Object.entries(_def).filter(([, value]) => value !== undefined))
 			const parsed = parseChecklist(payload)
-			return createChecklistInstance(parsed as Omit<Checklist, 'items'> & { items: TItems })
+			return createChecklistInstance(parsed as Omit<Checklist, 'items'> & { items: TItems }, options)
 		},
 	}
 
@@ -995,35 +1018,48 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 
 type ChecklistAPI = {
 	(): ChecklistBuilderInterface
-	<const T extends ChecklistInput>(input: T): ChecklistInstance<T & { kind: 'checklist' }>
-	from(input: unknown): ChecklistInstance<Checklist>
-	safeFrom(input: unknown): { success: true; data: ChecklistInstance<Checklist> } | { success: false; error: Error }
+	<const T extends ChecklistInput>(
+		input: T,
+		options?: ArtifactInstanceOptions,
+	): ChecklistInstance<T & { kind: 'checklist' }>
+	from(input: unknown, options?: ArtifactInstanceOptions): ChecklistInstance<Checklist>
+	safeFrom(
+		input: unknown,
+		options?: ArtifactInstanceOptions,
+	): { success: true; data: ChecklistInstance<Checklist> } | { success: false; error: Error }
 }
 
 function checklistImpl(): ChecklistBuilderInterface
-function checklistImpl<const T extends ChecklistInput>(input: T): ChecklistInstance<T & { kind: 'checklist' }>
+function checklistImpl<const T extends ChecklistInput>(
+	input: T,
+	options?: ArtifactInstanceOptions,
+): ChecklistInstance<T & { kind: 'checklist' }>
 function checklistImpl<const T extends ChecklistInput>(
 	input?: T,
+	options?: ArtifactInstanceOptions,
 ): ChecklistBuilderInterface | ChecklistInstance<T & { kind: 'checklist' }> {
 	if (input !== undefined) {
 		const withKind = { ...input, kind: 'checklist' as const }
 		const parsed = parseChecklist(withKind) as T & { kind: 'checklist' }
-		return createChecklistInstance(parsed)
+		return createChecklistInstance(parsed, options)
 	}
 	return createChecklistBuilder()
 }
 
 export const checklist: ChecklistAPI = Object.assign(checklistImpl, {
-	from: (input: unknown): ChecklistInstance<Checklist> => {
+	from: (input: unknown, options?: ArtifactInstanceOptions): ChecklistInstance<Checklist> => {
 		const parsed = parseChecklist(input) as Checklist
-		return createChecklistInstance(parsed)
+		return createChecklistInstance(parsed, options)
 	},
-	safeFrom: (input: unknown): { success: true; data: ChecklistInstance<Checklist> } | { success: false; error: Error } => {
+	safeFrom: (
+		input: unknown,
+		options?: ArtifactInstanceOptions,
+	): { success: true; data: ChecklistInstance<Checklist> } | { success: false; error: Error } => {
 		try {
 			const parsed = parseChecklist(input) as Checklist
 			return {
 				success: true,
-				data: createChecklistInstance(parsed),
+				data: createChecklistInstance(parsed, options),
 			}
 		} catch (err) {
 			return { success: false, error: err as Error }

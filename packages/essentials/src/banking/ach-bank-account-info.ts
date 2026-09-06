@@ -658,39 +658,16 @@ const contents: Record<string, string | Uint8Array> = {
   "ach-bank-account-info.md": __c_ach_bank_account_info_md,
 };
 
-const baseForm = para.form(schema);
 const resolver = createMemoryResolver({ contents });
-
-const originalFill = baseForm.fill.bind(baseForm);
-const originalSafeFill = baseForm.safeFill.bind(baseForm);
-
-type Draft = ReturnType<typeof baseForm.fill>;
-type RenderArg = Parameters<Draft["render"]>[0];
-
-function bindResolver(draft: Draft): Draft {
-  const originalRender = draft.render.bind(draft);
-  draft.render = ((opts: RenderArg) => originalRender({ resolver, ...opts })) as Draft["render"];
-  return draft;
-}
 
 /**
  * ACH Bank Account Information
  *
  * Standalone vendor / payee bank-account-information collection form for ACH credit destination setup. Captures account-holder identity (individual or organization), bank routing/account/type, and (for organizations) W-9-adjacent entity classification. Pairs with a separate authorization document (vendor agreement, W-9, MSA); the form itself is data-collection only and does not carry an authorization clause.
  */
-export const achBankAccountInfo = Object.assign(baseForm, {
-  /** Pre-populated resolver containing every layer and instruction file this artifact references. */
-  resolver,
+export const achBankAccountInfo = Object.assign(para.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/banking/ach-bank-account-info/. */
   spec: schema,
-  fill(data: Parameters<typeof originalFill>[0], options?: Parameters<typeof originalFill>[1]) {
-    return bindResolver(originalFill(data, options));
-  },
-  safeFill(data: Parameters<typeof originalSafeFill>[0], options?: Parameters<typeof originalSafeFill>[1]) {
-    const result = originalSafeFill(data, options);
-    if (result.success) bindResolver(result.data);
-    return result;
-  },
 });
 
 export default achBankAccountInfo;

@@ -55,8 +55,15 @@ Let's make a new project and install the SDK and filesystem resolver. The SDK in
 
 Let's define a simple purchase agreement with 2 parties and 3 fields. It will have a single layer that is a Markdown file.
 
+The `markdown` layer is file-backed, so its bytes come from a resolver. Bind
+one when you build the form — every instance you derive from it later
+(`fill`, `render`, and so on) carries it.
+
 ```ts
 import { para } from '@paradoc/sdk'
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: process.cwd() })
 
 const purchaseAgreement = para
   .form()
@@ -76,7 +83,7 @@ const purchaseAgreement = para
     markdown: para.layer().file().mimeType('text/markdown').path('purchase-agreement.md'),
   })
   .defaultLayer('markdown')
-  .build()
+  .build({ resolver })
 ```
 </Step>
 
@@ -136,14 +143,10 @@ if (draft.isValid()) {
 <Step>
 ### Render
 
-Let's render the purchase agreement with the data using the `.render()` method.
+Let's render the purchase agreement with the data using the `.render()` method. The resolver we bound when building the form travels with `draft`, so we don't pass it again.
 
 ```ts
-import { createFsResolver } from '@paradoc/resolvers'
-
-const resolver = createFsResolver({ root: process.cwd() })
-
-const output = await draft.render({ resolver, layer: 'markdown' })
+const output = await draft.render({ layer: 'markdown' })
 
 console.log(output)
 // Purchase Agreement

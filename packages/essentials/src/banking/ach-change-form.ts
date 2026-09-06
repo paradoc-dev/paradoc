@@ -586,39 +586,16 @@ const contents: Record<string, string | Uint8Array> = {
   "ach-change-form.md": __c_ach_change_form_md,
 };
 
-const baseForm = para.form(schema);
 const resolver = createMemoryResolver({ contents });
-
-const originalFill = baseForm.fill.bind(baseForm);
-const originalSafeFill = baseForm.safeFill.bind(baseForm);
-
-type Draft = ReturnType<typeof baseForm.fill>;
-type RenderArg = Parameters<Draft["render"]>[0];
-
-function bindResolver(draft: Draft): Draft {
-  const originalRender = draft.render.bind(draft);
-  draft.render = ((opts: RenderArg) => originalRender({ resolver, ...opts })) as Draft["render"];
-  return draft;
-}
 
 /**
  * ACH Change Form
  *
  * Standalone form by which an account holder requests a change to an existing ACH arrangement (direct deposit, ACH credit, or ACH debit) already authorized with an originator. Captures change type, identification of the existing arrangement, new account or amount/frequency information, and an effective date. Governed by NACHA Operating Rules and the legal framework of the underlying authorization.
  */
-export const achChangeForm = Object.assign(baseForm, {
-  /** Pre-populated resolver containing every layer and instruction file this artifact references. */
-  resolver,
+export const achChangeForm = Object.assign(para.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/banking/ach-change-form/. */
   spec: schema,
-  fill(data: Parameters<typeof originalFill>[0], options?: Parameters<typeof originalFill>[1]) {
-    return bindResolver(originalFill(data, options));
-  },
-  safeFill(data: Parameters<typeof originalSafeFill>[0], options?: Parameters<typeof originalSafeFill>[1]) {
-    const result = originalSafeFill(data, options);
-    if (result.success) bindResolver(result.data);
-    return result;
-  },
 });
 
 export default achChangeForm;

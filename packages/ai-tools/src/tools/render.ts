@@ -104,8 +104,9 @@ export async function executeRender(
       return { success: false, artifactKind, error: 'Only form artifacts can be rendered' }
     }
 
-    // Load and fill
-    const instance = loadFromObject<'form'>(artifact)
+    // Load and fill (the resolver for file-backed layers is bound once, here)
+    const resolver = baseUrl ? createRegistryResolver(baseUrl, config?.fetch) : undefined
+    const instance = loadFromObject<'form'>(artifact, { resolver })
     const fillResult = instance.safeFill(data as Record<string, unknown>)
 
     if (!fillResult.success) {
@@ -150,11 +151,8 @@ export async function executeRender(
       }
     }
 
-    const resolver = baseUrl ? createRegistryResolver(baseUrl, config?.fetch) : undefined
-
     const output: string | Uint8Array = await draftForm.render({
       renderer: renderLayer(),
-      resolver,
       layer: layerKey,
     })
 

@@ -23,11 +23,12 @@
  *   .addSigner("taxpayer-signer", { person: { name: "Dana Whitfield" } })
  *   .addSignatory("taxpayer", "taxpayer-0", { signerId: "taxpayer-signer" });
  *
- * const pdf = await draft.render({ layer: "pdf", resolver: w9.resolver });
+ * const pdf = await draft.render({ layer: "pdf" });
  * ```
  *
- * `w9.resolver` is passed explicitly because a builder call returns a runtime
- * without the bundled one; the package README records that.
+ * No resolver is passed: `@paradoc/essentials` binds each artifact's bundled
+ * resolver when it constructs the form, and every instance derived from it —
+ * including the one every mutator above returns — carries it.
  */
 
 import { purchaseOrderData, type PurchaseOrderData } from "./purchase-order-data";

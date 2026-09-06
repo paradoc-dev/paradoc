@@ -4,8 +4,6 @@
 
 export { assembleBundle, isAssemblyBytesEntry, producedMimeType } from './bundle-assembler'
 export type {
-  ResolvedArtifact,
-  ArtifactResolver,
   AssemblyBytesEntry,
   AssemblyContentEntry,
   BundleAssemblyOptions,

@@ -126,8 +126,15 @@ This reveals the internal field names that you'll map to your form fields.
 
 Create a form with a PDF file layer. The `bindings` object maps PDF field names to your form field expressions.
 
+The `pdf` layer is file-backed, so bind a resolver when you construct the
+form — it reads `layers/w9.pdf`, and every instance you derive from `w9Form`
+later carries the same resolver.
+
 ```ts
 import { para } from '@paradoc/sdk'
+import { createFsResolver } from '@paradoc/resolvers'
+
+const resolver = createFsResolver({ root: '.' })
 
 const w9Form = para.form({
   name: 'w9-tax-form',
@@ -181,7 +188,7 @@ const w9Form = para.form({
       },
     },
   },
-})
+}, { resolver })
 ```
 </Step>
 
@@ -216,19 +223,15 @@ if (!filled.isValid()) {
 ## Render to PDF
 
 Render the filled form. `renderLayer()` selects the PDF implementation from the
-layer's MIME type, and the resolver loads the template from the filesystem.
+layer's MIME type, and the resolver bound to `w9Form` loads the template from
+the filesystem — `filled` carries it too, so the render call doesn't repeat it.
 
 ```ts
 import { renderLayer } from '@paradoc/render'
-import { createFsResolver } from '@paradoc/resolvers/fs'
 import { writeFileSync } from 'node:fs'
-
-// Point the resolver to your project root where layers/ lives
-const resolver = createFsResolver({ root: '.' })
 
 const output = await filled.render({
   renderer: renderLayer(),
-  resolver,
   layer: 'pdf',
 })
 

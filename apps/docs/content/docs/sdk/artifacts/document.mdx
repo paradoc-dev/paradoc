@@ -49,8 +49,13 @@ if (result.success) {
 ## Object Pattern
 
 ```ts
-para.document(input: DocumentInput): DocumentInstance
+para.document(input: DocumentInput, options?: ArtifactInstanceOptions): DocumentInstance
 ```
+
+`options.resolver` reads the bytes of any file-backed layer this document
+declares. It's bound once here, at construction, and every instance derived
+from the document — every mutator and `clone` — carries it; `render()` itself
+takes no resolver. See [ArtifactInstanceOptions](/sdk/resolvers#artifactinstanceoptions).
 
 ### Parameters
 
@@ -93,7 +98,7 @@ Returns a `DocumentInstance` with the following properties and methods:
   { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML', isMethod: true },
   { name: 'clone', type: '() => DocumentInstance', description: 'Deep clone the instance', isMethod: true },
   { name: 'prepare', type: '(targetLayer?: string) => DraftDocument', description: 'Create a runtime document in draft phase', isMethod: true },
-  { name: 'render', type: '(options?: LayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render document content', isMethod: true },
+  { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render document content', isMethod: true },
 ]} />
 
 ## Builder Pattern
@@ -118,18 +123,20 @@ Chain methods to build a document incrementally:
     { name: 'inlineLayer', params: 'key: string, layer: { mimeType, text, ... }', description: 'Add inline text layer' },
     { name: 'fileLayer', params: 'key: string, layer: { mimeType, path, ... }', description: 'Add file-backed layer' },
     { name: 'defaultLayer', params: 'key: string', description: 'Set default layer for rendering' },
-    { name: 'build', params: '', description: 'Build and validate', terminal: true },
+    { name: 'build', params: 'options?: ArtifactInstanceOptions', description: 'Build and validate; bind a resolver for file-backed layers', terminal: true },
   ]}
   returns={{ intermediate: 'DocumentBuilder', terminal: 'DocumentInstance' }}
 />
 
 ## Static Methods
 
-Parse documents from unknown data sources:
+Parse documents from unknown data sources. Both accept an
+[`ArtifactInstanceOptions`](/sdk/resolvers#artifactinstanceoptions) to bind a
+resolver for any file-backed layer:
 
 <MethodTable methods={[
-  { name: 'from', params: 'input: unknown', returns: 'DocumentInstance', description: 'Parse unknown input (throws on error)' },
-  { name: 'safeFrom', params: 'input: unknown', returns: 'Result<DocumentInstance>', description: 'Parse unknown input (returns result object)' },
+  { name: 'from', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'DocumentInstance', description: 'Parse unknown input (throws on error)' },
+  { name: 'safeFrom', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'Result<DocumentInstance>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
 # Lifecycle Types

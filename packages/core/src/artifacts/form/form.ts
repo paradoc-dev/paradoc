@@ -78,6 +78,7 @@ import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesV
 import { evaluateFormDefs, evaluateFormRules } from '@/logic'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
 import { buildRendererLayer, selectLayerRenderer } from '../shared/render-layer'
+import type { ArtifactInstanceOptions } from '../shared/render-layer'
 import type { RendererRegistry } from '@/rendering/renderer-registry'
 import {
 	createSealPass,
@@ -144,8 +145,6 @@ export interface SealOptions {
 	 * hosted converter) seal anchor-based layers.
 	 */
 	locate?: SealLocator
-	/** Resolves file-backed target layers before sealing. */
-	resolver?: Resolver
 	/**
 	 * Custom renderer override for the layer being sealed.
 	 *
@@ -772,6 +771,13 @@ interface RuntimeFormConfigBase<F extends Form> {
 	signers: Record<string, Signer>
 	signatories: Record<string, Record<string, PartySignatory[]>>
 	targetLayer: string
+	/**
+	 * Reads the bytes of file-backed layers. Bound when the form is
+	 * constructed and spread forward by every mutator, so a form that renders
+	 * or seals a file-backed layer keeps that ability through every
+	 * transition. See `ArtifactInstanceOptions`.
+	 */
+	resolver?: Resolver
 	captures?: SignatureCapture[]
 	witnesses?: WitnessParty[]
 	attestations?: Attestation[]
@@ -817,6 +823,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		signers: signerValues,
 		signatories: signatoryValues,
 		targetLayer,
+		resolver,
 		phase,
 		captures = [],
 		witnesses = [],
@@ -1726,7 +1733,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				render: (renderer) =>
 					runtime.render<string | Uint8Array>({
 						renderer,
-						resolver: options.resolver,
 						layer: targetLayer,
 					}),
 				convert: async (content) =>
@@ -1842,7 +1848,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					render: (renderer) =>
 						runtime.render<string | Uint8Array>({
 							renderer,
-							resolver: options.resolver,
 							layer: targetLayer,
 						}),
 					convert: async (content) =>
@@ -2385,7 +2390,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		async render<Output = string | Uint8Array>(options: RuntimeFormRenderOptions<Output> = {}): Promise<Output> {
-			const { renderer: rendererOverride, renderers, resolver, layer: layerKey, bindings: optionsBindings } = options
+			const { renderer: rendererOverride, renderers, layer: layerKey, bindings: optionsBindings } = options
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -2445,7 +2450,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				...(executedAt && { _executedAt: executedAt }),
 			}
 
-			const template = await buildRendererLayer(key, layerSpec, bindings, resolver)
+			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
 			// Parties travel beside the fields, where `FormData` declares them. A
 			// template that names `parties.landlord` still reads them: the text,
@@ -2517,7 +2522,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		},
 
 		clone(): RuntimeForm<F> {
-			return createRuntimeForm(structuredClone(config))
+			// The resolver is behavior, not data: it is carried across rather
+			// than cloned, because `structuredClone` cannot copy a function.
+			const { resolver: _bound, ...cloneable } = config
+			return createRuntimeForm({ ...structuredClone(cloneable), resolver } as RuntimeFormConfig<F>)
 		},
 	}
 
@@ -2526,9 +2534,15 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 }
 
 /**
- * Load a RuntimeForm from JSON
+ * Load a RuntimeForm from JSON.
+ *
+ * A resolver is behavior, not data, so it is not in the JSON: bind it here to
+ * give the rehydrated form its file-backed layers back.
  */
-export function runtimeFormFromJSON<F extends Form>(json: RuntimeFormJSON<F>): RuntimeForm<F> {
+export function runtimeFormFromJSON<F extends Form>(
+	json: RuntimeFormJSON<F>,
+	options?: ArtifactInstanceOptions,
+): RuntimeForm<F> {
 	// Type assertion needed because TypeScript can't narrow the config type based on json.phase alone
 	// The RuntimeFormJSON union already constrains the valid combinations
 	const config = {
@@ -2539,6 +2553,7 @@ export function runtimeFormFromJSON<F extends Form>(json: RuntimeFormJSON<F>): R
 		signers: json.signers,
 		signatories: json.signatories,
 		targetLayer: json.targetLayer,
+		resolver: options?.resolver,
 		phase: json.phase,
 		captures: 'captures' in json ? json.captures : [],
 		witnesses: 'witnesses' in json ? json.witnesses : [],
@@ -2557,8 +2572,9 @@ export function runtimeFormFromJSON<F extends Form>(json: RuntimeFormJSON<F>): R
 /**
  * Creates a FormInstance object (replaces FormInstance class)
  */
-function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
+function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstanceOptions): FormInstance<F> {
 	const artifactMethods = withArtifactMethods(formDef)
+	const resolver = options?.resolver
 
 	const instance: FormInstance<F> = {
 		...artifactMethods,
@@ -2647,6 +2663,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 				signers,
 				signatories,
 				targetLayer,
+				resolver,
 				phase: 'draft',
 			})
 
@@ -2735,6 +2752,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 				signers: signers as Record<string, Signer>,
 				signatories: signatories as Record<string, Record<string, PartySignatory[]>>,
 				targetLayer,
+				resolver,
 				phase: 'draft',
 			})
 
@@ -2766,7 +2784,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 		},
 
 		async render<Output = string | Uint8Array>(options: RenderOptions<Output> = {}): Promise<Output> {
-			const { renderer: rendererOverride, renderers, resolver, data = {}, layer: layerKey, bindings: optionsBindings } = options
+			const { renderer: rendererOverride, renderers, data = {}, layer: layerKey, bindings: optionsBindings } = options
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -2800,7 +2818,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 				bindings = { ...bindings, ...optionsBindings }
 			}
 
-			const template = await buildRendererLayer(key, layerSpec, bindings, resolver)
+			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
 			// Build FormData payload
 			let formData: { fields: Record<string, unknown> }
@@ -2819,7 +2837,7 @@ function createFormInstance<F extends Form>(formDef: F): FormInstance<F> {
 		},
 
 		clone(): FormInstance<F> {
-			return createFormInstance(structuredClone(formDef))
+			return createFormInstance(structuredClone(formDef), options)
 		},
 	}
 
@@ -2909,7 +2927,7 @@ export interface FormBuilderInterface<
 		},
 		TAnnexes
 	>
-	build(): FormInstance<
+	build(options?: ArtifactInstanceOptions): FormInstance<
 		Omit<Form, 'fields' | 'parties' | 'annexes'> & {
 			fields: TFields
 			parties: TParties extends Record<string, never> ? undefined : TParties
@@ -3166,7 +3184,7 @@ function createFormBuilder<
 			>
 		},
 
-		build() {
+		build(options?: ArtifactInstanceOptions) {
 			const cleaned: Record<string, unknown> = { ...(_def as object) }
 			for (const key of Object.keys(cleaned)) {
 				if (cleaned[key] === undefined) {
@@ -3180,6 +3198,7 @@ function createFormBuilder<
 					parties: TParties extends Record<string, never> ? undefined : TParties
 					annexes: TAnnexes extends Record<string, never> ? undefined : TAnnexes
 				},
+				options,
 			)
 		},
 	}
@@ -3193,31 +3212,40 @@ function createFormBuilder<
 
 type FormAPI = {
 	(): FormBuilderInterface
-	<const T extends FormInput>(input: T): FormInstance<T & { kind: 'form' }>
-	from(input: unknown): FormInstance<Form>
-	safeFrom(input: unknown): { success: true; data: FormInstance<Form> } | { success: false; error: Error }
+	<const T extends FormInput>(input: T, options?: ArtifactInstanceOptions): FormInstance<T & { kind: 'form' }>
+	from(input: unknown, options?: ArtifactInstanceOptions): FormInstance<Form>
+	safeFrom(
+		input: unknown,
+		options?: ArtifactInstanceOptions,
+	): { success: true; data: FormInstance<Form> } | { success: false; error: Error }
 }
 
 function formImpl(): FormBuilderInterface
-function formImpl<const T extends FormInput>(input: T): FormInstance<T & { kind: 'form' }>
-function formImpl<const T extends FormInput>(input?: T): FormBuilderInterface | FormInstance<T & { kind: 'form' }> {
+function formImpl<const T extends FormInput>(input: T, options?: ArtifactInstanceOptions): FormInstance<T & { kind: 'form' }>
+function formImpl<const T extends FormInput>(
+	input?: T,
+	options?: ArtifactInstanceOptions,
+): FormBuilderInterface | FormInstance<T & { kind: 'form' }> {
 	if (input !== undefined) {
 		const withKind = { ...input, kind: 'form' as const }
 		const parsed = parseForm(withKind) as T & { kind: 'form' }
-		return createFormInstance(parsed)
+		return createFormInstance(parsed, options)
 	}
 	return createFormBuilder()
 }
 
 export const form: FormAPI = Object.assign(formImpl, {
-	from: (input: unknown): FormInstance<Form> => {
+	from: (input: unknown, options?: ArtifactInstanceOptions): FormInstance<Form> => {
 		const parsed = parseForm(input) as Form
-		return createFormInstance(parsed)
+		return createFormInstance(parsed, options)
 	},
-	safeFrom: (input: unknown): { success: true; data: FormInstance<Form> } | { success: false; error: Error } => {
+	safeFrom: (
+		input: unknown,
+		options?: ArtifactInstanceOptions,
+	): { success: true; data: FormInstance<Form> } | { success: false; error: Error } => {
 		try {
 			const parsed = parseForm(input) as Form
-			return { success: true, data: createFormInstance(parsed) }
+			return { success: true, data: createFormInstance(parsed, options) }
 		} catch (err) {
 			return { success: false, error: err as Error }
 		}
