@@ -262,6 +262,79 @@
       ]
     },
     {
+      "name": "invoice",
+      "type": "registry:block",
+      "title": "Invoice",
+      "description": "A whole document nothing signs: the invoice artifact with its React layer, the composition that brands it from its own tokens, and two samples — one that fits a page and one whose table runs past two breaks.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0",
+        "@paradoc/core@^0.5.0",
+        "@paradoc/types@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/document",
+        "@paradoc/field",
+        "@paradoc/keep-together",
+        "@paradoc/pages",
+        "@paradoc/section",
+        "@paradoc/table",
+        "@paradoc/totals"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/examples/invoice.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/invoice.artifact.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/invoice-data.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/invoice.data.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/invoice-document.tsx",
+          "type": "registry:component",
+          "target": "components/paradoc/invoice.tsx"
+        }
+      ]
+    },
+    {
+      "name": "engagement-letter",
+      "type": "registry:block",
+      "title": "Engagement Letter",
+      "description": "A prose document: the engagement letter artifact with its React layer and two signature slots, the composition that renders its scope as numbered clauses, and one sample that runs to two pages.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0",
+        "@paradoc/core@^0.5.0",
+        "@paradoc/types@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/document",
+        "@paradoc/field",
+        "@paradoc/keep-together",
+        "@paradoc/pages",
+        "@paradoc/section",
+        "@paradoc/signature"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/examples/engagement-letter.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/engagement-letter.artifact.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/engagement-letter-data.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/engagement-letter.data.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/engagement-letter-document.tsx",
+          "type": "registry:component",
+          "target": "components/paradoc/engagement-letter.tsx"
+        }
+      ]
+    },
+    {
       "name": "vendor-packet",
       "type": "registry:block",
       "title": "Vendor Packet",

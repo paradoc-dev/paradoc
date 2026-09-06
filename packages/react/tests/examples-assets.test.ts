@@ -8,6 +8,11 @@
  * module that reads it works in `src/` and fails in `dist/`, silently until a
  * consumer calls it. So these run Node against the built entry rather than
  * against the source, because that is the resolution a consumer gets.
+ *
+ * Not every sample needs a file. The invoice's mark is bytes in the isomorphic
+ * entry rather than a PNG beside it, so it has nothing to resolve and nothing
+ * to ship; the last case here is what says so, because a mark that quietly
+ * became a file would need both and would be caught nowhere else.
  */
 
 import { execFile } from "node:child_process";
@@ -61,6 +66,25 @@ describe("the examples' shipped assets", () => {
 
     expect(header).toBe("%PDF-");
     expect(Number(length)).toBe(checkedIn.length);
+  }, 120_000);
+
+  it("carries the invoice's mark in the entry itself, so there is no file to ship", async () => {
+    const output = await inNode(
+      "const m = await import('./dist/examples/index.js');" +
+        "const png = m.invoiceLogo;" +
+        "process.stdout.write(`${png.length} ${[...png.slice(0, 4)].join(',')}`);"
+    );
+    const [length, signature] = output.split(" ");
+
+    expect(signature).toBe("137,80,78,71");
+    expect(Number(length)).toBeGreaterThan(0);
+
+    const manifest = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8")
+    ) as { files: string[] };
+    // Bytes in a module, not a file: nothing about the invoice belongs in
+    // `files`, and a mark that became a PNG would have to be added there.
+    expect(manifest.files.some((entry) => entry.includes("invoice"))).toBe(false);
   }, 120_000);
 
   it("loads the proposal's mark from the built package", async () => {

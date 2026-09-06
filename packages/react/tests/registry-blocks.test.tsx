@@ -1,5 +1,5 @@
 /**
- * What the two blocks promise, checked on the sources they ship.
+ * What the four blocks promise, checked on the sources they ship.
  *
  * A block is a whole document, so the claim is not that its files parse: it is
  * that the artifact declares a React layer, that the composition renders that
@@ -20,6 +20,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { REGISTRY_ITEMS } from "../scripts/registry/manifest";
+import { EngagementLetterDocument } from "../src/examples/engagement-letter-document";
+import { engagementLetterData } from "../src/examples/engagement-letter-data";
+import {
+  engagementLetterForm,
+  ENGAGEMENT_LETTER_REACT_LAYER,
+  ENGAGEMENT_LETTER_SIGNATURE_SLOTS,
+} from "../src/examples/engagement-letter";
+import { InvoiceDocument } from "../src/examples/invoice-document";
+import { overflowInvoiceData, shortInvoiceData } from "../src/examples/invoice-data";
+import { invoiceForm, INVOICE_REACT_LAYER } from "../src/examples/invoice";
 import { PurchaseOrderDocument } from "../src/examples/purchase-order-document";
 import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm, PURCHASE_ORDER_REACT_LAYER } from "../src/examples/purchase-order";
@@ -181,5 +191,95 @@ describe("the vendor packet block", () => {
       [VENDOR_PACKET_KEYS.taxpayer, "registry"],
       [VENDOR_PACKET_KEYS.insurance, "inline"],
     ]);
+  });
+});
+
+describe("the invoice block", () => {
+  it("ships the artifact, its data and the composition that binds them", () => {
+    expect(shipped("invoice")).toEqual([
+      "examples/invoice.ts",
+      "examples/invoice-data.ts",
+      "examples/invoice-document.tsx",
+    ]);
+  });
+
+  it("ships an artifact whose default layer is a React layer with no signature slot", () => {
+    const layer = invoiceForm.layers?.[INVOICE_REACT_LAYER];
+    expect(invoiceForm.defaultLayer).toBe(INVOICE_REACT_LAYER);
+    expect(layer).toMatchObject({ kind: "file", mimeType: "text/tsx" });
+    expect(path.posix.basename(String((layer as { path?: string }).path))).toBe(
+      "invoice-document.tsx"
+    );
+    // Nothing signs an invoice, so the block installs no `signature` component.
+    expect(layer?.signatures).toBeUndefined();
+    const item = REGISTRY_ITEMS.find((candidate) => candidate.name === "invoice");
+    expect(item?.registryDependencies).not.toContain("signature");
+  });
+
+  it("renders live with both samples it ships", () => {
+    const short = renderToStaticMarkup(<InvoiceDocument data={shortInvoiceData} />);
+    expect(short).toContain("Invoice");
+    expect(short).toContain("INV-2026-0431");
+    expect(short).toContain("Northgate Systems");
+    // The mark is a token, resolved from bytes to a `data:` URI, so the
+    // installed block draws it without fetching anything.
+    expect(short).toContain("data:image/png;base64,");
+    // The total the artifact's defs compute rather than the composition.
+    expect(short).toContain("$57,426.63");
+
+    const overflow = renderToStaticMarkup(<InvoiceDocument data={overflowInvoiceData} />);
+    expect(overflow).toContain("INV-2026-0432");
+    expect(overflow).toContain("Release pipeline maintenance — September");
+  });
+
+  it("renders the long sample to a PDF whose table crosses a page break", async () => {
+    const read = await readPdf(
+      (await renderPdf(<InvoiceDocument data={overflowInvoiceData} />)).bytes
+    );
+    expect(read.length).toBeGreaterThanOrEqual(2);
+    expect(read[0]?.text).toContain("INV-2026-0432");
+    const continued = read.slice(1).map((page) => page.text).join(" ");
+    expect(continued).toContain("Amount due");
+  }, 180_000);
+});
+
+describe("the engagement letter block", () => {
+  it("ships the artifact, its data and the composition that binds them", () => {
+    expect(shipped("engagement-letter")).toEqual([
+      "examples/engagement-letter.ts",
+      "examples/engagement-letter-data.ts",
+      "examples/engagement-letter-document.tsx",
+    ]);
+  });
+
+  it("ships an artifact whose React layer declares a flow slot per party", () => {
+    const layer = engagementLetterForm.layers?.[ENGAGEMENT_LETTER_REACT_LAYER];
+    expect(engagementLetterForm.defaultLayer).toBe(ENGAGEMENT_LETTER_REACT_LAYER);
+    expect(layer).toMatchObject({ kind: "file", mimeType: "text/tsx" });
+    expect(path.posix.basename(String((layer as { path?: string }).path))).toBe(
+      "engagement-letter-document.tsx"
+    );
+    expect(Object.keys(layer?.signatures ?? {})).toEqual(
+      Object.values(ENGAGEMENT_LETTER_SIGNATURE_SLOTS)
+    );
+    const item = REGISTRY_ITEMS.find((candidate) => candidate.name === "engagement-letter");
+    expect(item?.registryDependencies).toContain("signature");
+    // A letter prices nothing and lists nothing in rows.
+    expect(item?.registryDependencies).not.toContain("table");
+    expect(item?.registryDependencies).not.toContain("totals");
+  });
+
+  it("renders live with the sample it ships, numbering every clause", () => {
+    const html = renderToStaticMarkup(<EngagementLetterDocument data={engagementLetterData} />);
+    expect(html).toContain("Engagement Letter");
+    expect(html).toContain("Ashgrove Rowan");
+    expect(html).toContain("AR-2026-0917");
+    const clauses = engagementLetterData.fields.scopeOfServices as { heading: string }[];
+    clauses.forEach((clause, index) => {
+      expect(html).toContain(clause.heading);
+      // Each clause is one keep, so the plan can move it whole.
+      expect(html).toContain(`data-keep-id="clause:${index}"`);
+    });
+    expect(html).toContain("Signature (required)");
   });
 });

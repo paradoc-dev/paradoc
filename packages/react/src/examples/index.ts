@@ -1,13 +1,15 @@
 /**
  * `@paradoc/react/examples` — the sample document this package is measured on.
  *
- * **Sample material, not a stable API.** Two documents: a services proposal —
- * an artifact, two data sets, two token sets and one composition — and a short
- * Arabic order-confirmation letter written right to left. They ship so that the
- * pagination tests, the class probe suite and the parity suite have real
- * documents to measure, and so that a reader has a whole composition to copy
- * from rather than a fragment. Nothing here is framework surface, and anything
- * here may change without a major version.
+ * **Sample material, not a stable API.** A services proposal — an artifact, two
+ * data sets, two token sets and one composition — a short Arabic
+ * order-confirmation letter written right to left, a purchase order and the
+ * packet that carries it, an invoice nothing signs, and an engagement letter of
+ * numbered prose clauses that two parties do. They ship so that the pagination
+ * tests, the class probe suite and the parity suite have real documents to
+ * measure, and so that a reader has a whole composition to copy from rather
+ * than a fragment. Nothing here is framework surface, and anything here may
+ * change without a major version.
  *
  * This entry is isomorphic: it is the artifact, the data and the tree. The
  * Node-only half — the logo bytes and the seal wiring — is
@@ -41,6 +43,31 @@ export {
   type PurchaseOrderPayload,
 } from "./purchase-order-data";
 export { PurchaseOrderDocument, type PurchaseOrderDocumentProps } from "./purchase-order-document";
+export {
+  invoice,
+  invoiceForm,
+  invoiceLogo,
+  invoiceSpec,
+  invoiceTokens,
+  INVOICE_ACCENT_COLOR,
+  INVOICE_REACT_LAYER,
+  INVOICE_REACT_LAYER_PATH,
+} from "./invoice";
+export { overflowInvoiceData, shortInvoiceData, type InvoiceData } from "./invoice-data";
+export { InvoiceDocument, type InvoiceDocumentProps } from "./invoice-document";
+export {
+  engagementLetter,
+  engagementLetterForm,
+  engagementLetterSpec,
+  ENGAGEMENT_LETTER_REACT_LAYER,
+  ENGAGEMENT_LETTER_REACT_LAYER_PATH,
+  ENGAGEMENT_LETTER_SIGNATURE_SLOTS,
+} from "./engagement-letter";
+export { engagementLetterData, type EngagementLetterData } from "./engagement-letter-data";
+export {
+  EngagementLetterDocument,
+  type EngagementLetterDocumentProps,
+} from "./engagement-letter-document";
 export {
   PROPOSAL_LOGO_HEIGHT_PX,
   PROPOSAL_LOGO_SRC,

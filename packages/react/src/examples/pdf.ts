@@ -9,6 +9,15 @@
 
 export { proposalLogoImage } from "./logo-image";
 export {
+  engagementLetterRenderers,
+  fillEngagementLetterForSeal,
+  MissingEngagementSignerError,
+  sealEngagementLetter,
+  type EngagementLetterPartyRole,
+  type EngagementLetterRenderersOptions,
+  type SealEngagementLetterOptions,
+} from "./engagement-letter-seal";
+export {
   fillProposalForSeal,
   MissingSignerError,
   proposalRenderers,

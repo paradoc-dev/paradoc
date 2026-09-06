@@ -352,6 +352,58 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     ],
   },
   {
+    name: "invoice",
+    type: "registry:block",
+    title: "Invoice",
+    description:
+      "A whole document nothing signs: the invoice artifact with its React layer, the composition that brands it from its own tokens, and two samples — one that fits a page and one whose table runs past two breaks.",
+    files: [
+      artifactFile("invoice", "invoice.artifact"),
+      artifactFile("invoice-data", "invoice.data"),
+      composition("invoice", "invoice-document"),
+    ],
+    // `@paradoc/core` parses the artifact and `@paradoc/types` is what it is.
+    dependencies: [SUBSTRATE_PACKAGE, "@paradoc/core", "@paradoc/types"],
+    // No `signature`: an invoice is a demand for payment rather than an
+    // agreement, so the artifact declares no slot and the composition draws no
+    // signing block. `pages` is imported by none of these files and is listed
+    // for the reason the purchase order lists it: a document that is never
+    // paginated is not one.
+    registryDependencies: [
+      "document",
+      "field",
+      "keep-together",
+      "pages",
+      "section",
+      "table",
+      "totals",
+    ],
+  },
+  {
+    name: "engagement-letter",
+    type: "registry:block",
+    title: "Engagement Letter",
+    description:
+      "A prose document: the engagement letter artifact with its React layer and two signature slots, the composition that renders its scope as numbered clauses, and one sample that runs to two pages.",
+    files: [
+      artifactFile("engagement-letter", "engagement-letter.artifact"),
+      artifactFile("engagement-letter-data", "engagement-letter.data"),
+      composition("engagement-letter", "engagement-letter-document"),
+    ],
+    dependencies: [SUBSTRATE_PACKAGE, "@paradoc/core", "@paradoc/types"],
+    // No `table` and no `totals`: the letter prices nothing and lists nothing in
+    // rows. What it does carry is `signature`, twice, and the clauses are plain
+    // `keep-together` units the composition builds itself.
+    registryDependencies: [
+      "document",
+      "field",
+      "keep-together",
+      "pages",
+      "section",
+      "signature",
+    ],
+  },
+  {
     name: "vendor-packet",
     type: "registry:block",
     title: "Vendor Packet",
