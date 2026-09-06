@@ -4,9 +4,9 @@ Guidance for AI agents working in this repository.
 
 ## Repository Overview
 
-The official agent skill for [Paradoc](https://paradoc.dev) — the documents-as-code framework.
+The official agent skills for [Paradoc](https://paradoc.dev) — the documents-as-code framework.
 
-A single skill at `skills/paradoc/` with topic-organized references. Covers every Paradoc surface (TypeScript SDK, `para` CLI, raw JSON/YAML schemas, `mcp.paradoc.dev` MCP service) and end-to-end workflows (creating new forms, converting PDFs).
+Two skills. `skills/paradoc/` is the general skill, with topic-organized references covering every Paradoc surface (TypeScript SDK, `para` CLI, raw JSON/YAML schemas, `mcp.paradoc.dev` MCP service) and end-to-end workflows (creating new forms, converting PDFs). `skills/compose-documents/` is a narrower skill for one surface only — authoring and checking a `.tsx`/`.jsx` composition bound to a form artifact through `@paradoc/react` — for an agent that only needs that surface.
 
 ## Repository Structure
 
@@ -16,23 +16,34 @@ A single skill at `skills/paradoc/` with topic-organized references. Covers ever
 ├── CLAUDE.md         # → AGENTS.md
 ├── README.md         # User-facing overview
 └── skills/
-    └── paradoc/
+    ├── paradoc/
+    │   ├── SKILL.md
+    │   ├── metadata.json
+    │   └── references/
+    │       # Surface refs — how to express things on each surface
+    │       ├── sdk.md, cli.md, schemas.md, mcp.md
+    │       # Topic refs — canonical concept knowledge (surface-agnostic)
+    │       ├── artifacts.md, fields.md, parties.md, annexes.md,
+    │       ├── logic.md, layers.md, rendering.md, serialization.md,
+    │       ├── instructions.md, pdf-bindings.md
+    │       # Workflow refs — staged interactive pipelines
+    │       └── workflow-create-form.md, workflow-convert-pdf.md
+    └── compose-documents/
         ├── SKILL.md
         ├── metadata.json
         └── references/
-            # Surface refs — how to express things on each surface
-            ├── sdk.md, cli.md, schemas.md, mcp.md
-            # Topic refs — canonical concept knowledge (surface-agnostic)
-            ├── artifacts.md, fields.md, parties.md, annexes.md,
-            ├── logic.md, layers.md, rendering.md, serialization.md,
-            ├── instructions.md, pdf-bindings.md
-            # Workflow refs — staged interactive pipelines
-            └── workflow-create-form.md, workflow-convert-pdf.md
+            ├── components.md, pagination.md, safe-classes.md,
+            └── artifact-binding.md, cli.md
 ```
 
 ## Three Reference Categories
 
-When adding or editing references, place them in the right category:
+Applies to `paradoc`, which spans four surfaces and needs the split.
+`compose-documents` covers one surface (composing in React) and keeps a flat
+set of topic-only references with no surface/workflow split — do not force
+that skill's references into these three categories.
+
+When adding or editing references in `paradoc`, place them in the right category:
 
 | Category | Purpose | Examples |
 |---|---|---|
@@ -52,7 +63,7 @@ Spec-compliant fields used in this repo:
 
 | Field | Required | Notes |
 |---|---|---|
-| `name` | YES | Must equal parent dir (`paradoc`). Lowercase + hyphens only, 1-64 chars. |
+| `name` | YES | Must equal parent dir (`paradoc`, `compose-documents`). Lowercase + hyphens only, 1-64 chars. |
 | `description` | YES | Max 1024 chars. Describe what + when to use, with trigger phrases. |
 | `metadata` | No | Author, version (semver), tags. |
 | `allowed-tools` | No | Space-separated pre-approved tools (experimental Claude Code field). |
@@ -76,7 +87,7 @@ References are loaded on demand (progressive disclosure), so size is less constr
 
 ### Naming
 
-- Skill directory: `paradoc/` (single skill, no prefix)
+- Skill directory: one per skill, named for what it covers (`paradoc/`, `compose-documents/`), no shared prefix
 - `SKILL.md`: always uppercase, exact filename
 - Surface refs: single word — `sdk.md`, `cli.md`, `schemas.md`, `mcp.md`
 - Topic refs: single concept — `fields.md`, `parties.md`. Hyphens permitted for genuine compound concepts: `pdf-bindings.md`
@@ -120,6 +131,7 @@ Validate the skill structure with the Agent Skills reference library:
 
 ```bash
 skills-ref validate ./skills/paradoc
+skills-ref validate ./skills/compose-documents
 ```
 
 ## When Editing

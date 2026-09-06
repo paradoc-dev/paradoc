@@ -96,6 +96,27 @@ npx shadcn@4 add https://docs.paradoc.dev/r/field.json
 
 The index of all of them is [`/r/registry.json`](https://docs.paradoc.dev/r/registry.json).
 
+## For agents
+
+`/r/registry.json` is machine-readable: `name`, `type`, `title`,
+`description`, `dependencies`, and the files each item installs, with no page
+to scrape. Fetch it to enumerate what is installable, then fetch
+`/r/{name}.json` for one item's exact file list. Both are static JSON with no
+auth.
+
+Before rendering a newly authored or edited composition, run
+`para check <composition-or-artifact-file>` — it walks the same tree the
+default PDF path walks and reports every unsupported class, unresolved field
+path, and missing image in one pass, without producing PDF bytes or needing a
+browser. See [`para check`](/cli/commands/check) and
+[`para add`](/cli/commands/add).
+
+The `compose-documents` agent skill (in the
+[`paradoc-dev/skills`](https://github.com/paradoc-dev/skills) repository)
+packages this page's content plus the component props, the pagination rule,
+and the verified Tailwind class subset for an agent authoring a composition
+end to end.
+
 ## Using them
 
 ```tsx
