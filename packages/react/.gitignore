@@ -1,0 +1,5 @@
+# The parity report and its difference pictures. A measurement of one machine's
+# Chrome against one build of the engine is evidence for a run, not a file to
+# keep in the repository. `pnpm test:parity` rewrites it. Anchored, so it names
+# this directory and not the `tests/parity` suite that writes it.
+/parity/

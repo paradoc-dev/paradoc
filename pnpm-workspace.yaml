@@ -40,5 +40,24 @@ catalog:
   cron-schedule: "^5.0.1"
   cronstrue: "^2.55.0"
 
+  # @paradoc/react. The default PDF engine and its JSX bridge are pinned
+  # exactly: the engine's layout output is what the parity suite measures, so a
+  # patch bump would invalidate the recorded numbers.
+  takumi-pdf: "0.4.2"
+  "@takumi-rs/helpers": "2.5.11"
+  # Carries the braille codepoints core's flow signature marker is written in.
+  # Pinned exactly: its glyph advances sit on the measured line.
+  "@fontsource/noto-sans-symbols-2": "5.3.0"
+  # The document typeface. Pinned exactly: @paradoc/react embeds the files the
+  # preview loads, so a minor bump would change the bytes of every rendered PDF.
+  "@fontsource-variable/inter": "5.2.8"
+  # The experimental Chromium adapter compiles the document's stylesheet with
+  # Tailwind in Node and prints the page with Puppeteer. Neither downloads a
+  # browser: both take one from PUPPETEER_EXECUTABLE_PATH or a known path.
+  tailwindcss: "^4.1.5"
+  puppeteer: "^24.9.0"
+  # Reads a rendered PDF back in the tests, page by page.
+  pdfjs-dist: "5.4.296"
+
 allowBuilds:
   esbuild: true

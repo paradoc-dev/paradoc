@@ -1,0 +1,13 @@
+/*
+ * The document's one font source.
+ *
+ * `@paradoc/react` owns the typeface because it owns the document: the preview
+ * loads these files and the PDF embeds the same ones. Consumers
+ * import this stylesheet rather than declaring Inter themselves.
+ */
+
+@import "@fontsource-variable/inter";
+
+.paradoc-document {
+  font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}

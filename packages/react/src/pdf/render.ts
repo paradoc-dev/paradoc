@@ -1,0 +1,161 @@
+/**
+ * `renderPdf` — one call that turns the composed document into PDF bytes.
+ *
+ * Node only. The tree it renders is the tree the preview renders — the same
+ * components, the same artifact, the same data — so neither output has a
+ * template of its own.
+ *
+ * What the call adds around that tree is only what paper needs and a screen
+ * does not: the page geometry the preview already fixes, the font files the
+ * preview already loads, and the bytes of images an engine will not fetch.
+ * That much is the same whichever engine writes the file, so it is assembled
+ * here once and handed to an adapter as `PreparedPdfInput`.
+ *
+ * **Two adapters, one call.** `takumi` is the default and is the engine the
+ * parity suite measures: WebAssembly layout, no browser process. `chromium` prints the
+ * same document through the browser that draws the preview. Choosing one is an
+ * option, not a second function, because a document that needs a different
+ * renderer is still the same document. The Chromium adapter is reached through
+ * a dynamic import, so a caller who never names it never loads a browser driver.
+ *
+ * Anything an engine cannot express fails with every offender named. The
+ * preview is more permissive than the PDF, so a document that looks right on
+ * screen can still be wrong on paper; saying so is the point.
+ *
+ * It lives beside `index.ts` rather than in it because `seal.tsx` calls it and
+ * `index.ts` re-exports `seal.tsx`; a module that is both the package entry and
+ * a dependency of what it exports is a cycle.
+ */
+
+import type { ReactNode } from "react";
+
+import { PAPER_HEIGHT_PX, PAPER_MARGIN_PX, PAPER_WIDTH_PX } from "../components/paper";
+import type { PdfAdapter, PdfAdapterName, PdfRenderResult, PreparedPdfInput } from "./adapter";
+import { takumiAdapter } from "./adapters/takumi";
+import { documentFontFiles, markerFontFile, type PdfImage } from "./resources";
+import type { PageBreakPlan } from "./tree";
+
+export {
+  UnsupportedPdfContentError,
+  type PdfAdapter,
+  type PdfAdapterName,
+  type PdfAdapterOptions,
+  type PdfPageGeometry,
+  type PdfRenderResult,
+  type PreparedPdfInput,
+} from "./adapter";
+
+export interface RenderPdfOptions {
+  /**
+   * Which engine writes the bytes. `takumi` by default: it is the engine the
+   * parity numbers were measured on, and it needs no browser.
+   */
+  adapter?: PdfAdapterName;
+  /**
+   * Pre-fetched bytes for every image the tree names. No engine here fetches
+   * anything, so an image with no entry fails the render.
+   */
+  images?: readonly PdfImage[];
+  /**
+   * The preview's page plan: where each page starts, and the table header each
+   * one carries above its first row. Absent, the engine paginates on its own.
+   */
+  plan?: PageBreakPlan;
+  /** BCP-47 language written to the document. Defaults to `en`. */
+  lang?: string;
+  /**
+   * Embeds the face that carries the core seal flow's invisible marker
+   * codepoints. Only the seal path sets it: without the face the engine writes
+   * the marker as nulls and the placement locator cannot find the slot, and
+   * with it a render that carries no marker is unchanged.
+   */
+  signingMarkers?: boolean;
+}
+
+/**
+ * The optional peers only the Chromium adapter needs, and what each is for.
+ *
+ * They are peers rather than dependencies because the adapter is experimental:
+ * a caller who never names it should not install a browser driver and a CSS
+ * compiler to render a PDF.
+ */
+const CHROMIUM_PEERS = ["puppeteer", "tailwindcss"] as const;
+
+/** Thrown when the Chromium adapter is asked for and its optional peers are not installed. */
+export class MissingAdapterPeerError extends Error {
+  /** The adapter that could not be loaded. */
+  readonly adapter: PdfAdapterName;
+  /** The optional peer dependencies that adapter needs. */
+  readonly peers: readonly string[];
+
+  constructor(adapter: PdfAdapterName, peers: readonly string[], cause: unknown) {
+    super(
+      `The "${adapter}" PDF adapter could not be loaded. It needs the optional peer ` +
+        `${peers.length === 1 ? "dependency" : "dependencies"} ${peers.join(" and ")}, ` +
+        `which @paradoc/react does not install: run \`npm install ${peers.join(" ")}\` ` +
+        "(or the equivalent for your package manager), or render with the default " +
+        '"takumi" adapter, which needs neither. ' +
+        `The loader said: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause }
+    );
+    this.name = "MissingAdapterPeerError";
+    this.adapter = adapter;
+    this.peers = peers;
+  }
+}
+
+/**
+ * The engine a name asks for, loaded only when it is asked for.
+ *
+ * A failed load is translated rather than passed on. Node reports a missing
+ * optional peer as `Cannot find package 'tailwindcss'` from inside whichever
+ * chunk happened to import it, which names neither the adapter that wanted it
+ * nor the other peer the caller will need next. One error names both.
+ *
+ * @throws {MissingAdapterPeerError} when the adapter's optional peers are absent.
+ */
+async function resolveAdapter(name: PdfAdapterName): Promise<PdfAdapter> {
+  if (name === "takumi") return takumiAdapter;
+  try {
+    const { chromiumAdapter } = await import("./adapters/chromium");
+    return chromiumAdapter;
+  } catch (error) {
+    throw new MissingAdapterPeerError(name, CHROMIUM_PEERS, error);
+  }
+}
+
+/**
+ * Renders a composed document to PDF.
+ *
+ * The page is US Letter with the preview's margin, both stated in the CSS
+ * pixels `Paper` exports, so a page of PDF holds exactly the content a page of
+ * preview holds. The margin belongs to the page rather than to the tree:
+ * padding on the tree would only indent the first page, and every page carries
+ * the same margin.
+ *
+ * @throws {UnsupportedPdfContentError} when the tree uses a class or an image
+ * the chosen engine cannot express. Every offender is listed in one error.
+ */
+export async function renderPdf(
+  element: ReactNode,
+  options: RenderPdfOptions = {}
+): Promise<PdfRenderResult> {
+  const signingMarkers = options.signingMarkers ?? false;
+  const fonts = [...(await documentFontFiles())];
+  if (signingMarkers) fonts.push(await markerFontFile());
+
+  const input: PreparedPdfInput = {
+    element,
+    plan: options.plan,
+    images: options.images ?? [],
+    fonts,
+    geometry: {
+      widthPx: PAPER_WIDTH_PX,
+      heightPx: PAPER_HEIGHT_PX,
+      marginPx: PAPER_MARGIN_PX,
+    },
+  };
+
+  const adapter = await resolveAdapter(options.adapter ?? "takumi");
+  return adapter.render(input, { lang: options.lang ?? "en", signingMarkers });
+}

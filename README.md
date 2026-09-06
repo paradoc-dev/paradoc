@@ -283,6 +283,7 @@ View package Changelogs for update.
 - [`@paradoc/serialization`](https://github.com/paradoc-dev/paradoc/blob/main/packages/serialization) - Locale-aware formatting
 - [`@paradoc/resolvers`](https://github.com/paradoc-dev/paradoc/blob/main/packages/resolvers) - File and environment resolvers
 - [`@paradoc/render`](https://github.com/paradoc-dev/paradoc/blob/main/packages/render) - Unified PDF, DOCX, and text rendering
+- [`@paradoc/react`](https://github.com/paradoc-dev/paradoc/blob/main/packages/react) - Compose a document in React and render it to PDF
 
 ## Contributing
 

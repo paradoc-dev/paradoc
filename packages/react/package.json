@@ -1,0 +1,131 @@
+{
+  "name": "@paradoc/react",
+  "version": "0.5.0",
+  "description": "Compose a Paradoc document in React and render it live on screen and to PDF",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./pdf": {
+      "types": "./dist/pdf/index.d.ts",
+      "import": "./dist/pdf/index.js",
+      "default": "./dist/pdf/index.js"
+    },
+    "./chromium": {
+      "types": "./dist/chromium.d.ts",
+      "import": "./dist/chromium.js",
+      "default": "./dist/chromium.js"
+    },
+    "./examples": {
+      "types": "./dist/examples/index.d.ts",
+      "import": "./dist/examples/index.js",
+      "default": "./dist/examples/index.js"
+    },
+    "./examples/pdf": {
+      "types": "./dist/examples/pdf.d.ts",
+      "import": "./dist/examples/pdf.js",
+      "default": "./dist/examples/pdf.js"
+    },
+    "./examples/proposal-logo.png": "./src/examples/proposal-logo.png",
+    "./styles.css": "./src/styles.css"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist",
+    "src/styles.css",
+    "src/examples/proposal-logo.png",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "documents",
+    "react",
+    "pdf",
+    "composition",
+    "pagination"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Paradoc",
+    "url": "https://paradoc.dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paradoc-dev/paradoc.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean",
+    "pack:dry": "pnpm run build && npm pack --dry-run",
+    "prepublishOnly": "pnpm run build",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:parity": "vitest run --config vitest.parity.config.ts"
+  },
+  "peerDependencies": {
+    "puppeteer": "catalog:",
+    "react": "^19",
+    "react-dom": "^19",
+    "tailwindcss": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
+    "@fontsource/noto-sans-symbols-2": "catalog:",
+    "@paradoc/core": "workspace:^",
+    "@paradoc/render": "workspace:^",
+    "@paradoc/serialization": "workspace:^",
+    "@paradoc/types": "workspace:^",
+    "@takumi-rs/helpers": "catalog:",
+    "takumi-pdf": "catalog:"
+  },
+  "devDependencies": {
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "jsdom": "^25.0.1",
+    "pdfjs-dist": "catalog:",
+    "puppeteer": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
