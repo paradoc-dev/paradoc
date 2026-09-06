@@ -14,7 +14,7 @@
  * document's own tokens chose rather than assumed to be US Letter.
  */
 
-import type { Browser, Page } from "puppeteer";
+import type { Browser, ElementHandle, Page } from "puppeteer";
 
 import type { PageDimensions } from "../../src/lib/tokens";
 
@@ -293,6 +293,60 @@ export async function assertPainted(page: Page, capture: PreviewCapture): Promis
   }
 }
 
+/** How long `captureWhenPainted` polls a sheet for a painted frame before giving up. */
+export const PAINT_POLL_DEADLINE_MS = 15_000;
+
+/** How long `captureWhenPainted` waits between polls once a screenshot comes back blank. */
+const PAINT_POLL_INTERVAL_MS = 100;
+
+/**
+ * Screenshots `sheet` once it has actually painted, polling rather than
+ * trusting a fixed number of frames.
+ *
+ * Two `requestAnimationFrame` ticks are usually enough for the compositor to
+ * catch up after `bringToFront`, but not always: under load a runner can still
+ * hand back the lab's own frame instead of the sheet on the first try, and a
+ * fixed wait either eats that cost on every capture or still isn't enough on
+ * the run that needed more. So each attempt waits two ticks, screenshots, and
+ * samples the corners itself; a capture that is not yet paper white is
+ * discarded and tried again after a beat, up to `deadlineMs`. `assertPainted`
+ * still runs once more on whatever this loop finally accepts, so a mistake in
+ * its own corner check fails loudly here rather than silently accepting a bad
+ * capture.
+ */
+export async function captureWhenPainted(
+  page: Page,
+  sheet: ElementHandle<Element>,
+  number: number,
+  deadlineMs: number = PAINT_POLL_DEADLINE_MS
+): Promise<PreviewCapture> {
+  const deadline = Date.now() + deadlineMs;
+  for (;;) {
+    // The first is the frame the switch to the tab itself triggers, and the
+    // sheet's own paint is scheduled for the one after it.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        })
+    );
+    const png = await sheet.screenshot({ type: "png", encoding: "base64" });
+    const corners = await page.evaluate(sampleCorners, png, CORNER_SAMPLE_FRACTION);
+    if (corners.some((corner) => isPaperWhite(corner))) {
+      const capture: PreviewCapture = { number, png };
+      await assertPainted(page, capture);
+      return capture;
+    }
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `page ${number}: every sampled corner reads ${JSON.stringify(corners[0])}, ` +
+          "not paper white. The sheet had not painted when it was screenshotted."
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, PAINT_POLL_INTERVAL_MS));
+  }
+}
+
 /**
  * Opens the lab and returns the handle the suite drives it with.
  *
@@ -366,30 +420,17 @@ export async function openPreview(
   };
 
   const capture = async (): Promise<PreviewCapture[]> => {
+    // A tab that is not on top stops receiving frames from the compositor;
+    // this makes it the foreground tab again. `captureWhenPainted` below is
+    // what actually waits for a frame to be drawn against the current DOM
+    // before trusting a screenshot.
     await page.bringToFront();
-    // A tab that is not on top stops receiving frames from the compositor.
-    // `bringToFront` makes it the foreground tab again, but that alone does
-    // not wait for a frame to be drawn against the current DOM: on a loaded
-    // runner the very next screenshot can land before that frame does, and it
-    // then captures whatever was on screen before the switch — the lab's own
-    // frame around the sheet — rather than the sheet itself. Two ticks rather
-    // than one: the first is the frame the switch itself triggers, and the
-    // sheet's own paint is scheduled for the one after it.
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        })
-    );
     const { pageCount } = await readPlan(page);
     const captures: PreviewCapture[] = [];
     for (let number = 1; number <= pageCount; number++) {
       const sheet = await page.$(`[data-page="${number}"]`);
       if (sheet === null) throw new Error(`the preview has no page ${number}`);
-      const png = await sheet.screenshot({ type: "png", encoding: "base64" });
-      const one: PreviewCapture = { number, png };
-      await assertPainted(page, one);
-      captures.push(one);
+      captures.push(await captureWhenPainted(page, sheet, number));
     }
     return captures;
   };
