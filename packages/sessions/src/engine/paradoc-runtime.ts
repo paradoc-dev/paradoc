@@ -1,4 +1,5 @@
 import { loadFromObject, isCompositeType } from "@paradoc/core";
+import { unflattenPaths } from "./payload";
 import type { ArtifactRuntime, FillStateSnapshot } from "./types";
 
 /**
@@ -229,40 +230,15 @@ function collectFieldPaths(
 
 /**
  * The engine stores answers as a flat {path: value} map; @paradoc/core's
- * safePartialFill wants a nested {fields: {...}} payload. This is a thin
- * un-flatten of dot-separated keys.
+ * safePartialFill wants a nested {fields: {...}} payload. `unflattenPaths` is
+ * same nesting `sessionPayload` publishes, so what core evaluates and what a
+ * caller renders are shaped by one function.
  */
 function answersToFormPayload(
 	answers: Record<string, unknown>,
 	parties: Record<string, unknown> = {},
 ): { fields: Record<string, unknown>; parties: Record<string, unknown> } {
-	const fields: Record<string, unknown> = {};
-	for (const [path, value] of Object.entries(answers)) {
-		setDeep(fields, path.split("."), value);
-	}
-	return { fields, parties };
-}
-
-function setDeep(
-	target: Record<string, unknown>,
-	segments: string[],
-	value: unknown,
-): void {
-	let cursor = target;
-	for (let i = 0; i < segments.length - 1; i++) {
-		const seg = segments[i];
-		if (seg === undefined) continue;
-		const existing = cursor[seg];
-		if (existing && typeof existing === "object" && !Array.isArray(existing)) {
-			cursor = existing as Record<string, unknown>;
-		} else {
-			const next: Record<string, unknown> = {};
-			cursor[seg] = next;
-			cursor = next;
-		}
-	}
-	const last = segments[segments.length - 1];
-	if (last !== undefined) cursor[last] = value;
+	return { fields: unflattenPaths(answers), parties };
 }
 
 /**

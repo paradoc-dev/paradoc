@@ -132,10 +132,40 @@ function signerPerson(data: PurchaseOrderData, role: PurchaseOrderPartyRole): Pe
   return contact as Person;
 }
 
-/** The id the data carries for the party filling a role. */
+/**
+ * Thrown when no party fills a role the seal must bind a signatory to.
+ *
+ * A session that has not reached the parties yet, or data assembled by hand,
+ * both produce this. Named for the same reason {@link MissingPurchaseOrderSignerError}
+ * is: reading `undefined.id` says nothing about which party is missing from
+ * which packet.
+ */
+export class MissingPurchaseOrderPartyError extends Error {
+  /** The party role nothing fills. */
+  readonly role: string;
+
+  constructor(role: string) {
+    super(
+      `Cannot seal: no party fills the "${role}" role, so there is nobody to bind a ` +
+        "signatory to. A packet is sealed from a completed fill; this one is not complete."
+    );
+    this.name = "MissingPurchaseOrderPartyError";
+    this.role = role;
+  }
+}
+
+/**
+ * The id the data carries for the party filling a role.
+ *
+ * @throws {MissingPurchaseOrderPartyError} when nothing fills the role.
+ */
 function partyId(data: PurchaseOrderData, role: PurchaseOrderPartyRole): string {
-  const party = data.parties[role];
-  return (Array.isArray(party) ? party[0]! : party!).id;
+  const filling = data.parties[role];
+  const party = Array.isArray(filling) ? filling[0] : filling;
+  if (party === undefined || typeof party.id !== "string" || party.id.length === 0) {
+    throw new MissingPurchaseOrderPartyError(role);
+  }
+  return party.id;
 }
 
 /** Fills the purchase order and binds a signer to each party, ready to seal. */

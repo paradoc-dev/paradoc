@@ -33,7 +33,13 @@ export {
   PURCHASE_ORDER_REACT_LAYER_PATH,
   PURCHASE_ORDER_SIGNATURE_SLOTS,
 } from "./purchase-order";
-export { purchaseOrderData, type PurchaseOrderData } from "./purchase-order-data";
+export {
+  purchaseOrderAnswers,
+  purchaseOrderData,
+  purchaseOrderDocumentData,
+  type PurchaseOrderData,
+  type PurchaseOrderPayload,
+} from "./purchase-order-data";
 export { PurchaseOrderDocument, type PurchaseOrderDocumentProps } from "./purchase-order-document";
 export {
   PROPOSAL_LOGO_HEIGHT_PX,

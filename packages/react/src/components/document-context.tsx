@@ -11,7 +11,7 @@ import type { Form, FormField, Party, SerializerRegistry } from "@paradoc/types"
 
 import { itemField, readValue, resolveField, UnknownFieldPathError } from "../lib/fields";
 import { findSigningMark, type SigningMarks, type SigningMarkType } from "./signing-context";
-import { formatByType, InvalidFieldValueError, isDeeplyBlank, type DocumentFormatter, type ValueFormatter } from "../lib/format";
+import { formatByType, InvalidFieldValueError, type DocumentFormatter, type ValueFormatter } from "../lib/format";
 import type { UnresolvedPathCollector } from "./check-context";
 
 /** The data one composed document renders. */
@@ -114,14 +114,13 @@ function resolveOrCollect(
  * throw. Outside check mode `attempt` runs unguarded, so a normal render
  * still throws exactly as it always has.
  *
- * A value with no data anywhere in it — `{ amount: null, currency: null }`
- * for a money def computed from fields the sample never set — is not a
- * fault: a `Field`/`Table` path and a `Totals` def both resolve against the
- * artifact with no data at all, and the schema check must not need any, so
- * this reports nothing for it and returns `blank`. A value that does carry
- * data and is still rejected is a real problem — a rate stored as a string,
- * a stray field the artifact half-declares — and is reported to `collector`
- * at the location the error names, same as an unresolved path.
+ * A value the data has not finished supplying never reaches here: the
+ * formatter prints it `blank` rather than rejecting it, which is what lets a
+ * `Field`/`Table` path and a `Totals` def resolve against the artifact with no
+ * data at all. What does reach here is a value that is complete and still
+ * rejected, a rate stored as a string or a stray field the artifact
+ * half-declares, and it is reported to `collector` at the location the error
+ * names, same as an unresolved path.
  */
 function formatOrCollect(
   collector: UnresolvedPathCollector | undefined,
@@ -133,7 +132,7 @@ function formatOrCollect(
     return attempt();
   } catch (error) {
     if (error instanceof InvalidFieldValueError) {
-      if (!isDeeplyBlank(error.value)) collector.report(error.location);
+      collector.report(error.location);
       return blank;
     }
     throw error;
@@ -182,7 +181,14 @@ export function createDocumentContext(
     mark: (role: string, index: number, type: SigningMarkType) => findSigningMark(marks, role, index, type),
     defText: (name: string) =>
       formatOrCollect(collector, formatter.blank, () =>
-        formatByType(form.defs?.[name]?.type, defs.get(name), formatter.serializers, formatter.blank, `defs.${name}`)
+        formatByType(
+          form.defs?.[name]?.type,
+          defs.get(name),
+          formatter.serializers,
+          formatter.blank,
+          `defs.${name}`,
+          formatter.partial
+        )
       ),
     party,
   };

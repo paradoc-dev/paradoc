@@ -10,7 +10,8 @@
  *
  * The seal's flow markers enter here too, but from the other direction: the
  * layer's renderer supplies them and this reads them, so a composition never
- * threads a seal-only prop.
+ * threads a seal-only prop. Partial mode arrives the same way, from whichever
+ * caller knows that the document below is one somebody is still answering.
  *
  * The script is branding too. `dir` and `lang` are root-only tokens, so the
  * root writes them onto its element as HTML writes them, and the render reads
@@ -31,6 +32,7 @@ import { evaluateFormDefs } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 import { useUnresolvedPathCollector } from "./check-context";
+import { usePartialValues } from "./partial-context";
 import { createValueFormatter, type FormatOptions } from "../lib/format";
 import { assertTextScriptsCovered, collectStrings } from "../lib/script";
 import { fontFamilyStyle, localeAttributes, type DocumentTokensInput } from "../lib/tokens";
@@ -96,11 +98,17 @@ export function Document({
   // other render sees `undefined` and `createDocumentContext` throws exactly
   // as it always has.
   const collector = useUnresolvedPathCollector();
+  // Whether the document below is one somebody is still answering. The prop
+  // wins where a composition states it; otherwise it is whatever the caller
+  // around the element said, which is how `renderPdf` and the check turn it on
+  // for a tree they do not own. Off unless something says so.
+  const surrounding = usePartialValues();
+  const partial = format?.partial ?? surrounding;
 
   const context = useMemo(() => {
-    const formatter = createValueFormatter(format);
+    const formatter = createValueFormatter({ ...format, partial });
     return createDocumentContext(artifact, data, evaluateDefs(artifact, data), formatter, marks, collector);
-  }, [artifact, data, format, marks, collector]);
+  }, [artifact, data, format, partial, marks, collector]);
 
   return (
     <DocumentTokensProvider tokens={branding.tokens}>

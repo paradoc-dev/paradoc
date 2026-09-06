@@ -1,5 +1,6 @@
 import { project } from "../event-log/projector";
 import type { ProjectedSession } from "../event-log/types";
+import { flatAnswers, payloadParties } from "./payload";
 import type { ArtifactRuntime, FormSession } from "./types";
 
 /**
@@ -77,22 +78,6 @@ export type PartyIndexEntry = {
 	status: "answered" | "pending";
 };
 
-function answersOf(projected: ProjectedSession): Record<string, unknown> {
-	const out: Record<string, unknown> = {};
-	for (const [path, ans] of Object.entries(projected.answers)) {
-		out[path] = ans.value;
-	}
-	return out;
-}
-
-function partiesOf(projected: ProjectedSession): Record<string, unknown> {
-	const out: Record<string, unknown> = {};
-	for (const ans of Object.values(projected.parties)) {
-		out[ans.roleId] = ans.party;
-	}
-	return out;
-}
-
 /**
  * Pure: given a session and the artifact runtime, compute everything the
  * agent (or UI) needs to decide what to do next. Recomputed on every read;
@@ -130,8 +115,8 @@ export function deriveView(
 	}
 
 	const fillState = runtime.getFillState(
-		answersOf(projected),
-		partiesOf(projected),
+		flatAnswers(projected),
+		payloadParties(projected),
 	);
 
 	const openRequiredNonDeferred = fillState.openRequired.filter(

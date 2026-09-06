@@ -21,6 +21,23 @@
  * instead, so a rejected value always throws. A value the data does
  * not carry at all (`null`, `undefined`, `""`) is not an invalid value: it is
  * handled before any serializer sees it, and prints as `blank`.
+ *
+ * **Partial mode** is the one exception, and it is opt-in. A document being
+ * filled is partial by definition: `{ amount: null, currency: "USD" }` is what
+ * a money def evaluates to while the field behind its amount is still
+ * unanswered, and its serializer rejects it because `amount` must be a number.
+ * A caller that is showing a fill in progress asks for `partial: true` and gets
+ * `blank` for that; every other caller, which is every ordinary `renderPdf` and
+ * both of the seal's render passes, still throws. A finished document with a
+ * hole in it is a bug, and only the caller knows which kind of document it is
+ * looking at.
+ *
+ * Partial mode does not swallow a wrong value. A rejection counts as
+ * "unfinished" only when the rejection is actually about a member the data has
+ * not supplied, which is decided by asking the serializer a second question
+ * rather than by reading its message — see {@link isInProgress}. A rate stored
+ * as a string throws in partial mode exactly as it does outside it, even when
+ * the value it sits in is half-empty.
  */
 
 import { isSerializableFieldType, REGION_REGISTRIES } from "@paradoc/serialization";
@@ -35,6 +52,21 @@ export interface FormatOptions {
   regionFormat?: RegionFormat;
   /** Shown in place of a missing value. Defaults to `BLANK`. */
   blank?: string;
+  /**
+   * Renders a document that is still being filled. Off by default.
+   *
+   * With it on, a value the data has not finished supplying prints `blank`
+   * instead of throwing: a money def whose amount has not been answered yet,
+   * say. A value that is wrong rather than unfinished still throws, on or off.
+   *
+   * Turn it on where a document is being answered and every intermediate state
+   * is a document somebody is looking at: a session preview, and the
+   * composition check, which runs with whatever sample data there is. Leave it
+   * off everywhere a finished document is produced, which is every ordinary
+   * `renderPdf` and both of the seal's render passes, because a hole in one of
+   * those is a bug and printing an em dash would hide it.
+   */
+  partial?: boolean;
 }
 
 /**
@@ -69,6 +101,8 @@ export interface DocumentFormatter {
   format: ValueFormatter;
   serializers: SerializerRegistry;
   blank: string;
+  /** Whether this formatter is rendering a document that is still being filled. */
+  partial: boolean;
 }
 
 function isBlank(value: unknown): boolean {
@@ -77,11 +111,11 @@ function isBlank(value: unknown): boolean {
 
 /**
  * True when `value` is a plain object — `{}` or `Object.create(null)`, not
- * an instance of some other class. `isDeeplyBlank` only recurses into one of
+ * an instance of some other class. `isIncomplete` only recurses into one of
  * these: a `Date`, a `RegExp`, a `Map`, or any other class instance carries
  * its state outside its own enumerable properties, so `Object.values` on one
- * reports empty and would read as blank when it plainly is not — a `Date` is
- * about as real a value as a value gets.
+ * reports empty and would read as unsupplied when it plainly is not — a `Date`
+ * is about as real a value as a value gets.
  */
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null) return false;
@@ -90,23 +124,86 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * True when `value` carries no data anywhere inside it: itself blank, or a
- * plain object or array whose every leaf is. A def computed from fields the
- * caller's sample data never set is exactly this shape — `{ amount: null,
- * currency: null }` for a money def, say — not blank at the top level
- * (`isBlank` says no), but not a real value either. Used only by a
- * composition check to tell "there is no data yet" apart from "there is data
- * and a serializer rejects it": the first is not a fault, the second is.
+ * True when `value` is a composite the data has not finished supplying: a plain
+ * object or array with nothing in it, or one carrying a member that is blank.
  *
- * A non-plain object (a `Date`, an `Attachment` instance, anything with its
- * own class) is never blank, deeply or otherwise, however few enumerable
- * properties it carries — see {@link isPlainObject}.
+ * Structural only, and deliberately generous: it says a value *might* be
+ * unfinished, never that its rejection was about that. {@link isInProgress}
+ * decides. A non-plain object (a `Date`, an `Attachment` instance, anything
+ * with its own class) is never this, however few enumerable properties it
+ * carries. See {@link isPlainObject}.
  */
-export function isDeeplyBlank(value: unknown): boolean {
+export function hasUnsuppliedMember(value: unknown): boolean {
   if (isBlank(value)) return true;
-  if (Array.isArray(value)) return value.every(isDeeplyBlank);
-  if (isPlainObject(value)) return Object.values(value).every(isDeeplyBlank);
+  if (Array.isArray(value)) return value.length === 0 || value.some(hasUnsuppliedMember);
+  if (isPlainObject(value)) {
+    const members = Object.values(value);
+    return members.length === 0 || members.some(hasUnsuppliedMember);
+  }
   return false;
+}
+
+/** The same composite with every blank member removed, recursively. */
+function withoutBlanks(value: unknown): unknown {
+  if (Array.isArray(value)) return value.filter((entry) => !isBlank(entry)).map(withoutBlanks);
+  if (!isPlainObject(value)) return value;
+  const kept: Record<string, unknown> = {};
+  for (const [key, member] of Object.entries(value)) {
+    if (!isBlank(member)) kept[key] = withoutBlanks(member);
+  }
+  return kept;
+}
+
+/** True when a composite has nothing left in it. */
+function isEmptyComposite(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length === 0;
+  return isPlainObject(value) && Object.keys(value).length === 0;
+}
+
+/**
+ * True when the only thing wrong with a rejected `value` is that the data has
+ * not finished supplying it.
+ *
+ * The serializers throw plain `Error`s carrying a sentence and no structured
+ * issues, so there is no list of offending members to read and no honest way to
+ * parse one out. The serializer is still the only thing that knows what it
+ * objects to, so it is asked a second question instead: **serialize the same
+ * value with its blank members removed.**
+ *
+ * - It is accepted, or there is nothing left of it: the blanks were the whole
+ *   problem, and the value is a fill in progress.
+ * - It is rejected with a different complaint: the first complaint was about
+ *   something the pruning removed, which is to say about a blank.
+ * - It is rejected with the same complaint: the pruning changed nothing, so the
+ *   complaint was never about a blank. `{ amount: "12", currency: null }` is
+ *   this case — half-supplied and also wrong — and it throws.
+ *
+ * The comparison is of two rejections, not a parse of one. A serializer whose
+ * message quoted the whole value would make this stricter rather than looser,
+ * which is the safe direction.
+ */
+export function isInProgress(
+  type: string | undefined,
+  value: unknown,
+  serializers: SerializerRegistry,
+  rejection: unknown
+): boolean {
+  if (!hasUnsuppliedMember(value)) return false;
+  if (!isPlainObject(value) && !Array.isArray(value)) return false;
+
+  const pruned = withoutBlanks(value);
+  if (isEmptyComposite(pruned)) return true;
+
+  try {
+    serialize(type, pruned, serializers);
+    return true;
+  } catch (again) {
+    return messageOf(again) !== messageOf(rejection);
+  }
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -123,16 +220,27 @@ function serialize(
   return serializers[type as keyof SerializerRegistry].stringify(value as never) || undefined;
 }
 
-/** Runs `serialize`, reporting a rejected value as `InvalidFieldValueError` naming `location`. */
+/**
+ * Runs `serialize`, reporting a rejected value as `InvalidFieldValueError`
+ * naming `location`.
+ *
+ * In partial mode a rejected value the data has not finished supplying prints
+ * `blank` instead. The test runs only on the rejection path, so a value the
+ * serializer accepts is never second-guessed: an address that legitimately
+ * carries `line2: null` serializes as it always has.
+ */
 function serializeNamed(
   location: string,
   type: string | undefined,
   value: unknown,
-  serializers: SerializerRegistry
+  serializers: SerializerRegistry,
+  blank: string,
+  partial: boolean
 ): string | undefined {
   try {
     return serialize(type, value, serializers);
   } catch (cause) {
+    if (partial && isInProgress(type, value, serializers, cause)) return blank;
     throw new InvalidFieldValueError(location, value, cause);
   }
 }
@@ -147,10 +255,14 @@ export function formatByType(
   value: unknown,
   serializers: SerializerRegistry,
   blank: string = BLANK,
-  location?: string
+  location?: string,
+  partial = false
 ): string {
   if (isBlank(value)) return blank;
-  return serializeNamed(location ?? type ?? "value", type, value, serializers) ?? String(value);
+  return (
+    serializeNamed(location ?? type ?? "value", type, value, serializers, blank, partial) ??
+    String(value)
+  );
 }
 
 function enumLabel(field: FormField, value: unknown): string {
@@ -161,6 +273,7 @@ function enumLabel(field: FormField, value: unknown): string {
 /** Builds a formatter bound to one serializer registry. */
 export function createValueFormatter(options: FormatOptions = {}): DocumentFormatter {
   const blank = options.blank ?? BLANK;
+  const partial = options.partial ?? false;
   // The plain registries, not `createSerializer`: its fallback wrapping turns a
   // rejected value into an empty string, and this package throws instead. The
   // map is the serialization package's own, and it is exhaustive over
@@ -170,7 +283,14 @@ export function createValueFormatter(options: FormatOptions = {}): DocumentForma
   const format: ValueFormatter = (field, value, location) => {
     if (isBlank(value)) return blank;
 
-    const serialized = serializeNamed(location ?? field?.label ?? field?.type ?? "value", field?.type, value, serializers);
+    const serialized = serializeNamed(
+      location ?? field?.label ?? field?.type ?? "value",
+      field?.type,
+      value,
+      serializers,
+      blank,
+      partial
+    );
     if (serialized) return serialized;
 
     switch (field?.type) {
@@ -185,5 +305,5 @@ export function createValueFormatter(options: FormatOptions = {}): DocumentForma
     }
   };
 
-  return { format, serializers, blank };
+  return { format, serializers, blank, partial };
 }

@@ -16,7 +16,7 @@
  * there is exactly one set.
  */
 
-import { computeLineAmounts, type LineItemInput } from "../lib/totals";
+import { computeLineAmounts, type LineItem, type LineItemInput } from "../lib/totals";
 import type { RuntimeParty } from "@paradoc/types";
 
 import type { DocumentData } from "../components/document-context";
@@ -132,4 +132,77 @@ export const purchaseOrderData: PurchaseOrderData = {
     buyer: { id: "buyer-0", ...buyer },
     supplier: { id: "supplier-0", ...supplier },
   },
+};
+
+/**
+ * What a session has answered, in the artifact's own shape.
+ *
+ * `@paradoc/sessions` publishes exactly this from `sessionPayload`, and this
+ * module states the shape rather than importing it so that a document package
+ * does not depend on a session engine to render a document.
+ */
+export interface PurchaseOrderPayload {
+  fields: Record<string, unknown>;
+  parties: Record<string, unknown>;
+}
+
+/**
+ * The document data for a purchase order that is still being answered.
+ *
+ * Two of the artifact's fields are derived rather than answered, and neither
+ * belongs in a session's log: `subtotalAmount`, because the expression language
+ * has no aggregate over a list, and each row's `amount`, because it is the row
+ * multiplied out. A session collects the rows and the currency; this computes
+ * the rest, exactly as the sample above does, and it does so on every call so
+ * the totals follow the rows as they land.
+ *
+ * Everything else passes through untouched. A field nobody has answered yet is
+ * simply absent, which is what the composition renders as blank.
+ */
+export function purchaseOrderDocumentData(payload: PurchaseOrderPayload): PurchaseOrderData {
+  const fields: Record<string, unknown> = { ...payload.fields };
+  const rows = fields.lineItems;
+  const currency = fields.currency;
+
+  // Both, or neither: the amounts are money and money has a currency. Before
+  // the currency lands the rows print their own values and the totals print
+  // blank, which is the honest state of a document that cannot add up yet.
+  if (Array.isArray(rows) && typeof currency === "string" && currency.length > 0) {
+    const computed = computeLineAmounts(rows as LineItemInput[], currency);
+    fields.lineItems = computed.lineItems;
+    fields.subtotalAmount = computed.subtotalAmount;
+  }
+
+  return {
+    fields,
+    // The parties a session answered are validated by the artifact's own party
+    // schema before the log records them, so what comes back carries the id a
+    // seal binds a signer to.
+    parties: payload.parties as PurchaseOrderData["parties"],
+  };
+}
+
+/**
+ * The same sample as a filler would supply it, with nothing derived in it.
+ *
+ * A session records what it was told, so a script that answers a computed value
+ * puts one in an event log that is supposed to hold only answers. This is
+ * `purchaseOrderData` with the two derived values taken back out: each row's
+ * `amount`, and `subtotalAmount`. Feed it to a fill and
+ * `purchaseOrderDocumentData` puts them back.
+ */
+export const purchaseOrderAnswers: PurchaseOrderPayload = {
+  fields: Object.fromEntries(
+    Object.entries(purchaseOrderData.fields)
+      .filter(([path]) => path !== "subtotalAmount")
+      .map(([path, value]) =>
+        path === "lineItems" && Array.isArray(value)
+          ? [
+              path,
+              (value as LineItem[]).map(({ amount: _amount, ...row }) => row satisfies LineItemInput),
+            ]
+          : [path, value]
+      )
+  ),
+  parties: { ...purchaseOrderData.parties },
 };

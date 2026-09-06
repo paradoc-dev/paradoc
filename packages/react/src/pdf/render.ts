@@ -41,7 +41,7 @@ import {
 } from "./adapter";
 import { takumiAdapter } from "./adapters/takumi";
 import { documentFontFiles, markerFontFile, type PdfImage } from "./resources";
-import { withDrawnPaper, withTokenOverride } from "./token-override";
+import { withDrawnPaper, withPartialValues, withTokenOverride } from "./token-override";
 import type { PageBreakPlan } from "./tree";
 
 export {
@@ -79,6 +79,14 @@ export interface RenderPdfOptions {
    * keeps the paper the document chose.
    */
   tokens?: DocumentTokensInput;
+  /**
+   * Renders a document that is still being filled, so a value the data has not
+   * finished supplying prints blank instead of failing the render. Off by
+   * default, and the seal never sets it: a finished document with a hole in it
+   * is a bug, and an em dash would hide it. A value that is wrong rather than
+   * unfinished still fails either way.
+   */
+  partial?: boolean;
   /**
    * Embeds the face that carries the core seal flow's invisible marker
    * codepoints. Only the seal path sets it: without the face the engine writes
@@ -185,7 +193,10 @@ export async function renderPdf(
     // render resolved goes on outside it so the document can check itself
     // against it. Both are contexts and neither emits markup, so the tree an
     // engine lays out is the tree the caller wrote.
-    element: withDrawnPaper(withTokenOverride(element, options.tokens), tokens),
+    element: withDrawnPaper(
+      withTokenOverride(withPartialValues(element, options.partial), options.tokens),
+      tokens
+    ),
     tokens,
     plan: options.plan,
     images: options.images ?? [],

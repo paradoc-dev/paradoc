@@ -19,6 +19,7 @@
 import type { ReactNode } from "react";
 
 import { DrawnPaperProvider, drawnPaper } from "../components/paper-geometry";
+import { PartialValuesProvider } from "../components/partial-context";
 import { TokenOverrideProvider } from "../components/tokens-context";
 import type { DocumentTokens, DocumentTokensInput } from "../lib/tokens";
 
@@ -29,6 +30,19 @@ export function withTokenOverride(
 ): ReactNode {
   if (tokens === undefined) return element;
   return <TokenOverrideProvider tokens={tokens}>{element}</TokenOverrideProvider>;
+}
+
+/**
+ * Tells the document below that it is one somebody is still answering, or
+ * leaves the tree alone.
+ *
+ * Only when the render asked for it. A render that says nothing leaves the tree
+ * untouched rather than wrapping it in a provider carrying `false`, so the tree
+ * an engine lays out is byte for byte the tree it always was.
+ */
+export function withPartialValues(element: ReactNode, partial: boolean | undefined): ReactNode {
+  if (partial !== true) return element;
+  return <PartialValuesProvider partial>{element}</PartialValuesProvider>;
 }
 
 /** Tells the document below what this render resolved, so it can check itself. */

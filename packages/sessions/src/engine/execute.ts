@@ -1,4 +1,5 @@
 import { project } from "../event-log/projector";
+import { flatAnswers, payloadParties } from "./payload";
 import type {
 	Actor,
 	SessionEvent,
@@ -81,7 +82,7 @@ export function execute(
 					`field ${cmd.fieldPath} does not exist on the artifact`,
 				);
 			}
-			const fillState = runtime.getFillState(answersOf(projected), partiesOf(projected));
+			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
 			const visible =
 				fillState.openRequired.some((f) => f.fieldPath === cmd.fieldPath) ||
 				fillState.openOptional.some((f) => f.fieldPath === cmd.fieldPath) ||
@@ -196,7 +197,7 @@ export function execute(
 					`${cmd.fieldPath} is already deferred`,
 				);
 			}
-			const fillState = runtime.getFillState(answersOf(projected), partiesOf(projected));
+			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
 			const visible =
 				fillState.openRequired.some((f) => f.fieldPath === cmd.fieldPath) ||
 				fillState.openOptional.some((f) => f.fieldPath === cmd.fieldPath);
@@ -257,7 +258,7 @@ export function execute(
 					`${cmd.fieldPath} is already skipped`,
 				);
 			}
-			const fillState = runtime.getFillState(answersOf(projected), partiesOf(projected));
+			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
 			const inRequired = fillState.openRequired.some(
 				(f) => f.fieldPath === cmd.fieldPath,
 			);
@@ -315,7 +316,7 @@ export function execute(
 					`field ${cmd.fieldPath} does not exist on the artifact`,
 				);
 			}
-			const fillState = runtime.getFillState(answersOf(projected), partiesOf(projected));
+			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
 			const visible =
 				fillState.openRequired.some((f) => f.fieldPath === cmd.fieldPath) ||
 				fillState.openOptional.some((f) => f.fieldPath === cmd.fieldPath);
@@ -414,28 +415,4 @@ export function execute(
 	}
 }
 
-/**
- * Reduce the projection's answer map to a plain {path: value} record for
- * passing to the artifact runtime.
- */
-function answersOf(
-	projected: ReturnType<typeof project>,
-): Record<string, unknown> {
-	const out: Record<string, unknown> = {};
-	for (const [path, ans] of Object.entries(projected.answers)) {
-		out[path] = ans.value;
-	}
-	return out;
-}
 
-function partiesOf(
-	projected: ReturnType<typeof project>,
-): Record<string, unknown> {
-	const out: Record<string, unknown> = {};
-	for (const ans of Object.values(projected.parties)) {
-		// One-off-per-role assumption for v2 (no repeatable parties yet) —
-		// last-write-wins per roleId.
-		out[ans.roleId] = ans.party;
-	}
-	return out;
-}

@@ -114,6 +114,7 @@ describe("the manifest covers the package", () => {
       "document-context",
       "page-context",
       "paper-geometry",
+      "partial-context",
       "signing-context",
       "tokens-context",
     ]);

@@ -127,9 +127,9 @@ export const purchaseOrderSpec = {
       type: "person",
       label: "Buyer contact",
       description:
-        "The person who signs for the buyer. Not printed: the document names the party, and who signed it is what the seal records. `sealPurchaseOrder` reads this field to bind the buyer's signer, because core's Signer.person is always a Person and an organization cannot fill it.",
+        "The person who signs for the buyer. `sealPurchaseOrder` reads this field to bind the buyer's signer, because core's Signer.person is always a Person and an organization cannot fill it. The composition does not print it: the document names the party, and who signed it is what the seal records. Not printing a field is the composition's decision, not the artifact's, so it is visible and a session collects it like any other required field.",
       required: true,
-      visible: false,
+      visible: true,
     },
     supplier: {
       type: "organization",
@@ -210,9 +210,11 @@ export const purchaseOrderSpec = {
           amount: {
             type: "money",
             label: "Amount",
+            description:
+              "The row multiplied out. Derived rather than answered, like `subtotalAmount` and for the same reason: a filler supplies the quantity and the unit price, and `computeLineAmounts` does the arithmetic. Requiring it would make a session ask a vendor to multiply.",
             min: 0,
-            required: true,
-            visible: true,
+            required: false,
+            visible: false,
           },
         },
       },
@@ -221,9 +223,9 @@ export const purchaseOrderSpec = {
       type: "number",
       label: "Subtotal amount",
       description:
-        "Sum of the line-item amounts. Materialized by the caller because the expression language has no list aggregate. Not shown as a field: the document surfaces it through the `subtotal` def, so the reader sees one serialized money value rather than a bare number.",
+        "Sum of the line-item amounts. Materialized by the caller because the expression language has no list aggregate. Not shown as a field: the document surfaces it through the `subtotal` def, so the reader sees one serialized money value rather than a bare number. Derived rather than answered, exactly like each row's `amount`, and declared the same way: invisible so no session asks for it, and not required so nothing demands it of a filler. `purchaseOrderDocumentData` recomputes it from whatever line items have landed.",
       min: 0,
-      required: true,
+      required: false,
       visible: false,
     },
     taxRatePercent: {

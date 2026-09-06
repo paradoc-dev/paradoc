@@ -12,7 +12,8 @@
  * a `Field` or `Table` names a path the artifact does not declare, which stops
  * `@takumi-rs/helpers` from resolving the rest of the tree — the walk that
  * would otherwise find every unsupported class and every missing image never
- * finishes. `checkElement` wraps the element in a `CheckModeProvider`
+ * finishes. `checkElement` wraps the element in a `PartialValuesProvider` and a
+ * `CheckModeProvider`
  * (`../components/check-context.tsx`), which `Document`'s context reads: with
  * a collector present, `field`, `item`, and `party` record a fault and return
  * a placeholder instead of throwing, so the walk completes and every check
@@ -65,9 +66,10 @@ import { fromJsx } from "@takumi-rs/helpers/jsx";
 import type { Form } from "@paradoc/types";
 
 import { CheckModeProvider, type UnresolvedPathCollector } from "../components/check-context";
+import { PartialValuesProvider } from "../components/partial-context";
 import type { DocumentData } from "../components/document-context";
 import { UnknownFieldPathError } from "../lib/fields";
-import { InvalidFieldValueError, isDeeplyBlank } from "../lib/format";
+import { InvalidFieldValueError } from "../lib/format";
 import type { ReactLayerComponent } from "../pdf/layer";
 import { preparePdfTree } from "../pdf/tree";
 import type { PdfAdapterName } from "../pdf/adapter";
@@ -171,7 +173,16 @@ export async function checkElement(
   const unresolvedPaths: string[] = [];
   const collector = collectInto(unresolvedPaths);
 
-  const wrapped: ReactNode = createElement(CheckModeProvider, { collector }, element);
+  // Partial mode, because a check runs against whatever sample data there is
+  // and often against none. A def computed from fields the sample never set is
+  // the state a document being filled is in, not a fault in the composition,
+  // and the check is about the composition. A value that is wrong rather than
+  // unfinished is still reported.
+  const wrapped: ReactNode = createElement(
+    PartialValuesProvider,
+    { partial: true },
+    createElement(CheckModeProvider, { collector }, element)
+  );
 
   // Check mode means every `Field`/`Table`/`Signature` fault the tree carries,
   // and every value a `Totals` def or a `Field` formats, is collected above
@@ -189,7 +200,7 @@ export async function checkElement(
       return { unsupportedClasses: [], unresolvedPaths, missingImages: [] };
     }
     if (error instanceof InvalidFieldValueError) {
-      if (!isDeeplyBlank(error.value)) collector.report(error.location);
+      collector.report(error.location);
       return { unsupportedClasses: [], unresolvedPaths, missingImages: [] };
     }
     throw error;

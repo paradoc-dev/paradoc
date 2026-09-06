@@ -10,6 +10,8 @@ export type {
 	FormSession,
 } from "./engine/types";
 export { execute } from "./engine/execute";
+export { sessionPayload } from "./engine/payload";
+export type { SessionPayload } from "./engine/payload";
 export { deriveView } from "./engine/derive";
 export type {
 	FieldTarget,

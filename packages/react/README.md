@@ -540,6 +540,42 @@ both rather than guessing which block is which.
 typo in a composition is a bug, not a blank value, and rendering it as an em dash
 would hide it until someone read the finished document.
 
+A value is the same rule. A value the serializer rejects for its declared type
+throws `InvalidFieldValueError` naming where it came from, rather than falling
+through to `String(value)`: a rate stored as a string is a data bug and printing
+it raw would hide that.
+
+**Missing is not wrong, though.** A value the data does not carry at all
+(`null`, `undefined`, `''`) prints blank in every mode, because it never reaches
+a serializer.
+
+A composite the data has only *half* supplied is the harder case, and it is
+opt-in. `{ amount: null, currency: 'USD' }` is what a money def evaluates to
+while the field behind its amount is unanswered, and its serializer rejects it.
+A finished document with that in it is a bug and must fail; a document a session
+is part-way through answering is supposed to look like that. Only the caller
+knows which it is rendering, so it says so:
+
+```ts
+createValueFormatter({ partial: true })      // a formatter for a fill in progress
+<Document format={{ partial: true }} />      // one document
+renderPdf(element, { partial: true })        // a whole tree
+```
+
+Off by default. Every ordinary `renderPdf` and both of the seal's render passes
+leave it off. `checkComposition` turns it on, because a check runs against
+whatever sample data there is and often against none.
+
+**Partial mode does not swallow a wrong value.** A rejection counts as
+unfinished only when it is actually about a member the data has not supplied,
+and that is decided by asking the serializer a second question rather than by
+reading the message of the first refusal: serialize the same value with its
+blank members removed. Accepted, or nothing left of it, means the blanks were
+the whole problem. Rejected with the same complaint means the pruning changed
+nothing, so the complaint was never about a blank. `{ amount: '12', currency:
+null }` is that case, half-supplied and also wrong, and it throws in partial
+mode exactly as it does outside it.
+
 ## Checking a composition without rendering it
 
 `@paradoc/react/check` walks the same tree the takumi adapter walks and reports
@@ -1415,6 +1451,72 @@ depend on the registry), and a certificate of insurance as the annex. The annex
 is checked in at `@paradoc/react/examples/certificate-of-insurance.pdf`, so a
 browser project installing the block has bytes without a Node render;
 `pnpm --filter @paradoc/react regenerate:annex` redraws it.
+
+### Filled in a session
+
+A packet has artifacts in it, and somebody has to answer them. `@paradoc/sessions`
+is the engine that asks: it runs in the browser, decides what to ask for next
+from the artifact's own dependency graph, validates every answer, and records
+the accepted ones in an event log. Binding that to a composition is one memo:
+
+```tsx
+const PARTIAL = { partial: true }
+
+function Live({ session }: { session: FormSession }) {
+  const data = useMemo(
+    () => purchaseOrderDocumentData(sessionPayload(project(session.events))),
+    [session]
+  )
+  return (
+    <Pages>
+      <PurchaseOrderDocument data={data} format={PARTIAL} />
+    </Pages>
+  )
+}
+```
+
+`sessionPayload` is the engine's own projection from its log to the artifact's
+shape: answers unwrapped and un-flattened into nested fields, parties keyed by
+role. It is valid at every point of a fill, not only at the end, because an
+unanswered field is simply absent.
+
+**A document mid-fill is a document, but you have to say so.** Every state
+between empty and complete renders once the document is in partial mode, which
+is what the `format={{ partial: true }}` above is for: a money def whose amount
+has not landed yet prints blank rather than throwing, while a value that is
+wrong still fails loudly, and a document that is *not* a fill in progress keeps
+failing on both. See
+[A path that does not resolve is a fault](#a-path-that-does-not-resolve-is-a-fault)
+for the rule in full.
+
+**The document redraws in place.** The plan is replaced only when a fresh
+measurement differs from it, so an answer that does not move a page break leaves
+every sheet and every keep as the same DOM node and changes only the text of the
+field that was answered. An answer that does move one, the eighteen line items
+landing at once, repaginates and the keeps that moved to the new page are new
+nodes, which is what a page break is.
+
+**A rejected answer changes nothing at all.** `execute` hands back no session on
+a rejection, so the host still holds the one it had, the memo does not run, and
+React has nothing to re-render.
+
+**Derived values do not belong in a session.** A session records what it was
+told. The purchase order's `subtotalAmount` and each row's `amount` are
+arithmetic, so the artifact declares both `visible: false` and `required: false`
+and nothing asks for them; `purchaseOrderDocumentData` computes them from the
+rows and the currency on every call, which is why the totals follow the rows as
+they land.
+The mirror of that rule is that a field the composition does not print is still
+a field the artifact collects: `buyerContact` names the person the seal binds
+the buyer's signer to, no `Field` prints it, and it is visible and required all
+the same. Not printing something is the composition's decision, not the
+artifact's.
+
+The lab's third view runs the whole thing: `pnpm --filter @paradoc/react-lab dev`
+and open `?view=session`. Two sessions fill the packet's two fillable artifacts,
+the purchase order composes live beside the log, one value is offered wrong
+before it is offered right, and the button at the bottom renders and seals the
+packet from what the sessions collected.
 
 ## Measured parity
 

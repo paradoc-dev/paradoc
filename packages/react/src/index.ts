@@ -30,6 +30,14 @@ export {
   type CheckModeProviderProps,
   type UnresolvedPathCollector,
 } from "./components/check-context";
+// Substrate for the same reason: `Document` reads partial mode on every render,
+// partial or not, and an installed `document.tsx` must read the one its caller
+// set rather than a copy that is always false.
+export {
+  PartialValuesProvider,
+  usePartialValues,
+  type PartialValuesProviderProps,
+} from "./components/partial-context";
 // The provider is the seal's, and the seal is Node: it is exported from
 // `@paradoc/react/pdf`. The hook is not — `Document` calls it on every render,
 // sealing or not — so it belongs to the browser entry alongside the vocabulary

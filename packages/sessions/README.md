@@ -55,15 +55,21 @@ A `Command` is the only way to mutate a session. `execute` decides which events 
 import { execute } from "@paradoc/sessions";
 
 const result = execute(
-  { kind: "answer", fieldPath: "age", value: 25, source: "user" },
   session,
   runtime,
+  { kind: "answer", fieldPath: "age", value: 25, source: "user" },
+  { kind: "user" },
 );
 
 if (result.ok) {
   session = result.session; // new session with the appended event
+} else {
+  result.code; // why it was refused
+  result.reason;
 }
 ```
+
+A rejection carries no session at all, so the caller simply keeps the one it had. Nothing about the fill changed.
 
 Project the log into the current view for rendering:
 
@@ -73,8 +79,17 @@ import { deriveView } from "@paradoc/sessions";
 const view = deriveView(session, runtime);
 
 view.phase; // where the session is in its lifecycle
-view.target; // the field to ask about next, if any
+view.next; // the field to ask about next, if any
+view.nextParty; // the party to ask about next, if any
 view.progress; // answered vs. remaining
+```
+
+Project the log into the artifact's own shape, to fill, render, or seal from what has been answered. It is valid part-way through a fill: a field nobody has answered is simply absent.
+
+```typescript
+import { sessionPayload } from "@paradoc/sessions";
+
+const { fields, parties } = sessionPayload(view.projected);
 ```
 
 Because storage is not baked in, you persist and rehydrate the event log yourself:
