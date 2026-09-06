@@ -7,6 +7,10 @@
  * project's `components.json`, so `@paradoc/field` resolves to
  * `https://docs.paradoc.dev/r/field.json`, and then run the install.
  *
+ * A block is installed the same way and is one of these items too: it brings a
+ * whole document rather than one component, so `para add purchase-order` lands
+ * the artifact, its sample data and the composition that binds them.
+ *
  * `para add @namespace/name` still adds an artifact from an artifact registry.
  * The two are told apart by shape: an artifact is always namespaced or a URL, a
  * component is always a bare name.
@@ -42,7 +46,7 @@ export const COMPONENT_REGISTRY_URL = 'https://docs.paradoc.dev/r/{name}.json'
 export const SHADCN_SPEC = 'shadcn@4'
 
 /**
- * The items the registry ships.
+ * The items the registry ships: the components, then the blocks.
  *
  * Named here so a bare argument that is not one of them falls through to the
  * artifact path and gets an error naming both forms, rather than being sent to
@@ -61,6 +65,8 @@ export const COMPONENT_ITEMS = [
   'signature',
   'table',
   'totals',
+  'purchase-order',
+  'vendor-packet',
 ] as const
 
 /**

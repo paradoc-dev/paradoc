@@ -7,8 +7,10 @@
  * import; this one references them all, from the paginated preview down to a
  * signature block.
  *
- * The artifact and its data come from `@paradoc/react/examples` — sample
- * material, and the only thing here that is not the consumer's own code.
+ * The proposal's artifact and data come from `@paradoc/react/examples` — sample
+ * material, and the only thing here that is not the consumer's own code. The
+ * two blocks bring their own: their artifact and their sample data install with
+ * them, so the packet below is composed entirely from installed files.
  */
 
 import { useRef } from "react";
@@ -23,6 +25,12 @@ import { Section } from "@/components/paradoc/section";
 import { Signature } from "@/components/paradoc/signature";
 import { Table } from "@/components/paradoc/table";
 import { Totals } from "@/components/paradoc/totals";
+import { PurchaseOrderDocument } from "@/components/paradoc/purchase-order";
+import { VendorPacketDocument } from "@/components/paradoc/vendor-packet";
+import { purchaseOrderData } from "@/artifacts/paradoc/purchase-order.data";
+import { purchaseOrderForm } from "@/artifacts/paradoc/purchase-order.artifact";
+import { vendorPacketBundle } from "@/artifacts/paradoc/vendor-packet.artifact";
+import { vendorPacketData } from "@/artifacts/paradoc/vendor-packet.data";
 import { planPages, type DocumentTokensInput, type PagePlan } from "@paradoc/react";
 import { proposalForm, shortProposalData } from "@paradoc/react/examples";
 
@@ -108,3 +116,39 @@ export function BareSheet({ plan }: { plan: PagePlan }) {
 
 /** An empty plan, so the fixture does not need a browser to build one. */
 export const emptyPlan: PagePlan = planPages([], 720);
+
+/**
+ * The purchase order block: the artifact, its sample data and the composition
+ * that binds them, all installed. Nothing here is written by the consumer
+ * except the `Pages` that paginates it.
+ */
+export function PurchaseOrder() {
+  return (
+    <Pages>
+      <PurchaseOrderDocument data={purchaseOrderData} artifact={purchaseOrderForm} />
+    </Pages>
+  );
+}
+
+/**
+ * The vendor packet block, rendered from its own sample.
+ *
+ * The annex is bytes the block installs; the W-9's PDF is the one thing the
+ * consumer supplies, because filling it needs `@paradoc/essentials` and an
+ * engine, which is why the block declares that package as a dependency.
+ */
+export function VendorPacket({ taxpayer }: { taxpayer: Uint8Array }) {
+  return (
+    <VendorPacketDocument
+      purchaseOrderData={vendorPacketData.purchaseOrder}
+      taxpayerPdf={taxpayer}
+      insurancePdf={vendorPacketData.insurance}
+    />
+  );
+}
+
+/** The taxpayer values the block ships, as `w9.safeParseData` takes them. */
+export const taxpayerValues = vendorPacketData.taxpayer;
+
+/** The packet's own artifact, which is what a caller seals. */
+export const packetContentKeys = vendorPacketBundle.contents.map((item) => item.key);

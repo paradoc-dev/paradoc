@@ -80,3 +80,10 @@ export {
   type PacketPlacement,
   type VendorPacketDocumentProps,
 } from "./vendor-packet-document";
+export {
+  vendorPacketAnnexBytes,
+  vendorPacketData,
+  vendorPacketTaxpayerData,
+  VENDOR_PACKET_TAXPAYER_SIGNER,
+  type VendorPacketData,
+} from "./vendor-packet-data";

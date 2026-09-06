@@ -96,6 +96,49 @@ npx shadcn@4 add https://docs.paradoc.dev/r/field.json
 | [`table`](https://docs.paradoc.dev/r/table.json) | A list field as rows, with a header that repeats on every page it continues onto. |
 | [`totals`](https://docs.paradoc.dev/r/totals.json) | The artifact's computed amounts, evaluated by `@paradoc/core`. |
 
+## The blocks
+
+A block is a whole document rather than one component: an artifact, a
+composition that binds it, and sample data to see it with.
+
+| Item | What it is |
+|------|------------|
+| [`purchase-order`](https://docs.paradoc.dev/r/purchase-order.json) | A purchase order: the artifact with its React layer, the composition, and a sample order that runs to three pages. |
+| [`vendor-packet`](https://docs.paradoc.dev/r/vendor-packet.json) | A packet of three documents: the purchase order composed live, a filled W-9 painted from its PDF layer, and a certificate of insurance as an annex, whose bytes it ships. |
+
+```bash
+para add purchase-order
+```
+
+The composition lands in `components/paradoc/` beside the components; the
+artifact and its data land in `artifacts/paradoc/`, because they are not
+components. `vendor-packet` brings `purchase-order` with it: the order is one of
+the packet's parts.
+
+The purchase order's sample runs to three pages, so its table continues across
+two breaks. The repeated header on a continued page comes from the page plan:
+you see it in the preview, and in a PDF rendered with the preview's plan passed
+as hints. The engine paginating on its own does not copy one.
+
+**`vendor-packet` needs `@paradoc/essentials`**, and declares it. Nothing the
+block ships imports it, but the packet's second part is the IRS W-9: filling and
+sealing it needs that artifact and its resolver. The block's sample carries the
+taxpayer's values, not the form.
+
+```tsx
+import { w9 } from "@paradoc/essentials";
+import { vendorPacketData } from "@/artifacts/paradoc/vendor-packet.data";
+
+const parsed = w9.safeParseData(vendorPacketData.taxpayer);
+const draft = w9.fill(parsed.data, { rules: false });
+const taxpayerPdf = (await draft.render({ layer: "pdf", resolver: w9.resolver })).bytes;
+```
+
+The certificate of insurance is not yours to supply: the block installs it as
+`vendor-packet.annex.ts`, a module of bytes, because a block installed into a
+browser project has no engine to draw one with. The composition still takes both
+PDFs as props.
+
 The index of all of them is [`/r/registry.json`](https://docs.paradoc.dev/r/registry.json).
 
 ## For agents

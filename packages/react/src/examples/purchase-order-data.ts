@@ -1,13 +1,15 @@
 /**
  * Sample data for the purchase order.
  *
- * One set, eighteen rows, which is more than the one page of content `Paper`
- * exposes as `PAGE_CONTENT_HEIGHT_PX` (960 pixels: US Letter at 96 dpi less
- * both margins) holds. That is deliberate: the purchase order is the packet's
- * composition, and a packet whose first part is two pages is the only one that
- * proves a part's boxes are offset into packet pages rather than left in the
- * part's own. The table's header repeats on the continued page as it does in
- * any other composition.
+ * One set, thirty-two rows, which is several times the one page of content
+ * `Paper` exposes as `PAGE_CONTENT_HEIGHT_PX` (960 pixels: US Letter at 96 dpi
+ * less both margins) holds. That is deliberate, for two reasons. The purchase
+ * order is the packet's composition, and a packet whose first part runs to
+ * several pages is what proves a part's boxes are offset into packet pages
+ * rather than left in the part's own. And the block installs this data: a
+ * consumer who renders it should see the table continue across more than one
+ * break, with its header copied onto every continued page, rather than a
+ * document that happens to spill once.
  *
  * The proposal sample carries a short and an overflow set because its suite
  * measures pagination against both. This composition has no such need, so
@@ -57,6 +59,20 @@ const LINE_ITEMS: LineItemInput[] = [
   { description: "On-site installation and cable management", quantity: 9, unit: "day", unitPrice: { amount: 750, currency: CURRENCY } },
   { description: "Network configuration and cutover", quantity: 4, unit: "day", unitPrice: { amount: 980, currency: CURRENCY } },
   { description: "Asset tagging and handover documentation", quantity: 2, unit: "day", unitPrice: { amount: 640, currency: CURRENCY } },
+  { description: "Task lighting, desk-clamp LED", quantity: 24, unit: "each", unitPrice: { amount: 62, currency: CURRENCY } },
+  { description: "Task chair, mesh back, adjustable arms", quantity: 24, unit: "each", unitPrice: { amount: 430, currency: CURRENCY } },
+  { description: "Under-desk cable tray, 800mm", quantity: 24, unit: "each", unitPrice: { amount: 34, currency: CURRENCY } },
+  { description: "Power module, desk-mounted, 2 socket 2 USB-C", quantity: 24, unit: "each", unitPrice: { amount: 78, currency: CURRENCY } },
+  { description: "Locker, personal storage, 4 tier", quantity: 6, unit: "each", unitPrice: { amount: 540, currency: CURRENCY } },
+  { description: "Whiteboard, magnetic, 2400mm", quantity: 4, unit: "each", unitPrice: { amount: 295, currency: CURRENCY } },
+  { description: "Acoustic ceiling baffle, 1200mm", quantity: 40, unit: "each", unitPrice: { amount: 46, currency: CURRENCY } },
+  { description: "Meeting pod, two person, ventilated", quantity: 2, unit: "each", unitPrice: { amount: 6400, currency: CURRENCY } },
+  { description: "Fire-rated network cabinet, wall mount", quantity: 2, unit: "each", unitPrice: { amount: 720, currency: CURRENCY } },
+  { description: "Environmental sensor, temperature and humidity", quantity: 8, unit: "each", unitPrice: { amount: 118, currency: CURRENCY } },
+  { description: "Digital signage player, 4K", quantity: 3, unit: "each", unitPrice: { amount: 340, currency: CURRENCY } },
+  { description: "Floor box, four compartment", quantity: 12, unit: "each", unitPrice: { amount: 155, currency: CURRENCY } },
+  { description: "Electrical works, per circuit", quantity: 18, unit: "circuit", unitPrice: { amount: 260, currency: CURRENCY } },
+  { description: "Site survey and as-built drawings", quantity: 1, unit: "lot", unitPrice: { amount: 2450, currency: CURRENCY } },
 ];
 /**
  * The sample's data, whose parties carry runtime ids.

@@ -58,6 +58,11 @@ that major. The component's source lands in `components/paradoc/` and is yours
 to edit; see [Components](/components) for the full list and what stays in
 `@paradoc/react`.
 
+A block installs the same way and is one of these names too. It brings a whole
+document rather than one component, so `para add purchase-order` lands the
+artifact, its sample data and the composition that binds them; the composition
+goes to `components/paradoc/` and the other two to `artifacts/paradoc/`.
+
 Only a name the registry ships is read as a component. Any other bare argument
 is reported as an invalid artifact reference, listing both forms, rather than
 being sent to the shadcn CLI to fail on a missing item.

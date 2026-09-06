@@ -22,11 +22,13 @@ import {
   buildRegistry,
   DEFAULT_OUT_DIR,
   collectPackageModules,
+  generatedSources,
   packageVersion,
   registryFileNames,
 } from "../scripts/build-registry";
-import { generateRegistry, RegistryGenerationError } from "../scripts/registry/generate";
+import { generateRegistry, moduleId, RegistryGenerationError } from "../scripts/registry/generate";
 import {
+  ARTIFACT_DIR,
   INSTALL_ALIAS,
   INSTALL_DIR,
   REGISTRY_ITEMS,
@@ -63,11 +65,29 @@ function generateFrom(sources: Record<string, string>, item = REGISTRY_ITEMS[0]!
 }
 
 describe("the committed registry", () => {
-  const generated = registryFileNames(buildRegistry(packageRoot));
+  const registry = buildRegistry(packageRoot);
+  const generated = registryFileNames(registry);
 
   it.each([...generated.keys()])("matches a fresh generation of %s", (name) => {
     const committed = readFileSync(path.join(DEFAULT_OUT_DIR, name), "utf8");
     expect(committed).toBe(generated.get(name));
+  });
+
+  // A module carrying a binary file is written into `src/` by the same
+  // generation that emits it, because the package imports it too. Two copies
+  // that could drift are one copy written twice.
+  const sources = [...generatedSources(registry)];
+  it.each(sources.map(([relPath]) => relPath))("matches a fresh generation of src/%s", (relPath) => {
+    const committed = readFileSync(path.join(srcDir, relPath), "utf8");
+    expect(committed).toBe(new Map(sources).get(relPath));
+  });
+
+  it("carries the annex as bytes a browser can read", () => {
+    const module = new Map(sources).get("examples/vendor-packet-annex.ts") ?? "";
+    expect(module).toContain("export const vendorPacketAnnexBytes: Uint8Array");
+    // The PDF signature, base64: a module of the wrong bytes would still be a
+    // module of bytes.
+    expect(module).toContain('"JVBERi0');
   });
 });
 
@@ -109,12 +129,26 @@ describe("the emitted files", () => {
   const registry = buildRegistry(packageRoot);
   const byName = new Map(registry.items.map((item) => [item.name, item]));
 
-  it("leaves no relative import behind", () => {
+  it("leaves behind only a relative import that names a file the item ships", () => {
+    // A component's files all land in one folder, so nothing relative survives
+    // in one. A block's do not: its composition reaches its artifact across two
+    // folders, and that import is relative because both files are the
+    // consumer's own. What must never survive is a relative path to something
+    // the item does not carry.
+    const targets = new Set(
+      REGISTRY_ITEMS.flatMap((item) => item.files).map((file) => moduleId(file.target))
+    );
+
     for (const item of registry.items) {
       for (const file of item.files) {
-        expect(file.content, `${item.name} ships a relative import`).not.toMatch(
-          /^import[\s\S]*?from "\.\.?\//m
-        );
+        const carried = new Set(item.files.map((sibling) => moduleId(sibling.target)));
+        for (const match of file.content.matchAll(/from "(\.\.?\/[^"]+)";/g)) {
+          const resolved = path.posix.normalize(
+            path.posix.join(path.posix.dirname(file.target), match[1] ?? "")
+          );
+          expect(targets, `${item.name} ships "${match[1]}"`).toContain(resolved);
+          expect(carried, `${item.name} reaches outside itself relatively`).toContain(resolved);
+        }
       }
     }
   });
@@ -157,10 +191,35 @@ describe("the emitted files", () => {
     );
   });
 
-  it("installs into one folder, named for the framework", () => {
+  it("installs a component into one folder, named for the framework", () => {
     for (const item of registry.items) {
+      if (item.type !== "registry:ui") continue;
       for (const file of item.files) {
-        expect(file.target).toBe(`components/paradoc/${item.name}.tsx`);
+        expect(file.target).toBe(`${INSTALL_DIR}/${item.name}.tsx`);
+      }
+    }
+  });
+
+  it("installs a block's composition beside the components and its artifact apart", () => {
+    for (const item of registry.items) {
+      if (item.type !== "registry:block") continue;
+      const targets = item.files.map((file) => file.target);
+      expect(targets).toContain(`${INSTALL_DIR}/${item.name}.tsx`);
+      for (const file of item.files) {
+        if (file.target.endsWith(".tsx")) continue;
+        expect(file.target.startsWith(`${ARTIFACT_DIR}/`)).toBe(true);
+      }
+    }
+  });
+
+  it("never installs a file under a name another item answers to", () => {
+    // The shadcn CLI would rewrite every import of it to the components folder.
+    const names = new Set(REGISTRY_ITEMS.map((item) => item.name));
+    for (const item of REGISTRY_ITEMS) {
+      for (const file of item.files) {
+        const base = path.posix.basename(moduleId(file.target));
+        if (!names.has(base)) continue;
+        expect(path.posix.dirname(file.target)).toBe(INSTALL_DIR);
       }
     }
   });
@@ -340,5 +399,58 @@ describe("the generator refuses what would not compile", () => {
         registryDependencies: ["absent"],
       })
     ).toThrow(/does not ship/);
+  });
+
+  it("rejects a file installed under an item's name outside the components folder", () => {
+    // The one failure the emitted JSON does not show and the install does: the
+    // CLI resolves an import by the item it appears to name, so this artifact
+    // would be reached at `@/components/paradoc/keep-together`.
+    expect(() =>
+      generateRegistry({
+        srcDir,
+        entrySource,
+        items: [
+          {
+            ...REGISTRY_ITEMS[0]!,
+            name: "keep-together",
+            files: [
+              {
+                path: "components/probe.ts",
+                type: "registry:file",
+                target: `${ARTIFACT_DIR}/keep-together.ts`,
+              },
+            ],
+          },
+        ],
+        version: packageVersion(packageRoot),
+        packageModules: ["components/probe"],
+        readSource: () => "",
+      })
+    ).toThrow(/named for registry item "keep-together"/);
+  });
+});
+
+describe("an aliased import", () => {
+  // An earlier version kept only the bound name, so `x as y` was emitted as
+  // `import { y }` and the installed file asked the module for a name it does
+  // not export. Nothing caught it until a block imported one.
+  it("keeps its alias, and asks the substrate for the name it exports", () => {
+    const built = generateFrom({
+      "components/probe.tsx":
+        'import { measureKeeps as measure } from "../lib/measure";\n' +
+        'import { planPages as plan, type PagePlan as Plan } from "../lib/plan";\n',
+    });
+    const content = built.items[0]?.files[0]?.content ?? "";
+    expect(content).toContain(
+      `import { measureKeeps as measure, planPages as plan, type PagePlan as Plan } from "${SUBSTRATE_PACKAGE}";`
+    );
+  });
+
+  it("is rejected on the name the module would have to export, not the local one", () => {
+    expect(() =>
+      generateFrom({
+        "components/probe.tsx": 'import { privateHelper as measureKeeps } from "../lib/measure";\n',
+      })
+    ).toThrow(/privateHelper/);
   });
 });

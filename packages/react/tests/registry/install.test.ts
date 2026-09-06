@@ -47,7 +47,12 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { buildRegistry, registryFileNames } from "../../scripts/build-registry";
-import { INSTALL_DIR, REGISTRY_ITEMS, REGISTRY_NAMESPACE } from "../../scripts/registry/manifest";
+import {
+  ARTIFACT_DIR,
+  INSTALL_DIR,
+  REGISTRY_ITEMS,
+  REGISTRY_NAMESPACE,
+} from "../../scripts/registry/manifest";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -272,10 +277,47 @@ describe("the registry installs into a fresh project", () => {
       "--yes",
     ]);
 
-    // The CLI puts a project's components under `src/` when it has one.
+    // The CLI puts a project's files under `src/` when it has one, target and
+    // all, which is why a block's artifact lands beside the components rather
+    // than at the repository root.
+    const missing = REGISTRY_ITEMS.flatMap((item) => item.files)
+      .map((file) => file.target)
+      .filter((target) => !existsSync(path.join(project, "src", target)));
+    expect(missing).toEqual([]);
+
     const installed = path.join(project, "src", INSTALL_DIR);
-    const written = readdirSync(installed).sort();
-    expect(written).toEqual(REGISTRY_ITEMS.map((item) => `${item.name}.tsx`).sort());
+    expect(readdirSync(installed).sort()).toEqual(
+      REGISTRY_ITEMS.map((item) => `${item.name}.tsx`).sort()
+    );
+  });
+
+  it("installs a block's artifact under a name no item answers to", () => {
+    // shadcn resolves an import by the item it appears to name, so an artifact
+    // installed as `purchase-order.ts` would be reached at
+    // `@/components/paradoc/purchase-order`, which is the composition. The
+    // generator refuses that; this is the install it would have broken.
+    const packet = readFileSync(
+      path.join(project, "src", ARTIFACT_DIR, "vendor-packet.artifact.ts"),
+      "utf8"
+    );
+    expect(packet).toContain(`from "@/${ARTIFACT_DIR}/purchase-order.artifact"`);
+  });
+
+  it("installs the annex as bytes, so the packet is self-contained", () => {
+    const annex = readFileSync(
+      path.join(project, "src", ARTIFACT_DIR, "vendor-packet.annex.ts"),
+      "utf8"
+    );
+    expect(annex).toContain("export const vendorPacketAnnexBytes: Uint8Array");
+    expect(annex).toContain('"JVBERi0');
+  });
+
+  it("keeps an aliased import aliased", () => {
+    const packet = readFileSync(
+      path.join(project, "src", INSTALL_DIR, "vendor-packet.tsx"),
+      "utf8"
+    );
+    expect(packet).toContain("purchaseOrderData as defaultPurchaseOrderData");
   });
 
   it("type-checks what it installed", async () => {
@@ -306,6 +348,9 @@ describe("the registry installs into a fresh project", () => {
 
     expect(asked).toContain(`@paradoc/react@^${version}`);
     expect(asked).toContain(`@paradoc/core@^${version}`);
+    // The packet block declares it without importing it: the W-9 is one of the
+    // packet's parts, and nothing can fill or seal it without that artifact.
+    expect(asked).toContain(`@paradoc/essentials@^${version}`);
   });
 
   it("keeps each component's own explanation in the installed file", () => {

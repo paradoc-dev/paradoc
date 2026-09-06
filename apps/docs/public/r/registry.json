@@ -222,6 +222,85 @@
           "target": "components/paradoc/signature.tsx"
         }
       ]
+    },
+    {
+      "name": "purchase-order",
+      "type": "registry:block",
+      "title": "Purchase Order",
+      "description": "A whole document: the purchase order artifact with its React layer, the composition that binds it, and a sample order that runs to three pages.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0",
+        "@paradoc/core@^0.5.0",
+        "@paradoc/types@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/document",
+        "@paradoc/field",
+        "@paradoc/keep-together",
+        "@paradoc/pages",
+        "@paradoc/section",
+        "@paradoc/signature",
+        "@paradoc/table",
+        "@paradoc/totals"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/examples/purchase-order.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/purchase-order.artifact.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/purchase-order-data.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/purchase-order.data.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/purchase-order-document.tsx",
+          "type": "registry:component",
+          "target": "components/paradoc/purchase-order.tsx"
+        }
+      ]
+    },
+    {
+      "name": "vendor-packet",
+      "type": "registry:block",
+      "title": "Vendor Packet",
+      "description": "A packet of three documents: the purchase order composed live, a filled W-9 painted from its PDF layer, and the vendor's certificate of insurance as an annex, whose bytes it ships.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0",
+        "@paradoc/core@^0.5.0",
+        "@paradoc/types@^0.5.0",
+        "@paradoc/essentials@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/bundle",
+        "@paradoc/pages",
+        "@paradoc/part",
+        "@paradoc/pdf-pages",
+        "@paradoc/purchase-order"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/examples/vendor-packet.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/vendor-packet.artifact.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/vendor-packet-annex.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/vendor-packet.annex.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/vendor-packet-data.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/vendor-packet.data.ts"
+        },
+        {
+          "path": "paradoc/packages/react/src/examples/vendor-packet-document.tsx",
+          "type": "registry:component",
+          "target": "components/paradoc/vendor-packet.tsx"
+        }
+      ]
     }
   ]
 }

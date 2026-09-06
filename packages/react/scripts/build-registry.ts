@@ -75,6 +75,33 @@ export function buildRegistry(packageRoot = PACKAGE_ROOT) {
   });
 }
 
+/**
+ * The modules the build writes back into `src/`, by path relative to `src/`.
+ *
+ * A block whose file carries a binary one ships a module of bytes, and the
+ * package imports that same module: the annex is what the packet's sample hands
+ * `VendorPacketDocument`. Generating it into the registry and reading a
+ * hand-written copy from `src/` would be two descriptions of one file, so there
+ * is one, and it is written both places from the same generation.
+ */
+export function generatedSources(
+  registry: ReturnType<typeof buildRegistry>
+): Map<string, string> {
+  const byTarget = new Map(registry.items.flatMap((item) => item.files.map((file) => [file.target, file.content])));
+  const sources = new Map<string, string>();
+  for (const item of REGISTRY_ITEMS) {
+    for (const file of item.files) {
+      if (!file.bytesFrom) continue;
+      const content = byTarget.get(file.target);
+      if (content === undefined) {
+        throw new Error(`The registry emitted no content for ${file.target}.`);
+      }
+      sources.set(file.path, content);
+    }
+  }
+  return sources;
+}
+
 /** The file name each emitted document takes in the output directory. */
 export function registryFileNames(registry: ReturnType<typeof buildRegistry>): Map<string, string> {
   const files = new Map<string, string>();
@@ -90,7 +117,12 @@ function main(): void {
   const outFlag = argv.indexOf("--out");
   const outDir = outFlag === -1 ? DEFAULT_OUT_DIR : path.resolve(argv[outFlag + 1] ?? DEFAULT_OUT_DIR);
 
-  const files = registryFileNames(buildRegistry());
+  const registry = buildRegistry();
+  const files = registryFileNames(registry);
+
+  for (const [relPath, content] of generatedSources(registry)) {
+    writeFileSync(path.join(PACKAGE_ROOT, "src", relPath), content, "utf8");
+  }
 
   mkdirSync(outDir, { recursive: true });
   // An item dropped from the manifest must stop being served, so the directory

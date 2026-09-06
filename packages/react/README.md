@@ -198,13 +198,56 @@ and `useFitToWidth`, and the context modules carry no component at all.
 
 A manifest file names its own path, shadcn type and install target rather than
 having them derived. A component takes all three from the `component()` helper,
-but a block does not: it is an artifact's JSON, a composition that binds it and a
-module of sample data, and those three are not the same kind of file and do not
-land in the same place. Two consequences the generator already handles: a
-relative import of a JSON artifact resolves, and one file of an item names
-another by where the two land rather than by how they were authored, so an item
-whose files install to different directories still compiles. A file that is not
-code is shipped verbatim.
+but a block does not: it is an artifact, a composition that binds it and a module
+of sample data, and those three are not the same kind of file and do not land in
+the same place. One file of an item names another by where the two land rather
+than by how they were authored, so an item whose files install to different
+directories still compiles. A file that is not code is shipped verbatim.
+
+### The blocks
+
+Two items are whole documents rather than components. `purchase-order` installs
+the purchase order artifact, its sample order and the composition that binds
+them; `vendor-packet` installs the packet's bundle artifact and the composition
+that lays its three parts out, and brings `purchase-order` with it, because the
+order is one of those parts. They are generated from the same sources the
+package's own tests render and seal — `src/examples/` — so a block cannot drift
+from the document this package measures itself on.
+
+A block's composition installs beside the components, as
+`components/paradoc/<item>.tsx`. Its artifact and its data install under
+`artifacts/paradoc/`, because they are not components: the artifact is the
+document's definition and the data is a value, and both are read by anything in
+the project that renders, fills or seals the same document.
+
+They install under names no item answers to — `purchase-order.artifact.ts`,
+`purchase-order.data.ts` — and that is a rule, not a style. The shadcn CLI
+resolves an import by the item it appears to name: a specifier whose last segment
+is an installed item's name is rewritten to that item's place in the components
+folder, whatever target the manifest gave the file. An artifact installed as
+`purchase-order.ts` would be reached at `@/components/paradoc/purchase-order`,
+which is the composition. The generator refuses a manifest that does that, and
+the install suite installs the case it would have broken.
+
+Each block ships sample data. The purchase order's runs to three pages, so its
+table continues across two breaks; the header copied onto a continued page comes
+from the page plan, so it appears in the preview and in a PDF rendered with that
+plan passed as hints, and not in one the engine paginated on its own.
+
+The packet's sample is `vendor-packet.data.ts`, one entry per part: the order's
+own data, the taxpayer's values for the W-9, and the annex bytes. The annex is a
+PDF, and a registry item is JSON, so it travels as `vendor-packet.annex.ts` — a
+module of base64 the generator writes from the checked-in certificate through a
+binary read path, and writes into `src/` at the same time, because this package
+imports the same module. Neither copy is hand-written; the freshness test
+regenerates both.
+
+The W-9 stays the consumer's to fill. `@paradoc/react` does not depend on
+`@paradoc/essentials` and should not, so the sample carries the taxpayer's values
+rather than the form, and the block declares `@paradoc/essentials` as a
+dependency without importing it: the packet's second part cannot be filled or
+sealed without that artifact and its resolver. `VendorPacketDocument` still takes
+both PDFs as props.
 
 The forms it reads are named, default, namespace and side-effect imports, and
 named re-exports. A default or namespace clause pointed at the substrate is an

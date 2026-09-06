@@ -26,6 +26,7 @@ import path from "node:path";
 
 import {
   IMPLICIT_DEPENDENCIES,
+  INSTALL_DIR,
   REGISTRY_HOMEPAGE,
   REGISTRY_NAMESPACE,
   SUBSTRATE_PACKAGE,
@@ -40,9 +41,20 @@ export class RegistryGenerationError extends Error {
   override name = "RegistryGenerationError";
 }
 
-/** One name imported by a statement. */
+/**
+ * One name imported by a statement.
+ *
+ * The two names are kept apart because `import { a as b }` binds `b` here and
+ * requires `a` over there: the substrate check asks the exporting module for
+ * `imported`, and everything about how the file reads the value uses `local`.
+ * Collapsing them, which an earlier version did, silently dropped the alias and
+ * emitted a file importing a name the module does not export.
+ */
 interface Binding {
-  name: string;
+  /** The name the exporting module publishes. */
+  imported: string;
+  /** The name this module binds it to. Equal to `imported` without an alias. */
+  local: string;
   typeOnly: boolean;
 }
 
@@ -174,7 +186,9 @@ export function readPublicExports(entrySource: string): Set<string> {
   const clause = /^export\s+(type\s+)?\{([^}]*)\}\s*from\s*"[^"]+";$/gm;
   for (const match of entrySource.matchAll(clause)) {
     for (const binding of parseBindings(match[2] ?? "", match[1] !== undefined)) {
-      names.add(binding.name);
+      // A re-export publishes the name it binds, so that is what the entry
+      // exports and what an installed file may reach for.
+      names.add(binding.local);
     }
   }
   return names;
@@ -189,12 +203,13 @@ function parseBindings(body: string, clauseIsTypeOnly: boolean): Binding[] {
     .map((part) => {
       const typeOnly = clauseIsTypeOnly || part.startsWith("type ");
       const withoutType = typeOnly && part.startsWith("type ") ? part.slice(5).trim() : part;
-      // `A as B` binds B in this module; B is the name the file uses.
+      // `A as B` reads A from the module and binds B here.
       const alias = withoutType.split(/\s+as\s+/);
-      const name = (alias.length > 1 ? alias[1] : alias[0]) ?? "";
-      return { name: name.trim(), typeOnly };
+      const imported = (alias[0] ?? "").trim();
+      const local = (alias.length > 1 ? alias[1] ?? "" : alias[0] ?? "").trim();
+      return { imported, local, typeOnly };
     })
-    .filter((binding) => binding.name.length > 0);
+    .filter((binding) => binding.imported.length > 0 && binding.local.length > 0);
 }
 
 /**
@@ -273,20 +288,27 @@ function printStatement(
   const values = bindings.filter((binding) => !binding.typeOnly);
   const types = bindings.filter((binding) => binding.typeOnly);
   const byName = (a: Binding, b: Binding) =>
-    a.name.toLowerCase() < b.name.toLowerCase() ? -1 : a.name.toLowerCase() > b.name.toLowerCase() ? 1 : 0;
+    a.imported.toLowerCase() < b.imported.toLowerCase()
+      ? -1
+      : a.imported.toLowerCase() > b.imported.toLowerCase()
+        ? 1
+        : 0;
+  /** `a`, or `a as b` when the file binds it under another name. */
+  const write = (binding: Binding) =>
+    binding.imported === binding.local ? binding.imported : `${binding.imported} as ${binding.local}`;
 
   // A clause that is entirely types keeps the `import type` form it was
   // written in; a mixed one marks each type binding.
   if (values.length === 0) {
-    const names = [...types].sort(byName).map((binding) => binding.name);
+    const names = [...types].sort(byName).map(write);
     const line = `${kind} type { ${names.join(", ")} } from "${specifier}";`;
     if (line.length <= PRINT_WIDTH) return line;
     return `${kind} type {\n  ${names.join(",\n  ")},\n} from "${specifier}";`;
   }
 
   const parts = [
-    ...[...values].sort(byName).map((binding) => binding.name),
-    ...[...types].sort(byName).map((binding) => `type ${binding.name}`),
+    ...[...values].sort(byName).map(write),
+    ...[...types].sort(byName).map((binding) => `type ${write(binding)}`),
   ];
   const line = `${kind} { ${parts.join(", ")} } from "${specifier}";`;
   if (line.length <= PRINT_WIDTH) return line;
@@ -300,11 +322,58 @@ const IMPLICIT_EXTENSION = /\.(?:tsx?|jsx?)$/;
  * How a path is named in an import.
  *
  * TypeScript's own extensions are dropped, because that is how they are
- * written; anything else — a JSON artifact a composition binds — keeps its
+ * written; anything else — a JSON file a composition binds — keeps its
  * extension, because that is how it is written too.
  */
 export function moduleId(relPath: string): string {
   return relPath.replace(IMPLICIT_EXTENSION, "");
+}
+
+/** How wide a line of the emitted base64 is allowed to be. */
+const BASE64_LINE = 96;
+
+/**
+ * A TypeScript module carrying one file's bytes.
+ *
+ * A registry item is JSON and a registry file is text, so an item cannot ship a
+ * PDF. The vendor packet's annex is a PDF anyway — a document the vendor
+ * supplied, which a block installed into a browser project has no engine to
+ * draw a substitute with — so it travels as base64 in a module instead. The
+ * decode is written out rather than taken from a package: `atob` is in every
+ * runtime this targets, and an installed file should not need a dependency to
+ * read its own annex.
+ */
+export function bytesModule(bytes: Uint8Array, describe: string, binding: string): string {
+  const encoded = Buffer.from(bytes).toString("base64");
+  const lines: string[] = [];
+  for (let at = 0; at < encoded.length; at += BASE64_LINE) {
+    lines.push(`  "${encoded.slice(at, at + BASE64_LINE)}",`);
+  }
+
+  return `/**
+ * ${describe}
+ *
+ * Generated by \`pnpm registry:build\` in \`@paradoc/react\` from the file beside
+ * it. Do not edit: the registry's freshness test regenerates this module and
+ * fails on a difference.
+ */
+
+/** The bytes, base64 encoded, wrapped so a diff of them is readable. */
+const ENCODED = [
+${lines.join("\n")}
+].join("");
+
+/** ${describe} */
+export const ${binding}: Uint8Array = decode(ENCODED);
+
+/** base64 to bytes, without assuming Node's Buffer or a bundler's polyfill. */
+function decode(encoded: string): Uint8Array {
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let at = 0; at < binary.length; at += 1) bytes[at] = binary.charCodeAt(at);
+  return bytes;
+}
+`;
 }
 
 /** The module a relative specifier names, relative to `src/`. */
@@ -406,7 +475,7 @@ export function rewriteImports(
     }
 
     const missing = statement.bindings
-      .map((binding) => binding.name)
+      .map((binding) => binding.imported)
       .filter((name) => !context.publicExports.has(name));
     if (missing.length > 0) {
       throw new RegistryGenerationError(
@@ -431,7 +500,9 @@ export function rewriteImports(
     if (!statement.mergeable) continue;
     const bindings = merged.get(key(statement)) ?? [];
     for (const binding of statement.bindings) {
-      const existing = bindings.find((candidate) => candidate.name === binding.name);
+      const existing = bindings.find(
+        (candidate) => candidate.imported === binding.imported && candidate.local === binding.local
+      );
       if (existing) existing.typeOnly = existing.typeOnly && binding.typeOnly;
       else bindings.push({ ...binding });
     }
@@ -497,10 +568,14 @@ export function generateRegistry(options: {
   packageModules: Iterable<string>;
   /** Reads one source file, relative to `src/`. Defaults to the file system. */
   readSource?: (relPath: string) => string;
+  /** Reads one binary file, relative to `src/`. Defaults to the file system. */
+  readBinary?: (relPath: string) => Uint8Array;
 }): GeneratedRegistry {
   const { srcDir, entrySource, items, version } = options;
   const readSource =
     options.readSource ?? ((relPath: string) => readFileSync(path.join(srcDir, relPath), "utf8"));
+  const readBinary =
+    options.readBinary ?? ((relPath: string) => readFileSync(path.join(srcDir, relPath)));
 
   const names = new Set<string>();
   const moduleOwner: RewriteContext["moduleOwner"] = new Map();
@@ -531,6 +606,27 @@ export function generateRegistry(options: {
     }
   }
 
+  // The shadcn CLI resolves an import by the item it appears to name: a
+  // specifier whose last segment is an installed item's name is rewritten to
+  // that item's place in the components folder, whatever target the manifest
+  // gave the file. That is right for a component, whose file lands there under
+  // exactly that name, and wrong for anything else: a block's artifact
+  // installed as `artifacts/paradoc/purchase-order.ts` would be reached at
+  // `@/components/paradoc/purchase-order`, which is the composition. Caught
+  // here, because installing is the only other place it shows.
+  for (const item of items) {
+    for (const file of item.files) {
+      const base = path.posix.basename(moduleId(file.target));
+      if (!names.has(base)) continue;
+      if (path.posix.dirname(file.target) === INSTALL_DIR) continue;
+      throw new RegistryGenerationError(
+        `Item "${item.name}" installs src/${file.path} as "${file.target}", which is named for ` +
+          `registry item "${base}" but does not land in ${INSTALL_DIR}/. The shadcn CLI would ` +
+          `rewrite every import of it to "@/${INSTALL_DIR}/${base}". Install it under another name.`
+      );
+    }
+  }
+
   const publicExports = readPublicExports(entrySource);
   const packageModules = new Set(options.packageModules);
 
@@ -541,17 +637,21 @@ export function generateRegistry(options: {
     const context: RewriteContext = { moduleOwner, publicExports, packageModules, bare };
 
     const files = item.files.map((file): RegistryItemFile => {
-      const source = readSource(file.path);
-      return {
-        path: file.target,
-        type: file.type,
-        target: file.target,
-        // Only code is rewritten. A JSON artifact travelling with a block names
-        // no module and is shipped exactly as it is authored.
-        content: IMPLICIT_EXTENSION.test(file.path)
-          ? rewriteImports(source, file, item, context)
-          : source,
-      };
+      // A module carrying a binary file is generated from those bytes, not read
+      // from `src/`: the copy in `src/` is an output of the same function.
+      const content = file.bytesFrom
+        ? bytesModule(
+            readBinary(file.bytesFrom.path),
+            file.bytesFrom.describe,
+            file.bytesFrom.binding
+          )
+        : IMPLICIT_EXTENSION.test(file.path)
+          ? rewriteImports(readSource(file.path), file, item, context)
+          : // Only code is rewritten. Anything else travelling with a block
+            // names no module and is shipped exactly as it is authored.
+            readSource(file.path);
+
+      return { path: file.target, type: file.type, target: file.target, content };
     });
 
     const dependencies = item.dependencies.map((dependency) => versioned(dependency, version));
