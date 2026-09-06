@@ -347,7 +347,8 @@ export class PdfModel {
   }
 }
 
-function encodeLatin1(value: string): Uint8Array {
+/** Latin-1 bytes for a PDF token or dictionary, which is how a PDF file is written. */
+export function encodeLatin1(value: string): Uint8Array {
   const bytes = new Uint8Array(value.length)
   for (let index = 0; index < value.length; index++) bytes[index] = value.charCodeAt(index) & 0xff
   return bytes

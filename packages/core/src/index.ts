@@ -182,7 +182,9 @@ export {
 // RENDERING
 // ============================================================================
 
-export { assembleBundle } from "./rendering";
+export { assembleBundle, isAssemblyBytesEntry, producedMimeType, sealBundle } from "./rendering";
+
+export { BundleSealError } from "./rendering";
 
 export {
   InlineReactLayerError,
@@ -198,10 +200,17 @@ export type {
   ArtifactResolver,
   ReactLayerEntry,
   RendererRegistry,
+  AssemblyBytesEntry,
   AssemblyContentEntry,
   BundleAssemblyOptions,
   AssembledBundleOutput,
   AssembledBundle,
+  BundleSealOptions,
+  PacketPart,
+  PacketPartKind,
+  PacketSigner,
+  PacketSigningField,
+  SealedBundle,
 } from "./rendering";
 
 // ============================================================================

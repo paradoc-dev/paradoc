@@ -55,6 +55,8 @@ export const COMPONENT_ITEMS = [
   'keep-together',
   'pages',
   'paper',
+  'part',
+  'pdf-pages',
   'section',
   'signature',
   'table',

@@ -57,6 +57,42 @@
       ]
     },
     {
+      "name": "part",
+      "type": "registry:ui",
+      "title": "Part",
+      "description": "One document of a packet. It is the boundary between them, so each numbers its own pages and says where it sits in the packet.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/part.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/part.tsx"
+        }
+      ]
+    },
+    {
+      "name": "pdf-pages",
+      "type": "registry:ui",
+      "title": "PDF Pages",
+      "description": "A PDF part of a packet, painted page by page at its own paper size, or a named attachment card when it cannot be painted.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/paper"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/pdf-pages.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/pdf-pages.tsx"
+        }
+      ]
+    },
+    {
       "name": "paper",
       "type": "registry:ui",
       "title": "Paper",

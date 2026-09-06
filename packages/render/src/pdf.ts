@@ -1,6 +1,7 @@
 export { inspectAcroFormFields, inspectPdf } from './pdf/inspect'
 export type { InspectOptions, PdfFieldInfo, PdfFieldType, PdfInfo, PdfPageInfo } from './pdf/inspect'
 export { flattenPdf } from './pdf/flatten'
+export { mergePdfs, PdfMergeError } from './pdf/merge'
 export { selectPdfPages } from './pdf/select-pages'
 export { renderPdf } from './pdf/render'
 export type { PdfSignatureOptions, RenderPdfOptions } from './pdf/render'

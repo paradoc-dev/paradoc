@@ -1,57 +1,6 @@
 import type { BinaryContent } from '@paradoc/types'
-import {
-  isDict,
-  isName,
-  isRef,
-  type PdfDict,
-  type PdfObject,
-  type PdfRef,
-  PdfModel,
-  type PdfValue,
-} from './syntax'
-
-interface PageRecord {
-  record: PdfObject
-  ref: PdfRef
-  inherited: Map<string, PdfValue>
-}
-
-const INHERITED_PAGE_KEYS = ['Resources', 'MediaBox', 'CropBox', 'Rotate'] as const
-
-function catalogRecord(model: PdfModel): PdfObject | undefined {
-  return [...model.objects.values()].find((record) => {
-    if (!isDict(record.value)) return false
-    const type = record.value.entries.get('Type')
-    return isName(type) && type.value === 'Catalog'
-  })
-}
-
-function pageRecords(model: PdfModel, catalog: PdfDict): PageRecord[] {
-  const pages: PageRecord[] = []
-  const visit = (value: PdfValue | undefined, inherited = new Map<string, PdfValue>()) => {
-    const dict = model.dict(value)
-    if (!dict) return
-    const pageInherited = new Map(inherited)
-    for (const key of INHERITED_PAGE_KEYS) {
-      const own = dict.entries.get(key)
-      if (own !== undefined) pageInherited.set(key, own)
-    }
-
-    const type = dict.entries.get('Type')
-    if (isName(type) && type.value === 'Page') {
-      const ref = isRef(value) ? value : model.addObject(dict)
-      const record = model.record(ref)
-      if (record) pages.push({ record, ref, inherited: pageInherited })
-      return
-    }
-
-    const kids = model.resolve(dict.entries.get('Kids'))
-    if (Array.isArray(kids)) kids.forEach((kid) => visit(kid, pageInherited))
-  }
-
-  visit(catalog.entries.get('Pages'))
-  return pages
-}
+import { catalogRecord, INHERITED_PAGE_KEYS, pageRecords } from './page-tree'
+import { isDict, PdfModel, type PdfValue } from './syntax'
 
 /** Return a PDF containing the requested one-based pages in source order. */
 export async function selectPdfPages(

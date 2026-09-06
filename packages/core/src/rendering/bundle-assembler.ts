@@ -13,7 +13,7 @@ import type { DraftForm } from '@/artifacts/form'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import { renderLayer } from '@paradoc/render'
-import { findRegisteredRenderer, type RendererRegistry } from './renderer-registry'
+import { findRegisteredRenderer, isReactLayerMimeType, type RendererRegistry } from './renderer-registry'
 
 /**
  * A resolved artifact loaded from a path or slug.
@@ -48,13 +48,40 @@ export interface ArtifactResolver extends Resolver {
 // ============================================================================
 
 /**
+ * Content a bundle part carries as bytes rather than as an artifact to render.
+ *
+ * An annex is the case this exists for: a certificate, a scan, a statement the
+ * packet includes but nothing in Paradoc produced. It has no layer, no fields
+ * and nothing to fill, so it arrives already final and assembly passes it
+ * through.
+ */
+export interface AssemblyBytesEntry {
+  /** Literal `"bytes"` discriminator. */
+  kind: 'bytes'
+  /** The content itself. */
+  content: BinaryContent
+  /** What the content is. `application/pdf` is the only kind a packet can paint. */
+  mimeType: string
+  /** Name to carry it under. Defaults to the content key plus the type's extension. */
+  filename?: string
+}
+
+/**
  * Content entry for bundle assembly.
- * Accepts draft instances that have a targetLayer property.
+ *
+ * Either a draft instance, which assembly renders through its target layer, or
+ * bytes that are already the content.
  */
 export type AssemblyContentEntry =
   | DraftForm<Form>
   | DraftChecklist<Checklist>
   | DraftDocument<Document>
+  | AssemblyBytesEntry
+
+/** True when the entry carries its content rather than an artifact to render. */
+export function isAssemblyBytesEntry(entry: AssemblyContentEntry): entry is AssemblyBytesEntry {
+  return 'kind' in entry && entry.kind === 'bytes'
+}
 
 /**
  * Options for the new bundle assembly API.
@@ -111,10 +138,23 @@ function getExtensionForMime(mimeType: string): string {
 }
 
 /**
+ * The MIME type of what a layer's renderer actually produced.
+ *
+ * A layer's declared type describes its source, and for most layers the source
+ * and the output are the same thing. A React layer is the exception: it is a
+ * `text/tsx` pointer at a composition, and the renderer registered for it
+ * writes a PDF. The layer's own type would name the packet's part after the
+ * module that drew it, so the produced type is asked for separately.
+ */
+export function producedMimeType(layerMimeType: string): string {
+  return isReactLayerMimeType(layerMimeType) ? 'application/pdf' : layerMimeType
+}
+
+/**
  * Get layers record from a draft instance.
  */
 function getLayersFromFilled(
-  filled: AssemblyContentEntry
+  filled: DraftForm<Form> | DraftChecklist<Checklist> | DraftDocument<Document>
 ): Record<string, Layer> {
   // Use duck typing to check which type we have
   if ('form' in filled) {
@@ -187,6 +227,15 @@ export async function assembleBundle(
 
   // Process each content entry
   for (const [key, filled] of Object.entries(contents)) {
+    if (isAssemblyBytesEntry(filled)) {
+      outputs[key] = {
+        content: filled.content,
+        mimeType: filled.mimeType,
+        filename: filled.filename ?? `${key}.${getExtensionForMime(filled.mimeType)}`,
+      }
+      continue
+    }
+
     // Get target layer and its MIME type
     const targetLayer = filled.targetLayer
     const layers = getLayersFromFilled(filled)
@@ -214,10 +263,12 @@ export async function assembleBundle(
         ? new TextEncoder().encode(content)
         : (content as BinaryContent)
 
+    // The part is named after what it is, not after the module that drew it.
+    const produced = producedMimeType(mimeType)
     outputs[key] = {
       content: binaryContent,
-      mimeType,
-      filename: `${key}.${getExtensionForMime(mimeType)}`,
+      mimeType: produced,
+      filename: `${key}.${getExtensionForMime(produced)}`,
     }
   }
 

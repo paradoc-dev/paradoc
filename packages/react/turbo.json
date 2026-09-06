@@ -3,7 +3,11 @@
 	"extends": ["//"],
 	"tasks": {
 		"test": {
-			"dependsOn": ["^build"],
+			// This package's own build too, not only its dependencies'. The
+			// examples' shipped assets are read through the export map from the
+			// built entry, and a stale `dist/` would let a resolution that only
+			// works in `src/` pass.
+			"dependsOn": ["^build", "build"],
 			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/paradoc/apps/docs/public/r/**"]
 		},
 		"test:registry": {

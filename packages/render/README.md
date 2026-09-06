@@ -89,6 +89,43 @@ const output = await renderPdf({
 non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA images; JPEG
 overlays are also supported.
 
+## Merging PDFs
+
+`mergePdfs()` concatenates PDFs into one document, keeping every page in the
+order given at its own size.
+
+```ts
+const packet = await mergePdfs([purchaseOrder, filledW9, certificate])
+```
+
+It writes a fresh document rather than an incremental update, because two
+sources number their objects from one and an incremental update cannot hold
+both. Every object a kept page can reach is copied with a new number and every
+reference inside it rewritten; stream bytes are copied exactly as stored, so
+nothing is re-encoded. The merge is deterministic: the same sources produce the
+same bytes.
+
+**What a merge drops.** Everything the old catalog held rather than the page:
+
+| Dropped | Consequence |
+| --- | --- |
+| `AcroForm` | Field state is gone. Flatten a filled form with `flattenPdf()` first and its values arrive as page content. |
+| `StructTreeRoot` and the role map | The pages are untagged. A copied page keeps its `StructParents` key, which then dangles; readers ignore it, screen readers lose the structure. |
+| `Names` and `Dests` | A named destination no longer resolves, so a link that used one goes nowhere. |
+| `OCProperties` | A page drawn with optional content loses the configuration deciding which layers are visible, and every layer paints. |
+| `Lang` | The document declares no language. |
+| `ViewerPreferences`, `PageMode`, `PageLabels` | Presentation hints are gone. |
+| `Outlines` and `Metadata` | No bookmarks, no document metadata. |
+
+None of those survive a print either, which is what makes the trade acceptable
+for a packet assembled from documents that are already final. A caller who needs
+any of them should say so rather than merge.
+
+A single source is returned unchanged. Every failure names its source:
+`PdfMergeError` carries the zero-based `source` index for a document with no
+catalog, no pages, an encryption dictionary, or bytes the parser cannot read at
+all.
+
 ## Signature placement
 
 The `@paradoc/render/pdf` subpath locates signature positions in converter-

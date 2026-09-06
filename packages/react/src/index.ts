@@ -49,6 +49,14 @@ export {
   useSectionVisible,
   type PageContextValue,
 } from "./components/page-context";
+export { Part, type PartKind, type PartPlacementState, type PartProps } from "./components/part";
+export {
+  Attachment,
+  PdfPages,
+  type AttachmentProps,
+  type PdfPagesProps,
+  type PdfPaintReport,
+} from "./components/pdf-pages";
 export { Page, Pages, type PageProps, type PagesProps } from "./components/pages";
 export {
   Paper,
@@ -175,6 +183,13 @@ export {
   type PageSize,
 } from "./lib/tokens";
 export { measureKeeps } from "./lib/measure";
+export {
+  MissingPdfPainterError,
+  paintPdfPages,
+  UnpaintablePdfError,
+  type PaintedPdfPage,
+  type PaintPdfOptions,
+} from "./lib/pdf-painter";
 export {
   planPages,
   type MeasuredKeep,

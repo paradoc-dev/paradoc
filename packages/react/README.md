@@ -135,9 +135,13 @@ format, or a total.
 | `Totals`    | Renders the artifact's computed defs.                                   |
 | `Signature` | One signing block: a party, a field type, and the seal's marker.   |
 | `Paper`     | Shows the document at paper width, scaled to fit its container.         |
+| `Part`      | One document of a packet, with its own pages and its own numbering.     |
+| `PdfPages`  | A PDF part of a packet, painted page by page.                           |
+| `Attachment`| A part the packet carries rather than paints.                           |
 
 `Bundle` and `Document` also take `tokens`, which is where a tenant's branding
-enters. See [Branding](#branding).
+enters. See [Branding](#branding). `Part`, `PdfPages` and `Attachment` are how a
+bundle becomes a sequence of documents in one scroll. See [Packets](#packets).
 
 ## The registry
 
@@ -1225,6 +1229,135 @@ the PDF it just wrote and checks every marker arrived. Without that the loss is
 silent and the seal fails two steps later as `locate` reporting each slot "not
 found", with nothing naming a font. `MissingSigningMarkerError` names the slots
 and says the likeliest cause is glyph coverage.
+
+## Packets
+
+A bundle is several documents a reader receives as one thing, and a signer signs
+the thing rather than its third part. `@paradoc/react` puts one on screen and
+`@paradoc/core` seals it.
+
+### On screen
+
+`Part` is the boundary between the documents. Everything inside it numbers its
+pages from one, because that is what a reader of that document expects; the
+packet's own numbering is the sequence of parts, and it comes from the seal.
+
+```tsx
+<Bundle id="vendor-packet">
+  <Part id="purchase-order" kind="composition" label="Purchase order"
+        firstPage={1} pageCount={2} placedFor={packetHash} packetHash={packetHash}>
+    <Pages><PurchaseOrderDocument data={data} /></Pages>
+  </Part>
+  <Part id="w-9" kind="form" label="Form W-9" firstPage={3} pageCount={1}
+        placedFor={packetHash} packetHash={packetHash}>
+    <PdfPages bytes={filledW9} filename="w-9.pdf" workerSrc={workerSrc}
+              standardFontDataUrl="/pdfjs/standard_fonts/" cMapUrl="/pdfjs/cmaps/" />
+  </Part>
+</Bundle>
+```
+
+A part's header says one of four things, and `data-part-placement` carries the
+same answer:
+
+| State | Header | When |
+| --- | --- | --- |
+| `placed` | `Packet pages 3 to 4` | The placement belongs to the packet on screen. |
+| `pending` | `Pages pending` | `placedFor` and `packetHash` differ, so the numbers are of a packet that has been superseded. |
+| `attached` | `Attached, not paginated` | The part is carried beside the packet rather than merged into it. |
+| `unplaced` | nothing | The caller has not sealed the packet. |
+
+`pending` is the state a session cares about. Filling a field repaginates the
+composition, which moves every part after it, and the seal that produced the old
+numbers has not run again. Until the reseal lands, a part says its pages are
+pending rather than naming a page the packet no longer has. `data-part-first-page`
+and `data-part-page-count` are stated only in `placed`, so a stale number cannot
+be read off the DOM at all.
+
+### Painting a PDF part
+
+`PdfPages` paints a PDF page by page at that PDF's own paper size, not at the
+packet's. A document that is already final has already chosen its paper, and
+painting it at another size would be a second opinion about it.
+
+Painting uses `pdfjs-dist`, an optional peer loaded on demand. Three things it
+needs, and all three are how a paint stalls rather than fails:
+
+- **`workerSrc`.** Pass a worker URL your bundler produced and painting happens
+  off the main thread. Leave it unset and pdf.js's worker module is loaded into
+  the page instead, which paints on the main thread.
+- **`standardFontDataUrl` and `cMapUrl`.** pdf.js bundles neither the standard
+  fourteen fonts nor the CMaps. A PDF that names Helvetica rather than embedding
+  it waits on the first; a PDF with a predefined CJK encoding waits on the
+  second. Serve `pdfjs-dist/standard_fonts/` and `pdfjs-dist/cmaps/` the way the
+  worker is served. The lab's dev server does exactly that at `/pdfjs/`.
+- **`timeoutMs`, 20 seconds by default.** The whole paint is bounded regardless,
+  because a preview that shows an attachment card is a preview and one that
+  never resolves is a bug that looks like a slow machine. On the bound, the part
+  becomes a named `Attachment` saying why, and `onPaint` reports it.
+
+`bytes` must be a stable reference: painting restarts whenever it changes, and a
+host that builds a fresh `Uint8Array` on every render repaints forever. The
+sealed packet's own `parts[n].content` already is one.
+
+pdf.js's verbosity is left at its default, so its warnings reach the console
+rather than being swallowed.
+
+### Sealed
+
+`sealBundle` is core's, and it composes per-part answers rather than replacing
+them. Each part reaches PDF on its own terms, a form with slots through its own
+`prepareSeal`, and is flattened so its filled values are page content rather
+than form state a merge would drop. The flattened parts are merged in bundle
+order by `mergePdfs` from `@paradoc/render`.
+
+**Two hashes, and only one of them is signed.**
+
+- `canonicalPdfHash` is the hash of the merged PDF. **It is what a signing
+  ceremony binds to**, because it is the document the signer is shown.
+- `packetHash` is the packet's record: the merged document's hash plus every
+  part beside it, each named with what it is and what it hashes to. It accounts
+  for a part nobody could paint. A ceremony that bound to it would be binding a
+  signer to bytes they were never shown.
+
+**Signers are the packet's, not the parts'.** A part binds signer ids in its own
+namespace and knows nothing of the parts beside it, so two parts may each call a
+signer `signer-1` without meaning the same person. `sealBundle` scopes every
+part signer as `<part>/<signerId>` and returns a `signers` registry;
+`signerIndex` on the map indexes it. Two part signers are one person only when
+the caller says so:
+
+```ts
+const packet = await sealBundle(vendorPacketBundle, {
+  contents,
+  signers: {
+    'purchase-order/supplier-signer': 'northgate-principal',
+    'w-9/taxpayer-signer': 'northgate-principal',
+  },
+})
+```
+
+Naming a part signer no part binds is an error, so a typo leaves a loud failure
+rather than two signers where one was meant.
+
+The rest of the result describes the packet: `signatureMap`, whose `page` is a
+packet page and whose `id` is `<part>/<slot>` because two artifacts may each
+declare a slot called `signature`; and `parts`, each with its page range, its
+digest and whether it was merged. `warnings` names every part carried rather
+than merged.
+
+**What a packet refuses.** An entry that is not the part the bundle declares, by
+artifact name and version or by registry slug; bytes that do not sniff as the
+type the entry declares; a rendered part whose renderer produced something that
+is not a PDF, which is a `SealConfigError` naming the part. An annex declared as
+a PDF whose bytes cannot be read is not a refusal: it becomes an attachment with
+its digest in the packet record, and a warning naming it.
+
+`@paradoc/react/examples` carries the worked packet: the purchase order
+composition, the registry W-9 (handed in by the caller, so the package does not
+depend on the registry), and a certificate of insurance as the annex. The annex
+is checked in at `@paradoc/react/examples/certificate-of-insurance.pdf`, so a
+browser project installing the block has bytes without a Node render;
+`pnpm --filter @paradoc/react regenerate:annex` redraws it.
 
 ## Measured parity
 

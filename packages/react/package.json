@@ -43,6 +43,7 @@
       "default": "./dist/examples/pdf.js"
     },
     "./examples/proposal-logo.png": "./src/examples/proposal-logo.png",
+    "./examples/certificate-of-insurance.pdf": "./src/examples/certificate-of-insurance.pdf",
     "./styles.css": "./src/styles.css"
   },
   "sideEffects": [
@@ -52,6 +53,7 @@
     "dist",
     "src/styles.css",
     "src/examples/proposal-logo.png",
+    "src/examples/certificate-of-insurance.pdf",
     "README.md",
     "LICENSE"
   ],
@@ -97,15 +99,20 @@
     "test:watch": "vitest",
     "test:parity": "vitest run --config vitest.parity.config.ts",
     "test:registry": "vitest run --config vitest.registry.config.ts",
-    "registry:build": "tsx scripts/build-registry.ts"
+    "registry:build": "tsx scripts/build-registry.ts",
+    "regenerate:annex": "pnpm run build && node scripts/regenerate-annex.mjs"
   },
   "peerDependencies": {
+    "pdfjs-dist": "catalog:",
     "puppeteer": "catalog:",
     "react": "^19",
     "react-dom": "^19",
     "tailwindcss": "catalog:"
   },
   "peerDependenciesMeta": {
+    "pdfjs-dist": {
+      "optional": true
+    },
     "puppeteer": {
       "optional": true
     },
@@ -127,6 +134,7 @@
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/essentials": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

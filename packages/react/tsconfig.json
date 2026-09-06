@@ -17,6 +17,7 @@
     "src",
     "scripts",
     "tests",
+    "types",
     "vitest.config.ts",
     "vitest.parity.config.ts",
     "vitest.registry.config.ts"

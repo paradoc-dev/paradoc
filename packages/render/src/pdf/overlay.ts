@@ -1,6 +1,7 @@
 import { unzlibSync, zlibSync } from 'fflate'
-import { isDict, isName, isRef, type PdfDict, type PdfObject, type PdfRef, PdfModel, type PdfValue } from './syntax'
+import { isDict, type PdfDict, type PdfObject, type PdfRef, PdfModel, type PdfValue } from './syntax'
 import { getPath } from '../path'
+import { documentPages, type PageRecord } from './page-tree'
 
 interface PdfOverlayBase {
   /** One-based page number. */
@@ -34,39 +35,11 @@ export type PdfImageOverlay = PdfOverlayBase & {
 
 export type PdfOverlay = PdfTextOverlay | PdfImageOverlay
 
-interface PageRecord {
-  record: PdfObject
-  inheritedResources?: PdfValue
-}
 
 interface EmbeddedImage {
   ref: PdfRef
   width: number
   height: number
-}
-
-function pageRecords(model: PdfModel): PageRecord[] {
-  const catalog = [...model.objects.values()].find((record) => {
-    if (!isDict(record.value)) return false
-    const type = record.value.entries.get('Type')
-    return isName(type) && type.value === 'Catalog'
-  })
-  const pages: PageRecord[] = []
-  const visit = (value: PdfValue | undefined, inheritedResources?: PdfValue) => {
-    const record = isRef(value) ? model.objects.get(value.object) : undefined
-    const dict = model.dict(value)
-    if (!dict) return
-    const resources = dict.entries.get('Resources') ?? inheritedResources
-    const type = dict.entries.get('Type')
-    if (isName(type) && type.value === 'Page') {
-      if (record) pages.push({ record, inheritedResources: resources })
-      return
-    }
-    const kids = model.resolve(dict.entries.get('Kids'))
-    if (Array.isArray(kids)) kids.forEach((kid) => visit(kid, resources))
-  }
-  if (catalog && isDict(catalog.value)) visit(catalog.value.entries.get('Pages'))
-  return pages
 }
 
 function standardFont(model: PdfModel): PdfRef {
@@ -93,7 +66,12 @@ function addResource(
   ref: PdfRef,
 ): void {
   if (!isDict(page.record.value)) return
-  const resources = cloneDict(model.dict(page.record.value.entries.get('Resources') ?? page.inheritedResources))
+  // The page's own entry first, and freshly: an earlier widget or overlay on
+  // this page has already written its resource dictionary there, and reading
+  // the walk's snapshot instead would drop it.
+  const resources = cloneDict(
+    model.dict(page.record.value.entries.get('Resources') ?? page.inherited.get('Resources')),
+  )
   const entries = cloneDict(model.dict(resources.entries.get(category)))
   entries.entries.set(name, ref)
   resources.entries.set(category, entries)
@@ -303,7 +281,7 @@ export function applyPdfOverlays(
   data: Record<string, unknown>,
 ): void {
   if (overlays.length === 0) return
-  const pages = pageRecords(model)
+  const pages = documentPages(model)
   const grouped = new Map<number, PdfOverlay[]>()
   for (const overlay of overlays) {
     if (!Number.isInteger(overlay.page) || overlay.page < 1 || overlay.page > pages.length) {

@@ -149,6 +149,26 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: [],
   },
   {
+    name: "part",
+    type: "registry:ui",
+    title: "Part",
+    description:
+      "One document of a packet. It is the boundary between them, so each numbers its own pages and says where it sits in the packet.",
+    files: [component("part")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    registryDependencies: [],
+  },
+  {
+    name: "pdf-pages",
+    type: "registry:ui",
+    title: "PDF Pages",
+    description:
+      "A PDF part of a packet, painted page by page at its own paper size, or a named attachment card when it cannot be painted.",
+    files: [component("pdf-pages")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    registryDependencies: ["paper"],
+  },
+  {
     name: "paper",
     type: "registry:ui",
     title: "Paper",
