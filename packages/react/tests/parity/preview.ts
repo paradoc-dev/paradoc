@@ -73,15 +73,50 @@ export interface Preview {
 }
 
 /**
+ * The variant a published plan is stamped with, and the revision counter that
+ * increases every time the lab publishes a new one. Read off the lab's own
+ * readout (`[data-plan-revision]`), not off the document sheets: the sheets
+ * of a document mid-switch can still be the previous variant's.
+ */
+interface PlanStamp {
+  revision: number;
+  dataSet: DataSet | null;
+  branding: Branding | null;
+}
+
+/**
+ * Runs inside the browser. Self-contained on purpose, like `sampleCorners`.
+ */
+function readPlanStamp(): PlanStamp {
+  const readout = document.querySelector("[data-plan-revision]");
+  if (readout === null) return { revision: 0, dataSet: null, branding: null };
+  return {
+    revision: Number(readout.getAttribute("data-plan-revision")),
+    dataSet: readout.getAttribute("data-plan-data-set") as DataSet | null,
+    branding: readout.getAttribute("data-plan-branding") as Branding | null,
+  };
+}
+
+/**
  * Reads the plan off the rendered sheets.
  *
  * A preview showing no sheet is not a preview of a document with no pages: it
  * is a preview that has not settled, or one that dropped its plan between the
  * wait and the read. Everything downstream treats an empty page list as
  * vacuously passing, so it is refused here instead.
+ *
+ * `expected` names the variant this read is supposed to be of. Page count
+ * alone cannot tell a fresh plan from the previous variant's: two variants
+ * that happen to paginate to the same number of pages read identically by
+ * that measure alone. The lab's own stamp can tell them apart, so a plan
+ * stamped for a different variant is refused here rather than silently
+ * compared as if it were the one asked for.
  */
-async function readPlan(page: Page): Promise<PreviewPlan> {
-  const plan = await page.evaluate(() => {
+async function readPlan(
+  page: Page,
+  expected?: { dataSet: DataSet; branding: Branding }
+): Promise<PreviewPlan> {
+  const read = await page.evaluate(() => {
     const sheets = [...document.querySelectorAll("[data-page]")];
     const pageKeeps = sheets.map((sheet) =>
       [...sheet.querySelectorAll("[data-keep-id]")]
@@ -89,6 +124,7 @@ async function readPlan(page: Page): Promise<PreviewPlan> {
         .map((keep) => keep.getAttribute("data-keep-id") ?? "")
     );
     const firstKeeps = pageKeeps.map((keeps) => keeps[0] ?? "");
+    const readout = document.querySelector("[data-plan-revision]");
     return {
       pageCount: sheets.length,
       pageKeeps,
@@ -99,13 +135,55 @@ async function readPlan(page: Page): Promise<PreviewPlan> {
         )
       ),
       breaks: firstKeeps.slice(1),
+      stampedDataSet: readout?.getAttribute("data-plan-data-set") ?? null,
+      stampedBranding: readout?.getAttribute("data-plan-branding") ?? null,
     };
   });
 
-  if (plan.pageCount === 0) {
+  if (read.pageCount === 0) {
     throw new Error("The preview drew no sheet at all. Nothing measured against it means anything.");
   }
+
+  if (
+    expected !== undefined &&
+    (read.stampedDataSet !== expected.dataSet || read.stampedBranding !== expected.branding)
+  ) {
+    throw new Error(
+      `the preview's plan is stamped ${read.stampedDataSet ?? "no plan"}/` +
+        `${read.stampedBranding ?? "no plan"}, not the requested ${expected.dataSet}/` +
+        `${expected.branding}. It has not caught up with the switch.`
+    );
+  }
+
+  const { stampedDataSet: _stampedDataSet, stampedBranding: _stampedBranding, ...plan } = read;
   return plan;
+}
+
+/**
+ * Fails unless the sheets on screen agree in number with the readout that just
+ * named the requested variant.
+ *
+ * The stamp wait above only reads the readout; it never looks at `[data-page]`
+ * itself. `Pages` publishes a plan from a layout effect that runs after the
+ * commit that renders the sheets it describes, so a stamp naming the right
+ * variant should already imply the sheets are there — but "should" is exactly
+ * what the page-count race this file already fixed once relied on. Checked
+ * once, cheaply, rather than assumed.
+ */
+async function assertSheetsMatchReadout(page: Page): Promise<void> {
+  const { readoutCount, sheetCount } = await page.evaluate(() => {
+    const readout = document.querySelector("[data-page-count]");
+    return {
+      readoutCount: readout === null ? null : Number(readout.getAttribute("data-page-count")),
+      sheetCount: document.querySelectorAll("[data-page]").length,
+    };
+  });
+  if (readoutCount === null || sheetCount !== readoutCount) {
+    throw new Error(
+      `the readout reports ${readoutCount ?? "no"} page(s) but the DOM has ${sheetCount} ` +
+        "sheet(s). The plan's stamp changed without the sheets it describes being rendered yet."
+    );
+  }
 }
 
 /**
@@ -243,27 +321,48 @@ export async function openPreview(
     paper: PageDimensions
   ): Promise<PreviewPlan> => {
     await page.bringToFront();
+    const before = await page.evaluate(readPlanStamp);
     // The branding is chosen first: it changes the paper, and a plan measured
     // on one paper and captured on another would compare two documents.
     await page.click(`[data-choice="branding"] [data-choice-option="${branding}"]`);
     await page.click(`[data-choice="data-set"] [data-choice-option="${set}"]`);
-    // The readout publishes the plan's page count; the sheets are drawn from
-    // the same plan. Waiting for the two to agree waits for a settled plan
-    // rather than for a fixed delay.
-    await page.waitForFunction(
-      () => {
-        const readout = document.querySelector("[data-page-count]");
-        if (readout === null) return false;
-        const planned = Number(readout.getAttribute("data-page-count"));
-        return planned > 0 && document.querySelectorAll("[data-page]").length === planned;
-      },
-      // Polled on a timer rather than on animation frames. The suite also holds
-      // a rasterizing tab, and a browser that is not showing this one stops
-      // producing frames for it, which would leave a frame-polled wait hanging.
-      { timeout: 60_000, polling: 100 }
-    );
+    // If the readout already names the variant being asked for, nothing was
+    // switched — the clicks landed on the options already selected, as the
+    // very first call always does — and there is no later plan to wait for.
+    // Waiting on a page count alone cannot tell "this plan is fresh" from
+    // "this plan is the previous variant's, and just happens to paginate to
+    // the same number of pages", which is exactly how a stale plan passed
+    // this wait before: the readout's own variant and revision can.
+    if (before.dataSet !== set || before.branding !== branding) {
+      await page.waitForFunction(
+        (expectedSet: DataSet, expectedBranding: Branding, baselineRevision: number) => {
+          const readout = document.querySelector("[data-plan-revision]");
+          if (readout === null) return false;
+          const revision = Number(readout.getAttribute("data-plan-revision"));
+          return (
+            revision > baselineRevision &&
+            readout.getAttribute("data-plan-data-set") === expectedSet &&
+            readout.getAttribute("data-plan-branding") === expectedBranding
+          );
+        },
+        // Polled on a timer rather than on animation frames. The suite also holds
+        // a rasterizing tab, and a browser that is not showing this one stops
+        // producing frames for it, which would leave a frame-polled wait hanging.
+        { timeout: 60_000, polling: 100 },
+        set,
+        branding,
+        before.revision
+      );
+    }
+    // Belt and braces: `Pages` publishes the plan from a layout effect that
+    // runs after the commit that renders the sheets, so a stamp naming the
+    // right variant should already mean the sheets are there. Assert it
+    // rather than assume it, once, cheaply, the same way the wait above
+    // stopped trusting a number that could describe a DOM that was not yet
+    // real.
+    await assertSheetsMatchReadout(page);
     await assertUnscaled(page, paper);
-    return readPlan(page);
+    return readPlan(page, { dataSet: set, branding });
   };
 
   const capture = async (): Promise<PreviewCapture[]> => {
