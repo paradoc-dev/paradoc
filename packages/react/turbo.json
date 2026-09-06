@@ -1,0 +1,15 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"extends": ["//"],
+	"tasks": {
+		"test": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/paradoc/apps/docs/public/r/**"]
+		},
+		"test:registry": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"env": ["PATH"]
+		}
+	}
+}

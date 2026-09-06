@@ -85,7 +85,9 @@
     "check": "pnpm lint && pnpm check-types",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:parity": "vitest run --config vitest.parity.config.ts"
+    "test:parity": "vitest run --config vitest.parity.config.ts",
+    "test:registry": "vitest run --config vitest.registry.config.ts",
+    "registry:build": "tsx scripts/build-registry.ts"
   },
   "peerDependencies": {
     "puppeteer": "catalog:",
@@ -124,8 +126,10 @@
     "puppeteer": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "shadcn": "catalog:",
     "tailwindcss": "catalog:",
     "tsup": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

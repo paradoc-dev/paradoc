@@ -6,9 +6,10 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.{ts,tsx}"],
-    // The parity suite needs the lab's dev server and a Chrome, which the rest
-    // of the package's tests do not. It has its own config and its own script.
-    exclude: [...configDefaults.exclude, "tests/parity/**"],
+    // The parity suite needs the lab's dev server and a Chrome, and the
+    // registry suite installs into a scratch project and runs `tsc` over it.
+    // Neither belongs in the ordinary run; each has its own config and script.
+    exclude: [...configDefaults.exclude, "tests/parity/**", "tests/registry/**"],
     /**
      * Stated, not left to the default. The PDF engine's font registry is global
      * to the process: once any render embeds the marker face, every later render

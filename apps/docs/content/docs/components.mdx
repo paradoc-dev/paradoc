@@ -1,0 +1,135 @@
+---
+title: Components
+description: Install the document components into your own project with the shadcn CLI
+ogTitle: Paradoc document components
+ogDescription: A shadcn registry of React components that compose a document bound to a Paradoc artifact
+---
+
+A document composed in React is a tree of small components: a section, a field, a
+table, a signature block. What each one renders is a design decision that belongs
+to you, so they are not shipped as sealed exports. They are shipped as source, in
+the [shadcn registry format](https://ui.shadcn.com/docs/registry): you install a
+component, the file lands in your project, and from then on it is yours to edit.
+
+What stays in `@paradoc/react` is the part that is not a design decision — the
+document, page, token and signing contexts, the page plan, the measuring pass,
+the serializers that turn a value into the text a field prints. The installed
+files import it from there. Editing a copied field changes how a field looks; it
+cannot change how the document paginates or which paper it is drawn on.
+
+## Setup
+
+Register the namespace once in your project's `components.json`:
+
+```json
+{
+  "registries": {
+    "@paradoc": "https://docs.paradoc.dev/r/{name}.json"
+  }
+}
+```
+
+Then install the substrate and the stylesheet the components expect:
+
+```bash
+npm install @paradoc/react
+```
+
+```css
+/* your global stylesheet */
+@import "@paradoc/react/styles.css";
+```
+
+The components are styled with Tailwind utility classes, so a Tailwind project
+needs no further setup. Without Tailwind, every component takes a `className`
+that replaces its defaults.
+
+### Versions
+
+An installed component is written against one version of `@paradoc/react`, and
+each item declares that version, so the CLI installs the substrate it was
+generated from. Two consequences worth knowing before you start:
+
+- **Install the components you want together, and update them together.** Adding
+  `field` today and `table` after two releases leaves two files written against
+  two substrates in one project.
+- **Upgrading `@paradoc/react` means re-running the install** for the components
+  you have, and reapplying whatever you changed in them. They are your files;
+  nothing updates them for you.
+
+## Adding a component
+
+```bash
+npx shadcn@4 add @paradoc/field
+```
+
+Or, with the Paradoc CLI, which writes the namespace into `components.json` for
+you and then runs the same install:
+
+```bash
+para add field
+```
+
+Files land in `components/paradoc/`. A component that builds on another brings it
+along: installing `field` also installs `keep-together`.
+
+Without a registry entry in `components.json`, the full URL works too:
+
+```bash
+npx shadcn@4 add https://docs.paradoc.dev/r/field.json
+```
+
+## The items
+
+| Item | What it is |
+|------|------------|
+| [`bundle`](https://docs.paradoc.dev/r/bundle.json) | Groups the documents of one composition. |
+| [`document`](https://docs.paradoc.dev/r/document.json) | Binds one form artifact and its data to everything beneath it. |
+| [`field`](https://docs.paradoc.dev/r/field.json) | One labelled value at a path into the artifact, printed by the artifact's serializers. |
+| [`keep-together`](https://docs.paradoc.dev/r/keep-together.json) | The pagination unit. Content inside one is never split across a page break. |
+| [`pages`](https://docs.paradoc.dev/r/pages.json) | Measures the document once and lays it out as paginated sheets. |
+| [`paper`](https://docs.paradoc.dev/r/paper.json) | One sheet at the document's page geometry, and the fit-to-width hook. |
+| [`section`](https://docs.paradoc.dev/r/section.json) | A titled container that collapses on pages holding none of its keeps. |
+| [`signature`](https://docs.paradoc.dev/r/signature.json) | A party's signing block, with the rule the seal measures a signature field from. |
+| [`table`](https://docs.paradoc.dev/r/table.json) | A list field as rows, with a header that repeats on every page it continues onto. |
+| [`totals`](https://docs.paradoc.dev/r/totals.json) | The artifact's computed amounts, evaluated by `@paradoc/core`. |
+
+The index of all of them is [`/r/registry.json`](https://docs.paradoc.dev/r/registry.json).
+
+## Using them
+
+```tsx
+import { Document } from "@/components/paradoc/document";
+import { Field } from "@/components/paradoc/field";
+import { Pages } from "@/components/paradoc/pages";
+import { Section } from "@/components/paradoc/section";
+
+export function Proposal({ artifact, data }) {
+  return (
+    <Document artifact={artifact} data={data}>
+      <Pages>
+        <Section id="parties" title="Parties">
+          <Field path="customer" />
+          <Field path="issuedOn" />
+        </Section>
+      </Pages>
+    </Document>
+  );
+}
+```
+
+`Field` names a path and prints nothing of its own: the label comes from the
+artifact and the text comes from the serializer the field's type names. The same
+tree renders to PDF through `@paradoc/react/pdf`.
+
+## How the registry is built
+
+The items are generated from the component sources by `pnpm registry:build` in
+`@paradoc/react`, never written by hand. The generator rewrites every import so
+the file compiles where it is installed: a sibling item becomes
+`@/components/paradoc/<name>`, and anything else in the package becomes
+`@paradoc/react`, pinned to the version the item was generated from. A binding
+the package does not export publicly, or an npm package the item does not
+declare, fails the build rather than shipping a file you cannot compile, and the
+emitted files are installed into a scratch project and type-checked on every
+change.

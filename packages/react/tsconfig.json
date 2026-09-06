@@ -13,6 +13,16 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "tests", "vitest.config.ts", "vitest.parity.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src",
+    "scripts",
+    "tests",
+    "vitest.config.ts",
+    "vitest.parity.config.ts",
+    "vitest.registry.config.ts"
+  ],
+  // The registry fixture is source for the scratch project the install suite
+  // builds, not for this package: it imports `@/components/paradoc/*`, which
+  // exists only where the CLI installs it.
+  "exclude": ["node_modules", "dist", "tests/registry/fixtures"]
 }

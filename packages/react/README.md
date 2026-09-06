@@ -136,6 +136,74 @@ format, or a total.
 `Bundle` and `Document` also take `tokens`, which is where a tenant's branding
 enters. See [Branding](#branding).
 
+## The registry
+
+The components are also published as a shadcn registry, so a consumer installs
+the source rather than importing a sealed component:
+
+```sh
+npx shadcn@latest add @paradoc/field   # or: para add field
+```
+
+The file lands in `components/paradoc/` and is theirs to edit. What stays in this
+package is what is not a design decision: the document, page, token and signing
+contexts, the page plan, the measuring pass, the token resolution, the
+serializer-backed formatter. An installed
+file imports that from `@paradoc/react`, and a sibling item from
+`@/components/paradoc/<name>`, so editing an installed `keep-together` changes
+the installed `field` that uses it while nothing can fork the contexts. That last
+part matters: a copied context is a different context, and a `KeepTogether`
+reading its own copy would never see the page `Pages` is rendering.
+
+`pnpm registry:build` emits it from `scripts/registry/manifest.ts` and the
+component sources into `paradoc/apps/docs/public/r/`, which the docs site serves
+at `https://docs.paradoc.dev/r/{name}.json`. The output is committed and never
+hand-edited; `tests/registry-generator.test.ts` regenerates it and fails on a
+difference.
+
+The generator's one real job is rewriting imports, and it is checked rather than
+hopeful: a binding it would route to `@paradoc/react` must appear in `src/index.ts`,
+an import form it cannot read is an error, a sibling item the manifest did not
+declare is an error, and an npm package a file imports that the item does not
+declare is an error too (`react` is the one exception, and the manifest says so).
+That is what keeps it from shipping the failure this format invites — files that
+carry their authoring paths, install cleanly, and do not compile.
+`tests/registry/install.test.ts` proves the whole claim end to end: it serves the
+registry, runs the stock shadcn CLI against a scratch project, and type-checks
+what lands. The one thing it stubs is the package manager, which it records and
+asserts rather than runs, because whether npm can fetch a published package is
+not what the suite is about.
+
+Every `@paradoc/*` dependency is emitted at this package's own version, read from
+`package.json`, so the pin follows the lockstep release without anyone
+remembering to move it. An installed component is written against one substrate;
+a bare package name would hand a consumer whatever `latest` happened to be the
+day they ran the install.
+
+Two things to know about the emitted files. The shadcn CLI drops everything above
+a file's first import, so the generator moves each module's opening comment below
+the imports, where it survives. And a component's module comment is the only thing
+that moves: everything else is the source verbatim.
+
+Adding a component means adding it to the manifest. The generator will not infer
+one, because a component is not a file here — `paper.tsx` carries `Paper`, `Sheet`
+and `useFitToWidth`, and the context modules carry no component at all.
+
+A manifest file names its own path, shadcn type and install target rather than
+having them derived. A component takes all three from the `component()` helper,
+but a block does not: it is an artifact's JSON, a composition that binds it and a
+module of sample data, and those three are not the same kind of file and do not
+land in the same place. Two consequences the generator already handles: a
+relative import of a JSON artifact resolves, and one file of an item names
+another by where the two land rather than by how they were authored, so an item
+whose files install to different directories still compiles. A file that is not
+code is shipped verbatim.
+
+The forms it reads are named, default, namespace and side-effect imports, and
+named re-exports. A default or namespace clause pointed at the substrate is an
+error rather than a rewrite, because `@paradoc/react` exports names and nothing
+else.
+
 ## The pagination rule
 
 `Pages` reads `[data-keep-id]` in document order and assigns each one to a
@@ -1038,6 +1106,15 @@ components or the engine pin invalidates them until someone runs the suite again
 ```sh
 pnpm --filter @paradoc/react test    # component, artifact, plan, pagination, PDF and seal tests
 pnpm --filter @paradoc/react build   # tsup to dist/, which consumers resolve through
+pnpm --filter @paradoc/react registry:build   # regenerate the shadcn registry
+```
+
+The registry install suite is not in `pnpm test` either: it runs a CLI against a
+scratch project and type-checks it, and it needs the package built first, so it
+goes through the task graph like the parity suite.
+
+```sh
+pnpm turbo run test:registry --filter=@paradoc/react
 ```
 
 The parity suite is not in that list. It drives a browser against a lab that

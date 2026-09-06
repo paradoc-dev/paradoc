@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "document",
+  "type": "registry:ui",
+  "title": "Document",
+  "description": "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
+  "dependencies": [
+    "@paradoc/react@^0.5.0",
+    "@paradoc/core@^0.5.0",
+    "@paradoc/types@^0.5.0"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "components/paradoc/document.tsx",
+      "type": "registry:ui",
+      "target": "components/paradoc/document.tsx",
+      "content": "import { useMemo, type ReactNode } from \"react\";\nimport { evaluateFormDefs } from \"@paradoc/core\";\nimport type { Form } from \"@paradoc/types\";\n\nimport {\n  createDocumentContext,\n  createValueFormatter,\n  DocumentContextProvider,\n  DocumentTokensProvider,\n  fontFamilyStyle,\n  markDocumentRoot,\n  useDocumentRootTokens,\n  useSigningMarks,\n  type DocumentData,\n  type DocumentTokensInput,\n  type FormatOptions,\n} from \"@paradoc/react\";\n\n/**\n * `Document` takes the form artifact and its data and supplies both to\n * everything beneath it. It is the only component that knows how the artifact\n * is loaded; the rest of the tree names paths and party roles.\n *\n * It is also where a tenant's branding enters. `tokens` is resolved against\n * whatever a `Bundle` above already set and whatever the render overrides, and\n * the result is supplied to the tree below and published to the page furniture\n * above, so the preview's sheet and the PDF's page are the same paper.\n *\n * The seal's flow markers enter here too, but from the other direction: the\n * layer's renderer supplies them and this reads them, so a composition never\n * threads a seal-only prop.\n */\n\nexport interface DocumentProps {\n  /** The form artifact this document renders. */\n  artifact: Form;\n  /** The field values and parties to render. */\n  data: DocumentData;\n  /** How values the serializer registry does not cover are formatted. */\n  format?: FormatOptions;\n  /**\n   * Tenant branding: typeface, accent colour, paper and mark. Anything omitted\n   * keeps the value the bundle above set, or the package's default.\n   */\n  tokens?: DocumentTokensInput;\n  /** Stable identifier for this document within its bundle. */\n  id?: string;\n  className?: string;\n  children: ReactNode;\n}\n\nfunction evaluateDefs(artifact: Form, data: DocumentData): Map<string, unknown> {\n  const result = evaluateFormDefs(artifact, { fields: data.fields, parties: data.parties });\n  return \"value\" in result && result.value ? result.value.defsValues : new Map<string, unknown>();\n}\n\n/** Binds one form artifact and its data to the component tree below it. */\nexport function Document({\n  artifact,\n  data,\n  format,\n  tokens,\n  id,\n  className,\n  children,\n}: DocumentProps) {\n  const branding = useDocumentRootTokens(tokens);\n  // The seal's flow markers arrive from the layer's renderer, not from the\n  // composition: a document is written once and rendered in both seal passes.\n  const marks = useSigningMarks();\n\n\n  const context = useMemo(() => {\n    const formatter = createValueFormatter(format);\n    return createDocumentContext(artifact, data, evaluateDefs(artifact, data), formatter, marks);\n  }, [artifact, data, format, marks]);\n\n  return (\n    <DocumentTokensProvider tokens={branding.tokens}>\n      <DocumentContextProvider value={context}>\n        <article\n          data-document-id={id ?? artifact.name}\n          className={className ?? \"flex flex-col gap-6 text-sm leading-relaxed text-neutral-900\"}\n          // The browser reaches the typeface through this property, which\n          // `styles.css` reads; the PDF reaches the same files through the\n          // engine's font registry. Only the root sets it, because a bundle is\n          // one document sequence in one typeface.\n          style={branding.isRoot ? fontFamilyStyle(branding.tokens) : undefined}\n        >\n          {children}\n        </article>\n      </DocumentContextProvider>\n    </DocumentTokensProvider>\n  );\n}\n\n// The page furniture and `renderPdf` read a document's tokens off the element\n// rather than by rendering it, and this is how they recognise one.\nmarkDocumentRoot(Document);\n"
+    }
+  ]
+}

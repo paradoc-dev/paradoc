@@ -10,7 +10,7 @@ export interface CommandEntry {
 
 export const commandEntries: CommandEntry[] = [
 	// Registry
-	{ name: 'add', description: 'Add an artifact from a registry or direct URL', group: 'Registry',
+	{ name: 'add', description: 'Add an artifact from a registry, or a document component', group: 'Registry',
 		load: () => import('./commands/add.js').then(m => m.createAddCommand()) },
 	{ name: 'list', description: 'List installed artifacts', group: 'Registry', aliases: ['ls'],
 		load: () => import('./commands/list.js').then(m => m.createListCommand()) },

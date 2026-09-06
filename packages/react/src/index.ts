@@ -14,20 +14,31 @@ export { KeepTogether, type KeepTogetherProps } from "./components/keep-together
 export { Bundle, type BundleProps } from "./components/bundle";
 export { Document, type DocumentProps } from "./components/document";
 export {
+  createDocumentContext,
+  DocumentContextProvider,
   useDocument,
   type DocumentContextValue,
   type DocumentData,
 } from "./components/document-context";
-// The provider and the hook that feeds it are the seal's, and the seal is Node:
-// they are exported from `@paradoc/react/pdf`. What a browser build needs is the
-// vocabulary a document context is described in.
+// The provider is the seal's, and the seal is Node: it is exported from
+// `@paradoc/react/pdf`. The hook is not — `Document` calls it on every render,
+// sealing or not — so it belongs to the browser entry alongside the vocabulary
+// a document context is described in.
 export {
   AmbiguousSigningMarkError,
+  useSigningMarks,
   type SigningMarks,
   type SigningMarkType,
 } from "./components/signing-context";
 export { Field, type FieldProps } from "./components/field";
-export { usePagePlan } from "./components/page-context";
+export {
+  PageContextProvider,
+  useKeepVisible,
+  usePage,
+  usePagePlan,
+  useSectionVisible,
+  type PageContextValue,
+} from "./components/page-context";
 export { Page, Pages, type PageProps, type PagesProps } from "./components/pages";
 export {
   Paper,
@@ -47,12 +58,26 @@ export {
 } from "./components/paper";
 export {
   DocumentTokensProvider,
+  markDocumentRoot,
   NestedPaperTokenError,
   RootTokenMismatchError,
   TokenOverrideProvider,
+  useDocumentRootTokens,
   useDocumentTokens,
+  useTokenOverride,
+  type ResolvedRoot,
   type TokenOverrideProviderProps,
 } from "./components/tokens-context";
+// The paper actually being drawn with. `Paper` and `Pages` supply it; a
+// composition that draws its own sheet supplies it the same way. The geometry
+// hook and the default reach the entry through `./components/paper`, which
+// re-exports them, so only what is not already there is named here.
+export {
+  drawnPaper,
+  DrawnPaperProvider,
+  useDrawnPaper,
+  type DrawnPaper,
+} from "./components/paper-geometry";
 export {
   documentTokensOf,
   MultipleDocumentRootsError,

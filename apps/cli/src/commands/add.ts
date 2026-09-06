@@ -8,6 +8,7 @@ import { LocalFileSystem } from '../utils/local-fs.js'
 
 import type { AddOptions, OutputFormat, ArtifactKind, ResolvedRegistry, RegistryItemSummary } from '../types.js'
 import { parseArtifactArg, resolveRegistry, createRegistryFromUrl, buildArtifactItemUrl, parseNamespaceOnly } from '../utils/registry.js'
+import { addComponents, COMPONENT_ITEMS, COMPONENT_NAMESPACE, isComponentName } from './add-component.js'
 import { registryClient, RegistryFetchError, type RegistryItem } from '../utils/registry-client.js'
 import { lockFileManager } from '../utils/lock.js'
 import { configManager } from '../utils/config.js'
@@ -346,17 +347,33 @@ export function createAddCommand(): Command {
   const add = new Command('add')
 
   add
-    .argument('<artifact>', 'Artifact reference (@namespace/name), namespace (@namespace), or direct URL (https://...)')
-    .description('Add an artifact from a registry or direct URL')
+    .argument('<artifact>', 'Artifact reference (@namespace/name), namespace (@namespace), direct URL (https://...), or document component name')
+    .description('Add an artifact from a registry, or a document component from the Paradoc component registry')
     .option('--layers <layers>', 'Layers to download (comma-separated, or "all")')
     .option('--output <output>', 'Output format: json, yaml, typed (json + .d.ts), or ts (TypeScript module)')
     .option('--header <header...>', 'HTTP header for direct URL auth (format: "Name: Value")')
     .option('--cache-ttl <seconds>', 'Cache TTL in seconds (0 = no cache, default: use config)', parseInt)
     .option('--no-cache', 'Skip cache and fetch fresh')
-    .action(async (artifact: string, options: AddOptions & { header?: string[]; cache?: boolean }) => {
+    .option('--registry <url>', `Component registry URL template for ${COMPONENT_NAMESPACE} (must contain {name})`)
+    .option('--dry-run', 'For a component, print the install command instead of running it')
+    .action(async (artifact: string, options: AddOptions & { header?: string[]; cache?: boolean; registry?: string; dryRun?: boolean }) => {
       const spinner = ora()
 
       try {
+        // 0. A known item name is a document component, installed through the
+        // shadcn CLI. Everything else is an artifact, which is always
+        // namespaced or a URL, so the two cannot be confused for one another.
+        // A bare name that is not an item falls through and is rejected below,
+        // naming both forms, rather than reaching the shadcn CLI to 404.
+        if (isComponentName(artifact)) {
+          const code = await addComponents([artifact], {
+            registry: options.registry,
+            dryRun: options.dryRun,
+          })
+          if (code !== 0) process.exit(code)
+          return
+        }
+
         // 1. Parse artifact argument (reference, namespace-only, or direct URL)
         const parsed = parseArtifactArg(artifact)
         const nsOnly = !parsed ? parseNamespaceOnly(artifact) : null
@@ -367,6 +384,7 @@ export function createAddCommand(): Command {
           console.error(kleur.gray('  @namespace/artifact-name (registry reference)'))
           console.error(kleur.gray('  @namespace              (browse all artifacts)'))
           console.error(kleur.gray('  https://registry.example.com/r/artifact.json (direct URL)'))
+          console.error(kleur.gray(`  field                   (document component: ${COMPONENT_ITEMS.join(', ')})`))
           process.exit(1)
         }
 

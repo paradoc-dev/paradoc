@@ -1,11 +1,12 @@
 ---
 title: add
-description: Add an artifact from a registry
+description: Add an artifact from a registry, or a document component
 ogTitle: para add
-ogDescription: Install artifacts from Paradoc registries into your project
+ogDescription: Install artifacts from Paradoc registries, and document components from the Paradoc component registry
 ---
 
-Adds an artifact from a registry into your project.
+Adds an artifact from a registry into your project, or a document component from
+the [Paradoc component registry](/components).
 
 # Usage
 
@@ -17,7 +18,7 @@ para add <artifact> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `artifact` | Artifact reference (`@namespace/name`), namespace (`@namespace`), or direct URL |
+| `artifact` | Artifact reference (`@namespace/name`), namespace (`@namespace`), direct URL, or a document component name (`field`) |
 
 # Options
 
@@ -28,6 +29,8 @@ para add <artifact> [options]
 | `--header <header...>` | HTTP header for direct URL auth (format: `"Name: Value"`) |
 | `--cache-ttl <seconds>` | Cache TTL in seconds (`0` = no cache, default: use config) |
 | `--no-cache` | Skip cache and fetch fresh |
+| `--registry <url>` | Component registry URL template for `@paradoc` (must contain `{name}`) |
+| `--dry-run` | For a component, print the install command instead of running it |
 
 # Description
 
@@ -38,6 +41,31 @@ By default, only the artifact definition is downloaded. Use `--layers` to also d
 **Content reference files** (`instructions`, `agentInstructions`) that use `kind: "file"` are downloaded automatically — no `--layers` flag needed. These are typically small text files essential for the artifact to function correctly. A checksum is required for security; files without a checksum are skipped with a warning.
 
 When called with just a namespace (`@namespace`), the command enters browse mode and lets you interactively select artifacts to install.
+
+## Document components
+
+A bare name is a document component rather than an artifact: an artifact
+reference always carries a namespace or is a URL, so the two cannot be confused.
+
+```bash
+para add field
+```
+
+That writes the `@paradoc` namespace into the project's `components.json` if it
+is not already there, then runs `npx shadcn@4 add @paradoc/field`. The shadcn
+major is pinned rather than `latest`, because the registry's install proof runs
+that major. The component's source lands in `components/paradoc/` and is yours
+to edit; see [Components](/components) for the full list and what stays in
+`@paradoc/react`.
+
+Only a name the registry ships is read as a component. Any other bare argument
+is reported as an invalid artifact reference, listing both forms, rather than
+being sent to the shadcn CLI to fail on a missing item.
+
+The command needs a shadcn project: run `npx shadcn@latest init` first if there
+is no `components.json`. A `@paradoc` namespace already pointing at a different
+registry is left alone and reported, so a project running its own mirror is not
+silently repointed.
 
 # Examples
 
@@ -89,6 +117,12 @@ Add from a URL with authentication:
 para add https://registry.example.com/r/my-form.json --header "Authorization: Bearer token123"
 ```
 
+Add a document component:
+
+```bash
+para add field
+```
+
 # Output
 
 ```
@@ -111,3 +145,4 @@ Content:
 - [search](/cli/commands/search) - Find artifacts in registries
 - [list](/cli/commands/list) - List installed artifacts
 - [show](/cli/commands/show) - View artifact details
+- [Components](/components) - The document component registry `para add <name>` installs from

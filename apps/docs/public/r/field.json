@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "field",
+  "type": "registry:ui",
+  "title": "Field",
+  "description": "One labelled value at a path into the artifact, printed by the artifact's serializers. It never formats a value itself.",
+  "dependencies": [
+    "@paradoc/react@^0.5.0"
+  ],
+  "registryDependencies": [
+    "@paradoc/keep-together"
+  ],
+  "files": [
+    {
+      "path": "components/paradoc/field.tsx",
+      "type": "registry:ui",
+      "target": "components/paradoc/field.tsx",
+      "content": "import { KeepTogether } from \"@/components/paradoc/keep-together\";\nimport { useDocument } from \"@paradoc/react\";\n\n/**\n * `Field` names a path and renders the value the artifact's serializers produce.\n * It never formats a value itself and never carries its own label.\n *\n * A field is a pagination unit: it is a `KeepTogether`, so it is never split across a\n * page break and renders only on the page the plan put it on.\n */\n\nexport interface FieldProps {\n  /** Path into the artifact, such as `customerAddress` or `lineItems.0.unitPrice`. */\n  path: string;\n  /** Overrides the artifact's label. Pass `false` to render the value alone. */\n  label?: string | false;\n  className?: string;\n}\n\n/** One labelled value, formatted by the artifact's serializers. */\nexport function Field({ path, label, className }: FieldProps) {\n  const { field, text } = useDocument();\n  const definition = field(path);\n  const heading = label === false ? undefined : (label ?? definition.label ?? path);\n\n  return (\n    <KeepTogether\n      keepId={`field:${path}`}\n      data-field-path={path}\n      className={className ?? \"flex flex-col gap-0.5\"}\n    >\n      {heading ? (\n        <span className=\"text-xs font-medium uppercase tracking-wide text-neutral-500\">{heading}</span>\n      ) : null}\n      <span className=\"whitespace-pre-line text-neutral-900\">{text(path)}</span>\n    </KeepTogether>\n  );\n}\n"
+    }
+  ]
+}

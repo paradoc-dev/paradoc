@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "bundle",
+  "type": "registry:ui",
+  "title": "Bundle",
+  "description": "Groups the documents of one composition, mirroring the artifact hierarchy's outermost level.",
+  "dependencies": [
+    "@paradoc/react@^0.5.0"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "components/paradoc/bundle.tsx",
+      "type": "registry:ui",
+      "target": "components/paradoc/bundle.tsx",
+      "content": "import type { ReactNode } from \"react\";\n\nimport {\n  DocumentTokensProvider,\n  fontFamilyStyle,\n  markDocumentRoot,\n  useDocumentRootTokens,\n  type DocumentTokensInput,\n} from \"@paradoc/react\";\n\n/**\n * `Bundle` holds the documents of one composition, mirroring the artifact\n * hierarchy's outermost level. It carries no artifact of its own; each\n * `Document` beneath it binds its own.\n *\n * It does carry the branding, because a packet is one branded thing: tokens set\n * here reach every document in the bundle, and a document may still name a\n * token of its own on top of them. The paper it resolves is the paper the whole\n * sequence is drawn on.\n */\n\nexport interface BundleProps {\n  /** Stable identifier for the bundle. */\n  id?: string;\n  /**\n   * Tenant branding for every document in the bundle: typeface, accent colour,\n   * paper and mark. Anything omitted keeps the package's default.\n   */\n  tokens?: DocumentTokensInput;\n  className?: string;\n  children: ReactNode;\n}\n\n/** Groups one or more documents. */\nexport function Bundle({ id, tokens, className, children }: BundleProps) {\n  const branding = useDocumentRootTokens(tokens);\n\n  return (\n    <DocumentTokensProvider tokens={branding.tokens}>\n      <div\n        data-bundle-id={id ?? \"bundle\"}\n        className={className ?? \"flex flex-col gap-12\"}\n        style={branding.isRoot ? fontFamilyStyle(branding.tokens) : undefined}\n      >\n        {children}\n      </div>\n    </DocumentTokensProvider>\n  );\n}\n\n// Recognised by the element walk, for the reason `Document` is.\nmarkDocumentRoot(Bundle);\n"
+    }
+  ]
+}

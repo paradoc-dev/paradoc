@@ -1,0 +1,191 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "paradoc",
+  "homepage": "https://docs.paradoc.dev",
+  "items": [
+    {
+      "name": "keep-together",
+      "type": "registry:ui",
+      "title": "Keep Together",
+      "description": "The pagination unit. Content inside one is never split across a page break, and renders only on the page the plan put it on.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/keep-together.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/keep-together.tsx"
+        }
+      ]
+    },
+    {
+      "name": "document",
+      "type": "registry:ui",
+      "title": "Document",
+      "description": "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0",
+        "@paradoc/core@^0.5.0",
+        "@paradoc/types@^0.5.0"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/document.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/document.tsx"
+        }
+      ]
+    },
+    {
+      "name": "bundle",
+      "type": "registry:ui",
+      "title": "Bundle",
+      "description": "Groups the documents of one composition, mirroring the artifact hierarchy's outermost level.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/bundle.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/bundle.tsx"
+        }
+      ]
+    },
+    {
+      "name": "paper",
+      "type": "registry:ui",
+      "title": "Paper",
+      "description": "One sheet at the document's page geometry, the scaled sheet the preview lays out, and the fit-to-width hook.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/paper.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/paper.tsx"
+        }
+      ]
+    },
+    {
+      "name": "pages",
+      "type": "registry:ui",
+      "title": "Pages",
+      "description": "Measures the document once and lays it out as paginated sheets. One tree, rendered once per page.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/paper"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/pages.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/pages.tsx"
+        }
+      ]
+    },
+    {
+      "name": "section",
+      "type": "registry:ui",
+      "title": "Section",
+      "description": "A titled container. It collapses on the pages that hold none of its keeps, so a continued page carries no empty heading.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/section.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/section.tsx"
+        }
+      ]
+    },
+    {
+      "name": "field",
+      "type": "registry:ui",
+      "title": "Field",
+      "description": "One labelled value at a path into the artifact, printed by the artifact's serializers. It never formats a value itself.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/field.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "table",
+      "type": "registry:ui",
+      "title": "Table",
+      "description": "A list field as rows. Each row is its own pagination unit and the header repeats on every page the table continues onto.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/table.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/table.tsx"
+        }
+      ]
+    },
+    {
+      "name": "totals",
+      "type": "registry:ui",
+      "title": "Totals",
+      "description": "The artifact's computed amounts, evaluated by @paradoc/core and printed by the serializer each def's type names.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/totals.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/totals.tsx"
+        }
+      ]
+    },
+    {
+      "name": "signature",
+      "type": "registry:ui",
+      "title": "Signature",
+      "description": "A party's signing block. Its rule is the placeholder the core seal measures a flow-placed signature field from.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/react/src/components/signature.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/signature.tsx"
+        }
+      ]
+    }
+  ]
+}

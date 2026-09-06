@@ -126,12 +126,22 @@ describe('CLI Project Commands', () => {
     })
 
     it('should validate artifact reference format', async () => {
-      // Invalid format - missing @
-      const result = await executeCliCommand(['add', 'invalid-ref'], { cwd: tempDir })
+      // Neither a reference, a namespace, a URL, nor a component name.
+      const result = await executeCliCommand(['add', 'acme/test'], { cwd: tempDir })
 
       expect(result.exitCode).toBe(1)
       const output = result.stdout + result.stderr
       expect(output).toContain('Invalid artifact')
+    })
+
+    it('should read a bare name as a document component', async () => {
+      // `field` is a component, not an artifact, so it needs a shadcn project
+      // rather than a Paradoc one.
+      const result = await executeCliCommand(['add', 'field'], { cwd: tempDir })
+
+      expect(result.exitCode).toBe(1)
+      const output = result.stdout + result.stderr
+      expect(output).toContain('shadcn@latest init')
     })
 
     it('should show error when not in a project', async () => {
