@@ -20,13 +20,14 @@ import {
   shortProposalData,
 } from "../src/examples";
 import { UnknownFieldPathError } from "../src/lib/fields";
+import { InvalidFieldValueError, type FormatOptions } from "../src/lib/format";
 
 const html = renderToStaticMarkup(<ProposalDocument data={shortProposalData} />);
 
 /** The markup of one component, rendered on its own against the proposal artifact. */
-function renderAlone(node: React.ReactNode, data = shortProposalData): string {
+function renderAlone(node: React.ReactNode, data = shortProposalData, format?: FormatOptions): string {
   return renderToStaticMarkup(
-    <Document artifact={proposalForm} data={data}>
+    <Document artifact={proposalForm} data={data} format={format}>
       {node}
     </Document>
   );
@@ -59,12 +60,12 @@ describe("fields render through the artifact's serializers", () => {
     expect(html).toContain("Marisol Vega");
   });
 
-  it("formats a date, which the registry does not cover, from the field type", () => {
+  it("formats a date the way the date serializer does", () => {
     expect(html).toContain("Sep 4, 2026");
     expect(html).toContain("Oct 4, 2026");
   });
 
-  it("formats a percentage from the field type", () => {
+  it("formats a percentage the way the percentage serializer does", () => {
     expect(html).toContain("8.25%");
   });
 
@@ -80,6 +81,103 @@ describe("fields render through the artifact's serializers", () => {
       fields: { ...shortProposalData.fields, summary: undefined },
     });
     expect(markup).toContain("—");
+  });
+});
+
+describe("the full reference document prints correctly under both registries", () => {
+  const euHtml = renderToStaticMarkup(
+    <ProposalDocument data={shortProposalData} format={{ regionFormat: "eu" }} />
+  );
+
+  it("formats the date fields locale-aware", () => {
+    expect(html).toContain("Sep 4, 2026");
+    expect(html).toContain("Oct 4, 2026");
+    expect(euHtml).toContain("4. Sept. 2026");
+    expect(euHtml).toContain("4. Okt. 2026");
+  });
+
+  it("formats the percentage field locale-aware", () => {
+    expect(html).toContain("8.25%");
+    expect(euHtml).toContain("8,25%");
+  });
+
+  it("keeps money on the artifact's declared currency, not the EU registry's default", () => {
+    // The EU registry defaults an amount with no declared currency to EUR
+    // (see `createMoneyStringifier` in `@paradoc/serialization`), but every
+    // money value this artifact prints — every line item, and the subtotal,
+    // tax, and total defs — carries an explicit `currency: "fields.currency"`,
+    // which this document sets to "USD". Switching the registry to EU
+    // therefore changes only the locale's grouping and decimal conventions;
+    // the currency itself stays the document's own, never the registry's
+    // default.
+    expect(html).toContain("$2,400.00");
+    expect(euHtml).not.toContain("€");
+    expect(euHtml).toMatch(/2\.400,00\s\$/); // "2.400,00\u00a0$" (de-DE currency formatting uses a non-breaking space)
+  });
+
+  it("formats the number field (line-item quantity) the same way in both, at this magnitude", () => {
+    // This reference document's own "number" field never exceeds two digits
+    // (quantities are day counts), so both registries print it identically —
+    // that is the correct outcome at this magnitude, not evidence the
+    // registries fail to differ. The next test forces a larger value through
+    // the same `Field` component to show they do.
+    expect(html).toContain("18");
+    expect(euHtml).toContain("18");
+  });
+
+  it("formats a larger number with locale-aware grouping through the same Field component", () => {
+    const items = shortProposalData.fields.lineItems as Array<Record<string, unknown>>;
+    const overridden = {
+      ...shortProposalData,
+      fields: {
+        ...shortProposalData.fields,
+        lineItems: [{ ...items[0], quantity: 1234.5 }, ...items.slice(1)],
+      },
+    };
+    const usMarkup = renderAlone(<Field path="lineItems.0.quantity" label={false} />, overridden);
+    const euMarkup = renderAlone(
+      <Field path="lineItems.0.quantity" label={false} />,
+      overridden,
+      { regionFormat: "eu" }
+    );
+    expect(usMarkup).toContain("1,234.5");
+    expect(euMarkup).toContain("1.234,5");
+  });
+});
+
+describe("an invalid value fails loudly instead of degrading to a raw string", () => {
+  it("throws naming the path and the value when a date fails to parse", () => {
+    const invalidData = {
+      ...shortProposalData,
+      fields: { ...shortProposalData.fields, issuedOn: "not-a-date" },
+    };
+
+    expect(() => renderAlone(<Field path="issuedOn" />, invalidData)).toThrow(InvalidFieldValueError);
+
+    expect.assertions(5);
+    try {
+      renderAlone(<Field path="issuedOn" />, invalidData);
+    } catch (error) {
+      expect(error).toBeInstanceOf(InvalidFieldValueError);
+      const invalid = error as InvalidFieldValueError;
+      expect(invalid.location).toBe("issuedOn");
+      expect(invalid.value).toBe("not-a-date");
+      expect(invalid.message).toContain("not-a-date");
+    }
+  });
+
+  it("throws for an invalid value inside a table cell, naming the cell's path", () => {
+    const overflowFirst = overflowProposalData.fields.lineItems as Array<Record<string, unknown>>;
+    const overridden = {
+      ...overflowProposalData,
+      fields: {
+        ...overflowProposalData.fields,
+        lineItems: [{ ...overflowFirst[0], quantity: Number.NaN }, ...overflowFirst.slice(1)],
+      },
+    };
+    expect(() => renderToStaticMarkup(<ProposalDocument data={overridden} />)).toThrow(
+      InvalidFieldValueError
+    );
   });
 });
 

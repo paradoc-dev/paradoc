@@ -131,6 +131,11 @@ Each serializer registry provides these stringifiers:
 | `bbox`           | `stringify(Bbox \| Partial<Bbox>): string`                     | `string` | Serializes bounding boxes as "swLat,swLon,neLat,neLon"                        |
 | `duration`       | `stringify(Duration \| string): string`                        | `string` | Serializes ISO 8601 durations (e.g., "P1Y", "PT30M")                          |
 | `identification` | `stringify(Identification \| Partial<Identification>): string` | `string` | Serializes identification documents with type, number, and issuer info        |
+| `date`           | `stringify(string \| Date): string`                             | `string` | Serializes calendar dates with locale-specific month/day/year order           |
+| `datetime`       | `stringify(string \| Date): string`                             | `string` | Serializes calendar date/time values with locale-specific formatting          |
+| `time`           | `stringify(string): string`                                     | `string` | Serializes `HH:MM` or `HH:MM:SS` time-of-day values (12- or 24-hour clock)    |
+| `number`         | `stringify(number): string`                                     | `string` | Serializes plain numbers with locale-specific grouping and decimal separators |
+| `percentage`     | `stringify(number): string`                                     | `string` | Serializes a 0-100 scale percentage value with a trailing `%`; no range check                  |
 
 ### Custom Serializers
 
@@ -156,7 +161,9 @@ const customSerializers: SerializerRegistry = {
     },
   },
 
-  // ... other serializers (phone, person, organization, party, coordinate, bbox, duration, identification)
+  // ... other serializers (phone, person, organization, party, coordinate, bbox,
+  // duration, identification, attachment, signature, date, datetime, time,
+  // number, percentage)
 };
 
 // Use custom serializers

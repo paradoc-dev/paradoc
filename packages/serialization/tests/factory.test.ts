@@ -108,6 +108,21 @@ describe("custom Serializers", () => {
       signature: {
         stringify: (value) => `CUSTOM SIGNATURE: ${JSON.stringify(value)}`,
       },
+      date: {
+        stringify: (value) => `CUSTOM DATE: ${JSON.stringify(value)}`,
+      },
+      datetime: {
+        stringify: (value) => `CUSTOM DATETIME: ${JSON.stringify(value)}`,
+      },
+      time: {
+        stringify: (value) => `CUSTOM TIME: ${JSON.stringify(value)}`,
+      },
+      number: {
+        stringify: (value) => `CUSTOM NUMBER: ${JSON.stringify(value)}`,
+      },
+      percentage: {
+        stringify: (value) => `CUSTOM PERCENTAGE: ${JSON.stringify(value)}`,
+      },
     };
 
     expect(
@@ -132,6 +147,11 @@ describe("custom Serializers", () => {
       identification: { stringify: () => "CUSTOM_ID" },
       attachment: { stringify: () => "CUSTOM_ATTACHMENT" },
       signature: { stringify: () => "CUSTOM_SIGNATURE" },
+      date: { stringify: () => "CUSTOM_DATE" },
+      datetime: { stringify: () => "CUSTOM_DATETIME" },
+      time: { stringify: () => "CUSTOM_TIME" },
+      number: { stringify: () => "CUSTOM_NUMBER" },
+      percentage: { stringify: () => "CUSTOM_PERCENTAGE" },
     };
 
     const result = customSerializers.money.stringify(1000);
@@ -156,6 +176,11 @@ describe("custom Serializers", () => {
       identification: usaSerializers.identification,
       attachment: usaSerializers.attachment,
       signature: usaSerializers.signature,
+      date: usaSerializers.date,
+      datetime: usaSerializers.datetime,
+      time: usaSerializers.time,
+      number: usaSerializers.number,
+      percentage: usaSerializers.percentage,
     };
 
     expect(hybridSerializers.money.stringify(100)).toContain("$");
@@ -211,6 +236,11 @@ describe("custom Serializers", () => {
       identification: usaSerializers.identification,
       attachment: usaSerializers.attachment,
       signature: usaSerializers.signature,
+      date: usaSerializers.date,
+      datetime: usaSerializers.datetime,
+      time: usaSerializers.time,
+      number: usaSerializers.number,
+      percentage: usaSerializers.percentage,
     };
 
     const result = ukSerializers.money.stringify(100);
@@ -285,6 +315,11 @@ describe("custom Serializers", () => {
       identification: usaSerializers.identification,
       attachment: usaSerializers.attachment,
       signature: usaSerializers.signature,
+      date: usaSerializers.date,
+      datetime: usaSerializers.datetime,
+      time: usaSerializers.time,
+      number: usaSerializers.number,
+      percentage: usaSerializers.percentage,
     };
 
     expect(a11ySerializers.money.stringify(50)).toBe("50 USD dollars");

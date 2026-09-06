@@ -52,6 +52,7 @@ export {
   BLANK,
   createValueFormatter,
   formatByType,
+  InvalidFieldValueError,
   type DocumentFormatter,
   type FormatOptions,
   type ValueFormatter,

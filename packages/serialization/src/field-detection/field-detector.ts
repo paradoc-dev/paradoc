@@ -24,5 +24,10 @@ export function isSerializableFieldType(
     "identification",
     "attachment",
     "signature",
+    "date",
+    "datetime",
+    "time",
+    "number",
+    "percentage",
   ].includes(fieldType);
 }

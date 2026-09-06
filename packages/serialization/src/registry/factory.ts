@@ -45,6 +45,11 @@ function applyFallbacks(
     identification: wrap("identification"),
     attachment: wrap("attachment"),
     signature: wrap("signature"),
+    date: wrap("date"),
+    datetime: wrap("datetime"),
+    time: wrap("time"),
+    number: wrap("number"),
+    percentage: wrap("percentage"),
   };
 }
 

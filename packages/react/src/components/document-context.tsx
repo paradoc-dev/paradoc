@@ -103,10 +103,10 @@ export function createDocumentContext(
     field,
     item: (path: string) => itemField(form, path),
     value,
-    text: (path: string) => formatter.format(field(path), value(path)),
+    text: (path: string) => formatter.format(field(path), value(path), path),
     mark: (role: string, index = 0) => marks[`${role}:${index}`],
     defText: (name: string) =>
-      formatByType(form.defs?.[name]?.type, defs.get(name), formatter.serializers, formatter.blank),
+      formatByType(form.defs?.[name]?.type, defs.get(name), formatter.serializers, formatter.blank, `defs.${name}`),
     party,
   };
 }

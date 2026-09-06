@@ -25,6 +25,11 @@ import {
 import { assertMoney } from "../serializers/money";
 import { assertAddress } from "../serializers/address";
 import { assertParty } from "../serializers/party";
+import { assertDate, toDate } from "../serializers/date";
+import { assertDatetime, toDatetime } from "../serializers/datetime";
+import { assertTime, toTimeOfDay } from "../serializers/time";
+import { assertNumberValue } from "../serializers/number";
+import { assertPercentageValue } from "../serializers/percentage";
 
 type AddressFormat = "us" | "eu";
 
@@ -87,6 +92,57 @@ const createAddressStringifier = (format: AddressFormat) => ({
   },
 });
 
+const createDateStringifier = (locale: string) => ({
+  stringify(value: string | Date): string {
+    assertDate(value);
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(toDate(value));
+  },
+});
+
+const createDatetimeStringifier = (locale: string) => ({
+  stringify(value: string | Date): string {
+    assertDatetime(value);
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }).format(toDatetime(value));
+  },
+});
+
+const createTimeStringifier = (locale: string) => ({
+  stringify(value: string): string {
+    assertTime(value);
+    return new Intl.DateTimeFormat(locale, {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }).format(toTimeOfDay(value));
+  },
+});
+
+const createNumberStringifier = (locale: string) => ({
+  stringify(value: number): string {
+    assertNumberValue(value);
+    return new Intl.NumberFormat(locale).format(value);
+  },
+});
+
+const createPercentageStringifier = (locale: string) => ({
+  stringify(value: number): string {
+    assertPercentageValue(value);
+    return `${new Intl.NumberFormat(locale).format(value)}%`;
+  },
+});
+
 const createPartyStringifier = (registry: SerializerRegistry) => ({
   stringify(value: Party | Partial<Party>): string {
     assertParty(value);
@@ -119,6 +175,11 @@ export function createRegionRegistry(config: RegionConfig): SerializerRegistry {
     identification: identificationStringifier,
     attachment: attachmentStringifier,
     signature: signatureStringifier,
+    date: createDateStringifier(config.locale),
+    datetime: createDatetimeStringifier(config.locale),
+    time: createTimeStringifier(config.locale),
+    number: createNumberStringifier(config.locale),
+    percentage: createPercentageStringifier(config.locale),
   };
 
   // Party needs reference to the registry for delegation

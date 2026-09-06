@@ -12,6 +12,7 @@ import type { Form } from "@paradoc/types";
 import { KeepTogether } from "../components/keep-together";
 import { Bundle } from "../components/bundle";
 import { Document } from "../components/document";
+import type { FormatOptions } from "../lib/format";
 import type { DocumentData, SigningMarks } from "../components/document-context";
 import { Field } from "../components/field";
 import { Section } from "../components/section";
@@ -37,6 +38,8 @@ export interface ProposalDocumentProps {
   logoSrc?: string;
   /** Signing placeholders for a seal pass. See `src/examples/seal.tsx`. */
   marks?: SigningMarks;
+  /** How values the serializer registry does not cover are formatted, and which registry (US or EU) covers the rest. */
+  format?: FormatOptions;
 }
 
 /** The composed proposal. */
@@ -45,10 +48,11 @@ export function ProposalDocument({
   artifact = proposalForm,
   logoSrc = PROPOSAL_LOGO_SRC,
   marks,
+  format,
 }: ProposalDocumentProps) {
   return (
     <Bundle id="proposal-bundle">
-      <Document artifact={artifact} data={data} marks={marks} id="proposal">
+      <Document artifact={artifact} data={data} marks={marks} format={format} id="proposal">
         <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
           <div className="flex basis-1/2 flex-row gap-3">
             {/* Decorative: the organization is named beside it. The mark sits in

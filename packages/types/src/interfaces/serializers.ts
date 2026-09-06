@@ -36,6 +36,11 @@ export interface SerializerFallbacks {
   identification?: string;
   attachment?: string;
   signature?: string;
+  date?: string;
+  datetime?: string;
+  time?: string;
+  number?: string;
+  percentage?: string;
 }
 
 /**
@@ -96,4 +101,9 @@ export interface SerializerRegistry {
   identification: Stringifier<Identification | Partial<Identification>>;
   attachment: Stringifier<Attachment | Partial<Attachment>>;
   signature: Stringifier<Signature | Partial<Signature>>;
+  date: Stringifier<string | Date>;
+  datetime: Stringifier<string | Date>;
+  time: Stringifier<string>;
+  number: Stringifier<number>;
+  percentage: Stringifier<number>;
 }

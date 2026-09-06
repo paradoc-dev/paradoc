@@ -95,7 +95,7 @@ export function Table({ path, columns, id, className }: TableProps) {
                     data-field-path={cellPath}
                     className={`${column.width ?? "basis-1/4"} ${alignClass(column.align)}`}
                   >
-                    {format(field(cellPath), value(cellPath))}
+                    {format(field(cellPath), value(cellPath), cellPath)}
                   </span>
                 );
               })}

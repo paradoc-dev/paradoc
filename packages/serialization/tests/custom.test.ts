@@ -58,6 +58,21 @@ describe("Custom SerializerRegistry implementations", () => {
       signature: {
         stringify: (value) => "Custom Signature",
       },
+      date: {
+        stringify: (value) => "Custom Date",
+      },
+      datetime: {
+        stringify: (value) => "Custom Datetime",
+      },
+      time: {
+        stringify: (value) => "Custom Time",
+      },
+      number: {
+        stringify: (value) => "Custom Number",
+      },
+      percentage: {
+        stringify: (value) => "Custom Percentage",
+      },
     };
 
     expect(customSerializers.money.stringify(100)).toBe("$100.00");
@@ -105,6 +120,21 @@ describe("Custom SerializerRegistry implementations", () => {
         stringify: (value) => "",
       },
       signature: {
+        stringify: (value) => "",
+      },
+      date: {
+        stringify: (value) => "",
+      },
+      datetime: {
+        stringify: (value) => "",
+      },
+      time: {
+        stringify: (value) => "",
+      },
+      number: {
+        stringify: (value) => "",
+      },
+      percentage: {
         stringify: (value) => "",
       },
     };

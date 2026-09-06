@@ -7,6 +7,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 ### Added
 
 - `@paradoc/react`: compose a document from React components bound to a form artifact. One tree drives a paginated preview in the browser and a PDF from Node, with the preview's page breaks honored when its plan is passed as hints. The root entry carries the components, the document context and the page plan; `@paradoc/react/pdf` carries `renderPdf`, the adapter seam, the default WebAssembly engine and the seal helpers; `@paradoc/react/chromium` carries the experimental Chromium adapter, whose `puppeteer` and `tailwindcss` peers are optional and whose absence fails with one error naming both. `@paradoc/react/examples` and `@paradoc/react/examples/pdf` carry a worked sample document as sample material rather than API.
+- `@paradoc/serialization` registries gain `date`, `datetime`, `time`, `number`, and `percentage` stringifiers, locale-aware through `Intl` with the same fixed options per registry as the existing composite serializers. `@paradoc/render`'s text, DOCX, and PDF field serializer does not yet dispatch these five types, so a date field still emits raw ISO text in those layers; that follow-up is tracked separately.
 
 ### Changed
 

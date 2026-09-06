@@ -54,7 +54,7 @@ export function Signature({ party, index = 0, id, className }: SignatureProps) {
         {role?.label ?? party}
       </span>
       <span className="text-sm text-neutral-900">
-        {formatByType("party", signer, serializers, blank)}
+        {formatByType("party", signer, serializers, blank, `party:${party}:${index}`)}
       </span>
       <div className="mt-6 flex gap-6">
         <div className="flex basis-2/3 flex-col gap-1">
