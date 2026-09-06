@@ -364,12 +364,14 @@ function isPaperWhite([r, g, b]: Corner): boolean {
  * Two ways a capture can be of something other than the sheet, and both are
  * refused here rather than measured.
  *
- * **Nothing painted.** `capture()` screenshots the sheet element right after
- * switching tabs to it, and a sheet that has not painted yet reads back as
- * whatever sat behind it — the lab's grey frame — rather than the paper white
- * every sheet's margin is by design. All four corner samples sit inside that
- * margin, so a painted sheet reads white at every one of them and a capture of
- * nothing reads the frame's grey at all four.
+ * **Nothing painted, or only part of it.** A sheet that has not painted yet,
+ * or has painted only partway into an offset clip, reads back as the lab's
+ * grey frame on some or all of its margin rather than the paper white every
+ * sheet's margin is by design. Every corner is required, not merely one of
+ * them: a 40 pixel offset — the lab's header, then the frame's own gap, then
+ * the sheet — left two of the four corners genuinely white while the other
+ * two read the header above it, and a rule that accepted any one of the four
+ * accepted that capture as painted.
  *
  * **The clip did not sit on the sheet.** A capture the right size can still be
  * taken from the wrong place: `ElementHandle.screenshot` scrolls a sheet the
@@ -377,18 +379,21 @@ function isPaperWhite([r, g, b]: Corner): boolean {
  * scroll left, which is a position the page may not have painted yet, and the
  * capture comes back with a band of the frame along one edge and the whole
  * document that many pixels out of place. The corner samples are 3 percent in
- * and see nothing of a band that thin, so the capture's own border is checked
- * too: every point of it is the sheet's blank margin, and a point that is not
- * is the frame the clip overhung onto. Left silent, this is the failure that
- * measured the branded variant's page 1 at 7.73 percent ink against the 6.31
- * percent the same page measures when the clip is on the sheet.
+ * and can sit past a band that thin even at all four, so the capture's own
+ * border is checked too: every point of it is the sheet's blank margin, and a
+ * point that is not is the frame the clip overhung onto. Left silent, this is
+ * the failure that measured the branded variant's page 1 at 7.73 percent ink
+ * against the 6.31 percent the same page measures when the clip is on the
+ * sheet, and the same failure again at an offset the corner and border checks
+ * of that run both missed.
  */
 export async function assertPainted(page: Page, capture: PreviewCapture): Promise<void> {
   const sample = await page.evaluate(sampleCapture, capture.png, CORNER_SAMPLE_FRACTION);
-  if (sample.corners.every((corner) => !isPaperWhite(corner))) {
+  const unpainted = sample.corners.filter((corner) => !isPaperWhite(corner));
+  if (unpainted.length > 0) {
     throw new Error(
-      `page ${capture.number}: every sampled corner reads ${JSON.stringify(sample.corners[0])}, ` +
-        "not paper white. The sheet had not painted when it was screenshotted."
+      `page ${capture.number}: corner ${JSON.stringify(unpainted[0])} does not read paper white. ` +
+        "The sheet had not painted, or was not fully in view, when it was screenshotted."
     );
   }
   const overhang = sample.border.filter((point) => !isPaperWhite(point));
@@ -406,6 +411,21 @@ export const PAINT_POLL_DEADLINE_MS = 15_000;
 
 /** How long `captureWhenPainted` waits between polls once a screenshot comes back blank. */
 const PAINT_POLL_INTERVAL_MS = 100;
+
+/**
+ * Runs inside the browser: two ticks and nothing else.
+ *
+ * Self-contained on purpose, like `sampleCapture`. Used both after the scroll
+ * that puts the sheet where a screenshot will clip it, and between the pair of
+ * screenshots `captureWhenPainted` compares — the same two ticks either way,
+ * because either way what is being waited for is the browser to have actually
+ * drawn a frame against the DOM as it now stands.
+ */
+function twoAnimationFrames(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
 
 /**
  * Scrolls `sheet` wholly into view and waits for the browser to draw it there.
@@ -432,28 +452,30 @@ async function placeInViewport(page: Page, sheet: ElementHandle<Element>): Promi
   });
   // The first is the frame the scroll and the switch to the tab trigger; the
   // sheet's own paint is scheduled for the one after it.
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      })
-  );
+  await page.evaluate(twoAnimationFrames);
 }
 
 /**
  * Screenshots `sheet` once it has actually painted where it will be clipped,
  * polling rather than trusting a fixed number of frames.
  *
- * Two `requestAnimationFrame` ticks are usually enough for the compositor to
- * catch up after `bringToFront`, but not always: under load a runner can still
- * hand back the lab's own frame instead of the sheet on the first try, and a
- * fixed wait either eats that cost on every capture or still isn't enough on
- * the run that needed more. So each attempt places the sheet, waits two ticks,
- * screenshots, and reads the capture back itself; one that is not yet paper
- * white, or whose border shows the clip overhung the sheet, is discarded and
- * tried again after a beat, up to `deadlineMs`. `assertPainted` still runs once
- * more on whatever this loop finally accepts, so a mistake in its own check
- * fails loudly here rather than silently accepting a bad capture.
+ * Two `requestAnimationFrame` ticks after the scroll are usually enough for
+ * the compositor to catch up, but "usually" already failed twice: once as a
+ * blank grey capture, and once more as a capture whose clip sat 40 pixels off
+ * the sheet, on a border check that samples inside the frame's own edges and
+ * a corner check that only asked one corner of four to agree. Trusting any
+ * fixed number of frames, or any single reading of a screenshot's pixels,
+ * asks the compositor to promise something a busy runner cannot always keep.
+ *
+ * So each attempt takes two screenshots two frames apart, with nothing done
+ * to the page between them, and moves on only when the two are byte for byte
+ * the same: a sheet still settling into place cannot paint the same pixels
+ * twice running, so agreement is what "actually painted, not mid-transition"
+ * looks like from the outside. Only once the pair agrees does `assertPainted`
+ * check the accepted frame for content: is any of it the lab's own frame
+ * rather than the sheet. Either kind of disagreement — the pair still
+ * differing, or a settled pair `assertPainted` still refuses — is discarded
+ * and retried after a beat, up to `deadlineMs`.
  */
 export async function captureWhenPainted(
   page: Page,
@@ -462,34 +484,35 @@ export async function captureWhenPainted(
   deadlineMs: number = PAINT_POLL_DEADLINE_MS
 ): Promise<PreviewCapture> {
   const deadline = Date.now() + deadlineMs;
+  // Typed as `ElementScreenshotOptions` rather than passed as a literal:
+  // `ElementHandle.screenshot`'s own overloads still declare the narrower
+  // `ScreenshotOptions`, which does not name the option the method reads.
+  const options: ElementScreenshotOptions & { encoding: "base64" } = {
+    type: "png",
+    encoding: "base64",
+    // The suite has already put the sheet where this clip will be taken. A
+    // second scroll here is the one that could move it after the box is read.
+    scrollIntoView: false,
+  };
   for (;;) {
     await placeInViewport(page, sheet);
-    // Typed as `ElementScreenshotOptions` rather than passed as a literal:
-    // `ElementHandle.screenshot`'s own overloads still declare the narrower
-    // `ScreenshotOptions`, which does not name the option the method reads.
-    const options: ElementScreenshotOptions & { encoding: "base64" } = {
-      type: "png",
-      encoding: "base64",
-      // The suite has already put the sheet where this clip will be taken. A
-      // second scroll here is the one that could move it after the box is read.
-      scrollIntoView: false,
-    };
-    const png = await sheet.screenshot(options);
-    const sample = await page.evaluate(sampleCapture, png, CORNER_SAMPLE_FRACTION);
-    const painted = sample.corners.some((corner) => isPaperWhite(corner));
-    const onTheSheet = sample.border.every((point) => isPaperWhite(point));
-    if (painted && onTheSheet) {
-      const capture: PreviewCapture = { number, png };
-      await assertPainted(page, capture);
-      return capture;
-    }
-    if (Date.now() >= deadline) {
-      // Out of time. Whichever of the two the last attempt failed, this says so
-      // in the words that name the cause; a capture that satisfies both by now
-      // is simply accepted.
-      const capture: PreviewCapture = { number, png };
-      await assertPainted(page, capture);
-      return capture;
+    const first = await sheet.screenshot(options);
+    await page.evaluate(twoAnimationFrames);
+    const second = await sheet.screenshot(options);
+
+    if (first === second) {
+      const capture: PreviewCapture = { number, png: second };
+      try {
+        await assertPainted(page, capture);
+        return capture;
+      } catch (error) {
+        if (Date.now() >= deadline) throw error;
+      }
+    } else if (Date.now() >= deadline) {
+      throw new Error(
+        `page ${number}: two screenshots taken two frames apart still differ. ` +
+          "The sheet was still moving when the deadline for a stable, painted frame passed."
+      );
     }
     await new Promise((resolve) => setTimeout(resolve, PAINT_POLL_INTERVAL_MS));
   }

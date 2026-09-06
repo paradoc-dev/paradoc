@@ -2,15 +2,19 @@
  * The capture guards, checked against a stub page.
  *
  * `assertPainted` reads a capture back through `page.evaluate` and refuses it
- * on either of two counts: none of its four corner samples is paper white, so
- * nothing painted; or a point on its own border is not the sheet's blank
- * margin, so the clip did not sit on the sheet and the whole document in the
- * capture is offset. `captureWhenPainted` polls both: it places the sheet,
- * screenshots, reads it back, and either accepts or waits a beat and tries
- * again, up to a deadline. The real reading runs in a browser (`Image`,
- * `canvas`), which this suite deliberately does not start, so the stub page
- * returns the samples a real one would have decoded and these tests check only
- * the decisions each function makes from them.
+ * on either of two counts: any of its four corner samples is not paper white,
+ * so the sheet had not painted, or had not painted everywhere the capture
+ * covers; or a point on its own border is not the sheet's blank margin, so
+ * the clip did not sit on the sheet and the whole document in the capture is
+ * offset. `captureWhenPainted` polls both, and a third condition besides:
+ * before it ever reads a capture's pixels, it takes two screenshots two
+ * frames apart and requires them to be byte for byte the same, since a sheet
+ * still settling into place cannot paint the same pixels twice running. Any
+ * of the three failing discards the attempt and tries again after a beat, up
+ * to a deadline. The real reading runs in a browser (`Image`, `canvas`),
+ * which this suite deliberately does not start, so the stub page returns the
+ * samples a real one would have decoded and these tests check only the
+ * decisions each function makes from them.
  */
 
 import type { ElementHandle, Page } from "puppeteer";
@@ -45,29 +49,53 @@ function stubPage(sample: CaptureSample): Page {
 }
 
 /**
- * A `Page` and sheet stub for `captureWhenPainted`: one reading per attempt,
- * held at the last entry once the sequence runs out. The real `page.evaluate`
- * is called with one argument for the frame wait and with three for the
- * capture reading, so the stub tells them apart by argument count rather than
- * by which function was passed, the way the real one is serialized across into
- * the page and cannot be inspected here either. The sheet's own `evaluate` is
- * the scroll that places it, which returns nothing.
+ * A `Page` and sheet stub for `captureWhenPainted`.
+ *
+ * `screenshots` is consumed one entry per `sheet.screenshot()` call, held at
+ * the last entry once it runs out — two attempts' worth of screenshots is
+ * four calls, since each attempt now takes a pair. `samples` is consumed one
+ * entry per pair that agrees, the same held-at-the-end way, since
+ * `assertPainted` only ever reads a pair once `captureWhenPainted` has
+ * already decided the two screenshots that produced it match. `page.evaluate`
+ * is called with one argument for a frame wait and with three for a capture
+ * reading, so the stub tells them apart by argument count the way the real
+ * one is serialized across into the page and cannot be inspected here either.
+ * The sheet's own `evaluate` is the scroll that places it, which returns
+ * nothing.
  */
-function stubPollingPage(attempts: readonly CaptureSample[]): {
-  page: Page;
-  sheet: ElementHandle<Element>;
-} {
-  let attempt = 0;
+function stubPollingPage(
+  screenshots: readonly string[],
+  samples: readonly CaptureSample[]
+): { page: Page; sheet: ElementHandle<Element> } {
+  let shot = 0;
+  let sample = 0;
   const evaluate = vi.fn(async (...args: unknown[]) => {
     if (args.length === 1) return undefined; // the requestAnimationFrame wait
-    const sample = attempts[Math.min(attempt, attempts.length - 1)];
-    attempt += 1;
-    return sample;
+    const next = samples[Math.min(sample, samples.length - 1)];
+    sample += 1;
+    return next;
+  });
+  const screenshot = vi.fn(async () => {
+    const next = screenshots[Math.min(shot, screenshots.length - 1)];
+    shot += 1;
+    return next;
   });
   const page = { evaluate } as unknown as Page;
   const sheet = {
     evaluate: vi.fn().mockResolvedValue(undefined),
-    screenshot: vi.fn().mockResolvedValue(""),
+    screenshot,
+  } as unknown as ElementHandle<Element>;
+  return { page, sheet };
+}
+
+/** A sheet stub whose screenshot never repeats, so two consecutive calls never agree. */
+function stubNeverConverging(): { page: Page; sheet: ElementHandle<Element> } {
+  let counter = 0;
+  const evaluate = vi.fn(async (...args: unknown[]) => (args.length === 1 ? undefined : null));
+  const page = { evaluate } as unknown as Page;
+  const sheet = {
+    evaluate: vi.fn().mockResolvedValue(undefined),
+    screenshot: vi.fn(async () => `frame-${counter++}`),
   } as unknown as ElementHandle<Element>;
   return { page, sheet };
 }
@@ -78,20 +106,21 @@ describe("assertPainted", () => {
     await expect(assertPainted(page, { number: 1, png: "" })).resolves.toBeUndefined();
   });
 
-  it("passes when only some corners are white", async () => {
-    // A real page whose margin still carries a faint shadow or logo near one
-    // corner should not be mistaken for a capture that painted nothing.
-    const page = stubPage({
-      corners: [WHITE, [40, 40, 40], WHITE, WHITE],
-      border: paperBorder(),
-    });
-    await expect(assertPainted(page, { number: 2, png: "" })).resolves.toBeUndefined();
+  it("refuses a capture where only some corners read paper white", async () => {
+    // The branded variant's page 1 at a 40 pixel offset: the lab's header,
+    // then the frame's gap, then the sheet. The bottom two corners still read
+    // genuinely white; only the top two read the header above the sheet. A
+    // rule that accepted any one of the four accepted this capture too.
+    const page = stubPage({ corners: [GREY, GREY, WHITE, WHITE], border: paperBorder() });
+    await expect(assertPainted(page, { number: 2, png: "" })).rejects.toThrow(
+      /page 2: corner \[229,229,229\] does not read paper white/
+    );
   });
 
   it("refuses a capture whose corners all read the lab's grey frame", async () => {
     const page = stubPage({ corners: [GREY, GREY, GREY, GREY], border: paperBorder() });
     await expect(assertPainted(page, { number: 3, png: "" })).rejects.toThrow(
-      /page 3.*not paper white/s
+      /page 3: corner \[229,229,229\] does not read paper white/
     );
   });
 
@@ -128,20 +157,20 @@ describe("captureWhenPainted", () => {
   };
   const good: CaptureSample = { corners: [WHITE, WHITE, WHITE, WHITE], border: paperBorder() };
 
-  it("polls past a sheet that has not painted yet and accepts the first white attempt", async () => {
-    const { page, sheet } = stubPollingPage([blank, blank, good]);
+  it("polls past screenshots that disagree and accepts once a pair agrees and reads painted", async () => {
+    // Two frames apart, the first pair still differs — the sheet was still
+    // settling — and the second agrees.
+    const { page, sheet } = stubPollingPage(["a", "b", "c", "c"], [good]);
     const capture = await captureWhenPainted(page, sheet, 4);
-    expect(capture).toEqual({ number: 4, png: "" });
-    // One screenshot per attempt: two discarded as not yet painted, the
-    // third accepted.
-    expect(sheet.screenshot).toHaveBeenCalledTimes(3);
+    expect(capture).toEqual({ number: 4, png: "c" });
+    expect(sheet.screenshot).toHaveBeenCalledTimes(4);
   });
 
   it("places the sheet itself and tells the screenshot not to scroll", async () => {
     // The scroll and the frame that paints it are not the same event. Leaving
     // the scroll to the screenshot is what let a capture be clipped where the
     // sheet now is and taken from where it was.
-    const { page, sheet } = stubPollingPage([good]);
+    const { page, sheet } = stubPollingPage(["g", "g"], [good]);
     await captureWhenPainted(page, sheet, 1);
     expect(sheet.evaluate).toHaveBeenCalledTimes(1);
     expect(sheet.screenshot).toHaveBeenCalledWith(
@@ -149,22 +178,29 @@ describe("captureWhenPainted", () => {
     );
   });
 
-  it("polls past a capture whose clip overhung the sheet", async () => {
-    const { page, sheet } = stubPollingPage([offset, good]);
+  it("polls past a stable pair whose clip overhung the sheet", async () => {
+    const { page, sheet } = stubPollingPage(["x", "x", "y", "y"], [offset, good]);
     const capture = await captureWhenPainted(page, sheet, 1);
-    expect(capture).toEqual({ number: 1, png: "" });
-    expect(sheet.screenshot).toHaveBeenCalledTimes(2);
+    expect(capture).toEqual({ number: 1, png: "y" });
+    expect(sheet.screenshot).toHaveBeenCalledTimes(4);
+  });
+
+  it("throws once two screenshots never agree by the deadline", async () => {
+    const { page, sheet } = stubNeverConverging();
+    await expect(captureWhenPainted(page, sheet, 5, 250)).rejects.toThrow(
+      /page 5: two screenshots taken two frames apart still differ/
+    );
   });
 
   it("throws the blank-capture error, naming the page and the last reading, once the deadline passes", async () => {
-    const { page, sheet } = stubPollingPage([blank]);
+    const { page, sheet } = stubPollingPage(["z", "z"], [blank]);
     await expect(captureWhenPainted(page, sheet, 2, 250)).rejects.toThrow(
-      /page 2: every sampled corner reads \[229,229,229\].*not paper white/s
+      /page 2: corner \[229,229,229\] does not read paper white/
     );
   });
 
   it("throws the overhanging-clip error once the deadline passes", async () => {
-    const { page, sheet } = stubPollingPage([offset]);
+    const { page, sheet } = stubPollingPage(["w", "w"], [offset]);
     await expect(captureWhenPainted(page, sheet, 1, 250)).rejects.toThrow(
       /page 1.*did not sit on the sheet/s
     );
