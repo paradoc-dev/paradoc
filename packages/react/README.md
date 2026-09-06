@@ -276,8 +276,8 @@ prose is out of scope.
 still take the section's flex gap, and the rendered page would then be taller
 than the flow the plan was measured against.
 
-**Fonts gate the whole thing.** No page renders until `document.fonts.ready`
-resolves, so a page break never reflects a fallback face. The preview measures
+**Fonts gate the whole thing.** No page renders until the faces the document is
+set in have loaded, so a page break never reflects a fallback face. The preview measures
 again after every render and when the measuring container resizes, and keeps the
 previous plan object unless the measurement moved something. Prop identity is
 never read, so a host that passes an inline object, or that sets state from
@@ -647,11 +647,25 @@ null glyph on paper with no error at all.
 `document.fonts.ready` is a promise about the faces the page has *already* asked
 for, so on a cold page it is resolved before layout requests a single glyph and
 a plan measured behind it is a plan of fallback glyphs. `Pages` therefore calls
-`document.fonts.load` for the resolved family, gated on `document.fonts.check`,
-and awaits `ready` after that. This was a real failure rather than a precaution:
-the parity job was red on a cold CI runner while every local run passed, with
-page 1 measuring 7.73% ink against the 6.40% the same document measures once the
-face is there.
+`document.fonts.load` for the resolved family at every weight the components
+use, asks every face the set holds for that family for itself, and awaits
+`ready` after that.
+
+**`document.fonts.check` is not consulted, because it cannot answer the
+question.** It says whether a text can be rendered, and a family the set holds
+no face for at all answers yes: the browser can always fall back to something.
+A stylesheet whose `@font-face` rules have not reached the set yet is therefore
+indistinguishable from a family already loaded, and a gate that skipped the
+request on that answer would open onto the fallback and say nothing. A request
+for a face already loaded resolves without a fetch, so asking every time costs
+nothing.
+
+**Every face of the family is asked for itself, not only the ones the probe
+reaches.** `load` resolves once the faces covering *its text* are usable, and a
+fontsource family is one file per subset with its own `unicode-range`, so no
+probe short of the family's whole coverage names them all. The PDF embeds every
+subset, so a preview measured with only some of them would be measured against a
+different set of faces than the paper it is compared with.
 
 **The request names a letter per script, because the default names a space.**
 `document.fonts.load(font)` defaults its text to `" "`, and a fontsource family
@@ -1491,6 +1505,27 @@ nothing here downloads a browser. The Chromium adapter's own tests are in `pnpm
 test` and **fail** where there is no Chrome, because a suite that skipped on its
 own subject would cover nothing quietly; set `PARADOC_SKIP_CHROMIUM_TESTS=1` to
 opt out of that file deliberately.
+
+**A capture is refused unless it is a capture of the sheet.** Two ways it can
+fail to be, and the suite polls past both rather than measuring them. A sheet
+that has not painted since the tab was brought to the front reads back as the
+lab's grey frame, so four samples 3% inside the capture must include one that is
+the paper white every sheet's margin is. And a capture the right size can still
+be taken from the wrong place: `ElementHandle.screenshot` scrolls a sheet the
+viewport cannot hold wholly into view and then clips at where that scroll left
+it, which is a position the page may not have painted yet — the clip is where
+the sheet now is and the pixels are where it was. So the suite does the scroll
+itself, lets two frames pass, and tells the screenshot not to scroll; and every
+point along the capture's own border has to read as the sheet's blank margin,
+because a clip that overhung the sheet shows the frame there.
+
+This was a real failure rather than a precaution. Only A4 is tall enough for the
+pane not to hold it, so the branded variant's page 1 was the one capture in the
+suite that ever triggered the scroll, and on a loaded runner it came back 16
+pixels low with a band of the frame along its top edge: 7.73% ink against the
+6.31% the same page measures when the clip is on the sheet, every other capture
+in the run identical to the good one's. The corner samples sit 3% in and saw
+none of it.
 
 **The refusal is measured, not asserted from memory.** The suite asks every
 engine for every variant and records what a refusal said in

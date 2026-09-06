@@ -45,36 +45,65 @@ let root: Root;
 let loadFonts: () => void;
 /** Every face `Pages` asked the font set to load: its shorthand and its text. */
 let requested: { font: string; text: string }[];
+/** Every face in the stub set that was asked for itself, by the subset it stands for. */
+let facesAsked: string[];
+
+/** One `@font-face` the stub set holds, as much of a `FontFace` as the gate reads. */
+interface StubFace {
+  family: string;
+  /** What this face is here to stand for, so a test can name it in an assertion. */
+  subset: string;
+  status: FontFaceLoadStatus;
+}
 
 /**
  * Replaces the font set with one the test settles by hand.
  *
- * Both halves are stubbed, because both are the gate: `check` says the face is
- * not there yet, `load` is the promise that says when it is, and `ready` is
- * awaited afterwards. `loadFonts` settles both, so a test that only cares that
- * the fonts arrived does not have to know which one it is waiting on.
+ * Three things are stubbed, because all three are the gate: `load` is the
+ * promise that says when a named face is usable, the set's own faces are what
+ * a probe's text cannot always reach, and `ready` is awaited afterwards.
+ * `loadFonts` settles all of them, so a test that only cares that the fonts
+ * arrived does not have to know which one it is waiting on.
+ *
+ * `check` is stubbed too, and its default answer is the *wrong* one on purpose:
+ * a real `check` says yes for a family the set holds no face for at all, which
+ * is what a stylesheet that has not been parsed yet looks like. A gate that
+ * believed it would open onto the fallback, so the stub answers yes and the
+ * tests below assert the gate asks anyway.
  *
  * The stub records the *text* each request carried as well as the shorthand,
  * because the text is what decides which faces of a family the browser loads
  * and it is the half that was wrong: a request with the default text asks only
  * for whichever face covers a space.
  */
-function pendingFonts({ readyNow = false }: { readyNow?: boolean } = {}): void {
+function pendingFonts({
+  readyNow = false,
+  faces = [],
+}: { readyNow?: boolean; faces?: StubFace[] } = {}): void {
   requested = [];
+  facesAsked = [];
   let settle: () => void;
   const loaded = new Promise<void>((resolve) => {
     settle = resolve;
   });
   const ready = readyNow ? Promise.resolve() : loaded;
   loadFonts = () => settle();
+  const held = faces.map((face) => ({
+    ...face,
+    load: () => {
+      facesAsked.push(face.subset);
+      return loaded.then(() => face);
+    },
+  }));
   Object.defineProperty(document, "fonts", {
     value: {
       ready,
-      check: () => false,
+      check: () => true,
       load: (font: string, text: string) => {
         requested.push({ font, text });
         return loaded.then(() => []);
       },
+      forEach: (visit: (face: unknown) => void) => held.forEach((face) => visit(face)),
     },
     configurable: true,
   });
@@ -158,13 +187,11 @@ describe("nothing is paginated before the fonts load", () => {
 
 describe("a resolved document.fonts.ready is not a loaded face", () => {
   it("measures no plan until the face itself has loaded", async () => {
-    // The cold-runner race, exactly. `ready` is a promise about the faces the
+    // The cold-page race, exactly. `ready` is a promise about the faces the
     // page has already asked for; on a page that has asked for none it is
     // resolved immediately, so a gate that waited on it alone would measure the
-    // whole document against whatever the browser falls back to. This is what
-    // turned the parity job red on a cold CI runner while every local run
-    // passed: page 1's ink came out 7.73% against the 6.40% the same document
-    // measures once the face is there.
+    // whole document against whatever the browser falls back to, and on a fast
+    // machine the faces would win it often enough to look correct.
     pendingFonts({ readyNow: true });
     const onPaginate = vi.fn();
 
@@ -242,9 +269,15 @@ describe("a resolved document.fonts.ready is not a loaded face", () => {
     expect(scriptProbeText(DOCUMENT_FONT_NAME)).not.toContain("\u0627");
   });
 
-  it("asks for nothing it already has", async () => {
+  it("asks for the family even when check says it is already there", async () => {
+    // `document.fonts.check` answers "can this text be rendered", and a family
+    // the set holds no face for at all answers yes, because the browser can
+    // always fall back to something. A stylesheet whose `@font-face` rules have
+    // not reached the set yet is indistinguishable from a family already
+    // loaded, so a gate that skipped the request on that answer would measure
+    // the document against the fallback and never know it had. The stub's
+    // `check` says yes; the gate has to ask anyway and wait for the answer.
     pendingFonts({ readyNow: true });
-    (document.fonts as FontFaceSet).check = () => true;
     const onPaginate = vi.fn();
 
     act(() => {
@@ -258,7 +291,54 @@ describe("a resolved document.fonts.ready is not a loaded face", () => {
       await Promise.resolve();
     });
 
-    expect(requested).toEqual([]);
+    expect(requested.map((request) => request.font)).toEqual(
+      DOCUMENT_FONT_WEIGHTS.map((weight) => `${weight} 16px "Inter Variable"`)
+    );
+    expect(onPaginate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      loadFonts();
+    });
+    expect(onPaginate).toHaveBeenCalled();
+  });
+
+  it("asks every face the family has for itself, not only the ones the probe reaches", async () => {
+    // A fontsource family is one file per subset, each with its own
+    // `unicode-range`, and `load` resolves as soon as the faces covering its
+    // text are usable. The probe carries one letter per script, so the face
+    // that carries Vietnamese or Latin Extended is never named by it — and the
+    // PDF embeds every subset, so a preview measured with only some of them is
+    // measured against a different set of faces than the paper it is compared
+    // with. Every face the set holds for the family is asked for itself.
+    pendingFonts({
+      readyNow: true,
+      faces: [
+        { family: "Inter Variable", subset: "latin", status: "loaded" },
+        { family: "Inter Variable", subset: "vietnamese", status: "unloaded" },
+        { family: "Source Serif 4 Variable", subset: "latin", status: "unloaded" },
+      ],
+    });
+    const onPaginate = vi.fn();
+
+    act(() => {
+      root.render(
+        <Pages onPaginate={onPaginate}>
+          <ProposalDocument data={shortProposalData} />
+        </Pages>
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // The family's own unloaded face, and nothing belonging to another family
+    // or already loaded.
+    expect(facesAsked).toEqual(["vietnamese"]);
+    expect(onPaginate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      loadFonts();
+    });
     expect(onPaginate).toHaveBeenCalled();
   });
 });

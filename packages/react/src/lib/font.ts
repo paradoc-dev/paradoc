@@ -226,6 +226,34 @@ export function scriptProbeText(family: string): string {
 }
 
 /**
+ * Every face the stylesheet registered for one family, whatever its status.
+ *
+ * A `FontFaceSet` holds the faces the document's `@font-face` rules declared,
+ * and asking each of them for itself is the only request that names a face
+ * rather than a text: `load(shorthand, text)` resolves once the faces covering
+ * *that text* are usable, and a fontsource family is one face per subset with
+ * its own `unicode-range`, so no probe short of the family's whole coverage
+ * reaches all of them. The PDF embeds every subset of the family, so a preview
+ * that had loaded only some of them would be set in a different set of faces
+ * than the paper it is compared against.
+ *
+ * The set is iterated with `forEach`, which is the one traversal a stubbed set
+ * in a test environment can be expected to have; a set without it yields
+ * nothing and the shorthand request above is the whole wait, as it was before.
+ */
+function registeredFaces(fonts: FontFaceSet, family: string): FontFace[] {
+  if (typeof fonts.forEach !== "function") return [];
+  const quoted = `"${family}"`;
+  const faces: FontFace[] = [];
+  fonts.forEach((face) => {
+    // A face declares its family with or without quotes depending on how the
+    // rule was written, so both spellings are the same family.
+    if (face.family === family || face.family === quoted) faces.push(face);
+  });
+  return faces;
+}
+
+/**
  * Waits for the faces one family's document is set in, not for the font set.
  *
  * `document.fonts.ready` is a promise about the faces the page has *already*
@@ -235,15 +263,26 @@ export function scriptProbeText(family: string): string {
  * quietly: the plan is a plan of a document nobody will see, and on a fast
  * machine the faces win it often enough to look correct.
  *
- * So the wait names the faces. `document.fonts.load` takes a font shorthand and
- * a *text*, and resolves when the faces covering that text are usable; `check`
- * says whether that has already happened, so a family already loaded costs
- * nothing. The text is `scriptProbeText`'s, one letter per script the family
- * declares, because the default text is a single space and a space is covered
- * by the Latin face of every family here — a default-text request would leave
- * the Arabic face, the one an Arabic document is measured against, unloaded.
- * `ready` is still awaited afterwards, because a face the tree asks for that
- * this list does not name is still one the layout waits on.
+ * So the wait names the faces, in the two ways a face can be named.
+ *
+ * `document.fonts.load` takes a font shorthand and a *text*, and resolves when
+ * the faces covering that text are usable. The text is `scriptProbeText`'s, one
+ * letter per script the family declares, because the default text is a single
+ * space and a space is covered by the Latin face of every family here — a
+ * default-text request would leave the Arabic face, the one an Arabic document
+ * is measured against, unloaded.
+ *
+ * **`check` is not consulted.** It answers "can this text be rendered", and a
+ * family with no face at all in the set answers yes, because the browser can
+ * always fall back: a stylesheet that has not been parsed yet is indistinguishable
+ * from a family already loaded. Skipping the request on that answer is exactly
+ * how this gate could open onto the fallback. A request for a face already
+ * loaded resolves without a fetch, so asking every time costs nothing.
+ *
+ * Then every face the set holds for the family is asked for itself, because the
+ * probe's text cannot reach a face whose `unicode-range` covers none of it.
+ * `ready` is awaited last, because a face the tree asks for that neither request
+ * named is still one the layout waits on.
  *
  * An environment with no `load` — jsdom, or an old engine — falls through to
  * `ready` alone, which is what this gate was before.
@@ -254,24 +293,26 @@ export function scriptProbeText(family: string): string {
 export async function loadDocumentFaces(fonts: FontFaceSet, family: string): Promise<void> {
   const shorthand = (weight: number) => `${weight} 16px "${family}"`;
   const probe = scriptProbeText(family);
-
-  if (typeof fonts.load === "function") {
-    const wanted = DOCUMENT_FONT_WEIGHTS.filter(
-      (weight) => typeof fonts.check !== "function" || !fonts.check(shorthand(weight), probe)
+  // A face that cannot be fetched is reported where it can be acted on: the
+  // Chromium adapter fails naming the family, and the preview shows the
+  // fallback. Leaving the gate closed forever would say nothing at all, so a
+  // rejected request falls through to `ready` instead.
+  const settle = (request: Promise<unknown>) =>
+    request.then(
+      () => undefined,
+      () => undefined
     );
-    await Promise.all(
-      wanted.map((weight) =>
-        // A face that cannot be fetched is reported where it can be acted on:
-        // the Chromium adapter fails naming the family, and the preview shows
-        // the fallback. Leaving the gate closed forever would say nothing at
-        // all, so the wait falls through to `ready` instead.
-        fonts.load(shorthand(weight), probe).then(
-          () => undefined,
-          () => undefined
-        )
-      )
-    );
-  }
 
+  // Both requests at once. They ask for the same family by two different
+  // handles, and neither is a reason to hold the other up.
+  const byName =
+    typeof fonts.load === "function"
+      ? DOCUMENT_FONT_WEIGHTS.map((weight) => settle(fonts.load(shorthand(weight), probe)))
+      : [];
+  const byFace = registeredFaces(fonts, family)
+    .filter((face) => face.status !== "loaded")
+    .map((face) => settle(face.load()));
+
+  await Promise.all([...byName, ...byFace]);
   await fonts.ready;
 }
