@@ -1,0 +1,8 @@
+{
+  "$schema": "https://schema.paradoc.dev/schema.json",
+  "kind": "form",
+  "name": "change-order",
+  "version": "1.0.0",
+  "title": "Change Order",
+  "fields": { "changeNumber": { "type": "text", "label": "Change number" } }
+}

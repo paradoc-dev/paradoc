@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.paradoc.dev/schema.json",
+  "kind": "form",
+  "name": "purchase-order",
+  "version": "1.0.0",
+  "title": "Purchase Order",
+  "fields": { "orderNumber": { "type": "text", "label": "Order number" } },
+  "defaultLayer": "composition",
+  "layers": {
+    "composition": {
+      "kind": "file",
+      "mimeType": "text/tsx",
+      "path": "compositions/purchase-order.tsx",
+      "title": "Composition"
+    }
+  }
+}

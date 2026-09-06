@@ -8,7 +8,7 @@ and the PDF that document renders to.
 pnpm add @paradoc/react
 ```
 
-Six entries, because they need different things of the machine they run on:
+Seven entries, because they need different things of the machine they run on:
 
 | Entry                         | Runs   | Holds                                                              |
 | ----------------------------- | ------ | ------------------------------------------------------------------ |
@@ -16,6 +16,7 @@ Six entries, because they need different things of the machine they run on:
 | `@paradoc/react/pdf`          | Node   | `renderPdf`, the adapter seam, the default engine, the layer renderer. |
 | `@paradoc/react/chromium`     | Node   | The experimental Chromium adapter.                                 |
 | `@paradoc/react/check`        | Node   | `checkComposition`: the same tree walk, without rendering a PDF.   |
+| `@paradoc/react/discovery`    | Node   | The conventions binding a composition to its artifact and its sample. |
 | `@paradoc/react/examples`     | Either | Sample material: one artifact, two data sets, two token sets, one composition. |
 | `@paradoc/react/examples/pdf` | Node   | That sample's logo bytes and seal wiring.                          |
 
@@ -505,6 +506,34 @@ reported for all of them in one call rather than only the first one reached.
 `unsupportedClasses` is checked against `takumi`'s verified vocabulary by
 default; pass `adapter: "chromium"` to skip it, since a real browser accepts
 whatever CSS the tree produces. This is what `para check` runs.
+
+`checkElement` takes an element that is already built, for a caller whose React
+has to be its own: `para dev` compiles a composition through the project's Vite
+and builds it there, then hands the element over.
+
+## Finding what to check, and what to preview
+
+`@paradoc/react/discovery` holds the conventions that connect a composition to
+its artifact and its sample. Two commands read them — `para check` checks one
+composition, `para dev` previews every one it finds — and the rules live here so
+that a composition which previews is a composition which checks.
+
+| Question | Rule |
+| --- | --- |
+| What is a composition | A `.tsx` or `.jsx` file under a `compositions/` directory, anywhere in the project. Its default export is the component. `*.sample.*`, `*.test.*`, `*.spec.*` and `*.stories.*` sit beside one without being one. |
+| Which artifact renders it | The form artifact whose file layer of MIME type `text/tsx` or `text/jsx` resolves to that file, the layer path being relative to the artifact that declares it. Failing that, an artifact file of the same name beside it — `purchase-order.tsx` next to `purchase-order.yaml` — so a composition written before its layer entry still resolves. |
+| Where its sample data comes from | A sibling `<name>.sample.{ts,tsx,js,mjs,jsx}`, whose `default` export is the data, before a `sample` export on the composition module itself. The sibling wins because it is the only one of the two that can be seen without loading a module. |
+
+`discoverCompositions(root)` answers for a whole project;
+`findCompositionArtifact`, `siblingArtifact` and `sampleSources` answer for one
+composition. None of them loads a module: running the project's code stays with
+the caller that has a loader for it.
+
+An artifact is matched loosely, on `kind: form` alone, and held to the schema
+only once it has been matched. Validating every candidate would make a broken
+artifact indistinguishable from a YAML file that was never one, and the
+composition it declares would be reported as unpaired rather than as pointing at
+something broken.
 
 ## Known limitations
 

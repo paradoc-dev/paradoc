@@ -71,22 +71,58 @@
     "@paradoc/eslint-config": "workspace:*",
     "@paradoc/react": "workspace:*",
     "@paradoc/render": "workspace:*",
-    "zod": "catalog:",
     "@paradoc/schemas": "workspace:*",
     "@paradoc/types": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
+    "@tailwindcss/vite": "^4.1.5",
     "@types/node": "catalog:",
     "@types/prompts": "^2.4.9",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@types/semver": "^7.7.1",
+    "@vitejs/plugin-react": "^5.0.4",
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "tailwindcss": "catalog:",
     "tsup": "catalog:",
     "tsx": "^4.20.6",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite": "^7.1.7",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@paradoc/react": "workspace:^",
+    "@tailwindcss/vite": "^4",
+    "@vitejs/plugin-react": "^4 || ^5",
+    "react": "^19",
+    "react-dom": "^19",
+    "tailwindcss": "catalog:",
+    "vite": "^6 || ^7"
+  },
+  "peerDependenciesMeta": {
+    "@paradoc/react": {
+      "optional": true
+    },
+    "@tailwindcss/vite": {
+      "optional": true
+    },
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
   }
 }

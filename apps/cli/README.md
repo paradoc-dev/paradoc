@@ -97,6 +97,7 @@ para view @acme/residential-lease
 | Command | Description |
 |---------|-------------|
 | `para init [directory]` | Initialize a new project |
+| `para dev [directory]` | Preview React compositions live beside their PDF |
 | `para render <artifact>` | Render an artifact layer |
 | `para show <artifact>` | Display artifact structure |
 | `para diff <file1> <file2>` | Compare two artifacts |

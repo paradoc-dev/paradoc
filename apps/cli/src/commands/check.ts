@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 
 import { isForm, parse, reactLayersOf, validate, type Form } from '@paradoc/core'
 import type { checkComposition, CompositionCheckResult } from '@paradoc/react/check'
+import type * as Discovery from '@paradoc/react/discovery'
 import type { bindComponent } from '@paradoc/react/pdf'
 import type { DocumentData } from '@paradoc/react'
 
@@ -57,6 +58,26 @@ async function loadCheckComposition(): Promise<typeof checkComposition> {
   } catch (error) {
     throw new Error(
       `Could not install or load @paradoc/react, needed to check the composition: ` +
+        `${error instanceof Error ? error.message : String(error)}`
+    )
+  }
+}
+
+/**
+ * The conventions, from the package that owns them.
+ *
+ * Which artifact renders a composition and where its sample data comes from are
+ * questions `para dev` asks of the same project, so both commands read one
+ * answer (`@paradoc/react/discovery`) rather than each deriving its own. A rule
+ * only one of them implemented would make a composition that previews fail a
+ * check, or the reverse, for a reason about the tools rather than the document.
+ */
+async function loadDiscovery(): Promise<typeof Discovery> {
+  try {
+    return (await rendererManager.loadModule('@paradoc/react/discovery')) as unknown as typeof Discovery
+  } catch (error) {
+    throw new Error(
+      `Could not install or load @paradoc/react, needed to find the composition's artifact: ` +
         `${error instanceof Error ? error.message : String(error)}`
     )
   }
@@ -139,11 +160,15 @@ async function loadArtifactLayer(target: string, layerKey: string | undefined): 
 }
 
 /**
- * `target` is the composition itself: search the project for the one artifact
- * whose React layer resolves to it. A layer's path is relative to the artifact
- * file that declares it, so an artifact and its composition may live apart —
- * the search covers every JSON/YAML file under the project rather than
- * assuming they are siblings.
+ * `target` is the composition itself: find the artifact that renders it through
+ * the shared conventions.
+ *
+ * A layer's path is relative to the artifact file that declares it, so an
+ * artifact and its composition may live apart and the search covers the whole
+ * project. When no layer points at the composition, an artifact file of the
+ * same name beside it is taken instead — the fallback `para dev` also applies,
+ * so a composition written before its layer entry is checkable and previewable
+ * on the same terms.
  *
  * Scoped by `findRepoRoot()`, the same project boundary `diff` and `cache`
  * use — the directory carrying both `paradoc.json` and `.paradoc`, not merely
@@ -161,51 +186,65 @@ async function findArtifactForComposition(
   }
 
   const root = (await findRepoRoot()) ?? process.cwd()
-  const projectStorage = new LocalFileSystem(root)
-  const candidates = await projectStorage.glob(['**/*.json', '**/*.yaml', '**/*.yml'], {
-    ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
-  })
+  const discovery = await loadDiscovery()
+  const { byLayer } = await discovery.findCompositionArtifact(root, compositionAbs)
 
-  const matches: ResolvedLayer[] = []
-  for (const candidate of candidates) {
-    const candidatePath = resolve(root, candidate)
-    const raw = await projectStorage.readFile(candidatePath, 'utf-8').catch(() => undefined)
-    if (raw === undefined) continue
-
-    let artifact: Form
-    try {
-      artifact = parseFormArtifact(raw, candidatePath)
-    } catch {
-      continue
-    }
-
-    const artifactDir = dirname(candidatePath)
-    for (const layer of reactLayersOf(artifact)) {
-      if (resolve(artifactDir, layer.path) === compositionAbs) {
-        matches.push({ artifactPath: candidatePath, artifactDir, artifact, layer })
-      }
-    }
-  }
-
-  if (matches.length === 0) {
-    throw new Error(
-      `No artifact under ${root} declares a React layer pointing at ${relative(root, compositionAbs)}. ` +
-        'Pass the artifact file instead, or add a layer that names this module.'
-    )
-  }
+  const matches: ResolvedLayer[] = byLayer.map((match) => ({
+    artifactPath: match.file,
+    artifactDir: dirname(match.file),
+    artifact: match.artifact,
+    layer: { key: match.layer!, path: relative(dirname(match.file), compositionAbs), mimeType: match.mimeType! },
+  }))
 
   if (layerKey) {
     const named = matches.filter((match) => match.layer.key === layerKey)
-    if (named.length === 1) return named[0]!
+    if (named.length === 1) return validatedLayer(named[0]!)
   } else if (matches.length === 1) {
-    return matches[0]!
+    return validatedLayer(matches[0]!)
+  }
+
+  if (matches.length > 1) {
+    throw new Error(
+      `${matches.length} artifacts declare a React layer pointing at ${relative(root, compositionAbs)}:\n` +
+        matches.map((match) => `  - ${match.artifactPath} (layer "${match.layer.key}")`).join('\n') +
+        '\nPass the artifact file directly, or narrow with --layer.'
+    )
+  }
+
+  // Nothing points at it. The other half of the pairing rule: an artifact file
+  // of the same name beside the composition.
+  const sibling = await discovery.siblingArtifact(root, compositionAbs)
+  if (sibling) {
+    const layers = reactLayersOf(sibling.artifact)
+    const layer = layers.length > 0 ? pickLayer(layers, layerKey, sibling.file) : undefined
+    return validatedLayer({
+      artifactPath: sibling.file,
+      artifactDir: dirname(sibling.file),
+      artifact: sibling.artifact,
+      layer: layer ?? {
+        key: 'composition',
+        path: relative(dirname(sibling.file), compositionAbs),
+        mimeType: 'text/tsx',
+      },
+    })
   }
 
   throw new Error(
-    `${matches.length} artifacts declare a React layer pointing at ${relative(root, compositionAbs)}:\n` +
-      matches.map((match) => `  - ${match.artifactPath} (layer "${match.layer.key}")`).join('\n') +
-      '\nPass the artifact file directly, or narrow with --layer.'
+    `${discovery.UNPAIRED_MESSAGE} Looked under ${root} for ` +
+      `${relative(root, compositionAbs)}. Pass the artifact file instead.`
   )
+}
+
+/** Holds a matched artifact to the schema, which loose pairing deliberately does not. */
+function validatedLayer(resolved: ResolvedLayer): ResolvedLayer {
+  const validation = validate(resolved.artifact)
+  if (validation.issues) {
+    const issues = validation.issues
+      .map((issue) => `  - ${issue.path?.length ? issue.path.join('.') : 'root'}: ${issue.message}`)
+      .join('\n')
+    throw new Error(`"${resolved.artifactPath}" is not a valid artifact:\n${issues}`)
+  }
+  return resolved
 }
 
 /** Parses and validates an artifact, requiring a form that declares at least one React layer. */
@@ -263,35 +302,29 @@ async function explicitData(value: string): Promise<DocumentData> {
 /**
  * Sample data for the composition, if any is discoverable.
  *
- * Two conventions, checked in order: a named `sample` export on the
- * composition module itself (a `DocumentData`, or a function returning one),
- * or a sibling `<composition>.sample.{ts,tsx,js}` file with the same shape.
- * Neither found, the check runs with empty fields and parties: every `Field`
- * and `Table` path still resolves against the artifact's schema, which does
- * not depend on data being present.
+ * The order is the shared one (`@paradoc/react/discovery`): a sibling
+ * `<composition>.sample.{ts,tsx,js,mjs,jsx}` first, then a named `sample`
+ * export on the composition module. `para dev` reads the same order, so a
+ * composition previews with the data it is checked against.
+ *
+ * Only a sibling's `default` counts as a sample. The composition module's own
+ * default is the component; calling that as though it were a zero-argument
+ * sample function is a different bug, so only its named `sample` is read.
+ *
+ * Nothing found, the check runs with empty fields and parties: every `Field`
+ * and `Table` path still resolves against the artifact's schema, which does not
+ * depend on data being present.
  */
 async function discoverSampleData(compositionPath: string): Promise<DocumentData | undefined> {
-  // Only the composition's own named `sample` export counts here: its default
-  // export is the composition component itself, and calling that as though it
-  // were a zero-argument sample function is a different bug — the component
-  // destructures `{ artifact, data }` from what would be an empty argument
-  // list and throws confusingly. A sibling `*.sample.ts` file's default export
-  // is fair game below because such a file exists to be the sample.
-  const fromComposition = await sampleFromModule(compositionPath, { allowDefaultExport: false })
-  if (fromComposition) return fromComposition
+  const discovery = await loadDiscovery()
+  const root = (await findRepoRoot()) ?? process.cwd()
 
-  const storage = new LocalFileSystem()
-  const ext = extname(compositionPath)
-  const base = compositionPath.slice(0, -ext.length)
-
-  for (const suffix of ['.sample.ts', '.sample.tsx', '.sample.js']) {
-    const siblingPath = `${base}${suffix}`
-    if (await storage.exists(siblingPath)) {
-      const sample = await sampleFromModule(siblingPath, { allowDefaultExport: true })
-      if (sample) return sample
-    }
+  for (const source of await discovery.sampleSources(root, compositionPath)) {
+    const sample = await sampleFromModule(source.file, {
+      allowDefaultExport: source.from === 'sibling',
+    })
+    if (sample) return sample
   }
-
   return undefined
 }
 

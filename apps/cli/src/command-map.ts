@@ -52,6 +52,8 @@ export const commandEntries: CommandEntry[] = [
 	// Project
 	{ name: 'init', description: 'Initialize a new Paradoc project', group: 'Project',
 		load: () => import('./commands/init.js').then(m => m.createInitCommand()) },
+	{ name: 'dev', description: 'Preview compositions live with their sample data and a proof PDF', group: 'Project',
+		load: () => import('./commands/dev/index.js').then(m => m.createDevCommand()) },
 	{ name: 'apply', description: 'Apply a unified diff patch to the working directory', group: 'Project',
 		load: () => import('./commands/apply.js').then(m => m.createApplyCommand()) },
 

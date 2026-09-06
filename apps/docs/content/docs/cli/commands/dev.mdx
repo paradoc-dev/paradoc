@@ -1,0 +1,193 @@
+---
+title: dev
+description: Preview React compositions live beside the PDF they render to
+ogTitle: para dev
+ogDescription: A live preview of every composition in a Paradoc project, with a proof view of its PDF
+---
+
+Serves every React composition in the project, paginated on screen with its
+sample data, beside the PDF the same tree renders to.
+
+# Usage
+
+```bash
+para dev [dir] [options]
+```
+
+# Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `dir` | Project directory. Defaults to the working directory |
+
+# Options
+
+| Option | Description |
+|--------|-------------|
+| `--port <number>` | Port to listen on (default: 5180) |
+| `--host <host>` | Address to bind (default: 127.0.0.1) |
+| `--open` | Open the preview in a browser |
+| `--list` | Print the compositions and what each is bound to, then exit |
+| `--json` | With `--list`, print JSON |
+
+# The conventions
+
+Three things are found by convention. `para dev --list` prints what it found, so
+a project can check its own layout without starting anything.
+
+## Compositions
+
+A composition is a `.tsx` or `.jsx` file under a `compositions/` directory,
+anywhere in the project. Modules named `*.sample.*`, `*.test.*`, `*.spec.*` and
+`*.stories.*` sit beside compositions without being one.
+
+The module's **default export** is the component, which is what a React layer's
+path names. It receives `{ artifact, data }`.
+
+```
+purchase-order.yaml
+compositions/
+  purchase-order.tsx          the composition
+  purchase-order.sample.ts    its sample data
+```
+
+## The artifact
+
+An artifact declares its composition as a file layer whose MIME type is
+`text/tsx` or `text/jsx`, and the layer's path is relative to the artifact file
+that declares it:
+
+```yaml
+layers:
+  composition:
+    kind: file
+    mimeType: text/tsx
+    path: compositions/purchase-order.tsx
+```
+
+`para dev` reads every artifact in the project and pairs a composition with the
+artifact whose layer resolves to it. If no layer points at a composition, it
+falls back to an artifact file of the same name beside it —
+`purchase-order.tsx` next to `purchase-order.yaml` — so a composition can be
+written before its layer entry exists. Anything else is reported in the preview
+rather than guessed.
+
+## Sample data
+
+Either a sibling `<name>.sample.ts` (or `.tsx`, `.js`, `.mjs`, `.jsx`) whose
+default export is the data, or a `sample` export from the composition module
+itself. The sibling wins when both exist. The shape is the artifact's document
+data:
+
+```ts
+export default {
+  fields: { orderNumber: "PO-2026-0148" },
+  parties: { buyer: { name: "Northwind Manufacturing" } },
+};
+```
+
+All three rules live in `@paradoc/react/discovery` and are read by
+`para check` as well, so a composition that previews is a
+composition that checks.
+
+# The preview
+
+The document is on the left, paginated in the browser at the page geometry
+`@paradoc/react` fixes, and the PDF is on the right, rendered in Node from the
+same tree with the preview's page breaks passed as hints. Editing a composition
+or its sample updates both; editing an artifact reloads the page.
+
+Before it renders, the PDF route runs the same check `para check` runs
+(`checkElement` from `@paradoc/react/check`): every Tailwind class the engine
+cannot express, and every path the artifact does not declare. A composition with
+a finding shows it where the PDF would have been, and a document that throws
+while it draws shows the reason where the document would have been. A
+composition with no artifact says so there too, rather than sitting on
+"rendering".
+
+Images are not a finding here. `para dev` reads the image sources the check
+reports and loads their bytes from disk before rendering, so only a source that
+is not a file on disk reaches you, named by the renderer.
+
+When the preview's page plan names a keep the tree no longer carries, the render
+drops that hint and the proof pane says which one, because the PDF then breaks
+where the preview did not.
+
+# What it serves
+
+`para dev` writes nothing to disk. The page is four modules generated in memory
+and addressed as files of the project root:
+
+| Module | What it is |
+|--------|-----------|
+| `paradoc-dev.client.tsx` | The preview application |
+| `paradoc-dev.manifest.ts` | What discovery found, with a loader per composition |
+| `paradoc-dev.styles.css` | The document's Tailwind, plus the preview's own frame |
+| `paradoc-dev.element.ts` | The one `createElement` call the PDF route makes in your React |
+
+`POST /@paradoc/dev/pdf` is the proof view's own route and can be driven
+headlessly. It takes `{ "id": "<composition id>", "plan": { "breaks": [],
+"repeats": [] } }` — the id is what `--list --json` reports — and answers with
+`application/pdf`, or `422` and `{ "findings": [{ "kind", "message" }] }` when
+the check fails. `X-Paradoc-Unknown-Breaks` and `X-Paradoc-Unknown-Repeats` name
+any hint the render could not honour.
+
+# What the project must supply
+
+The preview compiles the project's own compositions against the project's own
+React, so it uses the project's toolchain. `para` does not carry a bundler:
+
+```bash
+npm install @paradoc/react react react-dom
+npm install --save-dev vite @vitejs/plugin-react @tailwindcss/vite tailwindcss
+```
+
+`@paradoc/react`, `react` and `react-dom` are resolved at your project and
+nowhere else, because the page loads them and a second copy would be a different
+React. A project missing any of the seven is told which, in the install commands
+of whichever package manager left a lockfile, before anything starts.
+
+The project's own `vite.config` is not read: `para dev` serves one page it
+generates itself, so a composition should import packages and its own neighbours
+and nothing else.
+
+# Examples
+
+Preview the project in the working directory:
+
+```bash
+para dev
+```
+
+Check what the conventions found, without starting a server:
+
+```bash
+para dev --list
+para dev --list --json
+```
+
+`--list --json` reports one object per composition and exits `0` even when there
+are none:
+
+```json
+[
+  {
+    "id": "compositions/purchase-order",
+    "composition": "compositions/purchase-order.tsx",
+    "artifact": {
+      "file": "purchase-order.yaml",
+      "name": "purchase-order",
+      "layer": "composition",
+      "matched_by": "layer"
+    },
+    "sample": { "from": "sibling", "file": "compositions/purchase-order.sample.ts" },
+    "problems": []
+  }
+]
+```
+
+Serve on another port and open a browser:
+
+```bash
+para dev ./packages/documents --port 5300 --open
+```

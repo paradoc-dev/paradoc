@@ -27,6 +27,11 @@
       "import": "./dist/check/index.js",
       "default": "./dist/check/index.js"
     },
+    "./discovery": {
+      "types": "./dist/discovery/index.d.ts",
+      "import": "./dist/discovery/index.js",
+      "default": "./dist/discovery/index.js"
+    },
     "./examples": {
       "types": "./dist/examples/index.d.ts",
       "import": "./dist/examples/index.js",
