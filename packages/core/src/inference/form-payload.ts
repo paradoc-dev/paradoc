@@ -1,4 +1,14 @@
-import type { Form, FormField, FormAnnex, FormParty, Person, Organization, Attachment } from '@paradoc/types'
+import type {
+  Form,
+  FormField,
+  FormAnnex,
+  FormParty,
+  Person,
+  Organization,
+  Attachment,
+  PartySignatory,
+  Signer,
+} from '@paradoc/types'
 import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
 
 type EnumOptionValue<T> = T extends { value: infer V } ? V : never
@@ -129,7 +139,7 @@ export type FieldToDataType<F> = F extends { type: 'text' }
  *
  * Strategy:
  * 1. Object pattern with `required: true` → required (literal type preserved)
- * 2. Builder pattern with `.required()` → optional (conservative, type can't be inferred)
+ * 2. Builder patterns preserve the literal required flag through `build()`
  * 3. Object pattern with `required: false` or no `required` → optional
  * 4. Expression strings `required: 'expr'` → optional (runtime-determined)
  *
@@ -153,7 +163,7 @@ type IsFieldRequired<F extends FormField> =
 /**
  * Maps a record of field definitions to their runtime data types
  * Handles required vs optional fields:
- * - Fields with `required: true` or builder fields with `.required()` become required properties
+ * - Fields with `required: true` (including builder fields with `.required()`) become required properties
  * - Fields with `required: false`, expressions, or no `required` become optional properties
  * Uses -readonly to strip readonly modifiers from as const
  */
@@ -181,7 +191,13 @@ type ExpandDeep<T> = T extends object
 /**
  * Helper to extract the form schema from either a raw Form or FormInstance
  */
-type ExtractFormSchema<T> = T extends { schema: infer S } ? S : T
+type ExtractFormSchema<T> = T extends { _data: infer S }
+  ? S
+  : T extends { _schema: infer S }
+    ? S
+    : T extends { schema: infer S }
+      ? S
+      : T
 
 // ============================================================================
 // PARTY TYPE MAPPERS - Convert party definitions to runtime data types
@@ -242,6 +258,38 @@ type AnnexesToDataType<Annexes extends Record<string, FormAnnex>> = {
     : K]?: Attachment
 }
 
+type RequiredKeys<Definitions extends Record<string, unknown>> = {
+  [K in keyof Definitions]-?: Definitions[K] extends { required: true } ? K : never
+}[keyof Definitions]
+
+type FieldsPayload<FormSchema> = FormSchema extends { fields: infer F }
+  ? [NonNullable<F>] extends [never]
+    ? { fields?: Record<string, unknown> }
+    : NonNullable<F> extends Record<string, FormField>
+      ? { fields: FieldsToDataType<NonNullable<F>> }
+      : { fields?: Record<string, unknown> }
+  : { fields?: Record<string, unknown> }
+
+type PartiesPayload<FormSchema> = FormSchema extends { parties: infer P }
+  ? [NonNullable<P>] extends [never]
+    ? { parties?: Record<string, RuntimePerson | RuntimeOrganization | (RuntimePerson | RuntimeOrganization)[]> }
+    : NonNullable<P> extends Record<string, FormParty>
+      ? [RequiredKeys<NonNullable<P>>] extends [never]
+        ? { parties?: PartiesToDataType<NonNullable<P>> }
+        : { parties: PartiesToDataType<NonNullable<P>> }
+      : { parties?: Record<string, RuntimePerson | RuntimeOrganization | (RuntimePerson | RuntimeOrganization)[]> }
+  : { parties?: Record<string, RuntimePerson | RuntimeOrganization | (RuntimePerson | RuntimeOrganization)[]> }
+
+type AnnexesPayload<FormSchema> = FormSchema extends { annexes: infer A }
+  ? [NonNullable<A>] extends [never]
+    ? { annexes?: Record<string, Attachment> }
+    : NonNullable<A> extends Record<string, FormAnnex>
+      ? [RequiredKeys<NonNullable<A>>] extends [never]
+        ? { annexes?: AnnexesToDataType<NonNullable<A>> }
+        : { annexes: AnnexesToDataType<NonNullable<A>> }
+      : { annexes?: Record<string, Attachment> }
+  : { annexes?: Record<string, Attachment> }
+
 /**
  * Infers the complete data payload type from a form definition
  * Includes fields, parties, and annexes based on what the form defines.
@@ -252,26 +300,24 @@ type AnnexesToDataType<Annexes extends Record<string, FormAnnex>> = {
  *
  * This type works with both raw Form objects and FormInstance wrappers.
  */
-type InferFormDataInternal<FormSchema> = FormSchema extends { fields: infer F }
-  ? F extends Record<string, FormField>
-    ? // Base with fields
-      { fields: FieldsToDataType<F> } &
-        // Add parties if defined (use NonNullable to handle optional properties)
-        (FormSchema extends { parties: infer P }
-          ? NonNullable<P> extends Record<string, FormParty>
-            ? { parties?: PartiesToDataType<NonNullable<P>> }
-            : unknown
-          : unknown) &
-        // Add annexes if defined (use NonNullable to handle optional properties)
-        (FormSchema extends { annexes: infer A }
-          ? NonNullable<A> extends Record<string, FormAnnex>
-            ? { annexes?: AnnexesToDataType<NonNullable<A>> }
-            : unknown
-          : unknown)
-    : { fields: Record<string, unknown> }
-  : { fields: Record<string, unknown> }
+type InferFormDataInternal<FormSchema> = FieldsPayload<FormSchema> &
+  PartiesPayload<FormSchema> &
+  AnnexesPayload<FormSchema> & {
+    signers?: Record<string, Signer>
+    signatories?: Record<string, Record<string, PartySignatory[]>>
+  }
 
-export type InferFormData<Form> = InferFormDataInternal<ExtractFormSchema<Form>>
+type UnknownFormData = {
+  fields?: Record<string, unknown>
+  parties?: Record<string, RuntimePerson | RuntimeOrganization | (RuntimePerson | RuntimeOrganization)[]>
+  annexes?: Record<string, Attachment>
+  signers?: Record<string, Signer>
+  signatories?: Record<string, Record<string, PartySignatory[]>>
+}
+
+export type InferFormData<Form> = [Form] extends [never]
+  ? UnknownFormData
+  : InferFormDataInternal<ExtractFormSchema<Form>>
 
 /**
  * Infers the complete data payload type from a form definition with full type expansion.

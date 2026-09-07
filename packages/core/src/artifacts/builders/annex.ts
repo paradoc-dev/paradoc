@@ -10,6 +10,10 @@ import { parseFormAnnex } from '@/validation/artifact-parsers';
 // Condition expression type (boolean or string expression)
 type CondExpr = boolean | string;
 
+type BuiltAnnex<R extends CondExpr | undefined> = R extends undefined
+	? FormAnnex
+	: FormAnnex & { required: R }
+
 // ============================================================================
 // Validation
 // ============================================================================
@@ -22,21 +26,23 @@ function parseAnnex(input: unknown): FormAnnex {
 // Builder Type
 // ============================================================================
 
-export interface AnnexBuilder {
+export interface AnnexBuilder<R extends CondExpr | undefined = undefined> {
 	/** Initialize from existing FormAnnex */
-	from(value: FormAnnex): AnnexBuilder;
+	from(value: FormAnnex): AnnexBuilder<R>;
 	/** Set the display title for this annex slot */
-	title(value: string): AnnexBuilder;
+	title(value: string): AnnexBuilder<R>;
 	/** Set an optional description for this annex */
-	description(value: string): AnnexBuilder;
+	description(value: string): AnnexBuilder<R>;
 	/** Set whether the annex is required */
-	required(value?: CondExpr): AnnexBuilder;
+	required(): AnnexBuilder<true>;
+	required(value: undefined): AnnexBuilder<true>;
+	required<const V extends CondExpr>(value: V): AnnexBuilder<V>;
 	/** Set whether the annex is visible */
-	visible(value?: CondExpr): AnnexBuilder;
+	visible(value?: CondExpr): AnnexBuilder<R>;
 	/** Set the display order for rendering */
-	order(value: number): AnnexBuilder;
+	order(value: number): AnnexBuilder<R>;
 	/** Build the FormAnnex definition */
-	build(): FormAnnex;
+	build(): BuiltAnnex<R>;
 }
 
 // ============================================================================
@@ -46,7 +52,7 @@ export interface AnnexBuilder {
 export function annexBuilder(): AnnexBuilder {
 	const _def: Record<string, unknown> = {};
 
-	const self: AnnexBuilder = {
+	const self = {
 		from(value: FormAnnex) {
 			Object.assign(_def, parseAnnex(value));
 			return self;
@@ -76,7 +82,7 @@ export function annexBuilder(): AnnexBuilder {
 		},
 	};
 
-	return self;
+	return self as unknown as AnnexBuilder;
 }
 
 // ============================================================================

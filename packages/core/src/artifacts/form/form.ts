@@ -34,7 +34,6 @@ import type {
 	SignatureSlot,
 	DefsSection,
 	Expression,
-	Attachment,
 	ContentRef,
 	Resolver,
 	ParadocRenderer,
@@ -75,7 +74,7 @@ import { deepClone, deepReadonlyClone } from '@/utils/clone'
 import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
-import type { FieldsToDataType } from '@/inference'
+import type { FieldsToDataType, InferFormPayload as InferredFormPayload } from '@/inference'
 import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesValidationResult } from '@/logic'
 import { buildFormContext, evaluateFormDefs, evaluateFormRules } from '@/logic'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
@@ -104,9 +103,26 @@ import { computeFillState, getAvailableFillTargets, getNextFillTarget } from '@/
 
 /**
  * Helper to extract the form schema from either a raw Form or FormInstance.
- * FormInstance has a _schema property containing the form definition.
+ * FormInstance exposes its form definition through the shared _data property.
  */
-type ExtractFormSchema<T> = T extends { _schema: infer S } ? S : T
+type ExtractFormSchema<T> = T extends { _data: infer S }
+	? S
+	: T extends { _schema: infer S }
+		? S
+		: T
+
+type AddFormDefinition<
+	Existing extends Record<string, unknown>,
+	K extends string,
+	Definition,
+	DynamicDefinition,
+> = string extends K
+	? Existing extends Record<string, never>
+		? Record<string, DynamicDefinition>
+		: Existing & Record<string, DynamicDefinition>
+	: Existing extends Record<string, never>
+		? { [P in K]: Definition }
+		: Existing & { [P in K]: Definition }
 
 /**
  * Extracts the fields record type from a form payload.
@@ -175,88 +191,11 @@ export interface SealOptions {
 }
 
 /**
- * Extracts parties record type with actual keys from a form type.
- */
-type ExtractParties<F> = ExtractFormSchema<F> extends { parties: infer P }
-	? P extends Record<string, FormParty>
-		? { [K in keyof P]: RuntimeParty | RuntimeParty[] }
-		: Record<string, RuntimeParty | RuntimeParty[]>
-	: Record<string, RuntimeParty | RuntimeParty[]>
-
-/**
- * Extracts annexes record type with actual keys from a form type.
- */
-type ExtractAnnexes<F> = ExtractFormSchema<F> extends { annexes: infer A }
-	? A extends Record<string, unknown>
-		? { [K in keyof A]: Partial<Attachment> }
-		: Record<string, Partial<Attachment>>
-	: Record<string, Partial<Attachment>>
-
-/**
- * Helper to check if a form has fields defined.
- */
-type HasDefinedFields<F> = ExtractFormSchema<F> extends { fields: infer Fields }
-	? Fields extends Record<string, FormField>
-		? keyof Fields extends never
-			? false
-			: true
-		: false
-	: false
-
-/**
- * Helper to check if a form has parties defined.
- */
-type HasDefinedParties<F> = ExtractFormSchema<F> extends { parties: infer P }
-	? P extends Record<string, FormParty>
-		? keyof P extends never
-			? false
-			: true
-		: false
-	: false
-
-/**
- * Helper to check if a form has annexes defined.
- */
-type HasDefinedAnnexes<F> = ExtractFormSchema<F> extends { annexes: infer A }
-	? A extends Record<string, unknown>
-		? keyof A extends never
-			? false
-			: true
-		: false
-	: false
-
-/**
- * Conditionally add fields property based on form definition.
- */
-type FieldsPayload<F> = HasDefinedFields<F> extends true
-	? { fields: ExtractFields<F> }
-	: { fields?: ExtractFields<F> }
-
-/**
- * Conditionally add parties property based on form definition.
- */
-type PartiesPayload<F> = HasDefinedParties<F> extends true
-	? { parties: ExtractParties<F> }
-	: { parties?: ExtractParties<F> }
-
-/**
- * Conditionally add annexes property based on form definition.
- */
-type AnnexesPayload<F> = HasDefinedAnnexes<F> extends true
-	? { annexes: ExtractAnnexes<F> }
-	: { annexes?: ExtractAnnexes<F> }
-
-/**
  * Infers the full payload type for filling a form.
  * Works with both raw Form types and FormInstance types.
  * Fields, parties, and annexes are required if defined in the form, optional otherwise.
  */
-export type InferFormPayload<F> = FieldsPayload<F> &
-	PartiesPayload<F> &
-	AnnexesPayload<F> & {
-		signers?: Record<string, Signer>
-		signatories?: Record<string, Record<string, PartySignatory[]>>
-	}
+export type InferFormPayload<F> = InferredFormPayload<F>
 
 // ============================================================================
 // Types
@@ -3012,7 +2951,10 @@ export interface FormBuilderInterface<
 	agentInstructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes>
 	defs(defsDef: DefsSection): FormBuilderInterface<TFields, TParties, TAnnexes>
 	def(name: string, expression: string | Expression): FormBuilderInterface<TFields, TParties, TAnnexes>
-	field(id: string, fieldDef: Buildable<FormField>): FormBuilderInterface<TFields, TParties, TAnnexes>
+	field<const K extends string, const D extends Buildable<FormField>>(
+		id: K,
+		fieldDef: D,
+	): FormBuilderInterface<AddFormDefinition<TFields, K, D extends { build(): infer T extends FormField } ? T : D extends FormField ? D : FormField, FormField>, TParties, TAnnexes>
 	fields<const F extends Record<string, Buildable<FormField>>>(
 		fieldsObj: F,
 	): FormBuilderInterface<
@@ -3052,7 +2994,10 @@ export interface FormBuilderInterface<
 		},
 	): FormBuilderInterface<TFields, TParties, TAnnexes>
 	defaultLayer(key: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	annex(annexId: string, annexDef: Buildable<FormAnnex>): FormBuilderInterface<TFields, TParties, TAnnexes>
+	annex<const K extends string, const D extends Buildable<FormAnnex>>(
+		annexId: K,
+		annexDef: D,
+	): FormBuilderInterface<TFields, TParties, AddFormDefinition<TAnnexes, K, D extends { build(): infer T extends FormAnnex } ? T : D extends FormAnnex ? D : FormAnnex, FormAnnex>>
 	annexes<const A extends Record<string, Buildable<FormAnnex>>>(
 		annexesRecord: A,
 	): FormBuilderInterface<
@@ -3063,7 +3008,10 @@ export interface FormBuilderInterface<
 		}
 	>
 	allowAdditionalAnnexes(value: boolean): FormBuilderInterface<TFields, TParties, TAnnexes>
-	party(roleId: string, partyDef: Buildable<FormParty>): FormBuilderInterface<TFields, TParties, TAnnexes>
+	party<const K extends string, const D extends Buildable<FormParty>>(
+		roleId: K,
+		partyDef: D,
+	): FormBuilderInterface<TFields, AddFormDefinition<TParties, K, D extends { build(): infer T extends FormParty } ? T : D extends FormParty ? D : FormParty, FormParty>, TAnnexes>
 	parties<const P extends Record<string, Buildable<FormParty>>>(
 		partiesObj: P,
 	): FormBuilderInterface<
@@ -3209,11 +3157,15 @@ function createFormBuilder<
 			return builder
 		},
 
-		field(id: string, fieldDef: Buildable<FormField>) {
+		field<const K extends string, const D extends Buildable<FormField>>(id: K, fieldDef: D) {
 			const fields = (_def.fields as Record<string, FormField>) || {}
 			fields[id] = parseFormField(resolveBuildable(fieldDef))
 			_def.fields = fields
-			return builder
+			return builder as unknown as FormBuilderInterface<
+				AddFormDefinition<TFields, K, D extends { build(): infer T extends FormField } ? T : D extends FormField ? D : FormField, FormField>,
+				TParties,
+				TAnnexes
+			>
 		},
 
 		fields<const F extends Record<string, Buildable<FormField>>>(fieldsObj: F) {
@@ -3281,11 +3233,15 @@ function createFormBuilder<
 			return builder
 		},
 
-		annex(annexId: string, annexDef: Buildable<FormAnnex>) {
+		annex<const K extends string, const D extends Buildable<FormAnnex>>(annexId: K, annexDef: D) {
 			const annexes = (_def.annexes as Record<string, FormAnnex>) || {}
 			annexes[annexId] = parseFormAnnex(resolveBuildable(annexDef))
 			_def.annexes = annexes
-			return builder
+			return builder as unknown as FormBuilderInterface<
+				TFields,
+				TParties,
+				AddFormDefinition<TAnnexes, K, D extends { build(): infer T extends FormAnnex } ? T : D extends FormAnnex ? D : FormAnnex, FormAnnex>
+			>
 		},
 
 		annexes<const A extends Record<string, Buildable<FormAnnex>>>(annexesRecord: A) {
@@ -3308,11 +3264,15 @@ function createFormBuilder<
 			return builder
 		},
 
-		party(roleId: string, partyDef: Buildable<FormParty>) {
+		party<const K extends string, const D extends Buildable<FormParty>>(roleId: K, partyDef: D) {
 			const parties = (_def.parties as Record<string, FormParty>) || {}
 			parties[roleId] = parseFormParty(resolveBuildable(partyDef))
 			_def.parties = parties
-			return builder
+			return builder as unknown as FormBuilderInterface<
+				TFields,
+				AddFormDefinition<TParties, K, D extends { build(): infer T extends FormParty } ? T : D extends FormParty ? D : FormParty, FormParty>,
+				TAnnexes
+			>
 		},
 
 		parties<const P extends Record<string, Buildable<FormParty>>>(partiesObj: P) {

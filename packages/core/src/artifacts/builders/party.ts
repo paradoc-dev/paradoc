@@ -10,6 +10,10 @@ import { parseFormParty } from '@/validation/artifact-parsers';
 // Condition expression type (boolean or string expression)
 type CondExpr = boolean | string;
 
+type BuiltParty<R extends CondExpr | undefined> = R extends undefined
+	? FormParty
+	: FormParty & { required: R }
+
 // ============================================================================
 // Validation
 // ============================================================================
@@ -22,27 +26,29 @@ function parseParty(input: unknown): FormParty {
 // Builder Type
 // ============================================================================
 
-export interface PartyBuilder {
+export interface PartyBuilder<R extends CondExpr | undefined = undefined> {
 	/** Initialize from existing FormParty */
-	from(value: FormParty): PartyBuilder;
+	from(value: FormParty): PartyBuilder<R>;
 	/** Set the display label for this role */
-	label(value: string): PartyBuilder;
+	label(value: string): PartyBuilder<R>;
 	/** Set an optional description for this role */
-	description(value: string): PartyBuilder;
+	description(value: string): PartyBuilder<R>;
 	/** Constrain what type of party can fill this role */
-	partyType(value: 'person' | 'organization' | 'any'): PartyBuilder;
+	partyType(value: 'person' | 'organization' | 'any'): PartyBuilder<R>;
 	/** Allow multiple parties to fill this role */
-	multiple(value?: boolean): PartyBuilder;
+	multiple(value?: boolean): PartyBuilder<R>;
 	/** Set minimum number of parties required (when multiple=true) */
-	min(value: number): PartyBuilder;
+	min(value: number): PartyBuilder<R>;
 	/** Set maximum number of parties allowed (when multiple=true) */
-	max(value: number): PartyBuilder;
+	max(value: number): PartyBuilder<R>;
 	/** Set whether this role is required */
-	required(value?: CondExpr): PartyBuilder;
+	required(): PartyBuilder<true>;
+	required(value: undefined): PartyBuilder<true>;
+	required<const V extends CondExpr>(value: V): PartyBuilder<V>;
 	/** Set signature requirements for this party role */
-	signature(value: FormSignature): PartyBuilder;
+	signature(value: FormSignature): PartyBuilder<R>;
 	/** Build the FormParty definition */
-	build(): FormParty;
+	build(): BuiltParty<R>;
 }
 
 // ============================================================================
@@ -52,7 +58,7 @@ export interface PartyBuilder {
 export function partyBuilder(): PartyBuilder {
 	const _def: Record<string, unknown> = {};
 
-	const self: PartyBuilder = {
+	const self = {
 		from(value: FormParty) {
 			const parsed = parseParty(value);
 			Object.assign(_def, parsed);
@@ -95,7 +101,7 @@ export function partyBuilder(): PartyBuilder {
 		},
 	};
 
-	return self;
+	return self as unknown as PartyBuilder;
 }
 
 // ============================================================================
