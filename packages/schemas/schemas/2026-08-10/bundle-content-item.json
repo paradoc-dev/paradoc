@@ -17,7 +17,21 @@
           "description": "Unique identifier for this content item, used to reference it in defs expressions"
         },
         "artifact": {
-          "description": "Inline artifact definition (document, form, checklist, or nested bundle)"
+          "description": "Inline artifact definition (document, form, checklist, or nested bundle)",
+          "anyOf": [
+            {
+              "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/Document"
+            },
+            {
+              "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/Form"
+            },
+            {
+              "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/Checklist"
+            },
+            {
+              "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/Bundle"
+            }
+          ]
         }
       },
       "required": [

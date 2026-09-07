@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { bundle, document, form } from '@/artifacts'
+import { validateBundle, validateSchema } from '@/validation'
 import type { Bundle, BundleContentItem } from '@paradoc/types'
 
 describe('Bundle', () => {
@@ -231,6 +232,25 @@ describe('Bundle', () => {
       })
 
       describe('validation failures', () => {
+        test('rejects malformed inline children through bundle validation', () => {
+          const input = {
+            kind: 'bundle',
+            name: 'invalid-child',
+            contents: [
+              {
+                type: 'inline',
+                key: 'child',
+                artifact: 123,
+              },
+            ],
+          } as any
+
+          expect(validateBundle(input)).toBe(false)
+          expect(validateBundle.errors?.[0]?.instancePath).toBe('/contents/0/artifact')
+          expect(validateSchema(input).issues?.[0]?.path).toEqual(['contents', '0', 'artifact'])
+          expect(() => bundle(input)).toThrow('contents.0.artifact')
+        })
+
         test('throws error when name is missing', () => {
           const input = {
             kind: 'bundle',

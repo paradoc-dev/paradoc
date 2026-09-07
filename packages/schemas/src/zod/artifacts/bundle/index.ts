@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Bundle } from '@paradoc/types';
 import { ArtifactSchema } from '../shared/base';
 import { DefsSectionSchema } from '../expressions/defs-section';
 import { BundleContentItemSchema } from './item';
@@ -9,10 +10,10 @@ export { BundleContentItemSchema } from './item';
 /**
  * Bundle artifact — a recursive container for content artifacts.
  */
-export const BundleSchema = ArtifactSchema.extend({
+export const BundleSchema: z.ZodType<Bundle> = ArtifactSchema.extend({
 	kind: z.literal('bundle'),
 	defs: DefsSectionSchema.optional(),
-	contents: z.array(BundleContentItemSchema)
+	contents: z.array(z.lazy(() => BundleContentItemSchema))
 		.describe('Ordered bundle contents. Each item has a key and is either an inline artifact, path reference, or registry reference.'),
 }).meta({
 	title: 'Bundle',
