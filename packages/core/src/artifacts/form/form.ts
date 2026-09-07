@@ -1349,6 +1349,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					if (!partyResult.success) {
 						throw new FormValidationError(partyResult.errors)
 					}
+					validatedParties = { ...partyValues, ...partyResult.value }
 				}
 				if (patchAnnexes && Object.keys(patchAnnexes).length > 0) {
 					const annexResult = validateProgressiveAnnexesPatch(formDef, patchAnnexes)
@@ -2869,6 +2870,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 					if (!partyResult.success) {
 						throw new FormValidationError(partyResult.errors)
 					}
+					validatedParties = partyResult.value
 				}
 				if (Object.keys(annexes as Record<string, unknown>).length > 0) {
 					const annexResult = validateProgressiveAnnexesPatch(formDef, annexes)
