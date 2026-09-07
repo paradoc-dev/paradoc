@@ -148,6 +148,21 @@ describe('progressive form validation', () => {
 	})
 
 	describe('standalone field validators', () => {
+		test('validates a bounded text field without constructing an invalid regex', () => {
+			const boundedForm = form().name('bounded-text').fields({
+				nickname: { type: 'text', minLength: 2, maxLength: 5 },
+			}).build()
+
+			expect(() => validateFieldInput(boundedForm, {
+				fieldPath: 'nickname',
+				value: 'Toby',
+			})).not.toThrow()
+			expect(validateFieldInput(boundedForm, {
+				fieldPath: 'nickname',
+				value: 'Toby',
+			}).success).toBe(true)
+		})
+
 		test('validates enum input for a single field', () => {
 			const petForm = createPetAddendumLikeForm()
 			const result = validateFieldInput(petForm, {
