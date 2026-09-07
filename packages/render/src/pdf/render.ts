@@ -1,6 +1,6 @@
-import { preprocessFieldData, usaSerializers } from '@paradoc/serialization'
-import type { BinaryContent, Form, FormField, SerializerRegistry } from '@paradoc/types'
-import { createSerializedFieldValue } from '../text/field-serializer'
+import { defaultFormatter } from '@paradoc/format'
+import type { BinaryContent, Form, FormField, Formatter } from '@paradoc/types'
+import { formatFieldData, validateFieldBindings, unwrapFormattedValue } from '../text/field-formatter'
 import { getPath, pathSegments } from '../path'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
 import { applyPdfOverlays, type PdfOverlay } from './overlay'
@@ -14,14 +14,16 @@ export interface RenderPdfOptions {
   form?: Form
   data: Record<string, unknown>
   bindings?: Record<string, string>
-  serializers?: SerializerRegistry
+  formatter?: Formatter
   signatureOptions?: PdfSignatureOptions
   overlays?: PdfOverlay[]
 }
 
 function assign(field: AcroField | undefined, value: unknown, model: PdfModel): void {
   if (!field || value === null || value === undefined) return
-  setAcroFieldValue(model, field, value)
+  setAcroFieldValue(model, field, field.type === 'checkbox' || field.type === 'radio' || field.type === 'choice'
+    ? unwrapFormattedValue(value)
+    : value)
 }
 
 function sourcePaths(bindings: Record<string, string>): string[][] {
@@ -30,6 +32,17 @@ function sourcePaths(bindings: Record<string, string>): string[][] {
     const qualifier = path.indexOf(':')
     return pathSegments(qualifier === -1 ? path : path.slice(0, qualifier))
   }))
+}
+
+function fieldDefinition(form: Form | undefined, path: string): FormField | undefined {
+  const [root, ...segments] = pathSegments(path)
+  let field = root ? form?.fields?.[root] : undefined
+  for (const segment of segments) {
+    if (field?.type === 'list' && /^\d+$/.test(segment)) field = field.item
+    else if (field?.type === 'fieldset') field = field.fields[segment]
+    else return undefined
+  }
+  return field
 }
 
 function displayPath(segments: string[]): string {
@@ -79,12 +92,18 @@ export async function renderPdf({
   form,
   data,
   bindings,
-  serializers = usaSerializers,
+  formatter = defaultFormatter,
   overlays = [],
 }: RenderPdfOptions): Promise<BinaryContent> {
   const preprocessed = form
-    ? preprocessFieldData(data, form, (value, fieldType) => createSerializedFieldValue(value, fieldType, serializers))
+    ? formatFieldData(data, form, formatter)
     : data
+  if (form) {
+    const sources = Object.values(bindings ?? {}).flatMap((binding) =>
+      binding.split(',').map((source) => source.trim().split(':')[0]!))
+    sources.push(...overlays.flatMap((overlay) => 'field' in overlay && overlay.field ? [overlay.field] : []))
+    validateFieldBindings(form, Object.fromEntries(sources.map((source, index) => [String(index), source])))
+  }
   assertListBindingCapacity(form, data, bindings)
   const model = await PdfModel.load(template)
   const shouldFill = Boolean(bindings && Object.keys(bindings).length > 0)
@@ -95,8 +114,7 @@ export async function renderPdf({
     try {
       acroFormData = acroFields(model)
     } catch (error) {
-      // Keep the legacy renderer's passthrough behavior for ordinary PDFs
-      // without AcroForm fields. Overlays can still be applied below.
+      // Ordinary PDFs can still receive coordinate overlays without AcroForm fields.
       if (!(error instanceof Error) || error.message !== 'PDF does not contain an AcroForm') throw error
     }
 
@@ -110,7 +128,7 @@ export async function renderPdf({
           const field = byName.get(pdfName)
           if (!field) continue
           if (binding.includes(',')) {
-            const combined = binding.split(',').map((path) => getPath(preprocessed, path.trim())).filter(Boolean).join(', ')
+            const combined = binding.split(',').map((path) => getPath(preprocessed, path.trim())).filter((value) => value !== null && value !== undefined && String(value) !== '').join(', ')
             if (combined) assign(field, combined, model)
             continue
           }
@@ -118,12 +136,10 @@ export async function renderPdf({
             const separator = binding.indexOf(':')
             const fieldName = binding.slice(0, separator)
             const qualifier = binding.slice(separator + 1)
-            const value = getPath(preprocessed, fieldName)
-            const rootName = pathSegments(fieldName)[0]
-            const definition = rootName ? form?.fields?.[rootName] : undefined
-            if (definition?.type === 'boolean') assign(field, Boolean(value), model)
-            else if (definition?.type === 'multiselect') assign(field, Array.isArray(value) && value.includes(qualifier), model)
-            else if (definition?.type === 'enum') assign(field, String(value) === qualifier, model)
+            const value = getPath(data, fieldName)
+            if (typeof value === 'boolean') assign(field, value, model)
+            else if (Array.isArray(value)) assign(field, value.includes(qualifier), model)
+            else if (fieldDefinition(form, fieldName)?.type === 'enum') assign(field, String(value) === qualifier, model)
             else {
               const index = Number.parseInt(qualifier, 10) - 1
               if (!Number.isNaN(index) && value !== null && value !== undefined) {

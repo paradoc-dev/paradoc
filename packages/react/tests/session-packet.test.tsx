@@ -46,7 +46,7 @@ const W9_ANSWERS = {
       country: "US",
     },
   },
-  parties: { taxpayer: { id: "taxpayer-0", name: "Dana Whitfield" } },
+  parties: { taxpayer: { id: "taxpayer-0", name: "Dana Whitfield", firstName: "Dana", lastName: "Whitfield" } },
 };
 
 /** The W-9 draft, filled from what its session answered and ready to seal. */

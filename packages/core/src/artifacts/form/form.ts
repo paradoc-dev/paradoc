@@ -39,6 +39,7 @@ import type {
 	ContentRef,
 	Resolver,
 	ParadocRenderer,
+	Formatter,
 } from '@paradoc/types'
 import { renderLayer as createRenderer } from '@paradoc/render'
 import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
@@ -198,6 +199,8 @@ export type FormPath<F extends Form> =
 		: never)
 
 export interface SealOptions {
+	/** Artifact value formatting used on every sealing render pass. */
+	formatter?: Formatter
 	/**
 	 * Adapter required when the target layer is not already a PDF.
 	 *
@@ -2233,6 +2236,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					runtime.render<string | Uint8Array>({
 						renderer,
 						layer: targetLayer,
+						formatter: options.formatter,
 					}),
 				convert: async (content) =>
 					(
@@ -2351,6 +2355,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						runtime.render<string | Uint8Array>({
 							renderer,
 							layer: targetLayer,
+							formatter: options.formatter,
 						}),
 					convert: async (content) =>
 						(

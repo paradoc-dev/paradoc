@@ -48,7 +48,7 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
 
 /** @deprecated Prefer renderLayer() or @paradoc/render/pdf. */
 export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<RendererLayer, Uint8Array> {
-  return renderLayer({ serializers: options.serializers, pdfSignatureOptions: options.signatureOptions }) as ParadocRenderer<RendererLayer, Uint8Array>
+  return renderLayer({ formatter: options.formatter, pdfSignatureOptions: options.signatureOptions }) as ParadocRenderer<RendererLayer, Uint8Array>
 }
 
 /** @deprecated Prefer renderLayer() or @paradoc/render/docx. */

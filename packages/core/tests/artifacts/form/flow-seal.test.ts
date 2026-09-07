@@ -37,7 +37,7 @@ describe("'flow' placement", () => {
 			.version('1.0.0')
 			.title('Auto Contract')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
-			.parties({ client: { label: 'Client', types: ['person'], signature: { required: true } } })
+			.parties({ client: { label: 'Client', partyType: 'person', signature: { required: true } } })
 			.inlineLayer('md', {
 				mimeType: 'text/markdown',
 				text: [

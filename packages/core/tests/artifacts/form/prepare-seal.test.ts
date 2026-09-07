@@ -1,3 +1,4 @@
+import { createFormatter } from '@paradoc/format'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test, expect } from 'vitest'
@@ -40,13 +41,13 @@ describe('prepareSeal', () => {
 			.version('1.0.0')
 			.title('Prepare Contract')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
-			.parties({ client: { label: 'Client', types: ['person'], signature: { required: true } } })
+			.parties({ client: { label: 'Client', partyType: 'person', signature: { required: true } } })
 			.inlineLayer('md', {
 				mimeType: 'text/markdown',
 				text: [
 					'# Agreement',
 					'',
-					'The undersigned agree to the terms above.',
+					'The undersigned agree to the terms above. Amount: {{amount}}',
 					'',
 					'{{#with parties.client}}Client signature: {{signature "client-sig"}}',
 					'',
@@ -81,6 +82,21 @@ describe('prepareSeal', () => {
 		expect(prep.warnings).toEqual([])
 	})
 
+	test('uses the same formatter in every preparation and sealing pass', async () => {
+		const formatter = createFormatter({ overrides: { number: () => 'CUSTOM-AMOUNT' } })
+		const rendered: string[] = []
+		const adapter: SealAdapter = { convert: async (request) => {
+			rendered.push(String(request.document.content))
+			return converter.convert(request)
+		} }
+		const d = draft()
+		const prepared = await d.prepareSeal({ adapter, formatter })
+		const sealed = await d.seal({ adapter, formatter })
+		expect(rendered.length).toBeGreaterThanOrEqual(4)
+		expect(rendered.every((text) => text.includes('CUSTOM-AMOUNT'))).toBe(true)
+		expect(sealed.signatureMap).toEqual(prepared.signatureMap)
+	})
+
 	test('does not change phase: the draft can still be edited and sealed', async () => {
 		const d = draft()
 		await d.prepareSeal({ adapter: converter })
@@ -107,7 +123,7 @@ describe('prepareSeal', () => {
 			.version('1.0.0')
 			.title('Multi')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
-			.parties({ client: { label: 'Client', types: ['person'], signature: { required: true } } })
+			.parties({ client: { label: 'Client', partyType: 'person', signature: { required: true } } })
 			.inlineLayer('md', {
 				mimeType: 'text/markdown',
 				text: 'Sign: {{#with parties.client}}{{signature "c0"}}{{/with}}',
@@ -137,7 +153,7 @@ describe('prepareSeal', () => {
 			.version('1.0.0')
 			.title('Legacy')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
-			.parties({ client: { label: 'Client', types: ['person'] } })
+			.parties({ client: { label: 'Client', partyType: 'person' } })
 			.inlineLayer('md', { mimeType: 'text/markdown', text: 'Sign here.' })
 			.defaultLayer('md')
 			.build()

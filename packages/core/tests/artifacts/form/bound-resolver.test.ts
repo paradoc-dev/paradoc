@@ -31,7 +31,7 @@ describe('a resolver bound at construction', () => {
 		parties: {
 			signer: {
 				label: 'Signer',
-				types: ['person' as const],
+				partyType: 'person' as const,
 				signature: { required: true },
 			},
 		},

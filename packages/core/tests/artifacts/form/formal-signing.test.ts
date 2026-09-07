@@ -32,7 +32,7 @@ describe('Formal Signing', () => {
 				},
 				tenant: {
 					label: 'Tenant',
-					types: ['person'],
+					partyType: 'person',
 					min: 1,
 					max: 4,
 					signature: { required: true },
@@ -57,7 +57,7 @@ describe('Formal Signing', () => {
 			.parties({
 				applicant: {
 					label: 'Applicant',
-					types: ['person'],
+					partyType: 'person',
 					// No signature required
 				},
 			})
@@ -379,7 +379,7 @@ describe('Formal Signing', () => {
 				.parties({
 					signer: {
 						label: 'Signer',
-						types: ['person'],
+						partyType: 'person',
 						signature: { required: true },
 					},
 				})
@@ -430,7 +430,7 @@ describe('Formal Signing', () => {
 				.version('1.0.0')
 				.title('Markdown Form')
 				.fields({ name: { type: 'text', label: 'Name' } })
-				.parties({ signer: { label: 'Signer', types: ['person'], signature: { required: true } } })
+				.parties({ signer: { label: 'Signer', partyType: 'person', signature: { required: true } } })
 				.inlineLayer('markdown', {
 					mimeType: 'text/markdown',
 					text: '# Hello {{name}}',
@@ -471,7 +471,7 @@ describe('Formal Signing', () => {
 			const formDef = form()
 				.name('custom-rendered-form')
 				.fields({ name: { type: 'text', label: 'Name' } })
-				.parties({ signer: { label: 'Signer', types: ['person'], signature: { required: true } } })
+				.parties({ signer: { label: 'Signer', partyType: 'person', signature: { required: true } } })
 				.inlineLayer('markdown', {
 					mimeType: 'text/markdown',
 					text: '# Built-in {{name}}',
@@ -959,12 +959,12 @@ describe('Formal Signing', () => {
 				.parties({
 					landlord: {
 						label: 'Landlord',
-						types: ['person'],
+						partyType: 'person',
 						signature: { required: true },
 					},
 					tenant: {
 						label: 'Tenant',
-						types: ['person'],
+						partyType: 'person',
 						signature: { required: true },
 					},
 				})
@@ -1084,7 +1084,7 @@ describe('Formal Signing', () => {
 				.title('Date Anchor Form')
 				.fields({ name: { type: 'text', label: 'Name' } })
 				.parties({
-					landlord: { label: 'Landlord', types: ['person'], signature: { required: true } },
+					landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
 				})
 				.inlineLayer('docx', {
 					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -1119,7 +1119,7 @@ describe('Formal Signing', () => {
 				.title('No Blocks DOCX')
 				.fields({ name: { type: 'text', label: 'Name' } })
 				.parties({
-					signer: { label: 'Signer', types: ['person'], signature: { required: true } },
+					signer: { label: 'Signer', partyType: 'person', signature: { required: true } },
 				})
 				.inlineLayer('docx', {
 					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -1155,8 +1155,8 @@ describe('Formal Signing', () => {
 				.title('Both Blocks Form')
 				.fields({ rentAmount: { type: 'number', label: 'Rent' } })
 				.parties({
-					landlord: { label: 'Landlord', types: ['person'], signature: { required: true } },
-					tenant: { label: 'Tenant', types: ['person'] },
+					landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
+					tenant: { label: 'Tenant', partyType: 'person' },
 				})
 				.inlineLayer('docx', {
 					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

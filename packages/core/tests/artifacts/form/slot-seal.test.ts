@@ -26,8 +26,8 @@ describe('Unified signature slots', () => {
 			.title('Slot Contract')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
 			.parties({
-				client: { label: 'Client', types: ['person'], signature: { required: true } },
-				witness: { label: 'Witness', types: ['person'] },
+				client: { label: 'Client', partyType: 'person', signature: { required: true } },
+				witness: { label: 'Witness', partyType: 'person' },
 			})
 			.inlineLayer('md', {
 				mimeType: 'text/markdown',

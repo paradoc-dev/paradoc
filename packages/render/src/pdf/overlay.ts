@@ -1,3 +1,4 @@
+import { winAnsiText } from './win-ansi'
 import { unzlibSync, zlibSync } from 'fflate'
 import { isDict, type PdfDict, type PdfObject, type PdfRef, PdfModel, type PdfValue } from './syntax'
 import { getPath } from '../path'
@@ -95,9 +96,7 @@ function textValue(overlay: PdfTextOverlay, data: Record<string, unknown>): unkn
 }
 
 function escapeText(value: unknown): string {
-  return String(value ?? '')
-    .replace(/[^\x20-\xff]/g, '?')
-    .replace(/([\\()])/g, '\\$1')
+  return winAnsiText(String(value ?? ''))
 }
 
 function estimatedTextWidth(text: string, size: number): number {

@@ -1,50 +1,59 @@
-import { attachmentStringifier, usaSerializers } from '@paradoc/serialization'
-import type { ParadocRenderer, RendererLayer, RenderRequest, SerializerRegistry } from '@paradoc/types'
-import { renderPdf, type PdfSignatureOptions } from './render'
-
-class AnnexValue {
-  constructor(private readonly value: unknown) {
-    if (value !== null && typeof value === 'object') Object.assign(this, value)
-  }
-  toString(): string {
-    try { return attachmentStringifier.stringify(this.value as never) }
-    catch { return '[Attachment]' }
-  }
-}
+import { defaultFormatter } from '@paradoc/format'
+import type {
+  Formatter,
+  ParadocRenderer,
+  RendererLayer,
+  RenderRequest,
+} from '@paradoc/types'
+import { renderPdf } from './render'
+import type { PdfSignatureOptions } from './signatures'
 
 export interface PdfRendererOptions {
-  serializers?: SerializerRegistry
+  formatter?: Formatter
   signatureOptions?: PdfSignatureOptions
 }
 
 type PdfLayer = RendererLayer & { type: 'pdf'; content: Uint8Array }
 
 export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<PdfLayer, Uint8Array> {
+  const formatter = options.formatter ?? defaultFormatter
   return {
     id: 'pdf',
-    async render(request: RenderRequest<PdfLayer>) {
+    render(request: RenderRequest<PdfLayer>) {
       const source = request.data as unknown as Record<string, unknown>
-      const fields = source.fields as Record<string, unknown> | undefined
-      const clean = fields ? { ...fields } : {}
-      const parties = source.parties ?? clean.parties
-      const annexes = source.annexes ?? clean.annexes
-      delete clean.parties
-      delete clean.annexes
-      const wrappedAnnexes = annexes && typeof annexes === 'object'
-        ? Object.fromEntries(Object.entries(annexes).map(([key, value]) => [key, value == null ? value : new AnnexValue(value)]))
-        : undefined
+      if (!('fields' in source)) {
+        return renderPdf({
+          template: request.template.content,
+          data: source,
+          form: request.form,
+          formatter: request.ctx?.formatter ?? formatter,
+          bindings: request.bindings ?? request.template.bindings,
+          signatureOptions: options.signatureOptions,
+        })
+      }
+
+      const { fields, parties, annexes, defs, ...rest } = source
+      const nested = fields as Record<string, unknown> | undefined
+      const cleanFields = nested ? { ...nested } : {}
+      const actualParties = parties ?? cleanFields.parties
+      const actualAnnexes = annexes ?? cleanFields.annexes
+      const actualDefs = defs ?? cleanFields.defs
+      delete cleanFields.parties
+      delete cleanFields.annexes
+      delete cleanFields.defs
+
       return renderPdf({
         template: request.template.content,
-        form: request.form,
         data: {
-          ...clean,
-          ...(parties ? { parties } : {}),
-          ...(source._adopted ? { _adopted: source._adopted } : {}),
-          ...(source._captures ? { _captures: source._captures } : {}),
-          ...(wrappedAnnexes ? { annexes: wrappedAnnexes } : {}),
+          ...cleanFields,
+          ...(actualParties ? { parties: actualParties } : {}),
+          ...(actualAnnexes ? { annexes: actualAnnexes } : {}),
+          ...(actualDefs ? { defs: actualDefs } : {}),
+          ...rest,
         },
-        bindings: request.template.bindings,
-        serializers: request.ctx?.serializers ?? options.serializers ?? usaSerializers,
+        form: request.form,
+        formatter: request.ctx?.formatter ?? formatter,
+        bindings: request.bindings ?? request.template.bindings,
         signatureOptions: options.signatureOptions,
       })
     },

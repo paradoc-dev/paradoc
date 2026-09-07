@@ -36,7 +36,7 @@ import { sealBundle } from "@paradoc/core";
 /** The W-9's own sample vector, with a signatory bound to the taxpayer party. */
 function taxpayerDraft() {
   const parsed = w9.safeParseData({
-    parties: { taxpayer: { id: "taxpayer-0", name: "Dana Whitfield" } },
+    parties: { taxpayer: { id: "taxpayer-0", name: "Dana Whitfield", firstName: "Dana", lastName: "Whitfield" } },
     fields: {
       taxClassification: "partnership",
       businessName: "Northgate Systems, LLC",

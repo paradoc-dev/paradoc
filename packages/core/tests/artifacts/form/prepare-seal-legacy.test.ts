@@ -50,8 +50,8 @@ describe('prepareSeal with legacy blocks', () => {
 			.title('Legacy Contract')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
 			.parties({
-				client: { label: 'Client', types: ['person'], signature: { required: true } },
-				witness: { label: 'Witness', types: ['person'], signature: { required: true } },
+				client: { label: 'Client', partyType: 'person', signature: { required: true } },
+				witness: { label: 'Witness', partyType: 'person', signature: { required: true } },
 			})
 			.inlineLayer('md', { mimeType: 'text/markdown', text: 'Contract.\n\nWitnessed by: ____\n', ...layer })
 			.defaultLayer('md')

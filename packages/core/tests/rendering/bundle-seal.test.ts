@@ -47,7 +47,7 @@ describe('sealing a bundle', () => {
 			.version('1.0.0')
 			.title(name)
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
-			.parties({ [role]: { label: role, types: ['person'], signature: { required: true } } })
+			.parties({ [role]: { label: role, partyType: 'person', signature: { required: true } } })
 			.fileLayer('composition', {
 				mimeType: 'text/tsx',
 				path: `${name}.tsx`,
@@ -439,7 +439,7 @@ describe('a packet whose parts carry their own resolvers', () => {
 			.version('1.0.0')
 			.title(name)
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
-			.parties({ client: { label: 'client', types: ['person'], signature: { required: true } } })
+			.parties({ client: { label: 'client', partyType: 'person', signature: { required: true } } })
 			.fileLayer('pdf', {
 				mimeType: 'application/pdf',
 				path: `${name}.pdf`,

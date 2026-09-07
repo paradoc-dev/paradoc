@@ -1,3 +1,4 @@
+import { winAnsiText } from './win-ansi'
 import { isDict, isName, isRef, type PdfDict, type PdfRef, PdfModel, type PdfValue } from './syntax'
 
 export type AcroFieldType = 'text' | 'checkbox' | 'choice' | 'radio' | 'button' | 'signature' | 'unknown'
@@ -131,7 +132,7 @@ function standardFont(model: PdfModel): PdfRef {
 }
 
 function contentString(value: string): string {
-  return value.replace(/([\\()])/g, '\\$1').replace(/[\r\n]+/g, ' ')
+  return winAnsiText(value)
 }
 
 function textAppearance(model: PdfModel, widget: AcroWidget, text: string): void {

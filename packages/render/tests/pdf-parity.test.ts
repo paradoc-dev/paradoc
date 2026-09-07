@@ -1,3 +1,4 @@
+import { createFormatter } from '@paradoc/format'
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import type { Form } from '@paradoc/types'
@@ -218,5 +219,61 @@ describe('PDF renderer behavior', () => {
     }
     const actual = await pdfRenderer().render(request as never)
     expect((await inspectAcroFormFields(actual)).find((field) => field.name === 'pet_name')?.value).toBe('Pixel')
+  })
+})
+
+
+describe('PDF artifact formatting', () => {
+  const form = {
+    fields: {
+      count: { type: 'number' }, enabled: { type: 'boolean' },
+      rows: { type: 'list', item: { type: 'fieldset', fields: { amount: { type: 'money' }, choice: { type: 'enum', enum: [{ value: '1', label: 'One' }] } } } },
+    },
+    defs: { total: { type: 'money', value: {} } },
+    parties: { owner: { label: 'Owner', partyType: 'person' } },
+  } as unknown as Form
+  const data = { count: 0, enabled: false, rows: [{ amount: { amount: 1234.5, currency: 'EUR' }, choice: '1' }],
+    defs: { total: { amount: 1234.5, currency: 'EUR' } }, parties: { owner: { name: 'Ada' } } }
+
+  it('applies artifact context to indexed values, computed values and parties', async () => {
+    const formatter = createFormatter({ locale: 'de-DE' })
+    const template = textFieldsPdf(['amount', 'total', 'owner', 'combined'])
+    const bindings = { amount: 'rows[0].amount', total: 'defs.total', owner: 'parties.owner', combined: 'count, enabled' }
+    const direct = await renderPdf({ template, form, formatter, data, bindings })
+    const { parties, defs, ...fields } = data
+    const adapted = await pdfRenderer().render({ template: { type: 'pdf', content: template, bindings }, form,
+      data: { fields, parties, defs }, ctx: { formatter } } as never)
+    const values = async (bytes: Uint8Array) => Object.fromEntries((await inspectAcroFormFields(bytes)).map((field) => [field.name, field.value]))
+    expect(await values(direct)).toEqual(await values(adapted))
+    expect(await values(direct)).toMatchObject({ amount: '1.234,50\u00a0€', total: '1.234,50\u00a0€', owner: 'Ada', combined: '0, Nein' })
+  })
+
+  it('renders amount-only beside a preprinted symbol and retains it after flattening', async () => {
+    const formatter = createFormatter({ locale: 'en-US', overrides: { money: (value, _options, context) => context.delegate(value, { currencyDisplay: 'none', minimumFractionDigits: 2, maximumFractionDigits: 2 }) } })
+    const template = await renderPdf({ template: textFieldsPdf(['amount']), data: {}, overlays: [{ page: 1, x: 10, y: 20, text: '$' }] })
+    const filled = await renderPdf({ template, form, data, formatter, bindings: { amount: 'rows[0].amount' }, overlays: [{ page: 1, x: 30, y: 20, field: 'defs.total' }] })
+    expect((await inspectAcroFormFields(filled))[0]?.value).toBe('1,234.50')
+    const flattened = await flattenPdf(filled)
+    expect(await inspectAcroFormFields(flattened)).toEqual([])
+    const source = new TextDecoder('latin1').decode(flattened)
+    expect(source).toContain('($) Tj')
+    expect(source).toContain('(1,234.50) Tj')
+    expect(source).toContain('/PdrA0 Do')
+  })
+
+  it('preserves false checkbox identity and indexed numeric enum selections', async () => {
+    const output = await renderPdf({ template: compressedCheckboxPdf(['enabled', 'choice']), form, data,
+      bindings: { enabled: 'enabled', choice: 'rows[0].choice:1' } })
+    expect(Object.fromEntries((await inspectAcroFormFields(output)).map((field) => [field.name, field.value])))
+      .toMatchObject({ enabled: false, choice: true })
+  })
+
+  it('rejects malformed values, unknown overlay paths and unsupported script', async () => {
+    await expect(renderPdf({ template: textFieldsPdf(['amount']), form, data: { ...data, rows: [{ amount: { amount: 'bad', currency: 'EUR' } }] } }))
+      .rejects.toMatchObject({ path: 'fields.rows[0].amount', status: 'invalid' })
+    await expect(renderPdf({ template: pagePdf([[300, 300]]), form, data, overlays: [{ page: 1, x: 1, y: 1, field: 'rows[0].amount.unknown' }] }))
+      .rejects.toMatchObject({ status: 'invalid' })
+    await expect(renderPdf({ template: pagePdf([[300, 300]]), data: {}, overlays: [{ page: 1, x: 1, y: 1, text: 'مرحبا' }] }))
+      .rejects.toThrow('required font and script support')
   })
 })

@@ -31,7 +31,7 @@ describe('Anchor mode seal with pure converters', () => {
 			.title('Witnessed Contract')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
 			.parties({
-				witness: { label: 'Witness', types: ['person'], signature: { required: true } },
+				witness: { label: 'Witness', partyType: 'person', signature: { required: true } },
 			})
 			.inlineLayer('md', {
 				mimeType: 'text/markdown',

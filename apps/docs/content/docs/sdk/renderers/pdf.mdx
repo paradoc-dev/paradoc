@@ -93,7 +93,7 @@ function pdfRenderer(options?: PdfRendererOptions): ParadocRenderer<
 ### PdfRendererOptions
 
 <PropertiesTable properties={[
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry for formatting field values. Defaults to USA serializers.', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering (future feature).', isOptional: true },
 ]} />
 
@@ -128,7 +128,7 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
   { name: 'form', type: 'Form', description: 'Form schema for field type detection' },
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate form fields' },
   { name: 'bindings', type: 'Record<string, string>', description: 'Mapping from PDF field names to form field expressions', isOptional: true },
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry. Defaults to USA serializers.', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
 ]} />
 
@@ -259,3 +259,29 @@ Field values are automatically serialized based on their schema types:
 
 - [Renderers](/sdk/renderers) - Renderer interface overview
 - [Serialization](/sdk/serialization) - Value formatting
+
+# Artifact formatting
+
+Pass `formatter` to the artifact's `render()`, `prepareSeal()`, or `seal()` call to use the same presentation on every pass. Direct `renderPdf()` and `pdfRenderer()` also accept a formatter. Artifact context overrides the renderer default.
+
+For money boxes beside a preprinted currency symbol, configure the render explicitly:
+
+```ts
+import { createFormatter } from '@paradoc/format'
+
+const formatter = createFormatter({
+  locale: 'en-US',
+  overrides: {
+    money: (value, options, context) => context.delegate(value, {
+      ...options,
+      currencyDisplay: 'none',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }),
+  },
+})
+```
+
+Formatting applies to indexed fields, computed values, parties, and field overlays. Invalid values and unknown binding sources reject with field diagnostics. Checkboxes and selection controls retain their raw value identity.
+
+The native engine uses a WinAnsi standard font. Text outside that font's character set, including Arabic and narrow no-break spaces, rejects explicitly. Use a renderer with suitable font and script support for those documents.
