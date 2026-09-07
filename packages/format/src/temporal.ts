@@ -427,6 +427,7 @@ export type TemporalIntlOptions = DateFormatOptions | DatetimeFormatOptions | Ti
 
 export function dateTimeDefaults(kind: 'date' | 'datetime' | 'time', options: TemporalIntlOptions): Intl.DateTimeFormatOptions {
 	const raw = options as Intl.DateTimeFormatOptions & { timeZone?: string; calendar?: string }
+	if (raw.dateStyle !== undefined || raw.timeStyle !== undefined) return raw
 	const hasDateFields = ['weekday', 'year', 'month', 'day', 'dateStyle'].some((key) => raw[key as keyof typeof raw] !== undefined)
 	const hasTimeFields = ['dayPeriod', 'hour', 'minute', 'second', 'timeStyle'].some((key) => raw[key as keyof typeof raw] !== undefined)
 	const hasFractionalSecondDigits = raw.fractionalSecondDigits !== undefined

@@ -57,6 +57,8 @@ describe('@paradoc/format temporal values', () => {
 
 		expect(formatter.formatTime('15:30:12.123', { fractionalSecondDigits: 3 })).toBe('3:30:12.123 PM')
 		expect(formatter.formatDatetime('2026-09-04T15:30:12.123Z', { fractionalSecondDigits: 3 })).toBe('Sep 4, 2026, 3:30:12.123 PM')
+		expect(formatter.safeFormatDatetime('2026-09-04T15:30:12Z', { dateStyle: 'short' })).toMatchObject({ success: true, status: 'formatted' })
+		expect(formatter.safeFormatDatetime('2026-09-04T15:30:12Z', { timeStyle: 'short' })).toMatchObject({ success: true, status: 'formatted' })
 	})
 
 	it('supports explicit calendars and numbering systems independently', () => {
