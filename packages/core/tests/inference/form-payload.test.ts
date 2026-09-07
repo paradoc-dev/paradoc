@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import type { Form } from '@paradoc/types'
+import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
 import { compile, type FieldToDataType } from '@/inference/form-payload'
+import { validateFormData } from '@/validation'
 
 describe('form payload inference', () => {
 	test('infers recursive list item types', () => {
@@ -69,5 +71,24 @@ describe('form payload inference', () => {
 
 		expect(fields.status!.anyOf).toEqual([{ const: 'draft' }, { const: 'final' }])
 		expect(fields.tags!.items?.anyOf).toEqual([{ const: 'urgent' }, { const: 2 }])
+	})
+
+	test('uses the canonical duration pattern for submitted field validation', () => {
+		const form: Form = {
+			kind: 'form',
+			name: 'duration-form',
+			fields: { duration: { type: 'duration' } },
+		}
+		const durationSchema = compile(form).properties?.fields?.properties?.duration
+
+		expect(durationSchema?.pattern).toBe(ISO_8601_DURATION_PATTERN)
+
+		for (const value of ['P', 'PT', 'P1YT']) {
+			expect(validateFormData(form, { fields: { duration: value } }).success).toBe(false)
+		}
+
+		for (const value of ['P1Y', 'PT30M', 'P1DT12H', 'P1Y2M3DT4H5M6S', 'P2W']) {
+			expect(validateFormData(form, { fields: { duration: value } }).success).toBe(true)
+		}
 	})
 })

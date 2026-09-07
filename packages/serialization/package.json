@@ -71,6 +71,7 @@
     }
   },
   "dependencies": {
+    "@paradoc/schemas": "workspace:^",
     "@paradoc/types": "workspace:^"
   },
   "devDependencies": {

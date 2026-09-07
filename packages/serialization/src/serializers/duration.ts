@@ -3,13 +3,12 @@
  */
 
 import type { Duration } from '@paradoc/types'
+import { ISO_8601_DURATION_REGEX } from '@paradoc/schemas'
 
 /**
- * ISO 8601 duration regex pattern
- * Matches: P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S
+ * ISO 8601 duration regex pattern shared with the schema and core validators.
+ * Matches: P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S with at least one component.
  */
-const ISO_DURATION_REGEX = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/
-
 interface ParsedDuration {
 	years: number
 	months: number
@@ -24,7 +23,7 @@ interface ParsedDuration {
  * Parse an ISO 8601 duration string into components.
  */
 function parseDuration(value: string): ParsedDuration {
-	const match = value.match(ISO_DURATION_REGEX)
+	const match = value.match(ISO_8601_DURATION_REGEX)
 	if (!match) {
 		throw new Error(`Invalid ISO 8601 duration format: ${value}`)
 	}
@@ -103,7 +102,7 @@ function assertDuration(value: unknown): void {
 		throw new Error('Invalid duration: must start with "P" (e.g., "P1Y", "PT30M", "P1DT12H")')
 	}
 	// Validate full format
-	if (!ISO_DURATION_REGEX.test(value)) {
+	if (!ISO_8601_DURATION_REGEX.test(value)) {
 		throw new Error(`Invalid ISO 8601 duration format: ${value}`)
 	}
 }

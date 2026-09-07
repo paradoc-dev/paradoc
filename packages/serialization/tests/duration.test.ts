@@ -145,14 +145,16 @@ describe("duration Serializers", () => {
       }).toThrow();
     });
 
-    it("duration.stringify with P only returns 0 seconds", () => {
-      const result = usaSerializers.duration.stringify("P");
-      expect(result).toBe("0 seconds");
+    it("duration.stringify with P throws", () => {
+      expect(() => usaSerializers.duration.stringify("P")).toThrow();
     });
 
-    it("duration.stringify with PT only returns 0 seconds", () => {
-      const result = usaSerializers.duration.stringify("PT");
-      expect(result).toBe("0 seconds");
+    it("duration.stringify with PT throws", () => {
+      expect(() => usaSerializers.duration.stringify("PT")).toThrow();
+    });
+
+    it("duration.stringify with a date component followed by an empty time component throws", () => {
+      expect(() => usaSerializers.duration.stringify("P1YT")).toThrow();
     });
   });
 });

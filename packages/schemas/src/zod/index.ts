@@ -44,6 +44,8 @@ export {
 	BboxSchema,
 	CoordinateSchema,
 	DurationSchema,
+	ISO_8601_DURATION_PATTERN,
+	ISO_8601_DURATION_REGEX,
 	IdentificationSchema,
 	MoneySchema,
 	MetadataSchema,

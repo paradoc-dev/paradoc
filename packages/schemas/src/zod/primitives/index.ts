@@ -2,7 +2,7 @@ export { AddressSchema } from './address';
 export { AttachmentSchema } from './attachment';
 export { BboxSchema } from './bbox';
 export { CoordinateSchema } from './coordinate';
-export { DurationSchema } from './duration';
+export { DurationSchema, ISO_8601_DURATION_PATTERN, ISO_8601_DURATION_REGEX } from './duration';
 export { IdentificationSchema } from './identification';
 export { MetadataSchema } from './metadata';
 export { MoneySchema } from './money';
