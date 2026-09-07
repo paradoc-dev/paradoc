@@ -189,6 +189,27 @@ export interface ChecklistData {
 	items: Record<string, boolean | string>;
 }
 
+/**
+ * The normalized clock retained by a runtime artifact instance.
+ *
+ * The date is derived from the UTC instant so temporal expressions produce the
+ * same result on every host. The datetime is always an ISO 8601 instant.
+ */
+export interface RuntimeAsOf {
+	/** UTC calendar date used by `today()`, in `YYYY-MM-DD` form. */
+	date: string;
+	/** Normalized UTC instant used by `now()`. */
+	datetime: string;
+}
+
+/**
+ * Context captured when a runtime artifact instance is created.
+ */
+export interface RuntimeContext {
+	/** The fixed clock used by temporal expressions. */
+	asOf: RuntimeAsOf;
+}
+
 // =============================================================================
 // Signature Rendering Context Types
 // =============================================================================
@@ -286,6 +307,8 @@ export interface DraftFormJSON<F = unknown> {
 	signatories: Record<string, Record<string, PartySignatory[]>>;
 	/** Target layer key for rendering. */
 	targetLayer: string;
+	/** Captured evaluation context retained across instance lifecycles. */
+	context: RuntimeContext;
 }
 
 /**
@@ -320,6 +343,8 @@ export interface SignableFormJSON<F = unknown> {
 	attestations: Attestation[];
 	/** Target layer key for rendering. */
 	targetLayer: string;
+	/** Captured evaluation context retained across instance lifecycles. */
+	context: RuntimeContext;
 	// === Formal Signing Fields (Optional) ===
 	/** Signing field coordinates for e-signing services. Present when prepared for formal signing. */
 	signatureMap?: SigningField[];
@@ -358,6 +383,8 @@ export interface ExecutedFormJSON<F = unknown> {
 	attestations: Attestation[];
 	/** Target layer key for rendering. */
 	targetLayer: string;
+	/** Captured evaluation context retained across instance lifecycles. */
+	context: RuntimeContext;
 	/** ISO 8601 date-time when the form was executed. */
 	executedAt: string;
 }
@@ -401,6 +428,8 @@ export interface DraftChecklistJSON<C = unknown> {
 	items: Record<string, boolean | string>;
 	/** Target layer key for rendering. */
 	targetLayer: string;
+	/** Captured evaluation context retained across instance lifecycles. */
+	context: RuntimeContext;
 }
 
 /**
@@ -420,6 +449,8 @@ export interface CompletedChecklistJSON<C = unknown> {
 	items: Record<string, boolean | string>;
 	/** Target layer key for rendering. */
 	targetLayer: string;
+	/** Captured evaluation context retained across instance lifecycles. */
+	context: RuntimeContext;
 	/** ISO 8601 date-time when the checklist was completed. */
 	completedAt: string;
 }
@@ -522,6 +553,8 @@ export interface RuntimeContentJSON {
 	data?: unknown;
 	/** Current phase of this content item. */
 	phase?: string;
+	/** Captured evaluation context for runtime forms and checklists. */
+	context?: RuntimeContext;
 }
 
 /**

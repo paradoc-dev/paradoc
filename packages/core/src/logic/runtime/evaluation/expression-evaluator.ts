@@ -103,6 +103,7 @@ function buildExprContext(context: EvaluationContext): ExprContext {
 	return {
 		lookup: (name) => (name in record ? toValue(record[name]) : undefined),
 		hostFunctions,
+		asOf: context.asOf,
 	}
 }
 

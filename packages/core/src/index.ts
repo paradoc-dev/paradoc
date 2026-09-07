@@ -102,6 +102,7 @@ export type {
   ProgressiveChecklistPayload,
   ChecklistPath,
   ChecklistValidationMode,
+  ChecklistFillOptions,
   ChecklistPartialFillOptions,
   ChecklistUpdateOptions,
   ChecklistValidationResult,
@@ -129,6 +130,10 @@ export type {
   ArtifactLayerRenderOptions,
   LayerRenderOptions,
   ResolverBindingSite,
+  RuntimeAsOfInput,
+  RuntimeContext,
+  RuntimeContextOptions,
+  RuntimeCreationOptions,
   // Builder types
   FieldAPI,
   TextFieldBuilder,

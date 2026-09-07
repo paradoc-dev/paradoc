@@ -17,6 +17,7 @@ import type {
 } from '@paradoc/types'
 import { inferPartyType } from '@/primitives/party'
 import type { EvaluationContext, NestedFieldValues, PartyContextEntry } from './types'
+import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { topologicalSortDefsKeys } from '../../design-time/type-checking/build-type-environment'
 import { evaluateExpressionOrDefault } from './expression-evaluator'
 
@@ -50,6 +51,7 @@ export interface FormDataPayload {
   parties?: Record<string, Party | Party[]>
   witnesses?: Party[]
   signatures?: Record<string, Signature | Signature[]>
+	context?: RuntimeContext
 }
 
 /**
@@ -360,13 +362,23 @@ export function buildFormContext(form: Form, data: FormDataPayload): EvaluationC
   const witnesses = buildWitnessesContext(data.witnesses, undefined)
 
   // Create base context with fields, parties, and witnesses
-  const baseContext: EvaluationContext = { fields, parties, witnesses }
+  const baseContext: EvaluationContext = {
+		fields,
+		parties,
+		witnesses,
+		...(data.context?.asOf && { asOf: data.context.asOf }),
+	}
 
   // Evaluate defs keys and add to context
   const defsValues = evaluateDefsKeys(form.defs, baseContext)
 
   // Merge defs keys into context
-  const context: EvaluationContext = { fields, parties, witnesses }
+  const context: EvaluationContext = {
+		fields,
+		parties,
+		witnesses,
+		...(data.context?.asOf && { asOf: data.context.asOf }),
+	}
   for (const [key, value] of defsValues) {
     ;(context as Record<string, unknown>)[key] = value
   }

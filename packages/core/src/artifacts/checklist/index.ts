@@ -14,6 +14,7 @@ export type {
 	ProgressiveChecklistPayload,
 	ChecklistPath,
 	ChecklistValidationMode,
+	ChecklistFillOptions,
 	ChecklistPartialFillOptions,
 	ChecklistUpdateOptions,
 	ChecklistValidationResult,

@@ -21,6 +21,8 @@ export interface PartialFillOptions {
 	validate?: FillValidationMode
 	/** Whether to evaluate and report rules. Default: false */
 	rules?: boolean
+	/** Fixed context captured by the new runtime instance. */
+	context?: import('@/artifacts/shared/runtime-context').RuntimeContextOptions
 }
 
 /**

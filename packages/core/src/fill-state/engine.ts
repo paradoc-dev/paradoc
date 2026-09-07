@@ -15,6 +15,7 @@ import type {
 	FillState,
 } from './types'
 import type { FormRuntimeState } from '@/logic/runtime/evaluation/types'
+import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 import { buildFormContext } from '@/logic/runtime/evaluation/context-builder'
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
@@ -203,6 +204,7 @@ export function computeFillState(
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
 	witnessValues: Party[] = [],
+	contextValue?: RuntimeContext,
 ): FillState {
 	const requiredFirst = options?.requiredFirst !== false
 	const includeOptional = options?.includeOptional === true
@@ -210,6 +212,7 @@ export function computeFillState(
 		fields: fieldValues,
 		parties: partyValues as Record<string, Party | Party[]>,
 		witnesses: witnessValues,
+		context: contextValue,
 	})
 
 	const graph = buildFieldDependencyGraph(form)
@@ -432,8 +435,9 @@ export function computeRuntimeState(
 	fieldValues: Record<string, unknown>,
 	partyValues: Record<string, Party | Party[]> = {},
 	witnesses: Party[] = [],
+	context?: RuntimeContext,
 ): FormRuntimeState {
-	const result = evaluateFormDefs(form, { fields: fieldValues, parties: partyValues, witnesses })
+	const result = evaluateFormDefs(form, { fields: fieldValues, parties: partyValues, witnesses, context })
 	if ('value' in result) {
 		return result.value
 	}
@@ -451,8 +455,9 @@ export function getAvailableFillTargets(
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
 	witnessValues: Party[] = [],
+	context?: RuntimeContext,
 ): FillTarget[] {
-	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues)
+	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues, context)
 	return state.candidates
 }
 
@@ -467,7 +472,8 @@ export function getNextFillTarget(
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
 	witnessValues: Party[] = [],
+	context?: RuntimeContext,
 ): FillTarget | null {
-	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues)
+	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues, context)
 	return state.next
 }

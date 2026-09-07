@@ -21,6 +21,12 @@ export type {
 	LayerRenderOptions,
 	ResolverBindingSite,
 } from './shared'
+export type {
+	RuntimeAsOfInput,
+	RuntimeContext,
+	RuntimeContextOptions,
+	RuntimeCreationOptions,
+} from './shared/runtime-context'
 
 // Closure-based builders (independent from artifacts/)
 export {
@@ -128,6 +134,7 @@ export type {
 	ProgressiveChecklistPayload,
 	ChecklistPath,
 	ChecklistValidationMode,
+	ChecklistFillOptions,
 	ChecklistPartialFillOptions,
 	ChecklistUpdateOptions,
 	ChecklistValidationResult,

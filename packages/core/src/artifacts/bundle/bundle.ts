@@ -277,6 +277,7 @@ function serializeInstance(instance: RuntimeInstance): RuntimeContentJSON {
 			kind: 'form',
 			artifact: json.form,
 			targetLayer: json.targetLayer,
+			context: json.context,
 			data: {
 				fields: json.fields,
 				parties: json.parties,
@@ -299,6 +300,7 @@ function serializeInstance(instance: RuntimeInstance): RuntimeContentJSON {
 			kind: 'checklist',
 			artifact: json.checklist,
 			targetLayer: json.targetLayer,
+			context: json.context,
 			data: json.items,
 			phase: json.phase,
 		}

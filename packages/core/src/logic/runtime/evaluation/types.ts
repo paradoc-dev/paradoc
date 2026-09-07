@@ -7,6 +7,7 @@
  */
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { AsOf } from '@paradoc/expr'
 
 /**
  * Runtime state of a single field after expression evaluation.
@@ -104,6 +105,8 @@ export interface EvaluationContext {
   parties?: Record<string, PartyContextEntry[]>
   /** Witness data as an array */
   witnesses?: PartyContextEntry[]
+  /** Fixed clock for temporal expressions. */
+  asOf?: AsOf
   /** Resolved defs key values (dynamic keys) */
   [defsKey: string]: unknown
 }

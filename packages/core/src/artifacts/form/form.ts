@@ -108,6 +108,12 @@ import type {
 	FillState,
 } from '@/fill-state/types'
 import { computeFillState, getAvailableFillTargets, getNextFillTarget } from '@/fill-state/engine'
+import {
+	captureRuntimeContext,
+	restoreRuntimeContext,
+	type RuntimeContext,
+	type RuntimeContextOptions,
+} from '../shared/runtime-context'
 
 // ============================================================================
 // Type Inference for Form Payloads
@@ -599,7 +605,7 @@ function createMissingValueError(kind: 'field' | 'annex', key: string): Validati
 function validateCompleteFormData(
 	formDef: Form,
 	data: CompleteFormData,
-	options?: { applyDefaults?: boolean },
+	options?: { applyDefaults?: boolean; context?: RuntimeContext },
 ): CompleteFormData {
 	// Schema validation checks every supplied value, but does not decide which
 	// values are required. That decision comes from the evaluated runtime state.
@@ -616,11 +622,11 @@ function validateCompleteFormData(
 	const fields = validated.fields ?? data.fields
 	const parties = validated.parties ?? data.parties
 	const annexes = validated.annexes ?? data.annexes
-	const runtimeResult = evaluateFormDefs(formDef, { fields, parties })
+	const runtimeResult = evaluateFormDefs(formDef, { fields, parties, context: options?.context })
 	const runtimeState = 'value' in runtimeResult
 		? runtimeResult.value
 		: { fields: new Map(), annexes: new Map(), defsValues: new Map() }
-	const fillState = computeFillState(formDef, fields, parties, annexes, runtimeState)
+	const fillState = computeFillState(formDef, fields, parties, annexes, runtimeState, undefined, [], options?.context)
 	const missingValues = fillState.openRequired
 		.filter((item) => item.kind === 'field' || item.kind === 'annex')
 		.map((item) => createMissingValueError(item.kind === 'field' ? 'field' : 'annex', item.key))
@@ -628,7 +634,7 @@ function validateCompleteFormData(
 		throw new FormValidationError(missingValues)
 	}
 
-	const partyContext = buildFormContext(formDef, { fields, parties })
+	const partyContext = buildFormContext(formDef, { fields, parties, context: options?.context })
 
 	for (const [roleId, formParty] of Object.entries(formDef.parties ?? {})) {
 		const partyResult = validatePartiesForRole(
@@ -650,9 +656,13 @@ function validateCompleteFormData(
 	}
 }
 
-function collectRuntimeValidationErrors(formDef: Form, data: CompleteFormData): ValidationError[] {
+function collectRuntimeValidationErrors(
+	formDef: Form,
+	data: CompleteFormData,
+	context?: RuntimeContext,
+): ValidationError[] {
 	try {
-		validateCompleteFormData(formDef, data)
+		validateCompleteFormData(formDef, data, { context })
 		return []
 	} catch (error) {
 		if (error instanceof FormValidationError) {
@@ -685,6 +695,8 @@ function validateFieldsOnly(formDef: Form, fields: Record<string, unknown>): Rec
 export interface FillValidationOptions {
 	/** Whether to validate rules after filling. Defaults to true. */
 	rules?: boolean
+	/** Fixed context captured by the new runtime instance. */
+	context?: RuntimeContextOptions
 }
 
 /**
@@ -838,6 +850,9 @@ interface RuntimeFormBase<F extends Form> {
 
 	/** Party data indexed by role ID */
 	readonly parties: Record<string, Party | Party[]>
+
+	/** Fixed evaluation context captured when this instance was created. */
+	readonly context: RuntimeContext
 
 	/** Annex data indexed by annex ID */
 	readonly annexes: Record<string, unknown>
@@ -1190,6 +1205,7 @@ interface RuntimeFormConfigBase<F extends Form> {
 	signatureMap?: SigningField[]
 	canonicalPdfHash?: string
 	canonicalPdfBytes?: Uint8Array
+	context: RuntimeContext
 }
 
 interface RuntimeFormConfigDraft<F extends Form> extends RuntimeFormConfigBase<F> {
@@ -1238,6 +1254,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		signatureMap: signatureMapInput,
 		canonicalPdfHash,
 		canonicalPdfBytes: canonicalPdfBytesInput,
+		context,
 	} = config
 	assertValidArtifactDefinition(formDef)
 
@@ -1281,6 +1298,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 	const attestationsView = deepReadonlyClone(attestations)
 	const signatureMapView = signatureMap === undefined ? undefined : deepReadonlyClone(signatureMap)
 	const canonicalPdfBytesView = canonicalPdfBytes === undefined ? undefined : deepReadonlyClone(canonicalPdfBytes)
+	const contextView = deepReadonlyClone(context)
 
 	// Cached runtime state
 	let _runtimeState: FormRuntimeState | null = null
@@ -1319,6 +1337,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				fields: fieldValues,
 				parties: partyValues,
 				witnesses: witnesses.map((witness) => witness.party),
+				context,
 			})
 			if ('value' in result) {
 				_runtimeState = result.value
@@ -1405,6 +1424,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		},
 		get parties() {
 			return partiesView
+		},
+		get context() {
+			return contextView
 		},
 		get annexes() {
 			return annexesView
@@ -1691,7 +1713,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					fields: validatedFields,
 					parties: validatedParties,
 					annexes: validatedAnnexes,
-				}, { applyDefaults: false })
+				}, { applyDefaults: false, context })
 				validatedFields = validated.fields
 				validatedParties = validated.parties
 				validatedAnnexes = validated.annexes
@@ -1774,17 +1796,26 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		getFillState(options?: FillTargetOptions): FillState {
 			const state = getRuntimeState()
-			return computeFillState(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party))
+			return computeFillState(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party), context)
 		},
 
 		getNextFillTarget(options?: FillTargetOptions): FillTarget | null {
 			const state = getRuntimeState()
-			return getNextFillTarget(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party))
+			return getNextFillTarget(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party), context)
 		},
 
 		getAvailableFillTargets(options?: FillTargetOptions): FillTarget[] {
 			const state = getRuntimeState()
-			return getAvailableFillTargets(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party))
+			return getAvailableFillTargets(
+				formDef,
+				fieldValues,
+				partyValues,
+				annexValues,
+				state,
+				options,
+				witnesses.map((witness) => witness.party),
+				context,
+			)
 		},
 
 		// ============================================================================
@@ -2082,12 +2113,13 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		validateRules(): FormRulesValidationResult {
 			const state = getRuntimeState()
-			const context = buildFormContext(formDef, {
+			const evaluationContext = buildFormContext(formDef, {
 				fields: fieldValues,
 				parties: partyValues,
 				witnesses: witnesses.map((witness) => witness.party),
+				context,
 			})
-			return evaluateFormRules(formDef, fieldValues, state.defsValues, context)
+			return evaluateFormRules(formDef, fieldValues, state.defsValues, evaluationContext)
 		},
 
 		getVisibleFields(): FieldRuntimeState[] {
@@ -2138,7 +2170,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				fields: fieldValues,
 				parties: partyValues,
 				annexes: annexValues,
-			})
+			}, context)
 			return { valid: errors.length === 0 && rules.valid, errors, rules }
 		},
 
@@ -3011,6 +3043,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					annexes: deepClone(annexValues),
 					signers: deepClone(signerValues),
 					signatories: deepClone(signatoryValues),
+					context: deepClone(context),
 					targetLayer,
 				}
 			}
@@ -3026,6 +3059,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					captures: deepClone(captures),
 					witnesses: deepClone(witnesses),
 					attestations: deepClone(attestations),
+					context: deepClone(context),
 					targetLayer,
 					...(signatureMap && { signatureMap: deepClone(signatureMap) }),
 					...(canonicalPdfHash && { canonicalPdfHash }),
@@ -3042,6 +3076,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				captures: deepClone(captures),
 				witnesses: deepClone(witnesses),
 				attestations: deepClone(attestations),
+				context: deepClone(context),
 				targetLayer,
 				executedAt: executedAt!,
 			}
@@ -3091,6 +3126,7 @@ export function runtimeFormFromJSON<F extends Form>(
 		executedAt: 'executedAt' in json ? json.executedAt : undefined,
 		signatureMap: 'signatureMap' in json ? json.signatureMap : undefined,
 		canonicalPdfHash: 'canonicalPdfHash' in json ? json.canonicalPdfHash : undefined,
+		context: restoreRuntimeContext(json.context),
 	} as RuntimeFormConfig<F>
 	return createRuntimeForm(config)
 }
@@ -3157,6 +3193,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			fill(data: InferFormPayload<F>, options?: FillValidationOptions): DraftForm<F> {
 			assertValidArtifactDefinition(formDef)
 			const checkRules = options?.rules !== false
+			const context = captureRuntimeContext(options)
 
 			// Normalize data
 			const fields = data.fields ?? {}
@@ -3165,7 +3202,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const signers = data.signers ?? {}
 			const signatories = data.signatories ?? {}
 
-			const validated = validateCompleteFormData(formDef, { fields, parties, annexes })
+			const validated = validateCompleteFormData(formDef, { fields, parties, annexes }, { context })
 
 			const targetLayer = formDef.defaultLayer || (formDef.layers ? Object.keys(formDef.layers)[0] : '') || ''
 
@@ -3179,6 +3216,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				targetLayer,
 				resolver,
 				phase: 'draft',
+				context,
 			})
 
 			if (checkRules) {
@@ -3197,7 +3235,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			// Try to create the draft
 			let draft: DraftForm<F>
 			try {
-				draft = instance.fill(data, { rules: false })
+				draft = instance.fill(data, { ...options, rules: false })
 			} catch (err) {
 				return { success: false, error: err as Error }
 			}
@@ -3221,6 +3259,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			assertValidArtifactDefinition(formDef)
 			const validate = options?.validate ?? 'patch'
 			const checkRules = options?.rules === true
+			const context = captureRuntimeContext(options)
 
 			const fields = (seed as Record<string, unknown> | undefined)?.fields ?? {}
 			const parties = (seed as Record<string, unknown> | undefined)?.parties ?? {}
@@ -3259,7 +3298,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 					fields: fields as Record<string, unknown>,
 					parties: parties as Record<string, Party | Party[]>,
 					annexes: annexes as Record<string, unknown>,
-				})
+				}, { context })
 				validatedFields = validated.fields
 				validatedParties = validated.parties
 				validatedAnnexes = validated.annexes
@@ -3278,6 +3317,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				targetLayer,
 				resolver,
 				phase: 'draft',
+				context,
 			})
 
 			if (checkRules) {
