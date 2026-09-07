@@ -3609,7 +3609,7 @@
       "properties": {
         "amount": {
           "type": "number",
-          "description": "Monetary amount in the smallest currency unit (e.g., cents for USD) or as a decimal (e.g., 99.99 for USD). Negative values allowed for debts/credits"
+          "description": "Monetary amount expressed in decimal form (e.g., 99.99 for USD). Negative values allowed for debts/credits"
         },
         "currency": {
           "type": "string",
