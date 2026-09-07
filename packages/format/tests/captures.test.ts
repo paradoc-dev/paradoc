@@ -36,23 +36,25 @@ describe('@paradoc/format geography and capture values', () => {
 	it('formats every capture family through direct, dynamic, and standalone operations', () => {
 		const formatter = createFormatter()
 
-		expect(formatter.formatCoordinate(coordinate)).toBe('40.7128,-74.006')
-		expect(formatter.formatBbox(bbox)).toBe('40.4774,-74.2591,40.9176,-73.7004')
+		expect(formatter.formatCoordinate(coordinate)).toBe('40.7128; -74.006')
+		expect(formatter.formatBbox(bbox)).toBe('40.4774; -74.2591 | 40.9176; -73.7004')
 		expect(formatter.formatIdentification(identification)).toBe('passport: A1 (US, issued Jan 15, 2020, expires Jan 14, 2030)')
 		expect(formatter.formatAttachment(attachment)).toBe('contract.pdf (application/pdf)')
 		expect(formatter.formatSignature(signature)).toBe('Signature (drawn) on Sep 4, 2026')
-		expect(formatCoordinate(coordinate)).toBe('40.7128,-74.006')
-		expect(formatBbox(bbox)).toBe('40.4774,-74.2591,40.9176,-73.7004')
+		expect(formatCoordinate(coordinate)).toBe('40.7128; -74.006')
+		expect(formatBbox(bbox)).toBe('40.4774; -74.2591 | 40.9176; -73.7004')
 		expect(formatIdentification(identification)).toContain('passport: A1')
 		expect(formatAttachment(attachment)).toBe('contract.pdf (application/pdf)')
 		expect(formatSignature(signature)).toContain('Signature (drawn)')
-		expect(safeFormatValue('coordinate', coordinate)).toMatchObject({ success: true, status: 'formatted', value: '40.7128,-74.006' })
+		expect(safeFormatValue('coordinate', coordinate)).toMatchObject({ success: true, status: 'formatted', value: '40.7128; -74.006' })
 		expect(safeFormatValue('signature', signature)).toMatchObject({ success: true, status: 'formatted' })
 	})
 
 	it('localizes nested dates and package-owned capture labels', () => {
 		const formatter = createFormatter({ locale: 'de-DE' })
 
+		expect(formatter.formatCoordinate(coordinate)).toBe('40,7128; -74,006')
+		expect(formatter.formatBbox(bbox)).toBe('40,4774; -74,2591 | 40,9176; -73,7004')
 		expect(formatter.formatIdentification(identification)).toBe('passport: A1 (US, ausgestellt 15. Jan. 2020, gültig bis 14. Jan. 2030)')
 		expect(formatter.formatSignature(signature)).toBe('Unterschrift (gezeichnet) am 4. Sept. 2026')
 
@@ -74,11 +76,15 @@ describe('@paradoc/format geography and capture values', () => {
 		expect(formatter.safeFormatBbox({ southWest: { lat: 'bad' }, northEast: undefined })).toMatchObject({ success: false, status: 'invalid' })
 		expect(formatter.safeFormatIdentification({ type: 7 })).toMatchObject({ success: false, status: 'invalid' })
 		expect(formatter.safeFormatAttachment({ name: 'x', mimeType: 'text/plain', checksum: 'bad' })).toMatchObject({
-		success: false,
-		status: 'invalid',
+		 success: false,
+		 status: 'invalid',
 	})
 		expect(formatter.safeFormatSignature({ method: 'drawn' })).toMatchObject({ success: false, status: 'incomplete' })
 		expect(formatter.safeFormatSignature({ timestamp: 'not-a-date', method: 'drawn' })).toMatchObject({ success: false, status: 'invalid' })
+		expect(formatter.safeFormatSignature({ timestamp: '2026-01-01T00:00:00', method: 'drawn' })).toMatchObject({ success: false, status: 'invalid' })
+		expect(formatter.safeFormatSignature({ timestamp: '2026-01-01T00:00:00+01:00', method: 'drawn' })).toMatchObject({ success: false, status: 'invalid' })
+		expect(formatter.safeFormatSignature({ timestamp: '2026-01-01 00:00:00Z', method: 'drawn' })).toMatchObject({ success: false, status: 'invalid' })
+		expect(formatter.safeFormatSignature({ timestamp: '2026-01-01T00:00:00Z', method: 'drawn' })).toMatchObject({ success: true, status: 'formatted' })
 	})
 
 	it('retains nested issue paths when a supplied member is malformed', () => {
@@ -89,7 +95,7 @@ describe('@paradoc/format geography and capture values', () => {
 
 		const signatureResult = formatter.safeFormatSignature({ timestamp: '2026-01-01T00:00:00+25:00' })
 		if (signatureResult.success) throw new Error('expected signature failure')
-		expect(signatureResult.issues.map((item) => item.path)).toContain('timestamp.offset')
+		expect(signatureResult.issues.map((item) => item.path)).toContain('timestamp')
 		expect(signatureResult.issues.map((item) => item.path)).toContain('method')
 	})
 
@@ -102,9 +108,9 @@ describe('@paradoc/format geography and capture values', () => {
 				signature: (value, options, context) => `captured: ${context.delegate(value, options)}`,
 			})
 
-		expect(base.formatCoordinate(coordinate)).toBe('40.7128,-74.006')
-		expect(custom.formatCoordinate(coordinate)).toBe('[40.7,-74]')
-		expect(custom.formatBbox(bbox)).toBe('[40.5,-74.3],[40.9,-73.7]')
+		expect(base.formatCoordinate(coordinate)).toBe('40.7128; -74.006')
+		expect(custom.formatCoordinate(coordinate)).toBe('[40.7; -74]')
+		expect(custom.formatBbox(bbox)).toBe('[40.5; -74.3] | [40.9; -73.7]')
 		expect(custom.formatSignature(signature)).toBe('captured: Signature (drawn) on Sep 4, 2026')
 
 		const broken = base.withOverrides({ coordinate: () => 42 as never })

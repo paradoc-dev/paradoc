@@ -27,11 +27,11 @@ formatter.formatAddress({
   country: 'GB',
 }) // '10 Downing Street, London, Greater London, SW1A 2AA, GB'
 
-formatter.formatCoordinate({ lat: 40.7128, lon: -74.006 }) // '40.7128,-74.006'
+formatter.formatCoordinate({ lat: 40.7128, lon: -74.006 }) // '40.7128; -74.006'
 formatter.formatBbox({
   southWest: { lat: 40.4774, lon: -74.2591 },
   northEast: { lat: 40.9176, lon: -73.7004 },
-}) // '40.4774,-74.2591,40.9176,-73.7004'
+}) // '40.4774; -74.2591 | 40.9176; -73.7004'
 formatter.formatIdentification({
   type: 'passport',
   number: 'A1',
@@ -40,6 +40,8 @@ formatter.formatIdentification({
 formatter.formatAttachment({ name: 'contract.pdf', mimeType: 'application/pdf' }) // 'contract.pdf (application/pdf)'
 formatter.formatSignature({ timestamp: '2026-09-04T15:30:00Z', method: 'drawn' }) // 'Signature (drawn) on Sep 4, 2026'
 ```
+
+Coordinates use `latitude; longitude`; bounding boxes use `southWest | northEast`. The semicolon and pipe separators remain unambiguous when a locale uses a comma as its decimal separator. Coordinate values default to up to nine fractional digits and accept the same number precision options as `formatNumber`.
 
 Address country and document locale are independent. The default `layout: 'country'` policy provides layouts for US, GB, DE, FR, and SA and returns an `unsupported` result for another country. Select `layout: 'generic'` when a component-preserving layout is appropriate, or provide a `countryLayouts` object whose ISO country-code keys map to formatter functions for another country. Party values with only the shared `name` member are ambiguous; use `partyType: 'person'` or provide a distinguishing person or organization member.
 

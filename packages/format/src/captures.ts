@@ -218,6 +218,7 @@ export function validateBbox(value: unknown): CaptureValidation<Bbox> {
 }
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+const SIGNATURE_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?Z$/
 
 function validateIdentificationDate(value: unknown, key: 'issueDate' | 'expiryDate', issues: FormatIssue[]): string | undefined {
 	if (isMissing(value)) return undefined
@@ -294,8 +295,8 @@ export function validateSignature(value: unknown): CaptureValidation<Signature> 
 	let timestamp: string | undefined
 	if (isMissing(timestampValue)) {
 		issues.push(captureIssue('signature', 'missing_member', 'timestamp is required.', 'timestamp'))
-	} else if (typeof timestampValue !== 'string' || timestampValue.length === 0) {
-		issues.push(captureIssue('signature', 'invalid_member', 'timestamp must be a non-empty ISO datetime string.', 'timestamp'))
+	} else if (typeof timestampValue !== 'string' || timestampValue.length === 0 || !SIGNATURE_TIMESTAMP_PATTERN.test(timestampValue)) {
+		issues.push(captureIssue('signature', 'invalid_member', 'timestamp must be a UTC ISO datetime string using a T separator and Z offset.', 'timestamp'))
 	} else {
 		const temporal = validateDatetime(timestampValue)
 		if (!temporal.ok) {
@@ -385,14 +386,14 @@ export function formatCoordinateValue(
 	context: CaptureFormattingContext,
 ): string {
 	const numberOptions = { maximumFractionDigits: 9, ...options }
-	return `${context.formatNumber(value.lat, numberOptions)},${context.formatNumber(value.lon, numberOptions)}`
+	return `${context.formatNumber(value.lat, numberOptions)}; ${context.formatNumber(value.lon, numberOptions)}`
 }
 
 export function formatBboxValue(value: Bbox, options: BboxFormatOptions, context: CaptureFormattingContext): string {
 	return [
 		context.formatCoordinate(value.southWest, options),
 		context.formatCoordinate(value.northEast, options),
-	].join(',')
+	].join(' | ')
 }
 
 export function formatIdentificationValue(
