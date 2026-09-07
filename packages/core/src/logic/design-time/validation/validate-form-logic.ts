@@ -17,6 +17,7 @@ import { collectFieldPaths } from './field-paths'
 import {
   buildFormRuleTypeEnvironment,
   buildFormTypeEnvironment,
+  DEFINITION_PROPERTY_TYPES,
   validateBooleanType,
   validateExpressionType,
   topologicalSortDefsKeys,
@@ -58,45 +59,6 @@ const SCALAR_DEFINITION_TYPES: Record<ScalarExpressionType, ExprType> = {
   duration: T.duration,
 }
 
-/** Expected types for object-valued definition properties. */
-const OBJECT_DEFINITION_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
-  money: { amount: T.number, currency: T.string },
-  address: {
-    line1: T.string,
-    line2: T.string,
-    locality: T.string,
-    region: T.string,
-    postalCode: T.string,
-    country: T.string,
-  },
-  phone: { number: T.string, type: T.string, extension: T.string },
-  coordinate: { lat: T.number, lon: T.number },
-  bbox: { north: T.number, south: T.number, east: T.number, west: T.number },
-  person: {
-    name: T.string,
-    firstName: T.string,
-    middleName: T.string,
-    lastName: T.string,
-    suffix: T.string,
-    title: T.string,
-  },
-  organization: {
-    name: T.string,
-    legalName: T.string,
-    domicile: T.string,
-    entityType: T.string,
-    entityId: T.string,
-    taxId: T.string,
-  },
-  identification: {
-    type: T.string,
-    number: T.string,
-    issuer: T.string,
-    issueDate: T.date,
-    expiryDate: T.date,
-  },
-}
-
 /**
  * Options for logic validation
  */
@@ -135,7 +97,7 @@ function addDefinitionPaths(
   for (const [key, expr] of Object.entries(defs)) {
     validVariables.add(key)
     if (!isScalarExpressionType(expr.type)) {
-      const properties = OBJECT_DEFINITION_PROPERTY_TYPES[expr.type]
+      const properties = DEFINITION_PROPERTY_TYPES[expr.type]
       if (properties) {
         for (const property of Object.keys(properties)) {
           validVariables.add(`${key}.${property}`)
@@ -569,7 +531,7 @@ function typeCheckDefsExpressions(
       continue
     }
 
-    const propertyTypes = OBJECT_DEFINITION_PROPERTY_TYPES[expr.type]
+    const propertyTypes = DEFINITION_PROPERTY_TYPES[expr.type]
     if (!propertyTypes) continue
     const values = expr.value as unknown as Record<string, string | undefined>
     for (const [property, propertyType] of Object.entries(propertyTypes)) {

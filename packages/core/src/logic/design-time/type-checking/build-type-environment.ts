@@ -75,8 +75,8 @@ const FIELD_TYPE_TO_EXPR: Record<string, ExprType> = {
   list: T.array(T.unknown),
 }
 
-/** Properties exposed by object-valued definitions and their expression types. */
-const OBJECT_DEFS_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
+/** Statically known properties exposed by object-valued definition expressions. */
+export const DEFINITION_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
   money: { amount: T.number, currency: T.string },
   address: {
     line1: T.string,
@@ -185,7 +185,7 @@ function registerDefType(
     ? check(expr.value as string, createTypeEnv(acc)).type
     : objectDefsExprType(expr)
 
-  const properties = OBJECT_DEFS_PROPERTY_TYPES[expr.type]
+  const properties = DEFINITION_PROPERTY_TYPES[expr.type]
   if (properties) {
     for (const [property, propertyType] of Object.entries(properties)) {
       acc[`${fullKey}.${property}`] = propertyType

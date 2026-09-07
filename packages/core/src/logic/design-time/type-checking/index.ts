@@ -31,6 +31,7 @@ export {
   buildFormTypeEnvironment,
   buildFormRuleTypeEnvironment,
   buildBundleTypeEnvironment,
+  DEFINITION_PROPERTY_TYPES,
 } from './build-type-environment'
 
 // Boolean-gate type validation
