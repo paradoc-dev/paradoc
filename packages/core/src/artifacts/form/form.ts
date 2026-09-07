@@ -2892,7 +2892,14 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		async render<Output = string | Uint8Array>(options: RuntimeFormRenderOptions<Output> = {}): Promise<Output> {
-			const { renderer: rendererOverride, renderers, layer: layerKey, bindings: optionsBindings } = options
+			const {
+				renderer: rendererOverride,
+				renderers,
+				formatter,
+				progressive,
+				layer: layerKey,
+				bindings: optionsBindings,
+			} = options
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -2966,6 +2973,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					...(Object.keys(augmentedParties).length > 0 && { parties: augmentedParties }),
 				},
 				bindings,
+				ctx: formatter || progressive ? { formatter, progressive } : undefined,
 			}) as Output
 		},
 
@@ -3189,7 +3197,15 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 		async render<Output = string | Uint8Array>(options: RenderOptions<Output> = {}): Promise<Output> {
 			assertValidArtifactDefinition(formDef)
-			const { renderer: rendererOverride, renderers, data = {}, layer: layerKey, bindings: optionsBindings } = options
+			const {
+				renderer: rendererOverride,
+				renderers,
+				formatter,
+				progressive,
+				data = {},
+				layer: layerKey,
+				bindings: optionsBindings,
+			} = options
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -3238,6 +3254,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				form: formDef,
 				data: formData,
 				bindings,
+				ctx: formatter || progressive ? { formatter, progressive } : undefined,
 			}) as Output
 		},
 

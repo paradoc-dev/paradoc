@@ -43,6 +43,7 @@ import {
 	type CaptureFormattingContext,
 	type CaptureValidation,
 } from './captures'
+import { BUILT_IN_FIELD_MESSAGES } from './field-messages'
 import { FormatConfigurationError, FormatError } from './errors'
 import {
 	FORMAT_KINDS,
@@ -701,7 +702,10 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 		attachment: cloneAndFreeze(attachmentOptions),
 		signature: cloneAndFreeze(signatureOptions),
 		messages: mergeMessages(
-			mergeMessages(mergeMessages(BUILT_IN_CONTACT_MESSAGES, BUILT_IN_TEMPORAL_MESSAGES), BUILT_IN_CAPTURE_MESSAGES),
+			mergeMessages(
+				mergeMessages(mergeMessages(BUILT_IN_CONTACT_MESSAGES, BUILT_IN_TEMPORAL_MESSAGES), BUILT_IN_CAPTURE_MESSAGES),
+				BUILT_IN_FIELD_MESSAGES,
+			),
 			options.messages,
 		),
 	}

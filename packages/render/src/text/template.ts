@@ -1,4 +1,5 @@
 import { pathSegments } from '../path'
+import { unwrapFormattedValue } from './field-formatter'
 
 interface TextNode {
   type: 'text'
@@ -34,17 +35,24 @@ type InternalHelper = (args: unknown[], frame: Frame, root: Record<string, unkno
 const blockedProperties = new Set(['__proto__', 'constructor', 'prototype'])
 
 const builtInHelpers: Record<string, InternalHelper> = {
-  eq: ([a, b]) => a === b,
-  ne: ([a, b]) => a !== b,
-  gt: ([a, b]) => Number(a) > Number(b),
-  gte: ([a, b]) => Number(a) >= Number(b),
-  lt: ([a, b]) => Number(a) < Number(b),
-  lte: ([a, b]) => Number(a) <= Number(b),
+  eq: ([a, b]) => unwrapFormattedValue(a) === unwrapFormattedValue(b),
+  ne: ([a, b]) => unwrapFormattedValue(a) !== unwrapFormattedValue(b),
+  gt: ([a, b]) => Number(unwrapFormattedValue(a)) > Number(unwrapFormattedValue(b)),
+  gte: ([a, b]) => Number(unwrapFormattedValue(a)) >= Number(unwrapFormattedValue(b)),
+  lt: ([a, b]) => Number(unwrapFormattedValue(a)) < Number(unwrapFormattedValue(b)),
+  lte: ([a, b]) => Number(unwrapFormattedValue(a)) <= Number(unwrapFormattedValue(b)),
   not: ([value]) => !isTruthy(value),
   and: (args) => args.every(isTruthy),
   or: (args) => args.some(isTruthy),
-  contains: ([value, expected]) => Array.isArray(value) && value.includes(expected),
-  default: ([value, fallback]) => value !== null && value !== undefined && value !== '' ? value : fallback,
+  contains: ([value, expected]) => {
+    const collection = unwrapFormattedValue(value)
+    const item = unwrapFormattedValue(expected)
+    return Array.isArray(collection) && collection.some((entry) => unwrapFormattedValue(entry) === item)
+  },
+  default: ([value, fallback]) => {
+    const raw = unwrapFormattedValue(value)
+    return raw !== null && raw !== undefined && raw !== '' ? value : fallback
+  },
 }
 
 function parse(template: string): Node[] {
@@ -207,11 +215,13 @@ function valueForToken(token: string, frame: Frame, root: Record<string, unknown
 
 function getPath(value: unknown, path: string): unknown {
   if (path === '') return value
-  let current = value
-  for (const part of pathSegments(path)) {
+  let current = unwrapFormattedValue(value)
+  const segments = pathSegments(path)
+  for (const [index, part] of segments.entries()) {
     if (blockedProperties.has(part) || current === null || current === undefined) return undefined
     if (typeof current !== 'object' && typeof current !== 'function') return undefined
     current = (current as Record<string, unknown>)[part]
+    if (index < segments.length - 1) current = unwrapFormattedValue(current)
   }
   return current
 }
@@ -245,10 +255,11 @@ function renderNodes(
         ? renderNodes(node.children, { context: value, parent: frame, data: frame.data }, root, customHelpers, escape)
         : renderNodes(node.inverse, frame, root, customHelpers, escape)
     } else if (node.name === 'each') {
-      const entries = Array.isArray(value)
-        ? value.map((item, index) => [String(index), item] as const)
-        : value && typeof value === 'object'
-          ? Object.entries(value)
+      const iterable = unwrapFormattedValue(value)
+      const entries = Array.isArray(iterable)
+        ? iterable.map((item, index) => [String(index), item] as const)
+        : iterable && typeof iterable === 'object'
+          ? Object.entries(iterable)
           : []
       if (entries.length === 0) {
         result += renderNodes(node.inverse, frame, root, customHelpers, escape)
@@ -269,7 +280,8 @@ function renderNodes(
 }
 
 function isTruthy(value: unknown): boolean {
-  return Array.isArray(value) ? value.length > 0 : Boolean(value)
+  const raw = unwrapFormattedValue(value)
+  return Array.isArray(raw) ? raw.length > 0 : Boolean(raw)
 }
 
 function escapeHtml(value: string): string {

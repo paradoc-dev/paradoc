@@ -21,6 +21,8 @@ import type {
   PartySignatory,
   ParadocRenderer,
   RendererLayer,
+  Formatter,
+  FormatterProgressivePolicy,
 } from '@paradoc/types'
 
 import type { RendererRegistry } from './rendering/renderer-registry'
@@ -225,6 +227,12 @@ export interface RenderOptions<Output = string | Uint8Array> {
   /** Custom renderer override. Supported layer MIME types use the built-in renderer by default. */
   renderer?: ParadocRenderer<RendererLayer, Output>
 
+  /** Formatter policy applied throughout this artifact render. */
+  formatter?: Formatter
+
+  /** Explicit missing/incomplete value policy for progressive previews. */
+  progressive?: FormatterProgressivePolicy
+
   /**
    * Renderers keyed by layer MIME type, consulted when no `renderer` override
    * is given and before the built-in engines. This is how a format core does
@@ -262,6 +270,12 @@ export interface RenderOptions<Output = string | Uint8Array> {
 export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
   /** Custom renderer override. Supported layer MIME types use the built-in renderer by default. */
   renderer?: ParadocRenderer<RendererLayer, Output>
+
+  /** Formatter policy applied throughout this artifact render. */
+  formatter?: Formatter
+
+  /** Explicit missing/incomplete value policy for progressive previews. */
+  progressive?: FormatterProgressivePolicy
 
   /**
    * Renderers keyed by layer MIME type, consulted when no `renderer` override
@@ -302,6 +316,12 @@ export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
 export interface RuntimeChecklistRenderOptions<Output = unknown> {
   /** The renderer to use for template processing. If not provided, returns raw layer content. */
   renderer?: ParadocRenderer<RendererLayer, Output>
+
+  /** Formatter policy applied throughout this artifact render. */
+  formatter?: Formatter
+
+  /** Explicit missing/incomplete value policy for progressive previews. */
+  progressive?: FormatterProgressivePolicy
 
   /**
    * Renderers keyed by layer MIME type, consulted after an explicit `renderer`

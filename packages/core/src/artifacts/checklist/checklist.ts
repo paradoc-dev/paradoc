@@ -639,6 +639,9 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			form: formContext,
 			data: { fields: fullData },
 			bindings,
+			ctx: options?.formatter || options?.progressive
+				? { formatter: options.formatter, progressive: options.progressive }
+				: undefined,
 		})
 	}
 
@@ -1060,6 +1063,9 @@ function createChecklistInstance<C extends Checklist>(
 				form: formContext,
 				data: { fields: fullData },
 				bindings,
+				ctx: options?.formatter || options?.progressive
+					? { formatter: options.formatter, progressive: options.progressive }
+					: undefined,
 			})
 		},
 

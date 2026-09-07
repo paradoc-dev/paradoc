@@ -21,4 +21,6 @@ export type {
   SigningMarkerRequest,
 } from "./renderer";
 
+export type * from "./formatter";
+
 export type { Resolver } from "./resolver";

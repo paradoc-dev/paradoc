@@ -1,38 +1,24 @@
-import { attachmentStringifier, usaSerializers } from '@paradoc/serialization'
-import type { ParadocRenderer, RendererLayer, RenderRequest, SerializerRegistry } from '@paradoc/types'
+import { defaultFormatter } from '@paradoc/format'
+import type {
+  Formatter,
+  FormatterProgressivePolicy,
+  ParadocRenderer,
+  RendererLayer,
+  RenderRequest,
+} from '@paradoc/types'
 import { renderText } from './render'
 import type { TextSignatureOptions } from './signatures'
 
-class AnnexValue {
-  constructor(private readonly value: unknown) {
-    if (value !== null && typeof value === 'object') Object.assign(this, value)
-  }
-
-  toString(): string {
-    try {
-      return attachmentStringifier.stringify(this.value as never)
-    } catch {
-      return '[Attachment]'
-    }
-  }
-}
-
-function wrapAnnexes(annexes: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(annexes).map(([key, value]) => [
-    key,
-    value === null || value === undefined ? value : new AnnexValue(value),
-  ]))
-}
-
 export interface TextRendererOptions {
-  serializers?: SerializerRegistry
+  formatter?: Formatter
+  progressive?: FormatterProgressivePolicy
   signatureOptions?: TextSignatureOptions
 }
 
 type TextLayer = RendererLayer & { type: 'text'; content: string }
 
 export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer<TextLayer, string> {
-  const serializers = options.serializers ?? usaSerializers
+  const formatter = options.formatter ?? defaultFormatter
   return {
     id: 'text',
     render(request: RenderRequest<TextLayer>) {
@@ -42,7 +28,8 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
           template: request.template.content,
           data: source,
           form: request.form,
-          serializers: request.ctx?.serializers ?? serializers,
+          formatter: request.ctx?.formatter ?? formatter,
+          progressive: request.ctx?.progressive ?? options.progressive,
           bindings: request.bindings ?? request.template.bindings,
           signatureOptions: options.signatureOptions,
         })
@@ -63,12 +50,13 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
         data: {
           ...cleanFields,
           ...(actualParties ? { parties: actualParties } : {}),
-          ...(actualAnnexes ? { annexes: wrapAnnexes(actualAnnexes as Record<string, unknown>) } : {}),
+          ...(actualAnnexes ? { annexes: actualAnnexes } : {}),
           ...(actualDefs ? { defs: actualDefs } : {}),
           ...rest,
         },
         form: request.form,
-        serializers: request.ctx?.serializers ?? serializers,
+        formatter: request.ctx?.formatter ?? formatter,
+        progressive: request.ctx?.progressive ?? options.progressive,
         bindings: request.bindings ?? request.template.bindings,
         signatureOptions: options.signatureOptions,
       })

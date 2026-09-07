@@ -1,6 +1,7 @@
 import type { Form } from '@paradoc/types'
+import { createFormatter } from '@paradoc/format'
 import { describe, expect, it } from 'vitest'
-import { renderText, textRenderer } from '../src/text'
+import { ArtifactFieldFormatError, renderText, textRenderer } from '../src/text'
 
 const cases: Array<{ name: string; template: string; data: Record<string, unknown>; expected: string }> = [
   { name: 'nested interpolation', template: 'Hello {{person.name}}', data: { person: { name: 'Ada' } }, expected: 'Hello Ada' },
@@ -144,15 +145,15 @@ describe('text renderer behavior', () => {
       },
     } as unknown as Form
     const options = {
-      template: '{{fee}}|{{fee.amount}}|{{phone}}|{{phone.number}}|{{address}}|{{address.city}}',
+      template: '{{fee}}|{{fee.amount}}|{{phone}}|{{phone.number}}|{{address}}|{{address.locality}}',
       data: {
         fee: { amount: 1250, currency: 'USD' },
         phone: { number: '+12025550182', countryCode: 'US' },
-        address: { line1: '10 Main St', city: 'Boston', region: 'MA', postalCode: '02108', country: 'US' },
+        address: { line1: '10 Main St', locality: 'Boston', region: 'MA', postalCode: '02108', country: 'US' },
       },
       form,
     }
-    expect(renderText(options)).toBe('$1,250.00|1250|+12025550182|+12025550182|10 Main St, MA, 02108, US|Boston')
+    expect(renderText(options)).toBe('$1,250.00|1250|+12025550182|+12025550182|10 Main St, Boston, MA 02108, US|Boston')
   })
 
   it('matches the Paradoc renderer adapter data shape', async () => {
@@ -169,8 +170,84 @@ describe('text renderer behavior', () => {
           defs: { term: 'Pet' },
         },
       },
-      form: { fields: { name: { type: 'string' } } },
+      form: {
+        fields: { name: { type: 'string' } },
+        parties: { owner: { label: 'Owner', partyType: 'person' } },
+        defs: { term: { type: 'string', value: 'term' } },
+      },
     }
     expect(await textRenderer().render(request as never)).toBe('Pixel|Ada|Pet')
+  })
+
+  it('applies one custom formatter across nested fields, computed values, and parties', () => {
+    const formatter = createFormatter({
+      overrides: {
+        money: (value, options, context) => `MONEY:${value.amount}:${context.delegate(value, options)}`,
+        person: (value) => `PERSON:${value?.name ?? ''}`,
+        date: (value) => `DATE:${value instanceof Date ? value.toISOString() : value}`,
+      },
+      messages: { 'en-US': { 'boolean.true': 'Active', 'boolean.false': 'Inactive' } },
+    })
+    const form = {
+      fields: {
+        amount: { type: 'money' },
+        when: { type: 'date' },
+        enabled: { type: 'boolean' },
+        choice: { type: 'enum', enum: [{ value: 'a', label: '<Alpha>' }] },
+        choices: { type: 'multiselect', enum: [{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'Beta' }] },
+        rows: { type: 'list', item: { type: 'fieldset', fields: { amount: { type: 'money' } } } },
+      },
+      defs: { total: { type: 'money', value: { amount: 'amount', currency: 'currency' } } },
+      parties: { owner: { label: 'Owner', partyType: 'person' } },
+    } as unknown as Form
+
+    expect(renderText({
+      form,
+      formatter,
+      template: '{{amount}}/{{amount.amount}}/{{when}}/{{enabled}}/{{choice}}/{{choices}}/{{parties.owner}}/{{defs.total}}/{{#each rows}}{{amount}};{{/each}}',
+      data: {
+        amount: { amount: 12.5, currency: 'USD' },
+        when: '2024-01-15',
+        enabled: true,
+        choice: 'a',
+        choices: ['a', 'b'],
+        parties: { owner: { name: 'Ada' } },
+        defs: { total: { amount: 12.5, currency: 'USD' } },
+        rows: [{ amount: { amount: 2, currency: 'USD' } }],
+      },
+    })).toBe('MONEY:12.5:$12.50/12.5/DATE:2024-01-15/Active/&lt;Alpha&gt;/Alpha, Beta/PERSON:Ada/MONEY:12.5:$12.50/MONEY:2:$2.00;')
+  })
+
+  it('keeps missing and incomplete values explicit when progressive presentation is selected', () => {
+    const form = {
+      fields: {
+        amount: { type: 'money' },
+        address: { type: 'address' },
+      },
+    } as unknown as Form
+
+    expect(renderText({
+      form,
+      progressive: { missing: 'MISSING', incomplete: 'INCOMPLETE' },
+      template: '{{amount}}/{{amount.currency}}/{{address}}',
+      data: { amount: { currency: 'USD' } },
+    })).toBe('INCOMPLETE/USD/MISSING')
+  })
+
+  it('raises attributable errors for malformed values and unknown binding paths', () => {
+    const form = { fields: { amount: { type: 'money' } } } as unknown as Form
+
+    expect(() => renderText({
+      form,
+      template: '{{amount}}',
+      data: { amount: { amount: 'bad', currency: 'USD' } },
+    })).toThrowError(expect.objectContaining({ path: 'fields.amount', status: 'invalid' }))
+
+    expect(() => renderText({
+      form,
+      template: '{{value}}',
+      bindings: { value: 'missing' },
+      data: { amount: { amount: 1, currency: 'USD' } },
+    })).toThrowError(ArtifactFieldFormatError)
   })
 })

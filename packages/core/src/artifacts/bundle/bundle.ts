@@ -11,6 +11,8 @@ import type {
 	Document,
 	Form,
 	Checklist,
+	Formatter,
+	FormatterProgressivePolicy,
 	Layer,
 	Metadata,
 	DefsSection,
@@ -100,6 +102,10 @@ export interface RuntimeBundleRenderOptions {
 	 * each carry the resolver bound when they were constructed.
 	 */
 	renderers?: RendererRegistry
+	/** Formatter policy applied to each included artifact render. */
+	formatter?: Formatter
+	/** Explicit missing/incomplete value policy for progressive previews. */
+	progressive?: FormatterProgressivePolicy
 }
 
 /**
@@ -615,12 +621,12 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		// ============================================================================
 
 		async render(options: RuntimeBundleRenderOptions = {}): Promise<RuntimeBundleRendered<B>> {
-			const { renderers } = options
+			const { renderers, formatter, progressive } = options
 			const outputs: Record<string, RuntimeBundleRenderedOutput> = {}
 			const included = runtime.getIncludedContents()
 
 			for (const [key, instance] of Object.entries(included)) {
-				const output = await renderInstance(key, instance, { renderers })
+				const output = await renderInstance(key, instance, { renderers, formatter, progressive })
 				outputs[key] = output
 			}
 
@@ -751,15 +757,19 @@ function transitionToExecuted(instance: RuntimeInstance): RuntimeInstance {
 async function renderInstance(
 	key: string,
 	instance: RuntimeInstance,
-	options: { renderers?: RendererRegistry }
+	options: {
+		renderers?: RendererRegistry
+		formatter?: Formatter
+		progressive?: FormatterProgressivePolicy
+	}
 ): Promise<RuntimeBundleRenderedOutput> {
-	const { renderers } = options
+	const { renderers, formatter, progressive } = options
 
 	const { layers, targetLayer } = getInstanceLayerInfo(instance)
 
 	// Handle nested bundles (no direct layer rendering)
 	if ('bundle' in instance && instance.phase !== undefined) {
-		const nestedResult = await (instance as RuntimeBundle<Bundle>).render({ renderers })
+		const nestedResult = await (instance as RuntimeBundle<Bundle>).render({ renderers, formatter, progressive })
 		const firstKey = Object.keys(nestedResult.outputs)[0]
 		if (firstKey && nestedResult.outputs[firstKey]) {
 			return nestedResult.outputs[firstKey]!
@@ -779,11 +789,11 @@ async function renderInstance(
 	let content: unknown
 
 	if ('form' in instance && 'fields' in instance) {
-		content = await (instance as RuntimeForm<Form>).render({ renderer, layer: targetLayer })
+		content = await (instance as RuntimeForm<Form>).render({ renderer, formatter, progressive, layer: targetLayer })
 	} else if ('checklist' in instance) {
-		content = await (instance as RuntimeChecklist<Checklist>).render({ layer: targetLayer })
+		content = await (instance as RuntimeChecklist<Checklist>).render({ formatter, progressive, layer: targetLayer })
 	} else if ('document' in instance) {
-		content = await (instance as RuntimeDocument<Document>).render({ layer: targetLayer })
+		content = await (instance as RuntimeDocument<Document>).render({ formatter, progressive, layer: targetLayer })
 	} else {
 		throw new Error('Unknown instance type')
 	}

@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 import { form } from '@/artifacts'
-import type { ParadocRenderer, RendererLayer } from '@paradoc/types'
+import type { Formatter, ParadocRenderer, RendererLayer } from '@paradoc/types'
 
 describe('Form rendering', () => {
 	const invoice = () =>
@@ -31,5 +31,25 @@ describe('Form rendering', () => {
 
 		expect(output).toBe('custom output')
 		expect(render).toHaveBeenCalledOnce()
+	})
+
+	test('carries the selected formatter through the public artifact render', async () => {
+		const formatter = {
+			locale: 'en-US',
+			timeZone: 'UTC',
+			calendar: 'gregory',
+			messages: {},
+			safeFormatMoney: vi.fn(() => ({ success: true, status: 'formatted', value: 'CUSTOM MONEY' })),
+		} as unknown as Formatter
+		const definition = form()
+			.name('formatted-invoice')
+			.fields({ amount: { type: 'money' } })
+			.inlineLayer('markdown', { mimeType: 'text/markdown', text: '{{amount}}' })
+			.defaultLayer('markdown')
+			.build()
+
+		await expect(definition.render({ data: { amount: { amount: 10, currency: 'USD' } }, formatter })).resolves.toBe('CUSTOM MONEY')
+		await expect(definition.fill({ fields: { amount: { amount: 10, currency: 'USD' } } }).render({ formatter })).resolves.toBe('CUSTOM MONEY')
+		expect(formatter.safeFormatMoney).toHaveBeenCalledTimes(2)
 	})
 })

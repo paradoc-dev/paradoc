@@ -17,6 +17,11 @@
       "import": "./dist/text.js",
       "default": "./dist/text.js"
     },
+    "./text/field-formatter": {
+      "types": "./dist/text/field-formatter.d.ts",
+      "import": "./dist/text/field-formatter.js",
+      "default": "./dist/text/field-formatter.js"
+    },
     "./pdf": {
       "types": "./dist/pdf.d.ts",
       "import": "./dist/pdf.js",
@@ -83,6 +88,7 @@
     "@paradoc/types": "^0.4.0"
   },
   "dependencies": {
+    "@paradoc/format": "workspace:^",
     "fflate": "^0.8.3"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@
  */
 
 import type { Form } from "../schemas/artifacts";
+import type { Formatter, FormatterProgressivePolicy } from "./formatter";
 import type { SerializerRegistry, SerializerFallbacks } from "./serializers";
 import type { Bindings } from "../schemas/artifacts/shared";
 import type { FormData } from "../runtime";
@@ -139,6 +140,14 @@ export interface ParadocRendererContext {
     warn?: (...args: unknown[]) => void;
     error?: (...args: unknown[]) => void;
   };
+  /**
+   * Formatter selected for the artifact render. Renderers must use this
+   * policy for field-aware value presentation instead of constructing their
+   * own locale or serializer registry.
+   */
+  formatter?: Formatter;
+  /** Explicit missing/incomplete value policy for progressive previews. */
+  progressive?: FormatterProgressivePolicy;
   /**
    * Custom formatter registry for locale/region-specific formatting.
    * If not provided, renderers use their default formatters.

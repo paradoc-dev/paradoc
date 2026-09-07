@@ -1,10 +1,19 @@
-import type { ParadocRenderer, RendererLayer, RenderRequest, SerializerRegistry } from '@paradoc/types'
+import type {
+  Formatter,
+  FormatterProgressivePolicy,
+  ParadocRenderer,
+  RendererLayer,
+  RenderRequest,
+  SerializerRegistry,
+} from '@paradoc/types'
 import type { DocxSignatureOptions } from './docx/signatures'
 import type { PdfSignatureOptions } from './pdf/signatures'
 import type { TextSignatureOptions } from './text/signatures'
 
 /** Options shared by the MIME-selected rendering engines. */
 export interface RenderLayerOptions {
+  formatter?: Formatter
+  progressive?: FormatterProgressivePolicy
   serializers?: SerializerRegistry
   textSignatureOptions?: TextSignatureOptions
   pdfSignatureOptions?: PdfSignatureOptions
@@ -56,7 +65,8 @@ export function renderLayer(options: RenderLayerOptions = {}): ParadocRenderer<R
         requireContent(request.template)
         const { textRenderer } = await import('./text')
         return textRenderer({
-          serializers: options.serializers,
+          formatter: options.formatter,
+          progressive: options.progressive,
           signatureOptions: options.textSignatureOptions,
         }).render(request as never)
       }

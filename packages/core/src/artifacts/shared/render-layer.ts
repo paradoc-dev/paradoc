@@ -5,7 +5,16 @@
  * DocumentInstance, DraftDocument, and FinalDocument.
  */
 
-import type { Form, FormData, Layer, ParadocRenderer, RendererLayer, Resolver } from '@paradoc/types'
+import type {
+	Form,
+	FormData,
+	FormatterProgressivePolicy,
+	Formatter,
+	Layer,
+	ParadocRenderer,
+	RendererLayer,
+	Resolver,
+} from '@paradoc/types'
 import { renderLayer as createRenderer } from '@paradoc/render'
 import {
 	findRegisteredRenderer,
@@ -37,6 +46,10 @@ export interface ArtifactInstanceOptions {
 export interface ArtifactLayerRenderOptions {
 	/** Override the target layer for this render call. */
 	layer?: string
+	/** Formatter policy carried into registered renderers for this artifact render. */
+	formatter?: Formatter
+	/** Explicit missing/incomplete value policy for progressive previews. */
+	progressive?: FormatterProgressivePolicy
 	/**
 	 * Renderers keyed by layer MIME type. A layer whose type has an entry
 	 * renders through it instead of returning its raw content, which is how a
@@ -150,6 +163,10 @@ export function resolveLayerKey(
 export interface LayerRenderContext {
 	form: Form
 	data: FormData
+	/** Formatter policy selected for the containing artifact render. */
+	formatter?: Formatter
+	/** Explicit missing/incomplete value policy for progressive previews. */
+	progressive?: FormatterProgressivePolicy
 }
 
 /**
@@ -208,11 +225,16 @@ async function renderLayerAt(
 			)
 		}
 		const template = await buildRendererLayer(layerKey, layerSpec, layerSpec.bindings, options?.resolver, site)
+		const formatter = context.formatter ?? options?.formatter
+		const progressive = context.progressive ?? options?.progressive
 		return (await registered.render({
 			template,
 			form: context.form,
 			data: context.data,
 			bindings: layerSpec.bindings,
+			ctx: formatter || progressive
+				? { formatter, progressive }
+				: undefined,
 		})) as string | Uint8Array
 	}
 

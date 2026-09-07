@@ -39,7 +39,11 @@ import type { DocxRendererOptions } from '@paradoc/render/docx'
 
 /** @deprecated Prefer renderLayer() or @paradoc/render/text. */
 export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer<RendererLayer, string> {
-  return renderLayer({ serializers: options.serializers, textSignatureOptions: options.signatureOptions }) as ParadocRenderer<RendererLayer, string>
+  return renderLayer({
+    formatter: options.formatter,
+    progressive: options.progressive,
+    textSignatureOptions: options.signatureOptions,
+  }) as ParadocRenderer<RendererLayer, string>
 }
 
 /** @deprecated Prefer renderLayer() or @paradoc/render/pdf. */

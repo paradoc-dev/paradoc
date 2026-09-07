@@ -86,6 +86,7 @@ export {
 	type FormatterCacheStats,
 	type FormatterMessages,
 	type FormatterOptions,
+	type FormatterProgressivePolicy,
 	type FormatterOverrides,
 	type IdentificationFormatOptions,
 	type MoneyFormatOptions,

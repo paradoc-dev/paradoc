@@ -5,7 +5,16 @@
  * with a single file using closures and composition.
  */
 
-import type { Document, Form, Layer, Metadata, ContentRef, Resolver } from '@paradoc/types'
+import type {
+	Document,
+	Form,
+	Formatter,
+	FormatterProgressivePolicy,
+	Layer,
+	Metadata,
+	ContentRef,
+	Resolver,
+} from '@paradoc/types'
 import type { DraftDocumentJSON, FinalDocumentJSON } from '@paradoc/types'
 import { parseDocument, parseLayer } from '@/validation/artifact-parsers'
 import { toYAML } from '@/serialization/serialization'
@@ -31,7 +40,11 @@ import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuild
  * document stands in for the artifact and the payload is empty. A renderer that
  * reads fields will find none, which is the truth about a document.
  */
-function documentRenderContext(doc: Document): LayerRenderContext {
+function documentRenderContext(
+	doc: Document,
+	formatter?: Formatter,
+	progressive?: FormatterProgressivePolicy,
+): LayerRenderContext {
 	return {
 		form: {
 			kind: 'form',
@@ -42,6 +55,8 @@ function documentRenderContext(doc: Document): LayerRenderContext {
 			fields: {},
 		} as unknown as Form,
 		data: { fields: {} },
+		formatter,
+		progressive,
 	}
 }
 
@@ -216,7 +231,7 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 			targetLayer,
 			doc.defaultLayer,
 			{ ...options, resolver },
-			documentRenderContext(doc),
+			documentRenderContext(doc, options?.formatter, options?.progressive),
 		)
 	}
 
@@ -403,7 +418,7 @@ function createDocumentInstance<D extends Document>(
 				undefined,
 				doc.defaultLayer,
 				{ ...renderOptions, resolver },
-				documentRenderContext(doc),
+				documentRenderContext(doc, renderOptions?.formatter, renderOptions?.progressive),
 			)
 		},
 
