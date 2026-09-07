@@ -1,7 +1,7 @@
 {
-  "name": "@paradoc/sdk",
+  "name": "@paradoc/format",
   "version": "0.5.0",
-  "description": "Umbrella package for Paradoc framework - re-exports @paradoc/core, @paradoc/render, and @paradoc/format",
+  "description": "Locale-aware presentation formatting for Paradoc artifact values",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -21,12 +21,10 @@
   ],
   "keywords": [
     "paradoc",
-    "paradoc",
-    "sdk",
     "forms",
-    "rendering",
-    "schemas",
-    "validation"
+    "formatting",
+    "locale",
+    "internationalization"
   ],
   "license": "MIT",
   "author": {
@@ -39,7 +37,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/paradoc-dev/paradoc.git",
-    "directory": "packages/sdk"
+    "directory": "packages/format"
   },
   "homepage": "https://paradoc.dev",
   "bugs": {
@@ -58,14 +56,11 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@paradoc/core": "workspace:*",
-    "@paradoc/format": "workspace:*",
-    "@paradoc/render": "workspace:*",
-    "@paradoc/serialization": "workspace:*",
-    "@paradoc/sessions": "workspace:*"
+    "@paradoc/types": "workspace:^"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",

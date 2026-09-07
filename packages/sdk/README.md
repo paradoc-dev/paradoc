@@ -30,6 +30,15 @@ The Paradoc SDK includes the default renderer. Install a resolver when layers re
 - 🎯 **Composable artifacts** - Reuse fields, forms, and documents across definitions
 - 🤖 **AI-ready** - Built for agent ingestion and verification
 
+The SDK also re-exports the standalone `@paradoc/format` presentation API. Use one formatter for values outside artifact rendering as well as for future renderer configuration:
+
+```typescript
+import { createFormatter } from "@paradoc/sdk";
+
+const format = createFormatter({ locale: "de-DE" });
+format.formatMoney({ amount: 1500.5, currency: "USD" }); // "1.500,50 $"
+```
+
 ## Installation
 
 ```bash
