@@ -63,6 +63,15 @@ const createFormWithParties = () =>
 		})
 		.build()
 
+const createFormWithProgressiveParties = () =>
+	form()
+		.name('progressive-parties')
+		.parties({
+			buyer: party().label('Buyer').partyType('person').min(0).build(),
+			witness: party().label('Witness').partyType('person').multiple(true).min(0).max(2).build(),
+		})
+		.build()
+
 const createCompletePartyPayload = () => ({
 	fields: { amount: 100 },
 	parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
@@ -198,6 +207,21 @@ describe('fill-state', () => {
 			const draft = f.partialFill()
 			expect(draft.phase).toBe('draft')
 		})
+
+		test('stores normalized parties returned by patch validation', () => {
+			const f = createFormWithProgressiveParties()
+			const parties = {
+				buyer: { name: 'Alice' },
+				witness: [{ name: 'Wanda' }, { id: 'witness-1', name: 'Wally' }],
+			}
+			const validation = f.validatePartiesPatch(parties)
+			const draft = f.partialFill({ parties } as any)
+
+			expect(validation.success).toBe(true)
+			if (validation.success) {
+				expect(draft.parties).toEqual(validation.value)
+			}
+		})
 	})
 
 	// ========================================================================
@@ -271,6 +295,26 @@ describe('fill-state', () => {
 
 			expect(updated).not.toBe(draft)
 			expect(updated.phase).toBe('draft')
+		})
+
+		test('stores normalized party patch values while preserving existing parties', () => {
+			const f = createFormWithProgressiveParties()
+			const draft = f.partialFill({ parties: { buyer: { name: 'Alice' } } } as any)
+			const parties = {
+				witness: [{ name: 'Wanda' }, { id: 'witness-1', name: 'Wally' }],
+			}
+			const validation = f.validatePartiesPatch(parties)
+			const updated = draft.update({ parties } as any)
+
+			expect(validation.success).toBe(true)
+			if (validation.success) {
+				expect(updated.parties).toEqual({ ...draft.parties, ...validation.value })
+			}
+
+			const repeated = updated.update({
+				parties: { buyer: { id: 'buyer-0', name: 'Alice Updated' } },
+			} as any)
+			expect(repeated.getParty('buyer')).toEqual({ id: 'buyer-0', name: 'Alice Updated' })
 		})
 	})
 
