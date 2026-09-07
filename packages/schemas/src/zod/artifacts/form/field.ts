@@ -118,6 +118,17 @@ const EnumFieldSchema = BaseFieldSchema.extend({
 	default: EnumOptionValueSchema
 		.describe('Default value')
 		.optional(),
+}).superRefine((field, ctx) => {
+	if (
+		field.default !== undefined &&
+		!field.enum.some((option) => option.value === field.default)
+	) {
+		ctx.addIssue({
+			code: 'custom',
+			path: ['default'],
+			message: 'Default value must match one of the enum option values',
+		});
+	}
 });
 
 const DateFieldSchema = BaseFieldSchema.extend({
