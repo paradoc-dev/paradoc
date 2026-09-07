@@ -43,6 +43,17 @@ const EnumStatusSpecSchema = z.object({
 }).meta({
 	title: 'EnumStatusSpec',
 	description: 'Enum-based status with a set of allowed options and an optional default.',
+}).superRefine((status, ctx) => {
+	if (
+		status.default !== undefined &&
+		!status.options.some((option) => option.value === status.default)
+	) {
+		ctx.addIssue({
+			code: 'custom',
+			path: ['default'],
+			message: 'Default status value must match one of the option values',
+		});
+	}
 });
 
 const StatusSpecSchema = z.discriminatedUnion('kind', [
