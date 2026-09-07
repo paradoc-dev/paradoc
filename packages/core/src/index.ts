@@ -39,6 +39,7 @@ export {
   party,
   // Checklist
   checklist,
+  ChecklistValidationError,
   // Document
   document,
   // Bundle
@@ -98,6 +99,15 @@ export type {
   ChecklistInput,
   RuntimeChecklistJSON,
   InferChecklistPayload,
+  ProgressiveChecklistPayload,
+  ChecklistPath,
+  ChecklistValidationMode,
+  ChecklistPartialFillOptions,
+  ChecklistUpdateOptions,
+  ChecklistValidationResult,
+  ChecklistFillTarget,
+  ChecklistFillItemState,
+  ChecklistFillState,
   ItemStatusToDataType,
   ItemsToDataType,
   // Bundle types

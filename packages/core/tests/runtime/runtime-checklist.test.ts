@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { para, DraftChecklist, type InferChecklistPayload } from '@/index'
+import { para, ChecklistValidationError, DraftChecklist, type InferChecklistPayload } from '@/index'
 
 describe('DraftChecklist', () => {
   // ============================================================================
@@ -330,6 +330,105 @@ describe('DraftChecklist', () => {
       const filled = checklist.fill(data)
 
       expect(filled.getItem('status')).toBe('open')
+    })
+  })
+
+  describe('progressive lifecycle', () => {
+    const createLifecycleChecklist = () =>
+      para.checklist({
+        name: 'lifecycle-checklist',
+        items: [
+          { id: 'reviewed', title: 'Reviewed', status: { kind: 'boolean', default: false } },
+          { id: 'approved', title: 'Approved', status: { kind: 'boolean' } },
+          {
+            id: 'state',
+            title: 'State',
+            status: {
+              kind: 'enum',
+              options: [
+                { value: 'pending', label: 'Pending' },
+                { value: 'done', label: 'Done' },
+              ],
+              default: 'pending',
+            },
+          },
+        ],
+      })
+
+    test('applies defaults on creation and keeps false answered', () => {
+      const checklist = createLifecycleChecklist()
+      const draft = checklist.partialFill({ reviewed: false })
+
+      expect(draft.getAllItems()).toEqual({ reviewed: false, state: 'pending' })
+      expect(draft.getItem('reviewed')).toBe(false)
+      expect(draft.getFillState().summary).toMatchObject({
+        requiredTotal: 3,
+        requiredDone: 2,
+        requiredRemaining: 1,
+      })
+      expect(draft.getFillState().done.map((item) => item.key)).toEqual(['reviewed', 'state'])
+    })
+
+    test('requires every declared answer before full fill or completion', () => {
+      const checklist = createLifecycleChecklist()
+
+      expect(() => checklist.fill({} as never)).toThrow('Missing required checklist item: items.approved')
+      const draft = checklist.partialFill()
+      expect(draft.isValid()).toBe(false)
+      expect(() => draft.complete()).toThrow('Missing required checklist item: items.approved')
+
+      const completed = draft.update({ approved: true }).complete()
+      expect(completed.phase).toBe('completed')
+      expect(completed.isValid()).toBe(true)
+    })
+
+    test('clear and reset use qualified item paths without restoring cleared defaults', () => {
+      const checklist = createLifecycleChecklist()
+      const draft = checklist.fill({ reviewed: true, approved: true, state: 'done' })
+      const cleared = draft.clear('items.reviewed').update({ approved: false })
+
+      expect(cleared.getItem('reviewed')).toBeUndefined()
+      expect(cleared.getItem('approved')).toBe(false)
+      expect(cleared.getFillState().summary.requiredRemaining).toBe(1)
+
+      const reset = cleared.reset('items.reviewed')
+      expect(reset.getItem('reviewed')).toBe(false)
+      expect(reset.getFillState().summary.requiredRemaining).toBe(0)
+
+      expect(reset.reset('items.approved').getItem('approved')).toBeUndefined()
+    })
+
+    test('validate none preserves invalid drafts for runtime validation', () => {
+      const checklist = createLifecycleChecklist()
+      const invalid = checklist.partialFill({ approved: 'yes' as never }, { validate: 'none' })
+
+      expect(invalid.isValid()).toBe(false)
+      expect(invalid.validate().errors[0]?.field).toBe('items.approved')
+
+      const unknown = checklist.partialFill({ unknown: true } as never, { validate: 'none' })
+      expect(unknown.isValid()).toBe(false)
+      expect(unknown.validate().errors[0]?.field).toBe('items.unknown')
+
+      const fixed = invalid.update({ approved: true })
+      expect(fixed.isValid()).toBe(true)
+    })
+
+    test('safe progressive fill reports invalid supplied answers', () => {
+      const checklist = createLifecycleChecklist()
+      const result = checklist.safePartialFill({ approved: 'yes' as never })
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toBeInstanceOf(ChecklistValidationError)
+        expect(result.error.message).toContain('items.approved')
+        expect((result.error as ChecklistValidationError).errors[0]?.field).toBe('items.approved')
+      }
+    })
+
+    test('rejects invalid qualified paths', () => {
+      const draft = createLifecycleChecklist().partialFill()
+      expect(() => draft.clear('fields.approved' as never)).toThrow('paths must start with "items."')
+      expect(() => draft.reset('items.unknown' as never)).toThrow('unknown item')
     })
   })
 })

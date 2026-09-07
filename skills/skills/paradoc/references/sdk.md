@@ -229,6 +229,11 @@ draft.setItem("task_1", true);
 const completed = draft.complete();
 ```
 
+Use `partialFill()` and `update()` for incremental checklist answers. `fill()` and
+`complete()` require every declared item after applying declared defaults. An
+explicit `false` answer counts as present; `clear("items.<id>")` removes an
+answer and `reset("items.<id>")` restores its default.
+
 Bundles have three phases (like forms): `draft → signable → executed`. Set runtime instances on bundle contents:
 
 ```typescript

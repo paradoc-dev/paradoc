@@ -116,7 +116,7 @@ export { document, runtimeDocumentFromJSON } from './document'
 export type { DocumentInstance, RuntimeDocument, DraftDocument, FinalDocument, DocumentInput, RuntimeDocumentJSON, DocumentBuilderInterface } from './document'
 
 // Checklist artifact
-export { checklist, runtimeChecklistFromJSON } from './checklist'
+export { checklist, runtimeChecklistFromJSON, ChecklistValidationError } from './checklist'
 export type {
 	ChecklistInstance,
 	RuntimeChecklist,
@@ -125,6 +125,15 @@ export type {
 	ChecklistInput,
 	RuntimeChecklistJSON,
 	InferChecklistPayload,
+	ProgressiveChecklistPayload,
+	ChecklistPath,
+	ChecklistValidationMode,
+	ChecklistPartialFillOptions,
+	ChecklistUpdateOptions,
+	ChecklistValidationResult,
+	ChecklistFillTarget,
+	ChecklistFillItemState,
+	ChecklistFillState,
 	ItemStatusToDataType,
 	ItemsToDataType,
 	ChecklistBuilderInterface,

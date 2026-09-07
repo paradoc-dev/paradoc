@@ -2,7 +2,7 @@
  * Checklist artifact - closure-based implementation
  */
 
-export { checklist, runtimeChecklistFromJSON } from './checklist'
+export { checklist, runtimeChecklistFromJSON, ChecklistValidationError } from './checklist'
 export type {
 	ChecklistInstance,
 	RuntimeChecklist,
@@ -11,6 +11,15 @@ export type {
 	ChecklistInput,
 	RuntimeChecklistJSON,
 	InferChecklistPayload,
+	ProgressiveChecklistPayload,
+	ChecklistPath,
+	ChecklistValidationMode,
+	ChecklistPartialFillOptions,
+	ChecklistUpdateOptions,
+	ChecklistValidationResult,
+	ChecklistFillTarget,
+	ChecklistFillItemState,
+	ChecklistFillState,
 	ItemStatusToDataType,
 	ItemsToDataType,
 	ChecklistBuilderInterface,

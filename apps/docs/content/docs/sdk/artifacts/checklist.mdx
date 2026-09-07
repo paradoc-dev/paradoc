@@ -16,7 +16,7 @@ const checklist = para.checklist({
   version: '1.0.0',
   title: 'Move-In Inspection',
   items: [
-    { id: 'keys', title: 'Keys received', status: { kind: 'boolean' } },
+    { id: 'keys', title: 'Keys received', status: { kind: 'boolean', default: false } },
     { id: 'condition', title: 'Property condition', status: {
       kind: 'enum',
       options: [
@@ -34,7 +34,7 @@ const checklist = para.checklist()
   .name('move-in-checklist')
   .version('1.0.0')
   .title('Move-In Inspection')
-  .itemWithBooleanStatus('keys', 'Keys received')
+  .itemWithBooleanStatus('keys', 'Keys received', { default: false })
   .itemWithEnumStatus('condition', 'Property condition', {
     statusOptions: [
       { value: 'excellent', label: 'Excellent' },
@@ -119,6 +119,8 @@ Returns a `ChecklistInstance` with the following properties and methods:
   { name: 'validateItemsPatch', type: '(items: unknown) => ProgressiveValidationResult<Record<string, boolean | string>>', description: 'Validate a partial checklist items patch', isMethod: true },
   { name: 'fill', type: '(data: InferChecklistPayload) => DraftChecklist', description: 'Create runtime checklist with item status data', isMethod: true },
   { name: 'safeFill', type: '(data: InferChecklistPayload) => Result<DraftChecklist>', description: 'Safely fill with error handling', isMethod: true },
+  { name: 'partialFill', type: '(seed?: ProgressiveChecklistPayload, options?) => DraftChecklist', description: 'Create a progressive draft; declared defaults are applied', isMethod: true },
+  { name: 'safePartialFill', type: '(seed?: ProgressiveChecklistPayload, options?) => Result<DraftChecklist>', description: 'Safely create a progressive draft', isMethod: true },
   { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render checklist content', isMethod: true },
 ]} />
 
@@ -252,17 +254,20 @@ Checklists follow a two-phase lifecycle:
 | `CompletedChecklist` | Completed | Frozen checklist, ready for archival |
 
 ```ts
-// Fill checklist with initial data (DraftChecklist)
-const draft = checklist.fill({
-  keys: true,
-  condition: 'good',
-})
+// Start with a progressive draft. Defaults are applied on creation.
+const draft = checklist.partialFill({ keys: false })
 
-// Update items
-const updated = draft.setItem('keys', true)
+// Incrementally answer the remaining item.
+const updated = draft.update({ condition: 'good' })
+
+// Full fill is strict and requires every declared item after defaults.
+const completeDraft = checklist.fill({ keys: true, condition: 'good' })
+
+// Clear and restore one answer through its qualified path.
+const reset = completeDraft.clear('items.keys').reset('items.keys')
 
 // Complete the checklist (CompletedChecklist)
-const completed = draft.complete()
+const completed = reset.complete()
 
 // completed.completedAt === ISO timestamp
 // Render
@@ -271,17 +276,23 @@ const output = await completed.render({ renderer: renderLayer() })
 
 ## DraftChecklist
 
-Created by `checklist.fill()`. Mutable item status tracking.
+Created by `checklist.fill()` or `checklist.partialFill()`. Progressive drafts may be incomplete; `fill()` and `complete()` require every declared item. An explicit `false` answer counts as present. Use `clear('items.<id>')` to remove an answer and `reset('items.<id>')` to restore its declared default.
 
 <PropertiesTable properties={[
   { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
   { name: 'checklist', type: 'Checklist', description: 'The underlying checklist definition' },
   { name: 'targetLayer', type: 'string', description: 'Target layer key' },
   { name: 'completedAt', type: 'undefined', description: 'Completion timestamp (always undefined for draft)' },
-  { name: 'getItem', type: '(itemId: string) => boolean | string', description: 'Get status for an item', isMethod: true },
-  { name: 'getAllItems', type: '() => Record<string, boolean | string>', description: 'Get all item statuses', isMethod: true },
+  { name: 'getItem', type: '(itemId: string) => boolean | string | undefined', description: 'Get status for an item', isMethod: true },
+  { name: 'getAllItems', type: '() => ProgressiveChecklistPayload', description: 'Get answered item statuses', isMethod: true },
+  { name: 'validate', type: '() => ChecklistValidationResult', description: 'Check answer validity and completeness', isMethod: true },
+  { name: 'isValid', type: '() => boolean', description: 'Check full checklist validity', isMethod: true },
   { name: 'setItem', type: '(itemId: string, value: boolean | string) => DraftChecklist', description: 'Set item status (returns new instance)', isMethod: true },
   { name: 'updateItems', type: '(updates: Partial<Payload>) => DraftChecklist', description: 'Update multiple items at once', isMethod: true },
+  { name: 'update', type: '(patch: ProgressiveChecklistPayload, options?) => DraftChecklist', description: 'Merge an incremental item patch', isMethod: true },
+  { name: 'clear', type: '(path: ChecklistPath) => DraftChecklist', description: 'Remove an answer such as items.keys', isMethod: true },
+  { name: 'reset', type: '(path: ChecklistPath) => DraftChecklist', description: 'Restore an item default or remove it', isMethod: true },
+  { name: 'getFillState', type: '() => ChecklistFillState', description: 'Report unanswered and completed item slots', isMethod: true },
   { name: 'setTargetLayer', type: '(layer: string) => DraftChecklist', description: 'Change target layer', isMethod: true },
   { name: 'complete', type: '() => CompletedChecklist', description: 'Transition to completed phase', isMethod: true },
   { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render the checklist', isMethod: true },
