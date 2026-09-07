@@ -6,21 +6,12 @@
 
 import type { Form } from "../schemas/artifacts";
 import type { Formatter, FormatterProgressivePolicy } from "./formatter";
-import type { SerializerRegistry, SerializerFallbacks } from "./serializers";
 import type { Bindings } from "../schemas/artifacts/shared";
 import type { FormData } from "../runtime";
 
 /**
  * Common renderer configuration options
  */
-export interface BaseRendererOptions {
-	/**
-	 * Fallback values for each serializer type when serialization fails.
-	 * Defaults to empty string if not specified.
-	 */
-	fallbacks?: SerializerFallbacks;
-}
-
 /**
  * Binary content type for templates.
  * In Node.js, Buffer is assignable to Uint8Array, so this stays platform-agnostic.
@@ -130,10 +121,9 @@ export interface SigningMarkerRequest {
 
 /**
  * Context passed to renderers. Kept intentionally loose/optional so you can
- * grow it over time (logger, locale, flags, etc.) without breaking plugins.
+ * grow it over time (logger, flags, etc.) without breaking plugins.
  */
 export interface ParadocRendererContext {
-  locale?: string;
   logger?: {
     debug?: (...args: unknown[]) => void;
     info?: (...args: unknown[]) => void;
@@ -148,11 +138,6 @@ export interface ParadocRendererContext {
   formatter?: Formatter;
   /** Explicit missing/incomplete value policy for progressive previews. */
   progressive?: FormatterProgressivePolicy;
-  /**
-   * Custom formatter registry for locale/region-specific formatting.
-   * If not provided, renderers use their default formatters.
-   */
-  serializers?: SerializerRegistry;
   /**
    * Set by the seal on the render pass that must carry flow markers, and only
    * then. See {@link SigningMarkerRequest}.

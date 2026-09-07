@@ -503,8 +503,6 @@ export type {
 // Re-export from @paradoc/types
 export type {
   ChecklistData,
-  SerializerRegistry,
-  SerializerConfig,
 } from "@paradoc/types";
 
 // Re-export sealing types from @paradoc/types

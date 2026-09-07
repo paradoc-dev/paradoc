@@ -3,20 +3,11 @@
  */
 
 export type {
-  RegionFormat,
-  SerializerRegistry,
-  SerializerConfig,
-  SerializerFallbacks,
-  Stringifier,
-} from "./serializers";
-
-export type {
   BinaryContent,
   RendererLayer,
   RenderRequest,
   ParadocRendererContext,
   ParadocRenderer,
-  BaseRendererOptions,
   SigningMarker,
   SigningMarkerRequest,
 } from "./renderer";

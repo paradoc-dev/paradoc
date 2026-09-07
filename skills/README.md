@@ -11,7 +11,7 @@ Skills are packaged instructions that extend AI coding agents with deep knowledg
 | [paradoc](skills/paradoc/) | Any Paradoc work | All surfaces (TypeScript SDK, `para` CLI, raw JSON/YAML, `mcp.paradoc.dev`) and end-to-end workflows (create new form from requirements, convert PDF to artifact) |
 | [compose-documents](skills/compose-documents/) | Authoring or checking a `.tsx`/`.jsx` composition with `@paradoc/react` | The component vocabulary, the pagination rule, the safe Tailwind class subset, tenant branding tokens, binding a composition to a form artifact's React layer, and `para check`/`para add` |
 
-`paradoc` is a single skill with topic-organized references. Surface refs (`sdk`, `cli`, `schemas`, `mcp`) describe how to express things on each surface; topic refs (`fields`, `parties`, `annexes`, `logic`, `layers`, `rendering`, `serialization`, `instructions`, `pdf-bindings`, `artifacts`) describe the underlying concepts and are loaded as needed; workflow refs (`workflow-create-form`, `workflow-convert-pdf`) orchestrate stages by linking to topic refs.
+`paradoc` is a single skill with topic-organized references. Surface refs (`sdk`, `cli`, `schemas`, `mcp`) describe how to express things on each surface; topic refs (`fields`, `parties`, `annexes`, `logic`, `layers`, `rendering`, `formatting`, `instructions`, `pdf-bindings`, `artifacts`) describe the underlying concepts and are loaded as needed; workflow refs (`workflow-create-form`, `workflow-convert-pdf`) orchestrate stages by linking to topic refs.
 
 `compose-documents` is a second, narrower skill for the `@paradoc/react` composition surface specifically — install it on its own when the only Paradoc surface in play is composing documents in React.
 

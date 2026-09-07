@@ -9,9 +9,4 @@ export default defineConfig({
 	splitting: false,
 	sourcemap: false,
 	clean: true,
-	external: [
-		// Mark workspace dependencies as external (they'll be installed separately)
-		'@paradoc/serialization',
-	],
 })
-

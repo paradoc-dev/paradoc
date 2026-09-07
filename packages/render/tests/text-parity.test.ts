@@ -136,7 +136,7 @@ describe('text renderer behavior', () => {
     expect(renderText({ template, data, signatureOptions })).toBe('![Initials](data:image/png;base64,aW5pdA&#x3D;&#x3D;)')
   })
 
-  it('matches automatic field serialization while preserving raw properties', () => {
+  it('matches automatic field formatting while preserving raw properties', () => {
     const form = {
       fields: {
         fee: { type: 'money' },

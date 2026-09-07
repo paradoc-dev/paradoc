@@ -7,7 +7,7 @@ metadata:
 
 # Rendering
 
-**Contents:** [SDK rendering](#sdk-rendering) · [CLI rendering](#cli-rendering) · [Automatic field serialization](#automatic-field-serialization) · [Resolvers](#resolvers) · [PDF inspection](#inspecting-pdf-fields)
+**Contents:** [SDK rendering](#sdk-rendering) · [CLI rendering](#cli-rendering) · [Automatic field formatting](#automatic-field-formatting) · [Resolvers](#resolvers) · [PDF inspection](#inspecting-pdf-fields)
 
 Paradoc renders artifacts to text (Markdown / HTML / plain text), PDF, and DOCX. ALWAYS validate before rendering. Forms without data produce empty output — ALWAYS fill / pass `--data`.
 
@@ -99,7 +99,7 @@ const docx = await renderDocx({
 |----------|------|----------|-------------|
 | `template` | `Uint8Array` | Yes | DOCX template binary |
 | `data` | `Record<string, unknown>` | Yes | Field data |
-| `form` | `Form` | No | Enables automatic field type serialization |
+| `form` | `Form` | No | Enables automatic field type formatting |
 | `formatter` | `Formatter` | No | Artifact-wide presentation policy |
 | `bindings` | `Record<string, string>` | No | Field-to-template name mappings |
 | `signatureOptions` | `SignatureRenderOptions` | No | Signature rendering config |
@@ -148,7 +148,7 @@ para renderers install
 para renderers remove
 ```
 
-## Automatic Field Serialization
+## Automatic Field Formatting
 
 When a `form` schema is provided, renderers detect field types and format values automatically:
 

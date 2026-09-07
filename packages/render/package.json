@@ -84,8 +84,7 @@
     "size-report": "pnpm --silent run build >/dev/null && node scripts/size-report.mjs"
   },
   "peerDependencies": {
-    "@paradoc/serialization": "^0.4.0",
-    "@paradoc/types": "^0.4.0"
+    "@paradoc/types": "^0.5.0"
   },
   "dependencies": {
     "@paradoc/format": "workspace:^",
@@ -93,7 +92,6 @@
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
-    "@paradoc/serialization": "workspace:^",
     "@paradoc/types": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",

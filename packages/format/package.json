@@ -57,7 +57,8 @@
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "benchmark": "pnpm --silent run build >/dev/null && node scripts/benchmark.mjs"
   },
   "dependencies": {
     "@paradoc/types": "workspace:^"

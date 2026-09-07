@@ -7,7 +7,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@paradoc/serialization": ["../serialization/dist/index.d.ts"],
       "@paradoc/expr": ["../expr/dist/index.d.ts"]
     }
   },

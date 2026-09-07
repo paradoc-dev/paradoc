@@ -64,7 +64,6 @@
     "@paradoc/core": "workspace:*",
     "@paradoc/format": "workspace:*",
     "@paradoc/render": "workspace:*",
-    "@paradoc/serialization": "workspace:*",
     "@paradoc/sessions": "workspace:*",
     "@paradoc/types": "workspace:*"
   },

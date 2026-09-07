@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 
 const packageRoot = new URL('../', import.meta.url)
 const entries = ['index', 'text', 'pdf', 'docx']
-const external = ['@paradoc/serialization', '@paradoc/types']
+const external = ['@paradoc/types']
 
 const dist = {}
 const browser = {}

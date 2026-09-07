@@ -65,8 +65,5 @@ export async function inspectAcroFormFields(...args: Parameters<typeof import('@
 // Re-export the standalone presentation formatter for SDK consumers.
 export * from '@paradoc/format'
 
-// Re-export from @paradoc/serialization while existing consumers migrate.
-export * from '@paradoc/serialization'
-
 // Re-export from @paradoc/sessions
 export * from '@paradoc/sessions'
