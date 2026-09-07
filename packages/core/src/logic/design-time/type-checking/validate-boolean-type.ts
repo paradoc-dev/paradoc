@@ -16,8 +16,11 @@ function exprTypeToInferred(t: ExprType): InferredType {
     case 'boolean':
       return 'boolean'
     case 'date':
-    case 'datetime':
       return 'date'
+    case 'datetime':
+      return 'datetime'
+    case 'time':
+      return 'time'
     case 'duration':
       return 'duration'
     case 'money':

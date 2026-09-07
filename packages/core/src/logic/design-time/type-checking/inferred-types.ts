@@ -29,6 +29,8 @@ export type InferredCompositeType =
   | 'phone'
   | 'duration'
   | 'date'
+  | 'datetime'
+  | 'time'
 
 /**
  * Complete inferred type.
