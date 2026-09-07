@@ -11,7 +11,6 @@ import { FormFieldSchema, FieldsetFieldSchema } from './artifacts/form/field';
 import { ListFieldSchema } from './artifacts/form/list';
 import { FormAnnexSchema } from './artifacts/form/annex';
 import { FormPartySchema } from './artifacts/form/party';
-import { FormFieldsetSchema } from './artifacts/form/fieldset';
 
 // Shared
 import { ContentRefSchema } from './artifacts/shared/content-ref';
@@ -60,7 +59,6 @@ ParadocRegistry.add(FormFieldSchema, { id: 'FormField' });
 // ListFieldSchema already has id via .meta({ id: 'ListField' }) - no need to add again
 ParadocRegistry.add(FormAnnexSchema, { id: 'FormAnnex' });
 ParadocRegistry.add(FormPartySchema, { id: 'FormParty' });
-ParadocRegistry.add(FormFieldsetSchema, { id: 'FormFieldset' });
 
 // Note: ContentRefSchema is NOT registered separately because ArtifactSchema already
 // includes it as a field. Registering it separately causes Zod v4 $ref bugs.
@@ -117,7 +115,6 @@ export {
 	ListFieldSchema,
 	FormAnnexSchema,
 	FormPartySchema,
-	FormFieldsetSchema,
 
 	// Shared
 	ContentRefSchema,

@@ -9,7 +9,6 @@ import type {
 	Form,
 	FormField,
 	FormAnnex,
-	FormFieldset,
 	FormParty,
 	Layer,
 	Bundle,
@@ -25,7 +24,6 @@ import {
 	ChecklistSchema,
 	FormFieldSchema,
 	FormAnnexSchema,
-	FormFieldsetSchema,
 	FormPartySchema,
 	LayerSchema,
 	BundleContentItemSchema,
@@ -81,8 +79,6 @@ export const parseChecklist = createArtifactParser<Checklist>('Checklist', Check
 export const parseFormField = createArtifactParser<FormField>('FormField', FormFieldSchema)
 
 export const parseFormAnnex = createArtifactParser<FormAnnex>('FormAnnex', FormAnnexSchema)
-
-export const parseFormFieldset = createArtifactParser<FormFieldset>('FormFieldset', FormFieldsetSchema)
 
 export const parseFormParty = createArtifactParser<FormParty>('FormParty', FormPartySchema)
 

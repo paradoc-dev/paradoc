@@ -53,9 +53,6 @@ export {
 	// Party builder
 	party,
 	partyBuilder,
-	// Fieldset builder
-	fieldset,
-	fieldsetBuilder,
 	// Layer builders
 	layer,
 	fileLayer,
@@ -70,7 +67,6 @@ export {
 import {
 	field,
 	party,
-	fieldset,
 	layer,
 	annex,
 } from './builders'
@@ -105,9 +101,6 @@ export type {
 	// Party builder types
 	PartyAPI,
 	PartyBuilder,
-	// Fieldset builder types
-	FieldsetAPI,
-	FieldsetBuilder,
 	// Layer builder types
 	LayerAPI,
 	FileLayerBuilderType,
@@ -285,9 +278,6 @@ export const para = {
 		rating: field.rating,
 		fieldset: field.fieldset,
 	},
-
-	// Fieldset builder for grouping fields
-	fieldset,
 
 	// Annex/attachment slot builder
 	annex,

@@ -956,6 +956,47 @@ describe('Field', () => {
 					expect(result.fields!.personal!.type).toBe('fieldset');
 					expect(result.fields!.address!.type).toBe('fieldset');
 				});
+
+				test('composes nested builders without intermediate builds', () => {
+					const result = field
+						.fieldset()
+						.field('name', field.text().label('Name').required())
+						.field(
+							'address',
+							field
+								.fieldset()
+								.field('city', field.text().required()),
+						)
+						.field('phones', field.list().item(field.phone()))
+						.build();
+					const addresses = field
+						.list()
+						.item(field.fieldset().field('city', field.text().required()))
+						.build();
+
+					expect(result.fields.name).toEqual({ type: 'text', label: 'Name', required: true });
+					expect(result.fields.address).toEqual({
+						type: 'fieldset',
+						fields: { city: { type: 'text', required: true } },
+					});
+					expect(result.fields.phones).toEqual({ type: 'list', item: { type: 'phone' } });
+					expect(addresses).toEqual({
+						type: 'list',
+						item: { type: 'fieldset', fields: { city: { type: 'text', required: true } } },
+					});
+				});
+
+				test('takes a snapshot when the enclosing fieldset builds', () => {
+					const child = field.text().label('Before');
+					const parent = field.fieldset().field('child', child);
+
+					const before = parent.build();
+					child.label('After');
+					const after = parent.build();
+
+					expect(before.fields.child.label).toBe('Before');
+					expect(after.fields.child.label).toBe('After');
+				});
 			});
 
 			describe('validation failures on build()', () => {

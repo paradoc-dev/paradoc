@@ -15,7 +15,6 @@ import type {
   Checklist,
   FormField,
   FormAnnex,
-  FormFieldset,
   FormParty,
   Party,
   Signature,
@@ -39,7 +38,6 @@ import {
   validateChecklist,
   validateFormField,
   validateFormAnnex,
-  validateFormFieldset,
   validateFormParty,
   validateSignature,
   validateAttachment,
@@ -63,7 +61,6 @@ const _validateBundle = validateBundle
 const _validateChecklist = validateChecklist
 const _validateFormField = validateFormField
 const _validateFormAnnex = validateFormAnnex
-const _validateFormFieldset = validateFormFieldset
 const _validateFormParty = validateFormParty
 const _validateSignature = validateSignature
 const _validateAttachment = validateAttachment
@@ -109,10 +106,6 @@ export function isFormField(value: unknown): value is FormField {
 
 export function isFormAnnex(value: unknown): value is FormAnnex {
   return _validateFormAnnex(value)
-}
-
-export function isFormFieldset(value: unknown): value is FormFieldset {
-  return _validateFormFieldset(value)
 }
 
 export function isFormParty(value: unknown): value is FormParty {
@@ -208,7 +201,6 @@ export {
   validateChecklist,
   validateFormField,
   validateFormAnnex,
-  validateFormFieldset,
   validateFormParty,
   validateSignature,
   validateAttachment,

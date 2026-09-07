@@ -1,5 +1,5 @@
 // Form
-export { FormSchema, FormFieldSchema, FieldsetFieldSchema, ListFieldSchema, FormFieldsetSchema, FormAnnexSchema, FormPartySchema } from './form';
+export { FormSchema, FormFieldSchema, FieldsetFieldSchema, ListFieldSchema, FormAnnexSchema, FormPartySchema } from './form';
 
 // Document
 export { DocumentSchema } from './document';

@@ -19,7 +19,6 @@ export {
 	FormFieldSchema,
 	FormAnnexSchema,
 	FormPartySchema,
-	FormFieldsetSchema,
 } from './module';
 
 // Field types

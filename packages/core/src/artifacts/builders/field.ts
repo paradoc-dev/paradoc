@@ -45,6 +45,7 @@ import type {
 } from '@paradoc/types';
 
 import { parseFormField } from '@/validation/artifact-parsers';
+import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable';
 
 // Condition expression type (boolean or string expression)
 type CondExpr = boolean | string;
@@ -53,12 +54,60 @@ type BuiltField<F extends FormField, R extends CondExpr | undefined> = R extends
 	? F
 	: F & { required: R }
 
+type BuiltFieldDefinition<D extends Buildable<FormField>> = D extends { build(): infer T extends FormField }
+	? T
+	: D extends FormField
+		? D
+		: FormField
+
+type AddFieldDefinition<
+	Existing extends Record<string, FormField>,
+	K extends string,
+	Definition extends FormField,
+> = string extends K
+	? Existing extends Record<string, never>
+		? Record<string, Definition>
+		: Existing & Record<string, Definition>
+	: Existing extends Record<string, never>
+		? { [P in K]: Definition }
+		: Omit<Existing, K> & { [P in K]: Definition }
+
+type FieldsetFieldWithFields<Fields extends Record<string, FormField>> = Omit<FieldsetField, 'fields'> & {
+	fields: Fields
+}
+
+type ListFieldWithItem<Item extends FormField> = Omit<ListField, 'item'> & {
+	item: Item
+}
+
 // ============================================================================
 // Validation
 // ============================================================================
 
 function parseField(input: unknown): FormField {
 	return parseFormField(input);
+}
+
+function resolveFieldDefinition(fieldDef: Buildable<FormField>): FormField {
+	const resolved = resolveBuildable(fieldDef);
+
+	if (resolved.type === 'fieldset') {
+		return parseField({
+			...resolved,
+			fields: Object.fromEntries(
+				Object.entries(resolved.fields).map(([id, nestedField]) => [id, resolveFieldDefinition(nestedField)]),
+			),
+		});
+	}
+
+	if (resolved.type === 'list') {
+		return parseField({
+			...resolved,
+			item: resolveFieldDefinition(resolved.item),
+		});
+	}
+
+	return parseField(resolved);
 }
 
 // ============================================================================
@@ -340,28 +389,45 @@ export interface RatingFieldBuilder<R extends CondExpr | undefined = undefined> 
 	build(): BuiltField<RatingField, R>;
 }
 
-export interface FieldsetFieldBuilder<R extends CondExpr | undefined = undefined> {
-	label(value: string): FieldsetFieldBuilder<R>;
-	description(value: string): FieldsetFieldBuilder<R>;
-	required(): FieldsetFieldBuilder<true>;
-	required(value: undefined): FieldsetFieldBuilder<true>;
-	required<const V extends CondExpr>(value: V): FieldsetFieldBuilder<V>;
-	visible(value?: CondExpr): FieldsetFieldBuilder<R>;
-	fields(fieldsObj: Record<string, FormField>): FieldsetFieldBuilder<R>;
-	build(): BuiltField<FieldsetField, R>;
+export interface FieldsetFieldBuilder<
+	R extends CondExpr | undefined = undefined,
+	Fields extends Record<string, FormField> = Record<string, never>,
+> {
+	label(value: string): FieldsetFieldBuilder<R, Fields>;
+	description(value: string): FieldsetFieldBuilder<R, Fields>;
+	required(): FieldsetFieldBuilder<true, Fields>;
+	required(value: undefined): FieldsetFieldBuilder<true, Fields>;
+	required<const V extends CondExpr>(value: V): FieldsetFieldBuilder<V, Fields>;
+	visible(value?: CondExpr): FieldsetFieldBuilder<R, Fields>;
+	field<const K extends string, const D extends Buildable<FormField>>(
+		id: K,
+		fieldDef: D,
+	): FieldsetFieldBuilder<R, AddFieldDefinition<Fields, K, BuiltFieldDefinition<D>>>;
+	fields<const F extends Record<string, Buildable<FormField>>>(
+		fieldsObj: F,
+	): FieldsetFieldBuilder<
+		R,
+		{
+			[K in keyof F]: BuiltFieldDefinition<F[K]>
+		}
+	>;
+	build(): BuiltField<FieldsetFieldWithFields<Fields>, R>;
 }
 
-export interface ListFieldBuilder<R extends CondExpr | undefined = undefined> {
-	label(value: string): ListFieldBuilder<R>;
-	description(value: string): ListFieldBuilder<R>;
-	required(): ListFieldBuilder<true>;
-	required(value: undefined): ListFieldBuilder<true>;
-	required<const V extends CondExpr>(value: V): ListFieldBuilder<V>;
-	visible(value?: CondExpr): ListFieldBuilder<R>;
-	item(field: FormField): ListFieldBuilder<R>;
-	minItems(value: number): ListFieldBuilder<R>;
-	maxItems(value: number): ListFieldBuilder<R>;
-	build(): BuiltField<ListField, R>;
+export interface ListFieldBuilder<
+	R extends CondExpr | undefined = undefined,
+	Item extends FormField = FormField,
+> {
+	label(value: string): ListFieldBuilder<R, Item>;
+	description(value: string): ListFieldBuilder<R, Item>;
+	required(): ListFieldBuilder<true, Item>;
+	required(value: undefined): ListFieldBuilder<true, Item>;
+	required<const V extends CondExpr>(value: V): ListFieldBuilder<V, Item>;
+	visible(value?: CondExpr): ListFieldBuilder<R, Item>;
+	item<const D extends Buildable<FormField>>(field: D): ListFieldBuilder<R, BuiltFieldDefinition<D>>;
+	minItems(value: number): ListFieldBuilder<R, Item>;
+	maxItems(value: number): ListFieldBuilder<R, Item>;
+	build(): BuiltField<ListFieldWithItem<Item>, R>;
 }
 
 // ============================================================================
@@ -694,16 +760,25 @@ export function fieldsetField(): FieldsetFieldBuilder {
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
 		visible(value: CondExpr = true) { _def.visible = value; return self; },
-		fields(fieldsObj: Record<string, FormField>) {
-			// Parse nested fields recursively
-			const parsedFields: Record<string, FormField> = {};
-			for (const [id, fieldDef] of Object.entries(fieldsObj)) {
-				parsedFields[id] = parseField(fieldDef);
-			}
-			_def.fields = parsedFields;
+		field(fieldId: string, fieldDef: Buildable<FormField>) {
+			const fields = { ...((_def.fields as Record<string, Buildable<FormField>>) || {}) };
+			fields[fieldId] = fieldDef;
+			_def.fields = fields;
 			return self;
 		},
-		build() { return parseField(_def) as FieldsetField; },
+		fields(fieldsObj: Record<string, Buildable<FormField>>) {
+			_def.fields = { ...fieldsObj };
+			return self;
+		},
+		build() {
+			const fields = Object.fromEntries(
+				Object.entries((_def.fields as Record<string, Buildable<FormField>>) || {}).map(([id, fieldDef]) => [
+					id,
+					resolveFieldDefinition(fieldDef),
+				]),
+			);
+			return parseField({ ..._def, fields }) as FieldsetField;
+		},
 	};
 	return self as unknown as FieldsetFieldBuilder;
 }
@@ -715,10 +790,13 @@ export function listField(): ListFieldBuilder {
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
 		visible(value: CondExpr = true) { _def.visible = value; return self; },
-		item(value: FormField) { _def.item = parseField(value); return self; },
+		item(value: Buildable<FormField>) { _def.item = value; return self; },
 		minItems(value: number) { _def.minItems = value; return self; },
 		maxItems(value: number) { _def.maxItems = value; return self; },
-		build() { return parseField(_def) as ListField; },
+		build() {
+			const item = _def.item as Buildable<FormField> | undefined;
+			return parseField(item === undefined ? _def : { ..._def, item: resolveFieldDefinition(item) }) as ListField;
+		},
 	};
 	return self as unknown as ListFieldBuilder;
 }

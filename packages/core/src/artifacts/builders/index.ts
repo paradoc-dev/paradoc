@@ -68,13 +68,6 @@ export {
 } from './party';
 
 export {
-	fieldset,
-	fieldsetBuilder,
-	type FieldsetAPI,
-	type FieldsetBuilder,
-} from './fieldset';
-
-export {
 	layer,
 	fileLayer,
 	inlineLayer,

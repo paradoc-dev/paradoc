@@ -117,8 +117,6 @@ export type {
   MultiselectField,
   PercentageField,
   RatingField,
-  // Fieldset
-  FormFieldset,
   // Annex
   FormAnnex,
   // Party

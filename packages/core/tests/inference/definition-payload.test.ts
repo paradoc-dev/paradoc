@@ -64,6 +64,35 @@ describe('definition payload inference', () => {
 		expect(form.fill(payload).fields.age).toBe(42)
 	})
 
+	test('preserves nested fieldset and list inference through fluent builders', () => {
+		const profileBuilder = para.field
+			.fieldset()
+			.field('age', para.field.number().required())
+		const formBuilder = para
+			.form()
+			.name('nested-builder')
+			.field('profile', profileBuilder)
+			.field('phones', para.field.list().item(para.field.phone()))
+		const before = formBuilder.build()
+		profileBuilder.field('nickname', para.field.text())
+		const form = formBuilder.build()
+		expect((before.fields.profile as any).fields.nickname).toBeUndefined()
+		expect((form.fields.profile as any).fields.nickname).toEqual({ type: 'text' })
+
+		type Payload = InferFormPayload<typeof form>
+		const payload: Payload = { fields: { profile: { age: 42 }, phones: [] } }
+		expect(payload.fields.profile?.age).toBe(42)
+		const draft = form.fill(payload)
+		expect(draft.fields.profile).toEqual({ age: 42 })
+		expect(draft.fields.phones).toEqual([])
+
+		const checkNestedRequiredness = () => {
+			// @ts-expect-error required nested fields must be supplied
+			form.fill({ fields: { profile: {}, phones: [] } })
+		}
+		void checkNestedRequiredness
+	})
+
 	test('allows recursive nested patches while preserving full payload strictness', () => {
 		const form = para.form({
 			kind: 'form',

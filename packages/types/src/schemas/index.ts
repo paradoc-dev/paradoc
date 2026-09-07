@@ -124,7 +124,6 @@ export type {
   MultiselectField,
   PercentageField,
   RatingField,
-  FormFieldset,
   FormAnnex,
   FormParty,
   FormSignature,

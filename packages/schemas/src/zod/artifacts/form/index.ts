@@ -10,7 +10,6 @@ import { FormPartySchema } from './party';
 // Re-export all form-related schemas
 export { FormFieldSchema, FieldsetFieldSchema } from './field';
 export { ListFieldSchema } from './list';
-export { FormFieldsetSchema } from './fieldset';
 export { FormAnnexSchema } from './annex';
 export { FormPartySchema } from './party';
 

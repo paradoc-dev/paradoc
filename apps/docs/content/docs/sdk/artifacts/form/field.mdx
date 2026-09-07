@@ -29,11 +29,9 @@ const statusField = field.enum()
 // Nested fieldset
 const addressField = field.fieldset()
   .label('Address')
-  .fields({
-    street: { type: 'text', label: 'Street' },
-    city: { type: 'text', label: 'City' },
-    zip: { type: 'text', label: 'ZIP Code' }
-  })
+  .field('street', field.text().label('Street'))
+  .field('city', field.text().label('City'))
+  .field('zip', field.text().label('ZIP Code'))
   .build()
 ```
 
@@ -240,7 +238,8 @@ All field builders share these methods:
 ### Fieldset
 
 <PropertiesTable properties={[
-  { name: 'fields', type: '(fields: Record<string, FormField>) => this', description: 'Nested field definitions' },
+  { name: 'field', type: '(id: string, field: FormField | FieldBuilder) => this', description: 'Add one nested field' },
+  { name: 'fields', type: '(fields: Record<string, FormField | FieldBuilder>) => this', description: 'Set nested field definitions' },
 ]} />
 
 ## Static Methods

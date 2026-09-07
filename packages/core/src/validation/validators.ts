@@ -14,7 +14,6 @@ import {
 	ChecklistItemSchema,
 	FormFieldSchema,
 	FormAnnexSchema,
-	FormFieldsetSchema,
 	FormPartySchema,
 	LayerSchema,
 	SignatureSchema,
@@ -94,7 +93,6 @@ const schemaNameMap: Record<string, string> = {
 	// Blocks (design-time form components)
 	FormField: 'formField',
 	FormAnnex: 'formAnnex',
-	FormFieldset: 'formFieldset',
 	FormParty: 'formParty',
 	Layer: 'layer',
 	// Runtime types
@@ -123,7 +121,6 @@ const schemaMap: Record<string, ZodSchema> = {
 	ChecklistItem: ChecklistItemSchema,
 	FormField: FormFieldSchema,
 	FormAnnex: FormAnnexSchema,
-	FormFieldset: FormFieldsetSchema,
 	FormParty: FormPartySchema,
 	Layer: LayerSchema,
 	Signature: SignatureSchema,
@@ -162,7 +159,6 @@ export const validateChecklist = createValidator(ChecklistSchema)
 // Blocks (design-time form components)
 export const validateFormField = createValidator(FormFieldSchema)
 export const validateFormAnnex = createValidator(FormAnnexSchema)
-export const validateFormFieldset = createValidator(FormFieldsetSchema)
 export const validateFormParty = createValidator(FormPartySchema)
 export const validateLayer = createValidator(LayerSchema)
 export const validateChecklistItem = createValidator(ChecklistItemSchema)

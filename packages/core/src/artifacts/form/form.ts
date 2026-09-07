@@ -3308,8 +3308,8 @@ function createFormBuilder<
 		},
 
 		field<const K extends string, const D extends Buildable<FormField>>(id: K, fieldDef: D) {
-			const fields = (_def.fields as Record<string, FormField>) || {}
-			fields[id] = parseFormField(resolveBuildable(fieldDef))
+			const fields = (_def.fields as Record<string, Buildable<FormField>>) || {}
+			fields[id] = fieldDef
 			_def.fields = fields
 			return builder as unknown as FormBuilderInterface<
 				AddFormDefinition<TFields, K, D extends { build(): infer T extends FormField } ? T : D extends FormField ? D : FormField, FormField>,
@@ -3319,11 +3319,7 @@ function createFormBuilder<
 		},
 
 		fields<const F extends Record<string, Buildable<FormField>>>(fieldsObj: F) {
-			const parsed: Record<string, FormField> = {}
-			for (const [id, fieldDef] of Object.entries(fieldsObj)) {
-				parsed[id] = parseFormField(resolveBuildable(fieldDef as Buildable<FormField>))
-			}
-			_def.fields = parsed
+			_def.fields = { ...fieldsObj }
 			return builder as unknown as FormBuilderInterface<
 				{
 					[K in keyof F]: F[K] extends { build(): infer T extends FormField } ? T : F[K] extends FormField ? F[K] : FormField
@@ -3442,6 +3438,12 @@ function createFormBuilder<
 
 		build(options?: ArtifactInstanceOptions) {
 			const cleaned: Record<string, unknown> = { ...(_def as object) }
+			const fields = _def.fields as Record<string, Buildable<FormField>> | undefined
+			if (fields) {
+				cleaned.fields = Object.fromEntries(
+					Object.entries(fields).map(([id, fieldDef]) => [id, parseFormField(resolveBuildable(fieldDef))]),
+				)
+			}
 			for (const key of Object.keys(cleaned)) {
 				if (cleaned[key] === undefined) {
 					delete cleaned[key]
