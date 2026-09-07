@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ArtifactSchema } from '../shared/base';
 import { LayerSchema } from '../shared/layer';
+import { addDuplicateIdentityIssues } from '../shared/unique';
 import { ChecklistItemSchema } from './item';
 
 // Re-export item schema
@@ -9,6 +10,14 @@ export { ChecklistItemSchema } from './item';
 export const ChecklistSchema = ArtifactSchema.extend({
 	kind: z.literal('checklist'),
 	items: z.array(ChecklistItemSchema)
+		.superRefine((items, ctx) => {
+			addDuplicateIdentityIssues(
+				items,
+				(item) => item.id,
+				{ collection: 'items', property: 'id', label: 'checklist item ID' },
+				(path, message) => ctx.addIssue({ code: 'custom', path, message }),
+			);
+		})
 		.describe('Array of checklist items. Each item represents a task, step, or requirement.'),
 	layers: z.record(
 		z.string()
