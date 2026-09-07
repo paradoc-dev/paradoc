@@ -11,6 +11,11 @@ import { DurationSchema } from '../../primitives/duration';
 import { PersonSchema } from '../../primitives/person';
 import { OrganizationSchema } from '../../primitives/organization';
 import { IdentificationSchema } from '../../primitives/identification';
+import {
+	compareClockTimeBounds,
+	compareTemporalBounds,
+	getOrderedBoundsIssue,
+} from './ordered-bounds';
 
 const EnumOptionValueSchema = z.union([z.string(), z.number()]);
 
@@ -33,6 +38,15 @@ const TextFieldSchema = BaseFieldSchema.extend({
 		.describe('Regular expression pattern for validation')
 		.optional(),
 	default: z.string().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(
+		field.minLength,
+		field.maxLength,
+		'minLength',
+		'maxLength',
+		(min, max) => min <= max,
+	)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const BooleanFieldSchema = BaseFieldSchema.extend({
@@ -45,6 +59,9 @@ const NumberFieldSchema = BaseFieldSchema.extend({
 	min: z.number().describe('Minimum value').optional(),
 	max: z.number().describe('Maximum value').optional(),
 	default: z.number().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const CoordinateFieldSchema = BaseFieldSchema.extend({
@@ -62,6 +79,9 @@ const MoneyFieldSchema = BaseFieldSchema.extend({
 	min: z.number().describe('Minimum amount').optional(),
 	max: z.number().describe('Maximum amount').optional(),
 	default: MoneySchema.optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const AddressFieldSchema = BaseFieldSchema.extend({
@@ -84,6 +104,15 @@ const EmailFieldSchema = BaseFieldSchema.extend({
 	minLength: z.number().describe('Minimum length').optional(),
 	maxLength: z.number().describe('Maximum length').optional(),
 	default: z.string().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(
+		field.minLength,
+		field.maxLength,
+		'minLength',
+		'maxLength',
+		(min, max) => min <= max,
+	)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const UuidFieldSchema = BaseFieldSchema.extend({
@@ -96,6 +125,15 @@ const UuidFieldSchema = BaseFieldSchema.extend({
 		.describe('Regular expression pattern for validation')
 		.optional(),
 	default: z.string().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(
+		field.minLength,
+		field.maxLength,
+		'minLength',
+		'maxLength',
+		(min, max) => min <= max,
+	)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const UriFieldSchema = BaseFieldSchema.extend({
@@ -108,6 +146,15 @@ const UriFieldSchema = BaseFieldSchema.extend({
 		.describe('Regular expression pattern for validation')
 		.optional(),
 	default: z.string().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(
+		field.minLength,
+		field.maxLength,
+		'minLength',
+		'maxLength',
+		(min, max) => min <= max,
+	)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const EnumFieldSchema = BaseFieldSchema.extend({
@@ -129,6 +176,9 @@ const DateFieldSchema = BaseFieldSchema.extend({
 		.describe('Maximum date (ISO 8601: YYYY-MM-DD)')
 		.optional(),
 	default: z.iso.date().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', compareTemporalBounds)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const DatetimeFieldSchema = BaseFieldSchema.extend({
@@ -140,6 +190,9 @@ const DatetimeFieldSchema = BaseFieldSchema.extend({
 		.describe('Maximum datetime (ISO 8601)')
 		.optional(),
 	default: z.iso.datetime().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', compareTemporalBounds)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const TimeFieldSchema = BaseFieldSchema.extend({
@@ -147,6 +200,9 @@ const TimeFieldSchema = BaseFieldSchema.extend({
 	min: z.string().describe('Minimum time (HH:MM:SS)').optional(),
 	max: z.string().describe('Maximum time (HH:MM:SS)').optional(),
 	default: z.string().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', compareClockTimeBounds)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const PersonFieldSchema = BaseFieldSchema.extend({
@@ -177,6 +233,9 @@ const MultiselectFieldSchema = BaseFieldSchema.extend({
 	default: z.array(EnumOptionValueSchema)
 		.describe('Default selected values')
 		.optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const PercentageFieldSchema = BaseFieldSchema.extend({
@@ -185,6 +244,9 @@ const PercentageFieldSchema = BaseFieldSchema.extend({
 	max: z.number().describe('Maximum value (default: 100)').optional(),
 	precision: z.number().describe('Decimal places (default: 2)').optional(),
 	default: z.number().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 const RatingFieldSchema = BaseFieldSchema.extend({
@@ -193,6 +255,9 @@ const RatingFieldSchema = BaseFieldSchema.extend({
 	max: z.number().describe('Maximum value (default: 5)').optional(),
 	step: z.number().describe('Increment step (e.g., 0.5 for half stars, default: 1)').optional(),
 	default: z.number().describe('Default value').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
 // Define base field types (non-recursive)

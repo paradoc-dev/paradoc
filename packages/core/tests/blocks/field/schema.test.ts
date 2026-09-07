@@ -394,6 +394,13 @@ describe('Field', () => {
 			});
 
 			describe('validation failures', () => {
+				test('rejects contradictory bounds before runtime validation', () => {
+					expect(field.safeParse({ type: 'text', minLength: 10, maxLength: 3 }).success).toBe(false)
+					expect(field.safeParse({ type: 'number', min: 10, max: 3 }).success).toBe(false)
+					expect(field.safeParse({ type: 'text', minLength: 3, maxLength: 10 }).success).toBe(true)
+					expect(field.safeParse({ type: 'number', min: 3, max: 10 }).success).toBe(true)
+				});
+
 				test('throws error when type is missing', () => {
 					const input = { label: 'Test' } as any;
 					expect(() => field(input)).toThrow();
