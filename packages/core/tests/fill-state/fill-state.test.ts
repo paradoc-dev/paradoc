@@ -83,6 +83,34 @@ const createFormWithDefsAndRules = () =>
 		})
 		.build()
 
+const createFormWithPartyExpressions = () =>
+	form({
+		kind: 'form',
+		name: 'party-expressions',
+		version: '1.0.0',
+		title: 'Party Expressions',
+		fields: {
+			partyName: {
+				type: 'text',
+				visible: 'partyCount("buyer") > 0',
+				required: 'partyCount("buyer") > 0',
+			},
+		},
+		annexes: {
+			partyProof: { title: 'Party proof', visible: 'partyCount("buyer") > 0' },
+		},
+		parties: {
+			buyer: { label: 'Buyer', types: ['person'], min: 0 },
+		},
+		rules: {
+			buyerPresent: {
+				expr: 'partyCount("buyer") > 0',
+				severity: 'error',
+				message: 'A buyer is required',
+			},
+		},
+	} as any)
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -359,6 +387,27 @@ describe('fill-state', () => {
 			expect(state.rules.valid).toBe(true)
 			expect(state.rules.errors).toEqual([])
 			expect(state.rules.warnings).toEqual([])
+		})
+
+		test('forwards parties to field, annex, and rule evaluation', () => {
+			const f = createFormWithPartyExpressions()
+			const empty = f.partialFill()
+			const emptyState = empty.getFillState()
+
+			expect(empty.isFieldVisible('partyName')).toBe(false)
+			expect(empty.isAnnexVisible('partyProof')).toBe(false)
+			expect(emptyState.rules.valid).toBe(false)
+
+			const withBuyer = f.partialFill({
+				parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
+			} as any)
+			const state = withBuyer.getFillState()
+
+			expect(withBuyer.isFieldVisible('partyName')).toBe(true)
+			expect(withBuyer.isFieldRequired('partyName')).toBe(true)
+			expect(withBuyer.isAnnexVisible('partyProof')).toBe(true)
+			expect(state.rules.valid).toBe(true)
+			expect(() => f.fill({ parties: { buyer: { id: 'buyer-0', name: 'Alice' } } } as any)).not.toThrow()
 		})
 	})
 

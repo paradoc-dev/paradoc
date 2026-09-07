@@ -6,7 +6,7 @@
  * B. Runtime state computation from form + current data
  */
 
-import type { Form, FormField, FieldsetField } from '@paradoc/types'
+import type { Form, FormField, FieldsetField, Party } from '@paradoc/types'
 import type {
 	FillTarget,
 	FillTargetOptions,
@@ -16,9 +16,9 @@ import type {
 } from './types'
 import type { FormRuntimeState } from '@/logic/runtime/evaluation/types'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
+import { buildFormContext } from '@/logic/runtime/evaluation/context-builder'
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { evaluateFormRules } from '@/logic/runtime/evaluation/rule-evaluator'
-import type { EvaluationContext } from '@/logic/runtime/evaluation/types'
 import { buildFieldDependencyGraph, transitiveBlockers } from './dependency-graph'
 
 /** A field/annex's effective status from its visibility and required flags. */
@@ -362,10 +362,10 @@ export function computeFillState(
 	const completionPercent = requiredTotal === 0 ? 100 : Math.round((requiredDone / requiredTotal) * 100)
 
 	// --- Rules ---
-	const context: EvaluationContext = { fields: {} }
-	for (const [fieldId, value] of Object.entries(fieldValues)) {
-		context.fields[fieldId] = value
-	}
+	const context = buildFormContext(form, {
+		fields: fieldValues,
+		parties: partyValues as Record<string, Party | Party[]>,
+	})
 	const ruleResult = evaluateFormRules(form, fieldValues, runtimeState.defsValues, context)
 
 	// --- Defs values ---
@@ -427,8 +427,10 @@ export function computeFillState(
 export function computeRuntimeState(
 	form: Form,
 	fieldValues: Record<string, unknown>,
+	partyValues: Record<string, Party | Party[]> = {},
+	witnesses: Party[] = [],
 ): FormRuntimeState {
-	const result = evaluateFormDefs(form, { fields: fieldValues })
+	const result = evaluateFormDefs(form, { fields: fieldValues, parties: partyValues, witnesses })
 	if ('value' in result) {
 		return result.value
 	}
