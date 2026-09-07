@@ -1,3 +1,4 @@
+import { FormatterProvider, type ArtifactFormatting } from "../components/formatter-context";
 /**
  * What `renderPdf` puts around the element before an engine sees it.
  *
@@ -48,4 +49,8 @@ export function withPartialValues(element: ReactNode, partial: boolean | undefin
 /** Tells the document below what this render resolved, so it can check itself. */
 export function withDrawnPaper(element: ReactNode, tokens: DocumentTokens): ReactNode {
   return <DrawnPaperProvider value={drawnPaper(tokens)}>{element}</DrawnPaperProvider>;
+}
+
+export function withFormatter(element: ReactNode, options: ArtifactFormatting): ReactNode {
+  return <FormatterProvider {...options}>{element}</FormatterProvider>;
 }

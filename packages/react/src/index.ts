@@ -7,7 +7,7 @@
  * the page plan and the preview. `@paradoc/react/pdf` is the Node-only half.
  *
  * The artifact packages — `@paradoc/core`, `@paradoc/types`, `@paradoc/render`
- * and `@paradoc/serialization` — are consumed unchanged.
+ * and `@paradoc/format` — are consumed unchanged.
  */
 
 export { KeepTogether, type KeepTogetherProps } from "./components/keep-together";
@@ -130,7 +130,7 @@ export {
   BLANK,
   createValueFormatter,
   formatByType,
-  InvalidFieldValueError,
+  ArtifactFieldFormatError,
   type DocumentFormatter,
   type FormatOptions,
   type ValueFormatter,
@@ -205,3 +205,5 @@ export {
   type PagePlan,
 } from "./lib/plan";
 export { computeLineAmounts, type LineItem, type LineItemInput } from "./lib/totals";
+
+export { FormatterProvider, useArtifactFormatting, type ArtifactFormatting } from "./components/formatter-context";

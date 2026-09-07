@@ -1,3 +1,4 @@
+import { useArtifactFormatting } from "./formatter-context";
 /**
  * `Document` takes the form artifact and its data and supplies both to
  * everything beneath it. It is the only component that knows how the artifact
@@ -104,11 +105,12 @@ export function Document({
   // for a tree they do not own. Off unless something says so.
   const surrounding = usePartialValues();
   const partial = format?.partial ?? surrounding;
+  const inherited = useArtifactFormatting();
 
   const context = useMemo(() => {
-    const formatter = createValueFormatter({ ...format, partial });
+    const formatter = createValueFormatter({ ...format, partial, formatter: inherited.formatter ?? format?.formatter, progressive: inherited.progressive ?? format?.progressive });
     return createDocumentContext(artifact, data, evaluateDefs(artifact, data), formatter, marks, collector);
-  }, [artifact, data, format, partial, marks, collector]);
+  }, [artifact, data, format, partial, marks, collector, format?.formatter, format?.progressive, inherited.formatter, inherited.progressive]);
 
   return (
     <DocumentTokensProvider tokens={branding.tokens}>

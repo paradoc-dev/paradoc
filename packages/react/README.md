@@ -36,7 +36,7 @@ optional peers that only the Chromium adapter needs, so `@paradoc/react/pdf`
 loads without either.
 
 The artifact packages — `@paradoc/core`, `@paradoc/types`, `@paradoc/render` and
-`@paradoc/serialization` — are consumed unchanged: this package adds a way to
+`@paradoc/format` — are consumed unchanged: this package adds a way to
 write a document, not a second description of one.
 
 ## Writing one
@@ -130,7 +130,7 @@ format, or a total.
 | `Bundle`    | Holds documents.                                                        |
 | `Document`  | Binds one form artifact and its data, and evaluates the artifact's defs. |
 | `Section`   | A titled container.                                                     |
-| `Field`     | Names a path, renders the value through the artifact's serializers.     |
+| `Field`     | Names a path, renders the value through the artifact formatter.     |
 | `Table`     | Renders a list field as rows.                                           |
 | `Totals`    | Renders the artifact's computed defs.                                   |
 | `Signature` | One signing block: a party, a field type, and the seal's marker.   |
@@ -540,18 +540,18 @@ both rather than guessing which block is which.
 typo in a composition is a bug, not a blank value, and rendering it as an em dash
 would hide it until someone read the finished document.
 
-A value is the same rule. A value the serializer rejects for its declared type
-throws `InvalidFieldValueError` naming where it came from, rather than falling
+A value is the same rule. A value the formatter rejects for its declared type
+throws `ArtifactFieldFormatError` naming where it came from, rather than falling
 through to `String(value)`: a rate stored as a string is a data bug and printing
 it raw would hide that.
 
 **Missing is not wrong, though.** A value the data does not carry at all
 (`null`, `undefined`, `''`) prints blank in every mode, because it never reaches
-a serializer.
+the formatter.
 
 A composite the data has only *half* supplied is the harder case, and it is
 opt-in. `{ amount: null, currency: 'USD' }` is what a money def evaluates to
-while the field behind its amount is unanswered, and its serializer rejects it.
+while the field behind its amount is unanswered, and its formatter rejects it.
 A finished document with that in it is a bug and must fail; a document a session
 is part-way through answering is supposed to look like that. Only the caller
 knows which it is rendering, so it says so:
@@ -566,15 +566,24 @@ Off by default. Every ordinary `renderPdf` and both of the seal's render passes
 leave it off. `checkComposition` turns it on, because a check runs against
 whatever sample data there is and often against none.
 
-**Partial mode does not swallow a wrong value.** A rejection counts as
-unfinished only when it is actually about a member the data has not supplied,
-and that is decided by asking the serializer a second question rather than by
-reading the message of the first refusal: serialize the same value with its
-blank members removed. Accepted, or nothing left of it, means the blanks were
-the whole problem. Rejected with the same complaint means the pruning changed
-nothing, so the complaint was never about a blank. `{ amount: '12', currency:
-null }` is that case, half-supplied and also wrong, and it throws in partial
-mode exactly as it does outside it.
+**Partial mode does not swallow a wrong value.** The shared formatter reports
+`missing`, `incomplete`, `invalid`, `unsupported`, or `error` explicitly. Only
+missing and incomplete results receive progressive placeholders. Malformed
+supplied members remain failures, including inside otherwise incomplete values.
+
+Choose one formatter for a document or a whole render:
+
+```tsx
+import { createFormatter } from '@paradoc/format';
+const formatter = createFormatter({ locale: 'de-DE' });
+<Document artifact={artifact} data={data} format={{ formatter }} />;
+await renderPdf(element, { formatter });
+```
+
+Artifact render context takes precedence over a composition's formatter.
+`format.progressive` can supply distinct `missing` and `incomplete` placeholders.
+Fields, computed values and parties use the same field adapter as text, DOCX
+and PDF, with structured errors carrying the affected path.
 
 ## Checking a composition without rendering it
 
@@ -1118,7 +1127,7 @@ matching on words.
 
 **Latin digits are what makes an amount searchable in the file.** The
 `ar` serializer registry pins `ar-u-nu-latn`, so figures reach the PDF intact
-even though the Arabic around them does not. See `@paradoc/serialization` for
+even though the Arabic around them does not. See `@paradoc/format` for
 why that registry chose Latin digits over Arabic-Indic. It is also what lets the
 parity suite still name the keep a page opens on: see **The numbers** below.
 

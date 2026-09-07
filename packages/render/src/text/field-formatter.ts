@@ -269,7 +269,7 @@ function formatLeaf(
 	}
 }
 
-function formatFieldValue(
+export function formatFieldValue(
 	formatter: Formatter,
 	field: FormField,
 	value: unknown,
@@ -297,7 +297,7 @@ function formatFieldValue(
 	return formatLeaf(formatter, field, value, path, options)
 }
 
-function formatDefinitionValue(
+export function formatDefinitionValue(
 	formatter: Formatter,
 	type: string,
 	value: unknown,
@@ -340,7 +340,7 @@ function formatDefinitionValue(
 	}
 }
 
-function formatParties(
+export function formatParties(
 	formatter: Formatter,
 	form: Form,
 	value: unknown,

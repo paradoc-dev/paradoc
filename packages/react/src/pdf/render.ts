@@ -1,3 +1,4 @@
+import type { Formatter, FormatterProgressivePolicy } from "@paradoc/types";
 /**
  * `renderPdf` — one call that turns the composed document into PDF bytes.
  *
@@ -41,7 +42,7 @@ import {
 } from "./adapter";
 import { takumiAdapter } from "./adapters/takumi";
 import { documentFontFiles, markerFontFile, type PdfImage } from "./resources";
-import { withDrawnPaper, withPartialValues, withTokenOverride } from "./token-override";
+import { withDrawnPaper, withPartialValues, withTokenOverride, withFormatter } from "./token-override";
 import type { PageBreakPlan } from "./tree";
 
 export {
@@ -57,6 +58,8 @@ export {
 } from "./adapter";
 
 export interface RenderPdfOptions {
+  formatter?: Formatter;
+  progressive?: FormatterProgressivePolicy;
   /**
    * Which engine writes the bytes. `takumi` by default: it is the engine the
    * parity numbers were measured on, and it needs no browser.
@@ -194,7 +197,7 @@ export async function renderPdf(
     // against it. Both are contexts and neither emits markup, so the tree an
     // engine lays out is the tree the caller wrote.
     element: withDrawnPaper(
-      withTokenOverride(withPartialValues(element, options.partial), options.tokens),
+      withTokenOverride(withPartialValues(withFormatter(element, options), options.partial), options.tokens),
       tokens
     ),
     tokens,

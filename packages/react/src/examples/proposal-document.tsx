@@ -1,3 +1,4 @@
+import { createFormatter } from "@paradoc/format";
 /**
  * The proposal, composed from the components.
  *
@@ -55,6 +56,9 @@ function ProposalMark({ fallbackSrc }: { fallbackSrc: string }) {
   );
 }
 
+// The compact masthead names the provider; legal details remain in the artifact.
+export const proposalFormatter = createFormatter({ overrides: { organization: (value, options, context) => { context.delegate(value, options); return String(value?.name ?? ""); } } });
+
 export interface ProposalDocumentProps {
   /** The proposal data to render. */
   data: DocumentData;
@@ -82,7 +86,7 @@ export function ProposalDocument({
   data,
   artifact = proposalForm,
   logoSrc = PROPOSAL_LOGO_SRC,
-  format,
+  format = { formatter: proposalFormatter },
   tokens,
 }: ProposalDocumentProps) {
   return (

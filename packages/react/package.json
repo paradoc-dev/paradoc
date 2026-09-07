@@ -127,10 +127,10 @@
     "@fontsource/noto-sans-symbols-2": "catalog:",
     "@paradoc/core": "workspace:^",
     "@paradoc/render": "workspace:^",
-    "@paradoc/serialization": "workspace:^",
     "@paradoc/types": "workspace:^",
     "@takumi-rs/helpers": "catalog:",
-    "takumi-pdf": "catalog:"
+    "takumi-pdf": "catalog:",
+    "@paradoc/format": "workspace:^"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",

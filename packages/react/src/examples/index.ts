@@ -26,7 +26,7 @@ export {
   PROPOSAL_SIGNATURE_SLOTS,
 } from "./proposal";
 export { overflowProposalData, shortProposalData, type ProposalData } from "./proposal-data";
-export { ProposalDocument, type ProposalDocumentProps } from "./proposal-document";
+export { ProposalDocument, proposalFormatter, type ProposalDocumentProps } from "./proposal-document";
 export {
   purchaseOrder,
   purchaseOrderForm,

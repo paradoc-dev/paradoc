@@ -292,6 +292,8 @@ export function reactRenderer(
       // what the coverage test needs and nothing else wants.
       const { bytes } = await renderPdf(element, {
         ...options.pdf,
+        formatter: request.ctx?.formatter ?? options.pdf?.formatter,
+        progressive: request.ctx?.progressive ?? options.pdf?.progressive,
         signingMarkers: options.pdf?.signingMarkers ?? (markers.length > 0),
       });
       if (markers.length > 0) await assertMarkersSurvived(bytes, markers);

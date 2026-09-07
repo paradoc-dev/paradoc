@@ -1,3 +1,4 @@
+import { createFormatter } from "@paradoc/format";
 // @vitest-environment jsdom
 /**
  * The plan survives an equal re-render.
@@ -95,7 +96,7 @@ function Host({ data, onPaginate, onRender }: HostProps) {
           onPaginate(next);
         }}
       >
-        <ProposalDocument data={data} format={{ regionFormat: "us" }} />
+        <ProposalDocument data={data} format={{ formatter: createFormatter({ locale: "en-US" }) }} />
       </Pages>
     </div>
   );

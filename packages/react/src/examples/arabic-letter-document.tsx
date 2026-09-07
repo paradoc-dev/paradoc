@@ -1,3 +1,4 @@
+import { createFormatter } from "@paradoc/format";
 /**
  * The Arabic letter, composed from the same components the proposal is.
  *
@@ -35,6 +36,8 @@ import type { FormatOptions } from "../lib/format";
 import type { DocumentTokensInput } from "../lib/tokens";
 import { arabicLetterForm, arabicLetterTokens } from "./arabic-letter";
 
+const arabicFormatter = createFormatter({ locale: "ar-SA", numberingSystem: "latn", overrides: { organization: (value, options, context) => { context.delegate(value, options); return String(value?.name ?? ""); } } });
+
 export interface ArabicLetterDocumentProps {
   /** The letter data to render. */
   data: DocumentData;
@@ -60,7 +63,7 @@ export interface ArabicLetterDocumentProps {
 export function ArabicLetterDocument({
   data,
   artifact = arabicLetterForm,
-  format = { regionFormat: "ar" },
+  format = { formatter: arabicFormatter },
   tokens = arabicLetterTokens,
 }: ArabicLetterDocumentProps) {
   return (

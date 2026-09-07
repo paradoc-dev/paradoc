@@ -112,6 +112,7 @@ describe("the manifest covers the package", () => {
     expect(uncovered.sort()).toEqual([
       "check-context",
       "document-context",
+      "formatter-context",
       "page-context",
       "paper-geometry",
       "partial-context",
@@ -172,7 +173,7 @@ describe("the emitted files", () => {
   it("merges two authoring imports that land on one specifier", () => {
     const signature = byName.get("signature")?.files[0]?.content ?? "";
     expect(signature).toContain(
-      `import { formatByType, useDocument, type SigningMarkType } from "${SUBSTRATE_PACKAGE}";`
+      `import { useDocument, type SigningMarkType } from "${SUBSTRATE_PACKAGE}";`
     );
     expect(signature.match(/from "@paradoc\/react";/g)).toHaveLength(1);
   });

@@ -25,7 +25,6 @@
  * two slots.
  */
 
-import { formatByType } from "../lib/format";
 import { KeepTogether } from "./keep-together";
 import { useDocument } from "./document-context";
 import type { SigningMarkType } from "./signing-context";
@@ -63,9 +62,8 @@ export interface SignatureProps {
 
 /** One party's signing block, for one field type. */
 export function Signature({ party, index = 0, type = "signature", id, className }: SignatureProps) {
-  const { form, party: partiesFor, serializers, blank, mark } = useDocument();
+  const { form, partyText, mark } = useDocument();
   const role = form.parties?.[party];
-  const signer = partiesFor(party)[index];
   const field = FIELD[type];
 
   return (
@@ -79,7 +77,7 @@ export function Signature({ party, index = 0, type = "signature", id, className 
         {role?.label ?? party}
       </span>
       <span className="text-sm text-neutral-900">
-        {formatByType("party", signer, serializers, blank, `party:${party}:${index}`)}
+        {partyText(party, index)}
       </span>
       <div className="mt-6 flex gap-6">
         <div className="flex basis-2/3 flex-col gap-1">

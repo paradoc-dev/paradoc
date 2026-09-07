@@ -1,3 +1,4 @@
+import { formatParties } from "@paradoc/render/text/field-formatter";
 /**
  * The one place a composed document is bound to its artifact and its data.
  *
@@ -7,11 +8,11 @@
  */
 
 import { createContext, useContext } from "react";
-import type { Form, FormField, Party, SerializerRegistry } from "@paradoc/types";
+import type { Form, FormField, Party, Formatter } from "@paradoc/types";
 
 import { itemField, readValue, resolveField, UnknownFieldPathError } from "../lib/fields";
 import { findSigningMark, type SigningMarks, type SigningMarkType } from "./signing-context";
-import { formatByType, InvalidFieldValueError, type DocumentFormatter, type ValueFormatter } from "../lib/format";
+import { formatByType, ArtifactFieldFormatError, type DocumentFormatter, type ValueFormatter } from "../lib/format";
 import type { UnresolvedPathCollector } from "./check-context";
 
 /** The data one composed document renders. */
@@ -35,7 +36,7 @@ export interface DocumentContextValue {
   /** Computed values from the artifact's `defs`, keyed by def name. */
   defs: Map<string, unknown>;
   /** The serializer registry every composite value is formatted through. */
-  serializers: SerializerRegistry;
+  formatter: Formatter;
   /** Shown in place of a value the data does not carry. */
   blank: string;
   format: ValueFormatter;
@@ -51,6 +52,7 @@ export interface DocumentContextValue {
   defText: (name: string) => string;
   /** Reads the parties filling one role. */
   party: (role: string) => Party[];
+  partyText: (role: string, index: number) => string;
   /**
    * The invisible flow marker the seal wants in front of one party's
    * placeholder of one field type, if this render is the seal's marker pass.
@@ -110,7 +112,7 @@ function resolveOrCollect(
 }
 
 /**
- * Runs `attempt`, catching an `InvalidFieldValueError` in place of letting it
+ * Runs `attempt`, catching an `ArtifactFieldFormatError` in place of letting it
  * throw. Outside check mode `attempt` runs unguarded, so a normal render
  * still throws exactly as it always has.
  *
@@ -131,8 +133,8 @@ function formatOrCollect(
   try {
     return attempt();
   } catch (error) {
-    if (error instanceof InvalidFieldValueError) {
-      collector.report(error.location);
+    if (error instanceof ArtifactFieldFormatError) {
+      collector.report(error.path);
       return blank;
     }
     throw error;
@@ -170,7 +172,7 @@ export function createDocumentContext(
     form,
     data,
     defs,
-    serializers: formatter.serializers,
+    formatter: formatter.formatter,
     blank: formatter.blank,
     format: formatter.format,
     field,
@@ -184,12 +186,13 @@ export function createDocumentContext(
         formatByType(
           form.defs?.[name]?.type,
           defs.get(name),
-          formatter.serializers,
+          formatter.formatter,
           formatter.blank,
           `defs.${name}`,
-          formatter.partial
+          formatter.progressive
         )
       ),
     party,
+    partyText: (role, index) => formatOrCollect(collector, formatter.blank, () => String(formatParties(formatter.formatter, form, party(role)[index], `parties.${role}[${index}]`, { progressive: formatter.progressive }, role) ?? formatter.blank)),
   };
 }

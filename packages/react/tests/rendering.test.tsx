@@ -1,3 +1,4 @@
+import { createFormatter } from "@paradoc/format";
 /**
  * Rendering tests.
  *
@@ -20,7 +21,7 @@ import {
   shortProposalData,
 } from "../src/examples";
 import { UnknownFieldPathError } from "../src/lib/fields";
-import { InvalidFieldValueError, type FormatOptions } from "../src/lib/format";
+import { ArtifactFieldFormatError, type FormatOptions } from "../src/lib/format";
 
 const html = renderToStaticMarkup(<ProposalDocument data={shortProposalData} />);
 
@@ -53,7 +54,7 @@ describe("fields render through the artifact's serializers", () => {
   });
 
   it("formats an address the way the address serializer does", () => {
-    expect(html).toContain("1400 Rio Grande Street, Suite 220, Austin, TX, 78701, US");
+    expect(html).toContain("1400 Rio Grande Street, Suite 220, Austin, TX 78701, US");
   });
 
   it("formats a person the way the person serializer does", () => {
@@ -86,7 +87,7 @@ describe("fields render through the artifact's serializers", () => {
 
 describe("the full reference document prints correctly under both registries", () => {
   const euHtml = renderToStaticMarkup(
-    <ProposalDocument data={shortProposalData} format={{ regionFormat: "eu" }} />
+    <ProposalDocument data={shortProposalData} format={{ formatter: createFormatter({ locale: "de-DE" }) }} />
   );
 
   it("formats the date fields locale-aware", () => {
@@ -98,12 +99,12 @@ describe("the full reference document prints correctly under both registries", (
 
   it("formats the percentage field locale-aware", () => {
     expect(html).toContain("8.25%");
-    expect(euHtml).toContain("8,25%");
+    expect(euHtml).toContain("8,25 %");
   });
 
   it("keeps money on the artifact's declared currency, not the EU registry's default", () => {
     // The EU registry defaults an amount with no declared currency to EUR
-    // (see `createMoneyStringifier` in `@paradoc/serialization`), but every
+    // (see `createFormatter` in `@paradoc/format`), but every
     // money value this artifact prints — every line item, and the subtotal,
     // tax, and total defs — carries an explicit `currency: "fields.currency"`,
     // which this document sets to "USD". Switching the registry to EU
@@ -138,7 +139,7 @@ describe("the full reference document prints correctly under both registries", (
     const euMarkup = renderAlone(
       <Field path="lineItems.0.quantity" label={false} />,
       overridden,
-      { regionFormat: "eu" }
+      { formatter: createFormatter({ locale: "de-DE" }) }
     );
     expect(usMarkup).toContain("1,234.5");
     expect(euMarkup).toContain("1.234,5");
@@ -152,17 +153,17 @@ describe("an invalid value fails loudly instead of degrading to a raw string", (
       fields: { ...shortProposalData.fields, issuedOn: "not-a-date" },
     };
 
-    expect(() => renderAlone(<Field path="issuedOn" />, invalidData)).toThrow(InvalidFieldValueError);
+    expect(() => renderAlone(<Field path="issuedOn" />, invalidData)).toThrow(ArtifactFieldFormatError);
 
     expect.assertions(5);
     try {
       renderAlone(<Field path="issuedOn" />, invalidData);
     } catch (error) {
-      expect(error).toBeInstanceOf(InvalidFieldValueError);
-      const invalid = error as InvalidFieldValueError;
-      expect(invalid.location).toBe("issuedOn");
-      expect(invalid.value).toBe("not-a-date");
-      expect(invalid.message).toContain("not-a-date");
+      expect(error).toBeInstanceOf(ArtifactFieldFormatError);
+      const invalid = error as ArtifactFieldFormatError;
+      expect(invalid.path).toBe("issuedOn");
+      expect(invalid.status).toBe("invalid");
+      expect(invalid.issues.length).toBeGreaterThan(0);
     }
   });
 
@@ -176,7 +177,7 @@ describe("an invalid value fails loudly instead of degrading to a raw string", (
       },
     };
     expect(() => renderToStaticMarkup(<ProposalDocument data={overridden} />)).toThrow(
-      InvalidFieldValueError
+      ArtifactFieldFormatError
     );
   });
 });

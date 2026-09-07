@@ -22,7 +22,7 @@
  *
  * **A resolved path can still fail to format, and that is not always a
  * fault.** A `Totals` def, or a `Field`, formats the value it resolves to,
- * and a money/percentage/etc. serializer throws `InvalidFieldValueError` on
+ * and a money/percentage/etc. serializer throws `ArtifactFieldFormatError` on
  * a value it rejects — including `{ amount: null, currency: null }`, what a
  * money def computes from fields the caller's sample data never set.
  * `text`/`defText` catch that throw the same collector catches everything
@@ -69,7 +69,7 @@ import { CheckModeProvider, type UnresolvedPathCollector } from "../components/c
 import { PartialValuesProvider } from "../components/partial-context";
 import type { DocumentData } from "../components/document-context";
 import { UnknownFieldPathError } from "../lib/fields";
-import { InvalidFieldValueError } from "../lib/format";
+import { ArtifactFieldFormatError } from "../lib/format";
 import type { ReactLayerComponent } from "../pdf/layer";
 import { preparePdfTree } from "../pdf/tree";
 import type { PdfAdapterName } from "../pdf/adapter";
@@ -199,8 +199,8 @@ export async function checkElement(
       collector.report(error.path);
       return { unsupportedClasses: [], unresolvedPaths, missingImages: [] };
     }
-    if (error instanceof InvalidFieldValueError) {
-      collector.report(error.location);
+    if (error instanceof ArtifactFieldFormatError) {
+      collector.report(error.path);
       return { unsupportedClasses: [], unresolvedPaths, missingImages: [] };
     }
     throw error;
