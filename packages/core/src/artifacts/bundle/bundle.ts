@@ -44,6 +44,7 @@ import { renderLayer as createRenderer } from '@paradoc/render'
 import type { RuntimeDocument, DraftDocument } from '../document'
 import type { RuntimeChecklist, DraftChecklist } from '../checklist'
 import type { RuntimeForm, DraftForm, SignableForm } from '../form'
+import type { DeepMutable, DeepReadonly } from '@/artifacts/shared/definition-types'
 
 // ============================================================================
 // Types
@@ -52,7 +53,9 @@ import type { RuntimeForm, DraftForm, SignableForm } from '../form'
 /**
  * Bundle input type for direct creation (kind is optional)
  */
-export type BundleInput = Omit<Bundle, 'kind'> & { kind?: 'bundle' }
+export type BundleInput = DeepReadonly<Omit<Bundle, 'kind'>> & { readonly kind?: 'bundle' }
+
+type MutableBundle<T extends BundleInput> = DeepMutable<T> & Bundle & { kind: 'bundle' }
 
 /**
  * RuntimeBundle JSON representation (union of all phases)
@@ -1035,17 +1038,17 @@ function createBundleBuilder(): BundleBuilderInterface {
 
 type BundleAPI = {
 	(): BundleBuilderInterface
-	<const T extends BundleInput>(input: T): BundleInstance<T & { kind: 'bundle' }>
+	<const T extends BundleInput>(input: T): BundleInstance<MutableBundle<T>>
 	from(input: unknown): BundleInstance<Bundle>
 	safeFrom(input: unknown): { success: true; data: BundleInstance<Bundle> } | { success: false; error: Error }
 }
 
 function bundleImpl(): BundleBuilderInterface
-function bundleImpl<const T extends BundleInput>(input: T): BundleInstance<T & { kind: 'bundle' }>
-function bundleImpl<const T extends BundleInput>(input?: T): BundleBuilderInterface | BundleInstance<T & { kind: 'bundle' }> {
+function bundleImpl<const T extends BundleInput>(input: T): BundleInstance<MutableBundle<T>>
+function bundleImpl<const T extends BundleInput>(input?: T): BundleBuilderInterface | BundleInstance<MutableBundle<T>> {
 	if (input !== undefined) {
 		const withKind = { ...input, kind: 'bundle' as const }
-		const parsed = parseBundleSchema(withKind) as T & { kind: 'bundle' }
+		const parsed = parseBundleSchema(withKind) as MutableBundle<T>
 		return createBundleInstance(parsed)
 	}
 	return createBundleBuilder()

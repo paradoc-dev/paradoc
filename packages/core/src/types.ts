@@ -24,6 +24,7 @@ import type {
 } from '@paradoc/types'
 
 import type { RendererRegistry } from './rendering/renderer-registry'
+import type { DeepReadonly } from './artifacts/shared/definition-types'
 
 // Re-export RendererLayer for convenience
 export type { RendererLayer } from '@paradoc/types'
@@ -390,7 +391,7 @@ export type DocumentInput = Omit<Document, 'kind'> & { kind?: 'document' }
  * })
  * ```
  */
-export type BundleInput = Omit<Bundle, 'kind'> & { kind?: 'bundle' }
+export type BundleInput = DeepReadonly<Omit<Bundle, 'kind'>> & { readonly kind?: 'bundle' }
 
 /**
  * Input type for creating a Checklist instance.
@@ -405,4 +406,4 @@ export type BundleInput = Omit<Bundle, 'kind'> & { kind?: 'bundle' }
  * })
  * ```
  */
-export type ChecklistInput = Omit<Checklist, 'kind'> & { kind?: 'checklist' }
+export type ChecklistInput = DeepReadonly<Omit<Checklist, 'kind'>> & { readonly kind?: 'checklist' }

@@ -49,6 +49,10 @@ import { parseFormField } from '@/validation/artifact-parsers';
 // Condition expression type (boolean or string expression)
 type CondExpr = boolean | string;
 
+type BuiltField<F extends FormField, R extends CondExpr | undefined> = R extends undefined
+	? F
+	: F & { required: R }
+
 // ============================================================================
 // Validation
 // ============================================================================
@@ -61,255 +65,303 @@ function parseField(input: unknown): FormField {
 // Field Builder Types (for external use)
 // ============================================================================
 
-export interface TextFieldBuilder {
-	label(value: string): TextFieldBuilder;
-	description(value: string): TextFieldBuilder;
-	required(value?: CondExpr): TextFieldBuilder;
-	visible(value?: CondExpr): TextFieldBuilder;
-	minLength(value: number): TextFieldBuilder;
-	maxLength(value: number): TextFieldBuilder;
-	pattern(value: string): TextFieldBuilder;
-	default(value: string): TextFieldBuilder;
-	build(): TextField;
+export interface TextFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): TextFieldBuilder<R>;
+	description(value: string): TextFieldBuilder<R>;
+	required(): TextFieldBuilder<true>;
+	required(value: undefined): TextFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): TextFieldBuilder<V>;
+	visible(value?: CondExpr): TextFieldBuilder<R>;
+	minLength(value: number): TextFieldBuilder<R>;
+	maxLength(value: number): TextFieldBuilder<R>;
+	pattern(value: string): TextFieldBuilder<R>;
+	default(value: string): TextFieldBuilder<R>;
+	build(): BuiltField<TextField, R>;
 }
 
-export interface BooleanFieldBuilder {
-	label(value: string): BooleanFieldBuilder;
-	description(value: string): BooleanFieldBuilder;
-	required(value?: CondExpr): BooleanFieldBuilder;
-	visible(value?: CondExpr): BooleanFieldBuilder;
-	default(value: boolean): BooleanFieldBuilder;
-	build(): BooleanField;
+export interface BooleanFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): BooleanFieldBuilder<R>;
+	description(value: string): BooleanFieldBuilder<R>;
+	required(): BooleanFieldBuilder<true>;
+	required(value: undefined): BooleanFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): BooleanFieldBuilder<V>;
+	visible(value?: CondExpr): BooleanFieldBuilder<R>;
+	default(value: boolean): BooleanFieldBuilder<R>;
+	build(): BuiltField<BooleanField, R>;
 }
 
-export interface NumberFieldBuilder {
-	label(value: string): NumberFieldBuilder;
-	description(value: string): NumberFieldBuilder;
-	required(value?: CondExpr): NumberFieldBuilder;
-	visible(value?: CondExpr): NumberFieldBuilder;
-	min(value: number): NumberFieldBuilder;
-	max(value: number): NumberFieldBuilder;
-	default(value: number): NumberFieldBuilder;
-	build(): NumberField;
+export interface NumberFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): NumberFieldBuilder<R>;
+	description(value: string): NumberFieldBuilder<R>;
+	required(): NumberFieldBuilder<true>;
+	required(value: undefined): NumberFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): NumberFieldBuilder<V>;
+	visible(value?: CondExpr): NumberFieldBuilder<R>;
+	min(value: number): NumberFieldBuilder<R>;
+	max(value: number): NumberFieldBuilder<R>;
+	default(value: number): NumberFieldBuilder<R>;
+	build(): BuiltField<NumberField, R>;
 }
 
-export interface CoordinateFieldBuilder {
-	label(value: string): CoordinateFieldBuilder;
-	description(value: string): CoordinateFieldBuilder;
-	required(value?: CondExpr): CoordinateFieldBuilder;
-	visible(value?: CondExpr): CoordinateFieldBuilder;
-	default(value: Coordinate): CoordinateFieldBuilder;
-	build(): CoordinateField;
+export interface CoordinateFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): CoordinateFieldBuilder<R>;
+	description(value: string): CoordinateFieldBuilder<R>;
+	required(): CoordinateFieldBuilder<true>;
+	required(value: undefined): CoordinateFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): CoordinateFieldBuilder<V>;
+	visible(value?: CondExpr): CoordinateFieldBuilder<R>;
+	default(value: Coordinate): CoordinateFieldBuilder<R>;
+	build(): BuiltField<CoordinateField, R>;
 }
 
-export interface BboxFieldBuilder {
-	label(value: string): BboxFieldBuilder;
-	description(value: string): BboxFieldBuilder;
-	required(value?: CondExpr): BboxFieldBuilder;
-	visible(value?: CondExpr): BboxFieldBuilder;
-	default(value: Bbox): BboxFieldBuilder;
-	build(): BboxField;
+export interface BboxFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): BboxFieldBuilder<R>;
+	description(value: string): BboxFieldBuilder<R>;
+	required(): BboxFieldBuilder<true>;
+	required(value: undefined): BboxFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): BboxFieldBuilder<V>;
+	visible(value?: CondExpr): BboxFieldBuilder<R>;
+	default(value: Bbox): BboxFieldBuilder<R>;
+	build(): BuiltField<BboxField, R>;
 }
 
-export interface MoneyFieldBuilder {
-	label(value: string): MoneyFieldBuilder;
-	description(value: string): MoneyFieldBuilder;
-	required(value?: CondExpr): MoneyFieldBuilder;
-	visible(value?: CondExpr): MoneyFieldBuilder;
-	min(value: number): MoneyFieldBuilder;
-	max(value: number): MoneyFieldBuilder;
-	default(value: Money): MoneyFieldBuilder;
-	build(): MoneyField;
+export interface MoneyFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): MoneyFieldBuilder<R>;
+	description(value: string): MoneyFieldBuilder<R>;
+	required(): MoneyFieldBuilder<true>;
+	required(value: undefined): MoneyFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): MoneyFieldBuilder<V>;
+	visible(value?: CondExpr): MoneyFieldBuilder<R>;
+	min(value: number): MoneyFieldBuilder<R>;
+	max(value: number): MoneyFieldBuilder<R>;
+	default(value: Money): MoneyFieldBuilder<R>;
+	build(): BuiltField<MoneyField, R>;
 }
 
-export interface AddressFieldBuilder {
-	label(value: string): AddressFieldBuilder;
-	description(value: string): AddressFieldBuilder;
-	required(value?: CondExpr): AddressFieldBuilder;
-	visible(value?: CondExpr): AddressFieldBuilder;
-	default(value: Address): AddressFieldBuilder;
-	build(): AddressField;
+export interface AddressFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): AddressFieldBuilder<R>;
+	description(value: string): AddressFieldBuilder<R>;
+	required(): AddressFieldBuilder<true>;
+	required(value: undefined): AddressFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): AddressFieldBuilder<V>;
+	visible(value?: CondExpr): AddressFieldBuilder<R>;
+	default(value: Address): AddressFieldBuilder<R>;
+	build(): BuiltField<AddressField, R>;
 }
 
-export interface PhoneFieldBuilder {
-	label(value: string): PhoneFieldBuilder;
-	description(value: string): PhoneFieldBuilder;
-	required(value?: CondExpr): PhoneFieldBuilder;
-	visible(value?: CondExpr): PhoneFieldBuilder;
-	default(value: Phone): PhoneFieldBuilder;
-	build(): PhoneField;
+export interface PhoneFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): PhoneFieldBuilder<R>;
+	description(value: string): PhoneFieldBuilder<R>;
+	required(): PhoneFieldBuilder<true>;
+	required(value: undefined): PhoneFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): PhoneFieldBuilder<V>;
+	visible(value?: CondExpr): PhoneFieldBuilder<R>;
+	default(value: Phone): PhoneFieldBuilder<R>;
+	build(): BuiltField<PhoneField, R>;
 }
 
-export interface DurationFieldBuilder {
-	label(value: string): DurationFieldBuilder;
-	description(value: string): DurationFieldBuilder;
-	required(value?: CondExpr): DurationFieldBuilder;
-	visible(value?: CondExpr): DurationFieldBuilder;
-	default(value: Duration): DurationFieldBuilder;
-	build(): DurationField;
+export interface DurationFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): DurationFieldBuilder<R>;
+	description(value: string): DurationFieldBuilder<R>;
+	required(): DurationFieldBuilder<true>;
+	required(value: undefined): DurationFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): DurationFieldBuilder<V>;
+	visible(value?: CondExpr): DurationFieldBuilder<R>;
+	default(value: Duration): DurationFieldBuilder<R>;
+	build(): BuiltField<DurationField, R>;
 }
 
-export interface EmailFieldBuilder {
-	label(value: string): EmailFieldBuilder;
-	description(value: string): EmailFieldBuilder;
-	required(value?: CondExpr): EmailFieldBuilder;
-	visible(value?: CondExpr): EmailFieldBuilder;
-	minLength(value: number): EmailFieldBuilder;
-	maxLength(value: number): EmailFieldBuilder;
-	pattern(value: string): EmailFieldBuilder;
-	default(value: string): EmailFieldBuilder;
-	build(): EmailField;
+export interface EmailFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): EmailFieldBuilder<R>;
+	description(value: string): EmailFieldBuilder<R>;
+	required(): EmailFieldBuilder<true>;
+	required(value: undefined): EmailFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): EmailFieldBuilder<V>;
+	visible(value?: CondExpr): EmailFieldBuilder<R>;
+	minLength(value: number): EmailFieldBuilder<R>;
+	maxLength(value: number): EmailFieldBuilder<R>;
+	pattern(value: string): EmailFieldBuilder<R>;
+	default(value: string): EmailFieldBuilder<R>;
+	build(): BuiltField<EmailField, R>;
 }
 
-export interface UuidFieldBuilder {
-	label(value: string): UuidFieldBuilder;
-	description(value: string): UuidFieldBuilder;
-	required(value?: CondExpr): UuidFieldBuilder;
-	visible(value?: CondExpr): UuidFieldBuilder;
-	minLength(value: number): UuidFieldBuilder;
-	maxLength(value: number): UuidFieldBuilder;
-	pattern(value: string): UuidFieldBuilder;
-	default(value: string): UuidFieldBuilder;
-	build(): UuidField;
+export interface UuidFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): UuidFieldBuilder<R>;
+	description(value: string): UuidFieldBuilder<R>;
+	required(): UuidFieldBuilder<true>;
+	required(value: undefined): UuidFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): UuidFieldBuilder<V>;
+	visible(value?: CondExpr): UuidFieldBuilder<R>;
+	minLength(value: number): UuidFieldBuilder<R>;
+	maxLength(value: number): UuidFieldBuilder<R>;
+	pattern(value: string): UuidFieldBuilder<R>;
+	default(value: string): UuidFieldBuilder<R>;
+	build(): BuiltField<UuidField, R>;
 }
 
-export interface UriFieldBuilder {
-	label(value: string): UriFieldBuilder;
-	description(value: string): UriFieldBuilder;
-	required(value?: CondExpr): UriFieldBuilder;
-	visible(value?: CondExpr): UriFieldBuilder;
-	minLength(value: number): UriFieldBuilder;
-	maxLength(value: number): UriFieldBuilder;
-	pattern(value: string): UriFieldBuilder;
-	default(value: string): UriFieldBuilder;
-	build(): UriField;
+export interface UriFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): UriFieldBuilder<R>;
+	description(value: string): UriFieldBuilder<R>;
+	required(): UriFieldBuilder<true>;
+	required(value: undefined): UriFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): UriFieldBuilder<V>;
+	visible(value?: CondExpr): UriFieldBuilder<R>;
+	minLength(value: number): UriFieldBuilder<R>;
+	maxLength(value: number): UriFieldBuilder<R>;
+	pattern(value: string): UriFieldBuilder<R>;
+	default(value: string): UriFieldBuilder<R>;
+	build(): BuiltField<UriField, R>;
 }
 
-export interface EnumFieldBuilder {
-	label(value: string): EnumFieldBuilder;
-	description(value: string): EnumFieldBuilder;
-	required(value?: CondExpr): EnumFieldBuilder;
-	visible(value?: CondExpr): EnumFieldBuilder;
-	options(values: EnumOption[]): EnumFieldBuilder;
-	default(value: EnumOptionValue): EnumFieldBuilder;
-	build(): EnumField;
+export interface EnumFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): EnumFieldBuilder<R>;
+	description(value: string): EnumFieldBuilder<R>;
+	required(): EnumFieldBuilder<true>;
+	required(value: undefined): EnumFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): EnumFieldBuilder<V>;
+	visible(value?: CondExpr): EnumFieldBuilder<R>;
+	options(values: EnumOption[]): EnumFieldBuilder<R>;
+	default(value: EnumOptionValue): EnumFieldBuilder<R>;
+	build(): BuiltField<EnumField, R>;
 }
 
-export interface DateFieldBuilder {
-	label(value: string): DateFieldBuilder;
-	description(value: string): DateFieldBuilder;
-	required(value?: CondExpr): DateFieldBuilder;
-	visible(value?: CondExpr): DateFieldBuilder;
-	min(value: string): DateFieldBuilder;
-	max(value: string): DateFieldBuilder;
-	default(value: string): DateFieldBuilder;
-	build(): DateField;
+export interface DateFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): DateFieldBuilder<R>;
+	description(value: string): DateFieldBuilder<R>;
+	required(): DateFieldBuilder<true>;
+	required(value: undefined): DateFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): DateFieldBuilder<V>;
+	visible(value?: CondExpr): DateFieldBuilder<R>;
+	min(value: string): DateFieldBuilder<R>;
+	max(value: string): DateFieldBuilder<R>;
+	default(value: string): DateFieldBuilder<R>;
+	build(): BuiltField<DateField, R>;
 }
 
-export interface DatetimeFieldBuilder {
-	label(value: string): DatetimeFieldBuilder;
-	description(value: string): DatetimeFieldBuilder;
-	required(value?: CondExpr): DatetimeFieldBuilder;
-	visible(value?: CondExpr): DatetimeFieldBuilder;
-	min(value: string): DatetimeFieldBuilder;
-	max(value: string): DatetimeFieldBuilder;
-	default(value: string): DatetimeFieldBuilder;
-	build(): DatetimeField;
+export interface DatetimeFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): DatetimeFieldBuilder<R>;
+	description(value: string): DatetimeFieldBuilder<R>;
+	required(): DatetimeFieldBuilder<true>;
+	required(value: undefined): DatetimeFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): DatetimeFieldBuilder<V>;
+	visible(value?: CondExpr): DatetimeFieldBuilder<R>;
+	min(value: string): DatetimeFieldBuilder<R>;
+	max(value: string): DatetimeFieldBuilder<R>;
+	default(value: string): DatetimeFieldBuilder<R>;
+	build(): BuiltField<DatetimeField, R>;
 }
 
-export interface TimeFieldBuilder {
-	label(value: string): TimeFieldBuilder;
-	description(value: string): TimeFieldBuilder;
-	required(value?: CondExpr): TimeFieldBuilder;
-	visible(value?: CondExpr): TimeFieldBuilder;
-	min(value: string): TimeFieldBuilder;
-	max(value: string): TimeFieldBuilder;
-	default(value: string): TimeFieldBuilder;
-	build(): TimeField;
+export interface TimeFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): TimeFieldBuilder<R>;
+	description(value: string): TimeFieldBuilder<R>;
+	required(): TimeFieldBuilder<true>;
+	required(value: undefined): TimeFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): TimeFieldBuilder<V>;
+	visible(value?: CondExpr): TimeFieldBuilder<R>;
+	min(value: string): TimeFieldBuilder<R>;
+	max(value: string): TimeFieldBuilder<R>;
+	default(value: string): TimeFieldBuilder<R>;
+	build(): BuiltField<TimeField, R>;
 }
 
-export interface PersonFieldBuilder {
-	label(value: string): PersonFieldBuilder;
-	description(value: string): PersonFieldBuilder;
-	required(value?: CondExpr): PersonFieldBuilder;
-	visible(value?: CondExpr): PersonFieldBuilder;
-	default(value: Person): PersonFieldBuilder;
-	build(): PersonField;
+export interface PersonFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): PersonFieldBuilder<R>;
+	description(value: string): PersonFieldBuilder<R>;
+	required(): PersonFieldBuilder<true>;
+	required(value: undefined): PersonFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): PersonFieldBuilder<V>;
+	visible(value?: CondExpr): PersonFieldBuilder<R>;
+	default(value: Person): PersonFieldBuilder<R>;
+	build(): BuiltField<PersonField, R>;
 }
 
-export interface OrganizationFieldBuilder {
-	label(value: string): OrganizationFieldBuilder;
-	description(value: string): OrganizationFieldBuilder;
-	required(value?: CondExpr): OrganizationFieldBuilder;
-	visible(value?: CondExpr): OrganizationFieldBuilder;
-	default(value: Organization): OrganizationFieldBuilder;
-	build(): OrganizationField;
+export interface OrganizationFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): OrganizationFieldBuilder<R>;
+	description(value: string): OrganizationFieldBuilder<R>;
+	required(): OrganizationFieldBuilder<true>;
+	required(value: undefined): OrganizationFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): OrganizationFieldBuilder<V>;
+	visible(value?: CondExpr): OrganizationFieldBuilder<R>;
+	default(value: Organization): OrganizationFieldBuilder<R>;
+	build(): BuiltField<OrganizationField, R>;
 }
 
-export interface IdentificationFieldBuilder {
-	label(value: string): IdentificationFieldBuilder;
-	description(value: string): IdentificationFieldBuilder;
-	required(value?: CondExpr): IdentificationFieldBuilder;
-	visible(value?: CondExpr): IdentificationFieldBuilder;
-	allowedTypes(...types: string[]): IdentificationFieldBuilder;
-	default(value: Identification): IdentificationFieldBuilder;
-	build(): IdentificationField;
+export interface IdentificationFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): IdentificationFieldBuilder<R>;
+	description(value: string): IdentificationFieldBuilder<R>;
+	required(): IdentificationFieldBuilder<true>;
+	required(value: undefined): IdentificationFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): IdentificationFieldBuilder<V>;
+	visible(value?: CondExpr): IdentificationFieldBuilder<R>;
+	allowedTypes(...types: string[]): IdentificationFieldBuilder<R>;
+	default(value: Identification): IdentificationFieldBuilder<R>;
+	build(): BuiltField<IdentificationField, R>;
 }
 
-export interface MultiselectFieldBuilder {
-	label(value: string): MultiselectFieldBuilder;
-	description(value: string): MultiselectFieldBuilder;
-	required(value?: CondExpr): MultiselectFieldBuilder;
-	visible(value?: CondExpr): MultiselectFieldBuilder;
-	options(values: EnumOption[]): MultiselectFieldBuilder;
-	min(value: number): MultiselectFieldBuilder;
-	max(value: number): MultiselectFieldBuilder;
-	default(value: EnumOptionValue[]): MultiselectFieldBuilder;
-	build(): MultiselectField;
+export interface MultiselectFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): MultiselectFieldBuilder<R>;
+	description(value: string): MultiselectFieldBuilder<R>;
+	required(): MultiselectFieldBuilder<true>;
+	required(value: undefined): MultiselectFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): MultiselectFieldBuilder<V>;
+	visible(value?: CondExpr): MultiselectFieldBuilder<R>;
+	options(values: EnumOption[]): MultiselectFieldBuilder<R>;
+	min(value: number): MultiselectFieldBuilder<R>;
+	max(value: number): MultiselectFieldBuilder<R>;
+	default(value: EnumOptionValue[]): MultiselectFieldBuilder<R>;
+	build(): BuiltField<MultiselectField, R>;
 }
 
-export interface PercentageFieldBuilder {
-	label(value: string): PercentageFieldBuilder;
-	description(value: string): PercentageFieldBuilder;
-	required(value?: CondExpr): PercentageFieldBuilder;
-	visible(value?: CondExpr): PercentageFieldBuilder;
-	min(value: number): PercentageFieldBuilder;
-	max(value: number): PercentageFieldBuilder;
-	precision(value: number): PercentageFieldBuilder;
-	default(value: number): PercentageFieldBuilder;
-	build(): PercentageField;
+export interface PercentageFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): PercentageFieldBuilder<R>;
+	description(value: string): PercentageFieldBuilder<R>;
+	required(): PercentageFieldBuilder<true>;
+	required(value: undefined): PercentageFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): PercentageFieldBuilder<V>;
+	visible(value?: CondExpr): PercentageFieldBuilder<R>;
+	min(value: number): PercentageFieldBuilder<R>;
+	max(value: number): PercentageFieldBuilder<R>;
+	precision(value: number): PercentageFieldBuilder<R>;
+	default(value: number): PercentageFieldBuilder<R>;
+	build(): BuiltField<PercentageField, R>;
 }
 
-export interface RatingFieldBuilder {
-	label(value: string): RatingFieldBuilder;
-	description(value: string): RatingFieldBuilder;
-	required(value?: CondExpr): RatingFieldBuilder;
-	visible(value?: CondExpr): RatingFieldBuilder;
-	min(value: number): RatingFieldBuilder;
-	max(value: number): RatingFieldBuilder;
-	step(value: number): RatingFieldBuilder;
-	default(value: number): RatingFieldBuilder;
-	build(): RatingField;
+export interface RatingFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): RatingFieldBuilder<R>;
+	description(value: string): RatingFieldBuilder<R>;
+	required(): RatingFieldBuilder<true>;
+	required(value: undefined): RatingFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): RatingFieldBuilder<V>;
+	visible(value?: CondExpr): RatingFieldBuilder<R>;
+	min(value: number): RatingFieldBuilder<R>;
+	max(value: number): RatingFieldBuilder<R>;
+	step(value: number): RatingFieldBuilder<R>;
+	default(value: number): RatingFieldBuilder<R>;
+	build(): BuiltField<RatingField, R>;
 }
 
-export interface FieldsetFieldBuilder {
-	label(value: string): FieldsetFieldBuilder;
-	description(value: string): FieldsetFieldBuilder;
-	required(value?: CondExpr): FieldsetFieldBuilder;
-	visible(value?: CondExpr): FieldsetFieldBuilder;
-	fields(fieldsObj: Record<string, FormField>): FieldsetFieldBuilder;
-	build(): FieldsetField;
+export interface FieldsetFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): FieldsetFieldBuilder<R>;
+	description(value: string): FieldsetFieldBuilder<R>;
+	required(): FieldsetFieldBuilder<true>;
+	required(value: undefined): FieldsetFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): FieldsetFieldBuilder<V>;
+	visible(value?: CondExpr): FieldsetFieldBuilder<R>;
+	fields(fieldsObj: Record<string, FormField>): FieldsetFieldBuilder<R>;
+	build(): BuiltField<FieldsetField, R>;
 }
 
-export interface ListFieldBuilder {
-	label(value: string): ListFieldBuilder;
-	description(value: string): ListFieldBuilder;
-	required(value?: CondExpr): ListFieldBuilder;
-	visible(value?: CondExpr): ListFieldBuilder;
-	item(field: FormField): ListFieldBuilder;
-	minItems(value: number): ListFieldBuilder;
-	maxItems(value: number): ListFieldBuilder;
-	build(): ListField;
+export interface ListFieldBuilder<R extends CondExpr | undefined = undefined> {
+	label(value: string): ListFieldBuilder<R>;
+	description(value: string): ListFieldBuilder<R>;
+	required(): ListFieldBuilder<true>;
+	required(value: undefined): ListFieldBuilder<true>;
+	required<const V extends CondExpr>(value: V): ListFieldBuilder<V>;
+	visible(value?: CondExpr): ListFieldBuilder<R>;
+	item(field: FormField): ListFieldBuilder<R>;
+	minItems(value: number): ListFieldBuilder<R>;
+	maxItems(value: number): ListFieldBuilder<R>;
+	build(): BuiltField<ListField, R>;
 }
 
 // ============================================================================
@@ -318,7 +370,7 @@ export interface ListFieldBuilder {
 
 export function textField(): TextFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'text' };
-	const self: TextFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -329,12 +381,12 @@ export function textField(): TextFieldBuilder {
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as TextField; },
 	};
-	return self;
+	return self as unknown as TextFieldBuilder;
 }
 
 export function booleanField(): BooleanFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'boolean' };
-	const self: BooleanFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -342,12 +394,12 @@ export function booleanField(): BooleanFieldBuilder {
 		default(value: boolean) { _def.default = value; return self; },
 		build() { return parseField(_def) as BooleanField; },
 	};
-	return self;
+	return self as unknown as BooleanFieldBuilder;
 }
 
 export function numberField(): NumberFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'number' };
-	const self: NumberFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -357,12 +409,12 @@ export function numberField(): NumberFieldBuilder {
 		default(value: number) { _def.default = value; return self; },
 		build() { return parseField(_def) as NumberField; },
 	};
-	return self;
+	return self as unknown as NumberFieldBuilder;
 }
 
 export function coordinateField(): CoordinateFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'coordinate' };
-	const self: CoordinateFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -370,12 +422,12 @@ export function coordinateField(): CoordinateFieldBuilder {
 		default(value: Coordinate) { _def.default = value; return self; },
 		build() { return parseField(_def) as CoordinateField; },
 	};
-	return self;
+	return self as unknown as CoordinateFieldBuilder;
 }
 
 export function bboxField(): BboxFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'bbox' };
-	const self: BboxFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -383,12 +435,12 @@ export function bboxField(): BboxFieldBuilder {
 		default(value: Bbox) { _def.default = value; return self; },
 		build() { return parseField(_def) as BboxField; },
 	};
-	return self;
+	return self as unknown as BboxFieldBuilder;
 }
 
 export function moneyField(): MoneyFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'money' };
-	const self: MoneyFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -398,12 +450,12 @@ export function moneyField(): MoneyFieldBuilder {
 		default(value: Money) { _def.default = value; return self; },
 		build() { return parseField(_def) as MoneyField; },
 	};
-	return self;
+	return self as unknown as MoneyFieldBuilder;
 }
 
 export function addressField(): AddressFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'address' };
-	const self: AddressFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -411,12 +463,12 @@ export function addressField(): AddressFieldBuilder {
 		default(value: Address) { _def.default = value; return self; },
 		build() { return parseField(_def) as AddressField; },
 	};
-	return self;
+	return self as unknown as AddressFieldBuilder;
 }
 
 export function phoneField(): PhoneFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'phone' };
-	const self: PhoneFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -424,12 +476,12 @@ export function phoneField(): PhoneFieldBuilder {
 		default(value: Phone) { _def.default = value; return self; },
 		build() { return parseField(_def) as PhoneField; },
 	};
-	return self;
+	return self as unknown as PhoneFieldBuilder;
 }
 
 export function durationField(): DurationFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'duration' };
-	const self: DurationFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -437,12 +489,12 @@ export function durationField(): DurationFieldBuilder {
 		default(value: Duration) { _def.default = value; return self; },
 		build() { return parseField(_def) as DurationField; },
 	};
-	return self;
+	return self as unknown as DurationFieldBuilder;
 }
 
 export function emailField(): EmailFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'email' };
-	const self: EmailFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -453,12 +505,12 @@ export function emailField(): EmailFieldBuilder {
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as EmailField; },
 	};
-	return self;
+	return self as unknown as EmailFieldBuilder;
 }
 
 export function uuidField(): UuidFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'uuid' };
-	const self: UuidFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -469,12 +521,12 @@ export function uuidField(): UuidFieldBuilder {
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as UuidField; },
 	};
-	return self;
+	return self as unknown as UuidFieldBuilder;
 }
 
 export function uriField(): UriFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'uri' };
-	const self: UriFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -485,12 +537,12 @@ export function uriField(): UriFieldBuilder {
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as UriField; },
 	};
-	return self;
+	return self as unknown as UriFieldBuilder;
 }
 
 export function enumField(): EnumFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'enum' };
-	const self: EnumFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -499,12 +551,12 @@ export function enumField(): EnumFieldBuilder {
 		default(value: EnumOptionValue) { _def.default = value; return self; },
 		build() { return parseField(_def) as EnumField; },
 	};
-	return self;
+	return self as unknown as EnumFieldBuilder;
 }
 
 export function dateField(): DateFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'date' };
-	const self: DateFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -514,12 +566,12 @@ export function dateField(): DateFieldBuilder {
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as DateField; },
 	};
-	return self;
+	return self as unknown as DateFieldBuilder;
 }
 
 export function datetimeField(): DatetimeFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'datetime' };
-	const self: DatetimeFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -529,12 +581,12 @@ export function datetimeField(): DatetimeFieldBuilder {
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as DatetimeField; },
 	};
-	return self;
+	return self as unknown as DatetimeFieldBuilder;
 }
 
 export function timeField(): TimeFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'time' };
-	const self: TimeFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -544,12 +596,12 @@ export function timeField(): TimeFieldBuilder {
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as TimeField; },
 	};
-	return self;
+	return self as unknown as TimeFieldBuilder;
 }
 
 export function personField(): PersonFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'person' };
-	const self: PersonFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -557,12 +609,12 @@ export function personField(): PersonFieldBuilder {
 		default(value: Person) { _def.default = value; return self; },
 		build() { return parseField(_def) as PersonField; },
 	};
-	return self;
+	return self as unknown as PersonFieldBuilder;
 }
 
 export function organizationField(): OrganizationFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'organization' };
-	const self: OrganizationFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -570,12 +622,12 @@ export function organizationField(): OrganizationFieldBuilder {
 		default(value: Organization) { _def.default = value; return self; },
 		build() { return parseField(_def) as OrganizationField; },
 	};
-	return self;
+	return self as unknown as OrganizationFieldBuilder;
 }
 
 export function identificationField(): IdentificationFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'identification' };
-	const self: IdentificationFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -584,12 +636,12 @@ export function identificationField(): IdentificationFieldBuilder {
 		default(value: Identification) { _def.default = value; return self; },
 		build() { return parseField(_def) as IdentificationField; },
 	};
-	return self;
+	return self as unknown as IdentificationFieldBuilder;
 }
 
 export function multiselectField(): MultiselectFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'multiselect' };
-	const self: MultiselectFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -600,12 +652,12 @@ export function multiselectField(): MultiselectFieldBuilder {
 		default(value: EnumOptionValue[]) { _def.default = value; return self; },
 		build() { return parseField(_def) as MultiselectField; },
 	};
-	return self;
+	return self as unknown as MultiselectFieldBuilder;
 }
 
 export function percentageField(): PercentageFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'percentage' };
-	const self: PercentageFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -616,12 +668,12 @@ export function percentageField(): PercentageFieldBuilder {
 		default(value: number) { _def.default = value; return self; },
 		build() { return parseField(_def) as PercentageField; },
 	};
-	return self;
+	return self as unknown as PercentageFieldBuilder;
 }
 
 export function ratingField(): RatingFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'rating' };
-	const self: RatingFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -632,12 +684,12 @@ export function ratingField(): RatingFieldBuilder {
 		default(value: number) { _def.default = value; return self; },
 		build() { return parseField(_def) as RatingField; },
 	};
-	return self;
+	return self as unknown as RatingFieldBuilder;
 }
 
 export function fieldsetField(): FieldsetFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'fieldset', fields: {} };
-	const self: FieldsetFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -653,12 +705,12 @@ export function fieldsetField(): FieldsetFieldBuilder {
 		},
 		build() { return parseField(_def) as FieldsetField; },
 	};
-	return self;
+	return self as unknown as FieldsetFieldBuilder;
 }
 
 export function listField(): ListFieldBuilder {
 	const _def: Record<string, unknown> = { type: 'list' };
-	const self: ListFieldBuilder = {
+	const self = {
 		label(value: string) { _def.label = value; return self; },
 		description(value: string) { _def.description = value; return self; },
 		required(value: CondExpr = true) { _def.required = value; return self; },
@@ -668,7 +720,7 @@ export function listField(): ListFieldBuilder {
 		maxItems(value: number) { _def.maxItems = value; return self; },
 		build() { return parseField(_def) as ListField; },
 	};
-	return self;
+	return self as unknown as ListFieldBuilder;
 }
 
 // ============================================================================

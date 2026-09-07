@@ -31,6 +31,7 @@ import {
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RuntimeChecklistRenderOptions } from '@/types'
+import type { DeepMutable, DeepReadonly } from '@/artifacts/shared/definition-types'
 
 // ============================================================================
 // Type Inference for Checklist Payloads
@@ -66,7 +67,9 @@ export type InferChecklistPayload<C> = C extends { items: infer I } ? ItemsToDat
 /**
  * Checklist input type for direct creation (kind is optional)
  */
-export type ChecklistInput = Omit<Checklist, 'kind'> & { kind?: 'checklist' }
+export type ChecklistInput = DeepReadonly<Omit<Checklist, 'kind'>> & { readonly kind?: 'checklist' }
+
+type MutableChecklist<T extends ChecklistInput> = DeepMutable<T> & Checklist & { kind: 'checklist' }
 
 /**
  * RuntimeChecklist JSON representation
@@ -1029,7 +1032,7 @@ type ChecklistAPI = {
 	<const T extends ChecklistInput>(
 		input: T,
 		options?: ArtifactInstanceOptions,
-	): ChecklistInstance<T & { kind: 'checklist' }>
+	): ChecklistInstance<MutableChecklist<T>>
 	from(input: unknown, options?: ArtifactInstanceOptions): ChecklistInstance<Checklist>
 	safeFrom(
 		input: unknown,
@@ -1041,14 +1044,14 @@ function checklistImpl(): ChecklistBuilderInterface
 function checklistImpl<const T extends ChecklistInput>(
 	input: T,
 	options?: ArtifactInstanceOptions,
-): ChecklistInstance<T & { kind: 'checklist' }>
+): ChecklistInstance<MutableChecklist<T>>
 function checklistImpl<const T extends ChecklistInput>(
 	input?: T,
 	options?: ArtifactInstanceOptions,
-): ChecklistBuilderInterface | ChecklistInstance<T & { kind: 'checklist' }> {
+): ChecklistBuilderInterface | ChecklistInstance<MutableChecklist<T>> {
 	if (input !== undefined) {
 		const withKind = { ...input, kind: 'checklist' as const }
-		const parsed = parseChecklist(withKind) as T & { kind: 'checklist' }
+		const parsed = parseChecklist(withKind) as MutableChecklist<T>
 		return createChecklistInstance(parsed, options)
 	}
 	return createChecklistBuilder()
