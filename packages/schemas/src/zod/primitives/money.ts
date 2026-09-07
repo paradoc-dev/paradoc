@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const MoneySchema = z.object({
 	amount: z.number()
-		.describe('Monetary amount in the smallest currency unit (e.g., cents for USD) or as a decimal (e.g., 99.99 for USD). Negative values allowed for debts/credits'),
+		.describe('Monetary amount expressed in decimal form (e.g., 99.99 for USD). Negative values allowed for debts/credits'),
 	currency: z.string()
 		.min(3)
 		.max(3)
