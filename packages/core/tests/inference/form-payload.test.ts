@@ -91,4 +91,86 @@ describe('form payload inference', () => {
 			expect(validateFormData(form, { fields: { duration: value } }).success).toBe(true)
 		}
 	})
+
+	test('preserves primitive formats and declared field constraints', () => {
+		const form: Form = {
+			kind: 'form',
+			name: 'constraint-form',
+			fields: {
+				text: { type: 'text' },
+				email: { type: 'email', minLength: 10, maxLength: 30 },
+				uuid: { type: 'uuid' },
+				uri: { type: 'uri' },
+				date: { type: 'date', min: '2026-01-01', max: '2026-12-31' },
+				datetime: {
+					type: 'datetime',
+					min: '2026-01-01T00:00:00Z',
+					max: '2026-12-31T23:59:59Z',
+				},
+				time: { type: 'time', min: '09:00:00', max: '17:00:00' },
+				rating: { type: 'rating', min: 1, max: 5, step: 1 },
+				choices: {
+					type: 'multiselect',
+					enum: [{ value: 'a' }, { value: 'b' }],
+				},
+				identification: { type: 'identification', allowedTypes: ['passport'] },
+				money: { type: 'money' },
+			},
+		}
+
+		const fields = compile(form).properties?.fields?.properties
+		expect(fields?.email).toMatchObject({ type: 'string', format: 'email', minLength: 10, maxLength: 30 })
+		expect(fields?.uuid).toMatchObject({ type: 'string', format: 'uuid' })
+		expect(fields?.uri).toMatchObject({ type: 'string', format: 'uri' })
+		expect(fields?.date).toMatchObject({
+			type: 'string',
+			format: 'date',
+			formatMinimum: '2026-01-01',
+			formatMaximum: '2026-12-31',
+		})
+		expect(fields?.datetime).toMatchObject({
+			format: 'date-time',
+			formatMinimum: '2026-01-01T00:00:00Z',
+			formatMaximum: '2026-12-31T23:59:59Z',
+		})
+		expect(fields?.time).toMatchObject({ format: 'time', formatMinimum: '09:00:00', formatMaximum: '17:00:00' })
+		expect(fields?.rating).toMatchObject({ minimum: 1, maximum: 5, multipleOf: 1 })
+		expect(fields?.choices).toMatchObject({ type: 'array', uniqueItems: true })
+		expect(fields?.identification?.properties?.type).toEqual({ type: 'string', enum: ['passport'] })
+		expect(fields?.money?.properties?.currency).toMatchObject({ pattern: '^[A-Z]{3}$' })
+
+		const valid = {
+			fields: {
+				text: 'anything goes',
+				email: 'alice@example.com',
+				uuid: '550e8400-e29b-41d4-a716-446655440000',
+				uri: 'https://example.com/forms/1',
+				date: '2026-01-01',
+				datetime: '2026-12-31T23:59:59Z',
+				time: '09:00:00',
+				rating: 1,
+				choices: ['a', 'b'],
+				identification: { type: 'passport', number: 'A123' },
+				money: { amount: 10, currency: 'USD' },
+			},
+		}
+		const invalid = [
+			['email format', { ...valid.fields, email: 'bad' }],
+			['email length', { ...valid.fields, email: 'a@b.co' }],
+			['uuid format', { ...valid.fields, uuid: 'bad' }],
+			['uri format', { ...valid.fields, uri: 'bad' }],
+			['date bounds', { ...valid.fields, date: '2025-12-31' }],
+			['datetime bounds', { ...valid.fields, datetime: '2025-12-31T23:59:59Z' }],
+			['time bounds', { ...valid.fields, time: '08:59:59' }],
+			['rating step', { ...valid.fields, rating: 1.5 }],
+			['multiselect uniqueness', { ...valid.fields, choices: ['a', 'a'] }],
+			['identification type', { ...valid.fields, identification: { type: 'license', number: 'A123' } }],
+			['money currency', { ...valid.fields, money: { amount: 10, currency: '123' } }],
+		] as const
+
+		expect(validateFormData(form, valid).success).toBe(true)
+		for (const [label, fieldsValue] of invalid) {
+			expect(validateFormData(form, { fields: fieldsValue }).success, label).toBe(false)
+		}
+	})
 })

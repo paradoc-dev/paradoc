@@ -15,6 +15,10 @@ export type JsonSchema = {
   const?: unknown
   minimum?: number
   maximum?: number
+  formatMinimum?: string
+  formatMaximum?: string
+  multipleOf?: number
+  uniqueItems?: boolean
   minLength?: number
   maxLength?: number
   pattern?: string
@@ -395,6 +399,9 @@ function compileField(field: FormField): JsonSchema {
     case 'uuid': {
       const stringSchema: JsonSchema = {
         type: 'string',
+        ...(field.type === 'email' && { format: 'email' }),
+        ...(field.type === 'uri' && { format: 'uri' }),
+        ...(field.type === 'uuid' && { format: 'uuid' }),
       }
       if ('minLength' in field && typeof field.minLength === 'number') {
         stringSchema.minLength = field.minLength
@@ -487,7 +494,7 @@ function compileField(field: FormField): JsonSchema {
             }
             return amountSchema
           })(),
-          currency: { type: 'string', minLength: 3, maxLength: 3 },
+          currency: { type: 'string', minLength: 3, maxLength: 3, pattern: '^[A-Z]{3}$' },
         },
         required: ['amount', 'currency'],
         additionalProperties: false,
@@ -546,6 +553,8 @@ function compileField(field: FormField): JsonSchema {
       return {
         type: 'string',
         format: 'date',
+        ...('min' in field && field.min !== undefined && { formatMinimum: field.min }),
+        ...('max' in field && field.max !== undefined && { formatMaximum: field.max }),
         ...('default' in field && field.default !== undefined && { default: field.default }),
       }
 
@@ -553,13 +562,18 @@ function compileField(field: FormField): JsonSchema {
       return {
         type: 'string',
         format: 'date-time',
+        ...('min' in field && field.min !== undefined && { formatMinimum: field.min }),
+        ...('max' in field && field.max !== undefined && { formatMaximum: field.max }),
         ...('default' in field && field.default !== undefined && { default: field.default }),
       }
 
     case 'time':
       return {
         type: 'string',
+        format: 'time',
         pattern: '^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$',
+        ...('min' in field && field.min !== undefined && { formatMinimum: field.min }),
+        ...('max' in field && field.max !== undefined && { formatMaximum: field.max }),
         ...('default' in field && field.default !== undefined && { default: field.default }),
       }
 
@@ -600,7 +614,10 @@ function compileField(field: FormField): JsonSchema {
       return {
         type: 'object',
         properties: {
-          type: { type: 'string' },
+          type: {
+            type: 'string',
+            ...('allowedTypes' in field && field.allowedTypes !== undefined && { enum: [...field.allowedTypes] }),
+          },
           number: { type: 'string' },
           issuer: { type: 'string' },
           issueDate: { type: 'string', format: 'date' },
@@ -661,6 +678,9 @@ function compileField(field: FormField): JsonSchema {
       }
       if ('max' in field && typeof field.max === 'number') {
         ratingSchema.maximum = field.max
+      }
+      if ('step' in field && typeof field.step === 'number') {
+        ratingSchema.multipleOf = field.step
       }
       if ('default' in field && field.default !== undefined) {
         ratingSchema.default = field.default
