@@ -3,7 +3,7 @@
  * include) resolves to boolean, via @paradoc/expr's checkBooleanGate.
  */
 
-import { checkBooleanGate, type ExprType, type TypeEnv } from '@paradoc/expr'
+import { check, checkBooleanGate, formatType, typesEqual, type ExprType, type TypeEnv } from '@paradoc/expr'
 import type { InferredType, TypeValidationResult } from './inferred-types'
 
 /** Map an @paradoc/expr type to the legacy InferredType (for messages). */
@@ -16,8 +16,11 @@ function exprTypeToInferred(t: ExprType): InferredType {
     case 'boolean':
       return 'boolean'
     case 'date':
-    case 'datetime':
       return 'date'
+    case 'datetime':
+      return 'datetime'
+    case 'time':
+      return 'time'
     case 'duration':
       return 'duration'
     case 'money':
@@ -48,10 +51,17 @@ export function validateBooleanType(expression: string, environment: TypeEnv): T
   }
 
   // A definite type problem (non-boolean result, or a type mismatch) is an
-  // error. An unresolved reference/function or a syntax issue cannot be
-  // verified, so it is a warning — unknown variables are also reported by the
-  // separate syntax/variable validation pass.
-  const hard = diagnostics.find((d) => d.code === 'non-boolean-gate' || d.code === 'type-mismatch')
+  // error. An unresolved reference or syntax issue cannot be verified, so it
+  // remains a warning; unknown functions and arity errors are definite authoring
+  // mistakes. Unknown variables are also reported by the separate
+  // syntax/variable validation pass.
+  const hard = diagnostics.find(
+    (d) =>
+      d.code === 'non-boolean-gate' ||
+      d.code === 'type-mismatch' ||
+      d.code === 'unknown-function' ||
+      d.code === 'arity'
+  )
   if (hard) {
     return {
       valid: false,
@@ -70,4 +80,46 @@ export function validateBooleanType(expression: string, environment: TypeEnv): T
     expectedType: 'boolean',
     actualType: 'unknown',
   }
+}
+
+/**
+ * Validates an expression against a declared result type. Unknown identifiers
+ * and syntax errors are handled by the separate reference/syntax pass; other
+ * checker diagnostics and definite type mismatches are returned here.
+ */
+export function validateExpressionType(
+  expression: string,
+  environment: TypeEnv,
+  expected: ExprType
+): TypeValidationResult {
+  const { type, diagnostics } = check(expression, environment)
+  const actionable = diagnostics.find(
+    (diagnostic) => diagnostic.code !== 'syntax' && diagnostic.code !== 'unknown-identifier'
+  )
+
+  if (actionable) {
+    return {
+      valid: false,
+      severity: 'error',
+      message: actionable.message,
+      expectedType: exprTypeToInferred(expected),
+      actualType: exprTypeToInferred(type),
+    }
+  }
+
+  if (type.kind === 'unknown') {
+    return { valid: true, severity: 'warning' }
+  }
+
+  if (!typesEqual(type, expected)) {
+    return {
+      valid: false,
+      severity: 'error',
+      message: `Expected expression type ${formatType(expected)}, got ${formatType(type)}`,
+      expectedType: exprTypeToInferred(expected),
+      actualType: exprTypeToInferred(type),
+    }
+  }
+
+  return { valid: true, severity: 'warning' }
 }
