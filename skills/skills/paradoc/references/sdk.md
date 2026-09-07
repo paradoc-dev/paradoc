@@ -9,7 +9,7 @@ metadata:
 
 TypeScript API for defining and operating on Paradoc artifacts. Use this surface when:
 
-- Importing from `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`, `@paradoc/serialization`, `@paradoc/resolvers`
+- Importing from `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`, `@paradoc/format`, `@paradoc/resolvers`
 - Defining artifacts in code (not editing JSON/YAML directly)
 - Filling, validating, signing, or rendering at runtime in a Node.js / Bun / browser app
 
@@ -22,7 +22,7 @@ ALWAYS import from public entry points. NEVER from `@paradoc/core/dist/...` or o
 ```typescript
 import { para, type InferFormPayload } from "@paradoc/core";
 import { createFsResolver } from "@paradoc/resolvers";
-import { createSerializer, usaSerializers } from "@paradoc/serialization";
+import { createFormatter } from "@paradoc/format";
 ```
 
 ## Two Creation Patterns
@@ -372,6 +372,6 @@ Fix: ALWAYS pass `{ includeSchema: false }` to `toJSON()` when bundling.
 - [logic.md](./logic.md) — defs, rules, runtime evaluation
 - [layers.md](./layers.md) — layer definitions and Paradoc template syntax
 - [rendering.md](./rendering.md) — render API, resolvers
-- [serialization.md](./serialization.md) — locale-aware formatters
+- [formatting.md](./formatting.md) — locale-aware formatters
 - [cli.md](./cli.md) — `para` CLI surface
 - [schemas.md](./schemas.md) — raw JSON/YAML surface

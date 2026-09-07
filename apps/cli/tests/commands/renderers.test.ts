@@ -60,8 +60,8 @@ describe('CLI renderers command', () => {
     })
     expect(rendererManager.getRendererPeerDependencies()).toEqual({
       '@paradoc/render': {
-        '@paradoc/types': '0.4.0',
-        '@paradoc/serialization': '0.4.0',
+        '@paradoc/types': '0.5.0',
+        '@paradoc/format': '0.5.0',
       },
       '@paradoc/react': {
         react: '19.2.3',

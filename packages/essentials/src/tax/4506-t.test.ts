@@ -9,11 +9,17 @@ const happyPathInputs = {
   "parties": {
     "taxpayer": {
       "id": "taxpayer-0",
-      "name": "Jane A Smith"
+      "name": "Jane A Smith",
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "middleName": "A"
     },
     "spouse": {
       "id": "spouse-0",
-      "name": "John B Smith"
+      "name": "John B Smith",
+      "firstName": "John",
+      "lastName": "Smith",
+      "middleName": "B"
     }
   },
   "fields": {

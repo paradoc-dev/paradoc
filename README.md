@@ -282,7 +282,7 @@ View package Changelogs for update.
 - [`@paradoc/core`](https://github.com/paradoc-dev/paradoc/blob/main/packages/core) - Core artifacts and builders
 - [`@paradoc/types`](https://github.com/paradoc-dev/paradoc/blob/main/packages/types) - TypeScript utilities and types
 - [`@paradoc/schemas`](https://github.com/paradoc-dev/paradoc/blob/main/packages/schemas) - JSON Schema definitions
-- [`@paradoc/serialization`](https://github.com/paradoc-dev/paradoc/blob/main/packages/serialization) - Locale-aware formatting
+- [`@paradoc/format`](https://github.com/paradoc-dev/paradoc/blob/main/packages/format) - Locale-aware value presentation
 - [`@paradoc/resolvers`](https://github.com/paradoc-dev/paradoc/blob/main/packages/resolvers) - File and environment resolvers
 - [`@paradoc/render`](https://github.com/paradoc-dev/paradoc/blob/main/packages/render) - Unified PDF, DOCX, and text rendering
 - [`@paradoc/react`](https://github.com/paradoc-dev/paradoc/blob/main/packages/react) - Compose a document in React and render it to PDF

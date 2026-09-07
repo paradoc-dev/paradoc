@@ -24,7 +24,7 @@ Two skills. `skills/paradoc/` is the general skill, with topic-organized referen
     │       ├── sdk.md, cli.md, schemas.md, mcp.md
     │       # Topic refs — canonical concept knowledge (surface-agnostic)
     │       ├── artifacts.md, fields.md, parties.md, annexes.md,
-    │       ├── logic.md, layers.md, rendering.md, serialization.md,
+│       ├── logic.md, layers.md, rendering.md, formatting.md,
     │       ├── instructions.md, pdf-bindings.md
     │       # Workflow refs — staged interactive pipelines
     │       └── workflow-create-form.md, workflow-convert-pdf.md

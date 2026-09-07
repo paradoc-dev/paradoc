@@ -312,7 +312,7 @@ NEVER mix object and builder patterns within a single artifact.
 ## See Also
 
 - [logic.md](./logic.md) — CondExpr syntax for `required` and `visible`
-- [serialization.md](./serialization.md) — locale-aware formatting at render time
+- [formatting.md](./formatting.md) — locale-aware formatting at render time
 - [parties.md](./parties.md) — party roles
 - [annexes.md](./annexes.md) — file attachments
 - [sdk.md](./sdk.md) — type inference from form definitions

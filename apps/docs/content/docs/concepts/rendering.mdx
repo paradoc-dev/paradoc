@@ -89,19 +89,19 @@ See [Resolvers](/sdk/resolvers) for available resolvers and how to write custom 
 
 ---
 
-# Serialization
+# Formatting
 
 When rendering, field values are converted to strings. A `money` value becomes `"$1,500.00"`, a `date` becomes `"March 15, 2024"`.
 
-**Serializers** control this formatting. Different serializers produce different formats (US vs EU localization, for example).
+One immutable **formatter** controls value presentation for an artifact. Select a precise locale and compose any value-specific policy explicitly.
 
 ```ts
 const output = await form.render({
-  renderer: renderLayer({ serializers: euSerializers })
+  renderer: renderLayer({ formatter: createFormatter({ locale: 'de-DE' }) })
 })
 ```
 
-See [Serialization](/sdk/serialization) for details on formatting and localization.
+See [Formatting](/sdk/formatting) for details on formatting and localization.
 
 ---
 

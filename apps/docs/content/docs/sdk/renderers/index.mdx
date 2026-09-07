@@ -80,7 +80,7 @@ function renderLayer(options?: RenderLayerOptions): ParadocRenderer<
 ```
 
 <PropertiesTable properties={[
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializers shared by every supported format.', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Presentation formatter shared by every supported format.', isOptional: true },
   { name: 'textSignatureOptions', type: 'TextSignatureOptions', description: 'Signature rendering options for text layers.', isOptional: true },
   { name: 'pdfSignatureOptions', type: 'PdfSignatureOptions', description: 'Signature rendering options for PDF layers.', isOptional: true },
   { name: 'docxSignatureOptions', type: 'DocxSignatureOptions', description: 'Signature rendering options for DOCX layers.', isOptional: true },
@@ -119,7 +119,7 @@ The request object passed to the `render` method:
   { name: 'form', type: 'Form', description: 'The form schema (used for field type detection)' },
   { name: 'data', type: 'FormData', description: 'The data to populate the template with' },
   { name: 'bindings', type: 'Bindings', description: 'Optional mapping from template placeholders to field names', isOptional: true },
-  { name: 'ctx', type: 'ParadocRendererContext', description: 'Optional context with locale, logger, serializers', isOptional: true },
+  { name: 'ctx', type: 'ParadocRendererContext', description: 'Optional context with formatter, progressive policy, and logger', isOptional: true },
 ]} />
 
 ## RendererLayer
@@ -138,9 +138,8 @@ The resolved template content:
 Optional context for customizing renderer behavior:
 
 <PropertiesTable properties={[
-  { name: 'locale', type: 'string', description: 'Locale for formatting (e.g., "en-US")', isOptional: true },
   { name: 'logger', type: '{ debug?, info?, warn?, error? }', description: 'Logger instance for debugging', isOptional: true },
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom formatters for field values', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Formatter selected for the entire artifact render', isOptional: true },
 ]} />
 
 # Building Custom Renderers
@@ -149,7 +148,7 @@ To create a custom renderer:
 
 1. Implement the `ParadocRenderer` interface
 2. Handle the template type(s) you support
-3. Use serializers for consistent value formatting
+3. Use the request formatter for consistent value presentation
 
 ```ts
 import type { ParadocRenderer, RenderRequest, RendererLayer } from '@paradoc/types'
@@ -179,5 +178,5 @@ export function csvRenderer(): ParadocRenderer<
 
 # Related
 
-- [Serialization](/sdk/serialization) - Value formatting for renderers
+- [Formatting](/sdk/formatting) - Value formatting for renderers
 - [Form Layers](/sdk/artifacts/form) - Template layer configuration

@@ -5,7 +5,7 @@
     "artifacts",
     "primitives",
     "renderers",
-    "serialization",
+    "formatting",
     "resolvers",
     "sessions",
     "expr"

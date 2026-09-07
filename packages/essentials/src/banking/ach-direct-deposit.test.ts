@@ -14,7 +14,9 @@ const happyPathInputs = {
     },
     "employee": {
       "id": "employee-0",
-      "name": "Jane Doe"
+      "name": "Jane Doe",
+      "firstName": "Jane",
+      "lastName": "Doe"
     }
   },
   "fields": {

@@ -17,8 +17,7 @@ const schema = {
     "domain": "tax",
     "sourceUrl": "https://www.irs.gov/forms-pubs/about-form-1099-misc",
     "catNo": "14425J",
-    "ombNo": "1545-0115",
-    "serializerProfile": "irs"
+    "ombNo": "1545-0115"
   },
   "instructions": {
     "kind": "file",

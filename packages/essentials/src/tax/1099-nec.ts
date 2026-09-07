@@ -17,8 +17,7 @@ const schema = {
     "domain": "tax",
     "sourceUrl": "https://www.irs.gov/forms-pubs/about-form-1099-nec",
     "catNo": "72590N",
-    "ombNo": "1545-0116",
-    "serializerProfile": "irs"
+    "ombNo": "1545-0116"
   },
   "instructions": {
     "kind": "file",

@@ -398,4 +398,4 @@ para.layer()
 - [rendering.md](./rendering.md) — renderers, output formats, resolvers
 - [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings, coordinate estimation
 - [parties.md](./parties.md) — party roles for signature blocks
-- [serialization.md](./serialization.md) — value formatting at render time
+- [formatting.md](./formatting.md) — value formatting at render time

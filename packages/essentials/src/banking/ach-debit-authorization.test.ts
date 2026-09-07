@@ -14,7 +14,9 @@ const happyPathInputs = {
     },
     "payer": {
       "id": "payer-0",
-      "name": "Jane Doe"
+      "name": "Jane Doe",
+      "firstName": "Jane",
+      "lastName": "Doe"
     }
   },
   "fields": {

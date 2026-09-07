@@ -57,7 +57,7 @@ skills/
       logic.md
       layers.md
       rendering.md
-      serialization.md
+      formatting.md
       instructions.md
       pdf-bindings.md
       # Workflow refs — staged pipelines

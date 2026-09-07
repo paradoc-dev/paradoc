@@ -8,7 +8,7 @@
  * header comes back on the right edge of the continued page.
  *
  * The amounts and quantities are Western digits, which is what
- * `arSerializers` produces and what an Arabic business letter across the Gulf
+ * the `ar-SA` formatter produces and what an Arabic business letter across the Gulf
  * and the Levant is set in. See that registry for why the numbering system is
  * pinned rather than left to the runtime.
  */

@@ -290,7 +290,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 - [`@paradoc/core`](../core) - Core artifacts and builders
 - [`@paradoc/types`](../types) - TypeScript utilities and types
 - [`@paradoc/schemas`](../schemas) - JSON Schema definitions
-- [`@paradoc/serialization`](../serialization) - Locale-aware formatting
+- [`@paradoc/format`](../format) - Locale-aware value presentation
 - [`@paradoc/resolvers`](../resolvers) - File and environment resolvers
 - [`@paradoc/render`](../render) - MIME-selected PDF, DOCX, and text rendering
 

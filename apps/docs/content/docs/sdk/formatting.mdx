@@ -1,0 +1,88 @@
+---
+title: Formatting
+description: Locale-aware presentation of artifact values
+---
+
+`@paradoc/format` presents structured Paradoc values as localized text. Stored values remain unchanged. The same formatter can be passed to text, PDF, DOCX, and React renderers.
+
+# Installation
+
+```bash
+npm install @paradoc/format
+```
+
+The SDK also exports the formatter API:
+
+```ts
+import { createFormatter } from '@paradoc/sdk'
+```
+
+# Create a formatter
+
+Use a precise locale. The initial documented locales are `en-US`, `en-GB`, `de-DE`, `fr-FR`, and `ar-SA`.
+
+```ts
+import { createFormatter } from '@paradoc/format'
+
+const formatter = createFormatter({ locale: 'de-DE' })
+
+formatter.formatNumber(1234567.89) // '1.234.567,89'
+formatter.formatMoney({ amount: 1500.5, currency: 'EUR' }) // '1.500,50 €'
+formatter.formatPercentage(8.25) // '8,25 %'
+formatter.formatDate('2026-09-07') // '07.09.2026'
+```
+
+Money always carries its currency. Percentages use percentage points, so `8.25` formats as `8.25%`. Address country is independent of document locale.
+
+# Safe results
+
+Strict methods return text or throw `FormatError`. Safe methods distinguish missing, incomplete, invalid, unsupported, and unexpected failures:
+
+```ts
+const result = formatter.safeFormatMoney({ amount: 10 })
+// { success: false, status: 'incomplete', issues: [...] }
+```
+
+# Compose policy and overrides
+
+Formatters are immutable. `compose()` and `withOverrides()` return independent instances.
+
+```ts
+const amountOnly = formatter.compose({
+  money: {
+    currencyDisplay: 'none',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  },
+})
+```
+
+An override receives a delegate for the previous implementation:
+
+```ts
+const compact = formatter.withOverrides({
+  organization(value, options, context) {
+    context.delegate(value, options)
+    return String(value.name)
+  },
+})
+```
+
+# Use one formatter for an artifact
+
+```ts
+import { createFormatter, para, renderLayer } from '@paradoc/sdk'
+
+const formatter = createFormatter({ locale: 'fr-FR' })
+const output = await para.form(formDefinition).fill(data).render({
+  renderer: renderLayer({ formatter }),
+  layer: 'markdown',
+})
+```
+
+Renderer configuration is explicit. Artifact metadata does not select a locale or formatter profile.
+
+# Related
+
+- [Renderers](/sdk/renderers)
+- [Primitives](/sdk/primitives)

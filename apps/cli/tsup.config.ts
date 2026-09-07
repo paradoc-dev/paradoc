@@ -15,7 +15,7 @@ const rendererVersions = {
 const rendererPeerVersions = {
   '@paradoc/render': {
     '@paradoc/types': JSON.parse(readFileSync(resolve('../../packages/types/package.json'), 'utf-8')).version,
-    '@paradoc/serialization': JSON.parse(readFileSync(resolve('../../packages/serialization/package.json'), 'utf-8')).version,
+    '@paradoc/format': JSON.parse(readFileSync(resolve('../../packages/format/package.json'), 'utf-8')).version,
   },
   '@paradoc/react': {
     react: JSON.parse(readFileSync(resolve('../../packages/react/node_modules/react/package.json'), 'utf-8')).version,

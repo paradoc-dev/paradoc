@@ -100,7 +100,7 @@ const docx = await renderDocx({
 | `template` | `Uint8Array` | Yes | DOCX template binary |
 | `data` | `Record<string, unknown>` | Yes | Field data |
 | `form` | `Form` | No | Enables automatic field type serialization |
-| `serializers` | `SerializerRegistry` | No | Custom serializers |
+| `formatter` | `Formatter` | No | Artifact-wide presentation policy |
 | `bindings` | `Record<string, string>` | No | Field-to-template name mappings |
 | `signatureOptions` | `SignatureRenderOptions` | No | Signature rendering config |
 | `options` | `DocxRenderOptions` | No | `cmdDelimiter`, `failFast`, `processLineBreaks` |
@@ -159,17 +159,17 @@ When a `form` schema is provided, renderers detect field types and format values
 
 Without a form schema, values render as-is (raw `.toString()`).
 
-For locale-aware formatting and custom serializers, see [serialization.md](./serialization.md).
+For locale-aware presentation policy, see [formatting.md](./formatting.md).
 
-## Custom Serializers
+## Custom Formatting
 
 ```typescript
-import { createSerializer } from "@paradoc/serialization";
+import { createFormatter } from "@paradoc/format";
 
-const euSerializer = createSerializer({ regionFormat: "eu" });
+const formatter = createFormatter({ locale: "de-DE" });
 
 const output = await form.fill(data).render({
-  renderer: renderLayer({ serializers: euSerializer }),
+  renderer: renderLayer({ formatter }),
   layer: "markdown",
 });
 ```
@@ -243,7 +243,7 @@ ALWAYS use `createMemoryResolver` in tests. NEVER read from the filesystem in un
 ## See Also
 
 - [layers.md](./layers.md) — layer definitions, Paradoc template syntax, signature helpers
-- [serialization.md](./serialization.md) — locale-aware formatters
+- [formatting.md](./formatting.md) — locale-aware formatters
 - [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings
 - [sdk.md](./sdk.md) — `form.fill().render()` pipeline
 - [cli.md](./cli.md) — `para render`, `para inspect`, `para hash`

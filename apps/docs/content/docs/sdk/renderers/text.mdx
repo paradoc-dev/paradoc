@@ -6,7 +6,7 @@ description: Render Paradoc artifacts to text-based formats
 Render forms to HTML, Markdown, or plain text with Paradoc's deterministic
 template syntax. It supports interpolation, nested paths, conditionals, loops,
 context blocks, and helpers without executing arbitrary JavaScript. Field
-values are automatically serialized from their schema types.
+values are automatically formatted from their schema types.
 
 # Example
 
@@ -86,7 +86,7 @@ function textRenderer(options?: TextRendererOptions): ParadocRenderer<
 ### TextRendererOptions
 
 <PropertiesTable properties={[
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry for formatting field values. Defaults to USA serializers.', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Formatter used for every declared artifact value.', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
 ]} />
 
@@ -118,7 +118,7 @@ function renderText(options: {
   template: string
   data: Record<string, unknown>
   form?: Form
-  serializers?: SerializerRegistry
+  formatter?: Formatter
   bindings?: Bindings
   signatureOptions?: TextSignatureOptions
 }): string
@@ -129,8 +129,8 @@ function renderText(options: {
 <PropertiesTable properties={[
   { name: 'template', type: 'string', description: 'Paradoc template string' },
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
-  { name: 'form', type: 'Form', description: 'Form schema for automatic field type detection and serialization', isOptional: true },
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry. Defaults to USA serializers.', isOptional: true },
+  { name: 'form', type: 'Form', description: 'Form schema for automatic field-aware formatting', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Formatter used for declared artifact values.', isOptional: true },
   { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
 ]} />
@@ -139,7 +139,7 @@ function renderText(options: {
 
 Returns the rendered template as a `string`.
 
-# Automatic Serialization
+# Automatic Formatting
 
 When a form schema is provided, field values are automatically serialized based on their types:
 
@@ -172,14 +172,14 @@ const output = await filled.render({
 
 # Custom Serializers
 
-Use custom serializers for different locales or formatting preferences:
+Pass a formatter for a precise locale or formatting policy:
 
 ```ts
 import { textRenderer } from '@paradoc/render/text'
-import { euSerializers } from '@paradoc/serialization'
+import { createFormatter } from '@paradoc/format'
 
 const renderer = textRenderer({
-  serializers: euSerializers
+  formatter: createFormatter({ locale: 'de-DE' })
 })
 
 // Money formatted as "99,99 €" instead of "$99.99"
@@ -274,5 +274,5 @@ const output = await form.fill(data).render({
 # Related
 
 - [Renderers](/sdk/renderers) - Renderer interface overview
-- [Serialization](/sdk/serialization) - Value formatting
+- [Formatting](/sdk/formatting) - Value formatting
 - [Signature](/schemas/primitives/signature) - Signature data type

@@ -9,7 +9,7 @@ description: >
   Paradoc artifacts, including AcroForm bindings and signature blocks.
 metadata:
   author: paradoc
-  version: "0.1.0"
+  version: "0.2.0"
   tags: paradoc, sdk, cli, schemas, mcp, forms, documents, bundles, checklists, rendering
   license: MIT
 allowed-tools: "Bash(npx:*) Read Write Edit Glob Grep WebSearch"
@@ -59,7 +59,7 @@ Topic refs are surface-agnostic — they describe the underlying concept and con
 | Layers — templates, MIME types, signature blocks, template syntax | [references/layers.md](./references/layers.md) |
 | PDF AcroForm bindings, signature block coordinates | [references/pdf-bindings.md](./references/pdf-bindings.md) |
 | Rendering — text, PDF, DOCX, resolvers | [references/rendering.md](./references/rendering.md) |
-| Serialization — locale-aware Money / Address / Phone / Person formatting | [references/serialization.md](./references/serialization.md) |
+| Formatting — locale-aware presentation of artifact values | [references/formatting.md](./references/formatting.md) |
 | Instructions / agentInstructions — ContentRef | [references/instructions.md](./references/instructions.md) |
 
 ## Workflows

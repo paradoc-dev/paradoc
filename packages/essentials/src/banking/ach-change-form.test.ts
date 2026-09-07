@@ -14,7 +14,8 @@ const happyPathInputs = {
     },
     "accountHolder": {
       "id": "accountHolder-0",
-      "name": "Test Party"
+      "name": "Test Party",
+      "legalName": "Test Party"
     }
   },
   "fields": {

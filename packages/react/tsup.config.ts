@@ -22,7 +22,7 @@ export default defineConfig({
   external: [
     "@paradoc/core",
     "@paradoc/render",
-    "@paradoc/serialization",
+    "@paradoc/format",
     "@paradoc/types",
     "@takumi-rs/helpers",
     "puppeteer",

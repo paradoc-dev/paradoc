@@ -9,11 +9,15 @@ const happyPathInputs = {
   "parties": {
     "payer": {
       "id": "payer-0",
-      "name": "Acme Consulting LLC"
+      "name": "Acme Consulting LLC",
+      "legalName": "Acme Consulting LLC"
     },
     "recipient": {
       "id": "recipient-0",
-      "name": "Jane R. Smith"
+      "name": "Jane R. Smith",
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "middleName": "R."
     }
   },
   "fields": {
