@@ -1,4 +1,4 @@
-import type { Address, Money, Organization, Party, Person, Phone } from '@paradoc/types'
+import type { Address, Duration, Money, Organization, Party, Person, Phone } from '@paradoc/types'
 
 /** Value families understood by the public formatter contract. */
 export const FORMAT_KINDS = [
@@ -24,6 +24,7 @@ export const FORMAT_KINDS = [
 export type FormatKind = (typeof FORMAT_KINDS)[number]
 export type NumericFormatKind = 'money' | 'number' | 'percentage'
 export type ContactFormatKind = 'address' | 'phone' | 'person' | 'organization' | 'party'
+export type TemporalFormatKind = 'date' | 'datetime' | 'time' | 'duration'
 
 type NumberOptionsBase = Omit<
 	Intl.NumberFormatOptions,
@@ -79,6 +80,29 @@ export interface PartyFormatOptions {
 	partyType?: 'person' | 'organization'
 }
 
+/** Shared temporal policy options. */
+export interface TemporalFormatOptions {
+	/** Override the formatter's timezone for instant-bearing values. */
+	timeZone?: string
+	/** Override the formatter's calendar for this call. */
+	calendar?: string
+}
+
+/** Options for calendar-date presentation. */
+export type DateFormatOptions = Omit<Intl.DateTimeFormatOptions, 'calendar' | 'numberingSystem' | 'timeZone'> & TemporalFormatOptions
+
+/** Options for datetime presentation. */
+export type DatetimeFormatOptions = Omit<Intl.DateTimeFormatOptions, 'calendar' | 'numberingSystem' | 'timeZone'> & TemporalFormatOptions
+
+/** Options for time-of-day presentation. */
+export type TimeFormatOptions = Omit<Intl.DateTimeFormatOptions, 'calendar' | 'numberingSystem' | 'timeZone'> & TemporalFormatOptions
+
+/** Options for localized ISO 8601 duration presentation. */
+export type DurationFormatOptions = Omit<
+	Intl.NumberFormatOptions,
+	'style' | 'currency' | 'currencyDisplay' | 'currencySign' | 'unit' | 'unitDisplay'
+>
+
 export type FormatOptionsByKind = {
 	money: MoneyFormatOptions
 	number: NumberFormatOptions
@@ -90,13 +114,13 @@ export type FormatOptionsByKind = {
 	party: PartyFormatOptions
 	coordinate: Record<string, unknown>
 	bbox: Record<string, unknown>
-	duration: Record<string, unknown>
+	duration: DurationFormatOptions
 	identification: Record<string, unknown>
 	attachment: Record<string, unknown>
 	signature: Record<string, unknown>
-	date: Record<string, unknown>
-	datetime: Record<string, unknown>
-	time: Record<string, unknown>
+	date: DateFormatOptions
+	datetime: DatetimeFormatOptions
+	time: TimeFormatOptions
 }
 
 export type FormatInputByKind = {
@@ -110,13 +134,13 @@ export type FormatInputByKind = {
 	party: Party | Partial<Person> | Partial<Organization> | Record<string, unknown> | null | undefined
 	coordinate: unknown
 	bbox: unknown
-	duration: unknown
+	duration: Duration | string | null | undefined
 	identification: unknown
 	attachment: unknown
 	signature: unknown
-	date: unknown
-	datetime: unknown
-	time: unknown
+	date: string | Date | null | undefined
+	datetime: string | Date | null | undefined
+	time: string | null | undefined
 }
 
 /** Per-call locale settings can specialize a formatter without mutating it. */
@@ -158,6 +182,10 @@ export interface FormatterOptions {
 	person?: PersonFormatOptions
 	organization?: OrganizationFormatOptions
 	party?: PartyFormatOptions
+	date?: DateFormatOptions
+	datetime?: DatetimeFormatOptions
+	time?: TimeFormatOptions
+	duration?: DurationFormatOptions
 	overrides?: FormatterOverrides
 }
 
@@ -173,6 +201,13 @@ export type ContactValueByKind = {
 	person: FormatInputByKind['person']
 	organization: FormatInputByKind['organization']
 	party: FormatInputByKind['party']
+}
+
+export type TemporalValueByKind = {
+	date: string | Date
+	datetime: string | Date
+	time: string
+	duration: Duration | string
 }
 
 export interface FormatImplementationContext<K extends NumericFormatKind> {
@@ -209,10 +244,29 @@ export type ContactFormatImplementation<K extends ContactFormatKind> = (
 	context: ContactFormatImplementationContext<K>,
 ) => string
 
+export interface TemporalFormatImplementationContext<K extends TemporalFormatKind> {
+	readonly kind: K
+	readonly locale: string
+	readonly options: FormatCallOptions<K>
+	/** Call the implementation that was active before this override. */
+	readonly delegate: (
+		value?: TemporalValueByKind[K],
+		options?: FormatCallOptions<K>,
+	) => string
+}
+
+export type TemporalFormatImplementation<K extends TemporalFormatKind> = (
+	value: TemporalValueByKind[K],
+	options: FormatCallOptions<K>,
+	context: TemporalFormatImplementationContext<K>,
+) => string
+
 export type FormatterOverrides = Partial<{
 	[K in NumericFormatKind]: FormatImplementation<K>
 }> & Partial<{
 	[K in ContactFormatKind]: ContactFormatImplementation<K>
+}> & Partial<{
+	[K in TemporalFormatKind]: TemporalFormatImplementation<K>
 }>
 
 export type FormatStatus =
@@ -284,6 +338,10 @@ export interface Formatter {
 	formatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): string
 	formatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): string
 	formatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): string
+	formatDate(value: FormatInputByKind['date'], options?: FormatCallOptions<'date'>): string
+	formatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): string
+	formatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): string
+	formatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): string
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult
 	safeFormatMoney(value: FormatInputByKind['money'], options?: FormatCallOptions<'money'>): FormatResult
 	safeFormatPercentage(value: FormatInputByKind['percentage'], options?: FormatCallOptions<'percentage'>): FormatResult
@@ -292,6 +350,10 @@ export interface Formatter {
 	safeFormatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): FormatResult
 	safeFormatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): FormatResult
 	safeFormatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): FormatResult
+	safeFormatDate(value: FormatInputByKind['date'], options?: FormatCallOptions<'date'>): FormatResult
+	safeFormatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): FormatResult
+	safeFormatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): FormatResult
+	safeFormatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): FormatResult
 
 	/** Create an independent formatter with merged configuration. */
 	compose(options?: FormatterOptions): Formatter

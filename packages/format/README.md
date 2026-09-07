@@ -2,7 +2,7 @@
 
 `@paradoc/format` presents structured Paradoc values as human-readable text. It keeps display policy separate from stored values, localized input parsing, currency conversion, and artifact validation.
 
-The formatter presents numbers, money, percentage points, people, organizations, parties, phones, and postal addresses. It is immutable and reusable, so repeated calls under one effective policy reuse bounded `Intl.NumberFormat` caches.
+The formatter presents numbers, money, percentage points, people, organizations, parties, phones, postal addresses, dates, datetimes, times, and ISO 8601 durations. It is immutable and reusable, so repeated calls under one effective policy reuse bounded Intl formatter caches.
 
 ```ts
 import { createFormatter } from '@paradoc/format'
@@ -32,6 +32,10 @@ Address country and document locale are independent. The default `layout: 'count
 
 Money always supplies its currency. A bare amount is never assigned a default currency. Percentage values use Paradoc's percentage-point scale, so `8.25` means `8.25%`, not `825%`.
 
+Temporal values keep their declared meaning. A plain `YYYY-MM-DD` date is a calendar date and is never shifted by timezone. A `Date` object and a datetime string with `Z` or a numeric offset are instants and use the configured `timeZone`; an offsetless datetime string is a local calendar/clock value and stays unchanged. Times of day are formatted as clock values in UTC so the host timezone never changes them. All temporal formatters default to Gregorian calendar, UTC for instants, and the selected locale's numbering system. Per-call options can choose a supported `calendar`, `numberingSystem`, `timeZone`, or Intl precision option.
+
+Durations use Paradoc's canonical ISO 8601 syntax (`P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S`, with fractional seconds allowed). Zero components are omitted and a zero duration is shown as zero seconds. Duration unit labels are supplied for the initial English, German, French, and Arabic resources. Additional locales must provide `duration.<unit>.<plural-category>` messages, such as `duration.day.one: '{value} day'`, or explicitly choose a configured fallback locale.
+
 Strict methods return text and throw a `FormatError` for missing, incomplete, invalid, unsupported, or unexpected values. Use the safe methods when a progressive flow needs structured diagnostics:
 
 ```ts
@@ -39,7 +43,7 @@ const result = formatter.safeFormatMoney({ amount: 10 })
 // { success: false, status: 'incomplete', issues: [...] }
 ```
 
-The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, and `safeFormatParty`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. Value families that have not been implemented yet return `unsupported` rather than a fake successful string.
+The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, `safeFormatParty`, `safeFormatDate`, `safeFormatDatetime`, `safeFormatTime`, and `safeFormatDuration`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. Value families that have not been implemented yet return `unsupported` rather than a fake successful string.
 
 Locale, numbering-system, calendar, and timezone choices are independent. The default locale is `en-US`; temporal defaults are retained as explicit `UTC` and Gregorian settings for the temporal formatter slice. An unsupported locale fails at construction unless `unsupportedLocale: 'fallback'` and an explicit `fallbackLocale` are provided.
 

@@ -16,6 +16,17 @@ import {
 	validatePhone,
 	type ContactValidation,
 } from './contacts'
+import {
+	BUILT_IN_TEMPORAL_MESSAGES,
+	MissingTemporalMessageError,
+	dateTimeDefaults,
+	formatDurationValue,
+	validateDate,
+	validateDatetime,
+	validateDuration,
+	validateTime,
+	type TemporalValidation,
+} from './temporal'
 import { FormatConfigurationError, FormatError } from './errors'
 import {
 	FORMAT_KINDS,
@@ -42,6 +53,10 @@ import {
 	type NumericValueByKind,
 	type NumberFormatOptions,
 	type PercentageFormatOptions,
+	type TemporalFormatImplementation,
+	type TemporalFormatImplementationContext,
+	type TemporalFormatKind,
+	type TemporalValueByKind,
 } from './types'
 
 const DEFAULT_LOCALE = 'en-US'
@@ -49,6 +64,7 @@ const DEFAULT_TIME_ZONE = 'UTC'
 const DEFAULT_CALENDAR = 'gregory'
 const NUMERIC_KINDS: readonly NumericFormatKind[] = ['number', 'money', 'percentage']
 const CONTACT_KINDS: readonly ContactFormatKind[] = ['address', 'phone', 'person', 'organization', 'party']
+const TEMPORAL_KINDS: readonly TemporalFormatKind[] = ['date', 'datetime', 'time', 'duration']
 
 type NumericImplementationMap = {
 	[K in NumericFormatKind]: FormatImplementation<K>
@@ -76,6 +92,19 @@ interface ContactChainEntry<K extends ContactFormatKind> {
 	readonly previous?: ContactChainEntry<K>
 }
 
+type TemporalImplementationMap = {
+	[K in TemporalFormatKind]: TemporalFormatImplementation<K>
+}
+
+type TemporalChainMap = {
+	[K in TemporalFormatKind]: TemporalChainEntry<K>
+}
+
+interface TemporalChainEntry<K extends TemporalFormatKind> {
+	readonly implementation: TemporalFormatImplementation<K>
+	readonly previous?: TemporalChainEntry<K>
+}
+
 interface FormatterConfig {
 	readonly locale: string
 	readonly fallbackLocale?: string
@@ -92,6 +121,10 @@ interface FormatterConfig {
 	readonly person: FormatOptionsByKind['person']
 	readonly organization: FormatOptionsByKind['organization']
 	readonly party: FormatOptionsByKind['party']
+	readonly date: FormatOptionsByKind['date']
+	readonly datetime: FormatOptionsByKind['datetime']
+	readonly time: FormatOptionsByKind['time']
+	readonly duration: FormatOptionsByKind['duration']
 	readonly messages: FormatterMessages
 }
 
@@ -116,6 +149,14 @@ interface ResolvedCall<K extends NumericFormatKind> {
 
 interface ResolvedContactCall<K extends ContactFormatKind> {
 	readonly locale: string
+	readonly options: FormatCallOptions<K>
+}
+
+interface ResolvedTemporalCall<K extends TemporalFormatKind> {
+	readonly locale: string
+	readonly timeZone: string
+	readonly calendar: string
+	readonly numberingSystem?: string
 	readonly options: FormatCallOptions<K>
 }
 
@@ -295,6 +336,10 @@ function mergeConfig(base: FormatterConfig, addition: FormatterOptions): Formatt
 		person: { ...base.person, ...(addition.person ?? {}) },
 		organization: { ...base.organization, ...(addition.organization ?? {}) },
 		party: { ...base.party, ...(addition.party ?? {}) },
+		date: { ...base.date, ...(addition.date ?? {}) },
+		datetime: { ...base.datetime, ...(addition.datetime ?? {}) },
+		time: { ...base.time, ...(addition.time ?? {}) },
+		duration: { ...base.duration, ...(addition.duration ?? {}) },
 		messages: mergeMessages(base.messages, addition.messages),
 	}
 }
@@ -450,11 +495,66 @@ function validateIntlOptions(
 	}
 }
 
+function stripTemporalPolicyOptions(options: Record<string, unknown>): Record<string, unknown> {
+	const { locale: _locale, numberingSystem: _numberingSystem, timeZone: _timeZone, calendar: _calendar, ...intl } = options
+	return intl
+}
+
+function validateTemporalIntlOptions(
+	kind: 'date' | 'datetime' | 'time',
+	locale: string,
+	numberingSystem: string | undefined,
+	calendar: string,
+	timeZone: string,
+	options: Record<string, unknown>,
+): void {
+	try {
+		const intlOptions = dateTimeDefaults(kind, stripTemporalPolicyOptions(options) as never)
+		new Intl.DateTimeFormat(locale, {
+			...intlOptions,
+			calendar,
+			timeZone,
+			...(numberingSystem === undefined ? {} : { numberingSystem }),
+		})
+	} catch (error) {
+		throw new FormatConfigurationError(
+			`Invalid ${kind} formatting options for locale ${JSON.stringify(locale)}: ${error instanceof Error ? error.message : 'unknown option error'}.`,
+			{ cause: error },
+		)
+	}
+}
+
+function validateDurationIntlOptions(
+	locale: string,
+	numberingSystem: string | undefined,
+	options: Record<string, unknown>,
+): void {
+	try {
+		new Intl.NumberFormat(locale, {
+			...options,
+			...(numberingSystem === undefined ? {} : { numberingSystem }),
+		})
+	} catch (error) {
+		throw new FormatConfigurationError(
+			`Invalid duration formatting options for locale ${JSON.stringify(locale)}: ${error instanceof Error ? error.message : 'unknown option error'}.`,
+			{ cause: error },
+		)
+	}
+}
+
 function optionError(kind: NumericFormatKind, error: unknown): FormatProblem {
 	return new FormatProblem(
 		'invalid',
 		kind,
 		[issue(kind, 'invalid_options', error instanceof Error ? error.message : 'Invalid formatting options.', undefined, error)],
+	)
+}
+
+function temporalOptionError(kind: TemporalFormatKind, error: unknown): FormatProblem {
+	return new FormatProblem(
+		'error',
+		kind,
+		[issue(kind, 'invalid_options', error instanceof Error ? error.message : 'Invalid temporal formatting options.', undefined, error)],
 	)
 }
 
@@ -464,6 +564,10 @@ function isNumericKind(kind: FormatKind | string): kind is NumericFormatKind {
 
 function isContactKind(kind: FormatKind | string): kind is ContactFormatKind {
 	return CONTACT_KINDS.includes(kind as ContactFormatKind)
+}
+
+function isTemporalKind(kind: FormatKind | string): kind is TemporalFormatKind {
+	return TEMPORAL_KINDS.includes(kind as TemporalFormatKind)
 }
 
 function createConfig(options: FormatterOptions): FormatterConfig {
@@ -496,6 +600,10 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 	validateIntlOptions('number', locale, options.numberingSystem, numberOptions)
 	validateIntlOptions('money', locale, options.numberingSystem, moneyOptions as Record<string, unknown>)
 	validateIntlOptions('percentage', locale, options.numberingSystem, percentageOptions)
+	validateTemporalIntlOptions('date', locale, options.numberingSystem, calendar, timeZone, (options.date ?? {}) as Record<string, unknown>)
+	validateTemporalIntlOptions('datetime', locale, options.numberingSystem, calendar, timeZone, (options.datetime ?? {}) as Record<string, unknown>)
+	validateTemporalIntlOptions('time', locale, options.numberingSystem, calendar, timeZone, (options.time ?? {}) as Record<string, unknown>)
+	validateDurationIntlOptions(locale, options.numberingSystem, (options.duration ?? {}) as Record<string, unknown>)
 	try {
 		validateContactOptions(addressOptions, phoneOptions, personOptions, organizationOptions, partyOptions)
 	} catch (error) {
@@ -518,7 +626,11 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 		person: cloneAndFreeze(personOptions),
 		organization: cloneAndFreeze(organizationOptions),
 		party: cloneAndFreeze(partyOptions),
-		messages: mergeMessages(BUILT_IN_CONTACT_MESSAGES, options.messages),
+		date: cloneAndFreeze(options.date ?? {}),
+		datetime: cloneAndFreeze(options.datetime ?? {}),
+		time: cloneAndFreeze(options.time ?? {}),
+		duration: cloneAndFreeze(options.duration ?? {}),
+		messages: mergeMessages(mergeMessages(BUILT_IN_CONTACT_MESSAGES, BUILT_IN_TEMPORAL_MESSAGES), options.messages),
 	}
 }
 
@@ -537,17 +649,25 @@ class FormatterImpl implements Formatter {
 	private readonly numberCache: BoundedCache<Intl.NumberFormat>
 	private readonly moneyCache: BoundedCache<Intl.NumberFormat>
 	private readonly percentageCache: BoundedCache<Intl.NumberFormat>
+	private readonly dateCache: BoundedCache<Intl.DateTimeFormat>
+	private readonly datetimeCache: BoundedCache<Intl.DateTimeFormat>
+	private readonly timeCache: BoundedCache<Intl.DateTimeFormat>
+	private readonly durationCache: BoundedCache<Intl.NumberFormat>
 	private readonly baseImplementations: NumericImplementationMap
 	private readonly chains: NumericChainMap
 	private readonly baseContactImplementations: ContactImplementationMap
 	private readonly contactChains: ContactChainMap
+	private readonly baseTemporalImplementations: TemporalImplementationMap
+	private readonly temporalChains: TemporalChainMap
 	private readonly numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[]
 	private readonly contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[]
+	private readonly temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[]
 
 	constructor(
 		options: FormatterOptions = {},
 		numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = [],
 		contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = [],
+		temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = [],
 	) {
 		this.config = createConfig(options)
 		this.locale = this.config.locale
@@ -558,6 +678,10 @@ class FormatterImpl implements Formatter {
 		this.numberCache = new BoundedCache(this.config.cacheSize)
 		this.moneyCache = new BoundedCache(this.config.cacheSize)
 		this.percentageCache = new BoundedCache(this.config.cacheSize)
+		this.dateCache = new BoundedCache(this.config.cacheSize)
+		this.datetimeCache = new BoundedCache(this.config.cacheSize)
+		this.timeCache = new BoundedCache(this.config.cacheSize)
+		this.durationCache = new BoundedCache(this.config.cacheSize)
 		this.baseImplementations = {
 			number: (value, options) => this.formatPlainNumber(value, options),
 			money: (value, options) => this.formatMoneyValue(value as { amount: number; currency: string }, options),
@@ -570,6 +694,12 @@ class FormatterImpl implements Formatter {
 			organization: (value, _options, context) => this.formatOrganizationValue(value, context),
 			party: (value, options, context) => this.formatPartyValue(value, options, context),
 		}
+		this.baseTemporalImplementations = {
+			date: (value, options) => this.formatDateValue(value, options),
+			datetime: (value, options) => this.formatDatetimeValue(value, options),
+			time: (value, options) => this.formatTimeValue(value, options),
+			duration: (value, options) => this.formatDurationValue(value, options),
+		}
 		const optionLayers: { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = []
 		for (const kind of NUMERIC_KINDS) {
 			const implementation = options.overrides?.[kind] as FormatImplementation<NumericFormatKind> | undefined
@@ -577,6 +707,7 @@ class FormatterImpl implements Formatter {
 		}
 		this.numericLayers = [...numericLayers, ...optionLayers]
 		this.contactLayers = [...contactLayers, ...this.contactOptionLayers(options.overrides)]
+		this.temporalLayers = [...temporalLayers, ...this.temporalOptionLayers(options.overrides)]
 		this.chains = {
 			number: { implementation: this.baseImplementations.number },
 			money: { implementation: this.baseImplementations.money },
@@ -589,8 +720,15 @@ class FormatterImpl implements Formatter {
 			organization: { implementation: this.baseContactImplementations.organization },
 			party: { implementation: this.baseContactImplementations.party },
 		}
+		this.temporalChains = {
+			date: { implementation: this.baseTemporalImplementations.date },
+			datetime: { implementation: this.baseTemporalImplementations.datetime },
+			time: { implementation: this.baseTemporalImplementations.time },
+			duration: { implementation: this.baseTemporalImplementations.duration },
+		}
 		for (const layer of this.numericLayers) this.addLayer(layer.kind, layer.implementation)
 		for (const layer of this.contactLayers) this.addContactLayer(layer.kind, layer.implementation)
+		for (const layer of this.temporalLayers) this.addTemporalLayer(layer.kind, layer.implementation)
 	}
 
 	private contactOptionLayers(overrides: FormatterOverrides | undefined): { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] {
@@ -598,6 +736,16 @@ class FormatterImpl implements Formatter {
 		const layers: { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = []
 		for (const kind of CONTACT_KINDS) {
 			const implementation = overrides[kind] as ContactFormatImplementation<ContactFormatKind> | undefined
+			if (implementation !== undefined) layers.push({ kind, implementation })
+		}
+		return layers
+	}
+
+	private temporalOptionLayers(overrides: FormatterOverrides | undefined): { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] {
+		if (overrides === undefined) return []
+		const layers: { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = []
+		for (const kind of TEMPORAL_KINDS) {
+			const implementation = overrides[kind] as TemporalFormatImplementation<TemporalFormatKind> | undefined
 			if (implementation !== undefined) layers.push({ kind, implementation })
 		}
 		return layers
@@ -620,6 +768,17 @@ class FormatterImpl implements Formatter {
 		}
 		const previous = this.contactChains[kind] as unknown as ContactChainEntry<ContactFormatKind>
 		;(this.contactChains as Record<ContactFormatKind, ContactChainEntry<ContactFormatKind>>)[kind] = {
+			implementation,
+			previous,
+		}
+	}
+
+	private addTemporalLayer(kind: TemporalFormatKind, implementation: TemporalFormatImplementation<TemporalFormatKind>): void {
+		if (typeof implementation !== 'function') {
+			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
+		}
+		const previous = this.temporalChains[kind] as unknown as TemporalChainEntry<TemporalFormatKind>
+		;(this.temporalChains as Record<TemporalFormatKind, TemporalChainEntry<TemporalFormatKind>>)[kind] = {
 			implementation,
 			previous,
 		}
@@ -672,6 +831,36 @@ class FormatterImpl implements Formatter {
 		return { locale, options: merged }
 	}
 
+	private resolveTemporalCall<K extends TemporalFormatKind>(
+		kind: K,
+		options: FormatCallOptions<K> | undefined,
+	): ResolvedTemporalCall<K> {
+		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
+		const raw = merged as FormatCallOptions<K> & {
+			locale?: string
+			numberingSystem?: string
+			timeZone?: string
+			calendar?: string
+		}
+		const locale = resolveConfiguredLocale(
+			raw.locale ?? this.locale,
+			this.config.unsupportedLocale,
+			this.config.fallbackLocale,
+		)
+		const numberingSystem = raw.numberingSystem ?? this.numberingSystem
+		const calendar = raw.calendar ?? this.calendar
+		const timeZone = raw.timeZone ?? this.timeZone
+		validateNumberingSystem(numberingSystem)
+		validateCalendar(calendar)
+		validateTimeZone(timeZone, locale)
+		return { locale, numberingSystem, calendar, timeZone, options: merged }
+	}
+
+	private stripTemporalOptions<K extends TemporalFormatKind>(options: FormatCallOptions<K>): Record<string, unknown> {
+		const { locale: _locale, numberingSystem: _numberingSystem, timeZone: _timeZone, calendar: _calendar, ...intl } = options as FormatCallOptions<K> & Record<string, unknown>
+		return intl
+	}
+
 	private cacheKey(locale: string, numberingSystem: string | undefined, options: Record<string, unknown>): string {
 		return stableSerialize({ locale, numberingSystem, options })
 	}
@@ -691,6 +880,43 @@ class FormatterImpl implements Formatter {
 			...(numberingSystem === undefined ? {} : { numberingSystem }),
 		})
 		cache.set(key, formatter)
+		return formatter
+	}
+
+	private getDateTimeFormat(
+		cache: BoundedCache<Intl.DateTimeFormat>,
+		locale: string,
+		numberingSystem: string | undefined,
+		calendar: string,
+		timeZone: string,
+		options: Intl.DateTimeFormatOptions,
+	): Intl.DateTimeFormat {
+		const key = this.cacheKey(locale, numberingSystem, { calendar, timeZone, ...options })
+		const existing = cache.get(key)
+		if (existing !== undefined) return existing
+		const formatter = new Intl.DateTimeFormat(locale, {
+			...options,
+			calendar,
+			timeZone,
+			...(numberingSystem === undefined ? {} : { numberingSystem }),
+		})
+		cache.set(key, formatter)
+		return formatter
+	}
+
+	private getDurationNumberFormat(
+		locale: string,
+		numberingSystem: string | undefined,
+		options: FormatOptionsByKind['duration'],
+	): Intl.NumberFormat {
+		const key = this.cacheKey(locale, numberingSystem, options)
+		const existing = this.durationCache.get(key)
+		if (existing !== undefined) return existing
+		const formatter = new Intl.NumberFormat(locale, {
+			...options,
+			...(numberingSystem === undefined ? {} : { numberingSystem }),
+		})
+		this.durationCache.set(key, formatter)
 		return formatter
 	}
 
@@ -728,6 +954,65 @@ class FormatterImpl implements Formatter {
 			return formatter.format(value / 100)
 		} catch (error) {
 			throw optionError('percentage', error)
+		}
+	}
+
+	private formatDateValue(value: TemporalValueByKind['date'], options: FormatCallOptions<'date'>): string {
+		const validation = validateDate(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'date', validation.issues)
+		const resolved = this.resolveTemporalCall('date', options)
+		const intlOptions = dateTimeDefaults('date', this.stripTemporalOptions(resolved.options) as never)
+		const timeZone = validation.value.mode === 'instant' ? resolved.timeZone : 'UTC'
+		try {
+			return this.getDateTimeFormat(this.dateCache, resolved.locale, resolved.numberingSystem, resolved.calendar, timeZone, intlOptions).format(validation.value.date)
+		} catch (error) {
+			throw temporalOptionError('date', error)
+		}
+	}
+
+	private formatDatetimeValue(value: TemporalValueByKind['datetime'], options: FormatCallOptions<'datetime'>): string {
+		const validation = validateDatetime(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'datetime', validation.issues)
+		const resolved = this.resolveTemporalCall('datetime', options)
+		const intlOptions = dateTimeDefaults('datetime', this.stripTemporalOptions(resolved.options) as never)
+		const timeZone = validation.value.mode === 'instant' ? resolved.timeZone : 'UTC'
+		try {
+			return this.getDateTimeFormat(this.datetimeCache, resolved.locale, resolved.numberingSystem, resolved.calendar, timeZone, intlOptions).format(validation.value.date)
+		} catch (error) {
+			throw temporalOptionError('datetime', error)
+		}
+	}
+
+	private formatTimeValue(value: TemporalValueByKind['time'], options: FormatCallOptions<'time'>): string {
+		const validation = validateTime(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'time', validation.issues)
+		const resolved = this.resolveTemporalCall('time', options)
+		const intlOptions = dateTimeDefaults('time', this.stripTemporalOptions(resolved.options) as never)
+		try {
+			return this.getDateTimeFormat(this.timeCache, resolved.locale, resolved.numberingSystem, resolved.calendar, 'UTC', intlOptions).format(validation.value.date)
+		} catch (error) {
+			throw temporalOptionError('time', error)
+		}
+	}
+
+	private formatDurationValue(value: TemporalValueByKind['duration'], options: FormatCallOptions<'duration'>): string {
+		const validation = validateDuration(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'duration', validation.issues)
+		const resolved = this.resolveTemporalCall('duration', options)
+		try {
+			return formatDurationValue(
+				validation.value,
+				resolved.locale,
+				resolved.numberingSystem,
+				this.stripTemporalOptions(resolved.options) as FormatOptionsByKind['duration'],
+				this.messages,
+				(locale, numberingSystem, durationOptions) => this.getDurationNumberFormat(locale, numberingSystem, durationOptions),
+			)
+		} catch (error) {
+			if (error instanceof MissingTemporalMessageError) {
+				throw new FormatProblem('unsupported', 'duration', [issue('duration', 'missing_message', error.message, undefined, error)])
+			}
+			throw temporalOptionError('duration', error)
 		}
 	}
 
@@ -896,11 +1181,57 @@ class FormatterImpl implements Formatter {
 		return entry.implementation(validatedValue, options, context)
 	}
 
+	private validateTemporalValue<K extends TemporalFormatKind>(
+		kind: K,
+		value: unknown,
+	): TemporalValidation<TemporalValueByKind[K]> {
+		const validation = kind === 'date'
+			? validateDate(value)
+			: kind === 'datetime'
+				? validateDatetime(value)
+				: kind === 'time'
+					? validateTime(value)
+					: validateDuration(value)
+		if (!validation.ok) return validation
+		return { ok: true, value: value as TemporalValueByKind[K] }
+	}
+
+	private invokeTemporal<K extends TemporalFormatKind>(
+		entry: TemporalChainEntry<K>,
+		kind: K,
+		value: TemporalValueByKind[K],
+		options: FormatCallOptions<K>,
+		locale: string,
+	): string {
+		const validation = this.validateTemporalValue(kind, value)
+		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
+		const validatedValue = validation.value
+		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
+			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
+			const resolved = this.resolveTemporalCall(kind, delegatedOptions)
+			const delegatedValidation = this.validateTemporalValue(kind, nextValue)
+			if (!delegatedValidation.ok) throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
+			if (entry.previous === undefined) {
+				return this.baseTemporalImplementations[kind](delegatedValidation.value, resolved.options, {
+					kind,
+					locale: resolved.locale,
+					options: resolved.options,
+					delegate: () => {
+						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
+					},
+				} as TemporalFormatImplementationContext<K>)
+			}
+			return this.invokeTemporal(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
+		}
+		const context: TemporalFormatImplementationContext<K> = { kind, locale, options, delegate }
+		return entry.implementation(validatedValue, options, context)
+	}
+
 	private evaluate(kind: FormatKind | string, value: unknown, options: unknown): FormatResult {
 		if (!FORMAT_KINDS.includes(kind as FormatKind)) {
 			return failed('unsupported', [issue(kind, 'unknown_kind', `Unknown format kind ${JSON.stringify(kind)}.`)])
 		}
-		if (!isNumericKind(kind) && !isContactKind(kind)) {
+		if (!isNumericKind(kind) && !isContactKind(kind) && !isTemporalKind(kind)) {
 			return failed('unsupported', [issue(kind, 'unsupported_kind', `Formatting ${kind} values is not implemented in this formatter.`)])
 		}
 
@@ -912,6 +1243,21 @@ class FormatterImpl implements Formatter {
 					this.contactChains[kind] as ContactChainEntry<typeof kind>,
 					kind,
 					value as ContactValueByKind[typeof kind],
+					resolved.options,
+					resolved.locale,
+				)
+				if (typeof output !== 'string') {
+					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
+				}
+				return formatted(output)
+			}
+			if (isTemporalKind(kind)) {
+				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
+				const resolved = this.resolveTemporalCall(kind, typedOptions)
+				const output = this.invokeTemporal(
+					this.temporalChains[kind] as TemporalChainEntry<typeof kind>,
+					kind,
+					value as TemporalValueByKind[typeof kind],
 					resolved.options,
 					resolved.locale,
 				)
@@ -991,6 +1337,22 @@ class FormatterImpl implements Formatter {
 		return this.format('party', value, options)
 	}
 
+	formatDate(value: FormatInputByKind['date'], options?: FormatCallOptions<'date'>): string {
+		return this.format('date', value, options)
+	}
+
+	formatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): string {
+		return this.format('datetime', value, options)
+	}
+
+	formatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): string {
+		return this.format('time', value, options)
+	}
+
+	formatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): string {
+		return this.format('duration', value, options)
+	}
+
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult {
 		return this.safeFormat('number', value, options)
 	}
@@ -1023,10 +1385,26 @@ class FormatterImpl implements Formatter {
 		return this.safeFormat('party', value, options)
 	}
 
+	safeFormatDate(value: FormatInputByKind['date'], options?: FormatCallOptions<'date'>): FormatResult {
+		return this.safeFormat('date', value, options)
+	}
+
+	safeFormatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): FormatResult {
+		return this.safeFormat('datetime', value, options)
+	}
+
+	safeFormatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): FormatResult {
+		return this.safeFormat('time', value, options)
+	}
+
+	safeFormatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): FormatResult {
+		return this.safeFormat('duration', value, options)
+	}
+
 	compose(options: FormatterOptions = {}): Formatter {
 		const { overrides: _overrides, ...withoutOverrides } = options
 		const merged = mergeConfig(this.config, withoutOverrides)
-		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers)
+		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers, this.temporalLayers)
 		if (options.overrides !== undefined) return next.withOverrides(options.overrides)
 		return next
 	}
@@ -1042,7 +1420,17 @@ class FormatterImpl implements Formatter {
 			const implementation = overrides[kind] as ContactFormatImplementation<ContactFormatKind> | undefined
 			if (implementation !== undefined) contactAdditions.push({ kind, implementation })
 		}
-		const next = new FormatterImpl(this.config, [...this.numericLayers, ...additions], [...this.contactLayers, ...contactAdditions])
+		const temporalAdditions: { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = []
+		for (const kind of TEMPORAL_KINDS) {
+			const implementation = overrides[kind] as TemporalFormatImplementation<TemporalFormatKind> | undefined
+			if (implementation !== undefined) temporalAdditions.push({ kind, implementation })
+		}
+		const next = new FormatterImpl(
+			this.config,
+			[...this.numericLayers, ...additions],
+			[...this.contactLayers, ...contactAdditions],
+			[...this.temporalLayers, ...temporalAdditions],
+		)
 		return next
 	}
 
@@ -1093,6 +1481,22 @@ export function formatParty(value: FormatInputByKind['party'], options?: FormatC
 	return defaultFormatter.formatParty(value, options)
 }
 
+export function formatDate(value: FormatInputByKind['date'], options?: FormatCallOptions<'date'>): string {
+	return defaultFormatter.formatDate(value, options)
+}
+
+export function formatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): string {
+	return defaultFormatter.formatDatetime(value, options)
+}
+
+export function formatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): string {
+	return defaultFormatter.formatTime(value, options)
+}
+
+export function formatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): string {
+	return defaultFormatter.formatDuration(value, options)
+}
+
 export function formatValue<K extends FormatKind>(
 	kind: K,
 	value: FormatInputByKind[K],
@@ -1139,4 +1543,20 @@ export function safeFormatOrganization(value: FormatInputByKind['organization'],
 
 export function safeFormatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): FormatResult {
 	return defaultFormatter.safeFormatParty(value, options)
+}
+
+export function safeFormatDate(value: FormatInputByKind['date'], options?: FormatCallOptions<'date'>): FormatResult {
+	return defaultFormatter.safeFormatDate(value, options)
+}
+
+export function safeFormatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): FormatResult {
+	return defaultFormatter.safeFormatDatetime(value, options)
+}
+
+export function safeFormatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): FormatResult {
+	return defaultFormatter.safeFormatTime(value, options)
+}
+
+export function safeFormatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): FormatResult {
+	return defaultFormatter.safeFormatDuration(value, options)
 }

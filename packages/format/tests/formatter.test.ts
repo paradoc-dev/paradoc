@@ -44,7 +44,7 @@ describe('@paradoc/format numeric contract', () => {
 		expect(formatter.safeFormatMoney({}).status).toBe('incomplete')
 		expect(formatter.safeFormatMoney({ amount: 25 }).status).toBe('incomplete')
 		expect(formatter.safeFormatMoney({ amount: '25', currency: undefined }).status).toBe('invalid')
-		expect(formatter.safeFormat('date', '2026-01-01').status).toBe('unsupported')
+		expect(formatter.safeFormat('date', '2026-01-01')).toMatchObject({ success: true, status: 'formatted', value: 'Jan 1, 2026' })
 		expect(formatter.safeFormat('future-kind' as never, 1 as never).status).toBe('unsupported')
 
 		const broken = formatter.withOverrides({
