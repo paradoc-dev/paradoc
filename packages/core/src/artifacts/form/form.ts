@@ -72,7 +72,12 @@ import {
 import { evaluatePartyRequiredness } from '@/validation/party'
 import { toYAML } from '@/serialization/serialization'
 import { deepClone, deepReadonlyClone } from '@/utils/clone'
-import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
+import {
+	assertValidArtifactDefinition,
+	snapshotArtifactDefinition,
+	withArtifactMethods,
+	type ArtifactMethods,
+} from '../shared/artifact-methods'
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { FieldsToDataType } from '@/inference'
@@ -910,6 +915,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		canonicalPdfHash,
 		canonicalPdfBytes: canonicalPdfBytesInput,
 	} = config
+	assertValidArtifactDefinition(formDef)
 
 	// Runtime state is owned by the instance. Guarded mutation methods create a
 	// new instance, so cloning at this boundary prevents aliases from the
@@ -2704,7 +2710,7 @@ export function runtimeFormFromJSON<F extends Form>(
 	// Type assertion needed because TypeScript can't narrow the config type based on json.phase alone
 	// The RuntimeFormJSON union already constrains the valid combinations
 	const config = {
-		form: json.form,
+		form: snapshotArtifactDefinition(json.form),
 		fields: json.fields,
 		parties: json.parties,
 		annexes: json.annexes,
@@ -2783,6 +2789,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			},
 
 			fill(data: InferFormPayload<F>, options?: FillValidationOptions): DraftForm<F> {
+			assertValidArtifactDefinition(formDef)
 			const checkRules = options?.rules !== false
 
 			// Normalize data
@@ -2797,7 +2804,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const targetLayer = formDef.defaultLayer || (formDef.layers ? Object.keys(formDef.layers)[0] : '') || ''
 
 			const draft = createRuntimeForm({
-				form: formDef,
+				form: snapshotArtifactDefinition(formDef),
 				fields: validated.fields,
 				parties: validated.parties,
 				annexes: validated.annexes,
@@ -2845,6 +2852,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 		},
 
 		partialFill(seed?: Partial<InferFormPayload<F>>, options?: PartialFillOptions): DraftForm<F> {
+			assertValidArtifactDefinition(formDef)
 			const validate = options?.validate ?? 'patch'
 			const checkRules = options?.rules === true
 
@@ -2893,7 +2901,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const targetLayer = formDef.defaultLayer || (formDef.layers ? Object.keys(formDef.layers)[0] : '') || ''
 
 			const draft = createRuntimeForm({
-				form: formDef,
+				form: snapshotArtifactDefinition(formDef),
 				fields: validatedFields,
 				parties: validatedParties,
 				annexes: validatedAnnexes,
@@ -2932,6 +2940,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 		},
 
 		async render<Output = string | Uint8Array>(options: RenderOptions<Output> = {}): Promise<Output> {
+			assertValidArtifactDefinition(formDef)
 			const { renderer: rendererOverride, renderers, data = {}, layer: layerKey, bindings: optionsBindings } = options
 
 			if (!formDef.layers) {

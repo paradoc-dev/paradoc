@@ -9,7 +9,12 @@ import type { Document, Form, Layer, Metadata, ContentRef, Resolver } from '@par
 import type { DraftDocumentJSON, FinalDocumentJSON } from '@paradoc/types'
 import { parseDocument, parseLayer } from '@/validation/artifact-parsers'
 import { toYAML } from '@/serialization/serialization'
-import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
+import {
+	assertValidArtifactDefinition,
+	snapshotArtifactDefinition,
+	withArtifactMethods,
+	type ArtifactMethods,
+} from '../shared/artifact-methods'
 import {
 	resolveAndRenderArtifactLayer,
 	type ArtifactInstanceOptions,
@@ -202,6 +207,7 @@ function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig
 function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig<D>): RuntimeDocument<D>
 function createRuntimeDocument<D extends Document>(config: RuntimeDocumentConfig<D>): RuntimeDocument<D> {
 	const { document: doc, targetLayer, resolver, finalizedAt } = config
+	assertValidArtifactDefinition(doc)
 
 	// Shared render function
 	const render = (options?: ArtifactLayerRenderOptions): Promise<string | Uint8Array> => {
@@ -337,7 +343,7 @@ export function runtimeDocumentFromJSON<D extends Document>(
 	options?: ArtifactInstanceOptions,
 ): RuntimeDocument<D> {
 	return createRuntimeDocument({
-		document: json.document,
+		document: snapshotArtifactDefinition(json.document),
 		targetLayer: json.targetLayer,
 		resolver: options?.resolver,
 		finalizedAt: 'finalizedAt' in json ? json.finalizedAt : undefined,
@@ -366,6 +372,7 @@ function createDocumentInstance<D extends Document>(
 		defaultLayer: doc.defaultLayer as DocumentInstance<D>['defaultLayer'],
 
 		prepare<K extends keyof D['layers'] & string>(targetLayer?: K): DraftDocument<D> {
+			assertValidArtifactDefinition(doc)
 			const layers = doc.layers ?? {}
 			const layerKeys = Object.keys(layers)
 
@@ -383,13 +390,14 @@ function createDocumentInstance<D extends Document>(
 			}
 
 			return createRuntimeDocument({
-				document: doc,
+				document: snapshotArtifactDefinition(doc),
 				targetLayer: resolvedTargetLayer,
 				resolver,
 			})
 		},
 
 		render(renderOptions?: ArtifactLayerRenderOptions): Promise<string | Uint8Array> {
+			assertValidArtifactDefinition(doc)
 			return resolveAndRenderArtifactLayer(
 				doc.layers,
 				undefined,

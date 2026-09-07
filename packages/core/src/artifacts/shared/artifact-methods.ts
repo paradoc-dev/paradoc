@@ -11,6 +11,7 @@ import { validate as validateArtifact } from '@/validation/artifact'
 import { toYAML } from '@/serialization/serialization'
 import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 import type { ValidateOptions, SerializationOptions } from '@/types'
+import { deepClone } from '@/utils/clone'
 
 /**
  * Common artifact methods interface
@@ -75,6 +76,37 @@ export interface ArtifactMethods<T extends Artifact> {
 	 * Optionally includes schema comment.
 	 */
 	toYAML(options?: SerializationOptions): string
+}
+
+/**
+ * Validate the definition at a runtime consumption boundary.
+ *
+ * Authoring definitions are intentionally mutable, so a caller can edit the
+ * object returned by `toJSON({ includeSchema: false })`. Runtime instances
+ * must still start from a valid definition and retain the definition that was
+ * validated at their creation time.
+ */
+export function assertValidArtifactDefinition<T extends Artifact>(data: T): void {
+	const result = validateArtifact<T>(data)
+	if ('issues' in result && result.issues) {
+		const details = result.issues
+			.map((issue) => {
+				const path = issue.path?.length ? ` at ${issue.path.join('.')}` : ''
+				return `${issue.message}${path}`
+			})
+			.join('; ')
+		throw new Error(`Invalid ${data.kind} definition: ${details || 'validation failed'}`)
+	}
+}
+
+/**
+ * Detach a definition for one runtime artifact instance.
+ *
+ * This helper only receives artifact data. Runtime behavior such as a layer
+ * resolver is carried separately and is never passed through structuredClone.
+ */
+export function snapshotArtifactDefinition<T extends Artifact>(data: T): T {
+	return deepClone(data)
 }
 
 /**

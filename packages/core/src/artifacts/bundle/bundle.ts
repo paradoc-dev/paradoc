@@ -28,7 +28,12 @@ import {
 	parseBundleContentItem,
 } from '@/validation/artifact-parsers'
 import { toYAML } from '@/serialization/serialization'
-import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
+import {
+	assertValidArtifactDefinition,
+	snapshotArtifactDefinition,
+	withArtifactMethods,
+	type ArtifactMethods,
+} from '../shared/artifact-methods'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RendererRegistry } from '@/rendering'
 import { findRegisteredRenderer } from '@/rendering/renderer-registry'
@@ -390,6 +395,7 @@ interface RuntimeBundleConfig<B extends Bundle> {
  */
 function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): RuntimeBundle<B> {
 	const { bundle: bundleDef, contents: contentValues, phase, executedAt } = config
+	assertValidArtifactDefinition(bundleDef)
 
 	// Build content keys set from bundle definition
 	const bundleContentKeys = new Set(bundleDef.contents.map((c) => c.key))
@@ -768,7 +774,7 @@ export function runtimeBundleFromJSON<B extends Bundle>(
 	}
 
 	return createRuntimeBundle({
-		bundle: json.bundle,
+		bundle: snapshotArtifactDefinition(json.bundle),
 		contents,
 		phase: json.phase,
 		executedAt: 'executedAt' in json ? json.executedAt : undefined,
@@ -793,10 +799,12 @@ function createBundleInstance<B extends Bundle>(bundleDef: B): BundleInstance<B>
 		contents: bundleDef.contents as BundleInstance<B>['contents'],
 
 		async assemble(options: BundleAssemblyOptions): Promise<AssembledBundle> {
+			assertValidArtifactDefinition(bundleDef)
 			return assembleBundle(bundleDef, options)
 		},
 
 		prepare(contents: RuntimeBundleContents = {}): DraftBundle<B> {
+			assertValidArtifactDefinition(bundleDef)
 			// Validate all content keys exist in bundle
 			const bundleContentKeys = new Set(bundleDef.contents.map((c) => c.key))
 			for (const key of Object.keys(contents)) {
@@ -809,7 +817,7 @@ function createBundleInstance<B extends Bundle>(bundleDef: B): BundleInstance<B>
 			}
 
 			return createRuntimeBundle({
-				bundle: bundleDef,
+				bundle: snapshotArtifactDefinition(bundleDef),
 				contents,
 				phase: 'draft',
 			}) as DraftBundle<B>

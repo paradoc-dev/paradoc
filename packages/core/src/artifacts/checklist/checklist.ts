@@ -22,7 +22,12 @@ import {
 	type ProgressiveValidationResult,
 } from '@/validation'
 import { toYAML } from '@/serialization/serialization'
-import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
+import {
+	assertValidArtifactDefinition,
+	snapshotArtifactDefinition,
+	withArtifactMethods,
+	type ArtifactMethods,
+} from '../shared/artifact-methods'
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RuntimeChecklistRenderOptions } from '@/types'
@@ -287,6 +292,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistConfig<C>): RuntimeChecklist<C>
 function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistConfig<C>): RuntimeChecklist<C> {
 	const { checklist: checklistDef, items: itemValues, targetLayer, resolver, completedAt } = config
+	assertValidArtifactDefinition(checklistDef)
 
 	// Build item lookup map and validate
 	const itemDefs = new Map<string, ChecklistItem>()
@@ -587,7 +593,7 @@ export function runtimeChecklistFromJSON<C extends Checklist>(
 	options?: ArtifactInstanceOptions,
 ): RuntimeChecklist<C> {
 	return createRuntimeChecklist({
-		checklist: json.checklist,
+		checklist: snapshotArtifactDefinition(json.checklist),
 		items: json.items,
 		targetLayer: json.targetLayer,
 		resolver: options?.resolver,
@@ -630,11 +636,12 @@ function createChecklistInstance<C extends Checklist>(
 			},
 
 			fill(data: InferChecklistPayload<C>): DraftChecklist<C> {
+				assertValidArtifactDefinition(checklistDef)
 				const targetLayer =
 				checklistDef.defaultLayer || (checklistDef.layers ? Object.keys(checklistDef.layers)[0] : '') || ''
 
 			return createRuntimeChecklist({
-				checklist: checklistDef,
+				checklist: snapshotArtifactDefinition(checklistDef),
 				items: data as Record<string, boolean | string>,
 				targetLayer,
 				resolver,
@@ -657,6 +664,7 @@ function createChecklistInstance<C extends Checklist>(
 		async render<Output = string | Uint8Array>(
 			options?: RuntimeChecklistRenderOptions<Output>,
 		): Promise<Output> {
+			assertValidArtifactDefinition(checklistDef)
 			// Resolve layer key and content
 			const layers = checklistDef.layers
 			if (!layers || Object.keys(layers).length === 0) {
