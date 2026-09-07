@@ -106,10 +106,14 @@ describe('Duration', () => {
 					expect(() => duration(input)).toThrow();
 				});
 
-				test('accepts T without time components (valid per regex)', () => {
+				test('throws when T has no time components', () => {
 					const input = 'P1DT' as any;
-					const result = duration(input);
-					expect(result).toBe('P1DT');
+					expect(() => duration(input)).toThrow();
+				});
+
+				test('throws when T follows a date component without time', () => {
+					const input = 'P1YT' as any;
+					expect(() => duration(input)).toThrow();
 				});
 
 				test('throws error when time parts without T separator', () => {
@@ -164,10 +168,14 @@ describe('Duration', () => {
 					expect(() => duration(input)).toThrow();
 				});
 
-				test('accepts just P (valid per regex)', () => {
+				test('throws for just P', () => {
 					const input = 'P' as any;
-					const result = duration(input);
-					expect(result).toBe('P');
+					expect(() => duration(input)).toThrow();
+				});
+
+				test('throws for just PT', () => {
+					const input = 'PT' as any;
+					expect(() => duration(input)).toThrow();
 				});
 
 				test('throws error for invalid characters', () => {
@@ -473,9 +481,12 @@ describe('Duration', () => {
 					expect(() => duration().value('p1Y' as any).build()).toThrow();
 				});
 
-				test('accepts T without time components (valid per regex)', () => {
-					const result = duration().value('P1DT' as any).build();
-					expect(result).toBe('P1DT');
+				test('throws when T has no time components', () => {
+					expect(() => duration().value('P1DT' as any).build()).toThrow();
+				});
+
+				test('throws when T follows a date component without time', () => {
+					expect(() => duration().value('P1YT' as any).build()).toThrow();
 				});
 
 				test('throws error when time parts without T separator', () => {
@@ -502,9 +513,12 @@ describe('Duration', () => {
 					expect(() => duration().value('' as any).build()).toThrow();
 				});
 
-				test('accepts just P (valid per regex)', () => {
-					const result = duration().value('P' as any).build();
-					expect(result).toBe('P');
+				test('throws for just P', () => {
+					expect(() => duration().value('P' as any).build()).toThrow();
+				});
+
+				test('throws for just PT', () => {
+					expect(() => duration().value('PT' as any).build()).toThrow();
 				});
 
 				test('throws error for invalid characters', () => {

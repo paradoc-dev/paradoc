@@ -272,10 +272,10 @@ export interface Bbox {
 /**
  * ISO 8601 duration string representing a time period.
  *
- * Format: `P[n]Y[n]M[n]DT[n]H[n]M[n]S` where P indicates period,
+ * Format: `P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S` where P indicates period,
  * T separates date and time components.
  *
- * @pattern ^P(?:\d+Y)?(?:\d+M)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$
+ * @pattern ^P(?=\d|T\d)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(?:T(?=\d)(\d+H)?(\d+M)?(\d+(?:\.\d+)?S)?)?$
  *
  * @example
  * - `"P1Y"` - 1 year

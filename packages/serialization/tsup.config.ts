@@ -11,6 +11,7 @@ export default defineConfig({
 	clean: true,
 	external: [
 		// Mark workspace dependencies as external (they'll be installed separately)
+		'@paradoc/schemas',
 		'@paradoc/types',
 	],
 })

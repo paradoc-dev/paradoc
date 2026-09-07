@@ -1,4 +1,5 @@
 import type { Form, FormField, FormAnnex, FormParty, Person, Organization, Attachment } from '@paradoc/types'
+import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
 
 type EnumOptionValue<T> = T extends { value: infer V } ? V : never
 type RuntimeEnumOption = { value: string | number }
@@ -526,7 +527,7 @@ function compileField(field: FormField): JsonSchema {
     case 'duration':
       return {
         type: 'string',
-        pattern: '^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
+        pattern: ISO_8601_DURATION_PATTERN,
         ...('default' in field && field.default !== undefined && { default: field.default }),
       }
 

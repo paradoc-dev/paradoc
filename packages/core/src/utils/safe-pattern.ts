@@ -7,6 +7,7 @@
  */
 
 import safeRegex from 'safe-regex'
+import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
 
 /**
  * Maximum allowed pattern length (defense in depth)
@@ -20,8 +21,9 @@ const MAX_PATTERN_LENGTH = 500
  * with their literal separators, so no catastrophic backtracking is possible.
  */
 const KNOWN_SAFE_PATTERNS = new Set([
-	// ISO 8601 duration: \d+ groups separated by non-overlapping literals (P,Y,M,D,T,H,S)
-	String.raw`^P(?:\d+Y)?(?:\d+M)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$`,
+	// ISO 8601 duration: \d+ groups separated by non-overlapping literals (P,Y,M,W,D,T,H,S).
+	// The lookaheads enforce that P and T are followed by a component.
+	ISO_8601_DURATION_PATTERN,
 ])
 
 /**
