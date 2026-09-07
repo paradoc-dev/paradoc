@@ -56,7 +56,7 @@ function taxpayerDraft(filled: FilledSession) {
     throw new Error(`the session's W-9 answers did not parse: ${JSON.stringify(parsed.errors)}`);
   }
   return w9
-    .fill(parsed.data, { rules: false })
+    .fill(parsed.data)
     .addSigner("taxpayer-signer", { person: { name: "Dana Whitfield" } })
     .addSignatory("taxpayer", "taxpayer-0", { signerId: "taxpayer-signer" });
 }

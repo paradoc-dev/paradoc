@@ -1,6 +1,5 @@
 export type {
-	FillValidationMode,
-	PartialFillOptions,
+	FillOptions,
 	UpdateOptions,
 	FillTargetOptions,
 	FillTargetKind,

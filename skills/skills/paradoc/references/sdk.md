@@ -88,7 +88,6 @@ const draft = form.fill({
 const result = form.safeFill({ fields: { /* ... */ } });
 if (result.success) {
   const draft = result.data;
-  const rules = result.rules; // FormRulesValidationResult
 } else {
   console.error(result.error); // FormValidationError
 }
@@ -96,22 +95,14 @@ if (result.success) {
 
 ALWAYS prefer `safeFill()` in production code where errors are expected.
 
-### Fill options
-
-```typescript
-const draft = form.fill(data, {
-  rules: true, // run validation rules (default: true)
-});
-```
-
 ### Validation pipeline
 
 When `fill()` / `safeFill()` runs:
 
 1. **Schema validation** — values match declared types
-2. **Constraint validation** — min/max, required, pattern, enum membership
+2. **Constraint validation** — min/max, pattern, enum membership on supplied values
 3. **Default application** — missing optional fields get defaults
-4. **Logic evaluation** — `visible` / `required` expressions, defs, rules
+4. **Draft state evaluation** — `visible` / `required` expressions and defs; omissions remain open
 
 ### Validating without filling
 
@@ -133,7 +124,7 @@ if (!form.isValid()) {
 
 // Runtime (DraftForm) — checks values, effective requiredness, and rules
 const result = draft.validate();
-if (!result.valid) {
+if (result.errors.length > 0 || !result.rules.valid) {
   console.error(result.errors, result.rules);
 }
 
@@ -150,16 +141,16 @@ const result = para.form.safeFrom(unknownData);     // returns result
 
 ## Progressive Fill (AI / Multi-Turn)
 
-For incremental or AI-driven filling: `partialFill()` creates a draft with partial data, then `update()` adds more.
+For incremental or AI-driven filling: `fill()` creates a draft with partial data, then `update()` adds more.
 
 ```typescript
 // Throws on invalid provided fields
-const draft = form.partialFill({
+const draft = form.fill({
   fields: { propertyAddress: { line1: "123 Main St", locality: "Portland", region: "OR", postalCode: "97201", country: "USA" } },
 });
 
 // Safe variant
-const result = form.safePartialFill({ fields: { /* ... */ } });
+const result = form.safeFill({ fields: { /* ... */ } });
 
 // Update an existing draft (throws on error)
 const updated = draft.update({ fields: { monthlyRent: { amount: 1500, currency: "USD" } } });
@@ -229,7 +220,7 @@ draft.setItem("task_1", true);
 const completed = draft.complete();
 ```
 
-Use `partialFill()` and `update()` for incremental checklist answers. `fill()` and
+Use `fill()` and `update()` for incremental checklist answers. `fill()` and
 `complete()` require every declared item after applying declared defaults. An
 explicit `false` answer counts as present; `clear("items.<id>")` removes an
 answer and `reset("items.<id>")` restores its default.

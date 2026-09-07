@@ -24,8 +24,6 @@ export type {
 	CaptureOptions,
 	SealOptions,
 	FormBuilderInterface,
-	FillValidationOptions,
 	SafeFillResult,
-	SafePartialFillResult,
 	FormValidationResult,
 } from './form'

@@ -561,6 +561,24 @@ describe('Expression Type Checking', () => {
 				},
 			}
 
+		expect(validateFormDefs(form).issues).toBeUndefined()
+	})
+
+		test('accepts direct nested field paths in rules', () => {
+			const form: Form = {
+				kind: 'form',
+				name: 'direct-nested-rule-paths',
+				fields: {
+					amountRangeMin: { type: 'money' },
+					amountRangeMax: { type: 'money' },
+					address: { type: 'fieldset', fields: { postalCode: { type: 'text' } } },
+				},
+				rules: {
+					rangeOrder: { expr: 'amountRangeMax.amount >= amountRangeMin.amount', message: 'Range is ordered' },
+					postalCodePresent: { expr: 'address.postalCode != ""', message: 'Postal code is present' },
+				},
+			}
+
 			expect(validateFormDefs(form).issues).toBeUndefined()
 		})
 

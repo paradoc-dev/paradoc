@@ -15,7 +15,10 @@ export interface ValidateInputValueOutput {
 }
 
 export interface FillOutput {
-  valid: boolean
+  /** Whether every supplied value was accepted. */
+  accepted: boolean
+  /** Whether the artifact is ready for its final transition. */
+  complete: boolean
   artifactKind?: 'form' | 'checklist'
   data?: Record<string, unknown>
   errors?: Array<{ field: string; message: string }>

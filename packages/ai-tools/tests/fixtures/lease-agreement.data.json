@@ -16,10 +16,10 @@
     "smokingAllowed": false
   },
   "parties": {
-    "landlord": { "id": "landlord-1", "name": "Alice Chen" },
+    "landlord": { "id": "landlord-0", "name": "Alice Chen" },
     "tenant": [
-      { "id": "tenant-1", "name": "Bob Smith" },
-      { "id": "tenant-2", "name": "Carol Johnson" }
+      { "id": "tenant-0", "name": "Bob Smith" },
+      { "id": "tenant-1", "name": "Carol Johnson" }
     ]
   }
 }

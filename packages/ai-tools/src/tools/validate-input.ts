@@ -229,7 +229,7 @@ async function fallbackValidateField(
     config,
   )
 
-  if (fillResult.valid) {
+  if (fillResult.accepted) {
     return {
       valid: true,
       target: 'field',
@@ -352,7 +352,7 @@ async function fallbackValidateChecklistItem(
     config,
   )
 
-  if (fillResult.valid) {
+  if (fillResult.accepted) {
     return {
       valid: true,
       target: 'checklistItem',

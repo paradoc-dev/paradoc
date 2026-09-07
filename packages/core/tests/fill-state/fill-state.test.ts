@@ -210,13 +210,13 @@ const createCompletionContractForm = () =>
 
 describe('fill-state', () => {
 	// ========================================================================
-	// partialFill
+	// fill
 	// ========================================================================
 
-	describe('partialFill', () => {
+	describe('fill', () => {
 		test('creates draft from empty seed', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 
 			expect(draft.phase).toBe('draft')
 			expect(draft.fields).toEqual({})
@@ -224,7 +224,7 @@ describe('fill-state', () => {
 
 		test('creates draft from partial seed', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill({ fields: { firstName: 'Alice' } } as any)
+			const draft = f.fill({ fields: { firstName: 'Alice' } } as any)
 
 			expect(draft.phase).toBe('draft')
 			expect(draft.getField('firstName')).toBe('Alice')
@@ -232,7 +232,7 @@ describe('fill-state', () => {
 
 		test('creates draft from full payload', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				fields: { firstName: 'Alice', lastName: 'Smith', email: 'alice@test.com', age: 30 },
 			} as any)
 
@@ -243,30 +243,25 @@ describe('fill-state', () => {
 		test('validates with patch mode by default', () => {
 			const f = createSimpleForm()
 			// Partial seed should pass patch validation (doesn't require all fields)
-			const draft = f.partialFill({ fields: { firstName: 'Bob' } } as any)
+			const draft = f.fill({ fields: { firstName: 'Bob' } } as any)
 			expect(draft.phase).toBe('draft')
 		})
 
 		test('throws on invalid field value in patch mode', () => {
 			const f = createSimpleForm()
 			expect(() =>
-				f.partialFill({ fields: { age: 'not-a-number' } } as any)
+				f.fill({ fields: { age: 'not-a-number' } } as any)
 			).toThrow()
 		})
 
-		test('skips validation when validate is none', () => {
+		test('rejects malformed supplied data', () => {
 			const f = createSimpleForm()
-			// Even garbage data passes with no validation
-			const draft = f.partialFill(
-				{ fields: { age: 'not-a-number' } } as any,
-				{ validate: 'none' },
-			)
-			expect(draft.phase).toBe('draft')
+			expect(() => f.fill({ fields: { age: 'not-a-number' } } as any)).toThrow(FormValidationError)
 		})
 
 		test('accepts empty call with no arguments', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			expect(draft.phase).toBe('draft')
 		})
 
@@ -277,7 +272,7 @@ describe('fill-state', () => {
 				witness: [{ name: 'Wanda' }, { id: 'witness-1', name: 'Wally' }],
 			}
 			const validation = f.validatePartiesPatch(parties)
-			const draft = f.partialFill({ parties } as any)
+			const draft = f.fill({ parties } as any)
 
 			expect(validation.success).toBe(true)
 			if (validation.success) {
@@ -287,13 +282,13 @@ describe('fill-state', () => {
 	})
 
 	// ========================================================================
-	// safePartialFill
+	// safeFill
 	// ========================================================================
 
-	describe('safePartialFill', () => {
+	describe('safeFill', () => {
 		test('returns success for valid partial data', () => {
 			const f = createSimpleForm()
-			const result = f.safePartialFill({ fields: { firstName: 'Alice' } } as any)
+			const result = f.safeFill({ fields: { firstName: 'Alice' } } as any)
 
 			expect(result.success).toBe(true)
 			if (result.success) {
@@ -303,7 +298,7 @@ describe('fill-state', () => {
 
 		test('returns failure for invalid data', () => {
 			const f = createSimpleForm()
-			const result = f.safePartialFill({ fields: { age: 'bad' } } as any)
+			const result = f.safeFill({ fields: { age: 'bad' } } as any)
 
 			expect(result.success).toBe(false)
 			if (!result.success) {
@@ -313,7 +308,7 @@ describe('fill-state', () => {
 
 		test('returns success for empty seed', () => {
 			const f = createSimpleForm()
-			const result = f.safePartialFill()
+			const result = f.safeFill()
 
 			expect(result.success).toBe(true)
 		})
@@ -326,7 +321,7 @@ describe('fill-state', () => {
 	describe('update', () => {
 		test('recursively merges nested objects and preserves omitted members', () => {
 			const f = createNestedForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				fields: {
 					profile: { firstName: 'Ada', lastName: 'Lovelace' },
 					rows: [{ label: 'old', value: 1 }],
@@ -341,7 +336,7 @@ describe('fill-state', () => {
 
 		test('replaces supplied arrays instead of merging by index', () => {
 			const f = createNestedForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				fields: { rows: [{ label: 'old', value: 1 }, { label: 'keep?', value: 2 }] },
 			} as any)
 
@@ -352,7 +347,7 @@ describe('fill-state', () => {
 
 		test('does not treat undefined as a deletion sentinel', () => {
 			const f = createNestedForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				fields: { profile: { firstName: 'Ada', lastName: 'Lovelace' } },
 			} as any)
 
@@ -363,21 +358,21 @@ describe('fill-state', () => {
 
 		test('rejects null instead of treating it as a deletion sentinel', () => {
 			const f = createNestedForm()
-			const draft = f.partialFill({ fields: { profile: { firstName: 'Ada' } } } as any)
+			const draft = f.fill({ fields: { profile: { firstName: 'Ada' } } } as any)
 
 			expect(() => draft.update({ fields: { profile: null } } as any)).toThrow()
 		})
 
 		test('recursively merges primitive object field values', () => {
 			const f = createNestedForm()
-			const draft = f.partialFill({ fields: { location: { lat: 40, lon: -74 } } } as any)
+			const draft = f.fill({ fields: { location: { lat: 40, lon: -74 } } } as any)
 
 			const updated = draft.update({ fields: { location: { lat: 41 } } } as any)
 
 			expect(updated.fields.location).toEqual({ lat: 41, lon: -74 })
 		})
 
-		test('full update validation does not restore omitted defaults', () => {
+		test('updates preserve defaults applied at draft creation', () => {
 			const f = form()
 				.name('defaults')
 				.fields({
@@ -385,19 +380,18 @@ describe('fill-state', () => {
 					status: { type: 'text', default: 'draft' },
 				})
 				.build()
-			const draft = f.partialFill({ fields: { requiredName: 'before' } } as any)
+			const draft = f.fill({ fields: { requiredName: 'before' } } as any)
 
 			const updated = draft.update(
 				{ fields: { requiredName: 'after' } } as any,
-				{ validate: 'full' },
 			)
 
-			expect(updated.fields).toEqual({ requiredName: 'after' })
+			expect(updated.fields).toEqual({ requiredName: 'after', status: 'draft' })
 		})
 
 		test('merges field patch into existing data', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill({ fields: { firstName: 'Alice' } } as any)
+			const draft = f.fill({ fields: { firstName: 'Alice' } } as any)
 			const updated = draft.update({ fields: { lastName: 'Smith' } } as any)
 
 			expect(updated.getField('firstName')).toBe('Alice')
@@ -406,7 +400,7 @@ describe('fill-state', () => {
 
 		test('overwrites existing field values', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill({ fields: { firstName: 'Alice' } } as any)
+			const draft = f.fill({ fields: { firstName: 'Alice' } } as any)
 			const updated = draft.update({ fields: { firstName: 'Bob' } } as any)
 
 			expect(updated.getField('firstName')).toBe('Bob')
@@ -414,7 +408,7 @@ describe('fill-state', () => {
 
 		test('throws on invalid patch in patch mode', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 
 			expect(() =>
 				draft.update({ fields: { age: 'bad' } } as any)
@@ -423,7 +417,7 @@ describe('fill-state', () => {
 
 		test('returns new DraftForm instance', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const updated = draft.update({ fields: { firstName: 'X' } } as any)
 
 			expect(updated).not.toBe(draft)
@@ -432,7 +426,7 @@ describe('fill-state', () => {
 
 		test('stores normalized party patch values while preserving existing parties', () => {
 			const f = createFormWithProgressiveParties()
-			const draft = f.partialFill({ parties: { buyer: { name: 'Alice' } } } as any)
+			const draft = f.fill({ parties: { buyer: { name: 'Alice' } } } as any)
 			const parties = {
 				witness: [{ name: 'Wanda' }, { id: 'witness-1', name: 'Wally' }],
 			}
@@ -458,7 +452,7 @@ describe('fill-state', () => {
 	describe('safeUpdate', () => {
 		test('returns success for valid patch', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const result = draft.safeUpdate({ fields: { firstName: 'Alice' } } as any)
 
 			expect(result.success).toBe(true)
@@ -469,7 +463,7 @@ describe('fill-state', () => {
 
 		test('returns failure for invalid patch', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const result = draft.safeUpdate({ fields: { age: 'bad' } } as any)
 
 			expect(result.success).toBe(false)
@@ -488,13 +482,13 @@ describe('fill-state', () => {
 					item: { type: 'fieldset', fields: { name: { type: 'text', required: true } } },
 				},
 			}).build()
-			const state = repeated.partialFill({ fields: { items: [{}] } } as any).getFillState()
+			const state = repeated.fill({ fields: { items: [{}] } } as any).getFillState()
 			expect(state.openRequired.map((item) => item.key)).toContain('items[0].name')
 		})
 
 		test('reports all required as open when empty', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const state = draft.getFillState()
 
 			expect(state.phase).toBe('draft')
@@ -507,7 +501,7 @@ describe('fill-state', () => {
 
 		test('moves filled items to done', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill({ fields: { firstName: 'Alice', lastName: 'Smith' } } as any)
+			const draft = f.fill({ fields: { firstName: 'Alice', lastName: 'Smith' } } as any)
 			const state = draft.getFillState()
 
 			expect(state.summary.requiredDone).toBe(2)
@@ -517,7 +511,7 @@ describe('fill-state', () => {
 
 		test('reports blocked fields when visibility depends on unfilled field', () => {
 			const f = createConditionalForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const state = draft.getFillState()
 
 			// spouseName and dependentNames should be blocked
@@ -528,7 +522,7 @@ describe('fill-state', () => {
 
 		test('unblocks fields when dependency is filled', () => {
 			const f = createConditionalForm()
-			const draft = f.partialFill({ fields: { hasSpouse: true } } as any)
+			const draft = f.fill({ fields: { hasSpouse: true } } as any)
 			const state = draft.getFillState()
 
 			// spouseName should now be open (visible because hasSpouse is true)
@@ -538,7 +532,7 @@ describe('fill-state', () => {
 
 		test('keeps conditional fields blocked when condition is false', () => {
 			const f = createConditionalForm()
-			const draft = f.partialFill({ fields: { hasSpouse: false, dependentCount: 0 } } as any)
+			const draft = f.fill({ fields: { hasSpouse: false, dependentCount: 0 } } as any)
 			const state = draft.getFillState()
 
 			// spouseName should be blocked (not visible because hasSpouse is false)
@@ -549,7 +543,7 @@ describe('fill-state', () => {
 
 		test('reports defs values', () => {
 			const f = createFormWithDefsAndRules()
-			const draft = f.partialFill({ fields: { income: 100, expenses: 40 } } as any)
+			const draft = f.fill({ fields: { income: 100, expenses: 40 } } as any)
 			const state = draft.getFillState()
 
 			expect(state.defsValues.netIncome).toBe(60)
@@ -557,7 +551,7 @@ describe('fill-state', () => {
 
 		test('includes parties in fill state', () => {
 			const f = createFormWithParties()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const state = draft.getFillState()
 
 			// buyer is required, seller is not
@@ -570,56 +564,47 @@ describe('fill-state', () => {
 		test('uses conditional party requiredness in fill state and full validation', () => {
 			const f = createConditionalPartyForm('fields.needsGuarantor == true', 0)
 
-			const notNeeded = f.partialFill({ fields: { needsGuarantor: false } } as any)
+			const notNeeded = f.fill({ fields: { needsGuarantor: false } } as any)
 			const notNeededState = notNeeded.getFillState()
 			expect(notNeededState.openRequired.some((item) => item.key === 'guarantor')).toBe(false)
 			expect(notNeededState.openOptional.some((item) => item.key === 'guarantor')).toBe(true)
-			expect(() => f.partialFill(
+			expect(() => f.fill(
 				{ fields: { needsGuarantor: false } } as any,
-				{ validate: 'full' },
 			)).not.toThrow()
 
-			const needed = f.partialFill({ fields: { needsGuarantor: true } } as any)
+			const needed = f.fill({ fields: { needsGuarantor: true } } as any)
 			const neededState = needed.getFillState()
 			expect(neededState.openRequired.some((item) => item.key === 'guarantor')).toBe(true)
-			expect(() => f.partialFill(
-				{ fields: { needsGuarantor: true } } as any,
-				{ validate: 'full' },
-			)).toThrow(/guarantor.*requires at least 1 party/i)
+			expect(needed.isValid()).toBe(false)
+			expect(() => needed.prepareForSigning()).toThrow(/guarantor.*requires at least 1 party/i)
 		})
 
 		test('preserves omitted and explicit optional party defaults', () => {
 			const omittedOptional = createConditionalPartyForm(undefined, 0)
-			const omittedOptionalState = omittedOptional.partialFill().getFillState()
+			const omittedOptionalState = omittedOptional.fill().getFillState()
 			expect(omittedOptionalState.openRequired.some((item) => item.key === 'guarantor')).toBe(false)
 
 			const omittedRequired = createConditionalPartyForm(undefined)
-			const omittedRequiredState = omittedRequired.partialFill().getFillState()
+			const omittedRequiredState = omittedRequired.fill().getFillState()
 			expect(omittedRequiredState.openRequired.some((item) => item.key === 'guarantor')).toBe(true)
 
 			const explicitlyOptional = createConditionalPartyForm(false)
-			const explicitlyOptionalState = explicitlyOptional.partialFill().getFillState()
+			const explicitlyOptionalState = explicitlyOptional.fill().getFillState()
 			expect(explicitlyOptionalState.openRequired.some((item) => item.key === 'guarantor')).toBe(false)
-			expect(() => explicitlyOptional.partialFill(undefined, { validate: 'full' })).not.toThrow()
+			expect(() => explicitlyOptional.fill(undefined)).not.toThrow()
 		})
 
 		test('keeps supplied party cardinalities enforceable after condition resolution', () => {
 			const conditional = createConditionalPartyForm('fields.needsGuarantor == true', 0, 2)
-			expect(() => conditional.partialFill(
-				{ fields: { needsGuarantor: true }, parties: { guarantor: [] } } as any,
-				{ validate: 'full' },
-			)).toThrow(/guarantor.*requires at least 1 party/i)
+			expect(conditional.fill({ fields: { needsGuarantor: true }, parties: { guarantor: [] } } as any).isValid()).toBe(false)
 
 			const optional = createConditionalPartyForm('fields.needsGuarantor == false', 1, 2)
-			expect(() => optional.partialFill(
-				{ fields: { needsGuarantor: false }, parties: { guarantor: [] } } as any,
-				{ validate: 'full' },
-			)).toThrow()
+			expect(optional.fill({ fields: { needsGuarantor: false }, parties: { guarantor: [] } } as any).isValid()).toBe(false)
 		})
 
 		test('includes annexes in fill state', () => {
 			const f = createFormWithParties()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const state = draft.getFillState()
 
 			// receipt is required, notes is optional
@@ -629,7 +614,7 @@ describe('fill-state', () => {
 
 		test('rules section reports valid/errors/warnings', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const state = draft.getFillState()
 
 			// No rules defined → valid
@@ -640,14 +625,14 @@ describe('fill-state', () => {
 
 		test('forwards parties to field, annex, and rule evaluation', () => {
 			const f = createFormWithPartyExpressions()
-			const empty = f.partialFill()
+			const empty = f.fill()
 			const emptyState = empty.getFillState()
 
 			expect(empty.isFieldVisible('partyName')).toBe(false)
 			expect(empty.isAnnexVisible('partyProof')).toBe(false)
 			expect(emptyState.rules.valid).toBe(false)
 
-			const withBuyer = f.partialFill({
+			const withBuyer = f.fill({
 				parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
 			} as any)
 			const state = withBuyer.getFillState()
@@ -670,7 +655,7 @@ describe('fill-state', () => {
 	describe('getAvailableFillTargets', () => {
 		test('returns required targets in declaration order by default', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const targets = draft.getAvailableFillTargets()
 
 			expect(targets.length).toBe(2) // only required: firstName, lastName
@@ -680,7 +665,7 @@ describe('fill-state', () => {
 
 		test('includes optional targets when requested', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const targets = draft.getAvailableFillTargets({ includeOptional: true })
 
 			expect(targets.length).toBe(4)
@@ -688,7 +673,7 @@ describe('fill-state', () => {
 
 		test('orders parties before fields before annexes', () => {
 			const f = createFormWithParties()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const targets = draft.getAvailableFillTargets({ includeOptional: true })
 
 			const kinds = targets.map(t => t.kind)
@@ -706,7 +691,7 @@ describe('fill-state', () => {
 
 		test('respects requiredFirst option', () => {
 			const f = createFormWithParties()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const targets = draft.getAvailableFillTargets({ includeOptional: true, requiredFirst: true })
 
 			// All required should come before optional
@@ -720,7 +705,7 @@ describe('fill-state', () => {
 
 		test('interleaves by declaration order when requiredFirst is false', () => {
 			const f = createFormWithParties()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const targets = draft.getAvailableFillTargets({ includeOptional: true, requiredFirst: false })
 
 			// Should be sorted by order (declaration order)
@@ -731,7 +716,7 @@ describe('fill-state', () => {
 
 		test('multi-branch form shows correct candidates', () => {
 			const f = createMultiBranchForm()
-			const draft = f.partialFill({ fields: { entityType: 'person' } } as any)
+			const draft = f.fill({ fields: { entityType: 'person' } } as any)
 			const targets = draft.getAvailableFillTargets()
 
 			const keys = targets.map(t => t.key)
@@ -748,7 +733,7 @@ describe('fill-state', () => {
 	describe('getNextFillTarget', () => {
 		test('returns first required unfilled target', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill()
+			const draft = f.fill()
 			const next = draft.getNextFillTarget()
 
 			expect(next).not.toBeNull()
@@ -758,7 +743,7 @@ describe('fill-state', () => {
 
 		test('returns null when all required are filled', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				fields: { firstName: 'Alice', lastName: 'Smith' },
 			} as any)
 			const next = draft.getNextFillTarget()
@@ -768,7 +753,7 @@ describe('fill-state', () => {
 
 		test('returns optional target when includeOptional and all required done', () => {
 			const f = createSimpleForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				fields: { firstName: 'Alice', lastName: 'Smith' },
 			} as any)
 			const next = draft.getNextFillTarget({ includeOptional: true })
@@ -798,7 +783,7 @@ describe('fill-state', () => {
 
 		test('field-only mutations do not require missing party or annex sections', () => {
 			const f = createFormWithParties()
-			const draft = f.partialFill({ fields: { amount: 100 } } as any, { validate: 'none' })
+			const draft = f.fill({ fields: { amount: 100 } } as any)
 
 			expect(draft.setField('amount', 101).getField('amount')).toBe(101)
 			expect(draft.updateFields({ amount: 102 }).getField('amount')).toBe(102)
@@ -807,9 +792,9 @@ describe('fill-state', () => {
 		test('full updates validate merged parties and annexes', () => {
 			const f = createFormWithParties()
 			const payload = createCompletePartyPayload() as any
-			const draft = f.partialFill(payload, { validate: 'none' })
+			const draft = f.fill(payload)
 
-			const updated = draft.update({ fields: { amount: 101 } }, { validate: 'full' })
+			const updated = draft.update({ fields: { amount: 101 } })
 			expect(updated.getField('amount')).toBe(101)
 			expect(updated.parties).toEqual(payload.parties)
 			expect(updated.annexes).toEqual(payload.annexes)
@@ -818,22 +803,20 @@ describe('fill-state', () => {
 		test('full update and partial fill reject malformed optional parties', () => {
 			const f = createFormWithParties()
 			const validPayload = createCompletePartyPayload() as any
-			const draft = f.partialFill(validPayload, { validate: 'none' })
+			const draft = f.fill(validPayload)
 			const malformedParty = { parties: { seller: null } } as any
 
-			expect(() => draft.update(malformedParty, { validate: 'full' })).toThrow(FormValidationError)
-			const updateResult = draft.safeUpdate(malformedParty, { validate: 'full' })
+			expect(() => draft.update(malformedParty)).toThrow(FormValidationError)
+			const updateResult = draft.safeUpdate(malformedParty)
 			expect(updateResult.success).toBe(false)
 
-			const partialResult = f.safePartialFill(
+			const partialResult = f.safeFill(
 				{ ...validPayload, parties: { buyer: validPayload.parties.buyer, seller: null } },
-				{ validate: 'full' },
 			)
 			expect(partialResult.success).toBe(false)
 			expect(() =>
-				f.partialFill(
+				f.fill(
 					{ ...validPayload, parties: { buyer: validPayload.parties.buyer, seller: null } },
-					{ validate: 'full' },
 				),
 			).toThrow(FormValidationError)
 		})
@@ -857,9 +840,9 @@ describe('fill-state', () => {
 			expect(result.success).toBe(true)
 		})
 
-		test('fill throws on missing required fields', () => {
+		test('fill creates an incomplete draft for missing required fields', () => {
 			const f = createSimpleForm()
-			expect(() => f.fill({ fields: {} } as any)).toThrow()
+			expect(f.fill({ fields: {} } as any).isValid()).toBe(false)
 		})
 	})
 
@@ -882,7 +865,7 @@ describe('fill-state', () => {
 			const f = createCompletionContractForm()
 			const result = f.safeFill({
 				fields: { enabled: false, requiredFlag: true, requiredCount: 0 },
-			} as any, { rules: false })
+			} as any)
 
 			expect(result.success).toBe(true)
 			if (result.success) {
@@ -891,16 +874,18 @@ describe('fill-state', () => {
 				expect(result.data.isAnnexRequired('hiddenProof')).toBe(false)
 			}
 
-			expect(f.safeFill({
+			const incomplete = f.safeFill({
 				fields: { enabled: true, requiredFlag: true, requiredCount: 0 },
 				annexes: { proof: { filename: 'proof.pdf' } },
-			} as any, { rules: false }).success).toBe(false)
-			expect(f.safeFill(completeVisiblePayload as any, { rules: false }).success).toBe(true)
+			} as any)
+			expect(incomplete.success).toBe(true)
+			if (incomplete.success) expect(incomplete.data.isValid()).toBe(false)
+			expect(f.safeFill(completeVisiblePayload as any).success).toBe(true)
 		})
 
 		test('runtime validation reports missing and invalid values after progressive filling', () => {
 			const f = createCompletionContractForm()
-			const incomplete = f.partialFill({ fields: { enabled: false } } as any)
+			const incomplete = f.fill({ fields: { enabled: false } } as any)
 			const incompleteValidation = incomplete.validate()
 
 			expect(incomplete.isValid()).toBe(false)
@@ -911,54 +896,54 @@ describe('fill-state', () => {
 			])
 			expect(incomplete.validateRules().valid).toBe(false)
 
-			const invalid = f.partialFill({ fields: { requiredFlag: true, requiredCount: 'bad' } } as any, { validate: 'none' })
-			expect(invalid.isValid()).toBe(false)
-			expect(invalid.validate().errors.some((error) => error.field === 'fields.requiredCount')).toBe(true)
+			expect(() => f.fill({ fields: { requiredFlag: true, requiredCount: 'bad' } } as any)).toThrow(FormValidationError)
 		})
 
 		test('false and zero values satisfy required fields', () => {
 			const f = createCompletionContractForm()
 			const result = f.safeFill({
 				fields: { enabled: false, requiredFlag: false, requiredCount: 0 },
-			} as any, { rules: false })
+			} as any)
 
 			expect(result.success).toBe(true)
 		})
 
 		test('hidden stored values remain available and are still type checked', () => {
 			const f = createCompletionContractForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				fields: { enabled: false, hiddenText: 'kept', requiredFlag: true, requiredCount: 0 },
 				annexes: {
 					hiddenProof: { filename: 'kept.pdf' },
 					proof: { filename: 'kept-conditional.pdf' },
 				},
-			} as any, { validate: 'none' })
+			} as any)
 			const shown = draft.update({ fields: { enabled: true } } as any)
 
 			expect(shown.getField('hiddenText')).toBe('kept')
 			expect(shown.getAnnex('hiddenProof')).toEqual({ filename: 'kept.pdf' })
 			expect(shown.getAnnex('proof')).toEqual({ filename: 'kept-conditional.pdf' })
 			expect(shown.isAnnexRequired('proof')).toBe(true)
-			expect(f.partialFill({ fields: { hiddenText: 123 } } as any, { validate: 'none' }).isValid()).toBe(false)
+			expect(() => f.fill({ fields: { hiddenText: 123 } } as any)).toThrow(FormValidationError)
 		})
 
 		test('null and undefined do not satisfy a visible required annex', () => {
 			const f = createCompletionContractForm()
 			for (const value of [null, undefined]) {
-				expect(f.safeFill({
+				const result = f.safeFill({
 					fields: { enabled: true, license: 'DL-123', requiredFlag: true, requiredCount: 0 },
 					annexes: { proof: value },
-				} as any, { rules: false }).success).toBe(false)
+				} as any)
+				expect(result.success).toBe(true)
+				if (result.success) expect(result.data.isValid()).toBe(false)
 			}
 		})
 
 		test('validate keeps rules separate from full value validity', () => {
 			const f = createCompletionContractForm()
-			const draft = f.partialFill({
+			const draft = f.fill({
 				...completeVisiblePayload,
 				fields: { ...completeVisiblePayload.fields, requiredFlag: false },
-			} as any, { validate: 'none' })
+			} as any)
 			const validation = draft.validate()
 
 			expect(validation.valid).toBe(false)
@@ -976,7 +961,7 @@ describe('fill-state', () => {
 			const f = createConditionalForm()
 
 			// Step 0: empty form
-			const d0 = f.partialFill()
+			const d0 = f.fill()
 			const s0 = d0.getFillState()
 			expect(s0.summary.completionPercent).toBe(0)
 			expect(s0.blocked.length).toBeGreaterThan(0)

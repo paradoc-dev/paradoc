@@ -34,7 +34,6 @@ import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RuntimeChecklistRenderOptions } from '@/types'
 import type { ValidationError } from '@/types'
 import type { DeepMutable, DeepReadonly } from '@/artifacts/shared/definition-types'
-import type { FillValidationMode } from '@/fill-state/types'
 import {
 	captureRuntimeContext,
 	restoreRuntimeContext,
@@ -75,28 +74,13 @@ export type ProgressiveChecklistPayload<C> = Partial<InferChecklistPayload<C>>
 /** Schema-qualified answer paths accepted by DraftChecklist.clear/reset. */
 export type ChecklistPath<C extends Checklist> = `items.${keyof InferChecklistPayload<C> & string}`
 
-/** Validation modes shared with progressive form operations. */
-export type ChecklistValidationMode = FillValidationMode
-
-/** Options for checklist partialFill/safePartialFill. */
-export interface ChecklistPartialFillOptions {
-	/** Validate supplied values only, the complete payload, or nothing. */
-	validate?: ChecklistValidationMode
-	/** Fixed context captured by the new runtime instance. */
-	context?: RuntimeContextOptions
-}
-
 /** Options for checklist fill/safeFill. */
 export interface ChecklistFillOptions {
 	/** Fixed context captured by the new runtime instance. */
 	context?: RuntimeContextOptions
 }
 
-/** Options for checklist update/safeUpdate. */
-export interface ChecklistUpdateOptions {
-	/** Validate supplied values only, the complete payload, or nothing. */
-	validate?: ChecklistValidationMode
-}
+export interface ChecklistUpdateOptions {}
 
 /** Result returned by checklist validate(). */
 export interface ChecklistValidationResult {
@@ -180,20 +164,9 @@ export interface ChecklistInstance<C extends Checklist> extends ArtifactMethods<
 	readonly defaultLayer: C extends { defaultLayer: infer DL } ? DL : string | undefined
 
 	/**
-	 * Create a RuntimeChecklist in draft phase with item status data.
-	 * @param data - The item status payload
-	 * @throws Error if data validation fails
+	 * Create a draft checklist from empty, partial, or complete item data.
 	 */
-	fill(data: InferChecklistPayload<C>, options?: ChecklistFillOptions): DraftChecklist<C>
-
-	/** Create a draft from an incomplete item patch. */
-	partialFill(seed?: ProgressiveChecklistPayload<C>, options?: ChecklistPartialFillOptions): DraftChecklist<C>
-
-	/** Safely create a draft from an incomplete item patch. */
-	safePartialFill(
-		seed?: ProgressiveChecklistPayload<C>,
-		options?: ChecklistPartialFillOptions,
-	): { success: true; data: DraftChecklist<C> } | { success: false; error: Error }
+	fill(seed?: ProgressiveChecklistPayload<C>, options?: ChecklistFillOptions): DraftChecklist<C>
 
 	/**
 	 * Validate one checklist item input by item ID.
@@ -725,30 +698,10 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			},
 
 			update(patch: ProgressiveChecklistPayload<C>, options?: ChecklistUpdateOptions): DraftChecklist<C> {
-				const mode = options?.validate ?? 'patch'
 				const patchRecord = (patch ?? {}) as Record<string, unknown>
-				let nextItems: Record<string, unknown>
-
-				if (mode === 'patch') {
-					const result = validateChecklistItemsPatch(checklistDef, patchRecord)
-					if (!result.success) throw checklistValidationError(result.errors)
-					nextItems = { ...currentItems(), ...result.value }
-				} else {
-					nextItems = { ...currentItems(), ...patchRecord }
-				}
-
-				if (mode === 'full') {
-					const unchecked = createRuntimeChecklist({
-						checklist: checklistDef,
-						items: nextItems,
-						targetLayer,
-						context,
-						resolver,
-						validateItems: false,
-					})
-					const result = unchecked.validate()
-					if (!result.valid) throw checklistValidationError(result.errors)
-				}
+				const result = validateChecklistItemsPatch(checklistDef, patchRecord)
+				if (!result.success) throw checklistValidationError(result.errors)
+				const nextItems = { ...currentItems(), ...result.value }
 
 				return createRuntimeChecklist({
 					checklist: checklistDef,
@@ -756,7 +709,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 					targetLayer,
 					context,
 					resolver,
-					validateItems: mode === 'full',
+					validateItems: true,
 				})
 			},
 
@@ -985,16 +938,8 @@ function createChecklistInstance<C extends Checklist>(
 				return validateChecklistItemsPatch(checklistDef, items)
 			},
 
-			fill(data: InferChecklistPayload<C>, options?: ChecklistFillOptions): DraftChecklist<C> {
-				return instance.partialFill(data, { ...options, validate: 'full' })
-			},
-
-			partialFill(
-				seed?: ProgressiveChecklistPayload<C>,
-				options?: ChecklistPartialFillOptions,
-			): DraftChecklist<C> {
+			fill(seed?: ProgressiveChecklistPayload<C>, options?: ChecklistFillOptions): DraftChecklist<C> {
 				assertValidArtifactDefinition(checklistDef)
-				const mode = options?.validate ?? 'patch'
 				const context = captureRuntimeContext(options)
 				const supplied = (seed ?? {}) as Record<string, unknown>
 				const items = applyChecklistDefaults(checklistDef, supplied)
@@ -1002,21 +947,8 @@ function createChecklistInstance<C extends Checklist>(
 					checklistDef.defaultLayer || (checklistDef.layers ? Object.keys(checklistDef.layers)[0] : '') || ''
 				const snapshot = snapshotArtifactDefinition(checklistDef)
 
-				if (mode === 'patch') {
-					const result = validateChecklistItemsPatch(checklistDef, supplied)
-					if (!result.success) throw checklistValidationError(result.errors)
-				} else if (mode === 'full') {
-					const unchecked = createRuntimeChecklist({
-						checklist: snapshot,
-						items,
-						targetLayer,
-						context,
-						resolver,
-						validateItems: false,
-					})
-					const result = unchecked.validate()
-					if (!result.valid) throw checklistValidationError(result.errors)
-				}
+				const result = validateChecklistItemsPatch(checklistDef, supplied)
+				if (!result.success) throw checklistValidationError(result.errors)
 
 				return createRuntimeChecklist({
 					checklist: snapshot,
@@ -1024,19 +956,8 @@ function createChecklistInstance<C extends Checklist>(
 					targetLayer,
 					context,
 					resolver,
-					validateItems: mode !== 'none',
+					validateItems: true,
 				})
-			},
-
-			safePartialFill(
-				seed?: ProgressiveChecklistPayload<C>,
-				options?: ChecklistPartialFillOptions,
-			): { success: true; data: DraftChecklist<C> } | { success: false; error: Error } {
-				try {
-					return { success: true, data: instance.partialFill(seed, options) }
-				} catch (error) {
-					return { success: false, error: error as Error }
-				}
 			},
 
 		safeFill(

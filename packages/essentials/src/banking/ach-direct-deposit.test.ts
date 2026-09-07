@@ -40,15 +40,15 @@ describe("ach-direct-deposit", () => {
     expect(achDirectDeposit.isValid()).toBe(true);
   });
 
-  it("accepts the bundled happy-path vector (llm.scenario.new-single-account-net)", () => {
-    const parsed = achDirectDeposit.safeParseData(happyPathInputs as any);
-    expect(parsed.success).toBe(true);
+  it("accepts the bundled passing vector (llm.scenario.new-single-account-net)", () => {
+    const result = achDirectDeposit.safeFill(happyPathInputs as any);
+    expect(result.success).toBe(true);
   });
 
   it("renders the markdown layer on the bound resolver", async () => {
-    const parsed = achDirectDeposit.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const filled = achDirectDeposit.fill(parsed.data, { rules: false });
+    const result = achDirectDeposit.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const filled = result.data;
     const output = await filled.render({
       renderer: textRenderer(),
       layer: "markdown",
@@ -58,10 +58,9 @@ describe("ach-direct-deposit", () => {
   });
 
   it("still renders after a mutator reconstructs the form", async () => {
-    const parsed = achDirectDeposit.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const mutated = achDirectDeposit
-      .fill(parsed.data, { rules: false })
+    const result = achDirectDeposit.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const mutated = result.data
       .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
     const output = await mutated.render({
       renderer: textRenderer(),

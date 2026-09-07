@@ -72,9 +72,7 @@ export type {
   FormInstance,
   RuntimeForm,
   DraftForm,
-  FillValidationOptions,
-  SafeFillResult,
-  SafePartialFillResult,
+	SafeFillResult,
   FormValidationResult,
   SignableForm,
   ExecutedForm,
@@ -105,9 +103,7 @@ export type {
   InferChecklistPayload,
   ProgressiveChecklistPayload,
   ChecklistPath,
-  ChecklistValidationMode,
-  ChecklistFillOptions,
-  ChecklistPartialFillOptions,
+	ChecklistFillOptions,
   ChecklistUpdateOptions,
   ChecklistValidationResult,
   ChecklistFillTarget,
@@ -385,8 +381,7 @@ export {
 } from "./fill-state";
 
 export type {
-  FillValidationMode,
-  PartialFillOptions,
+	FillOptions,
   UpdateOptions,
   FillTargetOptions,
   FillTargetKind,
@@ -502,8 +497,7 @@ export type {
   RenderOptions,
   RuntimeFormRenderOptions,
   RuntimeChecklistRenderOptions,
-  FillOptions,
-  InstanceTemplate,
+	InstanceTemplate,
 } from "./types";
 
 // Re-export from @paradoc/types

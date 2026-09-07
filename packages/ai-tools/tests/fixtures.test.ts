@@ -80,7 +80,7 @@ describe('pet-addendum fixture (production artifact)', () => {
 
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.artifactKind).toBe('form')
     expect(result.data).toBeDefined()
     expect(result.data!.petName).toBe('Bella')
@@ -102,25 +102,18 @@ describe('pet-addendum fixture (production artifact)', () => {
       },
     })
 
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.artifactKind).toBe('form')
   })
 
-  it('returns errors when required fields are missing', async () => {
+  it('accepts a partial draft when required fields are omitted', async () => {
     const result = await executeFill({
       source: 'artifact' as const,
       artifact,
       data: { fields: {}, parties: data.parties },
     })
-    expect(result.valid).toBe(false)
-    expect(result.errors).toBeDefined()
-    expect(result.errors!.length).toBeGreaterThan(0)
-
-    const fieldNames = result.errors!.map((e) => e.field)
-    expect(fieldNames.some((f) => f.includes('petName'))).toBe(true)
-    expect(fieldNames.some((f) => f.includes('species'))).toBe(true)
-    expect(fieldNames.some((f) => f.includes('weight'))).toBe(true)
-    expect(fieldNames.some((f) => f.includes('isVaccinated'))).toBe(true)
+    expect(result.accepted).toBe(true)
+    expect(result.complete).toBe(false)
   })
 
   it('returns error when rendering file-backed layer without baseUrl', async () => {
@@ -225,7 +218,7 @@ describe('lease-agreement fixture', () => {
 
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.artifactKind).toBe('form')
     expect(result.data).toBeDefined()
     expect(result.errors).toBeUndefined()
@@ -245,24 +238,19 @@ describe('lease-agreement fixture', () => {
       parties: data.parties,
     }
     const result = await executeFill({ source: 'artifact' as const, artifact, data: partialData })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.data!.petsAllowed).toBe(false)
     expect(result.data!.smokingAllowed).toBe(false)
   })
 
-  it('returns errors when required fields are missing', async () => {
+  it('accepts a partial draft when required fields are omitted', async () => {
     const result = await executeFill({
       source: 'artifact' as const,
       artifact,
       data: { fields: {}, parties: data.parties },
     })
-    expect(result.valid).toBe(false)
-    expect(result.errors).toBeDefined()
-    expect(result.errors!.length).toBeGreaterThan(0)
-
-    const fieldNames = result.errors!.map((e) => e.field)
-    expect(fieldNames.some((f) => f.includes('address'))).toBe(true)
-    expect(fieldNames.some((f) => f.includes('propertyType'))).toBe(true)
+    expect(result.accepted).toBe(true)
+    expect(result.complete).toBe(false)
   })
 
   it('renders markdown with party names and field values', async () => {
@@ -310,23 +298,19 @@ describe('purchase-agreement fixture', () => {
 
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.artifactKind).toBe('form')
     expect(result.data).toBeDefined()
   })
 
-  it('returns errors when required fields are missing', async () => {
+  it('accepts a partial draft when required fields are omitted', async () => {
     const result = await executeFill({
       source: 'artifact' as const,
       artifact,
       data: { fields: { quantity: 10 }, parties: data.parties },
     })
-    expect(result.valid).toBe(false)
-    expect(result.errors).toBeDefined()
-
-    const fieldNames = result.errors!.map((e) => e.field)
-    expect(fieldNames.some((f) => f.includes('price'))).toBe(true)
-    expect(fieldNames.some((f) => f.includes('date'))).toBe(true)
+    expect(result.accepted).toBe(true)
+    expect(result.complete).toBe(false)
   })
 
   it('renders markdown with buyer, seller, and values', async () => {
@@ -365,7 +349,7 @@ describe('w9-tax-form fixture', () => {
 
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.artifactKind).toBe('form')
     expect(result.data).toBeDefined()
     expect(result.data!.name).toBe('John Smith')
@@ -382,23 +366,18 @@ describe('w9-tax-form fixture', () => {
       },
     }
     const result = await executeFill({ source: 'artifact' as const, artifact, data: fullData })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.data!.businessName).toBe('Smith Consulting LLC')
   })
 
-  it('returns errors when required fields are missing', async () => {
+  it('accepts a partial draft when required fields are omitted', async () => {
     const result = await executeFill({
       source: 'artifact' as const,
       artifact,
       data: { fields: { businessName: 'Test' } },
     })
-    expect(result.valid).toBe(false)
-    expect(result.errors).toBeDefined()
-
-    const fieldNames = result.errors!.map((e) => e.field)
-    expect(fieldNames.some((f) => f.includes('name'))).toBe(true)
-    expect(fieldNames.some((f) => f.includes('taxClassification'))).toBe(true)
-    expect(fieldNames.some((f) => f.includes('address'))).toBe(true)
+    expect(result.accepted).toBe(true)
+    expect(result.complete).toBe(false)
   })
 
   it('returns error when rendering file-backed layer without baseUrl', async () => {
@@ -428,7 +407,7 @@ describe('onboarding-checklist fixture', () => {
 
   it('fills with boolean values', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
     expect(result.artifactKind).toBe('checklist')
     expect(result.data).toBeDefined()
   })
@@ -443,12 +422,12 @@ describe('onboarding-checklist fixture', () => {
         'completed-training': false,
       },
     })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
   })
 
   it('fills with empty data (all defaults)', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data: {} })
-    expect(result.valid).toBe(true)
+    expect(result.accepted).toBe(true)
   })
 
   it('returns error when rendering (only forms can render)', async () => {

@@ -30,15 +30,15 @@ describe("w-9", () => {
     expect(w9.isValid()).toBe(true);
   });
 
-  it("accepts the bundled happy-path vector (llm.tin.individual-with-ssn-only)", () => {
-    const parsed = w9.safeParseData(happyPathInputs as any);
-    expect(parsed.success).toBe(true);
+  it("accepts the bundled passing vector (llm.tin.individual-with-ssn-only)", () => {
+    const result = w9.safeFill(happyPathInputs as any);
+    expect(result.success).toBe(true);
   });
 
   it("renders the markdown layer on the bound resolver", async () => {
-    const parsed = w9.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const filled = w9.fill(parsed.data, { rules: false });
+    const result = w9.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const filled = result.data;
     const output = await filled.render({
       renderer: textRenderer(),
       layer: "markdown",
@@ -48,10 +48,9 @@ describe("w-9", () => {
   });
 
   it("still renders after a mutator reconstructs the form", async () => {
-    const parsed = w9.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const mutated = w9
-      .fill(parsed.data, { rules: false })
+    const result = w9.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const mutated = result.data
       .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
     const output = await mutated.render({
       renderer: textRenderer(),

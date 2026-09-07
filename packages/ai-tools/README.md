@@ -114,7 +114,7 @@ No rendering proxy or runtime-specific configuration is required.
 | Tool | Input | Output | Network? |
 |------|-------|--------|----------|
 | `validateArtifact` | `{artifact, options?}` | `{valid, detectedKind, issues?}` | No |
-| `fill` | `{artifact, data}` | `{valid, artifactKind, data?, errors?}` | No |
+| `fill` | `{artifact, data}` | `{accepted, complete, artifactKind, data?, errors?}` | No |
 | `render` | 3 modes (see above) | `{success, content, encoding, mimeType}` | Modes 2+3 |
 | `getRegistry` | `{registryUrl}` | `{name, items[]}` | Yes |
 | `getArtifact` | `{registryUrl, artifactName}` | `{artifact, artifactName}` | Yes |

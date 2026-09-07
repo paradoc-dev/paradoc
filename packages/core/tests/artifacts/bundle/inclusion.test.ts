@@ -150,7 +150,7 @@ describe('bundle inclusion', () => {
 			.inline('source', source)
 			.build()
 		const state = evaluateBundleInclusion(definition, {
-			source: source.partialFill(undefined, { context: { asOf: '2026-09-12T12:00:00Z' } }),
+			source: source.fill(undefined, { context: { asOf: '2026-09-12T12:00:00Z' } }),
 		})
 
 		expect(state.decisions[0]?.status).toBe('included')
@@ -254,7 +254,7 @@ describe('bundle inclusion', () => {
 			source: source.fill({ fields: { enabled: true } }),
 		})
 		const signable = draft.prepareForSigning()
-		const invalidated = signable.updateContent('source', source.partialFill())
+		const invalidated = signable.updateContent('source', source.fill())
 
 		expect(() => invalidated.finalize()).toThrow(/unresolved/)
 	})

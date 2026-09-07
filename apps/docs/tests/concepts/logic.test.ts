@@ -44,12 +44,12 @@ describe('Logic Concept', () => {
 
     test('fields.<id> gate actually drives runtime visibility', () => {
       // hasVehicle true => vehicleMake visible & required
-      const shown = fieldState(form.partialFill({ fields: { hasVehicle: true } }), 'vehicleMake')
+      const shown = fieldState(form.fill({ fields: { hasVehicle: true } }), 'vehicleMake')
       expect(shown?.visible).toBe(true)
       expect(shown?.status).toBe('required')
 
       // hasVehicle false => vehicleMake hidden
-      const hidden = fieldState(form.partialFill({ fields: { hasVehicle: false } }), 'vehicleMake')
+      const hidden = fieldState(form.fill({ fields: { hasVehicle: false } }), 'vehicleMake')
       expect(hidden?.visible).toBe(false)
       expect(hidden?.status).toBe('hidden')
     })
@@ -86,12 +86,12 @@ describe('Logic Concept', () => {
 
     test('the same def evaluates to different visibility per data', () => {
       // age 15 => isAdult false => drivingLicense hidden, parentConsent visible
-      const minor = form.partialFill({ fields: { age: 15 } })
+      const minor = form.fill({ fields: { age: 15 } })
       expect(fieldState(minor, 'drivingLicense')?.visible).toBe(false)
       expect(fieldState(minor, 'parentConsent')?.visible).toBe(true)
 
       // age 21 => isAdult true => drivingLicense visible, parentConsent hidden
-      const adult = form.partialFill({ fields: { age: 21 } })
+      const adult = form.fill({ fields: { age: 21 } })
       expect(fieldState(adult, 'drivingLicense')?.visible).toBe(true)
       expect(fieldState(adult, 'parentConsent')?.visible).toBe(false)
     })
@@ -131,8 +131,8 @@ describe('Logic Concept', () => {
     })
 
     test('fields.<id> annex gate drives annex visibility', () => {
-      expect(fieldState(form.partialFill({ fields: { hasPets: true } }), 'petPhoto')?.visible).toBe(true)
-      expect(fieldState(form.partialFill({ fields: { hasPets: false } }), 'petPhoto')?.visible).toBe(false)
+      expect(fieldState(form.fill({ fields: { hasPets: true } }), 'petPhoto')?.visible).toBe(true)
+      expect(fieldState(form.fill({ fields: { hasPets: false } }), 'petPhoto')?.visible).toBe(false)
     })
   })
 })

@@ -5,7 +5,7 @@ ogTitle: fill — Paradoc MCP
 ogDescription: Fill an Paradoc form or checklist with data using the MCP server
 ---
 
-Validates data against an Paradoc artifact before rendering. Pass the full artifact JSON and a data object. Call `get_artifact` first to inspect field and party definitions. Use this to catch errors before calling `render`.
+Creates a progressive draft from supplied data. Supplied values validate immediately while omitted required values remain open. The response reports `accepted` for the supplied patch and `complete` for full readiness. Pass the full artifact JSON and a data object. Call `get_artifact` first to inspect field and party definitions.
 
 <Callout type="info">
   Only forms and checklists support filling. Passing a document or bundle will return an error.

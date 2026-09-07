@@ -19,7 +19,7 @@
  *
  * const parsed = w9.safeParseData(vendorPacketTaxpayerData);
  * const draft = w9
- *   .fill(parsed.data, { rules: false })
+ *   .fill(parsed.data)
  *   .addSigner("taxpayer-signer", { person: { name: "Dana Whitfield" } })
  *   .addSignatory("taxpayer", "taxpayer-0", { signerId: "taxpayer-signer" });
  *

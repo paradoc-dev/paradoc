@@ -168,18 +168,15 @@ describe('executeRender', () => {
     })
   })
 
-  describe('fill validation failure', () => {
-    it('returns structured errors for missing required fields', async () => {
+  describe('progressive draft rendering', () => {
+    it('renders when required fields are still open', async () => {
       const result = await executeRender({
         source: 'artifact' as const,
         artifact: textForm,
         data: { fields: {} },
       })
 
-      expect(result.success).toBe(false)
-      expect(result.errors).toBeDefined()
-      expect(result.errors!.length).toBeGreaterThan(0)
-      expect(result.errors![0]!.field).toContain('name')
+      expect(result.success).toBe(true)
     })
   })
 

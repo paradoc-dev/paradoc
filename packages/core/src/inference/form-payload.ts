@@ -357,7 +357,7 @@ export type InferFormData<Form> = [Form] extends [never]
 export type InferFormPayload<Form> = ExpandDeep<InferFormData<Form>>
 
 /**
- * Payload accepted by partialFill/update operations.
+ * Payload accepted by fill/update operations.
  * Unlike InferFormPayload, nested object members are optional so a patch can
  * update one member without repeating its siblings. Arrays are supplied as a
  * complete replacement value.

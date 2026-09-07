@@ -513,7 +513,7 @@ const schema = {
       "severity": "error"
     },
     "endDateAfterStart": {
-      "expr": "not (paymentMode == 'recurring' and endCondition == 'end_date') or not endDate or not startDate or endDate > startDate",
+      "expr": "not (paymentMode == 'recurring' and endCondition == 'end_date') or not endDate or not startDate or dateDiff(startDate, endDate) > 0",
       "message": "End date must be after start date.",
       "severity": "error"
     },

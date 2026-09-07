@@ -5,22 +5,8 @@
  * AI agents and step-by-step UIs build forms turn-by-turn.
  */
 
-/**
- * Validation mode for partial fill and update operations.
- * - "patch": validate only provided fields (progressive validation)
- * - "full": validate entire payload (same as fill())
- * - "none": skip validation entirely
- */
-export type FillValidationMode = 'patch' | 'full' | 'none'
-
-/**
- * Options for partialFill / safePartialFill.
- */
-export interface PartialFillOptions {
-	/** Validation mode. Default: "patch" */
-	validate?: FillValidationMode
-	/** Whether to evaluate and report rules. Default: false */
-	rules?: boolean
+/** Options for form fill operations. */
+export interface FillOptions {
 	/** Fixed context captured by the new runtime instance. */
 	context?: import('@/artifacts/shared/runtime-context').RuntimeContextOptions
 }
@@ -29,10 +15,6 @@ export interface PartialFillOptions {
  * Options for update / safeUpdate on DraftForm.
  */
 export interface UpdateOptions {
-	/** Validation mode. Default: "patch" */
-	validate?: FillValidationMode
-	/** Whether to evaluate and report rules. Default: false */
-	rules?: boolean
 }
 
 /**

@@ -1041,7 +1041,15 @@ function createBundleBuilder(): BundleBuilderInterface {
 		contents(contentsArray: BundleContentItem[]) {
 			const parsed: BundleContentItem[] = []
 			for (const contentDef of contentsArray) {
-				parsed.push(parseBundleContentItem(contentDef as unknown) as BundleContentItem)
+				if (contentDef.type === 'inline') {
+					const resolvedArtifact = resolveBuildable(contentDef.artifact as Buildable<BundleArtifact>)
+					const artifact = '_data' in resolvedArtifact
+						? (resolvedArtifact as { _data: Document | Form | Checklist | Bundle })._data
+						: resolvedArtifact
+					parsed.push(parseBundleContentItem({ ...contentDef, artifact }) as BundleContentItem)
+				} else {
+					parsed.push(parseBundleContentItem(contentDef as unknown) as BundleContentItem)
+				}
 			}
 			_def.contents = parsed
 			return builder

@@ -196,8 +196,8 @@ describe('progressive form validation', () => {
 
 			expect(validateFormData(constraintForm, { fields: validFields }).success).toBe(true)
 			expect(validateFieldsPatch(constraintForm, validFields).success).toBe(true)
-			expect(constraintForm.safeFill({ fields: validFields } as never, { rules: false }).success).toBe(true)
-			expect(constraintForm.safePartialFill({ fields: validFields } as never).success).toBe(true)
+			expect(constraintForm.safeFill({ fields: validFields } as never).success).toBe(true)
+			expect(constraintForm.safeFill({ fields: validFields } as never).success).toBe(true)
 
 			for (const [label, fieldPath, value, fields] of invalidCases) {
 				expect(validateFormData(constraintForm, { fields }).success, `${label} full`).toBe(false)
@@ -209,8 +209,8 @@ describe('progressive form validation', () => {
 					}).success,
 					`${label} field`,
 				).toBe(false)
-				expect(constraintForm.safeFill({ fields } as never, { rules: false }).success, `${label} fill`).toBe(false)
-				expect(constraintForm.safePartialFill({ fields } as never).success, `${label} partial fill`).toBe(false)
+				expect(constraintForm.safeFill({ fields } as never).success, `${label} fill`).toBe(false)
+				expect(constraintForm.safeFill({ fields } as never).success, `${label} partial fill`).toBe(false)
 			}
 		})
 

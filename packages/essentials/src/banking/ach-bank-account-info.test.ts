@@ -19,13 +19,12 @@ const happyPathInputs = {
   },
   "fields": {
     "actionType": "new",
-    "accountHolderType": "individual",
+    "accountHolderType": "organization",
     "orgEntityType": "sole_prop",
     "bankName": "x",
     "routingNumber": "111111111",
     "accountNumber": "xxxx",
-    "accountType": "checking",
-    "individualSsn": "111-22-3333"
+    "accountType": "checking"
   }
 } as const;
 
@@ -34,15 +33,15 @@ describe("ach-bank-account-info", () => {
     expect(achBankAccountInfo.isValid()).toBe(true);
   });
 
-  it("accepts the bundled happy-path vector (synth.visible.individualssn.on-accountholdertype-individual)", () => {
-    const parsed = achBankAccountInfo.safeParseData(happyPathInputs as any);
-    expect(parsed.success).toBe(true);
+  it("accepts the bundled passing vector (synth.required.orgentitytype.present-accountholdertype-organization)", () => {
+    const result = achBankAccountInfo.safeFill(happyPathInputs as any);
+    expect(result.success).toBe(true);
   });
 
   it("renders the markdown layer on the bound resolver", async () => {
-    const parsed = achBankAccountInfo.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const filled = achBankAccountInfo.fill(parsed.data, { rules: false });
+    const result = achBankAccountInfo.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const filled = result.data;
     const output = await filled.render({
       renderer: textRenderer(),
       layer: "markdown",
@@ -52,10 +51,9 @@ describe("ach-bank-account-info", () => {
   });
 
   it("still renders after a mutator reconstructs the form", async () => {
-    const parsed = achBankAccountInfo.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const mutated = achBankAccountInfo
-      .fill(parsed.data, { rules: false })
+    const result = achBankAccountInfo.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const mutated = result.data
       .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
     const output = await mutated.render({
       renderer: textRenderer(),

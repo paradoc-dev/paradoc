@@ -117,10 +117,8 @@ Returns a `ChecklistInstance` with the following properties and methods:
   { name: 'clone', type: '() => ChecklistInstance', description: 'Deep clone the instance', isMethod: true },
   { name: 'validateItemInput', type: '(input: { itemId: string; value: unknown }) => ProgressiveValidationResult<boolean | string>', description: 'Validate one checklist item input', isMethod: true },
   { name: 'validateItemsPatch', type: '(items: unknown) => ProgressiveValidationResult<Record<string, boolean | string>>', description: 'Validate a partial checklist items patch', isMethod: true },
-  { name: 'fill', type: '(data: InferChecklistPayload) => DraftChecklist', description: 'Create runtime checklist with item status data', isMethod: true },
-  { name: 'safeFill', type: '(data: InferChecklistPayload) => Result<DraftChecklist>', description: 'Safely fill with error handling', isMethod: true },
-  { name: 'partialFill', type: '(seed?: ProgressiveChecklistPayload, options?) => DraftChecklist', description: 'Create a progressive draft; declared defaults are applied', isMethod: true },
-  { name: 'safePartialFill', type: '(seed?: ProgressiveChecklistPayload, options?) => Result<DraftChecklist>', description: 'Safely create a progressive draft', isMethod: true },
+  { name: 'fill', type: '(seed?: ProgressiveChecklistPayload, options?: ChecklistFillOptions) => DraftChecklist', description: 'Create a progressive draft; supplied values validate immediately and defaults are applied', isMethod: true },
+  { name: 'safeFill', type: '(seed?: ProgressiveChecklistPayload, options?: ChecklistFillOptions) => SafeChecklistFillResult', description: 'Safely create a progressive draft; success means the supplied patch was accepted', isMethod: true },
   { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render checklist content', isMethod: true },
 ]} />
 
@@ -255,7 +253,7 @@ Checklists follow a two-phase lifecycle:
 
 ```ts
 // Start with a progressive draft. Defaults are applied on creation.
-const draft = checklist.partialFill({ keys: false })
+const draft = checklist.fill({ keys: false })
 
 // Incrementally answer the remaining item.
 const updated = draft.update({ condition: 'good' })
@@ -276,7 +274,7 @@ const output = await completed.render({ renderer: renderLayer() })
 
 ## DraftChecklist
 
-Created by `checklist.fill()` or `checklist.partialFill()`. Progressive drafts may be incomplete; `fill()` and `complete()` require every declared item. An explicit `false` answer counts as present. Use `clear('items.<id>')` to remove an answer and `reset('items.<id>')` to restore its declared default.
+Created by `checklist.fill()` or `checklist.fill()`. Progressive drafts may be incomplete; `fill()` and `complete()` require every declared item. An explicit `false` answer counts as present. Use `clear('items.<id>')` to remove an answer and `reset('items.<id>')` to restore its declared default.
 
 <PropertiesTable properties={[
   { name: 'phase', type: "'draft'", description: 'Phase discriminator' },

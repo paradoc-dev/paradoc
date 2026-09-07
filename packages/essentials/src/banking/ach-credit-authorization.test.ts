@@ -33,6 +33,9 @@ const happyPathInputs = {
       "postalCode": "00000",
       "country": "US"
     },
+    "payeePhone": {
+      "number": "+15555550100"
+    },
     "payeeEmail": "test@example.com",
     "payeeBankName": "x",
     "accountType": "checking",
@@ -68,15 +71,15 @@ describe("ach-credit-authorization", () => {
     expect(achCreditAuthorization.isValid()).toBe(true);
   });
 
-  it("accepts the bundled happy-path vector (synth.required.payeephone.missing-payeetype-organization)", () => {
-    const parsed = achCreditAuthorization.safeParseData(happyPathInputs as any);
-    expect(parsed.success).toBe(true);
+  it("accepts the bundled passing vector (synth.required.payeephone.present-payeetype-organization)", () => {
+    const result = achCreditAuthorization.safeFill(happyPathInputs as any);
+    expect(result.success).toBe(true);
   });
 
   it("renders the markdown layer on the bound resolver", async () => {
-    const parsed = achCreditAuthorization.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const filled = achCreditAuthorization.fill(parsed.data, { rules: false });
+    const result = achCreditAuthorization.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const filled = result.data;
     const output = await filled.render({
       renderer: textRenderer(),
       layer: "markdown",
@@ -86,10 +89,9 @@ describe("ach-credit-authorization", () => {
   });
 
   it("still renders after a mutator reconstructs the form", async () => {
-    const parsed = achCreditAuthorization.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const mutated = achCreditAuthorization
-      .fill(parsed.data, { rules: false })
+    const result = achCreditAuthorization.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const mutated = result.data
       .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
     const output = await mutated.render({
       renderer: textRenderer(),

@@ -132,7 +132,7 @@ import { w9 } from "@paradoc/essentials";
 import { vendorPacketData } from "@/artifacts/paradoc/vendor-packet.data";
 
 const parsed = w9.safeParseData(vendorPacketData.taxpayer);
-const draft = w9.fill(parsed.data, { rules: false });
+const draft = w9.fill(parsed.data);
 const taxpayerPdf = await draft.render({ layer: "pdf" });
 ```
 

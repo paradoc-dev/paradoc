@@ -5,12 +5,12 @@ import type { ArtifactRuntime, FillStateSnapshot } from "./types";
 /**
  * Build an ArtifactRuntime backed by @paradoc/core.
  *
- * The artifact object is loaded once; per-call we run safePartialFill against
+ * The artifact object is loaded once; per-call we run safeFill against
  * the current answers and ask the resulting DraftForm for its FillState. This
  * is the same pattern the legacy session.ts uses, just wrapped behind a tight
  * interface so the engine remains independent of core's evolving API.
  *
- * Performance: loadFromObject + safePartialFill is a few milliseconds for
+ * Performance: loadFromObject + safeFill is a few milliseconds for
  * typical artifacts; cheap enough to recompute on every command.
  */
 export function createParadocRuntime(
@@ -47,10 +47,9 @@ export function createParadocRuntime(
 		answers: Record<string, unknown>,
 		parties: Record<string, unknown>,
 	): FillStateSnapshot {
-		const draft = instance.safePartialFill(
+		const draft = instance.safeFill(
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			answersToFormPayload(answers, parties) as any,
-			{ validate: "none" },
 		);
 		if (!draft.success) {
 			return { openRequired: [], openOptional: [], openRequiredParties: [] };
@@ -230,7 +229,7 @@ function collectFieldPaths(
 
 /**
  * The engine stores answers as a flat {path: value} map; @paradoc/core's
- * safePartialFill wants a nested {fields: {...}} payload. `unflattenPaths` is
+ * safeFill wants a nested {fields: {...}} payload. `unflattenPaths` is
  * same nesting `sessionPayload` publishes, so what core evaluates and what a
  * caller renders are shaped by one function.
  */

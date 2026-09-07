@@ -126,7 +126,7 @@ describe('fill state — status ordinal', () => {
 			})
 			.build()
 
-		const state = (f as unknown as { partialFill: () => { getFillState: () => any } }).partialFill().getFillState()
+		const state = (f as unknown as { fill: () => { getFillState: () => any } }).fill().getFillState()
 		const byKey = new Map<string, { status: string }>()
 		for (const bucket of [state.openRequired, state.openOptional, state.blocked, state.done]) {
 			for (const item of bucket) byKey.set(item.key, item)

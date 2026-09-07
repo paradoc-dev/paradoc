@@ -106,11 +106,9 @@ describe('DraftForm', () => {
       expect(filled).toHaveProperty('phase', 'draft')
     })
 
-    test('validates data when creating via fill()', () => {
+    test('creates an incomplete draft via fill()', () => {
       const formInstance = createFormWithFields()
-
-      // Missing required field should throw
-      expect(() => formInstance.fill({ fields:  { name: 'John' } } as any)).toThrow()
+      expect(formInstance.fill({ fields: { name: 'John' } } as any).isValid()).toBe(false)
     })
 
     test('creates DraftForm via safeFill()', () => {
@@ -623,13 +621,12 @@ describe('DraftForm', () => {
         .build()
       const partyInput = { id: 'tenant-0', name: 'Original Tenant' }
       const signerInput = { person: { name: 'Original Signer' } }
-      const draft = definition.partialFill(
+      const draft = definition.fill(
         {
           parties: { tenant: partyInput },
           signers: { signer: signerInput },
           signatories: { tenant: { 'tenant-0': [{ signerId: 'signer', capacity: 'President' }] } },
         } as any,
-        { validate: 'none' },
       )
 
       partyInput.name = 'Changed Input'

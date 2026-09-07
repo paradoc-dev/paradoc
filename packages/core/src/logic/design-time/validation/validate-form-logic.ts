@@ -790,10 +790,13 @@ export function validateFormDefs(
   // Add all defs keys and their statically known object members as valid variables
   addDefinitionPaths(form.defs, validVariables)
 
-  // Rules additionally expose top-level fields by their direct IDs at runtime.
+  // Rules additionally expose fields by their direct paths at runtime, including
+  // nested fieldset members and complex-field properties.
   const ruleVariables = new Set(validVariables)
-  for (const fieldId of Object.keys(form.fields ?? {})) {
-    ruleVariables.add(fieldId)
+  for (const fieldPath of validVariables) {
+    if (fieldPath.startsWith('fields.')) {
+      ruleVariables.add(fieldPath.slice('fields.'.length))
+    }
   }
 
   // Validate defs section expressions

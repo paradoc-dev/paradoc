@@ -55,12 +55,14 @@ export async function executeFill(input: FillInput, config?: ParadocToolsConfig)
 
       return result.success
         ? {
-            valid: true,
+            accepted: true,
+            complete: result.data.isValid(),
             artifactKind: 'form',
             data: result.data.getAllFields() as Record<string, unknown>,
           }
         : {
-            valid: false,
+            accepted: false,
+            complete: false,
             artifactKind: 'form',
             errors: extractErrors(result.error),
           }
@@ -72,24 +74,28 @@ export async function executeFill(input: FillInput, config?: ParadocToolsConfig)
 
       return result.success
         ? {
-            valid: true,
+            accepted: true,
+            complete: result.data.isValid(),
             artifactKind: 'checklist',
             data: result.data.getAllItems() as Record<string, unknown>,
           }
         : {
-            valid: false,
+            accepted: false,
+            complete: false,
             artifactKind: 'checklist',
             errors: extractErrors(result.error),
           }
     }
 
     return {
-      valid: false,
+      accepted: false,
+      complete: false,
       error: 'Artifact must be a form or checklist to fill with data',
     }
   } catch (err) {
     return {
-      valid: false,
+      accepted: false,
+      complete: false,
       error: err instanceof Error ? err.message : 'Unknown error',
     }
   }

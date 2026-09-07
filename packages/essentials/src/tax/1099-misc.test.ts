@@ -65,15 +65,15 @@ describe("1099-misc", () => {
     expect(f1099MISC.isValid()).toBe(true);
   });
 
-  it("accepts the bundled happy-path vector (llm.happy-path-individual-recipient)", () => {
-    const parsed = f1099MISC.safeParseData(happyPathInputs as any);
-    expect(parsed.success).toBe(true);
+  it("accepts the bundled passing vector (llm.happy-path-individual-recipient)", () => {
+    const result = f1099MISC.safeFill(happyPathInputs as any);
+    expect(result.success).toBe(true);
   });
 
   it("renders the markdown layer on the bound resolver", async () => {
-    const parsed = f1099MISC.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const filled = f1099MISC.fill(parsed.data, { rules: false });
+    const result = f1099MISC.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const filled = result.data;
     const output = await filled.render({
       renderer: textRenderer(),
       layer: "markdown",
@@ -83,10 +83,9 @@ describe("1099-misc", () => {
   });
 
   it("still renders after a mutator reconstructs the form", async () => {
-    const parsed = f1099MISC.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const mutated = f1099MISC
-      .fill(parsed.data, { rules: false })
+    const result = f1099MISC.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const mutated = result.data
       .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
     const output = await mutated.render({
       renderer: textRenderer(),

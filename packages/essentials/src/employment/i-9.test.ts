@@ -39,6 +39,7 @@ const happyPathInputs = {
     "employeeDateOfBirth": "1990-06-15",
     "citizenshipStatus": "us_citizen",
     "documentRoute": "list_a",
+    "listADocument1Title": "U.S. Passport",
     "listADocument1IssuingAuthority": "U.S. Department of State",
     "firstDayOfEmployment": "2026-04-15",
     "employerRepresentativeName": "Patricia Chen, HR Director",
@@ -60,15 +61,15 @@ describe("i-9", () => {
     expect(i9.isValid()).toBe(true);
   });
 
-  it("accepts the bundled happy-path vector (llm.list_a.required-doc1-title-missing)", () => {
-    const parsed = i9.safeParseData(happyPathInputs as any);
-    expect(parsed.success).toBe(true);
+  it("accepts the bundled passing vector (llm.list_a.minimal-pass)", () => {
+    const result = i9.safeFill(happyPathInputs as any);
+    expect(result.success).toBe(true);
   });
 
   it("renders the markdown layer on the bound resolver", async () => {
-    const parsed = i9.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const filled = i9.fill(parsed.data, { rules: false });
+    const result = i9.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const filled = result.data;
     const output = await filled.render({
       renderer: textRenderer(),
       layer: "markdown",
@@ -78,10 +79,9 @@ describe("i-9", () => {
   });
 
   it("still renders after a mutator reconstructs the form", async () => {
-    const parsed = i9.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const mutated = i9
-      .fill(parsed.data, { rules: false })
+    const result = i9.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const mutated = result.data
       .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
     const output = await mutated.render({
       renderer: textRenderer(),

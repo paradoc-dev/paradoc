@@ -25,13 +25,14 @@ describe('executeFill', () => {
         },
       })
 
-      expect(result.valid).toBe(true)
+      expect(result.accepted).toBe(true)
+      expect(result.complete).toBe(true)
       expect(result.artifactKind).toBe('form')
       expect(result.data).toBeDefined()
       expect(result.data!.name).toBe('John Doe')
     })
 
-    it('returns error for missing required field', async () => {
+    it('accepts a partial draft and reports that it is incomplete', async () => {
       const result = await executeFill({
         source: 'artifact' as const,
         artifact: formArtifact,
@@ -42,12 +43,10 @@ describe('executeFill', () => {
         },
       })
 
-      expect(result.valid).toBe(false)
+      expect(result.accepted).toBe(true)
+      expect(result.complete).toBe(false)
       expect(result.artifactKind).toBe('form')
-      expect(result.errors).toBeDefined()
-      expect(result.errors!.length).toBeGreaterThan(0)
-      expect(result.errors![0]!.field).toContain('name')
-      expect(result.errors![0]!.message).toContain('Missing required field')
+      expect(result.data).toBeDefined()
     })
 
     it('returns error for invalid field type', async () => {
@@ -62,7 +61,8 @@ describe('executeFill', () => {
         },
       })
 
-      expect(result.valid).toBe(false)
+      expect(result.accepted).toBe(false)
+      expect(result.complete).toBe(false)
       expect(result.errors).toBeDefined()
     })
 
@@ -81,7 +81,8 @@ describe('executeFill', () => {
         data: { fields: {} },
       })
 
-      expect(result.valid).toBe(true)
+      expect(result.accepted).toBe(true)
+      expect(result.complete).toBe(true)
       expect(result.data).toBeDefined()
       expect(result.data!.status).toBe('pending')
     })
@@ -104,12 +105,13 @@ describe('executeFill', () => {
         artifact: checklistArtifact,
         data: {
           item1: true,
-          item2: false,
+          item2: true,
           item3: true,
         },
       })
 
-      expect(result.valid).toBe(true)
+      expect(result.accepted).toBe(true)
+      expect(result.complete).toBe(true)
       expect(result.artifactKind).toBe('checklist')
       expect(result.data).toBeDefined()
     })
@@ -121,7 +123,8 @@ describe('executeFill', () => {
         data: {},
       })
 
-      expect(result.valid).toBe(true)
+      expect(result.accepted).toBe(true)
+      expect(result.complete).toBe(false)
       expect(result.artifactKind).toBe('checklist')
     })
   })
@@ -138,7 +141,7 @@ describe('executeFill', () => {
         data: {},
       })
 
-      expect(result.valid).toBe(false)
+      expect(result.accepted).toBe(false)
       expect(result.error).toContain('form or checklist')
     })
 
@@ -153,7 +156,7 @@ describe('executeFill', () => {
         data: {},
       })
 
-      expect(result.valid).toBe(false)
+      expect(result.accepted).toBe(false)
       expect(result.error).toContain('form or checklist')
     })
   })
@@ -166,7 +169,7 @@ describe('executeFill', () => {
         data: {},
       })
 
-      expect(result.valid).toBe(false)
+      expect(result.accepted).toBe(false)
     })
   })
 
@@ -189,7 +192,7 @@ describe('executeFill', () => {
       )
 
       expect(mockFetch).toHaveBeenCalled()
-      expect(result.valid).toBe(true)
+      expect(result.accepted).toBe(true)
       expect(result.artifactKind).toBe('form')
       expect(result.data!.x).toBe('hello')
     })
@@ -206,7 +209,7 @@ describe('executeFill', () => {
         { fetch: mockFetch },
       )
 
-      expect(result.valid).toBe(false)
+      expect(result.accepted).toBe(false)
       expect(result.error).toBeDefined()
     })
   })
@@ -237,7 +240,7 @@ describe('executeFill', () => {
         { fetch: mockFetch },
       )
 
-      expect(result.valid).toBe(true)
+      expect(result.accepted).toBe(true)
       expect(result.artifactKind).toBe('form')
       expect(result.data!.x).toBe('world')
     })

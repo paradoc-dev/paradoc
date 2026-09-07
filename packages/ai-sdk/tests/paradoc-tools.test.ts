@@ -48,7 +48,7 @@ describe('paradocTools', () => {
     expect(result.detectedKind).toBe('form')
   })
 
-  it('fill tool executes and catches errors', async () => {
+  it('fill tool accepts an incomplete draft', async () => {
     const tools = paradocTools()
 
     const result = await tools.fill.execute({
@@ -61,7 +61,7 @@ describe('paradocTools', () => {
       data: { fields: {} },
     }, { toolCallId: 'test', messages: [] })
 
-    expect(result.valid).toBe(false)
-    expect(result.errors).toBeDefined()
+    expect(result.accepted).toBe(true)
+    expect(result.complete).toBe(false)
   })
 })

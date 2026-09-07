@@ -5,7 +5,7 @@ ogTitle: fill — Paradoc AI Tools
 ogDescription: Fill an Paradoc form or checklist with data and validate the result
 ---
 
-Fills a form or checklist with data, applies defaults, and validates the result. Use this to catch errors before calling `render`.
+Creates a progressive form or checklist draft, applies defaults, and validates supplied values. The response reports `accepted` for the patch and `complete` for full readiness. Drafts may render before completion.
 
 <Callout type="info">
   Only forms and checklists support filling. Passing a document or bundle returns an error.

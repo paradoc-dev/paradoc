@@ -185,10 +185,8 @@ Returns a `FormInstance` with the following properties and methods:
   { name: 'validatePartiesPatch', type: '(parties: unknown) => ProgressiveValidationResult<Record<string, RuntimeParty | RuntimeParty[]>>', description: 'Validate a partial parties patch', isMethod: true },
   { name: 'validateAnnexInput', type: '(input: { annexId: string; value: unknown }) => ProgressiveValidationResult<unknown>', description: 'Validate one annex input key/value', isMethod: true },
   { name: 'validateAnnexesPatch', type: '(annexes: unknown) => ProgressiveValidationResult<Record<string, unknown>>', description: 'Validate a partial annexes patch', isMethod: true },
-  { name: 'fill', type: '(data: FillOptions) => DraftForm', description: 'Create a DraftForm with validated data', isMethod: true },
-  { name: 'safeFill', type: '(data: FillOptions) => Result<DraftForm>', description: 'Create DraftForm (returns result object)', isMethod: true },
-  { name: 'partialFill', type: '(seed?: Partial<Payload>, options?: PartialFillOptions) => DraftForm', description: 'Create a DraftForm from partial or empty data for progressive filling', isMethod: true },
-  { name: 'safePartialFill', type: '(seed?: Partial<Payload>, options?: PartialFillOptions) => SafePartialFillResult', description: 'Safely create a DraftForm from partial data (returns result object)', isMethod: true },
+  { name: 'fill', type: '(seed?: ProgressiveFormPayload, options?: FillOptions) => DraftForm', description: 'Create a draft from empty, partial, or complete data; supplied values validate immediately', isMethod: true },
+  { name: 'safeFill', type: '(seed?: ProgressiveFormPayload, options?: FillOptions) => SafeFillResult', description: 'Safely create a draft; success means the supplied patch was accepted', isMethod: true },
   { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render using a renderer', isMethod: true },
   { name: 'clone', type: '() => FormInstance', description: 'Deep clone the instance', isMethod: true },
   { name: 'validate', type: '(options?: ValidateOptions) => StandardSchemaV1.Result', description: 'Validate the form definition', isMethod: true },
@@ -334,22 +332,22 @@ When `allowAdditionalAnnexes` is `false`, unknown annex keys are rejected.
 
 # Incremental Filling
 
-Use `partialFill` to create a DraftForm from partial (or empty) data, then progressively fill it with `update`. This is the recommended pattern for AI agents and step-by-step UIs that collect data one field at a time.
+Use `fill` to create a DraftForm from partial (or empty) data, then progressively fill it with `update`. This is the recommended pattern for AI agents and step-by-step UIs that collect data one field at a time.
 
 ## Creating a draft from partial data
 
 ```ts
 // Start with empty data
-const draft = form.partialFill()
+const draft = form.fill()
 
 // Start with some known values
-const draft = form.partialFill({
+const draft = form.fill({
   fields: { tenantName: 'John Doe' },
   parties: { tenant: { id: 'tenant-0', name: 'John Doe' } }
 })
 
 // Safe variant (returns result object)
-const result = form.safePartialFill({ fields: { tenantName: 'John' } })
+const result = form.safeFill({ fields: { tenantName: 'John' } })
 if (result.success) {
   const draft = result.data
 }
@@ -393,26 +391,9 @@ const next = draft.getNextFillTarget()
 const all = draft.getAvailableFillTargets()
 ```
 
-## Validation modes
+## Acceptance and readiness
 
-Both `partialFill` and `update` accept a `validate` option:
-
-| Mode | Behavior |
-|------|----------|
-| `"patch"` (default) | Validate only the provided fields |
-| `"full"` | Validate entire payload including required fields |
-| `"none"` | Skip validation entirely |
-
-```ts
-// Skip validation (useful when data is pre-validated)
-const draft = form.partialFill(data, { validate: 'none' })
-
-// Full validation (same as fill())
-const draft = form.partialFill(data, { validate: 'full' })
-
-// Also evaluate rules
-const draft = form.partialFill(data, { validate: 'patch', rules: true })
-```
+`fill()` and `update()` validate every supplied value. Omitted required values remain open so a caller can build a draft across turns. `safeFill()` succeeds when that supplied patch is accepted. Use `draft.isValid()` or `draft.validate()` to assess full readiness, including rules. Rendering a draft is allowed; signing, sealing, and final bundle operations require readiness.
 
 # Lifecycle Types
 
@@ -426,7 +407,7 @@ The `fill()` method returns a `DraftForm` that follows the form lifecycle:
 
 ## DraftForm
 
-Created by `form.fill()` or `form.partialFill()`. Mutable data and signer configuration.
+Created by `form.fill()`. Mutable data and signer configuration.
 
 <PropertiesTable properties={[
   { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
@@ -447,7 +428,7 @@ Created by `form.fill()` or `form.partialFill()`. Mutable data and signer config
   { name: 'addSigner', type: '(signerId: string, signer: Signer) => DraftForm', description: 'Add signer to registry', isMethod: true },
   { name: 'addSignatory', type: '(roleId, partyId, signatory) => DraftForm', description: 'Link signer to party', isMethod: true },
   { name: 'update', type: '(patch: Partial<Payload>, options?: UpdateOptions) => DraftForm', description: 'Merge a patch into current data and return a new DraftForm', isMethod: true },
-  { name: 'safeUpdate', type: '(patch: Partial<Payload>, options?: UpdateOptions) => SafePartialFillResult', description: 'Safely merge a patch (returns result object)', isMethod: true },
+  { name: 'safeUpdate', type: '(patch: Partial<Payload>, options?: UpdateOptions) => SafeFillResult', description: 'Safely merge a patch (returns result object)', isMethod: true },
   { name: 'getFillState', type: '(options?: FillTargetOptions) => FillState', description: 'Compute full fill state: open/blocked/done items, candidates, progress summary', isMethod: true },
   { name: 'getNextFillTarget', type: '(options?: FillTargetOptions) => FillTarget | null', description: 'Get the next recommended fill target, or null if all required are done', isMethod: true },
   { name: 'getAvailableFillTargets', type: '(options?: FillTargetOptions) => FillTarget[]', description: 'Get all available fill targets in declaration order', isMethod: true },

@@ -133,9 +133,7 @@ export type {
 	InferChecklistPayload,
 	ProgressiveChecklistPayload,
 	ChecklistPath,
-	ChecklistValidationMode,
 	ChecklistFillOptions,
-	ChecklistPartialFillOptions,
 	ChecklistUpdateOptions,
 	ChecklistValidationResult,
 	ChecklistFillTarget,
@@ -168,9 +166,7 @@ export type {
 	CaptureOptions,
 	SealOptions,
 	FormBuilderInterface,
-	FillValidationOptions,
 	SafeFillResult,
-	SafePartialFillResult,
 	FormValidationResult,
 } from './form'
 

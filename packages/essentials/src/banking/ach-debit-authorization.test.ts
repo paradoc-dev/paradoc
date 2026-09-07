@@ -62,15 +62,15 @@ describe("ach-debit-authorization", () => {
     expect(achDebitAuthorization.isValid()).toBe(true);
   });
 
-  it("accepts the bundled happy-path vector (llm.scenario.one-time-individual-happy-path)", () => {
-    const parsed = achDebitAuthorization.safeParseData(happyPathInputs as any);
-    expect(parsed.success).toBe(true);
+  it("accepts the bundled passing vector (llm.scenario.one-time-individual-happy-path)", () => {
+    const result = achDebitAuthorization.safeFill(happyPathInputs as any);
+    expect(result.success).toBe(true);
   });
 
   it("renders the markdown layer on the bound resolver", async () => {
-    const parsed = achDebitAuthorization.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const filled = achDebitAuthorization.fill(parsed.data, { rules: false });
+    const result = achDebitAuthorization.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const filled = result.data;
     const output = await filled.render({
       renderer: textRenderer(),
       layer: "markdown",
@@ -80,10 +80,9 @@ describe("ach-debit-authorization", () => {
   });
 
   it("still renders after a mutator reconstructs the form", async () => {
-    const parsed = achDebitAuthorization.safeParseData(happyPathInputs as any);
-    if (!parsed.success) throw new Error("happy-path vector should parse");
-    const mutated = achDebitAuthorization
-      .fill(parsed.data, { rules: false })
+    const result = achDebitAuthorization.safeFill(happyPathInputs as any);
+    if (!result.success) throw new Error("passing vector should be accepted");
+    const mutated = result.data
       .addSigner("bound-resolver-check", { person: { name: "Bound Resolver Check" } });
     const output = await mutated.render({
       renderer: textRenderer(),

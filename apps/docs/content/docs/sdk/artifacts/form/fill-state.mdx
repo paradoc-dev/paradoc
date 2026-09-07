@@ -10,7 +10,7 @@ Query the fill state of a DraftForm to determine what's been filled, what's stil
 ## Basic usage
 
 ```ts
-const draft = form.partialFill({
+const draft = form.fill({
   fields: { tenantName: 'John Doe' }
 })
 
@@ -24,7 +24,7 @@ state.next                       // { kind: 'party', key: 'tenant', required: tr
 ## Progressive fill loop
 
 ```ts
-let draft = form.partialFill()
+let draft = form.fill()
 
 while (true) {
   const state = draft.getFillState()
@@ -42,8 +42,8 @@ while (true) {
   })
 }
 
-// All required data collected — fill the form
-const filled = form.fill(draft.data)
+// Full readiness is a separate check from draft acceptance.
+if (!draft.isValid()) throw new Error('Complete the remaining required values')
 ```
 
 ## Including optional targets
@@ -150,45 +150,29 @@ Options for `getFillState`, `getNextFillTarget`, and `getAvailableFillTargets`.
   { name: 'includeOptional', type: 'boolean', description: 'Include optional targets in candidates. Default: false', isOptional: true },
 ]} />
 
-## PartialFillOptions
+## FillOptions
 
-Options for `partialFill` and `safePartialFill` on FormInstance.
+Options for `fill` and `safeFill` on FormInstance.
 
 <PropertiesTable properties={[
-  { name: 'validate', type: 'FillValidationMode', description: "Validation mode: 'patch' (default), 'full', or 'none'", isOptional: true },
-  { name: 'rules', type: 'boolean', description: 'Evaluate and report rules. Default: false', isOptional: true },
+  { name: 'context', type: 'RuntimeContextOptions', description: 'Fixed context captured by the new draft runtime', isOptional: true },
 ]} />
 
 ## UpdateOptions
 
 Options for `update` and `safeUpdate` on DraftForm.
 
-<PropertiesTable properties={[
-  { name: 'validate', type: 'FillValidationMode', description: "Validation mode: 'patch' (default), 'full', or 'none'", isOptional: true },
-  { name: 'rules', type: 'boolean', description: 'Evaluate and report rules. Default: false', isOptional: true },
-]} />
+`update()` always validates supplied values. It has no validation-mode options.
 
-## SafePartialFillResult
+## SafeFillResult
 
-Returned by `safePartialFill` and `safeUpdate`.
+Returned by `safeFill` and `safeUpdate`.
 
 ```ts
-type SafePartialFillResult<F extends Form> =
+type SafeFillResult<F extends Form> =
   | { success: true; data: DraftForm<F> }
   | { success: false; error: Error }
 ```
-
-## FillValidationMode
-
-```ts
-type FillValidationMode = 'patch' | 'full' | 'none'
-```
-
-| Mode | Behavior |
-|------|----------|
-| `"patch"` | Validate only the provided fields (default) |
-| `"full"` | Validate entire payload including required fields |
-| `"none"` | Skip validation entirely |
 
 # How visibility and blocking work
 

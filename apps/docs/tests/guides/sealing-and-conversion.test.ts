@@ -32,9 +32,9 @@ describe('Sealing and Conversion Guide', () => {
     )
 
     const signable = await form
-      .fill({ fields: {}, parties: { signer: { id: 'signer-1', name: 'Ada' } } })
+      .fill({ fields: {}, parties: { signer: { id: 'signer-0', name: 'Ada' } } })
       .addSigner('ada', { person: { name: 'Ada' } })
-      .addSignatory('signer', 'signer-1', { signerId: 'ada' })
+      .addSignatory('signer', 'signer-0', { signerId: 'ada' })
       .seal()
 
     expect(signable.canonicalPdfBytes).toBeInstanceOf(Uint8Array)
@@ -71,9 +71,9 @@ describe('Sealing and Conversion Guide', () => {
     })
 
     const signable = await form
-      .fill({ fields: { name: 'Ada' }, parties: { signer: { id: 'signer-1', name: 'Ada' } } })
+      .fill({ fields: { name: 'Ada' }, parties: { signer: { id: 'signer-0', name: 'Ada' } } })
       .addSigner('ada', { person: { name: 'Ada' } })
-      .addSignatory('signer', 'signer-1', { signerId: 'ada' })
+      .addSignatory('signer', 'signer-0', { signerId: 'ada' })
       .seal({
         adapter: hostedSealAdapter({ apiKey: 'test-key', baseUrl: 'https://api.example.test', fetch }),
       })

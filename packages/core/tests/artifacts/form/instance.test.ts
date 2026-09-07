@@ -614,12 +614,9 @@ describe('FormInstance', () => {
       expect(filled.form).toEqual(instance.toJSON({ includeSchema: false }))
     })
 
-    test('throws FormValidationError for invalid data', () => {
+    test('accepts incomplete draft data', () => {
       const instance = createFormWithFields()
-
-      expect(() => instance.fill({ fields: { name: 'John' } } as any)).toThrow(
-        FormValidationError
-      )
+      expect(instance.fill({ fields: { name: 'John' } } as any).isValid()).toBe(false)
     })
   })
 
@@ -643,14 +640,11 @@ describe('FormInstance', () => {
       }
     })
 
-    test('returns error for invalid data', () => {
+    test('accepts incomplete draft data', () => {
       const instance = createFormWithFields()
       const result = instance.safeFill({ fields: { name: 'John' } } as any)
-
-      expect(result.success).toBe(false)
-      if (!result.success) {
-        expect(result.error).toBeDefined()
-      }
+      expect(result.success).toBe(true)
+      if (result.success) expect(result.data.isValid()).toBe(false)
     })
   })
 

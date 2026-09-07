@@ -7,13 +7,13 @@
   },
   "parties": {
     "tenant": {
-      "id": "tenant-1",
+      "id": "tenant-0",
       "name": "Jane Doe",
       "firstName": "Jane",
       "lastName": "Doe"
     },
     "landlord": {
-      "id": "landlord-1",
+      "id": "landlord-0",
       "name": "Acme Properties LLC"
     }
   }

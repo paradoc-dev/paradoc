@@ -30,11 +30,7 @@ describe('definition payload inference', () => {
 		expect(literalPayload).toEqual(builtPayload)
 		expect(payloadTypesMatch).toBe(true)
 
-		const checkRequiredFillType = () => {
-			// @ts-expect-error required builder fields must be supplied to a complete fill
-			built.fill({ fields: {} })
-		}
-		void checkRequiredFillType
+		expect(built.fill({ fields: {} }).isValid()).toBe(false)
 	})
 
 	test('allows optional party and annex sections to be omitted', () => {
@@ -86,11 +82,7 @@ describe('definition payload inference', () => {
 		expect(draft.fields.profile).toEqual({ age: 42 })
 		expect(draft.fields.phones).toEqual([])
 
-		const checkNestedRequiredness = () => {
-			// @ts-expect-error required nested fields must be supplied
-			form.fill({ fields: { profile: {}, phones: [] } })
-		}
-		void checkNestedRequiredness
+		expect(form.fill({ fields: { profile: {}, phones: [] } }).isValid()).toBe(false)
 	})
 
 	test('allows recursive nested patches while preserving full payload strictness', () => {
@@ -124,7 +116,7 @@ describe('definition payload inference', () => {
 		const invalidPatch: ProgressivePayload = { fields: { profile: { firstName: 42 } } }
 
 		expect(form.fill(fullPayload).fields.profile).toEqual(fullPayload.fields.profile)
-		expect(form.partialFill(nestedPatch).fields.profile).toEqual({ firstName: 'Grace' })
+		expect(form.fill(nestedPatch).fields.profile).toEqual({ firstName: 'Grace' })
 		void invalidPatch
 	})
 

@@ -20,7 +20,7 @@ function createClockForm() {
 describe('runtime artifact clock context', () => {
 	test('uses an explicit clock for temporal expressions and retains it across lifecycles', () => {
 		const definition = createClockForm()
-		const draft = definition.partialFill(
+		const draft = definition.fill(
 			{ fields: { deadline: '2026-09-10' } } as any,
 			{ context: { asOf } },
 		)
@@ -47,7 +47,7 @@ describe('runtime artifact clock context', () => {
 		vi.useFakeTimers()
 		try {
 			vi.setSystemTime(new Date('2026-09-12T23:59:59.000Z'))
-			const draft = createClockForm().partialFill()
+			const draft = createClockForm().fill()
 			const captured = draft.context
 
 			vi.setSystemTime(new Date('2026-09-13T00:00:01.000Z'))
@@ -68,18 +68,18 @@ describe('runtime artifact clock context', () => {
 
 	test('forwards context through safe fill paths and rejects invalid timestamps', () => {
 		const definition = createClockForm()
-		const safePartial = definition.safePartialFill(undefined, { context: { asOf } })
+		const safePartial = definition.safeFill(undefined, { context: { asOf } })
 		const safeFull = definition.safeFill(
 			{ fields: { deadline: '2026-09-10' } } as any,
-			{ context: { asOf }, rules: false },
+			{ context: { asOf } },
 		)
 
 		expect(safePartial.success && safePartial.data.context.asOf.date).toBe('2026-09-12')
 		expect(safeFull.success && safeFull.data.context.asOf.datetime).toBe('2026-09-12T17:34:56.000Z')
-		expect(() => definition.partialFill(undefined, { context: { asOf: '2026-09-12' } })).toThrow(
+		expect(() => definition.fill(undefined, { context: { asOf: '2026-09-12' } })).toThrow(
 			/Invalid context\.asOf/,
 		)
-		expect(definition.safePartialFill(undefined, { context: { asOf: 'not-a-timestamp' } }).success).toBe(false)
+		expect(definition.safeFill(undefined, { context: { asOf: 'not-a-timestamp' } }).success).toBe(false)
 	})
 
 	test('retains the same context for checklist instances and serialized bundle content', () => {

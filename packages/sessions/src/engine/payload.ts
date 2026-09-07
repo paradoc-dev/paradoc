@@ -4,7 +4,7 @@
  * A session stores what it was told: one answer per field path, flat, with the
  * path dotted. Everything downstream of a session wants the artifact's own
  * shape instead — nested fields and parties by role — because that is what
- * `safePartialFill` takes, what a renderer takes, and what a document
+ * `safeFill` takes, what a renderer takes, and what a document
  * composition binds to.
  *
  * That translation is one function and lives here so there is one of it. The

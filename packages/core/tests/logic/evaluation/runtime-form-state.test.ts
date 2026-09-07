@@ -336,8 +336,8 @@ describe('RuntimeForm runtime state', () => {
   describe('party and witness context', () => {
     test('forwards party values to cached runtime evaluation', () => {
       const formInstance = createFormWithPartyAndWitnessExpressions()
-      const withoutBuyer = formInstance.partialFill()
-      const withBuyer = formInstance.partialFill({
+      const withoutBuyer = formInstance.fill()
+      const withBuyer = formInstance.fill({
         parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
       } as any)
 
@@ -347,7 +347,7 @@ describe('RuntimeForm runtime state', () => {
 
     test('forwards witness values to cached runtime evaluation', () => {
       const formInstance = createFormWithPartyAndWitnessExpressions()
-      const withoutWitness = formInstance.partialFill().prepareForSigning()
+      const withoutWitness = formInstance.fill().prepareForSigning()
       const withWitness = withoutWitness.addWitness({
         id: 'witness-0',
         party: { name: 'Wendy Witness' },
