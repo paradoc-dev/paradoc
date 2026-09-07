@@ -70,6 +70,7 @@ import {
 	type NormalizedPartyInput,
 } from '@/validation'
 import { toYAML } from '@/serialization/serialization'
+import { deepClone, deepReadonlyClone } from '@/utils/clone'
 import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
@@ -808,6 +809,26 @@ export type RuntimeForm<F extends Form> = DraftForm<F> | SignableForm<F> | Execu
 
 const PDF_CONVERTIBLE_LAYERS = ['docx', 'markdown', 'html', 'text'] as const
 
+/** A Map snapshot whose mutators cannot alter a runtime state's public view. */
+class RuntimeStateMap<K, V> extends Map<K, V> {
+	constructor(entries: Iterable<readonly [K, V]>) {
+		super()
+		for (const [key, value] of entries) Map.prototype.set.call(this, key, value)
+	}
+
+	set(): this {
+		throw new TypeError('Runtime state snapshots are read-only')
+	}
+
+	delete(): boolean {
+		throw new TypeError('Runtime state snapshots are read-only')
+	}
+
+	clear(): void {
+		throw new TypeError('Runtime state snapshots are read-only')
+	}
+}
+
 // ============================================================================
 // RuntimeForm Factory
 // ============================================================================
@@ -866,25 +887,67 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): RuntimeForm<F> {
 	const {
 		form: formDef,
+		fields: fieldsInput,
+		parties: partiesInput,
+		annexes: annexesInput,
+		signers: signersInput,
+		signatories: signatoriesInput,
+		targetLayer,
+		resolver,
+		phase,
+		captures: capturesInput,
+		witnesses: witnessesInput,
+		attestations: attestationsInput,
+		executedAt,
+		signatureMap: signatureMapInput,
+		canonicalPdfHash,
+		canonicalPdfBytes: canonicalPdfBytesInput,
+	} = config
+
+	// Runtime state is owned by the instance. Guarded mutation methods create a
+	// new instance, so cloning at this boundary prevents aliases from the
+	// caller's input or a previous instance from bypassing those methods.
+	const fieldValues = deepClone(fieldsInput)
+	const partyValues = deepClone(partiesInput)
+	const annexValues = deepClone(annexesInput)
+	const signerValues = deepClone(signersInput)
+	const signatoryValues = deepClone(signatoriesInput)
+	const captures = deepClone(capturesInput ?? [])
+	const witnesses = deepClone(witnessesInput ?? [])
+	const attestations = deepClone(attestationsInput ?? [])
+	const signatureMap = signatureMapInput === undefined ? undefined : deepClone(signatureMapInput)
+	const canonicalPdfBytes = canonicalPdfBytesInput === undefined ? undefined : deepClone(canonicalPdfBytesInput)
+	config = {
+		...config,
 		fields: fieldValues,
 		parties: partyValues,
 		annexes: annexValues,
 		signers: signerValues,
 		signatories: signatoryValues,
-		targetLayer,
-		resolver,
-		phase,
-		captures = [],
-		witnesses = [],
-		attestations = [],
-		executedAt,
+		captures,
+		witnesses,
+		attestations,
 		signatureMap,
-		canonicalPdfHash,
 		canonicalPdfBytes,
-	} = config
+	} as RuntimeFormConfig<F>
+
+	// These views are detached from the closure state and frozen deeply where
+	// the value type permits it. Internal rendering, validation, and transitions
+	// continue to use the private values above.
+	const fieldsView = deepReadonlyClone(fieldValues)
+	const partiesView = deepReadonlyClone(partyValues)
+	const annexesView = deepReadonlyClone(annexValues)
+	const signersView = deepReadonlyClone(signerValues)
+	const signatoriesView = deepReadonlyClone(signatoryValues)
+	const capturesView = deepReadonlyClone(captures)
+	const witnessesView = deepReadonlyClone(witnesses)
+	const attestationsView = deepReadonlyClone(attestations)
+	const signatureMapView = signatureMap === undefined ? undefined : deepReadonlyClone(signatureMap)
+	const canonicalPdfBytesView = canonicalPdfBytes === undefined ? undefined : deepReadonlyClone(canonicalPdfBytes)
 
 	// Cached runtime state
 	let _runtimeState: FormRuntimeState | null = null
+	let _runtimeStateView: FormRuntimeState | null = null
 
 	// Helper functions
 	const validateRoleId = (roleId: string): void => {
@@ -927,6 +990,24 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			}
 		}
 		return _runtimeState
+	}
+
+	const getRuntimeStateView = (): FormRuntimeState => {
+		if (!_runtimeStateView) {
+			const state = getRuntimeState()
+			_runtimeStateView = {
+				fields: new RuntimeStateMap(
+					[...state.fields].map(([fieldId, fieldState]) => [fieldId, deepReadonlyClone(fieldState)] as const),
+				),
+				annexes: new RuntimeStateMap(
+					[...state.annexes].map(([annexId, annexState]) => [annexId, deepReadonlyClone(annexState)] as const),
+				),
+				defsValues: new RuntimeStateMap(
+					[...state.defsValues].map(([key, value]) => [key, deepReadonlyClone(value)] as const),
+				),
+			}
+		}
+		return _runtimeStateView
 	}
 
 	const augmentPartiesForRender = (): Record<string, Party | Party[]> => {
@@ -978,18 +1059,38 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		phase,
 		form: formDef,
 		targetLayer,
-		fields: fieldValues,
-		parties: partyValues,
-		annexes: annexValues,
-		signers: signerValues,
-		signatories: signatoryValues,
-		captures,
-		witnesses,
-		attestations,
+		get fields() {
+			return fieldsView
+		},
+		get parties() {
+			return partiesView
+		},
+		get annexes() {
+			return annexesView
+		},
+		get signers() {
+			return signersView
+		},
+		get signatories() {
+			return signatoriesView
+		},
+		get captures() {
+			return capturesView
+		},
+		get witnesses() {
+			return witnessesView
+		},
+		get attestations() {
+			return attestationsView
+		},
 		executedAt,
-		signatureMap,
+		get signatureMap() {
+			return signatureMapView
+		},
 		canonicalPdfHash,
-		canonicalPdfBytes,
+		get canonicalPdfBytes() {
+			return canonicalPdfBytesView
+		},
 
 		// Convenience getters
 		get name() {
@@ -1007,11 +1108,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		getField<K extends FieldKeys<F>>(fieldId: K): ExtractFields<F>[K] | undefined {
-			return fieldValues[fieldId] as ExtractFields<F>[K] | undefined
+			return fieldsView[fieldId] as ExtractFields<F>[K] | undefined
 		},
 
 		getAllFields(): ExtractFields<F> {
-			return fieldValues as ExtractFields<F>
+			return fieldsView as ExtractFields<F>
 		},
 
 		// ============================================================================
@@ -1042,12 +1143,13 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		getParty<R extends PartyRoleKeys<F>>(roleId: R): Party | Party[] | undefined {
 			validateRoleId(roleId)
-			return partyValues[roleId]
+			return partiesView[roleId]
 		},
 
 		getParties<R extends PartyRoleKeys<F>>(roleId: R): Party[] {
 			validateRoleId(roleId)
-			return getPartiesInternal(roleId)
+			const parties = partiesView[roleId]
+			return deepReadonlyClone((Array.isArray(parties) ? parties : parties ? [parties] : []) as Party[])
 		},
 
 		getPartyCount<R extends PartyRoleKeys<F>>(roleId: R): number {
@@ -1110,7 +1212,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		getSigner(signerId: string): Signer | undefined {
-			return signerValues[signerId]
+			return signersView[signerId]
 		},
 
 		hasSigner(signerId: string): boolean {
@@ -1118,7 +1220,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		},
 
 		getSignerAdoptedSignature(signerId: string): AdoptedSignature | undefined {
-			return signerValues[signerId]?.adopted?.signature
+			return signersView[signerId]?.adopted?.signature
 		},
 
 		addSigner(signerId: string, signer: Signer): RuntimeForm<F> {
@@ -1165,7 +1267,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		getSignatories<R extends PartyRoleKeys<F>>(roleId: R, partyId: string): PartySignatory[] {
 			validateRoleId(roleId)
-			return signatoryValues[roleId]?.[partyId] ?? []
+			return deepReadonlyClone(signatoriesView[roleId]?.[partyId] ?? [])
 		},
 
 		addSignatory<R extends PartyRoleKeys<F>>(roleId: R, partyId: string, signatory: PartySignatory): RuntimeForm<F> {
@@ -1193,7 +1295,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		getAnnex(annexId: string): unknown {
-			return annexValues[annexId]
+			return annexesView[annexId]
 		},
 
 		setAnnex(annexId: string, annexData: unknown): RuntimeForm<F> {
@@ -1427,22 +1529,22 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			locationId: string,
 			type: 'signature' | 'initials' | 'capacity' | 'printed_name',
 		): SignatureCapture | undefined {
-			return captures.find(
+			return capturesView.find(
 				(c) =>
 					c.role === role && c.partyId === partyId && c.signerId === signerId && c.locationId === locationId && c.type === type,
 			)
 		},
 
 		getCapturesForLocation(locationId: string): SignatureCapture[] {
-			return captures.filter((c) => c.locationId === locationId)
+			return deepReadonlyClone(capturesView.filter((c) => c.locationId === locationId))
 		},
 
 		getCapturesForParty(roleId: string, partyId: string): SignatureCapture[] {
-			return captures.filter((c) => c.role === roleId && c.partyId === partyId)
+			return deepReadonlyClone(capturesView.filter((c) => c.role === roleId && c.partyId === partyId))
 		},
 
 		getCapturesForSigner(signerId: string): SignatureCapture[] {
-			return captures.filter((c) => c.signerId === signerId)
+			return deepReadonlyClone(capturesView.filter((c) => c.signerId === signerId))
 		},
 
 		// ============================================================================
@@ -1450,7 +1552,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		getWitness(witnessId: string): WitnessParty | undefined {
-			return witnesses.find((w) => w.id === witnessId)
+			return witnessesView.find((w) => w.id === witnessId)
 		},
 
 		hasWitness(witnessId: string): boolean {
@@ -1473,16 +1575,16 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		getAttestationsByWitness(witnessId: string): Attestation[] {
-			return attestations.filter((a) => a.witnessId === witnessId)
+			return deepReadonlyClone(attestationsView.filter((a) => a.witnessId === witnessId))
 		},
 
 		getAttestationsForParty<R extends PartyRoleKeys<F>>(roleId: R, partyId: string, signerId?: string): Attestation[] {
 			validateRoleId(roleId)
-			return attestations.filter((a) =>
+			return deepReadonlyClone(attestationsView.filter((a) =>
 				a.attestsTo.some(
 					(t) => t.roleId === roleId && t.partyId === partyId && (signerId === undefined || t.signerId === signerId),
 				),
-			)
+			))
 		},
 
 		addAttestation(attestation: Attestation): RuntimeForm<F> {
@@ -1573,11 +1675,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// ============================================================================
 
 		get runtimeState(): FormRuntimeState {
-			return getRuntimeState()
+			return getRuntimeStateView()
 		},
 
 		getFieldState(fieldId: string): FieldRuntimeState | undefined {
-			return getRuntimeState().fields.get(fieldId)
+			const fieldState = getRuntimeState().fields.get(fieldId)
+			return fieldState === undefined ? undefined : deepReadonlyClone(fieldState)
 		},
 
 		isFieldVisible(fieldId: string): boolean {
@@ -1589,11 +1692,13 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		},
 
 		getAnnexState(annexId: string): AnnexRuntimeState | undefined {
-			return getRuntimeState().annexes.get(annexId)
+			const annexState = getRuntimeState().annexes.get(annexId)
+			return annexState === undefined ? undefined : deepReadonlyClone(annexState)
 		},
 
 		getLogicValue(key: string): unknown {
-			return getRuntimeState().defsValues.get(key)
+			const value = getRuntimeState().defsValues.get(key)
+			return value === undefined ? undefined : deepReadonlyClone(value)
 		},
 
 		validateRules(): FormRulesValidationResult {
@@ -1616,10 +1721,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const result: FieldRuntimeState[] = []
 			for (const [_fieldId, fieldState] of state.fields) {
 				if (fieldState.visible) {
-					result.push(fieldState)
+					result.push(deepReadonlyClone(fieldState))
 				}
 			}
-			return result
+			return deepReadonlyClone(result)
 		},
 
 		getRequiredVisibleFields(): FieldRuntimeState[] {
@@ -1627,10 +1732,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const result: FieldRuntimeState[] = []
 			for (const [_fieldId, fieldState] of state.fields) {
 				if (fieldState.visible && fieldState.required) {
-					result.push(fieldState)
+					result.push(deepReadonlyClone(fieldState))
 				}
 			}
-			return result
+			return deepReadonlyClone(result)
 		},
 
 		isAnnexVisible(annexId: string): boolean {
@@ -2423,12 +2528,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			if (!signatureMap) return undefined
 			const field = signatureMap.find((f) => f.id === fieldId)
 			if (!field) return undefined
-			return signerValues[field.signerId]
+			return signersView[field.signerId]
 		},
 
 		getFieldsForSigner(signerId: string): SigningField[] {
-			if (!signatureMap) return []
-			return signatureMap.filter((f) => f.signerId === signerId)
+			if (!signatureMap) return deepReadonlyClone([])
+			return deepReadonlyClone(signatureMapView!.filter((f) => f.signerId === signerId))
 		},
 
 		// ============================================================================
@@ -2522,11 +2627,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				return {
 					phase: 'draft',
 					form: formDef,
-					fields: fieldValues,
-					parties: partyValues,
-					annexes: annexValues,
-					signers: signerValues,
-					signatories: signatoryValues,
+					fields: deepClone(fieldValues),
+					parties: deepClone(partyValues),
+					annexes: deepClone(annexValues),
+					signers: deepClone(signerValues),
+					signatories: deepClone(signatoryValues),
 					targetLayer,
 				}
 			}
@@ -2534,30 +2639,30 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				return {
 					phase: 'signable',
 					form: formDef,
-					fields: fieldValues,
-					parties: partyValues,
-					annexes: annexValues,
-					signers: signerValues,
-					signatories: signatoryValues,
-					captures,
-					witnesses,
-					attestations,
+					fields: deepClone(fieldValues),
+					parties: deepClone(partyValues),
+					annexes: deepClone(annexValues),
+					signers: deepClone(signerValues),
+					signatories: deepClone(signatoryValues),
+					captures: deepClone(captures),
+					witnesses: deepClone(witnesses),
+					attestations: deepClone(attestations),
 					targetLayer,
-					...(signatureMap && { signatureMap }),
+					...(signatureMap && { signatureMap: deepClone(signatureMap) }),
 					...(canonicalPdfHash && { canonicalPdfHash }),
 				}
 			}
 			return {
 				phase: 'executed',
 				form: formDef,
-				fields: fieldValues,
-				parties: partyValues,
-				annexes: annexValues,
-				signers: signerValues,
-				signatories: signatoryValues,
-				captures,
-				witnesses,
-				attestations,
+				fields: deepClone(fieldValues),
+				parties: deepClone(partyValues),
+				annexes: deepClone(annexValues),
+				signers: deepClone(signerValues),
+				signatories: deepClone(signatoryValues),
+				captures: deepClone(captures),
+				witnesses: deepClone(witnesses),
+				attestations: deepClone(attestations),
 				targetLayer,
 				executedAt: executedAt!,
 			}

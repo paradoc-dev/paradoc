@@ -82,6 +82,22 @@ describe('RuntimeForm runtime state', () => {
       expect(state1).toBe(state2) // Same object reference
     })
 
+    test('does not expose mutable cached state', () => {
+      const formInstance = createFormWithDefs()
+      const filled = formInstance.fill({ fields: { age: 25, hasLicense: true } } as any)
+      const state = filled.runtimeState
+      const fieldState = state.fields.get('age')!
+
+      expect(() => state.fields.set('age', { ...fieldState, value: -1 })).toThrow()
+      expect(() => {
+        fieldState.value = -1
+      }).toThrow()
+
+      expect(filled.getField('age')).toBe(25)
+      expect(filled.getFieldState('age')?.value).toBe(25)
+      expect(filled.isFieldVisible('drivingLicense')).toBe(true)
+    })
+
     test('new RuntimeForm has fresh cache', () => {
       const formInstance = createFormWithDefs()
       const filled1 = formInstance.fill({ fields:  { age: 25, hasLicense: true } } as any)

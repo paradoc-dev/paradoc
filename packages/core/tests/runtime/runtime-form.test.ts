@@ -576,6 +576,89 @@ describe('DraftForm', () => {
       expect(afterUpdate).not.toBe(original)
       expect(afterClone).not.toBe(original)
     })
+
+    test('detaches and freezes nested field views without stale visibility', () => {
+      const definition = form()
+        .name('runtime-view-probe')
+        .defs({ showDetails: { type: 'boolean', value: 'fields.age > 0' } })
+        .fields({
+          age: { type: 'number' },
+          details: { type: 'fieldset', fields: { name: { type: 'text' } } },
+          conditional: { type: 'text', visible: 'showDetails' },
+        })
+        .build()
+
+      const draft = definition.fill({ fields: { age: 21, details: { name: 'Original' } } } as any)
+
+      expect(draft.isFieldVisible('conditional')).toBe(true)
+      const exposedFields = draft.fields as Record<string, any>
+
+      expect(Object.isFrozen(exposedFields)).toBe(true)
+      expect(Object.isFrozen(exposedFields.details)).toBe(true)
+      expect(() => {
+        exposedFields.age = -1
+      }).toThrow()
+      expect(() => {
+        exposedFields.details.name = 'Tampered'
+      }).toThrow()
+
+      const exposedField = draft.getField('details') as { name: string }
+      expect(() => {
+        exposedField.name = 'Tampered again'
+      }).toThrow()
+
+      expect(draft.getField('age')).toBe(21)
+      expect((draft.getField('details') as { name: string }).name).toBe('Original')
+      expect(draft.isFieldVisible('conditional')).toBe(true)
+
+      const serialized = draft.toJSON()
+      serialized.fields.age = -1
+      expect(draft.getField('age')).toBe(21)
+    })
+
+    test('protects nested parties, signers, and signatories from aliases', () => {
+      const definition = form()
+        .name('runtime-party-view-probe')
+        .parties({ tenant: { label: 'Tenant', types: ['person'] } })
+        .build()
+      const partyInput = { id: 'tenant-0', name: 'Original Tenant' }
+      const signerInput = { person: { name: 'Original Signer' } }
+      const draft = definition.partialFill(
+        {
+          parties: { tenant: partyInput },
+          signers: { signer: signerInput },
+          signatories: { tenant: { 'tenant-0': [{ signerId: 'signer', capacity: 'President' }] } },
+        } as any,
+        { validate: 'none' },
+      )
+
+      partyInput.name = 'Changed Input'
+      signerInput.person.name = 'Changed Input'
+
+      expect((draft.getParty('tenant') as { name: string }).name).toBe('Original Tenant')
+      expect(draft.getSigner('signer')?.person.name).toBe('Original Signer')
+
+      const exposedParty = draft.getParty('tenant') as { name: string }
+      const exposedSigner = draft.getSigner('signer') as { person: { name: string } }
+      const exposedSignatories = draft.getSignatories('tenant', 'tenant-0')
+
+      expect(Object.isFrozen(exposedParty)).toBe(true)
+      expect(Object.isFrozen(exposedSigner)).toBe(true)
+      expect(Object.isFrozen(exposedSignatories)).toBe(true)
+      expect(() => {
+        exposedParty.name = 'Tampered'
+      }).toThrow()
+      expect(() => {
+        exposedSigner.person.name = 'Tampered'
+      }).toThrow()
+      expect(() => {
+        exposedSignatories[0]!.capacity = 'Tampered'
+      }).toThrow()
+
+      expect((draft.getParty('tenant') as { name: string }).name).toBe('Original Tenant')
+      expect(draft.getSigner('signer')?.person.name).toBe('Original Signer')
+      expect(draft.getSignatories('tenant', 'tenant-0')[0]?.capacity).toBe('President')
+    })
   })
 
   // ============================================================================
