@@ -1,7 +1,29 @@
 import { BoundedCache, DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, stableSerialize } from './cache'
+import {
+	BUILT_IN_CONTACT_MESSAGES,
+	MissingContactMessageError,
+	UnsupportedAddressLayoutError,
+	formatAddress as formatContactAddress,
+	formatOrganization as formatContactOrganization,
+	formatPerson as formatContactPerson,
+	formatPhone as formatContactPhone,
+	inferPartyIdentity,
+	validateAddress,
+	validateContactOptions,
+	validateOrganization,
+	validateParty,
+	validatePerson,
+	validatePhone,
+	type ContactValidation,
+} from './contacts'
 import { FormatConfigurationError, FormatError } from './errors'
 import {
 	FORMAT_KINDS,
+	type AddressFormatOptions,
+	type ContactFormatImplementation,
+	type ContactFormatImplementationContext,
+	type ContactFormatKind,
+	type ContactValueByKind,
 	type FormatCallOptions,
 	type FormatImplementation,
 	type FormatImplementationContext,
@@ -26,6 +48,7 @@ const DEFAULT_LOCALE = 'en-US'
 const DEFAULT_TIME_ZONE = 'UTC'
 const DEFAULT_CALENDAR = 'gregory'
 const NUMERIC_KINDS: readonly NumericFormatKind[] = ['number', 'money', 'percentage']
+const CONTACT_KINDS: readonly ContactFormatKind[] = ['address', 'phone', 'person', 'organization', 'party']
 
 type NumericImplementationMap = {
 	[K in NumericFormatKind]: FormatImplementation<K>
@@ -40,6 +63,19 @@ interface ChainEntry<K extends NumericFormatKind> {
 	readonly previous?: ChainEntry<K>
 }
 
+type ContactImplementationMap = {
+	[K in ContactFormatKind]: ContactFormatImplementation<K>
+}
+
+type ContactChainMap = {
+	[K in ContactFormatKind]: ContactChainEntry<K>
+}
+
+interface ContactChainEntry<K extends ContactFormatKind> {
+	readonly implementation: ContactFormatImplementation<K>
+	readonly previous?: ContactChainEntry<K>
+}
+
 interface FormatterConfig {
 	readonly locale: string
 	readonly fallbackLocale?: string
@@ -51,6 +87,11 @@ interface FormatterConfig {
 	readonly number: NumberFormatOptions
 	readonly money: MoneyFormatOptions
 	readonly percentage: PercentageFormatOptions
+	readonly address: AddressFormatOptions
+	readonly phone: FormatOptionsByKind['phone']
+	readonly person: FormatOptionsByKind['person']
+	readonly organization: FormatOptionsByKind['organization']
+	readonly party: FormatOptionsByKind['party']
 	readonly messages: FormatterMessages
 }
 
@@ -70,6 +111,11 @@ type Validation<T> = ValidationSuccess<T> | ValidationFailure
 interface ResolvedCall<K extends NumericFormatKind> {
 	readonly locale: string
 	readonly numberingSystem?: string
+	readonly options: FormatCallOptions<K>
+}
+
+interface ResolvedContactCall<K extends ContactFormatKind> {
+	readonly locale: string
 	readonly options: FormatCallOptions<K>
 }
 
@@ -218,7 +264,7 @@ function resolveCacheSize(value: number | undefined): number {
 	return cacheSize
 }
 
-function mergeOptions<K extends NumericFormatKind>(
+function mergeOptions<K extends FormatKind>(
 	base: FormatOptionsByKind[K],
 	addition: FormatCallOptions<K> | undefined,
 ): FormatCallOptions<K> {
@@ -237,6 +283,18 @@ function mergeConfig(base: FormatterConfig, addition: FormatterOptions): Formatt
 		number: { ...base.number, ...(addition.number ?? {}) },
 		money: { ...base.money, ...(addition.money ?? {}) },
 		percentage: { ...base.percentage, ...(addition.percentage ?? {}) },
+		address: {
+			...base.address,
+			...(addition.address ?? {}),
+			countryLayouts: {
+				...(base.address.countryLayouts ?? {}),
+				...(addition.address?.countryLayouts ?? {}),
+			},
+		},
+		phone: { ...base.phone, ...(addition.phone ?? {}) },
+		person: { ...base.person, ...(addition.person ?? {}) },
+		organization: { ...base.organization, ...(addition.organization ?? {}) },
+		party: { ...base.party, ...(addition.party ?? {}) },
 		messages: mergeMessages(base.messages, addition.messages),
 	}
 }
@@ -404,6 +462,10 @@ function isNumericKind(kind: FormatKind | string): kind is NumericFormatKind {
 	return NUMERIC_KINDS.includes(kind as NumericFormatKind)
 }
 
+function isContactKind(kind: FormatKind | string): kind is ContactFormatKind {
+	return CONTACT_KINDS.includes(kind as ContactFormatKind)
+}
+
 function createConfig(options: FormatterOptions): FormatterConfig {
 	const policy = options.unsupportedLocale ?? 'error'
 	const requestedLocale = options.locale ?? DEFAULT_LOCALE
@@ -426,9 +488,19 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 	const numberOptions = options.number ?? {}
 	const moneyOptions = options.money ?? {}
 	const percentageOptions = options.percentage ?? {}
+	const addressOptions = options.address ?? {}
+	const phoneOptions = options.phone ?? {}
+	const personOptions = options.person ?? {}
+	const organizationOptions = options.organization ?? {}
+	const partyOptions = options.party ?? {}
 	validateIntlOptions('number', locale, options.numberingSystem, numberOptions)
 	validateIntlOptions('money', locale, options.numberingSystem, moneyOptions as Record<string, unknown>)
 	validateIntlOptions('percentage', locale, options.numberingSystem, percentageOptions)
+	try {
+		validateContactOptions(addressOptions, phoneOptions, personOptions, organizationOptions, partyOptions)
+	} catch (error) {
+		throw new FormatConfigurationError(error instanceof Error ? error.message : 'Invalid contact formatting options.', { cause: error })
+	}
 
 	return {
 		locale,
@@ -441,14 +513,18 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 		number: cloneAndFreeze(options.number ?? {}),
 		money: cloneAndFreeze(options.money ?? {}),
 		percentage: cloneAndFreeze(options.percentage ?? {}),
-		messages: cloneAndFreeze(options.messages ?? {}),
+		address: cloneAndFreeze(addressOptions),
+		phone: cloneAndFreeze(phoneOptions),
+		person: cloneAndFreeze(personOptions),
+		organization: cloneAndFreeze(organizationOptions),
+		party: cloneAndFreeze(partyOptions),
+		messages: mergeMessages(BUILT_IN_CONTACT_MESSAGES, options.messages),
 	}
 }
 
 /**
- * The first public formatter slice. Numeric implementations live here while
- * the same immutable/composable contract is extended by later value-family
- * tickets.
+ * Immutable formatter implementation shared by numeric and contact value
+ * families. Later value-family slices extend the same typed chains.
  */
 class FormatterImpl implements Formatter {
 	readonly locale: string
@@ -463,9 +539,16 @@ class FormatterImpl implements Formatter {
 	private readonly percentageCache: BoundedCache<Intl.NumberFormat>
 	private readonly baseImplementations: NumericImplementationMap
 	private readonly chains: NumericChainMap
-	private readonly layers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[]
+	private readonly baseContactImplementations: ContactImplementationMap
+	private readonly contactChains: ContactChainMap
+	private readonly numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[]
+	private readonly contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[]
 
-	constructor(options: FormatterOptions = {}, layers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = []) {
+	constructor(
+		options: FormatterOptions = {},
+		numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = [],
+		contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = [],
+	) {
 		this.config = createConfig(options)
 		this.locale = this.config.locale
 		this.timeZone = this.config.timeZone
@@ -480,18 +563,44 @@ class FormatterImpl implements Formatter {
 			money: (value, options) => this.formatMoneyValue(value as { amount: number; currency: string }, options),
 			percentage: (value, options) => this.formatPercentageValue(value, options),
 		}
+		this.baseContactImplementations = {
+			address: (value, options, context) => this.formatAddressValue(value, options, context),
+			phone: (value, options, context) => this.formatPhoneValue(value, options, context),
+			person: (value) => this.formatPersonValue(value),
+			organization: (value, _options, context) => this.formatOrganizationValue(value, context),
+			party: (value, options, context) => this.formatPartyValue(value, options, context),
+		}
 		const optionLayers: { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = []
 		for (const kind of NUMERIC_KINDS) {
 			const implementation = options.overrides?.[kind] as FormatImplementation<NumericFormatKind> | undefined
 			if (implementation !== undefined) optionLayers.push({ kind, implementation })
 		}
-		this.layers = [...layers, ...optionLayers]
+		this.numericLayers = [...numericLayers, ...optionLayers]
+		this.contactLayers = [...contactLayers, ...this.contactOptionLayers(options.overrides)]
 		this.chains = {
 			number: { implementation: this.baseImplementations.number },
 			money: { implementation: this.baseImplementations.money },
 			percentage: { implementation: this.baseImplementations.percentage },
 		}
-		for (const layer of this.layers) this.addLayer(layer.kind, layer.implementation)
+		this.contactChains = {
+			address: { implementation: this.baseContactImplementations.address },
+			phone: { implementation: this.baseContactImplementations.phone },
+			person: { implementation: this.baseContactImplementations.person },
+			organization: { implementation: this.baseContactImplementations.organization },
+			party: { implementation: this.baseContactImplementations.party },
+		}
+		for (const layer of this.numericLayers) this.addLayer(layer.kind, layer.implementation)
+		for (const layer of this.contactLayers) this.addContactLayer(layer.kind, layer.implementation)
+	}
+
+	private contactOptionLayers(overrides: FormatterOverrides | undefined): { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] {
+		if (overrides === undefined) return []
+		const layers: { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = []
+		for (const kind of CONTACT_KINDS) {
+			const implementation = overrides[kind] as ContactFormatImplementation<ContactFormatKind> | undefined
+			if (implementation !== undefined) layers.push({ kind, implementation })
+		}
+		return layers
 	}
 
 	private addLayer(kind: NumericFormatKind, implementation: FormatImplementation<NumericFormatKind>): void {
@@ -505,11 +614,22 @@ class FormatterImpl implements Formatter {
 		}
 	}
 
+	private addContactLayer(kind: ContactFormatKind, implementation: ContactFormatImplementation<ContactFormatKind>): void {
+		if (typeof implementation !== 'function') {
+			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
+		}
+		const previous = this.contactChains[kind] as unknown as ContactChainEntry<ContactFormatKind>
+		;(this.contactChains as Record<ContactFormatKind, ContactChainEntry<ContactFormatKind>>)[kind] = {
+			implementation,
+			previous,
+		}
+	}
+
 	private resolveCall<K extends NumericFormatKind>(
 		kind: K,
 		options: FormatCallOptions<K> | undefined,
 	): ResolvedCall<K> {
-		const merged = mergeOptions(this.config[kind], options)
+		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
 		const { locale: requestedLocale, numberingSystem } = stripLocaleOptions(merged)
 		const locale = resolveConfiguredLocale(
 			requestedLocale ?? this.locale,
@@ -519,6 +639,37 @@ class FormatterImpl implements Formatter {
 		const selectedNumberingSystem = numberingSystem ?? this.numberingSystem
 		validateNumberingSystem(selectedNumberingSystem)
 		return { locale, numberingSystem: selectedNumberingSystem, options: merged }
+	}
+
+	private resolveContactCall<K extends ContactFormatKind>(
+		kind: K,
+		options: FormatCallOptions<K> | undefined,
+	): ResolvedContactCall<K> {
+		let merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
+		const addressCallOptions = options as FormatCallOptions<'address'> | undefined
+		if (kind === 'address' && addressCallOptions?.countryLayouts !== undefined) {
+			merged = Object.freeze({
+				...merged,
+				countryLayouts: {
+					...(this.config.address.countryLayouts ?? {}),
+					...addressCallOptions.countryLayouts,
+				},
+			}) as FormatCallOptions<K>
+		}
+		const { locale: requestedLocale } = merged as FormatCallOptions<K> & { locale?: string }
+		const locale = resolveConfiguredLocale(
+			requestedLocale ?? this.locale,
+			this.config.unsupportedLocale,
+			this.config.fallbackLocale,
+		)
+		try {
+			if (kind === 'address') validateContactOptions(merged as FormatCallOptions<'address'>, {}, {}, {}, {})
+			if (kind === 'phone') validateContactOptions({}, merged as FormatCallOptions<'phone'>, {}, {}, {})
+			if (kind === 'party') validateContactOptions({}, {}, {}, {}, merged as FormatCallOptions<'party'>)
+		} catch (error) {
+			throw new FormatConfigurationError(error instanceof Error ? error.message : `Invalid ${kind} formatting options.`, { cause: error })
+		}
+		return { locale, options: merged }
 	}
 
 	private cacheKey(locale: string, numberingSystem: string | undefined, options: Record<string, unknown>): string {
@@ -580,6 +731,92 @@ class FormatterImpl implements Formatter {
 		}
 	}
 
+	private formatAddressValue(
+		value: ContactValueByKind['address'],
+		options: FormatCallOptions<'address'>,
+		context: ContactFormatImplementationContext<'address'>,
+	): string {
+		const validation = validateAddress(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'address', validation.issues)
+		try {
+			return formatContactAddress(validation.value, options, { locale: context.locale, options })
+		} catch (error) {
+			if (error instanceof UnsupportedAddressLayoutError) {
+				throw new FormatProblem('unsupported', 'address', [issue('address', 'unsupported_country_layout', error.message, 'country', error)])
+			}
+			throw error
+		}
+	}
+
+	private formatPhoneValue(
+		value: ContactValueByKind['phone'],
+		options: FormatCallOptions<'phone'>,
+		context: ContactFormatImplementationContext<'phone'>,
+	): string {
+		const validation = validatePhone(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'phone', validation.issues)
+		try {
+			return formatContactPhone(validation.value, options, { locale: context.locale, messages: this.messages })
+		} catch (error) {
+			if (error instanceof MissingContactMessageError) {
+				throw new FormatProblem('unsupported', 'phone', [issue('phone', 'missing_message', error.message, undefined, error)])
+			}
+			throw error
+		}
+	}
+
+	private formatPersonValue(value: ContactValueByKind['person']): string {
+		const validation = validatePerson(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'person', validation.issues)
+		return formatContactPerson(validation.value)
+	}
+
+	private formatOrganizationValue(
+		value: ContactValueByKind['organization'],
+		context: ContactFormatImplementationContext<'organization'>,
+	): string {
+		const validation = validateOrganization(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'organization', validation.issues)
+		try {
+			return formatContactOrganization(validation.value, { locale: context.locale, messages: this.messages })
+		} catch (error) {
+			if (error instanceof MissingContactMessageError) {
+				throw new FormatProblem('unsupported', 'organization', [issue('organization', 'missing_message', error.message, undefined, error)])
+			}
+			throw error
+		}
+	}
+
+	private formatPartyValue(
+		value: ContactValueByKind['party'],
+		options: FormatCallOptions<'party'>,
+		context: ContactFormatImplementationContext<'party'>,
+	): string {
+		const validation = validateParty(value, options)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'party', validation.issues)
+		const childOptions = { locale: context.locale } as FormatCallOptions<'person'> & FormatCallOptions<'organization'>
+		const identity = inferPartyIdentity(validation.value, options)
+		if (identity === 'person') {
+			return this.invokeContact(
+				this.contactChains.person as ContactChainEntry<'person'>,
+				'person',
+				validation.value as ContactValueByKind['person'],
+				childOptions as FormatCallOptions<'person'>,
+				context.locale,
+			)
+		}
+		if (identity !== 'organization') {
+			throw new FormatProblem('invalid', 'party', [issue('party', 'ambiguous_identity', 'Party identity is ambiguous; supply a person or organization member or partyType option.')])
+		}
+		return this.invokeContact(
+			this.contactChains.organization as ContactChainEntry<'organization'>,
+			'organization',
+			validation.value as ContactValueByKind['organization'],
+			childOptions as FormatCallOptions<'organization'>,
+			context.locale,
+		)
+	}
+
 	private invoke<K extends NumericFormatKind>(
 		entry: ChainEntry<K>,
 		kind: K,
@@ -614,15 +851,75 @@ class FormatterImpl implements Formatter {
 		return entry.implementation(validatedValue, options, context)
 	}
 
+	private validateContactValue<K extends ContactFormatKind>(
+		kind: K,
+		value: unknown,
+		options: FormatCallOptions<K>,
+	): ContactValidation<ContactValueByKind[K]> {
+		if (kind === 'address') return validateAddress(value) as ContactValidation<ContactValueByKind[K]>
+		if (kind === 'phone') return validatePhone(value) as ContactValidation<ContactValueByKind[K]>
+		if (kind === 'person') return validatePerson(value) as ContactValidation<ContactValueByKind[K]>
+		if (kind === 'organization') return validateOrganization(value) as ContactValidation<ContactValueByKind[K]>
+		return validateParty(value, options as FormatCallOptions<'party'>) as ContactValidation<ContactValueByKind[K]>
+	}
+
+	private invokeContact<K extends ContactFormatKind>(
+		entry: ContactChainEntry<K>,
+		kind: K,
+		value: ContactValueByKind[K],
+		options: FormatCallOptions<K>,
+		locale: string,
+	): string {
+		const validation = this.validateContactValue(kind, value, options)
+		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
+		const validatedValue = validation.value
+		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
+			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
+			const resolved = this.resolveContactCall(kind, delegatedOptions)
+			const delegatedValidation = this.validateContactValue(kind, nextValue, delegatedOptions)
+			if (!delegatedValidation.ok) {
+				throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
+			}
+			if (entry.previous === undefined) {
+				return this.baseContactImplementations[kind](delegatedValidation.value, resolved.options, {
+					kind,
+					locale: resolved.locale,
+					options: resolved.options,
+					delegate: () => {
+						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
+					},
+				} as ContactFormatImplementationContext<K>)
+			}
+			return this.invokeContact(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
+		}
+		const context: ContactFormatImplementationContext<K> = { kind, locale, options, delegate }
+		return entry.implementation(validatedValue, options, context)
+	}
+
 	private evaluate(kind: FormatKind | string, value: unknown, options: unknown): FormatResult {
 		if (!FORMAT_KINDS.includes(kind as FormatKind)) {
 			return failed('unsupported', [issue(kind, 'unknown_kind', `Unknown format kind ${JSON.stringify(kind)}.`)])
 		}
-		if (!isNumericKind(kind)) {
+		if (!isNumericKind(kind) && !isContactKind(kind)) {
 			return failed('unsupported', [issue(kind, 'unsupported_kind', `Formatting ${kind} values is not implemented in this formatter.`)])
 		}
 
 		try {
+			if (isContactKind(kind)) {
+				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
+				const resolved = this.resolveContactCall(kind, typedOptions)
+				const output = this.invokeContact(
+					this.contactChains[kind] as ContactChainEntry<typeof kind>,
+					kind,
+					value as ContactValueByKind[typeof kind],
+					resolved.options,
+					resolved.locale,
+				)
+				if (typeof output !== 'string') {
+					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
+				}
+				return formatted(output)
+			}
 			const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
 			const resolved = this.resolveCall(kind, typedOptions)
 			const validation = kind === 'number'
@@ -674,6 +971,26 @@ class FormatterImpl implements Formatter {
 		return this.format('percentage', value, options)
 	}
 
+	formatAddress(value: FormatInputByKind['address'], options?: FormatCallOptions<'address'>): string {
+		return this.format('address', value, options)
+	}
+
+	formatPhone(value: FormatInputByKind['phone'], options?: FormatCallOptions<'phone'>): string {
+		return this.format('phone', value, options)
+	}
+
+	formatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): string {
+		return this.format('person', value, options)
+	}
+
+	formatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): string {
+		return this.format('organization', value, options)
+	}
+
+	formatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): string {
+		return this.format('party', value, options)
+	}
+
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult {
 		return this.safeFormat('number', value, options)
 	}
@@ -686,10 +1003,30 @@ class FormatterImpl implements Formatter {
 		return this.safeFormat('percentage', value, options)
 	}
 
+	safeFormatAddress(value: FormatInputByKind['address'], options?: FormatCallOptions<'address'>): FormatResult {
+		return this.safeFormat('address', value, options)
+	}
+
+	safeFormatPhone(value: FormatInputByKind['phone'], options?: FormatCallOptions<'phone'>): FormatResult {
+		return this.safeFormat('phone', value, options)
+	}
+
+	safeFormatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): FormatResult {
+		return this.safeFormat('person', value, options)
+	}
+
+	safeFormatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): FormatResult {
+		return this.safeFormat('organization', value, options)
+	}
+
+	safeFormatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): FormatResult {
+		return this.safeFormat('party', value, options)
+	}
+
 	compose(options: FormatterOptions = {}): Formatter {
 		const { overrides: _overrides, ...withoutOverrides } = options
 		const merged = mergeConfig(this.config, withoutOverrides)
-		const next = new FormatterImpl(merged, this.layers)
+		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers)
 		if (options.overrides !== undefined) return next.withOverrides(options.overrides)
 		return next
 	}
@@ -700,7 +1037,12 @@ class FormatterImpl implements Formatter {
 			const implementation = overrides[kind] as FormatImplementation<NumericFormatKind> | undefined
 			if (implementation !== undefined) additions.push({ kind, implementation })
 		}
-		const next = new FormatterImpl(this.config, [...this.layers, ...additions])
+		const contactAdditions: { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = []
+		for (const kind of CONTACT_KINDS) {
+			const implementation = overrides[kind] as ContactFormatImplementation<ContactFormatKind> | undefined
+			if (implementation !== undefined) contactAdditions.push({ kind, implementation })
+		}
+		const next = new FormatterImpl(this.config, [...this.numericLayers, ...additions], [...this.contactLayers, ...contactAdditions])
 		return next
 	}
 
@@ -723,12 +1065,32 @@ export function formatNumber(value: FormatInputByKind['number'], options?: Forma
 	return defaultFormatter.formatNumber(value, options)
 }
 
+export function formatAddress(value: FormatInputByKind['address'], options?: FormatCallOptions<'address'>): string {
+	return defaultFormatter.formatAddress(value, options)
+}
+
 export function formatMoney(value: FormatInputByKind['money'], options?: FormatCallOptions<'money'>): string {
 	return defaultFormatter.formatMoney(value, options)
 }
 
 export function formatPercentage(value: FormatInputByKind['percentage'], options?: FormatCallOptions<'percentage'>): string {
 	return defaultFormatter.formatPercentage(value, options)
+}
+
+export function formatPhone(value: FormatInputByKind['phone'], options?: FormatCallOptions<'phone'>): string {
+	return defaultFormatter.formatPhone(value, options)
+}
+
+export function formatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): string {
+	return defaultFormatter.formatPerson(value, options)
+}
+
+export function formatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): string {
+	return defaultFormatter.formatOrganization(value, options)
+}
+
+export function formatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): string {
+	return defaultFormatter.formatParty(value, options)
 }
 
 export function formatValue<K extends FormatKind>(
@@ -751,10 +1113,30 @@ export function safeFormatNumber(value: FormatInputByKind['number'], options?: F
 	return defaultFormatter.safeFormatNumber(value, options)
 }
 
+export function safeFormatAddress(value: FormatInputByKind['address'], options?: FormatCallOptions<'address'>): FormatResult {
+	return defaultFormatter.safeFormatAddress(value, options)
+}
+
 export function safeFormatMoney(value: FormatInputByKind['money'], options?: FormatCallOptions<'money'>): FormatResult {
 	return defaultFormatter.safeFormatMoney(value, options)
 }
 
 export function safeFormatPercentage(value: FormatInputByKind['percentage'], options?: FormatCallOptions<'percentage'>): FormatResult {
 	return defaultFormatter.safeFormatPercentage(value, options)
+}
+
+export function safeFormatPhone(value: FormatInputByKind['phone'], options?: FormatCallOptions<'phone'>): FormatResult {
+	return defaultFormatter.safeFormatPhone(value, options)
+}
+
+export function safeFormatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): FormatResult {
+	return defaultFormatter.safeFormatPerson(value, options)
+}
+
+export function safeFormatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): FormatResult {
+	return defaultFormatter.safeFormatOrganization(value, options)
+}
+
+export function safeFormatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): FormatResult {
+	return defaultFormatter.safeFormatParty(value, options)
 }

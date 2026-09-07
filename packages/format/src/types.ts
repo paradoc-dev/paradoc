@@ -1,4 +1,4 @@
-import type { Money } from '@paradoc/types'
+import type { Address, Money, Organization, Party, Person, Phone } from '@paradoc/types'
 
 /** Value families understood by the public formatter contract. */
 export const FORMAT_KINDS = [
@@ -23,6 +23,7 @@ export const FORMAT_KINDS = [
 
 export type FormatKind = (typeof FORMAT_KINDS)[number]
 export type NumericFormatKind = 'money' | 'number' | 'percentage'
+export type ContactFormatKind = 'address' | 'phone' | 'person' | 'organization' | 'party'
 
 type NumberOptionsBase = Omit<
 	Intl.NumberFormatOptions,
@@ -42,15 +43,51 @@ export interface MoneyFormatOptions extends NumberOptionsBase {
 /** Options for formatting a percentage-point value. */
 export type PercentageFormatOptions = NumberOptionsBase
 
+export type AddressLayoutPolicy = 'country' | 'generic'
+
+export interface AddressLayoutContext {
+	readonly locale: string
+	readonly options: AddressFormatOptions
+}
+
+/** A caller-provided layout for one normalized ISO 3166-1 country code. */
+export type AddressLayoutFormatter = (address: Address, context: AddressLayoutContext) => string
+
+/** Options for postal address presentation. */
+export interface AddressFormatOptions {
+	/** Use country-specific layouts by default, or an explicit component-preserving generic layout. */
+	layout?: AddressLayoutPolicy
+	/** Additional or replacement layouts keyed by ISO 3166-1 alpha-2 country code. */
+	countryLayouts?: Readonly<Record<string, AddressLayoutFormatter>>
+}
+
+/** Options for phone presentation. */
+export interface PhoneFormatOptions {
+	/** Override the package-owned extension label for this call or formatter. */
+	extensionLabel?: string
+}
+
+/** Options for person presentation. */
+export type PersonFormatOptions = Record<string, never>
+
+/** Options for organization presentation. */
+export type OrganizationFormatOptions = Record<string, never>
+
+/** Options for party dispatch when shape alone is not enough to identify an identity. */
+export interface PartyFormatOptions {
+	/** Explicitly identify a party whose fields do not carry a distinguishing identity member. */
+	partyType?: 'person' | 'organization'
+}
+
 export type FormatOptionsByKind = {
 	money: MoneyFormatOptions
 	number: NumberFormatOptions
 	percentage: PercentageFormatOptions
-	address: Record<string, unknown>
-	phone: Record<string, unknown>
-	person: Record<string, unknown>
-	organization: Record<string, unknown>
-	party: Record<string, unknown>
+	address: AddressFormatOptions
+	phone: PhoneFormatOptions
+	person: PersonFormatOptions
+	organization: OrganizationFormatOptions
+	party: PartyFormatOptions
 	coordinate: Record<string, unknown>
 	bbox: Record<string, unknown>
 	duration: Record<string, unknown>
@@ -66,11 +103,11 @@ export type FormatInputByKind = {
 	money: Money | Partial<Money> | Record<string, unknown> | null | undefined
 	number: number | null | undefined
 	percentage: number | null | undefined
-	address: unknown
-	phone: unknown
-	person: unknown
-	organization: unknown
-	party: unknown
+	address: Address | Partial<Address> | Record<string, unknown> | null | undefined
+	phone: Phone | Partial<Phone> | string | Record<string, unknown> | null | undefined
+	person: Person | Partial<Person> | Record<string, unknown> | null | undefined
+	organization: Organization | Partial<Organization> | Record<string, unknown> | null | undefined
+	party: Party | Partial<Person> | Partial<Organization> | Record<string, unknown> | null | undefined
 	coordinate: unknown
 	bbox: unknown
 	duration: unknown
@@ -114,8 +151,13 @@ export interface FormatterOptions {
 	number?: NumberFormatOptions
 	money?: MoneyFormatOptions
 	percentage?: PercentageFormatOptions
-	/** Caller-supplied package messages. The numeric slice does not require labels yet. */
+	/** Caller-supplied package messages, merged with the initial built-in locale resources. */
 	messages?: FormatterMessages
+	address?: AddressFormatOptions
+	phone?: PhoneFormatOptions
+	person?: PersonFormatOptions
+	organization?: OrganizationFormatOptions
+	party?: PartyFormatOptions
 	overrides?: FormatterOverrides
 }
 
@@ -123,6 +165,14 @@ export type NumericValueByKind = {
 	number: number
 	money: Money | Partial<Money> | Record<string, unknown>
 	percentage: number
+}
+
+export type ContactValueByKind = {
+	address: FormatInputByKind['address']
+	phone: FormatInputByKind['phone']
+	person: FormatInputByKind['person']
+	organization: FormatInputByKind['organization']
+	party: FormatInputByKind['party']
 }
 
 export interface FormatImplementationContext<K extends NumericFormatKind> {
@@ -142,8 +192,27 @@ export type FormatImplementation<K extends NumericFormatKind> = (
 	context: FormatImplementationContext<K>,
 ) => string
 
+export interface ContactFormatImplementationContext<K extends ContactFormatKind> {
+	readonly kind: K
+	readonly locale: string
+	readonly options: FormatCallOptions<K>
+	/** Call the implementation that was active before this override. */
+	readonly delegate: (
+		value?: ContactValueByKind[K],
+		options?: FormatCallOptions<K>,
+	) => string
+}
+
+export type ContactFormatImplementation<K extends ContactFormatKind> = (
+	value: ContactValueByKind[K],
+	options: FormatCallOptions<K>,
+	context: ContactFormatImplementationContext<K>,
+) => string
+
 export type FormatterOverrides = Partial<{
 	[K in NumericFormatKind]: FormatImplementation<K>
+}> & Partial<{
+	[K in ContactFormatKind]: ContactFormatImplementation<K>
 }>
 
 export type FormatStatus =
@@ -210,9 +279,19 @@ export interface Formatter {
 	formatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): string
 	formatMoney(value: FormatInputByKind['money'], options?: FormatCallOptions<'money'>): string
 	formatPercentage(value: FormatInputByKind['percentage'], options?: FormatCallOptions<'percentage'>): string
+	formatAddress(value: FormatInputByKind['address'], options?: FormatCallOptions<'address'>): string
+	formatPhone(value: FormatInputByKind['phone'], options?: FormatCallOptions<'phone'>): string
+	formatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): string
+	formatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): string
+	formatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): string
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult
 	safeFormatMoney(value: FormatInputByKind['money'], options?: FormatCallOptions<'money'>): FormatResult
 	safeFormatPercentage(value: FormatInputByKind['percentage'], options?: FormatCallOptions<'percentage'>): FormatResult
+	safeFormatAddress(value: FormatInputByKind['address'], options?: FormatCallOptions<'address'>): FormatResult
+	safeFormatPhone(value: FormatInputByKind['phone'], options?: FormatCallOptions<'phone'>): FormatResult
+	safeFormatPerson(value: FormatInputByKind['person'], options?: FormatCallOptions<'person'>): FormatResult
+	safeFormatOrganization(value: FormatInputByKind['organization'], options?: FormatCallOptions<'organization'>): FormatResult
+	safeFormatParty(value: FormatInputByKind['party'], options?: FormatCallOptions<'party'>): FormatResult
 
 	/** Create an independent formatter with merged configuration. */
 	compose(options?: FormatterOptions): Formatter
