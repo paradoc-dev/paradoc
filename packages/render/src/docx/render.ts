@@ -1,8 +1,8 @@
-import { preprocessFieldData, usaSerializers } from '@paradoc/serialization'
-import type { Bindings, Form, SerializerRegistry } from '@paradoc/types'
+import { defaultFormatter } from '@paradoc/format'
+import type { Bindings, Form, Formatter } from '@paradoc/types'
 import { unzipSync, zipSync } from 'fflate'
 import { applyBindings } from '../text/bindings'
-import { createSerializedFieldValue } from '../text/field-serializer'
+import { formatFieldData, validateFieldBindings, unwrapFormattedValue } from '../text/field-formatter'
 import { renderTemplate } from '../text/template'
 import { getPath } from '../path'
 import { createDocxTemplateHelpers, type DocxSignatureOptions } from './signatures'
@@ -11,7 +11,6 @@ export type { DocxSignatureOptions } from './signatures'
 
 export interface DocxRenderOptions {
   cmdDelimiter?: [string, string]
-  failFast?: boolean
   processLineBreaks?: boolean
 }
 
@@ -19,7 +18,7 @@ export interface RenderDocxOptions {
   template: Uint8Array
   data: Record<string, unknown>
   form?: Form
-  serializers?: SerializerRegistry
+  formatter?: Formatter
   bindings?: Bindings
   signatureOptions?: DocxSignatureOptions
   options?: DocxRenderOptions
@@ -84,7 +83,7 @@ function expressionValue(expression: string, data: Record<string, unknown>): unk
   if (value === 'false') return false
   if (value === 'null') return null
   if (/^-?\d+(?:\.\d+)?$/.test(value)) return Number(value)
-  return getPath(data, value)
+  return unwrapFormattedValue(getPath(data, value))
 }
 
 function evaluateCondition(expression: string, data: Record<string, unknown>): boolean {
@@ -214,7 +213,7 @@ function expandControls(
       processLineBreaks,
     )
   }
-  return `${before}${expanded}${expandControls(xml.slice(closing.end), data, delimiters, helpers, processLineBreaks)}`
+  return `${renderLeafXml(before, data, delimiters, helpers, processLineBreaks)}${expanded}${expandControls(xml.slice(closing.end), data, delimiters, helpers, processLineBreaks)}`
 }
 
 function normalizeDocxExpressions(value: string, delimiters: [string, string]): string {
@@ -244,28 +243,32 @@ function renderLeafXml(
   processLineBreaks = true,
 ): string {
   const textNode = /(<w:t\b[^>]*>)([\s\S]*?)(<\/w:t>)/g
-  let rendered = xml.replace(textNode, (_, open: string, content: string, close: string) =>
-    `${open}${renderTextNodeContent(content, data, delimiters, helpers, processLineBreaks)}${close}`)
-
-  // Word may split a command across adjacent runs. Consolidate only the
-  // affected paragraph; ordinary runs retain their original formatting.
-  rendered = rendered.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (paragraph) => {
+  return xml.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (paragraph) => {
     const nodes = [...paragraph.matchAll(textNode)]
-    const visible = nodes.map((match) => decodeXml(match[2] ?? '')).join('')
+    const texts = nodes.map((match) => decodeXml(match[2] ?? ''))
+    const visible = texts.join('')
+    let offset = 0
+    const boundaries = texts.slice(0, -1).map((text) => (offset += text.length))
+    const commandPattern = new RegExp(`${regexEscape(delimiters[0])}[\\s\\S]*?${regexEscape(delimiters[1])}`, 'g')
+    const hasSplitCommand = [...visible.matchAll(commandPattern)].some((match) =>
+      boundaries.some((boundary) => boundary > match.index! && boundary < match.index! + match[0].length))
+
+    // Inspect original template runs before inserting data. Inserted text is never
+    // reinterpreted as a command, including literal braces from a formatter.
+    if (!hasSplitCommand) {
+      return paragraph.replace(textNode, (_, open: string, content: string, close: string) =>
+        `${open}${renderTextNodeContent(content, data, delimiters, helpers, processLineBreaks)}${close}`)
+    }
     const normalized = normalizeDocxExpressions(visible, delimiters)
-    if (!normalized.includes('{{')) return paragraph
     let replacement = encodeXml(renderTemplate(normalized, data, helpers, (text) => text))
     if (processLineBreaks) replacement = replacement.replace(/\r?\n/g, '</w:t><w:br/><w:t xml:space="preserve">')
     let used = false
     return paragraph.replace(textNode, (_, open: string, _content: string, close: string) => {
       if (used) return `${open}${close}`
       used = true
-      const value = replacement
-      replacement = ''
-      return `${open}${value}${close}`
+      return `${open}${replacement}${close}`
     })
   })
-  return rendered
 }
 
 function renderXml(
@@ -282,15 +285,18 @@ export async function renderDocx({
   template,
   data,
   form,
-  serializers = usaSerializers,
+  formatter = defaultFormatter,
   bindings,
   signatureOptions,
   options = {},
 }: RenderDocxOptions): Promise<Uint8Array> {
   let prepared = form
-    ? preprocessFieldData(data, form, (value, fieldType) => createSerializedFieldValue(value, fieldType, serializers))
+    ? formatFieldData(data, form, formatter)
     : data
-  if (bindings) prepared = applyBindings(prepared, bindings)
+  if (bindings) {
+    if (form) validateFieldBindings(form, bindings)
+    prepared = applyBindings(prepared, bindings)
+  }
   const files = unzipSync(template)
   const delimiters = options.cmdDelimiter ?? ['{{', '}}']
   const helpers = createDocxTemplateHelpers(signatureOptions)
@@ -298,11 +304,7 @@ export async function renderDocx({
   for (const [name, bytes] of Object.entries(files)) {
     if (!/^word\/(?:document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(name)) continue
     const xml = normalizeInlineControls(textDecoder.decode(bytes))
-    try {
-      files[name] = textEncoder.encode(renderXml(xml, prepared, delimiters, helpers, processLineBreaks))
-    } catch (error) {
-      if (options.failFast) throw error
-    }
+    files[name] = textEncoder.encode(renderXml(xml, prepared, delimiters, helpers, processLineBreaks))
   }
   return zipSync(files, { level: 6 })
 }

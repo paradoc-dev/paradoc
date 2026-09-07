@@ -5,7 +5,7 @@ description: Render Paradoc artifacts to Word documents
 
 Render forms to DOCX (Word) documents with Paradoc's dependency-light Open XML
 implementation. It supports placeholders, conditionals, loops, custom
-delimiters, split Word runs, and automatic field serialization.
+delimiters, split Word runs, and automatic field formatting.
 
 # Example
 
@@ -82,7 +82,7 @@ function docxRenderer(options?: DocxRendererOptions): ParadocRenderer<
 ### DocxRendererOptions
 
 <PropertiesTable properties={[
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry for formatting field values. Defaults to USA serializers.', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
 ]} />
 
@@ -115,8 +115,8 @@ async function renderDocx(options: RenderDocxOptions): Promise<Uint8Array>
 <PropertiesTable properties={[
   { name: 'template', type: 'Uint8Array', description: 'DOCX template file as binary data' },
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
-  { name: 'form', type: 'Form', description: 'Form schema for automatic field type detection and serialization', isOptional: true },
-  { name: 'serializers', type: 'SerializerRegistry', description: 'Custom serializer registry. Defaults to USA serializers.', isOptional: true },
+  { name: 'form', type: 'Form', description: 'Form schema for automatic field type detection and formatting', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
   { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
   { name: 'options', type: 'DocxRenderOptions', description: 'DOCX-specific rendering options', isOptional: true },
@@ -126,7 +126,6 @@ async function renderDocx(options: RenderDocxOptions): Promise<Uint8Array>
 
 <PropertiesTable properties={[
   { name: 'cmdDelimiter', type: '[string, string]', description: 'Custom command delimiter. Defaults to ["{{", "}}"]', isOptional: true },
-  { name: 'failFast', type: 'boolean', description: 'Fail immediately on errors. Defaults to false.', isOptional: true },
   { name: 'processLineBreaks', type: 'boolean', description: 'Convert newlines to line breaks. Defaults to true.', isOptional: true },
 ]} />
 
@@ -158,9 +157,9 @@ Discount Applied: {{discountPercent}}
 | `{{#each items}}...{{/each}}` | Loop over arrays |
 | `{{#unless condition}}...{{/unless}}` | Negative conditionals |
 
-# Automatic Serialization
+# Automatic Formatting
 
-When a form schema is provided, field values are automatically serialized:
+When a form schema is provided, field values are automatically formatted:
 
 ```ts
 // Money fields formatted as "$50,000.00"
@@ -168,22 +167,24 @@ When a form schema is provided, field values are automatically serialized:
 // Phone fields formatted as "(555) 123-4567"
 ```
 
-# Custom Serializers
+# Custom Formatters
 
-Use custom serializers for different locales:
+Use a formatter for different locales:
 
 ```ts
 import { renderDocx } from '@paradoc/render/docx'
-import { euSerializers } from '@paradoc/serialization'
+import { createFormatter } from '@paradoc/format'
 
 const output = await renderDocx({
   template: templateBytes,
   data,
   form,
-  serializers: euSerializers,
+  formatter: createFormatter({ locale: 'de-DE' }),
 })
-// Money formatted as "50.000,00 €" instead of "$50,000.00"
+// EUR amounts use German number formatting; currency stays explicit in the value.
 ```
+
+Formatting failures reject the render with the field path and status. Invalid values and template errors never produce a silently unfinished document. An artifact-level `formatter` passed to `render()` overrides the renderer default.
 
 # Template Bindings
 
@@ -216,4 +217,4 @@ const form = para.form({
 # Related
 
 - [Renderers](/sdk/renderers) - Renderer interface overview
-- [Serialization](/sdk/serialization) - Value formatting
+- [Formatting](/sdk/serialization) - Value formatting

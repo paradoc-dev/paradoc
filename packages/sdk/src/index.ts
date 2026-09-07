@@ -53,7 +53,7 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<R
 
 /** @deprecated Prefer renderLayer() or @paradoc/render/docx. */
 export function docxRenderer(options: DocxRendererOptions = {}): ParadocRenderer<RendererLayer, Uint8Array> {
-  return renderLayer({ serializers: options.serializers, docxSignatureOptions: options.signatureOptions }) as ParadocRenderer<RendererLayer, Uint8Array>
+  return renderLayer({ formatter: options.formatter, docxSignatureOptions: options.signatureOptions }) as ParadocRenderer<RendererLayer, Uint8Array>
 }
 
 /** @deprecated Prefer inspectAcroFormFields from @paradoc/render/pdf. */

@@ -1,3 +1,6 @@
+import { createFormatter } from '@paradoc/format'
+import type { Form } from '@paradoc/types'
+import { renderText } from '../src/text'
 import { readFile } from 'node:fs/promises'
 import { unzipSync, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
@@ -155,5 +158,69 @@ describe('DOCX renderer behavior', () => {
     const actual = await docxRenderer().render(request as never)
     expect(visibleText(actual)).toContain('Pixel')
     expect(documentXml(actual)).not.toMatch(/\{\{(?:name|species|weight|hasVaccination)\}\}/)
+  })
+})
+
+
+describe('DOCX artifact formatting', () => {
+  const paragraph = (text: string) => `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`
+  const templateFor = (text: string) => minimalDocx(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${text}</w:body></w:document>`)
+  const form = {
+    fields: {
+      enabled: { type: 'boolean' },
+      count: { type: 'number' },
+      rows: { type: 'list', item: { type: 'fieldset', fields: { amount: { type: 'money' } } } },
+    },
+    defs: { total: { type: 'money', value: {} } },
+    parties: { owner: { label: 'Owner', partyType: 'person' } },
+  } as unknown as Form
+  const data = {
+    enabled: false, count: 0,
+    rows: [{ amount: { amount: 12.5, currency: 'EUR' } }],
+    defs: { total: { amount: 12.5, currency: 'EUR' } },
+    parties: { owner: { name: 'Ada' } },
+  }
+
+  it('shares artifact context across nested, computed, party and boolean values', async () => {
+    const formatter = createFormatter({ locale: 'de-DE' })
+    const template = templateFor([
+      paragraph('{{defs.total}}|{{parties.owner}}|{{enabled}}|{{count}}|'),
+      paragraph('{{FOR row IN rows}}'), paragraph('{{$row.amount}}'), paragraph('{{END-FOR row}}'),
+      paragraph('{{IF enabled}}'), paragraph('WRONG'), paragraph('{{END-IF}}'),
+      paragraph('{{IF count == 0}}'), paragraph('|ZERO'), paragraph('{{END-IF}}'),
+    ].join(''))
+    const expected = renderText({ form, formatter, data,
+      template: '{{defs.total}}|{{parties.owner}}|{{enabled}}|{{count}}|{{#each rows}}{{amount}}{{/each}}|ZERO',
+    })
+    expect(visibleText(await renderDocx({ template, data, form, formatter }))).toBe(expected)
+    const { parties, defs, ...fields } = data
+    const actual = await docxRenderer({ formatter: createFormatter({ locale: 'fr-FR' }) }).render({
+      template: { type: 'docx', content: template }, data: { fields, parties, defs }, form, ctx: { formatter },
+    } as never)
+    expect(visibleText(actual)).toBe(expected)
+  })
+
+  it('rejects invalid indexed values and unknown member bindings', async () => {
+    const template = templateFor(paragraph('{{value}}'))
+    await expect(renderDocx({ template, form, data: { ...data, rows: [{ amount: { amount: 'bad', currency: 'EUR' } }] } }))
+      .rejects.toMatchObject({ path: 'fields.rows[0].amount', status: 'invalid' })
+    await expect(renderDocx({ template, form, data, bindings: { value: 'rows[0].amount.unknown' } }))
+      .rejects.toMatchObject({ status: 'invalid' })
+  })
+
+  it.each([false, true])('inserts formatter output once with split runs = %s', async (split) => {
+    const formatter = createFormatter({ overrides: { money: () => '<>& {{count}}' } })
+    const body = split
+      ? '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>{{defs.to</w:t></w:r><w:r><w:t>tal}}</w:t></w:r></w:p>'
+      : '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>{{defs.total}}</w:t></w:r><w:r><w:t>!</w:t></w:r></w:p>'
+    const output = await renderDocx({ template: templateFor(body), form, formatter, data })
+    expect(visibleText(output)).toBe(split ? '<>& {{count}}' : '<>& {{count}}!')
+    expect(documentXml(output)).toContain('&lt;&gt;&amp; {{count}}')
+    expect(documentXml(output)).toContain('<w:rPr><w:b/></w:rPr>')
+  })
+
+  it('rejects malformed template controls instead of returning an unrendered file', async () => {
+    await expect(renderDocx({ template: templateFor(paragraph('{{IF enabled}}')), data }))
+      .rejects.toThrow('Unclosed DOCX control command')
   })
 })

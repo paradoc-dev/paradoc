@@ -84,7 +84,7 @@ export function renderLayer(options: RenderLayerOptions = {}): ParadocRenderer<R
         requireContent(request.template)
         const { docxRenderer } = await import('./docx')
         return docxRenderer({
-          serializers: options.serializers,
+          formatter: options.formatter,
           signatureOptions: options.docxSignatureOptions,
         }).render(request as never)
       }
