@@ -75,7 +75,7 @@ import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuild
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { FieldsToDataType } from '@/inference'
 import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesValidationResult } from '@/logic'
-import { evaluateFormDefs, evaluateFormRules } from '@/logic'
+import { buildFormContext, evaluateFormDefs, evaluateFormRules } from '@/logic'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
 import { buildRendererLayer, selectLayerRenderer } from '../shared/render-layer'
 import type { ArtifactInstanceOptions } from '../shared/render-layer'
@@ -915,7 +915,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 	const getRuntimeState = (): FormRuntimeState => {
 		if (!_runtimeState) {
-			const result = evaluateFormDefs(formDef, { fields: fieldValues })
+			const result = evaluateFormDefs(formDef, {
+				fields: fieldValues,
+				parties: partyValues,
+				witnesses: witnesses.map((witness) => witness.party),
+			})
 			if ('value' in result) {
 				_runtimeState = result.value
 			} else {
@@ -1598,16 +1602,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		validateRules(): FormRulesValidationResult {
 			const state = getRuntimeState()
-			// Build a simple context for rule evaluation
-			// The buildFormContext creates nested fields.fieldId structure
-			// We need to also pass the flat field values and defs values
-			const context: import('@/logic').EvaluationContext = {
-				fields: {},
-			}
-			// Build fields context for the evaluator
-			for (const [fieldId, value] of Object.entries(fieldValues)) {
-				context.fields[fieldId] = value
-			}
+			const context = buildFormContext(formDef, {
+				fields: fieldValues,
+				parties: partyValues,
+				witnesses: witnesses.map((witness) => witness.party),
+			})
 			return evaluateFormRules(formDef, fieldValues, state.defsValues, context)
 		},
 

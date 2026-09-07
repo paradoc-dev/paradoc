@@ -51,6 +51,21 @@ describe('RuntimeForm runtime state', () => {
       })
       .build()
 
+  const createFormWithPartyAndWitnessExpressions = () =>
+    form({
+      kind: 'form',
+      name: 'party-witness-form',
+      version: '1.0.0',
+      title: 'Party and Witness Form',
+      fields: {
+        partyGate: { type: 'text', visible: 'partyCount("buyer") > 0' },
+        witnessGate: { type: 'text', visible: 'witnessCount() > 0' },
+      },
+      parties: {
+        buyer: { label: 'Buyer', types: ['person'], min: 0 },
+      },
+    } as any)
+
   // Note: The 'disabled' property is defined in TypeScript types but not in the
   // JSON schema, so it gets stripped during field parsing. For now, we skip
   // testing disabled expressions in RuntimeForm tests.
@@ -299,6 +314,31 @@ describe('RuntimeForm runtime state', () => {
       const filled = formInstance.fill({ fields:  { age: 25 } } as any)
 
       expect(filled.isAnnexRequired('nonexistent')).toBe(false)
+    })
+  })
+
+  describe('party and witness context', () => {
+    test('forwards party values to cached runtime evaluation', () => {
+      const formInstance = createFormWithPartyAndWitnessExpressions()
+      const withoutBuyer = formInstance.partialFill()
+      const withBuyer = formInstance.partialFill({
+        parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
+      } as any)
+
+      expect(withoutBuyer.isFieldVisible('partyGate')).toBe(false)
+      expect(withBuyer.isFieldVisible('partyGate')).toBe(true)
+    })
+
+    test('forwards witness values to cached runtime evaluation', () => {
+      const formInstance = createFormWithPartyAndWitnessExpressions()
+      const withoutWitness = formInstance.partialFill().prepareForSigning()
+      const withWitness = withoutWitness.addWitness({
+        id: 'witness-0',
+        party: { name: 'Wendy Witness' },
+      })
+
+      expect(withoutWitness.isFieldVisible('witnessGate')).toBe(false)
+      expect(withWitness.isFieldVisible('witnessGate')).toBe(true)
     })
   })
 
