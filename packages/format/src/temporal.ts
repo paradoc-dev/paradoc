@@ -335,26 +335,46 @@ export function validateDuration(value: unknown): TemporalValidation<ParsedDurat
 	if (typeof value !== 'string' || value.length === 0) return invalid('duration', 'Duration must be an ISO 8601 duration string.')
 	const match = DURATION_PATTERN.exec(value)
 	if (match === null) return invalid('duration', `Duration ${JSON.stringify(value)} is not a valid ISO 8601 duration.`)
+	const parsed: ParsedDurationValue = {
+		years: Number.parseInt(match[1]?.slice(0, -1) ?? '0', 10),
+		months: Number.parseInt(match[2]?.slice(0, -1) ?? '0', 10),
+		weeks: Number.parseInt(match[3]?.slice(0, -1) ?? '0', 10),
+		days: Number.parseInt(match[4]?.slice(0, -1) ?? '0', 10),
+		hours: Number.parseInt(match[5]?.slice(0, -1) ?? '0', 10),
+		minutes: Number.parseInt(match[6]?.slice(0, -1) ?? '0', 10),
+		seconds: Number.parseFloat(match[7]?.slice(0, -1) ?? '0'),
+	}
+	for (const [component, amount] of Object.entries(parsed)) {
+		if (!Number.isFinite(amount)) {
+			return invalid('duration', `Duration ${JSON.stringify(value)} contains an out-of-range ${component} component.`, component, 'invalid_number')
+		}
+	}
 	return {
 		ok: true,
-		value: {
-			years: Number.parseInt(match[1]?.slice(0, -1) ?? '0', 10),
-			months: Number.parseInt(match[2]?.slice(0, -1) ?? '0', 10),
-			weeks: Number.parseInt(match[3]?.slice(0, -1) ?? '0', 10),
-			days: Number.parseInt(match[4]?.slice(0, -1) ?? '0', 10),
-			hours: Number.parseInt(match[5]?.slice(0, -1) ?? '0', 10),
-			minutes: Number.parseInt(match[6]?.slice(0, -1) ?? '0', 10),
-			seconds: Number.parseFloat(match[7]?.slice(0, -1) ?? '0'),
-		},
+		value: parsed,
 	}
 }
 
-export function resolveTemporalMessage(messages: FormatterMessages, locale: string, key: string): string {
+function findTemporalMessage(messages: FormatterMessages, locale: string, key: string): string | undefined {
 	const exact = messages[locale]?.[key]
 	if (exact !== undefined) return exact
 	const language = locale.split('-')[0]
 	const languageMessages = Object.entries(messages).find(([candidate]) => candidate.split('-')[0] === language)?.[1]
-	if (languageMessages?.[key] !== undefined) return languageMessages[key]
+	return languageMessages?.[key]
+}
+
+export function resolveTemporalMessage(
+	messages: FormatterMessages,
+	locale: string,
+	key: string,
+	fallbackLocale?: string,
+): string {
+	const message = findTemporalMessage(messages, locale, key)
+	if (message !== undefined) return message
+	if (fallbackLocale !== undefined) {
+		const fallbackMessage = findTemporalMessage(messages, fallbackLocale, key)
+		if (fallbackMessage !== undefined) return fallbackMessage
+	}
 	throw new MissingTemporalMessageError(key, locale)
 }
 
@@ -365,8 +385,10 @@ export function formatDurationValue(
 	options: DurationFormatOptions,
 	messages: FormatterMessages,
 	getNumberFormat: (locale: string, numberingSystem: string | undefined, options: DurationFormatOptions) => Intl.NumberFormat,
+	getPluralRules: (locale: string, options: object) => Intl.PluralRules,
+	getListFormat: (locale: string) => Intl.ListFormat,
+	fallbackLocale?: string,
 ): string {
-	const pluralRules = new Intl.PluralRules(locale)
 	const parts: string[] = []
 	const units: readonly [keyof ParsedDurationValue, string][] = [
 		['years', 'year'],
@@ -381,23 +403,24 @@ export function formatDurationValue(
 		maximumFractionDigits: 9,
 		...options,
 	})
+	const pluralRules = getPluralRules(locale, numberFormat.resolvedOptions())
 
 	for (const [key, unit] of units) {
 		const amount = value[key]
 		if (amount === 0) continue
 		const category = pluralRules.select(amount)
-		const template = resolveTemporalMessage(messages, locale, `duration.${unit}.${category}`)
+		const template = resolveTemporalMessage(messages, locale, `duration.${unit}.${category}`, fallbackLocale)
 		const number = numberFormat.format(amount)
 		parts.push(template.includes('{value}') ? template.replaceAll('{value}', number) : `${number} ${template}`)
 	}
 
 	if (parts.length === 0) {
-		const template = resolveTemporalMessage(messages, locale, 'duration.second.other')
+		const template = resolveTemporalMessage(messages, locale, 'duration.second.other', fallbackLocale)
 		const number = numberFormat.format(0)
 		return template.includes('{value}') ? template.replaceAll('{value}', number) : `${number} ${template}`
 	}
 
-	return parts.join(', ')
+	return parts.length === 1 ? parts[0]! : getListFormat(locale).format(parts)
 }
 
 export type TemporalIntlOptions = DateFormatOptions | DatetimeFormatOptions | TimeFormatOptions
@@ -405,14 +428,23 @@ export type TemporalIntlOptions = DateFormatOptions | DatetimeFormatOptions | Ti
 export function dateTimeDefaults(kind: 'date' | 'datetime' | 'time', options: TemporalIntlOptions): Intl.DateTimeFormatOptions {
 	const raw = options as Intl.DateTimeFormatOptions & { timeZone?: string; calendar?: string }
 	const hasDateFields = ['weekday', 'year', 'month', 'day', 'dateStyle'].some((key) => raw[key as keyof typeof raw] !== undefined)
-	const hasTimeFields = ['dayPeriod', 'hour', 'minute', 'second', 'fractionalSecondDigits', 'timeStyle'].some((key) => raw[key as keyof typeof raw] !== undefined)
+	const hasTimeFields = ['dayPeriod', 'hour', 'minute', 'second', 'timeStyle'].some((key) => raw[key as keyof typeof raw] !== undefined)
+	const hasFractionalSecondDigits = raw.fractionalSecondDigits !== undefined
+	const secondsForFraction = hasFractionalSecondDigits && raw.second === undefined && raw.timeStyle === undefined
+		? { second: '2-digit' as const }
+		: {}
 	if (kind === 'date') {
 		return hasDateFields ? raw : { year: 'numeric', month: 'short', day: 'numeric', ...raw }
 	}
 	if (kind === 'time') {
-		return hasTimeFields ? raw : { hour: 'numeric', minute: '2-digit', ...raw }
+		return hasTimeFields
+			? { ...secondsForFraction, ...raw }
+			: { hour: 'numeric', minute: '2-digit', ...secondsForFraction, ...raw }
 	}
-	return hasDateFields || hasTimeFields
-		? raw
-		: { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', ...raw }
+	return {
+		...(hasDateFields ? {} : { year: 'numeric' as const, month: 'short' as const, day: 'numeric' as const }),
+		...(hasTimeFields ? {} : { hour: 'numeric' as const, minute: '2-digit' as const }),
+		...secondsForFraction,
+		...raw,
+	}
 }

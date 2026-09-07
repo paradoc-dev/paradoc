@@ -552,7 +552,7 @@ function optionError(kind: NumericFormatKind, error: unknown): FormatProblem {
 
 function temporalOptionError(kind: TemporalFormatKind, error: unknown): FormatProblem {
 	return new FormatProblem(
-		'error',
+		'invalid',
 		kind,
 		[issue(kind, 'invalid_options', error instanceof Error ? error.message : 'Invalid temporal formatting options.', undefined, error)],
 	)
@@ -652,7 +652,10 @@ class FormatterImpl implements Formatter {
 	private readonly dateCache: BoundedCache<Intl.DateTimeFormat>
 	private readonly datetimeCache: BoundedCache<Intl.DateTimeFormat>
 	private readonly timeCache: BoundedCache<Intl.DateTimeFormat>
+	private readonly timeZoneCache: BoundedCache<Intl.DateTimeFormat>
 	private readonly durationCache: BoundedCache<Intl.NumberFormat>
+	private readonly durationPluralCache: BoundedCache<Intl.PluralRules>
+	private readonly durationListCache: BoundedCache<Intl.ListFormat>
 	private readonly baseImplementations: NumericImplementationMap
 	private readonly chains: NumericChainMap
 	private readonly baseContactImplementations: ContactImplementationMap
@@ -681,7 +684,10 @@ class FormatterImpl implements Formatter {
 		this.dateCache = new BoundedCache(this.config.cacheSize)
 		this.datetimeCache = new BoundedCache(this.config.cacheSize)
 		this.timeCache = new BoundedCache(this.config.cacheSize)
+		this.timeZoneCache = new BoundedCache(this.config.cacheSize)
 		this.durationCache = new BoundedCache(this.config.cacheSize)
+		this.durationPluralCache = new BoundedCache(this.config.cacheSize)
+		this.durationListCache = new BoundedCache(this.config.cacheSize)
 		this.baseImplementations = {
 			number: (value, options) => this.formatPlainNumber(value, options),
 			money: (value, options) => this.formatMoneyValue(value as { amount: number; currency: string }, options),
@@ -846,14 +852,25 @@ class FormatterImpl implements Formatter {
 			raw.locale ?? this.locale,
 			this.config.unsupportedLocale,
 			this.config.fallbackLocale,
-		)
-		const numberingSystem = raw.numberingSystem ?? this.numberingSystem
+			)
+			const numberingSystem = raw.numberingSystem ?? this.numberingSystem
 		const calendar = raw.calendar ?? this.calendar
 		const timeZone = raw.timeZone ?? this.timeZone
 		validateNumberingSystem(numberingSystem)
 		validateCalendar(calendar)
-		validateTimeZone(timeZone, locale)
+		this.validateTimeZone(timeZone, locale)
 		return { locale, numberingSystem, calendar, timeZone, options: merged }
+	}
+
+	private validateTimeZone(timeZone: string, locale: string): void {
+		const key = this.cacheKey(locale, undefined, { timeZone })
+		if (this.timeZoneCache.get(key) !== undefined) return
+		try {
+			const validator = new Intl.DateTimeFormat(locale, { timeZone })
+			this.timeZoneCache.set(key, validator)
+		} catch (error) {
+			throw new FormatConfigurationError(`Unsupported timezone ${JSON.stringify(timeZone)}.`, { cause: error })
+		}
 	}
 
 	private stripTemporalOptions<K extends TemporalFormatKind>(options: FormatCallOptions<K>): Record<string, unknown> {
@@ -918,6 +935,24 @@ class FormatterImpl implements Formatter {
 		})
 		this.durationCache.set(key, formatter)
 		return formatter
+	}
+
+	private getDurationPluralRules(locale: string, options: object): Intl.PluralRules {
+		const key = this.cacheKey(locale, undefined, options as Record<string, unknown>)
+		const existing = this.durationPluralCache.get(key)
+		if (existing !== undefined) return existing
+		const pluralRules = new Intl.PluralRules(locale, options as Intl.PluralRulesOptions)
+		this.durationPluralCache.set(key, pluralRules)
+		return pluralRules
+	}
+
+	private getDurationListFormat(locale: string): Intl.ListFormat {
+		const key = this.cacheKey(locale, undefined, { style: 'long', type: 'unit' })
+		const existing = this.durationListCache.get(key)
+		if (existing !== undefined) return existing
+		const listFormat = new Intl.ListFormat(locale, { style: 'long', type: 'unit' })
+		this.durationListCache.set(key, listFormat)
+		return listFormat
 	}
 
 	private formatPlainNumber(value: number, options: FormatCallOptions<'number'>): string {
@@ -1007,6 +1042,9 @@ class FormatterImpl implements Formatter {
 				this.stripTemporalOptions(resolved.options) as FormatOptionsByKind['duration'],
 				this.messages,
 				(locale, numberingSystem, durationOptions) => this.getDurationNumberFormat(locale, numberingSystem, durationOptions),
+				(locale, pluralOptions) => this.getDurationPluralRules(locale, pluralOptions),
+				(locale) => this.getDurationListFormat(locale),
+				this.config.fallbackLocale,
 			)
 		} catch (error) {
 			if (error instanceof MissingTemporalMessageError) {

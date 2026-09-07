@@ -159,7 +159,7 @@ export type UnsupportedLocalePolicy = 'error' | 'fallback'
 export interface FormatterOptions {
 	/** Standard BCP 47 locale identifier. Defaults to `en-US`. */
 	locale?: string
-	/** Locale used only when `unsupportedLocale` is `fallback`. */
+	/** Locale used for unsupported runtime locales and as an explicit fallback for missing package messages. */
 	fallbackLocale?: string
 	/** How construction and per-call locale overrides handle unsupported locales. */
 	unsupportedLocale?: UnsupportedLocalePolicy

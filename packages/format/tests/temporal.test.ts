@@ -30,8 +30,8 @@ describe('@paradoc/format temporal values', () => {
 			['en-US', 'Sep 4, 2026', '3:30 PM', '1 year, 2 months'],
 			['en-GB', '4 Sept 2026', '15:30', '1 year, 2 months'],
 			['de-DE', '4. Sept. 2026', '15:30', '1 Jahr, 2 Monate'],
-			['fr-FR', '4 sept. 2026', '15:30', '1 an, 2 mois'],
-			['ar-SA', '٤ سبتمبر ٢٠٢٦', '٣:٣٠ م', '١ سنة, ٢ شهران'],
+			['fr-FR', '4 sept. 2026', '15:30', '1 an et 2 mois'],
+			['ar-SA', '٤ سبتمبر ٢٠٢٦', '٣:٣٠ م', '١ سنة و٢ شهران'],
 		] as const
 
 		for (const [locale, date, time, duration] of expected) {
@@ -52,6 +52,13 @@ describe('@paradoc/format temporal values', () => {
 		expect(formatter.formatDatetime('2026-09-05T01:00:00+03:00')).toBe('Sep 4, 2026, 6:00 PM')
 	})
 
+	it('keeps useful clock fields when precision is the only time option', () => {
+		const formatter = createFormatter({ locale: 'en-US' })
+
+		expect(formatter.formatTime('15:30:12.123', { fractionalSecondDigits: 3 })).toBe('3:30:12.123 PM')
+		expect(formatter.formatDatetime('2026-09-04T15:30:12.123Z', { fractionalSecondDigits: 3 })).toBe('Sep 4, 2026, 3:30:12.123 PM')
+	})
+
 	it('supports explicit calendars and numbering systems independently', () => {
 		const formatter = createFormatter({ locale: 'ar-SA', calendar: 'islamic', numberingSystem: 'latn' })
 		expect(formatter.formatDate('2026-09-04')).toBe('23 ربيع الأول 1448 هـ')
@@ -66,6 +73,11 @@ describe('@paradoc/format temporal values', () => {
 		expect(formatter.safeFormatDatetime('2026-01-01T12:00:00+25:00')).toMatchObject({ success: false, status: 'invalid' })
 		expect(() => createFormatter({ calendar: 'not-a-calendar' })).toThrow(FormatConfigurationError)
 		expect(formatter.safeFormatDate('2026-01-01', { calendar: 'not-a-calendar' })).toMatchObject({ success: false, status: 'unsupported' })
+		expect(formatter.safeFormatTime('12:00', { fractionalSecondDigits: 4 })).toMatchObject({
+			success: false,
+			status: 'invalid',
+			issues: [{ code: 'invalid_options' }],
+		})
 	})
 
 	it('distinguishes missing and invalid temporal input and validates duration syntax', () => {
@@ -73,8 +85,62 @@ describe('@paradoc/format temporal values', () => {
 		expect(formatter.safeFormatDate(undefined)).toMatchObject({ success: false, status: 'missing' })
 		expect(formatter.safeFormatTime('25:00')).toMatchObject({ success: false, status: 'invalid' })
 		expect(formatter.safeFormatDuration('P')).toMatchObject({ success: false, status: 'invalid' })
+		expect(formatter.safeFormatDuration(`P${'9'.repeat(400)}Y`)).toMatchObject({ success: false, status: 'invalid' })
 		expect(formatter.formatDuration('PT0S')).toBe('0 seconds')
 		expect(formatter.formatDuration('PT1.234567S')).toBe('1.234567 seconds')
+		expect(formatter.formatDuration('PT1.1234567896S')).toBe('1.12345679 seconds')
+		expect(formatter.formatDuration('PT1.2S', { maximumFractionDigits: 0 })).toBe('1 second')
+	})
+
+	it('uses explicit message fallback without changing requested locale formatting', () => {
+		const missing = createFormatter({ locale: 'fa-IR' }).safeFormatDuration('P1D')
+		expect(missing).toMatchObject({ success: false, status: 'unsupported' })
+
+		const fallback = createFormatter({ locale: 'fa-IR', unsupportedLocale: 'fallback', fallbackLocale: 'en-US' })
+		expect(fallback.formatDuration('P2D')).toBe('۲ days')
+	})
+
+	it('caches temporal setup for repeated effective policies', () => {
+		const OriginalDateTimeFormat = Intl.DateTimeFormat
+		const OriginalPluralRules = Intl.PluralRules
+		let dateTimeSetupCount = 0
+		let pluralSetupCount = 0
+		class CountingDateTimeFormat extends OriginalDateTimeFormat {
+			constructor(locales?: Intl.LocalesArgument, options?: Intl.DateTimeFormatOptions) {
+				dateTimeSetupCount += 1
+				super(locales, options)
+			}
+		}
+		class CountingPluralRules extends OriginalPluralRules {
+			constructor(locales?: Intl.LocalesArgument, options?: Intl.PluralRulesOptions) {
+				pluralSetupCount += 1
+				super(locales, options)
+			}
+		}
+		Intl.DateTimeFormat = CountingDateTimeFormat as typeof Intl.DateTimeFormat
+		Intl.PluralRules = CountingPluralRules as typeof Intl.PluralRules
+		try {
+			const formatter = createFormatter({ locale: 'en-US', timeZone: 'America/New_York' })
+			dateTimeSetupCount = 0
+			pluralSetupCount = 0
+
+			formatter.formatDate('2026-09-04')
+			const dateSetupCount = dateTimeSetupCount
+			formatter.formatDate('2026-09-04')
+			expect(dateTimeSetupCount).toBe(dateSetupCount)
+
+			formatter.formatDuration('P1D')
+			const durationPluralSetupCount = pluralSetupCount
+			formatter.formatDuration('P2D')
+			expect(pluralSetupCount).toBe(durationPluralSetupCount)
+		} finally {
+			Intl.DateTimeFormat = OriginalDateTimeFormat
+			Intl.PluralRules = OriginalPluralRules
+		}
+	})
+
+	it('uses locale-standard lists for multiple duration components', () => {
+		expect(createFormatter({ locale: 'ar-SA' }).formatDuration('P1Y2M3D')).toBe('١ سنة، و٢ شهران، و٣ أيام')
 	})
 
 	it('allows caller messages for runtime-supported locales and reports missing resources', () => {
