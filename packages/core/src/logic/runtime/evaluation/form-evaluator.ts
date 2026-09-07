@@ -153,7 +153,9 @@ function evaluateAnnexes(
   for (const [annexId, annex] of Object.entries(annexes)) {
     // Evaluate conditional expressions
     const visible = evaluateBooleanExpression(annex.visible, context, DEFAULTS.visible)
-    const required = evaluateBooleanExpression(annex.required, context, DEFAULTS.required)
+    // Requiredness is effective only while the annex is visible. A hidden
+    // required annex keeps its stored value but cannot block completion.
+    const required = visible && evaluateBooleanExpression(annex.required, context, DEFAULTS.required)
 
     const annexState: AnnexRuntimeState = {
       annexId,

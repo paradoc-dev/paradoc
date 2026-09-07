@@ -131,11 +131,14 @@ if (!form.isValid()) {
   }
 }
 
-// Runtime (DraftForm) — returns FormValidationResult { valid, rules }
+// Runtime (DraftForm) — checks values, effective requiredness, and rules
 const result = draft.validate();
 if (!result.valid) {
-  console.error(result.rules);
+  console.error(result.errors, result.rules);
 }
+
+// Rules-only checks are available when completion is still in progress.
+const rules = draft.validateRules();
 ```
 
 ### Loading from unknown input

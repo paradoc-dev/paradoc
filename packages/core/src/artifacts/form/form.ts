@@ -8,6 +8,8 @@
 import type {
 	Form,
 	FormField,
+	FieldsetField,
+	ListField,
 	FormAnnex,
 	FormParty,
 	Layer,
@@ -261,11 +263,75 @@ interface CompleteFormData {
 }
 
 /**
+ * Remove declared requiredness from the value schema. Requiredness is a
+ * runtime concern for forms: visibility and required expressions are resolved
+ * against the current payload before missing values are reported.
+ */
+function makeRuntimeOptionalField(field: FormField): FormField {
+	if (field.type === 'fieldset') {
+		const fieldset = field as FieldsetField
+		return {
+			...fieldset,
+			required: false,
+			fields: makeRuntimeOptionalFields(fieldset.fields)!,
+		}
+	}
+
+	if (field.type === 'list') {
+		const list = field as ListField
+		return {
+			...list,
+			required: false,
+			item: makeRuntimeOptionalField(list.item),
+		}
+	}
+
+	return { ...field, required: false }
+}
+
+function makeRuntimeOptionalFields(
+	fields: Record<string, FormField> | undefined,
+): Record<string, FormField> | undefined {
+	if (!fields) return fields
+
+	return Object.fromEntries(
+		Object.entries(fields).map(([fieldId, field]) => [fieldId, makeRuntimeOptionalField(field)]),
+	) as Record<string, FormField>
+}
+
+function makeRuntimeOptionalForm(formDef: Form): Form {
+	return {
+		...formDef,
+		fields: makeRuntimeOptionalFields(formDef.fields),
+		parties: formDef.parties
+			? Object.fromEntries(
+				Object.entries(formDef.parties).map(([roleId, party]) => [roleId, { ...party, required: false }]),
+			) as Form['parties']
+			: formDef.parties,
+		annexes: formDef.annexes
+			? Object.fromEntries(
+				Object.entries(formDef.annexes).map(([annexId, annex]) => [annexId, { ...annex, required: false }]),
+			) as Form['annexes']
+			: formDef.annexes,
+	}
+}
+
+function createMissingValueError(kind: 'field' | 'annex', key: string): ValidationError {
+	const label = kind === 'field' ? 'field' : 'annex'
+	return {
+		field: `${kind === 'field' ? 'fields' : 'annexes'}.${key}`,
+		message: `Missing required ${label}: ${kind === 'field' ? 'fields' : 'annexes'}.${key}`,
+	}
+}
+
+/**
  * Validate every form payload section, then apply the role-specific party
  * checks that are not represented by the compiled payload schema.
  */
 function validateCompleteFormData(formDef: Form, data: CompleteFormData): CompleteFormData {
-	const result = validateFormData(formDef, data as unknown as Record<string, unknown>)
+	// Schema validation checks every supplied value, but does not decide which
+	// values are required. That decision comes from the evaluated runtime state.
+	const result = validateFormData(makeRuntimeOptionalForm(formDef), data as unknown as Record<string, unknown>)
 	if (!result.success) {
 		throw new FormValidationError(result.errors)
 	}
@@ -273,6 +339,19 @@ function validateCompleteFormData(formDef: Form, data: CompleteFormData): Comple
 	const validated = result.data as Partial<CompleteFormData>
 	const fields = validated.fields ?? data.fields
 	const parties = validated.parties ?? data.parties
+	const annexes = validated.annexes ?? data.annexes
+	const runtimeResult = evaluateFormDefs(formDef, { fields, parties })
+	const runtimeState = 'value' in runtimeResult
+		? runtimeResult.value
+		: { fields: new Map(), annexes: new Map(), defsValues: new Map() }
+	const fillState = computeFillState(formDef, fields, parties, annexes, runtimeState)
+	const missingValues = fillState.openRequired
+		.filter((item) => item.kind === 'field' || item.kind === 'annex')
+		.map((item) => createMissingValueError(item.kind === 'field' ? 'field' : 'annex', item.key))
+	if (missingValues.length > 0) {
+		throw new FormValidationError(missingValues)
+	}
+
 	const partyContext = buildFormContext(formDef, { fields, parties })
 
 	for (const [roleId, formParty] of Object.entries(formDef.parties ?? {})) {
@@ -291,7 +370,22 @@ function validateCompleteFormData(formDef: Form, data: CompleteFormData): Comple
 	return {
 		fields,
 		parties,
-		annexes: validated.annexes ?? data.annexes,
+		annexes,
+	}
+}
+
+function collectRuntimeValidationErrors(formDef: Form, data: CompleteFormData): ValidationError[] {
+	try {
+		validateCompleteFormData(formDef, data)
+		return []
+	} catch (error) {
+		if (error instanceof FormValidationError) {
+			return error.errors
+		}
+		return [{
+			field: 'root',
+			message: error instanceof Error ? error.message : String(error),
+		}]
 	}
 }
 
@@ -321,9 +415,11 @@ export interface FillValidationOptions {
  * Comprehensive validation result returned by DraftForm.validate().
  */
 export interface FormValidationResult {
-	/** True if all error-severity rules passed (warnings don't block). Always true if no rules defined. */
+	/** True when the current values are valid and all error-severity rules pass. */
 	valid: boolean
-	/** Full rule evaluation results */
+	/** Value, constraint, and effective-requiredness errors. */
+	errors: ValidationError[]
+	/** Full rule evaluation results. */
 	rules: FormRulesValidationResult
 }
 
@@ -1712,7 +1808,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		validate(): FormValidationResult {
 			const rules = runtime.validateRules()
-			return { valid: rules.valid, rules }
+			const errors = collectRuntimeValidationErrors(formDef, {
+				fields: fieldValues,
+				parties: partyValues,
+				annexes: annexValues,
+			})
+			return { valid: errors.length === 0 && rules.valid, errors, rules }
 		},
 
 		// ============================================================================
