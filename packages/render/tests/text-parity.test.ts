@@ -250,4 +250,56 @@ describe('text renderer behavior', () => {
       data: { amount: { amount: 1, currency: 'USD' } },
     })).toThrowError(ArtifactFieldFormatError)
   })
+
+  it('validates primitive members, computed members, and party cardinality in bindings', () => {
+    const form = {
+      fields: { amount: { type: 'money' }, address: { type: 'address' } },
+      defs: { total: { type: 'money', value: {} } },
+      parties: {
+        owner: { label: 'Owner', partyType: 'person' },
+        tenants: { label: 'Tenants', partyType: 'person', max: 2 },
+      },
+      annexes: { proof: { label: 'Proof' } },
+    } as unknown as Form
+    const data = {
+      amount: { amount: 12, currency: 'USD' },
+      defs: { total: { amount: 12, currency: 'USD' } },
+      parties: { owner: { name: 'Ada' }, tenants: [{ name: 'Grace' }] },
+      annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' } },
+    }
+    for (const source of [
+      'amount.notAField', 'amount.amount.extra', 'defs.total.notAField',
+      'annexes.proof.notAField', 'parties.owner.notAField',
+      'parties.owner[0].name', 'parties.tenants.name',
+      'parties.tenants[2].name', 'parties.tenants[999999999999999999999].name',
+    ]) {
+      expect(() => renderText({ form, data, template: '{{value}}', bindings: { value: source } }))
+        .toThrowError(expect.objectContaining({ status: 'invalid' }))
+    }
+    expect(renderText({
+      form, data, template: '{{currency}}/{{tenant}}/{{optional}}',
+      bindings: { currency: 'amount.currency', tenant: 'parties.tenants[0].name', optional: 'parties.tenants[1].name' },
+    })).toBe('USD/Grace/')
+  })
+
+  it('qualifies nested formatter issues with the actual indexed field path', () => {
+    const form = { fields: { rows: { type: 'list', item: { type: 'fieldset', fields: { amount: { type: 'money' } } } } } } as unknown as Form
+    expect(() => renderText({
+      form, template: '{{rows}}', data: { rows: [{ amount: { amount: 'bad', currency: 'USD' } }] },
+    })).toThrowError(expect.objectContaining({
+      path: 'fields.rows[0].amount', status: 'invalid',
+      issues: expect.arrayContaining([expect.objectContaining({ path: 'fields.rows[0].amount.amount' })]),
+    }))
+  })
+
+  it('requires explicit boolean message recovery for additional locales', () => {
+    const form = { fields: { enabled: { type: 'boolean' }, count: { type: 'number' } } } as unknown as Form
+    const input = { form, template: '{{enabled}}/{{count}}', data: { enabled: true, count: 1234.5 } }
+    expect(() => renderText({ ...input, formatter: createFormatter({ locale: 'es-ES' }) }))
+      .toThrowError(expect.objectContaining({ status: 'unsupported', issues: expect.arrayContaining([expect.objectContaining({ code: 'missing_message', path: 'fields.enabled' })]) }))
+    expect(renderText({ ...input, formatter: createFormatter({ locale: 'es-ES', messages: { 'es-ES': { 'boolean.true': 'Sí' } } }) }))
+      .toBe(`Sí/${new Intl.NumberFormat('es-ES').format(1234.5)}`)
+    expect(renderText({ ...input, formatter: createFormatter({ locale: 'es-ES', fallbackLocale: 'fr-FR' }) }))
+      .toBe(`Oui/${new Intl.NumberFormat('es-ES').format(1234.5)}`)
+  })
 })

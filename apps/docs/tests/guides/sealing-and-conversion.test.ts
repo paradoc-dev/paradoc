@@ -15,7 +15,7 @@ describe('Sealing and Conversion Guide', () => {
       {
         name: 'local-pdf',
         fields: {},
-        parties: { signer: { label: 'Signer', signature: { required: true } } },
+        parties: { signer: { label: 'Signer', partyType: 'person', signature: { required: true } } },
         layers: {
           pdf: {
             kind: 'file',
@@ -56,7 +56,7 @@ describe('Sealing and Conversion Guide', () => {
     const form = para.form({
       name: 'hosted-markdown',
       fields: { name: { type: 'text', required: true } },
-      parties: { signer: { label: 'Signer', signature: { required: true } } },
+      parties: { signer: { label: 'Signer', partyType: 'person', signature: { required: true } } },
       layers: {
         markdown: {
           kind: 'inline',

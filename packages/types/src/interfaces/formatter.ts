@@ -385,6 +385,8 @@ export interface FormatterCacheStats {
 
 export interface Formatter {
 	readonly locale: string
+	/** Locale used when the requested locale has no package-owned message. */
+	readonly fallbackLocale?: string
 	readonly timeZone: string
 	readonly calendar: string
 	readonly numberingSystem?: string

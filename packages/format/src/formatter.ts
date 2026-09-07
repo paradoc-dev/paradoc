@@ -717,6 +717,7 @@ function createConfig(options: FormatterOptions): FormatterConfig {
  */
 class FormatterImpl implements Formatter {
 	readonly locale: string
+	readonly fallbackLocale?: string
 	readonly timeZone: string
 	readonly calendar: string
 	readonly numberingSystem?: string
@@ -755,6 +756,7 @@ class FormatterImpl implements Formatter {
 	) {
 		this.config = createConfig(options)
 		this.locale = this.config.locale
+		this.fallbackLocale = this.config.fallbackLocale
 		this.timeZone = this.config.timeZone
 		this.calendar = this.config.calendar
 		this.numberingSystem = this.config.numberingSystem

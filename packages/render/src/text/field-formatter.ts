@@ -105,6 +105,20 @@ function missingValue(value: unknown, path: string, fieldType: string, options?:
 	return text === undefined ? value : new FormattedFieldValue(value, text)
 }
 
+function presentIssuePath(path: string, issuePath: string | undefined): string {
+	if (!issuePath) return path
+	if (issuePath === path || issuePath.startsWith(`${path}.`) || issuePath.startsWith(`${path}[`)) return issuePath
+	return issuePath.startsWith('[') ? `${path}${issuePath}` : `${path}.${issuePath}`
+}
+
+function presentIssues(issues: readonly FormatIssue[], path: string, fieldType: string): FormatIssue[] {
+	return issues.map((issue) => ({
+		...issue,
+		path: presentIssuePath(path, issue.path),
+		kind: issue.kind ?? fieldType,
+	}))
+}
+
 function presentResult(
 	result: FormatResult,
 	value: unknown,
@@ -118,7 +132,7 @@ function presentResult(
 		const text = progressiveText(options, 'incomplete')
 		if (text !== undefined) return new FormattedFieldValue(value, text)
 	}
-	throw new ArtifactFieldFormatError(path, fieldType, result.status, result.issues)
+	throw new ArtifactFieldFormatError(path, fieldType, result.status, presentIssues(result.issues, path, fieldType))
 }
 
 function callFormatter(
@@ -163,12 +177,23 @@ function numberInput(value: unknown, path: string, fieldType: string): number {
 	throw formatIssue(path, fieldType, 'invalid_value', `Expected a finite number for ${fieldType}.`)
 }
 
-function messageFor(formatter: Formatter, key: string, fallback: string): string {
-	const exact = formatter.messages[formatter.locale]?.[key]
-	if (exact !== undefined) return exact
-	const language = formatter.locale.split('-')[0]
-	const shared = Object.entries(formatter.messages).find(([locale]) => locale.split('-')[0] === language)?.[1]?.[key]
-	return shared ?? fallback
+function messageFor(formatter: Formatter, key: string, path: string): string {
+	const findMessage = (locale: string | undefined): string | undefined => {
+		if (!locale) return undefined
+		const exact = formatter.messages[locale]?.[key]
+		if (exact !== undefined) return exact
+		const language = locale.split('-')[0]
+		return Object.entries(formatter.messages).find(([candidate]) => candidate.split('-')[0] === language)?.[1]?.[key]
+	}
+
+	const message = findMessage(formatter.locale) ?? findMessage(formatter.fallbackLocale)
+	if (message !== undefined) return message
+	throw new ArtifactFieldFormatError(path, 'boolean', 'unsupported', [{
+		code: 'missing_message',
+		message: `No ${JSON.stringify(key)} message is available for locale ${JSON.stringify(formatter.locale)}.`,
+		path,
+		kind: 'boolean',
+	}])
 }
 
 function enumLabel(field: Extract<FormField, { type: 'enum' }>, value: unknown, path: string): string {
@@ -194,7 +219,7 @@ function multiselectLabel(field: Extract<FormField, { type: 'multiselect' }>, va
 
 function formatBoolean(formatter: Formatter, value: unknown, path: string): unknown {
 	if (typeof value !== 'boolean') throw formatIssue(path, 'boolean', 'invalid_value', 'Expected a boolean value.')
-	return new FormattedFieldValue(value, messageFor(formatter, value ? 'boolean.true' : 'boolean.false', value ? 'Yes' : 'No'))
+	return new FormattedFieldValue(value, messageFor(formatter, value ? 'boolean.true' : 'boolean.false', path))
 }
 
 function formatLeaf(
@@ -435,7 +460,147 @@ const metadataRoots = new Set([
 ])
 
 function isIndex(segment: string): boolean {
-	return /^\d+$/.test(segment)
+	return /^\d+$/.test(segment) && Number.isSafeInteger(Number(segment))
+}
+
+const anyPath = Symbol('any-path')
+interface PathObjectNode {
+	readonly [segment: string]: PathNode
+}
+
+type PathNode = PathObjectNode | typeof anyPath
+
+const leafPath: PathNode = Object.freeze({})
+const blockedPathSegments = new Set(['__proto__', 'prototype', 'constructor'])
+
+function objectPath(entries: Record<string, PathNode>): PathNode {
+	return Object.freeze(entries)
+}
+
+function mergePaths(...nodes: PathNode[]): PathNode {
+	if (nodes.some((node) => node === anyPath)) return anyPath
+	return objectPath(Object.assign({}, ...nodes))
+}
+
+const moneyPath = objectPath({ amount: leafPath, currency: leafPath })
+const addressPath = objectPath({
+	line1: leafPath,
+	line2: leafPath,
+	locality: leafPath,
+	region: leafPath,
+	postalCode: leafPath,
+	country: leafPath,
+})
+const phonePath = objectPath({ number: leafPath, type: leafPath, extension: leafPath })
+const personPath = objectPath({ name: leafPath, title: leafPath, firstName: leafPath, middleName: leafPath, lastName: leafPath, suffix: leafPath })
+const organizationPath = objectPath({
+	name: leafPath,
+	legalName: leafPath,
+	domicile: leafPath,
+	entityType: leafPath,
+	entityId: leafPath,
+	taxId: leafPath,
+})
+const coordinatePath = objectPath({ lat: leafPath, lon: leafPath })
+const bboxPath = objectPath({
+	southWest: coordinatePath,
+	northEast: coordinatePath,
+})
+const identificationPath = objectPath({
+	type: leafPath,
+	number: leafPath,
+	issuer: leafPath,
+	issueDate: leafPath,
+	expiryDate: leafPath,
+})
+const attachmentPath = objectPath({ name: leafPath, mimeType: leafPath, checksum: leafPath })
+const signaturePath = objectPath({ image: leafPath, timestamp: leafPath, method: leafPath, type: leafPath, metadata: anyPath })
+const signerPath = objectPath({
+	signerId: leafPath,
+	capacity: leafPath,
+	_role: leafPath,
+	_partyId: leafPath,
+	id: leafPath,
+	signer: objectPath({
+		id: leafPath,
+		person: personPath,
+		adopted: objectPath({ signature: signaturePath, initials: signaturePath }),
+	}),
+})
+const partyRuntimePath = objectPath({
+	id: leafPath,
+	_role: leafPath,
+	signatories: objectPath({ '#': signerPath }),
+	_captures: anyPath,
+	_signers: anyPath,
+})
+
+const pathNodesByType: Readonly<Record<string, PathNode>> = {
+	money: moneyPath,
+	address: addressPath,
+	phone: phonePath,
+	person: personPath,
+	organization: organizationPath,
+	party: mergePaths(personPath, organizationPath, partyRuntimePath),
+	coordinate: coordinatePath,
+	bbox: bboxPath,
+	identification: identificationPath,
+	attachment: attachmentPath,
+	signature: signaturePath,
+	string: leafPath,
+	text: leafPath,
+	email: leafPath,
+	uuid: leafPath,
+	uri: leafPath,
+	duration: leafPath,
+	date: leafPath,
+	datetime: leafPath,
+	time: leafPath,
+	number: leafPath,
+	integer: leafPath,
+	percentage: leafPath,
+	rating: leafPath,
+	boolean: leafPath,
+	enum: leafPath,
+	multiselect: leafPath,
+}
+
+function pathNodeForType(type: string): PathNode | undefined {
+	return pathNodesByType[type]
+}
+
+function hasOwn(value: unknown, key: string): boolean {
+	return value !== null && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, key)
+}
+
+function validatePathSyntax(path: string): boolean {
+	if (!path || path.startsWith('.') || path.endsWith('.') || path.includes('..')) return false
+	return path.split('.').every((segment) => /^[^.[\]]+(?:\[\d+\])*$/.test(segment))
+}
+
+function validatePathNode(node: PathNode, segments: readonly string[], index: number, path: string, fieldType: string): void {
+	if (index >= segments.length || node === anyPath) return
+	const segment = segments[index]!
+	if (blockedPathSegments.has(segment)) {
+		throw formatIssue(path, fieldType, 'unknown_path', `Blocked path segment ${JSON.stringify(segment)}.`)
+	}
+
+	let child: PathNode | undefined
+	if (Object.prototype.hasOwnProperty.call(node, segment)) {
+		child = node[segment]
+	} else if (Object.prototype.hasOwnProperty.call(node, '#')) {
+		if (!isIndex(segment)) {
+			throw formatIssue(path, fieldType, 'unknown_path', `Expected a safe numeric index before ${JSON.stringify(segment)}.`)
+		}
+		child = node['#']
+	} else if (Object.prototype.hasOwnProperty.call(node, '*')) {
+		child = node['*']
+	}
+
+	if (!child) {
+		throw formatIssue(path, fieldType, 'unknown_path', `Unknown ${fieldType} member ${JSON.stringify(segment)}.`)
+	}
+	validatePathNode(child, segments, index + 1, path, fieldType)
 }
 
 function validateDeclaredField(field: FormField, segments: readonly string[], index: number, path: string): void {
@@ -446,26 +611,48 @@ function validateDeclaredField(field: FormField, segments: readonly string[], in
 		return validateDeclaredField(field.item, segments, index + 1, path)
 	}
 	if (field.type === 'fieldset') {
-		const child = field.fields[segment]
+		const child = hasOwn(field.fields, segment) ? field.fields[segment] : undefined
 		if (!child) throw formatIssue(path, field.type, 'unknown_path', `Unknown nested field ${JSON.stringify(segment)}.`)
 		return validateDeclaredField(child, segments, index + 1, path)
 	}
-	// Structured primitive members (for example address.locality) are raw
-	// properties of a declared field and are valid binding targets.
+	const node = pathNodeForType(field.type)
+	if (!node) throw formatIssue(path, field.type, 'unsupported_path', `Unsupported field type ${JSON.stringify(field.type)}.`)
+	validatePathNode(node, segments, index, path, field.type)
 }
 
 function validatePartyPath(form: Form, segments: readonly string[], path: string): void {
 	const role = segments[0]
-	if (!role || !form.parties?.[role]) throw formatIssue(path, 'party', 'unknown_path', `Unknown party role ${JSON.stringify(role)}.`)
+	const definition = role && hasOwn(form.parties, role) ? form.parties?.[role] : undefined
+	if (!role || !definition) throw formatIssue(path, 'party', 'unknown_path', `Unknown party role ${JSON.stringify(role)}.`)
 	if (segments.length === 1) return
-	if (isIndex(segments[1]!)) {
+
+	const max = definition.max ?? 1
+	const segment = segments[1]!
+	const indexed = isIndex(segment)
+	const isCollection = max > 1
+	if (indexed) {
+		if (!isCollection) throw formatIssue(path, 'party', 'unknown_path', `Party role ${JSON.stringify(role)} does not accept an index.`)
+		if (Number(segment) >= max) throw formatIssue(path, 'party', 'unknown_path', `Party index ${segment} is outside the declared maximum of ${max}.`)
 		if (segments.length === 2) return
+		validatePathNode(partyPathNode(definition.partyType), segments, 2, path, 'party')
 		return
 	}
+	if (isCollection) throw formatIssue(path, 'party', 'unknown_path', `Party role ${JSON.stringify(role)} requires an index.`)
+	validatePathNode(partyPathNode(definition.partyType), segments, 1, path, 'party')
+}
+
+function partyPathNode(partyType: string | undefined): PathNode {
+	const identity = partyType === 'person'
+		? personPath
+		: partyType === 'organization'
+			? organizationPath
+			: mergePaths(personPath, organizationPath)
+	return mergePaths(identity, partyRuntimePath)
 }
 
 function validateBindingPath(form: Form, sourcePath: string, bindingKey: string): void {
 	const path = sourcePath.startsWith('fields.') ? sourcePath.slice('fields.'.length) : sourcePath
+	if (!validatePathSyntax(path)) throw formatIssue(`bindings.${bindingKey}`, 'path', 'unknown_path', `Malformed field path ${JSON.stringify(sourcePath)}.`)
 	const segments = pathSegments(path)
 	if (segments.length === 0) throw formatIssue(`bindings.${bindingKey}`, 'path', 'unknown_path', `Unknown field path ${JSON.stringify(sourcePath)}.`)
 	const root = segments[0]!
@@ -474,14 +661,22 @@ function validateBindingPath(form: Form, sourcePath: string, bindingKey: string)
 		return
 	}
 	if (root === 'defs') {
-		if (!form.defs?.[segments[1]!]) throw formatIssue(sourcePath, 'computed', 'unknown_path', `Unknown computed value ${JSON.stringify(segments[1])}.`)
+		const definitionKey = segments[1]
+		const definition = definitionKey && hasOwn(form.defs, definitionKey) ? form.defs?.[definitionKey] : undefined
+		if (!definition) throw formatIssue(sourcePath, 'computed', 'unknown_path', `Unknown computed value ${JSON.stringify(definitionKey)}.`)
+		if (segments.length > 2) {
+			const node = pathNodeForType(definition.type)
+			if (!node) throw formatIssue(sourcePath, 'computed', 'unsupported_path', `Unsupported computed value type ${JSON.stringify(definition.type)}.`)
+			validatePathNode(node, segments, 2, sourcePath, definition.type)
+		}
 		return
 	}
 	if (root === 'annexes') {
 		const annex = segments[1]
-		if (!annex || (!form.annexes?.[annex] && !form.allowAdditionalAnnexes)) {
+		if (!annex || (!hasOwn(form.annexes, annex) && !form.allowAdditionalAnnexes)) {
 			throw formatIssue(sourcePath, 'attachment', 'unknown_path', `Unknown annex ${JSON.stringify(annex)}.`)
 		}
+		if (segments.length > 2) validatePathNode(attachmentPath, segments, 2, sourcePath, 'attachment')
 		return
 	}
 	const field = form.fields?.[root]

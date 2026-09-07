@@ -21,8 +21,8 @@ describe('Bundles Guide', () => {
         endDate: { type: 'date', label: 'End Date', required: true },
       },
       parties: {
-        landlord: { label: 'Landlord', signature: { required: true } },
-        tenant: { label: 'Tenant', signature: { required: true } },
+        landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
+        tenant: { label: 'Tenant', partyType: 'person', signature: { required: true } },
       },
       defaultLayer: 'markdown',
       layers: {

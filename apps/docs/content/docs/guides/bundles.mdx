@@ -30,8 +30,8 @@ const lease = para.form({
     endDate: { type: 'date', label: 'End Date', required: true },
   },
   parties: {
-    landlord: { label: 'Landlord', signature: { required: true } },
-    tenant: { label: 'Tenant', signature: { required: true } },
+    landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
+    tenant: { label: 'Tenant', partyType: 'person', signature: { required: true } },
   },
   defaultLayer: 'markdown',
   layers: {
@@ -80,8 +80,8 @@ const lease = para
     endDate: { type: 'date', label: 'End Date', required: true },
   })
   .parties({
-    landlord: para.party().label('Landlord').signature({ required: true }),
-    tenant: para.party().label('Tenant').signature({ required: true }),
+    landlord: para.party().label('Landlord').partyType('person').signature({ required: true }),
+    tenant: para.party().label('Tenant').partyType('person').signature({ required: true }),
   })
   .defaultLayer('markdown')
   .inlineLayer('markdown', { mimeType: 'text/markdown', text: '# Lease\n\n{{address}}' })

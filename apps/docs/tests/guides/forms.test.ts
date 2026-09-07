@@ -15,8 +15,8 @@ describe('Forms Guide', () => {
       version: '1.0.0',
       title: 'Residential Lease Agreement',
       parties: {
-        landlord: { label: 'Landlord', signature: { required: true } },
-        tenant: { label: 'Tenant', signature: { required: true } },
+        landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
+        tenant: { label: 'Tenant', partyType: 'person', signature: { required: true } },
       },
       fields: {
         address: { type: 'address', label: 'Property Address', required: true },
@@ -47,8 +47,8 @@ describe('Forms Guide', () => {
       .version('1.0.0')
       .title('Residential Lease Agreement')
       .parties({
-        landlord: para.party().label('Landlord').signature({ required: true }),
-        tenant: para.party().label('Tenant').signature({ required: true }),
+        landlord: para.party().label('Landlord').partyType('person').signature({ required: true }),
+        tenant: para.party().label('Tenant').partyType('person').signature({ required: true }),
       })
       .fields({
         address: para.field.address().label('Property Address').required(),
@@ -76,8 +76,8 @@ describe('Forms Guide', () => {
       version: '1.0.0',
       title: 'Residential Lease Agreement',
       parties: {
-        landlord: { label: 'Landlord', signature: { required: true } },
-        tenant: { label: 'Tenant', signature: { required: true } },
+        landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
+        tenant: { label: 'Tenant', partyType: 'person', signature: { required: true } },
       },
       fields: {
         address: { type: 'address', label: 'Property Address', required: true },

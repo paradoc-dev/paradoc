@@ -43,12 +43,14 @@ describe('Text Layers Guide', () => {
     parties: {
       landlord: {
         label: 'Landlord',
+        partyType: 'person',
         min: 1,
         max: 1,
         signature: { required: true },
       },
       tenant: {
         label: 'Tenant',
+        partyType: 'person',
         min: 1,
         max: 4,
         signature: { required: true },

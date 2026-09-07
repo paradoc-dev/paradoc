@@ -24,8 +24,8 @@ describe('Quickstart Guide', () => {
     .title('Purchase Agreement')
     .version('1.0.0')
     .parties({
-      buyer: para.party().label('Buyer').signature({ required: true }),
-      seller: para.party().label('Seller').signature({ required: true }),
+      buyer: para.party().label('Buyer').partyType('person').signature({ required: true }),
+      seller: para.party().label('Seller').partyType('person').signature({ required: true }),
     })
     .fields({
       quantity: para.field.number().label('Quantity').required(),
@@ -92,7 +92,7 @@ describe('Quickstart Guide', () => {
     expect(output).toContain('Bob Smith')
     expect(output).toContain('100')
     expect(output).toContain('$25.00')
-    expect(output).toContain('2025-03-01')
+    expect(output).toContain('Mar 1, 2025')
   })
 
   // ============================================================================
