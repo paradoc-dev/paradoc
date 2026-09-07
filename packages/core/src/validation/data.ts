@@ -20,8 +20,15 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 	if (type === 'object') {
 		const properties = jsonSchema.properties as Record<string, Record<string, unknown>> | undefined
 		const required = jsonSchema.required as string[] | undefined
+		const additionalProperties = jsonSchema.additionalProperties
 
 		if (!properties) {
+			if (additionalProperties === false) {
+				return z.object({}).strict()
+			}
+			if (additionalProperties && typeof additionalProperties === 'object' && !Array.isArray(additionalProperties)) {
+				return z.record(z.string(), jsonSchemaToZod(additionalProperties as Record<string, unknown>))
+			}
 			return z.record(z.string(), z.unknown())
 		}
 
@@ -34,7 +41,14 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 			shape[key] = fieldSchema
 		}
 
-		return z.object(shape).passthrough()
+		const objectSchema = z.object(shape)
+		if (additionalProperties === false) {
+			return objectSchema.strict()
+		}
+		if (additionalProperties && typeof additionalProperties === 'object' && !Array.isArray(additionalProperties)) {
+			return objectSchema.catchall(jsonSchemaToZod(additionalProperties as Record<string, unknown>))
+		}
+		return objectSchema.passthrough()
 	}
 
 	if (type === 'array') {

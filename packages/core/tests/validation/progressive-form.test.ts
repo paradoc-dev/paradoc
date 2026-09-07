@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { form, party } from '@/artifacts'
 import {
+	validateFormData,
 	validateFieldInput,
 	validateFieldsPatch,
 	validatePartyInput,
@@ -8,6 +9,7 @@ import {
 	validateAnnexInput,
 	validateAnnexesPatch,
 } from '@/validation'
+import { jsonSchemaToZod } from '@/validation/data'
 
 function createPetAddendumLikeForm(options?: { allowAdditionalAnnexes?: boolean }) {
 	return form()
@@ -38,7 +40,105 @@ function createPetAddendumLikeForm(options?: { allowAdditionalAnnexes?: boolean 
 		.build()
 }
 
+function createClosedObjectForm(name: string) {
+	return form()
+		.name(name)
+		.fields({
+			email: { type: 'text', required: false },
+			profile: {
+				type: 'fieldset',
+				label: 'Profile',
+				fields: { nickname: { type: 'text', required: false } },
+			},
+		})
+		.build()
+}
+
 describe('progressive form validation', () => {
+	describe('closed object validation', () => {
+		test('rejects unknown top-level and nested keys across public validators', () => {
+			const closedForm = createClosedObjectForm('closed-object')
+
+			const fullTopLevel = validateFormData(closedForm, { fields: { emial: 'alice@example.com' } })
+			const patchTopLevel = validateFieldsPatch(closedForm, { emial: 'alice@example.com' })
+			const fullNested = validateFormData(closedForm, {
+				fields: { profile: { nicknmae: 'Alice' } },
+			})
+			const patchNested = validateFieldsPatch(closedForm, {
+				profile: { nicknmae: 'Alice' },
+			})
+			const fieldNested = validateFieldInput(closedForm, {
+				fieldPath: 'profile',
+				value: { nicknmae: 'Alice' },
+			})
+
+			expect(fullTopLevel.success).toBe(false)
+			expect(patchTopLevel.success).toBe(false)
+			expect(fullNested.success).toBe(false)
+			expect(patchNested.success).toBe(false)
+			expect(fieldNested.success).toBe(false)
+			expect(fullTopLevel.errors?.[0]).toMatchObject({
+			field: 'fields',
+			message: 'Unknown field(s): emial',
+		})
+			expect(patchTopLevel.errors?.[0]).toEqual(fullTopLevel.errors?.[0])
+			expect(fullNested.errors?.[0]).toMatchObject({
+			field: 'fields.profile',
+			message: 'Unknown field(s): nicknmae',
+		})
+			expect(patchNested.errors?.[0]).toEqual(fullNested.errors?.[0])
+			expect(fieldNested.errors?.[0]).toEqual(fullNested.errors?.[0])
+		})
+
+		test('accepts valid values through full, field, and patch validation', () => {
+			const closedForm = createClosedObjectForm('closed-object-valid')
+
+			const full = validateFormData(closedForm, {
+				fields: { email: 'alice@example.com', profile: { nickname: 'Alice' } },
+			})
+			const field = validateFieldInput(closedForm, {
+				fieldPath: 'profile',
+				value: { nickname: 'Alice' },
+			})
+			const patch = validateFieldsPatch(closedForm, {
+				email: 'alice@example.com',
+				profile: { nickname: 'Alice' },
+			})
+
+			expect(full.success).toBe(true)
+			expect(field.success).toBe(true)
+			expect(patch.success).toBe(true)
+		})
+
+		test('honors closed empty objects and preserves open object controls', () => {
+			const closed = jsonSchemaToZod({
+				type: 'object',
+				additionalProperties: false,
+			})
+			const open = jsonSchemaToZod({
+				type: 'object',
+				properties: { known: { type: 'string' } },
+				additionalProperties: true,
+			})
+			const nested = jsonSchemaToZod({
+				type: 'object',
+				properties: {
+					profile: {
+						type: 'object',
+						properties: { name: { type: 'string' } },
+						additionalProperties: false,
+					},
+				},
+				additionalProperties: false,
+			})
+
+			expect(closed.safeParse({}).success).toBe(true)
+			expect(closed.safeParse({ unexpected: true }).success).toBe(false)
+			expect(open.safeParse({ known: 'value', unexpected: true }).success).toBe(true)
+			expect(nested.safeParse({ profile: { name: 'Alice', nmae: 'typo' } }).success).toBe(false)
+		})
+	})
+
 	describe('standalone field validators', () => {
 		test('validates enum input for a single field', () => {
 			const petForm = createPetAddendumLikeForm()
