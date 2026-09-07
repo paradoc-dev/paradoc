@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Bundle } from '@paradoc/types';
 import { ArtifactSchema } from '../shared/base';
 import { DefsSectionSchema } from '../expressions/defs-section';
+import { addDuplicateIdentityIssues } from '../shared/unique';
 import { BundleContentItemSchema } from './item';
 
 // Re-export item schema
@@ -14,6 +15,14 @@ export const BundleSchema: z.ZodType<Bundle> = ArtifactSchema.extend({
 	kind: z.literal('bundle'),
 	defs: DefsSectionSchema.optional(),
 	contents: z.array(z.lazy(() => BundleContentItemSchema))
+		.superRefine((contents, ctx) => {
+			addDuplicateIdentityIssues(
+				contents,
+				(content) => content.key,
+				{ collection: 'contents', property: 'key', label: 'bundle content key' },
+				(path, message) => ctx.addIssue({ code: 'custom', path, message }),
+			);
+		})
 		.describe('Ordered bundle contents. Each item has a key and is either an inline artifact, path reference, or registry reference.'),
 }).meta({
 	title: 'Bundle',
