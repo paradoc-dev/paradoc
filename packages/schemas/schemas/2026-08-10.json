@@ -1226,7 +1226,21 @@
               "description": "Unique identifier for this content item, used to reference it in defs expressions"
             },
             "artifact": {
-              "description": "Inline artifact definition (document, form, checklist, or nested bundle)"
+              "description": "Inline artifact definition (document, form, checklist, or nested bundle)",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Document"
+                },
+                {
+                  "$ref": "#/$defs/Form"
+                },
+                {
+                  "$ref": "#/$defs/Checklist"
+                },
+                {
+                  "$ref": "#/$defs/Bundle"
+                }
+              ]
             }
           },
           "required": [

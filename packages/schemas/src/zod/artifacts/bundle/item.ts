@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { CondExprSchema } from '../expressions/cond-expr';
+import { ChecklistSchema } from '../checklist';
+import { DocumentSchema } from '../document';
+import { FormSchema } from '../form';
+import { BundleSchema } from './index';
 
 /**
  * Base properties shared by path and registry bundle content items.
@@ -15,18 +19,31 @@ const ContentItemBaseSchema = z.object({
 
 /**
  * Inline content item — artifact defined directly within the bundle.
- * Note: The artifact field uses z.lazy() to avoid circular imports.
  */
-const InlineContentItemSchema = z.object({
+type InlineContentItemShape = {
+	type: z.ZodLiteral<'inline'>;
+	key: z.ZodString;
+	artifact: z.ZodLazy<z.ZodUnion<readonly [
+		typeof DocumentSchema,
+		typeof FormSchema,
+		typeof ChecklistSchema,
+		typeof BundleSchema,
+	]>>;
+};
+
+const InlineContentItemSchema: z.ZodObject<InlineContentItemShape, z.core.$strict> = z.object({
 	type: z.literal('inline'),
 	key: z.string()
 		.min(1)
 		.max(100)
 		.regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/)
 		.describe('Unique identifier for this content item, used to reference it in defs expressions'),
-	// We use z.any() here and will refine with proper types in the module
-	// to avoid circular dependency issues
-	artifact: z.any()
+	artifact: z.lazy(() => z.union([
+		DocumentSchema,
+		FormSchema,
+		ChecklistSchema,
+		BundleSchema,
+	]))
 		.describe('Inline artifact definition (document, form, checklist, or nested bundle)'),
 }).strict();
 
@@ -56,7 +73,11 @@ const RegistryContentItemSchema = ContentItemBaseSchema.extend({
  * - { type: 'path', key, path, include? } - reference by path from repo root
  * - { type: 'registry', key, slug, include? } - reference by registry slug
  */
-export const BundleContentItemSchema = z.discriminatedUnion('type', [
+export const BundleContentItemSchema: z.ZodDiscriminatedUnion<[
+	typeof InlineContentItemSchema,
+	typeof PathContentItemSchema,
+	typeof RegistryContentItemSchema,
+], 'type'> = z.discriminatedUnion('type', [
 	InlineContentItemSchema,
 	PathContentItemSchema,
 	RegistryContentItemSchema,
