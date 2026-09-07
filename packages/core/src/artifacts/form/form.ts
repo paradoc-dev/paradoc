@@ -308,6 +308,55 @@ export class FormRuleViolationError extends Error {
 	}
 }
 
+interface CompleteFormData {
+	fields: Record<string, unknown>
+	parties: Record<string, Party | Party[]>
+	annexes: Record<string, unknown>
+}
+
+/**
+ * Validate every form payload section, then apply the role-specific party
+ * checks that are not represented by the compiled payload schema.
+ */
+function validateCompleteFormData(formDef: Form, data: CompleteFormData): CompleteFormData {
+	const result = validateFormData(formDef, data as unknown as Record<string, unknown>)
+	if (!result.success) {
+		throw new FormValidationError(result.errors)
+	}
+
+	const validated = result.data as Partial<CompleteFormData>
+	const parties = validated.parties ?? data.parties
+
+	for (const [roleId, formParty] of Object.entries(formDef.parties ?? {})) {
+		const partyResult = validatePartiesForRole(parties[roleId], formParty, roleId)
+		if (!partyResult.success) {
+			throw new FormValidationError(
+				partyResult.errors.map((message) => ({ field: `parties.${roleId}`, message })),
+			)
+		}
+	}
+
+	return {
+		fields: validated.fields ?? data.fields,
+		parties,
+		annexes: validated.annexes ?? data.annexes,
+	}
+}
+
+/**
+ * Validate a complete fields section without requiring unrelated payload
+ * sections such as parties or annexes.
+ */
+function validateFieldsOnly(formDef: Form, fields: Record<string, unknown>): Record<string, unknown> {
+	const fieldsOnlyForm = { ...formDef, parties: undefined, annexes: undefined } as Form
+	const result = validateFormData(fieldsOnlyForm, { fields })
+	if (!result.success) {
+		throw new FormValidationError(result.errors)
+	}
+
+	return (result.data as { fields: Record<string, unknown> }).fields
+}
+
 /**
  * Options for fill() and safeFill().
  */
@@ -972,27 +1021,18 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		setField<K extends FieldKeys<F>>(fieldId: K, value: ExtractFields<F>[K]): RuntimeForm<F> {
 			ensureDraft('setField')
 			const newFields = { ...fieldValues, [fieldId]: value }
-			// Validate
-			const result = validateFormData(formDef, { fields: newFields })
-			if (!result.success) {
-				throw new FormValidationError(result.errors)
-			}
 			return createRuntimeForm({
 				...config,
-				fields: (result.data as { fields: Record<string, unknown> }).fields,
+				fields: validateFieldsOnly(formDef, newFields),
 			})
 		},
 
 		updateFields(partial: Partial<ExtractFields<F>>): RuntimeForm<F> {
 			ensureDraft('updateFields')
 			const newFields = { ...fieldValues, ...partial }
-			const result = validateFormData(formDef, { fields: newFields })
-			if (!result.success) {
-				throw new FormValidationError(result.errors)
-			}
 			return createRuntimeForm({
 				...config,
-				fields: (result.data as { fields: Record<string, unknown> }).fields,
+				fields: validateFieldsOnly(formDef, newFields),
 			})
 		},
 
@@ -1180,6 +1220,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const mergedFields = { ...fieldValues, ...patchFields }
 			const mergedParties = { ...partyValues, ...patchParties }
 			const mergedAnnexes = { ...annexValues, ...patchAnnexes }
+			let validatedFields = mergedFields
+			let validatedParties = mergedParties
+			let validatedAnnexes = mergedAnnexes
 
 			if (validate === 'patch') {
 				if (patchFields && Object.keys(patchFields).length > 0) {
@@ -1201,18 +1244,21 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					}
 				}
 			} else if (validate === 'full') {
-				const fieldData = { fields: mergedFields, ...(Object.keys(mergedAnnexes).length > 0 ? { annexes: mergedAnnexes } : {}) }
-				const result = validateFormData(formDef, fieldData)
-				if (!result.success) {
-					throw new FormValidationError(result.errors)
-				}
+				const validated = validateCompleteFormData(formDef, {
+					fields: mergedFields,
+					parties: mergedParties,
+					annexes: mergedAnnexes,
+				})
+				validatedFields = validated.fields
+				validatedParties = validated.parties
+				validatedAnnexes = validated.annexes
 			}
 
 			const draft = createRuntimeForm<F>({
 				...config,
-				fields: mergedFields,
-				parties: mergedParties,
-				annexes: mergedAnnexes,
+				fields: validatedFields,
+				parties: validatedParties,
+				annexes: validatedAnnexes,
 				phase: 'draft',
 				executedAt: undefined,
 			})
@@ -2634,32 +2680,15 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const signers = data.signers ?? {}
 			const signatories = data.signatories ?? {}
 
-			// Validate field data
-			const fieldData = { fields, ...(Object.keys(annexes).length > 0 ? { annexes } : {}) }
-			const result = validateFormData(formDef, fieldData)
-			if (!result.success) {
-				throw new FormValidationError(result.errors)
-			}
-
-			// Validate party data format (object vs array based on max)
-			const formParties = formDef.parties ?? {}
-			for (const [roleId, formParty] of Object.entries(formParties)) {
-				const partyData = parties[roleId as keyof typeof parties]
-				const partyResult = validatePartiesForRole(partyData, formParty, roleId)
-				if (!partyResult.success) {
-					throw new FormValidationError(
-						partyResult.errors.map((msg) => ({ field: `parties.${roleId}`, message: msg }))
-					)
-				}
-			}
+			const validated = validateCompleteFormData(formDef, { fields, parties, annexes })
 
 			const targetLayer = formDef.defaultLayer || (formDef.layers ? Object.keys(formDef.layers)[0] : '') || ''
 
 			const draft = createRuntimeForm({
 				form: formDef,
-				fields: (result.data as { fields: Record<string, unknown> }).fields,
-				parties,
-				annexes,
+				fields: validated.fields,
+				parties: validated.parties,
+				annexes: validated.annexes,
 				signers,
 				signatories,
 				targetLayer,
@@ -2712,6 +2741,9 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const annexes = (seed as Record<string, unknown> | undefined)?.annexes ?? {}
 			const signers = (seed as Record<string, unknown> | undefined)?.signers ?? {}
 			const signatories = (seed as Record<string, unknown> | undefined)?.signatories ?? {}
+			let validatedFields = fields as Record<string, unknown>
+			let validatedParties = parties as Record<string, Party | Party[]>
+			let validatedAnnexes = annexes as Record<string, unknown>
 
 			// Validate based on mode
 			if (validate === 'patch') {
@@ -2734,11 +2766,14 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 					}
 				}
 			} else if (validate === 'full') {
-				const fieldData = { fields, ...(Object.keys(annexes as Record<string, unknown>).length > 0 ? { annexes } : {}) }
-				const result = validateFormData(formDef, fieldData)
-				if (!result.success) {
-					throw new FormValidationError(result.errors)
-				}
+				const validated = validateCompleteFormData(formDef, {
+					fields: fields as Record<string, unknown>,
+					parties: parties as Record<string, Party | Party[]>,
+					annexes: annexes as Record<string, unknown>,
+				})
+				validatedFields = validated.fields
+				validatedParties = validated.parties
+				validatedAnnexes = validated.annexes
 			}
 			// validate === 'none' → skip
 
@@ -2746,9 +2781,9 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 			const draft = createRuntimeForm({
 				form: formDef,
-				fields: fields as Record<string, unknown>,
-				parties: parties as Record<string, Party | Party[]>,
-				annexes: annexes as Record<string, unknown>,
+				fields: validatedFields,
+				parties: validatedParties,
+				annexes: validatedAnnexes,
 				signers: signers as Record<string, Signer>,
 				signatories: signatories as Record<string, Record<string, PartySignatory[]>>,
 				targetLayer,

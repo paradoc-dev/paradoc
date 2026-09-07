@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { form, party } from '@/artifacts'
+import { form, party, FormValidationError } from '@/artifacts'
 import type { DraftForm } from '@/artifacts'
 
 // ============================================================================
@@ -62,6 +62,12 @@ const createFormWithParties = () =>
 			notes: { title: 'Notes' },
 		})
 		.build()
+
+const createCompletePartyPayload = () => ({
+	fields: { amount: 100 },
+	parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
+	annexes: { receipt: { filename: 'receipt.pdf' } },
+})
 
 const createFormWithDefsAndRules = () =>
 	form()
@@ -476,6 +482,61 @@ describe('fill-state', () => {
 	// ========================================================================
 
 	describe('regression: fill/safeFill still work', () => {
+		test('full validation includes required parties and annexes', () => {
+			const f = createFormWithParties()
+			const payload = createCompletePartyPayload() as any
+
+			expect(f.safeParseData(payload).success).toBe(true)
+			const result = f.safeFill(payload)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.parties).toEqual(payload.parties)
+				expect(result.data.annexes).toEqual(payload.annexes)
+			}
+		})
+
+		test('field-only mutations do not require missing party or annex sections', () => {
+			const f = createFormWithParties()
+			const draft = f.partialFill({ fields: { amount: 100 } } as any, { validate: 'none' })
+
+			expect(draft.setField('amount', 101).getField('amount')).toBe(101)
+			expect(draft.updateFields({ amount: 102 }).getField('amount')).toBe(102)
+		})
+
+		test('full updates validate merged parties and annexes', () => {
+			const f = createFormWithParties()
+			const payload = createCompletePartyPayload() as any
+			const draft = f.partialFill(payload, { validate: 'none' })
+
+			const updated = draft.update({ fields: { amount: 101 } }, { validate: 'full' })
+			expect(updated.getField('amount')).toBe(101)
+			expect(updated.parties).toEqual(payload.parties)
+			expect(updated.annexes).toEqual(payload.annexes)
+		})
+
+		test('full update and partial fill reject malformed optional parties', () => {
+			const f = createFormWithParties()
+			const validPayload = createCompletePartyPayload() as any
+			const draft = f.partialFill(validPayload, { validate: 'none' })
+			const malformedParty = { parties: { seller: null } } as any
+
+			expect(() => draft.update(malformedParty, { validate: 'full' })).toThrow(FormValidationError)
+			const updateResult = draft.safeUpdate(malformedParty, { validate: 'full' })
+			expect(updateResult.success).toBe(false)
+
+			const partialResult = f.safePartialFill(
+				{ ...validPayload, parties: { buyer: validPayload.parties.buyer, seller: null } },
+				{ validate: 'full' },
+			)
+			expect(partialResult.success).toBe(false)
+			expect(() =>
+				f.partialFill(
+					{ ...validPayload, parties: { buyer: validPayload.parties.buyer, seller: null } },
+					{ validate: 'full' },
+				),
+			).toThrow(FormValidationError)
+		})
+
 		test('fill creates draft with full validation', () => {
 			const f = createSimpleForm()
 			const draft = f.fill({
