@@ -13,6 +13,8 @@
 
 import type { FormParty, Party } from '@paradoc/types';
 import { inferPartyType, isPerson, isOrganization } from '@/primitives/party';
+import { evaluateBooleanExpression } from '@/logic/runtime/evaluation/expression-evaluator';
+import type { EvaluationContext } from '@/logic/runtime/evaluation/types';
 import { validatePerson, validateOrganization } from './validators';
 
 /**
@@ -131,6 +133,37 @@ export function isPartyTypeAllowed(party: Party, formParty: FormParty): boolean 
   return inferPartyType(party) === allowed;
 }
 
+/**
+ * Resolve whether a party role is required for the current form data.
+ *
+ * A declared expression owns the decision when present. Otherwise, explicit
+ * booleans win and an omitted `required` falls back to the declared minimum.
+ */
+export function evaluatePartyRequiredness(
+  formParty: FormParty,
+  context: EvaluationContext,
+): boolean {
+  if (typeof formParty.required === 'string') {
+    return evaluateBooleanExpression(formParty.required, context, false)
+  }
+  if (formParty.required !== undefined) {
+    return formParty.required
+  }
+  return (formParty.min ?? 1) > 0
+}
+
+/**
+ * Return the minimum count enforced for a role after its explicit required
+ * flag has been resolved. A required role always needs at least one party,
+ * even when its declared cardinality starts at zero.
+ */
+export function getEffectivePartyMinimum(formParty: FormParty): number {
+  const declaredMinimum = formParty.min ?? 1
+  return formParty.required === true
+    ? Math.max(declaredMinimum, 1)
+    : declaredMinimum
+}
+
 // Re-export type guards for convenience
 export { isPerson, isOrganization, inferPartyType };
 
@@ -210,7 +243,7 @@ export function validatePartiesForRole(
   roleId: string
 ): ExtendedValidationResult {
   const errors: string[] = [];
-  const min = formParty.min ?? 1;
+  const min = getEffectivePartyMinimum(formParty);
   const max = formParty.max ?? 1;
   const expectsArray = max > 1;
 

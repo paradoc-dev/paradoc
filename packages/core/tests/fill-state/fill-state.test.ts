@@ -83,6 +83,28 @@ const createFormWithDefsAndRules = () =>
 		})
 		.build()
 
+const createConditionalPartyForm = (
+	required: boolean | string | undefined,
+	min?: number,
+	max = 1,
+) =>
+	form()
+		.name('conditional-party')
+		.version('1.0.0')
+		.title('Conditional Party')
+		.fields({
+			needsGuarantor: { type: 'boolean' },
+		})
+		.parties({
+			guarantor: {
+				label: 'Guarantor',
+				...(min === undefined ? {} : { min }),
+				...(max === undefined ? {} : { max }),
+				...(required === undefined ? {} : { required }),
+			},
+		})
+		.build()
+
 const createFormWithPartyExpressions = () =>
 	form({
 		kind: 'form',
@@ -366,6 +388,56 @@ describe('fill-state', () => {
 			expect(openRequiredKeys).toContain('buyer')
 			expect(openRequiredKeys).toContain('amount')
 			expect(openRequiredKeys).toContain('receipt')
+		})
+
+		test('uses conditional party requiredness in fill state and full validation', () => {
+			const f = createConditionalPartyForm('fields.needsGuarantor == true', 0)
+
+			const notNeeded = f.partialFill({ fields: { needsGuarantor: false } } as any)
+			const notNeededState = notNeeded.getFillState()
+			expect(notNeededState.openRequired.some((item) => item.key === 'guarantor')).toBe(false)
+			expect(notNeededState.openOptional.some((item) => item.key === 'guarantor')).toBe(true)
+			expect(() => f.partialFill(
+				{ fields: { needsGuarantor: false } } as any,
+				{ validate: 'full' },
+			)).not.toThrow()
+
+			const needed = f.partialFill({ fields: { needsGuarantor: true } } as any)
+			const neededState = needed.getFillState()
+			expect(neededState.openRequired.some((item) => item.key === 'guarantor')).toBe(true)
+			expect(() => f.partialFill(
+				{ fields: { needsGuarantor: true } } as any,
+				{ validate: 'full' },
+			)).toThrow(/guarantor.*requires at least 1 party/i)
+		})
+
+		test('preserves omitted and explicit optional party defaults', () => {
+			const omittedOptional = createConditionalPartyForm(undefined, 0)
+			const omittedOptionalState = omittedOptional.partialFill().getFillState()
+			expect(omittedOptionalState.openRequired.some((item) => item.key === 'guarantor')).toBe(false)
+
+			const omittedRequired = createConditionalPartyForm(undefined)
+			const omittedRequiredState = omittedRequired.partialFill().getFillState()
+			expect(omittedRequiredState.openRequired.some((item) => item.key === 'guarantor')).toBe(true)
+
+			const explicitlyOptional = createConditionalPartyForm(false)
+			const explicitlyOptionalState = explicitlyOptional.partialFill().getFillState()
+			expect(explicitlyOptionalState.openRequired.some((item) => item.key === 'guarantor')).toBe(false)
+			expect(() => explicitlyOptional.partialFill(undefined, { validate: 'full' })).not.toThrow()
+		})
+
+		test('keeps supplied party cardinalities enforceable after condition resolution', () => {
+			const conditional = createConditionalPartyForm('fields.needsGuarantor == true', 0, 2)
+			expect(() => conditional.partialFill(
+				{ fields: { needsGuarantor: true }, parties: { guarantor: [] } } as any,
+				{ validate: 'full' },
+			)).toThrow(/guarantor.*requires at least 1 party/i)
+
+			const optional = createConditionalPartyForm('fields.needsGuarantor == false', 1, 2)
+			expect(() => optional.partialFill(
+				{ fields: { needsGuarantor: false }, parties: { guarantor: [] } } as any,
+				{ validate: 'full' },
+			)).toThrow()
 		})
 
 		test('includes annexes in fill state', () => {

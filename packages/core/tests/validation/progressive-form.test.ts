@@ -55,6 +55,14 @@ function createClosedObjectForm(name: string) {
 }
 
 describe('progressive form validation', () => {
+	describe('party definition validation', () => {
+		test('reports contradictory cardinality bounds at definition time', () => {
+			expect(() => party().label('Witness').min(2).max(1).build()).toThrow(
+				/max must be greater than or equal to min/,
+			)
+		})
+	})
+
 	describe('closed object validation', () => {
 		test('rejects unknown top-level and nested keys across public validators', () => {
 			const closedForm = createClosedObjectForm('closed-object')

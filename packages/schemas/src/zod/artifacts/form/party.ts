@@ -69,6 +69,16 @@ export const FormPartySchema = z.object({
 	required: CondExprSchema.optional(),
 	signature: FormSignatureSchema.optional(),
 	payment: FormPaymentSchema.optional(),
+}).superRefine((party, ctx) => {
+	const min = party.min ?? 1
+	const max = party.max ?? 1
+	if (min > max) {
+		ctx.addIssue({
+			code: 'custom',
+			path: ['max'],
+			message: 'max must be greater than or equal to min',
+		})
+	}
 }).meta({
 	title: 'FormParty',
 	description: 'Design-time party role definition. Defines what roles exist and what constraints apply when filling a form.',

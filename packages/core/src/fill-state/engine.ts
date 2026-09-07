@@ -19,6 +19,7 @@ import { parseExpression } from '@/logic/design-time/validation/expression-parse
 import { buildFormContext } from '@/logic/runtime/evaluation/context-builder'
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { evaluateFormRules } from '@/logic/runtime/evaluation/rule-evaluator'
+import { evaluatePartyRequiredness } from '@/validation/party'
 import { buildFieldDependencyGraph, transitiveBlockers } from './dependency-graph'
 
 /** A field/annex's effective status from its visibility and required flags. */
@@ -201,9 +202,15 @@ export function computeFillState(
 	annexValues: Record<string, unknown>,
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
+	witnessValues: Party[] = [],
 ): FillState {
 	const requiredFirst = options?.requiredFirst !== false
 	const includeOptional = options?.includeOptional === true
+	const context = buildFormContext(form, {
+		fields: fieldValues,
+		parties: partyValues as Record<string, Party | Party[]>,
+		witnesses: witnessValues,
+	})
 
 	const graph = buildFieldDependencyGraph(form)
 	const unfilledIds = getUnfilledIds(form, fieldValues, partyValues, annexValues)
@@ -241,7 +248,7 @@ export function computeFillState(
 	if (form.parties) {
 		for (const [roleId, partyDef] of Object.entries(form.parties)) {
 			const filled = isPartyFilled(partyValues, roleId)
-			const required = partyDef.required === true || (typeof partyDef.required === 'string' ? true : (partyDef.min ?? 1) > 0)
+			const required = evaluatePartyRequiredness(partyDef, context)
 			const item: FillItemState = {
 				kind: 'party',
 				key: roleId,
@@ -362,10 +369,6 @@ export function computeFillState(
 	const completionPercent = requiredTotal === 0 ? 100 : Math.round((requiredDone / requiredTotal) * 100)
 
 	// --- Rules ---
-	const context = buildFormContext(form, {
-		fields: fieldValues,
-		parties: partyValues as Record<string, Party | Party[]>,
-	})
 	const ruleResult = evaluateFormRules(form, fieldValues, runtimeState.defsValues, context)
 
 	// --- Defs values ---
@@ -447,8 +450,9 @@ export function getAvailableFillTargets(
 	annexValues: Record<string, unknown>,
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
+	witnessValues: Party[] = [],
 ): FillTarget[] {
-	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options)
+	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues)
 	return state.candidates
 }
 
@@ -462,7 +466,8 @@ export function getNextFillTarget(
 	annexValues: Record<string, unknown>,
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
+	witnessValues: Party[] = [],
 ): FillTarget | null {
-	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options)
+	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues)
 	return state.next
 }

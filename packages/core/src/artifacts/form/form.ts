@@ -69,6 +69,7 @@ import {
 	type AnnexInputValidationInput,
 	type NormalizedPartyInput,
 } from '@/validation'
+import { evaluatePartyRequiredness } from '@/validation/party'
 import { toYAML } from '@/serialization/serialization'
 import { deepClone, deepReadonlyClone } from '@/utils/clone'
 import { withArtifactMethods, type ArtifactMethods } from '../shared/artifact-methods'
@@ -326,10 +327,16 @@ function validateCompleteFormData(formDef: Form, data: CompleteFormData): Comple
 	}
 
 	const validated = result.data as Partial<CompleteFormData>
+	const fields = validated.fields ?? data.fields
 	const parties = validated.parties ?? data.parties
+	const partyContext = buildFormContext(formDef, { fields, parties })
 
 	for (const [roleId, formParty] of Object.entries(formDef.parties ?? {})) {
-		const partyResult = validatePartiesForRole(parties[roleId], formParty, roleId)
+		const partyResult = validatePartiesForRole(
+			parties[roleId],
+			{ ...formParty, required: evaluatePartyRequiredness(formParty, partyContext) },
+			roleId,
+		)
 		if (!partyResult.success) {
 			throw new FormValidationError(
 				partyResult.errors.map((message) => ({ field: `parties.${roleId}`, message })),
@@ -338,7 +345,7 @@ function validateCompleteFormData(formDef: Form, data: CompleteFormData): Comple
 	}
 
 	return {
-		fields: validated.fields ?? data.fields,
+		fields,
 		parties,
 		annexes: validated.annexes ?? data.annexes,
 	}
@@ -1399,17 +1406,17 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		getFillState(options?: FillTargetOptions): FillState {
 			const state = getRuntimeState()
-			return computeFillState(formDef, fieldValues, partyValues, annexValues, state, options)
+			return computeFillState(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party))
 		},
 
 		getNextFillTarget(options?: FillTargetOptions): FillTarget | null {
 			const state = getRuntimeState()
-			return getNextFillTarget(formDef, fieldValues, partyValues, annexValues, state, options)
+			return getNextFillTarget(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party))
 		},
 
 		getAvailableFillTargets(options?: FillTargetOptions): FillTarget[] {
 			const state = getRuntimeState()
-			return getAvailableFillTargets(formDef, fieldValues, partyValues, annexValues, state, options)
+			return getAvailableFillTargets(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party))
 		},
 
 		// ============================================================================
