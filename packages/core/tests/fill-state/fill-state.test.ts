@@ -169,6 +169,41 @@ const createFormWithPartyExpressions = () =>
 		},
 	} as any)
 
+const createCompletionContractForm = () =>
+	form({
+		kind: 'form',
+		name: 'completion-contract',
+		version: '1.0.0',
+		title: 'Completion Contract',
+		fields: {
+			enabled: { type: 'boolean' },
+			license: {
+				type: 'text',
+				visible: 'fields.enabled == true',
+				required: 'fields.enabled == true',
+			},
+			requiredFlag: { type: 'boolean', required: true },
+			requiredCount: { type: 'number', required: true },
+			hiddenText: { type: 'text', visible: false, required: true },
+			hiddenSection: {
+				type: 'fieldset',
+				visible: false,
+				fields: { secret: { type: 'text', required: true } },
+			},
+		},
+		annexes: {
+			hiddenProof: { title: 'Hidden Proof', visible: false, required: true },
+			proof: { title: 'Proof', visible: 'fields.enabled == true', required: 'fields.enabled == true' },
+		},
+		rules: {
+			flagMustBeSet: {
+				expr: 'requiredFlag == true',
+				severity: 'error',
+				message: 'The flag must be set',
+			},
+		},
+	} as any)
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -343,7 +378,13 @@ describe('fill-state', () => {
 		})
 
 		test('full update validation does not restore omitted defaults', () => {
-			const f = createNestedForm()
+			const f = form()
+				.name('defaults')
+				.fields({
+					requiredName: { type: 'text', required: true },
+					status: { type: 'text', default: 'draft' },
+				})
+				.build()
 			const draft = f.partialFill({ fields: { requiredName: 'before' } } as any)
 
 			const updated = draft.update(
@@ -615,7 +656,10 @@ describe('fill-state', () => {
 			expect(withBuyer.isFieldRequired('partyName')).toBe(true)
 			expect(withBuyer.isAnnexVisible('partyProof')).toBe(true)
 			expect(state.rules.valid).toBe(true)
-			expect(() => f.fill({ parties: { buyer: { id: 'buyer-0', name: 'Alice' } } } as any)).not.toThrow()
+			expect(() => f.fill({
+				fields: { partyName: 'Alice' },
+				parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
+			} as any)).not.toThrow()
 		})
 	})
 
@@ -816,6 +860,110 @@ describe('fill-state', () => {
 		test('fill throws on missing required fields', () => {
 			const f = createSimpleForm()
 			expect(() => f.fill({ fields: {} } as any)).toThrow()
+		})
+	})
+
+	// ========================================================================
+	// Full validation and completion contract
+	// ========================================================================
+
+	describe('full validation and completion contract', () => {
+		const completeVisiblePayload = {
+			fields: {
+				enabled: true,
+				license: 'DL-123',
+				requiredFlag: true,
+				requiredCount: 0,
+			},
+			annexes: { proof: { filename: 'proof.pdf' } },
+		}
+
+		test('full fill resolves conditional requiredness and ignores hidden required values', () => {
+			const f = createCompletionContractForm()
+			const result = f.safeFill({
+				fields: { enabled: false, requiredFlag: true, requiredCount: 0 },
+			} as any, { rules: false })
+
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.isValid()).toBe(true)
+				expect(result.data.getFillState().summary.requiredRemaining).toBe(0)
+				expect(result.data.isAnnexRequired('hiddenProof')).toBe(false)
+			}
+
+			expect(f.safeFill({
+				fields: { enabled: true, requiredFlag: true, requiredCount: 0 },
+				annexes: { proof: { filename: 'proof.pdf' } },
+			} as any, { rules: false }).success).toBe(false)
+			expect(f.safeFill(completeVisiblePayload as any, { rules: false }).success).toBe(true)
+		})
+
+		test('runtime validation reports missing and invalid values after progressive filling', () => {
+			const f = createCompletionContractForm()
+			const incomplete = f.partialFill({ fields: { enabled: false } } as any)
+			const incompleteValidation = incomplete.validate()
+
+			expect(incomplete.isValid()).toBe(false)
+			expect(incompleteValidation.valid).toBe(false)
+			expect(incompleteValidation.errors.map((error) => error.field)).toEqual([
+				'fields.requiredFlag',
+				'fields.requiredCount',
+			])
+			expect(incomplete.validateRules().valid).toBe(false)
+
+			const invalid = f.partialFill({ fields: { requiredFlag: true, requiredCount: 'bad' } } as any, { validate: 'none' })
+			expect(invalid.isValid()).toBe(false)
+			expect(invalid.validate().errors.some((error) => error.field === 'fields.requiredCount')).toBe(true)
+		})
+
+		test('false and zero values satisfy required fields', () => {
+			const f = createCompletionContractForm()
+			const result = f.safeFill({
+				fields: { enabled: false, requiredFlag: false, requiredCount: 0 },
+			} as any, { rules: false })
+
+			expect(result.success).toBe(true)
+		})
+
+		test('hidden stored values remain available and are still type checked', () => {
+			const f = createCompletionContractForm()
+			const draft = f.partialFill({
+				fields: { enabled: false, hiddenText: 'kept', requiredFlag: true, requiredCount: 0 },
+				annexes: {
+					hiddenProof: { filename: 'kept.pdf' },
+					proof: { filename: 'kept-conditional.pdf' },
+				},
+			} as any, { validate: 'none' })
+			const shown = draft.update({ fields: { enabled: true } } as any)
+
+			expect(shown.getField('hiddenText')).toBe('kept')
+			expect(shown.getAnnex('hiddenProof')).toEqual({ filename: 'kept.pdf' })
+			expect(shown.getAnnex('proof')).toEqual({ filename: 'kept-conditional.pdf' })
+			expect(shown.isAnnexRequired('proof')).toBe(true)
+			expect(f.partialFill({ fields: { hiddenText: 123 } } as any, { validate: 'none' }).isValid()).toBe(false)
+		})
+
+		test('null and undefined do not satisfy a visible required annex', () => {
+			const f = createCompletionContractForm()
+			for (const value of [null, undefined]) {
+				expect(f.safeFill({
+					fields: { enabled: true, license: 'DL-123', requiredFlag: true, requiredCount: 0 },
+					annexes: { proof: value },
+				} as any, { rules: false }).success).toBe(false)
+			}
+		})
+
+		test('validate keeps rules separate from full value validity', () => {
+			const f = createCompletionContractForm()
+			const draft = f.partialFill({
+				...completeVisiblePayload,
+				fields: { ...completeVisiblePayload.fields, requiredFlag: false },
+			} as any, { validate: 'none' })
+			const validation = draft.validate()
+
+			expect(validation.valid).toBe(false)
+			expect(validation.errors).toEqual([])
+			expect(validation.rules.valid).toBe(false)
 		})
 	})
 
