@@ -2,7 +2,7 @@
  * @paradoc/sdk
  *
  * SDK package for Paradoc framework
- * Umbrella wrapper that re-exports everything from @paradoc/core, @paradoc/render, and @paradoc/serialization
+ * Umbrella wrapper that re-exports everything from @paradoc/core, @paradoc/render, and @paradoc/format
  */
 
 // Re-export from @paradoc/core
@@ -58,7 +58,10 @@ export async function inspectAcroFormFields(...args: Parameters<typeof import('@
   return inspectAcroFormFields(...args)
 }
 
-// Re-export from @paradoc/serialization
+// Re-export the standalone presentation formatter for SDK consumers.
+export * from '@paradoc/format'
+
+// Re-export from @paradoc/serialization while existing consumers migrate.
 export * from '@paradoc/serialization'
 
 // Re-export from @paradoc/sessions

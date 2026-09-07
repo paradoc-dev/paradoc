@@ -12,6 +12,7 @@ export default defineConfig({
 	external: [
 		// Mark workspace dependencies as external (they'll be installed separately)
 		'@paradoc/core',
+		'@paradoc/format',
 		'@paradoc/render',
 		'@paradoc/sessions',
 	],
