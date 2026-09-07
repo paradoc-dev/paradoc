@@ -6,7 +6,8 @@ import { FormSchema } from '../form';
 import { BundleSchema } from './index';
 
 /**
- * Base properties shared by path and registry bundle content items.
+ * Base properties shared by every bundle content item with an optional
+ * membership condition. The source-specific payload remains below.
  */
 const ContentItemBaseSchema = z.object({
 	key: z.string()
@@ -38,6 +39,7 @@ const InlineContentItemSchema: z.ZodObject<InlineContentItemShape, z.core.$stric
 		.max(100)
 		.regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/)
 		.describe('Unique identifier for this content item, used to reference it in defs expressions'),
+	include: CondExprSchema.optional(),
 	artifact: z.lazy(() => z.union([
 		DocumentSchema,
 		FormSchema,

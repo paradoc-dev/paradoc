@@ -176,6 +176,20 @@ export type {
 
 // Bundle artifact
 export { bundle, runtimeBundleFromJSON } from './bundle'
+export {
+	assertBundleInclusionResolved,
+	decisionForKey,
+	evaluateBundleInclusion,
+	includedRuntimeContents,
+} from './bundle/inclusion'
+export type {
+	BundleBytesMember,
+	BundleEvaluationMember,
+	BundleInclusionDecision,
+	BundleInclusionState,
+	BundleInclusionStatus,
+	BundleRuntimeMember,
+} from './bundle/inclusion'
 export type {
 	BundleInstance,
 	RuntimeBundle,

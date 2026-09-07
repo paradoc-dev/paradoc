@@ -348,11 +348,8 @@ export function validateBundleDefs(
 
 /**
  * Helper to get include expression from a BundleContentItem.
- * Only path and registry items have include conditions.
+ * Every reference kind supports the same optional condition.
  */
 function getIncludeExpression(item: BundleContentItem): CondExpr | undefined {
-  if (item.type === 'path' || item.type === 'registry') {
-    return item.include
-  }
-  return undefined
+	return item.include
 }

@@ -11,7 +11,7 @@ import { parseExpression } from './expression-parser'
  */
 export function isInlineBundleArtifact(
   item: BundleContentItem
-): item is { type: 'inline'; key: string; artifact: Form | Bundle } {
+): item is Extract<BundleContentItem, { type: 'inline' }> {
   return item.type === 'inline' && 'artifact' in item
 }
 

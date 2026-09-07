@@ -13,6 +13,12 @@ import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import { renderLayer } from '@paradoc/render'
 import { findRegisteredRenderer, isReactLayerMimeType, type RendererRegistry } from './renderer-registry'
+import {
+  assertBundleInclusionResolved,
+  evaluateBundleInclusion,
+  type BundleEvaluationMember,
+  type BundleInclusionState,
+} from '@/artifacts/bundle/inclusion'
 
 // ============================================================================
 // Bundle Assembly API
@@ -69,6 +75,13 @@ export interface BundleAssemblyOptions {
 
   /** Content entries keyed by bundle content key */
   contents: Record<string, AssemblyContentEntry>
+
+  /**
+   * Complete content map used to resolve inclusion while a caller renders one
+   * part at a time. This is used by packet sealing; ordinary callers should
+   * leave it unset so the supplied contents are the evaluation input.
+   */
+  inclusionContents?: Record<string, AssemblyContentEntry>
 }
 
 /**
@@ -185,6 +198,12 @@ export async function assembleBundle(
   options: BundleAssemblyOptions
 ): Promise<AssembledBundle> {
   const { renderers, contents } = options
+  const inclusionContents = options.inclusionContents ?? contents
+  const inclusionState: BundleInclusionState = evaluateBundleInclusion(
+    bundle,
+    inclusionContents as Record<string, BundleEvaluationMember>,
+  )
+  assertBundleInclusionResolved(inclusionState)
   const outputs: Record<string, AssembledBundleOutput> = {}
 
   // Validate all content keys exist in bundle
@@ -200,6 +219,8 @@ export async function assembleBundle(
 
   // Process each content entry
   for (const [key, filled] of Object.entries(contents)) {
+    if (inclusionState.excludedKeys.includes(key)) continue
+
     if (isAssemblyBytesEntry(filled)) {
       outputs[key] = {
         content: filled.content,

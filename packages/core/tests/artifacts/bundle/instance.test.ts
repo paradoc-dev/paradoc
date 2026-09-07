@@ -313,6 +313,22 @@ describe('BundleInstance', () => {
       expect((instance.contents[0] as any)?.key).toBe('doc')
     })
 
+    test('inline() preserves an include condition', () => {
+      const instance = bundle()
+        .name('test')
+        .version('1.0.0')
+        .title('Test')
+        .inline(
+          'doc',
+          document().name('doc').version('1.0.0').title('Doc').build(),
+          'showDoc'
+        )
+        .build()
+
+      expect((instance.contents[0] as any)?.include).toBe('showDoc')
+      expect(instance.toJSON({ includeSchema: false }).contents[0]).toMatchObject({ include: 'showDoc' })
+    })
+
     test('registry() adds registry reference', () => {
       const instance = bundle()
         .name('test')

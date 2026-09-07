@@ -45,6 +45,14 @@ import type { RuntimeDocument, DraftDocument } from '../document'
 import type { RuntimeChecklist, DraftChecklist } from '../checklist'
 import type { RuntimeForm, DraftForm, SignableForm } from '../form'
 import type { DeepMutable, DeepReadonly } from '@/artifacts/shared/definition-types'
+import {
+	assertBundleInclusionResolved,
+	decisionForKey,
+	evaluateBundleInclusion,
+	includedRuntimeContents,
+	type BundleInclusionDecision,
+	type BundleInclusionState,
+} from './inclusion'
 
 // ============================================================================
 // Types
@@ -56,6 +64,9 @@ import type { DeepMutable, DeepReadonly } from '@/artifacts/shared/definition-ty
 export type BundleInput = DeepReadonly<Omit<Bundle, 'kind'>> & { readonly kind?: 'bundle' }
 
 type MutableBundle<T extends BundleInput> = DeepMutable<T> & Bundle & { kind: 'bundle' }
+
+type BundleArtifact = Document | Form | Checklist | Bundle
+type BundleArtifactInput = Buildable<BundleArtifact> | { readonly _data: BundleArtifact }
 
 /**
  * RuntimeBundle JSON representation (union of all phases)
@@ -175,6 +186,13 @@ interface RuntimeBundleBase<B extends Bundle> {
 	getContent(key: string): RuntimeInstance | undefined
 	hasContent(key: string): boolean
 	getAllContents(): RuntimeBundleContents
+
+	/** Inspect membership conditions against the contents currently supplied. */
+	getInclusionState(): BundleInclusionState
+	/** Inspect one member's inclusion decision. */
+	getInclusion(key: string): BundleInclusionDecision
+	/** Return the supplied runtime contents that are included in output. */
+	getIncludedContents(): RuntimeBundleContents
 
 	// Rendering
 	render(options?: RuntimeBundleRenderOptions): Promise<RuntimeBundleRendered<B>>
@@ -471,6 +489,19 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 			return { ...contentValues }
 		},
 
+		getInclusionState(): BundleInclusionState {
+			return evaluateBundleInclusion(bundleDef, contentValues)
+		},
+
+		getInclusion(key: string): BundleInclusionDecision {
+			return decisionForKey(runtime.getInclusionState(), key)
+		},
+
+		getIncludedContents(): RuntimeBundleContents {
+			const state = runtime.getInclusionState()
+			return includedRuntimeContents(state, contentValues)
+		},
+
 		// ============================================================================
 		// Content Mutation Methods (draft only)
 		// ============================================================================
@@ -544,6 +575,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 
 		prepareForSigning(): RuntimeBundle<B> {
 			ensureDraft('prepareForSigning')
+			assertBundleInclusionResolved(runtime.getInclusionState())
 
 			// Transition all content instances to signable/completed/final
 			const signableContents: RuntimeBundleContents = {}
@@ -561,6 +593,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 
 		finalize(): RuntimeBundle<B> {
 			ensureSignable('finalize')
+			assertBundleInclusionResolved(runtime.getInclusionState())
 
 			// Transition all content instances to executed
 			const executedContents: RuntimeBundleContents = {}
@@ -584,8 +617,9 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		async render(options: RuntimeBundleRenderOptions = {}): Promise<RuntimeBundleRendered<B>> {
 			const { renderers } = options
 			const outputs: Record<string, RuntimeBundleRenderedOutput> = {}
+			const included = runtime.getIncludedContents()
 
-			for (const [key, instance] of Object.entries(contentValues)) {
+			for (const [key, instance] of Object.entries(included)) {
 				const output = await renderInstance(key, instance, { renderers })
 				outputs[key] = output
 			}
@@ -856,7 +890,7 @@ export interface BundleBuilderInterface {
 	def(name: string, expression: string | Expression): BundleBuilderInterface
 	registry(key: string, slug: string, include?: CondExpr): BundleBuilderInterface
 	path(key: string, pathValue: string, include?: CondExpr): BundleBuilderInterface
-	inline(key: string, artifact: Buildable<Document | Form | Checklist | Bundle>, include?: CondExpr): BundleBuilderInterface
+	inline(key: string, artifact: BundleArtifactInput, include?: CondExpr): BundleBuilderInterface
 	contents(contentsArray: BundleContentItem[]): BundleBuilderInterface
 	removeContent(predicate: (content: BundleContentItem, index: number) => boolean): BundleBuilderInterface
 	clearContents(): BundleBuilderInterface
@@ -990,15 +1024,15 @@ function createBundleBuilder(): BundleBuilderInterface {
 			return builder
 		},
 
-		inline(key: string, artifact: Buildable<Document | Form | Checklist | Bundle>, _include?: CondExpr) {
+		inline(key: string, artifact: BundleArtifactInput, include?: CondExpr) {
 			const contents = (_def.contents as BundleContentItem[]) || []
-			const resolvedArtifact = resolveBuildable(artifact)
+			const resolvedArtifact = resolveBuildable(artifact as Buildable<BundleArtifact>)
 			// Extract raw artifact data if it's an instance (has _data property)
 			// This ensures we store plain data without methods for structuredClone compatibility
 			const rawArtifact = '_data' in resolvedArtifact
 				? (resolvedArtifact as { _data: Document | Form | Checklist | Bundle })._data
 				: resolvedArtifact
-			const item: BundleContentItem = { type: 'inline', key, artifact: rawArtifact }
+			const item: BundleContentItem = { type: 'inline', key, artifact: rawArtifact, ...(include !== undefined && { include }) }
 			contents.push(parseBundleContentItem(item) as BundleContentItem)
 			_def.contents = contents
 			return builder

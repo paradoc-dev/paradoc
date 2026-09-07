@@ -56,6 +56,7 @@ import {
   type AssemblyContentEntry,
 } from './bundle-assembler'
 import type { RendererRegistry } from './renderer-registry'
+import { evaluateBundleInclusion, type BundleEvaluationMember } from '@/artifacts/bundle/inclusion'
 
 /** What a part turned out to be once the packet was assembled. */
 export type PacketPartKind =
@@ -327,14 +328,22 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
   const { contents, renderers, adapter, locate } = options
 
   const problems: string[] = []
-  const declared = bundle.contents.map((content) => content.key)
+  const inclusion = evaluateBundleInclusion(bundle, contents as Record<string, BundleEvaluationMember>)
+  if (!inclusion.resolved) {
+    problems.push(...inclusion.errors)
+    problems.push(...inclusion.unresolvedKeys.map((key) => `content "${key}" has unresolved inclusion`))
+    throw new BundleSealError(`Cannot seal bundle: ${problems.join('; ')}`, problems)
+  }
+
+  const allDeclared = bundle.contents.map((content) => content.key)
+  const declared = [...inclusion.includedKeys]
   const items = new Map(bundle.contents.map((content) => [content.key, content]))
   for (const key of declared) {
     if (!(key in contents)) problems.push(`bundle content "${key}" has no entry`)
   }
   for (const key of Object.keys(contents)) {
-    if (!declared.includes(key)) {
-      problems.push(`entry "${key}" is not a content of this bundle; it declares ${declared.join(', ')}`)
+    if (!allDeclared.includes(key)) {
+      problems.push(`entry "${key}" is not a content of this bundle; it declares ${allDeclared.join(', ')}`)
     }
   }
   if (problems.length > 0) {
@@ -401,7 +410,11 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
       continue
     }
     try {
-      const assembled = await assembleBundle(bundle, { renderers, contents: { [key]: entry } })
+      const assembled = await assembleBundle(bundle, {
+        renderers,
+        contents: { [key]: entry },
+        inclusionContents: contents,
+      })
       renderedParts.set(key, assembled.outputs[key]!)
     } catch (error) {
       throw partFailure(key, 'rendering', error)

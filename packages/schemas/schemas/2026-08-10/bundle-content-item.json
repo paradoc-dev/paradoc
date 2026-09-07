@@ -16,6 +16,9 @@
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
           "description": "Unique identifier for this content item, used to reference it in defs expressions"
         },
+        "include": {
+          "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/CondExpr"
+        },
         "artifact": {
           "description": "Inline artifact definition (document, form, checklist, or nested bundle)",
           "anyOf": [

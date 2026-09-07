@@ -53,6 +53,10 @@ export {
   runtimeDocumentFromJSON,
   runtimeChecklistFromJSON,
   runtimeBundleFromJSON,
+  assertBundleInclusionResolved,
+  decisionForKey,
+  evaluateBundleInclusion,
+  includedRuntimeContents,
   // Shared utilities
   withArtifactMethods,
   renderLayer,
@@ -124,6 +128,12 @@ export type {
   RuntimeBundleRenderOptions,
   RuntimeBundleRenderedOutput,
   RuntimeBundleRendered,
+  BundleBytesMember,
+  BundleEvaluationMember,
+  BundleInclusionDecision,
+  BundleInclusionState,
+  BundleInclusionStatus,
+  BundleRuntimeMember,
   // Shared types
   ArtifactMethods,
   ArtifactInstanceOptions,

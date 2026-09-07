@@ -261,6 +261,22 @@ describe('sealing a bundle', () => {
 		])
 	})
 
+	test('allows excluded members to remain without packet entries', async () => {
+		const selective: Bundle = {
+			...bundle,
+			contents: [
+				{ ...bundle.contents[0]!, include: true },
+				{ ...bundle.contents[1]!, include: false },
+				{ ...bundle.contents[2]!, include: false },
+			],
+		}
+		const packet = await sealBundle(selective, {
+			contents: { first: { kind: 'bytes', content: cleanPdf, mimeType: 'application/pdf' } },
+		})
+
+		expect(packet.parts.map((part) => part.key)).toEqual(['first'])
+	})
+
 	test('refuses a packet where nothing reached a PDF', async () => {
 		const oneAnnex: Bundle = { ...bundle, contents: [bundle.contents[2]!] }
 		const failure = await sealBundle(oneAnnex, {

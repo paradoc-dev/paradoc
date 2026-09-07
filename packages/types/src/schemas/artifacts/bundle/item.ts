@@ -18,6 +18,8 @@ export interface InlineBundleItem {
   key: string;
   /** The embedded artifact (document, form, checklist, or nested bundle). */
   artifact: Document | Form | Checklist | Bundle;
+  /** Conditional expression for including this item. */
+  include?: CondExpr;
 }
 
 /**
