@@ -29,6 +29,13 @@ Fundamental package for modeling business documents as typed, versioned artifact
 - 🎯 **Composable design** - Reuse fields and artifacts across definitions
 - 📦 **Standalone library** - Use independently or with @paradoc/sdk
 
+JSON Schema exports are maintained by `@paradoc/schemas`. To regenerate the
+latest and versioned bundles, run:
+
+```bash
+pnpm --filter @paradoc/schemas export:bundled-schema
+```
+
 ## Installation
 
 ```bash

@@ -65,9 +65,7 @@
     "check": "pnpm lint && pnpm check-types",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "export:all-schemas": "tsx scripts/export-all-schemas.ts",
-    "export:root-schema": "tsx scripts/export-root-schema.ts"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@paradoc/expr": "workspace:^",
