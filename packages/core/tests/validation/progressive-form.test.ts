@@ -148,6 +148,72 @@ describe('progressive form validation', () => {
 	})
 
 	describe('standalone field validators', () => {
+		test('keeps compiled constraints consistent across full, field, patch, and fill validation', () => {
+			const constraintForm = form().name('constraint-parity').fields({
+				text: { type: 'text' },
+				email: { type: 'email', minLength: 10, maxLength: 30 },
+				uuid: { type: 'uuid' },
+				uri: { type: 'uri' },
+				date: { type: 'date', min: '2026-01-01', max: '2026-12-31' },
+				datetime: {
+					type: 'datetime',
+					min: '2026-01-01T00:00:00Z',
+					max: '2026-12-31T23:59:59Z',
+				},
+				time: { type: 'time', min: '09:00:00', max: '17:00:00' },
+				rating: { type: 'rating', min: 1, max: 5, step: 1 },
+				choices: { type: 'multiselect', enum: [{ value: 'a' }, { value: 'b' }] },
+				identification: { type: 'identification', allowedTypes: ['passport'] },
+				money: { type: 'money' },
+			}).build()
+
+			const validFields = {
+				text: 'plain text',
+				email: 'alice@example.com',
+				uuid: '550e8400-e29b-41d4-a716-446655440000',
+				uri: 'https://example.com/forms/1',
+				date: '2026-01-01',
+				datetime: '2026-12-31T23:59:59Z',
+				time: '17:00:00',
+				rating: 5,
+				choices: ['a', 'b'],
+				identification: { type: 'passport', number: 'A123' },
+				money: { amount: 10, currency: 'USD' },
+			}
+			const invalidCases = [
+				['email format', 'email', 'bad', { ...validFields, email: 'bad' }],
+				['email length', 'email', 'a@b.co', { ...validFields, email: 'a@b.co' }],
+				['uuid format', 'uuid', 'bad', { ...validFields, uuid: 'bad' }],
+				['uri format', 'uri', 'bad', { ...validFields, uri: 'bad' }],
+				['date bounds', 'date', '2025-12-31', { ...validFields, date: '2025-12-31' }],
+				['datetime bounds', 'datetime', '2025-12-31T23:59:59Z', { ...validFields, datetime: '2025-12-31T23:59:59Z' }],
+				['time bounds', 'time', '08:59:59', { ...validFields, time: '08:59:59' }],
+				['rating step', 'rating', 1.5, { ...validFields, rating: 1.5 }],
+				['multiselect uniqueness', 'choices', ['a', 'a'], { ...validFields, choices: ['a', 'a'] }],
+				['identification type', 'identification', { type: 'license', number: 'A123' }, { ...validFields, identification: { type: 'license', number: 'A123' } }],
+				['money currency', 'money', { amount: 10, currency: '123' }, { ...validFields, money: { amount: 10, currency: '123' } }],
+			] as const
+
+			expect(validateFormData(constraintForm, { fields: validFields }).success).toBe(true)
+			expect(validateFieldsPatch(constraintForm, validFields).success).toBe(true)
+			expect(constraintForm.safeFill({ fields: validFields } as never, { rules: false }).success).toBe(true)
+			expect(constraintForm.safePartialFill({ fields: validFields } as never).success).toBe(true)
+
+			for (const [label, fieldPath, value, fields] of invalidCases) {
+				expect(validateFormData(constraintForm, { fields }).success, `${label} full`).toBe(false)
+				expect(validateFieldsPatch(constraintForm, fields).success, `${label} patch`).toBe(false)
+				expect(
+					validateFieldInput(constraintForm, {
+						fieldPath,
+						value,
+					}).success,
+					`${label} field`,
+				).toBe(false)
+				expect(constraintForm.safeFill({ fields } as never, { rules: false }).success, `${label} fill`).toBe(false)
+				expect(constraintForm.safePartialFill({ fields } as never).success, `${label} partial fill`).toBe(false)
+			}
+		})
+
 		test('validates a bounded text field without constructing an invalid regex', () => {
 			const boundedForm = form().name('bounded-text').fields({
 				nickname: { type: 'text', minLength: 2, maxLength: 5 },

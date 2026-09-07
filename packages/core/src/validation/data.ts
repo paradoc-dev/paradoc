@@ -58,6 +58,12 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 		const maxItems = jsonSchema.maxItems as number | undefined
 		if (minItems !== undefined) schema = schema.min(minItems)
 		if (maxItems !== undefined) schema = schema.max(maxItems)
+		if (jsonSchema.uniqueItems === true) {
+			schema = schema.refine(
+				(items) => new Set(items.map((item) => JSON.stringify(item))).size === items.length,
+				{ message: 'Array items must be unique' },
+			)
+		}
 		return schema
 	}
 
@@ -67,25 +73,64 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 		const minLength = jsonSchema.minLength as number | undefined
 		const maxLength = jsonSchema.maxLength as number | undefined
 		const pattern = jsonSchema.pattern as string | undefined
+		const enumValues = jsonSchema.enum as unknown[] | undefined
+		const constValue = jsonSchema.const
+
+		if (enumValues !== undefined) {
+			if (enumValues.length === 0) return z.never()
+			if (enumValues.every((value): value is string => typeof value === 'string')) {
+				schema = z.enum(enumValues as [string, ...string[]])
+			} else {
+				schema = schema.refine((value) => enumValues.includes(value), {
+					message: `Invalid value; expected one of ${enumValues.join(', ')}`,
+				})
+			}
+		}
+		if (typeof constValue === 'string') {
+			schema = schema.refine((value) => value === constValue, {
+				message: `Invalid value; expected ${constValue}`,
+			})
+		}
 
 		if (format === 'email') {
 			schema = z.email()
 		} else if (format === 'uri' || format === 'url') {
 			schema = z.url()
+		} else if (format === 'uuid') {
+			schema = z.uuid()
 		} else if (format === 'date') {
 			schema = z.iso.date()
 		} else if (format === 'date-time') {
 			schema = z.iso.datetime()
-		} else {
-			if (minLength !== undefined) {
-				schema = (schema as z.ZodString).min(minLength)
+		} else if (format === 'time') {
+			schema = z.iso.time()
+		}
+
+		if (minLength !== undefined) {
+			schema = (schema as z.ZodString).min(minLength)
+		}
+		if (maxLength !== undefined) {
+			schema = (schema as z.ZodString).max(maxLength)
+		}
+		if (pattern !== undefined) {
+			// Use safe regex to prevent ReDoS attacks from malicious patterns
+			schema = (schema as z.ZodString).regex(createSafeRegex(pattern))
+		}
+
+		if (format === 'date' || format === 'date-time' || format === 'time') {
+			const formatMinimum = jsonSchema.formatMinimum as string | undefined
+			const formatMaximum = jsonSchema.formatMaximum as string | undefined
+			if (formatMinimum !== undefined) {
+				schema = schema.refine(
+					(value) => typeof value === 'string' && value >= formatMinimum,
+					{ message: `Must be on or after ${formatMinimum}` },
+				)
 			}
-			if (maxLength !== undefined) {
-				schema = (schema as z.ZodString).max(maxLength)
-			}
-			if (pattern !== undefined) {
-				// Use safe regex to prevent ReDoS attacks from malicious patterns
-				schema = (schema as z.ZodString).regex(createSafeRegex(pattern))
+			if (formatMaximum !== undefined) {
+				schema = schema.refine(
+					(value) => typeof value === 'string' && value <= formatMaximum,
+					{ message: `Must be on or before ${formatMaximum}` },
+				)
 			}
 		}
 		return schema
@@ -101,6 +146,10 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 		}
 		if (maximum !== undefined) {
 			schema = schema.max(maximum)
+		}
+		const multipleOf = jsonSchema.multipleOf as number | undefined
+		if (multipleOf !== undefined) {
+			schema = schema.multipleOf(multipleOf)
 		}
 		if (type === 'integer') {
 			schema = schema.int()
