@@ -503,11 +503,12 @@ describe('Expression Type Checking', () => {
 					mixed: { type: 'enum', enum: [{ value: 'new' }, { value: 1 }] },
 					amount: { type: 'number' },
 					currency: { type: 'text' },
-					visibleWhenTotalIsHigh: { type: 'text', visible: 'total.amount > 10' },
+						visibleWhenTotalIsHigh: { type: 'text', visible: 'isTotalHigh' },
 					numericEnumGate: { type: 'text', visible: 'fields.level > 1' },
-				},
-				defs: {
-					total: {
+					},
+					defs: {
+						isTotalHigh: { type: 'boolean', value: 'total.amount > 10' },
+						total: {
 						type: 'money',
 						value: { amount: 'fields.amount', currency: 'fields.currency' },
 					},
@@ -523,6 +524,7 @@ describe('Expression Type Checking', () => {
 
 			const evaluated = evaluateFormDefs(form, { fields: { level: 2, amount: 20, currency: 'USD' } })
 			expect('value' in evaluated && evaluated.value.fields.get('visibleWhenTotalIsHigh')?.visible).toBe(true)
+			expect('value' in evaluated && evaluated.value.defsValues.get('isTotalHigh')).toBe(true)
 			expect('value' in evaluated && evaluated.value.fields.get('numericEnumGate')?.visible).toBe(true)
 			const belowThreshold = evaluateFormDefs(form, { fields: { level: 1, amount: 20, currency: 'USD' } })
 			expect('value' in belowThreshold && belowThreshold.value.fields.get('numericEnumGate')?.visible).toBe(false)

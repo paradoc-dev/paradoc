@@ -266,12 +266,20 @@ export function topologicalSortDefsKeys(logic: Record<string, string>): Topologi
   const keys = Object.keys(logic)
   const keySet = new Set(keys)
 
-  // Each key depends on the other defs keys its expression references.
+  // Each key depends on the other defs keys its expression references. Object
+  // definition members (for example `total.amount`) depend on their base key.
   const dependencies = new Map<string, string[]>()
   for (const key of keys) {
     const expr = logic[key]
     const parsed = expr ? parseExpression(expr) : undefined
-    dependencies.set(key, parsed && parsed.success ? parsed.variables.filter((v) => keySet.has(v)) : [])
+    dependencies.set(
+      key,
+      parsed && parsed.success
+        ? parsed.variables
+            .map((variable) => variable.split('.')[0]!)
+            .filter((variable) => keySet.has(variable))
+        : []
+    )
   }
 
   const { sorted, cyclic } = topologicalSort(keys, (k) => dependencies.get(k) ?? [])
