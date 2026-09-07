@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { Form, Document, Checklist, Bundle } from '@paradoc/types'
 import { validateLogic, type LogicValidatableArtifact } from '@/logic'
+import { parse } from '@/serialization/serialization'
 import {
   validateForm,
   validateDocument,
@@ -217,9 +218,22 @@ export function validate<T = unknown>(
 export const parseArtifact = (
   content: string
 ): Form | Document | Checklist | Bundle | undefined => {
-  const result = validate(content)
+  let parsed: unknown
+
+  try {
+    parsed = parse(content)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Invalid artifact: ${message}`)
+  }
+
+  const result = validate(parsed)
   if (result.issues) {
-    throw new Error(`Invalid artifact: ${result.issues?.join(', ')}`)
+    const messages = result.issues.map((issue) => {
+      const path = issue.path?.length ? ` at ${issue.path.join('.')}` : ''
+      return `${issue.message}${path}`
+    })
+    throw new Error(`Invalid artifact: ${messages.join(', ')}`)
   }
 
   const data = result.value as Form | Document | Checklist | Bundle
