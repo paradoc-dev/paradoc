@@ -67,9 +67,10 @@
     "export:registry": "tsx scripts/export-registry-schemas-zod.ts",
     "export:all": "pnpm export:bundled-schema && pnpm export:individual-schemas && pnpm export:manifest && pnpm export:registry"
   },
-  "dependencies": {},
+  "dependencies": {
+    "zod": "catalog:"
+  },
   "devDependencies": {
-    "zod": "catalog:",
     "@paradoc/eslint-config": "workspace:*",
     "@paradoc/types": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
