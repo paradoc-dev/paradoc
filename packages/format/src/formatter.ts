@@ -27,9 +27,29 @@ import {
 	validateTime,
 	type TemporalValidation,
 } from './temporal'
+import {
+	BUILT_IN_CAPTURE_MESSAGES,
+	MissingCaptureMessageError,
+	formatAttachmentValue,
+	formatBboxValue,
+	formatCoordinateValue,
+	formatIdentificationValue,
+	formatSignatureValue,
+	validateAttachment,
+	validateBbox,
+	validateCoordinate,
+	validateIdentification,
+	validateSignature,
+	type CaptureFormattingContext,
+	type CaptureValidation,
+} from './captures'
 import { FormatConfigurationError, FormatError } from './errors'
 import {
 	FORMAT_KINDS,
+	type CaptureFormatImplementation,
+	type CaptureFormatImplementationContext,
+	type CaptureFormatKind,
+	type CaptureValueByKind,
 	type AddressFormatOptions,
 	type ContactFormatImplementation,
 	type ContactFormatImplementationContext,
@@ -65,6 +85,7 @@ const DEFAULT_CALENDAR = 'gregory'
 const NUMERIC_KINDS: readonly NumericFormatKind[] = ['number', 'money', 'percentage']
 const CONTACT_KINDS: readonly ContactFormatKind[] = ['address', 'phone', 'person', 'organization', 'party']
 const TEMPORAL_KINDS: readonly TemporalFormatKind[] = ['date', 'datetime', 'time', 'duration']
+const CAPTURE_KINDS: readonly CaptureFormatKind[] = ['coordinate', 'bbox', 'identification', 'attachment', 'signature']
 
 type NumericImplementationMap = {
 	[K in NumericFormatKind]: FormatImplementation<K>
@@ -105,6 +126,19 @@ interface TemporalChainEntry<K extends TemporalFormatKind> {
 	readonly previous?: TemporalChainEntry<K>
 }
 
+type CaptureImplementationMap = {
+	[K in CaptureFormatKind]: CaptureFormatImplementation<K>
+}
+
+type CaptureChainMap = {
+	[K in CaptureFormatKind]: CaptureChainEntry<K>
+}
+
+interface CaptureChainEntry<K extends CaptureFormatKind> {
+	readonly implementation: CaptureFormatImplementation<K>
+	readonly previous?: CaptureChainEntry<K>
+}
+
 interface FormatterConfig {
 	readonly locale: string
 	readonly fallbackLocale?: string
@@ -125,6 +159,11 @@ interface FormatterConfig {
 	readonly datetime: FormatOptionsByKind['datetime']
 	readonly time: FormatOptionsByKind['time']
 	readonly duration: FormatOptionsByKind['duration']
+	readonly coordinate: FormatOptionsByKind['coordinate']
+	readonly bbox: FormatOptionsByKind['bbox']
+	readonly identification: FormatOptionsByKind['identification']
+	readonly attachment: FormatOptionsByKind['attachment']
+	readonly signature: FormatOptionsByKind['signature']
 	readonly messages: FormatterMessages
 }
 
@@ -156,6 +195,14 @@ interface ResolvedTemporalCall<K extends TemporalFormatKind> {
 	readonly locale: string
 	readonly timeZone: string
 	readonly calendar: string
+	readonly numberingSystem?: string
+	readonly options: FormatCallOptions<K>
+}
+
+interface ResolvedCaptureCall<K extends CaptureFormatKind> {
+	readonly locale: string
+	readonly timeZone?: string
+	readonly calendar?: string
 	readonly numberingSystem?: string
 	readonly options: FormatCallOptions<K>
 }
@@ -340,6 +387,11 @@ function mergeConfig(base: FormatterConfig, addition: FormatterOptions): Formatt
 		datetime: { ...base.datetime, ...(addition.datetime ?? {}) },
 		time: { ...base.time, ...(addition.time ?? {}) },
 		duration: { ...base.duration, ...(addition.duration ?? {}) },
+		coordinate: { ...base.coordinate, ...(addition.coordinate ?? {}) },
+		bbox: { ...base.bbox, ...(addition.bbox ?? {}) },
+		identification: { ...base.identification, ...(addition.identification ?? {}) },
+		attachment: { ...base.attachment, ...(addition.attachment ?? {}) },
+		signature: { ...base.signature, ...(addition.signature ?? {}) },
 		messages: mergeMessages(base.messages, addition.messages),
 	}
 }
@@ -570,6 +622,10 @@ function isTemporalKind(kind: FormatKind | string): kind is TemporalFormatKind {
 	return TEMPORAL_KINDS.includes(kind as TemporalFormatKind)
 }
 
+function isCaptureKind(kind: FormatKind | string): kind is CaptureFormatKind {
+	return CAPTURE_KINDS.includes(kind as CaptureFormatKind)
+}
+
 function createConfig(options: FormatterOptions): FormatterConfig {
 	const policy = options.unsupportedLocale ?? 'error'
 	const requestedLocale = options.locale ?? DEFAULT_LOCALE
@@ -597,6 +653,11 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 	const personOptions = options.person ?? {}
 	const organizationOptions = options.organization ?? {}
 	const partyOptions = options.party ?? {}
+	const coordinateOptions = options.coordinate ?? {}
+	const bboxOptions = options.bbox ?? {}
+	const identificationOptions = options.identification ?? {}
+	const attachmentOptions = options.attachment ?? {}
+	const signatureOptions = options.signature ?? {}
 	validateIntlOptions('number', locale, options.numberingSystem, numberOptions)
 	validateIntlOptions('money', locale, options.numberingSystem, moneyOptions as Record<string, unknown>)
 	validateIntlOptions('percentage', locale, options.numberingSystem, percentageOptions)
@@ -604,6 +665,10 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 	validateTemporalIntlOptions('datetime', locale, options.numberingSystem, calendar, timeZone, (options.datetime ?? {}) as Record<string, unknown>)
 	validateTemporalIntlOptions('time', locale, options.numberingSystem, calendar, timeZone, (options.time ?? {}) as Record<string, unknown>)
 	validateDurationIntlOptions(locale, options.numberingSystem, (options.duration ?? {}) as Record<string, unknown>)
+	validateIntlOptions('number', locale, options.numberingSystem, coordinateOptions as Record<string, unknown>)
+	validateIntlOptions('number', locale, options.numberingSystem, bboxOptions as Record<string, unknown>)
+	validateTemporalIntlOptions('date', locale, options.numberingSystem, calendar, timeZone, identificationOptions as Record<string, unknown>)
+	validateTemporalIntlOptions('date', locale, options.numberingSystem, calendar, timeZone, signatureOptions as Record<string, unknown>)
 	try {
 		validateContactOptions(addressOptions, phoneOptions, personOptions, organizationOptions, partyOptions)
 	} catch (error) {
@@ -630,7 +695,15 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 		datetime: cloneAndFreeze(options.datetime ?? {}),
 		time: cloneAndFreeze(options.time ?? {}),
 		duration: cloneAndFreeze(options.duration ?? {}),
-		messages: mergeMessages(mergeMessages(BUILT_IN_CONTACT_MESSAGES, BUILT_IN_TEMPORAL_MESSAGES), options.messages),
+		coordinate: cloneAndFreeze(coordinateOptions),
+		bbox: cloneAndFreeze(bboxOptions),
+		identification: cloneAndFreeze(identificationOptions),
+		attachment: cloneAndFreeze(attachmentOptions),
+		signature: cloneAndFreeze(signatureOptions),
+		messages: mergeMessages(
+			mergeMessages(mergeMessages(BUILT_IN_CONTACT_MESSAGES, BUILT_IN_TEMPORAL_MESSAGES), BUILT_IN_CAPTURE_MESSAGES),
+			options.messages,
+		),
 	}
 }
 
@@ -662,15 +735,19 @@ class FormatterImpl implements Formatter {
 	private readonly contactChains: ContactChainMap
 	private readonly baseTemporalImplementations: TemporalImplementationMap
 	private readonly temporalChains: TemporalChainMap
+	private readonly baseCaptureImplementations: CaptureImplementationMap
+	private readonly captureChains: CaptureChainMap
 	private readonly numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[]
 	private readonly contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[]
 	private readonly temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[]
+	private readonly captureLayers: readonly { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[]
 
 	constructor(
 		options: FormatterOptions = {},
 		numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = [],
 		contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = [],
 		temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = [],
+		captureLayers: readonly { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = [],
 	) {
 		this.config = createConfig(options)
 		this.locale = this.config.locale
@@ -706,6 +783,13 @@ class FormatterImpl implements Formatter {
 			time: (value, options) => this.formatTimeValue(value, options),
 			duration: (value, options) => this.formatDurationValue(value, options),
 		}
+		this.baseCaptureImplementations = {
+			coordinate: (value, options, context) => this.formatCoordinateValue(value, options, context),
+			bbox: (value, options, context) => this.formatBboxValue(value, options, context),
+			identification: (value, options, context) => this.formatIdentificationValue(value, options, context),
+			attachment: (value, options, context) => this.formatAttachmentValue(value, options, context),
+			signature: (value, options, context) => this.formatSignatureValue(value, options, context),
+		}
 		const optionLayers: { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = []
 		for (const kind of NUMERIC_KINDS) {
 			const implementation = options.overrides?.[kind] as FormatImplementation<NumericFormatKind> | undefined
@@ -714,6 +798,7 @@ class FormatterImpl implements Formatter {
 		this.numericLayers = [...numericLayers, ...optionLayers]
 		this.contactLayers = [...contactLayers, ...this.contactOptionLayers(options.overrides)]
 		this.temporalLayers = [...temporalLayers, ...this.temporalOptionLayers(options.overrides)]
+		this.captureLayers = [...captureLayers, ...this.captureOptionLayers(options.overrides)]
 		this.chains = {
 			number: { implementation: this.baseImplementations.number },
 			money: { implementation: this.baseImplementations.money },
@@ -732,9 +817,17 @@ class FormatterImpl implements Formatter {
 			time: { implementation: this.baseTemporalImplementations.time },
 			duration: { implementation: this.baseTemporalImplementations.duration },
 		}
+		this.captureChains = {
+			coordinate: { implementation: this.baseCaptureImplementations.coordinate },
+			bbox: { implementation: this.baseCaptureImplementations.bbox },
+			identification: { implementation: this.baseCaptureImplementations.identification },
+			attachment: { implementation: this.baseCaptureImplementations.attachment },
+			signature: { implementation: this.baseCaptureImplementations.signature },
+		}
 		for (const layer of this.numericLayers) this.addLayer(layer.kind, layer.implementation)
 		for (const layer of this.contactLayers) this.addContactLayer(layer.kind, layer.implementation)
 		for (const layer of this.temporalLayers) this.addTemporalLayer(layer.kind, layer.implementation)
+		for (const layer of this.captureLayers) this.addCaptureLayer(layer.kind, layer.implementation)
 	}
 
 	private contactOptionLayers(overrides: FormatterOverrides | undefined): { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] {
@@ -752,6 +845,16 @@ class FormatterImpl implements Formatter {
 		const layers: { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = []
 		for (const kind of TEMPORAL_KINDS) {
 			const implementation = overrides[kind] as TemporalFormatImplementation<TemporalFormatKind> | undefined
+			if (implementation !== undefined) layers.push({ kind, implementation })
+		}
+		return layers
+	}
+
+	private captureOptionLayers(overrides: FormatterOverrides | undefined): { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] {
+		if (overrides === undefined) return []
+		const layers: { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = []
+		for (const kind of CAPTURE_KINDS) {
+			const implementation = overrides[kind] as CaptureFormatImplementation<CaptureFormatKind> | undefined
 			if (implementation !== undefined) layers.push({ kind, implementation })
 		}
 		return layers
@@ -785,6 +888,17 @@ class FormatterImpl implements Formatter {
 		}
 		const previous = this.temporalChains[kind] as unknown as TemporalChainEntry<TemporalFormatKind>
 		;(this.temporalChains as Record<TemporalFormatKind, TemporalChainEntry<TemporalFormatKind>>)[kind] = {
+			implementation,
+			previous,
+		}
+	}
+
+	private addCaptureLayer(kind: CaptureFormatKind, implementation: CaptureFormatImplementation<CaptureFormatKind>): void {
+		if (typeof implementation !== 'function') {
+			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
+		}
+		const previous = this.captureChains[kind] as unknown as CaptureChainEntry<CaptureFormatKind>
+		;(this.captureChains as Record<CaptureFormatKind, CaptureChainEntry<CaptureFormatKind>>)[kind] = {
 			implementation,
 			previous,
 		}
@@ -859,6 +973,37 @@ class FormatterImpl implements Formatter {
 		validateNumberingSystem(numberingSystem)
 		validateCalendar(calendar)
 		this.validateTimeZone(timeZone, locale)
+		return { locale, numberingSystem, calendar, timeZone, options: merged }
+	}
+
+	private resolveCaptureCall<K extends CaptureFormatKind>(
+		kind: K,
+		options: FormatCallOptions<K> | undefined,
+	): ResolvedCaptureCall<K> {
+		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
+		const raw = merged as FormatCallOptions<K> & {
+			locale?: string
+			numberingSystem?: string
+			timeZone?: string
+			calendar?: string
+		}
+		const locale = resolveConfiguredLocale(
+			raw.locale ?? this.locale,
+			this.config.unsupportedLocale,
+			this.config.fallbackLocale,
+		)
+		const numberingSystem = raw.numberingSystem ?? this.numberingSystem
+		validateNumberingSystem(numberingSystem)
+		const { locale: _locale, numberingSystem: _numberingSystem, timeZone: _timeZone, calendar: _calendar, ...intl } = raw
+		if (kind === 'coordinate' || kind === 'bbox') {
+			validateIntlOptions('number', locale, numberingSystem, intl as Record<string, unknown>)
+			return { locale, numberingSystem, options: merged }
+		}
+		const calendar = raw.calendar ?? this.calendar
+		const timeZone = raw.timeZone ?? this.timeZone
+		validateCalendar(calendar)
+		this.validateTimeZone(timeZone, locale)
+		validateTemporalIntlOptions('date', locale, numberingSystem, calendar, timeZone, intl as Record<string, unknown>)
 		return { locale, numberingSystem, calendar, timeZone, options: merged }
 	}
 
@@ -1140,6 +1285,96 @@ class FormatterImpl implements Formatter {
 		)
 	}
 
+	private captureFormattingContext(locale: string): CaptureFormattingContext {
+		return {
+			locale,
+			messages: this.messages,
+			fallbackLocale: this.config.fallbackLocale,
+			formatNumber: (value, options) => {
+				const resolved = this.resolveCall('number', { ...options, locale } as FormatCallOptions<'number'>)
+				const output = this.invoke(this.chains.number, 'number', value, resolved.options, resolved.locale)
+				if (typeof output !== 'string') throw new Error('A nested number formatter implementation must return a string.')
+				return output
+			},
+			formatCoordinate: (value, options) => {
+				const resolved = this.resolveCaptureCall('coordinate', { ...options, locale } as FormatCallOptions<'coordinate'>)
+				const output = this.invokeCapture(this.captureChains.coordinate, 'coordinate', value, resolved.options, resolved.locale)
+				if (typeof output !== 'string') throw new Error('A nested coordinate formatter implementation must return a string.')
+				return output
+			},
+			formatDate: (value, options) => {
+				const resolved = this.resolveTemporalCall('date', { ...options, locale } as FormatCallOptions<'date'>)
+				const output = this.invokeTemporal(this.temporalChains.date, 'date', value, resolved.options, resolved.locale)
+				if (typeof output !== 'string') throw new Error('A nested date formatter implementation must return a string.')
+				return output
+			},
+		}
+	}
+
+	private formatCoordinateValue(
+		value: CaptureValueByKind['coordinate'],
+		options: FormatCallOptions<'coordinate'>,
+		context: CaptureFormatImplementationContext<'coordinate'>,
+	): string {
+		const validation = validateCoordinate(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'coordinate', validation.issues)
+		return formatCoordinateValue(validation.value, options, this.captureFormattingContext(context.locale))
+	}
+
+	private formatBboxValue(
+		value: CaptureValueByKind['bbox'],
+		options: FormatCallOptions<'bbox'>,
+		context: CaptureFormatImplementationContext<'bbox'>,
+	): string {
+		const validation = validateBbox(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'bbox', validation.issues)
+		return formatBboxValue(validation.value, options, this.captureFormattingContext(context.locale))
+	}
+
+	private formatIdentificationValue(
+		value: CaptureValueByKind['identification'],
+		options: FormatCallOptions<'identification'>,
+		context: CaptureFormatImplementationContext<'identification'>,
+	): string {
+		const validation = validateIdentification(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'identification', validation.issues)
+		try {
+			return formatIdentificationValue(validation.value, options, this.captureFormattingContext(context.locale))
+		} catch (error) {
+			if (error instanceof MissingCaptureMessageError) {
+				throw new FormatProblem('unsupported', 'identification', [issue('identification', 'missing_message', error.message, undefined, error)])
+			}
+			throw error
+		}
+	}
+
+	private formatAttachmentValue(
+		value: CaptureValueByKind['attachment'],
+		options: FormatCallOptions<'attachment'>,
+		context: CaptureFormatImplementationContext<'attachment'>,
+	): string {
+		const validation = validateAttachment(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'attachment', validation.issues)
+		return formatAttachmentValue(validation.value, options, this.captureFormattingContext(context.locale))
+	}
+
+	private formatSignatureValue(
+		value: CaptureValueByKind['signature'],
+		options: FormatCallOptions<'signature'>,
+		context: CaptureFormatImplementationContext<'signature'>,
+	): string {
+		const validation = validateSignature(value)
+		if (!validation.ok) throw new FormatProblem(validation.status, 'signature', validation.issues)
+		try {
+			return formatSignatureValue(validation.value, options, this.captureFormattingContext(context.locale))
+		} catch (error) {
+			if (error instanceof MissingCaptureMessageError) {
+				throw new FormatProblem('unsupported', 'signature', [issue('signature', 'missing_message', error.message, undefined, error)])
+			}
+			throw error
+		}
+	}
+
 	private invoke<K extends NumericFormatKind>(
 		entry: ChainEntry<K>,
 		kind: K,
@@ -1265,11 +1500,53 @@ class FormatterImpl implements Formatter {
 		return entry.implementation(validatedValue, options, context)
 	}
 
+	private validateCaptureValue<K extends CaptureFormatKind>(
+		kind: K,
+		value: unknown,
+	): CaptureValidation<CaptureValueByKind[K]> {
+		if (kind === 'coordinate') return validateCoordinate(value) as CaptureValidation<CaptureValueByKind[K]>
+		if (kind === 'bbox') return validateBbox(value) as CaptureValidation<CaptureValueByKind[K]>
+		if (kind === 'identification') return validateIdentification(value) as CaptureValidation<CaptureValueByKind[K]>
+		if (kind === 'attachment') return validateAttachment(value) as CaptureValidation<CaptureValueByKind[K]>
+		return validateSignature(value) as CaptureValidation<CaptureValueByKind[K]>
+	}
+
+	private invokeCapture<K extends CaptureFormatKind>(
+		entry: CaptureChainEntry<K>,
+		kind: K,
+		value: CaptureValueByKind[K],
+		options: FormatCallOptions<K>,
+		locale: string,
+	): string {
+		const validation = this.validateCaptureValue(kind, value)
+		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
+		const validatedValue = validation.value
+		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
+			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
+			const resolved = this.resolveCaptureCall(kind, delegatedOptions)
+			const delegatedValidation = this.validateCaptureValue(kind, nextValue)
+			if (!delegatedValidation.ok) throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
+			if (entry.previous === undefined) {
+				return this.baseCaptureImplementations[kind](delegatedValidation.value, resolved.options, {
+					kind,
+					locale: resolved.locale,
+					options: resolved.options,
+					delegate: () => {
+						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
+					},
+				} as CaptureFormatImplementationContext<K>)
+			}
+			return this.invokeCapture(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
+		}
+		const context: CaptureFormatImplementationContext<K> = { kind, locale, options, delegate }
+		return entry.implementation(validatedValue, options, context)
+	}
+
 	private evaluate(kind: FormatKind | string, value: unknown, options: unknown): FormatResult {
 		if (!FORMAT_KINDS.includes(kind as FormatKind)) {
 			return failed('unsupported', [issue(kind, 'unknown_kind', `Unknown format kind ${JSON.stringify(kind)}.`)])
 		}
-		if (!isNumericKind(kind) && !isContactKind(kind) && !isTemporalKind(kind)) {
+		if (!isNumericKind(kind) && !isContactKind(kind) && !isTemporalKind(kind) && !isCaptureKind(kind)) {
 			return failed('unsupported', [issue(kind, 'unsupported_kind', `Formatting ${kind} values is not implemented in this formatter.`)])
 		}
 
@@ -1296,6 +1573,21 @@ class FormatterImpl implements Formatter {
 					this.temporalChains[kind] as TemporalChainEntry<typeof kind>,
 					kind,
 					value as TemporalValueByKind[typeof kind],
+					resolved.options,
+					resolved.locale,
+				)
+				if (typeof output !== 'string') {
+					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
+				}
+				return formatted(output)
+			}
+			if (isCaptureKind(kind)) {
+				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
+				const resolved = this.resolveCaptureCall(kind, typedOptions)
+				const output = this.invokeCapture(
+					this.captureChains[kind] as CaptureChainEntry<typeof kind>,
+					kind,
+					value as CaptureValueByKind[typeof kind],
 					resolved.options,
 					resolved.locale,
 				)
@@ -1391,6 +1683,26 @@ class FormatterImpl implements Formatter {
 		return this.format('duration', value, options)
 	}
 
+	formatCoordinate(value: FormatInputByKind['coordinate'], options?: FormatCallOptions<'coordinate'>): string {
+		return this.format('coordinate', value, options)
+	}
+
+	formatBbox(value: FormatInputByKind['bbox'], options?: FormatCallOptions<'bbox'>): string {
+		return this.format('bbox', value, options)
+	}
+
+	formatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): string {
+		return this.format('identification', value, options)
+	}
+
+	formatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): string {
+		return this.format('attachment', value, options)
+	}
+
+	formatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): string {
+		return this.format('signature', value, options)
+	}
+
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult {
 		return this.safeFormat('number', value, options)
 	}
@@ -1439,10 +1751,30 @@ class FormatterImpl implements Formatter {
 		return this.safeFormat('duration', value, options)
 	}
 
+	safeFormatCoordinate(value: FormatInputByKind['coordinate'], options?: FormatCallOptions<'coordinate'>): FormatResult {
+		return this.safeFormat('coordinate', value, options)
+	}
+
+	safeFormatBbox(value: FormatInputByKind['bbox'], options?: FormatCallOptions<'bbox'>): FormatResult {
+		return this.safeFormat('bbox', value, options)
+	}
+
+	safeFormatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): FormatResult {
+		return this.safeFormat('identification', value, options)
+	}
+
+	safeFormatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): FormatResult {
+		return this.safeFormat('attachment', value, options)
+	}
+
+	safeFormatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): FormatResult {
+		return this.safeFormat('signature', value, options)
+	}
+
 	compose(options: FormatterOptions = {}): Formatter {
 		const { overrides: _overrides, ...withoutOverrides } = options
 		const merged = mergeConfig(this.config, withoutOverrides)
-		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers, this.temporalLayers)
+		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers, this.temporalLayers, this.captureLayers)
 		if (options.overrides !== undefined) return next.withOverrides(options.overrides)
 		return next
 	}
@@ -1463,11 +1795,17 @@ class FormatterImpl implements Formatter {
 			const implementation = overrides[kind] as TemporalFormatImplementation<TemporalFormatKind> | undefined
 			if (implementation !== undefined) temporalAdditions.push({ kind, implementation })
 		}
+		const captureAdditions: { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = []
+		for (const kind of CAPTURE_KINDS) {
+			const implementation = overrides[kind] as CaptureFormatImplementation<CaptureFormatKind> | undefined
+			if (implementation !== undefined) captureAdditions.push({ kind, implementation })
+		}
 		const next = new FormatterImpl(
 			this.config,
 			[...this.numericLayers, ...additions],
 			[...this.contactLayers, ...contactAdditions],
 			[...this.temporalLayers, ...temporalAdditions],
+			[...this.captureLayers, ...captureAdditions],
 		)
 		return next
 	}
@@ -1535,6 +1873,26 @@ export function formatDuration(value: FormatInputByKind['duration'], options?: F
 	return defaultFormatter.formatDuration(value, options)
 }
 
+export function formatCoordinate(value: FormatInputByKind['coordinate'], options?: FormatCallOptions<'coordinate'>): string {
+	return defaultFormatter.formatCoordinate(value, options)
+}
+
+export function formatBbox(value: FormatInputByKind['bbox'], options?: FormatCallOptions<'bbox'>): string {
+	return defaultFormatter.formatBbox(value, options)
+}
+
+export function formatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): string {
+	return defaultFormatter.formatIdentification(value, options)
+}
+
+export function formatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): string {
+	return defaultFormatter.formatAttachment(value, options)
+}
+
+export function formatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): string {
+	return defaultFormatter.formatSignature(value, options)
+}
+
 export function formatValue<K extends FormatKind>(
 	kind: K,
 	value: FormatInputByKind[K],
@@ -1597,4 +1955,24 @@ export function safeFormatTime(value: FormatInputByKind['time'], options?: Forma
 
 export function safeFormatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): FormatResult {
 	return defaultFormatter.safeFormatDuration(value, options)
+}
+
+export function safeFormatCoordinate(value: FormatInputByKind['coordinate'], options?: FormatCallOptions<'coordinate'>): FormatResult {
+	return defaultFormatter.safeFormatCoordinate(value, options)
+}
+
+export function safeFormatBbox(value: FormatInputByKind['bbox'], options?: FormatCallOptions<'bbox'>): FormatResult {
+	return defaultFormatter.safeFormatBbox(value, options)
+}
+
+export function safeFormatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): FormatResult {
+	return defaultFormatter.safeFormatIdentification(value, options)
+}
+
+export function safeFormatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): FormatResult {
+	return defaultFormatter.safeFormatAttachment(value, options)
+}
+
+export function safeFormatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): FormatResult {
+	return defaultFormatter.safeFormatSignature(value, options)
 }

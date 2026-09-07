@@ -1,4 +1,17 @@
-import type { Address, Duration, Money, Organization, Party, Person, Phone } from '@paradoc/types'
+import type {
+	Address,
+	Attachment,
+	Bbox,
+	Coordinate,
+	Duration,
+	Identification,
+	Money,
+	Organization,
+	Party,
+	Person,
+	Phone,
+	Signature,
+} from '@paradoc/types'
 
 /** Value families understood by the public formatter contract. */
 export const FORMAT_KINDS = [
@@ -25,6 +38,7 @@ export type FormatKind = (typeof FORMAT_KINDS)[number]
 export type NumericFormatKind = 'money' | 'number' | 'percentage'
 export type ContactFormatKind = 'address' | 'phone' | 'person' | 'organization' | 'party'
 export type TemporalFormatKind = 'date' | 'datetime' | 'time' | 'duration'
+export type CaptureFormatKind = 'coordinate' | 'bbox' | 'identification' | 'attachment' | 'signature'
 
 type NumberOptionsBase = Omit<
 	Intl.NumberFormatOptions,
@@ -103,6 +117,21 @@ export type DurationFormatOptions = Omit<
 	'style' | 'currency' | 'currencyDisplay' | 'currencySign' | 'unit' | 'unitDisplay'
 >
 
+/** Options for coordinate presentation. Number options control both axes. */
+export type CoordinateFormatOptions = NumberFormatOptions
+
+/** Options for bounding-box presentation. Number options control every coordinate. */
+export type BboxFormatOptions = NumberFormatOptions
+
+/** Options for identification presentation, including nested date formatting. */
+export type IdentificationFormatOptions = DateFormatOptions
+
+/** Attachments have no locale-owned presentation options. */
+export type AttachmentFormatOptions = Record<string, never>
+
+/** Options for signature presentation, including nested capture-date formatting. */
+export type SignatureFormatOptions = DateFormatOptions
+
 export type FormatOptionsByKind = {
 	money: MoneyFormatOptions
 	number: NumberFormatOptions
@@ -112,12 +141,12 @@ export type FormatOptionsByKind = {
 	person: PersonFormatOptions
 	organization: OrganizationFormatOptions
 	party: PartyFormatOptions
-	coordinate: Record<string, unknown>
-	bbox: Record<string, unknown>
+	coordinate: CoordinateFormatOptions
+	bbox: BboxFormatOptions
 	duration: DurationFormatOptions
-	identification: Record<string, unknown>
-	attachment: Record<string, unknown>
-	signature: Record<string, unknown>
+	identification: IdentificationFormatOptions
+	attachment: AttachmentFormatOptions
+	signature: SignatureFormatOptions
 	date: DateFormatOptions
 	datetime: DatetimeFormatOptions
 	time: TimeFormatOptions
@@ -132,12 +161,12 @@ export type FormatInputByKind = {
 	person: Person | Partial<Person> | Record<string, unknown> | null | undefined
 	organization: Organization | Partial<Organization> | Record<string, unknown> | null | undefined
 	party: Party | Partial<Person> | Partial<Organization> | Record<string, unknown> | null | undefined
-	coordinate: unknown
-	bbox: unknown
+	coordinate: Coordinate | Partial<Coordinate> | Record<string, unknown> | null | undefined
+	bbox: Bbox | Partial<Bbox> | Record<string, unknown> | null | undefined
 	duration: Duration | string | null | undefined
-	identification: unknown
-	attachment: unknown
-	signature: unknown
+	identification: Identification | Partial<Identification> | Record<string, unknown> | null | undefined
+	attachment: Attachment | Partial<Attachment> | Record<string, unknown> | null | undefined
+	signature: Signature | Partial<Signature> | Record<string, unknown> | null | undefined
 	date: string | Date | null | undefined
 	datetime: string | Date | null | undefined
 	time: string | null | undefined
@@ -186,6 +215,11 @@ export interface FormatterOptions {
 	datetime?: DatetimeFormatOptions
 	time?: TimeFormatOptions
 	duration?: DurationFormatOptions
+	coordinate?: CoordinateFormatOptions
+	bbox?: BboxFormatOptions
+	identification?: IdentificationFormatOptions
+	attachment?: AttachmentFormatOptions
+	signature?: SignatureFormatOptions
 	overrides?: FormatterOverrides
 }
 
@@ -208,6 +242,14 @@ export type TemporalValueByKind = {
 	datetime: string | Date
 	time: string
 	duration: Duration | string
+}
+
+export type CaptureValueByKind = {
+	coordinate: FormatInputByKind['coordinate']
+	bbox: FormatInputByKind['bbox']
+	identification: FormatInputByKind['identification']
+	attachment: FormatInputByKind['attachment']
+	signature: FormatInputByKind['signature']
 }
 
 export interface FormatImplementationContext<K extends NumericFormatKind> {
@@ -261,12 +303,31 @@ export type TemporalFormatImplementation<K extends TemporalFormatKind> = (
 	context: TemporalFormatImplementationContext<K>,
 ) => string
 
+export interface CaptureFormatImplementationContext<K extends CaptureFormatKind> {
+	readonly kind: K
+	readonly locale: string
+	readonly options: FormatCallOptions<K>
+	/** Call the implementation that was active before this override. */
+	readonly delegate: (
+		value?: CaptureValueByKind[K],
+		options?: FormatCallOptions<K>,
+	) => string
+}
+
+export type CaptureFormatImplementation<K extends CaptureFormatKind> = (
+	value: CaptureValueByKind[K],
+	options: FormatCallOptions<K>,
+	context: CaptureFormatImplementationContext<K>,
+) => string
+
 export type FormatterOverrides = Partial<{
 	[K in NumericFormatKind]: FormatImplementation<K>
 }> & Partial<{
 	[K in ContactFormatKind]: ContactFormatImplementation<K>
 }> & Partial<{
 	[K in TemporalFormatKind]: TemporalFormatImplementation<K>
+}> & Partial<{
+	[K in CaptureFormatKind]: CaptureFormatImplementation<K>
 }>
 
 export type FormatStatus =
@@ -342,6 +403,11 @@ export interface Formatter {
 	formatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): string
 	formatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): string
 	formatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): string
+	formatCoordinate(value: FormatInputByKind['coordinate'], options?: FormatCallOptions<'coordinate'>): string
+	formatBbox(value: FormatInputByKind['bbox'], options?: FormatCallOptions<'bbox'>): string
+	formatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): string
+	formatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): string
+	formatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): string
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult
 	safeFormatMoney(value: FormatInputByKind['money'], options?: FormatCallOptions<'money'>): FormatResult
 	safeFormatPercentage(value: FormatInputByKind['percentage'], options?: FormatCallOptions<'percentage'>): FormatResult
@@ -354,6 +420,11 @@ export interface Formatter {
 	safeFormatDatetime(value: FormatInputByKind['datetime'], options?: FormatCallOptions<'datetime'>): FormatResult
 	safeFormatTime(value: FormatInputByKind['time'], options?: FormatCallOptions<'time'>): FormatResult
 	safeFormatDuration(value: FormatInputByKind['duration'], options?: FormatCallOptions<'duration'>): FormatResult
+	safeFormatCoordinate(value: FormatInputByKind['coordinate'], options?: FormatCallOptions<'coordinate'>): FormatResult
+	safeFormatBbox(value: FormatInputByKind['bbox'], options?: FormatCallOptions<'bbox'>): FormatResult
+	safeFormatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): FormatResult
+	safeFormatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): FormatResult
+	safeFormatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): FormatResult
 
 	/** Create an independent formatter with merged configuration. */
 	compose(options?: FormatterOptions): Formatter

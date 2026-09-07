@@ -2,7 +2,7 @@
 
 `@paradoc/format` presents structured Paradoc values as human-readable text. It keeps display policy separate from stored values, localized input parsing, currency conversion, and artifact validation.
 
-The formatter presents numbers, money, percentage points, people, organizations, parties, phones, postal addresses, dates, datetimes, times, and ISO 8601 durations. It is immutable and reusable, so repeated calls under one effective policy reuse bounded Intl formatter caches.
+The formatter presents numbers, money, percentage points, people, organizations, parties, phones, postal addresses, coordinates, bounding boxes, identifications, attachments, signatures, dates, datetimes, times, and ISO 8601 durations. It is immutable and reusable, so repeated calls under one effective policy reuse bounded Intl formatter caches.
 
 ```ts
 import { createFormatter } from '@paradoc/format'
@@ -26,6 +26,19 @@ formatter.formatAddress({
   postalCode: 'SW1A 2AA',
   country: 'GB',
 }) // '10 Downing Street, London, Greater London, SW1A 2AA, GB'
+
+formatter.formatCoordinate({ lat: 40.7128, lon: -74.006 }) // '40.7128,-74.006'
+formatter.formatBbox({
+  southWest: { lat: 40.4774, lon: -74.2591 },
+  northEast: { lat: 40.9176, lon: -73.7004 },
+}) // '40.4774,-74.2591,40.9176,-73.7004'
+formatter.formatIdentification({
+  type: 'passport',
+  number: 'A1',
+  issueDate: '2020-01-15',
+}) // 'passport: A1 (issued Jan 15, 2020)'
+formatter.formatAttachment({ name: 'contract.pdf', mimeType: 'application/pdf' }) // 'contract.pdf (application/pdf)'
+formatter.formatSignature({ timestamp: '2026-09-04T15:30:00Z', method: 'drawn' }) // 'Signature (drawn) on Sep 4, 2026'
 ```
 
 Address country and document locale are independent. The default `layout: 'country'` policy provides layouts for US, GB, DE, FR, and SA and returns an `unsupported` result for another country. Select `layout: 'generic'` when a component-preserving layout is appropriate, or provide a `countryLayouts` object whose ISO country-code keys map to formatter functions for another country. Party values with only the shared `name` member are ambiguous; use `partyType: 'person'` or provide a distinguishing person or organization member.
@@ -43,7 +56,7 @@ const result = formatter.safeFormatMoney({ amount: 10 })
 // { success: false, status: 'incomplete', issues: [...] }
 ```
 
-The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, `safeFormatParty`, `safeFormatDate`, `safeFormatDatetime`, `safeFormatTime`, and `safeFormatDuration`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. Value families that have not been implemented yet return `unsupported` rather than a fake successful string.
+The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, `safeFormatParty`, `safeFormatCoordinate`, `safeFormatBbox`, `safeFormatIdentification`, `safeFormatAttachment`, `safeFormatSignature`, `safeFormatDate`, `safeFormatDatetime`, `safeFormatTime`, and `safeFormatDuration`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. Value families that have not been implemented yet return `unsupported` rather than a fake successful string.
 
 Locale, numbering-system, calendar, and timezone choices are independent. The default locale is `en-US`; temporal defaults are retained as explicit `UTC` and Gregorian settings for the temporal formatter slice. An unsupported runtime locale fails at construction unless `unsupportedLocale: 'fallback'` and an explicit `fallbackLocale` are provided. `fallbackLocale` also supplies package-authored messages when the requested runtime locale is supported but has no matching messages; it does not change the requested locale used for Intl numbers, dates, times, or lists.
 
