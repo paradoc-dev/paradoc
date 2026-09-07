@@ -189,6 +189,17 @@ type ExpandDeep<T> = T extends object
   : T
 
 /**
+ * Makes an inferred payload recursively optional for progressive filling.
+ * Arrays remain replaceable values while object members can be supplied
+ * independently at any depth.
+ */
+export type DeepPartial<T> = T extends readonly (infer Item)[]
+  ? Array<DeepPartial<Item>>
+  : T extends object
+    ? { -readonly [K in keyof T]?: DeepPartial<T[K]> }
+    : T
+
+/**
  * Helper to extract the form schema from either a raw Form or FormInstance
  */
 type ExtractFormSchema<T> = T extends { _data: infer S }
@@ -344,6 +355,14 @@ export type InferFormData<Form> = [Form] extends [never]
  * ```
  */
 export type InferFormPayload<Form> = ExpandDeep<InferFormData<Form>>
+
+/**
+ * Payload accepted by partialFill/update operations.
+ * Unlike InferFormPayload, nested object members are optional so a patch can
+ * update one member without repeating its siblings. Arrays are supplied as a
+ * complete replacement value.
+ */
+export type ProgressiveFormPayload<Form> = DeepPartial<InferFormPayload<Form>>
 
 /**
  * Compile a Form into a JSON Schema for validating data payloads

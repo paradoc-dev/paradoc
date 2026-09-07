@@ -77,6 +77,7 @@ export type {
   FormInput,
   RuntimeFormJSON,
   InferFormPayload,
+  ProgressiveFormPayload,
   ExtractFields,
   FieldKeys,
   PartyRoleKeys,
@@ -324,6 +325,7 @@ export type {
   FieldToDataType,
   FieldsToDataType,
   InferFormData,
+  DeepPartial,
   CompositePropertySpec,
   CompositeShape,
   // InferFormPayload is already exported from ./artifacts

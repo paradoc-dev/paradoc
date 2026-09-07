@@ -8,6 +8,8 @@ export type {
   FieldsToDataType,
   InferFormData,
   InferFormPayload,
+  DeepPartial,
+  ProgressiveFormPayload,
 } from './form-payload'
 
 export { compile, compileToJsonSchema } from './form-payload'

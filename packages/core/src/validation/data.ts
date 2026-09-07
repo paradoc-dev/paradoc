@@ -313,11 +313,14 @@ export function mapZodIssuesToValidationErrors(
  *
  * @param form - The form definition (artifact schema)
  * @param data - The data payload to validate
- * @returns Validation result with success status, data (with defaults applied), and errors
+ * @param options.applyDefaults Whether to apply schema defaults. Defaults to true;
+ * set false for ordinary updates that must preserve omitted values.
+ * @returns Validation result with success status, data, and errors
  */
 export function validateFormData<F extends Form>(
 	form: F,
-	data: Record<string, unknown>
+	data: Record<string, unknown>,
+	options: { applyDefaults?: boolean } = {},
 ): ValidationResult<InferFormPayload<F>> {
 	// Compile the form to a JSON Schema
 	const jsonSchema = compile(form)
@@ -326,8 +329,11 @@ export function validateFormData<F extends Form>(
 	// Handle null/undefined gracefully by defaulting to empty object
 	let dataCopy = data != null ? deepClone(data) : {}
 
-	// Apply defaults from schema
-	dataCopy = applyDefaults(dataCopy, jsonSchema)
+	// Apply defaults for complete fills and parsing. Progressive updates can
+	// opt out so an ordinary patch never restores omitted defaulted values.
+	if (options.applyDefaults !== false) {
+		dataCopy = applyDefaults(dataCopy, jsonSchema)
+	}
 
 	// Build Zod schema from JSON Schema
 	const zodSchema = jsonSchemaToZod(jsonSchema)

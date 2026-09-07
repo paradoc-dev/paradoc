@@ -19,6 +19,33 @@ const createSimpleForm = () =>
 		})
 		.build()
 
+const createNestedForm = () =>
+	form()
+		.name('nested')
+		.fields({
+			profile: {
+				type: 'fieldset',
+				fields: {
+					firstName: { type: 'text', required: true },
+					lastName: { type: 'text', required: true },
+				},
+			},
+			location: { type: 'coordinate' },
+			rows: {
+				type: 'list',
+				item: {
+					type: 'fieldset',
+					fields: {
+						label: { type: 'text' },
+						value: { type: 'number' },
+					},
+				},
+			},
+			status: { type: 'text', default: 'draft' },
+			requiredName: { type: 'text', required: true },
+		})
+		.build()
+
 const createConditionalForm = () =>
 	form()
 		.name('conditional')
@@ -262,6 +289,71 @@ describe('fill-state', () => {
 	// ========================================================================
 
 	describe('update', () => {
+		test('recursively merges nested objects and preserves omitted members', () => {
+			const f = createNestedForm()
+			const draft = f.partialFill({
+				fields: {
+					profile: { firstName: 'Ada', lastName: 'Lovelace' },
+					rows: [{ label: 'old', value: 1 }],
+				},
+			} as any)
+
+			const updated = draft.update({ fields: { profile: { firstName: 'Grace' } } } as any)
+
+			expect(updated.fields.profile).toEqual({ firstName: 'Grace', lastName: 'Lovelace' })
+			expect(updated.fields.rows).toEqual([{ label: 'old', value: 1 }])
+		})
+
+		test('replaces supplied arrays instead of merging by index', () => {
+			const f = createNestedForm()
+			const draft = f.partialFill({
+				fields: { rows: [{ label: 'old', value: 1 }, { label: 'keep?', value: 2 }] },
+			} as any)
+
+			const updated = draft.update({ fields: { rows: [{ label: 'new', value: 3 }] } } as any)
+
+			expect(updated.fields.rows).toEqual([{ label: 'new', value: 3 }])
+		})
+
+		test('does not treat undefined as a deletion sentinel', () => {
+			const f = createNestedForm()
+			const draft = f.partialFill({
+				fields: { profile: { firstName: 'Ada', lastName: 'Lovelace' } },
+			} as any)
+
+			const updated = draft.update({ fields: { profile: { lastName: undefined } } } as any)
+
+			expect(updated.fields.profile).toEqual({ firstName: 'Ada', lastName: 'Lovelace' })
+		})
+
+		test('rejects null instead of treating it as a deletion sentinel', () => {
+			const f = createNestedForm()
+			const draft = f.partialFill({ fields: { profile: { firstName: 'Ada' } } } as any)
+
+			expect(() => draft.update({ fields: { profile: null } } as any)).toThrow()
+		})
+
+		test('recursively merges primitive object field values', () => {
+			const f = createNestedForm()
+			const draft = f.partialFill({ fields: { location: { lat: 40, lon: -74 } } } as any)
+
+			const updated = draft.update({ fields: { location: { lat: 41 } } } as any)
+
+			expect(updated.fields.location).toEqual({ lat: 41, lon: -74 })
+		})
+
+		test('full update validation does not restore omitted defaults', () => {
+			const f = createNestedForm()
+			const draft = f.partialFill({ fields: { requiredName: 'before' } } as any)
+
+			const updated = draft.update(
+				{ fields: { requiredName: 'after' } } as any,
+				{ validate: 'full' },
+			)
+
+			expect(updated.fields).toEqual({ requiredName: 'after' })
+		})
+
 		test('merges field patch into existing data', () => {
 			const f = createSimpleForm()
 			const draft = f.partialFill({ fields: { firstName: 'Alice' } } as any)

@@ -79,7 +79,12 @@ import {
 } from '../shared/artifact-methods'
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
-import type { FieldsToDataType, InferFormPayload as InferredFormPayload } from '@/inference'
+import type {
+	DeepPartial,
+	FieldsToDataType,
+	InferFormPayload as InferredFormPayload,
+	ProgressiveFormPayload as InferredProgressiveFormPayload,
+} from '@/inference'
 import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesValidationResult } from '@/logic'
 import { buildFormContext, evaluateFormDefs, evaluateFormRules } from '@/logic'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
@@ -201,6 +206,30 @@ export interface SealOptions {
  * Fields, parties, and annexes are required if defined in the form, optional otherwise.
  */
 export type InferFormPayload<F> = InferredFormPayload<F>
+export type ProgressiveFormPayload<F> = InferredProgressiveFormPayload<F>
+
+function isMergeRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Merge a progressive patch into an existing value. Objects merge recursively,
+ * arrays replace the previous value, and undefined never acts as a deletion
+ * sentinel. Cloning keeps the runtime form immutable across updates.
+ */
+function mergePatchValues<T>(current: T, patch: unknown): T {
+	if (patch === undefined) return deepClone(current)
+	if (Array.isArray(patch)) return deepClone(patch) as T
+	if (isMergeRecord(patch)) {
+		const result = (isMergeRecord(current) ? deepClone(current) : {}) as Record<string, unknown>
+		for (const [key, value] of Object.entries(patch)) {
+			if (value === undefined) continue
+			result[key] = mergePatchValues(result[key], value)
+		}
+		return result as T
+	}
+	return deepClone(patch) as T
+}
 
 // ============================================================================
 // Types
@@ -264,8 +293,12 @@ interface CompleteFormData {
  * Validate every form payload section, then apply the role-specific party
  * checks that are not represented by the compiled payload schema.
  */
-function validateCompleteFormData(formDef: Form, data: CompleteFormData): CompleteFormData {
-	const result = validateFormData(formDef, data as unknown as Record<string, unknown>)
+function validateCompleteFormData(
+	formDef: Form,
+	data: CompleteFormData,
+	options?: { applyDefaults?: boolean },
+): CompleteFormData {
+	const result = validateFormData(formDef, data as unknown as Record<string, unknown>, options)
 	if (!result.success) {
 		throw new FormValidationError(result.errors)
 	}
@@ -301,7 +334,7 @@ function validateCompleteFormData(formDef: Form, data: CompleteFormData): Comple
  */
 function validateFieldsOnly(formDef: Form, fields: Record<string, unknown>): Record<string, unknown> {
 	const fieldsOnlyForm = { ...formDef, parties: undefined, annexes: undefined } as Form
-	const result = validateFormData(fieldsOnlyForm, { fields })
+	const result = validateFormData(fieldsOnlyForm, { fields }, { applyDefaults: false })
 	if (!result.success) {
 		throw new FormValidationError(result.errors)
 	}
@@ -429,12 +462,12 @@ export interface FormInstance<F extends Form> extends ArtifactMethods<F> {
 	 * Uses patch validation by default — only validates provided fields.
 	 * @throws FormValidationError if validation fails (when validate is "patch" or "full")
 	 */
-	partialFill(seed?: Partial<InferFormPayload<F>>, options?: PartialFillOptions): DraftForm<F>
+	partialFill(seed?: ProgressiveFormPayload<F>, options?: PartialFillOptions): DraftForm<F>
 
 	/**
 	 * Safely create a DraftForm from partial data, returning a result object.
 	 */
-	safePartialFill(seed?: Partial<InferFormPayload<F>>, options?: PartialFillOptions): SafePartialFillResult<F>
+	safePartialFill(seed?: ProgressiveFormPayload<F>, options?: PartialFillOptions): SafePartialFillResult<F>
 
 	/**
 	 * Render form content directly.
@@ -571,7 +604,7 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 
 	// Field Mutation
 	setField<K extends FieldKeys<F>>(fieldId: K, value: ExtractFields<F>[K]): DraftForm<F>
-	updateFields(partial: Partial<ExtractFields<F>>): DraftForm<F>
+	updateFields(partial: DeepPartial<ExtractFields<F>>): DraftForm<F>
 
 	// Party Mutation
 	setParty<R extends PartyRoleKeys<F>>(roleId: R, party: Party | Party[]): DraftForm<F>
@@ -593,12 +626,12 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	 * Merge a patch into current data and return a new DraftForm.
 	 * @throws FormValidationError if validation fails
 	 */
-	update(patch: Partial<InferFormPayload<F>>, options?: UpdateOptions): DraftForm<F>
+	update(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): DraftForm<F>
 
 	/**
 	 * Safely merge a patch, returning a result object instead of throwing.
 	 */
-	safeUpdate(patch: Partial<InferFormPayload<F>>, options?: UpdateOptions): SafePartialFillResult<F>
+	safeUpdate(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): SafePartialFillResult<F>
 
 	/**
 	 * Compute the full fill state: open/blocked/done items, candidates, summary.
@@ -1084,9 +1117,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			})
 		},
 
-		updateFields(partial: Partial<ExtractFields<F>>): RuntimeForm<F> {
+		updateFields(partial: DeepPartial<ExtractFields<F>>): RuntimeForm<F> {
 			ensureDraft('updateFields')
-			const newFields = { ...fieldValues, ...partial }
+			const newFields = mergePatchValues(fieldValues, partial)
 			return createRuntimeForm({
 				...config,
 				fields: validateFieldsOnly(formDef, newFields),
@@ -1266,7 +1299,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// Progressive Fill Methods (draft only)
 		// ============================================================================
 
-		update(patch: Partial<InferFormPayload<F>>, options?: UpdateOptions): DraftForm<F> {
+		update(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): DraftForm<F> {
 			ensureDraft('update')
 			const validate = options?.validate ?? 'patch'
 			const checkRules = options?.rules === true
@@ -1275,39 +1308,38 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const patchParties = (patch as Record<string, unknown>).parties as Record<string, Party | Party[]> | undefined
 			const patchAnnexes = (patch as Record<string, unknown>).annexes as Record<string, unknown> | undefined
 
-			const mergedFields = { ...fieldValues, ...patchFields }
-			const mergedParties = { ...partyValues, ...patchParties }
-			const mergedAnnexes = { ...annexValues, ...patchAnnexes }
-			let validatedFields = mergedFields
-			let validatedParties = mergedParties
-			let validatedAnnexes = mergedAnnexes
+			let validatedFields = mergePatchValues(fieldValues, patchFields)
+			let validatedParties = mergePatchValues(partyValues, patchParties)
+			let validatedAnnexes = mergePatchValues(annexValues, patchAnnexes)
 
 			if (validate === 'patch') {
-				if (patchFields && Object.keys(patchFields).length > 0) {
+				if (patchFields !== undefined) {
 					const fieldResult = validateProgressiveFieldsPatch(formDef, patchFields)
 					if (!fieldResult.success) {
 						throw new FormValidationError(fieldResult.errors)
 					}
+					validatedFields = mergePatchValues(fieldValues, fieldResult.value)
 				}
-				if (patchParties && Object.keys(patchParties).length > 0) {
+				if (patchParties !== undefined) {
 					const partyResult = validateProgressivePartiesPatch(formDef, patchParties)
 					if (!partyResult.success) {
 						throw new FormValidationError(partyResult.errors)
 					}
-					validatedParties = { ...partyValues, ...partyResult.value }
+					validatedParties = mergePatchValues(partyValues, partyResult.value)
 				}
-				if (patchAnnexes && Object.keys(patchAnnexes).length > 0) {
+				if (patchAnnexes !== undefined) {
 					const annexResult = validateProgressiveAnnexesPatch(formDef, patchAnnexes)
 					if (!annexResult.success) {
 						throw new FormValidationError(annexResult.errors)
 					}
+					validatedAnnexes = mergePatchValues(annexValues, annexResult.value)
 				}
 			} else if (validate === 'full') {
 				const validated = validateCompleteFormData(formDef, {
-					fields: mergedFields,
-					parties: mergedParties,
-					annexes: mergedAnnexes,
-				})
+					fields: validatedFields,
+					parties: validatedParties,
+					annexes: validatedAnnexes,
+				}, { applyDefaults: false })
 				validatedFields = validated.fields
 				validatedParties = validated.parties
 				validatedAnnexes = validated.annexes
@@ -1332,7 +1364,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			return draft
 		},
 
-		safeUpdate(patch: Partial<InferFormPayload<F>>, options?: UpdateOptions): SafePartialFillResult<F> {
+		safeUpdate(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): SafePartialFillResult<F> {
 			ensureDraft('safeUpdate')
 			try {
 				const draft = runtime.update(patch, { ...options, rules: false })
@@ -2790,7 +2822,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			return { success: true, data: draft, rules: ruleResult }
 		},
 
-		partialFill(seed?: Partial<InferFormPayload<F>>, options?: PartialFillOptions): DraftForm<F> {
+		partialFill(seed?: ProgressiveFormPayload<F>, options?: PartialFillOptions): DraftForm<F> {
 			assertValidArtifactDefinition(formDef)
 			const validate = options?.validate ?? 'patch'
 			const checkRules = options?.rules === true
@@ -2800,9 +2832,9 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const annexes = (seed as Record<string, unknown> | undefined)?.annexes ?? {}
 			const signers = (seed as Record<string, unknown> | undefined)?.signers ?? {}
 			const signatories = (seed as Record<string, unknown> | undefined)?.signatories ?? {}
-			let validatedFields = fields as Record<string, unknown>
-			let validatedParties = parties as Record<string, Party | Party[]>
-			let validatedAnnexes = annexes as Record<string, unknown>
+			let validatedFields = mergePatchValues({}, fields as Record<string, unknown>)
+			let validatedParties = mergePatchValues({}, parties as Record<string, Party | Party[]>)
+			let validatedAnnexes = mergePatchValues({}, annexes as Record<string, unknown>)
 
 			// Validate based on mode
 			if (validate === 'patch') {
@@ -2811,19 +2843,21 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 					if (!fieldResult.success) {
 						throw new FormValidationError(fieldResult.errors)
 					}
+					validatedFields = mergePatchValues({}, fieldResult.value)
 				}
 				if (Object.keys(parties as Record<string, unknown>).length > 0) {
 					const partyResult = validateProgressivePartiesPatch(formDef, parties)
 					if (!partyResult.success) {
 						throw new FormValidationError(partyResult.errors)
 					}
-					validatedParties = partyResult.value
+					validatedParties = mergePatchValues({}, partyResult.value)
 				}
 				if (Object.keys(annexes as Record<string, unknown>).length > 0) {
 					const annexResult = validateProgressiveAnnexesPatch(formDef, annexes)
 					if (!annexResult.success) {
 						throw new FormValidationError(annexResult.errors)
 					}
+					validatedAnnexes = mergePatchValues({}, annexResult.value)
 				}
 			} else if (validate === 'full') {
 				const validated = validateCompleteFormData(formDef, {
@@ -2861,7 +2895,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			return draft
 		},
 
-		safePartialFill(seed?: Partial<InferFormPayload<F>>, options?: PartialFillOptions): SafePartialFillResult<F> {
+		safePartialFill(seed?: ProgressiveFormPayload<F>, options?: PartialFillOptions): SafePartialFillResult<F> {
 			try {
 				const draft = instance.partialFill(seed, { ...options, rules: false })
 

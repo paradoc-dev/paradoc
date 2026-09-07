@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { para, type InferFormPayload } from '@/index'
+import { para, type InferFormPayload, type ProgressiveFormPayload } from '@/index'
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
 
@@ -62,6 +62,41 @@ describe('definition payload inference', () => {
 		type Payload = InferFormPayload<typeof form>
 		const payload: Payload = { fields: { age: 42 } }
 		expect(form.fill(payload).fields.age).toBe(42)
+	})
+
+	test('allows recursive nested patches while preserving full payload strictness', () => {
+		const form = para.form({
+			kind: 'form',
+			name: 'progressive-nested',
+			fields: {
+				profile: {
+					type: 'fieldset',
+					fields: {
+						firstName: { type: 'text', required: true },
+						lastName: { type: 'text', required: true },
+					},
+				},
+				rows: {
+					type: 'list',
+					item: { type: 'fieldset', fields: { label: { type: 'text' } } },
+				},
+			},
+		})
+
+		type FullPayload = InferFormPayload<typeof form>
+		type ProgressivePayload = ProgressiveFormPayload<typeof form>
+		const fullPayload: FullPayload = {
+			fields: { profile: { firstName: 'Ada', lastName: 'Lovelace' } },
+		}
+		const nestedPatch: ProgressivePayload = {
+			fields: { profile: { firstName: 'Grace' }, rows: [{ label: 'work' }] },
+		}
+		// @ts-expect-error progressive patches still validate supplied values
+		const invalidPatch: ProgressivePayload = { fields: { profile: { firstName: 42 } } }
+
+		expect(form.fill(fullPayload).fields.profile).toEqual(fullPayload.fields.profile)
+		expect(form.partialFill(nestedPatch).fields.profile).toEqual({ firstName: 'Grace' })
+		void invalidPatch
 	})
 
 	test('accepts readonly generated collection definitions', () => {
