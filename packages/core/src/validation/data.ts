@@ -209,20 +209,37 @@ export function applyDefaults(
 	data: Record<string, unknown>,
 	jsonSchema: Record<string, unknown>
 ): Record<string, unknown> {
+	return applyDefaultsToValue(data, jsonSchema) as Record<string, unknown>
+}
+
+function applyDefaultsToValue(value: unknown, jsonSchema: Record<string, unknown>): unknown {
+	if (jsonSchema.type === 'array') {
+		const items = jsonSchema.items
+		if (!Array.isArray(value) || !isRecordSchema(items)) return value
+		return value.map((item) => applyDefaultsToValue(item, items))
+	}
+
 	const properties = jsonSchema.properties as Record<string, Record<string, unknown>> | undefined
-	if (!properties) return data
+	if (!properties || !isRecordValue(value)) return value
 
-	const result = { ...data }
-
+	const result = { ...value }
 	for (const [key, propSchema] of Object.entries(properties)) {
 		if (result[key] === undefined && 'default' in propSchema) {
-			result[key] = propSchema.default
-		} else if (result[key] && typeof result[key] === 'object' && propSchema.type === 'object') {
-			result[key] = applyDefaults(result[key] as Record<string, unknown>, propSchema)
+			result[key] = deepClone(propSchema.default)
+		} else if (result[key] !== undefined) {
+			result[key] = applyDefaultsToValue(result[key], propSchema)
 		}
 	}
 
 	return result
+}
+
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isRecordSchema(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**

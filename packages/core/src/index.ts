@@ -77,6 +77,7 @@ export type {
   RuntimeFormJSON,
   InferFormPayload,
   ProgressiveFormPayload,
+  FormPath,
   ExtractFields,
   FieldKeys,
   PartyRoleKeys,

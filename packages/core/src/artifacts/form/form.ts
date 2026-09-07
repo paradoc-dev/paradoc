@@ -160,6 +160,37 @@ export type PartyRoleKeys<F> = ExtractFormSchema<F> extends { parties: infer P }
 		: string
 	: string
 
+type FormFieldPath<Definition, Prefix extends string> =
+	| Prefix
+	| (Definition extends { type: 'fieldset'; fields: infer NestedFields }
+		? NestedFields extends Record<string, FormField>
+			? FormFieldPaths<NestedFields, Prefix>
+			: never
+		: Definition extends { type: 'list'; item: infer Item }
+			? Item extends FormField
+				? `${Prefix}[${number}]` | FormFieldPath<Item, `${Prefix}[${number}]`>
+				: never
+			: never)
+
+type FormFieldPaths<Fields extends Record<string, FormField>, Prefix extends string = 'fields'> = {
+	[K in keyof Fields & string]: FormFieldPath<Fields[K], `${Prefix}.${K}`>
+}[keyof Fields & string]
+
+type FormAnnexPaths<Annexes extends Record<string, FormAnnex>> = `annexes.${keyof Annexes & string}`
+
+/** Schema-aware paths accepted by DraftForm.clear() and DraftForm.reset(). */
+export type FormPath<F extends Form> =
+	| (ExtractFormSchema<F> extends { fields?: infer Fields }
+		? NonNullable<Fields> extends Record<string, FormField>
+			? FormFieldPaths<NonNullable<Fields>>
+			: never
+		: never)
+	| (ExtractFormSchema<F> extends { annexes?: infer Annexes }
+		? NonNullable<Annexes> extends Record<string, FormAnnex>
+			? FormAnnexPaths<NonNullable<Annexes>>
+			: never
+		: never)
+
 export interface SealOptions {
 	/**
 	 * Adapter required when the target layer is not already a PDF.
@@ -231,6 +262,214 @@ function mergePatchValues<T>(current: T, patch: unknown): T {
 		return result as T
 	}
 	return deepClone(patch) as T
+}
+
+type FormPathSegment = string | number
+
+interface ResolvedFormPath {
+	section: 'fields' | 'annexes'
+	segments: FormPathSegment[]
+	definition: FormField | FormAnnex
+}
+
+function parseFormPath(path: string): FormPathSegment[] {
+	if (typeof path !== 'string' || path.trim().length === 0) {
+		throw new Error('Invalid form path: a non-empty path is required.')
+	}
+
+	const input = path.trim()
+	const segments: FormPathSegment[] = []
+	let cursor = 0
+
+	const readKey = (): void => {
+		const start = cursor
+		while (cursor < input.length && input[cursor] !== '.' && input[cursor] !== '[' && input[cursor] !== ']') {
+			cursor += 1
+		}
+		if (cursor === start) {
+			throw new Error(`Invalid form path "${path}".`)
+		}
+		segments.push(input.slice(start, cursor))
+	}
+
+	readKey()
+	while (cursor < input.length) {
+		if (input[cursor] === '[') {
+			const end = input.indexOf(']', cursor + 1)
+			const indexText = end === -1 ? '' : input.slice(cursor + 1, end)
+			if (!/^\d+$/.test(indexText)) {
+				throw new Error(`Invalid list index in form path "${path}".`)
+			}
+			segments.push(Number(indexText))
+			cursor = end + 1
+			continue
+		}
+
+		if (input[cursor] !== '.') {
+			throw new Error(`Invalid form path "${path}".`)
+		}
+		cursor += 1
+		readKey()
+	}
+
+	return segments
+}
+
+function invalidFormPath(path: string, reason: string): never {
+	throw new Error(`Invalid form path "${path}": ${reason}`)
+}
+
+function resolveFormPath(form: Form, path: string): ResolvedFormPath {
+	const segments = parseFormPath(path)
+	const section = segments[0]
+	if (section !== 'fields' && section !== 'annexes') {
+		return invalidFormPath(path, 'paths must start with "fields" or "annexes".')
+	}
+
+	if (section === 'annexes') {
+		if (segments.length !== 2 || typeof segments[1] !== 'string') {
+			return invalidFormPath(path, 'annex paths address one configured annex.')
+		}
+		const definition = form.annexes?.[segments[1]]
+		if (!definition) {
+			return invalidFormPath(path, `unknown annex "${segments[1]}".`)
+		}
+		return { section, segments: segments.slice(1), definition }
+	}
+
+	if (segments.length < 2 || typeof segments[1] !== 'string') {
+		return invalidFormPath(path, 'a field target is required after "fields".')
+	}
+
+	const initialDefinition = form.fields?.[segments[1]]
+	if (!initialDefinition) {
+		return invalidFormPath(path, `unknown field "${segments[1]}".`)
+	}
+	let definition: FormField = initialDefinition
+
+	for (const segment of segments.slice(2)) {
+		if (definition.type === 'fieldset' && typeof segment === 'string') {
+			const child: FormField | undefined = definition.fields[segment]
+			if (!child) {
+				return invalidFormPath(path, `unknown field "${segment}" in fieldset.`)
+			}
+			definition = child
+			continue
+		}
+		if (definition.type === 'list' && typeof segment === 'number') {
+			definition = definition.item
+			continue
+		}
+		if (definition.type === 'list') {
+			return invalidFormPath(path, 'list items require a numeric bracket index.')
+		}
+		return invalidFormPath(path, `field "${String(segment)}" has no nested targets.`)
+	}
+
+	return { section, segments: segments.slice(1), definition }
+}
+
+function getValueAtPath(root: Record<string, unknown>, segments: FormPathSegment[]): unknown {
+	let current: unknown = root
+	for (const segment of segments) {
+		if (Array.isArray(current)) {
+			if (typeof segment !== 'number' || segment < 0 || segment >= current.length) return undefined
+			current = current[segment]
+			continue
+		}
+		if (!isMergeRecord(current) || typeof segment !== 'string') return undefined
+		current = current[segment]
+	}
+	return current
+}
+
+function deleteValueAtPath(root: Record<string, unknown>, segments: FormPathSegment[]): void {
+	if (segments.length === 0) return
+
+	let current: unknown = root
+	for (const segment of segments.slice(0, -1)) {
+		if (Array.isArray(current)) {
+			if (typeof segment !== 'number' || segment < 0 || segment >= current.length) return
+			current = current[segment]
+			continue
+		}
+		if (!isMergeRecord(current) || typeof segment !== 'string') return
+		current = current[segment]
+	}
+
+	const target = segments[segments.length - 1]!
+	if (Array.isArray(current)) {
+		if (typeof target === 'number' && target >= 0 && target < current.length) {
+			current.splice(target, 1)
+		}
+		return
+	}
+	if (isMergeRecord(current) && typeof target === 'string') {
+		delete current[target]
+	}
+}
+
+function setValueAtPath(root: Record<string, unknown>, segments: FormPathSegment[], value: unknown): void {
+	if (segments.length === 0) return
+	if (value === undefined) {
+		deleteValueAtPath(root, segments)
+		return
+	}
+
+	let current: unknown = root
+	for (let index = 0; index < segments.length - 1; index += 1) {
+		const segment = segments[index]!
+		const nextSegment = segments[index + 1]!
+		if (Array.isArray(current)) {
+			if (typeof segment !== 'number' || segment < 0 || segment >= current.length) return
+			current = current[segment]
+			continue
+		}
+		if (!isMergeRecord(current) || typeof segment !== 'string') return
+		if (current[segment] === undefined) {
+			// A missing fieldset can be materialized for a nested reset, but a
+			// missing list must never invent a row.
+			if (typeof nextSegment === 'number') return
+			current[segment] = {}
+		}
+		current = current[segment]
+	}
+
+	const target = segments[segments.length - 1]!
+	if (Array.isArray(current)) {
+		if (typeof target === 'number' && target >= 0 && target < current.length) {
+			current[target] = value
+		}
+		return
+	}
+	if (isMergeRecord(current) && typeof target === 'string') {
+		current[target] = value
+	}
+}
+
+function resetFieldValue(field: FormField, current: unknown): unknown {
+	if (field.type === 'fieldset') {
+		const currentFields = isMergeRecord(current) ? current : {}
+		const resetFields: Record<string, unknown> = {}
+		for (const [fieldId, child] of Object.entries(field.fields)) {
+			const value = resetFieldValue(child, currentFields[fieldId])
+			if (value !== undefined) resetFields[fieldId] = value
+		}
+		return Object.keys(resetFields).length > 0 ? resetFields : undefined
+	}
+
+	if (field.type === 'list') {
+		if (!Array.isArray(current)) return undefined
+		const resetItems = current
+			.map((item) => resetFieldValue(field.item, item))
+			.filter((item): item is Exclude<typeof item, undefined> => item !== undefined)
+		return resetItems.length > 0 ? resetItems : undefined
+	}
+
+	if ('default' in field && field.default !== undefined) {
+		return deepClone(field.default)
+	}
+	return undefined
 }
 
 // ============================================================================
@@ -732,6 +971,19 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	 * Safely merge a patch, returning a result object instead of throwing.
 	 */
 	safeUpdate(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): SafePartialFillResult<F>
+
+	/**
+	 * Remove the stored value at a schema-qualified field or annex path.
+	 * @throws Error if the path is not present in the form definition.
+	 */
+	clear(path: FormPath<F>): DraftForm<F>
+
+	/**
+	 * Restore declared defaults at a schema-qualified field or annex path.
+	 * Defaultless targets are removed and existing list rows are never invented.
+	 * @throws Error if the path is not present in the form definition.
+	 */
+	reset(path: FormPath<F>): DraftForm<F>
 
 	/**
 	 * Compute the full fill state: open/blocked/done items, candidates, summary.
@@ -1480,6 +1732,44 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			} catch (err) {
 				return { success: false, error: err as Error }
 			}
+		},
+
+		clear(path: FormPath<F>): DraftForm<F> {
+			ensureDraft('clear')
+			const resolved = resolveFormPath(formDef, path)
+			const nextFields = deepClone(fieldValues)
+			const nextAnnexes = deepClone(annexValues)
+			const target = resolved.section === 'fields' ? nextFields : nextAnnexes
+			deleteValueAtPath(target, resolved.segments)
+
+			return createRuntimeForm({
+				...config,
+				fields: nextFields,
+				annexes: nextAnnexes,
+				phase: 'draft',
+				executedAt: undefined,
+			})
+		},
+
+		reset(path: FormPath<F>): DraftForm<F> {
+			ensureDraft('reset')
+			const resolved = resolveFormPath(formDef, path)
+			const nextFields = deepClone(fieldValues)
+			const nextAnnexes = deepClone(annexValues)
+			const target = resolved.section === 'fields' ? nextFields : nextAnnexes
+			const current = getValueAtPath(target, resolved.segments)
+			const value = resolved.section === 'fields'
+				? resetFieldValue(resolved.definition as FormField, current)
+				: undefined
+			setValueAtPath(target, resolved.segments, value)
+
+			return createRuntimeForm({
+				...config,
+				fields: nextFields,
+				annexes: nextAnnexes,
+				phase: 'draft',
+				executedAt: undefined,
+			})
 		},
 
 		getFillState(options?: FillTargetOptions): FillState {
