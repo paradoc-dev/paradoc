@@ -29,8 +29,9 @@ export type { TopologicalSortResult } from './build-type-environment'
 export {
   topologicalSortDefsKeys,
   buildFormTypeEnvironment,
+  buildFormRuleTypeEnvironment,
   buildBundleTypeEnvironment,
 } from './build-type-environment'
 
 // Boolean-gate type validation
-export { validateBooleanType } from './validate-boolean-type'
+export { validateBooleanType, validateExpressionType } from './validate-boolean-type'

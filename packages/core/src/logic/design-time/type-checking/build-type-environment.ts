@@ -14,6 +14,7 @@ import type {
   Bundle,
   FormField,
   FieldsetField,
+  EnumOption,
   Expression,
   DefsSection,
   ScalarExpressionType,
@@ -60,7 +61,7 @@ const FIELD_TYPE_TO_EXPR: Record<string, ExprType> = {
   time: T.time,
   duration: T.duration,
   money: T.money,
-  enum: T.string,
+  enum: T.unknown,
   multiselect: T.array(T.unknown),
   coordinate: T.object,
   address: T.object,
@@ -72,6 +73,45 @@ const FIELD_TYPE_TO_EXPR: Record<string, ExprType> = {
   signature: T.object,
   fieldset: T.object,
   list: T.array(T.unknown),
+}
+
+/** Properties exposed by object-valued definitions and their expression types. */
+const OBJECT_DEFS_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
+  money: { amount: T.number, currency: T.string },
+  address: {
+    line1: T.string,
+    line2: T.string,
+    locality: T.string,
+    region: T.string,
+    postalCode: T.string,
+    country: T.string,
+  },
+  phone: { number: T.string, type: T.string, extension: T.string },
+  coordinate: { lat: T.number, lon: T.number },
+  bbox: { north: T.number, south: T.number, east: T.number, west: T.number },
+  person: {
+    name: T.string,
+    firstName: T.string,
+    middleName: T.string,
+    lastName: T.string,
+    suffix: T.string,
+    title: T.string,
+  },
+  organization: {
+    name: T.string,
+    legalName: T.string,
+    domicile: T.string,
+    entityType: T.string,
+    entityId: T.string,
+    taxId: T.string,
+  },
+  identification: {
+    type: T.string,
+    number: T.string,
+    issuer: T.string,
+    issueDate: T.date,
+    expiryDate: T.date,
+  },
 }
 
 /** Nested property types for complex field types (mirrors field-paths.ts). */
@@ -115,15 +155,42 @@ const COMPLEX_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
   },
 }
 
+function enumOptionExprType(options: readonly EnumOption[]): ExprType {
+  const kinds = new Set(options.map((option) => typeof option.value))
+  if (kinds.size !== 1) return T.unknown
+  return kinds.has('number') ? T.number : T.string
+}
+
 function fieldExprType(field: FormField): ExprType {
-  return field.type === 'list'
-    ? T.array(fieldExprType(field.item))
-    : FIELD_TYPE_TO_EXPR[field.type] ?? T.unknown
+  if (field.type === 'list') return T.array(fieldExprType(field.item))
+  if (field.type === 'enum') return enumOptionExprType(field.enum)
+  if (field.type === 'multiselect') return T.array(enumOptionExprType(field.enum))
+  return FIELD_TYPE_TO_EXPR[field.type] ?? T.unknown
 }
 
 /** The declared type of an object-valued defs key (scalars are inferred). */
 function objectDefsExprType(expr: Expression): ExprType {
   return expr.type === 'money' ? T.money : T.object
+}
+
+/** Registers an expression definition and its statically known object members. */
+function registerDefType(
+  key: string,
+  expr: Expression,
+  acc: Record<string, ExprType>,
+  keyPrefix: string,
+): void {
+  const fullKey = `${keyPrefix}${key}`
+  acc[fullKey] = isScalarExpressionType(expr.type)
+    ? check(expr.value as string, createTypeEnv(acc)).type
+    : objectDefsExprType(expr)
+
+  const properties = OBJECT_DEFS_PROPERTY_TYPES[expr.type]
+  if (properties) {
+    for (const [property, propertyType] of Object.entries(properties)) {
+      acc[`${fullKey}.${property}`] = propertyType
+    }
+  }
 }
 
 /** Registers field reference paths and their types into the accumulator. */
@@ -229,11 +296,7 @@ function inferDefsInto(
   for (const key of sorted) {
     const expr = defs[key]
     if (!expr) continue
-    if (isScalarExpressionType(expr.type)) {
-      acc[`${keyPrefix}${key}`] = check(expr.value as string, createTypeEnv(acc)).type
-    } else {
-      acc[`${keyPrefix}${key}`] = objectDefsExprType(expr)
-    }
+    registerDefType(key, expr, acc, keyPrefix)
   }
 }
 
@@ -251,6 +314,26 @@ function buildFormTypeAcc(form: Form): Record<string, ExprType> {
  */
 export function buildFormTypeEnvironment(form: Form): TypeEnv {
   return createTypeEnv(buildFormTypeAcc(form))
+}
+
+/**
+ * Builds the type environment used by form-level rules. Rules may address
+ * fields directly (`amount`) as well as through the qualified `fields.amount`
+ * path used by other form expressions.
+ */
+export function buildFormRuleTypeEnvironment(form: Form): TypeEnv {
+  const acc = buildFormTypeAcc(form)
+  // Rule contexts expose the same values both as `fields.<path>` and as
+  // direct paths (`fieldId`, `fieldId.member`). Copy every field path so
+  // complex and nested values retain their member types in either form.
+  for (const [path, type] of Object.entries(acc)) {
+    if (!path.startsWith('fields.')) continue
+    const directPath = path.slice('fields.'.length)
+    // Runtime rule contexts add defs after fields, so a defs key wins when a
+    // form happens to use the same direct name for both.
+    if (!(directPath in acc)) acc[directPath] = type
+  }
+  return createTypeEnv(acc)
 }
 
 /** Field + inferred-defs types for a Bundle, with forms.<k>./bundles.<k>. prefixes. */

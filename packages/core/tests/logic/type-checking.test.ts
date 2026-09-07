@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { validateFormDefs, validateBundleDefs } from '@/logic/design-time/validation'
+import { buildFormTypeEnvironment } from '@/logic/design-time/type-checking'
+import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import type { Form, Bundle } from '@paradoc/types'
 import type { LogicValidationIssue } from '@/logic/design-time/validation/validate-form-logic'
 
@@ -440,6 +442,194 @@ describe('Expression Type Checking', () => {
 
 			const result = validateFormDefs(form)
 			expect(result.issues).toBeUndefined()
+		})
+	})
+
+	describe('definition expression coverage', () => {
+		test('validates rules, party requirements, and payment expressions', () => {
+			const form: Form = {
+				kind: 'form',
+				name: 'expression-sections',
+				fields: {
+					age: { type: 'number' },
+					currency: { type: 'text' },
+				},
+				rules: {
+					brokenSyntax: { expr: 'fields.age >=', message: 'Invalid syntax' },
+					unknownFunction: { expr: 'missingFunction()', message: 'Unknown function' },
+					wrongType: { expr: 'fields.age + 1', message: 'Must be a boolean' },
+				},
+				parties: {
+					buyer: {
+						label: 'Buyer',
+						required: 'missingFunction()',
+						payment: {
+							amount: {
+								type: 'money',
+								value: {
+									amount: 'fields.currency',
+									currency: 'fields.age',
+								},
+							},
+						},
+					},
+				},
+			}
+
+			const result = validateFormDefs(form)
+			expect(result.issues).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ path: ['rules', 'brokenSyntax', 'expr'] }),
+					expect.objectContaining({ path: ['rules', 'unknownFunction', 'expr'] }),
+					expect.objectContaining({ path: ['rules', 'wrongType', 'expr'] }),
+					expect.objectContaining({ path: ['parties', 'buyer', 'required'] }),
+					expect.objectContaining({
+						path: ['parties', 'buyer', 'payment', 'amount', 'value', 'amount'],
+					}),
+					expect.objectContaining({
+						path: ['parties', 'buyer', 'payment', 'amount', 'value', 'currency'],
+					}),
+				]),
+			)
+		})
+
+		test('derives enum types and preserves nested object definition paths', () => {
+			const form: Form = {
+				kind: 'form',
+				name: 'enum-types',
+				fields: {
+					level: { type: 'enum', enum: [{ value: 1 }, { value: 2 }] },
+					status: { type: 'enum', enum: [{ value: 'new' }, { value: 'done' }] },
+					mixed: { type: 'enum', enum: [{ value: 'new' }, { value: 1 }] },
+					amount: { type: 'number' },
+					currency: { type: 'text' },
+					visibleWhenTotalIsHigh: { type: 'text', visible: 'total.amount > 10' },
+					numericEnumGate: { type: 'text', visible: 'fields.level > 1' },
+				},
+				defs: {
+					total: {
+						type: 'money',
+						value: { amount: 'fields.amount', currency: 'fields.currency' },
+					},
+				},
+			}
+
+			const env = buildFormTypeEnvironment(form)
+			expect(env.resolve('fields.level')?.kind).toBe('number')
+			expect(env.resolve('fields.status')?.kind).toBe('string')
+			expect(env.resolve('fields.mixed')?.kind).toBe('unknown')
+			expect(env.resolve('total.amount')?.kind).toBe('number')
+			expect(validateFormDefs(form).issues).toBeUndefined()
+
+			const evaluated = evaluateFormDefs(form, { fields: { level: 2, amount: 20, currency: 'USD' } })
+			expect('value' in evaluated && evaluated.value.fields.get('visibleWhenTotalIsHigh')?.visible).toBe(true)
+			expect('value' in evaluated && evaluated.value.fields.get('numericEnumGate')?.visible).toBe(true)
+			const belowThreshold = evaluateFormDefs(form, { fields: { level: 1, amount: 20, currency: 'USD' } })
+			expect('value' in belowThreshold && belowThreshold.value.fields.get('numericEnumGate')?.visible).toBe(false)
+		})
+
+		test('accepts valid rule, party, payment, and nested expressions', () => {
+			const form: Form = {
+				kind: 'form',
+				name: 'valid-expression-sections',
+				fields: {
+					amount: { type: 'number' },
+					address: {
+						type: 'fieldset',
+						fields: { postalCode: { type: 'text' } },
+					},
+				},
+				rules: {
+					amountIsPositive: { expr: 'amount > 0', message: 'Amount must be positive' },
+				},
+				parties: {
+					buyer: {
+						label: 'Buyer',
+						required: 'partyCount("buyer") > 0',
+						payment: {
+							amount: {
+								type: 'money',
+								value: {
+									amount: 'fields.amount',
+									currency: '"USD"',
+								},
+							},
+						},
+					},
+				},
+			}
+
+			expect(validateFormDefs(form).issues).toBeUndefined()
+		})
+
+		test('reports payment syntax and reference failures at their paths', () => {
+			const forms: Form[] = [
+				{
+					kind: 'form',
+					name: 'payment-syntax',
+					fields: { amount: { type: 'number' } },
+					parties: {
+						buyer: {
+							label: 'Buyer',
+							payment: {
+								amount: {
+									type: 'money',
+									value: { amount: 'fields.amount >=', currency: '"USD"' },
+								},
+							},
+						},
+					},
+				},
+				{
+					kind: 'form',
+					name: 'payment-reference',
+					fields: { amount: { type: 'number' } },
+					parties: {
+						buyer: {
+							label: 'Buyer',
+							payment: {
+								amount: {
+									type: 'money',
+									value: { amount: 'fields.amount', currency: 'fields.currency' },
+								},
+							},
+						},
+					},
+				},
+			]
+
+			expect(validateFormDefs(forms[0]!).issues).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						path: ['parties', 'buyer', 'payment', 'amount', 'value', 'amount'],
+					}),
+				]),
+			)
+			expect(validateFormDefs(forms[1]!).issues).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						path: ['parties', 'buyer', 'payment', 'amount', 'value', 'currency'],
+						variable: 'fields.currency',
+					}),
+				]),
+			)
+		})
+
+		test('rejects a definition value whose result disagrees with its declared type', () => {
+			const form: Form = {
+				kind: 'form',
+				name: 'typed-definition',
+				fields: { label: { type: 'text' } },
+				defs: { count: { type: 'number', value: 'fields.label' } },
+			}
+
+			const result = validateFormDefs(form)
+			const issue = result.issues?.find(
+				(candidate) => (candidate as LogicValidationIssue).path.join('.') === 'defs.count.value',
+			) as LogicValidationIssue | undefined
+			expect(issue).toBeDefined()
+			expect(issue?.actualType).toBe('string')
+			expect(issue?.expectedType).toBe('number')
 		})
 	})
 

@@ -4,14 +4,23 @@ import type {
   FormField,
   FieldsetField,
   FormAnnex,
+  FormParty,
   CondExpr,
   Expression,
   DefsSection,
+  RulesSection,
   ScalarExpressionType,
 } from '@paradoc/types'
+import { T, type ExprType } from '@paradoc/expr'
 import type { TypeEnvironment, TypeValidationSeverity, InferredType } from '../type-checking'
 import { collectFieldPaths } from './field-paths'
-import { buildFormTypeEnvironment, validateBooleanType, topologicalSortDefsKeys } from '../type-checking'
+import {
+  buildFormRuleTypeEnvironment,
+  buildFormTypeEnvironment,
+  validateBooleanType,
+  validateExpressionType,
+  topologicalSortDefsKeys,
+} from '../type-checking'
 import { validateExpression } from './shared'
 
 /** Scalar expression types (value is a string expression) */
@@ -33,6 +42,59 @@ const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
  */
 function isScalarExpressionType(type: string): type is ScalarExpressionType {
   return SCALAR_EXPRESSION_TYPES.has(type)
+}
+
+/** Maps a scalar definition type to the corresponding expression type. */
+const SCALAR_DEFINITION_TYPES: Record<ScalarExpressionType, ExprType> = {
+  boolean: T.boolean,
+  string: T.string,
+  number: T.number,
+  integer: T.number,
+  percentage: T.number,
+  rating: T.number,
+  date: T.date,
+  time: T.time,
+  datetime: T.datetime,
+  duration: T.duration,
+}
+
+/** Expected types for object-valued definition properties. */
+const OBJECT_DEFINITION_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
+  money: { amount: T.number, currency: T.string },
+  address: {
+    line1: T.string,
+    line2: T.string,
+    locality: T.string,
+    region: T.string,
+    postalCode: T.string,
+    country: T.string,
+  },
+  phone: { number: T.string, type: T.string, extension: T.string },
+  coordinate: { lat: T.number, lon: T.number },
+  bbox: { north: T.number, south: T.number, east: T.number, west: T.number },
+  person: {
+    name: T.string,
+    firstName: T.string,
+    middleName: T.string,
+    lastName: T.string,
+    suffix: T.string,
+    title: T.string,
+  },
+  organization: {
+    name: T.string,
+    legalName: T.string,
+    domicile: T.string,
+    entityType: T.string,
+    entityId: T.string,
+    taxId: T.string,
+  },
+  identification: {
+    type: T.string,
+    number: T.string,
+    issuer: T.string,
+    issueDate: T.date,
+    expiryDate: T.date,
+  },
 }
 
 /**
@@ -61,6 +123,68 @@ export interface LogicValidationIssue {
   expectedType?: InferredType
   /** Actual inferred type (for type validation issues) */
   actualType?: InferredType
+}
+
+/** Records all statically addressable members of definition expressions. */
+function addDefinitionPaths(
+  defs: DefsSection | undefined,
+  validVariables: Set<string>
+): void {
+  if (!defs) return
+
+  for (const [key, expr] of Object.entries(defs)) {
+    validVariables.add(key)
+    if (!isScalarExpressionType(expr.type)) {
+      const properties = OBJECT_DEFINITION_PROPERTY_TYPES[expr.type]
+      if (properties) {
+        for (const property of Object.keys(properties)) {
+          validVariables.add(`${key}.${property}`)
+        }
+      }
+    }
+  }
+}
+
+/** Whether a payment amount is an expression object rather than fixed Money. */
+function isMoneyExpression(
+  amount: unknown
+): amount is { type: 'money'; value: { amount: string; currency: string } } {
+  return (
+    typeof amount === 'object' &&
+    amount !== null &&
+    (amount as { type?: unknown }).type === 'money' &&
+    typeof (amount as { value?: unknown }).value === 'object' &&
+    (amount as { value: { amount?: unknown } }).value !== null &&
+    typeof (amount as { value: { amount?: unknown } }).value.amount === 'string' &&
+    typeof (amount as { value: { currency?: unknown } }).value.currency === 'string'
+  )
+}
+
+/** Adds one non-gate expression type issue, preserving the shared issue shape. */
+function typeCheckExpression(
+  expr: unknown,
+  path: (string | number)[],
+  expected: ExprType,
+  typeEnv: TypeEnvironment,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (typeof expr !== 'string') return true
+
+  const result = validateExpressionType(expr, typeEnv, expected)
+  if (!result.valid) {
+    issues.push({
+      message: result.message ?? 'Type validation failed',
+      path,
+      expression: expr,
+      severity: result.severity,
+      expectedType: result.expectedType,
+      actualType: result.actualType,
+    })
+    if (!collectAllErrors) return false
+  }
+
+  return true
 }
 
 /**
@@ -178,6 +302,84 @@ function validateAnnexExpressions(
       !validateExpression(
         annex.visible,
         [...annexPath, 'visible'],
+        validVariables,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+/** Validates form-level rule expressions. */
+function validateRuleExpressions(
+  rules: RulesSection | undefined,
+  validVariables: Set<string>,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (!rules) return true
+
+  for (const [ruleId, rule] of Object.entries(rules)) {
+    if (
+      !validateExpression(
+        rule.expr,
+        ['rules', ruleId, 'expr'],
+        validVariables,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+/** Validates party requiredness and payment component expressions. */
+function validatePartyExpressions(
+  parties: Record<string, FormParty> | undefined,
+  validVariables: Set<string>,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (!parties) return true
+
+  for (const [partyId, party] of Object.entries(parties)) {
+    if (
+      !validateExpression(
+        party.required,
+        ['parties', partyId, 'required'],
+        validVariables,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+
+    const payment = party.payment
+    if (!payment || !isMoneyExpression(payment.amount)) continue
+
+    if (
+      !validateExpression(
+        payment.amount.value.amount,
+        ['parties', partyId, 'payment', 'amount', 'value', 'amount'],
+        validVariables,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+    if (
+      !validateExpression(
+        payment.amount.value.currency,
+        ['parties', partyId, 'payment', 'amount', 'value', 'currency'],
         validVariables,
         issues,
         collectAllErrors
@@ -329,6 +531,134 @@ function typeCheckAnnexExpressions(
       !typeCheckBooleanExpression(
         annex.visible,
         [...annexPath, 'visible'],
+        typeEnv,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+/** Type-checks the declared result type of every definition expression. */
+function typeCheckDefsExpressions(
+  defs: DefsSection | undefined,
+  typeEnv: TypeEnvironment,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (!defs) return true
+
+  for (const [key, expr] of Object.entries(defs)) {
+    if (isScalarExpressionType(expr.type)) {
+      if (
+        !typeCheckExpression(
+          expr.value,
+          ['defs', key, 'value'],
+          SCALAR_DEFINITION_TYPES[expr.type],
+          typeEnv,
+          issues,
+          collectAllErrors
+        )
+      ) {
+        return false
+      }
+      continue
+    }
+
+    const propertyTypes = OBJECT_DEFINITION_PROPERTY_TYPES[expr.type]
+    if (!propertyTypes) continue
+    const values = expr.value as unknown as Record<string, string | undefined>
+    for (const [property, propertyType] of Object.entries(propertyTypes)) {
+      if (
+        !typeCheckExpression(
+          values[property],
+          ['defs', key, 'value', property],
+          propertyType,
+          typeEnv,
+          issues,
+          collectAllErrors
+        )
+      ) {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
+/** Type-checks all form-level rule gates. */
+function typeCheckRuleExpressions(
+  rules: RulesSection | undefined,
+  typeEnv: TypeEnvironment,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (!rules) return true
+
+  for (const [ruleId, rule] of Object.entries(rules)) {
+    if (
+      !typeCheckBooleanExpression(
+        rule.expr,
+        ['rules', ruleId, 'expr'],
+        typeEnv,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+/** Type-checks party requiredness and variable payment expressions. */
+function typeCheckPartyExpressions(
+  parties: Record<string, FormParty> | undefined,
+  typeEnv: TypeEnvironment,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (!parties) return true
+
+  for (const [partyId, party] of Object.entries(parties)) {
+    if (
+      !typeCheckBooleanExpression(
+        party.required,
+        ['parties', partyId, 'required'],
+        typeEnv,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+
+    const payment = party.payment
+    if (!payment || !isMoneyExpression(payment.amount)) continue
+
+    if (
+      !typeCheckExpression(
+        payment.amount.value.amount,
+        ['parties', partyId, 'payment', 'amount', 'value', 'amount'],
+        T.number,
+        typeEnv,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+    if (
+      !typeCheckExpression(
+        payment.amount.value.currency,
+        ['parties', partyId, 'payment', 'amount', 'value', 'currency'],
+        T.string,
         typeEnv,
         issues,
         collectAllErrors
@@ -495,9 +825,13 @@ export function validateFormDefs(
   // Add all field paths (e.g., 'fields.age', 'fields.address.street')
   collectFieldPaths(form.fields).forEach((p) => validVariables.add(p))
 
-  // Add all defs keys as valid variables
-  if (form.defs) {
-    Object.keys(form.defs).forEach((key) => validVariables.add(key))
+  // Add all defs keys and their statically known object members as valid variables
+  addDefinitionPaths(form.defs, validVariables)
+
+  // Rules additionally expose top-level fields by their direct IDs at runtime.
+  const ruleVariables = new Set(validVariables)
+  for (const fieldId of Object.keys(form.fields ?? {})) {
+    ruleVariables.add(fieldId)
   }
 
   // Validate defs section expressions
@@ -535,11 +869,25 @@ export function validateFormDefs(
     validateAnnexExpressions(form.annexes, validVariables, issues, collectAllErrors)
   }
 
+  // Validate form rules and party expressions, which use the same expression
+  // language as field and annex conditions.
+  if (collectAllErrors || issues.length === 0) {
+    validateRuleExpressions(form.rules, ruleVariables, issues, collectAllErrors)
+  }
+  if (collectAllErrors || issues.length === 0) {
+    validatePartyExpressions(form.parties, validVariables, issues, collectAllErrors)
+  }
+
   // Phase 2: Type checking
   // Only proceed if syntax and variable validation passed (or collecting all errors)
   if (collectAllErrors || issues.length === 0) {
     // Build type environment for type inference
     const typeEnv = buildFormTypeEnvironment(form)
+
+    // Check typed definitions before their values flow into other gates.
+    if (collectAllErrors || issues.length === 0) {
+      typeCheckDefsExpressions(form.defs, typeEnv, issues, collectAllErrors)
+    }
 
     // Type-check field expressions
     if (collectAllErrors || issues.length === 0) {
@@ -549,6 +897,20 @@ export function validateFormDefs(
     // Type-check annex expressions
     if (collectAllErrors || issues.length === 0) {
       typeCheckAnnexExpressions(form.annexes, typeEnv, issues, collectAllErrors)
+    }
+
+    // Rules support direct top-level field references, so they use a slightly
+    // wider environment than field/annex conditions.
+    if (collectAllErrors || issues.length === 0) {
+      typeCheckRuleExpressions(
+        form.rules,
+        buildFormRuleTypeEnvironment(form),
+        issues,
+        collectAllErrors
+      )
+    }
+    if (collectAllErrors || issues.length === 0) {
+      typeCheckPartyExpressions(form.parties, typeEnv, issues, collectAllErrors)
     }
   }
 
