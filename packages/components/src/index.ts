@@ -1,5 +1,9 @@
 export { Bundle, type BundleProps } from "./bundle";
 export { Document, type DocumentProps } from "./document";
 export { Field, type FieldProps } from "./field";
+export { KeepTogether, type KeepTogetherProps } from "./keep-together";
+export { Page, Pages, type PageProps, type PagesProps } from "./pages";
+export { Paper, Sheet, type PaperProps, type SheetProps } from "./paper";
+export { Section, type SectionProps } from "./section";
 export { Table, type TableColumn, type TableProps } from "./table";
 export { Totals, type TotalRow, type TotalsProps } from "./totals";

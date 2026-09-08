@@ -1,4 +1,5 @@
-import { KeepTogether, useList } from "@paradoc/react";
+import { useList } from "@paradoc/react";
+import { KeepTogether } from "./keep-together";
 
 export interface TableColumn {
   field: string;

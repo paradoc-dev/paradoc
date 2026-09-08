@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
 import { Bundle } from "../src/components/bundle";
 import { Document } from "../src/components/document";
 import { Section } from "../src/components/section";
-import { RootTokenMismatchError } from "../src/components/tokens-context";
+import { markDocumentRoot, RootTokenMismatchError } from "../src/components/tokens-context";
 import { Totals } from "../src/components/totals";
 
 import {
@@ -239,6 +239,7 @@ describe("the render checks the document against what it resolved", () => {
     function Forwards({ tokens }: { tokens?: DocumentTokensInput }) {
       return <ProposalDocument data={shortProposalData} tokens={tokens} />;
     }
+    markDocumentRoot(Forwards);
     const { bytes } = await renderPdf(<Forwards tokens={brandedProposalTokens} />, {
       images: [await sampleLogo()],
     });

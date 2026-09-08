@@ -15,16 +15,11 @@
  * fragments, arrays and host elements — and stops at the first element that
  * declares tokens.
  *
- * **What counts as a document root.** `Document` and `Bundle`, marked below, and
- * any element carrying a `tokens` prop whose value is shaped like a token set.
- * The second clause is what lets a composition forward tokens:
- * `<PurchaseOrder tokens={t} />` declares the paper even though the walk cannot
- * see the `Bundle` inside it. The shape test is what keeps an unrelated
- * third-party `tokens` prop — a design-system theme object, say — from being
- * read as a document's branding; a third-party prop that happens to hold only
- * keys named `fontFamily`, `accentColor`, `pageSize`, `marginPx` or `logo`
- * would still collide, and a composition in that position should take the
- * tokens as its own prop and forward them.
+ * **What counts as a document root.** `Document`, `Bundle`, and composition
+ * wrappers explicitly registered with `markDocumentRoot`. A prop name is never
+ * guessed to carry document settings, so an unrelated design-system `tokens`
+ * prop cannot silently change the paper. A custom wrapper accepts `tokens`,
+ * forwards them, and registers its component function once.
  *
  * **The walk never calls a component.** It walks the children a component was
  * *given*, which are already-built elements, and stops there. So a wrapper —
@@ -138,7 +133,7 @@ function walk(node: ReactNode, branch: FoundRoot, roots: FoundRoot[]): void {
     return;
   }
 
-  if (mark[DOCUMENT_ROOT] === true || isTokenInput(props.tokens)) {
+  if (mark[DOCUMENT_ROOT] === true) {
     roots.push({ ...branch, tokens: isTokenInput(props.tokens) ? props.tokens : undefined });
     return;
   }

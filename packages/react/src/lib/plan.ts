@@ -85,6 +85,28 @@ interface PageBuild {
   start: string;
 }
 
+export class InvalidPagePlanInputError extends Error {
+  constructor(message: string) {
+    super(`Cannot plan pages: ${message}`);
+    this.name = "InvalidPagePlanInputError";
+  }
+}
+
+function validateInputs(keeps: readonly MeasuredKeep[], budget: number): void {
+  if (!Number.isFinite(budget) || budget <= 0) {
+    throw new InvalidPagePlanInputError(`budget must be a positive finite number; received ${budget}.`);
+  }
+  const ids = new Set<string>();
+  for (const keep of keeps) {
+    if (keep.id.length === 0) throw new InvalidPagePlanInputError("keep ids cannot be empty.");
+    if (ids.has(keep.id)) throw new InvalidPagePlanInputError(`keep id "${keep.id}" is duplicated.`);
+    if (!Number.isFinite(keep.top) || !Number.isFinite(keep.bottom) || keep.top < 0 || keep.bottom < keep.top) {
+      throw new InvalidPagePlanInputError(`keep "${keep.id}" has invalid coordinates ${keep.top}..${keep.bottom}.`);
+    }
+    ids.add(keep.id);
+  }
+}
+
 /** Groups a page's keeps into the sections that enclose them, without repeats. */
 function sectionsOf(page: readonly string[], byId: Map<string, MeasuredKeep>): string[] {
   const present: string[] = [];
@@ -98,6 +120,7 @@ function sectionsOf(page: readonly string[], byId: Map<string, MeasuredKeep>): s
 
 /** Fills pages greedily with keeps that never split, against a fixed budget. */
 export function planPages(keeps: readonly MeasuredKeep[], budget: number): PagePlan {
+  validateInputs(keeps, budget);
   const byId = new Map(keeps.map((keep) => [keep.id, keep]));
 
   const headers = new Map<string, MeasuredKeep>();

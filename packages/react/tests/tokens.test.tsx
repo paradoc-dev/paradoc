@@ -24,6 +24,7 @@ import { Paper } from "../src/components/paper";
 import { Section } from "../src/components/section";
 import {
   NestedPaperTokenError,
+  markDocumentRoot,
   RootTokenMismatchError,
   TokenOverrideProvider,
 } from "../src/components/tokens-context";
@@ -444,18 +445,25 @@ describe("the paper is resolved from the element, so a static render has it", ()
     ).toBe("a4");
   });
 
+  it("requires custom root wrappers to opt into the settings contract", () => {
+    function CustomRoot({ tokens }: { tokens: { pageSize: "a4" } }) { return <div>{tokens.pageSize}</div>; }
+    expect(documentTokensOf(<CustomRoot tokens={{ pageSize: "a4" }} />).pageSize).toBe("letter");
+    markDocumentRoot(CustomRoot);
+    expect(documentTokensOf(<CustomRoot tokens={{ pageSize: "a4" }} />).pageSize).toBe("a4");
+  });
+
   it("counts a bundle of several documents as one root", async () => {
     const sheet = await mount(
       <Pages>
         <Bundle tokens={{ pageSize: "a4" }}>
           <Document artifact={proposalForm} data={shortProposalData} id="first">
             <Section id="a" title="A">
-              <Totals rows={[{ def: "total" }]} />
+              <Totals id="first:totals" rows={[{ def: "total" }]} />
             </Section>
           </Document>
           <Document artifact={proposalForm} data={shortProposalData} id="second">
             <Section id="b" title="B">
-              <Totals rows={[{ def: "total" }]} />
+              <Totals id="second:totals" rows={[{ def: "total" }]} />
             </Section>
           </Document>
         </Bundle>

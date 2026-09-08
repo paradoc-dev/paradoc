@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { planPages, type MeasuredKeep } from "../src/lib/plan";
+import { InvalidPagePlanInputError, planPages, type MeasuredKeep } from "../src/lib/plan";
 
 const BUDGET = 960;
 
@@ -52,6 +52,37 @@ describe("the empty document", () => {
       oversize: [],
       budget: BUDGET,
     });
+  });
+});
+
+describe("invalid planning inputs", () => {
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])("rejects the page budget %s", (budget) => {
+    expect(() => planPages([], budget)).toThrow(InvalidPagePlanInputError);
+  });
+
+  it("rejects empty and duplicate keep ids", () => {
+    expect(() => planPages([{ id: "", top: 0, bottom: 10 }], BUDGET)).toThrow(/ids cannot be empty/);
+    expect(() => planPages([{ id: "same", top: 0, bottom: 10 }, { id: "same", top: 10, bottom: 20 }], BUDGET)).toThrow(/duplicated/);
+  });
+
+  it.each([
+    [[{ id: "a", top: -1, bottom: 1 }]],
+    [[{ id: "a", top: 2, bottom: 1 }]],
+    [[{ id: "a", top: 0, bottom: Number.NaN }]],
+  ])("rejects invalid coordinates", (keeps) => {
+    expect(() => planPages(keeps, BUDGET)).toThrow(InvalidPagePlanInputError);
+  });
+
+  it("accepts DOM order across adjacent columns", () => {
+    expect(() =>
+      planPages(
+        [
+          { id: "left-lower", top: 40, bottom: 60 },
+          { id: "right-upper", top: 0, bottom: 20 },
+        ],
+        BUDGET
+      )
+    ).not.toThrow();
   });
 });
 

@@ -218,10 +218,23 @@ export {
 } from "./lib/pdf-painter";
 export {
   planPages,
+  InvalidPagePlanInputError,
   type MeasuredKeep,
   type OversizeKeep,
   type PagePlan,
 } from "./lib/plan";
+export {
+  useDocumentSettings,
+  type DocumentSettingsBinding,
+} from "./headless/settings";
+export {
+  samePagePlan,
+  useFontReadiness,
+  usePagination,
+  type FontReadiness,
+  type PaginationBinding,
+  type PaginationOptions,
+} from "./headless/pagination";
 export { computeLineAmounts, type LineItem, type LineItemInput } from "./lib/totals";
 
 export { FormatterProvider, useArtifactFormatting, type ArtifactFormatting } from "./components/formatter-context";

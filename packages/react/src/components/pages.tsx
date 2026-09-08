@@ -28,52 +28,12 @@ import {
   type ReactNode,
 } from "react";
 
-import { loadDocumentFaces } from "../lib/font";
+import { useFontReadiness } from "../headless/pagination";
 import { measureKeeps } from "../lib/measure";
 import { planPages, type PagePlan } from "../lib/plan";
 import { PAGE_GAP_PX, Sheet, useFitToWidth, usePaperFor } from "./paper";
 import { DrawnPaperProvider, usePaperGeometry } from "./paper-geometry";
 import { PageContextProvider, type PageContextValue } from "./page-context";
-
-/**
- * True once the faces the document is set in have loaded, so measurement is not
- * of fallbacks.
- *
- * The gate is per family, not once per mount. Switching a tenant's typeface
- * asks the browser for faces it may not have loaded yet, and a plan measured
- * against the fallback while they arrive is a plan of a document nobody will
- * see. So the answer is which family the wait settled for, and a family that is
- * not that one is not ready.
- *
- * **It waits for the faces, not for `document.fonts.ready`.** That promise is
- * about the faces the page has already asked for, so on a cold page it is
- * resolved before layout has requested a single glyph and the gate opens onto
- * the fallback. `loadDocumentFaces` asks for the family at the weights the
- * components use and only then awaits `ready`, which is the difference between
- * a document measured in its own typeface and one measured in whatever the
- * browser had to hand.
- */
-function useFontsReady(family: string): boolean {
-  const [settled, setSettled] = useState<string | null>(null);
-
-  useEffect(() => {
-    // An environment with no font-loading API has nothing to wait for.
-    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
-    if (!fonts?.ready) {
-      setSettled(family);
-      return;
-    }
-    let live = true;
-    void loadDocumentFaces(fonts, family).then(() => {
-      if (live) setSettled(family);
-    });
-    return () => {
-      live = false;
-    };
-  }, [family]);
-
-  return settled === family;
-}
 
 export interface PageProps {
   /** The plan this page comes from. */
@@ -130,7 +90,9 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   const [plan, setPlan] = useState<PagePlan | null>(null);
   const { drawn, tokens, geometry, sheetStyle } = usePaperFor(children);
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
-  const fontsReady = useFontsReady(tokens.fontFamily);
+  const fonts = useFontReadiness(tokens.fontFamily);
+  if (fonts.error) throw fonts.error;
+  const fontsReady = fonts.ready;
 
   // The paper is part of what a plan is a plan of. It needs no invalidation of
   // its own: the measuring container is the width the new margin leaves, the

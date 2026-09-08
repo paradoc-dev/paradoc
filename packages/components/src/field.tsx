@@ -1,4 +1,5 @@
-import { KeepTogether, useDocumentTokens, useField } from "@paradoc/react";
+import { useDocumentTokens, useField } from "@paradoc/react";
+import { KeepTogether } from "./keep-together";
 
 export interface FieldProps {
   path: string;

@@ -26,6 +26,7 @@ import { createFormatter } from "@paradoc/format";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
+import { markDocumentRoot } from "../components/tokens-context";
 import type { DocumentData } from "../components/document-context";
 import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
@@ -137,4 +138,5 @@ export function ArabicLetterDocument({
   );
 }
 
+markDocumentRoot(ArabicLetterDocument);
 export default ArabicLetterDocument;

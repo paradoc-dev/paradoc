@@ -4,6 +4,7 @@ import {
   DocumentTokensProvider,
   fontFamilyStyle,
   localeAttributes,
+  markDocumentRoot,
   useDocumentRootTokens,
   type DocumentData,
   type DocumentTokensInput,
@@ -39,3 +40,5 @@ export function Document({ artifact, data, format, tokens, id, className, childr
     </DocumentTokensProvider>
   );
 }
+
+markDocumentRoot(Document);

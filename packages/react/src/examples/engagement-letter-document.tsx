@@ -27,6 +27,7 @@
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
+import { markDocumentRoot } from "../components/tokens-context";
 import { useDocument, type DocumentData } from "../components/document-context";
 import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
@@ -162,4 +163,5 @@ export function EngagementLetterDocument({
   );
 }
 
+markDocumentRoot(EngagementLetterDocument);
 export default EngagementLetterDocument;

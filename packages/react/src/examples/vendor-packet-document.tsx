@@ -17,6 +17,7 @@
  */
 
 import { Bundle } from "../components/bundle";
+import { markDocumentRoot } from "../components/tokens-context";
 import type { PdfPaintReport } from "../components/pdf-pages";
 import { Pages } from "../components/pages";
 import { Part } from "../components/part";
@@ -145,4 +146,5 @@ export function VendorPacketDocument({
   );
 }
 
+markDocumentRoot(VendorPacketDocument);
 export default VendorPacketDocument;

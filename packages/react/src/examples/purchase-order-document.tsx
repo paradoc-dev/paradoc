@@ -15,6 +15,7 @@ import type { Form } from "@paradoc/types";
 
 import { KeepTogether } from "../components/keep-together";
 import { Document } from "../components/document";
+import { markDocumentRoot } from "../components/tokens-context";
 import type { FormatOptions } from "../lib/format";
 import type { DocumentData } from "../components/document-context";
 import { Field } from "../components/field";
@@ -112,4 +113,5 @@ export function PurchaseOrderDocument({
   );
 }
 
+markDocumentRoot(PurchaseOrderDocument);
 export default PurchaseOrderDocument;

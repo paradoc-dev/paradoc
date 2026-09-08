@@ -19,7 +19,7 @@ import { Field } from "../components/field";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
 import { Table } from "../components/table";
-import { useDocumentTokens } from "../components/tokens-context";
+import { markDocumentRoot, useDocumentTokens } from "../components/tokens-context";
 import { Totals } from "../components/totals";
 import type { DocumentTokensInput } from "../lib/tokens";
 import { proposalForm } from "./proposal";
@@ -158,4 +158,5 @@ export function ProposalDocument({
   );
 }
 
+markDocumentRoot(ProposalDocument);
 export default ProposalDocument;

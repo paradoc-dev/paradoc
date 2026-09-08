@@ -1,4 +1,5 @@
-import { KeepTogether, useDocumentTokens, useField, useTotals } from "@paradoc/react";
+import { useDocumentTokens, useField, useTotals } from "@paradoc/react";
+import { KeepTogether } from "./keep-together";
 
 export interface TotalRow {
   def: string;

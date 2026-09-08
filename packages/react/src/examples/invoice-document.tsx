@@ -27,7 +27,7 @@ import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
 import { Section } from "../components/section";
 import { Table } from "../components/table";
-import { useDocumentTokens } from "../components/tokens-context";
+import { markDocumentRoot, useDocumentTokens } from "../components/tokens-context";
 import { Totals } from "../components/totals";
 import type { FormatOptions } from "../lib/format";
 import type { DocumentTokensInput } from "../lib/tokens";
@@ -151,4 +151,5 @@ export function InvoiceDocument({
   );
 }
 
+markDocumentRoot(InvoiceDocument);
 export default InvoiceDocument;

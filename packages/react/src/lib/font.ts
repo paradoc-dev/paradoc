@@ -293,25 +293,15 @@ function registeredFaces(fonts: FontFaceSet, family: string): FontFace[] {
 export async function loadDocumentFaces(fonts: FontFaceSet, family: string): Promise<void> {
   const shorthand = (weight: number) => `${weight} 16px "${family}"`;
   const probe = scriptProbeText(family);
-  // A face that cannot be fetched is reported where it can be acted on: the
-  // Chromium adapter fails naming the family, and the preview shows the
-  // fallback. Leaving the gate closed forever would say nothing at all, so a
-  // rejected request falls through to `ready` instead.
-  const settle = (request: Promise<unknown>) =>
-    request.then(
-      () => undefined,
-      () => undefined
-    );
-
   // Both requests at once. They ask for the same family by two different
   // handles, and neither is a reason to hold the other up.
   const byName =
     typeof fonts.load === "function"
-      ? DOCUMENT_FONT_WEIGHTS.map((weight) => settle(fonts.load(shorthand(weight), probe)))
+      ? DOCUMENT_FONT_WEIGHTS.map((weight) => fonts.load(shorthand(weight), probe))
       : [];
   const byFace = registeredFaces(fonts, family)
     .filter((face) => face.status !== "loaded")
-    .map((face) => settle(face.load()));
+    .map((face) => face.load());
 
   await Promise.all([...byName, ...byFace]);
   await fonts.ready;
