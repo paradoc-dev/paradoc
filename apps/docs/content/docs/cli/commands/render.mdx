@@ -36,6 +36,8 @@ The `render` command reads an artifact and resolves the requested layer. With
 `--data`, it selects the text, PDF, or DOCX implementation automatically from
 the layer's MIME type and fills the output. Without data, it returns the raw
 layer content. File-backed layers resolve relative to the artifact file.
+For artifacts read from stdin, file-backed layers resolve from the current
+working directory.
 
 # Examples
 

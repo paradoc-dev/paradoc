@@ -264,14 +264,14 @@ const InlineLayerSchema = LayerBaseSchema.extend({
 }).strict();
 
 /**
- * File layer — references an external file by path from repo root.
+ * File layer — references external content through a resolver-defined path.
  */
 const FileLayerSchema = LayerBaseSchema.extend({
 	kind: z.literal('file'),
 	path: z.string()
 		.min(1)
 		.max(1000)
-		.describe('Path to the layer file, relative to the artifact file that declares it'),
+		.describe('Logical resolver path; the CLI resolves file-backed artifacts from their directory and stdin artifacts from cwd'),
 	checksum: z.string()
 		.min(1)
 		.max(100)

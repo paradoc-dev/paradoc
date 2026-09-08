@@ -53,6 +53,7 @@
     "test-registry": "tsx test-registry/server.ts"
   },
   "dependencies": {
+    "@paradoc/resolvers": "workspace:^",
     "commander": "^12.1.0",
     "diff": "^8.0.2",
     "fast-glob": "^3.3.3",

@@ -9,8 +9,7 @@
  */
 export interface Resolver {
   /**
-   * Read raw bytes from a path.
-   * The path is relative to the resolver's root (e.g., repo root).
+   * Read raw bytes from a logical path interpreted by this resolver.
    */
   read(path: string): Promise<Uint8Array>
 }

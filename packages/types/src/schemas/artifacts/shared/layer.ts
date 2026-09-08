@@ -170,7 +170,9 @@ export interface FileLayer {
    */
   mimeType: string;
   /**
-   * Path to the layer file, relative to the artifact file that declares it.
+   * Logical path passed unchanged to the bound resolver. The CLI resolves paths
+   * from a file-backed artifact's directory, or from cwd for stdin artifacts;
+   * custom resolvers define their own semantics.
    *
    * For a React layer it is a pointer to the composition module, never read as
    * content. Binding that module by import executes it, so a renderer that does

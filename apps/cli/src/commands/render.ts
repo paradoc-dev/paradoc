@@ -13,6 +13,7 @@ import {
 } from '@paradoc/core'
 import { rendererManager } from '../utils/renderer-manager.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { parseDataInput, normalizeFormData } from '../utils/data-input.js'
@@ -83,15 +84,7 @@ export function createRenderCommand(): Command {
           return
         }
 
-        const storage = new LocalFileSystem(baseDir)
-
-        // Create a resolver for file-backed layers
-        const resolver = {
-          read: async (path: string): Promise<Uint8Array> => {
-            const buffer = await storage.readFile(path, 'binary')
-            return new Uint8Array(buffer)
-          },
-        }
+        const resolver = createFsResolver({ root: baseDir })
 
         // Determine the content to output
         let content: string | Uint8Array
