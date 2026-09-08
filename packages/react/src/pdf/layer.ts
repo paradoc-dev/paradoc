@@ -39,13 +39,16 @@
  * **Import binding executes the module the artifact names.** That is the point
  * of it, and it is worth saying plainly: an artifact is data, and this is the
  * one place data becomes code. So the path is confined. It must be relative,
- * and it must resolve inside `baseDir`; an absolute path or one that climbs out
- * is refused rather than loaded. A caller who does not control the artifact
+ * and its real filesystem target must remain inside `baseDir`; an absolute
+ * path, traversal, or outward symlink is refused rather than loaded. This
+ * confines the entry module. It does not sandbox trusted JavaScript or the
+ * imports that module performs. A caller who does not control the artifact
  * should bind through `components` and never set `baseDir`, which turns the
  * import route off entirely.
  */
 
-import { isAbsolute, relative, resolve } from "node:path";
+import { realpath } from "node:fs/promises";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createElement, type ReactNode } from "react";
@@ -73,6 +76,12 @@ export interface ReactLayerComponentProps {
 
 /** A composition: the component a React layer's module names. */
 export type ReactLayerComponent = (props: ReactLayerComponentProps) => ReactNode;
+
+/** True when `candidate` is outside `root`, using whole path segments. */
+function isOutside(root: string, candidate: string): boolean {
+  const inside = relative(root, candidate);
+  return inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
+}
 
 /** How the renderer binds a layer to a component and renders the PDF. */
 export interface ReactLayerRendererOptions {
@@ -166,8 +175,7 @@ export async function bindComponent(
 
   const baseDir = resolve(options.baseDir ?? process.cwd());
   const absolute = resolve(baseDir, path);
-  const inside = relative(baseDir, absolute);
-  if (inside.startsWith("..") || isAbsolute(inside)) {
+  if (isOutside(baseDir, absolute)) {
     throw new UnboundReactLayerError(
       path,
       key,
@@ -180,8 +188,21 @@ export async function bindComponent(
 
   let module: Record<string, unknown>;
   try {
-    module = (await import(/* @vite-ignore */ pathToFileURL(absolute).href)) as Record<string, unknown>;
+    // Lexical containment above catches traversal. Real containment catches an
+    // in-root symlink whose target leaves the root. Resolve the root too so a
+    // project reached through a symlink is compared in one filesystem space.
+    const [realBaseDir, realModule] = await Promise.all([realpath(baseDir), realpath(absolute)]);
+    if (isOutside(realBaseDir, realModule)) {
+      throw new UnboundReactLayerError(
+        path,
+        key,
+        `the layer path resolves through the filesystem to ${realModule}, outside ${realBaseDir}. ` +
+          "Importing it runs the module, so a link that leaves the artifact's own directory is refused."
+      );
+    }
+    module = (await import(/* @vite-ignore */ pathToFileURL(realModule).href)) as Record<string, unknown>;
   } catch (error) {
+    if (error instanceof UnboundReactLayerError) throw error;
     const message = error instanceof Error ? error.message : String(error);
     // Node refuses an unknown extension rather than saying what would help.
     // A .tsx module loads only where the runtime already transforms one.

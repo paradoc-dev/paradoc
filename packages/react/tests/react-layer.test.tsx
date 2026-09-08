@@ -9,9 +9,11 @@
  */
 
 import { createHash } from "node:crypto";
-import { resolve } from "node:path";
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { UnregisteredLayerRendererError } from "@paradoc/core";
 
 import {
@@ -24,6 +26,7 @@ import {
 import { proposalLogoImage } from "../src/examples/pdf";
 import { renderPdf } from "../src/pdf";
 import {
+  bindComponent,
   reactLayerRenderers,
   reactRenderer,
   UnboundReactLayerError,
@@ -44,6 +47,39 @@ const ARTIFACT_DIR = resolve(PACKAGE_ROOT, "src/examples");
  * working directory would pass through the import and prove nothing.
  */
 const NOWHERE = resolve(import.meta.dirname, "fixtures-that-do-not-exist");
+
+let bindingRoot: string;
+let bindingBase: string;
+let bindingBaseLink: string;
+
+const OUTSIDE_FILE_EXECUTED = "__paradocOutsideFileExecuted";
+const OUTSIDE_DIRECTORY_EXECUTED = "__paradocOutsideDirectoryExecuted";
+
+beforeAll(async () => {
+  bindingRoot = await mkdtemp(join(tmpdir(), "paradoc-react-binding-"));
+  bindingBase = join(bindingRoot, "base");
+  bindingBaseLink = join(bindingRoot, "base-link");
+  await mkdir(join(bindingBase, "inside"), { recursive: true });
+  await writeFile(join(bindingBase, "..valid.mjs"), "export default function DotValid() {}\n");
+  await writeFile(join(bindingBase, "inside", "component.mjs"), "export default function Inside() {}\n");
+  await writeFile(
+    join(bindingRoot, "outside.mjs"),
+    `globalThis.${OUTSIDE_FILE_EXECUTED} = true; export default function Outside() {}\n`
+  );
+  await mkdir(join(bindingRoot, "outside"));
+  await writeFile(
+    join(bindingRoot, "outside", "component.mjs"),
+    `globalThis.${OUTSIDE_DIRECTORY_EXECUTED} = true; export default function OutsideDirectory() {}\n`
+  );
+  await symlink(join(bindingBase, "inside", "component.mjs"), join(bindingBase, "inside-link.mjs"));
+  await symlink(join(bindingRoot, "outside.mjs"), join(bindingBase, "outside-link.mjs"));
+  await symlink(join(bindingRoot, "outside"), join(bindingBase, "outside-directory"), "dir");
+  await symlink(bindingBase, bindingBaseLink, "dir");
+});
+
+afterAll(async () => {
+  await rm(bindingRoot, { recursive: true, force: true });
+});
 
 const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
@@ -155,6 +191,52 @@ describe("choosing between the two binding routes", () => {
 });
 
 describe("a layer that cannot be bound", () => {
+  it("loads valid dot-prefixed files and links whose targets stay inside baseDir", async () => {
+    const dot = await bindComponent(
+      { type: "react", mimeType: "text/jsx", key: "dot", path: "..valid.mjs" },
+      { baseDir: bindingBase }
+    );
+    const linked = await bindComponent(
+      { type: "react", mimeType: "text/jsx", key: "linked", path: "inside-link.mjs" },
+      { baseDir: bindingBase }
+    );
+    const throughLinkedBase = await bindComponent(
+      { type: "react", mimeType: "text/jsx", key: "root", path: "inside/component.mjs" },
+      { baseDir: bindingBaseLink }
+    );
+
+    expect(dot.name).toBe("DotValid");
+    expect(linked.name).toBe("Inside");
+    expect(throughLinkedBase.name).toBe("Inside");
+  });
+
+  it("refuses file and directory links whose targets leave baseDir", async () => {
+    delete (globalThis as Record<string, unknown>)[OUTSIDE_FILE_EXECUTED];
+    delete (globalThis as Record<string, unknown>)[OUTSIDE_DIRECTORY_EXECUTED];
+
+    await expect(
+      bindComponent(
+        { type: "react", mimeType: "text/jsx", key: "file", path: "outside-link.mjs" },
+        { baseDir: bindingBase }
+      )
+    ).rejects.toThrow(/resolves through the filesystem.*outside/s);
+
+    await expect(
+      bindComponent(
+        {
+          type: "react",
+          mimeType: "text/jsx",
+          key: "directory",
+          path: "outside-directory/component.mjs",
+        },
+        { baseDir: bindingBase }
+      )
+    ).rejects.toThrow(/resolves through the filesystem.*outside/s);
+
+    expect((globalThis as Record<string, unknown>)[OUTSIDE_FILE_EXECUTED]).toBeUndefined();
+    expect((globalThis as Record<string, unknown>)[OUTSIDE_DIRECTORY_EXECUTED]).toBeUndefined();
+  });
+
   it("fails when the layer names no module path at all", async () => {
     const renderer = reactRenderer({ baseDir: ARTIFACT_DIR });
 
