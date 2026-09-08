@@ -35,8 +35,8 @@ import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm, PURCHASE_ORDER_REACT_LAYER } from "../src/examples/purchase-order";
 import { VENDOR_PACKET_KEYS, vendorPacketBundle } from "../src/examples/vendor-packet";
 import { vendorPacketData, vendorPacketTaxpayerData } from "../src/examples/vendor-packet-data";
-import { planPages, type MeasuredKeep } from "../src/lib/plan";
-import { renderPdf } from "../src/pdf";
+import { planPages, type MeasuredKeep } from "@paradoc/react";
+import { renderPdf } from "@paradoc/react-pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";
 import { normalizeText, treeKeeps } from "./tree-keeps";
 

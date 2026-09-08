@@ -29,7 +29,8 @@ Register the namespace once in your project's `components.json`:
 }
 ```
 
-Then install the substrate and the stylesheet the components expect:
+Then install the substrate. Installing `document` also installs the owned
+`document-styles` preset:
 
 ```bash
 npm install @paradoc/react
@@ -37,7 +38,7 @@ npm install @paradoc/react
 
 ```css
 /* your global stylesheet */
-@import "@paradoc/react/styles.css";
+@import "@/styles/paradoc.css";
 ```
 
 The components are styled with Tailwind utility classes, so a Tailwind project
@@ -53,9 +54,9 @@ generated from. Two consequences worth knowing before you start:
 - **Install the components you want together, and update them together.** Adding
   `field` today and `table` after two releases leaves two files written against
   two substrates in one project.
-- **Upgrading `@paradoc/react` means re-running the install** for the components
-  you have, and reapplying whatever you changed in them. They are your files;
-  nothing updates them for you.
+- **Upgrading `@paradoc/react` means reviewing the matching component sources.**
+  The CLI does not overwrite an edited file unless you explicitly pass
+  `--overwrite`, so upgrades remain a source change you control.
 
 ## Adding a component
 
@@ -83,6 +84,7 @@ npx shadcn@4 add https://docs.paradoc.dev/r/field.json
 
 | Item | What it is |
 |------|------------|
+| [`document-styles`](https://docs.paradoc.dev/r/document-styles.json) | Tailwind and the font faces shared by document preview and PDF output. |
 | [`bundle`](https://docs.paradoc.dev/r/bundle.json) | Groups the documents of one composition. |
 | [`document`](https://docs.paradoc.dev/r/document.json) | Binds one form artifact and its data to everything beneath it. |
 | [`field`](https://docs.paradoc.dev/r/field.json) | One labelled value at a path into the artifact, printed by the artifact's serializers. |
@@ -197,10 +199,10 @@ tree renders to PDF through `@paradoc/react/pdf`.
 ## How the registry is built
 
 The items are generated from the component sources by `pnpm registry:build` in
-`@paradoc/react`, never written by hand. The generator rewrites every import so
+the private `@paradoc/components` workspace, never written by hand. The generator rewrites every import so
 the file compiles where it is installed: a sibling item becomes
 `@/components/paradoc/<name>`, and anything else in the package becomes
-`@paradoc/react`, pinned to the version the item was generated from. A binding
+`@paradoc/react`, pinned to the public runtime version the item targets. A binding
 the package does not export publicly, or an npm package the item does not
 declare, fails the build rather than shipping a file you cannot compile, and the
 emitted files are installed into a scratch project and type-checked on every

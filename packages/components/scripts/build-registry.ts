@@ -52,13 +52,14 @@ export function collectPackageModules(srcDir: string): string[] {
   return modules.map((module) => (module.startsWith("./") ? module.slice(2) : module));
 }
 
-/** This package's version, which every `@paradoc/*` dependency is pinned to. */
+/** The public runtime version installed files target. */
 export function packageVersion(packageRoot = PACKAGE_ROOT): string {
+  const runtimeManifest = path.resolve(packageRoot, "../react/package.json");
   const manifest = JSON.parse(
-    readFileSync(path.join(packageRoot, "package.json"), "utf8")
+    readFileSync(runtimeManifest, "utf8")
   ) as { version?: string };
   if (!manifest.version) {
-    throw new Error(`${packageRoot}/package.json declares no version.`);
+    throw new Error(`${runtimeManifest} declares no version.`);
   }
   return manifest.version;
 }
@@ -68,7 +69,7 @@ export function buildRegistry(packageRoot = PACKAGE_ROOT) {
   const srcDir = path.join(packageRoot, "src");
   return generateRegistry({
     srcDir,
-    entrySource: readFileSync(path.join(srcDir, "index.ts"), "utf8"),
+    entrySource: readFileSync(path.resolve(packageRoot, "../react/src/index.ts"), "utf8"),
     items: REGISTRY_ITEMS,
     version: packageVersion(packageRoot),
     packageModules: collectPackageModules(srcDir),

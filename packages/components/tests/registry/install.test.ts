@@ -46,7 +46,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { buildRegistry, registryFileNames } from "../../scripts/build-registry";
+import { buildRegistry, packageVersion, registryFileNames } from "../../scripts/build-registry";
 import {
   ARTIFACT_DIR,
   INSTALL_DIR,
@@ -103,12 +103,12 @@ function serveRegistry(directory: string): Promise<{ server: Server; origin: str
 function linkTarget(name: string): string {
   // The substrate is this working tree, so the suite measures the components as
   // they are now rather than a published version of them.
-  if (name === "@paradoc/react") return packageRoot;
+  if (name === "@paradoc/react") return path.resolve(packageRoot, "../react");
   return realpathSync(path.join(packageRoot, "node_modules", name));
 }
 
 /** Leaves a Vite-shaped TypeScript project ready for `shadcn add`. */
-function scaffold(directory: string, registryOrigin: string): void {
+function scaffold(directory: string, registryOrigin: string, alias = "@"): void {
   mkdirSync(path.join(directory, "src"), { recursive: true });
 
   // Every package the installed files import is already declared, which is what
@@ -155,7 +155,7 @@ function scaffold(directory: string, registryOrigin: string): void {
           isolatedModules: true,
           verbatimModuleSyntax: true,
           baseUrl: ".",
-          paths: { "@/*": ["./src/*"] },
+          paths: { [`${alias}/*`]: ["./src/*"] },
         },
         include: ["src"],
       },
@@ -179,11 +179,11 @@ function scaffold(directory: string, registryOrigin: string): void {
           cssVariables: true,
         },
         aliases: {
-          components: "@/components",
-          utils: "@/lib/utils",
-          ui: "@/components/ui",
-          lib: "@/lib",
-          hooks: "@/hooks",
+          components: `${alias}/components`,
+          utils: `${alias}/lib/utils`,
+          ui: `${alias}/components/ui`,
+          lib: `${alias}/lib`,
+          hooks: `${alias}/hooks`,
         },
         registries: { [REGISTRY_NAMESPACE]: `${registryOrigin}/r/{name}.json` },
       },
@@ -211,17 +211,17 @@ function scaffold(directory: string, registryOrigin: string): void {
  */
 const run = promisify(execFile);
 
-function node(script: string, args: string[]) {
+function node(script: string, args: string[], cwd = project) {
   return run(process.execPath, [script, ...args], {
-    cwd: project,
+    cwd,
     encoding: "utf8",
-    env: { ...process.env, PATH: `${stubBin}${path.delimiter}${process.env.PATH ?? ""}` },
+    env: { ...process.env, CI: "true", PATH: `${stubBin}${path.delimiter}${process.env.PATH ?? ""}` },
   });
 }
 
 /** Runs the stock shadcn CLI the way a consumer does. */
-function shadcn(args: string[]) {
-  return node(path.join(packageRoot, "node_modules/shadcn/dist/index.js"), args);
+function shadcn(args: string[], cwd = project) {
+  return node(path.join(packageRoot, "node_modules/shadcn/dist/index.js"), args, cwd);
 }
 
 /**
@@ -287,7 +287,10 @@ describe("the registry installs into a fresh project", () => {
 
     const installed = path.join(project, "src", INSTALL_DIR);
     expect(readdirSync(installed).sort()).toEqual(
-      REGISTRY_ITEMS.map((item) => `${item.name}.tsx`).sort()
+      REGISTRY_ITEMS.flatMap((item) => item.files)
+        .filter((file) => file.target.startsWith(`${INSTALL_DIR}/`))
+        .map((file) => path.basename(file.target))
+        .sort()
     );
   });
 
@@ -342,9 +345,7 @@ describe("the registry installs into a fresh project", () => {
 
   it("asks the package manager for the substrate at the version the item declares", () => {
     const asked = existsSync(installLog) ? readFileSync(installLog, "utf8") : "";
-    const version = JSON.parse(
-      readFileSync(path.join(packageRoot, "package.json"), "utf8")
-    ).version as string;
+    const version = packageVersion(packageRoot);
 
     expect(asked).toContain(`@paradoc/react@^${version}`);
     expect(asked).toContain(`@paradoc/core@^${version}`);
@@ -360,6 +361,70 @@ describe("the registry installs into a fresh project", () => {
     );
     // The CLI drops everything above a file's first import, which is why the
     // generator moves the module comment below them.
-    expect(field).toContain("A field is a pagination unit");
+    expect(field).toContain("A copy-owned field row");
+  });
+
+  it("requires the explicit overwrite flag to replace a component", async () => {
+    const fieldPath = path.join(project, "src", INSTALL_DIR, "field.tsx");
+    const edited = `${readFileSync(fieldPath, "utf8")}\n// consumer edit\n`;
+    writeFileSync(fieldPath, edited);
+
+    const help = await shadcn(["add", "--help"]);
+    expect(help.stdout).toContain("--overwrite");
+    expect(readFileSync(fieldPath, "utf8")).toBe(edited);
+
+    await shadcn(["add", `${REGISTRY_NAMESPACE}/field`, "--yes", "--overwrite"]);
+    expect(readFileSync(fieldPath, "utf8")).not.toContain("// consumer edit");
+  });
+
+  it("rewrites sibling imports for an alternate components alias", async () => {
+    const alternate = path.join(workspace, "alternate-alias");
+    scaffold(alternate, origin, "~");
+
+    await shadcn(["add", `${REGISTRY_NAMESPACE}/field`, "--yes"], alternate);
+
+    const field = readFileSync(path.join(alternate, "src", INSTALL_DIR, "field.tsx"), "utf8");
+    expect(field).toContain('from "~/components/paradoc/keep-together"');
+    const check = await node(path.join(packageRoot, "node_modules/typescript/bin/tsc"), ["--noEmit"], alternate);
+    expect(`${check.stdout}${check.stderr}`.trim()).toBe("");
+  });
+
+  it("type-checks the canonical source when copied manually", async () => {
+    const manual = path.join(workspace, "manual-copy");
+    scaffold(manual, origin);
+    const target = path.join(manual, "src", INSTALL_DIR);
+    mkdirSync(target, { recursive: true });
+    cpSync(path.join(packageRoot, "src/components/field.tsx"), path.join(target, "field.tsx"));
+    cpSync(path.join(packageRoot, "src/components/keep-together.tsx"), path.join(target, "keep-together.tsx"));
+    writeFileSync(
+      path.join(manual, "src/manual.tsx"),
+      'import { Field } from "@/components/paradoc/field";\nexport const example = <Field path="name" />;\n'
+    );
+
+    const check = await node(path.join(packageRoot, "node_modules/typescript/bin/tsc"), ["--noEmit"], manual);
+    expect(`${check.stdout}${check.stderr}`.trim()).toBe("");
+  });
+
+  it("type-checks installed components against the packed React runtime", async () => {
+    const packed = path.join(workspace, "packed-runtime");
+    mkdirSync(packed, { recursive: true });
+    const runtimeRoot = path.resolve(packageRoot, "../react");
+    const pnpm = process.env.npm_execpath;
+    if (!pnpm) throw new Error("The registry suite requires npm_execpath to pack the runtime.");
+    await run(pnpm, ["pack", "--pack-destination", packed], {
+      cwd: runtimeRoot,
+      encoding: "utf8",
+    });
+    const archive = readdirSync(packed).find((name) => name.endsWith(".tgz"));
+    if (!archive) throw new Error("pnpm pack produced no React tarball.");
+    await run("/usr/bin/tar", ["-xzf", path.join(packed, archive), "-C", packed]);
+
+    const extracted = path.join(packed, "package");
+    const installedRuntime = path.join(project, "node_modules/@paradoc/react");
+    rmSync(installedRuntime, { recursive: true, force: true });
+    cpSync(extracted, installedRuntime, { recursive: true });
+
+    const check = await node(path.join(packageRoot, "node_modules/typescript/bin/tsc"), ["--noEmit"]);
+    expect(`${check.stdout}${check.stderr}`.trim()).toBe("");
   });
 });

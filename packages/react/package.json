@@ -97,10 +97,7 @@
     "check": "pnpm lint && pnpm check-types",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:parity": "vitest run --config vitest.parity.config.ts",
-    "test:registry": "vitest run --config vitest.registry.config.ts",
-    "registry:build": "tsx scripts/build-registry.ts",
-    "regenerate:annex": "pnpm run build && node scripts/regenerate-annex.mjs"
+    "test:parity": "vitest run --config vitest.parity.config.ts"
   },
   "peerDependencies": {
     "@fontsource-variable/inter": "catalog:",
@@ -153,7 +150,6 @@
     "puppeteer": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "shadcn": "catalog:",
     "tailwindcss": "catalog:",
     "takumi-pdf": "catalog:",
     "tsup": "catalog:",

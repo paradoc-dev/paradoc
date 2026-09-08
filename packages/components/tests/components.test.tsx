@@ -2,7 +2,8 @@ import { fromJsx } from "@takumi-rs/helpers/jsx";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 
-import { purchaseOrderData, purchaseOrderForm } from "@paradoc/react/examples";
+import { purchaseOrderData } from "../src/examples/purchase-order-data";
+import { purchaseOrderForm } from "../src/examples/purchase-order";
 import { Document, Field, Part, Signature, Table, Totals } from "../src";
 
 it("renders copy-owned markup through public @paradoc/react bindings", async () => {

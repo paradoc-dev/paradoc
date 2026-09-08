@@ -4,6 +4,25 @@
   "homepage": "https://docs.paradoc.dev",
   "items": [
     {
+      "name": "document-styles",
+      "type": "registry:lib",
+      "title": "Document Styles",
+      "description": "Tailwind entry and font faces shared by document preview and PDF output.",
+      "dependencies": [
+        "@fontsource-variable/inter",
+        "@fontsource-variable/noto-sans-arabic",
+        "@fontsource-variable/source-serif-4"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/styles.css",
+          "type": "registry:file",
+          "target": "styles/paradoc.css"
+        }
+      ]
+    },
+    {
       "name": "keep-together",
       "type": "registry:ui",
       "title": "Keep Together",
@@ -14,7 +33,7 @@
       "registryDependencies": [],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/keep-together.tsx",
+          "path": "paradoc/packages/components/src/components/keep-together.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/keep-together.tsx"
         }
@@ -30,10 +49,12 @@
         "@paradoc/core@^0.5.0",
         "@paradoc/types@^0.5.0"
       ],
-      "registryDependencies": [],
+      "registryDependencies": [
+        "@paradoc/document-styles"
+      ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/document.tsx",
+          "path": "paradoc/packages/components/src/components/document.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/document.tsx"
         }
@@ -50,7 +71,7 @@
       "registryDependencies": [],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/bundle.tsx",
+          "path": "paradoc/packages/components/src/components/bundle.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/bundle.tsx"
         }
@@ -67,7 +88,7 @@
       "registryDependencies": [],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/part.tsx",
+          "path": "paradoc/packages/components/src/components/part.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/part.tsx"
         }
@@ -86,7 +107,7 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/pdf-pages.tsx",
+          "path": "paradoc/packages/components/src/components/pdf-pages.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/pdf-pages.tsx"
         }
@@ -103,7 +124,7 @@
       "registryDependencies": [],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/paper.tsx",
+          "path": "paradoc/packages/components/src/components/paper.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/paper.tsx"
         }
@@ -122,7 +143,7 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/pages.tsx",
+          "path": "paradoc/packages/components/src/components/pages.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/pages.tsx"
         }
@@ -141,7 +162,7 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/section.tsx",
+          "path": "paradoc/packages/components/src/components/section.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/section.tsx"
         }
@@ -160,7 +181,7 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/field.tsx",
+          "path": "paradoc/packages/components/src/components/field.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/field.tsx"
         }
@@ -179,7 +200,7 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/table.tsx",
+          "path": "paradoc/packages/components/src/components/table.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/table.tsx"
         }
@@ -198,7 +219,7 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/totals.tsx",
+          "path": "paradoc/packages/components/src/components/totals.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/totals.tsx"
         }
@@ -217,7 +238,7 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/components/signature.tsx",
+          "path": "paradoc/packages/components/src/components/signature.tsx",
           "type": "registry:ui",
           "target": "components/paradoc/signature.tsx"
         }
@@ -245,17 +266,17 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/examples/purchase-order.ts",
+          "path": "paradoc/packages/components/src/examples/purchase-order.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/purchase-order.artifact.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/purchase-order-data.ts",
+          "path": "paradoc/packages/components/src/examples/purchase-order-data.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/purchase-order.data.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/purchase-order-document.tsx",
+          "path": "paradoc/packages/components/src/examples/purchase-order-document.tsx",
           "type": "registry:component",
           "target": "components/paradoc/purchase-order.tsx"
         }
@@ -282,17 +303,17 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/examples/invoice.ts",
+          "path": "paradoc/packages/components/src/examples/invoice.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/invoice.artifact.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/invoice-data.ts",
+          "path": "paradoc/packages/components/src/examples/invoice-data.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/invoice.data.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/invoice-document.tsx",
+          "path": "paradoc/packages/components/src/examples/invoice-document.tsx",
           "type": "registry:component",
           "target": "components/paradoc/invoice.tsx"
         }
@@ -318,17 +339,17 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/examples/engagement-letter.ts",
+          "path": "paradoc/packages/components/src/examples/engagement-letter.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/engagement-letter.artifact.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/engagement-letter-data.ts",
+          "path": "paradoc/packages/components/src/examples/engagement-letter-data.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/engagement-letter.data.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/engagement-letter-document.tsx",
+          "path": "paradoc/packages/components/src/examples/engagement-letter-document.tsx",
           "type": "registry:component",
           "target": "components/paradoc/engagement-letter.tsx"
         }
@@ -354,22 +375,22 @@
       ],
       "files": [
         {
-          "path": "paradoc/packages/react/src/examples/vendor-packet.ts",
+          "path": "paradoc/packages/components/src/examples/vendor-packet.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/vendor-packet.artifact.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/vendor-packet-annex.ts",
+          "path": "paradoc/packages/components/src/examples/vendor-packet-annex.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/vendor-packet.annex.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/vendor-packet-data.ts",
+          "path": "paradoc/packages/components/src/examples/vendor-packet-data.ts",
           "type": "registry:file",
           "target": "artifacts/paradoc/vendor-packet.data.ts"
         },
         {
-          "path": "paradoc/packages/react/src/examples/vendor-packet-document.tsx",
+          "path": "paradoc/packages/components/src/examples/vendor-packet-document.tsx",
           "type": "registry:component",
           "target": "components/paradoc/vendor-packet.tsx"
         }

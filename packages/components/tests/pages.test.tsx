@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { purchaseOrderData, purchaseOrderForm } from "@paradoc/react/examples";
+import { purchaseOrderData, purchaseOrderForm } from "../src/examples";
 import { Document, Field, Pages } from "../src";
 
 let host: HTMLDivElement;

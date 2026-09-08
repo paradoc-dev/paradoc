@@ -38,7 +38,7 @@ import {
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = path.join(packageRoot, "src");
-const entrySource = readFileSync(path.join(srcDir, "index.ts"), "utf8");
+const entrySource = readFileSync(path.resolve(packageRoot, "../react/src/index.ts"), "utf8");
 
 /** A manifest file entry for a source supplied inline. */
 function probeFile(relPath: string): RegistryManifestFile {
@@ -58,6 +58,8 @@ function generateFrom(sources: Record<string, string>, item = REGISTRY_ITEMS[0]!
     version: packageVersion(packageRoot),
     packageModules: [
       ...collectPackageModules(srcDir),
+      "lib/measure",
+      "lib/plan",
       ...Object.keys(sources).map((file) => file.replace(/\.tsx?$/, "")),
     ],
     readSource: (relPath) => sources[relPath] ?? "",
@@ -162,33 +164,30 @@ describe("the emitted files", () => {
   });
 
   it("takes the substrate from the package", () => {
-    // `Field` reads the document context and the resolved tokens — the second
+    // `Field` reads its headless binding and the resolved tokens — the second
     // to decide whether a phone number needs isolating — and both reach an
     // installed file through the package rather than through a copy of theirs.
     expect(byName.get("field")?.files[0]?.content).toContain(
-      `import { useDocument, useDocumentTokens } from "${SUBSTRATE_PACKAGE}";`
+      `import { useDocumentTokens, useField } from "${SUBSTRATE_PACKAGE}";`
     );
   });
 
   it("merges two authoring imports that land on one specifier", () => {
     const signature = byName.get("signature")?.files[0]?.content ?? "";
     expect(signature).toContain(
-      `import { useDocument, type SigningMarkType } from "${SUBSTRATE_PACKAGE}";`
+      `import { useSignature, type SigningMarkType } from "${SUBSTRATE_PACKAGE}";`
     );
     expect(signature.match(/from "@paradoc\/react";/g)).toHaveLength(1);
   });
 
-  it("rewrites a re-export the same way, and keeps it a re-export", () => {
-    // `paper.tsx` re-exports the drawn-paper context it does not own. Emitted
-    // as written it would name a module the consumer has no copy of.
+  it("keeps the paper's public runtime import", () => {
     const paper = byName.get("paper")?.files[0]?.content ?? "";
-    expect(paper).toMatch(/export \{[\s\S]*?\} from "@paradoc\/react";/);
     expect(paper).toMatch(/import \{[\s\S]*?\} from "@paradoc\/react";/);
   });
 
   it("moves the module comment below the imports, where the CLI keeps it", () => {
     const field = byName.get("field")?.files[0]?.content ?? "";
-    expect(field.indexOf("A field is a pagination unit")).toBeGreaterThan(
+    expect(field.indexOf("A copy-owned field row")).toBeGreaterThan(
       field.indexOf(`from "${SUBSTRATE_PACKAGE}";`)
     );
   });
@@ -288,7 +287,7 @@ describe("an item whose files do not install side by side", () => {
     ],
     readSource: (relPath) =>
       relPath.endsWith(".tsx")
-        ? 'import { useDocument } from "../components/document-context";\nimport artifact from "./purchase-order.json";\n'
+        ? 'import { useArtifact } from "@paradoc/react";\nimport artifact from "./purchase-order.json";\n'
         : '{ "kind": "form" }\n',
   });
 
@@ -302,7 +301,7 @@ describe("an item whose files do not install side by side", () => {
 
   it("still takes the substrate from the package", () => {
     expect(files.get(`${INSTALL_DIR}/purchase-order.tsx`)?.content).toContain(
-      `import { useDocument } from "${SUBSTRATE_PACKAGE}";`
+      `import { useArtifact } from "${SUBSTRATE_PACKAGE}";`
     );
   });
 

@@ -1,3 +1,7 @@
+/**
+ * A copy-owned field row. It reads labels and formatted values from the
+ * headless runtime and stays together as one pagination unit.
+ */
 import { useDocumentTokens, useField } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 

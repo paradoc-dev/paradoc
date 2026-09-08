@@ -270,7 +270,7 @@ describe('what the dev server may read', () => {
 
     expect(roots).toContain(path.join(FIXTURES, 'paired'))
     expect(roots).toContain(REACT_PACKAGE)
-    expect(roots.some((root) => root.includes('inter'))).toBe(true)
+    expect(roots.some((root) => root.includes('inter'))).toBe(false)
   })
 
   it('never walks up to a bare ancestor of either', () => {

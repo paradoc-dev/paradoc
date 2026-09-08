@@ -7,10 +7,8 @@
  * import; this one references them all, from the paginated preview down to a
  * signature block.
  *
- * The proposal's artifact and data come from `@paradoc/react/examples` — sample
- * material, and the only thing here that is not the consumer's own code. The
- * two blocks bring their own: their artifact and their sample data install with
- * them, so the packet below is composed entirely from installed files.
+ * The blocks bring their own artifacts and sample data, so every document below
+ * is composed entirely from installed files.
  */
 
 import { useRef } from "react";
@@ -32,7 +30,6 @@ import { purchaseOrderForm } from "@/artifacts/paradoc/purchase-order.artifact";
 import { vendorPacketBundle } from "@/artifacts/paradoc/vendor-packet.artifact";
 import { vendorPacketData } from "@/artifacts/paradoc/vendor-packet.data";
 import { planPages, type DocumentTokensInput, type PagePlan } from "@paradoc/react";
-import { proposalForm, shortProposalData } from "@paradoc/react/examples";
 
 /** A tenant's branding, declared at the document root. */
 const tokens: DocumentTokensInput = {
@@ -45,16 +42,15 @@ const tokens: DocumentTokensInput = {
 export function Proposal({ onPaginate }: { onPaginate?: (plan: PagePlan) => void }) {
   return (
     <Bundle id="proposal-bundle" tokens={tokens}>
-      <Document artifact={proposalForm} data={shortProposalData} id="proposal">
+      <Document artifact={purchaseOrderForm} data={purchaseOrderData} id="proposal">
         <Pages onPaginate={onPaginate}>
           <Section id="parties" title="Parties" className="flex flex-col gap-2">
-            <Field path="customer" />
-            <Field path="issuedOn" label="Issued" />
-            <Field path="summary" label={false} className="text-sm" />
+            <Field path="orderNumber" />
+            <Field path="orderDate" label="Issued" />
           </Section>
           <Section id="line-items" title="Scope and pricing">
             <Table
-              path="lineItems"
+              path="items"
               id="line-items"
               columns={[
                 { field: "description", width: "basis-1/2" },
@@ -66,7 +62,7 @@ export function Proposal({ onPaginate }: { onPaginate?: (plan: PagePlan) => void
             <Totals
               rows={[
                 { def: "subtotal" },
-                { def: "tax", ratePath: "taxRatePercent" },
+                { def: "tax" },
                 { def: "total", emphasis: true },
               ]}
             />
@@ -95,19 +91,19 @@ export function BareSheet({ plan }: { plan: PagePlan }) {
 
   return (
     <div ref={frameRef} style={{ height: fit.height }}>
-      <Document artifact={proposalForm} data={shortProposalData}>
+      <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
         <Page plan={plan} index={0}>
-          <Field path="customer" />
+          <Field path="orderNumber" />
         </Page>
       </Document>
       <Sheet page={1} ref={sheetRef} style={{ transform: `scale(${fit.scale})` }}>
-        <Document artifact={proposalForm} data={shortProposalData}>
-          <Field path="customer" />
+        <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
+          <Field path="orderNumber" />
         </Document>
       </Sheet>
       <Paper>
-        <Document artifact={proposalForm} data={shortProposalData}>
-          <Field path="customer" />
+        <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
+          <Field path="orderNumber" />
         </Document>
       </Paper>
     </div>

@@ -28,3 +28,5 @@ export function Paper({ className, children }: PaperProps) {
     </div>
   </DrawnPaperProvider>;
 }
+
+export { useFitToWidth };

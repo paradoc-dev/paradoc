@@ -8,12 +8,7 @@
 			// built entry, and a stale `dist/` would let a resolution that only
 			// works in `src/` pass.
 			"dependsOn": ["^build", "build"],
-			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/paradoc/apps/docs/public/r/**"]
-		},
-		"test:registry": {
-			"dependsOn": ["build"],
-			"cache": false,
-			"env": ["PATH"]
+			"inputs": ["$TURBO_DEFAULT$"]
 		}
 	}
 }

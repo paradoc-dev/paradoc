@@ -25,7 +25,7 @@ import kleur from 'kleur'
  * The namespace the components are published under, and where they are served.
  *
  * Both are declared by the registry itself, in
- * `paradoc/packages/react/scripts/registry/manifest.ts`, which is what the
+ * `paradoc/packages/components/scripts/registry/manifest.ts`, which is what the
  * generator writes into `components.json`-shaped instructions in the docs. They
  * are repeated here because the CLI ships on its own and cannot import a build
  * script from another package; `tests/commands/add-component.test.ts` reads the
@@ -53,6 +53,7 @@ export const SHADCN_SPEC = 'shadcn@4'
  * the shadcn CLI to fail on a 404.
  */
 export const COMPONENT_ITEMS = [
+  'document-styles',
   'bundle',
   'document',
   'field',
@@ -66,6 +67,8 @@ export const COMPONENT_ITEMS = [
   'table',
   'totals',
   'purchase-order',
+  'invoice',
+  'engagement-letter',
   'vendor-packet',
 ] as const
 

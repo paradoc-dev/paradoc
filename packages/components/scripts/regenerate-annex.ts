@@ -6,11 +6,11 @@
  * render, and it is generated so nobody has to keep an opaque binary in step
  * with the composition beside it by hand.
  *
- *   pnpm --filter @paradoc/react regenerate:annex
+ *   pnpm --filter @paradoc/components regenerate:annex
  */
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { insuranceCertificatePdf } from "../dist/examples/pdf.js";
+import { insuranceCertificatePdf } from "../src/examples/pdf";
 
 const target = fileURLToPath(new URL("../src/examples/certificate-of-insurance.pdf", import.meta.url));
 const bytes = await insuranceCertificatePdf();

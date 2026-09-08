@@ -162,10 +162,10 @@ the installed `field` that uses it while nothing can fork the contexts. That las
 part matters: a copied context is a different context, and a `KeepTogether`
 reading its own copy would never see the page `Pages` is rendering.
 
-`pnpm registry:build` emits it from `scripts/registry/manifest.ts` and the
-component sources into `paradoc/apps/docs/public/r/`, which the docs site serves
+`pnpm --filter @paradoc/components registry:build` emits it from the private
+`packages/components` source workspace into `paradoc/apps/docs/public/r/`, which the docs site serves
 at `https://docs.paradoc.dev/r/{name}.json`. The output is committed and never
-hand-edited; `tests/registry-generator.test.ts` regenerates it and fails on a
+hand-edited; `packages/components/tests/registry-generator.test.ts` regenerates it and fails on a
 difference.
 
 The generator's one real job is rewriting imports, and it is checked rather than
@@ -181,9 +181,9 @@ what lands. The one thing it stubs is the package manager, which it records and
 asserts rather than runs, because whether npm can fetch a published package is
 not what the suite is about.
 
-Every `@paradoc/*` dependency is emitted at this package's own version, read from
-`package.json`, so the pin follows the lockstep release without anyone
-remembering to move it. An installed component is written against one substrate;
+Every public runtime dependency is emitted at the version read from the
+corresponding public package. The private components workspace keeps its own
+`0.0.0` version out of the install contract. An installed component is written against one substrate;
 a bare package name would hand a consumer whatever `latest` happened to be the
 day they ran the install.
 
@@ -1697,7 +1697,7 @@ components or the engine pin invalidates them until someone runs the suite again
 ```sh
 pnpm --filter @paradoc/react test    # component, artifact, plan, pagination, PDF and seal tests
 pnpm --filter @paradoc/react build   # tsup to dist/, which consumers resolve through
-pnpm --filter @paradoc/react registry:build   # regenerate the shadcn registry
+pnpm --filter @paradoc/components registry:build   # regenerate the component registry
 ```
 
 The registry install suite is not in `pnpm test` either: it runs a CLI against a
@@ -1705,7 +1705,7 @@ scratch project and type-checks it, and it needs the package built first, so it
 goes through the task graph like the parity suite.
 
 ```sh
-pnpm turbo run test:registry --filter=@paradoc/react
+pnpm turbo run test:registry --filter=@paradoc/components
 ```
 
 The parity suite is not in that list. It drives a browser against a lab that

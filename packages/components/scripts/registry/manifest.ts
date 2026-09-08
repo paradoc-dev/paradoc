@@ -119,8 +119,8 @@ export interface RegistryManifestItem {
   files: RegistryManifestFile[];
   /**
    * npm packages the installed files import, beyond `react`. A `@paradoc/*`
-   * entry is emitted with this package's own version, because the packages move
-   * in lockstep and an installed component is written against one of them.
+   * entry is emitted with the public runtime version. This private source
+   * workspace has no publish version of its own.
    */
   dependencies: string[];
   /** Other items in this registry the installed files import. */
@@ -205,6 +205,19 @@ function bytesFile(
  */
 export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
   {
+    name: "document-styles",
+    type: "registry:lib",
+    title: "Document Styles",
+    description: "Tailwind entry and font faces shared by document preview and PDF output.",
+    files: [{ path: "styles.css", type: "registry:file", target: "styles/paradoc.css" }],
+    dependencies: [
+      "@fontsource-variable/inter",
+      "@fontsource-variable/noto-sans-arabic",
+      "@fontsource-variable/source-serif-4",
+    ],
+    registryDependencies: [],
+  },
+  {
     name: "keep-together",
     type: "registry:ui",
     title: "Keep Together",
@@ -222,7 +235,7 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
     files: [component("document")],
     dependencies: [SUBSTRATE_PACKAGE, "@paradoc/core", "@paradoc/types"],
-    registryDependencies: [],
+    registryDependencies: ["document-styles"],
   },
   {
     name: "bundle",
