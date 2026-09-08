@@ -8,12 +8,44 @@ import { EvaluationError } from './errors'
 
 const MS_PER_DAY = 86_400_000
 
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+
 function parse(s: string): Date {
-	const d = new Date(s)
-	if (Number.isNaN(d.getTime())) {
-		throw new EvaluationError('type-error', `Invalid date: ${JSON.stringify(s)}`)
-	}
+	const match = DATE_RE.exec(s)
+	if (!match) throw new EvaluationError('type-error', `Expected a canonical date (YYYY-MM-DD), got ${JSON.stringify(s)}`)
+	const d = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+	if (formatDate(d) !== s) throw new EvaluationError('type-error', `Invalid date: ${JSON.stringify(s)}`)
 	return d
+}
+
+export function validateDate(s: string): string {
+	parse(s)
+	return s
+}
+
+export function validateDateDuration(s: string): string {
+	if (!DURATION_RE.test(s) || s === 'P') throw new EvaluationError('type-error', `Invalid duration: ${JSON.stringify(s)}`)
+	return s
+}
+
+export function validateDatetime(s: string): string {
+	const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/.exec(s)
+	if (!match) {
+		throw new EvaluationError('type-error', `Expected a canonical datetime with an explicit offset, got ${JSON.stringify(s)}`)
+	}
+	const [, year, month, day, hour, minute, second = '0', fraction = '0', , sign, offsetHour = '0', offsetMinute = '0'] = match
+	const values = [year, month, day, hour, minute, second].map(Number)
+	const [y, mo, d, h, mi, sec] = values
+	if (h! > 23 || mi! > 59 || sec! > 59 || Number(offsetHour) > 23 || Number(offsetMinute) > 59) {
+		throw new EvaluationError('type-error', `Invalid datetime: ${JSON.stringify(s)}`)
+	}
+	const offset = (Number(offsetHour) * 60 + Number(offsetMinute)) * (sign === '-' ? -1 : 1)
+	const expected = Date.UTC(y!, mo! - 1, d!, h!, mi!, sec!, Number(fraction.padEnd(3, '0'))) - offset * 60_000
+	const calendar = new Date(Date.UTC(y!, mo! - 1, d!))
+	if (calendar.getUTCFullYear() !== y || calendar.getUTCMonth() !== mo! - 1 || calendar.getUTCDate() !== d || Date.parse(s) !== expected) {
+		throw new EvaluationError('type-error', `Invalid datetime: ${JSON.stringify(s)}`)
+	}
+	return s
 }
 
 /** Format a Date as an ISO `YYYY-MM-DD` (UTC). */
@@ -73,9 +105,13 @@ export function addDuration(date: string, duration: string): string {
 		throw new EvaluationError('type-error', `Invalid duration: ${JSON.stringify(duration)}`)
 	}
 	const [, y, mo, w, d] = m
-	const result = parse(date)
-	if (y) result.setUTCFullYear(result.getUTCFullYear() + Number(y))
-	if (mo) result.setUTCMonth(result.getUTCMonth() + Number(mo))
+	const original = parse(date)
+	const targetYear = original.getUTCFullYear() + Number(y ?? 0)
+	const targetMonth = original.getUTCMonth() + Number(mo ?? 0)
+	const targetDay = original.getUTCDate()
+	const result = new Date(Date.UTC(targetYear, targetMonth, 1))
+	const finalDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate()
+	result.setUTCDate(Math.min(targetDay, finalDay))
 	const days = (w ? Number(w) * 7 : 0) + (d ? Number(d) : 0)
 	if (days) result.setUTCDate(result.getUTCDate() + days)
 	return formatDate(result)

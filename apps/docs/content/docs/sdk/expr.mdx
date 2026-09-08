@@ -48,10 +48,14 @@ const result = evaluateExpression('fields.age >= 18', ctx)
 // { success: true, value: { kind: 'boolean', value: true } }
 
 const sum = evaluateExpression('fields.age + 5', ctx)
-valueToString(sum.value) // "30"
+if (sum.success) valueToString(sum.value) // "30"
 ```
 
 If you already have an AST, `evaluate(ast, ctx)` runs it directly.
+
+`evaluateExpression` is the safe source API. Low-level `evaluate`, `parseOrThrow`, and direct `Decimal` operations may throw. Internal numbers remain decimals; converting them to JavaScript numbers is explicitly lossy. Division retains up to 20 fractional places. The engine bounds expression nesting, regex work, and decimal scale.
+
+`coalesce` stops at the first non-null argument. Dates use canonical `YYYY-MM-DD` values, datetimes representing instants require `Z` or an explicit offset, and calendar month/year addition clamps to the last valid day. Diagnostic offsets count UTF-16 code units.
 
 # Checking
 

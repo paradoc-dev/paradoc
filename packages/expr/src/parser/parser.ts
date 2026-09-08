@@ -20,6 +20,47 @@ export interface ParseResult {
 	readonly errors: readonly Diagnostic[]
 }
 
+/** Public parser limits keep recursive syntax within a predictable work bound. */
+export const MAX_EXPRESSION_LENGTH = 100_000
+export const MAX_EXPRESSION_DEPTH = 256
+
+function positionAt(source: string, offset: number): Span['start'] {
+	let line = 1
+	let column = 1
+	for (let i = 0; i < offset; i++) {
+		if (source[i] === '\n') { line++; column = 1 }
+		else column++
+	}
+	return { offset, line, column }
+}
+
+function limitDiagnostic(source: string): Diagnostic | undefined {
+	if (source.length > MAX_EXPRESSION_LENGTH) {
+		const position = positionAt(source, MAX_EXPRESSION_LENGTH)
+		return { severity: 'error', code: 'limit-exceeded', message: `Expression exceeds ${MAX_EXPRESSION_LENGTH} UTF-16 code units`, span: { start: position, end: position } }
+	}
+	let depth = 0
+	let quote: string | undefined
+	let escaped = false
+	for (let i = 0; i < source.length; i++) {
+		const ch = source[i]!
+		if (quote) {
+			if (escaped) escaped = false
+			else if (ch === '\\') escaped = true
+			else if (ch === quote) quote = undefined
+			continue
+		}
+		if (ch === '"' || ch === "'") quote = ch
+		else if (ch === '(' || ch === '[') {
+			depth++
+			if (depth > MAX_EXPRESSION_DEPTH) {
+				const position = positionAt(source, i)
+				return { severity: 'error', code: 'limit-exceeded', message: `Expression nesting exceeds ${MAX_EXPRESSION_DEPTH}`, span: { start: position, end: position } }
+			}
+		} else if (ch === ')' || ch === ']') depth--
+	}
+}
+
 class ParseError extends Error {
 	constructor(readonly diagnostic: Diagnostic) {
 		super(diagnostic.message)
@@ -175,7 +216,7 @@ class Parser {
 			if (tok.type === 'dot') {
 				this.next()
 				const prop = this.peek()
-				if (prop.type !== 'identifier') {
+				if (prop.type !== 'identifier' && prop.type !== 'keyword') {
 					this.fail('Expected a property name after "."', prop.span)
 				}
 				this.next()
@@ -282,9 +323,34 @@ class Parser {
 
 /** Parse an expression string into an AST, collecting a syntax error if any. */
 export function parse(source: string): ParseResult {
+	const limit = limitDiagnostic(source)
+	if (limit) return { ast: null, errors: [limit] }
 	try {
 		const tokens = tokenize(source)
+		const recursiveTokens = tokens.filter((token) => token.type === 'lparen' || token.type === 'lbracket' || token.type === 'question' || (token.type === 'keyword' && token.value === 'not') || (token.type === 'operator' && (token.value === '!' || token.value === '-')))
+		if (recursiveTokens.length > MAX_EXPRESSION_DEPTH) {
+			const position = recursiveTokens[MAX_EXPRESSION_DEPTH]!.span.start
+			return { ast: null, errors: [{ severity: 'error', code: 'limit-exceeded', message: `Expression recursive structure exceeds ${MAX_EXPRESSION_DEPTH}`, span: { start: position, end: position } }] }
+		}
 		const ast = new Parser(tokens).parse()
+		const pending: Array<{ node: Expr; depth: number }> = [{ node: ast, depth: 1 }]
+		while (pending.length > 0) {
+			const current = pending.pop()!
+			if (current.depth > MAX_EXPRESSION_DEPTH) {
+				return { ast: null, errors: [{ severity: 'error', code: 'limit-exceeded', message: `Expression AST depth exceeds ${MAX_EXPRESSION_DEPTH}`, span: current.node.span }] }
+			}
+			const depth = current.depth + 1
+			switch (current.node.kind) {
+				case 'ArrayLiteral': for (const child of current.node.elements) pending.push({ node: child, depth }); break
+				case 'Unary': pending.push({ node: current.node.operand, depth }); break
+				case 'Binary': case 'Logical': pending.push({ node: current.node.left, depth }, { node: current.node.right, depth }); break
+				case 'Membership': pending.push({ node: current.node.element, depth }, { node: current.node.collection, depth }); break
+				case 'Conditional': pending.push({ node: current.node.test, depth }, { node: current.node.consequent, depth }, { node: current.node.alternate, depth }); break
+				case 'Call': for (const child of current.node.args) pending.push({ node: child, depth }); break
+				case 'Member': pending.push({ node: current.node.object, depth }); break
+				case 'Index': pending.push({ node: current.node.object, depth }, { node: current.node.index, depth }); break
+			}
+		}
 		return { ast, errors: [] }
 	} catch (e) {
 		if (e instanceof ParseError) {

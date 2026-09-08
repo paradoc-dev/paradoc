@@ -5,6 +5,7 @@
  */
 
 import { toValue, type Value } from './values'
+import type { Registry } from '../registry/registry'
 
 /** The as-of timestamps for `today()`/`now()`, stored with the submission so a
  * re-evaluation is reproducible. Never read from the wall clock. */
@@ -23,11 +24,14 @@ export interface EvaluationContext {
 	readonly asOf?: AsOf
 	/** Host-injected functions (party/witness predicates), by name. */
 	readonly hostFunctions?: Readonly<Record<string, HostFunction>>
+	/** Function signatures used by this evaluation, shared with the checker. */
+	readonly registry?: Registry
 }
 
 export interface ContextOptions {
 	readonly asOf?: AsOf
 	readonly hostFunctions?: Readonly<Record<string, HostFunction>>
+	readonly registry?: Registry
 }
 
 /** Build a context from a plain host data object (e.g. `{ fields, ...defs }`). */
@@ -38,5 +42,6 @@ export function createContext(data: Record<string, unknown>, opts: ContextOption
 		lookup: (name) => map.get(name),
 		asOf: opts.asOf,
 		hostFunctions: opts.hostFunctions,
+		registry: opts.registry,
 	}
 }

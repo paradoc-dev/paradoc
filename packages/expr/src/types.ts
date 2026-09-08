@@ -3,7 +3,7 @@
  * system, and diagnostics. Consumed by the parser, evaluator, and checker.
  */
 
-/** A 0-based byte offset plus 1-based line/column into the source string. */
+/** A 0-based UTF-16 code-unit offset plus 1-based line/column into the source string. */
 export interface Position {
 	readonly offset: number
 	readonly line: number
@@ -79,6 +79,7 @@ export type DiagnosticCode =
 	| 'forbidden-operator' // '=' used as an operator, '||', '&&'
 	| 'non-deterministic' // random() and similar
 	| 'division-by-zero'
+	| 'limit-exceeded'
 
 export interface Diagnostic {
 	readonly severity: Severity

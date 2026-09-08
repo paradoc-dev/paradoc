@@ -328,12 +328,25 @@ export interface Registry {
 
 /**
  * Build a registry from the default signatures plus any host-provided
- * extensions (e.g. additional domain functions). Later entries override
- * earlier ones by name.
+ * extensions (e.g. additional domain functions). Builtin collisions require
+ * the name in `explicitOverrides`.
  */
-export function buildRegistry(extra: readonly FnSignature[] = []): Registry {
+export interface RegistryOptions {
+	/** Builtin names that the host deliberately replaces in both checking and evaluation. */
+	readonly explicitOverrides?: readonly string[]
+}
+
+export function buildRegistry(extra: readonly FnSignature[] = [], options: RegistryOptions = {}): Registry {
 	const map = new Map<string, FnSignature>()
-	for (const sig of [...DEFAULT_SIGNATURES, ...extra]) {
+	for (const sig of DEFAULT_SIGNATURES) {
+		map.set(sig.name, sig)
+	}
+	const overrides = new Set(options.explicitOverrides ?? [])
+	for (const sig of extra) {
+		if (!sig.deterministic) throw new TypeError(`Function ${sig.name} must be deterministic`)
+		if (map.has(sig.name) && !overrides.has(sig.name)) {
+			throw new TypeError(`Function ${sig.name} collides with a builtin; declare an explicit override`)
+		}
 		map.set(sig.name, sig)
 	}
 	return {

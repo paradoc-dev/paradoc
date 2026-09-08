@@ -180,7 +180,7 @@ describe('temporal — units, durations, invalid input', () => {
 
 	it('addDuration handles weeks and days', () => {
 		expect(run('addDuration("2026-01-01", "P2W")')).toBe('2026-01-15')
-		expect(run('addDuration("2026-01-31", "P1M")')).toBe('2026-03-03') // Feb overflow, UTC math
+		expect(run('addDuration("2026-01-31", "P1M")')).toBe('2026-02-28')
 	})
 
 	it.each([
@@ -240,8 +240,8 @@ describe('checker — edge inference', () => {
 		expect(r.type).toEqual(T.unknown)
 	})
 
-	it('unknown-typed gate is allowed (not forced boolean)', () => {
-		expect(checkBooleanGate('coalesce(fields.name, fields.age)', env).diagnostics).toEqual([])
+	it('requires a final gate to have a verified boolean type', () => {
+		expect(checkBooleanGate('coalesce(fields.name, fields.age)', env).diagnostics.map((d) => d.code)).toContain('non-boolean-gate')
 	})
 
 	it('does not cascade errors off an unknown reference', () => {
@@ -269,6 +269,63 @@ describe('parser — error branches', () => {
 })
 
 // ─────────────────────────────────────────── Reference extraction edges
+
+describe('public contract hardening', () => {
+	it('rejects inherited callable names', () => {
+		for (const source of ['toString()', 'constructor()', 'hasOwnProperty("x")']) {
+			expect(failCode(source)).toBe('unknown-function')
+		}
+	})
+
+	it('preserves finite exponential-form host numbers', () => {
+		expect(valueToString(toValue(1e21))).toBe('1000000000000000000000')
+		expect(valueToString(toValue(1e-21))).toBe('0.000000000000000000001')
+		expect(valueToString(toValue(-1e-21))).toBe('-0.000000000000000000001')
+	})
+
+	it('evaluates coalesce lazily', () => {
+		expect(run('coalesce(1, 1 / 0)')).toBe('1')
+	})
+
+	it('returns bounded failures for dangerous work', () => {
+		expect(failCode('round(1, 1001)')).toBe('limit-exceeded')
+		expect(failCode('matches("aaaaaaaa!", "(a+)+$")')).toBe('limit-exceeded')
+		expect(failCode('matches("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!", "^(a|aa)+$")')).toBe('limit-exceeded')
+		expect(failCode('matches("aaaaaaaaaaaaaaaaaaaaaaaaa", "a*a*a*a*a*a*a*a*a*a*b")')).toBe('limit-exceeded')
+		expect(parse('('.repeat(257) + '1' + ')'.repeat(257)).errors[0]?.code).toBe('limit-exceeded')
+		expect(parse('not '.repeat(257) + 'true').errors[0]?.code).toBe('limit-exceeded')
+		expect(parse(Array.from({ length: 300 }, () => '1').join(' + ')).errors[0]?.code).toBe('limit-exceeded')
+	})
+
+	it('keeps escaped metacharacters and character classes in the bounded regex subset', () => {
+		expect(run('matches("+", "\\\\+")')).toBe(true)
+		expect(run('matches("?", "[?]")')).toBe(true)
+	})
+
+	it('addresses keyword-named fields precisely', () => {
+		const parsed = parse('fields.in')
+		expect(parsed.errors).toEqual([])
+		expect(extractReferences(parsed.ast!).paths).toEqual(['fields.in'])
+		expect(extractReferences(parsed.ast!).fullyStatic).toBe(true)
+	})
+
+	it('rejects invalid calendar dates and clamps calendar additions', () => {
+		expect(failCode('addDays("2026-02-30", 0)')).toBe('type-error')
+		expect(run('addDuration("2024-02-29", "P1Y")')).toBe('2025-02-28')
+	})
+
+	it('rejects normalized invalid retained datetimes', () => {
+		const result = evaluateExpression('now()', createContext({}, { asOf: { date: '2026-01-01', datetime: '2026-02-30T00:00Z' } }))
+		expect(result.success).toBe(false)
+		if (!result.success) expect(result.code).toBe('type-error')
+	})
+
+	it('checks builtin domains and runtime arity', () => {
+		expect(check('contains(1, 2)', createTypeEnv({})).diagnostics.map((d) => d.code)).toContain('type-mismatch')
+		expect(check('length(true)', createTypeEnv({})).diagnostics.map((d) => d.code)).toContain('type-mismatch')
+		expect(failCode('lower("A", 1)')).toBe('arity')
+	})
+})
 
 describe('reference extraction — edges', () => {
 	it('ignores call names and collects nested arg references', () => {

@@ -47,7 +47,7 @@ Notes:
 - A bare `identifier` is a reference (defs key or context root such as
   `fields`); an `identifier` immediately followed by `(` is a function call.
   Functions are not first-class values.
-- `[index]` postfix is reserved; it is not an author surface in v1 (only array
-  literals for `in [..]` are exercised).
+- `[index]` addresses an array element. Reference analysis marks indexed paths
+  as dynamic because their complete dependency cannot always be known statically.
 - Deliberately absent: `=` assignment, lambdas, `&&` / `||`, and any
   non-deterministic builtin. These are reported as errors by the checker.

@@ -5,9 +5,9 @@
  * asserts these keys match the registry's non-domain functions exactly.
  */
 
-import { Decimal } from '../decimal/decimal'
+import { Decimal, MAX_DECIMAL_SCALE } from '../decimal/decimal'
 import { EvaluationError } from './errors'
-import { addDays, addDuration, dateDiff, yearsBetween } from './temporal'
+import { addDays, addDuration, dateDiff, validateDatetime, yearsBetween } from './temporal'
 import { NULL, Values, valueEquals, type Value } from './values'
 import type { EvaluationContext } from './context'
 
@@ -34,6 +34,24 @@ function isEmptyValue(v: Value): boolean {
 	return false
 }
 
+function hasUnboundedRegexSyntax(pattern: string): boolean {
+	let escaped = false
+	let inClass = false
+	for (let i = 0; i < pattern.length; i++) {
+		const ch = pattern[i]!
+		if (escaped) {
+			if (!inClass && /[1-9]/.test(ch)) return true
+			escaped = false
+			continue
+		}
+		if (ch === '\\') { escaped = true; continue }
+		if (ch === '[') { inClass = true; continue }
+		if (ch === ']' && inClass) { inClass = false; continue }
+		if (!inClass && ('+*?{|'.includes(ch) || (ch === '(' && pattern[i + 1] === '?'))) return true
+	}
+	return false
+}
+
 export const BUILTIN_IMPLS: Readonly<Record<string, Impl>> = {
 	// --- string ---
 	contains: (args) => {
@@ -52,11 +70,20 @@ export const BUILTIN_IMPLS: Readonly<Record<string, Impl>> = {
 	matches: (args) => {
 		const value = asString(arg(args, 0), 'matches')
 		const pattern = asString(arg(args, 1), 'matches')
+		if (pattern.length > 512 || value.length > 10_000) {
+			throw new EvaluationError('limit-exceeded', 'Pattern or input exceeds the supported match limit')
+		}
 		let re: RegExp
 		try {
 			re = new RegExp(pattern)
 		} catch {
 			throw new EvaluationError('type-error', `Invalid pattern: ${JSON.stringify(pattern)}`)
+		}
+		// Repetition, alternation, assertions, and backreferences are outside the
+		// bounded subset. The remaining literals, classes, anchors, and wildcards
+		// execute in linear work relative to the bounded input and pattern lengths.
+		if (hasUnboundedRegexSyntax(pattern)) {
+			throw new EvaluationError('limit-exceeded', 'Pattern uses syntax outside the bounded matching subset')
 		}
 		return Values.boolean(re.test(value))
 	},
@@ -79,6 +106,9 @@ export const BUILTIN_IMPLS: Readonly<Record<string, Impl>> = {
 		const value = asNumber(arg(args, 0), 'round')
 		const digitsArg = args[1]
 		const digits = digitsArg && digitsArg.kind === 'number' ? digitsArg.value.toNumber() : 0
+		if (!Number.isSafeInteger(digits) || digits < 0 || digits > MAX_DECIMAL_SCALE) {
+			throw new EvaluationError('limit-exceeded', `round digits must be an integer between 0 and ${MAX_DECIMAL_SCALE}`)
+		}
 		return Values.number(value.round(digits))
 	},
 	floor: (args) => Values.number(asNumber(arg(args, 0), 'floor').floor()),
@@ -90,11 +120,11 @@ export const BUILTIN_IMPLS: Readonly<Record<string, Impl>> = {
 	// --- date (today/now read the injected as-of clock) ---
 	today: (_args, ctx) => {
 		if (!ctx.asOf) throw new EvaluationError('missing-clock', 'today() requires an as-of date in the context')
-		return Values.string(ctx.asOf.date)
+		return Values.string(addDays(ctx.asOf.date, 0))
 	},
 	now: (_args, ctx) => {
 		if (!ctx.asOf) throw new EvaluationError('missing-clock', 'now() requires an as-of datetime in the context')
-		return Values.string(ctx.asOf.datetime)
+		return Values.string(validateDatetime(ctx.asOf.datetime))
 	},
 	yearsBetween: (args) => Values.num(String(yearsBetween(asString(arg(args, 0), 'yearsBetween'), asString(arg(args, 1), 'yearsBetween')))),
 	dateDiff: (args) => {

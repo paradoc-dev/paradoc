@@ -72,11 +72,13 @@ describe('function registry', () => {
 		expect(DEFAULT_SIGNATURES.every((s) => s.deterministic)).toBe(true)
 	})
 
-	it('lets host extensions override by name', () => {
+	it('requires host extensions to override by name explicitly', () => {
+		const override = { name: 'partyType', category: 'domain', params: [{ name: 'roleId', type: T.string }], returns: { kind: 'fixed', type: T.string }, hostInjected: true, deterministic: true } as const
+		expect(() => buildRegistry([override])).toThrow('explicit override')
 		const extended = buildRegistry([
-			{ name: 'partyType', category: 'domain', params: [{ name: 'roleId', type: T.string }], returns: { kind: 'fixed', type: T.string }, hostInjected: true, deterministic: true },
+			override,
 			{ name: 'orgScore', category: 'domain', params: [{ name: 'roleId', type: T.string }], returns: { kind: 'fixed', type: T.number }, hostInjected: true, deterministic: true },
-		])
+		], { explicitOverrides: ['partyType'] })
 		expect(extended.has('orgScore')).toBe(true)
 		expect(extended.get('orgScore')?.returns).toEqual({ kind: 'fixed', type: T.number })
 	})

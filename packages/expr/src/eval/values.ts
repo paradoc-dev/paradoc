@@ -33,12 +33,15 @@ export const Values = {
 /** Render a finite JS number as an exact decimal string, avoiding exponentials. */
 function numberToDecimalString(n: number): string {
 	if (!Number.isFinite(n)) throw new RangeError('Cannot convert a non-finite number')
-	if (Number.isInteger(n)) return n.toString()
 	const s = n.toString()
-	if (s.includes('e') || s.includes('E')) {
-		return n.toFixed(20).replace(/0+$/, '').replace(/\.$/, '')
-	}
-	return s
+	const match = /^(-?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/.exec(s)
+	if (!match) return s
+	const [, sign, integer, fraction = '', exponentText] = match
+	const digits = `${integer}${fraction}`
+	const point = integer!.length + Number(exponentText)
+	if (point <= 0) return `${sign}0.${'0'.repeat(-point)}${digits}`
+	if (point >= digits.length) return `${sign}${digits}${'0'.repeat(point - digits.length)}`
+	return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`
 }
 
 /**

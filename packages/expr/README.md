@@ -21,12 +21,12 @@
 
 ## Package overview
 
-The purpose-built expression language for Paradoc artifacts. One typed AST is shared by an evaluator and an artifact-aware checker, so authoring-time type checking and runtime evaluation can never disagree. Its scope is logic inside a single artifact: field and section visibility, required, computed defs, validation rules, and payment amounts.
+The purpose-built expression language for Paradoc artifacts. Parsing, checking, reference analysis, and evaluation share one language contract. Its scope is logic inside a single artifact: field and section visibility, required, computed defs, validation rules, and payment amounts.
 
 - 🧮 **Exact decimal arithmetic** - money math with no floating-point drift
 - 📅 **Temporal types** - date, datetime, time, and duration, with a host-injected `today()` / `now()` clock
 - 🔎 **Authoring-time checker** - catches unknown references, type mismatches, and non-boolean gates before a form ever runs
-- 🧩 **One registry, two consumers** - the evaluator and the checker share a single function registry, so they never drift apart
+- 🧩 **Configured capabilities** - the evaluator and checker can share one explicit function registry; builtin overrides must be deliberate
 - 🛡️ **Null-safe** - missing values read as `null` instead of throwing, and `null` is first-class
 
 ## Installation
@@ -58,6 +58,10 @@ const ctx = createContext({ fields: { age: 25 } });
 const result = evaluateExpression("fields.age >= 18", ctx);
 // { success: true, value: { kind: "boolean", value: true } }
 ```
+
+`evaluateExpression` is the safe source API. Low-level `parseOrThrow`, `evaluate`, and `Decimal` operations may throw. Numbers are exact decimals inside the engine; conversion back to JavaScript numbers is explicitly lossy. Division retains up to 20 fractional places. Expression length, nesting, regex input, and decimal scale are bounded and return `limit-exceeded` from the safe API.
+
+`coalesce` evaluates from left to right and stops at the first non-null value. Date inputs use `YYYY-MM-DD`; datetimes representing instants require `Z` or an explicit offset. Month and year additions clamp to the final valid day of the target month. Source offsets and columns count UTF-16 code units.
 
 Type-check an expression at authoring time. This is what an editor lints with as an author edits a `visible` or computed expression:
 

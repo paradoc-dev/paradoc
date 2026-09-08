@@ -67,10 +67,11 @@ export type {
 	ParamSpec,
 	ReturnSpec,
 	Registry,
+	RegistryOptions,
 } from './registry/registry'
 
 // Parser
-export { parse, parseOrThrow } from './parser/parser'
+export { parse, parseOrThrow, MAX_EXPRESSION_DEPTH, MAX_EXPRESSION_LENGTH } from './parser/parser'
 export type { ParseResult } from './parser/parser'
 export { tokenize, LexError } from './parser/lexer'
 export type { Token, TokenType } from './parser/lexer'
@@ -80,7 +81,7 @@ export { extractReferences } from './analyze/references'
 export type { References } from './analyze/references'
 
 // Decimal
-export { Decimal, DivisionByZeroError } from './decimal/decimal'
+export { Decimal, DivisionByZeroError, MAX_DECIMAL_DIGITS, MAX_DECIMAL_SCALE } from './decimal/decimal'
 export type { RoundingMode } from './decimal/decimal'
 
 // Evaluator

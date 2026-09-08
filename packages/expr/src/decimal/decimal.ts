@@ -11,6 +11,14 @@ export type RoundingMode = 'half-up' | 'down' | 'floor' | 'ceil'
 
 /** Default decimal places retained by division before trimming. */
 const DIV_SCALE = 20
+export const MAX_DECIMAL_SCALE = 1000
+export const MAX_DECIMAL_DIGITS = 10_000
+
+function assertDecimalWork(n: bigint, scale: number): void {
+	if (scale > MAX_DECIMAL_SCALE || absBig(n).toString().length > MAX_DECIMAL_DIGITS) {
+		throw new RangeError(`Decimal exceeds ${MAX_DECIMAL_DIGITS} digits or scale ${MAX_DECIMAL_SCALE}`)
+	}
+}
 
 export class DivisionByZeroError extends Error {
 	constructor() {
@@ -42,12 +50,14 @@ export class Decimal {
 		}
 		const negative = str.startsWith('-')
 		const body = negative ? str.slice(1) : str
+		if (body.replace('.', '').length > MAX_DECIMAL_DIGITS) throw new RangeError(`Decimal exceeds ${MAX_DECIMAL_DIGITS} digits`)
 		const dot = body.indexOf('.')
 		if (dot === -1) {
 			return new Decimal(BigInt((negative ? '-' : '') + body), 0)
 		}
 		const intPart = body.slice(0, dot)
 		const fracPart = body.slice(dot + 1)
+		if (fracPart.length > MAX_DECIMAL_SCALE) throw new RangeError(`Decimal scale exceeds ${MAX_DECIMAL_SCALE}`)
 		const digits = (intPart + fracPart).replace(/^0+(?=\d)/, '')
 		const mag = BigInt(digits === '' ? '0' : digits)
 		return new Decimal(negative ? -mag : mag, fracPart.length).trim()
@@ -63,11 +73,14 @@ export class Decimal {
 	private static align(a: Decimal, b: Decimal): { an: bigint; bn: bigint; scale: number } {
 		if (a.scale === b.scale) return { an: a.n, bn: b.n, scale: a.scale }
 		const scale = Math.max(a.scale, b.scale)
-		return {
+		const aligned = {
 			an: a.n * pow10(scale - a.scale),
 			bn: b.n * pow10(scale - b.scale),
 			scale,
 		}
+		assertDecimalWork(aligned.an, scale)
+		assertDecimalWork(aligned.bn, scale)
+		return aligned
 	}
 
 	add(b: Decimal): Decimal {
@@ -81,7 +94,10 @@ export class Decimal {
 	}
 
 	mul(b: Decimal): Decimal {
-		return new Decimal(this.n * b.n, this.scale + b.scale).trim()
+		const n = this.n * b.n
+		const scale = this.scale + b.scale
+		assertDecimalWork(n, scale)
+		return new Decimal(n, scale).trim()
 	}
 
 	div(b: Decimal, rm: RoundingMode = 'half-up'): Decimal {
@@ -138,7 +154,11 @@ export class Decimal {
 	/** Round to `digits` decimal places (default 0). Negative/fractional
 	 * digits are clamped to a valid non-negative integer scale. */
 	round(digits = 0, rm: RoundingMode = 'half-up'): Decimal {
-		return this.toScale(Math.max(0, Math.trunc(digits)), rm)
+		const scale = Math.max(0, Math.trunc(digits))
+		if (!Number.isSafeInteger(scale) || scale > MAX_DECIMAL_SCALE) {
+			throw new RangeError(`Decimal scale must be between 0 and ${MAX_DECIMAL_SCALE}`)
+		}
+		return this.toScale(scale, rm)
 	}
 
 	floor(): Decimal {

@@ -12,6 +12,7 @@ import type { Expr } from '../ast/nodes'
 import { parse } from '../parser/parser'
 import { buildRegistry, type Registry, type ReturnSpec } from '../registry/registry'
 import { formatType, typesEqual, T, type Diagnostic, type ExprType, type Span } from '../types'
+import { validateDate, validateDateDuration, validateDatetime } from '../eval/temporal'
 
 export interface TypeEnv {
 	/** Type of a reference path (`fields.age`, `isAdult`), or undefined if unknown. */
@@ -127,7 +128,8 @@ class Checker {
 		const op = node.op
 		if (op === '==' || op === '!=') return T.boolean
 		if (op === '<' || op === '<=' || op === '>' || op === '>=') {
-			const ok = (NUMERIC(l) && NUMERIC(r)) || (STRINGY(l) && STRINGY(r))
+			const temporal = ['date', 'datetime', 'time'].includes(l.kind) && l.kind === r.kind
+			const ok = (NUMERIC(l) && NUMERIC(r)) || (STRINGY(l) && STRINGY(r)) || temporal
 			if (!ok) this.error('type-mismatch', `Cannot compare ${formatType(l)} and ${formatType(r)}`, node.span)
 			return T.boolean
 		}
@@ -146,10 +148,16 @@ class Checker {
 	}
 
 	private inferMembership(node: Extract<Expr, { kind: 'Membership' }>): ExprType {
-		this.infer(node.element)
+		const element = this.infer(node.element)
 		const coll = this.infer(node.collection)
 		if (coll.kind !== 'array' && coll.kind !== 'string' && coll.kind !== 'unknown') {
 			this.error('type-mismatch', `'in' requires an array or string, got ${formatType(coll)}`, node.collection.span)
+		}
+		if (coll.kind === 'string' && element.kind !== 'string' && element.kind !== 'unknown') {
+			this.error('type-mismatch', `'in' against a string requires a string element, got ${formatType(element)}`, node.element.span)
+		}
+		if (coll.kind === 'array' && !assignable(coll.element, element)) {
+			this.error('type-mismatch', `'in' element expects ${formatType(coll.element)}, got ${formatType(element)}`, node.element.span)
 		}
 		return T.boolean
 	}
@@ -169,6 +177,23 @@ class Checker {
 			return T.unknown
 		}
 		const argTypes = node.args.map((a) => this.infer(a))
+		if (node.callee === 'length') {
+			const value = argTypes[0]
+			if (value && !['string', 'array', 'null', 'unknown'].includes(value.kind)) {
+				this.error('type-mismatch', `length expects a string or array, got ${formatType(value)}`, node.args[0]!.span)
+			}
+		}
+		if (node.callee === 'contains') {
+			const haystack = argTypes[0]
+			const needle = argTypes[1]
+			if (haystack && !['string', 'array', 'null', 'unknown'].includes(haystack.kind)) {
+				this.error('type-mismatch', `contains expects a string or array, got ${formatType(haystack)}`, node.args[0]!.span)
+			} else if (haystack?.kind === 'string' && needle && !assignable(T.string, needle)) {
+				this.error('type-mismatch', `contains on a string expects a string needle, got ${formatType(needle)}`, node.args[1]!.span)
+			} else if (haystack?.kind === 'array' && needle && !assignable(haystack.element, needle)) {
+				this.error('type-mismatch', `contains expects ${formatType(haystack.element)}, got ${formatType(needle)}`, node.args[1]!.span)
+			}
+		}
 		const required = sig.params.filter((p) => !p.optional).length
 		const max = sig.variadic ? Infinity : sig.params.length
 		if (argTypes.length < required || argTypes.length > max) {
@@ -176,8 +201,19 @@ class Checker {
 		}
 		argTypes.forEach((at, i) => {
 			const param = sig.params[Math.min(i, sig.params.length - 1)]
-			if (param && !assignable(param.type, at)) {
+			const temporalLiteral = param && ['date', 'datetime', 'time', 'duration'].includes(param.type.kind) && at.kind === 'string'
+			if (param && !temporalLiteral && !assignable(param.type, at)) {
 				this.error('type-mismatch', `${node.callee}: argument ${i + 1} expects ${formatType(param.type)}, got ${formatType(at)}`, node.args[i]!.span)
+			}
+			const argNode = node.args[i]
+			if (param && argNode?.kind === 'StringLiteral') {
+				try {
+					if (param.type.kind === 'date') validateDate(argNode.value)
+					else if (param.type.kind === 'datetime') validateDatetime(argNode.value)
+					else if (param.type.kind === 'duration') validateDateDuration(argNode.value)
+				} catch (error) {
+					this.error('type-mismatch', error instanceof Error ? error.message : `Invalid ${param.type.kind}`, argNode.span)
+				}
 			}
 		})
 		return resolveReturn(sig.returns, argTypes)
@@ -230,12 +266,12 @@ export function check(source: string, env: TypeEnv): CheckResult {
  */
 export function checkBooleanGate(source: string, env: TypeEnv): CheckResult {
 	const result = check(source, env)
-	if (result.diagnostics.length === 0 && result.type.kind !== 'boolean' && result.type.kind !== 'unknown') {
+	if (result.diagnostics.length === 0 && result.type.kind !== 'boolean') {
 		const { ast } = parse(source)
 		const span = ast ? ast.span : { start: { offset: 0, line: 1, column: 1 }, end: { offset: 0, line: 1, column: 1 } }
 		return {
 			type: result.type,
-			diagnostics: [{ severity: 'error', code: 'non-boolean-gate', message: `A gate must be boolean, got ${formatType(result.type)}`, span }],
+			diagnostics: [{ severity: 'error', code: 'non-boolean-gate', message: result.type.kind === 'unknown' ? 'A final gate must be verified as boolean; its type is unresolved' : `A gate must be boolean, got ${formatType(result.type)}`, span }],
 		}
 	}
 	return result
