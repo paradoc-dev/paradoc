@@ -365,7 +365,7 @@ function evaluateDefsKeys(
  * // context.isAdult === true
  * ```
  */
-export function buildFormContext(form: Form, data: FormDataPayload): EvaluationContext {
+export function buildFormBaseContext(form: Form, data: FormDataPayload): EvaluationContext {
   // Build fields context structure
   const fields = buildFieldsContext(form.fields, data.fields)
 
@@ -374,7 +374,7 @@ export function buildFormContext(form: Form, data: FormDataPayload): EvaluationC
   const witnesses = buildWitnessesContext(data.witnesses, undefined)
 
   // Create base context with fields, parties, and witnesses
-	const baseContext: EvaluationContext = {
+	return {
 		fields,
 		parties,
 		witnesses,
@@ -382,6 +382,10 @@ export function buildFormContext(form: Form, data: FormDataPayload): EvaluationC
 		...(data.expressionFunctions && { expressionFunctions: data.expressionFunctions }),
 		...(data.expressionRegistry && { expressionRegistry: data.expressionRegistry }),
 	}
+}
+
+export function buildFormContext(form: Form, data: FormDataPayload): EvaluationContext {
+  const baseContext = buildFormBaseContext(form, data)
 
   // Evaluate defs keys and add to context
   const defsValues = evaluateDefsKeys(form.defs, baseContext)

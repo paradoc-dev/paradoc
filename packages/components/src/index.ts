@@ -7,3 +7,6 @@ export { Paper, Sheet, type PaperProps, type SheetProps } from "./paper";
 export { Section, type SectionProps } from "./section";
 export { Table, type TableColumn, type TableProps } from "./table";
 export { Totals, type TotalRow, type TotalsProps } from "./totals";
+export { Signature, type SignatureProps } from "./signature";
+export { Part, type PartKind, type PartPlacementState, type PartProps } from "./part";
+export { Attachment, PdfPages, type AttachmentProps, type PdfPagesProps, type PdfPaintReport } from "./pdf-pages";

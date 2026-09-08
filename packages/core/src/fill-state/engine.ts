@@ -17,7 +17,7 @@ import type {
 import type { FormRuntimeState } from '@/logic/runtime/evaluation/types'
 import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
-import { buildFormContext } from '@/logic/runtime/evaluation/context-builder'
+import { buildFormBaseContext } from '@/logic/runtime/evaluation/context-builder'
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { evaluateFormRules } from '@/logic/runtime/evaluation/rule-evaluator'
 import { evaluatePartyRequiredness } from '@/validation/party'
@@ -208,12 +208,15 @@ export function computeFillState(
 ): FillState {
 	const requiredFirst = options?.requiredFirst !== false
 	const includeOptional = options?.includeOptional === true
-	const context = buildFormContext(form, {
+	const context = buildFormBaseContext(form, {
 		fields: fieldValues,
 		parties: partyValues as Record<string, Party | Party[]>,
 		witnesses: witnessValues,
 		context: contextValue,
 	})
+	for (const [key, value] of runtimeState.defsValues) {
+		;(context as Record<string, unknown>)[key] = value
+	}
 
 	const graph = buildFieldDependencyGraph(form)
 	const unfilledIds = getUnfilledIds(form, fieldValues, partyValues, annexValues)

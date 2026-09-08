@@ -25,9 +25,8 @@
  * two slots.
  */
 
+import { useSignature, type SigningMarkType } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
-import { useDocument } from "./document-context";
-import type { SigningMarkType } from "./signing-context";
 
 /**
  * The signature rule. Sixteen underscores, because that is what core's flow
@@ -43,11 +42,6 @@ export const INITIALS_RULE = "______";
 export const DATE_RULE = "__________";
 
 /** The rule and the caption each field type draws. */
-const FIELD = {
-  signature: { rule: SIGNATURE_RULE, label: "Signature" },
-  initials: { rule: INITIALS_RULE, label: "Initials" },
-} as const satisfies Record<SigningMarkType, { rule: string; label: string }>;
-
 export interface SignatureProps {
   /** Party role declared by the artifact, such as `provider`. */
   party: string;
@@ -62,9 +56,7 @@ export interface SignatureProps {
 
 /** One party's signing block, for one field type. */
 export function Signature({ party, index = 0, type = "signature", id, className }: SignatureProps) {
-  const { form, partyText, mark } = useDocument();
-  const role = form.parties?.[party];
-  const field = FIELD[type];
+  const binding = useSignature(party, index, type);
 
   return (
     <KeepTogether
@@ -74,24 +66,24 @@ export function Signature({ party, index = 0, type = "signature", id, className 
       className={className ?? "flex flex-col gap-1"}
     >
       <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-        {role?.label ?? party}
+        {binding.roleLabel}
       </span>
       <span className="text-sm text-neutral-900">
-        {partyText(party, index)}
+        {binding.partyText}
       </span>
       <div className="mt-6 flex gap-6">
         <div className="flex basis-2/3 flex-col gap-1">
           {/* One string, not two children: the locator sizes the field from the
               underscore run that carries the marker, so they must reach the PDF
               as a single text run. */}
-          <span className="text-sm text-neutral-800">{`${mark(party, index, type) ?? ""}${field.rule}`}</span>
+          <span className="text-sm text-neutral-800">{`${binding.marker ?? ""}${binding.rule}`}</span>
           <span className="text-xs text-neutral-500">
-            {field.label}
-            {role?.signature?.required ? " (required)" : ""}
+            {binding.fieldLabel}
+            {binding.required ? " (required)" : ""}
           </span>
         </div>
         <div className="flex basis-1/3 flex-col gap-1">
-          <span className="text-sm text-neutral-800">{DATE_RULE}</span>
+          <span className="text-sm text-neutral-800">{binding.dateRule}</span>
           <span className="text-xs text-neutral-500">Date</span>
         </div>
       </div>

@@ -235,6 +235,18 @@ export {
   type PaginationBinding,
   type PaginationOptions,
 } from "./headless/pagination";
+export {
+  useSignature,
+  type SignatureBinding,
+} from "./headless/signing";
+export {
+  resolvePartPlacement,
+  usePdfPages,
+  type PartPlacementBinding,
+  type PartPlacementInput,
+  type PdfPagesBinding,
+  type PdfPagesOptions,
+} from "./headless/packet";
 export { computeLineAmounts, type LineItem, type LineItemInput } from "./lib/totals";
 
 export { FormatterProvider, useArtifactFormatting, type ArtifactFormatting } from "./components/formatter-context";

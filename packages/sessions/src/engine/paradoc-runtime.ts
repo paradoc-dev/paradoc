@@ -36,7 +36,7 @@ export function createParadocRuntime(
 	}
 
 	function hasField(fieldPath: string): boolean {
-		return knownFieldPaths.has(fieldPath);
+		return knownFieldPaths.has(templateFieldPath(fieldPath));
 	}
 
 	function hasParty(roleId: string): boolean {
@@ -95,7 +95,7 @@ export function createParadocRuntime(
 		fieldPath: string,
 		value: unknown,
 	): ReturnType<ArtifactRuntime["validateField"]> {
-		const coerced = coerceForFieldType(fieldTypes.get(fieldPath), value);
+		const coerced = coerceForFieldType(fieldTypes.get(templateFieldPath(fieldPath)), value);
 		const result = instance.validateFieldInput({ fieldPath, value: coerced });
 		if (result.success) {
 			// Hand back the coerced value so the engine persists it instead of
@@ -220,11 +220,23 @@ function collectFieldPaths(
 			)) {
 				out.add(inner);
 			}
+		} else if (value && typeof value === "object" && (value as { type?: unknown }).type === "list") {
+			out.add(path);
+			const item = (value as { item?: unknown }).item;
+			if (item && typeof item === "object" && "fields" in (item as Record<string, unknown>)) {
+				for (const inner of collectFieldPaths((item as { fields: unknown }).fields, `${path}[]`)) out.add(inner);
+			} else {
+				out.add(`${path}[]`);
+			}
 		} else {
 			out.add(path);
 		}
 	}
 	return out;
+}
+
+function templateFieldPath(path: string): string {
+	return path.replace(/\[\d+\]/g, "[]");
 }
 
 /**
@@ -505,6 +517,15 @@ function listFieldsCached(
 				"fields" in (value as Record<string, unknown>)
 			) {
 				walk((value as { fields: unknown }).fields, path);
+			} else if (value && typeof value === "object" && (value as { type?: unknown }).type === "list") {
+				const list = value as { item?: unknown };
+				out.push({ fieldPath: path, required: (value as { required?: unknown }).required === true, type: "list" });
+				if (list.item && typeof list.item === "object" && "fields" in (list.item as Record<string, unknown>)) {
+					walk((list.item as { fields: unknown }).fields, `${path}[]`);
+				} else if (list.item && typeof list.item === "object") {
+					const item = list.item as Record<string, unknown>;
+					out.push({ fieldPath: `${path}[]`, required: item.required === true, type: typeof item.type === "string" ? item.type : undefined });
+				}
 			} else {
 				const def = value as Record<string, unknown> | null;
 				out.push({
