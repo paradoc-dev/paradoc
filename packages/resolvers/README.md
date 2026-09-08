@@ -23,8 +23,8 @@
 
 Environment-specific resolvers for Paradoc. Use these to read layer files, templates, and other assets in your Paradoc applications.
 
-- 📂 **Filesystem resolver** - Read files from the local filesystem (Node.js)
-- 🌲 **Tree-shakeable** - Import only what you need via subpath exports
+- 📂 **Filesystem resolver** - Read root-confined local files in Node.js
+- 🧠 **Memory resolver** - Read exact-key text and bytes in any JavaScript environment
 - ✅ **Type-safe** - Full TypeScript support
 - 🔌 **Pluggable** - Implements the `Resolver` interface from `@paradoc/types`
 
@@ -48,6 +48,18 @@ const resolver = createFsResolver({ root: process.cwd() });
 // Read a file relative to root
 const bytes = await resolver.read("/templates/form.md");
 ```
+
+Filesystem paths always resolve beneath `root`. A single leading slash means the
+resolver root, not the operating-system root. Parent traversal, outward symlinks,
+backslashes, drive paths, and UNC paths are rejected. Relative roots are anchored
+when the resolver is created. Missing files retain native Node.js error codes;
+policy failures use `ERR_RESOLVER_OUTSIDE_ROOT` or `ERR_RESOLVER_INVALID_PATH`.
+The root is checked on the first read, so a missing root rejects that read with
+Node.js's native `ENOENT` error.
+
+Artifact paths use forward slashes on every supported host, including Windows.
+Containment assumes the filesystem tree is stable during a read; this resolver
+is not a race-proof sandbox for a concurrently hostile filesystem.
 
 ### With form rendering
 
@@ -76,22 +88,18 @@ const result = await form
 
 ### Using subpath imports
 
-For better tree-shaking, import directly from subpaths:
+Import each adapter from its environment-specific entrypoint:
 
 ```typescript
-// Recommended - direct subpath import
 import { createFsResolver } from "@paradoc/resolvers/fs";
-
-// Or use umbrella import
-import { createFsResolver } from "@paradoc/resolvers";
 ```
 
 ### Memory resolver for testing
 
-For testing and browser environments, use `createMemoryResolver` from `@paradoc/core`:
+For testing and browser environments, use the memory entrypoint. Keys are matched exactly, and binary content is copied on input and output:
 
 ```typescript
-import { createMemoryResolver } from "@paradoc/core";
+import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const resolver = createMemoryResolver({
   contents: {
@@ -108,7 +116,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 ## Related packages
 
 - [`@paradoc/sdk`](../sdk) - Paradoc framework SDK
-- [`@paradoc/core`](../core) - Core framework with memory resolver for testing
+- [`@paradoc/core`](../core) - Core framework behavior
 
 ## Contributing
 

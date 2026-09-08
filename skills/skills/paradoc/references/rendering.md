@@ -30,7 +30,7 @@ options never repeat it.
 ```typescript
 import { para } from "@paradoc/sdk";
 import { renderLayer } from "@paradoc/render";
-import { createFsResolver } from "@paradoc/resolvers";
+import { createFsResolver } from "@paradoc/resolvers/fs";
 
 const resolver = createFsResolver({ root: process.cwd() });
 const form = para.form(schema, { resolver });
@@ -220,7 +220,7 @@ carries the same resolver. There is no per-call resolver option anymore.
 ### Filesystem resolver (Node.js)
 
 ```typescript
-import { createFsResolver } from "@paradoc/resolvers";
+import { createFsResolver } from "@paradoc/resolvers/fs";
 
 const resolver = createFsResolver({ root: process.cwd() });
 ```
@@ -228,7 +228,7 @@ const resolver = createFsResolver({ root: process.cwd() });
 ### Memory resolver (testing)
 
 ```typescript
-import { createMemoryResolver } from "@paradoc/core";
+import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const resolver = createMemoryResolver({
   contents: {

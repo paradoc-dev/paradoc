@@ -118,7 +118,7 @@ layer's bytes come from a resolver, and the resolver is bound once, when the
 document is constructed — every instance derived from it afterward carries it.
 
 ```ts tab="Object Pattern"
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
@@ -143,7 +143,7 @@ const privacyPolicy = para.document({
 ```
 
 ```ts tab="Builder Pattern"
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 

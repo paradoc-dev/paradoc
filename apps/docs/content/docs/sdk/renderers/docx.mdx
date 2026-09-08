@@ -12,7 +12,7 @@ delimiters, split Word runs, and automatic field formatting.
 ```ts
 import { para } from '@paradoc/core'
 import { docxRenderer } from '@paradoc/render/docx'
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
@@ -192,7 +192,7 @@ Map template placeholders to different field names. As with any file-backed
 layer, bind a resolver when the form is constructed:
 
 ```ts
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 

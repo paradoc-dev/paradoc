@@ -9,7 +9,7 @@ description: >
   Paradoc artifacts, including AcroForm bindings and signature blocks.
 metadata:
   author: paradoc
-  version: "0.2.0"
+  version: "0.2.1"
   tags: paradoc, sdk, cli, schemas, mcp, forms, documents, bundles, checklists, rendering
   license: MIT
 allowed-tools: "Bash(npx:*) Read Write Edit Glob Grep WebSearch"

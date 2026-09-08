@@ -1,42 +1,23 @@
-import { describe, it, expect } from "vitest";
-import { createFsResolver } from "../src/fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { fileURLToPath } from 'node:url'
+import { describe, expect, test } from 'vitest'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const run = promisify(execFile)
+const packageRoot = fileURLToPath(new URL('..', import.meta.url))
 
-describe("@paradoc/resolvers - README Examples", () => {
-  describe("Filesystem resolver - Basic usage", () => {
-    it("should create a filesystem resolver and read a file", async () => {
-      // Create a resolver pointing to fixtures directory
-      const resolver = createFsResolver({
-        root: path.join(__dirname, "fixtures"),
-      });
+describe('@paradoc/resolvers public entrypoints', () => {
+  test('loads both emitted entrypoints through package exports', async () => {
+    const source = [
+      'import { createFsResolver } from "@paradoc/resolvers/fs"',
+      'import { createMemoryResolver } from "@paradoc/resolvers/memory"',
+      'if (typeof createFsResolver !== "function") process.exit(1)',
+      'if (typeof createMemoryResolver !== "function") process.exit(1)',
+    ].join(';')
 
-      // Read a file relative to root
-      const bytes = await resolver.read("/test-file.md");
-      expect(bytes).toBeDefined();
-      expect(Buffer.isBuffer(bytes) || bytes instanceof Uint8Array).toBe(true);
-    });
-  });
-
-  describe("Filesystem resolver - Subpath imports", () => {
-    it("should support direct subpath imports", () => {
-      // This verifies the subpath export works
-      expect(typeof createFsResolver).toBe("function");
-    });
-  });
-
-  describe("Filesystem resolver - Read capabilities", () => {
-    it("should read files correctly from filesystem", async () => {
-      const resolver = createFsResolver({
-        root: path.join(__dirname, "fixtures"),
-      });
-
-      const bytes = await resolver.read("/test-file.md");
-      const text = new TextDecoder().decode(bytes);
-      expect(text).toContain("test");
-    });
-  });
-});
+    const result = await run(process.execPath, ['--input-type=module', '--eval', source], {
+      cwd: packageRoot,
+    })
+    expect(result.stderr).toBe('')
+  })
+})

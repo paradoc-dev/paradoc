@@ -1,97 +1,99 @@
-/**
- * Tests for filesystem resolver
- */
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, relative } from 'node:path'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
-import { describe, test, expect, beforeAll } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { createFsResolver } from "../src/fs/index";
+async function expectBytes(read: Promise<Uint8Array>, expected: Uint8Array): Promise<void> {
+  expect(Array.from(await read)).toEqual(Array.from(expected))
+}
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const fixturesDir = path.join(__dirname, "fixtures");
+describe('createFsResolver', () => {
+  let sandbox: string
+  let root: string
+  let outside: string
 
-describe("createFsResolver", () => {
-  beforeAll(() => {
-    // Create fixtures directory
-    if (!fs.existsSync(fixturesDir)) {
-      fs.mkdirSync(fixturesDir, { recursive: true });
+  beforeEach(async () => {
+    sandbox = await mkdtemp(join(tmpdir(), 'paradoc-resolver-'))
+    root = join(sandbox, 'root')
+    outside = join(sandbox, 'outside')
+    await Promise.all([mkdir(join(root, 'nested'), { recursive: true }), mkdir(outside)])
+    await Promise.all([
+      writeFile(join(root, 'text.txt'), 'hello'),
+      writeFile(join(root, 'empty.bin'), new Uint8Array()),
+      writeFile(join(root, 'binary.bin'), new Uint8Array([0, 255, 1, 128])),
+      writeFile(join(root, '..valid.txt'), 'valid'),
+      writeFile(join(root, 'nested', 'inside.txt'), 'inside'),
+      writeFile(join(outside, 'sentinel.txt'), 'outside'),
+    ])
+  })
+
+  afterEach(async () => {
+    await rm(sandbox, { recursive: true, force: true })
+  })
+
+  test('reads exact bytes with relative or one-leading-slash paths', async () => {
+    const resolver = createFsResolver({ root })
+    await expectBytes(resolver.read('text.txt'), new TextEncoder().encode('hello'))
+    await expectBytes(resolver.read('/empty.bin'), new Uint8Array())
+    await expectBytes(resolver.read('/binary.bin'), new Uint8Array([0, 255, 1, 128]))
+  })
+
+  test('accepts in-root dot segments and dot-prefixed filenames', async () => {
+    const resolver = createFsResolver({ root })
+    await expectBytes(resolver.read('nested/../..valid.txt'), new TextEncoder().encode('valid'))
+  })
+
+  test('observes fresh filesystem content', async () => {
+    const resolver = createFsResolver({ root })
+    await expectBytes(resolver.read('text.txt'), new TextEncoder().encode('hello'))
+    await writeFile(join(root, 'text.txt'), 'updated')
+    await expectBytes(resolver.read('text.txt'), new TextEncoder().encode('updated'))
+  })
+
+  test('rejects lexical traversal with a programmatic policy code', async () => {
+    const resolver = createFsResolver({ root })
+    await expect(resolver.read('../outside/sentinel.txt')).rejects.toMatchObject({ code: 'ERR_RESOLVER_OUTSIDE_ROOT' })
+  })
+
+  test('rejects outward file and directory symlinks', async () => {
+    await symlink(join(outside, 'sentinel.txt'), join(root, 'outside-file'))
+    await symlink(outside, join(root, 'outside-dir'))
+    const resolver = createFsResolver({ root })
+    await expect(resolver.read('outside-file')).rejects.toMatchObject({ code: 'ERR_RESOLVER_OUTSIDE_ROOT' })
+    await expect(resolver.read('outside-dir/sentinel.txt')).rejects.toMatchObject({ code: 'ERR_RESOLVER_OUTSIDE_ROOT' })
+  })
+
+  test('supports in-root links and a symlinked root', async () => {
+    await symlink(join(root, 'nested', 'inside.txt'), join(root, 'inside-link'))
+    const rootLink = join(sandbox, 'root-link')
+    await symlink(root, rootLink)
+    const resolver = createFsResolver({ root: rootLink })
+    await expectBytes(resolver.read('inside-link'), new TextEncoder().encode('inside'))
+  })
+
+  test.each(['', '\0', '//server/file', 'C:/file', 'nested\\inside.txt'])(
+    'rejects malformed path %j',
+    async (path) => {
+      const resolver = createFsResolver({ root })
+      await expect(resolver.read(path)).rejects.toMatchObject({ code: 'ERR_RESOLVER_INVALID_PATH' })
+    },
+  )
+
+  test('preserves native errors for missing files and directories', async () => {
+    const resolver = createFsResolver({ root })
+    await expect(resolver.read('missing')).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(resolver.read('nested')).rejects.toMatchObject({ code: 'EISDIR' })
+  })
+
+  test('anchors a relative root when constructed', async () => {
+    const originalCwd = process.cwd()
+    const resolver = createFsResolver({ root: relative(originalCwd, root) })
+    process.chdir(outside)
+    try {
+      await expectBytes(resolver.read('text.txt'), new TextEncoder().encode('hello'))
+    } finally {
+      process.chdir(originalCwd)
     }
-
-    // Create test files
-    fs.writeFileSync(path.join(fixturesDir, "test.txt"), "Hello, World!");
-    fs.writeFileSync(
-      path.join(fixturesDir, "test.json"),
-      JSON.stringify({ foo: "bar" })
-    );
-    fs.writeFileSync(
-      path.join(fixturesDir, "test-file.md"),
-      "# Test File\n\nThis is a test fixture for the resolvers package."
-    );
-
-    // Create subdirectory with file
-    const subDir = path.join(fixturesDir, "subdir");
-    if (!fs.existsSync(subDir)) {
-      fs.mkdirSync(subDir, { recursive: true });
-    }
-    fs.writeFileSync(path.join(subDir, "nested.txt"), "Nested content");
-  });
-
-
-  test("reads a text file from root", async () => {
-    const resolver = createFsResolver({ root: fixturesDir });
-    const bytes = await resolver.read("/test.txt");
-
-    expect(bytes).toBeInstanceOf(Uint8Array);
-    expect(new TextDecoder().decode(bytes)).toBe("Hello, World!");
-  });
-
-  test("reads a JSON file and returns Uint8Array", async () => {
-    const resolver = createFsResolver({ root: fixturesDir });
-    const bytes = await resolver.read("/test.json");
-
-    expect(bytes).toBeInstanceOf(Uint8Array);
-    const content = new TextDecoder().decode(bytes);
-    expect(JSON.parse(content)).toEqual({ foo: "bar" });
-  });
-
-  test("reads a nested file from subdirectory", async () => {
-    const resolver = createFsResolver({ root: fixturesDir });
-    const bytes = await resolver.read("/subdir/nested.txt");
-
-    expect(bytes).toBeInstanceOf(Uint8Array);
-    expect(new TextDecoder().decode(bytes)).toBe("Nested content");
-  });
-
-  test("throws error for non-existent file", async () => {
-    const resolver = createFsResolver({ root: fixturesDir });
-
-    await expect(resolver.read("/nonexistent.txt")).rejects.toThrow();
-  });
-
-  test("prevents path traversal attacks", async () => {
-    const resolver = createFsResolver({ root: fixturesDir });
-
-    // Attempt to escape root directory via path traversal
-    await expect(
-      resolver.read("/../../../package.json")
-    ).rejects.toThrow("Path traversal detected");
-
-    await expect(
-      resolver.read("/../../package.json")
-    ).rejects.toThrow("Path traversal detected");
-
-    await expect(
-      resolver.read("../package.json")
-    ).rejects.toThrow("Path traversal detected");
-  });
-
-  test("allows valid paths that look suspicious but stay within root", async () => {
-    const resolver = createFsResolver({ root: fixturesDir });
-
-    // Going into subdir then back should still work
-    const bytes = await resolver.read("/subdir/../test.txt");
-    expect(new TextDecoder().decode(bytes)).toBe("Hello, World!");
-  });
-});
+  })
+})

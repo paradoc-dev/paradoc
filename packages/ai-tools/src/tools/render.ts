@@ -8,7 +8,7 @@ import {
   validate,
   renderLayer,
 } from '@paradoc/sdk'
-import type { Resolver } from '@paradoc/sdk'
+import type { Resolver } from '@paradoc/types'
 import type { RenderInput } from '../schemas/render'
 import type { RenderOutput } from '../types'
 import type { ParadocToolsConfig } from '../config'

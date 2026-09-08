@@ -6,7 +6,7 @@ description: Load file-based layers and templates for rendering
 Resolvers provide a unified interface for loading file-based content (templates, assets) when rendering forms. They abstract away the underlying storage mechanism, whether in-memory, filesystem, or remote.
 
 <Callout type="warn">
-The `@paradoc/resolvers` package contains environment-specific resolvers (like filesystem) and is **not included in the SDK**. Install it separately for Node.js environments. For browser environments, use `createMemoryResolver` from `@paradoc/core`.
+The `@paradoc/resolvers` package provides focused filesystem and memory resolvers. Install it separately from the SDK and import the adapter for your environment.
 </Callout>
 
 # Resolver Interface
@@ -45,10 +45,11 @@ bind one.
 
 # Memory Resolver (Browser-Compatible)
 
-The `createMemoryResolver` function is exported from `@paradoc/core` and works in any environment, including browsers.
+The `createMemoryResolver` function is exported from `@paradoc/resolvers/memory` and works in any environment, including browsers.
 
 ```ts
-import { para, createMemoryResolver } from '@paradoc/core'
+import { para } from '@paradoc/core'
+import { createMemoryResolver } from '@paradoc/resolvers/memory'
 
 const resolver = createMemoryResolver({
   contents: {
@@ -87,7 +88,7 @@ The filesystem resolver requires Node.js and is in a separate package. Install w
 </Callout>
 
 ```ts
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({
   root: process.cwd()
@@ -112,11 +113,11 @@ function createFsResolver(options: FsResolverOptions): Resolver
 ### FsResolverOptions
 
 <PropertiesTable properties={[
-  { name: 'root', type: 'string', description: 'Absolute path to the root directory. All paths are resolved relative to this.' },
+  { name: 'root', type: 'string', description: 'Absolute or current-working-directory-relative path to the root directory. Relative roots are anchored when the resolver is created.' },
 ]} />
 
 <Callout type="info">
-The filesystem resolver validates that all paths stay within the root directory. Attempting to access files outside the root (e.g., using `../`) will throw an error: `Path traversal detected: "..." resolves outside root directory`.
+The filesystem resolver validates that paths and symlinks stay within the root directory. Policy failures expose `ERR_RESOLVER_OUTSIDE_ROOT` or `ERR_RESOLVER_INVALID_PATH`; missing files retain native Node.js error codes.
 </Callout>
 
 # Usage with File-Based Layers
@@ -125,7 +126,7 @@ Resolvers are needed when forms define file-based layers:
 
 ```ts
 import { para } from '@paradoc/core'
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 

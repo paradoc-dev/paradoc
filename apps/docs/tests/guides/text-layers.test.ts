@@ -9,7 +9,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { para } from '@paradoc/sdk'
 import { renderLayer } from '@paradoc/render'
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

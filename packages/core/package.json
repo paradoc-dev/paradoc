@@ -88,6 +88,7 @@
     "tsx": "^4.20.6",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "@paradoc/format": "workspace:^"
+    "@paradoc/format": "workspace:^",
+    "@paradoc/resolvers": "workspace:*"
   }
 }

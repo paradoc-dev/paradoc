@@ -6,7 +6,9 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@paradoc/resolvers/fs": ["src/fs/index.ts"],
+      "@paradoc/resolvers/memory": ["src/memory/index.ts"]
     }
   },
   "include": ["src", "tests"],

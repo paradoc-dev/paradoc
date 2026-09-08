@@ -12,7 +12,7 @@ field formatting, plus coordinate-based text and image overlays.
 ```ts
 import { para } from '@paradoc/core'
 import { pdfRenderer } from '@paradoc/render/pdf'
-import { createFsResolver } from '@paradoc/resolvers'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 

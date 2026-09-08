@@ -51,7 +51,7 @@ Define forms with parties, fields, and output layers:
 
 ```typescript
 import { para } from "@paradoc/sdk";
-import { createFsResolver } from "@paradoc/resolvers";
+import { createFsResolver } from "@paradoc/resolvers/fs";
 
 // A file-backed layer's bytes come from a resolver, bound once when the form
 // is built. Every instance derived from it — every fill, every render —

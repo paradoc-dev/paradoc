@@ -21,7 +21,7 @@ ALWAYS import from public entry points. NEVER from `@paradoc/core/dist/...` or o
 
 ```typescript
 import { para, type InferFormPayload } from "@paradoc/core";
-import { createFsResolver } from "@paradoc/resolvers";
+import { createFsResolver } from "@paradoc/resolvers/fs";
 import { createFormatter } from "@paradoc/format";
 ```
 

@@ -87,6 +87,7 @@
   },
   "dependencies": {
     "@paradoc/core": "workspace:^",
+    "@paradoc/resolvers": "workspace:^",
     "@paradoc/types": "workspace:^"
   },
   "devDependencies": {

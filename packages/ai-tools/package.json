@@ -66,6 +66,7 @@
   },
   "dependencies": {
     "@paradoc/sdk": "workspace:*",
+    "@paradoc/types": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

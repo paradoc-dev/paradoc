@@ -2,8 +2,8 @@
  * Minimal resolver interface for reading content from storage.
  *
  * Implementations can back this with:
- *  - In-memory map (@paradoc/core createMemoryResolver)
- *  - Local filesystem (@paradoc/resolvers)
+ *  - In-memory map (@paradoc/resolvers/memory)
+ *  - Local filesystem (@paradoc/resolvers/fs)
  *  - Object storage (S3/R2/etc.)
  *  - HTTP fetch
  */

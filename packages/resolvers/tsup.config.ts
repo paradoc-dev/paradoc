@@ -1,7 +1,10 @@
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: {
+    fs: 'src/fs/index.ts',
+    memory: 'src/memory/index.ts',
+  },
   format: ['esm'],
   dts: true,
   splitting: false,

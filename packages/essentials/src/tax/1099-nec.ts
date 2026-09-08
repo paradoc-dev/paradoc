@@ -1,7 +1,8 @@
 // AUTO-GENERATED from artifacts/tax/1099-nec/design/ — do not edit by hand.
 // Regenerate via: node artifacts/scripts/sync-essentials.mjs --only tax/1099-nec
 
-import { para, createMemoryResolver } from "@paradoc/core";
+import { para } from "@paradoc/core";
+import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
   "$schema": "https://schema.paradoc.dev/schema.json",
