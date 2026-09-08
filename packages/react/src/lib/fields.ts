@@ -23,9 +23,26 @@ export class UnknownFieldPathError extends Error {
   }
 }
 
-/** Splits a path into segments. */
+/** Raised when a path does not use Paradoc's explicit dot-path grammar. */
+export class InvalidFieldPathError extends Error {
+  constructor(readonly path: string) {
+    super(`Invalid field path "${path}". Use non-empty dot-separated own-property names and numeric list indexes.`);
+    this.name = "InvalidFieldPathError";
+  }
+}
+
+const FORBIDDEN_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
+
+/** Splits and validates a Paradoc field path. */
 export function pathSegments(path: string): string[] {
-  return path.split(".").filter((segment) => segment.length > 0);
+  const segments = path.split(".");
+  if (
+    path.length === 0 ||
+    segments.some((segment) => segment.length === 0 || FORBIDDEN_SEGMENTS.has(segment))
+  ) {
+    throw new InvalidFieldPathError(path);
+  }
+  return segments;
 }
 
 function isIndex(segment: string): boolean {
@@ -36,7 +53,9 @@ function walk(form: Form, path: string): FormField | undefined {
   const segments = pathSegments(path);
   if (segments.length === 0) return undefined;
 
-  let field: FormField | undefined = form.fields?.[segments[0]!];
+  let field: FormField | undefined = Object.hasOwn(form.fields ?? {}, segments[0]!)
+    ? form.fields?.[segments[0]!]
+    : undefined;
 
   for (const segment of segments.slice(1)) {
     if (!field) return undefined;
@@ -47,7 +66,7 @@ function walk(form: Form, path: string): FormField | undefined {
       continue;
     }
     if (field.type === "fieldset") {
-      field = field.fields[segment];
+      field = Object.hasOwn(field.fields, segment) ? field.fields[segment] : undefined;
       continue;
     }
     return undefined;
@@ -86,7 +105,9 @@ export function readValue(fields: Record<string, unknown>, path: string): unknow
       continue;
     }
     if (typeof current !== "object") return undefined;
-    current = (current as Record<string, unknown>)[segment];
+    const record = current as Record<string, unknown>;
+    if (!Object.hasOwn(record, segment)) return undefined;
+    current = record[segment];
   }
   return current;
 }

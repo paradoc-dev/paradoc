@@ -121,11 +121,29 @@ export { Totals, type TotalRow, type TotalsProps } from "./components/totals";
 
 export {
   itemField,
+  InvalidFieldPathError,
   pathSegments,
   readValue,
   resolveField,
   UnknownFieldPathError,
 } from "./lib/fields";
+export {
+  ArtifactProvider,
+  InvalidListValueError,
+  MissingArtifactProviderError,
+  UnknownDefinitionError,
+  UnknownPartyRoleError,
+  useArtifact,
+  useField,
+  useFormatter,
+  useList,
+  useParty,
+  useTotals,
+  type ArtifactProviderProps,
+  type FieldBinding,
+  type ListBinding,
+  type TotalBinding,
+} from "./headless/artifact";
 export {
   BLANK,
   createValueFormatter,
