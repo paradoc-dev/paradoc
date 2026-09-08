@@ -22,17 +22,11 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { stylesheetModule } from '../../src/commands/dev/harness.js'
-import {
-  assertUsableReactPackage,
-  MissingDevPeerError,
-  missingDevPeers,
-  UnusableReactPackageError,
-} from '../../src/commands/dev/peers.js'
+import { MissingDevPeerError, missingDevPeers } from '../../src/commands/dev/peers.js'
 import { servableRoots } from '../../src/commands/dev/server.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURES = path.resolve(__dirname, '../fixtures/dev')
-const REACT_PACKAGE = path.resolve(__dirname, '../../../../packages/react')
 
 async function executeCliCommand(
   args: string[],
@@ -224,101 +218,31 @@ describe('the toolchain para dev borrows', () => {
   })
 })
 
-describe('the @paradoc/react a preview styles against', () => {
-  let scratch: string
-
-  beforeEach(async () => {
-    scratch = await fs.mkdtemp(path.join(tmpdir(), 'paradoc-dev-package-'))
-  })
-
-  afterEach(async () => {
-    await fs.rm(scratch, { recursive: true, force: true })
-  })
-
-  it('accepts the real package', () => {
-    expect(() => assertUsableReactPackage(REACT_PACKAGE)).not.toThrow()
-  })
-
-  it('refuses a directory that is not a package', () => {
-    expect(() => assertUsableReactPackage(scratch)).toThrow(UnusableReactPackageError)
-    expect(() => assertUsableReactPackage(scratch)).toThrow(/no package.json/)
-  })
-
-  it('refuses a package that is not @paradoc/react', async () => {
-    await fs.writeFile(path.join(scratch, 'package.json'), '{"name":"@acme/other"}', 'utf8')
-
-    expect(() => assertUsableReactPackage(scratch)).toThrow(/names @acme\/other/)
-  })
-
-  it('refuses the right package with no components to scan', async () => {
-    await fs.writeFile(path.join(scratch, 'package.json'), '{"name":"@paradoc/react"}', 'utf8')
-
-    expect(() => assertUsableReactPackage(scratch)).toThrow(/neither a dist nor a src/)
-  })
-
-  it('accepts a published layout, which ships dist and no src', async () => {
-    await fs.writeFile(path.join(scratch, 'package.json'), '{"name":"@paradoc/react"}', 'utf8')
-    await fs.mkdir(path.join(scratch, 'dist'))
-
-    expect(() => assertUsableReactPackage(scratch)).not.toThrow()
-  })
-})
-
 describe('what the dev server may read', () => {
-  it('allows the project, the document package, and that package’s own installs', () => {
-    const roots = servableRoots(path.join(FIXTURES, 'paired'), REACT_PACKAGE)
-
-    expect(roots).toContain(path.join(FIXTURES, 'paired'))
-    expect(roots).toContain(REACT_PACKAGE)
-    expect(roots.some((root) => root.includes('inter'))).toBe(false)
-  })
-
-  it('never walks up to a bare ancestor of either', () => {
-    const roots = servableRoots(path.join(FIXTURES, 'paired'), REACT_PACKAGE)
-
-    for (const forbidden of [path.dirname(REACT_PACKAGE), path.resolve('/'), path.resolve('/Users')]) {
-      expect(roots).not.toContain(forbidden)
-    }
-    // Every entry is the project, the package, or something installed under one
-    // of them — never a directory that merely contains a node_modules.
-    for (const root of roots) {
-      expect(root.split(path.sep).length).toBeGreaterThan(2)
-    }
-  })
-
-  it('reports nothing extra for a package with no dependencies installed', () => {
-    const roots = servableRoots(path.join(FIXTURES, 'paired'), path.join(FIXTURES, 'empty'))
-
-    expect(roots).toEqual([path.join(FIXTURES, 'paired'), path.join(FIXTURES, 'empty')])
+  it('allows only the project root', () => {
+    const root = path.join(FIXTURES, 'paired')
+    expect(servableRoots(root)).toEqual([root])
   })
 })
 
 describe('the stylesheet the preview compiles', () => {
-  it('scans the project and both layouts of the document package', () => {
-    const css = stylesheetModule('/project', '/project/node_modules/@paradoc/react', [
-      'node_modules',
-      'dist',
-    ])
-
+  it('scans project source and excludes ignored directories', () => {
+    const css = stylesheetModule('/project', ['node_modules', 'dist'])
     expect(css).toContain('@source "**/*.{tsx,jsx}"')
     expect(css).toContain('@source not "node_modules"')
     expect(css).toContain('@source not "dist"')
-    expect(css).toContain('@source "node_modules/@paradoc/react/dist/**/*.js"')
-    expect(css).toContain('@source "node_modules/@paradoc/react/src/**/*.{ts,tsx}"')
+    expect(css).toContain('@import "tailwindcss"')
+    expect(css).not.toContain('@paradoc/react/styles.css')
   })
 
-  it('reaches a linked package outside the project', () => {
-    const css = stylesheetModule('/work/project', '/work/packages/react', ['node_modules'])
-
-    expect(css).toContain('@source "../packages/react/dist/**/*.js"')
-    expect(css).toContain('@source "../packages/react/src/**/*.{ts,tsx}"')
-  })
-
-  it('imports the document stylesheet before Tailwind, so the font faces survive', () => {
-    const css = stylesheetModule('/project', '/project/node_modules/@paradoc/react', [])
-
-    expect(css.indexOf('@import "@paradoc/react/styles.css"')).toBeLessThan(
-      css.indexOf('@import "tailwindcss"')
-    )
+  it('uses the project-owned Paradoc stylesheet when present', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'paradoc-dev-styles-'))
+    await fs.mkdir(path.join(root, 'styles'))
+    await fs.writeFile(path.join(root, 'styles/paradoc.css'), '@import "tailwindcss";')
+    try {
+      expect(stylesheetModule(root, [])).toContain('@import "./styles/paradoc.css"')
+    } finally {
+      await fs.rm(root, { recursive: true, force: true })
+    }
   })
 })

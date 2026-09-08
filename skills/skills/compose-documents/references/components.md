@@ -10,18 +10,14 @@ metadata:
 **Contents:** [Import](#import) · [Document tree](#document-tree-components) ·
 [Page furniture](#page-furniture) · [Hooks a composition may call directly](#hooks-a-composition-may-call-directly)
 
-Import every component from `@paradoc/react` (the package) or from
-`@/components/paradoc/<name>` (after installing it from the registry — see
-[cli.md](./cli.md#installing-components)). Both resolve to the same
-contexts, so mixing an installed `field` with a package-imported `Document`
-still shares one page plan and one document context. Import
-`@paradoc/react/styles.css` once, at the app's entry point beside its own
-stylesheet — it carries the document typefaces and the CSS custom property
-the furniture reads. **Never import it from inside a composition module**:
-a composition is imported directly by Node (no CSS loader) whenever it is
-bound rather than rendered by a bundler — `para check`, a layer render, a
-seal — and a stylesheet import there fails the import with "Unknown file
-extension \".css\"".
+Install components from the registry and import them from
+`@/components/paradoc/<name>` (see
+[cli.md](./cli.md#installing-components)). Import types and headless hooks from
+`@paradoc/react`. The component source and its Tailwind preset belong to the
+project; the public runtime exports no visible document components and no
+stylesheet. Import the installed `styles/paradoc.css` once from the app's
+global stylesheet. Never import CSS from a composition module because Node
+loads that module directly for checks, layer renders, and seals.
 
 `para dev` (see the CLI docs) previews a composition live through this same
 binding — it resolves the artifact's React layer and calls the component the
@@ -198,7 +194,8 @@ const [plan, setPlan] = useState<PagePlan | null>(null);
 </Pages>;
 ```
 
-Hand `plan.breaks`/`plan.repeats` to `renderPdf({ plan })` so the PDF starts
+Hand `plan.breaks`/`plan.repeats` to `renderPdf({ plan })` from
+`@paradoc/react-pdf` so the PDF starts
 each page where the preview did (see the react package README's "Hand-off to
 the PDF path"). Omit `plan` and the engine paginates on its own.
 

@@ -119,7 +119,7 @@ Core selects a renderer by the layer's MIME type from the render call's
 renderer at the render call:
 
 ```ts
-import { reactLayerRenderers } from "@paradoc/react/pdf";
+import { reactLayerRenderers } from "@paradoc/react-pdf";
 import { ChangeOrder } from "./orders/change-order";
 
 const pdf = await changeOrderArtifact.render<Uint8Array>({

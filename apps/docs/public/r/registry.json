@@ -245,6 +245,23 @@
       ]
     },
     {
+      "name": "priced-line-items",
+      "type": "registry:lib",
+      "title": "Line-item arithmetic",
+      "description": "Sample-owned row multiplication and subtotal arithmetic used by the priced document blocks.",
+      "dependencies": [
+        "@paradoc/types@^0.5.0"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/examples/line-items.ts",
+          "type": "registry:file",
+          "target": "artifacts/paradoc/line-items.ts"
+        }
+      ]
+    },
+    {
       "name": "purchase-order",
       "type": "registry:block",
       "title": "Purchase Order",
@@ -258,6 +275,7 @@
         "@paradoc/document",
         "@paradoc/field",
         "@paradoc/keep-together",
+        "@paradoc/priced-line-items",
         "@paradoc/pages",
         "@paradoc/section",
         "@paradoc/signature",
@@ -296,6 +314,7 @@
         "@paradoc/document",
         "@paradoc/field",
         "@paradoc/keep-together",
+        "@paradoc/priced-line-items",
         "@paradoc/pages",
         "@paradoc/section",
         "@paradoc/table",

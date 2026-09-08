@@ -47,18 +47,14 @@ const require = createRequire(import.meta.url);
  * module, which is one file in source and another in the built bundle. The
  * export map names one path from both, and it is the path the preview imports.
  */
-const STYLES_PATH = require.resolve("@paradoc/react/styles.css");
-
-/**
- * The imports the published stylesheet uses to load the registered families
- * through a bundler.
- *
- * They are dropped rather than resolved: their `url()`s are relative to the
- * fontsource packages, and nothing rewrites them on the way through Tailwind, so
- * a printed page would silently lose every face. The files the render actually
- * needs come back below as absolute `file://` URLs.
- */
-const FONT_PACKAGE_IMPORTS = /@import\s+["']@fontsource[^"']*["']\s*;?/gu;
+const DOCUMENT_STYLES = `
+.paradoc-document {
+  font-family: var(--paradoc-font-family, "Inter Variable", ui-sans-serif, system-ui, sans-serif);
+}
+.paradoc-ltr-isolate {
+  direction: ltr;
+  unicode-bidi: isolate;
+}`;
 
 /** CSS pixels per inch, which is what makes 816 x 1056 US Letter. */
 const CSS_PIXELS_PER_INCH = 96;
@@ -172,9 +168,8 @@ export async function chromiumStylesheet(
   geometry: PdfPageGeometry,
   tokens: DocumentTokens
 ): Promise<string> {
-  const published = (await readFile(STYLES_PATH, "utf8")).replace(FONT_PACKAGE_IMPORTS, "");
-  const source = `@import "tailwindcss";\n${published}`;
-  const compiled = await compile(source, { base: dirname(STYLES_PATH), loadStylesheet });
+  const source = `@import "tailwindcss";\n${DOCUMENT_STYLES}`;
+  const compiled = await compile(source, { base: process.cwd(), loadStylesheet });
 
   return [
     compiled.build(classCandidates(markup)),

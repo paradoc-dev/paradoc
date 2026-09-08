@@ -12,8 +12,8 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Page } from "../src/components/pages";
-import { ProposalDocument, overflowProposalData, shortProposalData } from "../src/examples";
+import { Page } from "../../components/src/components/pages";
+import { ProposalDocument, overflowProposalData, shortProposalData } from "../../components/src/examples";
 import { measureKeeps } from "../src/lib/measure";
 import { planPages, type MeasuredKeep, type PagePlan } from "../src/lib/plan";
 import { usePagePlan } from "../src/components/page-context";

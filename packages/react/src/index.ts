@@ -3,16 +3,14 @@
  * Paradoc form artifact.
  *
  * One tree is the source of truth for the paginated preview and for the PDF.
- * This entry is what runs in a browser: the components, the document context,
- * the page plan and the preview. `@paradoc/react-pdf` is the Node-only half.
+ * This entry is what runs in a browser: providers, focused bindings,
+ * measurement, and page planning. Visible component source is installed into
+ * the consumer's project. `@paradoc/react-pdf` is the Node-only half.
  *
  * The artifact packages — `@paradoc/core`, `@paradoc/types`, `@paradoc/render`
  * and `@paradoc/format` — are consumed unchanged.
  */
 
-export { KeepTogether, type KeepTogetherProps } from "./components/keep-together";
-export { Bundle, type BundleProps } from "./components/bundle";
-export { Document, type DocumentProps } from "./components/document";
 export {
   createDocumentContext,
   DocumentContextProvider,
@@ -50,7 +48,6 @@ export {
   type SigningMarks,
   type SigningMarkType,
 } from "./components/signing-context";
-export { Field, type FieldProps } from "./components/field";
 export {
   PageContextProvider,
   useKeepVisible,
@@ -59,21 +56,8 @@ export {
   useSectionVisible,
   type PageContextValue,
 } from "./components/page-context";
-export { Part, type PartKind, type PartPlacementState, type PartProps } from "./components/part";
 export {
-  Attachment,
-  PdfPages,
-  type AttachmentProps,
-  type PdfPagesProps,
-  type PdfPaintReport,
-} from "./components/pdf-pages";
-export { Page, Pages, type PageProps, type PagesProps } from "./components/pages";
-export {
-  Paper,
-  Sheet,
   useFitToWidth,
-  usePaperGeometry,
-  DEFAULT_PAGE_GEOMETRY,
   PAGE_CONTENT_HEIGHT_PX,
   PAGE_CONTENT_WIDTH_PX,
   PAGE_GAP_PX,
@@ -81,9 +65,7 @@ export {
   PAPER_MARGIN_PX,
   PAPER_WIDTH_PX,
   type Fit,
-  type PaperProps,
-  type SheetProps,
-} from "./components/paper";
+} from "./headless/paper";
 export {
   DocumentTokensProvider,
   markDocumentRoot,
@@ -101,25 +83,22 @@ export {
 // hook and the default reach the entry through `./components/paper`, which
 // re-exports them, so only what is not already there is named here.
 export {
+  DEFAULT_PAGE_GEOMETRY,
   drawnPaper,
   DrawnPaperProvider,
   useDrawnPaper,
+  usePaperGeometry,
   type DrawnPaper,
 } from "./components/paper-geometry";
 export {
   documentTokensOf,
   MultipleDocumentRootsError,
 } from "./lib/document-tokens";
-export { Section, type SectionProps } from "./components/section";
 export {
   DATE_RULE,
   INITIALS_RULE,
-  Signature,
   SIGNATURE_RULE,
-  type SignatureProps,
-} from "./components/signature";
-export { Table, type TableColumn, type TableProps } from "./components/table";
-export { Totals, type TotalRow, type TotalsProps } from "./components/totals";
+} from "./headless/signing";
 
 export {
   itemField,
@@ -246,9 +225,9 @@ export {
   usePdfPages,
   type PartPlacementBinding,
   type PartPlacementInput,
+  type PartPlacementState,
   type PdfPagesBinding,
   type PdfPagesOptions,
+  type PdfPaintReport,
 } from "./headless/packet";
-export { computeLineAmounts, type LineItem, type LineItemInput } from "./lib/totals";
-
 export { FormatterProvider, useArtifactFormatting, type ArtifactFormatting } from "./components/formatter-context";

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import * as publicApi from "../src/index";
 
 const packageRoot = resolve(import.meta.dirname, "..");
 const heavyPackages = [
@@ -41,6 +42,33 @@ function rootSourceClosure(): Map<string, string> {
 }
 
 describe("the headless package boundary", () => {
+  it("publishes no styled components, examples, or stylesheet", () => {
+    const manifest = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as {
+      exports?: Record<string, unknown>;
+      files?: string[];
+    };
+    expect(manifest.exports).not.toHaveProperty("./examples");
+    expect(manifest.exports).not.toHaveProperty("./styles.css");
+    expect(manifest.files).toEqual(["dist", "README.md", "LICENSE"]);
+    for (const name of [
+      "Bundle",
+      "Document",
+      "Field",
+      "KeepTogether",
+      "Pages",
+      "Paper",
+      "Part",
+      "PdfPages",
+      "Section",
+      "Signature",
+      "Table",
+      "Totals",
+      "computeLineAmounts",
+    ]) {
+      expect(publicApi).not.toHaveProperty(name);
+    }
+  });
+
   it("does not install rendering engines, browser tooling, or font files", () => {
     const manifest = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as {
       dependencies?: Record<string, string>;

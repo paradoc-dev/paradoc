@@ -31,29 +31,10 @@
       "types": "./dist/discovery/index.d.ts",
       "import": "./dist/discovery/index.js",
       "default": "./dist/discovery/index.js"
-    },
-    "./examples": {
-      "types": "./dist/examples/index.d.ts",
-      "import": "./dist/examples/index.js",
-      "default": "./dist/examples/index.js"
-    },
-    "./examples/pdf": {
-      "types": "./dist/examples/pdf.d.ts",
-      "import": "./dist/examples/pdf.js",
-      "default": "./dist/examples/pdf.js"
-    },
-    "./examples/proposal-logo.png": "./src/examples/proposal-logo.png",
-    "./examples/certificate-of-insurance.pdf": "./src/examples/certificate-of-insurance.pdf",
-    "./styles.css": "./src/styles.css"
+    }
   },
-  "sideEffects": [
-    "*.css"
-  ],
   "files": [
     "dist",
-    "src/styles.css",
-    "src/examples/proposal-logo.png",
-    "src/examples/certificate-of-insurance.pdf",
     "README.md",
     "LICENSE"
   ],
@@ -113,17 +94,33 @@
     "takumi-pdf": "catalog:"
   },
   "peerDependenciesMeta": {
-    "@fontsource-variable/inter": { "optional": true },
-    "@fontsource-variable/noto-sans-arabic": { "optional": true },
-    "@fontsource-variable/source-serif-4": { "optional": true },
-    "@fontsource/noto-sans-symbols-2": { "optional": true },
-    "@takumi-rs/helpers": { "optional": true },
+    "@fontsource-variable/inter": {
+      "optional": true
+    },
+    "@fontsource-variable/noto-sans-arabic": {
+      "optional": true
+    },
+    "@fontsource-variable/source-serif-4": {
+      "optional": true
+    },
+    "@fontsource/noto-sans-symbols-2": {
+      "optional": true
+    },
+    "@takumi-rs/helpers": {
+      "optional": true
+    },
     "pdfjs-dist": {
       "optional": true
     },
-    "puppeteer": { "optional": true },
-    "tailwindcss": { "optional": true },
-    "takumi-pdf": { "optional": true }
+    "puppeteer": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    },
+    "takumi-pdf": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@paradoc/core": "workspace:^",

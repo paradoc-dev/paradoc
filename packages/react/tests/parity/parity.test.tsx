@@ -78,8 +78,8 @@ import {
   overflowProposalData,
   ProposalDocument,
   shortProposalData,
-} from "../../src/examples";
-import { proposalLogoImage } from "../../src/examples/pdf";
+} from "../../../components/src/examples";
+import { proposalLogoImage } from "../../../components/src/examples/pdf";
 import {
   pageGeometry,
   resolveDocumentTokens,

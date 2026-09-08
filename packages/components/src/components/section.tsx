@@ -1,3 +1,5 @@
+/** @jsxRuntime classic */
+import React from "react";
 import { useDocumentTokens, useSectionVisible } from "@paradoc/react";
 import type { ReactNode } from "react";
 import { KeepTogether } from "./keep-together";

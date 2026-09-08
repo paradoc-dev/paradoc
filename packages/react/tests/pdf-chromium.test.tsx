@@ -19,9 +19,9 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { overflowProposalData, ProposalDocument } from "../src/examples";
-import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/components/paper";
-import { proposalLogoImage } from "../src/examples/pdf";
+import { overflowProposalData, ProposalDocument } from "../../components/src/examples";
+import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/headless/paper";
+import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { renderPdf, type PdfImage } from "../src/pdf";
 import { chromiumExecutable, closeChromium } from "../src/pdf/adapters/chromium";
 import { readPdf } from "./pdf-reader";

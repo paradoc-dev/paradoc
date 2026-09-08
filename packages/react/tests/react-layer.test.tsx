@@ -22,8 +22,8 @@ import {
   PROPOSAL_REACT_LAYER_PATH,
   ProposalDocument,
   shortProposalData,
-} from "../src/examples";
-import { proposalLogoImage } from "../src/examples/pdf";
+} from "../../components/src/examples";
+import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { renderPdf } from "../src/pdf";
 import {
   bindComponent,
@@ -39,7 +39,7 @@ const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
  * The directory the sample's artifact file lives in, which is what its layer
  * path is relative to and what a caller sets `baseDir` to.
  */
-const ARTIFACT_DIR = resolve(PACKAGE_ROOT, "src/examples");
+const ARTIFACT_DIR = resolve(PACKAGE_ROOT, "../components/src/examples");
 
 /**
  * A base directory the sample's module is not under, so the import route cannot

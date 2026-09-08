@@ -13,8 +13,8 @@
 import type { SigningField } from "@paradoc/types";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { engagementLetterData, ENGAGEMENT_LETTER_SIGNATURE_SLOTS } from "../src/examples";
-import { sealEngagementLetter } from "../src/examples/pdf";
+import { engagementLetterData, ENGAGEMENT_LETTER_SIGNATURE_SLOTS } from "../../components/src/examples";
+import { sealEngagementLetter } from "../../components/src/examples/pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";
 
 /** CSS pixels at 96 dpi to the PDF's points at 72 dpi. */

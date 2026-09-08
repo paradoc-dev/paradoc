@@ -10,10 +10,10 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Attachment } from "../src/components/pdf-pages";
-import { Part } from "../src/components/part";
-import { PurchaseOrderDocument } from "../src/examples";
-import { purchaseOrderData } from "../src/examples";
+import { Attachment } from "../../components/src/components/pdf-pages";
+import { Part } from "../../components/src/components/part";
+import { PurchaseOrderDocument } from "../../components/src/examples";
+import { purchaseOrderData } from "../../components/src/examples";
 
 function parse(markup: string): HTMLElement {
   const host = document.createElement("div");

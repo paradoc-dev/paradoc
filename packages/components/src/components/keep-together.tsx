@@ -1,3 +1,5 @@
+/** @jsxRuntime classic */
+import React from "react";
 import { useKeepVisible, usePage } from "@paradoc/react";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 

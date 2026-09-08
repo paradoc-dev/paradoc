@@ -10,7 +10,7 @@
 import type { Node } from "@takumi-rs/helpers";
 import { fromJsx } from "@takumi-rs/helpers/jsx";
 import { describe, expect, it } from "vitest";
-import { ProposalDocument, overflowProposalData, shortProposalData } from "../src/examples";
+import { ProposalDocument, overflowProposalData, shortProposalData } from "../../components/src/examples";
 import {
   INITIAL_VALUE_CLASSES,
   isSupportedClass,

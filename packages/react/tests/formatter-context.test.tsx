@@ -3,9 +3,8 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it } from "vitest";
 import { createFormatter } from "@paradoc/format";
-import { Document } from "../src/components/document";
-import { Field } from "../src/components/field";
-import { FormatterProvider } from "../src/components/formatter-context";
+import { Document } from "../../components/src/components/document";
+import { Field } from "../../components/src/components/field";
 import type { Form } from "@paradoc/types";
 
 it("refreshes field text when a formatter changes inside otherwise stable props", async () => {
@@ -22,8 +21,8 @@ it("refreshes field text when a formatter changes inside otherwise stable props"
     format.formatter = createFormatter({ locale: "de-DE" });
     await act(async () => { root.render(element()); });
     expect(host.textContent).toContain("12,50\u00a0€");
-    const overridden = createFormatter({ overrides: { money: () => "Artifact amount" } });
-    await act(async () => { root.render(<FormatterProvider formatter={overridden}>{element()}</FormatterProvider>); });
+    format.formatter = createFormatter({ overrides: { money: () => "Artifact amount" } });
+    await act(async () => { root.render(element()); });
     expect(host.textContent).toContain("Artifact amount");
   } finally { await act(async () => { root.unmount(); }); }
 });

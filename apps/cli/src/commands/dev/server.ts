@@ -20,10 +20,9 @@
  * is left alone: `renderPdf` names it, which is the answer the developer needs.
  */
 
-import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 
 import type { Plugin, ViteDevServer } from 'vite'
 
@@ -100,12 +99,12 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
 			// the root by default, so the package and the packages it installed are
 			// named exactly, or the preview loads a page with no font and paginates
 			// against the wrong metrics.
-			fs: { allow: servableRoots(root, toolchain.reactPackageDir) },
+			fs: { allow: servableRoots(root) },
 		},
 		plugins: [
 			toolchain.react(),
 			toolchain.tailwindcss(),
-			harnessPlugin(root, () => compositions, toolchain.reactPackageDir, discovery.IGNORED_DIRECTORIES),
+			harnessPlugin(root, () => compositions, discovery.IGNORED_DIRECTORIES),
 		],
 	})
 
@@ -160,34 +159,8 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
  * copies puts the files somewhere else entirely and Vite checks the path it
  * finally reads.
  */
-export function servableRoots(root: string, packageDir: string): string[] {
-	const roots = new Set<string>([resolve(root), resolve(packageDir)])
-	for (const dependency of installedDependencies(packageDir)) roots.add(dependency)
-	return [...roots]
-}
-
-/** Real paths of the packages `@paradoc/react` declares and has installed beside it. */
-function installedDependencies(packageDir: string): string[] {
-	let names: string[]
-	try {
-		const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
-			dependencies?: Record<string, string>
-		}
-		names = Object.keys(manifest.dependencies ?? {})
-	} catch {
-		return []
-	}
-
-	const found: string[] = []
-	for (const name of names) {
-		const installed = join(packageDir, 'node_modules', ...name.split('/'))
-		try {
-			if (existsSync(installed)) found.push(realpathSync(installed))
-		} catch {
-			// A broken link is not a directory to serve.
-		}
-	}
-	return found
+export function servableRoots(root: string): string[] {
+	return [resolve(root)]
 }
 
 /**
@@ -252,7 +225,6 @@ const MODULE_FILE = /\.[jt]sx?$/i
 function harnessPlugin(
 	root: string,
 	current: () => readonly DiscoveredComposition[],
-	packageDir: string,
 	ignored: readonly string[],
 ): Plugin {
 	const paths = {
@@ -275,7 +247,7 @@ function harnessPlugin(
 		load(id) {
 			if (id === paths.client) return clientModule()
 			if (id === paths.manifest) return manifestModule(current())
-			if (id === paths.styles) return stylesheetModule(root, packageDir, ignored)
+			if (id === paths.styles) return stylesheetModule(root, ignored)
 			if (id === paths.element) return elementModule()
 			return undefined
 		},

@@ -21,8 +21,16 @@ export default defineConfig({
     isolate: true,
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: /^@\//, replacement: `${path.resolve(__dirname, "./src")}/` },
+      { find: /^@paradoc\/react$/, replacement: path.resolve(__dirname, "./src/index.ts") },
+      { find: /^@paradoc\/react\/pdf$/, replacement: path.resolve(__dirname, "./src/pdf/index.ts") },
+      { find: /^@paradoc\/react\/chromium$/, replacement: path.resolve(__dirname, "./src/chromium.ts") },
+      { find: /^@paradoc\/react\/check$/, replacement: path.resolve(__dirname, "./src/check/index.ts") },
+      {
+        find: /^@paradoc\/react-pdf$/,
+        replacement: path.resolve(__dirname, "../react-pdf/src/index.ts"),
+      },
+    ],
   },
 });

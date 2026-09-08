@@ -18,7 +18,7 @@
 import type { RuntimeParty } from "@paradoc/types";
 
 import type { DocumentData } from "@paradoc/react";
-import { computeLineAmounts, type LineItemInput } from "@paradoc/react";
+import { computeLineAmounts, type LineItemInput } from "./line-items";
 
 const CURRENCY = "USD";
 const TAX_RATE_PERCENT = 8.25;

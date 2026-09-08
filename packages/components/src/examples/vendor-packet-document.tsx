@@ -15,7 +15,8 @@
  * document with the packet pages it occupies, so what a reader sees on screen
  * and what the signature map says are visibly the same pages.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import { Bundle } from "../components/bundle";
 import { markDocumentRoot } from "@paradoc/react";
 import type { PdfPaintReport } from "../components/pdf-pages";

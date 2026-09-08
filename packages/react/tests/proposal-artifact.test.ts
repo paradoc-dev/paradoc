@@ -8,8 +8,8 @@ import {
   PROPOSAL_SIGNATURE_SLOTS,
   overflowProposalData,
   shortProposalData,
-} from "../src/examples";
-import { computeLineAmounts } from "../src/lib/totals";
+} from "../../components/src/examples";
+import { computeLineAmounts } from "../../components/src/examples/line-items";
 
 describe("the proposal artifact", () => {
   it("parses and declares both signing parties", () => {

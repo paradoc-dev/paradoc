@@ -19,6 +19,8 @@ import {
   type FormatOptions,
 } from "../lib/format";
 import type { DocumentData } from "../components/document-context";
+import { useUnresolvedPathCollector, type UnresolvedPathCollector } from "../components/check-context";
+import { usePartialValues } from "../components/partial-context";
 
 export class MissingArtifactProviderError extends Error {
   constructor() {
@@ -53,6 +55,7 @@ interface ArtifactSnapshot {
   data: DocumentData;
   defs: Map<string, unknown>;
   formatting: DocumentFormatter;
+  collector?: UnresolvedPathCollector;
 }
 
 interface ArtifactStore {
@@ -92,31 +95,39 @@ export interface ArtifactProviderProps {
   children: ReactNode;
 }
 
-function snapshotOf(artifact: Form, data: DocumentData, formatting: DocumentFormatter): ArtifactSnapshot {
+function snapshotOf(artifact: Form, data: DocumentData, formatting: DocumentFormatter, collector?: UnresolvedPathCollector): ArtifactSnapshot {
   const evaluated = evaluateFormDefs(artifact, { fields: data.fields, parties: data.parties });
   return {
     artifact,
     data,
     defs: "value" in evaluated && evaluated.value ? evaluated.value.defsValues : new Map(),
     formatting,
+    collector,
   };
 }
 
 /** Supplies artifact data to headless hooks without rendering a DOM element. */
 export function ArtifactProvider({ artifact, data, format, children }: ArtifactProviderProps) {
+  const inheritedPartial = usePartialValues();
+  const collector = useUnresolvedPathCollector();
   const formatterOption = format?.formatter;
   const blank = format?.blank;
-  const partial = format?.partial;
+  const partial = format?.partial ?? inheritedPartial;
   const progressive = format?.progressive;
   const formatting = useMemo(
     () => createValueFormatter({ formatter: formatterOption, blank, partial, progressive }),
     [formatterOption, blank, partial, progressive]
   );
-  const snapshot = useMemo(() => snapshotOf(artifact, data, formatting), [artifact, data, formatting]);
+  const snapshot = useMemo(() => snapshotOf(artifact, data, formatting, collector), [artifact, data, formatting, collector]);
   const storeRef = useRef<ArtifactStore | undefined>(undefined);
+  const changedRef = useRef(false);
   if (!storeRef.current) storeRef.current = createStore(snapshot);
+  changedRef.current = storeRef.current.setSnapshot(snapshot) || changedRef.current;
   useStoreLayoutEffect(() => {
-    if (storeRef.current?.setSnapshot(snapshot)) storeRef.current.emit();
+    if (changedRef.current) {
+      changedRef.current = false;
+      storeRef.current?.emit();
+    }
   }, [snapshot]);
   return <ArtifactContext.Provider value={storeRef.current}>{children}</ArtifactContext.Provider>;
 }
@@ -170,7 +181,14 @@ function sameField(a: FieldBinding, b: FieldBinding): boolean {
 /** Reads and formats one declared field path. */
 export function useField(path: string): FieldBinding {
   return useSelection(`field:${path}`, (snapshot) => {
-    const field = resolveField(snapshot.artifact, path);
+    let field: FormField;
+    try {
+      field = resolveField(snapshot.artifact, path);
+    } catch (error) {
+      if (!snapshot.collector) throw error;
+      snapshot.collector.report(path);
+      field = { type: "text", label: path, required: false, visible: true };
+    }
     const value = readValue(snapshot.data.fields, path);
     return { field, value, text: snapshot.formatting.format(field, value, path) };
   }, sameField);
@@ -191,8 +209,17 @@ function sameList(a: ListBinding, b: ListBinding): boolean {
 /** Reads one declared list and formats scalar items or fields within its rows. */
 export function useList(path: string): ListBinding {
   return useSelection(`list:${path}`, (snapshot) => {
-    const field = resolveField(snapshot.artifact, path);
-    const item = itemField(snapshot.artifact, path);
+    let field: FormField;
+    let item: FormField;
+    try {
+      field = resolveField(snapshot.artifact, path);
+      item = itemField(snapshot.artifact, path);
+    } catch (error) {
+      if (!snapshot.collector) throw error;
+      snapshot.collector.report(path);
+      field = { type: "list", label: path, required: false, visible: true, item: { type: "text", required: false, visible: true } } as FormField;
+      item = { type: "text", label: path, required: false, visible: true };
+    }
     const value = readValue(snapshot.data.fields, path);
     if (value !== undefined && !Array.isArray(value)) throw new InvalidListValueError(path, value);
     const rows = value ?? [];
@@ -246,6 +273,10 @@ export function useTotals(names: readonly string[]): readonly TotalBinding[] {
 export function useParty(role: string): readonly Party[] {
   return useSelection(`party:${role}`, (snapshot) => {
     if (!Object.hasOwn(snapshot.artifact.parties ?? {}, role)) {
+      if (snapshot.collector) {
+        snapshot.collector.report(`party:${role}`);
+        return [];
+      }
       throw new UnknownPartyRoleError(role, snapshot.artifact.name);
     }
     const value = snapshot.data.parties[role];

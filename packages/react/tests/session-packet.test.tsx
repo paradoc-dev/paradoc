@@ -27,8 +27,8 @@ import {
   purchaseOrderDocumentData,
   purchaseOrderSpec,
   VENDOR_PACKET_KEYS,
-} from "../src/examples";
-import { insuranceCertificateFixture, sealVendorPacket } from "../src/examples/pdf";
+} from "../../components/src/examples";
+import { insuranceCertificateFixture, sealVendorPacket } from "../../components/src/examples/pdf";
 import { fillBySession, type FilledSession } from "./session-driver";
 
 /** What a vendor would answer a W-9 with. The optional tail is skipped. */

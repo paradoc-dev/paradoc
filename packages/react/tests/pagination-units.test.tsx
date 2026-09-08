@@ -9,7 +9,7 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ProposalDocument, overflowProposalData, shortProposalData } from "../src/examples";
+import { ProposalDocument, overflowProposalData, shortProposalData } from "../../components/src/examples";
 
 function parse(markup: string): HTMLElement {
   const host = document.createElement("div");

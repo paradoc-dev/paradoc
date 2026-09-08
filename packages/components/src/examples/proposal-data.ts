@@ -14,7 +14,7 @@
  * tests, so shrinking either set fails rather than quietly breaking the budget.
  */
 
-import { computeLineAmounts, type LineItemInput } from "@paradoc/react";
+import { computeLineAmounts, type LineItemInput } from "./line-items";
 import type { RuntimeParty } from "@paradoc/types";
 
 import type { DocumentData } from "@paradoc/react";

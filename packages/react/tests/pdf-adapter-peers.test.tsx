@@ -15,7 +15,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { overflowProposalData, ProposalDocument } from "../src/examples";
+import { overflowProposalData, ProposalDocument } from "../../components/src/examples";
 
 vi.mock("../src/pdf/adapters/chromium", () => {
   const failure = new Error(
@@ -52,7 +52,7 @@ describe("asking for an adapter whose optional peers are missing", () => {
 
   it("leaves the default adapter reachable in the same process", async () => {
     const { renderPdf } = await import("../src/pdf");
-    const { proposalLogoImage } = await import("../src/examples/pdf");
+    const { proposalLogoImage } = await import("../../components/src/examples/pdf");
 
     const { bytes } = await renderPdf(<ProposalDocument data={overflowProposalData} />, {
       images: [await proposalLogoImage()],

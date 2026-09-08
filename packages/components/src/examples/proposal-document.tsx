@@ -1,3 +1,5 @@
+/** @jsxRuntime classic */
+import React from "react";
 import { createFormatter } from "@paradoc/format";
 /**
  * The proposal, composed from the components.

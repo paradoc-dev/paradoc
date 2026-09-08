@@ -18,7 +18,8 @@
  * Like the purchase order, this composition does not wrap itself in a `Bundle`:
  * it renders bare so a caller who puts it inside a packet supplies the bundle.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";

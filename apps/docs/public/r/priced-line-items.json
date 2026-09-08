@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "priced-line-items",
+  "type": "registry:lib",
+  "title": "Line-item arithmetic",
+  "description": "Sample-owned row multiplication and subtotal arithmetic used by the priced document blocks.",
+  "dependencies": [
+    "@paradoc/types@^0.5.0"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "artifacts/paradoc/line-items.ts",
+      "type": "registry:file",
+      "target": "artifacts/paradoc/line-items.ts",
+      "content": "import type { Money } from \"@paradoc/types\";\n\n/**\n * Line-item arithmetic.\n *\n * The expression language indexes a list and reads its length, but it has no\n * aggregate over one, so a subtotal cannot be written as a def. This helper\n * closes that one gap: it multiplies each row out and sums the rows. Tax and\n * total stay in the artifact, computed from the subtotal it returns.\n */\n\n/** One priced row of the proposal, before its amount is computed. */\nexport interface LineItemInput {\n  description: string;\n  quantity: number;\n  unit: string;\n  unitPrice: Money;\n}\n\n/** One priced row with its computed amount. */\nexport interface LineItem extends LineItemInput {\n  amount: Money;\n}\n\nfunction round(amount: number): number {\n  return Math.round(amount * 100) / 100;\n}\n\n/** Multiplies every row out and returns the rows with their amounts plus the subtotal. */\nexport function computeLineAmounts(\n  items: readonly LineItemInput[],\n  currency: string\n): { lineItems: LineItem[]; subtotalAmount: number } {\n  const lineItems = items.map((item) => ({\n    ...item,\n    amount: { amount: round(item.quantity * item.unitPrice.amount), currency },\n  }));\n  const subtotalAmount = round(lineItems.reduce((sum, item) => sum + item.amount.amount, 0));\n  return { lineItems, subtotalAmount };\n}\n"
+    }
+  ]
+}

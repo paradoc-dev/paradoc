@@ -8,7 +8,7 @@
  * are checked against.
  *
  * The sample document's own seal wiring is not here. It is
- * `@paradoc/react/examples/pdf`, because it is sample material.
+ * the consumer-owned composition, because it is sample material.
  */
 
 export {

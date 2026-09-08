@@ -10,7 +10,10 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@paradoc/react": ["./src/index.ts"],
+      "@paradoc/react/*": ["./src/*"],
+      "@paradoc/react-pdf": ["../react-pdf/src/index.ts"]
     }
   },
   "include": [

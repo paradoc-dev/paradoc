@@ -13,7 +13,8 @@
  * That is the only thing this composition is for. It carries no signature slot
  * and it is not a part of the packet as a composition; only its bytes are.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import { para } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 

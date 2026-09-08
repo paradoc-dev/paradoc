@@ -22,7 +22,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Pages } from "../src/components/pages";
+import { Pages } from "../../components/src/components/pages";
 import {
   scriptProbeText,
   ARABIC_FONT_NAME,
@@ -38,7 +38,7 @@ import {
   ProposalDocument,
   overflowProposalData,
   shortProposalData,
-} from "../src/examples";
+} from "../../components/src/examples";
 
 let container: HTMLDivElement;
 let root: Root;

@@ -19,15 +19,15 @@ import {
   shortProposalData,
   PROPOSAL_REACT_LAYER,
   PROPOSAL_SIGNATURE_SLOTS,
-} from "../src/examples";
+} from "../../components/src/examples";
 import { renderPdf, type PdfImage } from "../src/pdf";
 import {
   fillProposalForSeal,
   proposalLogoImage,
   proposalRenderers,
   sealProposal,
-} from "../src/examples/pdf";
-import { SIGNATURE_RULE } from "../src/components/signature";
+} from "../../components/src/examples/pdf";
+import { SIGNATURE_RULE } from "../../components/src/components/signature";
 import { readPdf, type ReadPage } from "./pdf-reader";
 
 /** CSS pixels at 96 dpi to the PDF's points at 72 dpi. */

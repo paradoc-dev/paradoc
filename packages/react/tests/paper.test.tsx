@@ -11,7 +11,8 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Paper, PAPER_WIDTH_PX } from "../src/components/paper";
+import { Paper } from "../../components/src/components/paper";
+import { PAPER_WIDTH_PX } from "../src/headless/paper";
 
 /** Every observer the component under test created, so the test can drive them. */
 let observers: Array<() => void> = [];

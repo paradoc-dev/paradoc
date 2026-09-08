@@ -46,7 +46,14 @@ for that; otherwise, read the artifact's own schema directly.
 ## The shape of a composition
 
 ```tsx
-import { Bundle, Document, Field, Section, Signature, Table, Totals, type DocumentData } from "@paradoc/react";
+import type { DocumentData } from "@paradoc/react";
+import { Bundle } from "@/components/paradoc/bundle";
+import { Document } from "@/components/paradoc/document";
+import { Field } from "@/components/paradoc/field";
+import { Section } from "@/components/paradoc/section";
+import { Signature } from "@/components/paradoc/signature";
+import { Table } from "@/components/paradoc/table";
+import { Totals } from "@/components/paradoc/totals";
 import type { Form } from "@paradoc/types";
 
 // changeOrderForm is a parsed, validated `Form` (para.form(spec).toJSON() or
@@ -108,7 +115,7 @@ import with no corresponding prop. `data` is a `DocumentData`:
   be a parsed, validated `Form` — `para.form(spec).toJSON()` or
   `para.load(text).toJSON()` from `@paradoc/core`. See
   [artifact-binding.md](./references/artifact-binding.md#loading-the-artifact).
-- **Never `import "@paradoc/react/styles.css"` inside a composition module.**
+- **Never import CSS inside a composition module.**
   A composition is imported by Node with no CSS loader whenever it is bound
   directly — `para check`, a layer render, a seal — and a stylesheet import
   there fails with "Unknown file extension \".css\"". The stylesheet is an
@@ -160,16 +167,16 @@ import with no corresponding prop. `data` is a `DocumentData`:
    `npx shadcn@4 add @paradoc/<name>`). See
    [cli.md](./references/cli.md#installing-components) — installing `field`
    also brings `keep-together` along, since `field` depends on it. If the
-   components already exist in the project (e.g. `@paradoc/react` components
-   imported directly rather than installed as source), use those imports
-   instead — check for an existing composition to copy from first.
+   components already exist in the project, use those local imports instead.
+   The public React package contains the headless runtime and exports no visible
+   document components.
 3. Write the `.tsx` file at the path the artifact's layer names, exporting the
    composition as the default export. Compose only from the vocabulary in
    [components.md](./references/components.md).
 4. Run `para check <the-composition-or-artifact>`. Fix every unresolved path
    and unsupported class it names. See
    [cli.md](./references/cli.md#checking-a-composition).
-5. If `@paradoc/react/pdf` is available, render it and inspect the PDF — this
+5. If `@paradoc/react-pdf` is available, render it and inspect the PDF — this
    is the file that will be sealed, byte for byte.
 
 ## Common mistakes

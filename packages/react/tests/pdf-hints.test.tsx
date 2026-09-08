@@ -19,10 +19,10 @@
 
 import { fromJsx } from "@takumi-rs/helpers/jsx";
 import { beforeAll, describe, expect, it } from "vitest";
-import { ProposalDocument, overflowProposalData } from "../src/examples";
+import { ProposalDocument, overflowProposalData } from "../../components/src/examples";
 import { planPages, type MeasuredKeep, type PagePlan } from "../src/lib/plan";
 import { preparePdfTree, renderPdf, type PageBreakPlan } from "../src/pdf";
-import { proposalLogoImage } from "../src/examples/pdf";
+import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";
 import { PREVIEW_PLAN } from "./preview-plan";
 import { normalizeText as normalize, treeKeeps } from "./tree-keeps";

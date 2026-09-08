@@ -338,6 +338,16 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: ["keep-together"],
   },
   {
+    name: "priced-line-items",
+    type: "registry:lib",
+    title: "Line-item arithmetic",
+    description:
+      "Sample-owned row multiplication and subtotal arithmetic used by the priced document blocks.",
+    files: [artifactFile("line-items", "line-items")],
+    dependencies: ["@paradoc/types"],
+    registryDependencies: [],
+  },
+  {
     name: "purchase-order",
     type: "registry:block",
     title: "Purchase Order",
@@ -357,6 +367,7 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       "document",
       "field",
       "keep-together",
+      "priced-line-items",
       "pages",
       "section",
       "signature",
@@ -386,6 +397,7 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       "document",
       "field",
       "keep-together",
+      "priced-line-items",
       "pages",
       "section",
       "table",

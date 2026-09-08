@@ -9,11 +9,11 @@ import { para } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 import { checkComposition, checkElement } from "../src/check";
-import { Document } from "../src/components/document";
-import { Field } from "../src/components/field";
-import { KeepTogether } from "../src/components/keep-together";
-import { Signature } from "../src/components/signature";
-import { Totals } from "../src/components/totals";
+import { Document } from "../../components/src/components/document";
+import { Field } from "../../components/src/components/field";
+import { KeepTogether } from "../../components/src/components/keep-together";
+import { Signature } from "../../components/src/components/signature";
+import { Totals } from "../../components/src/components/totals";
 import type { DocumentData } from "../src/components/document-context";
 import type { ReactLayerComponent } from "../src/pdf/layer";
 

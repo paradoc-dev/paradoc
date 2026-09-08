@@ -16,7 +16,7 @@ import {
   ENGAGEMENT_LETTER_REACT_LAYER,
   ENGAGEMENT_LETTER_REACT_LAYER_PATH,
   ENGAGEMENT_LETTER_SIGNATURE_SLOTS,
-} from "../src/examples";
+} from "../../components/src/examples";
 
 describe("the engagement letter artifact", () => {
   it("parses and declares both signing parties", () => {

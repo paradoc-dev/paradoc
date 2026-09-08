@@ -1,3 +1,5 @@
+/** @jsxRuntime classic */
+import React from "react";
 import { useDocumentTokens, useField, useTotals } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 

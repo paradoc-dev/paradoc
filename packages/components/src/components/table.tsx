@@ -1,4 +1,6 @@
-import { useList } from "@paradoc/react";
+/** @jsxRuntime classic */
+import React from "react";
+import { useList, usePage } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 export interface TableColumn {
@@ -17,7 +19,10 @@ export interface TableProps {
 
 export function Table({ path, columns, id, className }: TableProps) {
   const list = useList(path);
+  const page = usePage();
   const prefix = id ?? path;
+  const keepIds = [`${prefix}:header`, ...list.rows.map((_row, index) => `${prefix}:${index}`)];
+  if (page && !keepIds.some((keepId) => page.keeps.has(keepId))) return null;
   const header = (column: TableColumn) => column.header ??
     (list.item.type === "fieldset" ? list.item.fields[column.field]?.label : undefined) ?? column.field;
   return (

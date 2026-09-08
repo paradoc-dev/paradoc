@@ -16,7 +16,7 @@
  * there is exactly one set.
  */
 
-import { computeLineAmounts, type LineItem, type LineItemInput } from "@paradoc/react";
+import { computeLineAmounts, type LineItem, type LineItemInput } from "./line-items";
 import type { RuntimeParty } from "@paradoc/types";
 
 import type { DocumentData } from "@paradoc/react";

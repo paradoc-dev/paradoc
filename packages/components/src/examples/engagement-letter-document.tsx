@@ -23,7 +23,8 @@
  * stops at the first root it finds. One root is what keeps one declaration from
  * becoming two.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";

@@ -17,25 +17,25 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Bundle } from "../src/components/bundle";
-import { Document } from "../src/components/document";
-import { Pages } from "../src/components/pages";
-import { Paper } from "../src/components/paper";
-import { Section } from "../src/components/section";
+import { Bundle } from "../../components/src/components/bundle";
+import { Document } from "../../components/src/components/document";
+import { Pages } from "../../components/src/components/pages";
+import { Paper } from "../../components/src/components/paper";
+import { Section } from "../../components/src/components/section";
 import {
   NestedPaperTokenError,
   markDocumentRoot,
   RootTokenMismatchError,
   TokenOverrideProvider,
 } from "../src/components/tokens-context";
-import { Totals } from "../src/components/totals";
+import { Totals } from "../../components/src/components/totals";
 import {
   brandedProposalTokens,
   proposalForm,
   ProposalDocument,
   shortProposalData,
   BRANDED_ACCENT_COLOR,
-} from "../src/examples";
+} from "../../components/src/examples";
 import {
   documentTokensOf,
   MultipleDocumentRootsError,

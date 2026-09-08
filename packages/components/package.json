@@ -30,5 +30,16 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  }
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./examples": "./src/examples/index.ts",
+    "./examples/pdf": "./src/examples/pdf.ts",
+    "./examples/proposal-logo.png": "./src/examples/proposal-logo.png",
+    "./examples/certificate-of-insurance.pdf": "./src/examples/certificate-of-insurance.pdf",
+    "./styles.css": "./src/styles.css"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
 }

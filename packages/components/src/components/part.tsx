@@ -19,7 +19,8 @@
  * The session-fill ticket drives exactly that: reseal, hand back the new
  * `packetHash` with the new placements, and the numbers return.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import type { ReactNode } from "react";
 import { resolvePartPlacement } from "@paradoc/react";
 
@@ -53,7 +54,7 @@ export interface PartProps {
 /** Which of the four things the header can say about this part's pages. */
 /** One document within a packet, with its own pages and its own numbering. */
 export function Part(props: PartProps) {
-  const { id, kind, label, firstPage, pageCount, attached, className, children } = props;
+  const { id, kind, label, attached, className, children } = props;
   const placement = resolvePartPlacement(props);
 
   return (

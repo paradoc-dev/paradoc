@@ -97,6 +97,7 @@ npx shadcn@4 add https://docs.paradoc.dev/r/field.json
 | [`signature`](https://docs.paradoc.dev/r/signature.json) | A party's signing block, with the rule the seal measures a signature field from. |
 | [`table`](https://docs.paradoc.dev/r/table.json) | A list field as rows, with a header that repeats on every page it continues onto. |
 | [`totals`](https://docs.paradoc.dev/r/totals.json) | The artifact's computed amounts, evaluated by `@paradoc/core`. |
+| [`priced-line-items`](https://docs.paradoc.dev/r/priced-line-items.json) | Sample line-item arithmetic installed with the worked invoice and purchase-order blocks. |
 
 ## The blocks
 
@@ -180,21 +181,21 @@ import { Section } from "@/components/paradoc/section";
 
 export function Proposal({ artifact, data }) {
   return (
-    <Document artifact={artifact} data={data}>
-      <Pages>
+    <Pages>
+      <Document artifact={artifact} data={data}>
         <Section id="parties" title="Parties">
           <Field path="customer" />
           <Field path="issuedOn" />
         </Section>
-      </Pages>
-    </Document>
+      </Document>
+    </Pages>
   );
 }
 ```
 
 `Field` names a path and prints nothing of its own: the label comes from the
 artifact and the text comes from the serializer the field's type names. The same
-tree renders to PDF through `@paradoc/react/pdf`.
+tree renders to PDF through `@paradoc/react-pdf`.
 
 ## How the registry is built
 

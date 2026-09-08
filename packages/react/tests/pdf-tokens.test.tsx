@@ -17,11 +17,11 @@
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
-import { Bundle } from "../src/components/bundle";
-import { Document } from "../src/components/document";
-import { Section } from "../src/components/section";
+import { Bundle } from "../../components/src/components/bundle";
+import { Document } from "../../components/src/components/document";
+import { Section } from "../../components/src/components/section";
 import { markDocumentRoot, RootTokenMismatchError } from "../src/components/tokens-context";
-import { Totals } from "../src/components/totals";
+import { Totals } from "../../components/src/components/totals";
 
 import {
   brandedProposalTokens,
@@ -29,8 +29,8 @@ import {
   ProposalDocument,
   shortProposalData,
   BRANDED_ACCENT_COLOR,
-} from "../src/examples";
-import { proposalLogoImage } from "../src/examples/pdf";
+} from "../../components/src/examples";
+import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { SERIF_FONT_NAME, UnregisteredFontFamilyError } from "../src/lib/font";
 import { DEFAULT_DOCUMENT_TOKENS, type DocumentTokensInput } from "../src/lib/tokens";
 import { renderPdf, type PdfImage } from "../src/pdf";

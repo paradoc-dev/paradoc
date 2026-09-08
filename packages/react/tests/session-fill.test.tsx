@@ -40,7 +40,7 @@ import {
 } from "@paradoc/sessions";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Pages } from "../src/components/pages";
+import { Pages } from "../../components/src/components/pages";
 import type { FormatOptions } from "../src/lib/format";
 import {
   purchaseOrderAnswers,
@@ -49,7 +49,7 @@ import {
   PurchaseOrderDocument,
   purchaseOrderSpec,
   type PurchaseOrderPayload,
-} from "../src/examples";
+} from "../../components/src/examples";
 import {
   emptySession,
   fillBySession,

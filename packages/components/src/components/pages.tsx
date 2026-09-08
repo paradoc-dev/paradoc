@@ -1,3 +1,5 @@
+/** @jsxRuntime classic */
+import React from "react";
 import {
   DrawnPaperProvider,
   PAGE_GAP_PX,

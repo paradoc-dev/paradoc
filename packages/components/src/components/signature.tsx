@@ -24,7 +24,8 @@
  * one flow slot per type, so a party signing and initialling is two blocks and
  * two slots.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import { useSignature, type SigningMarkType } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 

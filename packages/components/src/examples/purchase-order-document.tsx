@@ -10,7 +10,8 @@
  * packet's own layer supplies the bundle around every composition it
  * contains, so this one renders bare and lets the caller decide.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import type { Form } from "@paradoc/types";
 
 import { KeepTogether } from "../components/keep-together";

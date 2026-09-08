@@ -19,8 +19,8 @@ import {
   useParty,
   useTotals,
 } from "../src";
-import { purchaseOrderData } from "../src/examples/purchase-order-data";
-import { purchaseOrderForm } from "../src/examples/purchase-order";
+import { purchaseOrderData } from "../../components/src/examples/purchase-order-data";
+import { purchaseOrderForm } from "../../components/src/examples/purchase-order";
 
 function BoundSummary() {
   const number = useField("orderNumber");

@@ -12,7 +12,7 @@ import kleur from 'kleur'
 
 import { loadDiscovery, type DiscoveredComposition } from './discovery.js'
 import { bindingLabel, sampleLabel } from './messages.js'
-import { assertDevPeers, MissingDevPeerError, UnusableReactPackageError } from './peers.js'
+import { assertDevPeers, MissingDevPeerError } from './peers.js'
 
 interface DevOptions {
 	port: string
@@ -93,7 +93,7 @@ export function createDevCommand(): Command {
 				process.on('SIGINT', stop)
 				process.on('SIGTERM', stop)
 			} catch (error) {
-				if (error instanceof MissingDevPeerError || error instanceof UnusableReactPackageError) {
+				if (error instanceof MissingDevPeerError) {
 					console.error(kleur.red(error.message))
 					process.exit(1)
 				}

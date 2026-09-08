@@ -66,6 +66,7 @@ export const COMPONENT_ITEMS = [
   'signature',
   'table',
   'totals',
+  'priced-line-items',
   'purchase-order',
   'invoice',
   'engagement-letter',

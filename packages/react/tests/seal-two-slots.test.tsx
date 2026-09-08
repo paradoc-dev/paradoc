@@ -17,9 +17,9 @@ import { para } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 import { describe, expect, it } from "vitest";
 
-import { Document } from "../src/components/document";
-import { Section } from "../src/components/section";
-import { INITIALS_RULE, Signature, SIGNATURE_RULE } from "../src/components/signature";
+import { Document } from "../../components/src/components/document";
+import { Section } from "../../components/src/components/section";
+import { INITIALS_RULE, Signature, SIGNATURE_RULE } from "../../components/src/components/signature";
 import type { DocumentData } from "../src/components/document-context";
 import { AmbiguousSigningMarkError, findSigningMark } from "../src/components/signing-context";
 import { reactLayerRenderers } from "../src/pdf/layer";

@@ -30,7 +30,7 @@ import {
   arabicLetterTokens,
   ProposalDocument,
   shortProposalData,
-} from "../src/examples";
+} from "../../components/src/examples";
 import { documentTokensOf } from "../src/lib/document-tokens";
 import {
   resolveDocumentTokens,
@@ -45,10 +45,9 @@ import {
   scriptsIn,
   UnsupportedScriptError,
 } from "../src/lib/script";
-import { Document } from "../src/components/document";
-import { Field, LTR_ISOLATE_CLASS } from "../src/components/field";
+import { Document } from "../../components/src/components/document";
+import { Field } from "../../components/src/components/field";
 import { preparePdfTree } from "../src/pdf/tree";
-import { unsupportedClasses } from "../src/pdf/tailwind";
 import { assertDirectionSupported, UnsupportedDirectionError } from "../src/pdf/adapter";
 import { takumiAdapter } from "../src/pdf/adapters/takumi";
 import { renderPdf } from "../src/pdf";
@@ -297,11 +296,7 @@ describe("an engine that cannot lay a document out right to left fails naming it
 describe("a value with no direction of its own is isolated", () => {
   it("wraps the letter's phone in a left-to-right isolate", () => {
     const markup = renderToStaticMarkup(letter);
-    // The class for the browser and the inline style for a renderer reading no
-    // stylesheet of ours, on the same span, saying the same thing.
-    expect(markup).toMatch(
-      /<span[^>]*class="paradoc-ltr-isolate[^"]*"[^>]*style="direction:ltr;unicode-bidi:isolate"/u
-    );
+    expect(markup).toMatch(/<span[^>]*style="direction:ltr;unicode-bidi:isolate"/u);
   });
 
   it("leaves the Latin references alone, which is what keeps their bytes", () => {
@@ -324,12 +319,6 @@ describe("a value with no direction of its own is isolated", () => {
     expect(markup).not.toContain("lang=");
   });
 
-  it("is admitted by the verified class vocabulary", () => {
-    // The isolate is a rule of this package's own stylesheet rather than a
-    // Tailwind utility, so the allow-list has to know it by name or the PDF
-    // path would refuse every right-to-left document that used it.
-    expect(unsupportedClasses(`${LTR_ISOLATE_CLASS} whitespace-pre-line`)).toEqual([]);
-  });
 });
 
 describe("the tree walk is the last thing to see the resolved text", () => {

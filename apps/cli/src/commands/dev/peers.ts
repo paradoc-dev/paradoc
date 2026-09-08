@@ -28,9 +28,9 @@
  * than installed into a consumer project.
  */
 
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import type { InlineConfig, Plugin, ViteDevServer } from 'vite'
@@ -97,19 +97,6 @@ export class MissingDevPeerError extends Error {
 	}
 }
 
-/** Thrown when what `@paradoc/react` resolves to is not a package the preview can style. */
-export class UnusableReactPackageError extends Error {
-	constructor(directory: string, detail: string) {
-		super(
-			`The @paradoc/react installation at ${directory} cannot be used: ${detail} ` +
-				"The preview compiles Tailwind against that directory's component sources, so without them " +
-				'the components\' own classes are never generated and the document paginates shorter than it ' +
-				'renders. Reinstall @paradoc/react in this project.',
-		)
-		this.name = 'UnusableReactPackageError'
-	}
-}
-
 /** What the dev server needs, once every peer has been found. */
 export interface DevToolchain {
 	/** Vite's `createServer`, from the project's copy. */
@@ -118,8 +105,6 @@ export interface DevToolchain {
 	react: () => Plugin[] | Plugin
 	/** The Tailwind plugin factory. */
 	tailwindcss: () => Plugin[] | Plugin
-	/** Directory `@paradoc/react` is installed in, for the stylesheet's sources. */
-	reactPackageDir: string
 }
 
 /** Where a specifier may be resolved from, in the order the parents are tried. */
@@ -183,8 +168,6 @@ export function assertDevPeers(root: string): void {
  * Everything the preview is built from, or one error naming every missing part.
  *
  * @throws {MissingDevPeerError} when the project cannot supply a peer.
- * @throws {UnusableReactPackageError} when `@paradoc/react` resolves to
- * something the stylesheet cannot be compiled against.
  */
 export async function loadDevToolchain(root: string): Promise<DevToolchain> {
 	assertDevPeers(root)
@@ -199,7 +182,6 @@ export async function loadDevToolchain(root: string): Promise<DevToolchain> {
 		// under `default` a second time, which is the one interop worth handling.
 		react: unwrap(reactPlugin) as DevToolchain['react'],
 		tailwindcss: unwrap(tailwindPlugin) as DevToolchain['tailwindcss'],
-		reactPackageDir: paradocReactDir(root),
 	}
 }
 
@@ -210,63 +192,6 @@ function unwrap(module: Record<string, unknown>): unknown {
 	return typeof exported === 'function' ? exported : (nested ?? exported)
 }
 
-/**
- * The specifier used to test whether a package is installed.
- *
- * `@paradoc/react` publishes an export map without `./package.json`, so it is
- * probed through the one file every consumer already imports: its stylesheet.
- */
 function entryOf(peer: string): string {
-	return peer === '@paradoc/react' ? '@paradoc/react/styles.css' : peer
-}
-
-/**
- * The directory `@paradoc/react` is installed in.
- *
- * Derived from its stylesheet, which the export map places at `src/styles.css`
- * in both the published package and the workspace one. What it resolves to is
- * then checked rather than assumed — see {@link assertUsableReactPackage}.
- *
- * @throws {MissingDevPeerError} @throws {UnusableReactPackageError}
- */
-export function paradocReactDir(root: string): string {
-	const styles = resolveFrom(root, '@paradoc/react/styles.css')
-	if (!styles) throw new MissingDevPeerError(['@paradoc/react'], root)
-	const directory = resolve(dirname(styles), '..')
-	assertUsableReactPackage(directory)
-	return directory
-}
-
-/**
- * Refuses a directory that is not a usable `@paradoc/react` installation.
- *
- * Tailwind compiles the preview's stylesheet against this directory's component
- * sources. A directory that is not the package, or one with neither `dist` nor
- * `src` in it, would compile a stylesheet missing every class the components
- * carry: the document would still render, and would paginate shorter than it
- * renders, and nothing on the page would say so. That failure is invisible, so
- * it is refused here instead.
- *
- * @throws {UnusableReactPackageError}
- */
-export function assertUsableReactPackage(directory: string): void {
-	const manifest = join(directory, 'package.json')
-	if (!existsSync(manifest)) {
-		throw new UnusableReactPackageError(directory, 'it holds no package.json.')
-	}
-	let name: unknown
-	try {
-		name = (JSON.parse(readFileSync(manifest, 'utf8')) as { name?: unknown }).name
-	} catch (error) {
-		throw new UnusableReactPackageError(
-			directory,
-			`its package.json could not be read: ${error instanceof Error ? error.message : String(error)}.`,
-		)
-	}
-	if (name !== '@paradoc/react') {
-		throw new UnusableReactPackageError(directory, `its package.json names ${String(name)}.`)
-	}
-	if (!existsSync(join(directory, 'dist')) && !existsSync(join(directory, 'src'))) {
-		throw new UnusableReactPackageError(directory, 'it holds neither a dist nor a src directory.')
-	}
+	return peer
 }

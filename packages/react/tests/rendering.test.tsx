@@ -10,16 +10,16 @@ import { createFormatter } from "@paradoc/format";
 import type { FormField } from "@paradoc/types";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Document } from "../src/components/document";
-import { Field } from "../src/components/field";
-import { Signature } from "../src/components/signature";
-import { Table } from "../src/components/table";
+import { Document } from "../../components/src/components/document";
+import { Field } from "../../components/src/components/field";
+import { Signature } from "../../components/src/components/signature";
+import { Table } from "../../components/src/components/table";
 import {
   ProposalDocument,
   proposalForm,
   overflowProposalData,
   shortProposalData,
-} from "../src/examples";
+} from "../../components/src/examples";
 import { UnknownFieldPathError } from "../src/lib/fields";
 import { ArtifactFieldFormatError, type FormatOptions } from "../src/lib/format";
 

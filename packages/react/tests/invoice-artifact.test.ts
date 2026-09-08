@@ -20,7 +20,7 @@ import {
   INVOICE_ACCENT_COLOR,
   INVOICE_REACT_LAYER,
   INVOICE_REACT_LAYER_PATH,
-} from "../src/examples";
+} from "../../components/src/examples";
 
 describe("the invoice artifact", () => {
   it("parses and declares both parties, neither of which signs", () => {

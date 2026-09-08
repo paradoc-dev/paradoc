@@ -92,7 +92,8 @@
     "typescript": "catalog:",
     "vite": "^7.1.7",
     "vitest": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@paradoc/components": "workspace:*"
   },
   "peerDependencies": {
     "@paradoc/react": "workspace:^",

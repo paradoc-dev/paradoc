@@ -7,8 +7,6 @@ export default defineConfig({
     "src/chromium.ts",
     "src/check/index.ts",
     "src/discovery/index.ts",
-    "src/examples/index.ts",
-    "src/examples/pdf.ts",
   ],
   format: ["esm"],
   dts: {

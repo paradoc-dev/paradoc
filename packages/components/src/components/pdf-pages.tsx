@@ -12,7 +12,8 @@
  * own would be a second opinion about a document that is already final. So a
  * painted part keeps its own paper even inside a packet branded to another.
  */
-
+/** @jsxRuntime classic */
+import React from "react";
 import { useRef } from "react";
 import { useFitToWidth, usePdfPages, type PdfPaintReport } from "@paradoc/react";
 

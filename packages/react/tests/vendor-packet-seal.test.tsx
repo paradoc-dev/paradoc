@@ -22,14 +22,14 @@ import {
   purchaseOrderData,
   VENDOR_PACKET_KEYS,
   vendorPacketBundle,
-} from "../src/examples";
+} from "../../components/src/examples";
 import {
   fillPurchaseOrderForSeal,
   insuranceCertificateFixture,
   insuranceCertificatePdf,
   sealVendorPacket,
   vendorPacketRenderers,
-} from "../src/examples/pdf";
+} from "../../components/src/examples/pdf";
 import { inspectPdf } from "@paradoc/render/pdf";
 import { sealBundle } from "@paradoc/core";
 

@@ -23,8 +23,8 @@ import { createFormatter } from "@paradoc/format";
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Pages } from "../src/components/pages";
-import { ProposalDocument, overflowProposalData, shortProposalData } from "../src/examples";
+import { Pages } from "../../components/src/components/pages";
+import { ProposalDocument, overflowProposalData, shortProposalData } from "../../components/src/examples";
 import type { PagePlan } from "../src/lib/plan";
 
 /** Generous for work that settles in milliseconds. */

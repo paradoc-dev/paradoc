@@ -1,4 +1,4 @@
-import { Document, Field, KeepTogether } from '@paradoc/react'
+import { Document, Field, KeepTogether } from '@paradoc/components'
 import type { DocumentData } from '@paradoc/react'
 import type { Form } from '@paradoc/types'
 

@@ -15,9 +15,9 @@ import {
   overflowProposalData,
   shortProposalData,
   PROPOSAL_LOGO_SRC,
-} from "../src/examples";
-import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/components/paper";
-import { proposalLogoImage } from "../src/examples/pdf";
+} from "../../components/src/examples";
+import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/headless/paper";
+import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { renderPdf, UnsupportedPdfContentError } from "../src/pdf";
 import type { PdfAdapter, PreparedPdfInput } from "../src/pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";

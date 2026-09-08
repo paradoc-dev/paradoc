@@ -1,4 +1,4 @@
-import { Document, Totals } from '@paradoc/react'
+import { Document, Totals } from '@paradoc/components'
 import type { DocumentData } from '@paradoc/react'
 import type { Form } from '@paradoc/types'
 
