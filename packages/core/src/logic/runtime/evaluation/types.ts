@@ -8,6 +8,8 @@
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { AsOf } from '@paradoc/expr'
+import type { HostFunction, Registry } from '@paradoc/expr'
+import type { EvalErrorCode, Span } from '@paradoc/expr'
 
 /**
  * Runtime state of a single field after expression evaluation.
@@ -107,6 +109,10 @@ export interface EvaluationContext {
   witnesses?: PartyContextEntry[]
   /** Fixed clock for temporal expressions. */
   asOf?: AsOf
+  /** Deterministic host functions available to expression evaluation. */
+  expressionFunctions?: Readonly<Record<string, HostFunction>>
+  /** Signatures shared with the evaluator for configured functions and overrides. */
+  expressionRegistry?: Registry
   /** Resolved defs key values (dynamic keys) */
   [defsKey: string]: unknown
 }
@@ -129,6 +135,10 @@ export interface ExpressionResult<T = unknown> {
   value?: T
   /** Error message if evaluation failed */
   error?: string
+	/** Stable expression-engine failure category. */
+	code?: EvalErrorCode
+	/** Source location when the failure is attributable to expression text. */
+	span?: Span
 }
 
 /**

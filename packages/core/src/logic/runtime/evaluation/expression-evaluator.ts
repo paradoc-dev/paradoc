@@ -16,9 +16,11 @@ import {
 	evaluateExpression as runExpression,
 	Values,
 	toValue,
+	truthy,
 	type EvaluationContext as ExprContext,
 	type HostFunction,
 	type Value,
+	type EvalResult,
 } from '@paradoc/expr'
 import type { EvaluationContext, ExpressionResult, EvaluationOptions, PartyContextEntry } from './types'
 import { ExpressionEvaluationError } from './errors'
@@ -80,7 +82,7 @@ function anyWitnessSigned(context: EvaluationContext): boolean {
 function roleArg(args: readonly Value[]): string {
 	const a = args[0]
 	if (!a) return ''
-	return a.kind === 'string' ? a.value : String(fromValue(a))
+	return a.kind === 'string' ? a.value : String(fromExpressionValue(a))
 }
 
 /**
@@ -88,6 +90,23 @@ function roleArg(args: readonly Value[]): string {
  * references resolve against the context object, and the party/witness
  * predicates are host-injected.
  */
+interface CachedContextValue {
+	readonly source: unknown
+	readonly value: Value
+}
+
+const convertedContexts = new WeakMap<object, Map<string, CachedContextValue>>()
+const reusableEvaluationContext = Symbol('reusableEvaluationContext')
+
+/** Mark an internally built context whose roots remain stable for one artifact evaluation. */
+export function markEvaluationContextReusable(context: EvaluationContext): () => void {
+	Object.defineProperty(context, reusableEvaluationContext, { value: true, configurable: true })
+	return () => {
+		Reflect.deleteProperty(context, reusableEvaluationContext)
+		convertedContexts.delete(context)
+	}
+}
+
 function buildExprContext(context: EvaluationContext): ExprContext {
 	const hostFunctions: Record<string, HostFunction> = {
 		partyCount: (args) => Values.num(String(partyCount(roleArg(args), context))),
@@ -98,17 +117,66 @@ function buildExprContext(context: EvaluationContext): ExprContext {
 		witnessCount: () => Values.num(String(witnessCount(context))),
 		allWitnessesSigned: () => Values.boolean(allWitnessesSigned(context)),
 		anyWitnessSigned: () => Values.boolean(anyWitnessSigned(context)),
+		...context.expressionFunctions,
 	}
 	const record = context as Record<string, unknown>
+	const canReuse = reusableEvaluationContext in context
+	let converted = canReuse ? convertedContexts.get(context) : undefined
+	if (!converted) {
+		converted = new Map()
+		if (canReuse) convertedContexts.set(context, converted)
+	}
+	const resolved = new Map<string, Value>()
 	return {
-		lookup: (name) => (name in record ? toValue(record[name]) : undefined),
+		lookup: (name) => {
+			if (!Object.prototype.hasOwnProperty.call(record, name)) return undefined
+			const resolvedValue = resolved.get(name)
+			if (resolvedValue) return resolvedValue
+			const source = record[name]
+			const cached = converted.get(name)
+			if (cached && Object.is(cached.source, source)) {
+				resolved.set(name, cached.value)
+				return cached.value
+			}
+			const value = toContextValue(source)
+			converted.set(name, { source, value })
+			resolved.set(name, value)
+			return value
+		},
 		hostFunctions,
 		asOf: context.asOf,
+		registry: context.expressionRegistry,
 	}
 }
 
-/** Convert an @paradoc/expr value back to a plain JS value for callers. */
-function fromValue(v: Value): unknown {
+const internalExpressionValue = Symbol('internalExpressionValue')
+
+interface InternalExpressionValue {
+	readonly [internalExpressionValue]: Value
+}
+
+/** Preserve an expression value across an internal definition dependency edge. */
+export function wrapExpressionValue(value: Value): InternalExpressionValue {
+	return { [internalExpressionValue]: value }
+}
+
+function isInternalExpressionValue(value: unknown): value is InternalExpressionValue {
+	return Boolean(value && typeof value === 'object' && internalExpressionValue in value)
+}
+
+function toContextValue(value: unknown): Value {
+	if (isInternalExpressionValue(value)) return value[internalExpressionValue]
+	if (Array.isArray(value)) return Values.array(value.map((item) => toContextValue(item)))
+	if (value && typeof value === 'object') {
+		return Values.object(Object.entries(value as Record<string, unknown>).map(([key, item]) => {
+			try { return [key, toContextValue(item)] as const }
+			catch { return [key, Values.null] as const }
+		}))
+	}
+	return toValue(value)
+}
+
+export function fromExpressionValue(v: Value): unknown {
 	switch (v.kind) {
 		case 'number':
 			return v.value.toNumber()
@@ -119,10 +187,15 @@ function fromValue(v: Value): unknown {
 		case 'null':
 			return null
 		case 'array':
-			return v.value.map(fromValue)
+			return v.value.map(fromExpressionValue)
 		case 'object':
-			return Object.fromEntries([...v.value].map(([k, val]) => [k, fromValue(val)]))
+			return Object.fromEntries([...v.value].map(([k, val]) => [k, fromExpressionValue(val)]))
 	}
+}
+
+/** Internal precision-preserving seam used while evaluating dependent definitions. */
+export function evaluateExpressionValue(expr: string, context: EvaluationContext): EvalResult {
+	return runExpression(expr, buildExprContext(context))
 }
 
 /**
@@ -147,12 +220,12 @@ export function evaluateExpression<T = unknown>(
 ): ExpressionResult<T> {
 	const result = runExpression(expr, buildExprContext(context))
 	if (result.success) {
-		return { success: true, value: fromValue(result.value) as T }
+		return { success: true, value: fromExpressionValue(result.value) as T }
 	}
 	if (options?.throwOnError) {
 		throw ExpressionEvaluationError.evaluationFailed(expr, new Error(result.error))
 	}
-	return { success: false, error: result.error }
+	return { success: false, error: result.error, code: result.code, span: result.span }
 }
 
 /**
@@ -171,11 +244,12 @@ export function evaluateBooleanExpression(
 	if (typeof condExpr === 'boolean') {
 		return condExpr
 	}
-	const result = evaluateExpression<unknown>(condExpr, context, options)
+	const result = runExpression(condExpr, buildExprContext(context))
 	if (!result.success) {
+		if (options?.throwOnError) throw ExpressionEvaluationError.evaluationFailed(condExpr, new Error(result.error))
 		return defaultValue
 	}
-	return Boolean(result.value)
+	return truthy(result.value)
 }
 
 /**

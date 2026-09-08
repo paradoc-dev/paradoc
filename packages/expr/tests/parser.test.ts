@@ -153,5 +153,6 @@ describe('static reference extraction', () => {
 	it('flags dynamic index access as not fully static', () => {
 		const refs = extractReferences(ast('fields.rows[fields.i].paid'))
 		expect(refs.fullyStatic).toBe(false)
+		expect(extractReferences(ast('fields.rows[0].paid')).fullyStatic).toBe(true)
 	})
 })

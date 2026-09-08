@@ -17,6 +17,17 @@ describe('Expression Type Checking', () => {
 			expect(validateFormDefs(form).issues).toBeUndefined()
 		})
 
+		test('rejects dynamic indices whose dependencies cannot be complete', () => {
+			const form: Form = {
+				kind: 'form', name: 'dynamic-index', fields: {
+					matrix: { type: 'list', item: { type: 'number' } },
+					index: { type: 'number' },
+					positive: { type: 'text', visible: 'fields.matrix[fields.index] > 0' },
+				},
+			}
+			expect(validateFormDefs(form).issues?.[0]?.message).toContain('Dynamic member access')
+		})
+
 		test('passes when visible expression returns boolean (comparison)', () => {
 			const form: Form = {
 				kind: 'form',

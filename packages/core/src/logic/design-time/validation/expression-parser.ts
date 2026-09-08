@@ -10,6 +10,8 @@ export interface ParseResult {
   variables: string[]
   /** Error message if parsing failed */
   error?: string
+	/** Whether every dependency path was statically resolvable. */
+	fullyStatic: boolean
 }
 
 /**
@@ -38,9 +40,11 @@ export function parseExpression(expr: string): ParseResult {
       success: false,
       variables: [],
       error: errors[0]?.message ?? 'Unknown parse error',
+		fullyStatic: false,
     }
   }
-  return { success: true, variables: [...extractReferences(ast).paths] }
+	const references = extractReferences(ast)
+	return { success: true, variables: [...references.paths], fullyStatic: references.fullyStatic }
 }
 
 /**

@@ -5,7 +5,9 @@ import {
   evaluateExpressionOrDefault,
 } from '@/logic/runtime/evaluation/expression-evaluator'
 import type { EvaluationContext } from '@/logic/runtime/evaluation/types'
+import { Values, buildRegistry, T } from '@paradoc/expr'
 import { evaluateMultipleExpressions, isCondExpr } from '../helpers/evaluation-helpers'
+import { buildFormContext } from '@/logic/runtime/evaluation/context-builder'
 
 /**
  * Tests for expression-evaluator.ts
@@ -43,7 +45,49 @@ describe('expression-evaluator', () => {
   // evaluateExpression Tests
   // ============================================================================
 
-  describe('evaluateExpression', () => {
+	describe('evaluateExpression', () => {
+		test('converts a top-level field payload once per expression', () => {
+			let reads = 0
+			const context = {
+				get fields() { reads++; return { age: 25 } },
+			} as EvaluationContext
+			expect(evaluateExpression('fields.age + fields.age + fields.age', context).value).toBe(75)
+			expect(reads).toBe(1)
+		})
+		test('reflects in-place field mutations in caller-owned contexts', () => {
+			const context: EvaluationContext = { fields: { age: 25 } }
+			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(true)
+			context.fields.age = 12
+			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(false)
+		})
+		test('reflects mutations to an exported form context after an evaluation', () => {
+			const context = buildFormContext({
+				kind: 'form', name: 'mutable-context', fields: { age: { type: 'number' } },
+			}, { fields: { age: 25 } })
+			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(true)
+			context.fields.age = 12
+			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(false)
+		})
+		test('isolates an invalid unrelated field value', () => {
+			const context: EvaluationContext = { fields: { age: 25, broken: Number.NaN } }
+			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(true)
+		})
+		test('treats artifact objects with kind fields as ordinary objects', () => {
+			const context: EvaluationContext = { fields: {}, status: { kind: 'string', value: 'draft' } }
+			expect(evaluateExpression('status.kind', context)).toEqual({ success: true, value: 'string' })
+			expect(evaluateExpression('status.value', context)).toEqual({ success: true, value: 'draft' })
+		})
+		test('uses caller-configured deterministic functions', () => {
+			const context: EvaluationContext = {
+				fields: {},
+				expressionFunctions: { contractRate: () => Values.num('1.25') },
+				expressionRegistry: buildRegistry([{
+					name: 'contractRate', category: 'domain', params: [],
+					returns: { kind: 'fixed', type: T.number }, deterministic: true, hostInjected: true,
+				}]),
+			}
+			expect(evaluateExpression('contractRate() * 4', context)).toEqual({ success: true, value: 5 })
+		})
     describe('arithmetic operations', () => {
       test('evaluates addition', () => {
         const context = createSimpleContext()
@@ -213,7 +257,11 @@ describe('expression-evaluator', () => {
   // evaluateBooleanExpression Tests
   // ============================================================================
 
-  describe('evaluateBooleanExpression', () => {
+	describe('evaluateBooleanExpression', () => {
+		test('uses expression truthiness for empty arrays', () => {
+			const context: EvaluationContext = { fields: { values: [] } }
+			expect(evaluateBooleanExpression('fields.values', context, true)).toBe(false)
+		})
     describe('boolean literals', () => {
       test('returns true for true literal', () => {
         const context = createSimpleContext()

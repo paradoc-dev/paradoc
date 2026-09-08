@@ -15,7 +15,7 @@ import type {
   FormEvaluationResult,
 } from './types'
 import { buildFormContext, type FormDataPayload } from './context-builder'
-import { evaluateBooleanExpression } from './expression-evaluator'
+import { evaluateBooleanExpression, markEvaluationContextReusable } from './expression-evaluator'
 
 /**
  * Default values for expression evaluation failures.
@@ -220,9 +220,11 @@ export function evaluateFormDefs(
   data: FormDataPayload,
   options: FormEvaluationOptions = {}
 ): FormEvaluationResult {
+	let releaseContext: (() => void) | undefined
   try {
     // Build evaluation context (includes evaluated defs keys)
     const context = buildFormContext(form, data)
+		releaseContext = markEvaluationContextReusable(context)
 
     // Initialize evaluation state
     const state: EvaluationState = {
@@ -253,8 +255,11 @@ export function evaluateFormDefs(
       defsValues: state.defsValues,
     }
 
-    return { value: runtimeState }
+		releaseContext()
+		releaseContext = undefined
+		return { value: runtimeState }
   } catch (e) {
+		releaseContext?.()
     const error = e instanceof Error ? e : new Error(String(e))
 
     if (options.throwOnError) {

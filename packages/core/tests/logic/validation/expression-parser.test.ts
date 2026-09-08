@@ -66,7 +66,12 @@ describe('expression-parser', () => {
       })
     })
 
-    describe('variable extraction', () => {
+		describe('variable extraction', () => {
+			test('preserves dependency-analysis confidence', () => {
+				expect(parseExpression('fields.rows[0].amount').fullyStatic).toBe(true)
+				expect(parseExpression('fields.rows[fields.index].amount').fullyStatic).toBe(false)
+				expect(parseExpression('fields.total').fullyStatic).toBe(true)
+			})
       test('extracts simple variables', () => {
         const result = parseExpression('x + y')
         expect(result.variables).toContain('x')

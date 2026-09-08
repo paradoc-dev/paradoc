@@ -3,6 +3,7 @@ import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { buildFormContext } from '@/logic/runtime/evaluation/context-builder'
 import type { Form, DefsSection } from '@paradoc/types'
 import { getDefsValues } from '../helpers/evaluation-helpers'
+import { Values, buildRegistry, T } from '@paradoc/expr'
 
 /**
  * Tests for Expression evaluation with typed computed values.
@@ -75,7 +76,7 @@ describe('Expression evaluation', () => {
       }
     })
 
-    test('evaluates number expression', () => {
+		test('evaluates number expression', () => {
       const form: Form = {
         kind: 'form',
         name: 'test-form',
@@ -97,13 +98,66 @@ describe('Expression evaluation', () => {
 
       const result = evaluateFormDefs(form, {
         fields: { quantity: 5, price: 10 },
-      })
+		})
 
       expect('value' in result).toBe(true)
       if ('value' in result) {
         expect(result.value.defsValues.get('subtotal')).toBe(50)
       }
-    })
+		})
+
+		test('preserves decimal precision between dependent definitions', () => {
+			const form: Form = {
+				kind: 'form', name: 'precision', version: '1.0.0', title: 'Precision', fields: {},
+				defs: {
+					large: { type: 'number', label: 'Large', value: '9007199254740993' },
+					difference: { type: 'number', label: 'Difference', value: 'large - 9007199254740992' },
+				},
+			}
+			const result = evaluateFormDefs(form, { fields: {} })
+			expect('value' in result && result.value.defsValues.get('difference')).toBe(1)
+		})
+
+		test('converts a shared field root once across computed definitions', () => {
+			let conversions = 0
+			const amount = { get amount() { conversions++; return 10 }, currency: 'USD' }
+			const form: Form = {
+				kind: 'form', name: 'definition-scaling',
+				fields: { charge: { type: 'money' } },
+				defs: {
+					first: { type: 'number', label: 'First', value: 'fields.charge.amount + 1' },
+					second: { type: 'number', label: 'Second', value: 'fields.charge.amount + 2' },
+				},
+			}
+			const result = evaluateFormDefs(form, { fields: { charge: amount } })
+			expect('value' in result).toBe(true)
+			expect(conversions).toBe(1)
+		})
+
+		test('reports definition evaluation failures instead of treating them as missing', () => {
+			const form: Form = {
+				kind: 'form', name: 'failed-definition', fields: {},
+				defs: { broken: { type: 'number', label: 'Broken', value: 'missing + 1' } },
+			}
+			const result = evaluateFormDefs(form, { fields: {} })
+			expect('issues' in result && result.issues?.[0]?.message).toContain('type-error')
+		})
+
+		test('carries configured capabilities into field gates', () => {
+			const registry = buildRegistry([{
+				name: 'approved', category: 'domain', params: [],
+				returns: { kind: 'fixed', type: T.boolean }, deterministic: true, hostInjected: true,
+			}])
+			const form: Form = {
+				kind: 'form', name: 'capability-gate',
+				fields: { conditional: { type: 'text', visible: 'approved()' } },
+			}
+			const result = evaluateFormDefs(form, {
+				fields: {}, expressionRegistry: registry,
+				expressionFunctions: { approved: () => Values.boolean(false) },
+			})
+			expect('value' in result && result.value.fields.get('conditional')?.visible).toBe(false)
+		})
 
     test('evaluates percentage expression', () => {
       const form: Form = {

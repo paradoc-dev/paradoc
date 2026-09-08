@@ -19,7 +19,10 @@ import { inferPartyType } from '@/primitives/party'
 import type { EvaluationContext, NestedFieldValues, PartyContextEntry } from './types'
 import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { topologicalSortDefsKeys } from '../../design-time/type-checking/build-type-environment'
-import { evaluateExpressionOrDefault } from './expression-evaluator'
+import { evaluateExpressionValue, fromExpressionValue, markEvaluationContextReusable, wrapExpressionValue } from './expression-evaluator'
+import { Values, type Value } from '@paradoc/expr'
+import type { HostFunction, Registry } from '@paradoc/expr'
+import { ExpressionEvaluationError } from './errors'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -52,6 +55,10 @@ export interface FormDataPayload {
   witnesses?: Party[]
   signatures?: Record<string, Signature | Signature[]>
 	context?: RuntimeContext
+	/** Deterministic host functions available to artifact expressions. */
+	expressionFunctions?: Readonly<Record<string, HostFunction>>
+	/** Signatures corresponding to configured expression functions. */
+	expressionRegistry?: Registry
 }
 
 /**
@@ -199,23 +206,27 @@ function buildWitnessesContext(
 function evaluateDefsExpression(
   expr: Expression,
   context: EvaluationContext
-): unknown {
+): Value | undefined {
   if (isScalarExpressionType(expr.type)) {
     // Scalar type: value is a single expression string
-    return evaluateExpressionOrDefault(expr.value as string, context, undefined)
+		const evaluated = evaluateExpressionValue(expr.value as string, context)
+		if (!evaluated.success) throw ExpressionEvaluationError.evaluationFailed(expr.value as string, new Error(`${evaluated.code}: ${evaluated.error}`))
+		return evaluated.value
   }
 
   // Object type: value is an object with expression strings for each property
   const valueObj = expr.value as unknown as Record<string, string | undefined>
-  const result: Record<string, unknown> = {}
+	const result: Array<[string, Value]> = []
 
   for (const [propKey, propExpr] of Object.entries(valueObj)) {
     if (propExpr !== undefined) {
-      result[propKey] = evaluateExpressionOrDefault(propExpr, context, undefined)
+			const evaluated = evaluateExpressionValue(propExpr, context)
+			if (!evaluated.success) throw ExpressionEvaluationError.evaluationFailed(propExpr, new Error(`${evaluated.code}: ${evaluated.error}`))
+			result.push([propKey, evaluated.value])
     }
   }
 
-  return result
+	return Values.object(result)
 }
 
 /**
@@ -259,8 +270,8 @@ function extractExpressionsForSorting(defs: DefsSection): Record<string, string>
 function evaluateDefsKeys(
   defs: DefsSection | undefined,
   baseContext: EvaluationContext
-): Map<string, unknown> {
-  const defsValues = new Map<string, unknown>()
+): Map<string, Value | undefined> {
+	const defsValues = new Map<string, Value | undefined>()
 
   if (!defs || Object.keys(defs).length === 0) {
     return defsValues
@@ -274,6 +285,7 @@ function evaluateDefsKeys(
 
   // Build up context incrementally as we evaluate
   const context: EvaluationContext = { ...baseContext }
+	markEvaluationContextReusable(context)
 
   for (const key of sortedKeys) {
     const expr = defs[key]
@@ -282,7 +294,7 @@ function evaluateDefsKeys(
       const value = evaluateDefsExpression(expr, context)
       defsValues.set(key, value)
       // Add to context for subsequent evaluations
-      ;(context as Record<string, unknown>)[key] = value
+      ;(context as Record<string, unknown>)[key] = value === undefined ? undefined : wrapExpressionValue(value)
     }
   }
 
@@ -362,25 +374,22 @@ export function buildFormContext(form: Form, data: FormDataPayload): EvaluationC
   const witnesses = buildWitnessesContext(data.witnesses, undefined)
 
   // Create base context with fields, parties, and witnesses
-  const baseContext: EvaluationContext = {
+	const baseContext: EvaluationContext = {
 		fields,
 		parties,
 		witnesses,
 		...(data.context?.asOf && { asOf: data.context.asOf }),
+		...(data.expressionFunctions && { expressionFunctions: data.expressionFunctions }),
+		...(data.expressionRegistry && { expressionRegistry: data.expressionRegistry }),
 	}
 
   // Evaluate defs keys and add to context
   const defsValues = evaluateDefsKeys(form.defs, baseContext)
 
-  // Merge defs keys into context
-  const context: EvaluationContext = {
-		fields,
-		parties,
-		witnesses,
-		...(data.context?.asOf && { asOf: data.context.asOf }),
-	}
-  for (const [key, value] of defsValues) {
-    ;(context as Record<string, unknown>)[key] = value
+  // Merge public defs values into the same complete context used by downstream gates.
+	const context = baseContext
+	for (const [key, value] of defsValues) {
+		;(context as Record<string, unknown>)[key] = value === undefined ? undefined : fromExpressionValue(value)
   }
 
   return context

@@ -7,7 +7,7 @@ ogDescription: Control field visibility, requirements, and validation using expr
 
 Logic adds dynamic behavior to forms. Instead of static structures, you can define rules that control when fields appear, when they're required, and what values are valid.
 
-Logic is defined at design time but evaluated at runtime, when the form is filled with data. Expressions are written in `@paradoc/expr`, a small typed language built for intra-artifact logic. The same typed grammar drives both runtime evaluation and authoring-time checking, so an expression that type-checks cannot disagree with how it runs.
+Logic is defined at design time but evaluated at runtime, when the form is filled with data. Expressions are written in `@paradoc/expr`, a small typed language built for intra-artifact logic. Authoring checks and runtime evaluation use the same function and value contract.
 
 ---
 
@@ -90,12 +90,12 @@ Strings:
 | `contains(haystack, needle)` | boolean | substring / membership test |
 | `startsWith(value, prefix)` | boolean | |
 | `endsWith(value, suffix)` | boolean | |
-| `matches(value, pattern)` | boolean | regular-expression match |
+| `matches(value, pattern)` | boolean | bounded regular-expression subset: literals, classes, anchors, and wildcards; no repetition, alternation, assertions, or backreferences |
 | `trim(value)` | string | |
 | `lower(value)` / `upper(value)` | string | |
 | `length(value)` | number | |
 | `isEmpty(value)` / `isNotEmpty(value)` | boolean | |
-| `coalesce(a, b, …)` | first non-null | |
+| `coalesce(a, b, …)` | first non-null | evaluates left to right and skips unused alternatives |
 
 Numbers (decimal-aware):
 
@@ -132,7 +132,8 @@ To replace the old `indexOf(...) >= 0` idiom, use `contains(...)`.
 Field references carry their type into the expression, and the checker enforces it.
 
 - **Exact decimals.** Numbers and money are exact: `0.1 + 0.2 == 0.3` holds, so amount math is reliable.
-- **Temporal types.** `date`, `time`, `datetime`, and `duration` are first-class. `today()` and `now()` provide the current values; `addDays` / `addDuration` / `dateDiff` / `yearsBetween` operate on them.
+- **Temporal types.** Dates use `YYYY-MM-DD`. Datetimes representing instants require `Z` or an explicit offset. Month and year addition clamps to the last valid day of the target month. `today()` and `now()` use the artifact's retained clock.
+- **Precision boundaries.** Dependent definitions retain decimal precision internally. Values exposed to JavaScript callers are ordinary numbers and inherit JavaScript's precision limits.
 - **Null-safe access.** A missing or unfilled reference is `null` rather than an error. `null` is a first-class value you can test for, and member access on `null` stays `null` instead of throwing.
 
 ---

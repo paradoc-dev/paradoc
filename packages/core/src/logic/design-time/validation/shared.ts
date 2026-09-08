@@ -72,6 +72,15 @@ export function validateExpression(
     return collectAllErrors
   }
 
+  if (!parseResult.fullyStatic) {
+    issues.push({
+      message: 'Dynamic member access prevents complete dependency analysis',
+      path,
+      expression: expr,
+    })
+    if (!collectAllErrors) return false
+  }
+
   // Check each variable reference
   for (const variable of parseResult.variables) {
     if (!validVariables.has(variable)) {

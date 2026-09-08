@@ -49,8 +49,8 @@ export function extractReferences(ast: Expr): References {
 				return
 			}
 			case 'Index':
-				// Indexing makes the resulting path non-static.
-				fullyStatic = false
+				// Literal indices are fixed; an evaluated index makes the dependency dynamic.
+				if (node.index.kind !== 'NumberLiteral' && node.index.kind !== 'StringLiteral') fullyStatic = false
 				visit(node.object)
 				visit(node.index)
 				return
