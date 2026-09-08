@@ -4,7 +4,7 @@
  *
  * One tree is the source of truth for the paginated preview and for the PDF.
  * This entry is what runs in a browser: the components, the document context,
- * the page plan and the preview. `@paradoc/react/pdf` is the Node-only half.
+ * the page plan and the preview. `@paradoc/react-pdf` is the Node-only half.
  *
  * The artifact packages — `@paradoc/core`, `@paradoc/types`, `@paradoc/render`
  * and `@paradoc/format` — are consumed unchanged.
@@ -23,7 +23,7 @@ export {
 // `Document` reads this on every render, checking or not, so it is substrate
 // an installed `document.tsx` must reach through this package rather than a
 // copy of its own — the same reason `useSigningMarks` is exported here.
-// `@paradoc/react/check` is the only caller that ever supplies one.
+// `@paradoc/react-pdf/check` is the only caller that ever supplies one.
 export {
   CheckModeProvider,
   useUnresolvedPathCollector,
@@ -39,12 +39,14 @@ export {
   type PartialValuesProviderProps,
 } from "./components/partial-context";
 // The provider is the seal's, and the seal is Node: it is exported from
-// `@paradoc/react/pdf`. The hook is not — `Document` calls it on every render,
+// `@paradoc/react-pdf`. The hook is not — `Document` calls it on every render,
 // sealing or not — so it belongs to the browser entry alongside the vocabulary
 // a document context is described in.
 export {
   AmbiguousSigningMarkError,
+  SigningMarkerProvider,
   useSigningMarks,
+  type SigningMarkerProviderProps,
   type SigningMarks,
   type SigningMarkType,
 } from "./components/signing-context";

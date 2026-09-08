@@ -1,7 +1,7 @@
 {
   "name": "@paradoc/react",
   "version": "0.5.0",
-  "description": "Compose a Paradoc document in React and render it live on screen and to PDF",
+  "description": "Headless React bindings, pagination, and document runtime for Paradoc",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -103,33 +103,35 @@
     "regenerate:annex": "pnpm run build && node scripts/regenerate-annex.mjs"
   },
   "peerDependencies": {
-    "pdfjs-dist": "catalog:",
-    "puppeteer": "catalog:",
-    "react": "^19",
-    "react-dom": "^19",
-    "tailwindcss": "catalog:"
-  },
-  "peerDependenciesMeta": {
-    "pdfjs-dist": {
-      "optional": true
-    },
-    "puppeteer": {
-      "optional": true
-    },
-    "tailwindcss": {
-      "optional": true
-    }
-  },
-  "dependencies": {
     "@fontsource-variable/inter": "catalog:",
     "@fontsource-variable/noto-sans-arabic": "catalog:",
     "@fontsource-variable/source-serif-4": "catalog:",
     "@fontsource/noto-sans-symbols-2": "catalog:",
+    "@takumi-rs/helpers": "catalog:",
+    "pdfjs-dist": "catalog:",
+    "puppeteer": "catalog:",
+    "react": "^19",
+    "react-dom": "^19",
+    "tailwindcss": "catalog:",
+    "takumi-pdf": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@fontsource-variable/inter": { "optional": true },
+    "@fontsource-variable/noto-sans-arabic": { "optional": true },
+    "@fontsource-variable/source-serif-4": { "optional": true },
+    "@fontsource/noto-sans-symbols-2": { "optional": true },
+    "@takumi-rs/helpers": { "optional": true },
+    "pdfjs-dist": {
+      "optional": true
+    },
+    "puppeteer": { "optional": true },
+    "tailwindcss": { "optional": true },
+    "takumi-pdf": { "optional": true }
+  },
+  "dependencies": {
     "@paradoc/core": "workspace:^",
     "@paradoc/render": "workspace:^",
     "@paradoc/types": "workspace:^",
-    "@takumi-rs/helpers": "catalog:",
-    "takumi-pdf": "catalog:",
     "@paradoc/format": "workspace:^"
   },
   "devDependencies": {
@@ -140,6 +142,11 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@fontsource-variable/inter": "catalog:",
+    "@fontsource-variable/noto-sans-arabic": "catalog:",
+    "@fontsource-variable/source-serif-4": "catalog:",
+    "@fontsource/noto-sans-symbols-2": "catalog:",
+    "@takumi-rs/helpers": "catalog:",
     "eslint": "catalog:",
     "jsdom": "^25.0.1",
     "pdfjs-dist": "catalog:",
@@ -148,6 +155,7 @@
     "react-dom": "catalog:",
     "shadcn": "catalog:",
     "tailwindcss": "catalog:",
+    "takumi-pdf": "catalog:",
     "tsup": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

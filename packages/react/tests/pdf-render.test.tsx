@@ -19,6 +19,7 @@ import {
 import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/components/paper";
 import { proposalLogoImage } from "../src/examples/pdf";
 import { renderPdf, UnsupportedPdfContentError } from "../src/pdf";
+import type { PdfAdapter, PreparedPdfInput } from "../src/pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";
 
 /** CSS pixels at 96 dpi to the PDF's points at 72 dpi. */
@@ -39,6 +40,37 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("the proposal renders to PDF", () => {
+  it("accepts a caller-supplied adapter without consulting the named engines", async () => {
+    let prepared: PreparedPdfInput | undefined;
+    const adapter: PdfAdapter = {
+      name: "customer-engine",
+      directions: ["ltr"],
+      async render(input) {
+        prepared = input;
+        return { bytes: new Uint8Array([1, 2, 3]), unknownBreaks: [], unknownRepeats: [] };
+      },
+    };
+
+    const result = await renderPdf(<div>Adapter seam</div>, { adapter });
+
+    expect(result.bytes).toEqual(new Uint8Array([1, 2, 3]));
+    expect(prepared?.element).toBeDefined();
+    expect(prepared?.fonts.length).toBeGreaterThan(0);
+  });
+
+  it("does not relabel a custom adapter's initialization failure as a missing peer", async () => {
+    const initializationFailure = new Error("company engine could not initialize");
+    const adapter: PdfAdapter = {
+      name: "company-engine",
+      directions: ["ltr"],
+      async render() {
+        throw initializationFailure;
+      },
+    };
+
+    await expect(renderPdf(<div>Adapter seam</div>, { adapter })).rejects.toBe(initializationFailure);
+  });
+
   it("uses the page geometry the preview fixes", () => {
     for (const page of [...overflow, ...short]) {
       expect(page.size.width).toBeCloseTo(PAPER_WIDTH_PX * PX_TO_PT, 0);

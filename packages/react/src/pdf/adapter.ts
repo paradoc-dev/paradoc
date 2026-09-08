@@ -92,7 +92,7 @@ export interface PdfRenderResult {
 /** One engine behind `renderPdf`. */
 export interface PdfAdapter {
   /** The name a caller asks for it by. */
-  readonly name: PdfAdapterName;
+  readonly name: string;
   /**
    * The writing directions this engine was **measured** to lay out, not the
    * ones it is expected to.
@@ -112,7 +112,7 @@ export interface PdfAdapter {
 /** A document whose writing direction the chosen engine does not lay out. */
 export class UnsupportedDirectionError extends Error {
   /** The engine that was asked. */
-  readonly adapter: PdfAdapterName;
+  readonly adapter: string;
   /** The direction the document needs. */
   readonly direction: TextDirection;
   /** The script it is written in, as an ISO 15924 code. */
@@ -123,7 +123,7 @@ export class UnsupportedDirectionError extends Error {
   readonly directions: readonly TextDirection[];
 
   constructor(
-    adapter: PdfAdapterName,
+    adapter: string,
     direction: TextDirection,
     script: string,
     lang: string,

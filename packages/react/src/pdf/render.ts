@@ -61,10 +61,10 @@ export interface RenderPdfOptions {
   formatter?: Formatter;
   progressive?: FormatterProgressivePolicy;
   /**
-   * Which engine writes the bytes. `takumi` by default: it is the engine the
-   * parity numbers were measured on, and it needs no browser.
+   * Which engine writes the bytes. Pass an adapter object to supply an engine
+   * directly. `takumi` is the default and is what parity is measured on.
    */
-  adapter?: PdfAdapterName;
+  adapter?: PdfAdapterName | PdfAdapter;
   /**
    * Pre-fetched bytes for every image the tree names. No engine here fetches
    * anything, so an image with no entry fails the render.
@@ -119,9 +119,8 @@ export class MissingAdapterPeerError extends Error {
     super(
       `The "${adapter}" PDF adapter could not be loaded. It needs the optional peer ` +
         `${peers.length === 1 ? "dependency" : "dependencies"} ${peers.join(" and ")}, ` +
-        `which @paradoc/react does not install: run \`npm install ${peers.join(" ")}\` ` +
-        "(or the equivalent for your package manager), or render with the default " +
-        '"takumi" adapter, which needs neither. ' +
+        `install them with @paradoc/react-pdf, or run \`npm install ${peers.join(" ")}\` ` +
+        "(or the equivalent for your package manager). " +
         `The loader said: ${cause instanceof Error ? cause.message : String(cause)}`,
       { cause }
     );
@@ -141,7 +140,8 @@ export class MissingAdapterPeerError extends Error {
  *
  * @throws {MissingAdapterPeerError} when the adapter's optional peers are absent.
  */
-async function resolveAdapter(name: PdfAdapterName): Promise<PdfAdapter> {
+async function resolveAdapter(name: PdfAdapterName | PdfAdapter): Promise<PdfAdapter> {
+  if (typeof name !== "string") return name;
   if (name === "takumi") return takumiAdapter;
   try {
     const { chromiumAdapter } = await import("./adapters/chromium");

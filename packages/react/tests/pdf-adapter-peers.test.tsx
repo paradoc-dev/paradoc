@@ -5,8 +5,7 @@
  * the Chromium adapter without installing them gets a module the loader cannot
  * resolve. What Node says about that is `Cannot find package 'tailwindcss'`,
  * thrown from whichever chunk happened to import it: it names neither the
- * adapter the caller asked for, nor the second peer they will need next, nor
- * the default adapter that needs neither.
+ * adapter the caller asked for or the second peer they will need next.
  *
  * The load is mocked rather than staged by uninstalling a package, because the
  * failure under test is the translation, not Node's own resolution: whatever
@@ -27,7 +26,7 @@ vi.mock("../src/pdf/adapters/chromium", () => {
 });
 
 describe("asking for an adapter whose optional peers are missing", () => {
-  it("names the adapter, both peers, how to install them, and the way out", async () => {
+  it("names the adapter, both peers, and both installation paths", async () => {
     const { MissingAdapterPeerError, renderPdf } = await import("../src/pdf");
 
     let thrown: unknown;
@@ -43,9 +42,8 @@ describe("asking for an adapter whose optional peers are missing", () => {
     expect(error.adapter).toBe("chromium");
     expect(error.peers).toEqual(["puppeteer", "tailwindcss"]);
     expect(error.message).toContain('The "chromium" PDF adapter could not be loaded');
+    expect(error.message).toContain("@paradoc/react-pdf");
     expect(error.message).toContain("npm install puppeteer tailwindcss");
-    // The way out without installing anything, which is what most callers want.
-    expect(error.message).toContain('"takumi"');
     // Whatever the loader actually said is carried through rather than
     // replaced, so the real cause stays readable and stays attached.
     expect(error.cause).toBeInstanceOf(Error);
