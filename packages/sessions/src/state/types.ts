@@ -13,9 +13,11 @@ import type {
  * Redis adapter), and the version discriminator becomes 2.
  */
 export type PlaygroundWorkflowStateV2 = {
-	version: 2;
-	chatId: string;
-	activeFormSessionId?: string;
+  version: 2;
+  chatId: string;
+  /** Monotonic persisted revision used for cross-request optimistic saves. */
+  revision: number;
+  activeFormSessionId?: string;
 	sessions: Record<string, FormSession>;
 	usage: WorkflowUsageState;
 	createdAt: string;
@@ -25,8 +27,16 @@ export type PlaygroundWorkflowStateV2 = {
 export type { WorkflowModelUsage, WorkflowUsageState, WorkflowUsageTurn };
 
 export interface WorkflowStateAdapterV2 {
-	load(chatId: string): Promise<PlaygroundWorkflowStateV2>;
-	save(state: PlaygroundWorkflowStateV2): Promise<void>;
+  load(chatId: string): Promise<PlaygroundWorkflowStateV2>;
+  save(state: PlaygroundWorkflowStateV2): Promise<void>;
+}
+
+/** Raised when another writer persisted a newer workflow snapshot first. */
+export class WorkflowStateConflictError extends Error {
+	constructor(public readonly currentRevision?: number) {
+		super("Workflow state changed while this operation was in flight.");
+		this.name = "WorkflowStateConflictError";
+	}
 }
 
 export function createEmptyWorkflowStateV2(
@@ -36,6 +46,7 @@ export function createEmptyWorkflowStateV2(
 	return {
 		version: 2,
 		chatId,
+		revision: 0,
 		sessions: {},
 		usage: {
 			totalRequests: 0,

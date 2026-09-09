@@ -355,6 +355,8 @@ describe('form-evaluator', () => {
           // Defaults: visible=true, required=false
           expect(state?.visible).toBe(true)
           expect(state?.required).toBe(false)
+          expect(result.value.resolved).toBe(false)
+          expect(result.value.issues).toHaveLength(2)
         }
       })
     })

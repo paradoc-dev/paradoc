@@ -49,6 +49,10 @@ export interface FormRuntimeState {
   annexes: Map<string, AnnexRuntimeState>
   /** Evaluated defs key values */
   defsValues: Map<string, unknown>
+  /** True only when every runtime expression needed for this snapshot resolved. */
+  resolved: boolean
+  /** Diagnostics retained when a fallback value was needed. */
+  issues: EvaluationIssue[]
 }
 
 /**

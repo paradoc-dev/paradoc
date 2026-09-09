@@ -60,6 +60,36 @@ describe("unflattenPaths", () => {
 	it("nests to any depth", () => {
 		expect(unflattenPaths({ "a.b.c.d": 1 })).toEqual({ a: { b: { c: { d: 1 } } } });
 	});
+
+	it("rebuilds nested repeated paths as arrays", () => {
+		expect(
+			unflattenPaths({
+				"items[1].contact.name": "Bea",
+				"items[0].contact.name": "Ada",
+				"items[0].active": false,
+			}),
+		).toEqual({
+			items: [
+				{ contact: { name: "Ada" }, active: false },
+				{ contact: { name: "Bea" } },
+			],
+		});
+	});
+
+	it("copies a parent answer before overlaying an indexed child", () => {
+		const parentAnswer = [{ members: [{}] }];
+		expect(
+			unflattenPaths({
+				groups: parentAnswer,
+				"groups[0].members[0].name": "Ada",
+			}),
+		).toEqual({
+			groups: [{ members: [{ name: "Ada" }] }],
+		});
+		// The projection is derived data. Overlaying a later answer must not
+		// rewrite the canonical parent value held by the event log.
+		expect(parentAnswer).toEqual([{ members: [{}] }]);
+	});
 });
 
 describe("payloadFields", () => {

@@ -41,7 +41,10 @@ export type {
 	PlaygroundWorkflowStateV2,
 	WorkflowStateAdapterV2,
 } from "./state/types";
-export { createEmptyWorkflowStateV2 } from "./state/types";
+export {
+	createEmptyWorkflowStateV2,
+	WorkflowStateConflictError,
+} from "./state/types";
 export type {
 	WorkflowModelUsage,
 	WorkflowUsageState,

@@ -486,6 +486,30 @@ describe('fill-state', () => {
 			expect(state.openRequired.map((item) => item.key)).toContain('items[0].name')
 		})
 
+		test('does not offer fields while a runtime expression is unresolved', () => {
+			const conditional = form({
+				kind: 'form',
+				name: 'unresolved-runtime',
+				version: '1.0.0',
+				title: 'Unresolved runtime',
+				fields: {
+					amount: { type: 'number' },
+					dependent: {
+						type: 'text',
+						visible: 'fields.amount / 0 > 1',
+						required: true,
+					},
+				},
+			} as any)
+			const draft = conditional.fill()
+			const state = draft.getFillState()
+
+			expect(draft.runtimeState.resolved).toBe(false)
+			expect(state.openRequired).toEqual([])
+			expect(state.openOptional).toEqual([])
+			expect(state.candidates).toEqual([])
+		})
+
 		test('reports all required as open when empty', () => {
 			const f = createSimpleForm()
 			const draft = f.fill()

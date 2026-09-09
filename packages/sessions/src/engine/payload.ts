@@ -43,40 +43,91 @@ export function flatAnswers(projected: ProjectedSession): Record<string, unknown
 }
 
 /**
- * Nests a flat map of dotted paths.
+ * Nests a flat map of dotted and indexed paths.
  *
- * `{"a.b": 1}` becomes `{a: {b: 1}}`. A segment already holding a non-object is
- * replaced, because two answers that disagree about whether a path is a leaf
- * are a caller error either way and the later one is the one the log ends on.
+ * `{"a.b": 1}` becomes `{a: {b: 1}}`, while
+ * `{"items[0].name": "Ada"}` becomes `{items: [{name: "Ada"}]}`. A segment
+ * already holding a non-container is replaced, because two answers that
+ * disagree about whether a path is a leaf are a caller error either way and
+ * the later one is the one the log ends on.
  */
 export function unflattenPaths(flat: Record<string, unknown>): Record<string, unknown> {
 	const nested: Record<string, unknown> = {};
 	for (const [path, value] of Object.entries(flat)) {
-		setDeep(nested, path.split("."), value);
+		setDeep(nested, parsePath(path), value);
 	}
 	return nested;
 }
 
+type PathSegment = string | number;
+
+/** Parse the session engine's field path form without changing domain keys. */
+function parsePath(path: string): PathSegment[] {
+	const segments: PathSegment[] = [];
+	let cursor = 0;
+	while (cursor < path.length) {
+		if (path[cursor] === ".") {
+			cursor += 1;
+			continue;
+		}
+		if (path[cursor] === "[") {
+			const close = path.indexOf("]", cursor + 1);
+			const indexText = close < 0 ? "" : path.slice(cursor + 1, close);
+			if (close < 0 || !/^\d+$/.test(indexText)) {
+				// Invalid paths are not expected from the session engine. Keeping
+				// the raw path as one key makes this projection deterministic if a
+				// corrupt event is encountered, without guessing an array shape.
+				return [path];
+			}
+			segments.push(Number(indexText));
+			cursor = close + 1;
+			continue;
+		}
+
+		let end = cursor;
+		while (end < path.length && path[end] !== "." && path[end] !== "[") {
+			end += 1;
+		}
+		const segment = path.slice(cursor, end);
+		if (segment.length === 0) return [path];
+		segments.push(segment);
+		cursor = end;
+	}
+	return segments.length > 0 ? segments : [path];
+}
+
 function setDeep(
-	target: Record<string, unknown>,
-	segments: string[],
+	target: Record<string, unknown> | unknown[],
+	segments: PathSegment[],
 	value: unknown,
 ): void {
-	let cursor = target;
+	let cursor: Record<string, unknown> | unknown[] = target;
 	for (let i = 0; i < segments.length - 1; i++) {
 		const seg = segments[i];
 		if (seg === undefined) continue;
-		const existing = cursor[seg];
-		if (existing && typeof existing === "object" && !Array.isArray(existing)) {
-			cursor = existing as Record<string, unknown>;
+		const container = cursor as { [key: string]: unknown; [index: number]: unknown };
+		const existing = container[seg];
+		if (existing && typeof existing === "object") {
+			// Answers may already contain a canonical object/array for a parent
+			// path (for example `groups`). Clone each container on the path
+			// before writing a later indexed child so projection never mutates
+			// the value held by the event log.
+			const copy = Array.isArray(existing)
+				? [...existing]
+				: { ...(existing as Record<string, unknown>) };
+			container[seg] = copy;
+			cursor = copy;
 		} else {
-			const next: Record<string, unknown> = {};
-			cursor[seg] = next;
+			const next: Record<string, unknown> | unknown[] =
+				typeof segments[i + 1] === "number" ? [] : {};
+			container[seg] = next;
 			cursor = next;
 		}
 	}
 	const last = segments[segments.length - 1];
-	if (last !== undefined) cursor[last] = value;
+	if (last !== undefined) {
+		(cursor as { [key: string]: unknown; [index: number]: unknown })[last] = value;
+	}
 }
 
 /** The answers of a projected session, unwrapped and nested. */

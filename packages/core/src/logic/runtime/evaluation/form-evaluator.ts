@@ -2,10 +2,13 @@
  * Form evaluation - evaluates all field and annex expressions in a form.
  *
  * Produces a FormRuntimeState with the evaluated visible/required
- * states for all fields and annexes.
+ * states for all fields and annexes. Fallback booleans are retained for
+ * inspection, but an expression failure marks the snapshot unresolved so
+ * callers that authorize interaction can deny it safely.
  */
 
 import type { Form, FormField, FieldsetField, FormAnnex } from '@paradoc/types'
+import { toValue, truthy } from '@paradoc/expr'
 import type {
   FormRuntimeState,
   FieldRuntimeState,
@@ -15,14 +18,14 @@ import type {
   FormEvaluationResult,
 } from './types'
 import { buildFormContext, type FormDataPayload } from './context-builder'
-import { evaluateBooleanExpression, markEvaluationContextReusable } from './expression-evaluator'
+import { evaluateExpression, markEvaluationContextReusable } from './expression-evaluator'
 
 /**
  * Default values for expression evaluation failures.
  *
- * These defaults ensure graceful degradation:
- * - visible defaults to true (show the field)
- * - required defaults to false (don't force input)
+ * These values keep the runtime state inspectable after an expression error.
+ * They are never sufficient to authorize a fill action while `resolved` is
+ * false.
  */
 const DEFAULTS = {
   visible: true,
@@ -47,6 +50,29 @@ interface EvaluationState {
   issues: EvaluationIssue[]
 }
 
+function evaluateCondition(
+  condition: boolean | string | undefined,
+  context: EvaluationContext,
+  state: EvaluationState,
+  fallback: boolean,
+  path: (string | number)[],
+): boolean {
+  if (condition === undefined) return fallback
+  if (typeof condition === 'boolean') return condition
+
+  const result = evaluateExpression<boolean>(condition, context)
+  if (!result.success) {
+    state.issues.push({
+      message: `Failed to resolve form expression: ${result.error ?? 'unknown error'}`,
+      path,
+      expression: condition,
+      originalError: result.error,
+    })
+    return fallback
+  }
+  return truthy(toValue(result.value))
+}
+
 function evaluateRepeatedItem(
   field: FormField,
   value: unknown,
@@ -55,8 +81,20 @@ function evaluateRepeatedItem(
   state: EvaluationState,
   parentVisible: boolean,
 ): void {
-  const visible = parentVisible && evaluateBooleanExpression(field.visible, context, DEFAULTS.visible)
-  const required = visible && evaluateBooleanExpression(field.required, context, DEFAULTS.required)
+  const visible = parentVisible && evaluateCondition(
+    field.visible,
+    context,
+    state,
+    DEFAULTS.visible,
+    [...fullId.split('.'), 'visible'],
+  )
+  const required = visible && evaluateCondition(
+    field.required,
+    context,
+    state,
+    DEFAULTS.required,
+    [...fullId.split('.'), 'required'],
+  )
   state.fields.set(fullId, { fieldId: fullId, visible, required, disabled: false, value })
 
   if (field.type === 'fieldset') {
@@ -108,8 +146,20 @@ function evaluateFields(
     }
 
     // Effective visibility cascades from the parent; required follows from it.
-    const visible = parentVisible && evaluateBooleanExpression(field.visible, context, DEFAULTS.visible)
-    const required = visible && evaluateBooleanExpression(field.required, context, DEFAULTS.required)
+    const visible = parentVisible && evaluateCondition(
+      field.visible,
+      context,
+      state,
+      DEFAULTS.visible,
+      [...fullId.split('.'), 'visible'],
+    )
+    const required = visible && evaluateCondition(
+      field.required,
+      context,
+      state,
+      DEFAULTS.required,
+      [...fullId.split('.'), 'required'],
+    )
 
     // Create field runtime state
     // Note: disabled is not yet in the schema, so we default to false
@@ -152,10 +202,22 @@ function evaluateAnnexes(
 
   for (const [annexId, annex] of Object.entries(annexes)) {
     // Evaluate conditional expressions
-    const visible = evaluateBooleanExpression(annex.visible, context, DEFAULTS.visible)
+    const visible = evaluateCondition(
+      annex.visible,
+      context,
+      state,
+      DEFAULTS.visible,
+      ['annexes', annexId, 'visible'],
+    )
     // Requiredness is effective only while the annex is visible. A hidden
     // required annex keeps its stored value but cannot block completion.
-    const required = visible && evaluateBooleanExpression(annex.required, context, DEFAULTS.required)
+    const required = visible && evaluateCondition(
+      annex.required,
+      context,
+      state,
+      DEFAULTS.required,
+      ['annexes', annexId, 'required'],
+    )
 
     const annexState: AnnexRuntimeState = {
       annexId,
@@ -253,6 +315,8 @@ export function evaluateFormDefs(
       fields: state.fields,
       annexes: state.annexes,
       defsValues: state.defsValues,
+      resolved: state.issues.length === 0,
+      issues: state.issues,
     }
 
 		releaseContext()
@@ -266,14 +330,12 @@ export function evaluateFormDefs(
       throw error
     }
 
-    // Return error result
+    // Keep Standard Schema's failure result for context/definition errors.
+    // RuntimeForm and the fill-state adapter copy these diagnostics into an
+    // unresolved runtime snapshot, so interaction gates still refuse unknown
+    // state without changing the evaluator's public failure contract.
     return {
-      issues: [
-        {
-          message: `Form evaluation failed: ${error.message}`,
-          path: [],
-        },
-      ],
+      issues: [{ message: `Form evaluation failed: ${error.message}`, path: [] }],
     }
   }
 }

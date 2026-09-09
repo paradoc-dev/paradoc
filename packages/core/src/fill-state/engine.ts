@@ -206,6 +206,28 @@ export function computeFillState(
 	witnessValues: Party[] = [],
 	contextValue?: RuntimeContext,
 ): FillState {
+	if (!runtimeState.resolved) {
+		const diagnostics = runtimeState.issues.map((issue) => issue.message)
+		const defsValues: Record<string, unknown> = {}
+		for (const [key, value] of runtimeState.defsValues) defsValues[key] = value
+		return {
+			phase: 'draft',
+			summary: {
+				requiredTotal: 0,
+				requiredDone: 0,
+				requiredRemaining: 0,
+				completionPercent: 0,
+			},
+			defsValues,
+			rules: { valid: false, errors: diagnostics, warnings: [] },
+			openRequired: [],
+			openOptional: [],
+			blocked: [],
+			done: [],
+			candidates: [],
+			next: null,
+		}
+	}
 	const requiredFirst = options?.requiredFirst !== false
 	const includeOptional = options?.includeOptional === true
 	const context = buildFormBaseContext(form, {
@@ -444,7 +466,16 @@ export function computeRuntimeState(
 	if ('value' in result) {
 		return result.value
 	}
-	return { fields: new Map(), annexes: new Map(), defsValues: new Map() }
+	return {
+		fields: new Map(),
+		annexes: new Map(),
+		defsValues: new Map(),
+		resolved: false,
+		issues: result.issues.map((issue) => ({
+			message: issue.message,
+			path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
+		})),
+	}
 }
 
 /**

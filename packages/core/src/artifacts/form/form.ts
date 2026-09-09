@@ -628,7 +628,24 @@ function validateCompleteFormData(
 	const runtimeResult = evaluateFormDefs(formDef, { fields, parties, context: options?.context })
 	const runtimeState = 'value' in runtimeResult
 		? runtimeResult.value
-		: { fields: new Map(), annexes: new Map(), defsValues: new Map() }
+		: {
+				fields: new Map(),
+				annexes: new Map(),
+				defsValues: new Map(),
+				resolved: false,
+				issues: runtimeResult.issues.map((issue) => ({
+					message: issue.message,
+					path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
+				})),
+			}
+	if (!runtimeState.resolved) {
+		throw new FormValidationError(
+			runtimeState.issues.map((issue) => ({
+				field: 'form.logic',
+				message: issue.message,
+			})),
+		)
+	}
 	const fillState = computeFillState(formDef, fields, parties, annexes, runtimeState, undefined, [], options?.context)
 	const missingValues = fillState.openRequired
 		.filter((item) => item.kind === 'field' || item.kind === 'annex')
@@ -1314,6 +1331,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					fields: new Map(),
 					annexes: new Map(),
 					defsValues: new Map(),
+					resolved: false,
+					issues: result.issues.map((issue) => ({
+						message: issue.message,
+						path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
+					})),
 				}
 			}
 		}
@@ -1333,6 +1355,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				defsValues: new RuntimeStateMap(
 					[...state.defsValues].map(([key, value]) => [key, deepReadonlyClone(value)] as const),
 				),
+				resolved: state.resolved,
+				issues: deepReadonlyClone(state.issues),
 			}
 		}
 		return _runtimeStateView

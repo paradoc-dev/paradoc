@@ -54,15 +54,20 @@ export function createParadocRuntime(
 		if (!draft.success) {
 			return {
 				resolved: false,
+				diagnostics: [draft.error.message],
 				openRequired: [],
 				openOptional: [],
 				done: [],
 				openRequiredParties: [],
 			};
 		}
+		const runtimeState = draft.data.runtimeState;
 		const fillState = draft.data.getFillState({ includeOptional: true });
 		return {
-			resolved: true,
+			resolved: runtimeState.resolved,
+			...(runtimeState.issues.length > 0
+				? { diagnostics: runtimeState.issues.map((issue) => issue.message) }
+				: {}),
 			openRequired: fillState.openRequired
 				.filter((item) => item.kind === "field")
 				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
