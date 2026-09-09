@@ -52,14 +52,24 @@ export function createParadocRuntime(
 			answersToFormPayload(answers, parties) as any,
 		);
 		if (!draft.success) {
-			return { openRequired: [], openOptional: [], openRequiredParties: [] };
+			return {
+				resolved: false,
+				openRequired: [],
+				openOptional: [],
+				done: [],
+				openRequiredParties: [],
+			};
 		}
 		const fillState = draft.data.getFillState({ includeOptional: true });
 		return {
+			resolved: true,
 			openRequired: fillState.openRequired
 				.filter((item) => item.kind === "field")
 				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
 			openOptional: fillState.openOptional
+				.filter((item) => item.kind === "field")
+				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
+			done: fillState.done
 				.filter((item) => item.kind === "field")
 				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
 			openRequiredParties: fillState.openRequired

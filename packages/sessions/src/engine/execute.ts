@@ -31,6 +31,29 @@ function appendEvents(
 	};
 }
 
+function fieldIsVisible(
+	fillState: ReturnType<ArtifactRuntime["getFillState"]>,
+	fieldPath: string,
+): boolean {
+	if (fillState.resolved !== true) return false;
+	const visible = [
+		...fillState.openRequired,
+		...fillState.openOptional,
+		...fillState.done,
+	].find((field) => field.fieldPath === fieldPath);
+	return (
+		visible !== undefined &&
+		(visible.status === "required" || visible.status === "optional")
+	);
+}
+
+function unresolvedReason(fieldPath: string): CommandResult {
+	return reject(
+		"unresolved-state",
+		`presentation state for ${fieldPath} is unresolved; the field cannot be offered or changed`,
+	);
+}
+
 /**
  * The single mutation point for FormSessions.
  *
@@ -83,10 +106,11 @@ export function execute(
 				);
 			}
 			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
-			const visible =
-				fillState.openRequired.some((f) => f.fieldPath === cmd.fieldPath) ||
-				fillState.openOptional.some((f) => f.fieldPath === cmd.fieldPath) ||
-				cmd.fieldPath in projected.answers;
+			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
+			const visible = fieldIsVisible(
+				fillState,
+				cmd.fieldPath,
+			);
 			if (!visible) {
 				return reject(
 					"field-not-visible",
@@ -135,6 +159,14 @@ export function execute(
 					`field ${cmd.fieldPath} has no value to revise — use answer`,
 				);
 			}
+			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
+			if (!fieldIsVisible(fillState, cmd.fieldPath)) {
+				return reject(
+					"field-not-visible",
+					`field ${cmd.fieldPath} is not currently visible`,
+				);
+			}
 			const validation = runtime.validateField(cmd.fieldPath, cmd.value);
 			if (!validation.ok) {
 				return reject(
@@ -158,11 +190,25 @@ export function execute(
 		}
 
 		case "clear": {
+			if (!runtime.hasField(cmd.fieldPath)) {
+				return reject(
+					"field-not-found",
+					`field ${cmd.fieldPath} does not exist on the artifact`,
+				);
+			}
 			const existing = projected.answers[cmd.fieldPath];
 			if (!existing) {
 				return reject(
 					"field-not-answered",
 					`field ${cmd.fieldPath} has no value to clear`,
+				);
+			}
+			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
+			if (!fieldIsVisible(fillState, cmd.fieldPath)) {
+				return reject(
+					"field-not-visible",
+					`field ${cmd.fieldPath} is not currently visible`,
 				);
 			}
 			const emitted: SessionEvent[] = [
@@ -198,9 +244,14 @@ export function execute(
 				);
 			}
 			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			const visible =
-				fillState.openRequired.some((f) => f.fieldPath === cmd.fieldPath) ||
-				fillState.openOptional.some((f) => f.fieldPath === cmd.fieldPath);
+				fillState.openRequired.some(
+					(f) => f.fieldPath === cmd.fieldPath && f.status === "required",
+				) ||
+				fillState.openOptional.some(
+					(f) => f.fieldPath === cmd.fieldPath && f.status === "optional",
+				);
 			if (!visible) {
 				return reject(
 					"field-not-visible",
@@ -259,11 +310,12 @@ export function execute(
 				);
 			}
 			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			const inRequired = fillState.openRequired.some(
-				(f) => f.fieldPath === cmd.fieldPath,
+				(f) => f.fieldPath === cmd.fieldPath && f.status === "required",
 			);
 			const inOptional = fillState.openOptional.some(
-				(f) => f.fieldPath === cmd.fieldPath,
+				(f) => f.fieldPath === cmd.fieldPath && f.status === "optional",
 			);
 			if (!inRequired && !inOptional) {
 				return reject(
@@ -317,9 +369,11 @@ export function execute(
 				);
 			}
 			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
-			const visible =
-				fillState.openRequired.some((f) => f.fieldPath === cmd.fieldPath) ||
-				fillState.openOptional.some((f) => f.fieldPath === cmd.fieldPath);
+			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
+			const visible = fieldIsVisible(
+				fillState,
+				cmd.fieldPath,
+			);
 			if (!visible) {
 				return reject(
 					"field-not-visible",
@@ -414,5 +468,3 @@ export function execute(
 		}
 	}
 }
-
-

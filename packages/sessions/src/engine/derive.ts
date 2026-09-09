@@ -9,6 +9,7 @@ import type { ArtifactRuntime, FormSession } from "./types";
  *   collecting-required → required fields remain (excluding deferred)
  *   revisit-deferred    → required is empty AND deferred is non-empty
  *   collecting-optional → deferred is empty AND optional remains (excluding skipped)
+ *   unresolved          → host could not resolve visibility/requiredness
  *   ready               → all of the above empty, awaiting render
  *   rendered            → DocumentRendered event observed
  *   abandoned           → SessionAbandoned event observed
@@ -17,6 +18,7 @@ export type Phase =
 	| "collecting-required"
 	| "revisit-deferred"
 	| "collecting-optional"
+	| "unresolved"
 	| "ready"
 	| "rendered"
 	| "abandoned";
@@ -118,6 +120,18 @@ export function deriveView(
 		flatAnswers(projected),
 		payloadParties(projected),
 	);
+	if (fillState.resolved !== true) {
+		return {
+			projected,
+			phase: "unresolved",
+			next: null,
+			nextParty: null,
+			progress: zeroProgress(projected),
+			pendingParties: [],
+			fieldIndex: buildFieldIndex(runtime, projected, fillState),
+			partyIndex: buildPartyIndex(runtime, projected, fillState),
+		};
+	}
 
 	const openRequiredNonDeferred = fillState.openRequired.filter(
 		(f) => !projected.deferred.has(f.fieldPath),

@@ -59,6 +59,7 @@ export type Command =
 export type CommandErrorCode =
 	| "field-not-found"
 	| "field-not-visible"
+	| "unresolved-state"
 	| "field-required"
 	| "field-not-required"
 	| "field-already-answered"
@@ -96,16 +97,21 @@ export type FieldValidation =
 export type FieldStatus = "hidden" | "optional" | "required";
 
 export type FillStateSnapshot = {
+	/** Whether the host successfully resolved visibility and requiredness. */
+	resolved: boolean;
 	/** Required, unanswered, visible fields — in artifact declaration order. */
-	openRequired: Array<{ fieldPath: string; order: number; status?: FieldStatus }>;
+	openRequired: Array<{ fieldPath: string; order: number; status: FieldStatus }>;
 	/** Optional, unanswered, visible fields — in artifact declaration order. */
-	openOptional: Array<{ fieldPath: string; order: number; status?: FieldStatus }>;
+	openOptional: Array<{ fieldPath: string; order: number; status: FieldStatus }>;
+	/** Already answered fields, including their current effective visibility. */
+	done: Array<{ fieldPath: string; order: number; status: FieldStatus }>;
 	/** Party roles that still need filling — in artifact declaration order. */
 	openRequiredParties: Array<{ roleId: string; label?: string; order: number }>;
 	/**
 	 * Hidden fields whose visibility is gated by unanswered prerequisites.
 	 * `blockedBy` is the transitive set of unfilled fields/parties to answer first.
-	 * Populated by the @paradoc/core adapter; omitted by minimal test fakes.
+	 * Populated by the @paradoc/core adapter when dependency diagnostics are
+	 * available; it is not needed for command authorization.
 	 */
 	blocked?: Array<{ fieldPath: string; order: number; blockedBy: string[] }>;
 	/**

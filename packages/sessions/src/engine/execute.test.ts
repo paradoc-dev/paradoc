@@ -43,6 +43,7 @@ function makeRuntime(opts: {
 		fieldPath: string,
 		answers: Record<string, unknown>,
 	) => boolean;
+	resolved?: boolean;
 	validate?: (fieldPath: string, value: unknown) => boolean;
 }): ArtifactRuntime {
 	const isRequired =
@@ -60,13 +61,26 @@ function makeRuntime(opts: {
 			const open = opts.fields.filter(
 				(fp) => isVisible(fp, answers) && !(fp in answers),
 			);
+			const done = opts.fields
+				.filter((fp) => fp in answers)
+				.map((fp, i) => ({
+					fieldPath: fp,
+					order: i,
+					status: isVisible(fp, answers)
+						? isRequired(fp, answers)
+							? ("required" as const)
+							: ("optional" as const)
+						: ("hidden" as const),
+				}));
 			return {
+				resolved: opts.resolved ?? true,
 				openRequired: open
 					.filter((fp) => isRequired(fp, answers))
-					.map((fp, i) => ({ fieldPath: fp, order: i })),
+					.map((fp, i) => ({ fieldPath: fp, order: i, status: "required" as const })),
 				openOptional: open
 					.filter((fp) => !isRequired(fp, answers))
-					.map((fp, i) => ({ fieldPath: fp, order: i })),
+					.map((fp, i) => ({ fieldPath: fp, order: i, status: "optional" as const })),
+				done,
 				openRequiredParties: [],
 			};
 		},
@@ -85,6 +99,100 @@ function makeRuntime(opts: {
 		},
 	};
 }
+
+describe("execute — resolved presentation contract", () => {
+	it("rejects mutations while the host snapshot is unresolved", () => {
+		const session = emptySession();
+		const rt = makeRuntime({ fields: ["/name"], resolved: false });
+
+		for (const command of [
+			{ kind: "answer", fieldPath: "/name", value: "Toby", source: "user" } as const,
+			{ kind: "defer", fieldPath: "/name" } as const,
+			{ kind: "present", fieldPath: "/name", presentation: "text" } as const,
+		]) {
+			const result = execute(session, rt, command, USER, { now: nextTick });
+			expect(result).toMatchObject({ ok: false, code: "unresolved-state" });
+		}
+
+		const reviseSession = emptySession([
+			{
+				v: 1,
+				t: "FieldAnswered",
+				at: "t0",
+				by: USER,
+				fieldPath: "/name",
+				value: "Old",
+				source: "user",
+			},
+		]);
+		const revised = execute(
+			reviseSession,
+			rt,
+			{ kind: "revise", fieldPath: "/name", value: "New" },
+			USER,
+			{ now: nextTick },
+		);
+		expect(revised).toMatchObject({ ok: false, code: "unresolved-state" });
+	});
+
+	it("denies an answered field omitted from the resolved snapshot", () => {
+		const session = emptySession([
+			{
+				v: 1,
+				t: "FieldAnswered",
+				at: "t0",
+				by: USER,
+				fieldPath: "/name",
+				value: "Old",
+				source: "user",
+			},
+		]);
+		const base = makeRuntime({ fields: ["/name"] });
+		const rt: ArtifactRuntime = {
+			...base,
+			getFillState: () => ({
+				resolved: true,
+				openRequired: [],
+				openOptional: [],
+				done: [],
+				openRequiredParties: [],
+			}),
+		};
+		const result = execute(
+			session,
+			rt,
+			{ kind: "revise", fieldPath: "/name", value: "New" },
+			USER,
+			{ now: nextTick },
+		);
+		expect(result).toMatchObject({ ok: false, code: "field-not-visible" });
+		expect(session.events).toHaveLength(1);
+	});
+
+	it("denies revising a field that the host now marks hidden", () => {
+		const session = emptySession([
+			{
+				v: 1,
+				t: "FieldAnswered",
+				at: "t0",
+				by: USER,
+				fieldPath: "/license",
+				value: "abc",
+				source: "user",
+			},
+		]);
+		const rt = makeRuntime({ fields: ["/license"], visible: () => false });
+		const result = execute(
+			session,
+			rt,
+			{ kind: "revise", fieldPath: "/license", value: "def" },
+			USER,
+			{ now: nextTick },
+		);
+		expect(result).toMatchObject({ ok: false, code: "field-not-visible" });
+		expect(session.events).toHaveLength(1);
+	});
+});
 
 // ─── answer ────────────────────────────────────────────────────────────────
 
@@ -296,6 +404,30 @@ describe("execute — clear", () => {
 			{ now: nextTick },
 		);
 		expect(result).toMatchObject({ ok: false, code: "field-not-answered" });
+	});
+
+	it("rejects clearing a field the host now marks hidden", () => {
+		const session = emptySession([
+			{
+				v: 1,
+				t: "FieldAnswered",
+				at: "t0",
+				by: USER,
+				fieldPath: "/x",
+				value: 42,
+				source: "user",
+			},
+		]);
+		const rt = makeRuntime({ fields: ["/x"], visible: () => false });
+		const result = execute(
+			session,
+			rt,
+			{ kind: "clear", fieldPath: "/x" },
+			USER,
+			{ now: nextTick },
+		);
+		expect(result).toMatchObject({ ok: false, code: "field-not-visible" });
+		expect(session.events).toHaveLength(1);
 	});
 });
 

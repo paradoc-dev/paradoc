@@ -19,6 +19,7 @@ function makeRuntime(opts: {
 	fields: string[];
 	required?: (fp: string, answers: Record<string, unknown>) => boolean;
 	visible?: (fp: string, answers: Record<string, unknown>) => boolean;
+	resolved?: boolean;
 }): ArtifactRuntime {
 	const isRequired = opts.required ?? (() => true);
 	const isVisible = opts.visible ?? (() => true);
@@ -29,13 +30,26 @@ function makeRuntime(opts: {
 			const open = opts.fields.filter(
 				(fp) => isVisible(fp, answers) && !(fp in answers),
 			);
+			const done = opts.fields
+				.filter((fp) => fp in answers)
+				.map((fp, i) => ({
+					fieldPath: fp,
+					order: i,
+					status: isVisible(fp, answers)
+						? isRequired(fp, answers)
+							? ("required" as const)
+							: ("optional" as const)
+						: ("hidden" as const),
+				}));
 			return {
+				resolved: opts.resolved ?? true,
 				openRequired: open
 					.filter((fp) => isRequired(fp, answers))
-					.map((fp, i) => ({ fieldPath: fp, order: i })),
+					.map((fp, i) => ({ fieldPath: fp, order: i, status: "required" as const })),
 				openOptional: open
 					.filter((fp) => !isRequired(fp, answers))
-					.map((fp, i) => ({ fieldPath: fp, order: i })),
+					.map((fp, i) => ({ fieldPath: fp, order: i, status: "optional" as const })),
+				done,
 				openRequiredParties: [],
 			};
 		},
@@ -51,6 +65,14 @@ function makeRuntime(opts: {
 }
 
 describe("deriveView — phase transitions", () => {
+	it("surfaces unresolved host presentation state without offering a next field", () => {
+		const rt = makeRuntime({ fields: ["/name"], resolved: false });
+		const view = deriveView(emptySession(), rt);
+		expect(view.phase).toBe("unresolved");
+		expect(view.next).toBeNull();
+		expect(view.nextParty).toBeNull();
+	});
+
 	it("starts in collecting-required when required fields are open", () => {
 		const session = emptySession();
 		const rt = makeRuntime({
@@ -298,11 +320,13 @@ describe("deriveView — canonical candidate ordering", () => {
 			hasField: (fp) => fp === "/a" || fp === "/b",
 			hasParty: () => false,
 			getFillState: () => ({
+				resolved: true,
 				openRequired: [
 					{ fieldPath: "/a", order: 0, status: "required" },
 					{ fieldPath: "/b", order: 1, status: "required" },
 				],
 				openOptional: [],
+				done: [],
 				openRequiredParties: [],
 				candidates: [
 					{ kind: "field", key: "/b", required: true, order: 1 },
