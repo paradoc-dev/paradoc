@@ -245,6 +245,23 @@
       ]
     },
     {
+      "name": "qr-code",
+      "type": "registry:ui",
+      "title": "QR Code",
+      "description": "An SVG QR code that links a printed or previewed document to a URL, with configurable size and colors.",
+      "dependencies": [
+        "qrcode.react"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/components/qr-code.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/qr-code.tsx"
+        }
+      ]
+    },
+    {
       "name": "priced-line-items",
       "type": "registry:lib",
       "title": "Line-item arithmetic",

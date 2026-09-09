@@ -338,6 +338,16 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: ["keep-together"],
   },
   {
+    name: "qr-code",
+    type: "registry:ui",
+    title: "QR Code",
+    description:
+      "An SVG QR code that links a printed or previewed document to a URL, with configurable size and colors.",
+    files: [component("qr-code")],
+    dependencies: ["qrcode.react"],
+    registryDependencies: [],
+  },
+  {
     name: "priced-line-items",
     type: "registry:lib",
     title: "Line-item arithmetic",

@@ -8,5 +8,6 @@ export { Section, type SectionProps } from "./components/section";
 export { Table, type TableColumn, type TableProps } from "./components/table";
 export { Totals, type TotalRow, type TotalsProps } from "./components/totals";
 export { Signature, type SignatureProps } from "./components/signature";
+export { QRCode, type QRCodeProps } from "./components/qr-code";
 export { Part, type PartKind, type PartPlacementState, type PartProps } from "./components/part";
 export { Attachment, PdfPages, type AttachmentProps, type PdfPagesProps, type PdfPaintReport } from "./components/pdf-pages";

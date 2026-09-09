@@ -16,6 +16,7 @@
     "@paradoc/react": "workspace:^",
     "@paradoc/react-pdf": "workspace:^",
     "@paradoc/types": "workspace:^",
+    "qrcode.react": "catalog:",
     "react": "catalog:"
   },
   "devDependencies": {

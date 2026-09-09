@@ -4,7 +4,27 @@ import { expect, it } from "vitest";
 
 import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm } from "../src/examples/purchase-order";
-import { Document, Field, Part, Signature, Table, Totals } from "../src";
+import { Document, Field, Part, QRCode, Signature, Table, Totals } from "../src";
+
+it("renders a configurable URL QR code as SVG", () => {
+  const html = renderToStaticMarkup(
+    <QRCode
+      url="https://docs.paradoc.dev/forms/123"
+      size={192}
+      color="#123456"
+      backgroundColor="#f4f1ea"
+      className="place-self-end"
+    />
+  );
+
+  expect(html).toContain("<svg");
+  expect(html).toContain('width="192"');
+  expect(html).toContain('height="192"');
+  expect(html).toContain('fill="#123456"');
+  expect(html).toContain('fill="#f4f1ea"');
+  expect(html).toContain('class="place-self-end"');
+  expect(html).toContain('aria-label="QR code for https://docs.paradoc.dev/forms/123"');
+});
 
 it("renders copy-owned markup through public @paradoc/react bindings", async () => {
   const element = (

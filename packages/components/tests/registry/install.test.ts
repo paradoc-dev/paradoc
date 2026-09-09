@@ -69,6 +69,7 @@ const LINKED = [
   "@paradoc/react",
   "@paradoc/core",
   "@paradoc/types",
+  "qrcode.react",
 ] as const;
 
 let workspace: string;
@@ -125,6 +126,7 @@ function scaffold(directory: string, registryOrigin: string, alias = "@"): void 
           "@paradoc/core": "workspace:*",
           "@paradoc/react": "workspace:*",
           "@paradoc/types": "workspace:*",
+          "qrcode.react": "4.2.0",
           react: "^19",
           "react-dom": "^19",
         },
