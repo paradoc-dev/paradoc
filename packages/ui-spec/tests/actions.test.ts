@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { CATALOG_ACTION_TYPES } from "../src/actions.js";
+import {
+	CATALOG_ACTION_TYPES,
+	createSubmitFieldValueAction,
+} from "../src/actions.js";
 import type {
 	CatalogAction,
 	SubmitFieldValueAction,
@@ -77,5 +80,15 @@ describe("actions", () => {
 		} else {
 			throw new Error("expected submitFieldValue branch");
 		}
+	});
+
+	it("rejects unbound and template submissions at the action boundary", () => {
+		expect(() => createSubmitFieldValueAction(undefined, "x")).toThrow(/unbound/);
+		expect(() => createSubmitFieldValueAction("items[]", "x")).toThrow(/template/);
+		expect(createSubmitFieldValueAction("items[2].name", "Ada")).toEqual({
+			type: "submitFieldValue",
+			fieldPath: "items[2].name",
+			value: "Ada",
+		});
 	});
 });

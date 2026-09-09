@@ -3,6 +3,10 @@ import type { FormField } from "@paradoc/types";
 import { CATALOG, validateProps } from "../src/catalog.js";
 import { fieldToSpec } from "../src/mapper.js";
 
+function propsOf(spec: ReturnType<typeof fieldToSpec>): Record<string, unknown> {
+	return spec.props as Record<string, unknown>;
+}
+
 describe("fieldToSpec", () => {
 	it("maps a text field to TextInput", () => {
 		const field: FormField = {
@@ -13,9 +17,9 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field, { fieldPath: "/name" });
 		expect(spec.type).toBe("TextInput");
-		expect(spec.props?.label).toBe("Full name");
-		expect(spec.props?.minLength).toBe(1);
-		expect(spec.props?.maxLength).toBe(100);
+		expect(propsOf(spec).label).toBe("Full name");
+		expect(propsOf(spec).minLength).toBe(1);
+		expect(propsOf(spec).maxLength).toBe(100);
 		expect(spec.fieldPath).toBe("/name");
 	});
 
@@ -65,7 +69,7 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field, { fieldPath: "/accept" });
 		expect(spec.type).toBe("YesNoToggle");
-		expect(spec.props?.default).toBe(false);
+		expect(propsOf(spec).default).toBe(false);
 		expect(spec.fieldPath).toBe("/accept");
 	});
 
@@ -79,9 +83,9 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("NumberInput");
-		expect(spec.props?.min).toBe(18);
-		expect(spec.props?.max).toBe(120);
-		expect(spec.props?.default).toBe(21);
+		expect(propsOf(spec).min).toBe(18);
+		expect(propsOf(spec).max).toBe(120);
+		expect(propsOf(spec).default).toBe(21);
 	});
 
 	it("maps a money field to MoneyInput", () => {
@@ -92,7 +96,7 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("MoneyInput");
-		expect(spec.props?.default).toEqual({ amount: 50000, currency: "USD" });
+		expect(propsOf(spec).default).toEqual({ amount: 50000, currency: "USD" });
 	});
 
 	it("round-trips canonical defaults through mapping and prop validation", () => {
@@ -187,7 +191,7 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("PercentageInput");
-		expect(spec.props?.precision).toBe(2);
+		expect(propsOf(spec).precision).toBe(2);
 	});
 
 	describe("enum", () => {
@@ -199,8 +203,8 @@ describe("fieldToSpec", () => {
 			};
 			const spec = fieldToSpec(field, { fieldPath: "/pet/species" });
 			expect(spec.type).toBe("EnumPicker");
-			expect(spec.props?.display).toBe("radio");
-			const options = spec.props?.options as Array<{ value: string; label: string }>;
+			expect(propsOf(spec).display).toBe("radio");
+			const options = propsOf(spec).options as Array<{ value: string; label: string }>;
 			expect(options.length).toBe(3);
 			expect(options[0]).toEqual({ label: "dog", value: "dog" });
 		});
@@ -219,7 +223,7 @@ describe("fieldToSpec", () => {
 				],
 			};
 			const spec = fieldToSpec(field);
-			expect(spec.props?.display).toBe("dropdown");
+			expect(propsOf(spec).display).toBe("dropdown");
 		});
 
 		it("uses translateOption for labels when provided", () => {
@@ -241,7 +245,7 @@ describe("fieldToSpec", () => {
 					return ({ dog: "perro", cat: "gato", fish: "pez" })[option.value as string] ?? String(option.value);
 				},
 			});
-			const options = spec.props?.options as Array<{ value: string; label: string }>;
+			const options = propsOf(spec).options as Array<{ value: string; label: string }>;
 			expect(options[0]).toEqual({ label: "perro", value: "dog" });
 			expect(options[1]).toEqual({ label: "gato", value: "cat" });
 			expect(calls[0]).toEqual({
@@ -262,12 +266,12 @@ describe("fieldToSpec", () => {
 				],
 			};
 			const spec = fieldToSpec(field);
-			const options = spec.props?.options as Array<{ value: string; label: string }>;
+			const options = propsOf(spec).options as Array<{ value: string; label: string }>;
 			expect(options[0]).toEqual({ label: "Dog", value: "dog" });
 			expect(options[1]).toEqual({ label: "Cat", value: "cat" });
 		});
 
-		it("defaults translation source language to en", () => {
+		it("does not invent a translation source language", () => {
 			const field: FormField = {
 				type: "enum",
 				enum: [{ value: "dog", label: "Dog" }],
@@ -284,7 +288,6 @@ describe("fieldToSpec", () => {
 			expect(calls[0]).toEqual({
 				value: "dog",
 				label: "Dog",
-				sourceLanguage: "en",
 				targetLanguage: "fr",
 			});
 		});
@@ -304,9 +307,9 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field, { fieldPath: "/allergies" });
 		expect(spec.type).toBe("MultiSelectChips");
-		expect(spec.props?.min).toBe(0);
-		expect(spec.props?.max).toBe(3);
-		const options = spec.props?.options as Array<{ value: string; label: string }>;
+		expect(propsOf(spec).min).toBe(0);
+		expect(propsOf(spec).max).toBe(3);
+		const options = propsOf(spec).options as Array<{ value: string; label: string }>;
 		expect(options).toContainEqual({ label: "Peanut", value: "peanut" });
 		expect(options).toContainEqual({ label: "gluten", value: "gluten" });
 	});
@@ -320,7 +323,7 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("DateInput");
-		expect(spec.props?.min).toBe("1900-01-01");
+		expect(propsOf(spec).min).toBe("1900-01-01");
 	});
 
 	it("maps a datetime field to DateTimeInput", () => {
@@ -378,7 +381,7 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("TextInput");
-		expect(spec.props?.pattern).toBeTruthy();
+		expect(propsOf(spec).pattern).toBeTruthy();
 	});
 
 	it("maps an address field to AddressForm", () => {
@@ -413,7 +416,7 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("IdentificationInput");
-		expect(spec.props?.allowedTypes).toEqual(["passport", "drivers_license"]);
+		expect(propsOf(spec).allowedTypes).toEqual(["passport", "drivers_license"]);
 	});
 
 	it("maps a rating field to RatingStars", () => {
@@ -426,24 +429,32 @@ describe("fieldToSpec", () => {
 		expect(fieldToSpec(field).type).toBe("RatingStars");
 	});
 
-	it("maps a coordinate field to TextInput fallback with placeholder", () => {
+	it("maps a coordinate field without losing its canonical members", () => {
 		const field: FormField = {
 			type: "coordinate",
 			label: "Pin location",
+			default: { lat: 40.7128, lon: -74.006 },
 		};
 		const spec = fieldToSpec(field);
-		expect(spec.type).toBe("TextInput");
-		expect(spec.props?.placeholder).toContain("lat,lng");
+		expect(spec.type).toBe("CoordinateInput");
+		expect(propsOf(spec).default).toEqual({ lat: 40.7128, lon: -74.006 });
 	});
 
-	it("maps a bbox field to TextInput fallback", () => {
+	it("maps a bbox field without losing its canonical members", () => {
 		const field: FormField = {
 			type: "bbox",
 			label: "Region",
+			default: {
+				southWest: { lat: 40.4, lon: -74.2 },
+				northEast: { lat: 40.9, lon: -73.7 },
+			},
 		};
 		const spec = fieldToSpec(field);
-		expect(spec.type).toBe("TextInput");
-		expect(spec.props?.placeholder).toContain("minX");
+		expect(spec.type).toBe("BboxInput");
+		expect(propsOf(spec).default).toEqual({
+			southWest: { lat: 40.4, lon: -74.2 },
+			northEast: { lat: 40.9, lon: -73.7 },
+		});
 	});
 
 	describe("fieldset", () => {
@@ -457,16 +468,16 @@ describe("fieldToSpec", () => {
 					likesDogs: { type: "boolean", label: "Likes dogs?" },
 				},
 			};
-			const spec = fieldToSpec(field, { fieldPath: "/profile" });
+			const spec = fieldToSpec(field, { fieldPath: "profile" });
 			expect(spec.type).toBe("Fieldset");
 			expect(spec.children?.length).toBe(3);
 			const childMap: Record<string, NonNullable<(typeof spec)["children"]>[number]> = {};
 			for (const child of spec.children ?? []) {
 				if (child.fieldPath) childMap[child.fieldPath] = child;
 			}
-			expect(childMap["/profile/firstName"]?.type).toBe("TextInput");
-			expect(childMap["/profile/age"]?.type).toBe("NumberInput");
-			expect(childMap["/profile/likesDogs"]?.type).toBe("YesNoToggle");
+			expect(childMap["profile.firstName"]?.type).toBe("TextInput");
+			expect(childMap["profile.age"]?.type).toBe("NumberInput");
+			expect(childMap["profile.likesDogs"]?.type).toBe("YesNoToggle");
 		});
 
 		it("recurses through nested fieldsets", () => {
@@ -483,14 +494,14 @@ describe("fieldToSpec", () => {
 					},
 				},
 			};
-			const spec = fieldToSpec(field, { fieldPath: "/outer" });
+			const spec = fieldToSpec(field, { fieldPath: "outer" });
 			expect(spec.type).toBe("Fieldset");
 			const innerSpec = spec.children?.[0];
 			expect(innerSpec?.type).toBe("Fieldset");
-			expect(innerSpec?.fieldPath).toBe("/outer/inner");
+			expect(innerSpec?.fieldPath).toBe("outer.inner");
 			const leafSpec = innerSpec?.children?.[0];
 			expect(leafSpec?.type).toBe("TextInput");
-			expect(leafSpec?.fieldPath).toBe("/outer/inner/leaf");
+			expect(leafSpec?.fieldPath).toBe("outer.inner.leaf");
 		});
 	});
 
@@ -510,16 +521,16 @@ describe("fieldToSpec", () => {
 				},
 			};
 
-			const spec = fieldToSpec(field, { fieldPath: "/lineItems" });
+			const spec = fieldToSpec(field, { fieldPath: "lineItems" });
 
 			expect(spec.type).toBe("List");
-			expect(spec.fieldPath).toBe("/lineItems");
-			expect(spec.props?.minItems).toBe(1);
-			expect(spec.props?.maxItems).toBe(10);
+			expect(spec.fieldPath).toBe("lineItems");
+			expect(propsOf(spec).minItems).toBe(1);
+			expect(propsOf(spec).maxItems).toBe(10);
 			expect(spec.children?.[0]?.type).toBe("Fieldset");
-			expect(spec.children?.[0]?.fieldPath).toBe("/lineItems/*");
+			expect(spec.children?.[0]?.fieldPath).toBe("lineItems[]");
 			expect(spec.children?.[0]?.children?.[0]?.fieldPath).toBe(
-				"/lineItems/*/description",
+				"lineItems[].description",
 			);
 		});
 
@@ -532,12 +543,12 @@ describe("fieldToSpec", () => {
 				},
 			};
 
-			const spec = fieldToSpec(field, { fieldPath: "/matrix" });
+			const spec = fieldToSpec(field, { fieldPath: "matrix" });
 
 			expect(spec.type).toBe("List");
 			expect(spec.children?.[0]?.type).toBe("List");
-			expect(spec.children?.[0]?.fieldPath).toBe("/matrix/*");
-			expect(spec.children?.[0]?.children?.[0]?.fieldPath).toBe("/matrix/*/*");
+			expect(spec.children?.[0]?.fieldPath).toBe("matrix[]");
+			expect(spec.children?.[0]?.children?.[0]?.fieldPath).toBe("matrix[][]");
 		});
 	});
 
@@ -563,8 +574,8 @@ describe("fieldToSpec", () => {
 				description: "Out of 100",
 			};
 			const spec = fieldToSpec(field);
-			expect(spec.props?.label).toBe("Score");
-			expect(spec.props?.description).toBe("Out of 100");
+			expect(propsOf(spec).label).toBe("Score");
+			expect(propsOf(spec).description).toBe("Out of 100");
 		});
 
 		it("passes through boolean required, ignores expression-typed required", () => {

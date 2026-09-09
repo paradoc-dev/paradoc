@@ -2,14 +2,14 @@
 
 > **In development; not yet published.** This package is currently `private: true` and lives in the Paradoc workspace for internal consumers (e.g. the landing playground). It will graduate to public npm publishing in a future release.
 
-A **headless UI specification** for Paradoc artifacts. Maps form fields to renderable spec fragments — bring your own renderer. The companion private package `@paradoc/ui-catalog` binds this spec to shadcn controls.
+A **headless UI specification** for Paradoc artifacts. Maps form fields to typed, validated presentation trees. The companion private package `@paradoc/ui-catalog` binds this spec to shadcn controls.
 
 ## What it does
 
-Given a `FormField` from `@paradoc/types` (text, number, enum, address, person, etc.), produces a JSON spec describing which input component should render it and with what props. The spec format is compatible with [json-render](https://github.com/vercel-labs/json-render), but the package itself has **no React, no shadcn, and no rendering runtime** — consumers wire the catalog component names to their own React (or Vue, or Svelte) implementations.
+Given a `FormField` from `@paradoc/types` (text, number, enum, address, person, etc.), produces a JSON spec describing which input component should render it and with what typed props. The package has **no React, no shadcn, and no rendering runtime**. Consumers validate the tree and wire catalog component names to their own controls.
 
 ```ts
-import { fieldToSpec } from "@paradoc/ui-spec";
+import { fieldToSpec, validateSpec } from "@paradoc/ui-spec";
 import type { FormField } from "@paradoc/types";
 
 const animalField: FormField = {
@@ -18,7 +18,7 @@ const animalField: FormField = {
   enum: [{ value: "dog", label: "Dog" }, { value: "cat", label: "Cat" }, { value: "fish", label: "Fish" }],
 };
 
-const spec = fieldToSpec(animalField, { fieldPath: "/pet/species" });
+const spec = validateSpec(fieldToSpec(animalField, { fieldPath: "pet.species" }));
 // → {
 //     type: "EnumPicker",
 //     props: {
@@ -29,19 +29,18 @@ const spec = fieldToSpec(animalField, { fieldPath: "/pet/species" });
 //         { label: "Fish", value: "fish" },
 //       ],
 //     },
-//     bindings: { value: { $bindState: "/pet/species" } },
-//     submitAction: { type: "submitFieldValue", fieldPath: "/pet/species" },
+//     fieldPath: "pet.species",
 //   }
 ```
 
-The consumer feeds this spec to its renderer. The renderer maps `EnumPicker` to a real React (or other) component.
+The consumer feeds this validated tree to its renderer. The renderer maps `EnumPicker` to a real control and emits a concrete field action when the user submits a value.
 
 ## Architecture: why headless
 
-The package depends only on `zod` and types from `@paradoc/types`. It has zero React peer dependency and no shadcn coupling. Two reasons:
+The package depends on `zod` plus the canonical schemas and types from Paradoc. It has zero React peer dependency and no shadcn coupling. Two reasons:
 
 1. **No bundle duplication** — apps that already have shadcn primitives (e.g. via `@paradoc/common` in the platform monorepo) shouldn't load a second copy
-2. **Consumer freedom** — render with React + shadcn, or React + Material UI, or Vue, or terminal-ink, or anything else that knows how to map component names to renderers
+2. **Consumer freedom** — the host chooses its rendering technology and maps the typed component names to its own controls
 
 ## Catalog components
 
@@ -51,6 +50,7 @@ The catalog defines the following input primitives. See `src/catalog.ts` for the
 |---|---|
 | `TextInput`, `TextArea` | `text`, `email`, `uuid`, `uri` |
 | `NumberInput`, `MoneyInput`, `PercentageInput` | `number`, `money`, `percentage` |
+| `CoordinateInput`, `BboxInput` | `coordinate`, `bbox` (canonical geographic values; renderer support is host-owned) |
 | `YesNoToggle` | `boolean` |
 | `EnumPicker`, `MultiSelectChips` | `enum`, `multiselect` |
 | `DateInput`, `DateTimeInput`, `TimeInput`, `DurationInput` | `date`, `datetime`, `time`, `duration` |

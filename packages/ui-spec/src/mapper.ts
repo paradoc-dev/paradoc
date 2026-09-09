@@ -48,7 +48,6 @@ import type { SpecNode } from "./spec.js";
  *   so the resulting `submitFieldValue` action carries it through.
  * - `sourceLanguage`: BCP 47-style source language tag for authored labels.
  * - `targetLanguage`: BCP 47-style target language tag for rendered labels.
- * - `language`: deprecated alias for `targetLanguage`.
  * - `translateOption`: optional translator function for enum option labels. If
  *   absent, labels come from `option.label` and fall back to the canonical value.
  */
@@ -63,7 +62,6 @@ export type MapperContext = {
 	fieldPath?: string;
 	sourceLanguage?: string;
 	targetLanguage?: string;
-	language?: string;
 	translateOption?: (option: TranslateOptionInput) => string;
 };
 
@@ -71,14 +69,16 @@ export type MapperContext = {
  * Map a paradoc form field to a catalog spec node.
  */
 function optionToCatalogOption(option: EnumOption, ctx: MapperContext): CatalogOption {
-	const sourceLanguage = ctx.sourceLanguage ?? "en";
-	const targetLanguage = ctx.targetLanguage ?? ctx.language;
 	const label = ctx.translateOption
 		? ctx.translateOption({
 			value: option.value,
 			label: option.label,
-			sourceLanguage,
-			targetLanguage,
+			...(ctx.sourceLanguage !== undefined
+				? { sourceLanguage: ctx.sourceLanguage }
+				: {}),
+			...(ctx.targetLanguage !== undefined
+				? { targetLanguage: ctx.targetLanguage }
+				: {}),
 		})
 		: option.label ?? String(option.value);
 
@@ -176,7 +176,7 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 				props: {
 					...baseProps,
 					options,
-					default: f.default,
+					default: f.default === undefined ? undefined : [...f.default],
 					min: f.min,
 					max: f.max,
 				},
@@ -312,15 +312,21 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 			};
 
 		case "identification":
+			{
+				const f = field as IdentificationField;
 			return {
 				type: "IdentificationInput",
 				props: {
 					...baseProps,
-					default: (field as IdentificationField).default,
-					allowedTypes: (field as IdentificationField).allowedTypes,
+					default: f.default,
+					allowedTypes:
+						f.allowedTypes === undefined
+							? undefined
+							: [...f.allowedTypes],
 				},
 				...optionalFieldPath(ctx),
 			};
+			}
 
 		case "rating":
 			return {
@@ -336,23 +342,21 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 			};
 
 		case "coordinate":
-		case "bbox":
-			// Geo primitives don't have a dedicated rich input today —
-			// fall back to text input with structured-format guidance via
-			// the description. Future work: dedicated CoordinateInput /
-			// BboxInput components.
 			return {
-				type: "TextInput",
+				type: "CoordinateInput",
 				props: {
 					...baseProps,
-					default:
-						field.type === "coordinate"
-							? formatCoordinateDefault((field as CoordinateField).default)
-							: formatBboxDefault((field as BboxField).default),
-					placeholder:
-						field.type === "coordinate"
-							? "lat,lng (e.g. 40.7128,-74.0060)"
-							: "minX,minY,maxX,maxY",
+					default: (field as CoordinateField).default,
+				},
+				...optionalFieldPath(ctx),
+			};
+
+		case "bbox":
+			return {
+				type: "BboxInput",
+				props: {
+					...baseProps,
+					default: (field as BboxField).default,
 				},
 				...optionalFieldPath(ctx),
 			};
@@ -392,14 +396,13 @@ function optionalFieldPath(ctx: MapperContext): { fieldPath?: string } {
 
 function mapFieldset(field: FieldsetField, ctx: MapperContext): SpecNode {
 	const children: SpecNode[] = [];
-	const parentPath = ctx.fieldPath ?? "";
 
 	for (const [key, child] of Object.entries(field.fields)) {
-		const childPath = `${parentPath}/${key}`;
+		const childPath = appendFieldPath(ctx.fieldPath, key);
 		children.push(
 			fieldToSpec(child, {
 				...ctx,
-				fieldPath: childPath,
+				...(childPath !== undefined ? { fieldPath: childPath } : {}),
 			}),
 		);
 	}
@@ -417,7 +420,7 @@ function mapFieldset(field: FieldsetField, ctx: MapperContext): SpecNode {
 }
 
 function mapList(field: ListField, ctx: MapperContext): SpecNode {
-	const itemPath = ctx.fieldPath === undefined ? undefined : `${ctx.fieldPath}/*`;
+	const itemPath = appendListTemplatePath(ctx.fieldPath);
 
 	return {
 		type: "List",
@@ -432,35 +435,16 @@ function mapList(field: ListField, ctx: MapperContext): SpecNode {
 		children: [
 			fieldToSpec(field.item, {
 				...ctx,
-				fieldPath: itemPath,
+				...(itemPath !== undefined ? { fieldPath: itemPath } : {}),
 			}),
 		],
 	};
 }
 
-function formatCoordinateDefault(
-	value: { lat?: number; lng?: number } | undefined,
-): string | undefined {
-	if (!value || value.lat === undefined || value.lng === undefined) return undefined;
-	return `${value.lat},${value.lng}`;
+function appendFieldPath(parent: string | undefined, key: string): string | undefined {
+	return parent === undefined ? undefined : parent === "" ? key : `${parent}.${key}`;
 }
 
-function formatBboxDefault(
-	value:
-		| { southWest?: { lat?: number; lng?: number }; northEast?: { lat?: number; lng?: number } }
-		| undefined,
-): string | undefined {
-	const sw = value?.southWest;
-	const ne = value?.northEast;
-	if (
-		!sw ||
-		!ne ||
-		sw.lat === undefined ||
-		sw.lng === undefined ||
-		ne.lat === undefined ||
-		ne.lng === undefined
-	) {
-		return undefined;
-	}
-	return `${sw.lng},${sw.lat},${ne.lng},${ne.lat}`;
+function appendListTemplatePath(parent: string | undefined): string | undefined {
+	return parent === undefined ? undefined : `${parent}[]`;
 }

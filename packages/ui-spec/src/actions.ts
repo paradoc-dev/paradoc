@@ -6,6 +6,8 @@
  * which artifact field path the value belongs to.
  */
 
+import { assertConcreteFieldPath } from "./spec.js";
+
 /**
  * The user submitted a value for a specific field.
  *
@@ -18,6 +20,22 @@ export type SubmitFieldValueAction = {
 	fieldPath: string;
 	value: unknown;
 };
+
+/**
+ * Construct a submission action only for a concrete host target. Consumers
+ * should use this at the renderer boundary so templates and unbound nodes are
+ * rejected before an action reaches a session adapter.
+ */
+export function createSubmitFieldValueAction(
+	fieldPath: string | undefined,
+	value: unknown,
+): SubmitFieldValueAction {
+	return {
+		type: "submitFieldValue",
+		fieldPath: assertConcreteFieldPath(fieldPath),
+		value,
+	};
+}
 
 /**
  * The user wants to defer this field — come back to it later. Valid for both

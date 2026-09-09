@@ -13,6 +13,8 @@
 import { z } from "zod";
 import {
 	AddressSchema,
+	BboxSchema,
+	CoordinateSchema,
 	DurationSchema,
 	IdentificationSchema,
 	MoneySchema,
@@ -29,8 +31,16 @@ import {
 export const optionSchema = z.object({
 	label: z.string(),
 	value: z.union([z.string(), z.number()]),
-});
+}).strict();
 export type CatalogOption = z.infer<typeof optionSchema>;
+
+/**
+ * Component props are a closed contract.  Canonical value objects nested in
+ * these props deliberately keep the unknown-key policy of their source
+ * schemas; only the UI component boundary is closed here.
+ */
+const catalogObject = <T extends z.ZodRawShape>(shape: T) =>
+	z.object(shape).strict();
 
 // ---------------------------------------------------------------------------
 // Common props every input shares
@@ -46,7 +56,7 @@ const baseInputProps = {
 // Per-component prop schemas
 // ---------------------------------------------------------------------------
 
-const textInputProps = z.object({
+const textInputProps = catalogObject({
 	...baseInputProps,
 	placeholder: z.string().optional(),
 	default: z.string().optional(),
@@ -55,7 +65,7 @@ const textInputProps = z.object({
 	pattern: z.string().optional(),
 });
 
-const textAreaProps = z.object({
+const textAreaProps = catalogObject({
 	...baseInputProps,
 	placeholder: z.string().optional(),
 	default: z.string().optional(),
@@ -65,7 +75,7 @@ const textAreaProps = z.object({
 	rows: z.number().optional(),
 });
 
-const numberInputProps = z.object({
+const numberInputProps = catalogObject({
 	...baseInputProps,
 	default: z.number().optional(),
 	min: z.number().optional(),
@@ -73,7 +83,7 @@ const numberInputProps = z.object({
 	step: z.number().optional(),
 });
 
-const moneyInputProps = z.object({
+const moneyInputProps = catalogObject({
 	...baseInputProps,
 	default: MoneySchema.optional(),
 	min: z.number().optional(),
@@ -81,7 +91,7 @@ const moneyInputProps = z.object({
 	defaultCurrency: z.string().optional(),
 });
 
-const percentageInputProps = z.object({
+const percentageInputProps = catalogObject({
 	...baseInputProps,
 	default: z.number().optional(),
 	min: z.number().optional(),
@@ -89,14 +99,24 @@ const percentageInputProps = z.object({
 	precision: z.number().optional(),
 });
 
-const yesNoToggleProps = z.object({
+const coordinateInputProps = catalogObject({
+	...baseInputProps,
+	default: CoordinateSchema.optional(),
+});
+
+const bboxInputProps = catalogObject({
+	...baseInputProps,
+	default: BboxSchema.optional(),
+});
+
+const yesNoToggleProps = catalogObject({
 	...baseInputProps,
 	default: z.boolean().optional(),
 	yesLabel: z.string().optional(),
 	noLabel: z.string().optional(),
 });
 
-const enumPickerProps = z.object({
+const enumPickerProps = catalogObject({
 	...baseInputProps,
 	options: z.array(optionSchema),
 	default: z.union([z.string(), z.number()]).optional(),
@@ -104,7 +124,7 @@ const enumPickerProps = z.object({
 	display: z.enum(["radio", "dropdown"]).optional(),
 });
 
-const multiSelectChipsProps = z.object({
+const multiSelectChipsProps = catalogObject({
 	...baseInputProps,
 	options: z.array(optionSchema),
 	default: z.array(z.union([z.string(), z.number()])).optional(),
@@ -112,7 +132,7 @@ const multiSelectChipsProps = z.object({
 	max: z.number().optional(),
 });
 
-const dateInputProps = z.object({
+const dateInputProps = catalogObject({
 	...baseInputProps,
 	/** ISO 8601 date (YYYY-MM-DD). */
 	default: z.string().optional(),
@@ -120,7 +140,7 @@ const dateInputProps = z.object({
 	max: z.string().optional(),
 });
 
-const dateTimeInputProps = z.object({
+const dateTimeInputProps = catalogObject({
 	...baseInputProps,
 	/** ISO 8601 datetime. */
 	default: z.string().optional(),
@@ -128,7 +148,7 @@ const dateTimeInputProps = z.object({
 	max: z.string().optional(),
 });
 
-const timeInputProps = z.object({
+const timeInputProps = catalogObject({
 	...baseInputProps,
 	/** HH:MM:SS. */
 	default: z.string().optional(),
@@ -136,12 +156,12 @@ const timeInputProps = z.object({
 	max: z.string().optional(),
 });
 
-const durationInputProps = z.object({
+const durationInputProps = catalogObject({
 	...baseInputProps,
 	default: DurationSchema.optional(),
 });
 
-const emailInputProps = z.object({
+const emailInputProps = catalogObject({
 	...baseInputProps,
 	placeholder: z.string().optional(),
 	default: z.string().optional(),
@@ -149,12 +169,12 @@ const emailInputProps = z.object({
 	maxLength: z.number().optional(),
 });
 
-const phoneInputProps = z.object({
+const phoneInputProps = catalogObject({
 	...baseInputProps,
 	default: PhoneSchema.optional(),
 });
 
-const uriInputProps = z.object({
+const uriInputProps = catalogObject({
 	...baseInputProps,
 	placeholder: z.string().optional(),
 	default: z.string().optional(),
@@ -163,28 +183,28 @@ const uriInputProps = z.object({
 	pattern: z.string().optional(),
 });
 
-const addressFormProps = z.object({
+const addressFormProps = catalogObject({
 	...baseInputProps,
 	default: AddressSchema.optional(),
 });
 
-const personFormProps = z.object({
+const personFormProps = catalogObject({
 	...baseInputProps,
 	default: PersonSchema.optional(),
 });
 
-const organizationFormProps = z.object({
+const organizationFormProps = catalogObject({
 	...baseInputProps,
 	default: OrganizationSchema.optional(),
 });
 
-const identificationInputProps = z.object({
+const identificationInputProps = catalogObject({
 	...baseInputProps,
 	default: IdentificationSchema.optional(),
 	allowedTypes: z.array(z.string()).optional(),
 });
 
-const ratingStarsProps = z.object({
+const ratingStarsProps = catalogObject({
 	...baseInputProps,
 	default: z.number().optional(),
 	min: z.number().optional(),
@@ -192,11 +212,11 @@ const ratingStarsProps = z.object({
 	step: z.number().optional(),
 });
 
-const fieldsetProps = z.object({
+const fieldsetProps = catalogObject({
 	...baseInputProps,
 });
 
-const listProps = z.object({
+const listProps = catalogObject({
 	...baseInputProps,
 	minItems: z.number().int().nonnegative().optional(),
 	maxItems: z.number().int().nonnegative().optional(),
@@ -219,6 +239,8 @@ export const CATALOG = {
 	NumberInput: { props: numberInputProps },
 	MoneyInput: { props: moneyInputProps },
 	PercentageInput: { props: percentageInputProps },
+	CoordinateInput: { props: coordinateInputProps },
+	BboxInput: { props: bboxInputProps },
 	YesNoToggle: { props: yesNoToggleProps },
 	EnumPicker: { props: enumPickerProps },
 	MultiSelectChips: { props: multiSelectChipsProps },
@@ -239,6 +261,15 @@ export const CATALOG = {
 } as const;
 
 export type CatalogComponentName = keyof typeof CATALOG;
+
+/** Props accepted by each catalog component, keyed by component identity. */
+export type CatalogProps = {
+	[TName in CatalogComponentName]: z.infer<(typeof CATALOG)[TName]["props"]>;
+};
+
+/** Props accepted by one named catalog component. */
+export type CatalogPropsFor<TName extends CatalogComponentName> =
+	CatalogProps[TName];
 
 /** All component names as a runtime-iterable array. */
 export const CATALOG_COMPONENT_NAMES = Object.keys(CATALOG) as CatalogComponentName[];

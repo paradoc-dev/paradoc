@@ -7,7 +7,7 @@ import {
 
 describe("catalog", () => {
 	it("exposes all 22 component names", () => {
-		expect(CATALOG_COMPONENT_NAMES.length).toBe(22);
+		expect(CATALOG_COMPONENT_NAMES.length).toBe(24);
 	});
 
 	it("includes the expected primitives", () => {
@@ -17,6 +17,8 @@ describe("catalog", () => {
 			"NumberInput",
 			"MoneyInput",
 			"PercentageInput",
+			"CoordinateInput",
+			"BboxInput",
 			"YesNoToggle",
 			"EnumPicker",
 			"MultiSelectChips",
@@ -260,16 +262,13 @@ describe("catalog", () => {
 			expect(parsed.maxItems).toBe(20);
 		});
 
-		it("rejects unknown props by erroring on type-narrow", () => {
-			// Zod allows passthrough by default for object schemas, so this
-			// asserts behavior on schemas configured to be strict — the
-			// catalog uses default (non-strict) for forward-compat. So
-			// extra props are tolerated; test asserts that intent.
-			const parsed = validateProps("TextInput", {
-				label: "Name",
-				bogusFutureProp: 123,
-			} as Parameters<typeof validateProps>[1]);
-			expect(parsed.label).toBe("Name");
+		it("rejects unknown component props", () => {
+			expect(() =>
+				validateProps("TextInput", {
+					label: "Name",
+					bogusFutureProp: 123,
+				} as Parameters<typeof validateProps>[1]),
+			).toThrow(/bogusFutureProp/);
 		});
 	});
 });
