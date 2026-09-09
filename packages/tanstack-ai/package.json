@@ -1,7 +1,7 @@
 {
   "name": "@paradoc/tanstack-ai",
   "version": "0.5.0",
-  "description": "TanStack AI adapter for Paradoc tools — wraps @paradoc/ai-tools with toolDefinition().server()",
+  "description": "Experimental TanStack AI 0.53.0 RC adapter for Paradoc document tools",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -11,6 +11,51 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./get-registry": {
+      "types": "./dist/get-registry.d.ts",
+      "import": "./dist/get-registry.js",
+      "default": "./dist/get-registry.js"
+    },
+    "./get-artifact": {
+      "types": "./dist/get-artifact.d.ts",
+      "import": "./dist/get-artifact.js",
+      "default": "./dist/get-artifact.js"
+    },
+    "./inspect-artifact": {
+      "types": "./dist/inspect-artifact.d.ts",
+      "import": "./dist/inspect-artifact.js",
+      "default": "./dist/inspect-artifact.js"
+    },
+    "./validate-artifact": {
+      "types": "./dist/validate-artifact.d.ts",
+      "import": "./dist/validate-artifact.js",
+      "default": "./dist/validate-artifact.js"
+    },
+    "./validate-input": {
+      "types": "./dist/validate-input.d.ts",
+      "import": "./dist/validate-input.js",
+      "default": "./dist/validate-input.js"
+    },
+    "./fill": {
+      "types": "./dist/fill.d.ts",
+      "import": "./dist/fill.js",
+      "default": "./dist/fill.js"
+    },
+    "./get-fill-state": {
+      "types": "./dist/get-fill-state.d.ts",
+      "import": "./dist/get-fill-state.js",
+      "default": "./dist/get-fill-state.js"
+    },
+    "./update-fill": {
+      "types": "./dist/update-fill.d.ts",
+      "import": "./dist/update-fill.js",
+      "default": "./dist/update-fill.js"
+    },
+    "./render": {
+      "types": "./dist/render.d.ts",
+      "import": "./dist/render.js",
+      "default": "./dist/render.js"
     }
   },
   "sideEffects": false,
@@ -62,17 +107,16 @@
     "check": "pnpm lint && pnpm check-types"
   },
   "dependencies": {
-    "@paradoc/ai-tools": "workspace:*",
-    "@paradoc/sdk": "workspace:*"
+    "@paradoc/ai-tools": "workspace:*"
   },
   "peerDependencies": {
-    "@tanstack/ai": "*",
+    "@tanstack/ai": "0.53.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
-    "@tanstack/ai": "^0.6.0",
+    "@tanstack/ai": "0.53.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "tsup": "catalog:",
