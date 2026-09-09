@@ -1,15 +1,19 @@
 # @paradoc/ui-spec
 
-> **In development; not yet published.** This package is currently `private: true` and lives in the Paradoc workspace for internal consumers (e.g. the landing playground). It will graduate to public npm publishing in a future release.
+> **In development; not yet published.** This package is currently `private: true` and is consumed by applications in the Paradoc workspace. Its API may change before publication.
 
-A **headless UI specification** for Paradoc artifacts. Maps form fields to typed, validated presentation trees. The companion private package `@paradoc/ui-catalog` binds this spec to shadcn controls.
+A **headless UI specification** for Paradoc artifacts. It maps form fields to typed, validated presentation trees. The companion private package `@paradoc/ui-catalog` binds this spec to controls.
 
 ## What it does
 
-Given a `FormField` from `@paradoc/types` (text, number, enum, address, person, etc.), produces a JSON spec describing which input component should render it and with what typed props. The package has **no React, no shadcn, and no rendering runtime**. Consumers validate the tree and wire catalog component names to their own controls.
+Given a `FormField` from `@paradoc/types` (text, number, enum, address, person, and other field families), `fieldToSpec` produces a JSON spec naming the input component and its typed props. `validateSpec` validates a serialized tree, including component props, child shape, and field targets. The package has **no React, no shadcn, and no rendering runtime**. Consumers validate the tree and wire catalog component names to their own controls.
 
 ```ts
-import { fieldToSpec, validateSpec } from "@paradoc/ui-spec";
+import {
+  createSubmitFieldValueAction,
+  fieldToSpec,
+  validateSpec,
+} from "@paradoc/ui-spec";
 import type { FormField } from "@paradoc/types";
 
 const animalField: FormField = {
@@ -28,12 +32,34 @@ const spec = validateSpec(fieldToSpec(animalField, { fieldPath: "pet.species" })
 //         { label: "Cat", value: "cat" },
 //         { label: "Fish", value: "fish" },
 //       ],
+//       display: "radio",
 //     },
 //     fieldPath: "pet.species",
 //   }
 ```
 
-The consumer feeds this validated tree to its renderer. The renderer maps `EnumPicker` to a real control and emits a concrete field action when the user submits a value.
+The consumer feeds this validated tree to its renderer. A renderer maps `EnumPicker` to a real control and emits a concrete field action when the user submits a value:
+
+```ts
+const action = createSubmitFieldValueAction(spec.fieldPath, "dog");
+// → { type: "submitFieldValue", fieldPath: "pet.species", value: "dog" }
+```
+
+The action carries the canonical option value, not the label shown to the user.
+
+## State and field targets
+
+`fieldToSpec` maps a field definition. It does not evaluate visibility or requiredness expressions and it does not own session state. The host resolves those values from its current artifact state before presenting a field, and overlays the current answer over the definition default when revisiting a field. That overlay must preserve falsy answers such as `false`, `0`, and an explicitly permitted empty string. An unresolved or hidden field must remain unavailable until the host resolves it.
+
+`fieldPath` is optional context. When it is omitted, the node is unbound and its descendants remain unbound. A path containing `[]`, such as `items[].name`, is a reusable list template. A renderer can submit only a concrete path, such as `items[2].name`; use `resolveConcreteFieldPath` when the host has the repeated-item indices. `createSubmitFieldValueAction` rejects unbound and template paths before an action reaches a session.
+
+`Fieldset` nodes contain recursively addressed children. `List` nodes contain exactly one child, which is the reusable item template. These shapes are part of the typed contract and are checked again by `validateSpec` at the serialized boundary.
+
+## Localization, canonical values, and transport
+
+`MapperContext.translateOption` is an optional, caller-owned label translator. `sourceLanguage` and `targetLanguage` are passed to it only when the caller supplies them. The package does not infer a language or translate free text. Localized labels never replace canonical option values, and canonical object keys remain unchanged, for example `postalCode`, `lat`, and `lon`.
+
+The action type is an in-process TypeScript contract. If a host sends a presentation or action over HTTP, its transport adapter owns the wire conversion and uses snake_case fields such as `chat_id`, `form_session_id`, `field_path`, and `presentation_event_count`; canonical values keep the field schema's own keys and types.
 
 ## Architecture: why headless
 
@@ -44,12 +70,14 @@ The package depends on `zod` plus the canonical schemas and types from Paradoc. 
 
 ## Catalog components
 
-The catalog defines the following input primitives. See `src/catalog.ts` for the full Zod-typed prop schemas.
+The catalog defines the following input primitives. See `src/catalog.ts` for the full Zod-typed prop schemas. A renderer may support a subset of the catalog and must provide a visible fallback for unsupported nodes.
 
 | Component | Used for paradoc field types |
 |---|---|
-| `TextInput`, `TextArea` | `text`, `email`, `uuid`, `uri` |
-| `NumberInput`, `MoneyInput`, `PercentageInput` | `number`, `money`, `percentage` |
+| `TextInput` | `text` and `uuid` |
+| `TextArea` | long `text` fields (`maxLength > 200`) |
+| `NumberInput` | `number` |
+| `MoneyInput`, `PercentageInput` | `money`, `percentage` |
 | `CoordinateInput`, `BboxInput` | `coordinate`, `bbox` (canonical geographic values; renderer support is host-owned) |
 | `YesNoToggle` | `boolean` |
 | `EnumPicker`, `MultiSelectChips` | `enum`, `multiselect` |
@@ -63,42 +91,64 @@ The catalog defines the following input primitives. See `src/catalog.ts` for the
 
 ## Writing a registry (illustrative)
 
-A registry is a lookup table that maps catalog component names to actual implementations. Here's a minimal example showing two components — a real registry would cover all of them.
+A registry is a lookup table that maps catalog component names to actual implementations. Keep the component name, props, and action callback typed. This example shows two entries; a host can add only the controls it supports.
 
 ```tsx
 // app/playground/registry.tsx
 import type { ReactNode } from "react";
-import { Input } from "@/components/ui/input";  // your shadcn primitive
+import { Input } from "@/components/ui/input";
+import {
+  createSubmitFieldValueAction,
+  type CatalogAction,
+  type CatalogComponentName,
+  type CatalogPropsFor,
+  type SpecNode,
+} from "@paradoc/ui-spec";
 
-type Registry = Record<string, (props: { spec: any; emit: (action: any) => void }) => ReactNode>;
-
-export const registry: Registry = {
-  TextInput: ({ spec, emit }) => (
-    <Input
-      placeholder={spec.props.placeholder}
-      onChange={(e) => emit({ type: "submitFieldValue", value: e.target.value })}
-    />
-  ),
-
-  EnumPicker: ({ spec, emit }) => (
-    <div role="radiogroup">
-      {spec.props.options.map((opt) => (
-        <button key={opt.value} onClick={() => emit({ type: "submitFieldValue", value: opt.value })}>
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  ),
+type RegistryArgs<TName extends CatalogComponentName> = {
+  spec: Extract<SpecNode, { type: TName }>;
+  emit: (action: CatalogAction) => void;
 };
+
+type Registry = Partial<{
+  [TName in CatalogComponentName]: (args: RegistryArgs<TName>) => ReactNode;
+}>;
+
+export const registry = {
+  TextInput: ({ spec, emit }: RegistryArgs<"TextInput">) => {
+    const props: CatalogPropsFor<"TextInput"> = spec.props;
+    return (
+      <Input
+        placeholder={props.placeholder}
+        defaultValue={props.default}
+        onChange={(event) => {
+          if (spec.fieldPath === undefined) return;
+          emit(createSubmitFieldValueAction(spec.fieldPath, event.target.value));
+        }}
+      />
+    );
+  },
+
+  EnumPicker: ({ spec, emit }: RegistryArgs<"EnumPicker">) => {
+    const props: CatalogPropsFor<"EnumPicker"> = spec.props;
+    return (
+      <div role="radiogroup">
+        {props.options.map((option) => (
+          <button
+            key={String(option.value)}
+            type="button"
+            onClick={() => {
+              if (spec.fieldPath === undefined) return;
+              emit(createSubmitFieldValueAction(spec.fieldPath, option.value));
+            }}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  },
+} satisfies Registry;
 ```
 
-A full reference registry implementation for the Paradoc landing playground lives in `platform/apps/landing/src/components/playground-registry/`. Other apps will write their own.
-
-## Future graduation
-
-When this package graduates to public npm publishing:
-
-- `"private": true` → removed
-- Added to `publish-npm-paradoc.sh` PACKAGES array (after `@paradoc/types` and `@paradoc/schemas`, before `@paradoc/sdk`)
-- Inaugural `0.1.0` `CHANGELOG.md` entry
-- Lockstep version-bumped with the rest of the public packages from that release on
+A renderer must resolve a list template to a concrete item path before calling `createSubmitFieldValueAction`. It should emit canonical values such as `option.value` and preserve typed composite values instead of converting them to display strings. If the host cannot render a visible component safely, show a visible fallback and let the agent or another host path collect and validate the value. The landing playground currently renders `TextInput`, `TextArea`, `NumberInput`, `CoordinateInput`, `BboxInput`, `YesNoToggle`, `EnumPicker`, `MultiSelectChips`, `DateInput`, `EmailInput`, and `AddressForm`; its remaining catalog nodes use that fallback.
