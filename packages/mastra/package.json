@@ -1,0 +1,81 @@
+{
+  "name": "@paradoc/mastra",
+  "version": "0.5.0",
+  "description": "Mastra adapter for Paradoc tools — wraps @paradoc/ai-tools with Mastra createTool()",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "paradoc",
+    "mastra",
+    "ai",
+    "tools",
+    "llm",
+    "agent"
+  ],
+  "license": "MIT",
+  "author": "Paradoc (https://paradoc.dev)",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paradoc-dev/paradoc.git",
+    "directory": "packages/mastra"
+  },
+  "homepage": "https://paradoc.dev",
+  "bugs": {
+    "url": "https://github.com/paradoc-dev/paradoc/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean",
+    "pack:dry": "pnpm run build && npm pack --dry-run",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types"
+  },
+  "dependencies": {
+    "@paradoc/ai-tools": "workspace:*"
+  },
+  "peerDependencies": {
+    "@mastra/core": "^1.64.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@mastra/core": "1.64.0",
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  },
+  "directories": {
+    "test": "tests"
+  }
+}
