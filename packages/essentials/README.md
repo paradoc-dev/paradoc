@@ -65,7 +65,12 @@ import { w9 } from "@paradoc/essentials/tax";
 const markdown = await w9
   .fill({
     parties: {
-      taxpayer: { id: "taxpayer-0", name: "Jane Q. Public" },
+      taxpayer: {
+        id: "taxpayer-0",
+        name: "Jane Q. Public",
+        firstName: "Jane",
+        lastName: "Public",
+      },
     },
     fields: {
       taxClassification: "individual_or_sole_proprietor",
