@@ -1,108 +1,105 @@
-<p align="center">
-  <a href="https://paradoc.dev?utm_source=github&utm_medium=ai-sdk" target="_blank" rel="noopener noreferrer">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://assets.paradoc.dev/logo-400x400.png" type="image/png">
-      <img src="https://assets.paradoc.dev/logo-400x400.png" height="64" alt="Paradoc logo">
-    </picture>
-  </a>
-  <br />
-</p>
+# @paradoc/ai-sdk
 
-<h1 align="center">@paradoc/ai-sdk</h1>
+Native [AI SDK 7](https://ai-sdk.dev/) tools for Paradoc document workflows. The adapter consumes the canonical schemas, descriptions, result contracts, and execution functions from `@paradoc/ai-tools`.
 
-<div align="center">
-
-[![Paradoc documentation](https://img.shields.io/badge/Documentation-Paradoc-red.svg)](https://docs.paradoc.dev?utm_source=github&utm_medium=ai-sdk)
-[![Follow on Twitter](https://img.shields.io/twitter/follow/paradochq?style=social)](https://twitter.com/intent/follow?screen_name=paradochq)
-
-</div>
-
-[Paradoc](https://paradoc.dev?utm_source=github&utm_medium=ai-sdk) is **documents as code**. It lets developers and AI agents define, validate, and render business documents using typed, composable schemas. This eliminates template drift, broken mappings, and brittle glue code — while giving AI systems a reliable document layer they can safely read, reason over, and generate against in production workflows.
-
-## Package overview
-
-Vercel AI SDK adapter for Paradoc tools. Wraps `@paradoc/ai-tools` with AI SDK `tool()` for use with `generateText`, `streamText`, and other AI SDK functions.
-
-- **5 tools** - validateArtifact, fill, render, getRegistry, getArtifact
-- **Drop-in integration** - Works with any AI SDK-compatible model
-- **Typed schemas** - Zod v4 input schemas with full type inference
-- **Peer dependency** - Requires `ai` ^6.0.0
+The package is verified with AI SDK `7.0.94`, Zod `4.1.8` or newer in the v4 line, and Node.js `22` or newer.
 
 ## Installation
 
 ```bash
-npm install @paradoc/ai-sdk ai zod
+npm install @paradoc/ai-sdk ai zod @ai-sdk/openai
 ```
 
-## Usage
+## Use the native tool map
+
+`paradocTools()` returns all nine operations under their canonical snake_case names so the map can be passed directly to `generateText`, `streamText`, or an AI SDK agent.
 
 ```typescript
-import { paradocTools } from "@paradoc/ai-sdk";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-
-const tools = paradocTools({
-  defaultRegistryUrl: "https://public.paradoc.dev",
-});
+import { paradocTools } from "@paradoc/ai-sdk";
 
 const result = await generateText({
   model: openai("gpt-4o"),
-  tools,
-  prompt: "Fill the pet addendum for my dog Rex, 30 lbs, vaccinated",
+  tools: paradocTools({
+    defaultRegistryUrl: "https://public.paradoc.dev",
+  }),
+  prompt: "Find the purchase agreement artifact and inspect its required fields.",
 });
 ```
 
-### With streaming
+The collection keys and tool IDs are:
+
+| Tool | Purpose |
+| --- | --- |
+| `get_registry` | Discover artifacts in a registry |
+| `get_artifact` | Retrieve an artifact and selected instructions |
+| `inspect_artifact` | Return a bounded, selectable artifact description |
+| `validate_artifact` | Validate an artifact definition |
+| `validate_input` | Validate one field, party, annex, or checklist item |
+| `fill` | Seed a form or checklist draft |
+| `get_fill_state` | Inspect progress and the next available target |
+| `update_fill` | Merge, clear, or reset a draft |
+| `render` | Render a form, document, or checklist |
+
+## Use one tool
+
+Each operation is available as a named factory and as a package subpath. Subpaths let an application select one operation without constructing the complete collection.
 
 ```typescript
-import { streamText } from "ai";
+import getFillState from "@paradoc/ai-sdk/get-fill-state";
 
-const result = streamText({
-  model: openai("gpt-4o"),
-  tools: paradocTools(),
-  prompt: "What artifacts are available in the public registry?",
-});
-
-for await (const part of result.textStream) {
-  process.stdout.write(part);
-}
-```
-
-### Configuration
-
-```typescript
-const tools = paradocTools({
+const fillState = getFillState({
   defaultRegistryUrl: "https://public.paradoc.dev",
-  fetch: customFetchWithAuth,
 });
 ```
 
-## Tools provided
+The root named factories are `getRegistry`, `getArtifact`, `inspectArtifact`, `validateArtifact`, `validateInput`, `fill`, `getFillState`, `updateFill`, and `render`.
 
-| Tool | Description |
-|------|-------------|
-| `validateArtifact` | Validates an Paradoc artifact against its schema |
-| `fill` | Fills an Paradoc artifact with data and validates |
-| `render` | Renders an Paradoc artifact to PDF, markdown, or DOCX |
-| `getRegistry` | Fetches registry.json from a URL, returns available artifacts |
-| `getArtifact` | Fetches artifact JSON from a registry by name |
+## Canonical inputs and results
 
-## Changelog
+Tool inputs use the shared `snake_case` wire contract. Source-backed operations accept one of these forms:
 
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
+```typescript
+const source = { source: "artifact", artifact };
+const remoteSource = { source: "url", url: "https://example.com/artifact.json" };
+const registrySource = {
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "purchase-agreement",
+};
+```
+
+The adapter passes the shared Zod schemas directly to AI SDK 7. AI SDK validates model-generated calls before execution, and the adapter does not parse the input a second time. Result types and `outputSchema` are also shared, so application code receives the complete canonical result returned by `@paradoc/ai-tools`.
+
+## Cancellation and output limits
+
+The AI SDK `abortSignal` is composed with `ParadocToolsConfig.signal` and passed into a request-scoped neutral execution context. Registry, artifact, instruction, and layer requests observe the combined signal.
+
+Render presentation can bound content sent back to the model while keeping byte length and truncation metadata in the result:
+
+```typescript
+const tools = paradocTools({ maxOutputBytes: 200_000 });
+
+const renderResult = await tools.render.execute({
+  source: "artifact",
+  artifact,
+  presentation: { max_bytes: 20_000, include_content: true },
+}, {
+  toolCallId: "render-1",
+  messages: [],
+  context: {},
+});
+```
+
+`maxOutputBytes` supplies a default only when the input has no `presentation`. Explicit input presentation wins. Omit the presentation limit when the caller needs the unbounded application result.
 
 ## Related packages
 
-- [`@paradoc/ai-tools`](../ai-tools) - Core tool protocol (framework-neutral)
-- [`@paradoc/tanstack-ai`](../tanstack-ai) - TanStack AI adapter
-- [`@paradoc/sdk`](../sdk) - Paradoc framework SDK
-
-## Contributing
-
-We're open to all community contributions! If you'd like to contribute in any way, please read our [contribution guidelines](https://github.com/paradoc-dev/paradoc/blob/main/CONTRIBUTING.md) and [code of conduct](https://github.com/paradoc-dev/paradoc/blob/main/CODE_OF_CONDUCT.md).
+- [`@paradoc/ai-tools`](../ai-tools) provides the framework-neutral contracts and execution functions.
+- [`@paradoc/tanstack-ai`](../tanstack-ai) provides the TanStack AI adapter.
+- [`@paradoc/sdk`](../sdk) provides the Paradoc framework SDK.
 
 ## License
 
-This project is licensed under the MIT license.
-
-See [LICENSE](https://github.com/paradoc-dev/paradoc/blob/main/LICENSE) for more information.
+MIT

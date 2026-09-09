@@ -1,147 +1,206 @@
-import { tool } from 'ai'
-import { z } from 'zod'
+import { tool, type FlexibleSchema, type Tool, type ToolExecutionOptions, type ToolSet } from 'ai'
 import {
-  ValidateArtifactInputSchema,
-  ValidateInputValueSchema,
-  FillInputSchema,
-  RenderInputSchema,
-  GetRegistryInputSchema,
-  GetArtifactInputSchema,
-  executeValidateArtifact,
-  executeValidateInput,
-  executeFill,
-  executeRender,
-  executeGetRegistry,
-  executeGetArtifact,
-  type ParadocToolsConfig,
+	createToolExecutionContext,
+	operationNames,
+	toolDefinitions,
+	type FillInput,
+	type FillOutput,
+	type FillStateInput,
+	type FillStateOutput,
+	type GetArtifactInput,
+	type GetArtifactOutput,
+	type GetRegistryInput,
+	type GetRegistryOutput,
+	type InspectArtifactInput,
+	type InspectArtifactOutput,
+	type OperationName,
+	type ParadocToolsConfig,
+	type RenderInput,
+	type RenderOutput,
+	type UpdateFillInput,
+	type UpdateFillOutput,
+	type ValidateArtifactInput,
+	type ValidateArtifactOutput,
+	type ValidateInputOutput,
+	type ValidateInputValue,
+	type ToolDefinitions,
 } from '@paradoc/ai-tools'
 
 export type { ParadocToolsConfig }
 export type {
-  ValidateOutput,
-  ValidateInputValueOutput,
-  FillOutput,
-  RenderOutput,
-  GetRegistryOutput,
-  GetArtifactOutput,
+	FillInput,
+	FillOutput,
+	FillStateInput,
+	FillStateOutput,
+	GetArtifactInput,
+	GetArtifactOutput,
+	GetRegistryInput,
+	GetRegistryOutput,
+	InspectArtifactInput,
+	InspectArtifactOutput,
+	RenderInput,
+	RenderOutput,
+	UpdateFillInput,
+	UpdateFillOutput,
+	ValidateArtifactInput,
+	ValidateArtifactOutput,
+	ValidateInputOutput,
+	ValidateInputValue,
 } from '@paradoc/ai-tools'
 
-const SourceToolInputSchema = z.object({
-  source: z.enum(['artifact', 'url', 'registry']).describe('Source type'),
-  artifact: z
-    .record(z.string(), z.unknown())
-    .optional()
-    .describe('Paradoc artifact JSON object (required when source is "artifact")'),
-  baseUrl: z
-    .string()
-    .optional()
-    .describe('Base URL for resolving file-backed layers (artifact source only)'),
-  url: z
-    .string()
-    .optional()
-    .describe('Artifact URL (required when source is "url")'),
-  registryUrl: z
-    .string()
-    .optional()
-    .describe('Registry base URL (required when source is "registry")'),
-  artifactName: z
-    .string()
-    .optional()
-    .describe('Artifact name within registry (required when source is "registry")'),
-})
-
-const ValidateArtifactToolInputSchema = SourceToolInputSchema.extend({
-  options: z
-    .object({
-      schema: z.boolean().optional(),
-      logic: z.boolean().optional(),
-    })
-    .optional()
-    .describe('Validation options'),
-})
-
-const ValidateInputToolInputSchema = SourceToolInputSchema.extend({
-  target: z
-    .enum(['field', 'party', 'annex', 'checklistItem'])
-    .describe('Validation target'),
-  fieldPath: z
-    .string()
-    .optional()
-    .describe('Field path under fields, for target="field" (for example profile.nickname)'),
-  roleId: z
-    .string()
-    .optional()
-    .describe('Party role ID, for target="party" (for example tenant)'),
-  index: z
-    .number()
-    .int()
-    .nonnegative()
-    .optional()
-    .describe('Party index for target="party" (default: 0)'),
-  annexId: z
-    .string()
-    .optional()
-    .describe('Annex key, for target="annex"'),
-  itemId: z
-    .string()
-    .optional()
-    .describe('Checklist item ID, for target="checklistItem"'),
-  value: z
-    .unknown()
-    .describe('Single value to validate against the selected target'),
-})
-
-const FillToolInputSchema = SourceToolInputSchema.extend({
-  data: z
-    .record(z.string(), z.unknown())
-    .describe('Data to fill. Include fields under "fields" and parties by party ID.'),
-})
-
-const RenderToolInputSchema = SourceToolInputSchema.extend({
-  data: z
-    .record(z.string(), z.unknown())
-    .describe('Data to fill before rendering.'),
-  layer: z
-    .string()
-    .optional()
-    .describe('Layer key to render. Falls back to defaultLayer, then first layer.'),
-})
-
-export function paradocTools(config?: ParadocToolsConfig) {
-  return {
-    validateArtifact: tool({
-      description: 'Validates an Paradoc artifact against its schema',
-      inputSchema: ValidateArtifactToolInputSchema,
-      execute: async (input) =>
-        executeValidateArtifact(ValidateArtifactInputSchema.parse(input), config),
-    }),
-    validateInput: tool({
-      description:
-        'Progressively validates a single user input against a specific artifact target. Use target="field" with fieldPath, target="party" with roleId (and optional index), target="annex" with annexId, or target="checklistItem" with itemId. Returns normalizedValue on success, or structured field errors on failure.',
-      inputSchema: ValidateInputToolInputSchema,
-      execute: async (input) => executeValidateInput(ValidateInputValueSchema.parse(input), config),
-    }),
-    fill: tool({
-      description:
-        'Fills an Paradoc artifact with data and validates. Always include `source` and `data`. Source-specific inputs: source="artifact" requires `artifact`; source="url" requires `url`; source="registry" requires `registryUrl` and `artifactName`. Example (registry): {"source":"registry","registryUrl":"https://public.paradoc.dev","artifactName":"purchase-agreement","data":{"fields":{"agreementDate":"2026-03-03","paymentMethod":"ach"},"parties":{"buyer":{"id":"buyer-0","name":"Alex Buyer"},"seller":{"id":"seller-0","name":"Northwind LLC"}}}}',
-      inputSchema: FillToolInputSchema,
-      execute: async (input) => executeFill(FillInputSchema.parse(input), config),
-    }),
-    render: tool({
-      description:
-        'Renders an Paradoc artifact to PDF, markdown, or DOCX. Always include `source` and `data`. Source-specific inputs: source="artifact" requires `artifact`; source="url" requires `url`; source="registry" requires `registryUrl` and `artifactName`. `layer` is optional. Example (registry): {"source":"registry","registryUrl":"https://public.paradoc.dev","artifactName":"purchase-agreement","data":{"fields":{"agreementDate":"2026-03-03","paymentMethod":"ach"},"parties":{"buyer":{"id":"buyer-0","name":"Alex Buyer"},"seller":{"id":"seller-0","name":"Northwind LLC"}}},"layer":"pdf"}',
-      inputSchema: RenderToolInputSchema,
-      execute: async (input) => executeRender(RenderInputSchema.parse(input), config),
-    }),
-    getRegistry: tool({
-      description: 'Fetches registry.json from a URL, returns available artifacts',
-      inputSchema: GetRegistryInputSchema,
-      execute: async (input) => executeGetRegistry(input, config),
-    }),
-    getArtifact: tool({
-      description: 'Fetches artifact JSON from a registry by name',
-      inputSchema: GetArtifactInputSchema,
-      execute: async (input) => executeGetArtifact(input, config),
-    }),
-  }
+type OperationInputs = {
+	get_registry: GetRegistryInput
+	get_artifact: GetArtifactInput
+	inspect_artifact: InspectArtifactInput
+	validate_artifact: ValidateArtifactInput
+	validate_input: ValidateInputValue
+	fill: FillInput
+	get_fill_state: FillStateInput
+	update_fill: UpdateFillInput
+	render: RenderInput
 }
+
+type OperationOutputs = {
+	get_registry: GetRegistryOutput
+	get_artifact: GetArtifactOutput
+	inspect_artifact: InspectArtifactOutput
+	validate_artifact: ValidateArtifactOutput
+	validate_input: ValidateInputOutput
+	fill: FillOutput
+	get_fill_state: FillStateOutput
+	update_fill: UpdateFillOutput
+	render: RenderOutput
+}
+
+type OperationInput<Name extends OperationName> = OperationInputs[Name]
+type OperationOutput<Name extends OperationName> = OperationOutputs[Name]
+
+type AdapterDefinition<Name extends OperationName> = {
+	name: Name
+	description: string
+	input_schema: ToolDefinitions[Name]['input_schema']
+	output_schema: ToolDefinitions[Name]['output_schema']
+	execute: (input: OperationInput<Name>, config?: ParadocToolsConfig) => Promise<OperationOutput<Name>>
+}
+
+/** A typed, executable AI SDK tool for one canonical Paradoc operation. */
+export type ParadocTool<Name extends OperationName> = Tool<OperationInput<Name>, OperationOutput<Name>> & ToolSet[string] & {
+	execute: (input: OperationInput<Name>, options: ToolExecutionOptions<Record<string, unknown>>) => Promise<OperationOutput<Name>>
+}
+
+/** The native AI SDK tool map returned by {@link paradocTools}. */
+export type ParadocToolSet = {
+	[Name in OperationName]: ParadocTool<Name>
+}
+
+function mergeAbortSignals(...signals: Array<AbortSignal | undefined>): AbortSignal | undefined {
+	const present = signals.filter((signal): signal is AbortSignal => signal !== undefined)
+	if (present.length === 0) return undefined
+	if (present.length === 1) return present[0]
+	if (typeof AbortSignal.any === 'function') return AbortSignal.any(present)
+
+	const controller = new AbortController()
+	const abort = (signal: AbortSignal) => controller.abort(signal.reason)
+	for (const signal of present) {
+		if (signal.aborted) {
+			abort(signal)
+			break
+		}
+		signal.addEventListener('abort', () => abort(signal), { once: true })
+	}
+	return controller.signal
+}
+
+function configForExecution(config: ParadocToolsConfig | undefined, abortSignal: AbortSignal | undefined): ParadocToolsConfig {
+	const signal = mergeAbortSignals(config?.signal, config?.context?.signal, abortSignal)
+	const configuredContext = config?.context
+		? signal && config.context.signal !== signal
+			? { ...config.context, signal }
+			: config.context
+		: createToolExecutionContext(signal ? { signal } : {})
+
+	return {
+		...config,
+		...(signal ? { signal } : {}),
+		context: configuredContext,
+	}
+}
+
+function createTool<Name extends OperationName>(name: Name, config?: ParadocToolsConfig): ParadocTool<Name> {
+	const definition = toolDefinitions[name] as unknown as AdapterDefinition<Name>
+
+	const nativeTool = tool<unknown, unknown, Record<string, unknown>>({
+		description: definition.description,
+		inputSchema: definition.input_schema as unknown as FlexibleSchema<unknown>,
+		outputSchema: definition.output_schema as unknown as FlexibleSchema<unknown>,
+		execute: async (input: unknown, options: ToolExecutionOptions<Record<string, unknown>>) =>
+			definition.execute(input as OperationInput<Name>, configForExecution(config, options.abortSignal)),
+	})
+
+	return nativeTool as unknown as ParadocTool<Name>
+}
+
+/** Create the registry discovery tool. */
+export function getRegistry(config?: ParadocToolsConfig): ParadocTool<'get_registry'> {
+	return createTool('get_registry', config)
+}
+
+/** Create the registry artifact retrieval tool. */
+export function getArtifact(config?: ParadocToolsConfig): ParadocTool<'get_artifact'> {
+	return createTool('get_artifact', config)
+}
+
+/** Create the bounded artifact inspection tool. */
+export function inspectArtifact(config?: ParadocToolsConfig): ParadocTool<'inspect_artifact'> {
+	return createTool('inspect_artifact', config)
+}
+
+/** Create the artifact validation tool. */
+export function validateArtifact(config?: ParadocToolsConfig): ParadocTool<'validate_artifact'> {
+	return createTool('validate_artifact', config)
+}
+
+/** Create the progressive input validation tool. */
+export function validateInput(config?: ParadocToolsConfig): ParadocTool<'validate_input'> {
+	return createTool('validate_input', config)
+}
+
+/** Create the initial draft fill tool. */
+export function fill(config?: ParadocToolsConfig): ParadocTool<'fill'> {
+	return createTool('fill', config)
+}
+
+/** Create the draft progress inspection tool. */
+export function getFillState(config?: ParadocToolsConfig): ParadocTool<'get_fill_state'> {
+	return createTool('get_fill_state', config)
+}
+
+/** Create the draft update tool. */
+export function updateFill(config?: ParadocToolsConfig): ParadocTool<'update_fill'> {
+	return createTool('update_fill', config)
+}
+
+/** Create the artifact rendering tool. */
+export function render(config?: ParadocToolsConfig): ParadocTool<'render'> {
+	return createTool('render', config)
+}
+
+/**
+ * Return all nine native AI SDK tools, keyed by their canonical model-facing
+ * snake_case names.
+ */
+export function paradocTools(config?: ParadocToolsConfig): ParadocToolSet {
+	return {
+		get_registry: getRegistry(config),
+		get_artifact: getArtifact(config),
+		inspect_artifact: inspectArtifact(config),
+		validate_artifact: validateArtifact(config),
+		validate_input: validateInput(config),
+		fill: fill(config),
+		get_fill_state: getFillState(config),
+		update_fill: updateFill(config),
+		render: render(config),
+	}
+}
+
+export { operationNames }
