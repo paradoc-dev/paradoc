@@ -134,6 +134,18 @@ describe("catalog", () => {
 					default: { line1: "123 Main St", city: "Springfield" },
 				}),
 			).toThrow();
+			expect(() =>
+				validateProps("AddressForm", {
+					default: {
+						line1: "123 Main St",
+						line2: "x".repeat(201),
+						locality: "Springfield",
+						region: "IL",
+						postalCode: "62701",
+						country: "US",
+					},
+				}),
+			).toThrow();
 		});
 
 		it("preserves canonical duration strings and rejects object defaults", () => {
