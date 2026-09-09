@@ -1,86 +1,83 @@
-<p align="center">
-  <a href="https://paradoc.dev?utm_source=github&utm_medium=tanstack-ai" target="_blank" rel="noopener noreferrer">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://assets.paradoc.dev/logo-400x400.png" type="image/png">
-      <img src="https://assets.paradoc.dev/logo-400x400.png" height="64" alt="Paradoc logo">
-    </picture>
-  </a>
-  <br />
-</p>
+# @paradoc/tanstack-ai
 
-<h1 align="center">@paradoc/tanstack-ai</h1>
+Experimental [TanStack AI](https://tanstack.com/ai) tools for Paradoc document workflows. The adapter is tested against TanStack AI `0.53.0`, the latest published release candidate, and remains experimental until TanStack AI reaches a stable release. TanStack AI's pre-1.0 API may change between releases.
 
-<div align="center">
-
-[![Paradoc documentation](https://img.shields.io/badge/Documentation-Paradoc-red.svg)](https://docs.paradoc.dev?utm_source=github&utm_medium=tanstack-ai)
-[![Follow on Twitter](https://img.shields.io/twitter/follow/paradochq?style=social)](https://twitter.com/intent/follow?screen_name=paradochq)
-
-</div>
-
-[Paradoc](https://paradoc.dev?utm_source=github&utm_medium=tanstack-ai) is **documents as code**. It lets developers and AI agents define, validate, and render business documents using typed, composable schemas. This eliminates template drift, broken mappings, and brittle glue code — while giving AI systems a reliable document layer they can safely read, reason over, and generate against in production workflows.
-
-## Package overview
-
-TanStack AI adapter for Paradoc tools. Wraps `@paradoc/ai-tools` with `toolDefinition().server()` for use with TanStack AI's chat, agent, and server handler APIs.
-
-- **5 tools** - validateArtifact, fill, render, getRegistry, getArtifact
-- **Server-side execution** - Tools run on the server via `.server()` pattern
-- **Typed schemas** - Zod v4 input schemas with full type inference
-- **Peer dependency** - Requires `@tanstack/ai`
+The adapter consumes the canonical schemas, descriptions, result contracts, and execution functions from `@paradoc/ai-tools`.
 
 ## Installation
 
 ```bash
-npm install @paradoc/tanstack-ai @tanstack/ai zod
+npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 zod
 ```
 
-## Usage
+## Native server tools
+
+`paradocTools()` returns a readonly nine-tool tuple that can be passed directly to TanStack AI's `chat` activity:
 
 ```typescript
+import { chat } from "@tanstack/ai";
+import { openaiText } from "@tanstack/ai-openai";
 import { paradocTools } from "@paradoc/tanstack-ai";
 
-const tools = paradocTools({
-  defaultRegistryUrl: "https://public.paradoc.dev",
+const result = await chat({
+  adapter: openaiText("gpt-5.5"),
+  messages: [{ role: "user", content: "Inspect the purchase agreement fields." }],
+  tools: paradocTools({
+    defaultRegistryUrl: "https://public.paradoc.dev",
+  }),
+  stream: false,
 });
-
-// Use with TanStack AI's chat, agent, or server handler
 ```
 
-### Configuration
+The collection contains these canonical wire names:
+
+| Tool | Purpose |
+| --- | --- |
+| `get_registry` | Discover artifacts in a registry |
+| `get_artifact` | Retrieve an artifact and its instructions |
+| `inspect_artifact` | Return a bounded artifact description |
+| `validate_artifact` | Validate an artifact definition |
+| `validate_input` | Validate one field, party, annex, or checklist item |
+| `fill` | Seed a form or checklist draft |
+| `get_fill_state` | Inspect draft progress and the next target |
+| `update_fill` | Merge, clear, or reset a draft |
+| `render` | Render a form, document, or checklist |
+
+Each tool uses the shared Zod input and output schemas. TanStack AI validates tool input before calling the server function and validates output through `outputSchema`, so application code retains the inferred result type.
+
+## Definition-only composition
+
+Use `paradocToolDefinitions()` when a client needs tool metadata and schemas without server credentials or execution functions. Instantiate a definition with TanStack AI's native `.client()` or `.server()` method at the boundary that owns execution:
+
+```typescript
+import { paradocToolDefinitions } from "@paradoc/tanstack-ai";
+
+const definitions = paradocToolDefinitions();
+const clientTools = definitions.map((definition) => definition.client());
+```
+
+Individual server factories and definition functions are available from the root and from package subpaths, such as `getFillState()` and `@paradoc/tanstack-ai/get-fill-state`.
+
+## Cancellation and configuration
+
+TanStack AI's execution `abortSignal` is composed with `ParadocToolsConfig.signal` and the request context signal before the shared operation runs. Registry, artifact, instruction, and layer requests observe the resulting signal.
 
 ```typescript
 const tools = paradocTools({
   defaultRegistryUrl: "https://public.paradoc.dev",
-  fetch: customFetchWithAuth,
+  approvedOrigins: ["https://public.paradoc.dev"],
+  maxOutputBytes: 200_000,
 });
 ```
 
-## Tools provided
-
-| Tool | Description |
-|------|-------------|
-| `validateArtifact` | Validates an Paradoc artifact against its schema |
-| `fill` | Fills an Paradoc artifact with data and validates |
-| `render` | Renders an Paradoc artifact to PDF, markdown, or DOCX |
-| `getRegistry` | Fetches registry.json from a URL, returns available artifacts |
-| `getArtifact` | Fetches artifact JSON from a registry by name |
-
-## Changelog
-
-View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md) for updates.
+`maxOutputBytes` supplies the default render presentation limit when the call does not provide one. An explicit `presentation` input remains authoritative.
 
 ## Related packages
 
-- [`@paradoc/ai-tools`](../ai-tools) - Core tool protocol (framework-neutral)
-- [`@paradoc/ai-sdk`](../ai-sdk) - Vercel AI SDK adapter
-- [`@paradoc/sdk`](../sdk) - Paradoc framework SDK
-
-## Contributing
-
-We're open to all community contributions! If you'd like to contribute in any way, please read our [contribution guidelines](https://github.com/paradoc-dev/paradoc/blob/main/CONTRIBUTING.md) and [code of conduct](https://github.com/paradoc-dev/paradoc/blob/main/CODE_OF_CONDUCT.md).
+- [`@paradoc/ai-tools`](../ai-tools) provides the framework-neutral contract.
+- [`@paradoc/ai-sdk`](../ai-sdk) provides the Vercel AI SDK 7 adapter.
+- [`@paradoc/mastra`](../mastra) provides the Mastra adapter.
 
 ## License
 
-This project is licensed under the MIT license.
-
-See [LICENSE](https://github.com/paradoc-dev/paradoc/blob/main/LICENSE) for more information.
+MIT
