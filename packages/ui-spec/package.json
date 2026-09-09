@@ -52,12 +52,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@paradoc/schemas": "workspace:*",
     "@paradoc/types": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
-    "@paradoc/schemas": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",

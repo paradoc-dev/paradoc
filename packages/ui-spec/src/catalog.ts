@@ -11,6 +11,15 @@
  */
 
 import { z } from "zod";
+import {
+	AddressSchema,
+	DurationSchema,
+	IdentificationSchema,
+	MoneySchema,
+	OrganizationSchema,
+	PersonSchema,
+	PhoneSchema,
+} from "@paradoc/schemas";
 
 // ---------------------------------------------------------------------------
 // Shared sub-schemas
@@ -22,58 +31,6 @@ export const optionSchema = z.object({
 	value: z.union([z.string(), z.number()]),
 });
 export type CatalogOption = z.infer<typeof optionSchema>;
-
-/** Money default value (matches @paradoc/types' Money primitive). */
-const moneyDefaultSchema = z.object({
-	amount: z.number(),
-	currency: z.string(),
-});
-
-/** Address default value (loose; matches @paradoc/types' Address shape). */
-const addressDefaultSchema = z.object({
-	line1: z.string().optional(),
-	line2: z.string().optional(),
-	city: z.string().optional(),
-	region: z.string().optional(),
-	postalCode: z.string().optional(),
-	country: z.string().optional(),
-});
-
-/** Person default value. */
-const personDefaultSchema = z.object({
-	firstName: z.string().optional(),
-	middleName: z.string().optional(),
-	lastName: z.string().optional(),
-	suffix: z.string().optional(),
-});
-
-/** Organization default value. */
-const organizationDefaultSchema = z.object({
-	name: z.string().optional(),
-	ein: z.string().optional(),
-});
-
-/** Phone default value. */
-const phoneDefaultSchema = z.object({
-	countryCode: z.string().optional(),
-	number: z.string().optional(),
-});
-
-/** Identification default value. */
-const identificationDefaultSchema = z.object({
-	type: z.string().optional(),
-	number: z.string().optional(),
-});
-
-/** Duration default value. */
-const durationDefaultSchema = z.object({
-	years: z.number().optional(),
-	months: z.number().optional(),
-	days: z.number().optional(),
-	hours: z.number().optional(),
-	minutes: z.number().optional(),
-	seconds: z.number().optional(),
-});
 
 // ---------------------------------------------------------------------------
 // Common props every input shares
@@ -104,6 +61,7 @@ const textAreaProps = z.object({
 	default: z.string().optional(),
 	minLength: z.number().optional(),
 	maxLength: z.number().optional(),
+	pattern: z.string().optional(),
 	rows: z.number().optional(),
 });
 
@@ -117,7 +75,7 @@ const numberInputProps = z.object({
 
 const moneyInputProps = z.object({
 	...baseInputProps,
-	default: moneyDefaultSchema.optional(),
+	default: MoneySchema.optional(),
 	min: z.number().optional(),
 	max: z.number().optional(),
 	defaultCurrency: z.string().optional(),
@@ -180,7 +138,7 @@ const timeInputProps = z.object({
 
 const durationInputProps = z.object({
 	...baseInputProps,
-	default: durationDefaultSchema.optional(),
+	default: DurationSchema.optional(),
 });
 
 const emailInputProps = z.object({
@@ -193,8 +151,7 @@ const emailInputProps = z.object({
 
 const phoneInputProps = z.object({
 	...baseInputProps,
-	default: phoneDefaultSchema.optional(),
-	defaultCountryCode: z.string().optional(),
+	default: PhoneSchema.optional(),
 });
 
 const uriInputProps = z.object({
@@ -208,22 +165,22 @@ const uriInputProps = z.object({
 
 const addressFormProps = z.object({
 	...baseInputProps,
-	default: addressDefaultSchema.optional(),
+	default: AddressSchema.optional(),
 });
 
 const personFormProps = z.object({
 	...baseInputProps,
-	default: personDefaultSchema.optional(),
+	default: PersonSchema.optional(),
 });
 
 const organizationFormProps = z.object({
 	...baseInputProps,
-	default: organizationDefaultSchema.optional(),
+	default: OrganizationSchema.optional(),
 });
 
 const identificationInputProps = z.object({
 	...baseInputProps,
-	default: identificationDefaultSchema.optional(),
+	default: IdentificationSchema.optional(),
 	allowedTypes: z.array(z.string()).optional(),
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { FormField } from "@paradoc/types";
+import { CATALOG, validateProps } from "../src/catalog.js";
 import { fieldToSpec } from "../src/mapper.js";
 
 describe("fieldToSpec", () => {
@@ -26,6 +27,34 @@ describe("fieldToSpec", () => {
 		};
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("TextArea");
+	});
+
+	it("preserves text constraints across the short/long heuristic boundary", () => {
+		const short = fieldToSpec({
+			type: "text",
+			maxLength: 200,
+			minLength: 3,
+			pattern: "^[A-Z]",
+		});
+		const long = fieldToSpec({
+			type: "text",
+			maxLength: 201,
+			minLength: 3,
+			pattern: "^[A-Z]",
+		});
+
+		expect(short.type).toBe("TextInput");
+		expect(long.type).toBe("TextArea");
+		expect(short.props).toMatchObject({
+			minLength: 3,
+			maxLength: 200,
+			pattern: "^[A-Z]",
+		});
+		expect(long.props).toMatchObject({
+			minLength: 3,
+			maxLength: 201,
+			pattern: "^[A-Z]",
+		});
 	});
 
 	it("maps a boolean field to YesNoToggle", () => {
@@ -64,6 +93,88 @@ describe("fieldToSpec", () => {
 		const spec = fieldToSpec(field);
 		expect(spec.type).toBe("MoneyInput");
 		expect(spec.props?.default).toEqual({ amount: 50000, currency: "USD" });
+	});
+
+	it("round-trips canonical defaults through mapping and prop validation", () => {
+		const fields: FormField[] = [
+			{
+				type: "duration",
+				default: "PT1.25S",
+			},
+			{
+				type: "address",
+				default: {
+					line1: "123 Main St",
+					line2: "Suite 4",
+					locality: "Springfield",
+					region: "IL",
+					postalCode: "62701",
+					country: "US",
+				},
+			},
+			{
+				type: "person",
+				default: {
+					name: "Dr. Jane Smith Jr.",
+					title: "Dr.",
+					firstName: "Jane",
+					middleName: "Q",
+					lastName: "Smith",
+					suffix: "Jr.",
+				},
+			},
+			{
+				type: "organization",
+				default: {
+					name: "Acme",
+					legalName: "Acme Corporation Inc.",
+					domicile: "US",
+					entityType: "corporation",
+					entityId: "ACME-123",
+					taxId: "12-3456789",
+				},
+			},
+			{
+				type: "phone",
+				default: {
+					number: "+14155552671",
+					type: "mobile",
+					extension: "42",
+				},
+			},
+			{
+				type: "identification",
+				default: {
+					type: "passport",
+					number: "AB1234567",
+					issuer: "US",
+					issueDate: "2020-01-15",
+					expiryDate: "2030-01-14",
+				},
+			},
+			{
+				type: "text",
+				maxLength: 500,
+				minLength: 2,
+				pattern: "^[A-Z]",
+				default: "Hello",
+			},
+		];
+
+		for (const field of fields) {
+			const spec = fieldToSpec(field);
+			const parsed = validateProps(spec.type as keyof typeof CATALOG, spec.props);
+			expect(JSON.parse(JSON.stringify(parsed))).toEqual(
+				JSON.parse(JSON.stringify(spec.props)),
+			);
+		}
+
+		const withoutDefault = fieldToSpec({ type: "duration" });
+		const parsedWithoutDefault = validateProps(
+			withoutDefault.type,
+			withoutDefault.props,
+		);
+		expect(JSON.parse(JSON.stringify(parsedWithoutDefault))).not.toHaveProperty("default");
 	});
 
 	it("maps a percentage field to PercentageInput", () => {
