@@ -59,7 +59,7 @@ The action carries the canonical option value, not the label shown to the user.
 
 `MapperContext.translateOption` is an optional, caller-owned label translator. `sourceLanguage` and `targetLanguage` are passed to it only when the caller supplies them. The package does not infer a language or translate free text. Localized labels never replace canonical option values, and canonical object keys remain unchanged, for example `postalCode`, `lat`, and `lon`.
 
-The action type is an in-process TypeScript contract. If a host sends a presentation or action over HTTP, its transport adapter owns the wire conversion and uses snake_case fields such as `chat_id`, `form_session_id`, `field_path`, and `presentation_event_count`; canonical values keep the field schema's own keys and types.
+The action type is an in-process TypeScript contract. Hosts own transport validation and wire-name conversion; canonical values retain the field schema's keys and types.
 
 ## Architecture: why headless
 
