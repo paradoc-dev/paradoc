@@ -6,9 +6,9 @@ This Pet Addendum ("Addendum") is entered into by and between the Landlord and T
 
 ## Parties
 
-**Landlord:** {{landlord.name}}
+**Landlord:** {{parties.landlord.name}}
 
-**Tenant:** {{tenant.name}}
+**Tenant:** {{parties.tenant.name}}
 
 ---
 
@@ -42,13 +42,13 @@ The Tenant is permitted to keep the following pet on the leased premises, subjec
 
 ## Signatures
 
-{{#with tenant}}
+{{#with parties.tenant}}
 Tenant signature: {{signature "tenant-sig"}}
 
 Date: {{signatureDate "tenant-date"}}
 {{/with}}
 
-{{#with landlord}}
+{{#with parties.landlord}}
 Landlord signature: {{signature "landlord-sig"}}
 
 Date: {{signatureDate "landlord-date"}}

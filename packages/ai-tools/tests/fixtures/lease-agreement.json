@@ -3,32 +3,81 @@
   "name": "lease-agreement",
   "title": "Residential Lease Agreement",
   "fields": {
-    "address": { "type": "address", "label": "Property Address", "required": true },
+    "address": {
+      "type": "address",
+      "label": "Property Address",
+      "required": true
+    },
     "propertyType": {
       "type": "enum",
       "label": "Property Type",
-      "enum": [{ "value": "apartment" }, { "value": "house" }, { "value": "condo" }, { "value": "townhouse" }],
+      "enum": [
+        {
+          "value": "apartment"
+        },
+        {
+          "value": "house"
+        },
+        {
+          "value": "condo"
+        },
+        {
+          "value": "townhouse"
+        }
+      ],
       "required": true
     },
-    "bedrooms": { "type": "number", "label": "Bedrooms", "min": 0, "max": 10, "required": true },
-    "startDate": { "type": "date", "label": "Lease Start Date", "required": true },
-    "leaseTerm": { "type": "duration", "label": "Lease Term", "required": true },
-    "monthlyRent": { "type": "money", "label": "Monthly Rent", "required": true },
-    "petsAllowed": { "type": "boolean", "label": "Pets Allowed", "default": false },
-    "smokingAllowed": { "type": "boolean", "label": "Smoking Allowed", "default": false }
+    "bedrooms": {
+      "type": "number",
+      "label": "Bedrooms",
+      "min": 0,
+      "max": 10,
+      "required": true
+    },
+    "startDate": {
+      "type": "date",
+      "label": "Lease Start Date",
+      "required": true
+    },
+    "leaseTerm": {
+      "type": "duration",
+      "label": "Lease Term",
+      "required": true
+    },
+    "monthlyRent": {
+      "type": "money",
+      "label": "Monthly Rent",
+      "required": true
+    },
+    "petsAllowed": {
+      "type": "boolean",
+      "label": "Pets Allowed",
+      "default": false
+    },
+    "smokingAllowed": {
+      "type": "boolean",
+      "label": "Smoking Allowed",
+      "default": false
+    }
   },
   "parties": {
     "landlord": {
       "label": "Landlord",
       "min": 1,
       "max": 1,
-      "signature": { "required": true }
+      "signature": {
+        "required": true
+      },
+      "partyType": "person"
     },
     "tenant": {
       "label": "Tenant",
       "min": 1,
       "max": 4,
-      "signature": { "required": true }
+      "signature": {
+        "required": true
+      },
+      "partyType": "person"
     }
   },
   "defaultLayer": "markdown",

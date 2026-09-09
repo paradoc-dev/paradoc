@@ -16,7 +16,7 @@ describe('executeValidateArtifact', () => {
       })
 
       expect(result.valid).toBe(true)
-      expect(result.detectedKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
       expect(result.issues).toBeUndefined()
     })
 
@@ -43,7 +43,7 @@ describe('executeValidateArtifact', () => {
         },
       })
 
-      expect(result.detectedKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
     })
   })
 
@@ -62,7 +62,7 @@ describe('executeValidateArtifact', () => {
       })
 
       expect(result.valid).toBe(true)
-      expect(result.detectedKind).toBe('checklist')
+      expect(result.artifact_kind).toBe('checklist')
     })
 
     it('returns issues for invalid checklist', async () => {
@@ -96,7 +96,7 @@ describe('executeValidateArtifact', () => {
       })
 
       expect(result.valid).toBe(true)
-      expect(result.detectedKind).toBe('document')
+      expect(result.artifact_kind).toBe('document')
     })
   })
 
@@ -112,7 +112,7 @@ describe('executeValidateArtifact', () => {
       })
 
       expect(result.valid).toBe(true)
-      expect(result.detectedKind).toBe('bundle')
+      expect(result.artifact_kind).toBe('bundle')
     })
   })
 
@@ -151,7 +151,7 @@ describe('executeValidateArtifact', () => {
 
       expect(mockFetch).toHaveBeenCalled()
       expect(result.valid).toBe(true)
-      expect(result.detectedKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
     })
 
     it('returns error for failed URL fetch', async () => {
@@ -180,12 +180,12 @@ describe('executeValidateArtifact', () => {
       })
 
       const result = await executeValidateArtifact(
-        { source: 'registry' as const, registryUrl: 'https://example.com', artifactName: 'my-form' },
+        { source: 'registry' as const, registry_url: 'https://example.com', artifact_name: 'my-form' },
         { fetch: mockFetch },
       )
 
       expect(result.valid).toBe(true)
-      expect(result.detectedKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
     })
   })
 })

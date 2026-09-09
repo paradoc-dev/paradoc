@@ -61,14 +61,14 @@ describe('executeValidateInput', () => {
       source: 'artifact',
       artifact: formArtifact,
       target: 'field',
-      fieldPath: 'species',
+      field_path: 'species',
       value: 'cat',
     })
 
     expect(result.valid).toBe(true)
     expect(result.target).toBe('field')
-    expect(result.artifactKind).toBe('form')
-    expect(result.normalizedValue).toBe('cat')
+    expect(result.artifact_kind).toBe('form')
+    expect(result.normalized_value).toBe('cat')
   })
 
   it('returns field errors for invalid form field value', async () => {
@@ -76,13 +76,13 @@ describe('executeValidateInput', () => {
       source: 'artifact',
       artifact: formArtifact,
       target: 'field',
-      fieldPath: 'species',
+      field_path: 'species',
       value: 'shark',
     })
 
     expect(result.valid).toBe(false)
     expect(result.errors).toBeDefined()
-    expect(result.errors![0]!.field).toBe('fields.species')
+    expect(result.errors![0]!.path).toEqual(['fields', 'species'])
   })
 
   it('normalizes party id for party validation', async () => {
@@ -90,7 +90,7 @@ describe('executeValidateInput', () => {
       source: 'artifact',
       artifact: formArtifact,
       target: 'party',
-      roleId: 'tenant',
+      role_id: 'tenant',
       value: {
         name: 'John Smith',
       },
@@ -98,8 +98,8 @@ describe('executeValidateInput', () => {
 
     expect(result.valid).toBe(true)
     expect(result.target).toBe('party')
-    expect(result.artifactKind).toBe('form')
-    expect(result.normalizedValue).toEqual({
+    expect(result.artifact_kind).toBe('form')
+    expect(result.normalized_value).toEqual({
       roleId: 'tenant',
       index: 0,
       party: {
@@ -113,31 +113,31 @@ describe('executeValidateInput', () => {
     const result = await executeValidateInput({
       source: 'artifact',
       artifact: checklistArtifact,
-      target: 'checklistItem',
-      itemId: 'approval',
+      target: 'checklist_item',
+      item_id: 'approval',
       value: 'approved',
     })
 
     expect(result.valid).toBe(true)
-    expect(result.target).toBe('checklistItem')
-    expect(result.artifactKind).toBe('checklist')
-    expect(result.normalizedValue).toBe('approved')
+    expect(result.target).toBe('checklist_item')
+    expect(result.artifact_kind).toBe('checklist')
+    expect(result.normalized_value).toBe('approved')
   })
 
   it('returns target mismatch error when using checklist target on form', async () => {
     const result = await executeValidateInput({
       source: 'artifact',
       artifact: formArtifact,
-      target: 'checklistItem',
-      itemId: 'approval',
+      target: 'checklist_item',
+      item_id: 'approval',
       value: 'approved',
     })
 
     expect(result.valid).toBe(false)
     expect(result.errors).toEqual([
       {
-        field: 'target',
-        message: 'Target "checklistItem" requires a checklist artifact.',
+        code: 'invalid_target',
+        message: 'Target "checklist_item" requires a checklist artifact.',
       },
     ])
   })
@@ -153,8 +153,9 @@ describe('executeValidateInput', () => {
     expect(result.valid).toBe(false)
     expect(result.errors).toEqual([
       {
-        field: 'fieldPath',
-        message: 'fieldPath is required for target "field".',
+        code: 'invalid_target',
+        message: 'field_path is required for target "field".',
+        path: ['field_path'],
       },
     ])
   })

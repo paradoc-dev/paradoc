@@ -23,11 +23,11 @@
 
 Framework-neutral AI tool definitions for Paradoc. Provides Zod input schemas, execute functions, and an HTTP registry client that any AI framework adapter can wrap.
 
-- **5 tools** - validateArtifact, fill, render, getRegistry, getArtifact
+- **9 tools** - registry discovery, retrieval, inspection, validation, filling, fill-state inspection, updates, and rendering
 - **No framework dependency** - Pure tool protocol, no AI SDK lock-in
-- **3 render modes** - Render from artifact JSON, URL, or registry lookup
+- **3 source modes** - Run operations against artifact JSON, a URL, or an indexed registry item
 - **Registry client** - Fetch artifacts from any Paradoc registry over HTTPS
-- **Edge-compatible** - Optional proxy text renderer for edge runtimes
+- **Bounded output** - Request-scoped caching, cancellation, limits, and selectable render presentation
 
 This package is the foundation for `@paradoc/ai-sdk` (Vercel AI SDK) and `@paradoc/tanstack-ai` (TanStack AI). Advanced users can build custom adapters for other frameworks.
 
@@ -43,29 +43,35 @@ npm install @paradoc/ai-tools
 
 ```typescript
 import {
-  executeValidateArtifact,
-  executeFill,
-  executeRender,
+  toolDefinitions,
   executeGetRegistry,
   executeGetArtifact,
+  executeInspectArtifact,
+  executeValidateArtifact,
+  executeValidateInput,
+  executeFill,
+  executeGetFillState,
+  executeUpdateFill,
+  executeRender,
 } from "@paradoc/ai-tools";
 
 // Fetch available artifacts from a registry
 const registry = await executeGetRegistry({
-  registryUrl: "https://public.paradoc.dev",
+  registry_url: "https://public.paradoc.dev",
 });
 
 // Fetch a specific artifact
 const { artifact } = await executeGetArtifact({
-  registryUrl: "https://public.paradoc.dev",
-  artifactName: "pet-addendum",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
 });
 
 // Validate the artifact schema
-const validation = executeValidateArtifact({ artifact });
+const validation = await executeValidateArtifact({ source: "artifact", artifact });
 
 // Fill with data and check for errors
-const fillResult = executeFill({
+const fillResult = await executeFill({
+  source: "artifact",
   artifact,
   data: {
     fields: { petName: "Buddy", species: "dog", weight: 45 },
@@ -73,12 +79,21 @@ const fillResult = executeFill({
   },
 });
 
+if (!fillResult.accepted) throw new Error(fillResult.error?.message);
+
+const state = await executeGetFillState({
+  source: "artifact",
+  artifact,
+  data: fillResult.data,
+  evaluation_context: fillResult.evaluation_context,
+});
+
 // Render to markdown (inline)
 const rendered = await executeRender({
-  source: "registry",
-  registryUrl: "https://public.paradoc.dev",
-  artifactName: "pet-addendum",
+  source: "artifact",
+  artifact,
   data: fillResult.data,
+  evaluation_context: fillResult.evaluation_context,
   layer: "markdown",
 });
 ```
@@ -89,9 +104,9 @@ The render tool supports three input modes via discriminated union:
 
 | Mode | Fields | Resolution |
 |------|--------|------------|
-| `source: 'artifact'` | `artifact`, `baseUrl?` | Direct - no fetch needed |
-| `source: 'url'` | `url` | Fetches artifact JSON, derives baseUrl |
-| `source: 'registry'` | `registryUrl`, `artifactName` | Fetches registry.json, then artifact |
+| `source: 'artifact'` | `artifact`, `base_url?` | Direct, no fetch needed |
+| `source: 'url'` | `url` | Fetches artifact JSON and derives its layer base URL |
+| `source: 'registry'` | `registry_url`, `artifact_name` | Fetches `registry.json`, verifies membership, then retrieves the artifact |
 
 ### Configuration
 
@@ -101,23 +116,28 @@ import type { ParadocToolsConfig } from "@paradoc/ai-tools";
 const config: ParadocToolsConfig = {
   defaultRegistryUrl: "https://public.paradoc.dev",
   fetch: customFetchWithAuth,
+  approvedOrigins: ["https://public.paradoc.dev"],
+  maxOutputBytes: 200_000,
 };
 ```
 
-### Edge compatibility
-
-Text, PDF, and DOCX layers render locally in browsers, edge runtimes, and Node.js.
-No rendering proxy or runtime-specific configuration is required.
+The configured default is used only when an operation omits `registry_url`; an explicit input always wins. Local HTTP/loopback access requires `allowLocalDevelopment: true`. `approvedOrigins` should be used with a connection-level egress policy when sources are untrusted, because lexical hostname checks cannot prevent DNS rebinding.
 
 ## Tools
 
 | Tool | Input | Output | Network? |
 |------|-------|--------|----------|
-| `validateArtifact` | `{artifact, options?}` | `{valid, detectedKind, issues?}` | No |
-| `fill` | `{artifact, data}` | `{accepted, complete, artifactKind, data?, errors?}` | No |
-| `render` | 3 modes (see above) | `{success, content, encoding, mimeType}` | Modes 2+3 |
-| `getRegistry` | `{registryUrl}` | `{name, items[]}` | Yes |
-| `getArtifact` | `{registryUrl, artifactName}` | `{artifact, artifactName}` | Yes |
+| `get_registry` | `{registry_url?}` | `{registry_url, items[]}` | Yes |
+| `get_artifact` | `{registry_url?, artifact_name}` | `{artifact, artifact_name, instructions?}` | Yes |
+| `inspect_artifact` | A source plus selectable sections | Bounded artifact projection | Source dependent |
+| `validate_artifact` | A source plus validation options | `{valid, artifact_kind?, issues?}` | Source dependent |
+| `validate_input` | A source plus one field/party/annex/item value | Typed normalized value or structured errors | Source dependent |
+| `fill` | A source plus `{data}` | `{accepted, complete, data?, evaluation_context?}` | Source dependent |
+| `get_fill_state` | A source plus draft data | Progress, open targets, rules, and next target | Source dependent |
+| `update_fill` | A source plus draft, patch, clear/reset paths | Lossless reusable draft payload | Source dependent |
+| `render` | A source plus optional data and layer | Text or base64 result with byte length | Source dependent |
+
+The public operation names and schemas are available from `toolDefinitions`. Wire fields use `snake_case`; artifact JSON keeps its own field names. Form and checklist fill output keeps the accepted payload shape (`fields`, `parties`, `annexes`, and supported signer data), so it can be passed directly to `update_fill` or `render`. `accepted` means supplied values were accepted; `complete` reports whether the draft is ready according to the artifact's rules.
 
 ## Changelog
 

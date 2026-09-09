@@ -35,9 +35,9 @@ describe('executeRender', () => {
       expect(result.success).toBe(true)
       expect(result.content).toBeDefined()
       expect(result.encoding).toBe('utf-8')
-      expect(result.mimeType).toBe('text/markdown')
+      expect(result.mime_type).toBe('text/markdown')
       expect(result.content).toContain('John Doe')
-      expect(result.artifactKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
     })
 
     it('renders locally without calling a document service', async () => {
@@ -67,7 +67,7 @@ describe('executeRender', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.mimeType).toBe('text/markdown')
+      expect(result.mime_type).toBe('text/markdown')
     })
 
     it('uses first layer when no defaultLayer set', async () => {
@@ -91,7 +91,7 @@ describe('executeRender', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.mimeType).toBe('text/html')
+      expect(result.mime_type).toBe('text/html')
     })
   })
 
@@ -110,7 +110,7 @@ describe('executeRender', () => {
       })
 
       expect(result.success).toBe(false)
-      expect(result.error).toContain('no layers')
+      expect(result.error?.message).toContain('no renderable layers')
     })
   })
 
@@ -136,7 +136,7 @@ describe('executeRender', () => {
       })
 
       expect(result.success).toBe(false)
-      expect(result.error).toContain('file-backed')
+      expect(result.error?.message).toContain('file-backed')
     })
   })
 
@@ -164,7 +164,7 @@ describe('executeRender', () => {
       })
 
       expect(result.success).toBe(false)
-      expect(result.validationIssues || result.error).toBeDefined()
+      expect(result.validation_issues || result.error).toBeDefined()
     })
   })
 
@@ -180,7 +180,7 @@ describe('executeRender', () => {
     })
   })
 
-  describe('artifactKind detection', () => {
+  describe('artifact_kind detection', () => {
     it('detects form kind', async () => {
       const result = await executeRender({
         source: 'artifact' as const,
@@ -188,7 +188,7 @@ describe('executeRender', () => {
         data: { fields: { name: 'Test' } },
       })
 
-      expect(result.artifactKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
     })
   })
 })

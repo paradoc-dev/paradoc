@@ -21,7 +21,7 @@
     "landlord": {
       "label": "Landlord",
       "description": "The landlord granting permission for the tenant to keep a pet",
-      "partyType": "any",
+      "partyType": "organization",
       "min": 1,
       "max": 1,
       "signature": {
@@ -44,7 +44,17 @@
       "description": "Species of the pet",
       "type": "enum",
       "required": true,
-      "enum": [{ "value": "dog" }, { "value": "cat" }, { "value": "fish" }]
+      "enum": [
+        {
+          "value": "dog"
+        },
+        {
+          "value": "cat"
+        },
+        {
+          "value": "fish"
+        }
+      ]
     },
     "weight": {
       "label": "Weight (lbs)",

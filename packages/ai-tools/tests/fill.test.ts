@@ -27,9 +27,9 @@ describe('executeFill', () => {
 
       expect(result.accepted).toBe(true)
       expect(result.complete).toBe(true)
-      expect(result.artifactKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
       expect(result.data).toBeDefined()
-      expect(result.data!.name).toBe('John Doe')
+      expect(result.data!.fields.name).toBe('John Doe')
     })
 
     it('accepts a partial draft and reports that it is incomplete', async () => {
@@ -45,7 +45,7 @@ describe('executeFill', () => {
 
       expect(result.accepted).toBe(true)
       expect(result.complete).toBe(false)
-      expect(result.artifactKind).toBe('form')
+      expect(result.artifact_kind).toBe('form')
       expect(result.data).toBeDefined()
     })
 
@@ -84,7 +84,7 @@ describe('executeFill', () => {
       expect(result.accepted).toBe(true)
       expect(result.complete).toBe(true)
       expect(result.data).toBeDefined()
-      expect(result.data!.status).toBe('pending')
+      expect(result.data!.fields.status).toBe('pending')
     })
   })
 
@@ -112,7 +112,7 @@ describe('executeFill', () => {
 
       expect(result.accepted).toBe(true)
       expect(result.complete).toBe(true)
-      expect(result.artifactKind).toBe('checklist')
+      expect(result.artifact_kind).toBe('checklist')
       expect(result.data).toBeDefined()
     })
 
@@ -125,7 +125,7 @@ describe('executeFill', () => {
 
       expect(result.accepted).toBe(true)
       expect(result.complete).toBe(false)
-      expect(result.artifactKind).toBe('checklist')
+      expect(result.artifact_kind).toBe('checklist')
     })
   })
 
@@ -142,7 +142,7 @@ describe('executeFill', () => {
       })
 
       expect(result.accepted).toBe(false)
-      expect(result.error).toContain('form or checklist')
+      expect(result.error?.message).toContain('form and checklist')
     })
 
     it('returns error for bundle artifact', async () => {
@@ -157,7 +157,7 @@ describe('executeFill', () => {
       })
 
       expect(result.accepted).toBe(false)
-      expect(result.error).toContain('form or checklist')
+      expect(result.error?.message).toContain('form and checklist')
     })
   })
 
@@ -193,8 +193,8 @@ describe('executeFill', () => {
 
       expect(mockFetch).toHaveBeenCalled()
       expect(result.accepted).toBe(true)
-      expect(result.artifactKind).toBe('form')
-      expect(result.data!.x).toBe('hello')
+      expect(result.artifact_kind).toBe('form')
+      expect(result.data!.fields.x).toBe('hello')
     })
 
     it('returns error for failed URL fetch', async () => {
@@ -233,16 +233,16 @@ describe('executeFill', () => {
       const result = await executeFill(
         {
           source: 'registry' as const,
-          registryUrl: 'https://example.com',
-          artifactName: 'my-form',
+          registry_url: 'https://example.com',
+          artifact_name: 'my-form',
           data: { fields: { x: 'world' } },
         },
         { fetch: mockFetch },
       )
 
       expect(result.accepted).toBe(true)
-      expect(result.artifactKind).toBe('form')
-      expect(result.data!.x).toBe('world')
+      expect(result.artifact_kind).toBe('form')
+      expect(result.data!.fields.x).toBe('world')
     })
   })
 })

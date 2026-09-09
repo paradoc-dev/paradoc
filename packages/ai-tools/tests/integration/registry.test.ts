@@ -16,7 +16,7 @@ const PET_ADDENDUM_DATA = {
   },
   parties: {
     tenant: { id: 'tenant-1', name: 'Jane Doe' },
-    landlord: { id: 'landlord-1', name: 'Acme Properties LLC' },
+    landlord: { id: 'landlord-1', name: 'Acme Properties LLC', legalName: 'Acme Properties LLC' },
   },
 }
 
@@ -26,7 +26,7 @@ const PET_ADDENDUM_DATA = {
 
 describe('executeGetRegistry', () => {
   it('fetches registry.json and returns items', async () => {
-    const result = await executeGetRegistry({ registryUrl: REGISTRY_URL })
+    const result = await executeGetRegistry({ registry_url: REGISTRY_URL })
 
     expect(result.error).toBeUndefined()
     expect(result.items.length).toBeGreaterThan(0)
@@ -36,7 +36,7 @@ describe('executeGetRegistry', () => {
   })
 
   it('returns error for invalid registry URL', async () => {
-    const result = await executeGetRegistry({ registryUrl: 'https://nonexistent.example.com' })
+    const result = await executeGetRegistry({ registry_url: 'https://nonexistent.example.com' })
 
     expect(result.error).toBeDefined()
     expect(result.items).toEqual([])
@@ -50,12 +50,12 @@ describe('executeGetRegistry', () => {
 describe('executeGetArtifact', () => {
   it('fetches pet-addendum artifact from registry', async () => {
     const result = await executeGetArtifact({
-      registryUrl: REGISTRY_URL,
-      artifactName: 'pet-addendum',
+      registry_url: REGISTRY_URL,
+      artifact_name: 'pet-addendum',
     })
 
     expect(result.error).toBeUndefined()
-    expect(result.artifactName).toBe('pet-addendum')
+    expect(result.artifact_name).toBe('pet-addendum')
     expect(result.artifact).toBeDefined()
     expect(result.artifact!.kind).toBe('form')
     expect(result.artifact!.name).toBe('pet-addendum')
@@ -71,12 +71,12 @@ describe('executeGetArtifact', () => {
 
   it('returns error for nonexistent artifact', async () => {
     const result = await executeGetArtifact({
-      registryUrl: REGISTRY_URL,
-      artifactName: 'does-not-exist',
+      registry_url: REGISTRY_URL,
+      artifact_name: 'does-not-exist',
     })
 
     expect(result.error).toBeDefined()
-    expect(result.error).toContain('does-not-exist')
+    expect(result.error?.message).toContain('does-not-exist')
   })
 })
 
@@ -88,8 +88,8 @@ describe('full pipeline', () => {
   it('getArtifact → validate → fill → render (pet-addendum, markdown)', async () => {
     // 1. Fetch
     const getResult = await executeGetArtifact({
-      registryUrl: REGISTRY_URL,
-      artifactName: 'pet-addendum',
+      registry_url: REGISTRY_URL,
+      artifact_name: 'pet-addendum',
     })
     expect(getResult.error).toBeUndefined()
     const artifact = getResult.artifact!
@@ -97,26 +97,26 @@ describe('full pipeline', () => {
     // 2. Validate
     const validateResult = await executeValidateArtifact({ source: 'artifact' as const, artifact })
     expect(validateResult.valid).toBe(true)
-    expect(validateResult.detectedKind).toBe('form')
+    expect(validateResult.artifact_kind).toBe('form')
 
     // 3. Fill
     const fillResult = await executeFill({ source: 'artifact' as const, artifact, data: PET_ADDENDUM_DATA })
-    expect(fillResult.valid).toBe(true)
-    expect(fillResult.artifactKind).toBe('form')
+    expect(fillResult.accepted).toBe(true)
+    expect(fillResult.artifact_kind).toBe('form')
     expect(fillResult.data).toBeDefined()
 
     // 4. Render (markdown, via registry source mode)
     const renderResult = await executeRender({
       source: 'registry',
-      registryUrl: REGISTRY_URL,
-      artifactName: 'pet-addendum',
+      registry_url: REGISTRY_URL,
+      artifact_name: 'pet-addendum',
       data: PET_ADDENDUM_DATA,
       layer: 'markdown',
     })
 
     expect(renderResult.success).toBe(true)
-    expect(renderResult.artifactKind).toBe('form')
-    expect(renderResult.mimeType).toBe('text/markdown')
+    expect(renderResult.artifact_kind).toBe('form')
+    expect(renderResult.mime_type).toBe('text/markdown')
     expect(renderResult.encoding).toBe('utf-8')
     expect(renderResult.content).toBeDefined()
     expect(renderResult.content).toContain('Buddy')
@@ -126,15 +126,15 @@ describe('full pipeline', () => {
   it('renders pet-addendum as PDF (inline, base64)', async () => {
     const result = await executeRender({
       source: 'registry',
-      registryUrl: REGISTRY_URL,
-      artifactName: 'pet-addendum',
+      registry_url: REGISTRY_URL,
+      artifact_name: 'pet-addendum',
       data: PET_ADDENDUM_DATA,
       layer: 'pdf',
     })
 
     expect(result.success).toBe(true)
-    expect(result.artifactKind).toBe('form')
-    expect(result.mimeType).toBe('application/pdf')
+    expect(result.artifact_kind).toBe('form')
+    expect(result.mime_type).toBe('application/pdf')
     expect(result.encoding).toBe('base64')
     expect(result.content).toBeDefined()
 
@@ -152,32 +152,32 @@ describe('full pipeline', () => {
     })
 
     expect(result.success).toBe(true)
-    expect(result.mimeType).toBe('text/markdown')
+    expect(result.mime_type).toBe('text/markdown')
     expect(result.content).toContain('Buddy')
   })
 
   it('validates pet-addendum via registry source', async () => {
     const result = await executeValidateArtifact({
       source: 'registry',
-      registryUrl: REGISTRY_URL,
-      artifactName: 'pet-addendum',
+      registry_url: REGISTRY_URL,
+      artifact_name: 'pet-addendum',
     })
 
     expect(result.valid).toBe(true)
-    expect(result.detectedKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
   })
 
   it('fills pet-addendum via registry source', async () => {
     const result = await executeFill({
       source: 'registry',
-      registryUrl: REGISTRY_URL,
-      artifactName: 'pet-addendum',
+      registry_url: REGISTRY_URL,
+      artifact_name: 'pet-addendum',
       data: PET_ADDENDUM_DATA,
     })
 
-    expect(result.valid).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.accepted).toBe(true)
+    expect(result.artifact_kind).toBe('form')
     expect(result.data).toBeDefined()
-    expect(result.data!.petName).toBe('Buddy')
+    expect(result.data!.fields.petName).toBe('Buddy')
   })
 })

@@ -10,7 +10,6 @@ export default defineConfig({
 	sourcemap: false,
 	clean: true,
 	external: [
-		'@paradoc/sdk',
 		'@paradoc/core',
 		'@paradoc/render',
 		'zod',

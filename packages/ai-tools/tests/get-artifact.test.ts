@@ -25,15 +25,15 @@ describe('executeGetArtifact instruction resolution', () => {
     })
 
     const result = await executeGetArtifact(
-      { registryUrl: 'https://public.paradoc.dev', artifactName: 'pet-addendum' },
+      { registry_url: 'https://public.paradoc.dev', artifact_name: 'pet-addendum' },
       { fetch: mockFetch },
     )
 
     expect(result.error).toBeUndefined()
     expect(result.instructions?.kind).toBe('inline')
     expect(result.instructions?.content).toContain('required pet details')
-    expect(result.agentInstructions?.kind).toBe('inline')
-    expect(result.agentInstructions?.content).toContain('one question at a time')
+    expect(result.agent_instructions?.kind).toBe('inline')
+    expect(result.agent_instructions?.content).toContain('one question at a time')
   })
 
   it('fetches file-backed instructions and agent instructions', async () => {
@@ -70,7 +70,7 @@ describe('executeGetArtifact instruction resolution', () => {
     })
 
     const result = await executeGetArtifact(
-      { registryUrl: 'https://public.paradoc.dev', artifactName: 'pet-addendum' },
+      { registry_url: 'https://public.paradoc.dev', artifact_name: 'pet-addendum' },
       { fetch: mockFetch },
     )
 
@@ -78,9 +78,9 @@ describe('executeGetArtifact instruction resolution', () => {
     expect(result.instructions?.kind).toBe('file')
     expect(result.instructions?.encoding).toBe('utf-8')
     expect(result.instructions?.content).toContain('Instructions')
-    expect(result.agentInstructions?.kind).toBe('file')
-    expect(result.agentInstructions?.encoding).toBe('utf-8')
-    expect(result.agentInstructions?.content).toContain('Agent Instructions')
+    expect(result.agent_instructions?.kind).toBe('file')
+    expect(result.agent_instructions?.encoding).toBe('utf-8')
+    expect(result.agent_instructions?.content).toContain('Agent Instructions')
   })
 
   it('returns an error when referenced instruction file cannot be fetched', async () => {
@@ -106,12 +106,12 @@ describe('executeGetArtifact instruction resolution', () => {
     })
 
     const result = await executeGetArtifact(
-      { registryUrl: 'https://public.paradoc.dev', artifactName: 'pet-addendum' },
+      { registry_url: 'https://public.paradoc.dev', artifact_name: 'pet-addendum' },
       { fetch: mockFetch },
     )
 
     expect(result.error).toBeDefined()
-    expect(result.error).toContain('instructions.md')
+    expect(result.error?.message).toContain('instructions.md')
     expect(result.instructions).toBeUndefined()
   })
 })

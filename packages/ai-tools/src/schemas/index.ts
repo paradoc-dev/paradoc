@@ -1,7 +1,57 @@
-export { ValidateArtifactInputSchema, type ValidateArtifactInput } from './validate'
-export { ValidateInputValueSchema, type ValidateInputValue } from './validate-input'
-export { FillInputSchema, type FillInput } from './fill'
-export { RenderInputSchema, type RenderInput } from './render'
-export { GetRegistryInputSchema, type GetRegistryInput } from './get-registry'
-export { GetArtifactInputSchema, type GetArtifactInput } from './get-artifact'
-export { ArtifactSource, UrlSource, RegistrySource, SourceUnion, type SourceInput } from './source'
+export {
+	ArtifactSourceSchema as ArtifactSource,
+	RegistrySourceSchema as RegistrySource,
+	UrlSourceSchema as UrlSource,
+	SourceSchema as SourceUnion,
+	SourceOperationSchema,
+	GetRegistryInputSchema,
+	GetArtifactInputSchema,
+	InspectArtifactInputSchema,
+	ValidateArtifactInputSchema,
+	ValidateInputValueSchema,
+	FillInputSchema,
+	FillStateInputSchema,
+	UpdateFillInputSchema,
+	RenderInputSchema,
+	FillDataSchema,
+	ValidateInputTargetSchema,
+	ValidateArtifactOutputSchema,
+	ValidateInputOutputSchema,
+	FillOutputSchema,
+	UpdateFillOutputSchema,
+	FillStateOutputSchema,
+	RenderOutputSchema,
+	GetRegistryOutputSchema,
+	GetArtifactOutputSchema,
+	InspectArtifactOutputSchema,
+	ToolErrorSchema,
+	ValidationIssueSchema,
+	RegistryItemSchema,
+	InstructionContentSchema,
+} from '../contracts'
+
+export type {
+	SourceInput,
+	GetRegistryInput,
+	GetArtifactInput,
+	InspectArtifactInput,
+	ValidateArtifactInput,
+	ValidateInputValue,
+	FillInput,
+	FillStateInput,
+	UpdateFillInput,
+	RenderInput,
+	ValidateArtifactOutput,
+	ValidateInputOutput,
+	FillOutput,
+	UpdateFillOutput,
+	FillStateOutput,
+	RenderOutput,
+	GetRegistryOutput,
+	GetArtifactOutput,
+	InspectArtifactOutput,
+	ToolError,
+	ValidationIssue,
+	RegistryItem,
+	InstructionContent,
+} from '../contracts'

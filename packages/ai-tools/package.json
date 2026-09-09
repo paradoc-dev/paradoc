@@ -65,8 +65,8 @@
     "check": "pnpm lint && pnpm check-types"
   },
   "dependencies": {
-    "@paradoc/sdk": "workspace:*",
-    "@paradoc/types": "workspace:*",
+    "@paradoc/core": "workspace:*",
+    "@paradoc/render": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

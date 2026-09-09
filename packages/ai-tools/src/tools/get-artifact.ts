@@ -1,135 +1,84 @@
-import { buildArtifactItemUrl, fetchRegistryIndex, fetchRegistryItem, safeFetch } from '../registry-client'
-import type { GetArtifactInput } from '../schemas/get-artifact'
-import type { GetArtifactOutput } from '../types'
 import type { ParadocToolsConfig } from '../config'
-
-const MAX_INSTRUCTIONS_SIZE = 5_242_880 // 5 MB
+import type { GetArtifactInput, GetArtifactOutput, InstructionContent } from '../contracts'
+import { errorFromUnknown } from '../errors'
+import { normalizeGetArtifactInput } from '../input'
+import {
+	buildArtifactItemUrl,
+	bytesToBase64,
+	bytesToText,
+	fetchRegistryIndexResponse,
+	fetchRegistryItemResponse,
+	fetchPolicyFromConfig,
+	MAX_INSTRUCTIONS_SIZE,
+	registryUrlFromConfig,
+	resolveRelativeUrl,
+	safeFetch,
+} from '../registry-client'
 
 type ContentRef =
-  | { kind: 'inline'; text: string }
-  | { kind: 'file'; path: string; mimeType: string; title?: string; description?: string; checksum?: string }
+	| { kind: 'inline'; text: string }
+	| { kind: 'file'; path: string; mimeType: string; title?: string; description?: string; checksum?: string }
 
-function isInlineContentRef(value: unknown): value is { kind: 'inline'; text: string } {
-  if (!value || typeof value !== 'object') return false
-  const v = value as Record<string, unknown>
-  return v.kind === 'inline' && typeof v.text === 'string'
+function contentRef(value: unknown): ContentRef | undefined {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+	const ref = value as Record<string, unknown>
+	if (ref.kind === 'inline' && typeof ref.text === 'string') return { kind: 'inline', text: ref.text }
+	if (ref.kind === 'file' && typeof ref.path === 'string' && typeof ref.mimeType === 'string') {
+		return { kind: 'file', path: ref.path, mimeType: ref.mimeType }
+	}
+	return undefined
 }
 
-function isFileContentRef(value: unknown): value is { kind: 'file'; path: string; mimeType: string } {
-  if (!value || typeof value !== 'object') return false
-  const v = value as Record<string, unknown>
-  return v.kind === 'file' && typeof v.path === 'string' && typeof v.mimeType === 'string'
+function isText(mimeType: string): boolean {
+	return mimeType.startsWith('text/') || /json|xml|yaml|markdown/i.test(mimeType)
 }
 
-function getContentRef(artifact: Record<string, unknown>, key: 'instructions' | 'agentInstructions'): ContentRef | undefined {
-  const value = artifact[key]
-  if (isInlineContentRef(value)) return value
-  if (isFileContentRef(value)) return value
-  return undefined
-}
-
-function shouldTreatAsText(mimeType: string): boolean {
-  return (
-    mimeType.startsWith('text/') ||
-    mimeType.includes('json') ||
-    mimeType.includes('xml') ||
-    mimeType.includes('yaml') ||
-    mimeType.includes('markdown')
-  )
-}
-
-async function resolveContentRef(
-  ref: ContentRef,
-  artifactItemUrl: string,
-  customFetch?: typeof globalThis.fetch,
-): Promise<NonNullable<GetArtifactOutput['instructions']>> {
-  if (ref.kind === 'inline') {
-    return {
-      kind: 'inline',
-      content: ref.text,
-      encoding: 'utf-8',
-    }
-  }
-
-  const artifactHost = new URL(artifactItemUrl).host
-  const resolvedUrl = new URL(ref.path, artifactItemUrl)
-  if (resolvedUrl.host !== artifactHost) {
-    throw new Error(`Instruction path escaped registry host: ${ref.path}`)
-  }
-
-  const res = await safeFetch(resolvedUrl.toString(), MAX_INSTRUCTIONS_SIZE, customFetch)
-  const bytes = new Uint8Array(await res.arrayBuffer())
-
-  if (shouldTreatAsText(ref.mimeType)) {
-    return {
-      kind: 'file',
-      mimeType: ref.mimeType,
-      path: ref.path,
-      content: new TextDecoder().decode(bytes),
-      encoding: 'utf-8',
-    }
-  }
-
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]!)
-  }
-  return {
-    kind: 'file',
-    mimeType: ref.mimeType,
-    path: ref.path,
-    content: btoa(binary),
-    encoding: 'base64',
-  }
+async function resolveRef(ref: ContentRef, artifactUrl: string, config?: ParadocToolsConfig): Promise<InstructionContent> {
+	if (ref.kind === 'inline') return { kind: 'inline', content: ref.text, encoding: 'utf-8' }
+	const url = resolveRelativeUrl(new URL('.', artifactUrl).toString(), ref.path, 'Instruction path')
+	const response = await safeFetch(url.toString(), MAX_INSTRUCTIONS_SIZE, config?.fetch, fetchPolicyFromConfig(config))
+	const bytes = new Uint8Array(await response.arrayBuffer())
+	return {
+		kind: 'file',
+		mime_type: ref.mimeType,
+		path: ref.path,
+		content: isText(ref.mimeType) ? bytesToText(bytes) : bytesToBase64(bytes),
+		encoding: isText(ref.mimeType) ? 'utf-8' : 'base64',
+	}
 }
 
 export async function executeGetArtifact(
-  input: GetArtifactInput,
-  config?: ParadocToolsConfig,
+	input: GetArtifactInput | Record<string, unknown>,
+	config?: ParadocToolsConfig,
 ): Promise<GetArtifactOutput> {
-  try {
-    const index = await fetchRegistryIndex(input.registryUrl, config?.fetch)
-    const indexItem = index.items.find((item) => item.name === input.artifactName)
-
-    if (!indexItem) {
-      return {
-        error: `Artifact "${input.artifactName}" not found in registry. Available: ${index.items.map((i) => i.name).join(', ')}`,
-      }
-    }
-
-    const artifact = await fetchRegistryItem(
-      input.registryUrl,
-      index.artifactsPath,
-      input.artifactName,
-      indexItem.path,
-      config?.fetch,
-    )
-    const artifactItemUrl = buildArtifactItemUrl(
-      input.registryUrl,
-      index.artifactsPath,
-      input.artifactName,
-      indexItem.path,
-    )
-
-    const instructionsRef = getContentRef(artifact, 'instructions')
-    const agentInstructionsRef = getContentRef(artifact, 'agentInstructions')
-
-    const instructions = instructionsRef
-      ? await resolveContentRef(instructionsRef, artifactItemUrl, config?.fetch)
-      : undefined
-    const agentInstructions = agentInstructionsRef
-      ? await resolveContentRef(agentInstructionsRef, artifactItemUrl, config?.fetch)
-      : undefined
-
-    return {
-      artifact,
-      artifactName: input.artifactName,
-      instructions,
-      agentInstructions,
-    }
-  } catch (err) {
-    return {
-      error: err instanceof Error ? err.message : 'Unknown error',
-    }
-  }
+	const normalized = normalizeGetArtifactInput(input)
+	const registryUrl = registryUrlFromConfig(normalized.registry_url, config)
+	if (!registryUrl) return { error: { code: 'missing_registry_url', message: 'registry_url is required, or configure defaultRegistryUrl.' } }
+	try {
+		const resolvedIndex = await fetchRegistryIndexResponse(registryUrl, config?.fetch, config)
+		const index = resolvedIndex.index
+		const resolvedRegistryUrl = new URL('.', resolvedIndex.response.url || new URL('registry.json', `${registryUrl.replace(/\/$/, '')}/`).toString()).toString().replace(/\/$/, '')
+		const indexItem = index.items.find((item) => item.name === normalized.artifact_name)
+		if (!indexItem) return { artifact_name: normalized.artifact_name, error: { code: 'artifact_not_found', message: `Artifact "${normalized.artifact_name}" not found in registry.` } }
+		const requestedArtifactUrl = buildArtifactItemUrl(resolvedRegistryUrl, index.artifactsPath, normalized.artifact_name, indexItem.path)
+		const resolvedItem = await fetchRegistryItemResponse(resolvedRegistryUrl, index.artifactsPath, normalized.artifact_name, indexItem.path, config?.fetch, config)
+		const artifact = resolvedItem.artifact
+		const artifactUrl = resolvedItem.response.url || requestedArtifactUrl
+		const output: GetArtifactOutput = {
+			artifact,
+			artifact_name: normalized.artifact_name,
+			base_url: new URL('.', artifactUrl).toString().replace(/\/$/, ''),
+		}
+		if (normalized.include_instructions !== false) {
+			const ref = contentRef(artifact.instructions)
+			if (ref) output.instructions = await resolveRef(ref, artifactUrl, config)
+		}
+		if (normalized.include_agent_instructions !== false) {
+			const ref = contentRef(artifact.agentInstructions)
+			if (ref) output.agent_instructions = await resolveRef(ref, artifactUrl, config)
+		}
+		return output
+	} catch (error) {
+		return { artifact_name: normalized.artifact_name, error: errorFromUnknown(error, 'artifact_fetch_error') }
+	}
 }

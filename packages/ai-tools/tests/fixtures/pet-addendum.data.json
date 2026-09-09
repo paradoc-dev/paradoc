@@ -14,7 +14,8 @@
     },
     "landlord": {
       "id": "landlord-0",
-      "name": "Acme Properties LLC"
+      "name": "Acme Properties LLC",
+      "legalName": "Acme Properties LLC"
     }
   }
 }

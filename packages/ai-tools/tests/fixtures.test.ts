@@ -69,7 +69,7 @@ describe('pet-addendum fixture (production artifact)', () => {
   it('validates successfully', async () => {
     const result = await executeValidateArtifact({ source: 'artifact' as const, artifact })
     expect(result.valid).toBe(true)
-    expect(result.detectedKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.issues).toBeUndefined()
   })
 
@@ -81,12 +81,12 @@ describe('pet-addendum fixture (production artifact)', () => {
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
     expect(result.accepted).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.data).toBeDefined()
-    expect(result.data!.petName).toBe('Bella')
-    expect(result.data!.species).toBe('dog')
-    expect(result.data!.weight).toBe(35)
-    expect(result.data!.isVaccinated).toBe(true)
+    expect(result.data!.fields.petName).toBe('Bella')
+    expect(result.data!.fields.species).toBe('dog')
+    expect(result.data!.fields.weight).toBe(35)
+    expect(result.data!.fields.isVaccinated).toBe(true)
   })
 
   it('fills successfully when party id is omitted (auto-normalized)', async () => {
@@ -97,13 +97,13 @@ describe('pet-addendum fixture (production artifact)', () => {
         fields: data.fields,
         parties: {
           tenant: { name: 'Alice Tenant' },
-          landlord: { name: 'Bob Landlord' },
+          landlord: { name: 'Bob Landlord', legalName: 'Bob Landlord LLC' },
         },
       },
     })
 
     expect(result.accepted).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
   })
 
   it('accepts a partial draft when required fields are omitted', async () => {
@@ -123,15 +123,15 @@ describe('pet-addendum fixture (production artifact)', () => {
       data,
     })
     expect(result.success).toBe(false)
-    expect(result.error).toContain('file-backed')
+    expect(result.error?.message).toContain('file-backed')
   })
 
   it('renders markdown via public registry', async () => {
     const result = await executeRender(
       {
         source: 'registry' as const,
-        registryUrl: PUBLIC_REGISTRY_URL,
-        artifactName: 'pet-addendum',
+        registry_url: PUBLIC_REGISTRY_URL,
+        artifact_name: 'pet-addendum',
         data,
         layer: 'markdown',
       },
@@ -139,12 +139,12 @@ describe('pet-addendum fixture (production artifact)', () => {
     )
 
     if (!result.success) {
-      console.error('Render failed:', result.error, result.errors, result.validationIssues)
+      console.error('Render failed:', result.error, result.errors, result.validation_issues)
     }
     expect(result.success).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.encoding).toBe('utf-8')
-    expect(result.mimeType).toBe('text/markdown')
+    expect(result.mime_type).toBe('text/markdown')
 
     // Content from the Paradoc template
     expect(result.content).toContain('Pet Addendum')
@@ -157,13 +157,13 @@ describe('pet-addendum fixture (production artifact)', () => {
     const result = await executeRender(
       {
         source: 'registry' as const,
-        registryUrl: PUBLIC_REGISTRY_URL,
-        artifactName: 'pet-addendum',
+        registry_url: PUBLIC_REGISTRY_URL,
+        artifact_name: 'pet-addendum',
         data: {
           fields: data.fields,
           parties: {
             tenant: { name: 'Alice Tenant' },
-            landlord: { name: 'Bob Landlord' },
+            landlord: { name: 'Bob Landlord', legalName: 'Bob Landlord LLC' },
           },
         },
         layer: 'markdown',
@@ -172,17 +172,17 @@ describe('pet-addendum fixture (production artifact)', () => {
     )
 
     expect(result.success).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.encoding).toBe('utf-8')
-    expect(result.mimeType).toBe('text/markdown')
+    expect(result.mime_type).toBe('text/markdown')
   })
 
   it('renders PDF via public registry', async () => {
     const result = await executeRender(
       {
         source: 'registry' as const,
-        registryUrl: PUBLIC_REGISTRY_URL,
-        artifactName: 'pet-addendum',
+        registry_url: PUBLIC_REGISTRY_URL,
+        artifact_name: 'pet-addendum',
         data,
         layer: 'pdf',
       },
@@ -190,9 +190,9 @@ describe('pet-addendum fixture (production artifact)', () => {
     )
 
     expect(result.success).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.encoding).toBe('base64')
-    expect(result.mimeType).toBe('application/pdf')
+    expect(result.mime_type).toBe('application/pdf')
     expect(result.content).toBeDefined()
 
     // Verify base64 decodes to a valid PDF
@@ -212,14 +212,14 @@ describe('lease-agreement fixture', () => {
   it('validates successfully', async () => {
     const result = await executeValidateArtifact({ source: 'artifact' as const, artifact })
     expect(result.valid).toBe(true)
-    expect(result.detectedKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.issues).toBeUndefined()
   })
 
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
     expect(result.accepted).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.data).toBeDefined()
     expect(result.errors).toBeUndefined()
   })
@@ -239,8 +239,8 @@ describe('lease-agreement fixture', () => {
     }
     const result = await executeFill({ source: 'artifact' as const, artifact, data: partialData })
     expect(result.accepted).toBe(true)
-    expect(result.data!.petsAllowed).toBe(false)
-    expect(result.data!.smokingAllowed).toBe(false)
+    expect(result.data!.fields.petsAllowed).toBe(false)
+    expect(result.data!.fields.smokingAllowed).toBe(false)
   })
 
   it('accepts a partial draft when required fields are omitted', async () => {
@@ -261,9 +261,9 @@ describe('lease-agreement fixture', () => {
     })
 
     expect(result.success).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.encoding).toBe('utf-8')
-    expect(result.mimeType).toBe('text/markdown')
+    expect(result.mime_type).toBe('text/markdown')
 
     // Party names
     expect(result.content).toContain('Alice Chen')
@@ -293,13 +293,13 @@ describe('purchase-agreement fixture', () => {
   it('validates successfully', async () => {
     const result = await executeValidateArtifact({ source: 'artifact' as const, artifact })
     expect(result.valid).toBe(true)
-    expect(result.detectedKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
   })
 
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
     expect(result.accepted).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.data).toBeDefined()
   })
 
@@ -322,14 +322,14 @@ describe('purchase-agreement fixture', () => {
 
     expect(result.success).toBe(true)
     expect(result.encoding).toBe('utf-8')
-    expect(result.mimeType).toBe('text/markdown')
+    expect(result.mime_type).toBe('text/markdown')
 
     expect(result.content).toContain('Purchase Agreement')
     expect(result.content).toContain('Alice Johnson')
     expect(result.content).toContain('Bob Smith')
     expect(result.content).toContain('100')
     expect(result.content).toContain('$25.00')
-    expect(result.content).toContain('2025-03-01')
+    expect(result.content).toContain('Mar 1, 2025')
   })
 })
 
@@ -344,16 +344,16 @@ describe('w9-tax-form fixture', () => {
   it('validates successfully', async () => {
     const result = await executeValidateArtifact({ source: 'artifact' as const, artifact })
     expect(result.valid).toBe(true)
-    expect(result.detectedKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
   })
 
   it('fills with valid data', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
     expect(result.accepted).toBe(true)
-    expect(result.artifactKind).toBe('form')
+    expect(result.artifact_kind).toBe('form')
     expect(result.data).toBeDefined()
-    expect(result.data!.name).toBe('John Smith')
-    expect(result.data!.taxClassification).toBe('individual')
+    expect(result.data!.fields.name).toBe('John Smith')
+    expect(result.data!.fields.taxClassification).toBe('individual')
   })
 
   it('fills with all optional fields', async () => {
@@ -367,7 +367,7 @@ describe('w9-tax-form fixture', () => {
     }
     const result = await executeFill({ source: 'artifact' as const, artifact, data: fullData })
     expect(result.accepted).toBe(true)
-    expect(result.data!.businessName).toBe('Smith Consulting LLC')
+    expect(result.data!.fields.businessName).toBe('Smith Consulting LLC')
   })
 
   it('accepts a partial draft when required fields are omitted', async () => {
@@ -388,7 +388,7 @@ describe('w9-tax-form fixture', () => {
     })
 
     expect(result.success).toBe(false)
-    expect(result.error).toContain('file-backed')
+    expect(result.error?.message).toContain('file-backed')
   })
 })
 
@@ -402,13 +402,13 @@ describe('onboarding-checklist fixture', () => {
   it('validates successfully', async () => {
     const result = await executeValidateArtifact({ source: 'artifact' as const, artifact })
     expect(result.valid).toBe(true)
-    expect(result.detectedKind).toBe('checklist')
+    expect(result.artifact_kind).toBe('checklist')
   })
 
   it('fills with boolean values', async () => {
     const result = await executeFill({ source: 'artifact' as const, artifact, data })
     expect(result.accepted).toBe(true)
-    expect(result.artifactKind).toBe('checklist')
+    expect(result.artifact_kind).toBe('checklist')
     expect(result.data).toBeDefined()
   })
 
@@ -430,7 +430,7 @@ describe('onboarding-checklist fixture', () => {
     expect(result.accepted).toBe(true)
   })
 
-  it('returns error when rendering (only forms can render)', async () => {
+  it('reports when a checklist has no renderable layer', async () => {
     const result = await executeRender({
       source: 'artifact' as const,
       artifact,
@@ -438,7 +438,8 @@ describe('onboarding-checklist fixture', () => {
     })
 
     expect(result.success).toBe(false)
-    expect(result.error).toContain('Only form')
+    expect(result.artifact_kind).toBe('checklist')
+    expect(result.error?.code).toBe('missing_layer')
   })
 })
 

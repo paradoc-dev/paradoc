@@ -4,18 +4,36 @@
   "title": "Purchase Agreement",
   "version": "1.0.0",
   "fields": {
-    "quantity": { "type": "number", "label": "Quantity", "required": true },
-    "price": { "type": "money", "label": "Price", "required": true },
-    "date": { "type": "date", "label": "Date", "required": true }
+    "quantity": {
+      "type": "number",
+      "label": "Quantity",
+      "required": true
+    },
+    "price": {
+      "type": "money",
+      "label": "Price",
+      "required": true
+    },
+    "date": {
+      "type": "date",
+      "label": "Date",
+      "required": true
+    }
   },
   "parties": {
     "buyer": {
       "label": "Buyer",
-      "signature": { "required": true }
+      "signature": {
+        "required": true
+      },
+      "partyType": "person"
     },
     "seller": {
       "label": "Seller",
-      "signature": { "required": true }
+      "signature": {
+        "required": true
+      },
+      "partyType": "person"
     }
   },
   "defaultLayer": "markdown",
