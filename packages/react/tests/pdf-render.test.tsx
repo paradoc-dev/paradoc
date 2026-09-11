@@ -74,7 +74,7 @@ describe("the proposal renders to PDF", () => {
       weight: "100 900",
     } as const;
 
-    await renderPdf(<div className="font-application">Typography</div>, {
+    const result = await renderPdf(<div className="font-application">Typography</div>, {
       adapter,
       fonts: [font, font],
       applicationCss: '.font-application { font-family: "Application Sans"; }',
@@ -84,6 +84,12 @@ describe("the proposal renders to PDF", () => {
     expect(prepared?.fonts).toHaveLength(2);
     expect(prepared?.fonts[0]?.identity).toMatch(/^[a-f0-9]{64}$/u);
     expect(prepared?.fonts[0]?.data).toBe(prepared?.fonts[1]?.data);
+    expect(result.fontResources?.[0]).toMatchObject({
+      family: "Application Sans",
+      weight: "100 900",
+      style: "normal",
+      identity: prepared?.fonts[0]?.identity,
+    });
   });
 
   it("does not relabel a custom adapter's initialization failure as a missing peer", async () => {

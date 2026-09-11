@@ -218,5 +218,14 @@ export async function renderPdf(
   // The engine, which is the question this render alone asks: whether the one
   // chosen lays the document's direction out at all.
   assertDirectionSupported(adapter, tokens.dir, scriptOf(tokens.lang), tokens.lang);
-  return adapter.render(input, { lang: tokens.lang, dir: tokens.dir, signingMarkers });
+  const result = await adapter.render(input, { lang: tokens.lang, dir: tokens.dir, signingMarkers });
+  return {
+    ...result,
+    fontResources: fonts.map((font) => ({
+      family: font.family,
+      weight: font.weight,
+      style: font.style ?? "normal",
+      identity: font.identity ?? font.path,
+    })),
+  };
 }

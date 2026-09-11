@@ -89,6 +89,8 @@ export interface PdfRenderResult {
    * reason a stale break is.
    */
   unknownRepeats: string[];
+  /** Exact font resources the renderer received, for parity inspection. */
+  fontResources?: readonly { family: string; weight: string; style: string; identity: string }[];
 }
 
 /** One engine behind `renderPdf`. */
