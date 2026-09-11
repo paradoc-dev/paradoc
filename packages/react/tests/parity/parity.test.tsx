@@ -255,7 +255,7 @@ const ADAPTERS: PdfAdapterName[] = ["chromium"];
  * one the measurement caught rather than a document that repaginated underneath
  * it. The shade is far enough off white to clear the comparison's tolerance.
  */
-const SENSITIVITY_CSS = '[data-page] [data-keep-id^="line-items:"] { background: #d4d4d4 }';
+const SENSITIVITY_CSS = '[data-page] article { transform: translateY(40px) }';
 
 /** The adapter, variant and page the check is made on: a full page of table rows. */
 const SENSITIVITY_ADAPTER: PdfAdapterName = "chromium";
@@ -678,11 +678,9 @@ describe.each(ADAPTERS)("%s in hint mode", (adapter) => {
 
     it("lays every page out where the preview laid it out", () => {
       const measured = run(adapter, variant, "hint");
-      // Page count and first-keep assertions above establish pagination. Within
-      // a matching page, the aligned residual is the fidelity verdict. Drift is
-      // retained in the report as a diagnostic: application-owned system stacks
-      // can have different glyph metrics on Linux and macOS, and sparse pages can
-      // saturate the band search even when their residual is well below the limit.
+      // Count and first-keep assertions establish pagination. The aligned
+      // residual is the visual verdict, and the displacement sensitivity test
+      // below proves it also rejects content moved materially within a page.
       const failing = measured.pages.filter(
         (page) => page.alignedPercent >= RESIDUAL_THRESHOLD_PERCENT
       );
@@ -845,13 +843,13 @@ describe("the Arabic letter is laid out right to left by the engine that can", (
   });
 });
 
-describe("the measurement responds to a change made on one side only", () => {
-  it("fails the criteria when the preview alone is restyled", () => {
+describe("the measurement responds to a positional change made on one side only", () => {
+  it("fails the criteria when preview content alone is displaced", () => {
     expect(sensitivity).not.toBeNull();
     const check = sensitivity!;
-    // The proof has to be against the number acceptance reads. Sliding the
-    // bands cannot recover a fill the other side does not have, so a page that
-    // passed before the change fails after it.
+    // The proof is against the same residual acceptance reads. The alignment
+    // search cannot hide a material 40px displacement, so a page that passed
+    // before the change fails after it.
     expect(check.beforeAlignedPercent).toBeLessThan(RESIDUAL_THRESHOLD_PERCENT);
     expect(check.afterAlignedPercent).toBeGreaterThanOrEqual(RESIDUAL_THRESHOLD_PERCENT);
   });
