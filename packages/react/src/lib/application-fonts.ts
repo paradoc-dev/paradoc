@@ -16,20 +16,37 @@ export interface ApplicationFontSnapshot {
   css: string;
 }
 
-const fontBytes = new Map<string, Promise<{ bytes: ArrayBuffer; integrity: string }>>();
+interface CachedFont {
+  value?: { bytes: ArrayBuffer; integrity: string };
+  etag?: string;
+  lastModified?: string;
+  immutable?: boolean;
+  pending?: Promise<{ bytes: ArrayBuffer; integrity: string }>;
+}
+const fontBytes = new Map<string, CachedFont>();
 
 function fetchFont(source: string): Promise<{ bytes: ArrayBuffer; integrity: string }> {
-  let pending = fontBytes.get(source);
-  if (pending === undefined) {
-    pending = (async () => {
-      const response = await fetch(source);
+  const cached = fontBytes.get(source) ?? {};
+  if (cached.immutable && cached.value !== undefined) return Promise.resolve(cached.value);
+  if (cached.pending !== undefined) return cached.pending;
+  cached.pending = (async () => {
+      const headers = new Headers();
+      if (cached.etag) headers.set("If-None-Match", cached.etag);
+      if (cached.lastModified) headers.set("If-Modified-Since", cached.lastModified);
+      const response = await fetch(source, { headers });
+      if (response.status === 304 && cached.value !== undefined) return cached.value;
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const bytes = await response.arrayBuffer();
-      return { bytes, integrity: await sha256(bytes) };
-    })().catch((error: unknown) => { fontBytes.delete(source); throw error; });
-    fontBytes.set(source, pending);
-  }
-  return pending;
+      const value = { bytes, integrity: await sha256(bytes) };
+      cached.value = value;
+      cached.etag = response.headers.get("etag") ?? undefined;
+      cached.lastModified = response.headers.get("last-modified") ?? undefined;
+      cached.immutable = /(?:^|,)\s*immutable(?:,|$)/iu.test(response.headers.get("cache-control") ?? "");
+      return value;
+    })().catch((error: unknown) => { fontBytes.delete(source); throw error; })
+      .finally(() => { cached.pending = undefined; });
+  fontBytes.set(source, cached);
+  return cached.pending;
 }
 
 function unquote(value: string): string {
