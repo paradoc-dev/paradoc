@@ -89,10 +89,13 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   const stackRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [plan, setPlan] = useState<PagePlan | null>(null);
+  const [fontError, setFontError] = useState<Error | null>(null);
+  const paginationGeneration = useRef(0);
   const { drawn, tokens, geometry, sheetStyle } = usePaperFor(children);
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
   const fonts = useFontReadiness(tokens.fontFamily);
   if (fonts.error) throw fonts.error;
+  if (fontError) throw fontError;
   const fontsReady = fonts.ready;
 
   // The paper is part of what a plan is a plan of. It needs no invalidation of
@@ -104,9 +107,17 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   const repaginate = useCallback(async () => {
     const container = measureRef.current;
     if (!container) return;
-    const next = planPages(measureKeeps(container), budget);
-    next.fonts = await captureApplicationFonts(container);
-    setPlan((previous) => (samePlan(previous, next) ? previous : next));
+    const generation = ++paginationGeneration.current;
+    try {
+      const snapshot = await captureApplicationFonts(container);
+      if (generation !== paginationGeneration.current || container !== measureRef.current) return;
+      const next = planPages(measureKeeps(container), budget);
+      next.fonts = snapshot;
+      setFontError(null);
+      setPlan((previous) => (samePlan(previous, next) ? previous : next));
+    } catch (cause) {
+      if (generation === paginationGeneration.current) setFontError(cause instanceof Error ? cause : new Error(String(cause)));
+    }
   }, [budget]);
 
   // React builds a new element tree on every render, so children identity says

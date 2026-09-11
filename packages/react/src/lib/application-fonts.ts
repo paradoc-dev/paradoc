@@ -15,6 +15,22 @@ export interface ApplicationFontSnapshot {
   css: string;
 }
 
+const fontBytes = new Map<string, Promise<{ bytes: ArrayBuffer; integrity: string }>>();
+
+function fetchFont(source: string): Promise<{ bytes: ArrayBuffer; integrity: string }> {
+  let pending = fontBytes.get(source);
+  if (pending === undefined) {
+    pending = (async () => {
+      const response = await fetch(source);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const bytes = await response.arrayBuffer();
+      return { bytes, integrity: await sha256(bytes) };
+    })().catch((error: unknown) => { fontBytes.delete(source); throw error; });
+    fontBytes.set(source, pending);
+  }
+  return pending;
+}
+
 function unquote(value: string): string {
   return value.trim().replace(/^['"]|['"]$/gu, "");
 }
@@ -32,10 +48,15 @@ async function sha256(bytes: ArrayBuffer): Promise<string> {
 /** Resolve the exact application font faces capable of affecting a rendered subtree. */
 export async function captureApplicationFonts(root: Element): Promise<ApplicationFontSnapshot> {
   const used = new Set<string>();
+  const requested = new Map<string, { weight: string; style: string }>();
   const requests: Promise<FontFace[]>[] = [];
   for (const element of [root, ...root.querySelectorAll("*")]) {
     const style = getComputedStyle(element);
-    for (const family of style.fontFamily.split(",")) used.add(unquote(family));
+    const family = unquote(style.fontFamily.split(",")[0] ?? "");
+    if (family) {
+      used.add(family);
+      requested.set(family, { weight: style.fontWeight, style: style.fontStyle });
+    }
     const text = element.textContent?.trim();
     if (text) requests.push(document.fonts.load(`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`, text));
   }
@@ -53,23 +74,34 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
       const face = rule as CSSFontFaceRule;
       const family = unquote(face.style.getPropertyValue("font-family"));
       if (!used.has(family)) continue;
+      const wanted = requested.get(family)!;
+      const weight = face.style.getPropertyValue("font-weight") || "400";
+      const style = face.style.getPropertyValue("font-style") || "normal";
+      if (style !== wanted.style) continue;
+      const range = weight.split(/\s+/u).map(Number);
+      const numeric = Number(wanted.weight);
+      if (weight !== wanted.weight && !(range.length === 2 && numeric >= range[0]! && numeric <= range[1]!)) continue;
       const source = sourceUrl(face);
       if (source === undefined) continue;
       const absolute = new URL(source, sheet.href ?? document.baseURI).href;
-      const response = await fetch(absolute);
-      if (!response.ok) throw new Error(`Could not load font face "${family}" from ${absolute}: HTTP ${response.status}.`);
-      const bytes = await response.arrayBuffer();
+      const { integrity } = await fetchFont(absolute).catch((cause: unknown) => {
+        throw new Error(`Could not load font face "${family}" from ${absolute}: ${cause instanceof Error ? cause.message : String(cause)}.`);
+      });
       resources.push({
         family,
         source: absolute,
-        weight: face.style.getPropertyValue("font-weight") || "400",
-        style: face.style.getPropertyValue("font-style") || "normal",
+        weight,
+        style,
         unicodeRange: face.style.getPropertyValue("unicode-range") || undefined,
-        integrity: await sha256(bytes),
+        integrity,
       });
     }
   }
   resources.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  const covered = new Set(resources.map((resource) => resource.family));
+  const generics = new Set(["serif", "sans-serif", "monospace", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace"]);
+  const missing = [...used].filter((family) => !covered.has(family) && !generics.has(family));
+  if (missing.length > 0) throw new Error(`No embeddable @font-face resource is available for: ${missing.join(", ")}. Supply reachable application font files before paginating.`);
   const identity = await sha256(new TextEncoder().encode(JSON.stringify(resources)).buffer);
   return { resources, identity, css: css.join("\n") };
 }

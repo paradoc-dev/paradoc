@@ -18,7 +18,7 @@ import {
 } from "../../components/src/examples";
 import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/headless/paper";
 import { proposalLogoImage } from "../../components/src/examples/pdf";
-import { FontResourceIdentityMismatchError, renderPdf, UnsupportedApplicationTypographyError, UnsupportedPdfContentError } from "../src/pdf";
+import { FontResourceIdentityMismatchError, renderPdf, resolveFontResource, UnsupportedApplicationTypographyError, UnsupportedPdfContentError } from "../src/pdf";
 import type { PdfAdapter, PreparedPdfInput } from "../src/pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";
 
@@ -108,10 +108,11 @@ describe("the proposal renders to PDF", () => {
 
   it("rejects a preview plan when the render substitutes different font resources", async () => {
     const source = "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+    const resolved = await resolveFontResource({ family: "Preview", source });
     await expect(renderPdf(<div>Mismatch</div>, {
       adapter: { name: "inspect", directions: ["ltr"], async render() { return { bytes: new Uint8Array(), unknownBreaks: [], unknownRepeats: [] }; } },
       fonts: [{ family: "Changed", source }],
-      plan: { breaks: [], repeats: [], fonts: { identity: "preview", css: "", resources: [{ family: "Preview", source, integrity: "0".repeat(64) }] } },
+      plan: { breaks: [], repeats: [], fonts: { identity: "preview", css: "", resources: [{ family: "Preview", source, integrity: resolved.identity! }] } },
     })).rejects.toBeInstanceOf(FontResourceIdentityMismatchError);
   });
 

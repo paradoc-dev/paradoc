@@ -206,14 +206,18 @@ export async function renderPdf(
   // refusal is the same one whichever engine would have been asked.
   const tokens = documentTokensOf(element, options.tokens);
 
-  if (options.fonts !== undefined && options.plan?.fonts !== undefined &&
-      JSON.stringify(options.fonts) !== JSON.stringify(options.plan.fonts.resources)) {
-    throw new FontResourceIdentityMismatchError();
+  const explicitFonts = options.fonts === undefined ? undefined : await resolveFontResources(options.fonts);
+  const plannedFonts = options.plan?.fonts === undefined ? undefined : await resolveFontResources(options.plan.fonts.resources);
+  if (explicitFonts !== undefined && plannedFonts !== undefined) {
+    const identity = (faces: Awaited<ReturnType<typeof resolveFontResources>>) => faces
+      .map((face) => `${face.family}:${face.weight}:${face.style ?? "normal"}:${face.identity}`)
+      .sort().join("|");
+    if (identity(explicitFonts) !== identity(plannedFonts)) throw new FontResourceIdentityMismatchError();
   }
 
   const fonts = [
     ...(await documentFontFiles(tokens.fontFamily)),
-    ...(await resolveFontResources(options.fonts ?? options.plan?.fonts?.resources ?? [])),
+    ...(explicitFonts ?? plannedFonts ?? []),
   ];
   if (signingMarkers) fonts.push(await markerFontFile(tokens.fontFamily));
 
