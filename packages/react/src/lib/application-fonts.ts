@@ -5,6 +5,7 @@ export interface ApplicationFontResource {
   weight?: string;
   style?: string;
   unicodeRange?: string;
+  format?: string;
   integrity: string;
 }
 
@@ -35,11 +36,17 @@ function unquote(value: string): string {
   return value.trim().replace(/^['"]|['"]$/gu, "");
 }
 
-function sourceUrl(rule: CSSFontFaceRule, base: string): string | undefined {
-  const urls = [...rule.style.getPropertyValue("src").matchAll(/url\((?:['"])?([^'")]+)(?:['"])?\)/gu)]
-    .map((match) => new URL(match[1]!, base).href);
+function numericWeight(value: string): number {
+  if (value === "normal") return 400;
+  if (value === "bold") return 700;
+  return Number(value);
+}
+
+function faceSource(rule: CSSFontFaceRule, base: string): { url: string; format?: string } | undefined {
+  const sources = [...rule.style.getPropertyValue("src").matchAll(/url\((?:['"])?([^'")]+)(?:['"])?\)(?:\s+format\((?:['"])?([^'")]+)(?:['"])?\))?/gu)]
+    .map((match) => ({ url: new URL(match[1]!, base).href, format: match[2] }));
   const fetched = new Set(performance.getEntriesByType("resource").map((entry) => entry.name));
-  return urls.find((url) => fetched.has(url)) ?? urls[0];
+  return sources.find((source) => fetched.has(source.url)) ?? sources[0];
 }
 
 async function sha256(bytes: ArrayBuffer): Promise<string> {
@@ -83,15 +90,15 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
       const wanted = requested.get(family)!;
       const weight = face.style.getPropertyValue("font-weight") || "400";
       const style = face.style.getPropertyValue("font-style") || "normal";
-      const range = weight.split(/\s+/u).map(Number);
+      const range = weight.split(/\s+/u).map(numericWeight);
       if (!wanted.some((descriptor) => {
         if (style !== descriptor.style) return false;
-        const numeric = Number(descriptor.weight);
-        return weight === descriptor.weight || (range.length === 2 && numeric >= range[0]! && numeric <= range[1]!);
+        const numeric = numericWeight(descriptor.weight);
+        return numericWeight(weight) === numeric || (range.length === 2 && numeric >= range[0]! && numeric <= range[1]!);
       })) continue;
-      const source = sourceUrl(face, sheet.href ?? document.baseURI);
+      const source = faceSource(face, sheet.href ?? document.baseURI);
       if (source === undefined) continue;
-      const absolute = source;
+      const absolute = source.url;
       const { integrity } = await fetchFont(absolute).catch((cause: unknown) => {
         throw new Error(`Could not load font face "${family}" from ${absolute}: ${cause instanceof Error ? cause.message : String(cause)}.`);
       });
@@ -101,6 +108,7 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
         weight,
         style,
         unicodeRange: face.style.getPropertyValue("unicode-range") || undefined,
+        format: source.format,
         integrity,
       });
     }
@@ -110,6 +118,6 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
   const generics = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "math", "fangsong", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded"]);
   const missing = [...used].filter((family) => !covered.has(family) && !generics.has(family));
   if (missing.length > 0) throw new Error(`No embeddable @font-face resource is available for: ${missing.join(", ")}. Supply reachable application font files before paginating.`);
-  const identity = await sha256(new TextEncoder().encode(JSON.stringify(resources)).buffer);
+  const identity = await sha256(new TextEncoder().encode(JSON.stringify({ resources, css: css.join("\n") })).buffer);
   return { resources, identity, css: css.join("\n") };
 }

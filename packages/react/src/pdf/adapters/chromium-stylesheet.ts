@@ -118,9 +118,11 @@ export function classCandidates(markup: string): string[] {
 
 /** An `@font-face` for one file, at the path the render reads it from. */
 function fontFace(font: PdfFontFile): string {
+  const format = font.format ?? "woff2";
+  const mime = format === "woff" ? "font/woff" : format === "truetype" ? "font/ttf" : format === "opentype" ? "font/otf" : "font/woff2";
   const source = font.data === undefined
     ? pathToFileURL(font.path).href
-    : `data:font/woff2;base64,${Buffer.from(font.data).toString("base64")}`;
+    : `data:${mime};base64,${Buffer.from(font.data).toString("base64")}`;
   const lines = [
     `  font-family: "${font.family}";`,
     `  font-style: ${font.style ?? "normal"};`,
@@ -128,7 +130,7 @@ function fontFace(font: PdfFontFile): string {
     // fallback painted while a face loads would be a silent substitution.
     `  font-display: block;`,
     `  font-weight: ${font.weight};`,
-    `  src: url("${source}") format("woff2");`,
+    `  src: url("${source}") format("${format}");`,
   ];
   if (font.unicodeRange !== undefined) lines.push(`  unicode-range: ${font.unicodeRange};`);
   return `@font-face {\n${lines.join("\n")}\n}`;

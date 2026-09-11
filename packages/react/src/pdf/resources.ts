@@ -46,6 +46,8 @@ export interface PdfFontFile {
   identity?: string;
   /** Exact bytes, retained when the source is not a local file. */
   data?: Uint8Array;
+  /** CSS font source format, when known. */
+  format?: string;
 }
 
 /** One application-owned face made available to a headless PDF render. */
@@ -58,6 +60,7 @@ export interface PdfFontResource {
   unicodeRange?: string;
   /** Optional expected SHA-256 hex digest. */
   integrity?: string;
+  format?: string;
 }
 
 export class FontResourceError extends Error {
@@ -104,6 +107,7 @@ export function resolveFontResource(resource: PdfFontResource): Promise<PdfFontF
         weight: resource.weight ?? "400",
         style: resource.style ?? "normal",
         unicodeRange: resource.unicodeRange,
+        format: resource.format,
       };
     })().catch((cause: unknown) => {
       resolvedResources.delete(key);
