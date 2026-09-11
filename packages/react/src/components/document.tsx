@@ -35,8 +35,7 @@ import type { Form } from "@paradoc/types";
 import { useUnresolvedPathCollector } from "./check-context";
 import { usePartialValues } from "./partial-context";
 import { createValueFormatter, type FormatOptions } from "../lib/format";
-import { assertTextScriptsCovered, collectStrings } from "../lib/script";
-import { fontFamilyStyle, localeAttributes, type DocumentTokensInput } from "../lib/tokens";
+import { localeAttributes, type DocumentTokensInput } from "../lib/tokens";
 import {
   createDocumentContext,
   DocumentContextProvider,
@@ -87,11 +86,6 @@ export function Document({
   // which is every input it has, so it is one pass per document rather than one
   // per render. Only the root checks: a nested document is set in the bundle's
   // family and the bundle already answered for it.
-  const { fontFamily, lang } = branding.tokens;
-  useMemo(() => {
-    if (!branding.isRoot) return;
-    assertTextScriptsCovered(fontFamily, lang, collectStrings([artifact, data]));
-  }, [branding.isRoot, fontFamily, lang, artifact, data]);
   // The seal's flow markers arrive from the layer's renderer, not from the
   // composition: a document is written once and rendered in both seal passes.
   const marks = useSigningMarks();
@@ -127,7 +121,6 @@ export function Document({
           // `styles.css` reads; the PDF reaches the same files through the
           // engine's font registry. Only the root sets it, because a bundle is
           // one document sequence in one typeface.
-          style={branding.isRoot ? fontFamilyStyle(branding.tokens) : undefined}
         >
           {children}
         </article>

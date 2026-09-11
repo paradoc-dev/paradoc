@@ -34,7 +34,6 @@ import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { compile } from "tailwindcss";
 
-import { FONT_FAMILY_PROPERTY, type DocumentTokens } from "../../lib/tokens";
 import type { PdfFontFile } from "../resources";
 import type { PdfPageGeometry } from "../adapter";
 
@@ -48,9 +47,6 @@ const require = createRequire(import.meta.url);
  * export map names one path from both, and it is the path the preview imports.
  */
 const DOCUMENT_STYLES = `
-.paradoc-document {
-  font-family: var(--paradoc-font-family, "Inter Variable", ui-sans-serif, system-ui, sans-serif);
-}
 .paradoc-ltr-isolate {
   direction: ltr;
   unicode-bidi: isolate;
@@ -145,10 +141,6 @@ function fontFace(font: PdfFontFile): string {
  * tokens, so the browser printing this page and the browser drawing the preview
  * select the same faces.
  */
-function familyProperty(tokens: DocumentTokens): string {
-  return [`.paradoc-document {`, `  ${FONT_FAMILY_PROPERTY}: ${tokens.fontStack};`, `}`].join("\n");
-}
-
 /** The page box, in the inches a printer takes and the pixels the preview states. */
 function pageBox(geometry: PdfPageGeometry): string {
   return [
@@ -173,7 +165,6 @@ export async function chromiumStylesheet(
   markup: string,
   fonts: readonly PdfFontFile[],
   geometry: PdfPageGeometry,
-  tokens: DocumentTokens,
   applicationCss?: string
 ): Promise<string> {
   const source = `@import "tailwindcss";\n${DOCUMENT_STYLES}`;
@@ -183,7 +174,6 @@ export async function chromiumStylesheet(
     compiled.build(classCandidates(markup)),
     applicationCss ?? "",
     fonts.map(fontFace).join("\n\n"),
-    familyProperty(tokens),
     pageBox(geometry),
   ].join("\n\n");
 }

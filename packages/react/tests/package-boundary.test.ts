@@ -69,14 +69,19 @@ describe("the headless package boundary", () => {
     }
   });
 
-  it("does not install rendering engines, browser tooling, or font files", () => {
+  it("does not install rendering engines, browser tooling, or document font files", () => {
     const manifest = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as {
       dependencies?: Record<string, string>;
       peerDependenciesMeta?: Record<string, { optional?: boolean }>;
     };
     for (const name of heavyPackages) {
+      if (name === "@fontsource/noto-sans-symbols-2") {
+        expect(manifest.dependencies).toHaveProperty(name);
+        continue;
+      }
       expect(manifest.dependencies).not.toHaveProperty(name);
-      expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true);
+      if (name.startsWith("@fontsource")) expect(manifest.peerDependenciesMeta).not.toHaveProperty(name);
+      else expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true);
     }
   });
 

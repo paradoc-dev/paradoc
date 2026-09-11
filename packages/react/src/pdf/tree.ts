@@ -37,7 +37,6 @@ import type { CSSProperties } from "react";
 import type { Node } from "@takumi-rs/helpers";
 
 import type { PagePlan } from "../lib/plan";
-import { assertTextScriptsCovered } from "../lib/script";
 import { unsupportedClasses } from "./tailwind";
 
 /** The attribute that marks a pagination unit, shared with the preview. */
@@ -67,7 +66,6 @@ export interface PrepareOptions {
    * no claim about the text, which is what a caller translating a fragment
    * rather than a document wants.
    */
-  fontFamily?: string;
   /** The document's language, for the error to name. Defaults to `en`. */
   lang?: string;
 }
@@ -236,9 +234,6 @@ export function preparePdfTree(root: Node, options: PrepareOptions = {}): Prepar
 
   // After the walk rather than during it, so the error names the document's
   // script rather than whichever node happened to carry the first letter of it.
-  if (options.fontFamily !== undefined) {
-    assertTextScriptsCovered(options.fontFamily, options.lang ?? "en", text);
-  }
 
   return {
     node,

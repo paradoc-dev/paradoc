@@ -16,9 +16,7 @@
 import type { ReactNode } from "react";
 import { render } from "takumi-pdf";
 import { describe, expect, it } from "vitest";
-import { DOCUMENT_FONT_NAME } from "../src/lib/font";
 import { PDF_RESET_STYLESHEET } from "../src/pdf/reset";
-import { documentFontFiles, pdfFonts } from "../src/pdf/resources";
 import {
   INITIAL_VALUE_CLASSES,
   isSupportedClass,
@@ -71,8 +69,8 @@ async function bytes(element: ReactNode): Promise<Buffer> {
     await render(element, {
       size: "letter",
       margin: 24,
-      fonts: await pdfFonts(await documentFontFiles()),
-      fontFamilies: [DOCUMENT_FONT_NAME, "sans-serif"],
+      fonts: [],
+      fontFamilies: ["sans-serif"],
       stylesheets: [PDF_RESET_STYLESHEET],
     })
   );

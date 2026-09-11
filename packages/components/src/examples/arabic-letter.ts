@@ -26,7 +26,6 @@
 import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
-import { ARABIC_FONT_NAME } from "@paradoc/react";
 import type { DocumentTokensInput } from "@paradoc/react";
 
 /** The layer that names the composition. */
@@ -49,7 +48,6 @@ export const ARABIC_LETTER_REACT_LAYER_PATH = "arabic-letter-document.tsx";
  * between this document and the proposal is the script rather than the page.
  */
 export const arabicLetterTokens: DocumentTokensInput = {
-  fontFamily: ARABIC_FONT_NAME,
   dir: "rtl",
   lang: "ar",
 };

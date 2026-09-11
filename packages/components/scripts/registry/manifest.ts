@@ -208,13 +208,9 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     name: "document-styles",
     type: "registry:lib",
     title: "Document Styles",
-    description: "Tailwind entry and font faces shared by document preview and PDF output.",
+    description: "Tailwind entry for document components; typography inherits from the application.",
     files: [{ path: "styles.css", type: "registry:file", target: "styles/paradoc.css" }],
-    dependencies: [
-      "@fontsource-variable/inter",
-      "@fontsource-variable/noto-sans-arabic",
-      "@fontsource-variable/source-serif-4",
-    ],
+    dependencies: [],
     registryDependencies: [],
   },
   {

@@ -1,6 +1,6 @@
 # @paradoc/react-pdf
 
-Explicit Node integration for rendering `@paradoc/react` compositions to PDF and checking them before rendering. The default entry installs Takumi and Paradoc's PDF font resources. Install the optional `puppeteer` and `tailwindcss` peers only when using `@paradoc/react-pdf/chromium`.
+Explicit Node integration for rendering `@paradoc/react` compositions to PDF and checking them before rendering. The default entry installs Takumi. Install the optional `puppeteer` and `tailwindcss` peers only when using `@paradoc/react-pdf/chromium`.
 
 The headless `@paradoc/react` package does not install a PDF engine, browser driver, CSS compiler, or font files.
 
@@ -30,4 +30,4 @@ const companyEngine: PdfAdapter = {
 await renderPdf(<Invoice data={data} />, { adapter: companyEngine });
 ```
 
-The default resources register Inter Variable, Source Serif 4 Variable, Noto Sans Arabic Variable, and the marker face used while placing signatures. Preview CSS and PDF rendering must use the same registration. The built-in Takumi adapter is verified for left-to-right documents; use an adapter that declares `rtl` support for right-to-left output. A missing Chromium peer raises `MissingAdapterPeerError`; an installed engine that fails during rendering keeps its original initialization error.
+Document components inherit typography from the consumer application. A paginated browser preview records the application CSS and exact font-resource identities in its page plan; Chromium rendering consumes that same snapshot. Headless callers may instead provide shared explicit font resources. The constrained Takumi adapter refuses application CSS rather than silently substituting it. A missing Chromium peer raises `MissingAdapterPeerError`; an installed engine that fails during rendering keeps its original initialization error.

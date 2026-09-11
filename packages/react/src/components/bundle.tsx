@@ -11,7 +11,7 @@
 
 import type { ReactNode } from "react";
 
-import { fontFamilyStyle, localeAttributes, type DocumentTokensInput } from "../lib/tokens";
+import { localeAttributes, type DocumentTokensInput } from "../lib/tokens";
 import {
   DocumentTokensProvider,
   markDocumentRoot,
@@ -43,7 +43,6 @@ export function Bundle({ id, tokens, className, children }: BundleProps) {
         // one way.
         {...(branding.isRoot ? localeAttributes(branding.tokens) : {})}
         className={className ?? "flex flex-col gap-12"}
-        style={branding.isRoot ? fontFamilyStyle(branding.tokens) : undefined}
       >
         {children}
       </div>

@@ -79,7 +79,6 @@ describe("the invoice artifact", () => {
     // Nothing root-only: the composition hands this set to its own `Document`,
     // and a set that named the paper or the typeface could not be layered there.
     expect(invoiceTokens.pageSize).toBeUndefined();
-    expect(invoiceTokens.fontFamily).toBeUndefined();
   });
 });
 

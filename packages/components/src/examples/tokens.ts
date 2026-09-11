@@ -14,7 +14,6 @@
  * mark in the tenant's own colour is what a tenant's mark is standing in for.
  */
 
-import { SERIF_FONT_NAME } from "@paradoc/react";
 import type { DocumentTokensInput } from "@paradoc/react";
 
 /** The tenant's mark, as base 64 PNG. */
@@ -33,7 +32,6 @@ export const BRANDED_ACCENT_COLOR = "#7c2d12";
 
 /** Everything the branded proposal changes about the default document. */
 export const brandedProposalTokens: DocumentTokensInput = {
-  fontFamily: SERIF_FONT_NAME,
   accentColor: BRANDED_ACCENT_COLOR,
   pageSize: "a4",
   marginPx: 56,

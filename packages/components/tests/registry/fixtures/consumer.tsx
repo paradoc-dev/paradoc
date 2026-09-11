@@ -34,7 +34,6 @@ import { planPages, type DocumentTokensInput, type PagePlan } from "@paradoc/rea
 /** A tenant's branding, declared at the document root. */
 const tokens: DocumentTokensInput = {
   accentColor: "#0f766e",
-  fontFamily: "Source Serif 4 Variable",
   pageSize: "a4",
 };
 

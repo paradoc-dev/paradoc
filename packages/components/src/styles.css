@@ -1,27 +1,9 @@
 /*
- * The document's font sources.
- *
- * The copy-owned component collection owns the visible document and typefaces: the preview
- * loads these files and the PDF embeds the same ones. Consumers import this
- * stylesheet rather than declaring the families themselves.
- *
- * Every registered family is imported, not only the default one, because a
- * stylesheet cannot be conditional and a tenant that brands its document with
- * the serif needs the browser to have the files. Which family a document is set
- * in is decided by `--paradoc-font-family`, written by the document root and by
- * the page furniture from the resolved tokens. A document that names no family
- * sets no property and falls through to the default stack below.
+ * Structural styles for the copy-owned document components. Consuming
+ * applications supply typography and font faces through their own stylesheet.
  */
 
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/source-serif-4";
-@import "@fontsource-variable/noto-sans-arabic";
-
-.paradoc-document {
-  font-family: var(--paradoc-font-family, "Inter Variable", ui-sans-serif, system-ui, sans-serif);
-}
-
 /*
  * A value that is left to right whatever the document is.
  *

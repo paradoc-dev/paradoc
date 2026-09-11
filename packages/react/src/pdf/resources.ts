@@ -1,11 +1,8 @@
 /**
  * The font and image bytes the PDF render needs, read from disk.
  *
- * The specification's invariant is that the PDF embeds the same font files the
- * preview loads. `styles.css` loads every registered family through the bundler;
- * this reads the same packages' files through Node's resolver, from the same
- * registrations in `src/lib/font.ts`, so neither side can name a different
- * family or a different file.
+ * The PDF embeds the exact application font resources recorded by the preview
+ * or supplied by a headless caller.
  *
  * Node only. The browser cannot read these paths, which is why `@paradoc/react/pdf`
  * is a separate subpath.
@@ -14,10 +11,8 @@
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
 import type { FontLoader } from "takumi-pdf";
 
-import { documentFontFamily, DOCUMENT_FONT_NAME } from "../lib/font";
 
 const require = createRequire(import.meta.url);
 
@@ -123,63 +118,6 @@ export function resolveFontResources(resources: readonly PdfFontResource[]): Pro
 }
 
 /**
- * The coverage a fontsource package declares for each of its subsets.
- *
- * Read from the package's own `unicode.json` rather than restated here, because
- * a face with the wrong range is a face the browser never reaches: several faces
- * of one family with no ranges at all would leave only the last one usable. The
- * file sits beside the `files` directory the faces themselves come from, which
- * is how it is found without depending on the package exporting it.
- */
-async function subsetCoverage(fontFile: string): Promise<Record<string, string>> {
-  const json = await readFile(join(dirname(require.resolve(fontFile)), "..", "unicode.json"), "utf8");
-  return JSON.parse(json) as Record<string, string>;
-}
-
-const fontFiles = new Map<string, Promise<PdfFontFile[]>>();
-
-/**
- * One family as files, resolved once per family per process.
- *
- * This is the engine-neutral half of the font story: paths and CSS descriptors,
- * with no opinion about how an engine wants the bytes. `pdfFonts` turns it into
- * takumi's registry and the Chromium adapter writes `@font-face` rules from the
- * same list, so the two adapters cannot embed different files.
- *
- * A failed read is not cached: one transient error would otherwise poison every
- * later render in the process.
- *
- * @throws {UnregisteredFontFamilyError} when the family carries no files here.
- */
-export function documentFontFiles(family: string = DOCUMENT_FONT_NAME): Promise<PdfFontFile[]> {
-  const registration = documentFontFamily(family);
-  let files = fontFiles.get(family);
-  if (files === undefined) {
-    files = (async () => {
-      const coverage = await subsetCoverage(registration.file(registration.subsets[0]!));
-      return Promise.all(registration.subsets.map(async (subset, index) => {
-        const path = require.resolve(registration.file(subset));
-        const data = new Uint8Array(await readFile(path));
-        return {
-          name: `${registration.name} ${index}`,
-          family: registration.name,
-          path,
-          data,
-          identity: createHash("sha256").update(data).digest("hex"),
-          weight: registration.weight,
-          unicodeRange: coverage[subset],
-        };
-      }));
-    })().catch((error: unknown) => {
-      fontFiles.delete(family);
-      throw error;
-    });
-    fontFiles.set(family, files);
-  }
-  return files;
-}
-
-/**
  * The faces one render embeds, as the engine's own loaders.
  *
  * Built from the prepared input's file list rather than resolved again here, so
@@ -198,61 +136,34 @@ export function pdfFonts(files: readonly PdfFontFile[]): Promise<FontLoader[]> {
   );
 }
 
-/**
- * The file that carries the seal flow's marker codepoints.
- *
- * Core places a flow-positioned signature slot by writing eight braille
- * codepoints in front of the placeholder and finding them again in the
- * converted PDF's text. The encoding is base 4, so the eight are drawn from
- * four values: U+2800, U+2801, U+2802 and U+2804. The engine writes U+0000 for any codepoint the
- * embedded fonts do not cover, and Inter covers no braille, so without this file
- * the marker reaches the PDF as eight nulls and the locator reports the slot
- * missing. Registered as a coverage subset of the document family, so the tree
- * still names one font and nothing about the document's typography changes.
- */
 const MARKER_FONT_FILE =
   "@fontsource/noto-sans-symbols-2/files/noto-sans-symbols-2-braille-400-normal.woff2";
+const markerFaces = new Map<string, Promise<PdfFontFile>>();
 
-/** The subset of the marker package the file above is, as its coverage is keyed. */
-const MARKER_FONT_SUBSET = "braille";
-
-/** The one weight the marker face carries. */
-const MARKER_FONT_WEIGHT = "400";
-
-const markerFaceFiles = new Map<string, Promise<PdfFontFile>>();
-
-/**
- * The marker face as a file, resolved once per document family per process.
- *
- * It carries the document family's name rather than its own: it is a coverage
- * subset of whichever family the document is set in, so the tree still names one
- * font. Its range is the braille block alone, which is what keeps it out of the
- * way of every other glyph on the page.
- */
-export function markerFontFile(family: string = DOCUMENT_FONT_NAME): Promise<PdfFontFile> {
-  const registration = documentFontFamily(family);
-  let file = markerFaceFiles.get(family);
-  if (file === undefined) {
-    file = (async () => {
-      const coverage = await subsetCoverage(MARKER_FONT_FILE);
+/** Internal braille coverage used only while locating flow-positioned signature slots. */
+export function markerFontFile(family: string): Promise<PdfFontFile> {
+  let pending = markerFaces.get(family);
+  if (pending === undefined) {
+    pending = (async () => {
       const path = require.resolve(MARKER_FONT_FILE);
       const data = new Uint8Array(await readFile(path));
       return {
-        name: `${registration.name} marker`,
-        family: registration.name,
+        name: `${family} signing marker`,
+        family,
         path,
         data,
         identity: createHash("sha256").update(data).digest("hex"),
-        weight: MARKER_FONT_WEIGHT,
-        unicodeRange: coverage[MARKER_FONT_SUBSET],
+        weight: "400",
+        unicodeRange: "U+2800-28FF",
+        format: "woff2",
       };
     })().catch((error: unknown) => {
-      markerFaceFiles.delete(family);
+      markerFaces.delete(family);
       throw error;
     });
-    markerFaceFiles.set(family, file);
+    markerFaces.set(family, pending);
   }
-  return file;
+  return pending;
 }
 
 /** An image the engine renders, keyed by the `src` the tree names. */

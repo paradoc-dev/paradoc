@@ -93,8 +93,8 @@ describe("the seal flow places both parties", () => {
       width: field.width,
       height: field.height,
     });
-    expect(box(provider!)).toEqual({ page: 4, x: 36, y: 290, width: 77, height: 26 });
-    expect(box(customer!)).toEqual({ page: 4, x: 321, y: 290, width: 77, height: 26 });
+    expect(box(provider!)).toEqual({ page: 4, x: 36, y: 412, width: 94, height: 26 });
+    expect(box(customer!)).toEqual({ page: 4, x: 321, y: 412, width: 94, height: 26 });
     expect(Math.abs(provider!.x - 36)).toBeLessThanOrEqual(1);
     expect(Math.abs(customer!.x - 321)).toBeLessThanOrEqual(1);
   });
@@ -114,9 +114,9 @@ describe("the seal flow places both parties", () => {
     expect(again.signatureMap).toEqual(sealed.signatureMap);
   }, 120_000);
 
-  it("seals the short set onto its one page, at boxes of its own", async () => {
-    // Pinned the way the overflow set's are: the short document is one page, so
-    // both blocks sit on page 1 and the row is lower down it.
+  it("seals the short set at boxes of its own", async () => {
+    // Pinned the way the overflow set's are after package-owned typography is
+    // removed: the engine's application-independent fallback spans two pages.
     const one = await sealProposal({ data: shortProposalData, images: [logo] });
     expect(one.signatureMap).toHaveLength(2);
     const box = (field: SigningField) => ({
@@ -127,8 +127,8 @@ describe("the seal flow places both parties", () => {
       height: field.height,
     });
     const [provider, customer] = one.signatureMap!;
-    expect(box(provider!)).toEqual({ page: 1, x: 36, y: 700, width: 77, height: 26 });
-    expect(box(customer!)).toEqual({ page: 1, x: 321, y: 700, width: 77, height: 26 });
+    expect(box(provider!)).toEqual({ page: 2, x: 36, y: 74, width: 94, height: 26 });
+    expect(box(customer!)).toEqual({ page: 2, x: 321, y: 74, width: 94, height: 26 });
     expect(customer!.y).toBeCloseTo(provider!.y, 1);
   }, 120_000);
 });

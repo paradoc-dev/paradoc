@@ -81,10 +81,6 @@
     "test:parity": "vitest run --config vitest.parity.config.ts"
   },
   "peerDependencies": {
-    "@fontsource-variable/inter": "catalog:",
-    "@fontsource-variable/noto-sans-arabic": "catalog:",
-    "@fontsource-variable/source-serif-4": "catalog:",
-    "@fontsource/noto-sans-symbols-2": "catalog:",
     "@takumi-rs/helpers": "catalog:",
     "pdfjs-dist": "catalog:",
     "puppeteer": "catalog:",
@@ -94,18 +90,6 @@
     "takumi-pdf": "catalog:"
   },
   "peerDependenciesMeta": {
-    "@fontsource-variable/inter": {
-      "optional": true
-    },
-    "@fontsource-variable/noto-sans-arabic": {
-      "optional": true
-    },
-    "@fontsource-variable/source-serif-4": {
-      "optional": true
-    },
-    "@fontsource/noto-sans-symbols-2": {
-      "optional": true
-    },
     "@takumi-rs/helpers": {
       "optional": true
     },
@@ -123,6 +107,7 @@
     }
   },
   "dependencies": {
+    "@fontsource/noto-sans-symbols-2": "catalog:",
     "@paradoc/core": "workspace:^",
     "@paradoc/render": "workspace:^",
     "@paradoc/types": "workspace:^",

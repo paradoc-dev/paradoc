@@ -321,7 +321,7 @@ export const chromiumAdapter: PdfAdapter = {
     if (undecodable.length > 0) throw new UnsupportedPdfContentError([], undecodable);
 
     const markup = renderToStaticMarkup(input.element);
-    const css = await chromiumStylesheet(markup, input.fonts, input.geometry, input.tokens, input.applicationCss);
+    const css = await chromiumStylesheet(markup, input.fonts, input.geometry, input.applicationCss);
     const html = documentHtml(markup, css, options.lang, options.dir);
 
     // The page is written outside the repository, because it is a render's

@@ -41,7 +41,7 @@ import {
   type PreparedPdfInput,
 } from "./adapter";
 import { takumiAdapter } from "./adapters/takumi";
-import { documentFontFiles, markerFontFile, resolveFontResources, type PdfFontResource, type PdfImage } from "./resources";
+import { markerFontFile, resolveFontResources, type PdfFontResource, type PdfImage } from "./resources";
 import { withDrawnPaper, withPartialValues, withTokenOverride, withFormatter } from "./token-override";
 import type { PageBreakPlan } from "./tree";
 
@@ -216,10 +216,12 @@ export async function renderPdf(
   }
 
   const fonts = [
-    ...(await documentFontFiles(tokens.fontFamily)),
     ...(explicitFonts ?? plannedFonts ?? []),
   ];
-  if (signingMarkers) fonts.push(await markerFontFile(tokens.fontFamily));
+  if (signingMarkers) {
+    const families = new Set(["sans-serif", ...fonts.map((font) => font.family)]);
+    fonts.push(...await Promise.all([...families].map(markerFontFile)));
+  }
 
   const input: PreparedPdfInput = {
     // The override goes on first so the document resolves it, and what this

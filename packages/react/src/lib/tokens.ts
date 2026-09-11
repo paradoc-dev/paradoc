@@ -1,18 +1,14 @@
 /**
  * Tenant branding, as the smallest set of values that changes a document.
  *
- * The specification calls for one minimal token set — typeface, accent colour,
- * paper, mark — and for it to apply identically in the preview and in the PDF.
- * That is the whole reason the tokens are values rather than CSS: the browser
- * reaches a typeface through a stylesheet and an engine reaches it through a
- * font registry, and the only way the two cannot disagree is for both to be
- * driven from one resolved set.
+ * The token set carries document metadata and paper/brand values that are not
+ * ordinary application CSS. Applications own typography through their normal
+ * stylesheet and font-loading pipeline.
  *
  * **Resolution is layered and total.** A caller supplies a partial set; what
  * comes out is complete, validated, and directly usable by either side.
- * `pageSize` becomes a geometry both outputs measure against, `fontFamily`
- * becomes a registered family with files, and `logo` bytes become the one image
- * source neither side has to fetch.
+ * `pageSize` becomes geometry both outputs measure against and `logo` bytes
+ * become the one image source neither side has to fetch.
  *
  * **Every token is checked here, before an adapter sees it.** A colour no
  * renderer parses, a page size that arrived from a database as a string, a
@@ -25,24 +21,15 @@
  * tokens are for: values both outputs have to resolve identically before
  * either draws, whose disagreement is invisible in each output on its own. A
  * page laid out left to right in the browser and right to left on paper is two
- * documents; so is one whose typeface carries no glyphs for its script. Both
- * failures are the root-token machinery's, unchanged.
+ * documents.
  *
  * **The defaults are today's document.** A document that names no tokens
  * renders exactly what it rendered before there were tokens: US Letter at 96
- * dpi with a 48 pixel margin, Inter, no accent, no mark, English left to right.
+ * dpi with a 48 pixel margin, no accent, no mark, English left to right.
  */
 
-import type { CSSProperties } from "react";
-
-import {
-  documentFontFamily,
-  DOCUMENT_FONT_NAME,
-  type FontFamilyRegistration,
-} from "./font";
 import { imageDataUri } from "./image";
 import {
-  assertScriptCovered,
   isTextDirection,
   DEFAULT_DOCUMENT_LANG,
   DEFAULT_TEXT_DIRECTION,
@@ -76,8 +63,6 @@ export const DEFAULT_PAGE_MARGIN_PX = 48;
 
 /** What a caller may set. Anything omitted keeps the value it inherits. */
 export interface DocumentTokensInput {
-  /** A family registered in `src/lib/font.ts`. Naming another one fails. */
-  fontFamily?: string;
   /**
    * The colour section headings and the emphasised total are drawn in. A hex
    * triplet, a CSS colour function, or a named CSS colour; anything else fails.
@@ -114,10 +99,6 @@ export interface DocumentTokensInput {
 
 /** One document's branding, complete. */
 export interface DocumentTokens {
-  /** The registered family both outputs embed. */
-  fontFamily: string;
-  /** The CSS stack the browser applies, from the family's registration. */
-  fontStack: string;
   /** The accent, or `undefined` when the document keeps its neutral palette. */
   accentColor?: string;
   /** The paper. */
@@ -140,8 +121,6 @@ export interface DocumentTokens {
  * set can quietly stop covering one.
  */
 const DOCUMENT_TOKEN_FIELDS = {
-  fontFamily: true,
-  fontStack: true,
   accentColor: true,
   pageSize: true,
   marginPx: true,
@@ -156,12 +135,9 @@ export const DOCUMENT_TOKEN_KEYS = Object.keys(DOCUMENT_TOKEN_FIELDS) as (keyof 
 /**
  * The names a caller may set, listed the same exhaustive way.
  *
- * `fontStack` is not among them: it is derived from `fontFamily` rather than
- * supplied, which is why the input type and the resolved type do not share a
- * key list.
+ * Kept separate from the resolved list so additions remain exhaustively typed.
  */
 const DOCUMENT_TOKEN_INPUT_FIELDS = {
-  fontFamily: true,
   accentColor: true,
   pageSize: true,
   marginPx: true,
@@ -176,15 +152,15 @@ export const DOCUMENT_TOKEN_INPUT_KEYS = Object.keys(
 ) as (keyof DocumentTokensInput)[];
 
 /**
- * The tokens that describe the paper, the typeface and the script.
+ * The tokens that describe the paper and the script.
  *
  * They are the ones both outputs have to agree on, which is why only a document
  * root may set them: see `useDocumentRootTokens`. Direction and language belong
- * here for the reason the typeface does — a bundle is one sequence of pages
+ * here because a bundle is one sequence of pages
  * running one way, and the loss when the two sides disagree is invisible in
  * either of them alone.
  */
-export const ROOT_ONLY_TOKEN_KEYS = ["fontFamily", "pageSize", "marginPx", "dir", "lang"] as const;
+export const ROOT_ONLY_TOKEN_KEYS = ["pageSize", "marginPx", "dir", "lang"] as const;
 
 /** A token whose value a renderer could not act on. */
 export class InvalidDocumentTokenError extends Error {
@@ -207,8 +183,6 @@ export class InvalidDocumentTokenError extends Error {
 
 /** The document as it renders when nothing is branded. */
 export const DEFAULT_DOCUMENT_TOKENS: DocumentTokens = {
-  fontFamily: DOCUMENT_FONT_NAME,
-  fontStack: documentFontFamily(DOCUMENT_FONT_NAME).stack,
   pageSize: "letter",
   marginPx: DEFAULT_PAGE_MARGIN_PX,
   dir: DEFAULT_TEXT_DIRECTION,
@@ -235,11 +209,6 @@ export function pageGeometry(tokens: DocumentTokens): PageGeometry {
     contentHeightPx: heightPx - tokens.marginPx * 2,
     contentWidthPx: widthPx - tokens.marginPx * 2,
   };
-}
-
-/** The registration of the family a resolved token set names. */
-export function tokenFontFamily(tokens: DocumentTokens): FontFamilyRegistration {
-  return documentFontFamily(tokens.fontFamily);
 }
 
 /**
@@ -371,11 +340,6 @@ function assertValidTokens(tokens: DocumentTokens): DocumentTokens {
     );
   }
 
-  // The last check, because it is about two tokens rather than one: the family
-  // has to carry glyphs for the script the language names, or the browser
-  // substitutes a face and the engine writes nulls, with nothing between them.
-  assertScriptCovered(tokens.fontFamily, tokens.lang);
-
   return tokens;
 }
 
@@ -388,9 +352,6 @@ function assertValidTokens(tokens: DocumentTokens): DocumentTokens {
  * one tenant. Later layers win field by field, so a render that changes only
  * the accent keeps the paper the document chose.
  *
- * @throws {UnregisteredFontFamilyError} when a layer names a family with no files.
- * @throws {UnsupportedScriptError} when the family it settles on carries no
- * glyphs for the script the language names.
  * @throws {UndecodableImageError} when logo bytes are not an image.
  * @throws {InvalidDocumentTokenError} when a value is one no renderer can act on.
  */
@@ -401,10 +362,7 @@ export function resolveDocumentTokens(
 
   for (const layer of layers) {
     if (layer === undefined) continue;
-    const family = layer.fontFamily === undefined ? undefined : documentFontFamily(layer.fontFamily);
     resolved = {
-      fontFamily: family?.name ?? resolved.fontFamily,
-      fontStack: family?.stack ?? resolved.fontStack,
       accentColor: layer.accentColor ?? resolved.accentColor,
       pageSize: layer.pageSize ?? resolved.pageSize,
       marginPx: layer.marginPx ?? resolved.marginPx,
@@ -415,27 +373,6 @@ export function resolveDocumentTokens(
   }
 
   return assertValidTokens(resolved);
-}
-
-/**
- * The CSS custom property the sheet's typeface is read from.
- *
- * `styles.css` states `font-family: var(--paradoc-font-family, <Inter stack>)`,
- * so a document that names no family is styled by the stylesheet alone and one
- * that names a family sets the property on its own root. The PDF reaches the
- * same family through the engine's font registry rather than through CSS, which
- * is why the property is the browser's half of one token rather than the token
- * itself.
- */
-export const FONT_FAMILY_PROPERTY = "--paradoc-font-family";
-
-/**
- * The style that puts a resolved token set's typeface within reach of the
- * browser. A custom property is not a `CSSProperties` key, so the cast is where
- * that one fact is stated rather than at each of the elements that carry it.
- */
-export function fontFamilyStyle(tokens: DocumentTokens): CSSProperties {
-  return { [FONT_FAMILY_PROPERTY]: tokens.fontStack } as CSSProperties;
 }
 
 /**
@@ -463,9 +400,7 @@ export function sameDocumentTokens(a: DocumentTokens, b: DocumentTokens): boolea
  * The first root-only token two resolved sets disagree about, or `undefined`.
  *
  * One helper, used by everything that has to decide whether two resolutions
- * describe the same document: a paper comparison alone would let a typeface
- * through, and the typeface is exactly the token whose loss is invisible — a
- * PDF with the serif dropped is byte-identical to one that never asked for it.
+ * describe the same document.
  */
 export function disagreeingRootToken(
   a: DocumentTokens,

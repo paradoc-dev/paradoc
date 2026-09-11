@@ -73,6 +73,8 @@ export interface InvoiceDocumentProps {
   format?: FormatOptions;
   /** Tenant branding. Defaults to the issuer's own accent and mark. */
   tokens?: DocumentTokensInput;
+  /** Application-owned classes applied to the document root. */
+  className?: string;
 }
 
 /**
@@ -87,9 +89,10 @@ export function InvoiceDocument({
   artifact = invoiceForm,
   format,
   tokens = invoiceTokens,
+  className,
 }: InvoiceDocumentProps) {
   return (
-    <Document artifact={artifact} data={data} format={format} tokens={tokens} id="invoice">
+    <Document artifact={artifact} data={data} format={format} tokens={tokens} id="invoice" className={className}>
       <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
         <div className="flex basis-1/2 flex-row gap-3">
           <IssuerMark />

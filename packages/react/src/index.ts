@@ -140,30 +140,12 @@ export {
   type ValueFormatter,
 } from "./lib/format";
 export {
-  documentFontFamily,
-  loadDocumentFaces,
-  scriptProbeText,
-  ARABIC_FONT_NAME,
-  DOCUMENT_SCRIPTS,
-  DOCUMENT_FONT_FAMILIES,
-  DOCUMENT_FONT_FAMILY,
-  DOCUMENT_FONT_NAME,
-  DOCUMENT_FONT_PACKAGE,
-  DOCUMENT_FONT_WEIGHTS,
-  SERIF_FONT_NAME,
-  UnregisteredFontFamilyError,
-  type FontFamilyRegistration,
-} from "./lib/font";
-export {
-  assertScriptCovered,
-  assertTextScriptsCovered,
   collectStrings,
   isTextDirection,
   scriptOf,
   scriptsIn,
   DEFAULT_DOCUMENT_LANG,
   DEFAULT_TEXT_DIRECTION,
-  UnsupportedScriptError,
   type TextDirection,
 } from "./lib/script";
 export {
@@ -173,18 +155,15 @@ export {
   UndecodableImageError,
 } from "./lib/image";
 export {
-  fontFamilyStyle,
   localeAttributes,
   isCssColor,
   pageGeometry,
   resolveDocumentTokens,
   disagreeingRootToken,
   sameDocumentTokens,
-  tokenFontFamily,
   DEFAULT_DOCUMENT_TOKENS,
   DEFAULT_PAGE_MARGIN_PX,
   DOCUMENT_TOKEN_KEYS,
-  FONT_FAMILY_PROPERTY,
   InvalidDocumentTokenError,
   PAGE_SIZES,
   ROOT_ONLY_TOKEN_KEYS,

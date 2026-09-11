@@ -31,9 +31,9 @@ export interface PagesProps { className?: string; onPaginate?: (plan: PagePlan) 
 export function Pages({ className, onPaginate, children }: PagesProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
-  const { drawn, tokens, geometry, sheetStyle } = useDocumentSettings(children);
+  const { drawn, geometry, sheetStyle } = useDocumentSettings(children);
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
-  const pagination = usePagination({ budget: geometry.contentHeightPx, fontFamily: tokens.fontFamily, onPaginate });
+  const pagination = usePagination({ budget: geometry.contentHeightPx, onPaginate });
   if (pagination.error) throw pagination.error;
   const sheets = pagination.plan === null ? 0 : Math.max(1, pagination.plan.pages.length);
   return <DrawnPaperProvider value={drawn}>

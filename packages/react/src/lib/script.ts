@@ -27,7 +27,12 @@
  * is `Latn` without this module carrying a table that would drift from it.
  */
 
-import { documentFontFamily, DOCUMENT_FONT_FAMILIES, DOCUMENT_SCRIPTS } from "./font";
+const DOCUMENT_SCRIPTS: Record<string, RegExp> = {
+  Latn: /\p{Script=Latin}/u,
+  Cyrl: /\p{Script=Cyrillic}/u,
+  Grek: /\p{Script=Greek}/u,
+  Arab: /\p{Script=Arabic}/u,
+};
 
 /** Which way the document's lines run. The HTML `dir` values, and no others. */
 export type TextDirection = "ltr" | "rtl";
@@ -53,39 +58,6 @@ export function scriptOf(lang: string): string {
 }
 
 /** A document written in a script the family it is set in carries no glyphs for. */
-export class UnsupportedScriptError extends Error {
-  /** The script the document is written in. */
-  readonly script: string;
-  /** The language tag it was read from. */
-  readonly lang: string;
-  /** The family the document is set in. */
-  readonly family: string;
-  /** The registered families that do carry the script. */
-  readonly families: readonly string[];
-
-  constructor(script: string, lang: string, family: string) {
-    const families = DOCUMENT_FONT_FAMILIES.filter((entry) =>
-      entry.scripts.includes(script)
-    ).map((entry) => entry.name);
-    super(
-      `The document is written in ${script} (lang="${lang}"), and the font family ` +
-        `"${family}" carries no glyphs for that script. It would not fall back: the ` +
-        "browser would substitute a face of its own and the engine would write a null " +
-        "glyph for every codepoint, so the preview and the PDF would be different " +
-        "documents with no error between them. " +
-        (families.length > 0
-          ? `Set the document in ${families.map((name) => `"${name}"`).join(" or ")}.`
-          : `No family @paradoc/react registers carries ${script}; registering one is a ` +
-            "package change, because the files have to travel with the package for the " +
-            "PDF to embed them.")
-    );
-    this.name = "UnsupportedScriptError";
-    this.script = script;
-    this.lang = lang;
-    this.family = family;
-    this.families = families;
-  }
-}
 
 /**
  * The scripts `text` is actually written in, among the ones this package knows.
@@ -102,7 +74,7 @@ export class UnsupportedScriptError extends Error {
  */
 export function scriptsIn(text: string): Set<string> {
   const found = new Set<string>();
-  for (const [script, { pattern }] of Object.entries(DOCUMENT_SCRIPTS)) {
+  for (const [script, pattern] of Object.entries(DOCUMENT_SCRIPTS)) {
     if (pattern.test(text)) found.add(script);
   }
   return found;
@@ -152,23 +124,6 @@ export function* collectStrings(value: unknown, seen = new WeakSet<object>()): G
  * @throws {UnsupportedScriptError} naming the first uncovered script and the
  * family that would carry it.
  */
-export function assertTextScriptsCovered(
-  family: string,
-  lang: string,
-  texts: Iterable<string>
-): void {
-  const registration = documentFontFamily(family);
-  const seen = new Set<string>();
-  for (const text of texts) {
-    for (const script of scriptsIn(text)) seen.add(script);
-  }
-  for (const script of seen) {
-    if (!registration.scripts.includes(script)) {
-      throw new UnsupportedScriptError(script, lang, family);
-    }
-  }
-}
-
 /**
  * Fails unless the family the document is set in carries its script.
  *
@@ -180,14 +135,6 @@ export function assertTextScriptsCovered(
  * @throws {UnsupportedScriptError} when it is registered and carries no glyphs
  * for the script the language is written in.
  */
-export function assertScriptCovered(family: string, lang: string): void {
-  const registration = documentFontFamily(family);
-  const script = scriptOf(lang);
-  if (!registration.scripts.includes(script)) {
-    throw new UnsupportedScriptError(script, lang, family);
-  }
-}
-
 /** True when `value` is one of the two directions HTML's `dir` admits here. */
 export function isTextDirection(value: unknown): value is TextDirection {
   return value === "ltr" || value === "rtl";

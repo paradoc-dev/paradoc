@@ -27,10 +27,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fontsource-variable/inter": "catalog:",
-    "@fontsource-variable/noto-sans-arabic": "catalog:",
-    "@fontsource-variable/source-serif-4": "catalog:",
-    "@fontsource/noto-sans-symbols-2": "catalog:",
     "@paradoc/react": "workspace:^",
     "@takumi-rs/helpers": "catalog:",
     "takumi-pdf": "catalog:"

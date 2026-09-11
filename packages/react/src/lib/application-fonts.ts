@@ -89,10 +89,12 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
         requested.set(family, descriptors);
       } else existing.text += text ?? "";
     }
-    if (text) requests.push(document.fonts.load(`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`, text));
+    if (text && typeof document.fonts?.load === "function") {
+      requests.push(document.fonts.load(`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`, text));
+    }
   }
   await Promise.all(requests);
-  await document.fonts.ready;
+  if (document.fonts?.ready) await document.fonts.ready;
 
   const resources: ApplicationFontResource[] = [];
   const css: string[] = [];
@@ -146,6 +148,9 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
   const generics = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "math", "fangsong", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded"]);
   const missing = [...used].filter((family) => !covered.has(family) && !generics.has(family));
   if (missing.length > 0) throw new Error(`No embeddable @font-face resource is available for: ${missing.join(", ")}. Supply reachable application font files before paginating.`);
-  const identity = await sha256(new TextEncoder().encode(JSON.stringify({ resources, css: css.join("\n") })).buffer);
-  return { resources, identity, css: css.join("\n") };
+  const applicationCss = css.join("\n");
+  const identity = resources.length === 0 && applicationCss.length === 0
+    ? "0".repeat(64)
+    : await sha256(new TextEncoder().encode(JSON.stringify({ resources, css: applicationCss })).buffer);
+  return { resources, identity, css: applicationCss };
 }

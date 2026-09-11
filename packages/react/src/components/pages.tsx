@@ -28,7 +28,6 @@ import {
   type ReactNode,
 } from "react";
 
-import { useFontReadiness } from "../headless/pagination";
 import { measureKeeps } from "../lib/measure";
 import { planPages, type PagePlan } from "../lib/plan";
 import { captureApplicationFonts } from "../lib/application-fonts";
@@ -91,11 +90,9 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   const [plan, setPlan] = useState<PagePlan | null>(null);
   const [fontError, setFontError] = useState<Error | null>(null);
   const paginationGeneration = useRef(0);
-  const { drawn, tokens, geometry, sheetStyle } = usePaperFor(children);
+  const { drawn, geometry, sheetStyle } = usePaperFor(children);
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
-  const fonts = useFontReadiness(tokens.fontFamily);
-  if (fonts.error) throw fonts.error;
-  const fontsReady = fonts.ready;
+  const fontsReady = true;
 
   // The paper is part of what a plan is a plan of. It needs no invalidation of
   // its own: the measuring container is the width the new margin leaves, the

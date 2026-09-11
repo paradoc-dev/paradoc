@@ -30,5 +30,5 @@ it("builds the utilities used by copied components from the owned stylesheet", a
   expect(css).toContain(".gap-6");
   expect(css).toContain(".bg-white");
   expect(css).toContain(".text-sm");
-  expect(css).toContain("@font-face");
+  expect(css).not.toContain("@font-face");
 });

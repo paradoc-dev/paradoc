@@ -3,19 +3,15 @@
   "name": "document-styles",
   "type": "registry:lib",
   "title": "Document Styles",
-  "description": "Tailwind entry and font faces shared by document preview and PDF output.",
-  "dependencies": [
-    "@fontsource-variable/inter",
-    "@fontsource-variable/noto-sans-arabic",
-    "@fontsource-variable/source-serif-4"
-  ],
+  "description": "Tailwind entry for document components; typography inherits from the application.",
+  "dependencies": [],
   "registryDependencies": [],
   "files": [
     {
       "path": "styles/paradoc.css",
       "type": "registry:file",
       "target": "styles/paradoc.css",
-      "content": "/*\n * The document's font sources.\n *\n * The copy-owned component collection owns the visible document and typefaces: the preview\n * loads these files and the PDF embeds the same ones. Consumers import this\n * stylesheet rather than declaring the families themselves.\n *\n * Every registered family is imported, not only the default one, because a\n * stylesheet cannot be conditional and a tenant that brands its document with\n * the serif needs the browser to have the files. Which family a document is set\n * in is decided by `--paradoc-font-family`, written by the document root and by\n * the page furniture from the resolved tokens. A document that names no family\n * sets no property and falls through to the default stack below.\n */\n\n@import \"tailwindcss\";\n@import \"@fontsource-variable/inter\";\n@import \"@fontsource-variable/source-serif-4\";\n@import \"@fontsource-variable/noto-sans-arabic\";\n\n.paradoc-document {\n  font-family: var(--paradoc-font-family, \"Inter Variable\", ui-sans-serif, system-ui, sans-serif);\n}\n\n/*\n * A value that is left to right whatever the document is.\n *\n * A phone number in E.164 and an identification number are runs of digits and\n * punctuation, which the bidirectional algorithm gives no direction of their\n * own: inside a right-to-left paragraph it resolves them against the paragraph\n * and moves the leading `+` to the visual end. `isolate` takes the run out of\n * the surrounding paragraph's ordering, which is what puts it back. `Field`\n * applies it only where the document runs right to left, and it carries the\n * same rule as an inline style for a renderer that reads no stylesheet of ours.\n */\n.paradoc-ltr-isolate {\n  direction: ltr;\n  unicode-bidi: isolate;\n}\n"
+      "content": "/*\n * Structural styles for the copy-owned document components. Consuming\n * applications supply typography and font faces through their own stylesheet.\n */\n\n@import \"tailwindcss\";\n/*\n * A value that is left to right whatever the document is.\n *\n * A phone number in E.164 and an identification number are runs of digits and\n * punctuation, which the bidirectional algorithm gives no direction of their\n * own: inside a right-to-left paragraph it resolves them against the paragraph\n * and moves the leading `+` to the visual end. `isolate` takes the run out of\n * the surrounding paragraph's ordering, which is what puts it back. `Field`\n * applies it only where the document runs right to left, and it carries the\n * same rule as an inline style for a renderer that reads no stylesheet of ours.\n */\n.paradoc-ltr-isolate {\n  direction: ltr;\n  unicode-bidi: isolate;\n}\n"
     }
   ]
 }

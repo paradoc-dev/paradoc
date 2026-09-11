@@ -45,11 +45,9 @@ export {
   type ReactLayerRendererOptions,
 } from "./layer";
 export {
-  documentFontFiles,
   resolveFontResource,
   resolveFontResources,
   FontResourceError,
-  markerFontFile,
   pdfFonts,
   type PdfFontFile,
   type PdfFontResource,

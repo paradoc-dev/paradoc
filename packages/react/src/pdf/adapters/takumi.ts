@@ -27,7 +27,6 @@ import {
   type PdfRenderResult,
   type PreparedPdfInput,
 } from "../adapter";
-import { tokenFontFamily } from "../../lib/tokens";
 import { PDF_RESET_STYLESHEET } from "../reset";
 import { imageFormat, pdfFonts } from "../resources";
 import { preparePdfTree, recordOnce } from "../tree";
@@ -54,7 +53,6 @@ export const takumiAdapter: PdfAdapter = {
       // The resolved text is checked against the resolved family here, where
       // both exist: a document written in a script the family cannot set
       // reaches this engine as null glyphs and no error.
-      fontFamily: input.tokens.fontFamily,
       lang: options.lang,
     });
 
@@ -78,7 +76,7 @@ export const takumiAdapter: PdfAdapter = {
       fonts,
       // The generic comes from the family's own registration: a serif that fell
       // back to a sans would be a different document.
-      fontFamilies: [input.tokens.fontFamily, tokenFontFamily(input.tokens).fallback],
+      fontFamilies: [...new Set(input.fonts.map((font) => font.family)), "sans-serif"],
       images: input.images.map((image) => ({ src: image.src, data: image.data })),
       stylesheets: [PDF_RESET_STYLESHEET, ...stylesheets],
       lang: options.lang,

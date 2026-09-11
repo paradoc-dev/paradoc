@@ -55,7 +55,7 @@ describe("the proposal renders to PDF", () => {
 
     expect(result.bytes).toEqual(new Uint8Array([1, 2, 3]));
     expect(prepared?.element).toBeDefined();
-    expect(prepared?.fonts.length).toBeGreaterThan(0);
+    expect(prepared?.fonts).toEqual([]);
   });
 
   it("resolves application-owned font bytes once and carries their identity and CSS", async () => {
@@ -159,25 +159,6 @@ describe("the proposal renders to PDF", () => {
     expect(overflow.at(-1)!.text).toContain("Signature (required)");
   });
 
-  it("embeds every Inter subset the preview loads, not only the Latin ones", async () => {
-    const cyrillic = "Договор оказания услуг";
-    const greek = "Σύμβαση παροχής";
-    const pages = await readPdf(
-      (
-        await renderPdf(
-          <div className="flex flex-col">
-            <span>{cyrillic}</span>
-            <span>{greek}</span>
-          </div>
-        )
-      ).bytes
-    );
-    // A missing subset renders as null glyphs, silently. The text has to come
-    // back as the text that went in.
-    expect(pages[0]!.text).toContain(cyrillic);
-    expect(pages[0]!.text).toContain(greek);
-    expect(pages[0]!.text.includes("\u0000")).toBe(false);
-  }, 60_000);
 });
 
 describe("nothing degrades silently", () => {

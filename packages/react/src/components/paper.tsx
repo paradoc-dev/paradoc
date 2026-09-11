@@ -33,7 +33,6 @@ import {
 
 import { documentTokensOf } from "../lib/document-tokens";
 import {
-  fontFamilyStyle,
   DEFAULT_PAGE_MARGIN_PX,
   PAGE_SIZES,
   type DocumentTokens,
@@ -88,7 +87,7 @@ export function usePaperFor(children: ReactNode): {
     () => drawnPaper(documentTokensOf(children, override)),
     [children, override]
   );
-  const sheetStyle = useMemo<CSSProperties>(() => fontFamilyStyle(drawn.tokens), [drawn]);
+  const sheetStyle = useMemo<CSSProperties>(() => ({}), []);
   return { drawn, tokens: drawn.tokens, geometry: drawn.geometry, sheetStyle };
 }
 
