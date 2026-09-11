@@ -118,7 +118,9 @@ export function classCandidates(markup: string): string[] {
 
 /** An `@font-face` for one file, at the path the render reads it from. */
 function fontFace(font: PdfFontFile): string {
-  const format = font.format ?? "woff2";
+  const signature = font.data === undefined ? "" : String.fromCharCode(...font.data.slice(0, 4));
+  const format = font.format ?? (signature === "wOF2" ? "woff2" : signature === "wOFF" ? "woff" : signature === "OTTO" ? "opentype" : font.data?.[0] === 0 && font.data?.[1] === 1 ? "truetype" : undefined);
+  if (format === undefined) throw new Error(`Cannot determine the font format for "${font.family}" from ${font.path}. Add an explicit format descriptor.`);
   const mime = format === "woff" ? "font/woff" : format === "truetype" ? "font/ttf" : format === "opentype" ? "font/otf" : "font/woff2";
   const source = font.data === undefined
     ? pathToFileURL(font.path).href

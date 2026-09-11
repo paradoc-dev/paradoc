@@ -57,20 +57,21 @@ async function sha256(bytes: ArrayBuffer): Promise<string> {
 /** Resolve the exact application font faces capable of affecting a rendered subtree. */
 export async function captureApplicationFonts(root: Element): Promise<ApplicationFontSnapshot> {
   const used = new Set<string>();
-  const requested = new Map<string, { weight: string; style: string }[]>();
+  const requested = new Map<string, { weight: string; style: string; text: string }[]>();
   const requests: Promise<FontFace[]>[] = [];
   for (const element of [root, ...root.querySelectorAll("*")]) {
     const style = getComputedStyle(element);
+    const text = element.textContent?.trim();
     const family = unquote(style.fontFamily.split(",")[0] ?? "");
     if (family) {
       used.add(family);
       const descriptors = requested.get(family) ?? [];
-      if (!descriptors.some((entry) => entry.weight === style.fontWeight && entry.style === style.fontStyle)) {
-        descriptors.push({ weight: style.fontWeight, style: style.fontStyle });
+      const existing = descriptors.find((entry) => entry.weight === style.fontWeight && entry.style === style.fontStyle);
+      if (existing === undefined) {
+        descriptors.push({ weight: style.fontWeight, style: style.fontStyle, text: text ?? "" });
         requested.set(family, descriptors);
-      }
+      } else existing.text += text ?? "";
     }
-    const text = element.textContent?.trim();
     if (text) requests.push(document.fonts.load(`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`, text));
   }
   await Promise.all(requests);
@@ -96,6 +97,16 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
         const numeric = numericWeight(descriptor.weight);
         return numericWeight(weight) === numeric || (range.length === 2 && numeric >= range[0]! && numeric <= range[1]!);
       })) continue;
+      const unicodeRange = face.style.getPropertyValue("unicode-range") || undefined;
+      if (unicodeRange !== undefined && !wanted.some((descriptor) => [...descriptor.text].some((character) => {
+        const code = character.codePointAt(0)!;
+        return unicodeRange.split(",").some((part) => {
+          const values = part.trim().replace(/^U\+/iu, "").split("-");
+          const start = Number.parseInt(values[0]!.replaceAll("?", "0"), 16);
+          const end = Number.parseInt((values[1] ?? values[0]!).replaceAll("?", "F"), 16);
+          return code >= start! && code <= end!;
+        });
+      }))) continue;
       const source = faceSource(face, sheet.href ?? document.baseURI);
       if (source === undefined) continue;
       const absolute = source.url;
@@ -107,8 +118,8 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
         source: absolute,
         weight,
         style,
-        unicodeRange: face.style.getPropertyValue("unicode-range") || undefined,
-        format: source.format,
+        unicodeRange,
+        format: source.format ?? (/\.woff2(?:$|\?)/iu.test(absolute) ? "woff2" : /\.woff(?:$|\?)/iu.test(absolute) ? "woff" : /\.ttf(?:$|\?)/iu.test(absolute) ? "truetype" : /\.otf(?:$|\?)/iu.test(absolute) ? "opentype" : undefined),
         integrity,
       });
     }
