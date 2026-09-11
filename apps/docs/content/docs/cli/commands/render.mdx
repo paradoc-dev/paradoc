@@ -1,7 +1,7 @@
 ---
 title: render
 description: Render artifact layers to output
-ogTitle: para render
+ogTitle: paradoc render
 ogDescription: Generate output from Paradoc artifact layers
 ---
 
@@ -10,7 +10,7 @@ Renders an artifact layer to a file or stdout.
 # Usage
 
 ```bash
-para render <artifact> [options]
+paradoc render <artifact> [options]
 ```
 
 # Arguments
@@ -44,31 +44,31 @@ working directory.
 Render default layer to stdout:
 
 ```bash
-para render my-form.yaml
+paradoc render my-form.yaml
 ```
 
 Render specific layer:
 
 ```bash
-para render my-form.yaml --layer markdown
+paradoc render my-form.yaml --layer markdown
 ```
 
 Fill a PDF layer without choosing a renderer:
 
 ```bash
-para render my-form.yaml --layer pdf --data answers.json --out completed.pdf
+paradoc render my-form.yaml --layer pdf --data answers.json --out completed.pdf
 ```
 
 Render to file:
 
 ```bash
-para render my-form.yaml --out output.md
+paradoc render my-form.yaml --out output.md
 ```
 
 Dry run (validate only):
 
 ```bash
-para render my-form.yaml --dry-run
+paradoc render my-form.yaml --dry-run
 ```
 
 # Output

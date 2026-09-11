@@ -30,7 +30,7 @@ ALWAYS run validation after every mutation:
 npx paradoc validate <file>
 ```
 
-Use `npx paradoc` (NOT `para`) when working directly with files — it ensures the CLI is available without a global install.
+Use `npx paradoc` when working directly with files — it ensures the CLI is available without a global install.
 
 ```bash
 # Single file
@@ -192,4 +192,4 @@ See [logic.md](./logic.md) for expression context rules.
 - [annexes.md](./annexes.md) — annex schema
 - [instructions.md](./instructions.md) — ContentRef
 - [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings
-- [cli.md](./cli.md) — `para validate` and `para fix` flags
+- [cli.md](./cli.md) — `paradoc validate` and `paradoc fix` flags

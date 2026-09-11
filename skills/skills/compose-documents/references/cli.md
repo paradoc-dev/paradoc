@@ -1,11 +1,11 @@
 ---
 name: cli
-description: para check (verify a composition without rendering) and para add / npx shadcn@4 add @paradoc/<name> (install a document component).
+description: paradoc check (verify a composition without rendering) and paradoc add / npx shadcn@4 add @paradoc/<name> (install a document component).
 metadata:
-  tags: cli, para, check, add, registry
+  tags: cli, paradoc, check, add, registry
 ---
 
-# `para check` and `para add`
+# `paradoc check` and `paradoc add`
 
 **Contents:** [Checking a composition](#checking-a-composition) ·
 [Installing components](#installing-components) ·
@@ -13,14 +13,14 @@ metadata:
 
 ## Checking a composition
 
-`para check` walks the same tree the default PDF path walks and reports what
+`paradoc check` walks the same tree the default PDF path walks and reports what
 a render would refuse — **without producing PDF bytes**. Run it after
 writing or editing a composition, before ever rendering it:
 
 ```bash
-para check ./compositions/change-order.tsx
+paradoc check ./compositions/change-order.tsx
 # or, equivalently, by the artifact that declares the layer:
-para check ./artifacts/change-order.json
+paradoc check ./artifacts/change-order.json
 ```
 
 ```
@@ -84,18 +84,18 @@ with the stock shadcn CLI:
 npx shadcn@4 add @paradoc/field
 ```
 
-or with `para add`, which registers the `@paradoc` namespace in the
+or with `paradoc add`, which registers the `@paradoc` namespace in the
 project's `components.json` first (idempotent — safe to run repeatedly) and
 then runs the same install:
 
 ```bash
-para add field
+paradoc add field
 ```
 
 Install more than one component in one call:
 
 ```bash
-para add field table signature
+paradoc add field table signature
 ```
 
 A component that depends on another brings it along automatically:
@@ -108,7 +108,7 @@ are **not** design decisions (contexts, the page plan, the measuring pass,
 the serializer-backed formatter) stay in `@paradoc/react` and are imported by
 the installed file, never copied into it.
 
-**Every installable item**, by bare name (`para add <name>` /
+**Every installable item**, by bare name (`paradoc add <name>` /
 `@paradoc/<name>`):
 
 ```
@@ -132,5 +132,5 @@ npx shadcn@4 add https://docs.paradoc.dev/r/field.json
 every item: name, `type` (`registry:ui`), title, description, dependencies,
 and the files it installs. Fetch it directly to enumerate what is available
 without scraping the docs page — for example, to decide which components a
-composition needs before running `para add`. Each item's own JSON is at
+composition needs before running `paradoc add`. Each item's own JSON is at
 `https://docs.paradoc.dev/r/{name}.json`.

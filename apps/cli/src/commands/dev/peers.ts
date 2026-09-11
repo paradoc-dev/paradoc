@@ -1,5 +1,5 @@
 /**
- * The toolchain `para dev` borrows from the project.
+ * The toolchain `paradoc dev` borrows from the project.
  *
  * The preview compiles the project's own compositions against the project's own
  * React and its own `@paradoc/react`, so the bundler that compiles them is the
@@ -7,23 +7,23 @@
  * project, and a project missing one is told exactly what to install rather than
  * shown a resolution error from inside a dependency.
  *
- * **Why not the renderer manager.** `para` installs a renderer on first use
- * (`utils/renderer-manager.ts`), and `para check` installs `@paradoc/react` that
+ * **Why not the renderer manager.** `paradoc` installs a renderer on first use
+ * (`utils/renderer-manager.ts`), and `paradoc check` installs `@paradoc/react` that
  * way, because a check needs one package and nothing else of the project. A
  * preview is the opposite case: it compiles the project's source, so the React
  * it renders with, the `@paradoc/react` the composition imports, and the Vite
- * that resolves both have to be the project's own, not a copy `para` fetched
+ * that resolves both have to be the project's own, not a copy `paradoc` fetched
  * into its cache. Installing them on demand would produce a second React beside
  * the project's and a preview of a document the project cannot build. A project
  * with compositions in it is a React project with a bundler; asking for that is
  * asking for what it already has.
  *
  * **Where each one is resolved.** `react`, `react-dom` and `@paradoc/react` are
- * resolved at the project and nowhere else: a copy of them from `para`'s own
+ * resolved at the project and nowhere else: a copy of them from `paradoc`'s own
  * installation would be a different React and a different component library from
  * the ones the page loads, which is the failure this is meant to prevent. The
  * bundler and its plugins have no such identity: they compile, they are not
- * compiled, so those fall back to `para`'s own dependencies, which is what makes
+ * compiled, so those fall back to `paradoc`'s own dependencies, which is what makes
  * the command work inside this repository, where the packages are linked rather
  * than installed into a consumer project.
  */
@@ -42,7 +42,7 @@ import type { InlineConfig, Plugin, ViteDevServer } from 'vite'
 export const DEV_RUNTIME_PEERS = ['@paradoc/react', 'react', 'react-dom'] as const
 
 /**
- * The packages that only compile. `para`'s own copies serve if the project has
+ * The packages that only compile. `paradoc`'s own copies serve if the project has
  * none, so these are development dependencies.
  */
 export const DEV_BUILD_PEERS = [
@@ -52,7 +52,7 @@ export const DEV_BUILD_PEERS = [
 	'tailwindcss',
 ] as const
 
-/** Everything `para dev` needs from the project, named the way a person installs it. */
+/** Everything `paradoc dev` needs from the project, named the way a person installs it. */
 export const DEV_PEERS = [...DEV_BUILD_PEERS, ...DEV_RUNTIME_PEERS] as const
 
 /** The install commands each package manager spells, by the lockfile it leaves. */
@@ -87,7 +87,7 @@ export class MissingDevPeerError extends Error {
 		].filter((line): line is string => line !== undefined)
 
 		super(
-			`para dev needs ${peers.join(', ')}, and ${peers.length === 1 ? 'it is' : 'they are'} not ` +
+			`paradoc dev needs ${peers.join(', ')}, and ${peers.length === 1 ? 'it is' : 'they are'} not ` +
 				`installed in ${root}. The preview compiles your compositions against your own React and ` +
 				"your own @paradoc/react, so it uses your project's toolchain. Install them with:\n\n" +
 				`${lines.join('\n')}\n`,

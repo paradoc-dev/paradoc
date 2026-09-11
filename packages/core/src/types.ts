@@ -374,7 +374,7 @@ export interface FillOptions {
  *
  * @example
  * ```typescript
- * const form = para.form({
+ * const form = p.form({
  *   name: 'my-form',
  *   version: '1.0.0',
  *   fields: { name: { type: 'text' } }
@@ -389,7 +389,7 @@ export type FormInput = Omit<Form, 'kind'> & { kind?: 'form' }
  *
  * @example
  * ```typescript
- * const doc = para.document({
+ * const doc = p.document({
  *   name: 'my-document',
  *   version: '1.0.0',
  *   layers: { markdown: { kind: 'inline', mimeType: 'text/markdown', text: '# Hello' } }
@@ -404,7 +404,7 @@ export type DocumentInput = Omit<Document, 'kind'> & { kind?: 'document' }
  *
  * @example
  * ```typescript
- * const bundle = para.bundle({
+ * const bundle = p.bundle({
  *   name: 'my-bundle',
  *   version: '1.0.0',
  *   contents: [{ ref: './form.yaml' }]
@@ -419,7 +419,7 @@ export type BundleInput = DeepReadonly<Omit<Bundle, 'kind'>> & { readonly kind?:
  *
  * @example
  * ```typescript
- * const checklist = para.checklist({
+ * const checklist = p.checklist({
  *   name: 'my-checklist',
  *   version: '1.0.0',
  *   items: [{ id: 'item-1', label: 'First item' }]

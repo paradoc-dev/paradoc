@@ -2,7 +2,7 @@
  * The conventions that connect a composition to its artifact and its sample.
  *
  * They are tested here, in the package that owns them, because two commands
- * read them — `para dev` builds a preview from every answer, `para check`
+ * read them — `paradoc dev` builds a preview from every answer, `paradoc check`
  * checks one — and a rule proved in one command's tests would be a rule the
  * other could quietly disagree with.
  */

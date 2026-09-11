@@ -13,7 +13,7 @@
  * this package pins.
  */
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 import { describe, expect, it } from "vitest";
 
@@ -72,7 +72,7 @@ const spec = {
   },
 } as const;
 
-const rider = para.form(spec);
+const rider = p.form(spec);
 
 /** The composition: one block per slot, both for the same party. */
 function LeaseRider({ artifact, data }: { artifact: Form; data: DocumentData }) {

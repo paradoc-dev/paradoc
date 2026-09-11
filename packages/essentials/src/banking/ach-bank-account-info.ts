@@ -1,7 +1,7 @@
 // AUTO-GENERATED from artifacts/banking/ach-bank-account-info/design/ — do not edit by hand.
 // Regenerate via: node artifacts/scripts/sync-essentials.mjs --only banking/ach-bank-account-info
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
@@ -666,7 +666,7 @@ const resolver = createMemoryResolver({ contents });
  *
  * Standalone vendor / payee bank-account-information collection form for ACH credit destination setup. Captures account-holder identity (individual or organization), bank routing/account/type, and (for organizations) W-9-adjacent entity classification. Pairs with a separate authorization document (vendor agreement, W-9, MSA); the form itself is data-collection only and does not carry an authorization clause.
  */
-export const achBankAccountInfo = Object.assign(para.form(schema, { resolver }), {
+export const achBankAccountInfo = Object.assign(p.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/banking/ach-bank-account-info/. */
   spec: schema,
 });

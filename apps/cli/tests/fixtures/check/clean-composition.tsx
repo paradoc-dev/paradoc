@@ -10,5 +10,5 @@ export default function CleanComposition({ artifact, data }: { artifact: Form; d
   )
 }
 
-/** Sample data `para check` discovers automatically. */
+/** Sample data `paradoc check` discovers automatically. */
 export const sample: DocumentData = { fields: { name: 'Ada Lovelace' }, parties: {} }

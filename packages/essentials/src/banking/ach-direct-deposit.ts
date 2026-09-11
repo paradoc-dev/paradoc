@@ -1,7 +1,7 @@
 // AUTO-GENERATED from artifacts/banking/ach-direct-deposit/design/ — do not edit by hand.
 // Regenerate via: node artifacts/scripts/sync-essentials.mjs --only banking/ach-direct-deposit
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
@@ -867,7 +867,7 @@ const resolver = createMemoryResolver({ contents });
  *
  * Authorization by which an employee authorizes their employer (directly or through a payroll service provider) to deposit net pay—in whole or split across up to four deposit accounts—via ACH credit entries to the named depository institution(s). Governed by NACHA Operating Rules and (for non-exempt employee protections) FLSA and state wage law.
  */
-export const achDirectDeposit = Object.assign(para.form(schema, { resolver }), {
+export const achDirectDeposit = Object.assign(p.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/banking/ach-direct-deposit/. */
   spec: schema,
 });

@@ -229,7 +229,7 @@ const regressionVectors: Array<{
 ];
 
 describe("ach-bank-account-info", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(achBankAccountInfo.isValid()).toBe(true);
   });
 

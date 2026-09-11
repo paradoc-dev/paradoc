@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test, vi } from 'vitest'
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 import { hostedSealAdapter } from '@paradoc/sdk'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -11,7 +11,7 @@ const canonicalPdf = readFileSync(path.resolve(__dirname, '../fixtures/pdfs/w9.p
 
 describe('Sealing and Conversion Guide', () => {
   test('seals a PDF layer locally without an adapter', async () => {
-    const form = para.form(
+    const form = p.form(
       {
         name: 'local-pdf',
         fields: {},
@@ -53,7 +53,7 @@ describe('Sealing and Conversion Guide', () => {
         },
       })
     })
-    const form = para.form({
+    const form = p.form({
       name: 'hosted-markdown',
       fields: { name: { type: 'text', required: true } },
       parties: { signer: { label: 'Signer', partyType: 'person', signature: { required: true } } },

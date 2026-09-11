@@ -1,7 +1,7 @@
 ---
 title: list
 description: List installed artifacts
-ogTitle: para list
+ogTitle: paradoc list
 ogDescription: View all artifacts installed in your Paradoc project
 ---
 
@@ -10,8 +10,8 @@ Lists all artifacts installed in the current project.
 # Usage
 
 ```bash
-para list [options]
-para ls [options]
+paradoc list [options]
+paradoc ls [options]
 ```
 
 # Options
@@ -30,19 +30,19 @@ The `list` command reads the project's lock file and displays all installed arti
 List all installed artifacts:
 
 ```bash
-para list
+paradoc list
 ```
 
 Using the alias:
 
 ```bash
-para ls
+paradoc ls
 ```
 
 Output as JSON:
 
 ```bash
-para list --json
+paradoc list --json
 ```
 
 # Output
@@ -62,7 +62,7 @@ When no artifacts are installed:
 
 ```
 No artifacts installed.
-Run 'para add @namespace/artifact-name' to install one.
+Run 'paradoc add @namespace/artifact-name' to install one.
 ```
 
 # JSON output

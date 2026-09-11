@@ -20,7 +20,7 @@ utility. The default PDF engine (`takumi`) understands a subset and drops
 anything else **without an error** — the class disappears and the page comes
 out subtly wrong with nothing to explain why. So the PDF path checks every
 class first and refuses to render when it finds one outside the verified
-list, naming every offender in one error. `para check` runs the identical
+list, naming every offender in one error. `paradoc check` runs the identical
 check without rendering.
 
 This is a list of what was **proved** to work against the engine, not a
@@ -106,7 +106,7 @@ detail.
 
 ## Checking against a different adapter
 
-`para check --adapter chromium` (and `checkComposition({ adapter: "chromium" })`)
+`paradoc check --adapter chromium` (and `checkComposition({ adapter: "chromium" })`)
 skips the class check entirely, because the Chromium adapter is a real
 browser and accepts whatever CSS the tree produces. The default adapter for
 both rendering and checking is `takumi`, and that is what a check should run

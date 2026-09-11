@@ -2,7 +2,7 @@
  * Tests for code snippets in concepts/forms.mdx (Anatomy of a Form)
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
 describe('Forms Concept', () => {
   // ============================================================================
@@ -10,7 +10,7 @@ describe('Forms Concept', () => {
   // ============================================================================
 
   describe('fields', () => {
-    const form = para
+    const form = p
       .form()
       .name('application')
       .fields({
@@ -32,7 +32,7 @@ describe('Forms Concept', () => {
   // ============================================================================
 
   describe('primitives', () => {
-    const form = para
+    const form = p
       .form()
       .name('primitives-example')
       .fields({
@@ -54,12 +54,12 @@ describe('Forms Concept', () => {
   // ============================================================================
 
   describe('parties', () => {
-    const form = para
+    const form = p
       .form()
       .name('lease')
       .parties({
-        landlord: para.party().label('Landlord'),
-        tenant: para.party().label('Tenant').multiple(true).max(4),
+        landlord: p.party().label('Landlord'),
+        tenant: p.party().label('Tenant').multiple(true).max(4),
       })
       .build()
 
@@ -74,12 +74,12 @@ describe('Forms Concept', () => {
   // ============================================================================
 
   describe('signatures', () => {
-    const form = para
+    const form = p
       .form()
       .name('purchase')
       .parties({
-        buyer: para.party().label('Buyer').signature({ required: true, witnesses: 1 }),
-        seller: para.party().label('Seller').signature({ required: true }),
+        buyer: p.party().label('Buyer').signature({ required: true, witnesses: 1 }),
+        seller: p.party().label('Seller').signature({ required: true }),
       })
       .build()
 
@@ -95,12 +95,12 @@ describe('Forms Concept', () => {
   // ============================================================================
 
   describe('annexes', () => {
-    const form = para
+    const form = p
       .form()
       .name('lease-application')
       .annexes({
-        photoId: para.annex().title('Photo ID').required(true),
-        proofOfIncome: para.annex().title('Proof of Income').required(true),
+        photoId: p.annex().title('Photo ID').required(true),
+        proofOfIncome: p.annex().title('Proof of Income').required(true),
       })
       .build()
 

@@ -28,7 +28,7 @@ import {
  * Runtime wiring bound to an artifact instance when it is constructed.
  *
  * A file-backed layer's bytes come from a resolver, and the resolver is bound
- * once: `para.form(schema, { resolver })`. Every instance derived from that
+ * once: `p.form(schema, { resolver })`. Every instance derived from that
  * one — every fill, every mutator, every clone — carries it. There is no
  * per-call resolver, because a runtime artifact is immutable by
  * reconstruction: a mutator builds a fresh instance from the config, and a
@@ -83,7 +83,7 @@ export type ResolverBindingSite = 'artifact' | 'layers'
 const REMEDY: Record<ResolverBindingSite, string> = {
 	artifact:
 		'no resolver is bound to this artifact. Bind one where the artifact is constructed, as the ' +
-		'second argument to para.form, para.document or para.checklist, so every instance derived ' +
+		'second argument to p.form, p.document or p.checklist, so every instance derived ' +
 		'from it carries the resolver.',
 	layers:
 		'this call was given no resolver. `renderLayer` reads a bare layers record rather than an ' +

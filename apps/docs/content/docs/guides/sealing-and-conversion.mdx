@@ -59,7 +59,7 @@ signatory.
 PDF layers need no adapter or network call. Paradoc renders the layer,
 resolves placements, flattens, and hashes the exact canonical bytes. The
 resolver that reads the PDF template's bytes is bound where the form is
-constructed — `para.form(schema, { resolver })` — so `draft` already carries
+constructed — `p.form(schema, { resolver })` — so `draft` already carries
 it:
 
 ```ts

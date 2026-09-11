@@ -142,8 +142,8 @@ function documentData(request: RenderRequest<RendererLayer>): DocumentData {
 /**
  * Binds a layer's `path` or `key` to a component, exactly as {@link reactRenderer}
  * does before it renders. Exported for callers that need the component itself
- * rather than PDF bytes: `para check` binds a composition this way to check it
- * without rendering it, and a planned `para dev` preview is expected to bind
+ * rather than PDF bytes: `paradoc check` binds a composition this way to check it
+ * without rendering it, and a planned `paradoc dev` preview is expected to bind
  * the same way to run one live.
  *
  * @throws {UnboundReactLayerError}

@@ -4,7 +4,7 @@
 import { describe, test, expect } from 'vitest'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -18,22 +18,22 @@ describe('Quickstart Guide', () => {
 
   const resolver = createFsResolver({ root: fixturesRoot })
 
-  const purchaseAgreement = para
+  const purchaseAgreement = p
     .form()
     .name('purchase-agreement')
     .title('Purchase Agreement')
     .version('1.0.0')
     .parties({
-      buyer: para.party().label('Buyer').partyType('person').signature({ required: true }),
-      seller: para.party().label('Seller').partyType('person').signature({ required: true }),
+      buyer: p.party().label('Buyer').partyType('person').signature({ required: true }),
+      seller: p.party().label('Seller').partyType('person').signature({ required: true }),
     })
     .fields({
-      quantity: para.field.number().label('Quantity').required(),
-      price: para.field.money().label('Price').required(),
-      date: para.field.date().label('Date').required(),
+      quantity: p.field.number().label('Quantity').required(),
+      price: p.field.money().label('Price').required(),
+      date: p.field.date().label('Date').required(),
     })
     .layers({
-      markdown: para.layer().file().mimeType('text/markdown').path('purchase-agreement.md'),
+      markdown: p.layer().file().mimeType('text/markdown').path('purchase-agreement.md'),
     })
     .defaultLayer('markdown')
     .build({ resolver })
@@ -117,7 +117,7 @@ describe('Quickstart Guide', () => {
 
   test('round-trips through JSON', () => {
     const jsonStr = JSON.stringify(purchaseAgreement.toJSON())
-    const loaded = para.load(jsonStr)
+    const loaded = p.load(jsonStr)
     expect(loaded.kind).toBe('form')
     expect(loaded.name).toBe('purchase-agreement')
     expect(loaded.title).toBe('Purchase Agreement')
@@ -125,7 +125,7 @@ describe('Quickstart Guide', () => {
 
   test('round-trips through YAML', () => {
     const yaml = purchaseAgreement.toYAML()
-    const loaded = para.load(yaml)
+    const loaded = p.load(yaml)
     expect(loaded.kind).toBe('form')
     expect(loaded.name).toBe('purchase-agreement')
   })

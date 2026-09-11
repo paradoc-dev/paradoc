@@ -11,19 +11,19 @@ Validate datetime strings in ISO 8601 format. The Datetime primitive ensures tim
 
 ```ts
 // Direct validation
-const dt = para.datetime('2024-01-15T10:30:00Z')
+const dt = p.datetime('2024-01-15T10:30:00Z')
 
 // Parse unknown input
-const dt = para.datetime.parse(jsonData)
+const dt = p.datetime.parse(jsonData)
 
 // Get current datetime
-const now = para.datetime.now()
+const now = p.datetime.now()
 
 // Convert from Date object
-const dt = para.datetime.fromDate(new Date())
+const dt = p.datetime.fromDate(new Date())
 
 // Check validity without throwing
-if (para.datetime.isValid('2024-01-15T10:30:00Z')) {
+if (p.datetime.isValid('2024-01-15T10:30:00Z')) {
   console.log('Valid datetime')
 }
 ```
@@ -32,10 +32,10 @@ if (para.datetime.isValid('2024-01-15T10:30:00Z')) {
 
 ```ts
 // Parse unknown input (throws on error)
-const dt = para.datetime.parse(userInput)
+const dt = p.datetime.parse(userInput)
 
 // Safe parsing (returns result object)
-const result = para.datetime.safeParse(userInput)
+const result = p.datetime.safeParse(userInput)
 if (result.success) {
   console.log(`Datetime: ${result.data}`)
 } else {
@@ -46,7 +46,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'appointment',
   fields: {
     scheduledAt: { type: 'datetime', label: 'Appointment Time' }
@@ -55,7 +55,7 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    scheduledAt: para.datetime('2024-06-15T14:30:00Z')
+    scheduledAt: p.datetime('2024-06-15T14:30:00Z')
   }
 })
 ```
@@ -65,13 +65,13 @@ const filled = form.fill({
 ## Direct Call
 
 ```ts
-para.datetime(input: string): string
+p.datetime(input: string): string
 ```
 
 Pass a datetime string for validation. Returns the validated string or throws on error.
 
 ```ts
-const dt = para.datetime('2024-01-15T10:30:00Z')
+const dt = p.datetime('2024-01-15T10:30:00Z')
 ```
 
 ## Static Methods
@@ -114,22 +114,22 @@ The Datetime primitive validates:
 
 ```ts
 // Valid
-para.datetime('2024-01-15T10:30:00Z')
-para.datetime('2024-01-15T10:30:00.123Z')
-para.datetime('2024-01-15T10:30:00+05:30')
-para.datetime('2024-01-15T10:30:00-08:00')
+p.datetime('2024-01-15T10:30:00Z')
+p.datetime('2024-01-15T10:30:00.123Z')
+p.datetime('2024-01-15T10:30:00+05:30')
+p.datetime('2024-01-15T10:30:00-08:00')
 
 // Invalid - throws Error
-para.datetime('2024-01-15')
+p.datetime('2024-01-15')
 // Error: Invalid Datetime: missing time component
 
-para.datetime('2024-01-15T10:30:00')
+p.datetime('2024-01-15T10:30:00')
 // Error: Invalid Datetime: missing timezone
 
-para.datetime('2024-01-15 10:30:00Z')
+p.datetime('2024-01-15 10:30:00Z')
 // Error: Invalid Datetime: must use T separator
 
-para.datetime('not-a-datetime')
+p.datetime('not-a-datetime')
 // Error: Invalid Datetime: invalid format
 ```
 

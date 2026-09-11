@@ -44,20 +44,20 @@ npx @paradoc/cli --help
 
 ```bash
 # Initialize a new project
-para init my-project
+paradoc init my-project
 cd my-project
 
 # Search for artifacts
-para search "lease agreement"
+paradoc search "lease agreement"
 
 # Install an artifact
-para add @acme/residential-lease
+paradoc add @acme/residential-lease
 
 # List installed artifacts
-para list
+paradoc list
 
 # View artifact details
-para view @acme/residential-lease
+paradoc view @acme/residential-lease
 ```
 
 ## Commands
@@ -66,41 +66,41 @@ para view @acme/residential-lease
 
 | Command | Description |
 |---------|-------------|
-| `para add <artifact>` | Install an artifact from a registry |
-| `para list` | List installed artifacts |
-| `para view <artifact>` | View details of an installed artifact |
-| `para search [query]` | Search for artifacts in a registry |
+| `paradoc add <artifact>` | Install an artifact from a registry |
+| `paradoc list` | List installed artifacts |
+| `paradoc view <artifact>` | View details of an installed artifact |
+| `paradoc search [query]` | Search for artifacts in a registry |
 
 ### Registry management
 
 | Command | Description |
 |---------|-------------|
-| `para registry add <namespace> <url>` | Add a registry |
-| `para registry remove <namespace>` | Remove a registry |
-| `para registry list` | List configured registries |
-| `para registry info <namespace>` | Show registry details |
+| `paradoc registry add <namespace> <url>` | Add a registry |
+| `paradoc registry remove <namespace>` | Remove a registry |
+| `paradoc registry list` | List configured registries |
+| `paradoc registry info <namespace>` | Show registry details |
 
 ### Authoring commands
 
 | Command | Description |
 |---------|-------------|
-| `para new form <name>` | Create a new form |
-| `para new document <name>` | Create a new document |
-| `para new checklist <name>` | Create a new checklist |
-| `para new bundle <name>` | Create a new bundle |
-| `para validate <artifact>` | Validate an artifact |
-| `para fix <artifact>` | Fix artifact metadata |
-| `para check <composition-or-artifact>` | Check a React composition against its artifact, without rendering a PDF |
+| `paradoc new form <name>` | Create a new form |
+| `paradoc new document <name>` | Create a new document |
+| `paradoc new checklist <name>` | Create a new checklist |
+| `paradoc new bundle <name>` | Create a new bundle |
+| `paradoc validate <artifact>` | Validate an artifact |
+| `paradoc fix <artifact>` | Fix artifact metadata |
+| `paradoc check <composition-or-artifact>` | Check a React composition against its artifact, without rendering a PDF |
 
 ### Project commands
 
 | Command | Description |
 |---------|-------------|
-| `para init [directory]` | Initialize a new project |
-| `para dev [directory]` | Preview React compositions live beside their PDF |
-| `para render <artifact>` | Render an artifact layer |
-| `para show <artifact>` | Display artifact structure |
-| `para diff <file1> <file2>` | Compare two artifacts |
+| `paradoc init [directory]` | Initialize a new project |
+| `paradoc dev [directory]` | Preview React compositions live beside their PDF |
+| `paradoc render <artifact>` | Render an artifact layer |
+| `paradoc show <artifact>` | Display artifact structure |
+| `paradoc diff <file1> <file2>` | Compare two artifacts |
 
 ## Installing artifacts
 
@@ -108,19 +108,19 @@ Install artifacts from any configured registry:
 
 ```bash
 # Basic install
-para add @acme/residential-lease
+paradoc add @acme/residential-lease
 
 # Install with layers (templates, PDFs, etc.)
-para add @acme/residential-lease --layers all
+paradoc add @acme/residential-lease --layers all
 
 # Install specific layers
-para add @acme/residential-lease --layers default,pdf-template
+paradoc add @acme/residential-lease --layers default,pdf-template
 
 # Choose output format
-para add @acme/residential-lease --format json
+paradoc add @acme/residential-lease --format json
 
 # Force reinstall
-para add @acme/residential-lease --force
+paradoc add @acme/residential-lease --force
 ```
 
 Artifacts are referenced using scoped names: `@namespace/artifact-name`
@@ -129,19 +129,19 @@ Artifacts are referenced using scoped names: `@namespace/artifact-name`
 
 ```bash
 # Search by keyword
-para search "lease agreement"
+paradoc search "lease agreement"
 
 # Search a specific registry
-para search --registry @acme
+paradoc search --registry @acme
 
 # Filter by artifact kind
-para search --kind form
+paradoc search --kind form
 
 # Filter by tags
-para search --tags real-estate,california
+paradoc search --tags real-estate,california
 
 # Output as JSON (for scripting)
-para search --json
+paradoc search --json
 ```
 
 ## Managing registries
@@ -150,30 +150,30 @@ Add registries to your global or project configuration:
 
 ```bash
 # Add a public registry (prompts for location when in a project)
-para registry add @acme https://registry.acme.com
+paradoc registry add @acme https://registry.acme.com
 
 # Add to global config explicitly
-para registry add @acme https://registry.acme.com --global
+paradoc registry add @acme https://registry.acme.com --global
 
 # Add to project config explicitly
-para registry add @acme https://registry.acme.com --project
+paradoc registry add @acme https://registry.acme.com --project
 
 # Add with authentication
-para registry add @private https://registry.private.com \
+paradoc registry add @private https://registry.private.com \
   --header "Authorization: Bearer \${PRIVATE_TOKEN}"
 
 # List all registries
-para registry list
+paradoc registry list
 
 # Remove a registry
-para registry remove @acme
+paradoc registry remove @acme
 ```
 
 ## Configuration
 
 ### Project configuration
 
-Created when you run `para init`. Located at `paradoc.json` in your project root.
+Created when you run `paradoc init`. Located at `paradoc.json` in your project root.
 
 ```json
 {

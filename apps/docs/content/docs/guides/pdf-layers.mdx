@@ -131,12 +131,12 @@ form — it reads `layers/w9.pdf`, and every instance you derive from `w9Form`
 later carries the same resolver.
 
 ```ts
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: '.' })
 
-const w9Form = para.form({
+const w9Form = p.form({
   name: 'w9-tax-form',
   fields: {
     name: { type: 'text', label: 'Name', required: true },

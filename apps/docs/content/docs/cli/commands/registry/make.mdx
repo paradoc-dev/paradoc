@@ -1,7 +1,7 @@
 ---
 title: registry make
 description: Create a new registry.json file
-ogTitle: para registry make
+ogTitle: paradoc registry make
 ogDescription: Initialize a new Paradoc artifact registry
 ---
 
@@ -10,7 +10,7 @@ Create a new `registry.json` file for hosting your own artifact registry.
 # Usage
 
 ```bash
-para registry make [directory] [options]
+paradoc registry make [directory] [options]
 ```
 
 # Arguments
@@ -40,13 +40,13 @@ Creates a `registry.json` file that defines a new artifact registry. This is the
 Create a registry interactively:
 
 ```bash
-para registry make
+paradoc registry make
 ```
 
 Create in a specific directory with options:
 
 ```bash
-para registry make ./my-registry \
+paradoc registry make ./my-registry \
   --name "Acme Forms" \
   --description "Internal form templates" \
   --homepage https://acme.com/forms \
@@ -57,8 +57,8 @@ para registry make ./my-registry \
 
 After creating a registry:
 
-1. Add artifacts with `para registry catalog add <artifact>`
-2. Compile the registry with `para registry compile`
+1. Add artifacts with `paradoc registry catalog add <artifact>`
+2. Compile the registry with `paradoc registry compile`
 3. Deploy the output directory to your hosting provider
 
 # See also

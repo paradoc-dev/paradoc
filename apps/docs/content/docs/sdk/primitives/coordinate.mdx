@@ -11,21 +11,21 @@ Build and validate geographic coordinates. The Coordinate primitive represents a
 
 ```ts
 // Object pattern
-const location = para.coordinate({ lat: 40.7128, lon: -74.0060 })
+const location = p.coordinate({ lat: 40.7128, lon: -74.0060 })
 
 // Builder pattern
-const location = para.coordinate()
+const location = p.coordinate()
   .lat(40.7128)
   .lon(-74.0060)
   .build()
 
 // Using point shorthand
-const location = para.coordinate()
+const location = p.coordinate()
   .point(40.7128, -74.0060)
   .build()
 
 // Copy and modify
-const nearby = para.coordinate()
+const nearby = p.coordinate()
   .from(location)
   .lat(40.7130)
   .build()
@@ -35,10 +35,10 @@ const nearby = para.coordinate()
 
 ```ts
 // Parse unknown input (throws on error)
-const location = para.coordinate.parse(jsonData)
+const location = p.coordinate.parse(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.coordinate.safeParse(jsonData)
+const result = p.coordinate.safeParse(jsonData)
 if (result.success) {
   console.log(`Location: ${result.data.lat}, ${result.data.lon}`)
 } else {
@@ -49,7 +49,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'location',
   fields: {
     meetingPoint: { type: 'coordinate', label: 'Meeting Point' }
@@ -58,7 +58,7 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    meetingPoint: para.coordinate().point(51.5074, -0.1278).build()
+    meetingPoint: p.coordinate().point(51.5074, -0.1278).build()
   }
 })
 ```
@@ -68,13 +68,13 @@ const filled = form.fill({
 ## Object Pattern
 
 ```ts
-para.coordinate(input: Coordinate): Coordinate
+p.coordinate(input: Coordinate): Coordinate
 ```
 
 Pass a Coordinate object for validation. Returns the validated Coordinate or throws on error.
 
 ```ts
-const location = para.coordinate({ lat: 48.8566, lon: 2.3522 })
+const location = p.coordinate({ lat: 48.8566, lon: 2.3522 })
 ```
 
 ## Builder Pattern
@@ -82,7 +82,7 @@ const location = para.coordinate({ lat: 48.8566, lon: 2.3522 })
 Chain methods to build a Coordinate value incrementally:
 
 <MethodChain
-  starter="para.coordinate()"
+  starter="p.coordinate()"
   methods={[
     { name: 'lat', params: 'value: number', description: 'Set latitude (-90 to 90)' },
     { name: 'lon', params: 'value: number', description: 'Set longitude (-180 to 180)' },
@@ -117,20 +117,20 @@ The Coordinate primitive validates:
 
 ```ts
 // Valid
-para.coordinate({ lat: 40.7128, lon: -74.0060 })   // New York
-para.coordinate({ lat: -33.8688, lon: 151.2093 })  // Sydney
-para.coordinate({ lat: 0, lon: 0 })                // Null Island
-para.coordinate({ lat: 90, lon: 0 })               // North Pole
-para.coordinate({ lat: -90, lon: 0 })              // South Pole
+p.coordinate({ lat: 40.7128, lon: -74.0060 })   // New York
+p.coordinate({ lat: -33.8688, lon: 151.2093 })  // Sydney
+p.coordinate({ lat: 0, lon: 0 })                // Null Island
+p.coordinate({ lat: 90, lon: 0 })               // North Pole
+p.coordinate({ lat: -90, lon: 0 })              // South Pole
 
 // Invalid - throws Error
-para.coordinate({ lat: 91, lon: 0 })
+p.coordinate({ lat: 91, lon: 0 })
 // Error: Invalid Coordinate: lat must be between -90 and 90
 
-para.coordinate({ lat: 0, lon: 181 })
+p.coordinate({ lat: 0, lon: 181 })
 // Error: Invalid Coordinate: lon must be between -180 and 180
 
-para.coordinate({ lat: NaN, lon: 0 })
+p.coordinate({ lat: NaN, lon: 0 })
 // Error: Invalid Coordinate: lat must be a valid number
 ```
 

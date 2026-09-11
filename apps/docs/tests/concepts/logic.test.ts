@@ -2,7 +2,7 @@
  * Tests for code snippets in concepts/logic.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
 /** Find an item's runtime state in a draft's fill state, across all buckets. */
 function fieldState(draft: { getFillState: () => ReturnType<DraftFillState> }, key: string) {
@@ -22,7 +22,7 @@ describe('Logic Concept', () => {
   // ============================================================================
 
   describe('where logic applies', () => {
-    const form = para
+    const form = p
       .form()
       .name('application')
       .fields({
@@ -60,7 +60,7 @@ describe('Logic Concept', () => {
   // ============================================================================
 
   describe('named expressions', () => {
-    const form = para
+    const form = p
       .form()
       .name('application')
       .fields({
@@ -110,14 +110,14 @@ describe('Logic Concept', () => {
   // ============================================================================
 
   describe('logic in annexes', () => {
-    const form = para
+    const form = p
       .form()
       .name('lease-application')
       .fields({
         hasPets: { type: 'boolean', label: 'Do you have pets?' },
       })
       .annexes({
-        petPhoto: para
+        petPhoto: p
           .annex()
           .title('Pet Photo')
           .visible('fields.hasPets')

@@ -1,7 +1,7 @@
 ---
 title: registry catalog
 description: Manage registry catalog items
-ogTitle: para registry catalog
+ogTitle: paradoc registry catalog
 ogDescription: Add and remove artifacts from an Paradoc registry catalog
 ---
 
@@ -10,7 +10,7 @@ Manage which artifacts are listed in a registry catalog.
 # Usage
 
 ```bash
-para registry catalog <command> [options]
+paradoc registry catalog <command> [options]
 ```
 
 # Subcommands
@@ -27,7 +27,7 @@ para registry catalog <command> [options]
 Add an artifact to the registry catalog.
 
 ```bash
-para registry catalog add <artifact> [options]
+paradoc registry catalog add <artifact> [options]
 ```
 
 ## Arguments
@@ -50,8 +50,8 @@ Reads and validates the artifact file, then adds it to the `items` array in `reg
 ## Examples
 
 ```bash
-para registry catalog add ./artifacts/w9-form.json
-para registry catalog add ./lease.yaml -r ./my-registry/registry.json
+paradoc registry catalog add ./artifacts/w9-form.json
+paradoc registry catalog add ./lease.yaml -r ./my-registry/registry.json
 ```
 
 ---
@@ -61,8 +61,8 @@ para registry catalog add ./lease.yaml -r ./my-registry/registry.json
 Remove an artifact from the registry catalog.
 
 ```bash
-para registry catalog remove <name> [options]
-para registry catalog rm <name> [options]
+paradoc registry catalog remove <name> [options]
+paradoc registry catalog rm <name> [options]
 ```
 
 ## Arguments
@@ -81,8 +81,8 @@ para registry catalog rm <name> [options]
 ## Examples
 
 ```bash
-para registry catalog remove w9-form
-para registry catalog rm old-template -y
+paradoc registry catalog remove w9-form
+paradoc registry catalog rm old-template -y
 ```
 
 # See also

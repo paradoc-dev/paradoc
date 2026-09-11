@@ -2,7 +2,7 @@
  * Tests for code snippets in concepts/composition.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
 describe('Composition Concept', () => {
   // ============================================================================
@@ -18,7 +18,7 @@ describe('Composition Concept', () => {
     }
 
     // forms/application.ts
-    const application = para
+    const application = p
       .form()
       .name('application')
       .fields({
@@ -43,23 +43,23 @@ describe('Composition Concept', () => {
   // ============================================================================
 
   describe('bundles', () => {
-    const leaseAgreement = para.form({
+    const leaseAgreement = p.form({
       name: 'lease-agreement',
       title: 'Lease Agreement',
     })
 
-    const leadPaintDisclosure = para.document({
+    const leadPaintDisclosure = p.document({
       name: 'lead-paint-disclosure',
       title: 'Lead Paint Disclosure',
     })
 
-    const applicationChecklist = para.checklist({
+    const applicationChecklist = p.checklist({
       name: 'application-checklist',
       title: 'Application Checklist',
       items: [{ id: 'credit-check', title: 'Credit Check' }],
     })
 
-    const leasePackage = para
+    const leasePackage = p
       .bundle()
       .name('lease-package')
       .title('Complete Lease Package')

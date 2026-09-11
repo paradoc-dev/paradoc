@@ -11,10 +11,10 @@ values are automatically formatted from their schema types.
 # Example
 
 ```ts
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 import { textRenderer } from '@paradoc/render/text'
 
-const form = para.form({
+const form = p.form({
   name: 'receipt',
   fields: {
     customer: { type: 'text', label: 'Customer' },
@@ -144,7 +144,7 @@ Returns the rendered template as a `string`.
 When a form schema is provided, field values are automatically serialized based on their types:
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'demo',
   fields: {
     price: { type: 'money' },
@@ -190,7 +190,7 @@ const renderer = textRenderer({
 Use bindings to map template placeholders to different field names:
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'contract',
   fields: {
     buyerFullName: { type: 'text' }
@@ -226,7 +226,7 @@ The `locationId` identifies where in the document the signature appears (e.g., "
 ## Example with Signatures
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'lease',
   fields: { /* ... */ },
   parties: {

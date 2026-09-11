@@ -22,18 +22,18 @@ npm install @paradoc/render
 ### Pattern 1: form.fill().render() (recommended)
 
 A file-backed layer's bytes come from a resolver, and the resolver is bound
-once, when the form is constructed — `para.form(schema, { resolver })` or a
+once, when the form is constructed — `p.form(schema, { resolver })` or a
 builder's `.build({ resolver })`. Every instance derived from it — every
 `fill`, every mutator, every render call — carries that resolver, so render
 options never repeat it.
 
 ```typescript
-import { para } from "@paradoc/sdk";
+import { p } from "@paradoc/sdk";
 import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 
 const resolver = createFsResolver({ root: process.cwd() });
-const form = para.form(schema, { resolver });
+const form = p.form(schema, { resolver });
 const renderer = renderLayer();
 
 // Text / Markdown / HTML
@@ -109,22 +109,22 @@ const docx = await renderDocx({
 
 ```bash
 # Render to stdout
-para render my-form.json --data payload.json
+paradoc render my-form.json --data payload.json
 
 # Render to file
-para render my-form.json --data payload.json --out output.pdf
+paradoc render my-form.json --data payload.json --out output.pdf
 
 # Specify layer (format is selected from its MIME type)
-para render my-form.json --data payload.json --layer markdown
+paradoc render my-form.json --data payload.json --layer markdown
 
 # With bindings (path or inline JSON)
-para render my-form.json --data payload.json --bindings bindings.json
+paradoc render my-form.json --data payload.json --bindings bindings.json
 
 # JSON summary output
-para render my-form.json --data payload.json --format json
+paradoc render my-form.json --data payload.json --format json
 
 # Validate and resolve only
-para render my-form.json --data payload.json --dry-run
+paradoc render my-form.json --data payload.json --dry-run
 ```
 
 CLI bindings merge on top of layer-spec bindings (CLI wins).
@@ -132,9 +132,9 @@ CLI bindings merge on top of layer-spec bindings (CLI wins).
 ### Data payload
 
 ```bash
-para render form.json --data payload.json
-para render form.json --data payload.yaml
-para render form.json --data '{"fields":{"name":"Alice"}}'
+paradoc render form.json --data payload.json
+paradoc render form.json --data payload.yaml
+paradoc render form.json --data '{"fields":{"name":"Alice"}}'
 ```
 
 ### Renderer management
@@ -143,9 +143,9 @@ The unified `@paradoc/render` package auto-installs on first use under
 `~/.paradoc/renderers/`.
 
 ```bash
-para renderers status
-para renderers install
-para renderers remove
+paradoc renderers status
+paradoc renderers install
+paradoc renderers remove
 ```
 
 ## Automatic Field Formatting
@@ -188,22 +188,22 @@ const fields = await inspectAcroFormFields(template);
 ### CLI
 
 ```bash
-para inspect template.pdf
-para inspect template.pdf --format json
-para inspect template.pdf --filter "Landlord*"
-para inspect template.pdf --summary
-para inspect template.pdf --include-buttons --include-signatures
-para inspect template.pdf --out fields.json
+paradoc inspect template.pdf
+paradoc inspect template.pdf --format json
+paradoc inspect template.pdf --filter "Landlord*"
+paradoc inspect template.pdf --summary
+paradoc inspect template.pdf --include-buttons --include-signatures
+paradoc inspect template.pdf --out fields.json
 ```
 
-Use `para inspect` to discover PDF AcroForm field names before configuring bindings.
+Use `paradoc inspect` to discover PDF AcroForm field names before configuring bindings.
 
 ### Hashing files
 
 ```bash
-para hash template.pdf
-para hash template.pdf --json
-para hash template.pdf -a sha256
+paradoc hash template.pdf
+paradoc hash template.pdf --json
+paradoc hash template.pdf -a sha256
 ```
 
 Computes a SHA-256 checksum for use in layer `checksum` properties.
@@ -213,8 +213,8 @@ Computes a SHA-256 checksum for use in layer `checksum` properties.
 Resolvers load layer files (templates, PDFs, DOCX) at render time. Required when layers use `kind: "file"`. NOT needed for `kind: "inline"`.
 
 Bind a resolver once, where the artifact is constructed —
-`para.form(schema, { resolver })`, a builder's `.build({ resolver })`, or
-`para.load(content, { resolver })`. Every instance derived from it afterward
+`p.form(schema, { resolver })`, a builder's `.build({ resolver })`, or
+`p.load(content, { resolver })`. Every instance derived from it afterward
 carries the same resolver. There is no per-call resolver option anymore.
 
 ### Filesystem resolver (Node.js)
@@ -246,4 +246,4 @@ ALWAYS use `createMemoryResolver` in tests. NEVER read from the filesystem in un
 - [formatting.md](./formatting.md) — locale-aware formatters
 - [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings
 - [sdk.md](./sdk.md) — `form.fill().render()` pipeline
-- [cli.md](./cli.md) — `para render`, `para inspect`, `para hash`
+- [cli.md](./cli.md) — `paradoc render`, `paradoc inspect`, `paradoc hash`

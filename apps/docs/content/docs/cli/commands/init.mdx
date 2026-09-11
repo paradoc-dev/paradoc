@@ -1,7 +1,7 @@
 ---
 title: init
 description: Initialize a new Paradoc project
-ogTitle: para init
+ogTitle: paradoc init
 ogDescription: Create a new Paradoc project with the CLI
 ---
 
@@ -10,7 +10,7 @@ Initializes a new Paradoc project in the current or specified directory.
 # Usage
 
 ```bash
-para init [directory] [options]
+paradoc init [directory] [options]
 ```
 
 # Arguments
@@ -56,25 +56,25 @@ In interactive mode, you'll be prompted for:
 Interactive initialization:
 
 ```bash
-para init
+paradoc init
 ```
 
 Non-interactive with all options:
 
 ```bash
-para init --yes --name "My Project" --visibility private
+paradoc init --yes --name "My Project" --visibility private
 ```
 
 Initialize in a specific directory:
 
 ```bash
-para init my-new-project
+paradoc init my-new-project
 ```
 
 Preview what would be created:
 
 ```bash
-para init --dry-run --yes --name "Test Project"
+paradoc init --dry-run --yes --name "Test Project"
 ```
 
 # See also

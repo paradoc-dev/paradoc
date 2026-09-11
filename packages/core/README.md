@@ -47,27 +47,27 @@ npm install @paradoc/core
 Define forms with parties, fields, and validation rules:
 
 ```typescript
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 
-const leaseAgreement = para
+const leaseAgreement = p
   .form()
   .name("residential-lease-agreement")
   .version("1.0.0")
   .title("Residential Lease Agreement")
   .defaultLayer("markdown")
   .layers({
-    markdown: para
+    markdown: p
       .layer()
       .file()
       .mimeType("text/markdown")
       .path("fixtures/lease-agreement.md"),
   })
   .parties({
-    landlord: para
+    landlord: p
       .party()
       .label("Landlord")
       .signature({ required: true }),
-    tenant: para
+    tenant: p
       .party()
       .label("Tenant")
       .multiple(true)
@@ -91,10 +91,10 @@ const leaseAgreement = para
 Define repeated values with recursive List fields:
 
 ```typescript
-const contacts = para.field
+const contacts = p.field
   .list()
   .label("Contacts")
-  .item(para.field.email().label("Email").required().build())
+  .item(p.field.email().label("Email").required().build())
   .minItems(1)
   .build();
 ```
@@ -102,22 +102,22 @@ const contacts = para.field
 Add file attachments and advanced field types:
 
 ```typescript
-const advancedLease = para
+const advancedLease = p
   .form()
   .name("commercial-lease")
   .version("1.0.0")
   .title("Commercial Lease Agreement")
   .allowAdditionalAnnexes(true)
   .annexes({
-    photoId: para.annex().title("Photo ID").required(true),
-    proofOfIncome: para.annex().title("Proof of Income").required(true),
+    photoId: p.annex().title("Photo ID").required(true),
+    proofOfIncome: p.annex().title("Proof of Income").required(true),
   })
   .parties({
-    landlord: para
+    landlord: p
       .party()
       .label("Landlord")
       .signature({ required: true }),
-    tenant: para
+    tenant: p
       .party()
       .label("Tenant")
       .multiple(true)
@@ -144,7 +144,7 @@ const advancedLease = para
 Define static documents with metadata:
 
 ```typescript
-const leadPaintDisclosure = para
+const leadPaintDisclosure = p
   .document()
   .name("lead-paint-disclosure")
   .version("1.0.0")
@@ -153,7 +153,7 @@ const leadPaintDisclosure = para
   .releaseDate("2025-12-01")
   .metadata({ agency: "EPA/HUD", cfr: "40 CFR 745" })
   .layers({
-    pdf: para
+    pdf: p
       .layer()
       .file()
       .path("fixtures/lead-paint-disclosure.pdf")
@@ -166,7 +166,7 @@ const leadPaintDisclosure = para
 Define workflow checklists with status tracking:
 
 ```typescript
-const leaseChecklist = para
+const leaseChecklist = p
   .checklist()
   .name("lease-application-checklist")
   .version("1.0.0")
@@ -202,21 +202,21 @@ const propertyAddress = {
 };
 const monthlyRent = { type: "money", label: "Monthly Rent", required: true };
 
-const residentialLease = para
+const residentialLease = p
   .form()
   .name("residential-lease")
   .version("1.0.0")
   .fields({ leaseId: { type: "uuid" }, propertyAddress, monthlyRent })
   .build();
 
-const commercialLease = para
+const commercialLease = p
   .form()
   .name("commercial-lease")
   .version("1.0.0")
   .fields({ leaseId: { type: "uuid" }, propertyAddress, monthlyRent })
   .build();
 
-const leaseBundle = para
+const leaseBundle = p
   .bundle()
   .name("residential-lease-bundle")
   .version("1.0.0")

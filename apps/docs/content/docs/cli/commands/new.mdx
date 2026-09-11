@@ -1,7 +1,7 @@
 ---
 title: new
 description: Create new Paradoc artifacts
-ogTitle: para new
+ogTitle: paradoc new
 ogDescription: Scaffold new forms, documents, checklists, and bundles
 ---
 
@@ -10,7 +10,7 @@ Creates new Paradoc artifacts with interactive prompts or command-line options.
 # Usage
 
 ```bash
-para new <type> <name> [options]
+paradoc new <type> <name> [options]
 ```
 
 # Subcommands
@@ -29,7 +29,7 @@ para new <type> <name> [options]
 Create a new form artifact.
 
 ```bash
-para new form <name> [options]
+paradoc new form <name> [options]
 ```
 
 ## Options
@@ -52,13 +52,13 @@ para new form <name> [options]
 Interactive form creation:
 
 ```bash
-para new form my-form
+paradoc new form my-form
 ```
 
 Non-interactive with options:
 
 ```bash
-para new form lease-agreement \
+paradoc new form lease-agreement \
   --yes \
   --title "Lease Agreement" \
   --field "address:address" \
@@ -73,7 +73,7 @@ para new form lease-agreement \
 Create a new document artifact.
 
 ```bash
-para new document <name> [options]
+paradoc new document <name> [options]
 ```
 
 ## Options
@@ -92,7 +92,7 @@ para new document <name> [options]
 Create a new checklist artifact.
 
 ```bash
-para new checklist <name> [options]
+paradoc new checklist <name> [options]
 ```
 
 ## Options
@@ -111,7 +111,7 @@ para new checklist <name> [options]
 Create a new bundle artifact.
 
 ```bash
-para new bundle <name> [options]
+paradoc new bundle <name> [options]
 ```
 
 ## Options

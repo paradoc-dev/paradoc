@@ -62,7 +62,7 @@ const affiant = party()
 
 ```ts
 // Object pattern
-const form = para.form({
+const form = p.form({
   name: 'purchase-agreement',
   parties: {
     buyer: {
@@ -79,7 +79,7 @@ const form = para.form({
 })
 
 // Builder pattern
-const form = para.form()
+const form = p.form()
   .name('purchase-agreement')
   .party('buyer', party()
     .label('Buyer')
@@ -206,7 +206,7 @@ party()
 Allow multiple parties to fill a single role by setting `max > 1`:
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name('joint-account')
   .party('accountHolders', party()
     .label('Account Holders')
@@ -236,7 +236,7 @@ const filled = form.fill({
 Use defs for conditional party requirements:
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name('loan-application')
   .def('needsGuarantor', 'loanAmount > 100000')
   .party('borrower', party()
@@ -307,11 +307,11 @@ const filled = form.fill({
   parties: {
     buyer: {
       id: 'buyer-0',
-      ...para.person().name('John Smith').build()
+      ...p.person().name('John Smith').build()
     },
     seller: {
       id: 'seller-0',
-      ...para.organization()
+      ...p.organization()
         .name('Acme Corp')
         .legalName('Acme Corporation, Inc.')
         .build()

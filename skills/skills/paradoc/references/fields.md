@@ -282,7 +282,7 @@ Use `visible` expressions to keep the form simple:
 
 ## SDK Builders
 
-For TypeScript SDK forms, fields can be defined with object literals (preferred) OR with `para.field.*()` builders. See [sdk.md](./sdk.md) for full SDK patterns.
+For TypeScript SDK forms, fields can be defined with object literals (preferred) OR with `p.field.*()` builders. See [sdk.md](./sdk.md) for full SDK patterns.
 
 ```typescript
 // Object pattern (preferred)
@@ -293,9 +293,9 @@ fields: {
 
 // Builder pattern
 fields: {
-  name: para.field.text().label("Full Name").required().maxLength(100),
-  amount: para.field.money().label("Amount").required().min(0),
-  status: para.field.enum().options([{ value: "a" }, { value: "b" }]).label("Status").required(),
+  name: p.field.text().label("Full Name").required().maxLength(100),
+  amount: p.field.money().label("Amount").required().min(0),
+  status: p.field.enum().options([{ value: "a" }, { value: "b" }]).label("Status").required(),
 }
 ```
 

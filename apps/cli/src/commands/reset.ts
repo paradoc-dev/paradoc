@@ -195,7 +195,7 @@ export function createResetCommand(): Command {
           console.log(kleur.gray(`  Registries: ${Object.keys(existingRegistries).length} preserved`))
         } else {
           console.log()
-          console.log(kleur.gray('Run `para registry add` to configure registries'))
+          console.log(kleur.gray('Run `paradoc registry add` to configure registries'))
         }
       } catch (error) {
         spinner.fail('Reset failed')

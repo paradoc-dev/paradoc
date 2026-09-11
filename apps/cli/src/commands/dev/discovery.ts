@@ -1,7 +1,7 @@
 /**
  * The project's own `@paradoc/react/discovery`, loaded for this project.
  *
- * The conventions live in the package, not here, so `para dev` and `para check`
+ * The conventions live in the package, not here, so `paradoc dev` and `paradoc check`
  * cannot disagree about what a composition is or which artifact renders it. The
  * package is resolved at the project for the same reason `react` is: the answer
  * has to come from the copy the preview compiles against.

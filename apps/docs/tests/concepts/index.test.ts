@@ -2,7 +2,7 @@
  * Tests for code snippets in concepts/index.mdx (Artifacts)
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
 describe('Artifacts Concept', () => {
   // ============================================================================
@@ -11,7 +11,7 @@ describe('Artifacts Concept', () => {
 
   describe('design time vs runtime', () => {
     // Design time: define the form
-    const lease = para
+    const lease = p
       .form()
       .name('lease')
       .fields({
@@ -55,7 +55,7 @@ describe('Artifacts Concept', () => {
       },
     }
 
-    const loaded = para.load(JSON.stringify(json))
+    const loaded = p.load(JSON.stringify(json))
     expect(loaded.kind).toBe('form')
     expect(loaded.name).toBe('residential-lease')
   })

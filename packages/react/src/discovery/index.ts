@@ -2,8 +2,8 @@
  * `@paradoc/react/discovery` — the conventions that connect a composition to
  * its artifact and its sample data.
  *
- * Two commands ask the same three questions of a project. `para dev` asks them
- * of every composition it can find, to build a preview; `para check` asks them
+ * Two commands ask the same three questions of a project. `paradoc dev` asks them
+ * of every composition it can find, to build a preview; `paradoc check` asks them
  * of one, to check it. If each answered for itself the two would drift, and a
  * composition that previews would fail a check for a reason that is about the
  * tools rather than the document. So the answers live here, once, in the

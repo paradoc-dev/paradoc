@@ -19,7 +19,7 @@ stylesheet. Import the installed `styles/paradoc.css` once from the app's
 global stylesheet. Never import CSS from a composition module because Node
 loads that module directly for checks, layer renders, and seals.
 
-`para dev` (see the CLI docs) previews a composition live through this same
+`paradoc dev` (see the CLI docs) previews a composition live through this same
 binding — it resolves the artifact's React layer and calls the component the
 way a render or a check does, not through a separate preview-only path.
 

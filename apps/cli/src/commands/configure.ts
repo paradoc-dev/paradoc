@@ -198,7 +198,7 @@ export function createConfigureCommand(): Command {
 
       if (configuredRegistries.length === 0) {
         console.log(kleur.gray('   No registries configured. Skipping.'))
-        console.log(kleur.gray('   Run ' + kleur.white('para registry add') + ' to add registries.'))
+        console.log(kleur.gray('   Run ' + kleur.white('paradoc registry add') + ' to add registries.'))
       } else {
         const registryChoices = [
           {

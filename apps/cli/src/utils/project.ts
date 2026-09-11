@@ -9,7 +9,7 @@ import type { Artifact } from '@paradoc/core'
 
 /**
  * Find the root of the project by looking for its `.paradoc` directory and
- * `paradoc.json` together — both are what `para init` writes, and both are
+ * `paradoc.json` together — both are what `paradoc init` writes, and both are
  * required: a `.paradoc` directory alone is not proof of a project, because
  * the CLI also writes one under the user's home directory for its own global
  * config (cache, saved preferences), with no `paradoc.json` beside it. Without
@@ -59,7 +59,7 @@ export async function findRepoRoot(startDir: string = process.cwd()): Promise<st
 export async function ensureRepo(): Promise<string> {
   const root = await findRepoRoot()
   if (!root) {
-    throw new Error("Not an Paradoc repository (no .paradoc directory found). Run 'para init' first.")
+    throw new Error("Not an Paradoc repository (no .paradoc directory found). Run 'paradoc init' first.")
   }
   return root
 }

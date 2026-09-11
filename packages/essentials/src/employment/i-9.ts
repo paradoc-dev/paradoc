@@ -1,7 +1,7 @@
 // AUTO-GENERATED from artifacts/employment/i-9/design/ — do not edit by hand.
 // Regenerate via: node artifacts/scripts/sync-essentials.mjs --only employment/i-9
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
@@ -1704,7 +1704,7 @@ const resolver = createMemoryResolver({ contents });
  *
  * Used by U.S. employers to verify the identity and employment authorization of every new hire. Section 1 captures the employee's self-attestation of citizenship or immigration status; Section 2 captures the employer's certification that they physically examined acceptable List A or List B+C documents.
  */
-export const i9 = Object.assign(para.form(schema, { resolver }), {
+export const i9 = Object.assign(p.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/employment/i-9/. */
   spec: schema,
 });

@@ -378,12 +378,12 @@ layers: {
 
 // Builder pattern
 .layers({
-  markdown: para.layer().file().path("templates/lease.md").mimeType("text/markdown"),
-  pdf: para.layer().file().path("templates/lease.pdf").mimeType("application/pdf"),
+  markdown: p.layer().file().path("templates/lease.md").mimeType("text/markdown"),
+  pdf: p.layer().file().path("templates/lease.pdf").mimeType("application/pdf"),
 })
 
 // Builder method chain
-para.layer()
+p.layer()
   .file()
   .path("templates/form.pdf")
   .mimeType("application/pdf")

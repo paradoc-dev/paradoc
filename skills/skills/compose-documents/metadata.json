@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "author": "paradoc",
   "date": "2026-09-06",
-  "abstract": "Compose a Paradoc document as a React component tree with @paradoc/react: install the document components from the shadcn-compatible registry at docs.paradoc.dev, bind a composition to a form artifact through its React layer, keep the composition inside the safe class subset the default PDF engine has verified, and check it with para check before rendering.",
+  "abstract": "Compose a Paradoc document as a React component tree with @paradoc/react: install the document components from the shadcn-compatible registry at docs.paradoc.dev, bind a composition to a form artifact through its React layer, keep the composition inside the safe class subset the default PDF engine has verified, and check it with paradoc check before rendering.",
   "references": [
     "https://docs.paradoc.dev/components",
     "https://docs.paradoc.dev/r/registry.json",

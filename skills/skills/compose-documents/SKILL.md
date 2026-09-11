@@ -4,8 +4,8 @@ description: >
   Compose a Paradoc document as a React component tree with @paradoc/react.
   Activate when writing or editing a .tsx/.jsx composition bound to a Paradoc
   form artifact, when installing document components from the @paradoc
-  registry (`para add`, `npx shadcn@4 add @paradoc/<name>`), or when running
-  `para check` against a composition. Covers the component vocabulary and
+  registry (`paradoc add`, `npx shadcn@4 add @paradoc/<name>`), or when running
+  `paradoc check` against a composition. Covers the component vocabulary and
   props, the pagination rule (keep-together units, table header repeat), the
   safe Tailwind class subset the default PDF engine honours, tenant branding
   tokens, the React layer that binds a composition to its artifact, and the
@@ -15,7 +15,7 @@ metadata:
   version: "0.1.0"
   tags: paradoc, react, composition, pagination, registry, pdf
   license: MIT
-allowed-tools: "Bash(npx:*) Bash(para:*) Read Write Edit Glob Grep"
+allowed-tools: "Bash(npx:*) Bash(paradoc:*) Read Write Edit Glob Grep"
 ---
 
 # Compose a Paradoc document in React
@@ -41,7 +41,7 @@ for that; otherwise, read the artifact's own schema directly.
 | [references/pagination.md](./references/pagination.md) | The keep-together rule, how the table header repeats, and the two layout constraints (no `<table>`, one paper declared once). |
 | [references/safe-classes.md](./references/safe-classes.md) | Which Tailwind classes the default PDF engine renders, how an unsupported one fails, and branding tokens (font, accent, page size, margin, logo). |
 | [references/artifact-binding.md](./references/artifact-binding.md) | Declaring a React layer on a form artifact, binding the module at render time, and the seal (a `Signature` block emits its own marker). |
-| [references/cli.md](./references/cli.md) | `para check` (verify a composition without rendering) and `para add` / `npx shadcn@4 add @paradoc/<name>` (install a component). |
+| [references/cli.md](./references/cli.md) | `paradoc check` (verify a composition without rendering) and `paradoc add` / `npx shadcn@4 add @paradoc/<name>` (install a component). |
 
 ## The shape of a composition
 
@@ -56,8 +56,8 @@ import { Table } from "@/components/paradoc/table";
 import { Totals } from "@/components/paradoc/totals";
 import type { Form } from "@paradoc/types";
 
-// changeOrderForm is a parsed, validated `Form` (para.form(spec).toJSON() or
-// para.load(text).toJSON() from @paradoc/core) — never a raw JSON import.
+// changeOrderForm is a parsed, validated `Form` (p.form(spec).toJSON() or
+// p.load(text).toJSON() from @paradoc/core) — never a raw JSON import.
 // See artifact-binding.md#loading-the-artifact.
 import { changeOrderForm } from "./change-order";
 
@@ -112,16 +112,16 @@ import with no corresponding prop. `data` is a `DocumentData`:
 ## Non-negotiable rules
 
 - **Never hand `Document`/`Bundle` a raw JSON import as `artifact`.** It must
-  be a parsed, validated `Form` — `para.form(spec).toJSON()` or
-  `para.load(text).toJSON()` from `@paradoc/core`. See
+  be a parsed, validated `Form` — `p.form(spec).toJSON()` or
+  `p.load(text).toJSON()` from `@paradoc/core`. See
   [artifact-binding.md](./references/artifact-binding.md#loading-the-artifact).
 - **Never import CSS inside a composition module.**
   A composition is imported by Node with no CSS loader whenever it is bound
-  directly — `para check`, a layer render, a seal — and a stylesheet import
+  directly — `paradoc check`, a layer render, a seal — and a stylesheet import
   there fails with "Unknown file extension \".css\"". The stylesheet is an
   app-level concern: import it once where the app's own bundler (Vite,
   Next.js, etc.) already handles CSS, never from inside a `.tsx` a layer or
-  `para check` might import through Node.
+  `paradoc check` might import through Node.
 - **Every value comes from the artifact.** `Field`, `Table`, `Totals`, and
   `Signature` name a path, a def, or a party role — never a literal value or a
   computed string. A path the artifact does not declare is a fault, not a
@@ -136,10 +136,10 @@ import with no corresponding prop. `data` is a `DocumentData`:
   or with `div`s, never real table markup.
 - **Only the verified Tailwind subset renders to PDF.** A class outside
   [references/safe-classes.md](./references/safe-classes.md) fails the render
-  (and `para check`) naming every offender. It is an allow-list, not a
+  (and `paradoc check`) naming every offender. It is an allow-list, not a
   deny-list: when unsure, check the reference before using a utility class.
   Arbitrary values (`text-[#abc123]`, `p-[3px]`) are never in it.
-  `para check --adapter chromium` skips this check because a real browser
+  `paradoc check --adapter chromium` skips this check because a real browser
   accepts whatever CSS the tree produces — but the default adapter is
   `takumi`, and that is what most renders and most checks use.
   `[data-keep-id]` elements need no page-break class: `KeepTogether` sets that
@@ -163,7 +163,7 @@ import with no corresponding prop. `data` is a `DocumentData`:
 1. Read the artifact (or the form spec) to learn its fields, defs, parties,
    and the React layer's declared path. `reactLayersOf(artifact)` (from
    `@paradoc/core`) lists the layers that need a component bound.
-2. Install the components you need: `para add field table signature` (or
+2. Install the components you need: `paradoc add field table signature` (or
    `npx shadcn@4 add @paradoc/<name>`). See
    [cli.md](./references/cli.md#installing-components) — installing `field`
    also brings `keep-together` along, since `field` depends on it. If the
@@ -173,7 +173,7 @@ import with no corresponding prop. `data` is a `DocumentData`:
 3. Write the `.tsx` file at the path the artifact's layer names, exporting the
    composition as the default export. Compose only from the vocabulary in
    [components.md](./references/components.md).
-4. Run `para check <the-composition-or-artifact>`. Fix every unresolved path
+4. Run `paradoc check <the-composition-or-artifact>`. Fix every unresolved path
    and unsupported class it names. See
    [cli.md](./references/cli.md#checking-a-composition).
 5. If `@paradoc/react-pdf` is available, render it and inspect the PDF — this
@@ -184,8 +184,8 @@ import with no corresponding prop. `data` is a `DocumentData`:
 | Symptom | Cause | Fix |
 |---|---|---|
 | `UnknownFieldPathError` | `Field`/`Table`/`Totals` names a path or def the artifact does not declare. | Check the artifact's `fields`/`defs` keys; fix the typo rather than hardcoding a value. |
-| `para check` reports an unsupported class | A Tailwind class outside the verified subset, or an arbitrary value like `text-[13px]`. | Replace with the nearest class in [safe-classes.md](./references/safe-classes.md), or restructure with spacing/sizing utilities that are on the list. |
+| `paradoc check` reports an unsupported class | A Tailwind class outside the verified subset, or an arbitrary value like `text-[13px]`. | Replace with the nearest class in [safe-classes.md](./references/safe-classes.md), or restructure with spacing/sizing utilities that are on the list. |
 | `RootTokenMismatchError` / `NestedPaperTokenError` | `pageSize`, `marginPx`, or `fontFamily` set on a `Document` nested inside a `Bundle`, or a composition setting tokens on itself instead of forwarding a `tokens` prop. | Set paper tokens once, on the outermost `Bundle` or `Document`; a nested document may still set `accentColor` and `logo`. |
 | A page silently loses the organization mark or a branded font | Font family or logo not registered, or the composition rendered without the `tokens` the caller resolved. | Only use a font family listed in [safe-classes.md](./references/safe-classes.md#branding-tokens); pass `tokens` through rather than hiding them inside the composition. |
 | `AmbiguousSigningMarkError` | Two `Signature` blocks for the same party and the same `type` (both `signature`, say). | One block per party per field type; a party that signs and initials is two blocks with different `type`. |
-| Composition compiles but `para check` can't find its artifact | The artifact does not declare a React layer whose `path` resolves to this file. | Add or fix the `layers.<key>` entry: `kind: "file"`, `mimeType: "text/tsx"`, `path` relative to the artifact file. |
+| Composition compiles but `paradoc check` can't find its artifact | The artifact does not declare a React layer whose `path` resolves to this file. | Add or fix the `layers.<key>` entry: `kind: "file"`, `mimeType: "text/tsx"`, `path` relative to the artifact file. |

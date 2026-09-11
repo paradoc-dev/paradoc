@@ -164,14 +164,14 @@ export function createValidateCommand(): Command {
                 check.checksumMatch = matches
                 if (!matches) {
                   check.issues.push({
-                    message: `Checksum mismatch. Run \`para fix\` to update.`,
+                    message: `Checksum mismatch. Run \`paradoc fix\` to update.`,
                     path: ['layers', layerKey, 'checksum'],
                     severity: 'error',
                   })
                 }
               } else if (fileExists && !layer.checksum) {
                 check.issues.push({
-                  message: `No checksum set. Run \`para fix\` to add one.`,
+                  message: `No checksum set. Run \`paradoc fix\` to add one.`,
                   path: ['layers', layerKey, 'checksum'],
                   severity: 'warning',
                 })
@@ -220,14 +220,14 @@ export function createValidateCommand(): Command {
               check.checksumMatch = matches
               if (!matches) {
                 check.issues.push({
-                  message: `Checksum mismatch. Run \`para fix\` to update.`,
+                  message: `Checksum mismatch. Run \`paradoc fix\` to update.`,
                   path: [field, 'checksum'],
                   severity: 'error',
                 })
               }
             } else {
               check.issues.push({
-                message: `No checksum set. Run \`para fix\` to add one.`,
+                message: `No checksum set. Run \`paradoc fix\` to add one.`,
                 path: [field, 'checksum'],
                 severity: 'warning',
               })

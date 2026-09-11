@@ -96,7 +96,7 @@ export interface DocumentInstance<D extends Document> extends ArtifactMethods<D>
 	 * Render document content directly.
 	 *
 	 * The resolver for a file-backed layer is bound at construction —
-	 * `para.document(definition, { resolver })` — not passed here.
+	 * `p.document(definition, { resolver })` — not passed here.
 	 *
 	 * @param options - Layer override and renderer registry
 	 */

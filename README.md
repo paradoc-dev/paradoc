@@ -41,7 +41,7 @@ npm install @paradoc/sdk @paradoc/resolvers
 Define forms with parties, fields, and output layers:
 
 ```typescript
-import { para } from "@paradoc/sdk";
+import { p } from "@paradoc/sdk";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 
 // A file-backed layer's bytes come from a resolver, bound once when the form
@@ -49,7 +49,7 @@ import { createFsResolver } from "@paradoc/resolvers/fs";
 // carries the same resolver.
 const resolver = createFsResolver({ root: process.cwd() });
 
-const leaseAgreement = para
+const leaseAgreement = p
   .form()
   .name("residential-lease-agreement")
   .version("1.0.0")
@@ -68,11 +68,11 @@ const leaseAgreement = para
     },
   })
   .parties({
-    landlord: para
+    landlord: p
       .party()
       .label("Landlord")
       .signature({ required: true }),
-    tenant: para
+    tenant: p
       .party()
       .label("Tenant")
       .multiple(true)
@@ -120,7 +120,7 @@ const html = await filledLease.render({
 Add file attachments and advanced field types:
 
 ```typescript
-const advancedLease = para
+const advancedLease = p
   .form()
   .name("commercial-lease")
   .version("1.0.0")
@@ -135,15 +135,15 @@ const advancedLease = para
   })
   .allowAdditionalAnnexes(true)
   .annexes({
-    photoId: para.annex().title("Photo ID").required(true),
-    proofOfIncome: para.annex().title("Proof of Income").required(true),
+    photoId: p.annex().title("Photo ID").required(true),
+    proofOfIncome: p.annex().title("Proof of Income").required(true),
   })
   .parties({
-    landlord: para
+    landlord: p
       .party()
       .label("Landlord")
       .signature({ required: true }),
-    tenant: para
+    tenant: p
       .party()
       .label("Tenant")
       .multiple(true)
@@ -170,7 +170,7 @@ const advancedLease = para
 Define static documents and workflow checklists:
 
 ```typescript
-const leadPaintDisclosure = para
+const leadPaintDisclosure = p
   .document()
   .name("lead-paint-disclosure")
   .version("1.0.0")
@@ -179,7 +179,7 @@ const leadPaintDisclosure = para
   .releaseDate("2025-12-01")
   .metadata({ agency: "EPA/HUD", cfr: "40 CFR 745" })
   .layers({
-    pdf: para
+    pdf: p
       .layer()
       .file()
       .path("fixtures/lead-paint-disclosure.pdf")
@@ -188,7 +188,7 @@ const leadPaintDisclosure = para
   .defaultLayer("pdf")
   .build();
 
-const leaseChecklist = para
+const leaseChecklist = p
   .checklist()
   .name("lease-application-checklist")
   .version("1.0.0")
@@ -217,7 +217,7 @@ const leaseChecklist = para
 Combine forms, documents, and checklists into a bundle:
 
 ```typescript
-const leaseBundle = para
+const leaseBundle = p
   .bundle()
   .name("residential-lease-bundle")
   .version("1.0.0")

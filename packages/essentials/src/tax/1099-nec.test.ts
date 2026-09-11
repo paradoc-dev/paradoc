@@ -203,7 +203,7 @@ const regressionVectors: Array<{
 ];
 
 describe("1099-nec", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(f1099NEC.isValid()).toBe(true);
   });
 

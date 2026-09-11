@@ -15,7 +15,7 @@ checkForUpdate()
 const program = new Command()
 
 program
-	.name('para')
+	.name('paradoc')
 	.description(brandColorBold('Paradoc CLI') + kleur.gray(' — Registry-first artifact manager'))
 	.version(VERSION, '-v, --version', 'Display version number')
 	.helpOption('-h, --help', 'Display help for command')
@@ -60,7 +60,7 @@ program.on('command:*', (operands) => {
 	console.log()
 	console.log(
 		kleur.gray(
-			`Run ${kleur.white('para -h')} to see a list of available commands.`,
+			`Run ${kleur.white('paradoc -h')} to see a list of available commands.`,
 		),
 	)
 	process.exit(1)

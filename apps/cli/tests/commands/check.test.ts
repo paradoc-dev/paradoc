@@ -17,7 +17,7 @@ interface CliResult {
 }
 
 /**
- * Spawns `para` under `tsx` (the same way the CLI's own dev script and its
+ * Spawns `paradoc` under `tsx` (the same way the CLI's own dev script and its
  * other command tests do) and waits for the process to fully close before
  * resolving, so `stdout`/`stderr` are read to completion rather than
  * snapshotted mid-flight. Encoding is set explicitly on both streams so a
@@ -317,8 +317,8 @@ describe('CLI check command (built binary)', () => {
       // config would make the transform depend on the caller's cwd instead
       // of the composition's location, and the two runs below would answer
       // differently depending only on where the process happened to start.
-      const isolatedDir = await fs.mkdtemp(path.join(tmpdir(), 'para-check-no-tsconfig-'))
-      const misleadingCwd = await fs.mkdtemp(path.join(tmpdir(), 'para-check-misleading-cwd-'))
+      const isolatedDir = await fs.mkdtemp(path.join(tmpdir(), 'paradoc-check-no-tsconfig-'))
+      const misleadingCwd = await fs.mkdtemp(path.join(tmpdir(), 'paradoc-check-misleading-cwd-'))
       try {
         await fs.copyFile(
           path.join(fixturesDir, 'clean-artifact.json'),

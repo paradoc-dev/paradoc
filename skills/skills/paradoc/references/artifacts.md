@@ -221,21 +221,21 @@ Each item:
 
 ## SDK shapes
 
-For TypeScript SDK builders (`para.form()`, `para.document()`, `para.bundle()`, `para.checklist()`) and runtime lifecycle (`fill`, `prepareForSigning`, `finalize`, `assemble`), see [sdk.md](./sdk.md).
+For TypeScript SDK builders (`p.form()`, `p.document()`, `p.bundle()`, `p.checklist()`) and runtime lifecycle (`fill`, `prepareForSigning`, `finalize`, `assemble`), see [sdk.md](./sdk.md).
 
 Quick reference for SDK creation patterns:
 
 ```typescript
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 
 // Form
-const form = para.form({ name: "lease", version: "1.0.0", fields: { /* ... */ } });
+const form = p.form({ name: "lease", version: "1.0.0", fields: { /* ... */ } });
 
 // Document
-const doc = para.document({ name: "policy", version: "1.0.0", layers: { /* ... */ } });
+const doc = p.document({ name: "policy", version: "1.0.0", layers: { /* ... */ } });
 
 // Bundle
-const bundle = para.bundle({
+const bundle = p.bundle({
   name: "package",
   contents: [
     { type: "inline", key: "lease", artifact: form.toJSON({ includeSchema: false }) },
@@ -243,7 +243,7 @@ const bundle = para.bundle({
 });
 
 // Checklist
-const checklist = para.checklist({
+const checklist = p.checklist({
   name: "closing",
   items: [{ id: "task1", title: "First Task", status: { kind: "boolean" } }],
 });

@@ -8,8 +8,8 @@ Skills are packaged instructions that extend AI coding agents with deep knowledg
 
 | Skill | Trigger | What it covers |
 |---|---|---|
-| [paradoc](skills/paradoc/) | Any Paradoc work | All surfaces (TypeScript SDK, `para` CLI, raw JSON/YAML, `mcp.paradoc.dev`) and end-to-end workflows (create new form from requirements, convert PDF to artifact) |
-| [compose-documents](skills/compose-documents/) | Authoring or checking a `.tsx`/`.jsx` composition with `@paradoc/react` | The component vocabulary, the pagination rule, the safe Tailwind class subset, tenant branding tokens, binding a composition to a form artifact's React layer, and `para check`/`para add` |
+| [paradoc](skills/paradoc/) | Any Paradoc work | All surfaces (TypeScript SDK, `paradoc` CLI, raw JSON/YAML, `mcp.paradoc.dev`) and end-to-end workflows (create new form from requirements, convert PDF to artifact) |
+| [compose-documents](skills/compose-documents/) | Authoring or checking a `.tsx`/`.jsx` composition with `@paradoc/react` | The component vocabulary, the pagination rule, the safe Tailwind class subset, tenant branding tokens, binding a composition to a form artifact's React layer, and `paradoc check`/`paradoc add` |
 
 `paradoc` is a single skill with topic-organized references. Surface refs (`sdk`, `cli`, `schemas`, `mcp`) describe how to express things on each surface; topic refs (`fields`, `parties`, `annexes`, `logic`, `layers`, `rendering`, `formatting`, `instructions`, `pdf-bindings`, `artifacts`) describe the underlying concepts and are loaded as needed; workflow refs (`workflow-create-form`, `workflow-convert-pdf`) orchestrate stages by linking to topic refs.
 
@@ -46,7 +46,7 @@ skills/
     references/
       # Surface refs — how to express things on each surface
       sdk.md          # TypeScript SDK
-      cli.md          # para CLI
+      cli.md          # paradoc CLI
       schemas.md      # Raw JSON/YAML
       mcp.md          # mcp.paradoc.dev MCP service
       # Topic refs — canonical concept knowledge
@@ -71,7 +71,7 @@ skills/
       pagination.md        # The keep-together rule
       safe-classes.md      # The verified Tailwind subset and branding tokens
       artifact-binding.md  # The React layer, binding, and the seal
-      cli.md                # para check / para add
+      cli.md                # paradoc check / paradoc add
 ```
 
 ## Contributing

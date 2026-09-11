@@ -61,7 +61,7 @@ async function executeCliCommand(
   })
 }
 
-describe('para add', () => {
+describe('paradoc add', () => {
   let tempDir: string
 
   beforeEach(async () => {
@@ -186,7 +186,7 @@ describe('para add', () => {
   })
 })
 
-describe('para add (registry integration)', () => {
+describe('paradoc add (registry integration)', () => {
   const TEST_REGISTRY_URL = 'http://localhost:4567'
   let tempDir: string
 
@@ -262,7 +262,7 @@ describe('para add (registry integration)', () => {
   }, 30000)
 })
 
-describe('para list', () => {
+describe('paradoc list', () => {
   it('shows help for list command', async () => {
     const result = await executeCliCommand(['list', '--help'])
     expect(result.stdout).toContain('List installed artifacts')
@@ -281,7 +281,7 @@ describe('para list', () => {
   })
 })
 
-describe('para show', () => {
+describe('paradoc show', () => {
   it('shows help for show command', async () => {
     const result = await executeCliCommand(['show', '--help'])
     expect(result.stdout).toContain('Show details about an artifact')
@@ -289,7 +289,7 @@ describe('para show', () => {
   })
 })
 
-describe('para search', () => {
+describe('paradoc search', () => {
   it('shows help for search command', async () => {
     const result = await executeCliCommand(['search', '--help'])
     expect(result.stdout).toContain('Search for artifacts in a registry')
@@ -300,7 +300,7 @@ describe('para search', () => {
   })
 })
 
-describe('para registry', () => {
+describe('paradoc registry', () => {
   it('shows help for registry command', async () => {
     const result = await executeCliCommand(['registry', '--help'])
     expect(result.stdout).toContain('Manage registry configurations')
@@ -324,11 +324,11 @@ describe('para registry', () => {
   })
 })
 
-describe('para add (variadic document components)', () => {
+describe('paradoc add (variadic document components)', () => {
   let project: string
 
   beforeEach(async () => {
-    project = await fs.mkdtemp(join(tmpdir(), 'para-add-variadic-'))
+    project = await fs.mkdtemp(join(tmpdir(), 'paradoc-add-variadic-'))
     await fs.writeFile(
       join(project, 'components.json'),
       `${JSON.stringify({ style: 'new-york' }, null, 2)}\n`,
@@ -363,7 +363,7 @@ describe('para add (variadic document components)', () => {
     // flakiness — every requested name is actually attempted (not just the
     // first, and not stopped after the first failure), and each gets its
     // own reported outcome rather than one exit code standing in for both.
-    const bareProject = await fs.mkdtemp(join(tmpdir(), 'para-add-no-config-'))
+    const bareProject = await fs.mkdtemp(join(tmpdir(), 'paradoc-add-no-config-'))
     try {
       const result = await executeCliCommand(['add', 'field', 'table'], { cwd: bareProject })
 

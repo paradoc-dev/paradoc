@@ -217,7 +217,7 @@ const regressionVectors: Array<{
 ];
 
 describe("1099-misc", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(f1099MISC.isValid()).toBe(true);
   });
 

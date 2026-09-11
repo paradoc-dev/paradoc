@@ -174,7 +174,7 @@ const regressionVectors: Array<{
 ];
 
 describe("4506-t", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(f4506T.isValid()).toBe(true);
   });
 

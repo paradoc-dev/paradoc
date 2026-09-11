@@ -1,7 +1,7 @@
 ---
 title: show
 description: Display artifact content
-ogTitle: para show
+ogTitle: paradoc show
 ogDescription: View artifact metadata, fields, and structure
 ---
 
@@ -10,7 +10,7 @@ Shows details about an artifact file.
 # Usage
 
 ```bash
-para show <artifact> [options]
+paradoc show <artifact> [options]
 ```
 
 # Arguments
@@ -39,19 +39,19 @@ The `--deps` flag lists all file dependencies, including file-backed layer paths
 Show artifact details:
 
 ```bash
-para show my-form.yaml
+paradoc show my-form.yaml
 ```
 
 Show raw content:
 
 ```bash
-para show my-form.yaml --raw
+paradoc show my-form.yaml --raw
 ```
 
 Show with file dependencies:
 
 ```bash
-para show my-form.yaml --deps
+paradoc show my-form.yaml --deps
 ```
 
 # Output

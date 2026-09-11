@@ -69,7 +69,7 @@ export {
 	annexBuilder,
 } from './builders'
 
-// Import builders for para namespace construction
+// Import builders for p namespace construction
 import {
 	field,
 	party,
@@ -202,16 +202,16 @@ export type {
 	BundleBuilderInterface,
 } from './bundle'
 
-// Import artifacts for para namespace
+// Import artifacts for p namespace
 import { form } from './form'
 import { document } from './document'
 import { checklist } from './checklist'
 import { bundle } from './bundle'
 
-// Import load from serialization for para namespace
+// Import load from serialization for p namespace
 import { load, safeLoad } from '../serialization'
 
-// Import primitives for para namespace top-level
+// Import primitives for p namespace top-level
 import {
 	address,
 	attachment,
@@ -233,38 +233,38 @@ import {
 } from '../primitives'
 
 /**
- * The `para` namespace provides a unified API for building Paradoc artifacts.
+ * The `p` namespace provides a unified API for building Paradoc artifacts.
  *
  * This is the recommended entry point. It exposes:
- * - Artifact builders: `para.form()`, `para.document()`, `para.checklist()`, `para.bundle()`
- * - Field builders: `para.field.*` (for composing fields in forms)
- * - Primitive parsers: `para.money(...)`, `para.percentage(...)`, etc. (for parsing/validating raw values)
- * - Loaders: `para.load()`, `para.safeLoad()` (for loading artifacts from JSON/YAML)
+ * - Artifact builders: `p.form()`, `p.document()`, `p.checklist()`, `p.bundle()`
+ * - Field builders: `p.field.*` (for composing fields in forms)
+ * - Primitive parsers: `p.money(...)`, `p.percentage(...)`, etc. (for parsing/validating raw values)
+ * - Loaders: `p.load()`, `p.safeLoad()` (for loading artifacts from JSON/YAML)
  *
  * @example Build a form
  * ```ts
- * import { para } from '@paradoc/core';
+ * import { p } from '@paradoc/core';
  *
- * const leaseForm = para.form()
+ * const leaseForm = p.form()
  *   .name('lease-agreement')
  *   .parties({
- *     landlord: para.party().label('Landlord').signature({ required: true }),
- *     tenant: para.party().label('Tenant').signature({ required: true }),
+ *     landlord: p.party().label('Landlord').signature({ required: true }),
+ *     tenant: p.party().label('Tenant').signature({ required: true }),
  *   })
  *   .fields({
- *     address: para.field.address().label('Property Address').required(),
- *     monthlyRent: para.field.money().label('Monthly Rent').required(),
+ *     address: p.field.address().label('Property Address').required(),
+ *     monthlyRent: p.field.money().label('Monthly Rent').required(),
  *   })
  *   .build();
  * ```
  *
  * @example Parse primitives directly
  * ```ts
- * const pct = para.percentage(75.5);
- * const amount = para.money.parse(userInput);
+ * const pct = p.percentage(75.5);
+ * const amount = p.money.parse(userInput);
  * ```
  */
-export const para = {
+export const p = {
 	// Artifacts
 	form,
 	document,
@@ -332,4 +332,4 @@ export const para = {
 	time,
 } as const
 
-export type Paradoc = typeof para
+export type Paradoc = typeof p

@@ -11,13 +11,13 @@ Build and validate identification document information. The Identification primi
 
 ```ts
 // Object pattern
-const id = para.identification({
+const id = p.identification({
   type: 'passport',
   number: 'AB1234567'
 })
 
 // Builder pattern
-const id = para.identification()
+const id = p.identification()
   .type('passport')
   .number('AB1234567')
   .issuer('US')
@@ -26,7 +26,7 @@ const id = para.identification()
   .build()
 
 // Copy and modify
-const renewed = para.identification()
+const renewed = p.identification()
   .from(id)
   .issueDate('2024-01-15')
   .expiryDate('2034-01-14')
@@ -37,10 +37,10 @@ const renewed = para.identification()
 
 ```ts
 // Parse unknown input (throws on error)
-const id = para.identification.parse(jsonData)
+const id = p.identification.parse(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.identification.safeParse(jsonData)
+const result = p.identification.safeParse(jsonData)
 if (result.success) {
   console.log(`${result.data.type}: ${result.data.number}`)
 } else {
@@ -51,7 +51,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'kyc',
   fields: {
     primaryId: { type: 'identification', label: 'Primary ID' },
@@ -61,7 +61,7 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    primaryId: para.identification()
+    primaryId: p.identification()
       .type('drivers_license')
       .number('D1234567')
       .issuer('CA')
@@ -76,13 +76,13 @@ const filled = form.fill({
 ## Object Pattern
 
 ```ts
-para.identification(input: Identification): Identification
+p.identification(input: Identification): Identification
 ```
 
 Pass an Identification object for validation. Returns the validated Identification or throws on error.
 
 ```ts
-const id = para.identification({
+const id = p.identification({
   type: 'national_id',
   number: '123-45-6789'
 })
@@ -93,7 +93,7 @@ const id = para.identification({
 Chain methods to build an Identification value incrementally:
 
 <MethodChain
-  starter="para.identification()"
+  starter="p.identification()"
   methods={[
     { name: 'type', params: 'val: string', description: 'Set document type (passport, drivers_license, etc.)' },
     { name: 'number', params: 'val: string', description: 'Set document number' },
@@ -145,8 +145,8 @@ The Identification primitive validates:
 
 ```ts
 // Valid
-para.identification({ type: 'passport', number: 'AB123456' })
-para.identification({
+p.identification({ type: 'passport', number: 'AB123456' })
+p.identification({
   type: 'drivers_license',
   number: 'D9876543',
   issuer: 'CA',
@@ -154,10 +154,10 @@ para.identification({
 })
 
 // Invalid - throws Error
-para.identification({ type: 'passport' })
+p.identification({ type: 'passport' })
 // Error: Invalid Identification: number is required
 
-para.identification({ type: '', number: 'AB123456' })
+p.identification({ type: '', number: 'AB123456' })
 // Error: Invalid Identification: type cannot be empty
 ```
 

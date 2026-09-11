@@ -80,7 +80,7 @@ File-backed content reference. Use when the content is large or maintained separ
 The `checksum` field is optional in the schema but recommended for file-backed content references. When present, the CLI verifies integrity during [`validate`](/cli/commands/validate) and [`add`](/cli/commands/add).
 
 - Format: `sha256:` followed by 64 lowercase hex characters
-- Use [`para fix`](/cli/commands/fix) to compute or update checksums automatically
+- Use [`paradoc fix`](/cli/commands/fix) to compute or update checksums automatically
 - The CLI refuses to download file-backed content references from a registry without a checksum
 
 # Examples

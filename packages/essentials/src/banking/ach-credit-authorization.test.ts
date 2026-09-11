@@ -487,7 +487,7 @@ const regressionVectors: Array<{
 ];
 
 describe("ach-credit-authorization", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(achCreditAuthorization.isValid()).toBe(true);
   });
 

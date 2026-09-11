@@ -11,19 +11,19 @@ Build and validate geographic bounding boxes. The Bbox primitive defines a recta
 
 ```ts
 // Object pattern
-const area = para.bbox({
+const area = p.bbox({
   southWest: { lat: 40.7128, lon: -74.0060 },
   northEast: { lat: 40.7580, lon: -73.9855 }
 })
 
 // Builder pattern
-const area = para.bbox()
+const area = p.bbox()
   .southWest({ lat: 40.7128, lon: -74.0060 })
   .northEast({ lat: 40.7580, lon: -73.9855 })
   .build()
 
 // Using bounds shorthand
-const area = para.bbox()
+const area = p.bbox()
   .bounds(
     { lat: 40.7128, lon: -74.0060 },
     { lat: 40.7580, lon: -73.9855 }
@@ -31,7 +31,7 @@ const area = para.bbox()
   .build()
 
 // Copy and modify
-const expanded = para.bbox()
+const expanded = p.bbox()
   .from(area)
   .northEast({ lat: 40.8000, lon: -73.9500 })
   .build()
@@ -41,10 +41,10 @@ const expanded = para.bbox()
 
 ```ts
 // Parse unknown input (throws on error)
-const area = para.bbox.parse(jsonData)
+const area = p.bbox.parse(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.bbox.safeParse(jsonData)
+const result = p.bbox.safeParse(jsonData)
 if (result.success) {
   console.log(`SW: ${result.data.southWest.lat}, ${result.data.southWest.lon}`)
 } else {
@@ -55,7 +55,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'property',
   fields: {
     propertyBounds: { type: 'bbox', label: 'Property Boundaries' }
@@ -64,7 +64,7 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    propertyBounds: para.bbox()
+    propertyBounds: p.bbox()
       .bounds(
         { lat: 34.0522, lon: -118.2437 },
         { lat: 34.0622, lon: -118.2337 }
@@ -79,13 +79,13 @@ const filled = form.fill({
 ## Object Pattern
 
 ```ts
-para.bbox(input: Bbox): Bbox
+p.bbox(input: Bbox): Bbox
 ```
 
 Pass a Bbox object for validation. Returns the validated Bbox or throws on error.
 
 ```ts
-const area = para.bbox({
+const area = p.bbox({
   southWest: { lat: 51.5074, lon: -0.1278 },
   northEast: { lat: 51.5174, lon: -0.1178 }
 })
@@ -96,7 +96,7 @@ const area = para.bbox({
 Chain methods to build a Bbox value incrementally:
 
 <MethodChain
-  starter="para.bbox()"
+  starter="p.bbox()"
   methods={[
     { name: 'southWest', params: 'value: Coordinate', description: 'Set southwest corner' },
     { name: 'northEast', params: 'value: Coordinate', description: 'Set northeast corner' },
@@ -131,13 +131,13 @@ The Bbox primitive validates:
 
 ```ts
 // Valid
-para.bbox({
+p.bbox({
   southWest: { lat: 40.7128, lon: -74.0060 },
   northEast: { lat: 40.7580, lon: -73.9855 }
 })
 
 // Invalid - throws Error
-para.bbox({
+p.bbox({
   southWest: { lat: 91, lon: -74 },  // Invalid latitude
   northEast: { lat: 40, lon: -73 }
 })

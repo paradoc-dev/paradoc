@@ -18,7 +18,7 @@ export interface JsonToTsModuleOptions {
 
 	/**
 	 * The export name for the artifact instance
-	 * @example 'w9' will generate `export const w9 = para.form(...)`
+	 * @example 'w9' will generate `export const w9 = p.form(...)`
 	 */
 	exportName: string
 
@@ -163,9 +163,9 @@ export function jsonToDts(value: unknown, moduleName?: string): string {
  * })
  * // Generates:
  * // import schema from './w9.json';
- * // import { para } from '@paradoc/sdk';
+ * // import { p } from '@paradoc/sdk';
  * //
- * // export const w9 = para.form(schema);
+ * // export const w9 = p.form(schema);
  * // export type W9Form = typeof w9;
  * // export type W9Payload = Parameters<typeof w9.fill>[0];
  * ```
@@ -200,14 +200,14 @@ export function jsonToTsModule(value: unknown, options: JsonToTsModuleOptions): 
 		lines.push(`const schema = ${indentedJson} as const;`)
 	}
 
-	lines.push(`import { para } from '@paradoc/sdk';`)
+	lines.push(`import { p } from '@paradoc/sdk';`)
 	lines.push('')
 
 	// Create the artifact instance
 	lines.push(`/**`)
 	lines.push(` * ${typeName} ${artifactKind} artifact - ready to use`)
 	lines.push(` */`)
-	lines.push(`export const ${exportName} = para.${artifactKind}(schema);`)
+	lines.push(`export const ${exportName} = p.${artifactKind}(schema);`)
 	lines.push('')
 
 	// Export useful types

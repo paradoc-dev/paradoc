@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 import { renderLayer } from '@paradoc/render'
 import { inspectAcroFormFields } from '@paradoc/render/pdf'
 import { createFsResolver } from '@paradoc/resolvers/fs'
@@ -55,7 +55,7 @@ describe('PDF Layers Guide', () => {
   describe('form with PDF layer and bindings', () => {
     const resolver = createFsResolver({ root: fixturesRoot })
 
-    const w9Form = para.form({
+    const w9Form = p.form({
       name: 'w9-tax-form',
       fields: {
         name: { type: 'text', label: 'Name', required: true },

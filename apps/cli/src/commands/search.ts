@@ -51,7 +51,7 @@ export function createSearchCommand(): Command {
             }
           }
           console.log()
-          console.log(`To add a registry: ${kleur.white('para registry add <url>')}`)
+          console.log(`To add a registry: ${kleur.white('paradoc registry add <url>')}`)
           process.exit(1)
         }
 
@@ -126,7 +126,7 @@ export function createSearchCommand(): Command {
           }
 
           // Hint
-          console.log(`Run ${kleur.white(`para add ${namespace}/<name>`)} to install an artifact.`)
+          console.log(`Run ${kleur.white(`paradoc add ${namespace}/<name>`)} to install an artifact.`)
         }
       } catch (error) {
         spinner.fail('Search failed')

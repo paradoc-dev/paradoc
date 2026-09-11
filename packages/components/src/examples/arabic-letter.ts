@@ -23,7 +23,7 @@
  * "Branding" in the README.
  */
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 import { ARABIC_FONT_NAME } from "@paradoc/react";
@@ -277,7 +277,7 @@ export const arabicLetterSpec = {
 } as const;
 
 /** The parsed, validated letter form. */
-export const arabicLetter = para.form(arabicLetterSpec);
+export const arabicLetter = p.form(arabicLetterSpec);
 
 /** The same validated artifact as a plain `Form`. */
 export const arabicLetterForm: Form = arabicLetter.toJSON() as Form;

@@ -1,7 +1,7 @@
 ---
 title: data
 description: Data operations for artifacts
-ogTitle: para data
+ogTitle: paradoc data
 ogDescription: Generate templates and fill forms with data
 ---
 
@@ -10,7 +10,7 @@ Data operations for Paradoc artifacts.
 # Usage
 
 ```bash
-para data <command> [options]
+paradoc data <command> [options]
 ```
 
 # Subcommands
@@ -28,7 +28,7 @@ para data <command> [options]
 Generate an instance template from a form artifact.
 
 ```bash
-para data template <file> [options]
+paradoc data template <file> [options]
 ```
 
 ## Arguments
@@ -51,13 +51,13 @@ para data template <file> [options]
 Generate template to stdout:
 
 ```bash
-para data template my-form.yaml
+paradoc data template my-form.yaml
 ```
 
 Generate template to file:
 
 ```bash
-para data template my-form.yaml --out data.yaml
+paradoc data template my-form.yaml --out data.yaml
 ```
 
 ## Output
@@ -77,7 +77,7 @@ fields:
 Interactively fill form data and save to an output file.
 
 ```bash
-para data fill <file> --out <file>
+paradoc data fill <file> --out <file>
 ```
 
 ## Arguments
@@ -101,7 +101,7 @@ The `fill` command walks you through each field in the form with interactive pro
 ## Example
 
 ```bash
-para data fill my-form.yaml --out filled-data.yaml
+paradoc data fill my-form.yaml --out filled-data.yaml
 ```
 
 Interactive session:
@@ -126,7 +126,7 @@ Fill Form: Residential Lease Agreement
 Validate data against a form's schema.
 
 ```bash
-para data validate <form> <data>
+paradoc data validate <form> <data>
 ```
 
 ## Arguments

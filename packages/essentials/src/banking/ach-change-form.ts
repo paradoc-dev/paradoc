@@ -1,7 +1,7 @@
 // AUTO-GENERATED from artifacts/banking/ach-change-form/design/ — do not edit by hand.
 // Regenerate via: node artifacts/scripts/sync-essentials.mjs --only banking/ach-change-form
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
@@ -594,7 +594,7 @@ const resolver = createMemoryResolver({ contents });
  *
  * Standalone form by which an account holder requests a change to an existing ACH arrangement (direct deposit, ACH credit, or ACH debit) already authorized with an originator. Captures change type, identification of the existing arrangement, new account or amount/frequency information, and an effective date. Governed by NACHA Operating Rules and the legal framework of the underlying authorization.
  */
-export const achChangeForm = Object.assign(para.form(schema, { resolver }), {
+export const achChangeForm = Object.assign(p.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/banking/ach-change-form/. */
   spec: schema,
 });

@@ -366,7 +366,7 @@ export function createAddCommand(): Command {
         // A bare name that is not an item falls through and is rejected below,
         // naming both forms, rather than reaching the shadcn CLI to 404.
         //
-        // `para add` is variadic so several components install in one call:
+        // `paradoc add` is variadic so several components install in one call:
         // more than one target requires every one of them to be a known
         // component (mixing a component with an artifact reference, or
         // naming more than one artifact, is not supported), and each target
@@ -378,7 +378,7 @@ export function createAddCommand(): Command {
             console.error(
               kleur.red(
                 `Not a document component: ${unknown.join(', ')}. ` +
-                  'Several targets in one `para add` must all be component names ' +
+                  'Several targets in one `paradoc add` must all be component names ' +
                   `(${COMPONENT_ITEMS.join(', ')}); an artifact reference is added one at a time.`,
               ),
             )
@@ -434,7 +434,7 @@ export function createAddCommand(): Command {
         const projectRoot = await findRepoRoot()
         if (!projectRoot) {
           console.error(kleur.red('Not in an Paradoc project.'))
-          console.error(kleur.gray("Run 'para init' to initialize a project first."))
+          console.error(kleur.gray("Run 'paradoc init' to initialize a project first."))
           process.exit(1)
         }
 

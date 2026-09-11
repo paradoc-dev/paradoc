@@ -203,7 +203,7 @@ but thorough — explain why financial information is needed.
 
 ```typescript
 // Object pattern
-const form = para.form({
+const form = p.form({
   name: "w2-wage-statement",
   instructions: { kind: "inline", text: "Complete all boxes..." },
   agentInstructions: { kind: "file", path: "instructions/w2-agent.md", mimeType: "text/markdown" },
@@ -211,7 +211,7 @@ const form = para.form({
 });
 
 // Builder pattern
-const form = para.form()
+const form = p.form()
   .name("w2-wage-statement")
   .instructions({ kind: "inline", text: "Complete all boxes..." })
   .agentInstructions({ kind: "file", path: "instructions/w2-agent.md", mimeType: "text/markdown" })

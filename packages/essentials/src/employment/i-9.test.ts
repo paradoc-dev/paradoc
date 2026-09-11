@@ -396,7 +396,7 @@ const regressionVectors: Array<{
 ];
 
 describe("i-9", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(i9.isValid()).toBe(true);
   });
 

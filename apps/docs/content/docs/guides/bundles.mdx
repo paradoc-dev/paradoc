@@ -16,10 +16,10 @@ Bundles group forms, documents, and checklists into a single package. This guide
 A lease transaction needs multiple artifacts. Start with the form from the previous guide, then add a disclosure document and a move-in checklist.
 
 ```ts tab="Object Pattern"
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 
 // Lease Agreement Form
-const lease = para.form({
+const lease = p.form({
   name: 'lease-agreement',
   version: '1.0.0',
   title: 'Residential Lease Agreement',
@@ -40,7 +40,7 @@ const lease = para.form({
 })
 
 // Lead Paint Disclosure Document
-const disclosure = para.document({
+const disclosure = p.document({
   name: 'lead-paint-disclosure',
   version: '1.0.0',
   title: 'Lead Paint Disclosure',
@@ -52,7 +52,7 @@ const disclosure = para.document({
 })
 
 // Move-In Checklist
-const moveInChecklist = para.checklist({
+const moveInChecklist = p.checklist({
   name: 'move-in-checklist',
   version: '1.0.0',
   title: 'Move-In Checklist',
@@ -65,10 +65,10 @@ const moveInChecklist = para.checklist({
 ```
 
 ```ts tab="Builder Pattern"
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 
 // Lease Agreement Form
-const lease = para
+const lease = p
   .form()
   .name('lease-agreement')
   .version('1.0.0')
@@ -80,15 +80,15 @@ const lease = para
     endDate: { type: 'date', label: 'End Date', required: true },
   })
   .parties({
-    landlord: para.party().label('Landlord').partyType('person').signature({ required: true }),
-    tenant: para.party().label('Tenant').partyType('person').signature({ required: true }),
+    landlord: p.party().label('Landlord').partyType('person').signature({ required: true }),
+    tenant: p.party().label('Tenant').partyType('person').signature({ required: true }),
   })
   .defaultLayer('markdown')
   .inlineLayer('markdown', { mimeType: 'text/markdown', text: '# Lease\n\n{{address}}' })
   .build()
 
 // Lead Paint Disclosure Document
-const disclosure = para
+const disclosure = p
   .document()
   .name('lead-paint-disclosure')
   .version('1.0.0')
@@ -99,7 +99,7 @@ const disclosure = para
   .build()
 
 // Move-In Checklist
-const moveInChecklist = para
+const moveInChecklist = p
   .checklist()
   .name('move-in-checklist')
   .version('1.0.0')
@@ -117,7 +117,7 @@ const moveInChecklist = para
 Use `.inline()` to embed artifacts directly in the bundle:
 
 ```ts tab="Object Pattern"
-const leaseBundle = para.bundle({
+const leaseBundle = p.bundle({
   name: 'lease-transaction',
   version: '1.0.0',
   title: 'Complete Lease Package',
@@ -130,7 +130,7 @@ const leaseBundle = para.bundle({
 ```
 
 ```ts tab="Builder Pattern"
-const leaseBundle = para
+const leaseBundle = p
   .bundle()
   .name('lease-transaction')
   .version('1.0.0')
@@ -278,7 +278,7 @@ Bundles support three content types:
 | `registry` | Reference to a registry slug (e.g., `@org/artifact`) |
 
 ```ts
-const bundle = para
+const bundle = p
   .bundle()
   .name('mixed-bundle')
   .inline('embedded', someForm)           // Embedded

@@ -1,7 +1,7 @@
 /**
  * What the preview says when a composition cannot be drawn.
  *
- * Both halves of `para dev` reach the same conclusions about the same
+ * Both halves of `paradoc dev` reach the same conclusions about the same
  * composition — the page draws it, the PDF route renders it — and a person
  * reading the two panes should not be told two different things about one
  * fault. So the wording lives here, is computed once per composition when the

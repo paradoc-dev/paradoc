@@ -1,7 +1,7 @@
 ---
 title: hash
 description: Compute file checksums
-ogTitle: para hash
+ogTitle: paradoc hash
 ogDescription: Compute SHA256 checksums for use in Paradoc layer definitions
 ---
 
@@ -10,7 +10,7 @@ Compute a SHA256 checksum of a file, formatted for use in layer definitions.
 # Usage
 
 ```bash
-para hash <file> [options]
+paradoc hash <file> [options]
 ```
 
 # Arguments
@@ -35,7 +35,7 @@ Computes the SHA256 checksum of a file and outputs it in the `sha256:<hex>` form
 Hash a PDF file:
 
 ```bash
-para hash lease-template.pdf
+paradoc hash lease-template.pdf
 ```
 
 Output:
@@ -47,7 +47,7 @@ sha256:a3f2b8c4e5d6...
 JSON output:
 
 ```bash
-para hash lease-template.pdf --json
+paradoc hash lease-template.pdf --json
 ```
 
 ```json
@@ -62,7 +62,7 @@ para hash lease-template.pdf --json
 Hash from stdin:
 
 ```bash
-cat file.pdf | para hash -
+cat file.pdf | paradoc hash -
 ```
 
 # See also

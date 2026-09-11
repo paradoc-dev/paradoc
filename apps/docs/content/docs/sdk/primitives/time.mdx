@@ -11,16 +11,16 @@ Validate time strings in ISO 8601 format (HH:mm:ss). The Time primitive ensures 
 
 ```ts
 // Direct validation
-const time = para.time('14:30:00')
+const time = p.time('14:30:00')
 
 // Parse unknown input
-const time = para.time.parse(jsonData)
+const time = p.time.parse(jsonData)
 
 // Get current time
-const now = para.time.now()
+const now = p.time.now()
 
 // Check validity without throwing
-if (para.time.isValid('23:59:59')) {
+if (p.time.isValid('23:59:59')) {
   console.log('Valid time')
 }
 ```
@@ -29,10 +29,10 @@ if (para.time.isValid('23:59:59')) {
 
 ```ts
 // Parse unknown input (throws on error)
-const time = para.time.parse(userInput)
+const time = p.time.parse(userInput)
 
 // Safe parsing (returns result object)
-const result = para.time.safeParse(userInput)
+const result = p.time.safeParse(userInput)
 if (result.success) {
   console.log(`Time: ${result.data}`)
 } else {
@@ -43,7 +43,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'schedule',
   fields: {
     startTime: { type: 'time', label: 'Start Time' },
@@ -53,8 +53,8 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    startTime: para.time('09:00:00'),
-    endTime: para.time('17:00:00')
+    startTime: p.time('09:00:00'),
+    endTime: p.time('17:00:00')
   }
 })
 ```
@@ -64,13 +64,13 @@ const filled = form.fill({
 ## Direct Call
 
 ```ts
-para.time(input: string): string
+p.time(input: string): string
 ```
 
 Pass a time string for validation. Returns the validated string or throws on error.
 
 ```ts
-const time = para.time('14:30:00')
+const time = p.time('14:30:00')
 ```
 
 ## Static Methods
@@ -120,25 +120,25 @@ The Time primitive validates:
 
 ```ts
 // Valid
-para.time('00:00:00')
-para.time('12:30:00')
-para.time('23:59:59')
-para.time('14:30:00.123')
+p.time('00:00:00')
+p.time('12:30:00')
+p.time('23:59:59')
+p.time('14:30:00.123')
 
 // Invalid - throws Error
-para.time('24:00:00')
+p.time('24:00:00')
 // Error: Invalid Time: hours must be between 00 and 23
 
-para.time('12:60:00')
+p.time('12:60:00')
 // Error: Invalid Time: minutes must be between 00 and 59
 
-para.time('14:30')
+p.time('14:30')
 // Error: Invalid Time: must be in HH:mm:ss format
 
-para.time('2:30:00')
+p.time('2:30:00')
 // Error: Invalid Time: must be in HH:mm:ss format
 
-para.time('not-a-time')
+p.time('not-a-time')
 // Error: Invalid Time: must be in HH:mm:ss format
 ```
 

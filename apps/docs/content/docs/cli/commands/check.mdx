@@ -1,7 +1,7 @@
 ---
 title: check
 description: Check a React composition against its artifact without rendering a PDF
-ogTitle: para check
+ogTitle: paradoc check
 ogDescription: Find unsupported classes, unresolved field paths, and missing images in a composition before rendering it
 ---
 
@@ -12,7 +12,7 @@ reports every fault without producing PDF bytes.
 # Usage
 
 ```bash
-para check <target> [options]
+paradoc check <target> [options]
 ```
 
 # Arguments
@@ -31,7 +31,7 @@ para check <target> [options]
 
 # Description
 
-`para check` resolves `target` to one artifact and one React layer, binds the
+`paradoc check` resolves `target` to one artifact and one React layer, binds the
 layer's module to a component, and walks the rendered tree the way the
 default PDF path would — without invoking a PDF engine. It reports three
 kinds of fault, independently:
@@ -66,19 +66,19 @@ real data a serializer still rejects is.
 Check a composition by its own file:
 
 ```bash
-para check ./compositions/purchase-order.tsx
+paradoc check ./compositions/purchase-order.tsx
 ```
 
 Check the artifact directly, naming a layer:
 
 ```bash
-para check ./artifacts/purchase-order.json --layer composition
+paradoc check ./artifacts/purchase-order.json --layer composition
 ```
 
 Check against the Chromium adapter's rules instead of the default:
 
 ```bash
-para check ./compositions/purchase-order.tsx --adapter chromium
+paradoc check ./compositions/purchase-order.tsx --adapter chromium
 ```
 
 # See also

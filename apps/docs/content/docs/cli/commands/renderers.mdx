@@ -1,7 +1,7 @@
 ---
 title: renderers
 description: Manage renderer plugins
-ogTitle: para renderers
+ogTitle: paradoc renderers
 ogDescription: Manage the Paradoc CLI renderer package
 ---
 
@@ -11,7 +11,7 @@ commands.
 # Usage
 
 ```bash
-para renderers <command>
+paradoc renderers <command>
 ```
 
 # Overview
@@ -42,7 +42,7 @@ Available package:
 Show installation status of all renderers.
 
 ```bash
-para renderers status [options]
+paradoc renderers status [options]
 ```
 
 ## Options
@@ -63,7 +63,7 @@ version, the version expected by the CLI, status, and installed size.
 Install a renderer, or all renderers if no name is given.
 
 ```bash
-para renderers install [name]
+paradoc renderers install [name]
 ```
 
 ## Arguments
@@ -77,13 +77,13 @@ para renderers install [name]
 Install the renderer:
 
 ```bash
-para renderers install
+paradoc renderers install
 ```
 
 The format aliases install the same unified package:
 
 ```bash
-para renderers install pdf
+paradoc renderers install pdf
 ```
 
 ---
@@ -93,7 +93,7 @@ para renderers install pdf
 Remove a renderer, or all renderers if no name is given.
 
 ```bash
-para renderers remove [name]
+paradoc renderers remove [name]
 ```
 
 ## Arguments
@@ -109,7 +109,7 @@ para renderers remove [name]
 Reinstall all renderers to match the versions pinned by the current CLI release.
 
 ```bash
-para renderers update
+paradoc renderers update
 ```
 
 This is useful after upgrading the CLI to ensure renderer versions stay in sync.

@@ -286,13 +286,13 @@ The `.def(name, expr)` builder shorthand defaults to `type: "boolean"` and accep
 
 ```typescript
 // Builder shorthand
-const form = para.form()
+const form = p.form()
   .def("isLongTerm", "fields.leaseTermMonths >= 12")
   .def("isCommercial", "fields.propertyType == 'commercial'")
   .build();
 
 // Object pattern (full form)
-const form = para.form({
+const form = p.form({
   defs: {
     isLongTerm: { type: "boolean", value: "fields.leaseTermMonths >= 12" },
     totalCost: { type: "money", value: { amount: "fields.price + fields.tax", currency: "'USD'" } },
@@ -305,7 +305,7 @@ const form = para.form({
 The form builder does NOT have a `.rules()` method. Rules MUST use object pattern:
 
 ```typescript
-const form = para.form({
+const form = p.form({
   rules: {
     endAfterStart: { expr: "leaseEnd > leaseStart", message: "End must be after start", severity: "error" },
     depositLimit: { expr: "securityDeposit.amount <= monthlyRent.amount * 2", message: "Deposit too high", severity: "warning" },

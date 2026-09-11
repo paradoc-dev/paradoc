@@ -36,7 +36,7 @@ const REACT_EXTENSIONS = new Set(['.tsx', '.jsx'])
 
 /**
  * `@paradoc/react` carries a WebAssembly PDF layout engine, fonts, and React
- * itself — real weight that most `para` installs never touch. It is installed
+ * itself — real weight that most `paradoc` installs never touch. It is installed
  * on first use into `~/.paradoc/renderers`, the same as `@paradoc/render`
  * (see `renderer-manager.ts`), rather than shipped with every install.
  */
@@ -68,7 +68,7 @@ async function loadCheckComposition(): Promise<typeof checkComposition> {
  * The conventions, from the package that owns them.
  *
  * Which artifact renders a composition and where its sample data comes from are
- * questions `para dev` asks of the same project, so both commands read one
+ * questions `paradoc dev` asks of the same project, so both commands read one
  * answer (`@paradoc/react/discovery`) rather than each deriving its own. A rule
  * only one of them implemented would make a composition that previews fail a
  * check, or the reverse, for a reason about the tools rather than the document.
@@ -168,7 +168,7 @@ async function loadArtifactLayer(target: string, layerKey: string | undefined): 
  * A layer's path is relative to the artifact file that declares it, so an
  * artifact and its composition may live apart and the search covers the whole
  * project. When no layer points at the composition, an artifact file of the
- * same name beside it is taken instead — the fallback `para dev` also applies,
+ * same name beside it is taken instead — the fallback `paradoc dev` also applies,
  * so a composition written before its layer entry is checkable and previewable
  * on the same terms.
  *
@@ -306,7 +306,7 @@ async function explicitData(value: string): Promise<DocumentData> {
  *
  * The order is the shared one (`@paradoc/react/discovery`): a sibling
  * `<composition>.sample.{ts,tsx,js,mjs,jsx}` first, then a named `sample`
- * export on the composition module. `para dev` reads the same order, so a
+ * export on the composition module. `paradoc dev` reads the same order, so a
  * composition previews with the data it is checked against.
  *
  * Only a sibling's `default` counts as a sample. The composition module's own

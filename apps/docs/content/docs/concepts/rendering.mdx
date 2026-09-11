@@ -18,7 +18,7 @@ A layer is a **view** of an artifact. It combines a template with the artifact's
 Layers are not transformations—they don't change the artifact. They're representations: different ways of looking at the same source of truth.
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name("invoice")
   .fields({
     customer: { type: "text" },
@@ -26,12 +26,12 @@ const form = para.form()
   })
   .defaultLayer("markdown")
   .layers({
-    markdown: para.layer().inline().mimeType("text/markdown").text(`
+    markdown: p.layer().inline().mimeType("text/markdown").text(`
 # Invoice
 Customer: {{customer}}
 Total: {{total}}
     `),
-    pdf: para.layer().file().mimeType("application/pdf").path("templates/invoice.pdf"),
+    pdf: p.layer().file().mimeType("application/pdf").path("templates/invoice.pdf"),
   })
   .build()
 ```
@@ -55,7 +55,7 @@ loops, context blocks, and helpers are also supported.
 PDF layers work differently—they use **bindings** to map form fields to PDF form fields:
 
 ```ts
-pdf: para.layer()
+pdf: p.layer()
   .file()
   .mimeType("application/pdf")
   .path("templates/lease.pdf")
@@ -77,7 +77,7 @@ that same resolver, so render calls don't repeat it.
 ```ts
 import { createFsResolver } from "@paradoc/resolvers/fs";
 
-const form = para.form()
+const form = p.form()
   .name("invoice")
   // ...fields, layers...
   .build({ resolver: createFsResolver({ root: "./templates" }) })

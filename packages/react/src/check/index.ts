@@ -36,7 +36,7 @@
  *
  * **A component, or an already-built element.** `checkComposition` builds the
  * element itself from a component and `artifact`/`data`, which is what a layer
- * binds to. A caller that has already built the element — `para dev`, which
+ * binds to. A caller that has already built the element — `paradoc dev`, which
  * compiles a composition through the project's own Vite and must build it with
  * the project's own React rather than this package's — passes the element
  * straight to `checkElement` instead; `artifact` and `data` are meaningless
@@ -46,8 +46,8 @@
  * **`missingImages` is not a verdict.** A render needs bytes for every image
  * `src` that is not a `data:` URI, and this check supplies none — it never
  * renders — so every such `src` is reported unconditionally, whether or not
- * the caller would in fact have bytes for it at render time. `para check`, who
- * never resolves bytes either, treats a non-empty list as a failure. `para
+ * the caller would in fact have bytes for it at render time. `paradoc check`, who
+ * never resolves bytes either, treats a non-empty list as a failure. `paradoc
  * dev`, who resolves image sources from disk itself before handing them to
  * `renderPdf`, must not: a composition whose images the tool can in fact
  * supply is not broken for still needing them. Whether `missingImages` fails
@@ -158,7 +158,7 @@ export async function checkComposition(
  * one it builds itself.
  *
  * For a caller whose composition must be built by its own React instance —
- * `para dev` compiles a composition through the project's own Vite — pass the
+ * `paradoc dev` compiles a composition through the project's own Vite — pass the
  * element you already have. `artifact` and `data` play no part here: the
  * element already carries whatever it was built with.
  *

@@ -11,16 +11,16 @@ Build and validate monetary amounts with currency. The Money primitive pairs a n
 
 ```ts
 // Object pattern
-const price = para.money({ amount: 99.99, currency: 'USD' })
+const price = p.money({ amount: 99.99, currency: 'USD' })
 
 // Builder pattern
-const price = para.money()
+const price = p.money()
   .amount(99.99)
   .currency('USD')
   .build()
 
 // Copy and modify
-const discounted = para.money()
+const discounted = p.money()
   .from(price)
   .amount(79.99)
   .build()
@@ -30,10 +30,10 @@ const discounted = para.money()
 
 ```ts
 // Parse unknown input (throws on error)
-const price = para.money.parse(jsonData)
+const price = p.money.parse(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.money.safeParse(jsonData)
+const result = p.money.safeParse(jsonData)
 if (result.success) {
   console.log(`${result.data.currency} ${result.data.amount}`)
 } else {
@@ -45,7 +45,7 @@ if (result.success) {
 
 ```ts
 // As a field default
-const form = para.form({
+const form = p.form({
   name: 'product',
   fields: {
     price: {
@@ -59,7 +59,7 @@ const form = para.form({
 // When filling a form
 const filled = form.fill({
   fields: {
-    price: para.money({ amount: 29.99, currency: 'USD' })
+    price: p.money({ amount: 29.99, currency: 'USD' })
   }
 })
 ```
@@ -69,13 +69,13 @@ const filled = form.fill({
 ## Object Pattern
 
 ```ts
-para.money(input: Money): Money
+p.money(input: Money): Money
 ```
 
 Pass a Money object for validation. Returns the validated Money or throws on error.
 
 ```ts
-const price = para.money({ amount: 150.00, currency: 'EUR' })
+const price = p.money({ amount: 150.00, currency: 'EUR' })
 ```
 
 ## Builder Pattern
@@ -83,7 +83,7 @@ const price = para.money({ amount: 150.00, currency: 'EUR' })
 Chain methods to build a Money value incrementally:
 
 <MethodChain
-  starter="para.money()"
+  starter="p.money()"
   methods={[
     { name: 'amount', params: 'value: number', description: 'Set the monetary amount' },
     { name: 'currency', params: 'value: string', description: 'Set ISO 4217 currency code' },
@@ -116,19 +116,19 @@ The Money primitive validates:
 
 ```ts
 // Valid
-para.money({ amount: 100, currency: 'USD' })
-para.money({ amount: -50, currency: 'USD' })  // Negative allowed
-para.money({ amount: 0, currency: 'EUR' })    // Zero allowed
-para.money({ amount: 99.999, currency: 'BTC' }) // Decimals allowed
+p.money({ amount: 100, currency: 'USD' })
+p.money({ amount: -50, currency: 'USD' })  // Negative allowed
+p.money({ amount: 0, currency: 'EUR' })    // Zero allowed
+p.money({ amount: 99.999, currency: 'BTC' }) // Decimals allowed
 
 // Invalid - throws Error
-para.money({ amount: NaN, currency: 'USD' })
+p.money({ amount: NaN, currency: 'USD' })
 // Error: Invalid Money: amount must be a valid number
 
-para.money({ amount: Infinity, currency: 'USD' })
+p.money({ amount: Infinity, currency: 'USD' })
 // Error: Invalid Money: amount cannot be Infinity
 
-para.money({ amount: 100 })
+p.money({ amount: 100 })
 // Error: Invalid Money: currency is required
 ```
 

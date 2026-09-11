@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 import { renderLayer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
@@ -22,7 +22,7 @@ describe('Text Layers Guide', () => {
 
   const resolver = createFsResolver({ root: fixturesRoot })
 
-  const leaseAgreement = para.form({
+  const leaseAgreement = p.form({
     name: 'lease-agreement',
     title: 'Residential Lease Agreement',
     fields: {

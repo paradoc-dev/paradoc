@@ -11,18 +11,18 @@ Build and validate time durations in ISO 8601 format. The Duration primitive rep
 
 ```ts
 // Direct validation
-const period = para.duration('P1Y6M')  // 1 year, 6 months
-const hours = para.duration('PT2H30M') // 2 hours, 30 minutes
+const period = p.duration('P1Y6M')  // 1 year, 6 months
+const hours = p.duration('PT2H30M') // 2 hours, 30 minutes
 ```
 
 ## Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
-const period = para.duration.parse(jsonData)
+const period = p.duration.parse(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.duration.safeParse(jsonData)
+const result = p.duration.safeParse(jsonData)
 if (result.success) {
   console.log(`Duration: ${result.data}`)
 } else {
@@ -33,7 +33,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'subscription',
   fields: {
     term: { type: 'duration', label: 'Subscription Term' }
@@ -42,7 +42,7 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    term: para.duration('P1Y')  // 1 year
+    term: p.duration('P1Y')  // 1 year
   }
 })
 ```
@@ -52,13 +52,13 @@ const filled = form.fill({
 ## Direct Call
 
 ```ts
-para.duration(input: Duration): Duration
+p.duration(input: Duration): Duration
 ```
 
 Pass a duration string for validation. Returns the validated string or throws on error.
 
 ```ts
-const period = para.duration('P6M')  // 6 months
+const period = p.duration('P6M')  // 6 months
 ```
 
 ## Static Methods
@@ -111,24 +111,24 @@ The Duration primitive validates:
 
 ```ts
 // Valid
-para.duration('P1Y')
-para.duration('P1Y6M')
-para.duration('P1Y6M15D')
-para.duration('PT2H30M')
-para.duration('P1DT12H')
-para.duration('P0D')  // Zero duration
+p.duration('P1Y')
+p.duration('P1Y6M')
+p.duration('P1Y6M15D')
+p.duration('PT2H30M')
+p.duration('P1DT12H')
+p.duration('P0D')  // Zero duration
 
 // Invalid - throws Error
-para.duration('1Y')
+p.duration('1Y')
 // Error: Invalid Duration: must start with P
 
-para.duration('P')
+p.duration('P')
 // Error: Invalid Duration: must specify at least one component
 
-para.duration('P2H')
+p.duration('P2H')
 // Error: Invalid Duration: time components must follow T
 
-para.duration('PT1Y')
+p.duration('PT1Y')
 // Error: Invalid Duration: years cannot follow T designator
 ```
 

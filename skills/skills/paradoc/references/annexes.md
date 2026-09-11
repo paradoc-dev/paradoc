@@ -51,10 +51,10 @@ Set `allowAdditionalAnnexes: true` on the form to accept attachments beyond the 
 ## SDK Builders
 
 ```typescript
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 
 // Object pattern (preferred)
-const form = para.form({
+const form = p.form({
   name: "lease-application",
   version: "1.0.0",
   annexes: {
@@ -67,12 +67,12 @@ const form = para.form({
 });
 
 // Builder pattern
-const form = para.form()
+const form = p.form()
   .name("lease-application")
   .annexes({
-    photoId: para.annex().title("Photo ID").required(true),
-    proofOfIncome: para.annex().title("Proof of Income").required(true),
-    references: para.annex().title("References"),
+    photoId: p.annex().title("Photo ID").required(true),
+    proofOfIncome: p.annex().title("Proof of Income").required(true),
+    references: p.annex().title("References"),
   })
   .allowAdditionalAnnexes(true)
   .fields({ /* ... */ })

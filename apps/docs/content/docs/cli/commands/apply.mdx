@@ -1,7 +1,7 @@
 ---
 title: apply
 description: Apply a unified diff patch
-ogTitle: para apply
+ogTitle: paradoc apply
 ogDescription: Apply patch files to modify artifacts
 ---
 
@@ -10,7 +10,7 @@ Applies a unified diff patch to the working directory.
 # Usage
 
 ```bash
-para apply <patch-file> [options]
+paradoc apply <patch-file> [options]
 ```
 
 # Arguments
@@ -38,25 +38,25 @@ After applying, modified artifacts are automatically validated.
 Apply a patch:
 
 ```bash
-para apply changes.patch
+paradoc apply changes.patch
 ```
 
 Check if patch applies cleanly:
 
 ```bash
-para apply changes.patch --check
+paradoc apply changes.patch --check
 ```
 
 Preview changes:
 
 ```bash
-para apply changes.patch --dry-run
+paradoc apply changes.patch --dry-run
 ```
 
 Reverse a patch:
 
 ```bash
-para apply changes.patch --reverse
+paradoc apply changes.patch --reverse
 ```
 
 # Output
@@ -76,10 +76,10 @@ Modified files:
   checklist.yaml
 
 Next steps:
-  para status
-  para diff
-  para add <files>
-  para commit -m "message"
+  paradoc status
+  paradoc diff
+  paradoc add <files>
+  paradoc commit -m "message"
 
 Validating modified artifacts...
   ✓ lease-agreement.yaml is valid

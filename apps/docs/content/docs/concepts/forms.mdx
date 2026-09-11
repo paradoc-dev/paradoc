@@ -14,7 +14,7 @@ In this section, we introduce the fundamental building blocks of a Form.
 Fields define what data a form collects. They are strongly typed, can represent different data types, and can be grouped into fieldsets. All fields have common base properties such as `label`, `description`, `required`, and `visible` that define their behavior in a form.
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name("application")
   .fields({
     fullName: { type: "text", label: "Full Name", required: true },
@@ -47,11 +47,11 @@ Parties are the roles that interact with a form. A lease might have `landlord` a
 Parties define **roles**, not identities. At runtime, actual people or organizations are assigned to these roles.
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name("lease")
   .parties({
-    landlord: para.party().label("Landlord"),
-    tenant: para.party().label("Tenant").multiple(true).max(4),
+    landlord: p.party().label("Landlord"),
+    tenant: p.party().label("Tenant").multiple(true).max(4),
   })
   .build()
 ```
@@ -62,8 +62,8 @@ Signature requirements are defined per party. You can specify whether signatures
 
 ```ts
 parties: {
-  buyer: para.party().label("Buyer").signature({ required: true, witnesses: 1 }),
-  seller: para.party().label("Seller").signature({ required: true }),
+  buyer: p.party().label("Buyer").signature({ required: true, witnesses: 1 }),
+  seller: p.party().label("Seller").signature({ required: true }),
 }
 ```
 
@@ -76,11 +76,11 @@ Signature requirements are part of the artifact definition. How signatures are c
 Annexes are file attachments that accompany the form—things like photo IDs, proof of income, or supporting documents.
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name("lease-application")
   .annexes({
-    photoId: para.annex().title("Photo ID").required(true),
-    proofOfIncome: para.annex().title("Proof of Income").required(true),
+    photoId: p.annex().title("Photo ID").required(true),
+    proofOfIncome: p.annex().title("Proof of Income").required(true),
   })
   .build()
 ```

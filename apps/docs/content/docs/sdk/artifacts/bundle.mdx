@@ -11,7 +11,7 @@ Create Bundle artifacts to group multiple documents, forms, and checklists into 
 
 ```ts
 // Object pattern
-const bundle = para.bundle({
+const bundle = p.bundle({
   name: 'lease-package',
   version: '1.0.0',
   title: 'Residential Lease Package',
@@ -24,7 +24,7 @@ const bundle = para.bundle({
 })
 
 // Builder pattern
-const bundle = para.bundle()
+const bundle = p.bundle()
   .name('lease-package')
   .version('1.0.0')
   .title('Residential Lease Package')
@@ -39,10 +39,10 @@ const bundle = para.bundle()
 
 ```ts
 // Parse and validate unknown input (throws on error)
-const bundle = para.bundle.from(jsonData)
+const bundle = p.bundle.from(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.bundle.safeFrom(jsonData)
+const result = p.bundle.safeFrom(jsonData)
 if (result.success) {
   const bundle = result.data
 }
@@ -80,7 +80,7 @@ for (const [key, output] of Object.entries(assembled.outputs)) {
 ## Object Pattern
 
 ```ts
-para.bundle(input: BundleInput): BundleInstance
+p.bundle(input: BundleInput): BundleInstance
 ```
 
 ### Parameters
@@ -132,7 +132,7 @@ Returns a `BundleInstance` with the following properties and methods:
 Chain methods to build a bundle incrementally:
 
 <MethodChain
-  starter="para.bundle()"
+  starter="p.bundle()"
   methods={[
     { name: 'name', params: 'value: string', description: 'Set bundle name (required)' },
     { name: 'version', params: 'value: string', description: 'Set semantic version' },
@@ -182,7 +182,7 @@ Use builder methods to add content:
 .path('addendum', './pet-addendum.yaml', 'hasPets')
 
 // Inline - embedded artifacts
-.inline('disclosure', para.document({...}))
+.inline('disclosure', p.document({...}))
 ```
 
 ## Content Item Types
@@ -224,7 +224,7 @@ Reference a published artifact by slug:
 Path and registry items support conditional inclusion using defs:
 
 ```ts
-const bundle = para.bundle()
+const bundle = p.bundle()
   .name('lease-package')
   // Define typed computed values
   .def('hasPets', 'data.pets.length > 0')

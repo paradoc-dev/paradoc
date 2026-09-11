@@ -24,7 +24,7 @@ Add a registry to your project by editing `paradoc.json`:
 Or add one globally so it's available across all projects:
 
 ```bash
-para registry add @acme https://registry.acme.com --global
+paradoc registry add @acme https://registry.acme.com --global
 ```
 
 For registries that require authentication, use the extended format:
@@ -51,28 +51,28 @@ For registries that require authentication, use the extended format:
 
 ## Searching for artifacts
 
-Use [`para search`](/cli/commands/search) to query a registry:
+Use [`paradoc search`](/cli/commands/search) to query a registry:
 
 ```bash
-para search --query "lease"
-para search --kind form --tags legal
-para search --registry @acme "tax"
+paradoc search --query "lease"
+paradoc search --kind form --tags legal
+paradoc search --registry @acme "tax"
 ```
 
 The query matches against artifact names, titles, and descriptions. Filter by `--kind` or `--tags` to narrow results.
 
 ## Installing artifacts
 
-Use [`para add`](/cli/commands/add) to install an artifact. The CLI resolves the namespace to a registry, downloads the definition, writes it to your artifacts directory, and updates the lock file:
+Use [`paradoc add`](/cli/commands/add) to install an artifact. The CLI resolves the namespace to a registry, downloads the definition, writes it to your artifacts directory, and updates the lock file:
 
 ```bash
-para add @acme/residential-lease
+paradoc add @acme/residential-lease
 ```
 
 Download layers alongside the definition:
 
 ```bash
-para add @acme/residential-lease --layers all
+paradoc add @acme/residential-lease --layers all
 ```
 
 ## Viewing artifact details
@@ -80,7 +80,7 @@ para add @acme/residential-lease --layers all
 View metadata for an installed artifact:
 
 ```bash
-para registry view @acme/residential-lease
+paradoc registry view @acme/residential-lease
 ```
 
 ## Direct URL installs
@@ -88,7 +88,7 @@ para registry view @acme/residential-lease
 Install from a URL directly, bypassing namespace resolution:
 
 ```bash
-para add https://example.com/artifacts/my-form.yaml
+paradoc add https://example.com/artifacts/my-form.yaml
 ```
 
 ## Private registries
@@ -110,7 +110,7 @@ For private registries, configure authentication headers with environment variab
 
 ```bash
 export REGISTRY_TOKEN="your-token-here"
-para add @private/internal-form
+paradoc add @private/internal-form
 ```
 
 For local development servers running over HTTP, set `allowInsecure`:
@@ -131,13 +131,13 @@ For local development servers running over HTTP, set `allowInsecure`:
 List all configured registries (project and global):
 
 ```bash
-para registry list
+paradoc registry list
 ```
 
 Remove a registry:
 
 ```bash
-para registry remove @acme --global
+paradoc registry remove @acme --global
 ```
 
 See the [`registry`](/cli/commands/registry) command reference for all subcommands.
@@ -212,16 +212,16 @@ The `registry.json` file lists all available artifacts:
 
 The CLI provides commands to scaffold and manage a registry:
 
-1. **Create the registry** — [`para registry make`](/cli/commands/registry/make) generates a `registry.json` with your namespace and metadata.
+1. **Create the registry** — [`paradoc registry make`](/cli/commands/registry/make) generates a `registry.json` with your namespace and metadata.
 
-2. **Add artifacts to the catalog** — [`para registry catalog`](/cli/commands/registry/catalog) manages the artifacts listed in the index.
+2. **Add artifacts to the catalog** — [`paradoc registry catalog`](/cli/commands/registry/catalog) manages the artifacts listed in the index.
 
-3. **Compile** — [`para registry compile`](/cli/commands/registry/compile) validates all artifacts and prepares the registry for publishing.
+3. **Compile** — [`paradoc registry compile`](/cli/commands/registry/compile) validates all artifacts and prepares the registry for publishing.
 
 ```bash
-para registry make --name @acme --title "Acme Forms Registry"
-para registry catalog add residential-lease ./artifacts/residential-lease/artifact.yaml
-para registry compile
+paradoc registry make --name @acme --title "Acme Forms Registry"
+paradoc registry catalog add residential-lease ./artifacts/residential-lease/artifact.yaml
+paradoc registry compile
 ```
 
 ## Hosting
@@ -273,5 +273,5 @@ The CLI fetches `https://myorg.github.io/paradoc-registry/registry.json` to disc
 1. **Version your artifacts** — use semantic versioning for all artifacts
 2. **Add descriptive tags** — help users discover artifacts through search
 3. **Include descriptions** — add descriptions to the registry, artifacts, and fields
-4. **Validate before publishing** — run `para validate` on all artifacts before compiling
+4. **Validate before publishing** — run `paradoc validate` on all artifacts before compiling
 5. **Use HTTPS** — always use HTTPS in production (HTTP only for local development)

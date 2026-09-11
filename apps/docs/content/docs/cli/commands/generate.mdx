@@ -1,7 +1,7 @@
 ---
 title: generate
 description: Generate TypeScript types for artifacts
-ogTitle: para generate
+ogTitle: paradoc generate
 ogDescription: Generate TypeScript declarations and modules from Paradoc artifacts
 ---
 
@@ -10,7 +10,7 @@ Generate TypeScript types for an artifact file.
 # Usage
 
 ```bash
-para generate <file> [options]
+paradoc generate <file> [options]
 ```
 
 # Arguments
@@ -39,19 +39,19 @@ Two output formats are available:
 Generate `.d.ts` from JSON:
 
 ```bash
-para generate artifacts/w9-form.json
+paradoc generate artifacts/w9-form.json
 ```
 
 Generate `.d.ts` from YAML:
 
 ```bash
-para generate artifacts/lease.yaml
+paradoc generate artifacts/lease.yaml
 ```
 
 Generate TypeScript module:
 
 ```bash
-para generate artifacts/w9-form.json --output ts
+paradoc generate artifacts/w9-form.json --output ts
 ```
 
 # Output
@@ -63,8 +63,8 @@ For `typed` output:
 
 You can now import the artifact with full type safety:
   import schema from './w9-form.json'
-  import { para } from '@paradoc/sdk'
-  const w9Form = para.form(schema)
+  import { p } from '@paradoc/sdk'
+  const w9Form = p.form(schema)
 ```
 
 For `ts` output:

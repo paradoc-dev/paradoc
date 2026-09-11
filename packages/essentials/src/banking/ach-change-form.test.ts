@@ -300,7 +300,7 @@ const regressionVectors: Array<{
 ];
 
 describe("ach-change-form", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(achChangeForm.isValid()).toBe(true);
   });
 

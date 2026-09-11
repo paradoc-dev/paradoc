@@ -5,49 +5,49 @@
 # Artifact tools
 
 
-./para inspect ../fixtures/pet-addendum.pdf
+./paradoc inspect ../fixtures/pet-addendum.pdf
 
-./para inspect ../fixtures/pet-addendum-bindings.pdf
+./paradoc inspect ../fixtures/pet-addendum-bindings.pdf
 
-./para validate ../fixtures/pet-addendum.yaml
-./para validate ../fixtures/pet-addendum-md.yaml
-./para validate ../fixtures/pet-addendum-docx.yaml
-./para validate ../fixtures/pet-addendum-pdf.yaml
-./para validate ../fixtures/pet-addendum-pdf-bindings.yaml
+./paradoc validate ../fixtures/pet-addendum.yaml
+./paradoc validate ../fixtures/pet-addendum-md.yaml
+./paradoc validate ../fixtures/pet-addendum-docx.yaml
+./paradoc validate ../fixtures/pet-addendum-pdf.yaml
+./paradoc validate ../fixtures/pet-addendum-pdf-bindings.yaml
 
 
-./para render ../fixtures/pet-addendum.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}'
+./paradoc render ../fixtures/pet-addendum.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}'
 
-./para render ../fixtures/pet-addendum.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' > ./temp.md
+./paradoc render ../fixtures/pet-addendum.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' > ./temp.md
 
-./para render ../fixtures/pet-addendum.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output-inline.md
+./paradoc render ../fixtures/pet-addendum.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output-inline.md
 
-./para render ../fixtures/pet-addendum-md.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output.md
+./paradoc render ../fixtures/pet-addendum-md.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output.md
 
-./para render ../fixtures/pet-addendum-docx.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output.docx
+./paradoc render ../fixtures/pet-addendum-docx.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output.docx
 
-./para render ../fixtures/pet-addendum-pdf.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output.pdf
+./paradoc render ../fixtures/pet-addendum-pdf.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --out ./output.pdf
 
-./para render ../fixtures/pet-addendum-pdf-bindings.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --bindings ../fixtures/bindings.json --out ./output-bindings.pdf
+./paradoc render ../fixtures/pet-addendum-pdf-bindings.yaml --data '{"name":"Fluffy","species":"cat","weight":3,"hasVaccination":true}' --bindings ../fixtures/bindings.json --out ./output-bindings.pdf
 
 
 
 
 # Data commands
-para data template ../../fixtures/pet-addendum.yaml --out ./help.yaml
-para data validate ../../fixtures/pet-addendum.yaml ./help.yaml
-para data fill ../../fixtures/pet-addendum.yaml --out ./answers.yaml
+paradoc data template ../../fixtures/pet-addendum.yaml --out ./help.yaml
+paradoc data validate ../../fixtures/pet-addendum.yaml ./help.yaml
+paradoc data fill ../../fixtures/pet-addendum.yaml --out ./answers.yaml
 
 # Artifact commands
-para inspect ../../fixtures/pet-addendum.pdf
+paradoc inspect ../../fixtures/pet-addendum.pdf
 
 # Remote commands
-para remote add origin https://github.com/paradoc-dev/pet-addendum
-para remote view
-para remote set-url origin https://github.com/paradoc-dev/pet-addendum
-para remote rename origin old
-para remote remove old
+paradoc remote add origin https://github.com/paradoc-dev/pet-addendum
+paradoc remote view
+paradoc remote set-url origin https://github.com/paradoc-dev/pet-addendum
+paradoc remote rename origin old
+paradoc remote remove old
 
 # Sync commands
-para push origin
-para push origin
+paradoc push origin
+paradoc push origin

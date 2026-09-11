@@ -78,8 +78,8 @@ export function createRegistryCommand(): Command {
             parsedUrl = new URL(first)
           } catch {
             console.error(kleur.red(`When using a single argument, it must be a valid URL.`))
-            console.error(kleur.gray('Usage: para registry add <url>'))
-            console.error(kleur.gray('   or: para registry add <namespace> <url>'))
+            console.error(kleur.gray('Usage: paradoc registry add <url>'))
+            console.error(kleur.gray('   or: paradoc registry add <namespace> <url>'))
             process.exit(1)
           }
 
@@ -370,7 +370,7 @@ export function createRegistryCommand(): Command {
         } else {
           if (registries.length === 0) {
             console.log(kleur.gray('No registries configured.'))
-            console.log(kleur.gray("Run 'para registry add @namespace https://...' to add one."))
+            console.log(kleur.gray("Run 'paradoc registry add @namespace https://...' to add one."))
             return
           }
 
@@ -560,8 +560,8 @@ export function createRegistryCommand(): Command {
         }
         console.log()
         console.log(kleur.gray('Next steps:'))
-        console.log(kleur.gray('  1. Add artifacts with: para registry catalog add <artifact>'))
-        console.log(kleur.gray('  2. Compile registry with: para registry compile'))
+        console.log(kleur.gray('  1. Add artifacts with: paradoc registry catalog add <artifact>'))
+        console.log(kleur.gray('  2. Compile registry with: paradoc registry compile'))
       } catch (error) {
         console.error(kleur.red(error instanceof Error ? error.message : String(error)))
         process.exit(1)
@@ -672,7 +672,7 @@ export function createRegistryCommand(): Command {
         const registryPath = storage.getAbsolutePath(options.registry)
         if (!(await storage.exists(registryPath))) {
           console.error(kleur.red(`Registry not found: ${registryPath}`))
-          console.error(kleur.gray('Run "para registry make" to create one.'))
+          console.error(kleur.gray('Run "paradoc registry make" to create one.'))
           process.exit(1)
         }
 
@@ -1101,7 +1101,7 @@ export function createRegistryCommand(): Command {
         // Check if installed
         if (!lockFileManager.isInstalled(artifactRef.full)) {
           console.error(kleur.red(`Artifact not installed: ${artifact}`))
-          console.error(kleur.gray("Run 'para add " + artifact + "' to install it."))
+          console.error(kleur.gray("Run 'paradoc add " + artifact + "' to install it."))
           process.exit(1)
         }
 

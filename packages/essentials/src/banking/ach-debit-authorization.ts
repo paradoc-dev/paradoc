@@ -1,7 +1,7 @@
 // AUTO-GENERATED from artifacts/banking/ach-debit-authorization/design/ — do not edit by hand.
 // Regenerate via: node artifacts/scripts/sync-essentials.mjs --only banking/ach-debit-authorization
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
@@ -853,7 +853,7 @@ const resolver = createMemoryResolver({ contents });
  *
  * Authorization by which a payer (consumer or business) authorizes a named originator to initiate ACH debit entries against a deposit account at a named financial institution. Supports one-time and recurring debits, fixed or variable amounts, and is governed by NACHA Operating Rules and (for consumers) Regulation E.
  */
-export const achDebitAuthorization = Object.assign(para.form(schema, { resolver }), {
+export const achDebitAuthorization = Object.assign(p.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/banking/ach-debit-authorization/. */
   spec: schema,
 });

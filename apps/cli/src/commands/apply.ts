@@ -248,10 +248,10 @@ export function createApplyCommand(): Command {
             }
             console.log('')
             console.log('Next steps:')
-            console.log('  para status')
-            console.log('  para diff')
-            console.log('  para add <files>')
-            console.log('  para commit -m "message"')
+            console.log('  paradoc status')
+            console.log('  paradoc diff')
+            console.log('  paradoc add <files>')
+            console.log('  paradoc commit -m "message"')
             console.log('')
           }
 

@@ -1,7 +1,7 @@
 ---
 title: registry compile
 description: Compile registry artifacts
-ogTitle: para registry compile
+ogTitle: paradoc registry compile
 ogDescription: Validate and compile Paradoc registry artifacts for deployment
 ---
 
@@ -10,7 +10,7 @@ Compile a registry by validating all artifacts, computing checksums, and generat
 # Usage
 
 ```bash
-para registry compile [options]
+paradoc registry compile [options]
 ```
 
 # Options
@@ -30,19 +30,19 @@ Reads the `registry.json` catalog, finds each artifact file (`.json`, `.yaml`, `
 Compile with defaults:
 
 ```bash
-para registry compile
+paradoc registry compile
 ```
 
 Compile to a custom output directory:
 
 ```bash
-para registry compile -o ./dist/r
+paradoc registry compile -o ./dist/r
 ```
 
 Preview without writing:
 
 ```bash
-para registry compile --dry-run
+paradoc registry compile --dry-run
 ```
 
 # Output

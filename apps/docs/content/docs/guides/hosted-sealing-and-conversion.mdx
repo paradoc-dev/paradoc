@@ -11,7 +11,7 @@ do not run their own conversion infrastructure.
 The SDK adapter converts a rendered HTML, Markdown, or DOCX layer to PDF before
 the framework flattens and hashes the canonical output. If the target layer is
 file-backed, bind its resolver where `form` is constructed —
-`para.form(schema, { resolver })` — rather than passing it here; `seal` no
+`p.form(schema, { resolver })` — rather than passing it here; `seal` no
 longer takes one.
 
 ```ts

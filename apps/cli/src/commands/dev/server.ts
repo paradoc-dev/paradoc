@@ -1,5 +1,5 @@
 /**
- * The dev server behind `para dev`.
+ * The dev server behind `paradoc dev`.
  *
  * One Vite server rooted at the project. Vite compiles the compositions for the
  * browser, which draws the paginated document, and it compiles the same modules
@@ -45,7 +45,7 @@ interface PdfRequest {
 	plan?: { breaks: string[]; repeats: string[][] }
 }
 
-/** How `para dev` was invoked. */
+/** How `paradoc dev` was invoked. */
 export interface DevServerOptions {
 	/** Project root: what is discovered, and what Vite serves. */
 	root: string
@@ -79,7 +79,7 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
 
 	const server = await toolchain.createServer({
 		root,
-		// The project's own Vite config is not read. `para dev` serves one page it
+		// The project's own Vite config is not read. `paradoc dev` serves one page it
 		// generates itself, and a config written for the project's application
 		// would apply its plugins, aliases and entry points to a page that is not
 		// the application. A composition imports packages and its own neighbours;
@@ -333,14 +333,14 @@ async function renderRoute(
 				: module
 		const data = readSample(entry, sampleModule)
 
-		// React comes from the project through Vite, not from `para`: the element
+		// React comes from the project through Vite, not from `paradoc`: the element
 		// has to be made by the same React the composition imports, which is what
 		// the generated element module guarantees.
 		const { element: makeElement } = (await server.ssrLoadModule(HARNESS_MODULES.element)) as {
 			element: (type: unknown, props: unknown) => unknown
 		}
 		const element = makeElement(Composition, { artifact: entry.artifact.artifact, data })
-		// The same walk `para check` runs, over the element the project's own
+		// The same walk `paradoc check` runs, over the element the project's own
 		// React built. `missingImages` is not a verdict here: this command
 		// resolves image bytes itself, just below, so a composition that names an
 		// image the tool can supply is not broken for needing it.

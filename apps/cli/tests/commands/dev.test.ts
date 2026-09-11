@@ -1,5 +1,5 @@
 /**
- * `para dev` at the command line, and the pieces of its server that can be
+ * `paradoc dev` at the command line, and the pieces of its server that can be
  * tested without one.
  *
  * The conventions themselves belong to `@paradoc/react/discovery` and are
@@ -161,7 +161,7 @@ describe('CLI dev command', () => {
   })
 })
 
-describe('the toolchain para dev borrows', () => {
+describe('the toolchain paradoc dev borrows', () => {
   let scratch: string
 
   beforeEach(async () => {
@@ -212,7 +212,7 @@ describe('the toolchain para dev borrows', () => {
   it('names only what is missing, and only once', () => {
     const one = new MissingDevPeerError(['react'], scratch)
 
-    expect(one.message).toContain('para dev needs react, and it is not installed')
+    expect(one.message).toContain('paradoc dev needs react, and it is not installed')
     expect(one.message).not.toContain('--save-dev')
     expect(one.peers).toEqual(['react'])
   })

@@ -256,7 +256,7 @@ describe('codegen', () => {
 					{ kind: 'form', name: 'test' },
 					{ artifactKind: 'form', exportName: 'test' }
 				)
-				expect(result).toContain("import { para } from '@paradoc/sdk';")
+				expect(result).toContain("import { p } from '@paradoc/sdk';")
 			})
 		})
 
@@ -266,7 +266,7 @@ describe('codegen', () => {
 					{ kind: 'form', name: 'w9' },
 					{ artifactKind: 'form', exportName: 'w9' }
 				)
-				expect(result).toContain('export const w9 = para.form(schema);')
+				expect(result).toContain('export const w9 = p.form(schema);')
 			})
 
 			test('exports document artifact with correct builder', () => {
@@ -274,7 +274,7 @@ describe('codegen', () => {
 					{ kind: 'document', name: 'test-doc' },
 					{ artifactKind: 'document', exportName: 'testDoc' }
 				)
-				expect(result).toContain('export const testDoc = para.document(schema);')
+				expect(result).toContain('export const testDoc = p.document(schema);')
 			})
 
 			test('exports bundle artifact with correct builder', () => {
@@ -282,7 +282,7 @@ describe('codegen', () => {
 					{ kind: 'bundle', name: 'test-bundle' },
 					{ artifactKind: 'bundle', exportName: 'testBundle' }
 				)
-				expect(result).toContain('export const testBundle = para.bundle(schema);')
+				expect(result).toContain('export const testBundle = p.bundle(schema);')
 			})
 
 			test('exports checklist artifact with correct builder', () => {
@@ -290,7 +290,7 @@ describe('codegen', () => {
 					{ kind: 'checklist', name: 'test-checklist' },
 					{ artifactKind: 'checklist', exportName: 'testChecklist' }
 				)
-				expect(result).toContain('export const testChecklist = para.checklist(schema);')
+				expect(result).toContain('export const testChecklist = p.checklist(schema);')
 			})
 		})
 
@@ -388,8 +388,8 @@ describe('codegen', () => {
 				// Should have all expected parts
 				expect(result).toContain('Auto-generated TypeScript module')
 				expect(result).toContain("import schema from './w9.json';")
-				expect(result).toContain("import { para } from '@paradoc/sdk';")
-				expect(result).toContain('export const w9 = para.form(schema);')
+				expect(result).toContain("import { p } from '@paradoc/sdk';")
+				expect(result).toContain('export const w9 = p.form(schema);')
 				expect(result).toContain('export type W9Form = typeof w9;')
 				expect(result).toContain('export type W9Payload = Parameters<typeof w9.fill>[0];')
 			})
@@ -414,7 +414,7 @@ describe('codegen', () => {
 				expect(result).toContain('} as const;')
 
 				// Should have exports
-				expect(result).toContain('export const simpleForm = para.form(schema);')
+				expect(result).toContain('export const simpleForm = p.form(schema);')
 				expect(result).toContain('export type SimpleFormForm = typeof simpleForm;')
 			})
 		})

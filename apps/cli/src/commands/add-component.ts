@@ -1,5 +1,5 @@
 /**
- * `para add <name>` — install a document component from the Paradoc registry.
+ * `paradoc add <name>` — install a document component from the Paradoc registry.
  *
  * The components are shadcn registry items, so the install itself is the stock
  * shadcn CLI's job and this does not reimplement it. What it does is the part a
@@ -8,10 +8,10 @@
  * `https://docs.paradoc.dev/r/field.json`, and then run the install.
  *
  * A block is installed the same way and is one of these items too: it brings a
- * whole document rather than one component, so `para add purchase-order` lands
+ * whole document rather than one component, so `paradoc add purchase-order` lands
  * the artifact, its sample data and the composition that binds them.
  *
- * `para add @namespace/name` still adds an artifact from an artifact registry.
+ * `paradoc add @namespace/name` still adds an artifact from an artifact registry.
  * The two are told apart by shape: an artifact is always namespaced or a URL, a
  * component is always a bare name.
  */

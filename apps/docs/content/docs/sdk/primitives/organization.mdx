@@ -11,12 +11,12 @@ Build and validate organization information. The Organization primitive captures
 
 ```ts
 // Object pattern
-const org = para.organization({
+const org = p.organization({
   name: 'Acme Corporation'
 })
 
 // Builder pattern
-const org = para.organization()
+const org = p.organization()
   .name('Acme Corporation')
   .legalName('Acme Corporation, Inc.')
   .domicile('Delaware')
@@ -26,7 +26,7 @@ const org = para.organization()
   .build()
 
 // Copy and modify
-const updated = para.organization()
+const updated = p.organization()
   .from(org)
   .domicile('Nevada')
   .build()
@@ -36,10 +36,10 @@ const updated = para.organization()
 
 ```ts
 // Parse unknown input (throws on error)
-const org = para.organization.parse(jsonData)
+const org = p.organization.parse(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.organization.safeParse(jsonData)
+const result = p.organization.safeParse(jsonData)
 if (result.success) {
   console.log(`Organization: ${result.data.name}`)
 } else {
@@ -50,7 +50,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'vendor',
   fields: {
     company: { type: 'organization', label: 'Company Information' }
@@ -59,7 +59,7 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    company: para.organization()
+    company: p.organization()
       .name('Tech Solutions LLC')
       .entityType('llc')
       .domicile('California')
@@ -73,13 +73,13 @@ const filled = form.fill({
 ## Object Pattern
 
 ```ts
-para.organization(input: Organization): Organization
+p.organization(input: Organization): Organization
 ```
 
 Pass an Organization object for validation. Returns the validated Organization or throws on error.
 
 ```ts
-const org = para.organization({ name: 'Global Enterprises' })
+const org = p.organization({ name: 'Global Enterprises' })
 ```
 
 ## Builder Pattern
@@ -87,7 +87,7 @@ const org = para.organization({ name: 'Global Enterprises' })
 Chain methods to build an Organization value incrementally:
 
 <MethodChain
-  starter="para.organization()"
+  starter="p.organization()"
   methods={[
     { name: 'name', params: 'value: string', description: 'Set organization display name' },
     { name: 'legalName', params: 'value: string | undefined', description: 'Set full legal name' },
@@ -141,8 +141,8 @@ The Organization primitive validates:
 
 ```ts
 // Valid
-para.organization({ name: 'Acme Inc' })
-para.organization({
+p.organization({ name: 'Acme Inc' })
+p.organization({
   name: 'Acme Inc',
   legalName: 'Acme Incorporated',
   entityType: 'corporation',
@@ -150,10 +150,10 @@ para.organization({
 })
 
 // Invalid - throws Error
-para.organization({})
+p.organization({})
 // Error: Invalid Organization: name is required
 
-para.organization({ name: '' })
+p.organization({ name: '' })
 // Error: Invalid Organization: name cannot be empty
 ```
 

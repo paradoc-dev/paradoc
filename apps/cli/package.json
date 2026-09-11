@@ -4,7 +4,6 @@
   "description": "CLI tool for Paradoc framework",
   "type": "module",
   "bin": {
-    "para": "./dist/index.js",
     "paradoc": "./dist/index.js"
   },
   "files": [

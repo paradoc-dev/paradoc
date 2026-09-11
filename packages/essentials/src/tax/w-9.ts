@@ -1,7 +1,7 @@
 // AUTO-GENERATED from artifacts/tax/w-9/design/ — do not edit by hand.
 // Regenerate via: node artifacts/scripts/sync-essentials.mjs --only tax/w-9
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
@@ -919,7 +919,7 @@ const resolver = createMemoryResolver({ contents });
  *
  * A U.S. person gives this form to a requester to certify their legal name, federal tax classification, and Taxpayer Identification Number (SSN or EIN). The completed form is retained by the requester for information-return reporting and is not sent to the IRS.
  */
-export const w9 = Object.assign(para.form(schema, { resolver }), {
+export const w9 = Object.assign(p.form(schema, { resolver }), {
   /** The raw form spec, exactly as authored in artifacts/tax/w-9/. */
   spec: schema,
 });

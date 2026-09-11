@@ -19,7 +19,7 @@ interface Resolver {
 }
 ```
 
-A resolver is bound once, when an artifact is constructed — `para.form(schema, { resolver })`, a builder's `.build({ resolver })`, or `para.load(content, { resolver })`. Every instance you derive from it afterward — every `fill`, every mutator, every render call — carries that same resolver, so you never pass it again.
+A resolver is bound once, when an artifact is constructed — `p.form(schema, { resolver })`, a builder's `.build({ resolver })`, or `p.load(content, { resolver })`. Every instance you derive from it afterward — every `fill`, every mutator, every render call — carries that same resolver, so you never pass it again.
 
 # ArtifactInstanceOptions
 
@@ -33,7 +33,7 @@ interface ArtifactInstanceOptions {
 
 It's accepted by:
 
-- `para.form(input, options?)`, `form.from(input, options?)`, `form.safeFrom(input, options?)`, and a form builder's `.build(options?)` — and the same four entry points for `document` and `checklist`.
+- `p.form(input, options?)`, `form.from(input, options?)`, `form.safeFrom(input, options?)`, and a form builder's `.build(options?)` — and the same four entry points for `document` and `checklist`.
 - `load`, `loadFromObject`, `safeLoad`, and `safeLoadFromObject`, when reconstructing a form, document, or checklist. (Loading a bundle takes no `resolver`: a bundle has no file-backed layers of its own, only content entries that carry their own.)
 - `runtimeFormFromJSON`, `runtimeDocumentFromJSON`, and `runtimeChecklistFromJSON`, when rebuilding a runtime (filled) instance from its JSON.
 
@@ -48,7 +48,7 @@ bind one.
 The `createMemoryResolver` function is exported from `@paradoc/resolvers/memory` and works in any environment, including browsers.
 
 ```ts
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 import { createMemoryResolver } from '@paradoc/resolvers/memory'
 
 const resolver = createMemoryResolver({
@@ -60,7 +60,7 @@ const resolver = createMemoryResolver({
 })
 
 // Bind the resolver when the form is built — the form has file-based layers
-const form = para.form(formSchema, { resolver })
+const form = p.form(formSchema, { resolver })
 
 const filled = form.fill({
   fields: { customer: 'Acme Corp' }
@@ -125,12 +125,12 @@ The filesystem resolver validates that paths and symlinks stay within the root d
 Resolvers are needed when forms define file-based layers:
 
 ```ts
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
-const form = para.form({
+const form = p.form({
   name: 'w9',
   fields: {
     name: { type: 'text' },

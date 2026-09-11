@@ -2,7 +2,7 @@
  * Tests for code snippets in guides/checklists.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 import { renderLayer } from '@paradoc/render'
 
 describe('Checklists Guide', () => {
@@ -12,7 +12,7 @@ describe('Checklists Guide', () => {
 
   describe('boolean status checklist', () => {
     describe('object pattern', () => {
-      const onboarding = para.checklist({
+      const onboarding = p.checklist({
         name: 'employee-onboarding',
         version: '1.0.0',
         title: 'Employee Onboarding Checklist',
@@ -33,7 +33,7 @@ describe('Checklists Guide', () => {
     })
 
     describe('builder pattern', () => {
-      const onboarding = para
+      const onboarding = p
         .checklist()
         .name('employee-onboarding')
         .version('1.0.0')
@@ -58,7 +58,7 @@ describe('Checklists Guide', () => {
   // ============================================================================
 
   describe('enum status checklist', () => {
-    const approvals = para.checklist({
+    const approvals = p.checklist({
       name: 'approval-workflow',
       version: '1.0.0',
       title: 'Approval Workflow',
@@ -112,7 +112,7 @@ describe('Checklists Guide', () => {
   // ============================================================================
 
   describe('fill and update items', () => {
-    const onboarding = para.checklist({
+    const onboarding = p.checklist({
       name: 'employee-onboarding',
       version: '1.0.0',
       title: 'Employee Onboarding Checklist',
@@ -157,7 +157,7 @@ describe('Checklists Guide', () => {
   // ============================================================================
 
   describe('checklist with layer and rendering', () => {
-    const onboarding = para.checklist({
+    const onboarding = p.checklist({
       name: 'employee-onboarding',
       version: '1.0.0',
       title: 'Employee Onboarding Checklist',
@@ -201,7 +201,7 @@ describe('Checklists Guide', () => {
   // ============================================================================
 
   describe('serialization', () => {
-    const onboarding = para.checklist({
+    const onboarding = p.checklist({
       name: 'employee-onboarding',
       version: '1.0.0',
       title: 'Employee Onboarding Checklist',
@@ -226,14 +226,14 @@ describe('Checklists Guide', () => {
 
     test('round-trips through JSON', () => {
       const jsonStr = JSON.stringify(onboarding.toJSON())
-      const loaded = para.load(jsonStr)
+      const loaded = p.load(jsonStr)
       expect(loaded.kind).toBe('checklist')
       expect(loaded.name).toBe('employee-onboarding')
     })
 
     test('round-trips through YAML', () => {
       const yaml = onboarding.toYAML()
-      const loaded = para.load(yaml)
+      const loaded = p.load(yaml)
       expect(loaded.kind).toBe('checklist')
       expect(loaded.name).toBe('employee-onboarding')
     })

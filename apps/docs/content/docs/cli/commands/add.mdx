@@ -1,7 +1,7 @@
 ---
 title: add
 description: Add an artifact from a registry, or a document component
-ogTitle: para add
+ogTitle: paradoc add
 ogDescription: Install artifacts from Paradoc registries, and document components from the Paradoc component registry
 ---
 
@@ -11,7 +11,7 @@ the [Paradoc component registry](/components).
 # Usage
 
 ```bash
-para add <artifact> [options]
+paradoc add <artifact> [options]
 ```
 
 # Arguments
@@ -48,7 +48,7 @@ A bare name is a document component rather than an artifact: an artifact
 reference always carries a namespace or is a URL, so the two cannot be confused.
 
 ```bash
-para add field
+paradoc add field
 ```
 
 That writes the `@paradoc` namespace into the project's `components.json` if it
@@ -59,7 +59,7 @@ to edit; see [Components](/components) for the full list and what stays in
 `@paradoc/react`.
 
 A block installs the same way and is one of these names too. It brings a whole
-document rather than one component, so `para add purchase-order` lands the
+document rather than one component, so `paradoc add purchase-order` lands the
 artifact, its sample data and the composition that binds them; the composition
 goes to `components/paradoc/` and the other two to `artifacts/paradoc/`.
 
@@ -77,55 +77,55 @@ silently repointed.
 Add an artifact:
 
 ```bash
-para add @acme/residential-lease
+paradoc add @acme/residential-lease
 ```
 
 Add with all layers:
 
 ```bash
-para add @acme/residential-lease --layers all
+paradoc add @acme/residential-lease --layers all
 ```
 
 Add specific layers:
 
 ```bash
-para add @acme/residential-lease --layers pdf,markdown
+paradoc add @acme/residential-lease --layers pdf,markdown
 ```
 
 Add with a specific output format:
 
 ```bash
-para add @acme/residential-lease --output json
+paradoc add @acme/residential-lease --output json
 ```
 
 Add as a TypeScript module:
 
 ```bash
-para add @acme/residential-lease --output ts
+paradoc add @acme/residential-lease --output ts
 ```
 
 Browse all artifacts in a namespace:
 
 ```bash
-para add @acme
+paradoc add @acme
 ```
 
 Add from a direct URL:
 
 ```bash
-para add https://registry.example.com/r/my-form.json
+paradoc add https://registry.example.com/r/my-form.json
 ```
 
 Add from a URL with authentication:
 
 ```bash
-para add https://registry.example.com/r/my-form.json --header "Authorization: Bearer token123"
+paradoc add https://registry.example.com/r/my-form.json --header "Authorization: Bearer token123"
 ```
 
 Add a document component:
 
 ```bash
-para add field
+paradoc add field
 ```
 
 # Output
@@ -150,4 +150,4 @@ Content:
 - [search](/cli/commands/search) - Find artifacts in registries
 - [list](/cli/commands/list) - List installed artifacts
 - [show](/cli/commands/show) - View artifact details
-- [Components](/components) - The document component registry `para add <name>` installs from
+- [Components](/components) - The document component registry `paradoc add <name>` installs from

@@ -1,5 +1,5 @@
 /**
- * `para dev` — every composition in the project, live, beside its PDF.
+ * `paradoc dev` — every composition in the project, live, beside its PDF.
  *
  * The command itself is thin: find the compositions, print what was found, and
  * hand the rest to the dev server. `--list` stops after the printing, which is
@@ -25,9 +25,9 @@ interface DevOptions {
 /** The default port. One below the lab's, so both can run at once. */
 const DEFAULT_PORT = '5180'
 
-/** What `para dev` previews, in the words the conventions are documented in. */
+/** What `paradoc dev` previews, in the words the conventions are documented in. */
 const NOTHING_FOUND =
-	'No compositions found. para dev previews every .tsx or .jsx file under a compositions/ ' +
+	'No compositions found. paradoc dev previews every .tsx or .jsx file under a compositions/ ' +
 	'directory, bound to the artifact whose file layer of MIME type text/tsx or text/jsx names it.'
 
 export function createDevCommand(): Command {

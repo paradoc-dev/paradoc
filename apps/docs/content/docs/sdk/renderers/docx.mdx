@@ -10,13 +10,13 @@ delimiters, split Word runs, and automatic field formatting.
 # Example
 
 ```ts
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 import { docxRenderer } from '@paradoc/render/docx'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
-const form = para.form({
+const form = p.form({
   name: 'contract',
   fields: {
     clientName: { type: 'text', label: 'Client Name' },
@@ -196,7 +196,7 @@ import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
-const form = para.form({
+const form = p.form({
   name: 'contract',
   fields: {
     clientFullName: { type: 'text' }

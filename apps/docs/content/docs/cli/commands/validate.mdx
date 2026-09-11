@@ -1,7 +1,7 @@
 ---
 title: validate
 description: Validate artifacts against schemas
-ogTitle: para validate
+ogTitle: paradoc validate
 ogDescription: Check Paradoc artifacts for schema compliance and errors
 ---
 
@@ -10,7 +10,7 @@ Validates an Paradoc artifact against the core schema.
 # Usage
 
 ```bash
-para validate <artifact> [options]
+paradoc validate <artifact> [options]
 ```
 
 # Arguments
@@ -49,37 +49,37 @@ The command exits with code `0` if valid (warnings are allowed), `1` if any erro
 Validate an artifact:
 
 ```bash
-para validate my-form.yaml
+paradoc validate my-form.yaml
 ```
 
 Validate from stdin:
 
 ```bash
-cat my-form.yaml | para validate -
+cat my-form.yaml | paradoc validate -
 ```
 
 Assert expected kind:
 
 ```bash
-para validate my-form.yaml --expect-kind form
+paradoc validate my-form.yaml --expect-kind form
 ```
 
 Schema only (skip file checks):
 
 ```bash
-para validate my-form.yaml --schema-only
+paradoc validate my-form.yaml --schema-only
 ```
 
 Get JSON output:
 
 ```bash
-para validate my-form.yaml --json
+paradoc validate my-form.yaml --json
 ```
 
 Silent mode (for scripts):
 
 ```bash
-para validate my-form.yaml --silent && echo "Valid"
+paradoc validate my-form.yaml --silent && echo "Valid"
 ```
 
 # Output
@@ -134,7 +134,7 @@ The JSON output includes `layers` and `contentRefs` arrays when present:
   "errors": [],
   "warnings": [
     {
-      "message": "No checksum set. Run `para fix` to add one.",
+      "message": "No checksum set. Run `paradoc fix` to add one.",
       "path": ["instructions", "checksum"]
     }
   ],

@@ -53,7 +53,7 @@ export function createInitCommand(): Command {
             console.log(kleur.red('✗ --name is required when using --yes (non-interactive mode)'))
             console.log()
             console.log(kleur.gray('Example:'))
-            console.log(kleur.white('  para init --yes --name "My Project"'))
+            console.log(kleur.white('  paradoc init --yes --name "My Project"'))
             console.log()
             process.exit(1)
           }
@@ -162,7 +162,7 @@ export function createInitCommand(): Command {
             console.log(kleur.gray("You're inside another Paradoc project."))
             console.log(kleur.gray('To create a nested project, add the --nested flag:'))
             console.log()
-            console.log(kleur.white('  para init --yes --nested --name <name>'))
+            console.log(kleur.white('  paradoc init --yes --nested --name <name>'))
             console.log()
             process.exit(1)
           } else {

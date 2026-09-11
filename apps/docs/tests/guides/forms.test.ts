@@ -2,7 +2,7 @@
  * Tests for code snippets in guides/forms.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
 describe('Forms Guide', () => {
   // ============================================================================
@@ -10,7 +10,7 @@ describe('Forms Guide', () => {
   // ============================================================================
 
   describe('object pattern', () => {
-    const lease = para.form({
+    const lease = p.form({
       name: 'lease-agreement',
       version: '1.0.0',
       title: 'Residential Lease Agreement',
@@ -41,20 +41,20 @@ describe('Forms Guide', () => {
   // ============================================================================
 
   describe('builder pattern', () => {
-    const lease = para
+    const lease = p
       .form()
       .name('lease-agreement')
       .version('1.0.0')
       .title('Residential Lease Agreement')
       .parties({
-        landlord: para.party().label('Landlord').partyType('person').signature({ required: true }),
-        tenant: para.party().label('Tenant').partyType('person').signature({ required: true }),
+        landlord: p.party().label('Landlord').partyType('person').signature({ required: true }),
+        tenant: p.party().label('Tenant').partyType('person').signature({ required: true }),
       })
       .fields({
-        address: para.field.address().label('Property Address').required(),
-        monthlyRent: para.field.money().label('Monthly Rent').required(),
-        startDate: para.field.date().label('Start Date').required(),
-        endDate: para.field.date().label('End Date').required(),
+        address: p.field.address().label('Property Address').required(),
+        monthlyRent: p.field.money().label('Monthly Rent').required(),
+        startDate: p.field.date().label('Start Date').required(),
+        endDate: p.field.date().label('End Date').required(),
       })
       .build()
 
@@ -71,7 +71,7 @@ describe('Forms Guide', () => {
   // ============================================================================
 
   describe('form with inline layer', () => {
-    const lease = para.form({
+    const lease = p.form({
       name: 'lease-agreement',
       version: '1.0.0',
       title: 'Residential Lease Agreement',
@@ -172,14 +172,14 @@ describe('Forms Guide', () => {
 
     test('loads from JSON string', () => {
       const jsonStr = JSON.stringify(lease.toJSON())
-      const loaded = para.load(jsonStr)
+      const loaded = p.load(jsonStr)
       expect(loaded.kind).toBe('form')
       expect(loaded.name).toBe('lease-agreement')
     })
 
     test('loads from YAML string', () => {
       const yaml = lease.toYAML()
-      const loaded = para.load(yaml)
+      const loaded = p.load(yaml)
       expect(loaded.kind).toBe('form')
       expect(loaded.name).toBe('lease-agreement')
     })

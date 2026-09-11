@@ -80,9 +80,9 @@ Install the SDK and unified renderer.
 A form needs a name, fields, and parties. Here's a simple lease agreement:
 
 ```ts tab="Object Pattern"
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
-const lease = para.form({
+const lease = p.form({
   name: 'lease-agreement',
   version: '1.0.0',
   title: 'Residential Lease Agreement',
@@ -100,22 +100,22 @@ const lease = para.form({
 ```
 
 ```ts tab="Builder Pattern"
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
-const lease = para
+const lease = p
   .form()
   .name('lease-agreement')
   .version('1.0.0')
   .title('Residential Lease Agreement')
   .parties({
-    landlord: para.party().label('Landlord').partyType('person').signature({ required: true }),
-    tenant: para.party().label('Tenant').partyType('person').signature({ required: true }),
+    landlord: p.party().label('Landlord').partyType('person').signature({ required: true }),
+    tenant: p.party().label('Tenant').partyType('person').signature({ required: true }),
   })
   .fields({
-    address: para.field.address().label('Property Address').required(),
-    monthlyRent: para.field.money().label('Monthly Rent').required(),
-    startDate: para.field.date().label('Start Date').required(),
-    endDate: para.field.date().label('End Date').required(),
+    address: p.field.address().label('Property Address').required(),
+    monthlyRent: p.field.money().label('Monthly Rent').required(),
+    startDate: p.field.date().label('Start Date').required(),
+    endDate: p.field.date().label('End Date').required(),
   })
   .build()
 ```
@@ -128,7 +128,7 @@ Templates define how forms render. Add an inline Markdown template using
 Paradoc's deterministic template syntax:
 
 ```ts tab="Object Pattern"
-const lease = para.form({
+const lease = p.form({
   name: 'lease-agreement',
   // ...fields and parties
   defaultLayer: 'markdown',
@@ -152,13 +152,13 @@ const lease = para.form({
 ```
 
 ```ts tab="Builder Pattern"
-const lease = para
+const lease = p
   .form()
   .name('lease-agreement')
   // ...fields and parties
   .defaultLayer('markdown')
   .layers({
-    markdown: para.layer.inline().mimeType('text/markdown').text(`
+    markdown: p.layer.inline().mimeType('text/markdown').text(`
 # Residential Lease Agreement
 
 **Property:** {{address}}
@@ -296,10 +296,10 @@ parties:
       required: true
 ```
 
-Load it back with `para.load()`:
+Load it back with `p.load()`:
 
 ```ts
-const loaded = para.load(jsonString) // works with JSON or YAML
+const loaded = p.load(jsonString) // works with JSON or YAML
 ```
 </Step>
 </Steps>

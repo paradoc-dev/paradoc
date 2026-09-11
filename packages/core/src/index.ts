@@ -64,7 +64,7 @@ export {
   resolveAndRenderLayer,
   UnboundResolverError,
   // Unified namespace
-  para,
+  p,
 } from "./artifacts";
 
 export type {

@@ -28,20 +28,20 @@ Untyped JSON has not been schema-validated, so a typo the schema would catch
 Get a `Form` value one of two ways, both from `@paradoc/core`:
 
 - **The artifact is authored as a spec object or with the builder** (as the
-  package's own sample artifact is): `para.form(spec).toJSON()` parses and
+  package's own sample artifact is): `p.form(spec).toJSON()` parses and
   validates it, and `.toJSON()` is what turns the builder's result into the
   plain `Form` value every component expects.
 - **The artifact is stored as a JSON/YAML file**: read its text and pass it
-  to `para.load(text).toJSON()` (or `para.safeLoad`, which returns a result
+  to `p.load(text).toJSON()` (or `p.safeLoad`, which returns a result
   object instead of throwing).
 
 ```ts
 // change-order.ts — a sibling module the composition imports the parsed form from
 import { readFileSync } from "node:fs";
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
-export const changeOrderForm: Form = para
+export const changeOrderForm: Form = p
   .load(readFileSync(new URL("./change-order.json", import.meta.url), "utf8"))
   .toJSON() as Form;
 ```
@@ -109,7 +109,7 @@ the exact component, so there is no path to confine.
 that needs a React component bound, each as `{ key, path, mimeType }`. Use it
 to discover which layer(s) a given artifact expects a composition for, and
 to confirm a newly-authored composition's file matches the `path` a layer
-already declares — `para check <composition-file>` does this search
+already declares — `paradoc check <composition-file>` does this search
 automatically (see [cli.md](./cli.md#checking-a-composition)).
 
 ## Binding the module at render time
@@ -156,7 +156,7 @@ The engine fetches no images: everything the tree names as an `src` must
 arrive as bytes keyed by that same string, via `pdf: { images: [...] }`.
 Anything the engine cannot express — a class outside
 [safe-classes.md](./safe-classes.md), an undecodable image — fails the
-render naming every offender, the same information `para check` reports
+render naming every offender, the same information `paradoc check` reports
 ahead of time.
 
 ## The seal

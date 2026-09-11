@@ -185,12 +185,12 @@ file-backed, so bind a resolver when you construct the form — every instance
 you derive from `leaseAgreement` later carries the same resolver.
 
 ```ts
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: '.' })
 
-const leaseAgreement = para.form({
+const leaseAgreement = p.form({
   name: 'lease-agreement',
   title: 'Residential Lease Agreement',
   fields: {

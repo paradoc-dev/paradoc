@@ -60,27 +60,27 @@ one when you build the form — every instance you derive from it later
 (`fill`, `render`, and so on) carries it.
 
 ```ts
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
-const purchaseAgreement = para
+const purchaseAgreement = p
   .form()
   .name('purchase-agreement') // required
   .title('Purchase Agreement')
   .version('1.0.0')
   .parties({
-    buyer: para.party().label('Buyer').partyType('person').signature({ required: true }),
-    seller: para.party().label('Seller').partyType('person').signature({ required: true }),
+    buyer: p.party().label('Buyer').partyType('person').signature({ required: true }),
+    seller: p.party().label('Seller').partyType('person').signature({ required: true }),
   })
   .fields({
-    quantity: para.field.number().label('Quantity').required(),
-    price: para.field.money().label('Price').required(),
-    date: para.field.date().label('Date').required(),
+    quantity: p.field.number().label('Quantity').required(),
+    price: p.field.money().label('Price').required(),
+    date: p.field.date().label('Date').required(),
   })
   .layers({
-    markdown: para.layer().file().mimeType('text/markdown').path('purchase-agreement.md'),
+    markdown: p.layer().file().mimeType('text/markdown').path('purchase-agreement.md'),
   })
   .defaultLayer('markdown')
   .build({ resolver })

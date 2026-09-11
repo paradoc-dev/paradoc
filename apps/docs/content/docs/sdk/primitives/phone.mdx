@@ -11,19 +11,19 @@ Build and validate phone numbers. The Phone primitive captures phone numbers wit
 
 ```ts
 // Object pattern
-const phone = para.phone({
+const phone = p.phone({
   number: '+14155552671'
 })
 
 // Builder pattern
-const phone = para.phone()
+const phone = p.phone()
   .number('+14155552671')
   .type('mobile')
   .extension('123')
   .build()
 
 // Copy and modify
-const updated = para.phone()
+const updated = p.phone()
   .from(phone)
   .type('work')
   .build()
@@ -33,10 +33,10 @@ const updated = para.phone()
 
 ```ts
 // Parse unknown input (throws on error)
-const phone = para.phone.parse(jsonData)
+const phone = p.phone.parse(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.phone.safeParse(jsonData)
+const result = p.phone.safeParse(jsonData)
 if (result.success) {
   console.log(`Phone: ${result.data.number}`)
 } else {
@@ -47,7 +47,7 @@ if (result.success) {
 ## Using with forms
 
 ```ts
-const form = para.form({
+const form = p.form({
   name: 'contact',
   fields: {
     mobilePhone: { type: 'phone', label: 'Mobile Phone' },
@@ -57,11 +57,11 @@ const form = para.form({
 
 const filled = form.fill({
   fields: {
-    mobilePhone: para.phone()
+    mobilePhone: p.phone()
       .number('+14155552671')
       .type('mobile')
       .build(),
-    workPhone: para.phone()
+    workPhone: p.phone()
       .number('+14155551234')
       .type('work')
       .extension('567')
@@ -75,13 +75,13 @@ const filled = form.fill({
 ## Object Pattern
 
 ```ts
-para.phone(input: Phone): Phone
+p.phone(input: Phone): Phone
 ```
 
 Pass a Phone object for validation. Returns the validated Phone or throws on error.
 
 ```ts
-const phone = para.phone({ number: '+442071234567' })
+const phone = p.phone({ number: '+442071234567' })
 ```
 
 ## Builder Pattern
@@ -89,7 +89,7 @@ const phone = para.phone({ number: '+442071234567' })
 Chain methods to build a Phone value incrementally:
 
 <MethodChain
-  starter="para.phone()"
+  starter="p.phone()"
   methods={[
     { name: 'number', params: 'value: string', description: 'Set phone number (E.164 format recommended)' },
     { name: 'type', params: 'value: string | undefined', description: 'Set phone type (mobile, home, work, etc.)' },
@@ -150,22 +150,22 @@ The Phone primitive validates:
 
 ```ts
 // Valid
-para.phone({ number: '+14155552671' })
-para.phone({
+p.phone({ number: '+14155552671' })
+p.phone({
   number: '+14155552671',
   type: 'mobile'
 })
-para.phone({
+p.phone({
   number: '+14155551234',
   type: 'work',
   extension: '567'
 })
 
 // Invalid - throws Error
-para.phone({})
+p.phone({})
 // Error: Invalid Phone: number is required
 
-para.phone({ number: '' })
+p.phone({ number: '' })
 // Error: Invalid Phone: number cannot be empty
 ```
 

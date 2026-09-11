@@ -1,7 +1,7 @@
 ---
 title: fix
 description: Auto-fix common artifact issues
-ogTitle: para fix
+ogTitle: paradoc fix
 ogDescription: Automatically repair artifact metadata like file checksums
 ---
 
@@ -10,7 +10,7 @@ Fixes artifact metadata, such as computing and updating file checksums in layers
 # Usage
 
 ```bash
-para fix <artifact> [options]
+paradoc fix <artifact> [options]
 ```
 
 # Arguments
@@ -42,19 +42,19 @@ This is useful after attaching new files to an artifact, when file contents have
 Fix an artifact interactively:
 
 ```bash
-para fix my-form.yaml
+paradoc fix my-form.yaml
 ```
 
 Accept all changes automatically:
 
 ```bash
-para fix my-form.yaml --yes
+paradoc fix my-form.yaml --yes
 ```
 
 Preview changes without modifying:
 
 ```bash
-para fix my-form.yaml --dry-run
+paradoc fix my-form.yaml --dry-run
 ```
 
 # Output

@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest'
-import { para, type InferFormPayload, type ProgressiveFormPayload } from '@/index'
+import { p, type InferFormPayload, type ProgressiveFormPayload } from '@/index'
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
 
 describe('definition payload inference', () => {
 	test('keeps requiredness equivalent between literal and builder forms', () => {
-		const literal = para.form({
+		const literal = p.form({
 			kind: 'form',
 			name: 'literal',
 			fields: {
@@ -13,12 +13,12 @@ describe('definition payload inference', () => {
 				comment: { type: 'text' },
 			},
 		})
-		const built = para
+		const built = p
 			.form()
 			.name('built')
 			.fields({
-				age: para.field.number().required(),
-				comment: para.field.text(),
+				age: p.field.number().required(),
+				comment: p.field.text(),
 			})
 			.build()
 
@@ -34,12 +34,12 @@ describe('definition payload inference', () => {
 	})
 
 	test('allows optional party and annex sections to be omitted', () => {
-		const form = para
+		const form = p
 			.form()
 			.name('optional-sections')
 			.fields({ age: { type: 'number', required: true } })
-			.parties({ buyer: para.party().label('Buyer').required(false).min(0) })
-			.annexes({ proof: para.annex().title('Proof').required(false) })
+			.parties({ buyer: p.party().label('Buyer').required(false).min(0) })
+			.annexes({ proof: p.annex().title('Proof').required(false) })
 			.build()
 
 		const draft = form.fill({ fields: { age: 42 } })
@@ -47,12 +47,12 @@ describe('definition payload inference', () => {
 	})
 
 	test('keeps singular builder definitions in the inferred payload', () => {
-		const form = para
+		const form = p
 			.form()
 			.name('singular-builder')
-			.field('age', para.field.number().required())
-			.party('buyer', para.party().label('Buyer').required(false).min(0))
-			.annex('proof', para.annex().required(false))
+			.field('age', p.field.number().required())
+			.party('buyer', p.party().label('Buyer').required(false).min(0))
+			.annex('proof', p.annex().required(false))
 			.build()
 
 		type Payload = InferFormPayload<typeof form>
@@ -61,16 +61,16 @@ describe('definition payload inference', () => {
 	})
 
 	test('preserves nested fieldset and list inference through fluent builders', () => {
-		const profileBuilder = para.field
+		const profileBuilder = p.field
 			.fieldset()
-			.field('age', para.field.number().required())
-		const formBuilder = para
+			.field('age', p.field.number().required())
+		const formBuilder = p
 			.form()
 			.name('nested-builder')
 			.field('profile', profileBuilder)
-			.field('phones', para.field.list().item(para.field.phone()))
+			.field('phones', p.field.list().item(p.field.phone()))
 		const before = formBuilder.build()
-		profileBuilder.field('nickname', para.field.text())
+		profileBuilder.field('nickname', p.field.text())
 		const form = formBuilder.build()
 		expect((before.fields.profile as any).fields.nickname).toBeUndefined()
 		expect((form.fields.profile as any).fields.nickname).toEqual({ type: 'text' })
@@ -86,7 +86,7 @@ describe('definition payload inference', () => {
 	})
 
 	test('allows recursive nested patches while preserving full payload strictness', () => {
-		const form = para.form({
+		const form = p.form({
 			kind: 'form',
 			name: 'progressive-nested',
 			fields: {
@@ -132,8 +132,8 @@ describe('definition payload inference', () => {
 			items: [{ id: 'first', title: 'First', status: { kind: 'boolean' } }],
 		} as const
 
-		const bundle = para.bundle(bundleSchema)
-		const checklist = para.checklist(checklistSchema)
+		const bundle = p.bundle(bundleSchema)
+		const checklist = p.checklist(checklistSchema)
 		const mutableBundleSchema = {
 			kind: 'bundle' as const,
 			name: 'mutable-bundle',
@@ -144,8 +144,8 @@ describe('definition payload inference', () => {
 			name: 'mutable-checklist',
 			items: [{ id: 'first', title: 'First', status: { kind: 'boolean' as const } }],
 		}
-		para.bundle(mutableBundleSchema)
-		para.checklist(mutableChecklistSchema)
+		p.bundle(mutableBundleSchema)
+		p.checklist(mutableChecklistSchema)
 		mutableBundleSchema.contents.push({ type: 'path', key: 'second', path: './second.json' })
 		mutableChecklistSchema.items.push({ id: 'second', title: 'Second', status: { kind: 'boolean' } })
 		expect(bundle.contents).toHaveLength(1)

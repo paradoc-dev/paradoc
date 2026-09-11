@@ -20,7 +20,7 @@ For raw JSON/YAML editing, use the [schemas.md](./schemas.md) surface. For CLI u
 ALWAYS import from public entry points. NEVER from `@paradoc/core/dist/...` or other internal sub-paths.
 
 ```typescript
-import { para, type InferFormPayload } from "@paradoc/core";
+import { p, type InferFormPayload } from "@paradoc/core";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 import { createFormatter } from "@paradoc/format";
 ```
@@ -32,7 +32,7 @@ All artifacts support **object pattern** (preferred) and **builder pattern**.
 ### Object pattern
 
 ```typescript
-const form = para.form({
+const form = p.form({
   name: "residential-lease",
   version: "1.0.0",
   title: "Residential Lease Agreement",
@@ -46,7 +46,7 @@ const form = para.form({
 ### Builder pattern
 
 ```typescript
-const form = para.form()
+const form = p.form()
   .name("residential-lease")
   .version("1.0.0")
   .title("Residential Lease Agreement")
@@ -135,8 +135,8 @@ const rules = draft.validateRules();
 ### Loading from unknown input
 
 ```typescript
-const form = para.form.from(unknownData);          // throws on invalid
-const result = para.form.safeFrom(unknownData);     // returns result
+const form = p.form.from(unknownData);          // throws on invalid
+const result = p.form.safeFrom(unknownData);     // returns result
 ```
 
 ## Progressive Fill (AI / Multi-Turn)
@@ -206,7 +206,7 @@ For party data shape, see [parties.md](./parties.md).
 Documents have two phases: `draft → final`.
 
 ```typescript
-const disclosure = para.document({ /* ... */ });
+const disclosure = p.document({ /* ... */ });
 const draft = disclosure.prepare("pdf");
 const final = draft.finalize();
 ```
@@ -214,7 +214,7 @@ const final = draft.finalize();
 Checklists have two phases: `draft → completed`.
 
 ```typescript
-const checklist = para.checklist({ /* ... */ });
+const checklist = p.checklist({ /* ... */ });
 const draft = checklist.fill({ task_1: true, review: "approved" });
 draft.setItem("task_1", true);
 const completed = draft.complete();
@@ -267,7 +267,7 @@ Only `required: true` (literal boolean) makes a field required in the inferred t
 If type inference is not working, check:
 
 1. Builder chain ended with `.build()`
-2. Object pattern uses a single `para.form({...})` call (no intermediate variables that widen the type)
+2. Object pattern uses a single `p.form({...})` call (no intermediate variables that widen the type)
 3. Imports are from `@paradoc/core` (not internal paths)
 
 ### Field type → TypeScript
@@ -333,7 +333,7 @@ Use descriptive kebab-case names: `"residential-lease-agreement"`, NOT `"form1"`
 For full renderer API, see [rendering.md](./rendering.md). Quick example:
 
 ```typescript
-const form = para.form(schema, { resolver: createFsResolver({ root: process.cwd() }) });
+const form = p.form(schema, { resolver: createFsResolver({ root: process.cwd() }) });
 
 const text = await form.fill(data).render({
   layer: "markdown",
@@ -346,15 +346,15 @@ The resolver is bound once, at construction — `render()` doesn't take one.
 
 **Type inference not working on filled form**
 Cause: Builder chain missing `.build()`, or intermediate variables widening the type.
-Fix: End builder chains with `.build()`. For object pattern, define artifact in a single `para.form({...})` call.
+Fix: End builder chains with `.build()`. For object pattern, define artifact in a single `p.form({...})` call.
 
 **Wrong import paths — module not found**
 Cause: Importing from internal sub-paths (e.g., `@paradoc/core/dist/fields`).
 Fix: ALWAYS import from package root: `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`.
 
 **Builder vs object pattern mixing**
-Cause: Passing a `para.field.money().label(...)` builder inside an object-pattern artifact, or vice versa.
-Fix: Pick one pattern per artifact. Object pattern uses plain objects; builder pattern uses `para.field.*()` chains.
+Cause: Passing a `p.field.money().label(...)` builder inside an object-pattern artifact, or vice versa.
+Fix: Pick one pattern per artifact. Object pattern uses plain objects; builder pattern uses `p.field.*()` chains.
 
 **Render produces blank output**
 Cause: Missing layer, or rendering a form before `fill()`.
@@ -373,5 +373,5 @@ Fix: ALWAYS pass `{ includeSchema: false }` to `toJSON()` when bundling.
 - [layers.md](./layers.md) — layer definitions and Paradoc template syntax
 - [rendering.md](./rendering.md) — render API, resolvers
 - [formatting.md](./formatting.md) — locale-aware formatters
-- [cli.md](./cli.md) — `para` CLI surface
+- [cli.md](./cli.md) — `paradoc` CLI surface
 - [schemas.md](./schemas.md) — raw JSON/YAML surface

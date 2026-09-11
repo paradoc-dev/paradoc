@@ -25,7 +25,7 @@
  * it renders bare so a caller who puts it inside a packet supplies the bundle.
  */
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 import type { DocumentTokensInput } from "@paradoc/react";
@@ -324,7 +324,7 @@ export const invoiceSpec = {
 } as const;
 
 /** The parsed, validated invoice form. */
-export const invoice = para.form(invoiceSpec);
+export const invoice = p.form(invoiceSpec);
 
 /**
  * The same validated artifact as a plain `Form`. Everything that renders or

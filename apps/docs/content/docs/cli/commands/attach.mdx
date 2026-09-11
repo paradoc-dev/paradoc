@@ -1,7 +1,7 @@
 ---
 title: attach
 description: Attach files to artifacts as layers or content references
-ogTitle: para attach
+ogTitle: paradoc attach
 ogDescription: Add file-backed layers and content references to Paradoc artifacts
 ---
 
@@ -10,7 +10,7 @@ Attaches a file to an artifact as a layer or content reference.
 # Usage
 
 ```bash
-para attach <artifact> <file> [options]
+paradoc attach <artifact> <file> [options]
 ```
 
 # Arguments
@@ -49,31 +49,31 @@ MIME type is auto-detected from the file extension. Use `--mime-type` to overrid
 Attach a PDF as a layer (interactive):
 
 ```bash
-para attach my-form.yaml ./lease-template.pdf
+paradoc attach my-form.yaml ./lease-template.pdf
 ```
 
 Attach a layer with explicit options:
 
 ```bash
-para attach my-form.yaml ./lease-template.pdf --name pdf --title "Lease Template" -y
+paradoc attach my-form.yaml ./lease-template.pdf --name pdf --title "Lease Template" -y
 ```
 
 Attach a file as instructions:
 
 ```bash
-para attach my-form.yaml ./instructions.md --as instructions
+paradoc attach my-form.yaml ./instructions.md --as instructions
 ```
 
 Attach a file as agent instructions:
 
 ```bash
-para attach my-form.yaml ./agent-guide.md --as agent-instructions
+paradoc attach my-form.yaml ./agent-guide.md --as agent-instructions
 ```
 
 Preview changes without writing:
 
 ```bash
-para attach my-form.yaml ./lease-template.pdf --dry-run
+paradoc attach my-form.yaml ./lease-template.pdf --dry-run
 ```
 
 # Output

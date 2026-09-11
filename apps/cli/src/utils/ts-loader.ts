@@ -1,7 +1,7 @@
 /**
  * Registers a TypeScript/JSX-aware ESM loader for this process, on demand.
  *
- * The built `para` binary is plain compiled JavaScript with no TypeScript
+ * The built `paradoc` binary is plain compiled JavaScript with no TypeScript
  * loader of its own, so importing a `.tsx`/`.jsx` module directly — binding
  * a composition's React layer, in `check.ts` today — fails with "Unknown
  * file extension". `tsx` exposes exactly this as a programmatic API:
@@ -14,14 +14,14 @@
  * The import is lazy — nothing here loads `tsx` until a command actually
  * binds a React layer — but the package itself is a real, non-optional
  * dependency of `@paradoc/cli`, not an on-demand install: `tsx` wraps
- * esbuild, which adds roughly 10 MB to every `para` install whether or not
+ * esbuild, which adds roughly 10 MB to every `paradoc` install whether or not
  * a project ever composes in React. That is the honest trade-off; it is not
  * hidden behind the renderer manager's on-demand-install path the way
  * `@paradoc/react` itself is.
  *
  * **The tsconfig has to be resolved explicitly.** Left to its own defaults,
  * `register()` resolves one from `process.cwd()`, which is wherever the
- * shell that ran `para` happens to be sitting rather than the composition's
+ * shell that ran `paradoc` happens to be sitting rather than the composition's
  * own project — a composition checked from outside its project directory
  * would then transform under whatever `jsx` setting an unrelated tsconfig
  * that happens to govern the caller's cwd declares (or the classic

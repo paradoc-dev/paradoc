@@ -133,8 +133,8 @@ export function createGenerateCommand(): Command {
           console.log(kleur.cyan(`  import { ${toCamelCase(baseFileName)} } from './${baseFileName}.js'`))
         } else {
           console.log(kleur.cyan(`  import schema from './${baseFileName}.json'`))
-          console.log(kleur.cyan(`  import { para } from '@paradoc/sdk'`))
-          console.log(kleur.cyan(`  const ${toCamelCase(baseFileName)} = para.${artifactKind}(schema)`))
+          console.log(kleur.cyan(`  import { p } from '@paradoc/sdk'`))
+          console.log(kleur.cyan(`  const ${toCamelCase(baseFileName)} = p.${artifactKind}(schema)`))
         }
       } catch (error) {
         console.error(kleur.red('Failed to generate types'))

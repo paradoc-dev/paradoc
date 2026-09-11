@@ -6,7 +6,7 @@ Guidance for AI agents working in this repository.
 
 The official agent skills for [Paradoc](https://paradoc.dev) — the documents-as-code framework.
 
-Two skills. `skills/paradoc/` is the general skill, with topic-organized references covering every Paradoc surface (TypeScript SDK, `para` CLI, raw JSON/YAML schemas, `mcp.paradoc.dev` MCP service) and end-to-end workflows (creating new forms, converting PDFs). `skills/compose-documents/` is a narrower skill for one surface only — authoring and checking a `.tsx`/`.jsx` composition bound to a form artifact through `@paradoc/react` — for an agent that only needs that surface.
+Two skills. `skills/paradoc/` is the general skill, with topic-organized references covering every Paradoc surface (TypeScript SDK, `paradoc` CLI, raw JSON/YAML schemas, `mcp.paradoc.dev` MCP service) and end-to-end workflows (creating new forms, converting PDFs). `skills/compose-documents/` is a narrower skill for one surface only — authoring and checking a `.tsx`/`.jsx` composition bound to a form artifact through `@paradoc/react` — for an agent that only needs that surface.
 
 ## Repository Structure
 
@@ -118,7 +118,7 @@ Keep references **one level deep** from `SKILL.md` (per the spec). NEVER nest su
 The skill itself enforces these — repeat them in any reference where they're directly relevant, and ALWAYS surface them to the user when applicable:
 
 - Schema version `2026-08-06`. `$schema` URIs: `https://schema.paradoc.dev/2026-08-06/<form|document|bundle|checklist>.json`
-- Validate with `npx paradoc validate <file>` (NOT `para validate`) when working with files directly
+- Validate with `npx paradoc validate <file>` when working with files directly
 - Artifact name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` (kebab-case, no leading/trailing/consecutive hyphens)
 - Field/party/def/rule pattern: `^[a-z][a-zA-Z0-9_]*$` (camelCase preferred)
 - Field types: ALWAYS prefer the most specific type. NEVER `text` when a structured type fits

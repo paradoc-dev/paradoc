@@ -505,4 +505,4 @@ Pipeline outcome: `rental-application.json` with ~40 fields across fieldsets (pe
 
 - [fields.md](./fields.md), [parties.md](./parties.md), [logic.md](./logic.md), [layers.md](./layers.md), [pdf-bindings.md](./pdf-bindings.md), [instructions.md](./instructions.md), [annexes.md](./annexes.md)
 - [schemas.md](./schemas.md) — validation
-- [cli.md](./cli.md) — `para inspect` for AcroForm field name extraction
+- [cli.md](./cli.md) — `paradoc inspect` for AcroForm field name extraction

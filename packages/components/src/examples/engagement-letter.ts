@@ -22,7 +22,7 @@
  * same shape the proposal's is.
  */
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 /** The layer that names the composition, and the layer the seal targets. */
@@ -242,7 +242,7 @@ export const engagementLetterSpec = {
 } as const;
 
 /** The parsed, validated engagement letter. */
-export const engagementLetter = para.form(engagementLetterSpec);
+export const engagementLetter = p.form(engagementLetterSpec);
 
 /**
  * The same validated artifact as a plain `Form`. Everything that renders or

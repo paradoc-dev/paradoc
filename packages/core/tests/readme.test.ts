@@ -5,7 +5,7 @@
 
 import { describe, test, expect } from "vitest";
 import {
-  para,
+  p,
   type InferFormPayload,
   type MoneyField,
   type AddressField,
@@ -15,25 +15,25 @@ import {
 describe("@paradoc/core - README Examples", () => {
   describe("Define forms with parties, fields, and validation rules", () => {
     test("creates residential lease agreement form", () => {
-      const leaseAgreement = para
+      const leaseAgreement = p
         .form()
         .name("residential-lease-agreement")
         .version("1.0.0")
         .title("Residential Lease Agreement")
         .defaultLayer("markdown")
         .layers({
-          markdown: para
+          markdown: p
             .layer()
             .file()
             .mimeType("text/markdown")
             .path("fixtures/lease-agreement.md"),
         })
         .parties({
-          landlord: para
+          landlord: p
             .party()
             .label("Landlord")
             .signature({ required: true }),
-          tenant: para
+          tenant: p
             .party()
             .label("Tenant")
             .multiple(true)
@@ -64,22 +64,22 @@ describe("@paradoc/core - README Examples", () => {
 
   describe("Add file attachments and advanced field types", () => {
     test("creates commercial lease with annexes", () => {
-      const advancedLease = para
+      const advancedLease = p
         .form()
         .name("commercial-lease")
         .version("1.0.0")
         .title("Commercial Lease Agreement")
         .allowAdditionalAnnexes(true)
         .annexes({
-          photoId: para.annex().title("Photo ID").required(true),
-          proofOfIncome: para.annex().title("Proof of Income").required(true),
+          photoId: p.annex().title("Photo ID").required(true),
+          proofOfIncome: p.annex().title("Proof of Income").required(true),
         })
         .parties({
-          landlord: para
+          landlord: p
             .party()
             .label("Landlord")
             .signature({ required: true }),
-          tenant: para
+          tenant: p
             .party()
             .label("Tenant")
             .multiple(true)
@@ -111,7 +111,7 @@ describe("@paradoc/core - README Examples", () => {
 
   describe("Define static documents with metadata", () => {
     test("creates lead paint disclosure document", () => {
-      const leadPaintDisclosure = para
+      const leadPaintDisclosure = p
         .document()
         .name("lead-paint-disclosure")
         .version("1.0.0")
@@ -120,7 +120,7 @@ describe("@paradoc/core - README Examples", () => {
         .releaseDate("2025-12-01")
         .metadata({ agency: "EPA/HUD", cfr: "40 CFR 745" })
         .layers({
-          pdf: para
+          pdf: p
             .layer()
             .file()
             .path("fixtures/lead-paint-disclosure.pdf")
@@ -143,7 +143,7 @@ describe("@paradoc/core - README Examples", () => {
 
   describe("Define workflow checklists with status tracking", () => {
     test("creates lease application checklist", () => {
-      const leaseChecklist = para
+      const leaseChecklist = p
         .checklist()
         .name("lease-application-checklist")
         .version("1.0.0")
@@ -192,21 +192,21 @@ describe("@paradoc/core - README Examples", () => {
         required: true,
       };
 
-      const residentialLease = para
+      const residentialLease = p
         .form()
         .name("residential-lease")
         .version("1.0.0")
         .fields({ leaseId: { type: "uuid" }, propertyAddress, monthlyRent })
         .build();
 
-      const commercialLease = para
+      const commercialLease = p
         .form()
         .name("commercial-lease")
         .version("1.0.0")
         .fields({ leaseId: { type: "uuid" }, propertyAddress, monthlyRent })
         .build();
 
-      const leadPaintDisclosure = para
+      const leadPaintDisclosure = p
         .document()
         .name("lead-paint-disclosure")
         .version("1.0.0")
@@ -220,7 +220,7 @@ describe("@paradoc/core - README Examples", () => {
         })
         .build();
 
-      const leaseChecklist = para
+      const leaseChecklist = p
         .checklist()
         .name("lease-application-checklist")
         .version("1.0.0")
@@ -239,7 +239,7 @@ describe("@paradoc/core - README Examples", () => {
         ])
         .build();
 
-      const leaseBundle = para
+      const leaseBundle = p
         .bundle()
         .name("residential-lease-bundle")
         .version("1.0.0")
@@ -271,7 +271,7 @@ describe("@paradoc/core - README Examples", () => {
 
   describe("Extract TypeScript types from artifacts and validate", () => {
     test("infers form data type and validates with correct data", () => {
-      const leaseAgreement = para
+      const leaseAgreement = p
         .form()
         .name("residential-lease-agreement")
         .version("1.0.0")

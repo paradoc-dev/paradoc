@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { form, para, renderLayer, UnboundResolverError } from '@/artifacts'
+import { form, p, renderLayer, UnboundResolverError } from '@/artifacts'
 import { BundleResolverError, loadFromObject } from '@/serialization'
 import { createMemoryResolver } from '@paradoc/resolvers/memory'
 
@@ -69,7 +69,7 @@ describe('a resolver bound at construction', () => {
 	})
 
 	const filled = () =>
-		para
+		p
 			.form(definition, { resolver })
 			.fill({
 				fields: { name: 'Ada' },
@@ -102,7 +102,7 @@ describe('a resolver bound at construction', () => {
 	})
 
 	test('reaches the form instance render as well as the runtime one', async () => {
-		const output = await para
+		const output = await p
 			.form(definition, { resolver })
 			.render({ data: { name: 'Grace' }, layer: 'markdown' })
 

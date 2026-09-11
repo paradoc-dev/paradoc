@@ -1,5 +1,5 @@
 /**
- * `para add <name>` installs a document component.
+ * `paradoc add <name>` installs a document component.
  *
  * The install itself is the shadcn CLI's, so what is tested here is everything
  * around it: that a bare name is read as a component and a namespaced one still
@@ -31,7 +31,7 @@ import {
 let project: string
 
 beforeEach(async () => {
-  project = await mkdtemp(join(tmpdir(), 'para-add-component-'))
+  project = await mkdtemp(join(tmpdir(), 'paradoc-add-component-'))
 })
 
 afterEach(async () => {

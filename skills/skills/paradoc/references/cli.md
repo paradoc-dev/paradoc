@@ -1,25 +1,25 @@
 ---
 name: cli
-description: para CLI surface — project init, registries, authoring, validation, rendering, data, all commands
+description: paradoc CLI surface — project init, registries, authoring, validation, rendering, data, all commands
 metadata:
-  tags: cli, para, paradoc, init, add, new, validate, render, registry, data, commands
+  tags: cli, paradoc, init, add, new, validate, render, registry, data, commands
 ---
 
-# Paradoc CLI (`para`)
+# Paradoc CLI (`paradoc`)
 
-The `para` binary (also `paradoc`) manages Paradoc artifacts — projects, registries, authoring, validation, rendering, data.
+The `paradoc` binary manages Paradoc artifacts — projects, registries, authoring, validation, rendering, data.
 
-ALWAYS use `npx paradoc validate` (NOT `para validate`) to validate artifacts when you can't guarantee a global install. Other commands assume `para` is installed locally or globally.
+ALWAYS use `npx paradoc validate` to validate artifacts when you can't guarantee a global install.
 
 ## Installation
 
 ```bash
 npm install -g @paradoc/cli
 # or run via npx
-npx para <command>
+npx paradoc <command>
 ```
 
-If `para: command not found`: install globally, run via `npx para`, or ensure `node_modules/.bin` is on PATH.
+If `paradoc: command not found`: install globally, run via `npx paradoc`, or ensure `node_modules/.bin` is on PATH.
 
 ## Project Lifecycle
 
@@ -27,13 +27,13 @@ If `para: command not found`: install globally, run via `npx para`, or ensure `n
 
 ```bash
 # Interactive
-para init
+paradoc init
 
 # Non-interactive
-para init --yes --name "My Project" --visibility private
+paradoc init --yes --name "My Project" --visibility private
 
 # In a specific directory
-para init my-new-project
+paradoc init my-new-project
 ```
 
 | Flag | Description |
@@ -45,7 +45,7 @@ para init my-new-project
 | `--nested` | Allow inside existing project |
 | `--dry-run` | Preview without creating files |
 
-### What `para init` creates
+### What `paradoc init` creates
 
 | Path | Purpose |
 |------|---------|
@@ -74,7 +74,7 @@ para init my-new-project
 Precedence (highest to lowest): CLI flags → `paradoc.json` → `~/.paradoc/config.json` → built-in defaults.
 
 ```bash
-para configure          # Interactive — output, artifacts dir, cache, registry, telemetry
+paradoc configure          # Interactive — output, artifacts dir, cache, registry, telemetry
 ```
 
 Global config at `~/.paradoc/config.json`:
@@ -109,27 +109,27 @@ Proxy: `HTTPS_PROXY` / `HTTP_PROXY`.
 ### Cache management
 
 ```bash
-para cache stats              # Statistics
-para cache clear              # Clear cached data
-para cache invalidate @acme   # Invalidate specific registry
-para cache config             # Show cache config
-para cache reset              # Reset cache to defaults
-para cache reset --clear      # Reset config AND clear data
+paradoc cache stats              # Statistics
+paradoc cache clear              # Clear cached data
+paradoc cache invalidate @acme   # Invalidate specific registry
+paradoc cache config             # Show cache config
+paradoc cache reset              # Reset cache to defaults
+paradoc cache reset --clear      # Reset config AND clear data
 ```
 
 ### Reset
 
 ```bash
-para reset                    # Reset CLI to factory defaults
-para reset --yes              # Skip confirmation
-para reset --keep-registries  # Preserve registry configs
-para reset --keep-cache       # Preserve cached data
+paradoc reset                    # Reset CLI to factory defaults
+paradoc reset --yes              # Skip confirmation
+paradoc reset --keep-registries  # Preserve registry configs
+paradoc reset --keep-cache       # Preserve cached data
 ```
 
 ### Telemetry
 
 ```bash
-para --no-telemetry <command>
+paradoc --no-telemetry <command>
 ```
 
 Or permanently: config `telemetry.enabled: false`, env `OFM_TELEMETRY_DISABLED=1` / `DO_NOT_TRACK=1`.
@@ -137,36 +137,36 @@ Or permanently: config `telemetry.enabled: false`, env `OFM_TELEMETRY_DISABLED=1
 ### Utility commands
 
 ```bash
-para about              # CLI version, environment, platform info
-para docs               # Open documentation
-para console            # Open Paradoc web console
+paradoc about              # CLI version, environment, platform info
+paradoc docs               # Open documentation
+paradoc console            # Open Paradoc web console
 ```
 
 ## Registries
 
 Registries are HTTPS-served directories containing artifacts. URLs MUST use HTTPS in production.
 
-This section covers **consuming** artifacts from registries. Publishing your own registry (`para registry make`, `para registry catalog`, `para registry compile`) is out of scope for this skill — see [docs.paradoc.dev](https://docs.paradoc.dev) for the publisher workflow.
+This section covers **consuming** artifacts from registries. Publishing your own registry (`paradoc registry make`, `paradoc registry catalog`, `paradoc registry compile`) is out of scope for this skill — see [docs.paradoc.dev](https://docs.paradoc.dev) for the publisher workflow.
 
 ### Adding artifacts
 
 ```bash
-para add @acme/residential-lease
-para add @acme/residential-lease --layers all
-para add @acme/residential-lease --layers pdf,markdown
-para add @acme/residential-lease --output yaml
-para add @acme/residential-lease --no-cache
-para add @acme/residential-lease --cache-ttl 0
-para add https://example.com/form.json --header "Authorization: Bearer TOKEN"
+paradoc add @acme/residential-lease
+paradoc add @acme/residential-lease --layers all
+paradoc add @acme/residential-lease --layers pdf,markdown
+paradoc add @acme/residential-lease --output yaml
+paradoc add @acme/residential-lease --no-cache
+paradoc add @acme/residential-lease --cache-ttl 0
+paradoc add https://example.com/form.json --header "Authorization: Bearer TOKEN"
 ```
 
 ### Searching
 
 ```bash
-para search "lease agreement"
-para search --kind form --tags legal,real-estate
-para search --registry @acme "tax"
-para search "lease" --json
+paradoc search "lease agreement"
+paradoc search --kind form --tags legal,real-estate
+paradoc search --registry @acme "tax"
+paradoc search "lease" --json
 ```
 
 Defaults to the `@paradoc` registry if `--registry` is not provided.
@@ -174,34 +174,34 @@ Defaults to the `@paradoc` registry if `--registry` is not provided.
 ### Listing installed
 
 ```bash
-para list
-para list --json
-para list --kind form
+paradoc list
+paradoc list --json
+paradoc list --kind form
 ```
 
 ### Managing registries
 
 ```bash
 # Add (namespace + URL)
-para registry add @acme https://registry.acme.com
-para registry add @acme https://registry.acme.com --global    # ~/.paradoc/config.json
-para registry add @acme https://registry.acme.com --project   # paradoc.json
-para registry add https://registry.acme.com                   # auto-discover namespace
-para registry add @acme https://registry.acme.com --header "Authorization: Bearer TOKEN"
+paradoc registry add @acme https://registry.acme.com
+paradoc registry add @acme https://registry.acme.com --global    # ~/.paradoc/config.json
+paradoc registry add @acme https://registry.acme.com --project   # paradoc.json
+paradoc registry add https://registry.acme.com                   # auto-discover namespace
+paradoc registry add @acme https://registry.acme.com --header "Authorization: Bearer TOKEN"
 
 # Remove
-para registry remove @acme
-para registry remove --global
+paradoc registry remove @acme
+paradoc registry remove --global
 
 # Inspect
-para registry list                          # All configured registries
-para registry list --json
-para registry info @acme                    # Registry-level info
-para registry info @acme --json
-para registry view @acme/residential-lease  # Specific artifact metadata
-para registry view @acme/residential-lease --json
-para registry stats @acme                   # Read-only stats
-para registry stats @acme --json
+paradoc registry list                          # All configured registries
+paradoc registry list --json
+paradoc registry info @acme                    # Registry-level info
+paradoc registry info @acme --json
+paradoc registry view @acme/residential-lease  # Specific artifact metadata
+paradoc registry view @acme/residential-lease --json
+paradoc registry stats @acme                   # Read-only stats
+paradoc registry stats @acme --json
 ```
 
 ## Authoring
@@ -212,13 +212,13 @@ ALWAYS validate after creation. ALWAYS use the most specific field type with `--
 
 ```bash
 # Interactive
-para new form my-form
-para new document my-doc
-para new checklist my-checklist
-para new bundle my-bundle
+paradoc new form my-form
+paradoc new document my-doc
+paradoc new checklist my-checklist
+paradoc new bundle my-bundle
 
 # Non-interactive
-para new form lease-agreement \
+paradoc new form lease-agreement \
   --yes \
   --title "Lease Agreement" \
   --field "address:address" \
@@ -254,8 +254,8 @@ para new form lease-agreement \
 | `new bundle` | — | No inline content flag — edit the file after scaffolding |
 
 ```bash
-para new form lease --field "address:address" --field "rent:money"
-para new checklist closing --item "Title search" --item "Appraisal" --item "Insurance bound"
+paradoc new form lease --field "address:address" --field "rent:money"
+paradoc new checklist closing --item "Title search" --item "Appraisal" --item "Insurance bound"
 ```
 
 Available `--field` types: `text`, `boolean`, `number`, `money`, `address`, `phone`, `date`, `datetime`, `time`, `email`, `uuid`, `uri`, `enum`, `person`, `organization`, `identification`, `percentage`, `rating`, `duration`, `coordinate`, `bbox`, `multiselect`, `fieldset`.
@@ -263,28 +263,28 @@ Available `--field` types: `text`, `boolean`, `number`, `money`, `address`, `pho
 ### Versioning
 
 ```bash
-para version <file> <bump-type>
+paradoc version <file> <bump-type>
 
-para version my-form.json patch        # 1.0.0 -> 1.0.1
-para version my-form.json minor        # 1.0.0 -> 1.1.0
-para version my-form.json major        # 1.0.0 -> 2.0.0
-para version my-form.json prepatch     # 1.0.0 -> 1.0.1-0
-para version my-form.json preminor     # 1.0.0 -> 1.1.0-0
-para version my-form.json premajor     # 1.0.0 -> 2.0.0-0
-para version my-form.json prerelease   # 1.0.1-0 -> 1.0.1-1
-para version my-form.json 2.5.0        # exact version
+paradoc version my-form.json patch        # 1.0.0 -> 1.0.1
+paradoc version my-form.json minor        # 1.0.0 -> 1.1.0
+paradoc version my-form.json major        # 1.0.0 -> 2.0.0
+paradoc version my-form.json prepatch     # 1.0.0 -> 1.0.1-0
+paradoc version my-form.json preminor     # 1.0.0 -> 1.1.0-0
+paradoc version my-form.json premajor     # 1.0.0 -> 2.0.0-0
+paradoc version my-form.json prerelease   # 1.0.1-0 -> 1.0.1-1
+paradoc version my-form.json 2.5.0        # exact version
 ```
 
 ### Attaching / detaching layers
 
 ```bash
-para attach <artifact> <file>
-para attach form.json template.pdf -n pdf -t "PDF Template" -m application/pdf
-para attach form.json template.pdf --dry-run
+paradoc attach <artifact> <file>
+paradoc attach form.json template.pdf -n pdf -t "PDF Template" -m application/pdf
+paradoc attach form.json template.pdf --dry-run
 
-para detach <artifact> [layer]
-para detach form.json pdf
-para detach form.json --dry-run
+paradoc detach <artifact> [layer]
+paradoc detach form.json pdf
+paradoc detach form.json --dry-run
 ```
 
 | Attach flag | Description |
@@ -297,15 +297,15 @@ para detach form.json --dry-run
 | `-m, --mime-type <type>` | Override auto-detected MIME |
 
 ```bash
-para attach form.json instructions.md --as instructions
-para attach form.json agent-guide.md --as agent-instructions
+paradoc attach form.json instructions.md --as instructions
+paradoc attach form.json agent-guide.md --as agent-instructions
 ```
 
 ### Generating TypeScript types
 
 ```bash
-para generate <file>
-para generate form.json --output ts
+paradoc generate <file>
+paradoc generate form.json --output ts
 ```
 
 | Flag | Description |
@@ -317,15 +317,15 @@ para generate form.json --output ts
 ALWAYS validate after creation, modification, and before rendering. NEVER render unvalidated artifacts.
 
 ```bash
-para validate my-form.json
-para validate my-form.yaml
-para validate my-form.json --json          # JSON output
-para validate my-form.json --silent         # Exit code only
-para validate my-form.json --expect-kind form
-para validate my-form.json --schema-only
-para validate my-form.json --layers-only
-para validate my-form.json --checksum-only
-cat my-form.yaml | para validate -          # From stdin
+paradoc validate my-form.json
+paradoc validate my-form.yaml
+paradoc validate my-form.json --json          # JSON output
+paradoc validate my-form.json --silent         # Exit code only
+paradoc validate my-form.json --expect-kind form
+paradoc validate my-form.json --schema-only
+paradoc validate my-form.json --layers-only
+paradoc validate my-form.json --checksum-only
+cat my-form.yaml | paradoc validate -          # From stdin
 ```
 
 | Exit code | Meaning |
@@ -336,28 +336,28 @@ cat my-form.yaml | para validate -          # From stdin
 ### Auto-fixing
 
 ```bash
-para fix <artifact>
-para fix my-form.json --yes        # Accept all without prompting
-para fix my-form.json --dry-run    # Preview
+paradoc fix <artifact>
+paradoc fix my-form.json --yes        # Accept all without prompting
+paradoc fix my-form.json --dry-run    # Preview
 ```
 
 ### Comparing
 
 ```bash
-para diff form-v1.json form-v2.json
-para diff form-v1.json form-v2.json --name-only
+paradoc diff form-v1.json form-v2.json
+paradoc diff form-v1.json form-v2.json --name-only
 ```
 
 ### Applying patches
 
 ```bash
-para apply <patch-file>
-para apply patch.diff --dry-run    # Preview without writing
-para apply patch.diff --check      # Validate the patch without applying
-para apply patch.diff --reverse    # Invert the patch (undo)
+paradoc apply <patch-file>
+paradoc apply patch.diff --dry-run    # Preview without writing
+paradoc apply patch.diff --check      # Validate the patch without applying
+paradoc apply patch.diff --reverse    # Invert the patch (undo)
 ```
 
-Inverse of `para diff` — applies a unified diff to the working directory.
+Inverse of `paradoc diff` — applies a unified diff to the working directory.
 
 | Flag | Description |
 |------|-------------|
@@ -368,9 +368,9 @@ Inverse of `para diff` — applies a unified diff to the working directory.
 ### Showing structure
 
 ```bash
-para show my-form.json              # Human-readable
-para show my-form.json --raw        # Raw file content
-para show my-form.json --deps       # Show dependencies
+paradoc show my-form.json              # Human-readable
+paradoc show my-form.json --raw        # Raw file content
+paradoc show my-form.json --deps       # Show dependencies
 ```
 
 For schema rules and common validation errors, see [schemas.md](./schemas.md).
@@ -380,12 +380,12 @@ For schema rules and common validation errors, see [schemas.md](./schemas.md).
 ALWAYS validate before rendering. ALWAYS provide `--data` for forms — without data, the CLI warns and renders the raw layer (placeholders unfilled).
 
 ```bash
-para render my-form.json --data payload.json
-para render my-form.json --data payload.json --out output.pdf
-para render my-form.json --data payload.json --layer markdown
-para render my-form.json --data payload.json --bindings bindings.json
-para render my-form.json --data payload.json --format json       # JSON summary
-para render my-form.json --data payload.json --dry-run
+paradoc render my-form.json --data payload.json
+paradoc render my-form.json --data payload.json --out output.pdf
+paradoc render my-form.json --data payload.json --layer markdown
+paradoc render my-form.json --data payload.json --bindings bindings.json
+paradoc render my-form.json --data payload.json --format json       # JSON summary
+paradoc render my-form.json --data payload.json --dry-run
 ```
 
 `--format <style>` accepts `pretty` (default) or `json`.
@@ -396,9 +396,9 @@ top of layer-spec bindings (CLI wins).
 ### Data payload
 
 ```bash
-para render form.json --data payload.json
-para render form.json --data payload.yaml
-para render form.json --data '{"fields":{"name":"Alice"}}'
+paradoc render form.json --data payload.json
+paradoc render form.json --data payload.yaml
+paradoc render form.json --data '{"fields":{"name":"Alice"}}'
 ```
 
 ### Renderer management
@@ -407,10 +407,10 @@ The unified `@paradoc/render` package auto-installs on first use under
 `~/.paradoc/renderers/`.
 
 ```bash
-para renderers status     # Check installation
-para renderers install    # Install (or reinstall) the renderer package
-para renderers update     # Reinstall to match the current CLI version
-para renderers remove     # Remove installed renderers
+paradoc renderers status     # Check installation
+paradoc renderers install    # Install (or reinstall) the renderer package
+paradoc renderers update     # Reinstall to match the current CLI version
+paradoc renderers remove     # Remove installed renderers
 ```
 
 For full renderer API and options, see [rendering.md](./rendering.md).
@@ -418,12 +418,12 @@ For full renderer API and options, see [rendering.md](./rendering.md).
 ### Inspecting PDFs
 
 ```bash
-para inspect template.pdf                              # Default: table format
-para inspect template.pdf --format json                # JSON output
-para inspect template.pdf --filter "Landlord*"
-para inspect template.pdf --summary
-para inspect template.pdf --include-buttons --include-signatures
-para inspect template.pdf --out fields.json
+paradoc inspect template.pdf                              # Default: table format
+paradoc inspect template.pdf --format json                # JSON output
+paradoc inspect template.pdf --filter "Landlord*"
+paradoc inspect template.pdf --summary
+paradoc inspect template.pdf --include-buttons --include-signatures
+paradoc inspect template.pdf --out fields.json
 ```
 
 `--format <format>` accepts `table` (default) or `json`.
@@ -433,8 +433,8 @@ Use to discover PDF AcroForm field names before configuring bindings — see [pd
 ### Hashing
 
 ```bash
-para hash <file>
-para hash template.pdf --json
+paradoc hash <file>
+paradoc hash template.pdf --json
 ```
 
 | Flag | Description |
@@ -451,12 +451,12 @@ ALWAYS validate data against the form before rendering. NEVER render with unvali
 ### Generating a template
 
 ```bash
-para data template my-form.json                       # Stdout (YAML default)
-para data template my-form.json --out template.json   # File (format from extension)
-para data template my-form.json --out template.yaml
-para data template my-form.json --json
-para data template my-form.json --yaml
-para data template my-form.json --out template.yaml --silent
+paradoc data template my-form.json                       # Stdout (YAML default)
+paradoc data template my-form.json --out template.json   # File (format from extension)
+paradoc data template my-form.json --out template.yaml
+paradoc data template my-form.json --json
+paradoc data template my-form.json --yaml
+paradoc data template my-form.json --out template.yaml --silent
 ```
 
 Produces a payload skeleton with `null` per field.
@@ -464,39 +464,39 @@ Produces a payload skeleton with `null` per field.
 ### Interactive filling
 
 ```bash
-para data fill my-form.json --out payload.json
-para data fill my-form.json --out payload.yaml --yaml
-para data fill my-form.json --out payload.json --data existing-data.json
+paradoc data fill my-form.json --out payload.json
+paradoc data fill my-form.json --out payload.yaml --yaml
+paradoc data fill my-form.json --out payload.json --data existing-data.json
 ```
 
 ### Validating data
 
 ```bash
-para data validate my-form.json payload.json
-para data validate my-form.json payload.json --json
-para data validate my-form.json payload.json --silent
+paradoc data validate my-form.json payload.json
+paradoc data validate my-form.json payload.json --json
+paradoc data validate my-form.json payload.json --silent
 ```
 
 ### Typical data workflow
 
-1. `para data template form.json --out payload.json` — empty template
+1. `paradoc data template form.json --out payload.json` — empty template
 2. Edit `payload.json` with values
-3. `para data validate form.json payload.json` — validate
-4. `para render form.json --data payload.json --out output.pdf` — render
+3. `paradoc data validate form.json payload.json` — validate
+4. `paradoc render form.json --data payload.json --out output.pdf` — render
 
 ## Common CLI Issues
 
-**`para: command not found`**
-Install `@paradoc/cli` globally or use `npx para`.
+**`paradoc: command not found`**
+Install `@paradoc/cli` globally or use `npx paradoc`.
 
-**Validation errors on `para validate`**
-Check `--verbose` output. Use `para fix` to auto-correct. Verify all field IDs in rules/logic/bindings exist in `fields`.
+**Validation errors on `paradoc validate`**
+Check `--verbose` output. Use `paradoc fix` to auto-correct. Verify all field IDs in rules/logic/bindings exist in `fields`.
 
-**Registry connection failures (`para add`, `para search`)**
-Check `para registry list` to verify the registry is configured. Inspect with `para registry info <namespace>`. Refresh auth tokens via `para configure`.
+**Registry connection failures (`paradoc add`, `paradoc search`)**
+Check `paradoc registry list` to verify the registry is configured. Inspect with `paradoc registry info <namespace>`. Refresh auth tokens via `paradoc configure`.
 
-**Render failures (`para render`)**
-Run `para renderers status` to confirm `@paradoc/render` is available, then
+**Render failures (`paradoc render`)**
+Run `paradoc renderers status` to confirm `@paradoc/render` is available, then
 validate the artifact. In a workspace checkout, rebuild `render` before the SDK
 and CLI so their build-first outputs stay current.
 

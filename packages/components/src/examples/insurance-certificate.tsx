@@ -15,7 +15,7 @@
  */
 /** @jsxRuntime classic */
 import React from "react";
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
@@ -65,7 +65,7 @@ export const insuranceCertificateSpec = {
 } as const;
 
 /** The parsed certificate form. */
-export const insuranceCertificate = para.form(insuranceCertificateSpec);
+export const insuranceCertificate = p.form(insuranceCertificateSpec);
 
 /** The same artifact as a plain `Form`. */
 export const insuranceCertificateForm: Form = insuranceCertificate.toJSON() as Form;

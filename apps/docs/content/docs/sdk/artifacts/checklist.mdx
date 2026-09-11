@@ -11,7 +11,7 @@ Create Checklist artifacts for tracking tasks, requirements, or verification ite
 
 ```ts
 // Object pattern
-const checklist = para.checklist({
+const checklist = p.checklist({
   name: 'move-in-checklist',
   version: '1.0.0',
   title: 'Move-In Inspection',
@@ -30,7 +30,7 @@ const checklist = para.checklist({
 })
 
 // Builder pattern
-const checklist = para.checklist()
+const checklist = p.checklist()
   .name('move-in-checklist')
   .version('1.0.0')
   .title('Move-In Inspection')
@@ -50,10 +50,10 @@ const checklist = para.checklist()
 
 ```ts
 // Parse and validate unknown input (throws on error)
-const checklist = para.checklist.from(jsonData)
+const checklist = p.checklist.from(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.checklist.safeFrom(jsonData)
+const result = p.checklist.safeFrom(jsonData)
 if (result.success) {
   const checklist = result.data
 }
@@ -64,7 +64,7 @@ if (result.success) {
 ## Object Pattern
 
 ```ts
-para.checklist(input: ChecklistInput, options?: ArtifactInstanceOptions): ChecklistInstance
+p.checklist(input: ChecklistInput, options?: ArtifactInstanceOptions): ChecklistInstance
 ```
 
 `options.resolver` reads the bytes of any file-backed layer this checklist
@@ -127,7 +127,7 @@ Returns a `ChecklistInstance` with the following properties and methods:
 Chain methods to build a checklist incrementally:
 
 <MethodChain
-  starter="para.checklist()"
+  starter="p.checklist()"
   methods={[
     { name: 'name', params: 'value: string', description: 'Set checklist name (required)' },
     { name: 'version', params: 'value: string', description: 'Set semantic version' },

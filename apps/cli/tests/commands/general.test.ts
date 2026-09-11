@@ -65,7 +65,7 @@ describe('CLI General Commands', () => {
 
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('Usage:')
-      expect(result.stdout).toContain('para')
+      expect(result.stdout).toContain('paradoc')
     })
 
     it('should display help with -h flag', async () => {
@@ -73,7 +73,7 @@ describe('CLI General Commands', () => {
 
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('Usage:')
-      expect(result.stdout).toContain('para')
+      expect(result.stdout).toContain('paradoc')
     })
 
     it('should list all available commands', async () => {
@@ -108,7 +108,7 @@ describe('CLI General Commands', () => {
       // When no arguments are provided, Commander.js may output to stdout or stderr
       const output = result.stdout + result.stderr
       expect(output).toContain('Usage:')
-      expect(output).toContain('para')
+      expect(output).toContain('paradoc')
     })
   })
 

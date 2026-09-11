@@ -11,7 +11,7 @@ Create Form artifacts for interactive forms with fields, signing parties, and do
 
 ```ts
 // Object pattern
-const form = para.form({
+const form = p.form({
   name: 'lease-agreement',
   version: '1.0.0',
   title: 'Residential Lease Agreement',
@@ -34,7 +34,7 @@ const form = para.form({
 })
 
 // Builder pattern
-const form = para.form()
+const form = p.form()
   .name('lease-agreement')
   .version('1.0.0')
   .title('Residential Lease Agreement')
@@ -55,7 +55,7 @@ const form = para.form()
 
 ```ts
 // Inline instructions
-const form = para.form({
+const form = p.form({
   name: 'w9-form',
   instructions: { kind: 'inline', text: 'See IRS instructions for Form W-9...' },
   agentInstructions: { kind: 'inline', text: 'Present fields in this order: name, TIN, address.' },
@@ -63,7 +63,7 @@ const form = para.form({
 })
 
 // File-backed instructions (builder pattern)
-const form = para.form()
+const form = p.form()
   .name('w9-form')
   .instructions({ kind: 'file', path: './w9-instructions.md', mimeType: 'text/markdown' })
   .agentInstructions({ kind: 'inline', text: 'Present fields in this order: name, TIN, address.' })
@@ -74,10 +74,10 @@ const form = para.form()
 
 ```ts
 // Parse and validate unknown input (throws on error)
-const form = para.form.from(jsonData)
+const form = p.form.from(jsonData)
 
 // Safe parsing (returns result object)
-const result = para.form.safeFrom(jsonData)
+const result = p.form.safeFrom(jsonData)
 if (result.success) {
   const form = result.data
 }
@@ -123,7 +123,7 @@ const output = await executed.render()
 ## Object Pattern
 
 ```ts
-para.form(input: FormInput, options?: ArtifactInstanceOptions): FormInstance
+p.form(input: FormInput, options?: ArtifactInstanceOptions): FormInstance
 ```
 
 `options.resolver` reads the bytes of any file-backed layer this form
@@ -200,7 +200,7 @@ Returns a `FormInstance` with the following properties and methods:
 Chain methods to build a form incrementally:
 
 <MethodChain
-  starter="para.form()"
+  starter="p.form()"
   methods={[
     { name: 'name', params: 'value: string', description: 'Set form name (required)' },
     { name: 'version', params: 'value: string', description: 'Set semantic version' },

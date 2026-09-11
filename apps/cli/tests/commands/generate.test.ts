@@ -61,7 +61,7 @@ async function executeCliCommand(
   })
 }
 
-describe('para generate', () => {
+describe('paradoc generate', () => {
   let tempDir: string
 
   beforeEach(async () => {
@@ -226,8 +226,8 @@ title: My Document
       const tsContent = await fs.readFile(tsFile, 'utf-8')
       expect(tsContent).toContain('const schema =')
       expect(tsContent).toContain('as const')
-      expect(tsContent).toContain("import { para } from '@paradoc/sdk'")
-      expect(tsContent).toContain('export const myBundle = para.bundle(schema)')
+      expect(tsContent).toContain("import { p } from '@paradoc/sdk'")
+      expect(tsContent).toContain('export const myBundle = p.bundle(schema)')
       expect(tsContent).toContain('export type MyBundleBundle = typeof myBundle')
     })
 
@@ -252,7 +252,7 @@ fields:
       const tsContent = await fs.readFile(tsFile, 'utf-8')
       expect(tsContent).toContain('const schema =')
       expect(tsContent).toContain('as const')
-      expect(tsContent).toContain('export const yamlForm = para.form(schema)')
+      expect(tsContent).toContain('export const yamlForm = p.form(schema)')
 
       // JSON file should NOT be created (schema is embedded)
       const jsonFile = join(tempDir, 'yaml-form.json')
@@ -274,7 +274,7 @@ fields:
 
       const tsFile = join(tempDir, 'my-complex-form-name.ts')
       const tsContent = await fs.readFile(tsFile, 'utf-8')
-      expect(tsContent).toContain('export const myComplexFormName = para.form(schema)')
+      expect(tsContent).toContain('export const myComplexFormName = p.form(schema)')
     })
   })
 
@@ -287,7 +287,7 @@ fields:
       expect(result.exitCode).toBe(0)
 
       const tsContent = await fs.readFile(join(tempDir, 'form.ts'), 'utf-8')
-      expect(tsContent).toContain('para.form(schema)')
+      expect(tsContent).toContain('p.form(schema)')
       expect(tsContent).toContain('FormPayload') // Forms get payload type
     })
 
@@ -299,7 +299,7 @@ fields:
       expect(result.exitCode).toBe(0)
 
       const tsContent = await fs.readFile(join(tempDir, 'doc.ts'), 'utf-8')
-      expect(tsContent).toContain('para.document(schema)')
+      expect(tsContent).toContain('p.document(schema)')
       expect(tsContent).not.toContain('Payload') // Documents don't get payload type
     })
 
@@ -311,7 +311,7 @@ fields:
       expect(result.exitCode).toBe(0)
 
       const tsContent = await fs.readFile(join(tempDir, 'checklist.ts'), 'utf-8')
-      expect(tsContent).toContain('para.checklist(schema)')
+      expect(tsContent).toContain('p.checklist(schema)')
       expect(tsContent).toContain('ChecklistPayload') // Checklists get payload type
     })
 
@@ -323,7 +323,7 @@ fields:
       expect(result.exitCode).toBe(0)
 
       const tsContent = await fs.readFile(join(tempDir, 'bundle.ts'), 'utf-8')
-      expect(tsContent).toContain('para.bundle(schema)')
+      expect(tsContent).toContain('p.bundle(schema)')
       expect(tsContent).not.toContain('Payload') // Bundles don't get payload type
     })
   })
@@ -336,7 +336,7 @@ fields:
       const result = await executeCliCommand(['generate', file, '--output', 'typed'])
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain("import schema from './hint-test.json'")
-      expect(result.stdout).toContain("import { para } from '@paradoc/sdk'")
+      expect(result.stdout).toContain("import { p } from '@paradoc/sdk'")
     })
 
     it('shows ts import hint for ts output', async () => {

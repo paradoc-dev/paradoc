@@ -67,7 +67,7 @@ Maps Paradoc field IDs (keys) to PDF AcroForm field names (values).
 
 - AcroForm field names visible in the PDF structure
 - Field tooltip text (often matches the internal name)
-- Use `para inspect template.pdf` to extract field names — see [cli.md](./cli.md) and [rendering.md](./rendering.md)
+- Use `paradoc inspect template.pdf` to extract field names — see [cli.md](./cli.md) and [rendering.md](./rendering.md)
 - If names are not visible, use descriptive names based on position and label
 
 ### Common PDF naming conventions
@@ -198,6 +198,6 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
 ## See Also
 
 - [layers.md](./layers.md) — generic layer concepts, signature block schema
-- [rendering.md](./rendering.md) — `renderPdf`, `inspectAcroFormFields`, `para inspect`
+- [rendering.md](./rendering.md) — `renderPdf`, `inspectAcroFormFields`, `paradoc inspect`
 - [parties.md](./parties.md) — party roles for signature blocks
-- [cli.md](./cli.md) — `para inspect`, `para render --layer pdf`
+- [cli.md](./cli.md) — `paradoc inspect`, `paradoc render --layer pdf`

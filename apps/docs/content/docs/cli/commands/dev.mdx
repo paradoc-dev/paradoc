@@ -1,7 +1,7 @@
 ---
 title: dev
 description: Preview React compositions live beside the PDF they render to
-ogTitle: para dev
+ogTitle: paradoc dev
 ogDescription: A live preview of every composition in a Paradoc project, with a proof view of its PDF
 ---
 
@@ -11,7 +11,7 @@ sample data, beside the PDF the same tree renders to.
 # Usage
 
 ```bash
-para dev [dir] [options]
+paradoc dev [dir] [options]
 ```
 
 # Arguments
@@ -32,7 +32,7 @@ para dev [dir] [options]
 
 # The conventions
 
-Three things are found by convention. `para dev --list` prints what it found, so
+Three things are found by convention. `paradoc dev --list` prints what it found, so
 a project can check its own layout without starting anything.
 
 ## Compositions
@@ -65,7 +65,7 @@ layers:
     path: compositions/purchase-order.tsx
 ```
 
-`para dev` reads every artifact in the project and pairs a composition with the
+`paradoc dev` reads every artifact in the project and pairs a composition with the
 artifact whose layer resolves to it. If no layer points at a composition, it
 falls back to an artifact file of the same name beside it —
 `purchase-order.tsx` next to `purchase-order.yaml` — so a composition can be
@@ -87,7 +87,7 @@ export default {
 ```
 
 All three rules live in `@paradoc/react/discovery` and are read by
-`para check` as well, so a composition that previews is a
+`paradoc check` as well, so a composition that previews is a
 composition that checks.
 
 # The preview
@@ -97,7 +97,7 @@ The document is on the left, paginated in the browser at the page geometry
 same tree with the preview's page breaks passed as hints. Editing a composition
 or its sample updates both; editing an artifact reloads the page.
 
-Before it renders, the PDF route runs the same check `para check` runs
+Before it renders, the PDF route runs the same check `paradoc check` runs
 (`checkElement` from `@paradoc/react/check`): every Tailwind class the engine
 cannot express, and every path the artifact does not declare. A composition with
 a finding shows it where the PDF would have been, and a document that throws
@@ -105,7 +105,7 @@ while it draws shows the reason where the document would have been. A
 composition with no artifact says so there too, rather than sitting on
 "rendering".
 
-Images are not a finding here. `para dev` reads the image sources the check
+Images are not a finding here. `paradoc dev` reads the image sources the check
 reports and loads their bytes from disk before rendering, so only a source that
 is not a file on disk reaches you, named by the renderer.
 
@@ -115,7 +115,7 @@ where the preview did not.
 
 # What it serves
 
-`para dev` writes nothing to disk. The page is four modules generated in memory
+`paradoc dev` writes nothing to disk. The page is four modules generated in memory
 and addressed as files of the project root:
 
 | Module | What it is |
@@ -135,7 +135,7 @@ any hint the render could not honour.
 # What the project must supply
 
 The preview compiles the project's own compositions against the project's own
-React, so it uses the project's toolchain. `para` does not carry a bundler:
+React, so it uses the project's toolchain. `paradoc` does not carry a bundler:
 
 ```bash
 npm install @paradoc/react react react-dom
@@ -147,7 +147,7 @@ nowhere else, because the page loads them and a second copy would be a different
 React. A project missing any of the seven is told which, in the install commands
 of whichever package manager left a lockfile, before anything starts.
 
-The project's own `vite.config` is not read: `para dev` serves one page it
+The project's own `vite.config` is not read: `paradoc dev` serves one page it
 generates itself, so a composition should import packages and its own neighbours
 and nothing else.
 
@@ -156,14 +156,14 @@ and nothing else.
 Preview the project in the working directory:
 
 ```bash
-para dev
+paradoc dev
 ```
 
 Check what the conventions found, without starting a server:
 
 ```bash
-para dev --list
-para dev --list --json
+paradoc dev --list
+paradoc dev --list --json
 ```
 
 `--list --json` reports one object per composition and exits `0` even when there
@@ -189,5 +189,5 @@ are none:
 Serve on another port and open a browser:
 
 ```bash
-para dev ./packages/documents --port 5300 --open
+paradoc dev ./packages/documents --port 5300 --open
 ```

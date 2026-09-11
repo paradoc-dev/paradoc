@@ -19,7 +19,7 @@ Logic expressions can control:
 - **`readonly`** — whether a field can be edited
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name("application")
   .fields({
     hasVehicle: { type: "boolean", label: "Do you have a vehicle?" },
@@ -159,7 +159,7 @@ visible: "fields.hasVehicle.value"
 When the same logic appears in multiple places, define it once in the `defs` section and reference it by name:
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name("application")
   .fields({
     age: { type: "number" },
@@ -181,13 +181,13 @@ A def's `value` is an expression over the same `fields.<id>` references. Named e
 Annexes support the same logic properties as fields:
 
 ```ts
-const form = para.form()
+const form = p.form()
   .name("lease-application")
   .fields({
     hasPets: { type: "boolean", label: "Do you have pets?" },
   })
   .annexes({
-    petPhoto: para.annex()
+    petPhoto: p.annex()
       .title("Pet Photo")
       .visible("fields.hasPets")
       .required("fields.hasPets"),

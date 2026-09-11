@@ -148,10 +148,10 @@ If the notary block is attached to a specific party's signature, set `notarized:
 ## SDK Builders
 
 ```typescript
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 
 // Object pattern (preferred)
-const form = para.form({
+const form = p.form({
   name: "lease",
   parties: {
     landlord: { label: "Landlord", required: true, signature: { required: true } },
@@ -161,11 +161,11 @@ const form = para.form({
 });
 
 // Builder pattern
-const form = para.form()
+const form = p.form()
   .name("lease")
   .parties({
-    landlord: para.party().label("Landlord").signature({ required: true }),
-    tenant: para.party().label("Tenant").multiple(true).min(1).max(4).signature({ required: true }),
+    landlord: p.party().label("Landlord").signature({ required: true }),
+    tenant: p.party().label("Tenant").multiple(true).min(1).max(4).signature({ required: true }),
   })
   .build();
 ```

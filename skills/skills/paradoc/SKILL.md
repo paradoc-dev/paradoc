@@ -3,7 +3,7 @@ name: paradoc
 description: >
   Paradoc — documents-as-code framework for type-safe artifacts (forms, documents,
   bundles, checklists). Activate for work with the TypeScript SDK (@paradoc/*),
-  para CLI, JSON/YAML artifacts, schema validation, or the remote MCP service.
+  paradoc CLI, JSON/YAML artifacts, schema validation, or the remote MCP service.
   Covers filling, validation, rendering, layers, fields, parties, signatures,
   annexes, logic, bundles, form creation, and conversion of PDF forms into
   Paradoc artifacts, including AcroForm bindings and signature blocks.
@@ -26,7 +26,7 @@ This skill covers every Paradoc surface and workflow. Use the dispatch tables be
 These apply across every surface and workflow:
 
 - **Schema version:** `2026-08-06`. `$schema` URIs follow the form `https://schema.paradoc.dev/2026-08-06/<form|document|bundle|checklist>.json`.
-- **Validation:** ALWAYS run `npx paradoc validate <file>` (NOT `para validate`) when working with files directly. The `npx` form ensures availability without requiring a global install. Validate after every change. NEVER skip.
+- **Validation:** ALWAYS run `npx paradoc validate <file>` when working with files directly. The `npx` form ensures availability without requiring a global install. Validate after every change. NEVER skip.
 - **Artifact name pattern:** `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` — kebab-case preferred, no leading/trailing/consecutive hyphens.
 - **Field/party/def/rule identifier pattern:** `^[a-z][a-zA-Z0-9_]*$` — camelCase, max 100 chars (50 for party roles).
 - **Versioning:** semver `MAJOR.MINOR.PATCH`. Major for breaking changes, minor for new optional, patch for cosmetic.
@@ -39,7 +39,7 @@ These apply across every surface and workflow:
 Load ONE surface ref based on how the user is working:
 
 - Writing or modifying TypeScript that imports from `@paradoc/*` → load [references/sdk.md](./references/sdk.md)
-- Using the `para` / `npx paradoc` CLI → load [references/cli.md](./references/cli.md)
+- Using the `paradoc` CLI → load [references/cli.md](./references/cli.md)
 - Editing artifact JSON or YAML directly → load [references/schemas.md](./references/schemas.md)
 - Working through the remote MCP service at `mcp.paradoc.dev` → load [references/mcp.md](./references/mcp.md)
 
@@ -83,7 +83,7 @@ Forms rendered without data produce empty output. ALWAYS pass data (CLI: `--data
 NEVER import from `@paradoc/core/dist/...` — only from package root. See [sdk.md](./references/sdk.md).
 
 **Mixing builder and object pattern (SDK)**
-Pick one per artifact. Object pattern uses plain objects for fields; builder uses `para.field.*()` chains. NEVER mix.
+Pick one per artifact. Object pattern uses plain objects for fields; builder uses `p.field.*()` chains. NEVER mix.
 
 **Missing layer / no rendering output**
 Renderer requires at least one layer. Set `defaultLayer` when multiple layers exist. See [layers.md](./references/layers.md).

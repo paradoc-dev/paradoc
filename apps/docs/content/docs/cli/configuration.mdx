@@ -78,15 +78,15 @@ These flags can be passed to any command:
 | `-v, --version` | Display the CLI version |
 
 ```bash
-para --no-telemetry add @paradoc/w9
+paradoc --no-telemetry add @paradoc/w9
 ```
 
 # The configure wizard
 
-The [`para configure`](/cli/commands/configure) command walks you through each setting interactively and saves results to the global config:
+The [`paradoc configure`](/cli/commands/configure) command walks you through each setting interactively and saves results to the global config:
 
 ```bash
-para configure
+paradoc configure
 ```
 
 The wizard covers output format, artifacts directory, cache TTL, and default registry. Press Enter at any prompt to keep the current value.
@@ -123,12 +123,12 @@ One package provides MIME-driven rendering and format-specific entry points:
 |---------|---------|
 | `@paradoc/render` | Text, Markdown, HTML, PDF, and DOCX |
 
-Manage renderers manually with [`para renderers`](/cli/commands/renderers):
+Manage renderers manually with [`paradoc renderers`](/cli/commands/renderers):
 
 ```bash
-para renderers status    # Show installation status
-para renderers install   # Install all renderers
-para renderers update    # Update to match CLI version
+paradoc renderers status    # Show installation status
+paradoc renderers install   # Install all renderers
+paradoc renderers update    # Update to match CLI version
 ```
 
 # Cache
@@ -160,12 +160,12 @@ Or per registry:
 }
 ```
 
-Manage the cache with [`para cache`](/cli/commands/cache):
+Manage the cache with [`paradoc cache`](/cli/commands/cache):
 
 ```bash
-para cache stats         # Show cache statistics
-para cache clear         # Clear all cached data
-para cache invalidate @acme  # Invalidate a specific registry
+paradoc cache stats         # Show cache statistics
+paradoc cache clear         # Clear all cached data
+paradoc cache invalidate @acme  # Invalidate a specific registry
 ```
 
 # Proxy support
@@ -177,7 +177,7 @@ The CLI respects standard proxy environment variables for outbound HTTP requests
 
 ```bash
 export HTTPS_PROXY=http://proxy.example.com:8080
-para search --query "lease"
+paradoc search --query "lease"
 ```
 
 # Telemetry
@@ -189,7 +189,7 @@ Telemetry can be disabled in three ways:
 **CLI flag** (per invocation):
 
 ```bash
-para --no-telemetry add @paradoc/w9
+paradoc --no-telemetry add @paradoc/w9
 ```
 
 **Global config** (persistent):

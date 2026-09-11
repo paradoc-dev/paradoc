@@ -68,12 +68,12 @@ Every instance you derive from it afterward — every `fill`, every render —
 carries the same resolver:
 
 ```typescript
-import { para } from "@paradoc/sdk";
+import { p } from "@paradoc/sdk";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 
 const resolver = createFsResolver({ root: "./templates" });
 
-const form = para.form(formSchema, { resolver });
+const form = p.form(formSchema, { resolver });
 
 const result = await form
   .fill({

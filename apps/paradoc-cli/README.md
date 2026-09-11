@@ -1,6 +1,6 @@
 # paradoc-cli
 
-Convenience alias for [`@paradoc/cli`](https://www.npmjs.com/package/@paradoc/cli). Installing this package gives you the `para` and `paradoc` commands — same binaries, same behavior, just a shorter unscoped name to type.
+Convenience alias for [`@paradoc/cli`](https://www.npmjs.com/package/@paradoc/cli). Installing this package gives you the `paradoc` command — same binary, same behavior, just a shorter unscoped name to type.
 
 ## Install
 

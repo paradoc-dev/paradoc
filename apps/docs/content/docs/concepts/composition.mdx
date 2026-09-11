@@ -32,7 +32,7 @@ export const contactFields = {
 // forms/application.ts
 import { contactFields } from "../common/fields"
 
-const application = para.form()
+const application = p.form()
   .name("application")
   .fields({
     ...contactFields,
@@ -50,7 +50,7 @@ Update `contactFields` and every form using it reflects the change.
 Bundles compose multiple artifacts into a single package. A lease transaction isn't one document—it's a lease agreement, disclosures, and a checklist, all bundled together.
 
 ```ts
-const leasePackage = para.bundle()
+const leasePackage = p.bundle()
   .name("lease-package")
   .title("Complete Lease Package")
   .contents([

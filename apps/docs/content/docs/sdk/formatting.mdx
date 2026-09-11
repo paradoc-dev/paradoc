@@ -71,10 +71,10 @@ const compact = formatter.withOverrides({
 # Use one formatter for an artifact
 
 ```ts
-import { createFormatter, para, renderLayer } from '@paradoc/sdk'
+import { createFormatter, p, renderLayer } from '@paradoc/sdk'
 
 const formatter = createFormatter({ locale: 'fr-FR' })
-const output = await para.form(formDefinition).fill(data).render({
+const output = await p.form(formDefinition).fill(data).render({
   renderer: renderLayer({ formatter }),
   layer: 'markdown',
 })

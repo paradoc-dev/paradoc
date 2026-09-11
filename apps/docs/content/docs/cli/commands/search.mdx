@@ -1,7 +1,7 @@
 ---
 title: search
 description: Search for artifacts in registries
-ogTitle: para search
+ogTitle: paradoc search
 ogDescription: Discover Paradoc artifacts across registries
 ---
 
@@ -10,7 +10,7 @@ Searches for artifacts in a registry.
 # Usage
 
 ```bash
-para search [query] [options]
+paradoc search [query] [options]
 ```
 
 # Arguments
@@ -37,37 +37,37 @@ The `search` command queries a registry's index to find matching artifacts. You 
 Search all artifacts:
 
 ```bash
-para search
+paradoc search
 ```
 
 Search with a query:
 
 ```bash
-para search "lease agreement"
+paradoc search "lease agreement"
 ```
 
 Filter by kind:
 
 ```bash
-para search --kind form
+paradoc search --kind form
 ```
 
 Filter by tags:
 
 ```bash
-para search --tags legal,real-estate
+paradoc search --tags legal,real-estate
 ```
 
 Search a specific registry:
 
 ```bash
-para search --registry @acme "tax"
+paradoc search --registry @acme "tax"
 ```
 
 Output as JSON:
 
 ```bash
-para search --json
+paradoc search --json
 ```
 
 # Output
@@ -89,7 +89,7 @@ Found 3 artifacts:
   Lease Addendum
   form · #legal · 1 layer
 
-Run 'para add @acme/<name>' to install an artifact.
+Run 'paradoc add @acme/<name>' to install an artifact.
 ```
 
 # See also

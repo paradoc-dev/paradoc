@@ -22,7 +22,7 @@
  * that each get their parts from somewhere different.
  */
 
-import { para } from "@paradoc/core";
+import { p } from "@paradoc/core";
 import type { Bundle, Document } from "@paradoc/types";
 
 import { purchaseOrderForm } from "./purchase-order";
@@ -90,7 +90,7 @@ export const vendorPacketSpec: Bundle = {
 };
 
 /** The parsed, validated vendor packet. */
-export const vendorPacket = para.bundle(vendorPacketSpec);
+export const vendorPacket = p.bundle(vendorPacketSpec);
 
 /** The same validated artifact as a plain `Bundle`, which is what `sealBundle` takes. */
 export const vendorPacketBundle: Bundle = vendorPacket.toJSON() as Bundle;

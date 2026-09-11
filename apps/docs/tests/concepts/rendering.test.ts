@@ -2,7 +2,7 @@
  * Tests for code snippets in concepts/rendering.mdx (Layers & Rendering)
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/sdk'
+import { p } from '@paradoc/sdk'
 
 describe('Rendering Concept', () => {
   // ============================================================================
@@ -10,7 +10,7 @@ describe('Rendering Concept', () => {
   // ============================================================================
 
   describe('what layers are', () => {
-    const form = para
+    const form = p
       .form()
       .name('invoice')
       .fields({
@@ -19,7 +19,7 @@ describe('Rendering Concept', () => {
       })
       .defaultLayer('markdown')
       .layers({
-        markdown: para
+        markdown: p
           .layer()
           .inline()
           .mimeType('text/markdown')
@@ -30,7 +30,7 @@ Customer: {{customer}}
 Total: {{total}}
     `,
           ),
-        pdf: para.layer().file().mimeType('application/pdf').path('templates/invoice.pdf'),
+        pdf: p.layer().file().mimeType('application/pdf').path('templates/invoice.pdf'),
       })
       .build()
 
@@ -49,14 +49,14 @@ Total: {{total}}
   // ============================================================================
 
   describe('templates and bindings', () => {
-    const form = para
+    const form = p
       .form()
       .name('lease-with-bindings')
       .fields({
         tenant: { type: 'text' },
       })
       .layers({
-        pdf: para
+        pdf: p
           .layer()
           .file()
           .mimeType('application/pdf')
@@ -80,7 +80,7 @@ Total: {{total}}
   // ============================================================================
 
   describe('renderers', () => {
-    const form = para
+    const form = p
       .form()
       .name('renderable-form')
       .fields({
@@ -88,7 +88,7 @@ Total: {{total}}
       })
       .defaultLayer('markdown')
       .layers({
-        markdown: para
+        markdown: p
           .layer()
           .inline()
           .mimeType('text/markdown')

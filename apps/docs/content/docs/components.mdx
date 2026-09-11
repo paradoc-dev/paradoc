@@ -68,7 +68,7 @@ Or, with the Paradoc CLI, which writes the namespace into `components.json` for
 you and then runs the same install:
 
 ```bash
-para add field
+paradoc add field
 ```
 
 Files land in `components/paradoc/`. A component that builds on another brings it
@@ -113,7 +113,7 @@ composition that binds it, and sample data to see it with.
 | [`vendor-packet`](https://docs.paradoc.dev/r/vendor-packet.json) | A packet of three documents: the purchase order composed live, a filled W-9 painted from its PDF layer, and a certificate of insurance as an annex, whose bytes it ships. |
 
 ```bash
-para add purchase-order
+paradoc add purchase-order
 ```
 
 The composition lands in `components/paradoc/` beside the components; the
@@ -160,11 +160,11 @@ to scrape. Fetch it to enumerate what is installable, then fetch
 auth.
 
 Before rendering a newly authored or edited composition, run
-`para check <composition-or-artifact-file>` — it walks the same tree the
+`paradoc check <composition-or-artifact-file>` — it walks the same tree the
 default PDF path walks and reports every unsupported class, unresolved field
 path, and missing image in one pass, without producing PDF bytes or needing a
-browser. See [`para check`](/cli/commands/check) and
-[`para add`](/cli/commands/add).
+browser. See [`paradoc check`](/cli/commands/check) and
+[`paradoc add`](/cli/commands/add).
 
 The `compose-documents` agent skill (in the
 [`paradoc-dev/skills`](https://github.com/paradoc-dev/skills) repository)

@@ -444,7 +444,7 @@ const regressionVectors: Array<{
 ];
 
 describe("ach-direct-deposit", () => {
-  it("loads via para.form()", () => {
+  it("loads via p.form()", () => {
     expect(achDirectDeposit.isValid()).toBe(true);
   });
 

@@ -9,7 +9,7 @@ async function writeFile(path: string, content: string | Buffer) {
 	await fs.promises.writeFile(path, content);
 }
 
-import { para, toYAML } from '@paradoc/core';
+import { p, toYAML } from '@paradoc/core';
 
 (async () => {
 	const c1 = `# Pet Addendum
@@ -22,7 +22,7 @@ import { para, toYAML } from '@paradoc/core';
 **Has Vaccination:** {{hasVaccination}}
 `;
 
-	const f1 = para.form({
+	const f1 = p.form({
 		kind: 'form',
 		version: '1.0.0',
 		name: 'pet-addendum',
@@ -64,7 +64,7 @@ import { para, toYAML } from '@paradoc/core';
 		defaultLayer: 'default',
 	});
 
-	const d1 = para.document({
+	const d1 = p.document({
 		kind: 'document',
 		version: '1.0.0',
 		name: 'pet-care-guide',

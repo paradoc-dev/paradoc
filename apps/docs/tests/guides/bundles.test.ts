@@ -2,7 +2,7 @@
  * Tests for code snippets in guides/bundles.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { para } from '@paradoc/core'
+import { p } from '@paradoc/core'
 
 describe('Bundles Guide', () => {
   // ============================================================================
@@ -10,7 +10,7 @@ describe('Bundles Guide', () => {
   // ============================================================================
 
   describe('object pattern artifacts', () => {
-    const lease = para.form({
+    const lease = p.form({
       name: 'lease-agreement',
       version: '1.0.0',
       title: 'Residential Lease Agreement',
@@ -30,7 +30,7 @@ describe('Bundles Guide', () => {
       },
     })
 
-    const disclosure = para.document({
+    const disclosure = p.document({
       name: 'lead-paint-disclosure',
       version: '1.0.0',
       title: 'Lead Paint Disclosure',
@@ -41,7 +41,7 @@ describe('Bundles Guide', () => {
       },
     })
 
-    const moveInChecklist = para.checklist({
+    const moveInChecklist = p.checklist({
       name: 'move-in-checklist',
       version: '1.0.0',
       title: 'Move-In Checklist',
@@ -71,7 +71,7 @@ describe('Bundles Guide', () => {
     // ============================================================================
 
     describe('compose bundle (object pattern)', () => {
-      const leaseBundle = para.bundle({
+      const leaseBundle = p.bundle({
         name: 'lease-transaction',
         version: '1.0.0',
         title: 'Complete Lease Package',
@@ -103,7 +103,7 @@ describe('Bundles Guide', () => {
     // ============================================================================
 
     describe('compose bundle (builder pattern)', () => {
-      const leaseBundle = para
+      const leaseBundle = p
         .bundle()
         .name('lease-transaction')
         .version('1.0.0')
@@ -168,7 +168,7 @@ describe('Bundles Guide', () => {
   // ============================================================================
 
   describe('serialization', () => {
-    const lease = para.form({
+    const lease = p.form({
       name: 'lease-agreement',
       version: '1.0.0',
       title: 'Residential Lease Agreement',
@@ -181,7 +181,7 @@ describe('Bundles Guide', () => {
       },
     })
 
-    const leaseBundle = para
+    const leaseBundle = p
       .bundle()
       .name('lease-transaction')
       .version('1.0.0')
@@ -207,14 +207,14 @@ describe('Bundles Guide', () => {
   // ============================================================================
 
   describe('content types', () => {
-    const someForm = para.form({
+    const someForm = p.form({
       name: 'some-form',
       version: '1.0.0',
       title: 'Some Form',
     })
 
     test('supports inline, path, and registry content types', () => {
-      const bundle = para
+      const bundle = p
         .bundle()
         .name('mixed-bundle')
         .inline('embedded', someForm)

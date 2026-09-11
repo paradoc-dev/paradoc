@@ -142,8 +142,8 @@ export function createVersionCommand(): Command {
         console.log(kleur.gray(`Updated: ${file}`))
         console.log('')
         console.log(kleur.gray('Next steps:'))
-        console.log(kleur.gray(`  para add ${file}`))
-        console.log(kleur.gray(`  para commit -m "Bump version to ${newVersion}"`))
+        console.log(kleur.gray(`  paradoc add ${file}`))
+        console.log(kleur.gray(`  paradoc commit -m "Bump version to ${newVersion}"`))
       } catch (error: any) {
         console.error(kleur.red(`Error: ${error.message || String(error)}`))
         process.exit(1)

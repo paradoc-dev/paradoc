@@ -4,7 +4,6 @@
   "description": "CLI for the Paradoc framework — convenience alias for @paradoc/cli",
   "type": "module",
   "bin": {
-    "para": "./bin.js",
     "paradoc": "./bin.js"
   },
   "files": [
