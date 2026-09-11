@@ -31,6 +31,7 @@ import {
 import { useFontReadiness } from "../headless/pagination";
 import { measureKeeps } from "../lib/measure";
 import { planPages, type PagePlan } from "../lib/plan";
+import { captureApplicationFonts } from "../lib/application-fonts";
 import { PAGE_GAP_PX, Sheet, useFitToWidth, usePaperFor } from "./paper";
 import { DrawnPaperProvider, usePaperGeometry } from "./paper-geometry";
 import { PageContextProvider, type PageContextValue } from "./page-context";
@@ -100,10 +101,11 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   // a different plan. A page break never paints against the old paper because
   // that measurement runs before paint.
   const budget = geometry.contentHeightPx;
-  const repaginate = useCallback(() => {
+  const repaginate = useCallback(async () => {
     const container = measureRef.current;
     if (!container) return;
     const next = planPages(measureKeeps(container), budget);
+    next.fonts = await captureApplicationFonts(container);
     setPlan((previous) => (samePlan(previous, next) ? previous : next));
   }, [budget]);
 
@@ -117,14 +119,14 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   // Before paint, not after: an edit that moves a page break would otherwise
   // paint the new document against the old page assignments for one frame.
   useLayoutEffect(() => {
-    if (fontsReady) repaginate();
+    if (fontsReady) void repaginate();
   });
 
   useEffect(() => {
     if (!fontsReady || typeof ResizeObserver === "undefined") return;
     const container = measureRef.current;
     if (!container) return;
-    const observer = new ResizeObserver(repaginate);
+    const observer = new ResizeObserver(() => { void repaginate(); });
     observer.observe(container);
     return () => observer.disconnect();
   }, [fontsReady, repaginate]);
@@ -214,6 +216,7 @@ function samePlan(a: PagePlan | null, b: PagePlan): boolean {
   return (
     a !== null &&
     a.budget === b.budget &&
+    a.fonts?.identity === b.fonts?.identity &&
     sameRows(a.pages, b.pages) &&
     sameRows(a.repeats, b.repeats) &&
     sameRows(a.sections, b.sections) &&

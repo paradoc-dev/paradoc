@@ -12,6 +12,11 @@
  */
 
 export {
+  captureApplicationFonts,
+  type ApplicationFontResource,
+  type ApplicationFontSnapshot,
+} from "./lib/application-fonts";
+export {
   createDocumentContext,
   DocumentContextProvider,
   useDocument,

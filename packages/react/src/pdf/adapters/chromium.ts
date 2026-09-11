@@ -201,7 +201,7 @@ function applyInPage(
   plan: PagePlanInput | null,
   images: Record<string, string>,
   attributes: { keep: string; repeat: string },
-  families: string[]
+  faces: { family: string; weight: string; style: string }[]
 ): PageOutcome {
   const { keep: KEEP, repeat: REPEAT } = attributes;
 
@@ -262,11 +262,24 @@ function applyInPage(
     if (!taken) target.style.breakBefore = "page";
   });
 
-  const fontsLoaded = families.every((family) =>
-    [...document.fonts].some(
-      (face) => face.family.replaceAll('"', "") === family && face.status === "loaded"
-    )
-  );
+  const configured = new Set(faces.map((face) => face.family));
+  const fontsLoaded = [...document.querySelectorAll<HTMLElement>(".paradoc-document, .paradoc-document *")]
+    .filter((element) => (element.textContent?.length ?? 0) > 0)
+    .every((element) => {
+      const style = getComputedStyle(element);
+      const families = style.fontFamily.split(",").map((family) => family.trim().replaceAll('"', "").replaceAll("'", ""));
+      const selected = families.find((family) => configured.has(family));
+      if (selected === undefined) return true;
+      return [...document.fonts].some((face) =>
+        face.family.replaceAll('"', "") === selected && face.status === "loaded" &&
+        face.style === style.fontStyle && (() => {
+          if (face.weight === style.fontWeight) return true;
+          const range = face.weight.split(/\s+/u).map(Number);
+          const requested = Number(style.fontWeight);
+          return range.length === 2 && Number.isFinite(requested) && requested >= range[0]! && requested <= range[1]!;
+        })()
+      );
+    });
 
   return { unknownBreaks, unknownRepeats, missingImages, fontsLoaded };
 }
@@ -333,7 +346,7 @@ export const chromiumAdapter: PdfAdapter = {
             },
         images,
         { keep: KEEP_ID_ATTRIBUTE, repeat: KEEP_REPEAT_ATTRIBUTE },
-        [...new Set(input.fonts.map((font) => font.family))]
+        input.fonts.map((font) => ({ family: font.family, weight: font.weight, style: font.style ?? "normal" }))
       );
 
       if (outcome.missingImages.length > 0) {

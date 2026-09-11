@@ -55,6 +55,8 @@ export interface OversizeKeep {
 
 /** The plan the preview renders and the PDF render is hinted with. */
 export interface PagePlan {
+  /** Browser-measured font faces and their byte identity. */
+  fonts?: import("./application-fonts").ApplicationFontSnapshot;
   /** KeepTogether ids on each page, in order, including repeated table headers. */
   pages: string[][];
   /**

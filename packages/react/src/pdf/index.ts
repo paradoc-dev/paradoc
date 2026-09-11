@@ -15,6 +15,8 @@ export {
   renderPdf,
   assertDirectionSupported,
   MissingAdapterPeerError,
+  FontResourceIdentityMismatchError,
+  UnsupportedApplicationTypographyError,
   UnsupportedDirectionError,
   UnsupportedPdfContentError,
   type PdfAdapter,

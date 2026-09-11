@@ -103,6 +103,20 @@ export interface RenderPdfOptions {
   signingMarkers?: boolean;
 }
 
+export class FontResourceIdentityMismatchError extends Error {
+  constructor() {
+    super("The preview page plan and PDF render name different font resources. Repaginate with the current application typography before rendering.");
+    this.name = "FontResourceIdentityMismatchError";
+  }
+}
+
+export class UnsupportedApplicationTypographyError extends Error {
+  constructor(readonly adapter: string) {
+    super(`The "${adapter}" adapter cannot honor application CSS or multiple application font families. Use the Chromium adapter for application-typography fidelity.`);
+    this.name = "UnsupportedApplicationTypographyError";
+  }
+}
+
 /**
  * The optional peers only the Chromium adapter needs, and what each is for.
  *
@@ -192,9 +206,14 @@ export async function renderPdf(
   // refusal is the same one whichever engine would have been asked.
   const tokens = documentTokensOf(element, options.tokens);
 
+  if (options.fonts !== undefined && options.plan?.fonts !== undefined &&
+      JSON.stringify(options.fonts) !== JSON.stringify(options.plan.fonts.resources)) {
+    throw new FontResourceIdentityMismatchError();
+  }
+
   const fonts = [
     ...(await documentFontFiles(tokens.fontFamily)),
-    ...(options.fonts === undefined ? [] : await resolveFontResources(options.fonts)),
+    ...(await resolveFontResources(options.fonts ?? options.plan?.fonts?.resources ?? [])),
   ];
   if (signingMarkers) fonts.push(await markerFontFile(tokens.fontFamily));
 
@@ -211,11 +230,14 @@ export async function renderPdf(
     plan: options.plan,
     images: options.images ?? [],
     fonts,
-    applicationCss: options.applicationCss,
+    applicationCss: options.applicationCss ?? options.plan?.fonts?.css,
     geometry: pageGeometry(tokens),
   };
 
   const adapter = await resolveAdapter(options.adapter ?? "takumi");
+  if (adapter.name === "takumi" && (options.applicationCss !== undefined || (options.fonts ?? options.plan?.fonts?.resources)?.length)) {
+    throw new UnsupportedApplicationTypographyError(adapter.name);
+  }
   // The engine, which is the question this render alone asks: whether the one
   // chosen lays the document's direction out at all.
   assertDirectionSupported(adapter, tokens.dir, scriptOf(tokens.lang), tokens.lang);

@@ -70,6 +70,7 @@ export class FontResourceError extends Error {
 const resolvedResources = new Map<string, Promise<PdfFontFile>>();
 
 function resourcePath(source: string): string | undefined {
+  if (source.startsWith("data:")) return undefined;
   if (source.startsWith("file:")) return new URL(source).pathname;
   if (source.startsWith("http://") || source.startsWith("https://")) return undefined;
   try { return require.resolve(source); } catch { return source; }
@@ -82,8 +83,9 @@ export function resolveFontResource(resource: PdfFontResource): Promise<PdfFontF
   if (pending === undefined) {
     pending = (async () => {
       const path = resourcePath(resource.source);
-      const bytes = path === undefined
-        ? new Uint8Array(await (async () => {
+      const bytes = resource.source.startsWith("data:")
+        ? new Uint8Array(Buffer.from(resource.source.slice(resource.source.indexOf(",") + 1), "base64"))
+        : path === undefined ? new Uint8Array(await (async () => {
             const response = await fetch(resource.source);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return response.arrayBuffer();

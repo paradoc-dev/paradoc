@@ -54,7 +54,7 @@ export const KEEP_REPEAT_ATTRIBUTE = "data-keep-repeat";
  * on a continued row with no header above it, which is a page the preview never
  * drew.
  */
-export type PageBreakPlan = Pick<PagePlan, "breaks" | "repeats">;
+export type PageBreakPlan = Pick<PagePlan, "breaks" | "repeats" | "fonts">;
 
 export interface PrepareOptions {
   /** The preview's page plan. Absent, the engine paginates on its own. */
