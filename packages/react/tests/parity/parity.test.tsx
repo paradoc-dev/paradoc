@@ -401,10 +401,19 @@ async function measure(
   const rendered = await renderPdf(elementOf(variant), {
     adapter,
     images: [logo],
-    plan: mode === "hint" ? { breaks: plan.breaks, repeats: plan.repeats } : undefined,
+    fonts: plan.fonts.resources,
+    applicationCss: plan.fonts.css,
+    plan: mode === "hint" ? { breaks: plan.breaks, repeats: plan.repeats, fonts: plan.fonts } : undefined,
   });
 
   const read = await readPdf(rendered.bytes);
+  const expectedFonts = plan.fonts.resources
+    .map((font) => `${font.family}:${font.weight ?? "400"}:${font.style ?? "normal"}:${font.integrity}`)
+    .sort();
+  const embeddedFonts = (rendered.fontResources ?? [])
+    .map((font) => `${font.family}:${font.weight}:${font.style}:${font.identity}`)
+    .sort();
+  expect(embeddedFonts).toEqual(expectedFonts);
   const difference = await rasterizer.compare(rendered.bytes, captures, paper);
   // Two readings of the same question. The text one is the criterion wherever a
   // PDF gives the words back, and it is *recorded* everywhere so the claim that
@@ -463,6 +472,8 @@ async function measure(
     ),
     unknownBreaks: rendered.unknownBreaks,
     unknownRepeats: rendered.unknownRepeats,
+    applicationFontIdentity: plan.fonts.identity,
+    fontResources: rendered.fontResources ?? [],
     worstDifferingPercent: Math.max(0, ...pages.map((page) => page.differingPercent)),
     worstAlignedPercent: Math.max(0, ...pages.map((page) => page.alignedPercent)),
     worstDriftPixels: Math.max(0, ...pages.map((page) => page.driftPixels)),

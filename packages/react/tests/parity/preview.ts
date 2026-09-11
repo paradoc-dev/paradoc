@@ -17,6 +17,7 @@
 import type { Browser, ElementHandle, ElementScreenshotOptions, Page } from "puppeteer";
 
 import type { PageDimensions } from "../../src/lib/tokens";
+import type { ApplicationFontSnapshot } from "../../src/lib/application-fonts";
 
 /** Which sample document the lab is showing. */
 export type LabDocument = "proposal" | "arabic-letter";
@@ -36,6 +37,8 @@ const WINDOW_HEIGHT = 1200;
 
 /** What the preview says about its own pages. */
 export interface PreviewPlan {
+  /** Exact application typography captured while the preview was measured. */
+  fonts: ApplicationFontSnapshot;
   /** How many sheets the preview drew. */
   pageCount: number;
   /**
@@ -172,6 +175,7 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
         )
       ),
       breaks: firstKeeps.slice(1),
+      fonts: JSON.parse(readout?.getAttribute("data-plan-fonts") ?? "null") as ApplicationFontSnapshot | null,
       stampedDocument: readout?.getAttribute("data-plan-document") ?? null,
       stampedDataSet: readout?.getAttribute("data-plan-data-set") ?? null,
       stampedBranding: readout?.getAttribute("data-plan-branding") ?? null,
@@ -180,6 +184,9 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
 
   if (read.pageCount === 0) {
     throw new Error("The preview drew no sheet at all. Nothing measured against it means anything.");
+  }
+  if (read.fonts === null) {
+    throw new Error("The preview published no application-font snapshot with its plan.");
   }
 
   const name = (stamp: {

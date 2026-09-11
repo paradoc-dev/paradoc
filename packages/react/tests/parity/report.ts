@@ -102,6 +102,10 @@ export interface RunReport {
   /** Hints the render could not honour. Empty is the only passing value. */
   unknownBreaks: string[];
   unknownRepeats: string[];
+  /** Content identity of the application typography captured with the preview plan. */
+  applicationFontIdentity: string;
+  /** Exact font resources the PDF adapter reports embedding. */
+  fontResources: readonly { family: string; weight: string; style: string; identity: string }[];
   /** The worst page's raw differing percentage. Recorded, not asserted. */
   worstDifferingPercent: number;
   /** The worst page's residual once each band is aligned. Asserted in hint mode. */
