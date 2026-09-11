@@ -20,7 +20,8 @@ import type { PageDimensions } from "../../src/lib/tokens";
 import type { ApplicationFontSnapshot } from "../../src/lib/application-fonts";
 
 /** Which sample document the lab is showing. */
-export type LabDocument = "proposal" | "arabic-letter";
+export type LabDocument = "proposal" | "invoice" | "arabic-letter";
+export type Typography = "sans" | "serif-sans" | "serif-mono";
 
 /** Which of the proposal's data sets the lab is showing. */
 export type DataSet = "short" | "overflow";
@@ -77,7 +78,8 @@ export interface Preview {
     doc: LabDocument,
     set: DataSet,
     branding: Branding,
-    paper: PageDimensions
+    paper: PageDimensions,
+    typography?: Typography
   ) => Promise<PreviewPlan>;
   /** One image per drawn page. */
   capture: () => Promise<PreviewCapture[]>;
@@ -96,6 +98,7 @@ interface PlanStamp {
   document: LabDocument | null;
   dataSet: DataSet | null;
   branding: Branding | null;
+  typography: Typography | null;
 }
 
 /**
@@ -110,13 +113,14 @@ export interface VariantStamp {
   document: LabDocument;
   dataSet: DataSet | null;
   branding: Branding | null;
+  typography: Typography | null;
 }
 
 /** The stamp the lab publishes for one variant. */
-function stampFor(doc: LabDocument, set: DataSet, branding: Branding): VariantStamp {
+function stampFor(doc: LabDocument, set: DataSet, branding: Branding, typography?: Typography): VariantStamp {
   return doc === "proposal"
-    ? { document: doc, dataSet: set, branding }
-    : { document: doc, dataSet: null, branding: null };
+    ? { document: doc, dataSet: set, branding, typography: null }
+    : { document: doc, dataSet: null, branding: null, typography: doc === "invoice" ? typography ?? "sans" : null };
 }
 
 /** True when a plan already on screen is a plan of the variant being asked for. */
@@ -124,7 +128,8 @@ function sameStamp(stamp: PlanStamp, wanted: VariantStamp): boolean {
   return (
     stamp.document === wanted.document &&
     stamp.dataSet === wanted.dataSet &&
-    stamp.branding === wanted.branding
+    stamp.branding === wanted.branding &&
+    stamp.typography === wanted.typography
   );
 }
 
@@ -133,12 +138,13 @@ function sameStamp(stamp: PlanStamp, wanted: VariantStamp): boolean {
  */
 function readPlanStamp(): PlanStamp {
   const readout = document.querySelector("[data-plan-revision]");
-  if (readout === null) return { revision: 0, document: null, dataSet: null, branding: null };
+  if (readout === null) return { revision: 0, document: null, dataSet: null, branding: null, typography: null };
   return {
     revision: Number(readout.getAttribute("data-plan-revision")),
     document: readout.getAttribute("data-plan-document") as LabDocument | null,
     dataSet: readout.getAttribute("data-plan-data-set") as DataSet | null,
     branding: readout.getAttribute("data-plan-branding") as Branding | null,
+    typography: readout.getAttribute("data-plan-typography") as Typography | null,
   };
 }
 
@@ -181,6 +187,7 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
       stampedDocument: readout?.getAttribute("data-plan-document") ?? null,
       stampedDataSet: readout?.getAttribute("data-plan-data-set") ?? null,
       stampedBranding: readout?.getAttribute("data-plan-branding") ?? null,
+      stampedTypography: readout?.getAttribute("data-plan-typography") ?? null,
     };
   });
 
@@ -195,19 +202,22 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
     document: string | null;
     dataSet: string | null;
     branding: string | null;
-  }) => [stamp.document, stamp.dataSet, stamp.branding].filter(Boolean).join("/") || "no plan";
+    typography?: string | null;
+  }) => [stamp.document, stamp.dataSet, stamp.branding, stamp.typography].filter(Boolean).join("/") || "no plan";
 
   if (
     expected !== undefined &&
     (read.stampedDocument !== expected.document ||
       read.stampedDataSet !== expected.dataSet ||
-      read.stampedBranding !== expected.branding)
+      read.stampedBranding !== expected.branding ||
+      read.stampedTypography !== expected.typography)
   ) {
     throw new Error(
       `the preview's plan is stamped ${name({
         document: read.stampedDocument,
         dataSet: read.stampedDataSet,
         branding: read.stampedBranding,
+        typography: read.stampedTypography,
       })}, not the requested ${name(expected)}. It has not caught up with the switch.`
     );
   }
@@ -216,9 +226,10 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
     stampedDocument: _stampedDocument,
     stampedDataSet: _stampedDataSet,
     stampedBranding: _stampedBranding,
+    stampedTypography: _stampedTypography,
     ...plan
   } = read;
-  return plan;
+  return { ...plan, fonts: read.fonts };
 }
 
 /**
@@ -557,7 +568,8 @@ export async function openPreview(
     doc: LabDocument,
     set: DataSet,
     branding: Branding,
-    paper: PageDimensions
+    paper: PageDimensions,
+    typography?: Typography
   ): Promise<PreviewPlan> => {
     await page.bringToFront();
     const before = await page.evaluate(readPlanStamp);
@@ -570,6 +582,8 @@ export async function openPreview(
       // paper and captured on another would compare two documents.
       await page.click(`[data-choice="branding"] [data-choice-option="${branding}"]`);
       await page.click(`[data-choice="data-set"] [data-choice-option="${set}"]`);
+    } else if (doc === "invoice") {
+      await page.click(`[data-choice="typography"] [data-choice-option="${typography ?? "sans"}"]`);
     }
     // If the readout already names the variant being asked for, nothing was
     // switched — the clicks landed on the options already selected, as the
@@ -578,7 +592,7 @@ export async function openPreview(
     // "this plan is the previous variant's, and just happens to paginate to
     // the same number of pages", which is exactly how a stale plan passed
     // this wait before: the readout's own variant and revision can.
-    const wanted = stampFor(doc, set, branding);
+    const wanted = stampFor(doc, set, branding, typography);
     if (!sameStamp(before, wanted)) {
       await page.waitForFunction(
         (expected: VariantStamp, baselineRevision: number) => {
@@ -592,7 +606,8 @@ export async function openPreview(
             // The letter has one of each and the lab stamps neither, so a wait
             // that insisted on them would never be satisfied.
             readout.getAttribute("data-plan-data-set") === expected.dataSet &&
-            readout.getAttribute("data-plan-branding") === expected.branding
+            readout.getAttribute("data-plan-branding") === expected.branding &&
+            readout.getAttribute("data-plan-typography") === expected.typography
           );
         },
         // Polled on a timer rather than on animation frames. The suite also holds
@@ -611,7 +626,7 @@ export async function openPreview(
     // real.
     await assertSheetsMatchReadout(page);
     await assertUnscaled(page, paper);
-    return readPlan(page, stampFor(doc, set, branding));
+    return readPlan(page, stampFor(doc, set, branding, typography));
   };
 
   const capture = async (): Promise<PreviewCapture[]> => {

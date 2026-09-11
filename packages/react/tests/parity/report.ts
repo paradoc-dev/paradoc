@@ -58,6 +58,8 @@ export interface PageReport {
   inkPercent: number;
   /** The specification's measure: differing pixels as a percentage of the page. */
   differingPercent: number;
+  geometryDifferingPercent: number;
+  rasterDifferingPercent: number;
   /** The same count with no tolerance at all. */
   strictDifferingPercent: number;
   /**
@@ -72,6 +74,7 @@ export interface PageReport {
   alignedPercent: number;
   /** The largest vertical slide a band needed, in pixels. */
   driftPixels: number;
+  horizontalDriftPixels: number;
   /**
    * True when that slide sat at the edge of the search, so the drift is a floor
    * rather than a measurement. A saturated page is never a passing page.
@@ -87,6 +90,7 @@ export interface RunReport {
   adapter: PdfAdapterName;
   /** Which sample document was measured. */
   document: LabDocument;
+  typography?: "sans" | "serif-sans" | "serif-mono";
   dataSet: DataSet;
   /** Which token set the document was branded with. */
   branding: Branding;
@@ -112,6 +116,7 @@ export interface RunReport {
   worstAlignedPercent: number;
   /** The worst page's band drift, in pixels. Asserted in hint mode. */
   worstDriftPixels: number;
+  worstHorizontalDriftPixels: number;
   /** True when every page's raw difference is under one percent. Recorded. */
   everyPageUnderOnePercent: boolean;
   /**
@@ -162,6 +167,8 @@ export interface SensitivityReport {
   /** The residual the criteria read, before and after. The change must cross it. */
   beforeAlignedPercent: number;
   afterAlignedPercent: number;
+  beforeGeometryPercent: number;
+  afterGeometryPercent: number;
 }
 
 /** Everything one invocation of the suite measured. */
@@ -237,7 +244,7 @@ export function printReport(report: ParityReport): void {
     for (const run of report.runs.filter((candidate) => candidate.adapter === adapter)) {
       lines.push("");
       lines.push(
-        `${run.document} / ${run.dataSet} / ${run.branding} tokens / ${run.mode} breaks on ` +
+        `${run.document} / ${run.typography ?? run.dataSet} / ${run.branding} tokens / ${run.mode} breaks on ` +
           `${run.paper.widthPx}x${run.paper.heightPx}: preview ${run.previewPages} pages, ` +
           `PDF ${run.pdfPages} pages` +
           (run.unknownBreaks.length > 0 ? `, stale breaks ${run.unknownBreaks.join(",")}` : "") +
@@ -257,11 +264,13 @@ export function printReport(report: ParityReport): void {
         "same",
         "ink%",
         "diff%",
+        "geometry%",
+        "raster%",
         "<1%",
         "strict%",
         "1px floor%",
         "aligned%",
-        "drift px",
+        "x/y drift px",
       ];
       const body = run.pages.map((page) => [
         String(page.number),
@@ -272,11 +281,13 @@ export function printReport(report: ParityReport): void {
         page.firstKeepMatches ? "yes" : "NO",
         page.inkPercent.toFixed(2),
         page.differingPercent.toFixed(2),
+        page.geometryDifferingPercent.toFixed(2),
+        page.rasterDifferingPercent.toFixed(2),
         page.underOnePercent ? "yes" : "no",
         page.strictDifferingPercent.toFixed(2),
         page.shiftFloorPercent.toFixed(2),
         page.alignedPercent.toFixed(2),
-        `${page.driftPixels}${page.driftSaturated ? "+" : ""}`,
+        `${page.horizontalDriftPixels}/${page.driftPixels}${page.driftSaturated ? "+" : ""}`,
       ]);
       const widths = header.map((cell, index) =>
         Math.max(cell.length, ...body.map((cells) => cells[index]!.length))
@@ -303,7 +314,8 @@ export function printReport(report: ParityReport): void {
         `page ${check.page} from ` +
         `${check.beforeAlignedPercent.toFixed(2)}% to ` +
         `${check.afterAlignedPercent.toFixed(2)}% aligned, which fails the criteria ` +
-        `(raw difference ${check.beforePercent.toFixed(2)}% to ${check.afterPercent.toFixed(2)}%).`
+        `(raw difference ${check.beforePercent.toFixed(2)}% to ${check.afterPercent.toFixed(2)}%; ` +
+        `geometry ${check.beforeGeometryPercent.toFixed(2)}% to ${check.afterGeometryPercent.toFixed(2)}%).`
     );
   }
 

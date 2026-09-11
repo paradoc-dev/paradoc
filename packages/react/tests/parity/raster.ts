@@ -18,7 +18,8 @@
  * be read. `ink` says how much of the page is not blank, which is the ceiling a
  * text page's difference is measured against. `shiftFloor` is the preview
  * compared with itself moved down one pixel, which is what a single pixel of
- * drift costs in this metric. `aligned` and `drift` re-measure the page after
+ * drift costs in this metric. `geometry` and `raster` split that raw count by
+ * whether differing ink has a nearby counterpart. `aligned` and `drift` re-measure the page after
  * letting each horizontal band slide vertically, which separates a difference
  * that is the two layouts disagreeing from a difference that is one of them
  * sitting slightly lower.
@@ -62,6 +63,10 @@ export interface PageDifference {
   inkPixels: number;
   /** Pixels differing by more than the tolerance. */
   differingPixels: number;
+  /** Differing pixels whose ink has no counterpart within one CSS pixel. */
+  geometryDifferingPixels: number;
+  /** Locally coincident difference attributable to paint and rasterization. */
+  rasterDifferingPixels: number;
   /** Pixels differing at all, before the tolerance. */
   strictDifferingPixels: number;
   /** What one pixel of vertical drift costs, measured on the preview alone. */
@@ -70,6 +75,8 @@ export interface PageDifference {
   alignedPixels: number;
   /** The largest vertical slide any band needed, in pixels. */
   driftPixels: number;
+  /** The largest horizontal slide any inked band needed, in pixels. */
+  horizontalDriftPixels: number;
   /**
    * True when an inked band's best match sat at the very edge of the search.
    * The reported drift is then a floor, not a measurement: the real offset is
@@ -315,6 +322,39 @@ async function measureInPage(
         if (delta > tolerance) differingPixels++;
       }
 
+      // Classify only pixels already counted by the visual metric. A pixel is
+      // geometry-affecting when ink on one side has no ink counterpart within
+      // one CSS pixel on the other. Coincident edge differences are paint or
+      // rasterization, including antialiasing and font hinting.
+      const hasNearbyInk = (pixels: Uint8ClampedArray, x: number, y: number): boolean => {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const atX = x + dx;
+            const atY = y + dy;
+            if (
+              atX >= 0 && atX < width && atY >= 0 && atY < height &&
+              pixels[atY * width + atX]! < 250
+            ) return true;
+          }
+        }
+        return false;
+      };
+      let geometryDifferingPixels = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const at = y * width + x;
+          if (Math.abs(pdf[at]! - preview[at]!) <= tolerance) continue;
+          const previewInk = preview[at]! < 250;
+          const pdfInk = pdf[at]! < 250;
+          if (
+            (previewInk && !hasNearbyInk(pdf, x, y)) ||
+            (pdfInk && !hasNearbyInk(preview, x, y))
+          ) {
+            geometryDifferingPixels++;
+          }
+        }
+      }
+
       // What one pixel of drift costs, measured on the preview against itself.
       let shiftFloorPixels = 0;
       for (let y = 1; y < height; y++) {
@@ -329,6 +369,7 @@ async function measureInPage(
       // the two layouts disagreeing; what it removes is one of them sitting low.
       let alignedPixels = 0;
       let driftPixels = 0;
+      let horizontalDriftPixels = 0;
       let driftSaturated = false;
       for (let top = 0; top < height; top += band) {
         const bottom = Math.min(height, top + band);
@@ -362,6 +403,26 @@ async function measureInPage(
           // The best match sat on the edge of the search, so the band may be
           // further out than this and the number is a floor.
           if (Math.abs(bestDrift) === maxDrift) driftSaturated = true;
+
+          let bestHorizontal = Number.POSITIVE_INFINITY;
+          let bestHorizontalDrift = 0;
+          for (let drift = -maxDrift; drift <= maxDrift; drift++) {
+            let count = 0;
+            for (let y = top; y < bottom; y++) {
+              for (let x = 0; x < width; x++) {
+                const from = x + drift;
+                if (
+                  from < 0 || from >= width ||
+                  Math.abs(pdf[y * width + from]! - preview[y * width + x]!) > tolerance
+                ) count++;
+              }
+            }
+            if (count < bestHorizontal) {
+              bestHorizontal = count;
+              bestHorizontalDrift = drift;
+            }
+          }
+          horizontalDriftPixels = Math.max(horizontalDriftPixels, Math.abs(bestHorizontalDrift));
         }
       }
 
@@ -383,10 +444,13 @@ async function measureInPage(
         totalPixels: width * height,
         inkPixels,
         differingPixels,
+        geometryDifferingPixels,
+        rasterDifferingPixels: differingPixels - geometryDifferingPixels,
         strictDifferingPixels,
         shiftFloorPixels,
         alignedPixels,
         driftPixels,
+        horizontalDriftPixels,
         driftSaturated,
         image: diffContext.canvas.toDataURL("image/png"),
       });

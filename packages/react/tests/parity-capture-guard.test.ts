@@ -51,7 +51,7 @@ function stubPage(sample: CaptureSample): Page {
 /**
  * A `Page` and sheet stub for `captureWhenPainted`.
  *
- * `screenshots` is consumed one entry per `sheet.screenshot()` call, held at
+ * `screenshots` is consumed one entry per `page.screenshot()` call, held at
  * the last entry once it runs out — two attempts' worth of screenshots is
  * four calls, since each attempt now takes a pair. `samples` is consumed one
  * entry per pair that agrees, the same held-at-the-end way, since
@@ -80,10 +80,10 @@ function stubPollingPage(
     shot += 1;
     return next;
   });
-  const page = { evaluate } as unknown as Page;
+  const page = { evaluate, screenshot } as unknown as Page;
   const sheet = {
     evaluate: vi.fn().mockResolvedValue(undefined),
-    screenshot,
+    boundingBox: vi.fn().mockResolvedValue({ x: 0, y: 0, width: 816, height: 1056 }),
   } as unknown as ElementHandle<Element>;
   return { page, sheet };
 }
@@ -92,10 +92,11 @@ function stubPollingPage(
 function stubNeverConverging(): { page: Page; sheet: ElementHandle<Element> } {
   let counter = 0;
   const evaluate = vi.fn(async (...args: unknown[]) => (args.length === 1 ? undefined : null));
-  const page = { evaluate } as unknown as Page;
+  const screenshot = vi.fn(async () => `frame-${counter++}`);
+  const page = { evaluate, screenshot } as unknown as Page;
   const sheet = {
     evaluate: vi.fn().mockResolvedValue(undefined),
-    screenshot: vi.fn(async () => `frame-${counter++}`),
+    boundingBox: vi.fn().mockResolvedValue({ x: 0, y: 0, width: 816, height: 1056 }),
   } as unknown as ElementHandle<Element>;
   return { page, sheet };
 }
@@ -163,7 +164,7 @@ describe("captureWhenPainted", () => {
     const { page, sheet } = stubPollingPage(["a", "b", "c", "c"], [good]);
     const capture = await captureWhenPainted(page, sheet, 4);
     expect(capture).toEqual({ number: 4, png: "c" });
-    expect(sheet.screenshot).toHaveBeenCalledTimes(4);
+    expect(page.screenshot).toHaveBeenCalledTimes(4);
   });
 
   it("places the sheet itself and tells the screenshot not to scroll", async () => {
@@ -173,8 +174,8 @@ describe("captureWhenPainted", () => {
     const { page, sheet } = stubPollingPage(["g", "g"], [good]);
     await captureWhenPainted(page, sheet, 1);
     expect(sheet.evaluate).toHaveBeenCalledTimes(1);
-    expect(sheet.screenshot).toHaveBeenCalledWith(
-      expect.objectContaining({ scrollIntoView: false })
+    expect(page.screenshot).toHaveBeenCalledWith(
+      expect.objectContaining({ captureBeyondViewport: false })
     );
   });
 
@@ -182,7 +183,7 @@ describe("captureWhenPainted", () => {
     const { page, sheet } = stubPollingPage(["x", "x", "y", "y"], [offset, good]);
     const capture = await captureWhenPainted(page, sheet, 1);
     expect(capture).toEqual({ number: 1, png: "y" });
-    expect(sheet.screenshot).toHaveBeenCalledTimes(4);
+    expect(page.screenshot).toHaveBeenCalledTimes(4);
   });
 
   it("throws once two screenshots never agree by the deadline", async () => {

@@ -75,8 +75,10 @@ import {
   ArabicLetterDocument,
   arabicLetterTokens,
   brandedProposalTokens,
+  InvoiceDocument,
   overflowProposalData,
   ProposalDocument,
+  shortInvoiceData,
   shortProposalData,
 } from "../../../components/src/examples";
 import { proposalLogoImage } from "../../../components/src/examples/pdf";
@@ -192,23 +194,35 @@ interface Variant {
    * False for the Arabic letter: see the note at the top of this file.
    */
   firstKeepsReadable: boolean;
+  typography?: Typography;
 }
+
+type Typography = "sans" | "serif-sans" | "serif-mono";
 
 const VARIANTS: Variant[] = [
   { document: "proposal", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true },
   { document: "proposal", dataSet: "overflow", branding: "default", adapters: ["chromium"], firstKeepsReadable: true },
   { document: "proposal", dataSet: "overflow", branding: "branded", adapters: ["chromium"], firstKeepsReadable: true },
   { document: "arabic-letter", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: false },
+  { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "sans" },
+  { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "serif-sans" },
+  { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "serif-mono" },
 ];
 
 /** The token set a variant's document is drawn with. */
 function tokensOf(variant: Variant): DocumentTokensInput | undefined {
-  return variant.document === "arabic-letter" ? arabicLetterTokens : BRANDINGS[variant.branding];
+  return variant.document === "arabic-letter"
+    ? arabicLetterTokens
+    : variant.document === "invoice"
+      ? undefined
+      : BRANDINGS[variant.branding];
 }
 
 /** The composed document one variant renders, on either side. */
 function elementOf(variant: Variant): ReactElement {
-  return variant.document === "arabic-letter" ? (
+  return variant.document === "invoice" ? (
+    <InvoiceDocument data={shortInvoiceData} className={`type-${variant.typography}`} />
+  ) : variant.document === "arabic-letter" ? (
     <ArabicLetterDocument data={arabicLetterData} tokens={arabicLetterTokens} />
   ) : (
     <ProposalDocument data={DATA_SETS[variant.dataSet]} tokens={BRANDINGS[variant.branding]} />
@@ -223,7 +237,9 @@ function paperOf(variant: Variant): PageDimensions {
 
 /** The label a variant is named by, in the report and in the test titles. */
 function variantName(variant: Variant): string {
-  return variant.document === "arabic-letter"
+  return variant.document === "invoice"
+    ? `invoice / ${variant.typography}`
+    : variant.document === "arabic-letter"
     ? "Arabic letter"
     : `${variant.dataSet} / ${variant.branding} tokens`;
 }
@@ -280,7 +296,7 @@ const refusals: RefusalReport[] = [];
 let sensitivity: SensitivityReport | null = null;
 
 const key = (adapter: PdfAdapterName, variant: Variant, mode: PaginationMode) =>
-  `${adapter}/${variant.document}/${variant.dataSet}/${variant.branding}/${mode}`;
+  `${adapter}/${variant.document}/${variant.dataSet}/${variant.branding}/${variant.typography ?? "default"}/${mode}`;
 
 /** The run for one adapter, variant and mode, or a clear failure if it was never measured. */
 function run(adapter: PdfAdapterName, variant: Variant, mode: PaginationMode): Run {
@@ -427,7 +443,7 @@ async function measure(
 
   const pages: PageReport[] = difference.pages.map((page) => {
     const index = page.number - 1;
-    const image = `${adapter}-${variant.document}-${dataSet}-${branding}-${mode}-page-${page.number}.png`;
+    const image = `${adapter}-${variant.document}-${variant.typography ?? dataSet}-${branding}-${mode}-page-${page.number}.png`;
     images.set(image, page.image);
     const differingPercent = percent(page.differingPixels, page.totalPixels);
     return {
@@ -442,11 +458,14 @@ async function measure(
         fromPreview[index] === fromPdf[index],
       inkPercent: percent(page.inkPixels, page.totalPixels),
       differingPercent,
+      geometryDifferingPercent: percent(page.geometryDifferingPixels, page.totalPixels),
+      rasterDifferingPercent: percent(page.rasterDifferingPixels, page.totalPixels),
       underOnePercent: differingPercent < ONE_PERCENT_CLAUSE,
       strictDifferingPercent: percent(page.strictDifferingPixels, page.totalPixels),
       shiftFloorPercent: percent(page.shiftFloorPixels, page.totalPixels),
       alignedPercent: percent(page.alignedPixels, page.totalPixels),
       driftPixels: page.driftPixels,
+      horizontalDriftPixels: page.horizontalDriftPixels,
       driftSaturated: page.driftSaturated,
       image,
     };
@@ -456,6 +475,7 @@ async function measure(
     key: key(adapter, variant, mode),
     adapter,
     document: variant.document,
+    typography: variant.typography,
     dataSet,
     branding,
     paper,
@@ -474,6 +494,7 @@ async function measure(
     worstDifferingPercent: Math.max(0, ...pages.map((page) => page.differingPercent)),
     worstAlignedPercent: Math.max(0, ...pages.map((page) => page.alignedPercent)),
     worstDriftPixels: Math.max(0, ...pages.map((page) => page.driftPixels)),
+    worstHorizontalDriftPixels: Math.max(0, ...pages.map((page) => page.horizontalDriftPixels)),
     everyPageUnderOnePercent: pages.length > 0 && pages.every((page) => page.underOnePercent),
     firstKeepsReadable: variant.firstKeepsReadable,
     pages,
@@ -512,7 +533,13 @@ beforeAll(async () => {
 
   for (const variant of VARIANTS) {
     const paper = paperOf(variant);
-    const plan = await preview.show(variant.document, variant.dataSet, variant.branding, paper);
+    const plan = await preview.show(
+      variant.document,
+      variant.dataSet,
+      variant.branding,
+      paper,
+      variant.typography
+    );
     const captures = (await preview.capture()).map((capture) => capture.png);
     const { node } = await fromJsx(elementOf(variant));
     const keeps = treeKeeps(node);
@@ -578,6 +605,8 @@ beforeAll(async () => {
       afterPercent: after.pages[page]?.differingPercent ?? 0,
       beforeAlignedPercent: before.pages[page]?.alignedPercent ?? 0,
       afterAlignedPercent: after.pages[page]?.alignedPercent ?? 0,
+      beforeGeometryPercent: before.pages[page]?.geometryDifferingPercent ?? 0,
+      afterGeometryPercent: after.pages[page]?.geometryDifferingPercent ?? 0,
     };
   }
 
@@ -852,5 +881,6 @@ describe("the measurement responds to a positional change made on one side only"
     // before the change fails after it.
     expect(check.beforeAlignedPercent).toBeLessThan(RESIDUAL_THRESHOLD_PERCENT);
     expect(check.afterAlignedPercent).toBeGreaterThanOrEqual(RESIDUAL_THRESHOLD_PERCENT);
+    expect(check.afterGeometryPercent).toBeGreaterThan(check.beforeGeometryPercent);
   });
 });
