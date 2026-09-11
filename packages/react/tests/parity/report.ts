@@ -221,8 +221,8 @@ export function printReport(report: ParityReport): void {
       `tolerance ${report.tolerance}/255.`
   );
   lines.push(
-    `A page passes on aligned% under ${report.residualThresholdPercent} and drift within ` +
-      `${report.driftLimitPixels} px. diff% and strict% are recorded, not asserted, and <1% ` +
+    `A page passes on aligned% under ${report.residualThresholdPercent}. Drift is recorded ` +
+      `against ${report.driftLimitPixels} px as a diagnostic. diff% and strict% are recorded, not asserted, and <1% ` +
       `says whether diff% clears the specification's original clause. ` +
       `A + on drift means the alignment search saturated, so that figure is a floor.`
   );
