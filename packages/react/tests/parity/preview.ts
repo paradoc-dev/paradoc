@@ -14,7 +14,7 @@
  * document's own tokens chose rather than assumed to be US Letter.
  */
 
-import type { Browser, ElementHandle, ElementScreenshotOptions, Page } from "puppeteer";
+import type { Browser, ElementHandle, Page } from "puppeteer";
 
 import type { PageDimensions } from "../../src/lib/tokens";
 import type { ApplicationFontSnapshot } from "../../src/lib/application-fonts";
@@ -33,7 +33,9 @@ export type Branding = "default" | "branded";
  * still holds an 816 pixel sheet without scaling it.
  */
 const WINDOW_WIDTH = 1900;
-const WINDOW_HEIGHT = 1200;
+// Tall enough for the lab header plus an A4 sheet, so a page clip never has to
+// extend beyond the viewport and Chromium cannot truncate its bottom edge.
+const WINDOW_HEIGHT = 1400;
 
 /** What the preview says about its own pages. */
 export interface PreviewPlan {
@@ -491,21 +493,25 @@ export async function captureWhenPainted(
   deadlineMs: number = PAINT_POLL_DEADLINE_MS
 ): Promise<PreviewCapture> {
   const deadline = Date.now() + deadlineMs;
-  // Typed as `ElementScreenshotOptions` rather than passed as a literal:
-  // `ElementHandle.screenshot`'s own overloads still declare the narrower
-  // `ScreenshotOptions`, which does not name the option the method reads.
-  const options: ElementScreenshotOptions & { encoding: "base64" } = {
-    type: "png",
-    encoding: "base64",
-    // The suite has already put the sheet where this clip will be taken. A
-    // second scroll here is the one that could move it after the box is read.
-    scrollIntoView: false,
+  const screenshot = async (): Promise<string> => {
+    const clip = await sheet.boundingBox();
+    if (clip === null) throw new Error(`page ${number}: the sheet has no visible bounding box.`);
+    // Capture the box from the already-settled viewport. Element screenshots
+    // perform their own visibility/scroll bookkeeping even when asked not to,
+    // which can move a tall sheet between reading its box and clipping it on a
+    // loaded Linux runner. A page clip has no element operation left to do.
+    return page.screenshot({
+      type: "png",
+      encoding: "base64",
+      clip,
+      captureBeyondViewport: false,
+    });
   };
   for (;;) {
     await placeInViewport(page, sheet);
-    const first = await sheet.screenshot(options);
+    const first = await screenshot();
     await page.evaluate(twoAnimationFrames);
-    const second = await sheet.screenshot(options);
+    const second = await screenshot();
 
     if (first === second) {
       const capture: PreviewCapture = { number, png: second };
