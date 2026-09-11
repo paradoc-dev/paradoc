@@ -58,6 +58,34 @@ describe("the proposal renders to PDF", () => {
     expect(prepared?.fonts.length).toBeGreaterThan(0);
   });
 
+  it("resolves application-owned font bytes once and carries their identity and CSS", async () => {
+    let prepared: PreparedPdfInput | undefined;
+    const adapter: PdfAdapter = {
+      name: "font-inspector",
+      directions: ["ltr"],
+      async render(input) {
+        prepared = input;
+        return { bytes: new Uint8Array(), unknownBreaks: [], unknownRepeats: [] };
+      },
+    };
+    const font = {
+      family: "Application Sans",
+      source: "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
+      weight: "100 900",
+    } as const;
+
+    await renderPdf(<div className="font-application">Typography</div>, {
+      adapter,
+      fonts: [font, font],
+      applicationCss: '.font-application { font-family: "Application Sans"; }',
+    });
+
+    expect(prepared?.applicationCss).toContain("Application Sans");
+    expect(prepared?.fonts).toHaveLength(2);
+    expect(prepared?.fonts[0]?.identity).toMatch(/^[a-f0-9]{64}$/u);
+    expect(prepared?.fonts[0]?.data).toBe(prepared?.fonts[1]?.data);
+  });
+
   it("does not relabel a custom adapter's initialization failure as a missing peer", async () => {
     const initializationFailure = new Error("company engine could not initialize");
     const adapter: PdfAdapter = {

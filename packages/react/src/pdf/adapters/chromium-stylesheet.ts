@@ -118,14 +118,17 @@ export function classCandidates(markup: string): string[] {
 
 /** An `@font-face` for one file, at the path the render reads it from. */
 function fontFace(font: PdfFontFile): string {
+  const source = font.data === undefined
+    ? pathToFileURL(font.path).href
+    : `data:font/woff2;base64,${Buffer.from(font.data).toString("base64")}`;
   const lines = [
     `  font-family: "${font.family}";`,
-    `  font-style: normal;`,
+    `  font-style: ${font.style ?? "normal"};`,
     // `block` rather than fontsource's `swap`: this page is printed once, and a
     // fallback painted while a face loads would be a silent substitution.
     `  font-display: block;`,
     `  font-weight: ${font.weight};`,
-    `  src: url("${pathToFileURL(font.path).href}") format("woff2");`,
+    `  src: url("${source}") format("woff2");`,
   ];
   if (font.unicodeRange !== undefined) lines.push(`  unicode-range: ${font.unicodeRange};`);
   return `@font-face {\n${lines.join("\n")}\n}`;
@@ -166,13 +169,15 @@ export async function chromiumStylesheet(
   markup: string,
   fonts: readonly PdfFontFile[],
   geometry: PdfPageGeometry,
-  tokens: DocumentTokens
+  tokens: DocumentTokens,
+  applicationCss?: string
 ): Promise<string> {
   const source = `@import "tailwindcss";\n${DOCUMENT_STYLES}`;
   const compiled = await compile(source, { base: process.cwd(), loadStylesheet });
 
   return [
     compiled.build(classCandidates(markup)),
+    applicationCss ?? "",
     fonts.map(fontFace).join("\n\n"),
     familyProperty(tokens),
     pageBox(geometry),

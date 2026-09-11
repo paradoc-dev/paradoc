@@ -41,7 +41,7 @@ import {
   type PreparedPdfInput,
 } from "./adapter";
 import { takumiAdapter } from "./adapters/takumi";
-import { documentFontFiles, markerFontFile, type PdfImage } from "./resources";
+import { documentFontFiles, markerFontFile, resolveFontResources, type PdfFontResource, type PdfImage } from "./resources";
 import { withDrawnPaper, withPartialValues, withTokenOverride, withFormatter } from "./token-override";
 import type { PageBreakPlan } from "./tree";
 
@@ -58,6 +58,10 @@ export {
 } from "./adapter";
 
 export interface RenderPdfOptions {
+  /** Application-owned font faces shared by headless renders. */
+  fonts?: readonly PdfFontResource[];
+  /** The relevant compiled application CSS for browser-backed fidelity rendering. */
+  applicationCss?: string;
   formatter?: Formatter;
   progressive?: FormatterProgressivePolicy;
   /**
@@ -188,7 +192,9 @@ export async function renderPdf(
   // refusal is the same one whichever engine would have been asked.
   const tokens = documentTokensOf(element, options.tokens);
 
-  const fonts = [...(await documentFontFiles(tokens.fontFamily))];
+  const fonts = options.fonts === undefined
+    ? [...(await documentFontFiles(tokens.fontFamily))]
+    : [...(await resolveFontResources(options.fonts))];
   if (signingMarkers) fonts.push(await markerFontFile(tokens.fontFamily));
 
   const input: PreparedPdfInput = {
@@ -204,6 +210,7 @@ export async function renderPdf(
     plan: options.plan,
     images: options.images ?? [],
     fonts,
+    applicationCss: options.applicationCss,
     geometry: pageGeometry(tokens),
   };
 

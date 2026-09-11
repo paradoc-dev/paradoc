@@ -44,9 +44,13 @@ export {
 } from "./layer";
 export {
   documentFontFiles,
+  resolveFontResource,
+  resolveFontResources,
+  FontResourceError,
   markerFontFile,
   pdfFonts,
   type PdfFontFile,
+  type PdfFontResource,
   type PdfImage,
 } from "./resources";
 export {

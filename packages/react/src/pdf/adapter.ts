@@ -57,6 +57,8 @@ export interface PreparedPdfInput {
   images: readonly PdfImage[];
   /** The faces to embed, as files, in the order they are declared. */
   fonts: readonly PdfFontFile[];
+  /** Consumer application CSS carried into browser-backed PDF rendering. */
+  applicationCss?: string;
   /** The page both outputs are measured against. */
   geometry: PdfPageGeometry;
 }

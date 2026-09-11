@@ -201,7 +201,7 @@ function applyInPage(
   plan: PagePlanInput | null,
   images: Record<string, string>,
   attributes: { keep: string; repeat: string },
-  family: string
+  families: string[]
 ): PageOutcome {
   const { keep: KEEP, repeat: REPEAT } = attributes;
 
@@ -262,8 +262,10 @@ function applyInPage(
     if (!taken) target.style.breakBefore = "page";
   });
 
-  const fontsLoaded = [...document.fonts].some(
-    (face) => face.family.replaceAll('"', "") === family && face.status === "loaded"
+  const fontsLoaded = families.every((family) =>
+    [...document.fonts].some(
+      (face) => face.family.replaceAll('"', "") === family && face.status === "loaded"
+    )
   );
 
   return { unknownBreaks, unknownRepeats, missingImages, fontsLoaded };
@@ -306,7 +308,7 @@ export const chromiumAdapter: PdfAdapter = {
     if (undecodable.length > 0) throw new UnsupportedPdfContentError([], undecodable);
 
     const markup = renderToStaticMarkup(input.element);
-    const css = await chromiumStylesheet(markup, input.fonts, input.geometry, input.tokens);
+    const css = await chromiumStylesheet(markup, input.fonts, input.geometry, input.tokens, input.applicationCss);
     const html = documentHtml(markup, css, options.lang, options.dir);
 
     // The page is written outside the repository, because it is a render's
@@ -320,6 +322,7 @@ export const chromiumAdapter: PdfAdapter = {
       await writeFile(file, html, "utf8");
       await page.goto(pathToFileURL(file).href, { waitUntil: "load" });
 
+      await settle(page);
       const outcome = await page.evaluate(
         applyInPage,
         input.plan === undefined
@@ -330,17 +333,16 @@ export const chromiumAdapter: PdfAdapter = {
             },
         images,
         { keep: KEEP_ID_ATTRIBUTE, repeat: KEEP_REPEAT_ATTRIBUTE },
-        input.tokens.fontFamily
+        [...new Set(input.fonts.map((font) => font.family))]
       );
 
       if (outcome.missingImages.length > 0) {
         throw new UnsupportedPdfContentError([], outcome.missingImages);
       }
 
-      await settle(page);
       if (!outcome.fontsLoaded) {
         throw new Error(
-          `The Chromium adapter could not load the document face "${input.tokens.fontFamily}". ` +
+          `The Chromium adapter could not load every configured document face (${[...new Set(input.fonts.map((font) => `"${font.family}"`))].join(", ")}). ` +
             "A page printed against a fallback is not the page the preview drew."
         );
       }

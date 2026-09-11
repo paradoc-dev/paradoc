@@ -12,6 +12,7 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import type { FontLoader } from "takumi-pdf";
@@ -39,6 +40,80 @@ export interface PdfFontFile {
   weight: string;
   /** The codepoints the face covers, in CSS `unicode-range` syntax. */
   unicodeRange?: string;
+  /** Face style, in CSS `font-style` syntax. */
+  style?: string;
+  /** Stable identity of the exact bytes embedded by the renderer. */
+  identity?: string;
+  /** Exact bytes, retained when the source is not a local file. */
+  data?: Uint8Array;
+}
+
+/** One application-owned face made available to a headless PDF render. */
+export interface PdfFontResource {
+  family: string;
+  /** A local path, package specifier, file URL, or reachable HTTP(S) URL. */
+  source: string;
+  weight?: string;
+  style?: string;
+  unicodeRange?: string;
+  /** Optional expected SHA-256 hex digest. */
+  integrity?: string;
+}
+
+export class FontResourceError extends Error {
+  constructor(readonly resource: PdfFontResource, message: string, options?: ErrorOptions) {
+    super(`Could not resolve font face "${resource.family}" from ${resource.source}: ${message}`, options);
+    this.name = "FontResourceError";
+  }
+}
+
+const resolvedResources = new Map<string, Promise<PdfFontFile>>();
+
+function resourcePath(source: string): string | undefined {
+  if (source.startsWith("file:")) return new URL(source).pathname;
+  if (source.startsWith("http://") || source.startsWith("https://")) return undefined;
+  try { return require.resolve(source); } catch { return source; }
+}
+
+/** Resolve and cache application font bytes, independently of their provider. */
+export function resolveFontResource(resource: PdfFontResource): Promise<PdfFontFile> {
+  const key = JSON.stringify(resource);
+  let pending = resolvedResources.get(key);
+  if (pending === undefined) {
+    pending = (async () => {
+      const path = resourcePath(resource.source);
+      const bytes = path === undefined
+        ? new Uint8Array(await (async () => {
+            const response = await fetch(resource.source);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.arrayBuffer();
+          })())
+        : new Uint8Array(await readFile(path));
+      const identity = createHash("sha256").update(bytes).digest("hex");
+      if (resource.integrity !== undefined && resource.integrity !== identity) {
+        throw new Error(`SHA-256 integrity mismatch (expected ${resource.integrity}, received ${identity})`);
+      }
+      return {
+        name: `${resource.family} ${identity.slice(0, 12)}`,
+        family: resource.family,
+        path: path ?? resource.source,
+        data: bytes,
+        identity,
+        weight: resource.weight ?? "400",
+        style: resource.style ?? "normal",
+        unicodeRange: resource.unicodeRange,
+      };
+    })().catch((cause: unknown) => {
+      resolvedResources.delete(key);
+      throw new FontResourceError(resource, cause instanceof Error ? cause.message : String(cause), { cause });
+    });
+    resolvedResources.set(key, pending);
+  }
+  return pending;
+}
+
+export function resolveFontResources(resources: readonly PdfFontResource[]): Promise<PdfFontFile[]> {
+  return Promise.all(resources.map(resolveFontResource));
 }
 
 /**
@@ -106,7 +181,7 @@ export function pdfFonts(files: readonly PdfFontFile[]): Promise<FontLoader[]> {
     files.map(async (file) => ({
       name: file.name,
       subsetOf: file.family,
-      data: await readFile(file.path),
+      data: file.data ?? await readFile(file.path),
     }))
   );
 }
