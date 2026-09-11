@@ -192,9 +192,10 @@ export async function renderPdf(
   // refusal is the same one whichever engine would have been asked.
   const tokens = documentTokensOf(element, options.tokens);
 
-  const fonts = options.fonts === undefined
-    ? [...(await documentFontFiles(tokens.fontFamily))]
-    : [...(await resolveFontResources(options.fonts))];
+  const fonts = [
+    ...(await documentFontFiles(tokens.fontFamily)),
+    ...(options.fonts === undefined ? [] : await resolveFontResources(options.fonts)),
+  ];
   if (signingMarkers) fonts.push(await markerFontFile(tokens.fontFamily));
 
   const input: PreparedPdfInput = {
@@ -225,7 +226,7 @@ export async function renderPdf(
       family: font.family,
       weight: font.weight,
       style: font.style ?? "normal",
-      identity: font.identity ?? font.path,
+      identity: font.identity!,
     })),
   };
 }

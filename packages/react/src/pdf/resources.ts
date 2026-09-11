@@ -151,12 +151,18 @@ export function documentFontFiles(family: string = DOCUMENT_FONT_NAME): Promise<
   if (files === undefined) {
     files = (async () => {
       const coverage = await subsetCoverage(registration.file(registration.subsets[0]!));
-      return registration.subsets.map((subset, index) => ({
-        name: `${registration.name} ${index}`,
-        family: registration.name,
-        path: require.resolve(registration.file(subset)),
-        weight: registration.weight,
-        unicodeRange: coverage[subset],
+      return Promise.all(registration.subsets.map(async (subset, index) => {
+        const path = require.resolve(registration.file(subset));
+        const data = new Uint8Array(await readFile(path));
+        return {
+          name: `${registration.name} ${index}`,
+          family: registration.name,
+          path,
+          data,
+          identity: createHash("sha256").update(data).digest("hex"),
+          weight: registration.weight,
+          unicodeRange: coverage[subset],
+        };
       }));
     })().catch((error: unknown) => {
       fontFiles.delete(family);
@@ -223,10 +229,14 @@ export function markerFontFile(family: string = DOCUMENT_FONT_NAME): Promise<Pdf
   if (file === undefined) {
     file = (async () => {
       const coverage = await subsetCoverage(MARKER_FONT_FILE);
+      const path = require.resolve(MARKER_FONT_FILE);
+      const data = new Uint8Array(await readFile(path));
       return {
         name: `${registration.name} marker`,
         family: registration.name,
-        path: require.resolve(MARKER_FONT_FILE),
+        path,
+        data,
+        identity: createHash("sha256").update(data).digest("hex"),
         weight: MARKER_FONT_WEIGHT,
         unicodeRange: coverage[MARKER_FONT_SUBSET],
       };

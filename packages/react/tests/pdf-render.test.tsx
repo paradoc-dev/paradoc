@@ -81,14 +81,15 @@ describe("the proposal renders to PDF", () => {
     });
 
     expect(prepared?.applicationCss).toContain("Application Sans");
-    expect(prepared?.fonts).toHaveLength(2);
-    expect(prepared?.fonts[0]?.identity).toMatch(/^[a-f0-9]{64}$/u);
-    expect(prepared?.fonts[0]?.data).toBe(prepared?.fonts[1]?.data);
-    expect(result.fontResources?.[0]).toMatchObject({
+    const applicationFaces = prepared?.fonts.filter((face) => face.family === "Application Sans");
+    expect(applicationFaces).toHaveLength(2);
+    expect(applicationFaces?.[0]?.identity).toMatch(/^[a-f0-9]{64}$/u);
+    expect(applicationFaces?.[0]?.data).toBe(applicationFaces?.[1]?.data);
+    expect(result.fontResources?.find((face) => face.family === "Application Sans")).toMatchObject({
       family: "Application Sans",
       weight: "100 900",
       style: "normal",
-      identity: prepared?.fonts[0]?.identity,
+      identity: applicationFaces?.[0]?.identity,
     });
   });
 
