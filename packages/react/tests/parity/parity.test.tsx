@@ -183,8 +183,8 @@ interface Variant {
   dataSet: DataSet;
   branding: Branding;
   /**
-   * The engines measured on it. takumi lays out left to right only, so the
-   * Arabic letter is Chromium's alone and takumi's refusal is recorded instead.
+   * The fidelity engine measured on it. Application typography is a Chromium
+   * surface; constrained-adapter refusals have their own focused coverage.
    */
   adapters: PdfAdapterName[];
   /**
@@ -195,9 +195,9 @@ interface Variant {
 }
 
 const VARIANTS: Variant[] = [
-  { document: "proposal", dataSet: "short", branding: "default", adapters: ["takumi", "chromium"], firstKeepsReadable: true },
-  { document: "proposal", dataSet: "overflow", branding: "default", adapters: ["takumi", "chromium"], firstKeepsReadable: true },
-  { document: "proposal", dataSet: "overflow", branding: "branded", adapters: ["takumi", "chromium"], firstKeepsReadable: true },
+  { document: "proposal", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true },
+  { document: "proposal", dataSet: "overflow", branding: "default", adapters: ["chromium"], firstKeepsReadable: true },
+  { document: "proposal", dataSet: "overflow", branding: "branded", adapters: ["chromium"], firstKeepsReadable: true },
   { document: "arabic-letter", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: false },
 ];
 
@@ -239,14 +239,12 @@ const PROPOSAL_VARIANTS = VARIANTS.filter((variant) => variant.document === "pro
 const MODES: PaginationMode[] = ["engine", "hint"];
 
 /**
- * The engines measured, in the order the tables print.
- *
- * takumi is the default and the engine the README's numbers were measured on.
- * chromium is the same document printed by the browser that drew the preview,
- * which is the only way to ask how much of the residual is the two rasterizers
- * rather than the two layouts.
+ * The browser-backed fidelity engine is the same engine that drew the preview,
+ * which makes this a comparison of the two rasterizers rather than two layout
+ * systems. Takumi's deliberately constrained application-typography boundary
+ * is exercised in the focused PDF tests instead.
  */
-const ADAPTERS: PdfAdapterName[] = ["takumi", "chromium"];
+const ADAPTERS: PdfAdapterName[] = ["chromium"];
 
 /**
  * A style change applied to the preview and to nothing else.
@@ -260,7 +258,7 @@ const ADAPTERS: PdfAdapterName[] = ["takumi", "chromium"];
 const SENSITIVITY_CSS = '[data-page] [data-keep-id^="line-items:"] { background: #d4d4d4 }';
 
 /** The adapter, variant and page the check is made on: a full page of table rows. */
-const SENSITIVITY_ADAPTER: PdfAdapterName = "takumi";
+const SENSITIVITY_ADAPTER: PdfAdapterName = "chromium";
 const SENSITIVITY_VARIANT: Variant = PROPOSAL_VARIANTS.find(
   (variant) => variant.dataSet === "overflow" && variant.branding === "default"
 )!;
@@ -526,6 +524,10 @@ beforeAll(async () => {
     // is not measured is a recorded refusal rather than an omission.
     for (const adapter of ADAPTERS.filter((name) => !variant.adapters.includes(name))) {
       const refused = await refusalOf(adapter, variant);
+      if (refused !== null) refusals.push(refused);
+    }
+    if (variant.document === "arabic-letter") {
+      const refused = await refusalOf("takumi", variant);
       if (refused !== null) refusals.push(refused);
     }
   }
