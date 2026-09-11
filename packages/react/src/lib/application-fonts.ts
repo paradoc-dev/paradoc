@@ -35,9 +35,11 @@ function unquote(value: string): string {
   return value.trim().replace(/^['"]|['"]$/gu, "");
 }
 
-function sourceUrl(rule: CSSFontFaceRule): string | undefined {
-  const match = rule.style.getPropertyValue("src").match(/url\((?:['"])?([^'")]+)(?:['"])?\)/u);
-  return match?.[1];
+function sourceUrl(rule: CSSFontFaceRule, base: string): string | undefined {
+  const urls = [...rule.style.getPropertyValue("src").matchAll(/url\((?:['"])?([^'")]+)(?:['"])?\)/gu)]
+    .map((match) => new URL(match[1]!, base).href);
+  const fetched = new Set(performance.getEntriesByType("resource").map((entry) => entry.name));
+  return urls.find((url) => fetched.has(url)) ?? urls[0];
 }
 
 async function sha256(bytes: ArrayBuffer): Promise<string> {
@@ -48,14 +50,18 @@ async function sha256(bytes: ArrayBuffer): Promise<string> {
 /** Resolve the exact application font faces capable of affecting a rendered subtree. */
 export async function captureApplicationFonts(root: Element): Promise<ApplicationFontSnapshot> {
   const used = new Set<string>();
-  const requested = new Map<string, { weight: string; style: string }>();
+  const requested = new Map<string, { weight: string; style: string }[]>();
   const requests: Promise<FontFace[]>[] = [];
   for (const element of [root, ...root.querySelectorAll("*")]) {
     const style = getComputedStyle(element);
     const family = unquote(style.fontFamily.split(",")[0] ?? "");
     if (family) {
       used.add(family);
-      requested.set(family, { weight: style.fontWeight, style: style.fontStyle });
+      const descriptors = requested.get(family) ?? [];
+      if (!descriptors.some((entry) => entry.weight === style.fontWeight && entry.style === style.fontStyle)) {
+        descriptors.push({ weight: style.fontWeight, style: style.fontStyle });
+        requested.set(family, descriptors);
+      }
     }
     const text = element.textContent?.trim();
     if (text) requests.push(document.fonts.load(`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`, text));
@@ -77,13 +83,15 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
       const wanted = requested.get(family)!;
       const weight = face.style.getPropertyValue("font-weight") || "400";
       const style = face.style.getPropertyValue("font-style") || "normal";
-      if (style !== wanted.style) continue;
       const range = weight.split(/\s+/u).map(Number);
-      const numeric = Number(wanted.weight);
-      if (weight !== wanted.weight && !(range.length === 2 && numeric >= range[0]! && numeric <= range[1]!)) continue;
-      const source = sourceUrl(face);
+      if (!wanted.some((descriptor) => {
+        if (style !== descriptor.style) return false;
+        const numeric = Number(descriptor.weight);
+        return weight === descriptor.weight || (range.length === 2 && numeric >= range[0]! && numeric <= range[1]!);
+      })) continue;
+      const source = sourceUrl(face, sheet.href ?? document.baseURI);
       if (source === undefined) continue;
-      const absolute = new URL(source, sheet.href ?? document.baseURI).href;
+      const absolute = source;
       const { integrity } = await fetchFont(absolute).catch((cause: unknown) => {
         throw new Error(`Could not load font face "${family}" from ${absolute}: ${cause instanceof Error ? cause.message : String(cause)}.`);
       });
@@ -99,7 +107,7 @@ export async function captureApplicationFonts(root: Element): Promise<Applicatio
   }
   resources.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
   const covered = new Set(resources.map((resource) => resource.family));
-  const generics = new Set(["serif", "sans-serif", "monospace", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace"]);
+  const generics = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "math", "fangsong", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded"]);
   const missing = [...used].filter((family) => !covered.has(family) && !generics.has(family));
   if (missing.length > 0) throw new Error(`No embeddable @font-face resource is available for: ${missing.join(", ")}. Supply reachable application font files before paginating.`);
   const identity = await sha256(new TextEncoder().encode(JSON.stringify(resources)).buffer);

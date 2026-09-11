@@ -95,7 +95,6 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
   const fonts = useFontReadiness(tokens.fontFamily);
   if (fonts.error) throw fonts.error;
-  if (fontError) throw fontError;
   const fontsReady = fonts.ready;
 
   // The paper is part of what a plan is a plan of. It needs no invalidation of
@@ -152,6 +151,15 @@ export function Pages({ className, onPaginate, children }: PagesProps) {
   useEffect(() => {
     if (plan) publish.current?.(plan);
   }, [plan]);
+
+  if (fontError) {
+    return (
+      <div role="alert" data-font-resource-error="true">
+        <p>{fontError.message}</p>
+        <button type="button" onClick={() => { setFontError(null); void repaginate(); }}>Retry font loading</button>
+      </div>
+    );
+  }
 
   // A document with no keeps is still a sheet of paper.
   const sheets = plan === null ? 0 : Math.max(1, plan.pages.length);

@@ -239,7 +239,7 @@ export async function renderPdf(
   };
 
   const adapter = await resolveAdapter(options.adapter ?? "takumi");
-  if (adapter.name === "takumi" && (options.applicationCss !== undefined || (options.fonts ?? options.plan?.fonts?.resources)?.length)) {
+  if (adapter.name === "takumi" && (options.applicationCss !== undefined || options.plan?.fonts?.css || (options.fonts ?? options.plan?.fonts?.resources)?.length)) {
     throw new UnsupportedApplicationTypographyError(adapter.name);
   }
   // The engine, which is the question this render alone asks: whether the one
