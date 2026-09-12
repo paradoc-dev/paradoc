@@ -20,6 +20,7 @@
     "react": "catalog:"
   },
   "devDependencies": {
+    "@paradoc/essentials": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

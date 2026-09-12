@@ -189,7 +189,8 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
  * Preview demo composition, per block. Unlike a base component's demo, this
  * wraps the block's own (bare) composition in `Pages` so Preview live-renders
  * the full, paginated document a consumer would actually see — see
- * `{Invoice,PurchaseOrder}BlockPreview` in `packages/components/src/examples/`.
+ * `*BlockPreview` in `packages/components/src/examples/`. `vendor-packet`
+ * needs no wrapper of its own: its composition already self-paginates.
  *
  * Blocks get their own maps rather than joining `DEMO_FILES`: a block's Usage
  * anatomy is a full composition-plus-data dump (see `BlockUsage` in the docs
@@ -200,19 +201,24 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
 const BLOCK_DEMO_FILES: Record<string, string> = {
   invoice: "invoice-block-preview.tsx",
   "purchase-order": "purchase-order-block-preview.tsx",
+  "vendor-packet": "vendor-packet-block-preview.tsx",
+  "engagement-letter": "engagement-letter-block-preview.tsx",
 };
 
 /**
  * A block's existing alternate sample-data scenarios, never a new prop
  * configuration (per the spec). Invoice has a real second scenario, the
- * 48-row overflow sample. Purchase-order has only one sample-data export
- * today, so its one entry points at the same file its Preview does: the
- * live render and the code shown are honestly identical, documented as such
- * on the block's own docs page, rather than a fabricated second scenario.
+ * 48-row overflow sample. The other three blocks have only one sample-data
+ * export today, so each one's entry points at the same file its Preview
+ * does: the live render and the code shown are honestly identical,
+ * documented as such on the block's own docs page, rather than a fabricated
+ * second scenario.
  */
 const BLOCK_VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
   invoice: [{ key: "overflow", file: "invoice-block-variant-overflow.tsx" }],
   "purchase-order": [{ key: "standard", file: "purchase-order-block-preview.tsx" }],
+  "vendor-packet": [{ key: "standard", file: "vendor-packet-block-preview.tsx" }],
+  "engagement-letter": [{ key: "standard", file: "engagement-letter-block-preview.tsx" }],
 };
 
 /**

@@ -38,7 +38,12 @@ const referencePages = new Set([
 ])
 
 /** Blocks with their own reference page, nested under Components' Blocks group. */
-const blockReferencePages = new Set(['invoice', 'purchase-order'])
+const blockReferencePages = new Set([
+  'invoice',
+  'purchase-order',
+  'vendor-packet',
+  'engagement-letter',
+])
 
 interface RegistryIndex {
   name: string

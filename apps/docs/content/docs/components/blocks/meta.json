@@ -1,5 +1,5 @@
 {
   "title": "Blocks",
-  "pages": ["invoice", "purchase-order"],
+  "pages": ["invoice", "purchase-order", "vendor-packet", "engagement-letter"],
   "defaultOpen": false
 }

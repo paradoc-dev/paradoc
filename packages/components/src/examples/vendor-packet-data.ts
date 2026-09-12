@@ -41,9 +41,17 @@ import { vendorPacketAnnexBytes } from "./vendor-packet-annex";
  * artifact, and this module does not. The shape is the payload `safeParseData`
  * takes, and the values are the supplier the purchase order names, so the two
  * parts of the packet describe one company.
+ *
+ * The party carries `firstName`/`lastName` alongside `name`: the format
+ * package infers a party's identity (person vs. organization) from which of
+ * those disambiguating keys are present on the record itself, and a bare
+ * `name` alone answers neither, so rendering the taxpayer's identity — filled
+ * PDF included — would otherwise fail as ambiguous.
  */
 export const vendorPacketTaxpayerData = {
-  parties: { taxpayer: { id: "taxpayer-0", name: "Dana Whitfield" } },
+  parties: {
+    taxpayer: { id: "taxpayer-0", name: "Dana Whitfield", firstName: "Dana", lastName: "Whitfield" },
+  },
   fields: {
     taxClassification: "partnership",
     businessName: "Northgate Systems, LLC",

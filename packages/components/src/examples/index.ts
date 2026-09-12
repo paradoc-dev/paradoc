@@ -81,6 +81,7 @@ export {
   EngagementLetterDocument,
   type EngagementLetterDocumentProps,
 } from "./engagement-letter-document";
+export { EngagementLetterBlockPreview } from "./engagement-letter-block-preview";
 export {
   PROPOSAL_LOGO_HEIGHT_PX,
   PROPOSAL_LOGO_SRC,
@@ -136,6 +137,7 @@ export {
 export { InvoiceBlockPreview } from "./invoice-block-preview";
 export { InvoiceBlockVariantOverflow } from "./invoice-block-variant-overflow";
 export { PurchaseOrderBlockPreview } from "./purchase-order-block-preview";
+export { VendorPacketBlockPreview } from "./vendor-packet-block-preview";
 export { BundleDemo } from "./bundle-demo";
 export { BundleVariantSingleDocument } from "./bundle-variant-single-document";
 export { BundleVariantRow } from "./bundle-variant-row";

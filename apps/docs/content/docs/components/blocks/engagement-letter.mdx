@@ -1,0 +1,59 @@
+---
+title: Engagement Letter
+description: A prose document — the artifact with two signature slots, a composition that renders its scope as numbered clauses, and one sample that runs to two pages.
+---
+
+`engagement-letter` is the one block here with no table and no `Bundle`: a
+letter is a single document, and what paginates it is nine numbered clauses
+of running prose rather than rows of a predictable height, each one its own
+unbreakable unit tall enough on its own to decide where a page breaks.
+
+# Preview
+
+<ComponentPreview name="engagement-letter" />
+
+# Installation
+
+<ComponentInstallation name="engagement-letter" />
+
+# Usage
+
+<BlockUsage name="engagement-letter" />
+
+# Composition
+
+The letter is one [`Document`](/components/document), built from
+[`Section`](/components/section), [`Field`](/components/field), and
+[`Keep Together`](/components/keep-together) — the masthead, the client's
+details, the matter, the scope of services, the fees, the term, and the
+governing law all read from the artifact through the same context every
+other document here uses.
+
+The scope of services is the letter's one departure from a `Table`: each
+numbered clause is a heading and a paragraph that must land on the same page,
+so the composition builds each one as its own `KeepTogether` directly from
+the artifact's `scopeOfServices` list, rather than nesting a `Field` inside
+it — a keep inside a keep would be measured twice, once as the clause and
+once as its own paragraph.
+
+The letter closes with two [`Signature`](/components/signature) blocks, one
+per party, sitting inside the closing "Agreed" section so neither is ever
+split from the clause above it. Rendering the letter live means wrapping it
+in [`Pages`](/components/pages), the same as any other document here — the
+composition itself renders bare, with no `Bundle`, because a letter is one
+document and the element walk stops at the first root it finds.
+
+# Variants
+
+A block's Variants section shows an existing alternate sample-data scenario,
+never a new prop configuration. The letter ships exactly one sample-data
+scenario — nine clauses long enough to run the letter onto a second page, so
+the plan has a break to place and the closing signatures have to survive it.
+There is no second scenario to show, so rather than invent one, this variant
+documents that and renders the same real letter again.
+
+## Standard letter
+
+The block's one real sample scenario, shown again for its own subheading.
+
+<ComponentVariant name="engagement-letter" variant="standard" />

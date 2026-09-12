@@ -103,7 +103,7 @@ describe.each(['part', 'pdf-pages', 'qr-code', 'signature', 'totals'])(
   }
 )
 
-const DOCUMENTED_BLOCKS = ['invoice', 'purchase-order']
+const DOCUMENTED_BLOCKS = ['invoice', 'purchase-order', 'vendor-packet', 'engagement-letter']
 
 describe.each(DOCUMENTED_BLOCKS)('%s block docs content', (name) => {
   test('has a non-empty rewritten preview source, free of authoring artifacts', () => {
@@ -142,10 +142,26 @@ test("invoice's overflow variant renders the long sample, not the short one", ()
   expect(VARIANT_SOURCES.invoice?.overflow).not.toContain('shortInvoiceData')
 })
 
-test("purchase-order's Preview and its one Variant render the same real sample", () => {
-  // Purchase order has exactly one sample-data export today; per the spec, a
-  // block's Variants section shows only what already exists, so this is a
-  // deliberate single entry rather than a fabricated second scenario.
-  expect(Object.keys(VARIANT_SOURCES['purchase-order'] ?? {})).toEqual(['standard'])
-  expect(VARIANT_SOURCES['purchase-order']?.standard).toBe(PREVIEW_SOURCES['purchase-order'])
+describe.each(['purchase-order', 'vendor-packet', 'engagement-letter'])(
+  "%s's Preview and its one Variant render the same real sample",
+  (name) => {
+    test('the single Variant is a deliberate honest duplicate, not a fabricated scenario', () => {
+      // Each of these blocks has exactly one sample-data export today; per
+      // the spec, a block's Variants section shows only what already
+      // exists, so this is a deliberate single entry rather than a
+      // fabricated second scenario.
+      expect(Object.keys(VARIANT_SOURCES[name] ?? {})).toEqual(['standard'])
+      expect(VARIANT_SOURCES[name]?.standard).toBe(PREVIEW_SOURCES[name])
+    })
+  }
+)
+
+test("vendor-packet's Preview needs no Pages wrapper — it already self-paginates", () => {
+  expect(PREVIEW_SOURCES['vendor-packet']).toContain('VendorPacketDocument')
+  expect(PREVIEW_SOURCES['vendor-packet']).not.toContain('<Pages')
+})
+
+test("engagement-letter's Preview wraps the bare composition in Pages", () => {
+  expect(PREVIEW_SOURCES['engagement-letter']).toContain('<Pages')
+  expect(PREVIEW_SOURCES['engagement-letter']).toContain('EngagementLetterDocument')
 })

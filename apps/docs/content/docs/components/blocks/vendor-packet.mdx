@@ -1,0 +1,77 @@
+---
+title: Vendor Packet
+description: A packet of three documents — the purchase order composed live, a filled W-9 painted from its PDF layer, and the vendor's certificate of insurance as an annex, whose bytes it ships.
+---
+
+`vendor-packet` is the one block here that is not a single document: it is
+three, one of each kind a packet can hold — a live composition, a filled
+registry PDF form, and an uploaded annex — bundled so a buyer can send a new
+supplier everything they need to sign and certify in one scroll.
+
+# Preview
+
+<ComponentPreview name="vendor-packet" />
+
+# Installation
+
+<ComponentInstallation name="vendor-packet" />
+
+# Usage
+
+<BlockUsage name="vendor-packet" />
+
+# Composition
+
+The packet's root is a [`Bundle`](/components/bundle), and each of its three
+documents is a [`Part`](/components/part): the boundary that gives every
+document its own page numbers and, once the packet is sealed, says where in
+the packet those pages land.
+
+The first part is the [purchase order](/components/blocks/purchase-order)
+composed live — the very artifact that block installs, not a copy of it, so
+one edit to the order is one edit for both blocks. It wraps in its own
+[`Pages`](/components/pages), because a composition's pages come from a plan
+this packet computes, unlike the two PDF parts beside it.
+
+The second part is the IRS W-9, filled through its official PDF layer and
+painted by [`PdfPages`](/components/pdf-pages). A PDF already has its own
+pages at its own paper size, so `PdfPages` paints exactly those pages rather
+than planning new ones — the W-9 keeps its own paper even inside a packet
+branded to another. Filling it needs `@paradoc/essentials`, which the block
+declares as a dependency even though nothing it ships imports it: the
+packet's sample carries the taxpayer's values, not the form, so a consumer
+does the filling themselves:
+
+```tsx
+import { w9 } from "@paradoc/essentials";
+import { vendorPacketData } from "@/artifacts/paradoc/vendor-packet.data";
+
+const parsed = w9.safeParseData(vendorPacketData.taxpayer);
+const draft = w9.fill(parsed.data);
+const taxpayerPdf = await draft.render({ layer: "pdf" });
+```
+
+No resolver is passed: `@paradoc/essentials` binds each artifact's bundled
+resolver when it constructs the form, and every instance derived from it,
+including `draft`, carries it.
+
+The third part is the certificate of insurance, also painted by `PdfPages`,
+as an `attached` part carried beside the packet rather than merged into its
+page count. It is not the caller's to supply: the block installs it as
+`vendor-packet.annex.ts`, a module of bytes, because a block installed into a
+browser project has no engine to draw one with.
+
+# Variants
+
+A block's Variants section shows an existing alternate sample-data scenario,
+never a new prop configuration. Both of this block's parts that take a live
+sample — the purchase order and the taxpayer's W-9 values — ship exactly one
+sample-data scenario today, and the certificate of insurance ships one
+annex. There is no second scenario to show, so rather than invent one, this
+variant documents that and renders the same real packet again.
+
+## Standard packet
+
+The block's one real sample scenario, shown again for its own subheading.
+
+<ComponentVariant name="vendor-packet" variant="standard" />

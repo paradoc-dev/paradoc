@@ -19,6 +19,7 @@ import {
   DocumentVariantBrandedTokens,
   DocumentVariantCustomFormat,
   DocumentVariantCustomLayout,
+  EngagementLetterBlockPreview,
   FieldDemo,
   FieldVariantCustomLabel,
   FieldVariantDefaultLabel,
@@ -66,6 +67,7 @@ import {
   TotalsVariantCustomLabel,
   TotalsVariantSingleRow,
   TotalsVariantWithTaxRate,
+  VendorPacketBlockPreview,
 } from "@paradoc/components/examples";
 
 export const COMPONENT_DEMOS: Record<string, ComponentType> = {
@@ -88,6 +90,8 @@ export const COMPONENT_DEMOS: Record<string, ComponentType> = {
   // `Pages`).
   invoice: InvoiceBlockPreview,
   "purchase-order": PurchaseOrderBlockPreview,
+  "vendor-packet": VendorPacketBlockPreview,
+  "engagement-letter": EngagementLetterBlockPreview,
 };
 
 /** One component per variant key, matching `VARIANT_FILES` in the sync script. */
@@ -168,5 +172,11 @@ export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> =
   },
   "purchase-order": {
     standard: PurchaseOrderBlockPreview,
+  },
+  "vendor-packet": {
+    standard: VendorPacketBlockPreview,
+  },
+  "engagement-letter": {
+    standard: EngagementLetterBlockPreview,
   },
 };
