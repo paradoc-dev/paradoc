@@ -17,6 +17,7 @@ import {
   USAGE_SNIPPETS,
   VARIANT_SOURCES,
 } from '../src/generated/component-docs-content'
+import { getBlockUsageFiles } from '../src/lib/component-registry-content'
 
 const DOCUMENTED_COMPONENTS = [
   'bundle',
@@ -101,3 +102,50 @@ describe.each(['part', 'pdf-pages', 'qr-code', 'signature', 'totals'])(
     })
   }
 )
+
+const DOCUMENTED_BLOCKS = ['invoice', 'purchase-order']
+
+describe.each(DOCUMENTED_BLOCKS)('%s block docs content', (name) => {
+  test('has a non-empty rewritten preview source, free of authoring artifacts', () => {
+    const source = PREVIEW_SOURCES[name]
+    expect(source).toBeTruthy()
+    expect(source).not.toContain('@jsxRuntime')
+    expect(source).not.toMatch(/^\s*\/\*\*/)
+    expect(source).not.toMatch(/from "\.\.?\//) // no leftover package-relative imports
+  })
+
+  test('has at least one rewritten variant source', () => {
+    const variants = VARIANT_SOURCES[name]
+    expect(Object.keys(variants).length).toBeGreaterThan(0)
+    for (const source of Object.values(variants)) {
+      expect(source).not.toContain('@jsxRuntime')
+    }
+  })
+
+  test('carries no usage snippet or props table — blocks use BlockUsage instead', () => {
+    // A block's Usage anatomy is genuinely different (see the spec): the full
+    // composition and sample data, not an extracted call-site snippet or a
+    // props table, so blocks must never end up in these base-component maps.
+    expect(USAGE_SNIPPETS[name]).toBeUndefined()
+    expect(PROPS_TABLES[name]).toBeUndefined()
+  })
+
+  test("its registry item's composition and sample-data files carry real content", () => {
+    const { composition, data } = getBlockUsageFiles(name)
+    expect(composition.content).toBeTruthy()
+    expect(data.content).toBeTruthy()
+  })
+})
+
+test("invoice's overflow variant renders the long sample, not the short one", () => {
+  expect(VARIANT_SOURCES.invoice?.overflow).toContain('overflowInvoiceData')
+  expect(VARIANT_SOURCES.invoice?.overflow).not.toContain('shortInvoiceData')
+})
+
+test("purchase-order's Preview and its one Variant render the same real sample", () => {
+  // Purchase order has exactly one sample-data export today; per the spec, a
+  // block's Variants section shows only what already exists, so this is a
+  // deliberate single entry rather than a fabricated second scenario.
+  expect(Object.keys(VARIANT_SOURCES['purchase-order'] ?? {})).toEqual(['standard'])
+  expect(VARIANT_SOURCES['purchase-order']?.standard).toBe(PREVIEW_SOURCES['purchase-order'])
+})

@@ -15,7 +15,8 @@
     "section",
     "signature",
     "table",
-    "totals"
+    "totals",
+    "blocks"
   ],
   "defaultOpen": false
 }

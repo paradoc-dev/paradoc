@@ -38,6 +38,13 @@
  * the same rewriter resolves it to an illustrative `@/examples/...` path
  * instead of refusing to rewrite it.
  *
+ * A block (`invoice`, `purchase-order`, ...) contributes to `PREVIEW_SOURCES`
+ * and `VARIANT_SOURCES` the same way, from its own `BLOCK_DEMO_FILES` /
+ * `BLOCK_VARIANT_FILES` maps below, but never to `USAGE_SNIPPETS` or
+ * `PROPS_TABLES`: a block's Usage section is the full composition and sample
+ * data, read straight from `REGISTRY_CONTENT` by the docs app's `BlockUsage`
+ * component, not an extracted call-site snippet or a props table.
+ *
  * None of the generated content is authored by hand: it is mechanically read
  * or derived from the real files that already exist, so a docs page can never
  * silently diverge from the source it claims to show.
@@ -176,6 +183,36 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "with-tax-rate", file: "totals-variant-with-tax-rate.tsx" },
     { key: "custom-label", file: "totals-variant-custom-label.tsx" },
   ],
+};
+
+/**
+ * Preview demo composition, per block. Unlike a base component's demo, this
+ * wraps the block's own (bare) composition in `Pages` so Preview live-renders
+ * the full, paginated document a consumer would actually see — see
+ * `{Invoice,PurchaseOrder}BlockPreview` in `packages/components/src/examples/`.
+ *
+ * Blocks get their own maps rather than joining `DEMO_FILES`: a block's Usage
+ * anatomy is a full composition-plus-data dump (see `BlockUsage` in the docs
+ * app), never the extracted call-site-snippet-plus-props-table base
+ * components get, so blocks are read here only for `PREVIEW_SOURCES` and
+ * `VARIANT_SOURCES` and never for `USAGE_SNIPPETS` or `PROPS_TABLES`.
+ */
+const BLOCK_DEMO_FILES: Record<string, string> = {
+  invoice: "invoice-block-preview.tsx",
+  "purchase-order": "purchase-order-block-preview.tsx",
+};
+
+/**
+ * A block's existing alternate sample-data scenarios, never a new prop
+ * configuration (per the spec). Invoice has a real second scenario, the
+ * 48-row overflow sample. Purchase-order has only one sample-data export
+ * today, so its one entry points at the same file its Preview does: the
+ * live render and the code shown are honestly identical, documented as such
+ * on the block's own docs page, rather than a fabricated second scenario.
+ */
+const BLOCK_VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
+  invoice: [{ key: "overflow", file: "invoice-block-variant-overflow.tsx" }],
+  "purchase-order": [{ key: "standard", file: "purchase-order-block-preview.tsx" }],
 };
 
 /**
@@ -530,6 +567,21 @@ function main(): void {
         propsSource.interfaceName
       );
     }
+  }
+
+  // Blocks: only PREVIEW_SOURCES and VARIANT_SOURCES, never USAGE_SNIPPETS or
+  // PROPS_TABLES — see BLOCK_DEMO_FILES above for why.
+  for (const [name, demoFile] of Object.entries(BLOCK_DEMO_FILES)) {
+    const raw = readFileSync(resolve(EXAMPLES_DIR, demoFile), "utf8");
+    previewSources[name] = toConsumerSource(raw, `examples/${demoFile}`, context);
+
+    const variants = BLOCK_VARIANT_FILES[name] ?? [];
+    variantSources[name] = Object.fromEntries(
+      variants.map(({ key, file }) => {
+        const variantRaw = readFileSync(resolve(EXAMPLES_DIR, file), "utf8");
+        return [key, toConsumerSource(variantRaw, `examples/${file}`, context)];
+      })
+    );
   }
 
   const body = [

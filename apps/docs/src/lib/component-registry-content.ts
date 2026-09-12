@@ -15,7 +15,7 @@ import {
   USAGE_SNIPPETS,
   VARIANT_SOURCES,
 } from "@/generated/component-docs-content";
-import type { PropRow, RegistryItem } from "@/lib/registry-types";
+import type { PropRow, RegistryFile, RegistryItem } from "@/lib/registry-types";
 
 export function getRegistryItem(name: string): RegistryItem {
   const item = REGISTRY_CONTENT[name];
@@ -75,4 +75,31 @@ export function getVariantSource(name: string, variant: string): string {
     );
   }
   return source;
+}
+
+export interface BlockUsageFiles {
+  composition: RegistryFile;
+  data: RegistryFile;
+}
+
+/**
+ * The composition and sample-data files behind a block's Usage section, both
+ * read from the same already-generated registry item Installation reads
+ * (`REGISTRY_CONTENT`, mirroring `public/r/{name}.json`) — never extracted
+ * or rewritten like a base component's Usage snippet, and never hand-typed.
+ * A block has no single natural call site, so Usage shows both real,
+ * currently-shipping files in full instead.
+ */
+export function getBlockUsageFiles(name: string): BlockUsageFiles {
+  const item = getRegistryItem(name);
+  const composition = item.files.find((file) => file.type === "registry:component");
+  const data = item.files.find((file) => file.path.endsWith(".data.ts"));
+  if (!composition?.content || !data?.content) {
+    throw new Error(
+      `Block "${name}" is missing its composition or sample-data file content. Run ` +
+        "`pnpm registry:build` in paradoc/packages/components, then `pnpm sync:component-docs` " +
+        "(or `pnpm dev` / `pnpm build`, which run it automatically) in paradoc/apps/docs.",
+    );
+  }
+  return { composition, data };
 }

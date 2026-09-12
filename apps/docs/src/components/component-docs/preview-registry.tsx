@@ -23,6 +23,8 @@ import {
   FieldVariantCustomLabel,
   FieldVariantDefaultLabel,
   FieldVariantNoLabel,
+  InvoiceBlockPreview,
+  InvoiceBlockVariantOverflow,
   KeepTogetherDemo,
   KeepTogetherVariantCustomElement,
   KeepTogetherVariantDefaultElement,
@@ -43,6 +45,7 @@ import {
   PdfPagesVariantAttachment,
   PdfPagesVariantStandalone,
   PdfPagesVariantStyled,
+  PurchaseOrderBlockPreview,
   QRCodeDemo,
   QRCodeVariantCustomColors,
   QRCodeVariantCustomLabel,
@@ -79,6 +82,12 @@ export const COMPONENT_DEMOS: Record<string, ComponentType> = {
   "qr-code": QRCodeDemo,
   signature: SignatureDemo,
   totals: TotalsDemo,
+  // Blocks: the full, paginated document, not a single component in
+  // isolation (see the wrapper compositions themselves for why each needs
+  // one — the block's own composition renders bare, with no self-wrapping
+  // `Pages`).
+  invoice: InvoiceBlockPreview,
+  "purchase-order": PurchaseOrderBlockPreview,
 };
 
 /** One component per variant key, matching `VARIANT_FILES` in the sync script. */
@@ -147,5 +156,17 @@ export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> =
     "single-row": TotalsVariantSingleRow,
     "with-tax-rate": TotalsVariantWithTaxRate,
     "custom-label": TotalsVariantCustomLabel,
+  },
+  // Blocks: existing alternate sample-data scenarios, never a new prop
+  // configuration (per the spec, a block's Variants shows only what already
+  // exists). Invoice has a real second scenario (the overflow sample);
+  // purchase-order has only one sample today, so its one Variant entry
+  // reuses the same Preview component and renders the same real data again
+  // rather than inventing a second scenario — see the block's docs page.
+  invoice: {
+    overflow: InvoiceBlockVariantOverflow,
+  },
+  "purchase-order": {
+    standard: PurchaseOrderBlockPreview,
   },
 };

@@ -1,0 +1,65 @@
+---
+title: Invoice
+description: "An invoice nothing signs: the artifact with its React layer, the composition branded from its own tokens, and two samples — one page, and one whose table runs past two breaks."
+---
+
+An invoice is a demand for money already owed, not an agreement, so nothing
+about it needs a signature: the artifact declares no signature slot and the
+composition draws no signing block. It also brands itself: the masthead's
+mark and accent come from the document's own tokens rather than a prop a
+caller fills in, so a tenant who passes their own token set replaces both at
+once.
+
+# Preview
+
+<ComponentPreview name="invoice" />
+
+# Installation
+
+<ComponentInstallation name="invoice" />
+
+# Usage
+
+A block has no single call site — it is a whole document — so this shows
+the composition and its sample data exactly as installing `invoice` gives
+them to you, both real and currently shipping.
+
+<BlockUsage name="invoice" />
+
+# Composition
+
+The invoice composes [`Document`](/components/document),
+[`Section`](/components/section), [`Field`](/components/field),
+[`Table`](/components/table), and [`Totals`](/components/totals) — deliberately
+no [`Signature`](/components/signature). An invoice bills for work already
+done; it asks to be paid rather than agreed to, and the artifact carries no
+signature slot to draw one from.
+
+Each masthead reads the issuer's mark and accent from `Document`'s own
+tokens rather than a prop passed to the composition, so a tenant's own
+branding replaces both together. The mark itself, and the invoice's title,
+are each a [`Keep Together`](/components/keep-together), brought along the
+same way every other component here brings one, so neither is ever split
+across a page break. The line-item [`Table`](/components/table) sits in the
+same section as the [`Totals`](/components/totals) that follows it, and
+neither carries a copy of the subtotal, tax, or total — `@paradoc/core`
+evaluates each from the artifact's own `defs`.
+
+Like the purchase order, the composition renders bare, with no self-wrapping
+[`Pages`](/components/pages): it is meant to sit inside whatever pagination
+or packet a caller supplies. This page's Preview wraps it in `Pages` exactly
+the way a consumer's own page would, which is also why installing `invoice`
+brings `pages` along even though none of the block's own files import it.
+
+# Variants
+
+Two samples exist today, both real and currently shipping — a block's
+Variants section shows an existing alternate sample-data scenario, never a
+new prop configuration.
+
+## Overflow
+
+The 48-row sample: the line-item table runs past two page breaks, and the
+page plan copies the table's header onto every page it continues onto.
+
+<ComponentVariant name="invoice" variant="overflow" />

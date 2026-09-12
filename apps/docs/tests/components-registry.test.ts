@@ -37,6 +37,9 @@ const referencePages = new Set([
   'totals',
 ])
 
+/** Blocks with their own reference page, nested under Components' Blocks group. */
+const blockReferencePages = new Set(['invoice', 'purchase-order'])
+
 interface RegistryIndex {
   name: string
   homepage: string
@@ -68,7 +71,9 @@ describe('the components page', () => {
     for (const item of index.items) {
       const link = referencePages.has(item.name)
         ? `[\`${item.name}\`](/components/${item.name})`
-        : `[\`${item.name}\`](https://docs.paradoc.dev/r/${item.name}.json)`
+        : blockReferencePages.has(item.name)
+          ? `[\`${item.name}\`](/components/blocks/${item.name})`
+          : `[\`${item.name}\`](https://docs.paradoc.dev/r/${item.name}.json)`
       expect(page, `${item.name} is served but not listed`).toContain(link)
     }
   })
