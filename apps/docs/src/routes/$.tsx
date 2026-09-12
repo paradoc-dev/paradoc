@@ -1,10 +1,6 @@
 import type { ComponentType } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { DocsLayout, type DocsSlots } from "fumadocs-ui/layouts/notebook";
-import {
-  SidebarProvider,
-  useSidebar,
-} from "fumadocs-ui/layouts/notebook/slots/sidebar";
+import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import { createServerFn } from "@tanstack/react-start";
 import { source, docsAreas, getPageImage } from "@/lib/source";
 import { findDocsArea } from "@/lib/docs-areas";
@@ -19,6 +15,7 @@ import defaultMdxComponents from "fumadocs-ui/mdx";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { baseOptions } from "@/lib/layout.shared";
 import { DocsHeader, DocsShellProvider } from "@/components/docs-header";
+import { docsSidebar, noSidebar } from "@/components/docs-sidebar";
 import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/$")({
@@ -221,20 +218,6 @@ const clientLoader = browserCollections.docs.createClientLoader({
   },
 });
 
-/** An area of one page (the changelog) has nothing to list: no sidebar, full width. */
-const noSidebar: DocsSlots["sidebar"] = {
-  provider: SidebarProvider,
-  root: () => null,
-  trigger: () => null,
-  collapseTrigger: () => null,
-  useSidebar,
-};
-
-// A function footer replaces the stock sidebar footer outright. The drawer on
-// phones would otherwise render the theme toggle there; the header is the only
-// place it appears.
-const noFooter = () => null;
-
 function Page() {
   const data = Route.useLoaderData();
   const { pageTree } = useFumadocsLoader(data);
@@ -248,10 +231,9 @@ function Page() {
         nav={{ ...base.nav, mode: "top" }}
         tree={pageTree}
         tabs={false}
-        sidebar={{ collapsible: false, footer: noFooter }}
         slots={{
           header: DocsHeader,
-          ...(data.sidebar ? {} : { sidebar: noSidebar }),
+          sidebar: data.sidebar ? docsSidebar : noSidebar,
         }}
       >
         <PageProvider url={data.url} filePath={data.path}>

@@ -31,7 +31,7 @@ export function DocsShellProvider({
 
 function useDocsShell(): DocsShell {
   const shell = use(DocsShellContext);
-  if (!shell) throw new Error("<DocsHeader /> must render under <DocsShellProvider />");
+  if (!shell) throw new Error("<DocsHeader /> and <DocsAreaTabs /> must render under <DocsShellProvider />");
   return shell;
 }
 
@@ -66,7 +66,7 @@ export function DocsHeader(props: ComponentProps<"header">) {
         {slots.navTitle && (
           <slots.navTitle className="inline-flex items-center" />
         )}
-        <HeaderTabs className="ms-6 hidden h-full items-center gap-5 md:flex" />
+        <DocsAreaTabs className="ms-6 hidden h-full items-center gap-5 md:flex" />
         <div className="flex flex-1 items-center justify-end gap-1 md:gap-2">
           {slots.searchTrigger && (
             <>
@@ -103,12 +103,13 @@ export function DocsHeader(props: ComponentProps<"header">) {
           )}
         </div>
       </div>
-      <HeaderTabs className="flex h-10 items-center gap-5 overflow-x-auto border-b px-4 md:hidden" />
+      <DocsAreaTabs className="flex h-10 items-center gap-5 overflow-x-auto border-b px-4 md:hidden" />
     </header>
   );
 }
 
-function HeaderTabs(props: ComponentProps<"nav">) {
+/** The three area tabs; the header on every width, and the phone drawer. */
+export function DocsAreaTabs(props: ComponentProps<"nav">) {
   const { tabs, activeTab } = useDocsShell();
 
   return (
