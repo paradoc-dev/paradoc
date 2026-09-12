@@ -1,5 +1,16 @@
 {
   "title": "Components",
-  "pages": ["index", "installation", "field", "section", "table"],
+  "pages": [
+    "index",
+    "installation",
+    "bundle",
+    "document",
+    "field",
+    "keep-together",
+    "pages",
+    "paper",
+    "section",
+    "table"
+  ],
   "defaultOpen": false
 }

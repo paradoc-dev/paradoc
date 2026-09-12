@@ -14,12 +14,19 @@ import {
 import type { ReactNode } from "react";
 
 export interface DocumentProps {
+  /** The form artifact this document binds to; every component beneath it reads from it. */
   artifact: Form;
+  /** The values that fill the artifact's fields. */
   data: DocumentData;
+  /** How values without a matching serializer are formatted, and which locale registry covers the rest. */
   format?: FormatOptions;
+  /** Tenant branding applied to this document and every component nested inside it. */
   tokens?: DocumentTokensInput;
+  /** Pagination id for this document; falls back to the artifact's own name. */
   id?: string;
+  /** Classes for the document's wrapping element. */
   className?: string;
+  /** The document's composed content. */
   children: ReactNode;
 }
 

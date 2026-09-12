@@ -1,0 +1,69 @@
+---
+title: Pages
+description: Measures the document once and lays it out as paginated sheets.
+---
+
+`Pages` is the one component that actually paginates: it renders the tree
+it's given once, off-screen, to measure it, then renders that same tree
+again, once per page, showing on each only the keeps the plan assigned to
+it. Everything underneath — every `Field`, `Section`, and `Table` — is
+unaware it might be rendering more than once.
+
+# Preview
+
+<ComponentPreview name="pages" />
+
+# Installation
+
+<ComponentInstallation name="pages" />
+
+# Usage
+
+<ComponentUsage name="pages" />
+
+# Composition
+
+`Pages` wraps a [`Document`](/components/document), or a
+[`Bundle`](/components/bundle) of several, and draws each page it produces
+on its own [`Paper`](/components/paper) sheet, sized to the document's own
+page geometry tokens. Every [`Keep Together`](/components/keep-together)
+beneath it — a `Field`, a titled `Section`'s heading, each of a `Table`'s
+rows — is what the plan actually places page by page; `Pages` moves nothing
+itself, it only decides which keeps belong on which page.
+
+`onPaginate` is called with the measured plan whenever pagination changes,
+which is how a caller — the docs preview included — reads the page count or
+drives a PDF render from the same plan the browser laid out. A `Table` whose
+rows continue past a page break gets its header copied onto the continuing
+page from that same plan; the copy carries `data-keep-repeat` so it's never
+confused with the header's one real place in the flow.
+
+Unlike [`Paper`](/components/paper) alone, which draws one sheet and lets
+content run past its bottom, `Pages` is what keeps a document's rendered
+pages matching what a reader would expect from a printed or exported copy.
+
+# Variants
+
+`Pages` takes an optional `className` and `onPaginate`.
+
+## Multi-page overflow
+
+A longer proposal's line items run past three pages, so `Pages` lays the
+same one tree out across several sheets and repeats the table's header on
+every page it continues onto.
+
+<ComponentVariant name="pages" variant="multi-page" />
+
+## Custom frame
+
+A custom `className` replaces the default scroll frame's background and
+padding.
+
+<ComponentVariant name="pages" variant="custom-frame" />
+
+## Page count
+
+`onPaginate` reports the measured plan; here it's used to show the resulting
+page count beside the preview.
+
+<ComponentVariant name="pages" variant="page-count" />

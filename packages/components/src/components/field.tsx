@@ -8,8 +8,11 @@ import { useDocumentTokens, useField } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 export interface FieldProps {
+  /** Path into the artifact this field reads its label and value from. */
   path: string;
+  /** Overrides the field's heading: a string replaces it, `false` hides it, omitted uses the artifact's own label. */
   label?: string | false;
+  /** Classes for the field's wrapping element. */
   className?: string;
 }
 

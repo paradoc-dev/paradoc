@@ -1,0 +1,69 @@
+---
+title: Document
+description: Binds one form artifact and its data to everything beneath it.
+---
+
+`Document` is where a composition meets a real artifact: it loads the form
+definition and its data once, and everything nested inside it — every
+`Field`, `Section`, and `Table` — reads through the context only `Document`
+provides. Rendering any of those components outside a `Document` throws.
+
+# Preview
+
+<ComponentPreview name="document" />
+
+# Installation
+
+<ComponentInstallation name="document" />
+
+# Usage
+
+<ComponentUsage name="document" />
+
+# Composition
+
+A `Document` is its own root when nothing wraps it, exactly like a
+[`Bundle`](/components/bundle) around one. Nested inside a `Bundle`, it
+inherits that bundle's tokens instead of resolving its own, and only the
+outermost of the two may set `pageSize`, `marginPx`, `dir`, or `lang` — a
+nested `Document` that tries throws, since those tokens decide the paper
+every document in the composition shares.
+
+`format` swaps in a different formatter or serializer registry: the same one
+every [`Field`](/components/field) and [`Table`](/components/table) beneath
+this `Document` reads through, so changing it here changes how every value
+underneath prints, without touching any of those components themselves.
+
+`Document` brings along no [`Keep Together`](/components/keep-together) of
+its own — `Field`, a titled `Section`, and `Table` each bring their own. Its
+job is the context those keeps read, not a pagination unit itself.
+
+A composition with more than one `Document` belongs inside one
+[`Bundle`](/components/bundle); pagination itself starts once the whole tree
+is rendered inside [`Pages`](/components/pages).
+
+# Variants
+
+`Document` takes an optional `format`, `tokens`, and a `className` that
+replaces its default column layout.
+
+## Custom layout
+
+A custom `className` lays the document's children out in a row instead of a
+column.
+
+<ComponentVariant name="document" variant="custom-layout" />
+
+## Custom format
+
+A `format` override changes how a field type prints — here, an organization
+prints only its name instead of the default's fuller detail.
+
+<ComponentVariant name="document" variant="custom-format" />
+
+## Branded tokens
+
+`tokens` cascades to every component nested inside — here, a titled
+section's heading picks up the accent color.
+
+<ComponentVariant name="document" variant="branded-tokens" />

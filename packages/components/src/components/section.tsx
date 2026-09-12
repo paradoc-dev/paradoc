@@ -4,7 +4,16 @@ import { useDocumentTokens, useSectionVisible } from "@paradoc/react";
 import type { ReactNode } from "react";
 import { KeepTogether } from "./keep-together";
 
-export interface SectionProps { id: string; title?: string; className?: string; children: ReactNode }
+export interface SectionProps {
+  /** Stable id the page plan uses to decide whether this section renders on a page. */
+  id: string;
+  /** Heading shown above the section's children; omitted renders no heading. */
+  title?: string;
+  /** Classes replacing the section's default column layout. */
+  className?: string;
+  /** The fields, tables, or other content grouped under this section. */
+  children: ReactNode;
+}
 
 export function Section({ id, title, className, children }: SectionProps) {
   const visible = useSectionVisible(id);

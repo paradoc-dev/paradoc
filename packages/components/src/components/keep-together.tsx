@@ -4,8 +4,15 @@ import { useKeepVisible, usePage } from "@paradoc/react";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 
 export interface KeepTogetherProps {
+  /** Stable id the page plan tracks this content by; must be unique within the document. */
   keepId: string;
+  /**
+   * Element or component the keep renders as.
+   *
+   * @default "div"
+   */
   as?: ElementType;
+  /** Content kept together as one pagination unit. */
   children?: ReactNode;
   [property: string]: unknown;
 }

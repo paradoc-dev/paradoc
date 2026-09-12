@@ -26,7 +26,14 @@ export function Page({ plan, index, children }: PageProps) {
   </Sheet>;
 }
 
-export interface PagesProps { className?: string; onPaginate?: (plan: PagePlan) => void; children: ReactNode }
+export interface PagesProps {
+  /** Classes for the outer frame that scales and scrolls the paginated stack. */
+  className?: string;
+  /** Called with the measured page plan whenever pagination changes. */
+  onPaginate?: (plan: PagePlan) => void;
+  /** The document tree measured once and paginated into sheets. */
+  children: ReactNode;
+}
 
 export function Pages({ className, onPaginate, children }: PagesProps) {
   const frameRef = useRef<HTMLDivElement>(null);

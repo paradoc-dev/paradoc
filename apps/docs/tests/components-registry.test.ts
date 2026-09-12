@@ -21,7 +21,16 @@ const installationPage = readFileSync(
   'utf8',
 )
 /** Names with their own reference page, linked internally instead of to the registry JSON. */
-const referencePages = new Set(['field', 'section', 'table'])
+const referencePages = new Set([
+  'bundle',
+  'document',
+  'field',
+  'keep-together',
+  'pages',
+  'paper',
+  'section',
+  'table',
+])
 
 interface RegistryIndex {
   name: string

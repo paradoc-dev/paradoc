@@ -11,9 +11,13 @@ export interface TableColumn {
 }
 
 export interface TableProps {
+  /** Path to the list field this table reads its rows from. */
   path: string;
+  /** Column definitions: each names a list-item field, its header, width, and alignment. */
   columns: readonly TableColumn[];
+  /** Prefix for the header's and each row's pagination id; falls back to `path`. */
   id?: string;
+  /** Classes for the table's wrapping element. */
   className?: string;
 }
 

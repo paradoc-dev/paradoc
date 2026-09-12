@@ -15,7 +15,12 @@ export function Sheet({ page, className, style, ref, children }: SheetProps) {
   return <div ref={ref} data-paper-sheet="true" data-page={page} data-page-size={`${geometry.widthPx}x${geometry.heightPx}`} className={className ?? "paradoc-document relative bg-white shadow-md"} style={{ width: geometry.widthPx, minHeight: geometry.heightPx, padding: geometry.marginPx, ...style }}>{children}</div>;
 }
 
-export interface PaperProps { className?: string; children: ReactNode }
+export interface PaperProps {
+  /** Classes for the outer frame that scales and centers the sheet. */
+  className?: string;
+  /** Content drawn on the one sheet. */
+  children: ReactNode;
+}
 
 export function Paper({ className, children }: PaperProps) {
   const frameRef = useRef<HTMLDivElement>(null);

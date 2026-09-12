@@ -22,9 +22,9 @@ never separates a label from the value underneath it.
 
 # Composition
 
-`Field` always sits inside a `Document`: it reads the current artifact and
-its data through context that only `Document` provides, and rendering one
-outside a `Document` throws. Most fields sit inside a
+`Field` always sits inside a [`Document`](/components/document): it reads the
+current artifact and its data through context that only `Document` provides,
+and rendering one outside a `Document` throws. Most fields sit inside a
 [`Section`](/components/section) that groups them under a heading, but
 nothing requires that — the Preview above renders three `Field`s directly
 inside `Document`, with no `Section` around them.
@@ -35,7 +35,7 @@ field name like `customer`, or a dotted path into a list item like
 itself — it asks the artifact for the field at that path and the value's
 serializer for the text to print.
 
-Every `Field` is a [`Keep Together`](https://docs.paradoc.dev/r/keep-together.json),
+Every `Field` is a [`Keep Together`](/components/keep-together),
 which it brings along automatically, and that is also its whole pagination
 story: a field is never split across a page break, and it renders only on
 the page the plan assigned it to. A [`Table`](/components/table)'s cells

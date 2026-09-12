@@ -11,10 +11,30 @@
 import type { ComponentType } from "react";
 
 import {
+  BundleDemo,
+  BundleVariantBrandedTokens,
+  BundleVariantRow,
+  BundleVariantSingleDocument,
+  DocumentDemo,
+  DocumentVariantBrandedTokens,
+  DocumentVariantCustomFormat,
+  DocumentVariantCustomLayout,
   FieldDemo,
   FieldVariantCustomLabel,
   FieldVariantDefaultLabel,
   FieldVariantNoLabel,
+  KeepTogetherDemo,
+  KeepTogetherVariantCustomElement,
+  KeepTogetherVariantDefaultElement,
+  KeepTogetherVariantPassthroughAttributes,
+  PagesDemo,
+  PagesVariantCustomFrame,
+  PagesVariantMultiPage,
+  PagesVariantPageCount,
+  PaperDemo,
+  PaperVariantCustomFrame,
+  PaperVariantMinimalContent,
+  PaperVariantOverflowingContent,
   SectionDemo,
   SectionVariantRow,
   SectionVariantTitled,
@@ -26,17 +46,47 @@ import {
 } from "@paradoc/components/examples";
 
 export const COMPONENT_DEMOS: Record<string, ComponentType> = {
+  bundle: BundleDemo,
+  document: DocumentDemo,
   field: FieldDemo,
+  "keep-together": KeepTogetherDemo,
+  pages: PagesDemo,
+  paper: PaperDemo,
   section: SectionDemo,
   table: TableDemo,
 };
 
 /** One component per variant key, matching `VARIANT_FILES` in the sync script. */
 export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> = {
+  bundle: {
+    "single-document": BundleVariantSingleDocument,
+    row: BundleVariantRow,
+    "branded-tokens": BundleVariantBrandedTokens,
+  },
+  document: {
+    "custom-layout": DocumentVariantCustomLayout,
+    "custom-format": DocumentVariantCustomFormat,
+    "branded-tokens": DocumentVariantBrandedTokens,
+  },
   field: {
     "default-label": FieldVariantDefaultLabel,
     "no-label": FieldVariantNoLabel,
     "custom-label": FieldVariantCustomLabel,
+  },
+  "keep-together": {
+    "default-element": KeepTogetherVariantDefaultElement,
+    "custom-element": KeepTogetherVariantCustomElement,
+    "passthrough-attributes": KeepTogetherVariantPassthroughAttributes,
+  },
+  pages: {
+    "multi-page": PagesVariantMultiPage,
+    "custom-frame": PagesVariantCustomFrame,
+    "page-count": PagesVariantPageCount,
+  },
+  paper: {
+    "minimal-content": PaperVariantMinimalContent,
+    "custom-frame": PaperVariantCustomFrame,
+    "overflowing-content": PaperVariantOverflowingContent,
   },
   section: {
     titled: SectionVariantTitled,

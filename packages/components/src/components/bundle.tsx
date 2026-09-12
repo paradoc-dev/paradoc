@@ -10,9 +10,17 @@ import {
 } from "@paradoc/react";
 
 export interface BundleProps {
+  /**
+   * Groups this bundle's documents under one id, distinguishing bundles
+   * rendered side by side.
+   * @default "bundle"
+   */
   id?: string;
+  /** Tenant branding cascaded to every document and component nested inside the bundle. */
   tokens?: DocumentTokensInput;
+  /** Classes for the wrapping element around the bundle's documents. */
   className?: string;
+  /** The bundle's documents. */
   children: ReactNode;
 }
 

@@ -1,0 +1,63 @@
+---
+title: Paper
+description: One sheet at the document's page geometry, and the fit-to-width hook.
+---
+
+`Paper` draws exactly one sheet, at the page geometry the document's tokens
+name, and scales it to fit whatever frame it's given. It does not paginate:
+content taller than one page just makes that one sheet taller, which is
+exactly what [`Pages`](/components/pages) exists to prevent.
+
+# Preview
+
+<ComponentPreview name="paper" />
+
+# Installation
+
+<ComponentInstallation name="paper" />
+
+# Usage
+
+<ComponentUsage name="paper" />
+
+# Composition
+
+`Paper` reads its geometry — page size, margin — from the same document
+tokens a [`Document`](/components/document) or [`Bundle`](/components/bundle)
+resolves; it carries no tokens of its own. It draws whatever it is given, with
+no [`Section`](/components/section) or particular layout required around the
+content.
+
+[`Pages`](/components/pages) uses `Paper`'s own `Sheet` internally for each
+page it produces, so a preview that paginates never renders `Paper` directly
+at the same time — `Paper` is for showing one sheet on its own, and `Pages`
+is for showing however many a document's content actually needs.
+
+`useFitToWidth`, the hook behind the scaling, is exported alongside `Paper`
+for a caller that needs the same fit-to-frame behavior without the sheet
+markup itself.
+
+# Variants
+
+`Paper` takes an optional `className` for its outer frame, and `children`.
+
+## Minimal content
+
+`Paper` draws whatever it is given, with no `Section` or layout required
+around it.
+
+<ComponentVariant name="paper" variant="minimal-content" />
+
+## Custom frame
+
+A custom `className` replaces the default frame's background and padding.
+
+<ComponentVariant name="paper" variant="custom-frame" />
+
+## Overflowing content
+
+`Paper` never paginates, so content taller than one page — a longer
+proposal's line items — simply grows the one sheet past its normal height
+instead of continuing onto a second sheet the way `Pages` would.
+
+<ComponentVariant name="paper" variant="overflowing-content" />

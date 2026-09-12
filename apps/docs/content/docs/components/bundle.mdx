@@ -1,0 +1,68 @@
+---
+title: Bundle
+description: Groups the documents of one composition.
+---
+
+`Bundle` is the outermost wrapper for a composition of more than one
+document — a purchase order and the packet around it, a proposal and its
+attachments. It carries no pagination of its own; grouping documents under
+one bundle is what lets a shared set of tenant tokens, like `accentColor`,
+reach every one of them at once.
+
+# Preview
+
+<ComponentPreview name="bundle" />
+
+# Installation
+
+<ComponentInstallation name="bundle" />
+
+# Usage
+
+<ComponentUsage name="bundle" />
+
+# Composition
+
+A `Bundle` isn't required around a single [`Document`](/components/document) —
+a lone `Document` is its own root — but a composition of more than one
+document always has exactly one `Bundle` at the top, and only ever one:
+whichever of `Bundle` or `Document` renders first without an inherited token
+set becomes the root, and every `Document` nested inside it inherits that set
+instead of resolving its own.
+
+Only the root may set `pageSize`, `marginPx`, `dir`, or `lang` — a `Document`
+nested inside a `Bundle` that tries to set one of these throws, because those
+tokens decide the paper every document in the bundle shares. `accentColor`
+and `logo` carry no such restriction: a nested `Document` may still override
+either for itself.
+
+`Bundle` renders as an ordinary `<div data-bundle-id>` in a column by
+default, and it brings along no [`Keep Together`](/components/keep-together)
+of its own. Pagination is not its job: rendering a bundle live means wrapping
+it in [`Pages`](/components/pages), which measures and paginates the whole
+tree beneath it.
+
+# Variants
+
+`Bundle` takes an optional `id`, `tokens`, and a `className` that replaces
+its default column layout.
+
+## Single document
+
+The common shape: a `Bundle` around exactly one `Document`.
+
+<ComponentVariant name="bundle" variant="single-document" />
+
+## Row layout
+
+A custom `className` lays the bundle's documents out in a row instead of a
+column.
+
+<ComponentVariant name="bundle" variant="row" />
+
+## Branded tokens
+
+`tokens` cascades to every document nested inside — here, a titled section's
+heading picks up the accent color.
+
+<ComponentVariant name="bundle" variant="branded-tokens" />

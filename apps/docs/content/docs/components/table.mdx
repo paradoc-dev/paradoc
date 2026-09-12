@@ -23,9 +23,10 @@ in the flow.
 
 # Composition
 
-A `Table` needs the same `Document` context every other component here
-does, and its `path` names a list field in the artifact — the same
-convention `Field` uses, just pointed at an array. Each `columns` entry
+A `Table` needs the same [`Document`](/components/document) context every
+other component here does, and its `path` names a list field in the
+artifact — the same convention `Field` uses, just pointed at an array.
+Each `columns` entry
 names one field of the list's items and gets a Tailwind `basis-*` share of
 the row's width, so together they should sum to the whole row rather than
 leave columns floating loose.
@@ -33,7 +34,7 @@ leave columns floating loose.
 `Table` renders as flex rows, not `<table>` markup, because the default PDF
 engine has no table support: a document using real table markup on screen
 could not be the same tree the PDF renders. What it brings along is
-[`Keep Together`](https://docs.paradoc.dev/r/keep-together.json) for both
+[`Keep Together`](/components/keep-together) for both
 the header row and every data row — each is its own pagination unit — which
 is also what makes header repetition possible: the plan can place a copy of
 the header keep wherever a continued row needs one.

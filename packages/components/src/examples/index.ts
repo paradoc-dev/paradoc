@@ -16,10 +16,10 @@
  * `src/examples/pdf.ts`, and the PNG itself is beside this module as
  * `proposal-logo.png`.
  *
- * `{Field,Section,Table}Demo` and their per-variant siblings
- * (`FieldVariantDefaultLabel`, `TableVariantCompact`, and so on — one export
- * per alternate configuration, so each can render and show its own source)
- * are smaller demo compositions for the docs site's `/components/<name>`
+ * `{Bundle,Document,KeepTogether,Pages,Paper,Field,Section,Table}Demo` and
+ * their per-variant siblings (`FieldVariantDefaultLabel`, `TableVariantCompact`,
+ * and so on — one export per alternate configuration, so each can render and
+ * show its own source) are smaller demo compositions for the docs site's `/components/<name>`
  * pages: each binds one base component, on its own, to a slice of the same
  * proposal sample rather than inventing a new artifact. They are read by the
  * docs app both as components (the live Preview and Variants) and as raw
@@ -130,6 +130,26 @@ export {
   VENDOR_PACKET_TAXPAYER_SIGNER,
   type VendorPacketData,
 } from "./vendor-packet-data";
+export { BundleDemo } from "./bundle-demo";
+export { BundleVariantSingleDocument } from "./bundle-variant-single-document";
+export { BundleVariantRow } from "./bundle-variant-row";
+export { BundleVariantBrandedTokens } from "./bundle-variant-branded-tokens";
+export { DocumentDemo } from "./document-demo";
+export { DocumentVariantCustomLayout } from "./document-variant-custom-layout";
+export { DocumentVariantCustomFormat } from "./document-variant-custom-format";
+export { DocumentVariantBrandedTokens } from "./document-variant-branded-tokens";
+export { KeepTogetherDemo } from "./keep-together-demo";
+export { KeepTogetherVariantDefaultElement } from "./keep-together-variant-default-element";
+export { KeepTogetherVariantCustomElement } from "./keep-together-variant-custom-element";
+export { KeepTogetherVariantPassthroughAttributes } from "./keep-together-variant-passthrough-attributes";
+export { PagesDemo } from "./pages-demo";
+export { PagesVariantMultiPage } from "./pages-variant-multi-page";
+export { PagesVariantCustomFrame } from "./pages-variant-custom-frame";
+export { PagesVariantPageCount } from "./pages-variant-page-count";
+export { PaperDemo } from "./paper-demo";
+export { PaperVariantMinimalContent } from "./paper-variant-minimal-content";
+export { PaperVariantCustomFrame } from "./paper-variant-custom-frame";
+export { PaperVariantOverflowingContent } from "./paper-variant-overflowing-content";
 export { FieldDemo } from "./field-demo";
 export { FieldVariantDefaultLabel } from "./field-variant-default-label";
 export { FieldVariantNoLabel } from "./field-variant-no-label";

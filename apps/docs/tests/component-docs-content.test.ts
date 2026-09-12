@@ -18,9 +18,18 @@ import {
   VARIANT_SOURCES,
 } from '../src/generated/component-docs-content'
 
-const PILOT_COMPONENTS = ['field', 'section', 'table']
+const DOCUMENTED_COMPONENTS = [
+  'bundle',
+  'document',
+  'field',
+  'keep-together',
+  'pages',
+  'paper',
+  'section',
+  'table',
+]
 
-describe.each(PILOT_COMPONENTS)('%s docs content', (name) => {
+describe.each(DOCUMENTED_COMPONENTS)('%s docs content', (name) => {
   test('has a non-empty rewritten preview source, free of authoring artifacts', () => {
     const source = PREVIEW_SOURCES[name]
     expect(source).toBeTruthy()

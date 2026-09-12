@@ -23,15 +23,15 @@ actually moves.
 
 # Composition
 
-A `Section` needs a `Document` above it for the same reason a `Field` does:
-it reads, from context only `Document`'s tree provides, which of its own
-keeps landed on the current page. Give it a stable `id` — the page plan uses
-it to decide whether the section shows at all on a given page, so it should
-be unique within the document and stable across renders, not derived from
-the data being shown.
+A `Section` needs a [`Document`](/components/document) above it for the
+same reason a `Field` does: it reads, from context only `Document`'s tree
+provides, which of its own keeps landed on the current page. Give it a
+stable `id` — the page plan uses it to decide whether the section shows at
+all on a given page, so it should be unique within the document and stable
+across renders, not derived from the data being shown.
 
 A `Section`'s heading, when it has a `title`, is itself a
-[`Keep Together`](https://docs.paradoc.dev/r/keep-together.json) — that is
+[`Keep Together`](/components/keep-together) — that is
 the one piece of pagination machinery it brings along automatically. The
 rest of the section is ordinary children: put whatever
 [`Field`](/components/field)s or [`Table`](/components/table)s belong

@@ -1,0 +1,68 @@
+---
+title: Keep Together
+description: The pagination unit. Content inside one is never split across a page break.
+---
+
+`Keep Together` is what every other component here is built from: a `Field`
+is already one, a titled `Section`'s heading is another, and each of a
+`Table`'s header and rows is one more. It carries no layout of its own — `as`
+decides the element it renders as, and any other prop, `className` included,
+passes straight through to that element.
+
+# Preview
+
+<ComponentPreview name="keep-together" />
+
+# Installation
+
+<ComponentInstallation name="keep-together" />
+
+# Usage
+
+<ComponentUsage name="keep-together" />
+
+# Composition
+
+`Keep Together` renders fine with no [`Document`](/components/document)
+above it — unpaginated, every keep just renders — but the id it carries only
+means something once a [`Pages`](/components/pages) preview has measured the
+tree and produced a plan: `keepId` must then be unique within the document,
+the same requirement a [`Section`](/components/section)'s own `id` follows.
+
+It wraps arbitrary content: a short piece of text, an image, or a handful of
+other components grouped so they are never separated across a page break.
+[`Field`](/components/field) wraps its own value in one automatically, and so
+does a titled [`Section`](/components/section)'s heading and each of a
+[`Table`](/components/table)'s rows — composing directly with `Keep Together`
+is only needed for content none of those three already covers.
+
+A repeated copy of a keep — the way a `Table`'s header reappears on a page
+its rows continue onto — carries `data-keep-repeat`, so it's never confused
+with the keep's one real place in the flow. A plain `Keep Together` never has
+to know whether it's being repeated; only `Table` produces repeats today.
+
+# Variants
+
+`Keep Together` takes a required `keepId`, an optional `as` (default `"div"`),
+and any other prop, which is spread onto the rendered element.
+
+## Default element
+
+With `as` omitted, `Keep Together` renders a `div` — here, grouping a couple
+of fields so they are never separated across a page break.
+
+<ComponentVariant name="keep-together" variant="default-element" />
+
+## Custom element
+
+`as` renders a different element — here, a `header` laying its two fields
+out in a row.
+
+<ComponentVariant name="keep-together" variant="custom-element" />
+
+## Passthrough attributes
+
+Any prop beyond `keepId`, `as`, and `children` is spread onto the rendered
+element, here an `aria-label`.
+
+<ComponentVariant name="keep-together" variant="passthrough-attributes" />

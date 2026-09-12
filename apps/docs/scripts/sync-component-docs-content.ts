@@ -90,7 +90,12 @@ const TARGET = resolve(here, "../src/generated/component-docs-content.ts");
 
 /** Demo composition file, per component, that the Preview section renders live. */
 const DEMO_FILES: Record<string, string> = {
+  bundle: "bundle-demo.tsx",
+  document: "document-demo.tsx",
   field: "field-demo.tsx",
+  "keep-together": "keep-together-demo.tsx",
+  pages: "pages-demo.tsx",
+  paper: "paper-demo.tsx",
   section: "section-demo.tsx",
   table: "table-demo.tsx",
 };
@@ -101,10 +106,35 @@ const DEMO_FILES: Record<string, string> = {
  * show its own source independently of the others.
  */
 const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
+  bundle: [
+    { key: "single-document", file: "bundle-variant-single-document.tsx" },
+    { key: "row", file: "bundle-variant-row.tsx" },
+    { key: "branded-tokens", file: "bundle-variant-branded-tokens.tsx" },
+  ],
+  document: [
+    { key: "custom-layout", file: "document-variant-custom-layout.tsx" },
+    { key: "custom-format", file: "document-variant-custom-format.tsx" },
+    { key: "branded-tokens", file: "document-variant-branded-tokens.tsx" },
+  ],
   field: [
     { key: "default-label", file: "field-variant-default-label.tsx" },
     { key: "no-label", file: "field-variant-no-label.tsx" },
     { key: "custom-label", file: "field-variant-custom-label.tsx" },
+  ],
+  "keep-together": [
+    { key: "default-element", file: "keep-together-variant-default-element.tsx" },
+    { key: "custom-element", file: "keep-together-variant-custom-element.tsx" },
+    { key: "passthrough-attributes", file: "keep-together-variant-passthrough-attributes.tsx" },
+  ],
+  pages: [
+    { key: "multi-page", file: "pages-variant-multi-page.tsx" },
+    { key: "custom-frame", file: "pages-variant-custom-frame.tsx" },
+    { key: "page-count", file: "pages-variant-page-count.tsx" },
+  ],
+  paper: [
+    { key: "minimal-content", file: "paper-variant-minimal-content.tsx" },
+    { key: "custom-frame", file: "paper-variant-custom-frame.tsx" },
+    { key: "overflowing-content", file: "paper-variant-overflowing-content.tsx" },
   ],
   section: [
     { key: "titled", file: "section-variant-titled.tsx" },
@@ -118,9 +148,21 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
   ],
 };
 
-/** The exported props interface backing each component's Usage props table. */
+/**
+ * The exported props interface backing each component's Usage props table.
+ *
+ * `pages.tsx` and `paper.tsx` each carry two components (`Page`/`Pages`,
+ * `Sheet`/`Paper`); the interface named here is always the public one the
+ * registry item installs under that name (`Pages`, `Paper`), never its
+ * internal helper (`Page`, `Sheet`).
+ */
 const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> = {
+  bundle: { file: "bundle.tsx", interfaceName: "BundleProps" },
+  document: { file: "document.tsx", interfaceName: "DocumentProps" },
   field: { file: "field.tsx", interfaceName: "FieldProps" },
+  "keep-together": { file: "keep-together.tsx", interfaceName: "KeepTogetherProps" },
+  pages: { file: "pages.tsx", interfaceName: "PagesProps" },
+  paper: { file: "paper.tsx", interfaceName: "PaperProps" },
   section: { file: "section.tsx", interfaceName: "SectionProps" },
   table: { file: "table.tsx", interfaceName: "TableProps" },
 };
@@ -391,14 +433,22 @@ function main(): void {
       variantRewritten.map(({ key, source }) => [key, source])
     );
 
+    // The JSX tag name to search for is derived from the props interface name
+    // (`FieldProps` -> `Field`), not the registry item's display `title`: a
+    // multi-word title like "Keep Together" never appears as a JSX tag (the
+    // real tag is `KeepTogether`), and `pages`/`paper` each ship a display
+    // title that already matches their public component (`Pages`, `Paper`)
+    // but not their internal one (`Page`, `Sheet`) — the interface name is
+    // right either way, because it names the same component whose props the
+    // table below reads.
+    const propsSource = PROPS_INTERFACES[name];
     const item = REGISTRY_ITEMS.find((candidate) => candidate.name === name);
-    const title = item?.title ?? name;
+    const title = propsSource ? propsSource.interfaceName.replace(/Props$/, "") : (item?.title ?? name);
     usageSnippets[name] = extractUsageSnippet(name, title, [
       rewritten,
       ...variantRewritten.map(({ source }) => source),
     ]);
 
-    const propsSource = PROPS_INTERFACES[name];
     if (propsSource) {
       propsTables[name] = readPropsTable(
         resolve(COMPONENT_SOURCES_DIR, propsSource.file),
