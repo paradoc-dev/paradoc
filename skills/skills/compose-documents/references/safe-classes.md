@@ -115,19 +115,21 @@ against unless the render itself explicitly targets Chromium.
 ## Branding tokens
 
 A document (or bundle) carries a small set of tenant tokens, set once at the
-root and read by both outputs:
+root and read by both outputs. Fonts are not among them: an application owns
+its typefaces through its own stylesheet, and a document inherits them.
 
 | Token | Default | What it changes |
 |---|---|---|
-| `fontFamily` | `"Inter Variable"` | The faces both outputs embed. Only a family `@paradoc/react` registers (`Inter Variable`, `Source Serif 4 Variable`) is valid — an unregistered family fails the render naming it. |
 | `accentColor` | none | Section headings and the rule above an emphasised total. A CSS colour string, applied as an inline style (see [What is never on the list](#what-is-never-on-the-list)) — not a Tailwind class. |
 | `pageSize` | `"letter"` | `"letter"` (816×1056 px) or `"a4"` (794×1123 px). |
 | `marginPx` | `48` | Margin on all four sides of every page. |
+| `dir` | `"ltr"` | Which way the document's lines run, as HTML's `dir` means it. Root-only; an adapter that cannot lay the direction out fails naming itself. |
+| `lang` | `"en"` | BCP-47 language tag, as HTML's `lang` means it; it names the script the typefaces have to carry. Root-only. |
 | `logo` | none | Bytes (`Uint8Array`, becomes a `data:` URI) or a source string the browser can load. |
 | `typography` | `{ scale: "regular", flow: "regular" }` | The document's rhythm. `scale` steps every text role's size and leading one place on the verified scale, `flow` steps the root's block gap; each is `compact`, `regular`, or `roomy`. Root-only. |
 
 ```tsx
-<Bundle tokens={{ pageSize: "a4", marginPx: 56, fontFamily: "Source Serif 4 Variable", accentColor: "#1d4ed8" }}>
+<Bundle tokens={{ pageSize: "a4", marginPx: 56, accentColor: "#1d4ed8", typography: { scale: "compact" } }}>
   <Document artifact={changeOrderForm} data={data}>…</Document>
 </Bundle>
 ```

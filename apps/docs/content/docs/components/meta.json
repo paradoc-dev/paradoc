@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "installation",
+    "typography",
     "bundle",
     "document",
     "field",

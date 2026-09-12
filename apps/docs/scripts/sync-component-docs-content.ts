@@ -28,6 +28,10 @@
  *   variant key, so each Variant's own Code tab shows exactly what its own
  *   live render is built from.
  *
+ * A block (`BLOCK_DEMO_FILES`) and a guide page (`GUIDE_DEMO_FILES`) contribute
+ * only to `PREVIEW_SOURCES` and `VARIANT_SOURCES`: a block's Usage is its whole
+ * composition and data, and a guide is not an item at all.
+ *
  * The import rewriting reuses `rewriteImports` from
  * `@paradoc/components`'s own registry generator (`scripts/registry/generate.ts`)
  * — the same logic that turns an installed component's authoring imports into
@@ -182,6 +186,24 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "single-row", file: "totals-variant-single-row.tsx" },
     { key: "with-tax-rate", file: "totals-variant-with-tax-rate.tsx" },
     { key: "custom-label", file: "totals-variant-custom-label.tsx" },
+  ],
+};
+
+/**
+ * Guide pages: a docs page about a concern that spans the components rather
+ * than one item, keyed by the page's name. Like a block, a guide has a live
+ * Preview and Variants and nothing else. `typography`'s Preview is the token
+ * unset; its levels are the `GUIDE_VARIANT_FILES` entries.
+ */
+const GUIDE_DEMO_FILES: Record<string, string> = {
+  typography: "typography-demo.tsx",
+};
+const GUIDE_VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
+  typography: [
+    { key: "compact", file: "typography-variant-compact.tsx" },
+    { key: "roomy", file: "typography-variant-roomy.tsx" },
+    { key: "flow-compact", file: "typography-variant-flow-compact.tsx" },
+    { key: "flow-roomy", file: "typography-variant-flow-roomy.tsx" },
   ],
 };
 
@@ -575,19 +597,23 @@ function main(): void {
     }
   }
 
-  // Blocks: only PREVIEW_SOURCES and VARIANT_SOURCES, never USAGE_SNIPPETS or
-  // PROPS_TABLES — see BLOCK_DEMO_FILES above for why.
-  for (const [name, demoFile] of Object.entries(BLOCK_DEMO_FILES)) {
-    const raw = readFileSync(resolve(EXAMPLES_DIR, demoFile), "utf8");
-    previewSources[name] = toConsumerSource(raw, `examples/${demoFile}`, context);
-
-    const variants = BLOCK_VARIANT_FILES[name] ?? [];
-    variantSources[name] = Object.fromEntries(
-      variants.map(({ key, file }) => {
-        const variantRaw = readFileSync(resolve(EXAMPLES_DIR, file), "utf8");
-        return [key, toConsumerSource(variantRaw, `examples/${file}`, context)];
-      })
-    );
+  // Guides and blocks: only PREVIEW_SOURCES and VARIANT_SOURCES, never
+  // USAGE_SNIPPETS or PROPS_TABLES — see GUIDE_DEMO_FILES and BLOCK_DEMO_FILES
+  // above for why.
+  for (const { demos, variants } of [
+    { demos: GUIDE_DEMO_FILES, variants: GUIDE_VARIANT_FILES },
+    { demos: BLOCK_DEMO_FILES, variants: BLOCK_VARIANT_FILES },
+  ]) {
+    for (const [name, demoFile] of Object.entries(demos)) {
+      const raw = readFileSync(resolve(EXAMPLES_DIR, demoFile), "utf8");
+      previewSources[name] = toConsumerSource(raw, `examples/${demoFile}`, context);
+      variantSources[name] = Object.fromEntries(
+        (variants[name] ?? []).map(({ key, file }) => {
+          const variantRaw = readFileSync(resolve(EXAMPLES_DIR, file), "utf8");
+          return [key, toConsumerSource(variantRaw, `examples/${file}`, context)];
+        })
+      );
+    }
   }
 
   const body = [

@@ -190,3 +190,8 @@ export { TotalsDemo } from "./totals-demo";
 export { TotalsVariantSingleRow } from "./totals-variant-single-row";
 export { TotalsVariantWithTaxRate } from "./totals-variant-with-tax-rate";
 export { TotalsVariantCustomLabel } from "./totals-variant-custom-label";
+export { TypographyDemo } from "./typography-demo";
+export { TypographyVariantCompact } from "./typography-variant-compact";
+export { TypographyVariantRoomy } from "./typography-variant-roomy";
+export { TypographyVariantFlowCompact } from "./typography-variant-flow-compact";
+export { TypographyVariantFlowRoomy } from "./typography-variant-flow-roomy";

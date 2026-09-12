@@ -103,6 +103,32 @@ describe.each(['part', 'pdf-pages', 'qr-code', 'signature', 'totals'])(
   }
 )
 
+const DOCUMENTED_GUIDES = ['typography']
+
+describe.each(DOCUMENTED_GUIDES)('%s guide docs content', (name) => {
+  test('has a non-empty rewritten preview source, free of authoring artifacts', () => {
+    const source = PREVIEW_SOURCES[name]
+    expect(source).toBeTruthy()
+    expect(source).not.toContain('@jsxRuntime')
+    expect(source).not.toMatch(/^\s*\/\*\*/)
+    expect(source).not.toMatch(/from "\.\.?\//)
+  })
+
+  test("has the page's four variants, each with its token written as a consumer writes it", () => {
+    const variants = VARIANT_SOURCES[name]
+    expect(Object.keys(variants)).toEqual(['compact', 'roomy', 'flow-compact', 'flow-roomy'])
+    expect(variants.compact).toContain('tokens={{ typography: { scale: "compact" } }}')
+    expect(variants.roomy).toContain('tokens={{ typography: { scale: "roomy" } }}')
+    expect(variants['flow-compact']).toContain('tokens={{ typography: { flow: "compact" } }}')
+    expect(variants['flow-roomy']).toContain('tokens={{ typography: { flow: "roomy" } }}')
+  })
+
+  test('carries no usage snippet or props table — a guide is not an item', () => {
+    expect(USAGE_SNIPPETS[name]).toBeUndefined()
+    expect(PROPS_TABLES[name]).toBeUndefined()
+  })
+})
+
 const DOCUMENTED_BLOCKS = ['invoice', 'purchase-order', 'vendor-packet', 'engagement-letter']
 
 describe.each(DOCUMENTED_BLOCKS)('%s block docs content', (name) => {

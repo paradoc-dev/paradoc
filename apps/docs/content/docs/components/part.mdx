@@ -44,6 +44,10 @@ An `attached` part is carried beside the packet rather than merged into its
 page count — a certificate or receipt a reader downloads alongside the
 packet rather than reads as one of its numbered pages.
 
+The header's size follows the rhythm of the document it frames: the `Bundle`'s
+token when there is one, otherwise the `Document` below, read through
+`useDocumentTokensAround`. See [Typography](/components/typography).
+
 # Variants
 
 `Part`'s page range comes entirely from `firstPage`, `pageCount`,

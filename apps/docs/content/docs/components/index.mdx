@@ -17,13 +17,15 @@ the serializers that turn a value into the text a field prints. The installed
 files import it from there. Editing a copied field changes how a field looks; it
 cannot change how the document paginates or which paper it is drawn on.
 
-See [Installation](/components/installation) for setup, once per project.
+See [Installation](/components/installation) for setup, once per project, and
+[Typography](/components/typography) for the token that sets a document's type
+scale and block spacing.
 
 # The items
 
 | Item | What it is |
 |------|------------|
-| [`document-styles`](https://docs.paradoc.dev/r/document-styles.json) | Tailwind and the font faces shared by document preview and PDF output. |
+| [`document-styles`](https://docs.paradoc.dev/r/document-styles.json) | Tailwind, the structural rules the components need, and every class the [typography](/components/typography) token can produce. |
 | [`bundle`](/components/bundle) | Groups the documents of one composition. |
 | [`document`](/components/document) | Binds one form artifact and its data to everything beneath it. |
 | [`field`](/components/field) | One labelled value at a path into the artifact, printed by the artifact's serializers. |

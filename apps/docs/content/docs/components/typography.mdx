@@ -1,0 +1,104 @@
+---
+title: Typography
+description: Set a document's type scale and block spacing once, on the root, and every component follows.
+---
+
+Fonts come from your application: an installed document inherits the families
+your stylesheet sets, and the same faces travel into the PDF. What a document
+declares for itself is its rhythm, through one token on the root: how large its
+text is, and how far apart its blocks sit.
+
+```tsx
+<Document
+  artifact={proposalForm}
+  data={shortProposalData}
+  tokens={{ typography: { scale: "compact", flow: "compact" } }}
+>
+  <Section id="customer" title="Prepared for">
+    <Field path="customer" />
+  </Section>
+</Document>
+```
+
+# Preview
+
+The token left unset, which is `regular`: today's document, byte for byte.
+
+<ComponentPreview name="typography" />
+
+# The two knobs
+
+`typography` has two fields, each `compact`, `regular`, or `roomy`, and either may
+be set alone.
+
+| Knob | What it moves |
+|------|---------------|
+| `scale` | The size of every text role a component sets, and its leading with it: field labels, section headings, table headers, totals, signature labels and rules, part titles, PDF part captions. Values and table cells set no size of their own and inherit the root's, which steps too. |
+| `flow` | The space between blocks at the document root, and between the documents of a `Bundle`. |
+
+A level is one step, not a number. The default PDF engine draws from a verified
+vocabulary of Tailwind classes and nothing else, so a level is defined as one
+step along that vocabulary's own scale: `text-sm leading-relaxed` becomes
+`text-xs leading-snug` at `compact` and `text-base leading-loose` at `roomy`.
+Every class a level can produce is one the engine already accepts, which is what
+keeps the preview and the PDF the same document at every level. The ends of the
+scale are the floor and the ceiling: a label already at `text-xs` stays there when
+the document goes compact.
+
+# Where it goes
+
+`typography` is root-only, like `pageSize` and `marginPx`. Declare it on the
+outermost `Document` or `Bundle`; a `Document` nested inside a `Bundle` that
+sets it fails naming the token, because a packet is one sequence of pages laid
+out one way. A render may override it for one tenant through `renderPdf`'s own
+`tokens`, the same last layer every root token allows.
+
+# When a class wins
+
+A class written directly on an element wins over the token for that element. A
+composer who passes the root its own `className` pins the root. Inside an
+installed component a role follows the token only where its class is passed
+through `scaleTextClasses`; a copy owner who wants one role fixed writes the
+class directly instead:
+
+```tsx
+const { typography } = useDocumentTokens();
+
+// Follows the token
+<span className={scaleTextClasses("text-xs font-semibold uppercase", typography.scale)}>{title}</span>;
+
+// Pinned
+<span className="text-xs font-semibold uppercase">{title}</span>;
+```
+
+Both helpers, `scaleTextClasses` and `flowGapClasses`, are exported from
+`@paradoc/react`, and `useDocumentTokens().typography` is the resolved rhythm
+for anything below the root.
+
+# Variants
+
+## Compact
+
+`scale: "compact"`. Values, table cells, and the totals step down one size
+with tighter leading. Labels, section headings, and table headers are already
+at the smallest verified size and stay there.
+
+<ComponentVariant name="typography" variant="compact" />
+
+## Roomy
+
+`scale: "roomy"`. Every role steps up one size with looser leading.
+
+<ComponentVariant name="typography" variant="roomy" />
+
+## Flow compact
+
+`flow: "compact"`. The gap between the root's blocks closes; no text moves.
+
+<ComponentVariant name="typography" variant="flow-compact" />
+
+## Flow roomy
+
+`flow: "roomy"`. The gap between the root's blocks opens; no text moves.
+
+<ComponentVariant name="typography" variant="flow-roomy" />

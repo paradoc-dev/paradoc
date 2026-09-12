@@ -147,7 +147,7 @@ import with no corresponding prop. `data` is a `DocumentData`:
 - **Page geometry is declared once, at the document or bundle root, through
   `tokens` — never on `Paper`, `Pages`, or inside a nested composition.** See
   [safe-classes.md](./references/safe-classes.md) for the token set
-  (`fontFamily`, `accentColor`, `pageSize`, `marginPx`, `logo`, `typography`) and its
+  (`accentColor`, `pageSize`, `marginPx`, `logo`, `dir`, `lang`, `typography`) and its
   failure modes.
 - **A `Signature` block needs no extra wiring for the seal.** It draws its own
   marker when the render is a seal pass. Do not add a hidden text layer, a
@@ -185,7 +185,7 @@ import with no corresponding prop. `data` is a `DocumentData`:
 |---|---|---|
 | `UnknownFieldPathError` | `Field`/`Table`/`Totals` names a path or def the artifact does not declare. | Check the artifact's `fields`/`defs` keys; fix the typo rather than hardcoding a value. |
 | `paradoc check` reports an unsupported class | A Tailwind class outside the verified subset, or an arbitrary value like `text-[13px]`. | Replace with the nearest class in [safe-classes.md](./references/safe-classes.md), or restructure with spacing/sizing utilities that are on the list. |
-| `RootTokenMismatchError` / `NestedPaperTokenError` | `pageSize`, `marginPx`, `typography`, or `fontFamily` set on a `Document` nested inside a `Bundle`, or a composition setting tokens on itself instead of forwarding a `tokens` prop. | Set paper tokens once, on the outermost `Bundle` or `Document`; a nested document may still set `accentColor` and `logo`. |
-| A page silently loses the organization mark or a branded font | Font family or logo not registered, or the composition rendered without the `tokens` the caller resolved. | Only use a font family listed in [safe-classes.md](./references/safe-classes.md#branding-tokens); pass `tokens` through rather than hiding them inside the composition. |
+| `RootTokenMismatchError` / `NestedPaperTokenError` | `pageSize`, `marginPx`, `dir`, `lang`, or `typography` set on a `Document` nested inside a `Bundle`, or a composition setting tokens on itself instead of forwarding a `tokens` prop. | Set paper tokens once, on the outermost `Bundle` or `Document`; a nested document may still set `accentColor` and `logo`. |
+| A page silently loses the organization mark | The composition rendered without the `tokens` the caller resolved. | Pass `tokens` through rather than hiding them inside the composition. |
 | `AmbiguousSigningMarkError` | Two `Signature` blocks for the same party and the same `type` (both `signature`, say). | One block per party per field type; a party that signs and initials is two blocks with different `type`. |
 | Composition compiles but `paradoc check` can't find its artifact | The artifact does not declare a React layer whose `path` resolves to this file. | Add or fix the `layers.<key>` entry: `kind: "file"`, `mimeType: "text/tsx"`, `path` relative to the artifact file. |

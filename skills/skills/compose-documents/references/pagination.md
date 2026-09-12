@@ -63,7 +63,7 @@ or `Document`) and by both outputs. A composition:
 
 - never renders `Paper`/`Pages` with a size or margin prop (there is none to
   pass);
-- sets `pageSize`, `marginPx`, and `fontFamily` **only** on the outermost
+- sets `pageSize`, `marginPx`, `dir`, `lang`, and `typography` **only** on the outermost
   root, never on a `Document` nested inside a `Bundle` (that throws
   `NestedPaperTokenError`);
 - never sets its own `tokens` on itself and swallows them — if a composition

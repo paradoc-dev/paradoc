@@ -67,10 +67,18 @@ import {
   TotalsVariantCustomLabel,
   TotalsVariantSingleRow,
   TotalsVariantWithTaxRate,
+  TypographyDemo,
+  TypographyVariantCompact,
+  TypographyVariantFlowCompact,
+  TypographyVariantFlowRoomy,
+  TypographyVariantRoomy,
   VendorPacketBlockPreview,
 } from "@paradoc/components/examples";
 
 export const COMPONENT_DEMOS: Record<string, ComponentType> = {
+  // Guides: a page about a concern that spans the components, not an item.
+  // `GUIDE_DEMO_FILES` in the sync script is the matching map.
+  typography: TypographyDemo,
   bundle: BundleDemo,
   document: DocumentDemo,
   field: FieldDemo,
@@ -94,8 +102,15 @@ export const COMPONENT_DEMOS: Record<string, ComponentType> = {
   "engagement-letter": EngagementLetterBlockPreview,
 };
 
-/** One component per variant key, matching `VARIANT_FILES` in the sync script. */
+/** One component per variant key, matching `VARIANT_FILES`, `BLOCK_VARIANT_FILES`, or `GUIDE_VARIANT_FILES` in the sync script. */
 export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> = {
+  // Guides: `GUIDE_VARIANT_FILES` in the sync script is the matching map.
+  typography: {
+    compact: TypographyVariantCompact,
+    roomy: TypographyVariantRoomy,
+    "flow-compact": TypographyVariantFlowCompact,
+    "flow-roomy": TypographyVariantFlowRoomy,
+  },
   bundle: {
     "single-document": BundleVariantSingleDocument,
     row: BundleVariantRow,

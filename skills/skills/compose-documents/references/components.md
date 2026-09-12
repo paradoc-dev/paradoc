@@ -230,8 +230,8 @@ image, a custom banner) — never wrap it around a `Field`, `Table`, or another
 
 ## Hooks a composition may call directly
 
-- `useDocumentTokens()` — the resolved branding (`fontFamily`, `accentColor`,
-  `pageSize`, `marginPx`, `logo`) for a component below `Document`/`Bundle`
+- `useDocumentTokens()` — the resolved branding (`accentColor`, `pageSize`,
+  `marginPx`, `logo`, `dir`, `lang`, `typography`) for a component below `Document`/`Bundle`
   that needs to read a token itself (the sample's masthead mark does this to
   prefer a tenant `logo` over its own default).
 - `usePagePlan()` — the current `PagePlan` for a component inside a page that

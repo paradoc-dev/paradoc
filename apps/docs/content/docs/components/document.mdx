@@ -42,6 +42,10 @@ A composition with more than one `Document` belongs inside one
 [`Bundle`](/components/bundle); pagination itself starts once the whole tree
 is rendered inside [`Pages`](/components/pages).
 
+The root's default classes follow the [typography](/components/typography)
+token: `scale` steps its text size and leading, `flow` its gap between blocks.
+A `className` you pass replaces them and wins.
+
 # Variants
 
 `Document` takes an optional `format`, `tokens`, and a `className` that
