@@ -178,6 +178,7 @@ export {
   DEFAULT_TYPOGRAPHY,
   TYPOGRAPHY_LEVELS,
   flowGapClasses,
+  isTypographyLevel,
   scaleTextClasses,
   type Typography,
   type TypographyInput,
