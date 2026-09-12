@@ -40,6 +40,7 @@
     "fumadocs-ui": "^16.0.11",
     "lucide-react": "catalog:",
     "nitro": "3.0.1-alpha.2",
+    "pdfjs-dist": "catalog:",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.4.0",

@@ -26,6 +26,7 @@ export interface AttachmentProps {
   byteLength?: number;
   /** Why it is an attachment rather than pages. */
   reason: string;
+  /** Application-owned classes on the attachment card. */
   className?: string;
 }
 
@@ -79,7 +80,10 @@ export interface PdfPagesProps {
   bytes: Uint8Array;
   /** Name to fall back to when the content cannot be painted. */
   filename: string;
-  /** What the content is. Defaults to `application/pdf`. */
+  /**
+   * What the content is.
+   * @default "application/pdf"
+   */
   mimeType?: string;
   /** Where pdf.js loads its worker from. See `paintPdfPages`. */
   workerSrc?: string;
@@ -87,12 +91,19 @@ export interface PdfPagesProps {
   standardFontDataUrl?: string;
   /** Where pdf.js loads its CMaps from. See `paintPdfPages`. */
   cMapUrl?: string;
-  /** CSS pixels per PDF point. See `paintPdfPages`. */
+  /**
+   * CSS pixels per PDF point. See `paintPdfPages`.
+   * @default 96 / 72
+   */
   scale?: number;
-  /** How long the paint may take before the part becomes an attachment. Defaults to 20000. */
+  /**
+   * How long the paint may take before the part becomes an attachment.
+   * @default 20000
+   */
   timeoutMs?: number;
   /** Called once the paint has settled, painted or not. */
   onPaint?: (report: PdfPaintReport) => void;
+  /** Application-owned classes on the frame the painted pages sit in. */
   className?: string;
 }
 

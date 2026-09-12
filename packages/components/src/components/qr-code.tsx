@@ -12,14 +12,27 @@ import { QRCodeSVG } from "qrcode.react";
 export interface QRCodeProps {
   /** The URL encoded by the QR code. */
   url: string;
-  /** Width and height in pixels. Defaults to 128. */
+  /**
+   * Width and height in pixels.
+   * @default 128
+   */
   size?: number;
-  /** QR module color. Defaults to black. */
+  /**
+   * QR module color.
+   * @default "#000000"
+   */
   color?: string;
-  /** Background color behind the modules. Defaults to white. */
+  /**
+   * Background color behind the modules.
+   * @default "#ffffff"
+   */
   backgroundColor?: string;
-  /** Accessible name for the SVG. Defaults to `QR code for <url>`. */
+  /**
+   * Accessible name for the SVG.
+   * @default "QR code for <url>"
+   */
   label?: string;
+  /** Application-owned classes on the SVG. */
   className?: string;
 }
 

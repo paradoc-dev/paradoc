@@ -16,14 +16,17 @@
  * `src/examples/pdf.ts`, and the PNG itself is beside this module as
  * `proposal-logo.png`.
  *
- * `{Bundle,Document,KeepTogether,Pages,Paper,Field,Section,Table}Demo` and
- * their per-variant siblings (`FieldVariantDefaultLabel`, `TableVariantCompact`,
- * and so on — one export per alternate configuration, so each can render and
- * show its own source) are smaller demo compositions for the docs site's `/components/<name>`
- * pages: each binds one base component, on its own, to a slice of the same
- * proposal sample rather than inventing a new artifact. They are read by the
- * docs app both as components (the live Preview and Variants) and as raw
- * source text, rewritten to the form a consumer would write — see
+ * `{Bundle,Document,KeepTogether,Pages,Paper,Field,Section,Table,Part,
+ * PdfPages,QRCode,Signature,Totals}Demo` and their per-variant siblings
+ * (`FieldVariantDefaultLabel`, `TableVariantCompact`, and so on — one export
+ * per alternate configuration, so each can render and show its own source)
+ * are smaller demo compositions for the docs site's `/components/<name>`
+ * pages: each binds one base component, on its own (or, for `Part` and
+ * `PdfPages`, inside the small packet a `Bundle` needs to render
+ * meaningfully), to a slice of the same proposal or vendor-packet sample
+ * rather than inventing a new artifact. They are read by the docs app both
+ * as components (the live Preview and Variants) and as raw source text,
+ * rewritten to the form a consumer would write — see
  * `paradoc/apps/docs/scripts/sync-component-docs-content.ts`.
  */
 
@@ -162,3 +165,23 @@ export { TableDemo } from "./table-demo";
 export { TableVariantCompact } from "./table-variant-compact";
 export { TableVariantLeftAligned } from "./table-variant-left-aligned";
 export { TableVariantCustomHeaders } from "./table-variant-custom-headers";
+export { PartDemo } from "./part-demo";
+export { PartVariantUnplaced } from "./part-variant-unplaced";
+export { PartVariantPlaced } from "./part-variant-placed";
+export { PartVariantPending } from "./part-variant-pending";
+export { PdfPagesDemo } from "./pdf-pages-demo";
+export { PdfPagesVariantStandalone } from "./pdf-pages-variant-standalone";
+export { PdfPagesVariantAttachment } from "./pdf-pages-variant-attachment";
+export { PdfPagesVariantStyled } from "./pdf-pages-variant-styled";
+export { QRCodeDemo } from "./qr-code-demo";
+export { QRCodeVariantCustomColors } from "./qr-code-variant-custom-colors";
+export { QRCodeVariantLargerSize } from "./qr-code-variant-larger-size";
+export { QRCodeVariantCustomLabel } from "./qr-code-variant-custom-label";
+export { SignatureDemo } from "./signature-demo";
+export { SignatureVariantSignature } from "./signature-variant-signature";
+export { SignatureVariantInitials } from "./signature-variant-initials";
+export { SignatureVariantCustomId } from "./signature-variant-custom-id";
+export { TotalsDemo } from "./totals-demo";
+export { TotalsVariantSingleRow } from "./totals-variant-single-row";
+export { TotalsVariantWithTaxRate } from "./totals-variant-with-tax-rate";
+export { TotalsVariantCustomLabel } from "./totals-variant-custom-label";

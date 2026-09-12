@@ -25,9 +25,15 @@ const DOCUMENTED_COMPONENTS = [
   'keep-together',
   'pages',
   'paper',
+  'part',
+  'pdf-pages',
+  'qr-code',
   'section',
+  'signature',
   'table',
+  'totals',
 ]
+
 
 describe.each(DOCUMENTED_COMPONENTS)('%s docs content', (name) => {
   test('has a non-empty rewritten preview source, free of authoring artifacts', () => {
@@ -75,3 +81,23 @@ test("table's props table reads `columns` as the real component declares it", ()
   const columns = PROPS_TABLES.table?.find((prop) => prop.name === 'columns')
   expect(columns?.type).toBe('readonly TableColumn[]')
 })
+
+test("pdf-pages' props table describes PdfPagesProps, not AttachmentProps", () => {
+  // `pdf-pages.tsx` ships both `Attachment` and `PdfPages`; the table must
+  // describe the item's primary, consumer-facing export.
+  const names = PROPS_TABLES['pdf-pages']?.map((prop) => prop.name)
+  expect(names).toContain('bytes')
+  expect(names).toContain('onPaint')
+  expect(names).not.toContain('reason') // Attachment-only
+})
+
+describe.each(['part', 'pdf-pages', 'qr-code', 'signature', 'totals'])(
+  "%s's props table has no blank description",
+  (name) => {
+    test('every prop carries its own JSDoc description', () => {
+      for (const prop of PROPS_TABLES[name] ?? []) {
+        expect(prop.description, `${name}.${prop.name} has no description`).not.toBe('')
+      }
+    })
+  }
+)

@@ -98,6 +98,11 @@ const DEMO_FILES: Record<string, string> = {
   paper: "paper-demo.tsx",
   section: "section-demo.tsx",
   table: "table-demo.tsx",
+  part: "part-demo.tsx",
+  "pdf-pages": "pdf-pages-demo.tsx",
+  "qr-code": "qr-code-demo.tsx",
+  signature: "signature-demo.tsx",
+  totals: "totals-demo.tsx",
 };
 
 /**
@@ -146,6 +151,31 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "left-aligned", file: "table-variant-left-aligned.tsx" },
     { key: "custom-headers", file: "table-variant-custom-headers.tsx" },
   ],
+  part: [
+    { key: "unplaced", file: "part-variant-unplaced.tsx" },
+    { key: "placed", file: "part-variant-placed.tsx" },
+    { key: "pending", file: "part-variant-pending.tsx" },
+  ],
+  "pdf-pages": [
+    { key: "standalone", file: "pdf-pages-variant-standalone.tsx" },
+    { key: "attachment", file: "pdf-pages-variant-attachment.tsx" },
+    { key: "styled", file: "pdf-pages-variant-styled.tsx" },
+  ],
+  "qr-code": [
+    { key: "custom-colors", file: "qr-code-variant-custom-colors.tsx" },
+    { key: "larger-size", file: "qr-code-variant-larger-size.tsx" },
+    { key: "custom-label", file: "qr-code-variant-custom-label.tsx" },
+  ],
+  signature: [
+    { key: "signature", file: "signature-variant-signature.tsx" },
+    { key: "initials", file: "signature-variant-initials.tsx" },
+    { key: "custom-id", file: "signature-variant-custom-id.tsx" },
+  ],
+  totals: [
+    { key: "single-row", file: "totals-variant-single-row.tsx" },
+    { key: "with-tax-rate", file: "totals-variant-with-tax-rate.tsx" },
+    { key: "custom-label", file: "totals-variant-custom-label.tsx" },
+  ],
 };
 
 /**
@@ -165,6 +195,16 @@ const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> 
   paper: { file: "paper.tsx", interfaceName: "PaperProps" },
   section: { file: "section.tsx", interfaceName: "SectionProps" },
   table: { file: "table.tsx", interfaceName: "TableProps" },
+  part: { file: "part.tsx", interfaceName: "PartProps" },
+  // `pdf-pages.tsx` ships both `Attachment` and `PdfPages`, but the item's own
+  // description centers on painting pages ("painted page by page ... or a
+  // named attachment when it cannot be painted") — `PdfPages` is the primary,
+  // consumer-facing export, so its props interface backs the table. The
+  // Composition section covers the `Attachment` fallback in prose instead.
+  "pdf-pages": { file: "pdf-pages.tsx", interfaceName: "PdfPagesProps" },
+  "qr-code": { file: "qr-code.tsx", interfaceName: "QRCodeProps" },
+  signature: { file: "signature.tsx", interfaceName: "SignatureProps" },
+  totals: { file: "totals.tsx", interfaceName: "TotalsProps" },
 };
 
 function readRegistryContent(): Record<string, RegistryItem> {
@@ -334,6 +374,22 @@ function extractImportLine(source: string, name: string): string {
   return match[0];
 }
 
+/**
+ * Drops a docs-only DOM-disambiguation `id` (needed only so several
+ * live-rendered demos/variants can share one page without colliding, e.g.
+ * `table-variant-compact.tsx`'s `id="table-variant-compact"`) from every tag
+ * in `jsx` EXCEPT one named in `requiredIdTags` — where `id` is a real,
+ * required prop of the component being documented (e.g. `Part`'s `id`, which
+ * names its position in the packet), so a real value there must stay in the
+ * Usage snippet, however it happens to be spelled in this particular demo.
+ */
+function stripDisambiguationIds(jsx: string, requiredIdTags: ReadonlySet<string>): string {
+  return jsx.replace(/<([A-Za-z][\w.]*)((?:\s[^<>]*)?)(\/?)>/g, (whole, tag, attrs, close) => {
+    if (requiredIdTags.has(tag)) return whole;
+    return `<${tag}${attrs.replace(/\s+id="[^"]*"/, "")}${close}>`;
+  });
+}
+
 const MAX_USAGE_LINES = 8;
 
 /**
@@ -345,7 +401,8 @@ const MAX_USAGE_LINES = 8;
 function extractUsageSnippet(
   name: string,
   title: string,
-  candidates: readonly string[]
+  candidates: readonly string[],
+  requiredIdTags: ReadonlySet<string>
 ): string {
   for (const candidate of candidates) {
     let jsx: string;
@@ -354,12 +411,7 @@ function extractUsageSnippet(
     } catch {
       continue;
     }
-    // A variant file's `id` exists only so several live-rendered variants can
-    // share one page without colliding in the DOM (see e.g.
-    // table-variant-compact.tsx); it is never part of how a consumer would
-    // actually call the component, so Usage — unlike Preview/Variant, which
-    // keep it for the real live render — never shows it.
-    jsx = jsx.replace(/\s+id="[^"]*"/, "");
+    jsx = stripDisambiguationIds(jsx, requiredIdTags);
     const importLine = extractImportLine(candidate, name);
     const snippet = `${importLine}\n\n${jsx}\n`;
     if (snippet.split("\n").length <= MAX_USAGE_LINES + 1) return snippet;
@@ -409,9 +461,27 @@ function readPropsTable(filePath: string, interfaceName: string): PropRow[] {
   });
 }
 
+/**
+ * Tag names (e.g. `Part`) whose own `id` prop is required, read from each
+ * component's real props interface rather than assumed — `stripDisambiguationIds`
+ * must never remove a required `id` (it names something real, like which
+ * position in a packet a `Part` occupies), only ever an optional one a demo
+ * set purely to keep several live-rendered instances from colliding in the DOM.
+ */
+function computeRequiredIdTags(): ReadonlySet<string> {
+  const required = new Set<string>();
+  for (const { file, interfaceName } of Object.values(PROPS_INTERFACES)) {
+    const props = readPropsTable(resolve(COMPONENT_SOURCES_DIR, file), interfaceName);
+    const id = props.find((prop) => prop.name === "id");
+    if (id && !id.optional) required.add(interfaceName.replace(/Props$/, ""));
+  }
+  return required;
+}
+
 function main(): void {
   const registryContent = readRegistryContent();
   const context = buildRewriteContext();
+  const requiredIdTags = computeRequiredIdTags();
 
   const previewSources: Record<string, string> = {};
   const usageSnippets: Record<string, string> = {};
@@ -434,20 +504,25 @@ function main(): void {
     );
 
     // The JSX tag name to search for is derived from the props interface name
-    // (`FieldProps` -> `Field`), not the registry item's display `title`: a
-    // multi-word title like "Keep Together" never appears as a JSX tag (the
-    // real tag is `KeepTogether`), and `pages`/`paper` each ship a display
-    // title that already matches their public component (`Pages`, `Paper`)
-    // but not their internal one (`Page`, `Sheet`) — the interface name is
-    // right either way, because it names the same component whose props the
-    // table below reads.
+    // (`FieldProps` -> `Field`), not the registry item's human-readable
+    // `title` (e.g. "Keep Together", "QR Code", "PDF Pages") — those agree
+    // for single-word components but diverge for multi-word ones, where the
+    // real tag is still PascalCase with no space (`KeepTogether`, `QRCode`,
+    // `PdfPages`), and `pages`/`paper` each ship a title that matches their
+    // public component (`Pages`, `Paper`) but not their internal one
+    // (`Page`, `Sheet`). The interface name is right either way, because it
+    // names the same component whose props the table below reads.
     const propsSource = PROPS_INTERFACES[name];
     const item = REGISTRY_ITEMS.find((candidate) => candidate.name === name);
-    const title = propsSource ? propsSource.interfaceName.replace(/Props$/, "") : (item?.title ?? name);
-    usageSnippets[name] = extractUsageSnippet(name, title, [
-      rewritten,
-      ...variantRewritten.map(({ source }) => source),
-    ]);
+    const tagName = propsSource
+      ? propsSource.interfaceName.replace(/Props$/, "")
+      : (item?.title ?? name);
+    usageSnippets[name] = extractUsageSnippet(
+      name,
+      tagName,
+      [rewritten, ...variantRewritten.map(({ source }) => source)],
+      requiredIdTags
+    );
 
     if (propsSource) {
       propsTables[name] = readPropsTable(

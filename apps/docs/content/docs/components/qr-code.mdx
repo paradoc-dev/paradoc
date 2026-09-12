@@ -1,0 +1,53 @@
+---
+title: QR Code
+description: An SVG QR code that links a printed or previewed document to a URL, with configurable size and colors.
+---
+
+`QRCode` is the one component here that reads nothing from the artifact: it
+takes a URL directly and draws it as a scannable SVG, sharp at any output
+scale in both the browser preview and PDF rendering.
+
+# Preview
+
+<ComponentPreview name="qr-code" />
+
+# Installation
+
+<ComponentInstallation name="qr-code" />
+
+# Usage
+
+<ComponentUsage name="qr-code" />
+
+# Composition
+
+`QRCode` needs no `Document` above it and binds to nothing in the artifact —
+its only input is the `url` prop, which a caller builds from whatever the
+document should point to: a canonical online copy, a verification page, a
+payment link. That makes it the one component here a caller can place
+anywhere a plain image would go, including outside a document entirely.
+
+It also carries no pagination unit of its own, unlike every other component
+here: it is not a `Keep Together`. A caller who needs it to stay with the
+text beside it — a masthead, a signature block — wraps it in one, the same
+way any other markup would.
+
+# Variants
+
+## Custom colors
+
+`color` and `backgroundColor` replace the default black-on-white modules.
+
+<ComponentVariant name="qr-code" variant="custom-colors" />
+
+## Larger size
+
+`size` replaces the default 128px modules.
+
+<ComponentVariant name="qr-code" variant="larger-size" />
+
+## Custom label
+
+`label` overrides the default `QR code for <url>` accessible name.
+
+<ComponentVariant name="qr-code" variant="custom-label" />

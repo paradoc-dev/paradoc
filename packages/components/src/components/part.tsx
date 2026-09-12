@@ -47,7 +47,9 @@ export interface PartProps {
   placedFor?: string;
   /** The `packetHash` of the packet on screen now. Page numbers show only while it matches. */
   packetHash?: string;
+  /** Application-owned classes on the part's own wrapping element. */
   className?: string;
+  /** The part's document: a composition, painted PDF pages, or an attachment. */
   children: ReactNode;
 }
 

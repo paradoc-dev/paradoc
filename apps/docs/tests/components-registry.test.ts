@@ -28,8 +28,13 @@ const referencePages = new Set([
   'keep-together',
   'pages',
   'paper',
+  'part',
+  'pdf-pages',
+  'qr-code',
   'section',
+  'signature',
   'table',
+  'totals',
 ])
 
 interface RegistryIndex {

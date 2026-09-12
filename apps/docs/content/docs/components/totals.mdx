@@ -1,0 +1,59 @@
+---
+title: Totals
+description: The artifact's computed amounts, evaluated by @paradoc/core.
+---
+
+`Totals` prints nothing it computes itself: each row names a `def` the
+artifact declares as a computed field with its own expression, and
+`@paradoc/core` evaluates it. `Totals` only reads the def's label and its
+serializer-formatted amount, the same way a `Field` reads a plain one.
+
+# Preview
+
+<ComponentPreview name="totals" />
+
+# Installation
+
+<ComponentInstallation name="totals" />
+
+# Usage
+
+<ComponentUsage name="totals" />
+
+# Composition
+
+`Totals` needs the same `Document` context every other component here does,
+and each row's `def` names a computed field the artifact declares —
+`subtotal`, `tax`, `total`, and so on — the same convention
+[`Field`](/components/field) uses for a plain path, pointed instead at an
+expression. It is a `Keep Together`, so the whole block is never split
+across a page break.
+
+`Totals` normally follows the [`Table`](/components/table) it totals, inside
+the same [`Section`](/components/section): a table of line items, then the
+subtotal, tax, and grand total beneath it. A row's optional `ratePath`
+prints a percentage field beside that row's own label — a tax rate next to
+"Tax" — without a separate row for it, and `emphasis` marks the grand total
+with a rule and bolder text. When a tenant sets an accent color, an
+emphasized row's rule is the other place it lands, alongside a titled
+section's own heading.
+
+# Variants
+
+## Single row
+
+One emphasized def, for a document with nothing to subtotal separately.
+
+<ComponentVariant name="totals" variant="single-row" />
+
+## With tax rate
+
+`ratePath` prints the rate field beside the tax row's own label.
+
+<ComponentVariant name="totals" variant="with-tax-rate" />
+
+## Custom label
+
+`label` overrides the total def's own label.
+
+<ComponentVariant name="totals" variant="custom-label" />

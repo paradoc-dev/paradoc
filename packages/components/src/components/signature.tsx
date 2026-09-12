@@ -46,12 +46,22 @@ export const DATE_RULE = "__________";
 export interface SignatureProps {
   /** Party role declared by the artifact, such as `provider`. */
   party: string;
-  /** 0-based index for a role that admits several parties. Defaults to 0. */
+  /**
+   * 0-based index for a role that admits several parties.
+   * @default 0
+   */
   index?: number;
-  /** Which signing field this block draws. Defaults to a signature. */
+  /**
+   * Which signing field this block draws.
+   * @default "signature"
+   */
   type?: SigningMarkType;
-  /** Stable keep id. Defaults to `<type>:<role>`. */
+  /**
+   * Stable keep id.
+   * @default "<type>:<role>"
+   */
   id?: string;
+  /** Application-owned classes replacing the block's default column layout. */
   className?: string;
 }
 

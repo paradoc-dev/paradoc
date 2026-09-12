@@ -9,8 +9,13 @@
     "keep-together",
     "pages",
     "paper",
+    "part",
+    "pdf-pages",
+    "qr-code",
     "section",
-    "table"
+    "signature",
+    "table",
+    "totals"
   ],
   "defaultOpen": false
 }

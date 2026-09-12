@@ -1,0 +1,73 @@
+---
+title: Part
+description: One document of a packet, numbering its own pages and saying where it sits in the packet.
+---
+
+A bundle on screen is a sequence of documents in one scroll, not one long
+document, and `Part` is the boundary between them: everything inside one
+numbers its pages from one, because that is what a reader of that document
+expects to see. The packet's own numbering — where each part's pages land in
+the whole — comes from the seal, not from the screen, so `Part` shows a page
+range only while it has one to show.
+
+# Preview
+
+<ComponentPreview name="part" />
+
+# Installation
+
+<ComponentInstallation name="part" />
+
+# Usage
+
+<ComponentUsage name="part" />
+
+# Composition
+
+`Part` always sits inside a `Bundle`, which groups the packet's documents in
+one scroll and supplies the branding tokens every part reads. A part's own
+children are whatever the part is: a composition rendered live (usually a
+`Document`, often wrapped in its own pagination), a filled PDF form, or an
+annex — both of the latter two painted by
+[`PDF Pages`](/components/pdf-pages).
+
+The `firstPage` and `pageCount` a part shows come from core's `sealBundle`,
+which answers with exactly those two numbers per part once the packet is
+sealed. A part carries the `packetHash` that placement was computed for
+alongside the `packetHash` of the packet on screen now, and shows a page
+range only while the two match. A session that changes a field repaginates
+the composition, which moves every part after it; until the packet is
+resealed, the part it moved says its pages are pending rather than naming a
+page the packet no longer has.
+
+An `attached` part is carried beside the packet rather than merged into its
+page count — a certificate or receipt a reader downloads alongside the
+packet rather than reads as one of its numbered pages.
+
+# Variants
+
+`Part`'s page range comes entirely from `firstPage`, `pageCount`,
+`placedFor`, and `packetHash` — the sealed placement, not a prop a caller
+chooses directly.
+
+## Unplaced
+
+No `firstPage` or `pageCount`: the state before the packet has ever been
+sealed.
+
+<ComponentVariant name="part" variant="unplaced" />
+
+## Placed
+
+`firstPage` and `pageCount` match the packet on screen, so the header names
+the packet pages this part occupies.
+
+<ComponentVariant name="part" variant="placed" />
+
+## Pending
+
+`placedFor` no longer matches `packetHash`: a session's edit repaginated the
+composition and the packet has not been resealed yet, so the stale page
+numbers are suppressed.
+
+<ComponentVariant name="part" variant="pending" />

@@ -1,0 +1,62 @@
+---
+title: PDF Pages
+description: A PDF part of a packet, painted page by page, or a named attachment when it cannot be painted.
+---
+
+`PdfPages` is the one component here that renders content this package never
+composed: a registry form filled through its official PDF layer, or a
+document a vendor uploaded. A PDF already has its own pages at its own
+paper size, so `PdfPages` paints exactly those pages rather than planning new
+ones, and keeps that paper size even inside a packet branded to another.
+
+# Preview
+
+<ComponentPreview name="pdf-pages" />
+
+# Installation
+
+<ComponentInstallation name="pdf-pages" />
+
+# Usage
+
+<ComponentUsage name="pdf-pages" />
+
+# Composition
+
+`PdfPages` usually sits inside a [`Part`](/components/part) of kind `"form"`
+or `"annex"`, alongside the header that names the part and, once the packet
+is sealed, the pages it occupies. Nothing requires that — the "Standalone"
+variant below renders `PdfPages` with no `Part` around it.
+
+`bytes` must be a stable reference: painting restarts whenever it changes, so
+a caller that builds a fresh `Uint8Array` on every render repaints forever.
+Hold the bytes in state or a memo, the way a sealed packet's own part content
+already is.
+
+Painting is the specification's happy path, not its only path. When the
+content cannot be opened — no PDF viewer installed, or bytes that are not a
+readable PDF — `PdfPages` renders `Attachment` instead: a visible card naming
+the file and why it could not be painted, so the part stays in the packet
+rather than leaving a gap. The "Attachment fallback" variant below shows
+exactly that.
+
+# Variants
+
+## Standalone
+
+`PdfPages` on its own, with no `Part` around it.
+
+<ComponentVariant name="pdf-pages" variant="standalone" />
+
+## Attachment fallback
+
+Content pdf.js cannot open renders as the named `Attachment` card instead of
+pages.
+
+<ComponentVariant name="pdf-pages" variant="attachment" />
+
+## Custom frame
+
+A `className` replaces the default gray frame around the painted pages.
+
+<ComponentVariant name="pdf-pages" variant="styled" />

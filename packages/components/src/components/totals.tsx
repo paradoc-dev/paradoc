@@ -4,15 +4,25 @@ import { useDocumentTokens, useField, useTotals } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 export interface TotalRow {
+  /** Name of the artifact's computed total, evaluated by `@paradoc/core`. */
   def: string;
+  /** Overrides the def's own label. Defaults to the def's own label. */
   label?: string;
+  /** Path to a percentage field shown beside the label, such as a tax rate. */
   ratePath?: string;
+  /** Renders the row as the emphasized grand total: a top rule and bold text. */
   emphasis?: boolean;
 }
 
 export interface TotalsProps {
+  /** The computed amounts to show, in order. */
   rows: readonly TotalRow[];
+  /**
+   * Stable keep id.
+   * @default "totals"
+   */
   id?: string;
+  /** Application-owned classes replacing the block's default column layout. */
   className?: string;
 }
 

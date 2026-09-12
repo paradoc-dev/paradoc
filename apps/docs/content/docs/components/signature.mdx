@@ -1,0 +1,64 @@
+---
+title: Signature
+description: A party's signing block, with the rule the seal measures a signature field from.
+---
+
+`Signature` draws one signing field for one party: the role label, the
+signing requirement, and the party's own name, all read from the artifact.
+The rule beneath them is not decoration — it is the exact placeholder the
+core seal flow locates and measures a field from, so restyling it with a
+border instead of the printed underscores would give the seal nothing to
+find.
+
+# Preview
+
+<ComponentPreview name="signature" />
+
+# Installation
+
+<ComponentInstallation name="signature" />
+
+# Usage
+
+<ComponentUsage name="signature" />
+
+# Composition
+
+`Signature` needs the same `Document` context every other component here
+does: `party` names a role the artifact declares, and the role's label and
+the party's own serialized name both come from it. It is a `Keep Together`,
+so it is never split across a page break.
+
+A `Signature` block draws one field for one party — one signature or one set
+of initials, named by `type`. A party who signs and initials the same
+document is two blocks, `type="signature"` and `type="initials"`, each
+finding its own marker by the party and that type. `Signature` usually sits
+inside a closing [`Section`](/components/section) alongside the other
+party's own block, the way a purchase order's "Acceptance" section places
+both signers side by side.
+
+Because the rule is text a reader can see rather than a border, the sealed
+document and the plain preview are the same page: nothing about signing
+changes what the composition renders, only what a signing pass adds beside
+it.
+
+# Variants
+
+## Signature
+
+The default `type`, for the proposal's other party.
+
+<ComponentVariant name="signature" variant="signature" />
+
+## Initials
+
+`type="initials"` draws the shorter initials rule instead of a full
+signature.
+
+<ComponentVariant name="signature" variant="initials" />
+
+## Custom id
+
+`id` overrides the default `<type>:<role>` keep id.
+
+<ComponentVariant name="signature" variant="custom-id" />

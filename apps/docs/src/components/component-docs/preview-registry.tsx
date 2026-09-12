@@ -35,14 +35,34 @@ import {
   PaperVariantCustomFrame,
   PaperVariantMinimalContent,
   PaperVariantOverflowingContent,
+  PartDemo,
+  PartVariantPending,
+  PartVariantPlaced,
+  PartVariantUnplaced,
+  PdfPagesDemo,
+  PdfPagesVariantAttachment,
+  PdfPagesVariantStandalone,
+  PdfPagesVariantStyled,
+  QRCodeDemo,
+  QRCodeVariantCustomColors,
+  QRCodeVariantCustomLabel,
+  QRCodeVariantLargerSize,
   SectionDemo,
   SectionVariantRow,
   SectionVariantTitled,
   SectionVariantUntitled,
+  SignatureDemo,
+  SignatureVariantCustomId,
+  SignatureVariantInitials,
+  SignatureVariantSignature,
   TableDemo,
   TableVariantCompact,
   TableVariantCustomHeaders,
   TableVariantLeftAligned,
+  TotalsDemo,
+  TotalsVariantCustomLabel,
+  TotalsVariantSingleRow,
+  TotalsVariantWithTaxRate,
 } from "@paradoc/components/examples";
 
 export const COMPONENT_DEMOS: Record<string, ComponentType> = {
@@ -54,6 +74,11 @@ export const COMPONENT_DEMOS: Record<string, ComponentType> = {
   paper: PaperDemo,
   section: SectionDemo,
   table: TableDemo,
+  part: PartDemo,
+  "pdf-pages": PdfPagesDemo,
+  "qr-code": QRCodeDemo,
+  signature: SignatureDemo,
+  totals: TotalsDemo,
 };
 
 /** One component per variant key, matching `VARIANT_FILES` in the sync script. */
@@ -97,5 +122,30 @@ export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> =
     compact: TableVariantCompact,
     "left-aligned": TableVariantLeftAligned,
     "custom-headers": TableVariantCustomHeaders,
+  },
+  part: {
+    unplaced: PartVariantUnplaced,
+    placed: PartVariantPlaced,
+    pending: PartVariantPending,
+  },
+  "pdf-pages": {
+    standalone: PdfPagesVariantStandalone,
+    attachment: PdfPagesVariantAttachment,
+    styled: PdfPagesVariantStyled,
+  },
+  "qr-code": {
+    "custom-colors": QRCodeVariantCustomColors,
+    "larger-size": QRCodeVariantLargerSize,
+    "custom-label": QRCodeVariantCustomLabel,
+  },
+  signature: {
+    signature: SignatureVariantSignature,
+    initials: SignatureVariantInitials,
+    "custom-id": SignatureVariantCustomId,
+  },
+  totals: {
+    "single-row": TotalsVariantSingleRow,
+    "with-tax-rate": TotalsVariantWithTaxRate,
+    "custom-label": TotalsVariantCustomLabel,
   },
 };

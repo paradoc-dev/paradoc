@@ -30,20 +30,20 @@ See [Installation](/components/installation) for setup, once per project.
 | [`keep-together`](/components/keep-together) | The pagination unit. Content inside one is never split across a page break. |
 | [`pages`](/components/pages) | Measures the document once and lays it out as paginated sheets. |
 | [`paper`](/components/paper) | One sheet at the document's page geometry, and the fit-to-width hook. |
-| [`part`](https://docs.paradoc.dev/r/part.json) | One document of a packet, numbering its own pages and saying where it sits in the packet. |
-| [`pdf-pages`](https://docs.paradoc.dev/r/pdf-pages.json) | A PDF part of a packet, painted page by page, or a named attachment when it cannot be painted. |
-| [`qr-code`](https://docs.paradoc.dev/r/qr-code.json) | An SVG QR code that links a document to a URL, with configurable size and colors. |
+| [`part`](/components/part) | One document of a packet, numbering its own pages and saying where it sits in the packet. |
+| [`pdf-pages`](/components/pdf-pages) | A PDF part of a packet, painted page by page, or a named attachment when it cannot be painted. |
+| [`qr-code`](/components/qr-code) | An SVG QR code that links a document to a URL, with configurable size and colors. |
 | [`section`](/components/section) | A titled container that collapses on pages holding none of its keeps. |
-| [`signature`](https://docs.paradoc.dev/r/signature.json) | A party's signing block, with the rule the seal measures a signature field from. |
+| [`signature`](/components/signature) | A party's signing block, with the rule the seal measures a signature field from. |
 | [`table`](/components/table) | A list field as rows, with a header that repeats on every page it continues onto. |
-| [`totals`](https://docs.paradoc.dev/r/totals.json) | The artifact's computed amounts, evaluated by `@paradoc/core`. |
+| [`totals`](/components/totals) | The artifact's computed amounts, evaluated by `@paradoc/core`. |
 | [`priced-line-items`](https://docs.paradoc.dev/r/priced-line-items.json) | Sample line-item arithmetic installed with the worked invoice and purchase-order blocks. |
 
-`bundle`, `document`, `field`, `keep-together`, `pages`, `paper`, `section`, and
-`table` link to full reference pages: a live preview, installation, usage, the
-composition it was rendered from, and a few alternate configurations. The rest
-link straight to their registry JSON for now; their reference pages are on the
-way.
+All 13 components link to a full reference page: a live preview,
+installation, usage, the composition it was rendered from, and a few
+alternate configurations. `document-styles` and `priced-line-items` link
+straight to their registry JSON — they're supporting presets, not
+components with their own page.
 
 # The blocks
 
