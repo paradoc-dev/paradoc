@@ -116,6 +116,10 @@ import {
   RunTimeBadge,
   MethodChain,
   MethodTable,
+  ComponentPreview,
+  ComponentVariant,
+  ComponentInstallation,
+  ComponentUsage,
 } from "@/components/mdx";
 
 const clientLoader = browserCollections.docs.createClientLoader({
@@ -191,6 +195,10 @@ const clientLoader = browserCollections.docs.createClientLoader({
               RunTimeBadge,
               MethodChain,
               MethodTable,
+              ComponentPreview,
+              ComponentVariant,
+              ComponentInstallation,
+              ComponentUsage,
               Tab,
               Tabs,
             }}

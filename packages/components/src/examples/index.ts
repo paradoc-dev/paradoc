@@ -15,6 +15,16 @@
  * Node-only half — the logo bytes and the seal wiring — is
  * `src/examples/pdf.ts`, and the PNG itself is beside this module as
  * `proposal-logo.png`.
+ *
+ * `{Field,Section,Table}Demo` and their per-variant siblings
+ * (`FieldVariantDefaultLabel`, `TableVariantCompact`, and so on — one export
+ * per alternate configuration, so each can render and show its own source)
+ * are smaller demo compositions for the docs site's `/components/<name>`
+ * pages: each binds one base component, on its own, to a slice of the same
+ * proposal sample rather than inventing a new artifact. They are read by the
+ * docs app both as components (the live Preview and Variants) and as raw
+ * source text, rewritten to the form a consumer would write — see
+ * `paradoc/apps/docs/scripts/sync-component-docs-content.ts`.
  */
 
 export {
@@ -120,3 +130,15 @@ export {
   VENDOR_PACKET_TAXPAYER_SIGNER,
   type VendorPacketData,
 } from "./vendor-packet-data";
+export { FieldDemo } from "./field-demo";
+export { FieldVariantDefaultLabel } from "./field-variant-default-label";
+export { FieldVariantNoLabel } from "./field-variant-no-label";
+export { FieldVariantCustomLabel } from "./field-variant-custom-label";
+export { SectionDemo } from "./section-demo";
+export { SectionVariantTitled } from "./section-variant-titled";
+export { SectionVariantUntitled } from "./section-variant-untitled";
+export { SectionVariantRow } from "./section-variant-row";
+export { TableDemo } from "./table-demo";
+export { TableVariantCompact } from "./table-variant-compact";
+export { TableVariantLeftAligned } from "./table-variant-left-aligned";
+export { TableVariantCustomHeaders } from "./table-variant-custom-headers";

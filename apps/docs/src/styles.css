@@ -6,6 +6,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/*
+ * @paradoc/components lives outside this app's own src/ tree, so Tailwind's
+ * automatic content detection (which stops at node_modules) never sees the
+ * utility classes its live-rendered document components use. The component
+ * docs pages (/components/*) render that package's real components, so its
+ * classes must be scanned explicitly.
+ */
+@source "../../../packages/components/src/**/*.{ts,tsx}";
+
 /* Fumadocs */
 @import "fumadocs-ui/css/shadcn.css";
 @import "fumadocs-ui/css/preset.css";

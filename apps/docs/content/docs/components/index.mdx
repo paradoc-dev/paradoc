@@ -1,5 +1,5 @@
 ---
-title: Components
+title: About Components
 description: Install the document components into your own project with the shadcn CLI
 ogTitle: Paradoc document components
 ogDescription: A shadcn registry of React components that compose a document bound to a Paradoc artifact
@@ -17,90 +17,34 @@ the serializers that turn a value into the text a field prints. The installed
 files import it from there. Editing a copied field changes how a field looks; it
 cannot change how the document paginates or which paper it is drawn on.
 
-## Setup
+See [Installation](/components/installation) for setup, once per project.
 
-Register the namespace once in your project's `components.json`:
-
-```json
-{
-  "registries": {
-    "@paradoc": "https://docs.paradoc.dev/r/{name}.json"
-  }
-}
-```
-
-Then install the substrate. Installing `document` also installs the owned
-`document-styles` preset:
-
-```bash
-npm install @paradoc/react
-```
-
-```css
-/* your global stylesheet */
-@import "@/styles/paradoc.css";
-```
-
-The components are styled with Tailwind utility classes, so a Tailwind project
-needs no further setup. Without Tailwind, every component takes a `className`
-that replaces its defaults.
-
-### Versions
-
-An installed component is written against one version of `@paradoc/react`, and
-each item declares that version, so the CLI installs the substrate it was
-generated from. Two consequences worth knowing before you start:
-
-- **Install the components you want together, and update them together.** Adding
-  `field` today and `table` after two releases leaves two files written against
-  two substrates in one project.
-- **Upgrading `@paradoc/react` means reviewing the matching component sources.**
-  The CLI does not overwrite an edited file unless you explicitly pass
-  `--overwrite`, so upgrades remain a source change you control.
-
-## Adding a component
-
-```bash
-npx shadcn@4 add @paradoc/field
-```
-
-Or, with the Paradoc CLI, which writes the namespace into `components.json` for
-you and then runs the same install:
-
-```bash
-paradoc add field
-```
-
-Files land in `components/paradoc/`. A component that builds on another brings it
-along: installing `field` also installs `keep-together`.
-
-Without a registry entry in `components.json`, the full URL works too:
-
-```bash
-npx shadcn@4 add https://docs.paradoc.dev/r/field.json
-```
-
-## The items
+# The items
 
 | Item | What it is |
 |------|------------|
 | [`document-styles`](https://docs.paradoc.dev/r/document-styles.json) | Tailwind and the font faces shared by document preview and PDF output. |
 | [`bundle`](https://docs.paradoc.dev/r/bundle.json) | Groups the documents of one composition. |
 | [`document`](https://docs.paradoc.dev/r/document.json) | Binds one form artifact and its data to everything beneath it. |
-| [`field`](https://docs.paradoc.dev/r/field.json) | One labelled value at a path into the artifact, printed by the artifact's serializers. |
+| [`field`](/components/field) | One labelled value at a path into the artifact, printed by the artifact's serializers. |
 | [`keep-together`](https://docs.paradoc.dev/r/keep-together.json) | The pagination unit. Content inside one is never split across a page break. |
 | [`pages`](https://docs.paradoc.dev/r/pages.json) | Measures the document once and lays it out as paginated sheets. |
 | [`paper`](https://docs.paradoc.dev/r/paper.json) | One sheet at the document's page geometry, and the fit-to-width hook. |
 | [`part`](https://docs.paradoc.dev/r/part.json) | One document of a packet, numbering its own pages and saying where it sits in the packet. |
 | [`pdf-pages`](https://docs.paradoc.dev/r/pdf-pages.json) | A PDF part of a packet, painted page by page, or a named attachment when it cannot be painted. |
 | [`qr-code`](https://docs.paradoc.dev/r/qr-code.json) | An SVG QR code that links a document to a URL, with configurable size and colors. |
-| [`section`](https://docs.paradoc.dev/r/section.json) | A titled container that collapses on pages holding none of its keeps. |
+| [`section`](/components/section) | A titled container that collapses on pages holding none of its keeps. |
 | [`signature`](https://docs.paradoc.dev/r/signature.json) | A party's signing block, with the rule the seal measures a signature field from. |
-| [`table`](https://docs.paradoc.dev/r/table.json) | A list field as rows, with a header that repeats on every page it continues onto. |
+| [`table`](/components/table) | A list field as rows, with a header that repeats on every page it continues onto. |
 | [`totals`](https://docs.paradoc.dev/r/totals.json) | The artifact's computed amounts, evaluated by `@paradoc/core`. |
 | [`priced-line-items`](https://docs.paradoc.dev/r/priced-line-items.json) | Sample line-item arithmetic installed with the worked invoice and purchase-order blocks. |
 
-## The blocks
+`field`, `section`, and `table` link to full reference pages: a live preview,
+installation, usage, the composition it was rendered from, and a few alternate
+configurations. The rest link straight to their registry JSON for now; their
+reference pages are on the way.
+
+# The blocks
 
 A block is a whole document rather than one component: an artifact, a
 composition that binds it, and sample data to see it with.
@@ -151,7 +95,7 @@ PDFs as props.
 
 The index of all of them is [`/r/registry.json`](https://docs.paradoc.dev/r/registry.json).
 
-## For agents
+# For agents
 
 `/r/registry.json` is machine-readable: `name`, `type`, `title`,
 `description`, `dependencies`, and the files each item installs, with no page
@@ -172,7 +116,7 @@ packages this page's content plus the component props, the pagination rule,
 and the verified Tailwind class subset for an agent authoring a composition
 end to end.
 
-## Using them
+# Using them
 
 ```tsx
 import { Document } from "@/components/paradoc/document";
@@ -198,7 +142,7 @@ export function Proposal({ artifact, data }) {
 artifact and the text comes from the serializer the field's type names. The same
 tree renders to PDF through `@paradoc/react-pdf`.
 
-## How the registry is built
+# How the registry is built
 
 The items are generated from the component sources by `pnpm registry:build` in
 the private `@paradoc/components` workspace, never written by hand. The generator rewrites every import so

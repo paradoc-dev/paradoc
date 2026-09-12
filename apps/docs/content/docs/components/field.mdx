@@ -1,0 +1,68 @@
+---
+title: Field
+description: One labelled value at a path into the artifact, printed by the artifact's serializers.
+---
+
+`Field` is the leaf of every composition: the smallest thing that reads from
+the artifact and prints something a person can read. It carries no layout of
+its own beyond its label, and it is always a `KeepTogether`, so a page break
+never separates a label from the value underneath it.
+
+# Preview
+
+<ComponentPreview name="field" />
+
+# Installation
+
+<ComponentInstallation name="field" />
+
+# Usage
+
+<ComponentUsage name="field" />
+
+# Composition
+
+`Field` always sits inside a `Document`: it reads the current artifact and
+its data through context that only `Document` provides, and rendering one
+outside a `Document` throws. Most fields sit inside a
+[`Section`](/components/section) that groups them under a heading, but
+nothing requires that — the Preview above renders three `Field`s directly
+inside `Document`, with no `Section` around them.
+
+The `path` prop follows the artifact's own path convention: a top-level
+field name like `customer`, or a dotted path into a list item like
+`lineItems.0.unitPrice`. `Field` does not validate or format anything
+itself — it asks the artifact for the field at that path and the value's
+serializer for the text to print.
+
+Every `Field` is a [`Keep Together`](https://docs.paradoc.dev/r/keep-together.json),
+which it brings along automatically, and that is also its whole pagination
+story: a field is never split across a page break, and it renders only on
+the page the plan assigned it to. A [`Table`](/components/table)'s cells
+reuse the same serializers a `Field` does, just as flex cells rather than as
+`Field` instances.
+
+# Variants
+
+`Field` takes one prop of its own beyond `path` and `className`: `label`,
+which can be omitted (uses the artifact's own label), set to `false` (no
+label), or overridden with a string.
+
+## Default label
+
+With no `label` prop, the heading comes from the artifact's own field
+definition.
+
+<ComponentVariant name="field" variant="default-label" />
+
+## No label
+
+`label={false}` renders the value alone, with no heading above it.
+
+<ComponentVariant name="field" variant="no-label" />
+
+## Custom label
+
+A string `label` overrides the artifact's own.
+
+<ComponentVariant name="field" variant="custom-label" />

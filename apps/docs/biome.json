@@ -10,7 +10,8 @@
 		"includes": [
 			"src/**",
 			"!src/routeTree.gen.ts",
-			"!src/styles.css"
+			"!src/styles.css",
+			"!src/generated"
 		]
 	},
 	"formatter": {

@@ -1,0 +1,5 @@
+{
+  "title": "Components",
+  "pages": ["index", "installation", "field", "section", "table"],
+  "defaultOpen": false
+}

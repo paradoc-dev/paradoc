@@ -5,9 +5,10 @@
   "scripts": {
     "sync:changelog": "tsx scripts/sync-changelog.ts",
     "changelog:draft": "tsx scripts/changelog-draft.ts",
-    "predev": "pnpm sync:changelog",
+    "sync:component-docs": "tsx scripts/sync-component-docs-content.ts",
+    "predev": "pnpm sync:changelog && pnpm sync:component-docs",
     "dev": "vite dev --port 3001",
-    "prebuild": "pnpm sync:changelog",
+    "prebuild": "pnpm sync:changelog && pnpm sync:component-docs",
     "build": "vite build",
     "preview": "vite preview --port 3001",
     "deploy:prod": "PARADOC_DOCS_PLATFORM_API=false pnpm build && wrangler deploy",
@@ -16,12 +17,14 @@
     "lint": "biome lint",
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
+    "pretest": "pnpm sync:component-docs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@fontsource/geist-sans": "^5.2.5",
+    "@paradoc/components": "workspace:^",
     "@radix-ui/react-popover": "^1.1.15",
     "@tailwindcss/vite": "^4.0.6",
     "@takumi-rs/core": "^0.61.0",

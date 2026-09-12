@@ -1,0 +1,67 @@
+---
+title: Section
+description: A titled container that collapses on pages holding none of its keeps.
+---
+
+`Section` groups related `Field`s and `Table`s under a heading. It carries no
+pagination id of its own — `data-section`, not `data-keep-id` — precisely so
+a section that runs well past one page is never treated as a single thing
+that has to stay together; the keeps inside it are what the page plan
+actually moves.
+
+# Preview
+
+<ComponentPreview name="section" />
+
+# Installation
+
+<ComponentInstallation name="section" />
+
+# Usage
+
+<ComponentUsage name="section" />
+
+# Composition
+
+A `Section` needs a `Document` above it for the same reason a `Field` does:
+it reads, from context only `Document`'s tree provides, which of its own
+keeps landed on the current page. Give it a stable `id` — the page plan uses
+it to decide whether the section shows at all on a given page, so it should
+be unique within the document and stable across renders, not derived from
+the data being shown.
+
+A `Section`'s heading, when it has a `title`, is itself a
+[`Keep Together`](https://docs.paradoc.dev/r/keep-together.json) — that is
+the one piece of pagination machinery it brings along automatically. The
+rest of the section is ordinary children: put whatever
+[`Field`](/components/field)s or [`Table`](/components/table)s belong
+together inside it. `Section` renders them as given and collapses to
+nothing — heading included — on any page holding none of them, without ever
+treating the section itself as one unit that has to stay together.
+
+When a tenant sets an accent color, a titled section's heading is one of the
+two places it lands (see [Installation](/components/installation) for how
+tokens reach a document).
+
+# Variants
+
+`Section` takes an optional `title` and a `className` that replaces its
+default column layout.
+
+## Titled
+
+The default: a `title` renders a heading above the section's children.
+
+<ComponentVariant name="section" variant="titled" />
+
+## Untitled
+
+Omitting `title` renders no heading at all — just the children.
+
+<ComponentVariant name="section" variant="untitled" />
+
+## Row layout
+
+A custom `className` replaces the default column layout with a row.
+
+<ComponentVariant name="section" variant="row" />

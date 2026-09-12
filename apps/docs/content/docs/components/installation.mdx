@@ -1,0 +1,74 @@
+---
+title: Installation
+description: Register the Paradoc registry namespace and install the document component substrate
+---
+
+Set this up once per project, before installing any component or block.
+
+# Register the namespace
+
+```json
+{
+  "registries": {
+    "@paradoc": "https://docs.paradoc.dev/r/{name}.json"
+  }
+}
+```
+
+# Install the substrate
+
+Then install the substrate. Installing `document` also installs the owned
+`document-styles` preset:
+
+```bash
+npm install @paradoc/react
+```
+
+```css
+/* your global stylesheet */
+@import "@/styles/paradoc.css";
+```
+
+The components are styled with Tailwind utility classes, so a Tailwind project
+needs no further setup. Without Tailwind, every component takes a `className`
+that replaces its defaults.
+
+## Versions
+
+An installed component is written against one version of `@paradoc/react`, and
+each item declares that version, so the CLI installs the substrate it was
+generated from. Two consequences worth knowing before you start:
+
+- **Install the components you want together, and update them together.** Adding
+  `field` today and `table` after two releases leaves two files written against
+  two substrates in one project.
+- **Upgrading `@paradoc/react` means reviewing the matching component sources.**
+  The CLI does not overwrite an edited file unless you explicitly pass
+  `--overwrite`, so upgrades remain a source change you control.
+
+# Adding a component
+
+With the registry namespace registered, install a component by name:
+
+```bash
+npx shadcn@4 add @paradoc/field
+```
+
+Or, with the Paradoc CLI, which writes the namespace into `components.json` for
+you and then runs the same install:
+
+```bash
+paradoc add field
+```
+
+Files land in `components/paradoc/`. A component that builds on another brings it
+along: installing `field` also installs `keep-together`.
+
+Without a registry entry in `components.json`, the full URL works too:
+
+```bash
+npx shadcn@4 add https://docs.paradoc.dev/r/field.json
+```
+
+Each component's own page (for example [`field`](/components/field)) shows its
+exact install command, the file it places, and any dependency it brings along.

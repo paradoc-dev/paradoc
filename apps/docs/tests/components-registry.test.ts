@@ -15,7 +15,13 @@ import { describe, expect, test } from 'vitest'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const registryDir = path.join(root, 'public/r')
-const page = readFileSync(path.join(root, 'content/docs/components.mdx'), 'utf8')
+const page = readFileSync(path.join(root, 'content/docs/components/index.mdx'), 'utf8')
+const installationPage = readFileSync(
+  path.join(root, 'content/docs/components/installation.mdx'),
+  'utf8',
+)
+/** Names with their own reference page, linked internally instead of to the registry JSON. */
+const referencePages = new Set(['field', 'section', 'table'])
 
 interface RegistryIndex {
   name: string
@@ -44,18 +50,23 @@ describe('the served registry', () => {
 })
 
 describe('the components page', () => {
-  test('lists every item, linked to the file the CLI fetches', () => {
+  test('lists every item, linked to its reference page or the file the CLI fetches', () => {
     for (const item of index.items) {
-      expect(page, `${item.name} is served but not listed`).toContain(
-        `[\`${item.name}\`](https://docs.paradoc.dev/r/${item.name}.json)`,
-      )
+      const link = referencePages.has(item.name)
+        ? `[\`${item.name}\`](/components/${item.name})`
+        : `[\`${item.name}\`](https://docs.paradoc.dev/r/${item.name}.json)`
+      expect(page, `${item.name} is served but not listed`).toContain(link)
     }
   })
 
   test('lists nothing the registry does not serve', () => {
-    const listed = [...page.matchAll(/\[`([a-z-]+)`\]\(https:\/\/docs\.paradoc\.dev\/r\//g)].map(
+    const registryLinked = [
+      ...page.matchAll(/\[`([a-z-]+)`\]\(https:\/\/docs\.paradoc\.dev\/r\//g),
+    ].map((match) => match[1])
+    const pageLinked = [...page.matchAll(/\[`([a-z-]+)`\]\(\/components\//g)].map(
       (match) => match[1],
     )
+    const listed = [...registryLinked, ...pageLinked]
     const served = new Set(index.items.map((item) => item.name))
 
     expect(listed.length).toBeGreaterThan(0)
@@ -65,6 +76,6 @@ describe('the components page', () => {
   })
 
   test('names the namespace and the URL template a consumer registers', () => {
-    expect(page).toContain('"@paradoc": "https://docs.paradoc.dev/r/{name}.json"')
+    expect(installationPage).toContain('"@paradoc": "https://docs.paradoc.dev/r/{name}.json"')
   })
 })
