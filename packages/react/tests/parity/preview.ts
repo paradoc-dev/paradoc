@@ -17,6 +17,7 @@
 import type { Browser, ElementHandle, Page } from "puppeteer";
 
 import type { PageDimensions } from "../../src/lib/tokens";
+import { DEFAULT_TYPOGRAPHY, type Typography as Rhythm, type TypographyLevel } from "../../src/lib/typography";
 import type { ApplicationFontSnapshot } from "../../src/lib/application-fonts";
 
 /** Which sample document the lab is showing. */
@@ -79,7 +80,8 @@ export interface Preview {
     set: DataSet,
     branding: Branding,
     paper: PageDimensions,
-    typography?: Typography
+    typography?: Typography,
+    rhythm?: Rhythm
   ) => Promise<PreviewPlan>;
   /** One image per drawn page. */
   capture: () => Promise<PreviewCapture[]>;
@@ -99,6 +101,8 @@ interface PlanStamp {
   dataSet: DataSet | null;
   branding: Branding | null;
   typography: Typography | null;
+  scale: string | null;
+  flow: string | null;
 }
 
 /**
@@ -114,13 +118,30 @@ export interface VariantStamp {
   dataSet: DataSet | null;
   branding: Branding | null;
   typography: Typography | null;
+  /** The rhythm every document is stamped with; `regular` when the variant names none. */
+  scale: TypographyLevel;
+  flow: TypographyLevel;
 }
 
 /** The stamp the lab publishes for one variant. */
-function stampFor(doc: LabDocument, set: DataSet, branding: Branding, typography?: Typography): VariantStamp {
+function stampFor(
+  doc: LabDocument,
+  set: DataSet,
+  branding: Branding,
+  typography?: Typography,
+  rhythm: Rhythm = DEFAULT_TYPOGRAPHY
+): VariantStamp {
+  const { scale, flow } = rhythm;
   return doc === "proposal"
-    ? { document: doc, dataSet: set, branding, typography: null }
-    : { document: doc, dataSet: null, branding: null, typography: doc === "invoice" ? typography ?? "sans" : null };
+    ? { document: doc, dataSet: set, branding, typography: null, scale, flow }
+    : {
+        document: doc,
+        dataSet: null,
+        branding: null,
+        typography: doc === "invoice" ? typography ?? "sans" : null,
+        scale,
+        flow,
+      };
 }
 
 /** True when a plan already on screen is a plan of the variant being asked for. */
@@ -129,7 +150,9 @@ function sameStamp(stamp: PlanStamp, wanted: VariantStamp): boolean {
     stamp.document === wanted.document &&
     stamp.dataSet === wanted.dataSet &&
     stamp.branding === wanted.branding &&
-    stamp.typography === wanted.typography
+    stamp.typography === wanted.typography &&
+    stamp.scale === wanted.scale &&
+    stamp.flow === wanted.flow
   );
 }
 
@@ -138,13 +161,17 @@ function sameStamp(stamp: PlanStamp, wanted: VariantStamp): boolean {
  */
 function readPlanStamp(): PlanStamp {
   const readout = document.querySelector("[data-plan-revision]");
-  if (readout === null) return { revision: 0, document: null, dataSet: null, branding: null, typography: null };
+  if (readout === null) {
+    return { revision: 0, document: null, dataSet: null, branding: null, typography: null, scale: null, flow: null };
+  }
   return {
     revision: Number(readout.getAttribute("data-plan-revision")),
     document: readout.getAttribute("data-plan-document") as LabDocument | null,
     dataSet: readout.getAttribute("data-plan-data-set") as DataSet | null,
     branding: readout.getAttribute("data-plan-branding") as Branding | null,
     typography: readout.getAttribute("data-plan-typography") as Typography | null,
+    scale: readout.getAttribute("data-plan-scale"),
+    flow: readout.getAttribute("data-plan-flow"),
   };
 }
 
@@ -184,10 +211,15 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
       ),
       breaks: firstKeeps.slice(1),
       fonts: JSON.parse(readout?.getAttribute("data-plan-fonts") ?? "null") as ApplicationFontSnapshot | null,
-      stampedDocument: readout?.getAttribute("data-plan-document") ?? null,
-      stampedDataSet: readout?.getAttribute("data-plan-data-set") ?? null,
-      stampedBranding: readout?.getAttribute("data-plan-branding") ?? null,
-      stampedTypography: readout?.getAttribute("data-plan-typography") ?? null,
+      stamp: {
+        revision: Number(readout?.getAttribute("data-plan-revision") ?? 0),
+        document: (readout?.getAttribute("data-plan-document") ?? null) as LabDocument | null,
+        dataSet: (readout?.getAttribute("data-plan-data-set") ?? null) as DataSet | null,
+        branding: (readout?.getAttribute("data-plan-branding") ?? null) as Branding | null,
+        typography: (readout?.getAttribute("data-plan-typography") ?? null) as Typography | null,
+        scale: readout?.getAttribute("data-plan-scale") ?? null,
+        flow: readout?.getAttribute("data-plan-flow") ?? null,
+      } satisfies PlanStamp,
     };
   });
 
@@ -203,32 +235,20 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
     dataSet: string | null;
     branding: string | null;
     typography?: string | null;
-  }) => [stamp.document, stamp.dataSet, stamp.branding, stamp.typography].filter(Boolean).join("/") || "no plan";
+    scale?: string | null;
+    flow?: string | null;
+  }) =>
+    [stamp.document, stamp.dataSet, stamp.branding, stamp.typography, stamp.scale, stamp.flow]
+      .filter(Boolean)
+      .join("/") || "no plan";
 
-  if (
-    expected !== undefined &&
-    (read.stampedDocument !== expected.document ||
-      read.stampedDataSet !== expected.dataSet ||
-      read.stampedBranding !== expected.branding ||
-      read.stampedTypography !== expected.typography)
-  ) {
+  if (expected !== undefined && !sameStamp(read.stamp, expected)) {
     throw new Error(
-      `the preview's plan is stamped ${name({
-        document: read.stampedDocument,
-        dataSet: read.stampedDataSet,
-        branding: read.stampedBranding,
-        typography: read.stampedTypography,
-      })}, not the requested ${name(expected)}. It has not caught up with the switch.`
+      `the preview's plan is stamped ${name(read.stamp)}, not the requested ${name(expected)}. It has not caught up with the switch.`
     );
   }
 
-  const {
-    stampedDocument: _stampedDocument,
-    stampedDataSet: _stampedDataSet,
-    stampedBranding: _stampedBranding,
-    stampedTypography: _stampedTypography,
-    ...plan
-  } = read;
+  const { stamp: _stamp, ...plan } = read;
   return { ...plan, fonts: read.fonts };
 }
 
@@ -569,7 +589,8 @@ export async function openPreview(
     set: DataSet,
     branding: Branding,
     paper: PageDimensions,
-    typography?: Typography
+    typography?: Typography,
+    rhythm: Rhythm = DEFAULT_TYPOGRAPHY
   ): Promise<PreviewPlan> => {
     await page.bringToFront();
     const before = await page.evaluate(readPlanStamp);
@@ -585,6 +606,13 @@ export async function openPreview(
     } else if (doc === "invoice") {
       await page.click(`[data-choice="typography"] [data-choice-option="${typography ?? "sans"}"]`);
     }
+    // The rhythm applies to every document and its selects are always on
+    // screen. It is set after the document's own controls so the remount it
+    // causes is the last one before the wait below: a level that leaves every
+    // page break where it was still publishes a fresh plan, because the lab
+    // remounts its pages on a level change, and that plan is what is waited on.
+    await page.select('[data-choice-select="scale"]', rhythm.scale);
+    await page.select('[data-choice-select="flow"]', rhythm.flow);
     // If the readout already names the variant being asked for, nothing was
     // switched — the clicks landed on the options already selected, as the
     // very first call always does — and there is no later plan to wait for.
@@ -592,7 +620,7 @@ export async function openPreview(
     // "this plan is the previous variant's, and just happens to paginate to
     // the same number of pages", which is exactly how a stale plan passed
     // this wait before: the readout's own variant and revision can.
-    const wanted = stampFor(doc, set, branding, typography);
+    const wanted = stampFor(doc, set, branding, typography, rhythm);
     if (!sameStamp(before, wanted)) {
       await page.waitForFunction(
         (expected: VariantStamp, baselineRevision: number) => {
@@ -607,7 +635,9 @@ export async function openPreview(
             // that insisted on them would never be satisfied.
             readout.getAttribute("data-plan-data-set") === expected.dataSet &&
             readout.getAttribute("data-plan-branding") === expected.branding &&
-            readout.getAttribute("data-plan-typography") === expected.typography
+            readout.getAttribute("data-plan-typography") === expected.typography &&
+            readout.getAttribute("data-plan-scale") === expected.scale &&
+            readout.getAttribute("data-plan-flow") === expected.flow
           );
         },
         // Polled on a timer rather than on animation frames. The suite also holds
@@ -626,7 +656,7 @@ export async function openPreview(
     // real.
     await assertSheetsMatchReadout(page);
     await assertUnscaled(page, paper);
-    return readPlan(page, stampFor(doc, set, branding, typography));
+    return readPlan(page, stampFor(doc, set, branding, typography, rhythm));
   };
 
   const capture = async (): Promise<PreviewCapture[]> => {

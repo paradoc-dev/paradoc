@@ -80,6 +80,7 @@ import {
   ProposalDocument,
   shortInvoiceData,
   shortProposalData,
+  invoiceTokens,
 } from "../../../components/src/examples";
 import { proposalLogoImage } from "../../../components/src/examples/pdf";
 import {
@@ -88,6 +89,7 @@ import {
   type DocumentTokensInput,
   type PageDimensions,
 } from "../../src/lib/tokens";
+import { DEFAULT_TYPOGRAPHY, type Typography as Rhythm } from "../../src/lib/typography";
 import { renderPdf, type PdfAdapterName, type PdfImage } from "../../src/pdf";
 import { closeChromium } from "../../src/pdf/adapters/chromium";
 import { readPdf, type ReadPage } from "../pdf-reader";
@@ -111,13 +113,14 @@ import { DIFFERENCE_TOLERANCE, openRasterizer, type Rasterizer } from "./raster"
 import {
   percent,
   printReport,
-  writeReport,
+  rhythmLabel,
   type PageReport,
   type PaginationMode,
   type ParityReport,
   type RefusalReport,
   type RunReport,
   type SensitivityReport,
+  writeReport,
 } from "./report";
 
 /**
@@ -195,6 +198,12 @@ interface Variant {
    */
   firstKeepsReadable: boolean;
   typography?: Typography;
+  /**
+   * The `typography` token's levels the document is drawn at. Unset is
+   * `regular`, today's document; the invoice is also measured at `compact` and
+   * `roomy`, the levels a page break can move at.
+   */
+  rhythm?: Rhythm;
 }
 
 type Typography = "sans" | "serif-sans" | "serif-mono";
@@ -207,25 +216,39 @@ const VARIANTS: Variant[] = [
   { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "sans" },
   { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "serif-sans" },
   { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "serif-mono" },
+  { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "sans", rhythm: { scale: "compact", flow: "compact" } },
+  { document: "invoice", dataSet: "short", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, typography: "sans", rhythm: { scale: "roomy", flow: "roomy" } },
+  // The overflow proposal is where a level moves a page break, which is what
+  // the invariant is about: the short invoice stays one page at every level.
+  { document: "proposal", dataSet: "overflow", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, rhythm: { scale: "compact", flow: "compact" } },
+  { document: "proposal", dataSet: "overflow", branding: "default", adapters: ["chromium"], firstKeepsReadable: true, rhythm: { scale: "roomy", flow: "roomy" } },
 ];
 
-/** The token set a variant's document is drawn with. */
-function tokensOf(variant: Variant): DocumentTokensInput | undefined {
-  return variant.document === "arabic-letter"
-    ? arabicLetterTokens
-    : variant.document === "invoice"
-      ? undefined
-      : BRANDINGS[variant.branding];
+/**
+ * The token set a variant's document is drawn with, on either side: the
+ * document's own set with the variant's rhythm on it, by the one rule the lab
+ * applies (`withRhythm` in the lab's rhythm module), so the preview and the
+ * PDF compose their tokens the same way. A variant that names no rhythm is
+ * drawn at `regular`, which resolves exactly as no token.
+ */
+function tokensOf(variant: Variant): DocumentTokensInput {
+  const own =
+    variant.document === "arabic-letter"
+      ? arabicLetterTokens
+      : variant.document === "invoice"
+        ? invoiceTokens
+        : BRANDINGS[variant.branding];
+  return { ...own, typography: variant.rhythm ?? DEFAULT_TYPOGRAPHY };
 }
 
 /** The composed document one variant renders, on either side. */
 function elementOf(variant: Variant): ReactElement {
   return variant.document === "invoice" ? (
-    <InvoiceDocument data={shortInvoiceData} className={`type-${variant.typography}`} />
+    <InvoiceDocument data={shortInvoiceData} tokens={tokensOf(variant)} className={`type-${variant.typography}`} />
   ) : variant.document === "arabic-letter" ? (
-    <ArabicLetterDocument data={arabicLetterData} tokens={arabicLetterTokens} />
+    <ArabicLetterDocument data={arabicLetterData} tokens={tokensOf(variant)} />
   ) : (
-    <ProposalDocument data={DATA_SETS[variant.dataSet]} tokens={BRANDINGS[variant.branding]} />
+    <ProposalDocument data={DATA_SETS[variant.dataSet]} tokens={tokensOf(variant)} />
   );
 }
 
@@ -237,11 +260,13 @@ function paperOf(variant: Variant): PageDimensions {
 
 /** The label a variant is named by, in the report and in the test titles. */
 function variantName(variant: Variant): string {
-  return variant.document === "invoice"
-    ? `invoice / ${variant.typography}`
-    : variant.document === "arabic-letter"
-    ? "Arabic letter"
-    : `${variant.dataSet} / ${variant.branding} tokens`;
+  const base =
+    variant.document === "invoice"
+      ? `invoice / ${variant.typography}`
+      : variant.document === "arabic-letter"
+        ? "Arabic letter"
+        : `${variant.dataSet} / ${variant.branding} tokens`;
+  return `${base}${rhythmLabel(variant.rhythm)}`;
 }
 
 /** The variants one engine is measured on. */
@@ -296,7 +321,11 @@ const refusals: RefusalReport[] = [];
 let sensitivity: SensitivityReport | null = null;
 
 const key = (adapter: PdfAdapterName, variant: Variant, mode: PaginationMode) =>
-  `${adapter}/${variant.document}/${variant.dataSet}/${variant.branding}/${variant.typography ?? "default"}/${mode}`;
+  `${adapter}/${variant.document}/${variant.dataSet}/${variant.branding}/${variant.typography ?? "default"}/${rhythmKey(variant)}/${mode}`;
+
+/** The rhythm a variant is drawn at, as one path segment. */
+const rhythmKey = (variant: Variant) =>
+  variant.rhythm ? `${variant.rhythm.scale}-${variant.rhythm.flow}` : "regular";
 
 /** The run for one adapter, variant and mode, or a clear failure if it was never measured. */
 function run(adapter: PdfAdapterName, variant: Variant, mode: PaginationMode): Run {
@@ -443,7 +472,7 @@ async function measure(
 
   const pages: PageReport[] = difference.pages.map((page) => {
     const index = page.number - 1;
-    const image = `${adapter}-${variant.document}-${variant.typography ?? dataSet}-${branding}-${mode}-page-${page.number}.png`;
+    const image = `${adapter}-${variant.document}-${variant.typography ?? dataSet}-${branding}-${rhythmKey(variant)}-${mode}-page-${page.number}.png`;
     images.set(image, page.image);
     const differingPercent = percent(page.differingPixels, page.totalPixels);
     return {
@@ -490,6 +519,7 @@ async function measure(
     unknownBreaks: rendered.unknownBreaks,
     unknownRepeats: rendered.unknownRepeats,
     applicationFontIdentity: plan.fonts.identity,
+    rhythm: variant.rhythm,
     fontResources: rendered.fontResources ?? [],
     worstDifferingPercent: Math.max(0, ...pages.map((page) => page.differingPercent)),
     worstAlignedPercent: Math.max(0, ...pages.map((page) => page.alignedPercent)),
@@ -538,7 +568,8 @@ beforeAll(async () => {
       variant.dataSet,
       variant.branding,
       paper,
-      variant.typography
+      variant.typography,
+      variant.rhythm
     );
     const captures = (await preview.capture()).map((capture) => capture.png);
     const { node } = await fromJsx(elementOf(variant));

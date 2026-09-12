@@ -5,8 +5,20 @@ import { describe, expect, it } from "vitest";
 
 import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm } from "../src/examples/purchase-order";
-import { EngagementLetterDocument, InvoiceDocument, engagementLetterData, overflowInvoiceData } from "../src/examples";
+import type { ReactElement } from "react";
+
+import {
+  EngagementLetterDocument,
+  InsuranceCertificateDocument,
+  InvoiceDocument,
+  ProposalDocument,
+  PurchaseOrderDocument,
+  engagementLetterData,
+  overflowInvoiceData,
+  overflowProposalData,
+} from "../src/examples";
 import { Attachment, Bundle, Document, Field, Part, Section, Signature, Table, Totals } from "../src";
+import { proposalLogoImage } from "../src/examples/pdf";
 import { readPdf } from "./pdf-reader";
 
 type Tokens = Parameters<typeof Document>[0]["tokens"];
@@ -149,27 +161,59 @@ describe("the typography token", () => {
     );
   });
 
-  it("renders every scale and flow on the default engine through the per-render override", async () => {
+  it("renders every sample document the default engine draws, at every scale and flow, through the per-render override", async () => {
     // The PDF path refuses any class outside the verified vocabulary, so a
-    // render that returns pages is the class check passing for that level.
+    // render that returns pages with text on them is the class check passing
+    // for that level. The vendor packet is sealed rather than rendered and
+    // the Arabic letter is refused by direction, so the Bundle root is taken
+    // through the same check as a packet around the purchase order. The
+    // no-token render is the same bytes as the regular one: the writer stamps
+    // no date or id, so two renders of one tree are one file.
+    const documents: Record<string, { element: ReactElement; text: string; paginates: boolean }> = {
+      invoice: { element: <InvoiceDocument data={overflowInvoiceData} />, text: "INV-2026-0432", paginates: true },
+      "engagement-letter": { element: <EngagementLetterDocument data={engagementLetterData} />, text: "Engagement Letter", paginates: false },
+      "purchase-order": { element: <PurchaseOrderDocument data={purchaseOrderData} />, text: "PO-2026-0512", paginates: false },
+      proposal: { element: <ProposalDocument data={overflowProposalData} />, text: "Services Proposal", paginates: true },
+      "insurance-certificate": { element: <InsuranceCertificateDocument />, text: "Certificate", paginates: false },
+      "purchase-order-packet": {
+        element: (
+          <Bundle id="packet">
+            <Part id="order" kind="composition" label="Order">
+              <PurchaseOrderDocument data={purchaseOrderData} />
+            </Part>
+          </Bundle>
+        ),
+        text: "PO-2026-0512",
+        paginates: false,
+      },
+    };
+    // The proposal places its mark from bytes the render is handed; the other
+    // documents name no image, and one image supplied to every call is one
+    // fewer thing to keep in step.
+    const images = [await proposalLogoImage()];
     const pages: Record<string, number> = {};
-    for (const scale of TYPOGRAPHY_LEVELS) {
-      for (const flow of TYPOGRAPHY_LEVELS) {
-        const tokens = { typography: { scale, flow } };
-        const invoice = await readPdf(
-          (await renderPdf(<InvoiceDocument data={overflowInvoiceData} />, { tokens })).bytes
-        );
-        expect(invoice[0]?.text, `invoice ${scale}/${flow}`).toContain("INV-2026-0432");
-        pages[`${scale}/${flow}`] = invoice.length;
-        const letter = await readPdf(
-          (await renderPdf(<EngagementLetterDocument data={engagementLetterData} />, { tokens })).bytes
-        );
-        expect(letter.map((page) => page.text).join(" "), `letter ${scale}/${flow}`).toContain("Date");
+    for (const [name, { element, text, paginates }] of Object.entries(documents)) {
+      const untouched = (await renderPdf(element, { images })).bytes;
+      for (const scale of TYPOGRAPHY_LEVELS) {
+        for (const flow of TYPOGRAPHY_LEVELS) {
+          const result = await renderPdf(element, { images, tokens: { typography: { scale, flow } } });
+          const read = await readPdf(result.bytes);
+          expect(read[0]?.text, `${name} ${scale}/${flow}`).toContain(text);
+          pages[`${name} ${scale}/${flow}`] = read.length;
+          if (scale === "regular" && flow === "regular") {
+            expect(result.bytes, `${name} regular is untouched`).toEqual(untouched);
+          }
+        }
+      }
+      const regular = pages[`${name} regular/regular`] ?? 0;
+      if (paginates) {
+        expect(pages[`${name} roomy/roomy`], `${name} grows at roomy`).toBeGreaterThan(regular);
+        expect(pages[`${name} compact/compact`], `${name} does not grow at compact`).toBeLessThanOrEqual(regular);
+      } else {
+        expect(pages[`${name} roomy/roomy`], `${name} at roomy`).toBeGreaterThanOrEqual(regular);
       }
     }
-    expect(pages["roomy/roomy"]).toBeGreaterThan(pages["regular/regular"] ?? 0);
-    expect(pages["compact/compact"]).toBeLessThanOrEqual(pages["regular/regular"] ?? 0);
-  });
+  }, 120_000);
 
   it("refuses the token on a document nested in a bundle", () => {
     expect(() =>

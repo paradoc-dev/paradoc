@@ -17,6 +17,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { PageDimensions } from "../../src/lib/tokens";
+import type { Typography } from "../../src/lib/typography";
+
+/** The rhythm a run was drawn at, as the suffix its name carries; empty for `regular`. */
+export function rhythmLabel(rhythm: Typography | undefined): string {
+  return rhythm ? ` / ${rhythm.scale} scale, ${rhythm.flow} flow` : "";
+}
 import type { PdfAdapterName } from "../../src/pdf";
 import type { Branding, DataSet, LabDocument } from "./preview";
 
@@ -91,6 +97,8 @@ export interface RunReport {
   /** Which sample document was measured. */
   document: LabDocument;
   typography?: "sans" | "serif-sans" | "serif-mono";
+  /** The `typography` token's levels the run was drawn at; unset is `regular`. */
+  rhythm?: Typography;
   dataSet: DataSet;
   /** Which token set the document was branded with. */
   branding: Branding;
@@ -244,7 +252,7 @@ export function printReport(report: ParityReport): void {
     for (const run of report.runs.filter((candidate) => candidate.adapter === adapter)) {
       lines.push("");
       lines.push(
-        `${run.document} / ${run.typography ?? run.dataSet} / ${run.branding} tokens / ${run.mode} breaks on ` +
+        `${run.document} / ${run.typography ?? run.dataSet} / ${run.branding} tokens${rhythmLabel(run.rhythm)} / ${run.mode} breaks on ` +
           `${run.paper.widthPx}x${run.paper.heightPx}: preview ${run.previewPages} pages, ` +
           `PDF ${run.pdfPages} pages` +
           (run.unknownBreaks.length > 0 ? `, stale breaks ${run.unknownBreaks.join(",")}` : "") +
