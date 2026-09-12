@@ -1,21 +1,26 @@
 import type { ComponentType } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { DocsLayout, type DocsSlots } from "fumadocs-ui/layouts/notebook";
+import {
+  SidebarProvider,
+  useSidebar,
+} from "fumadocs-ui/layouts/notebook/slots/sidebar";
 import { createServerFn } from "@tanstack/react-start";
-import { source, getPageImage } from "@/lib/source";
+import { source, docsAreas, getPageImage } from "@/lib/source";
+import { findDocsArea } from "@/lib/docs-areas";
 import browserCollections from "fumadocs-mdx:collections/browser";
 import {
   DocsBody,
   DocsDescription,
   DocsPage,
   DocsTitle,
-} from "fumadocs-ui/layouts/docs/page";
+} from "fumadocs-ui/layouts/notebook/page";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { baseOptions } from "@/lib/layout.shared";
+import { DocsHeader, DocsShellProvider } from "@/components/docs-header";
 import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { Link } from "@tanstack/react-router";
-import { ExternalLinkIcon } from "lucide-react";
 export const Route = createFileRoute("/$")({
   component: Page,
   loader: async ({ params }) => {
@@ -95,11 +100,16 @@ const serverLoader = createServerFn({
     if (!page) throw notFound();
 
     const ogImage = getPageImage(page);
+    const area = findDocsArea(docsAreas, page.url);
 
     return {
       path: page.path,
       url: page.url,
-      pageTree: await source.serializePageTree(source.getPageTree()),
+      // Only the active area's tree: the sidebar lists nothing else.
+      pageTree: await source.serializePageTree(area.tree),
+      tabs: docsAreas.map(({ title, url }) => ({ title, url })),
+      activeTab: docsAreas.indexOf(area),
+      sidebar: area.sidebar,
       title: page.data.title,
       description: page.data.description,
       ogTitle: page.data.ogTitle ?? page.data.title,
@@ -108,7 +118,7 @@ const serverLoader = createServerFn({
     };
   });
 
-import { PageLastUpdate } from "fumadocs-ui/layouts/docs/page";
+import { PageLastUpdate } from "fumadocs-ui/layouts/notebook/page";
 
 import {
   PropertiesTable,
@@ -211,97 +221,49 @@ const clientLoader = browserCollections.docs.createClientLoader({
   },
 });
 
+/** An area of one page (the changelog) has nothing to list: no sidebar, full width. */
+const noSidebar: DocsSlots["sidebar"] = {
+  provider: SidebarProvider,
+  root: () => null,
+  trigger: () => null,
+  collapseTrigger: () => null,
+  useSidebar,
+};
+
+// A function footer replaces the stock sidebar footer outright. The drawer on
+// phones would otherwise render the theme toggle there; the header is the only
+// place it appears.
+const noFooter = () => null;
+
 function Page() {
   const data = Route.useLoaderData();
   const { pageTree } = useFumadocsLoader(data);
   const Content = clientLoader.getComponent(data.path) as unknown as ComponentType;
+  const base = baseOptions();
 
   return (
-    <DocsLayout
-      {...baseOptions()}
-      tree={pageTree}
-      sidebar={{
-        banner: (
-          <a
-            href="https://paradoc.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-fd-muted-foreground hover:text-fd-foreground transition-colors"
-          >
-            paradoc.dev
-            <ExternalLinkIcon className="size-3" />
-          </a>
-        ),
-      }}
-    >
-      <PageProvider url={data.url} filePath={data.path}>
-        <Content />
-      </PageProvider>
-    </DocsLayout>
+    <DocsShellProvider tabs={data.tabs} activeTab={data.activeTab}>
+      <DocsLayout
+        {...base}
+        nav={{ ...base.nav, mode: "top" }}
+        tree={pageTree}
+        tabs={false}
+        sidebar={{ collapsible: false, footer: noFooter }}
+        slots={{
+          header: DocsHeader,
+          ...(data.sidebar ? {} : { sidebar: noSidebar }),
+        }}
+      >
+        <PageProvider url={data.url} filePath={data.path}>
+          <Content />
+        </PageProvider>
+      </DocsLayout>
+    </DocsShellProvider>
   );
 }
 
 import { LLMCopyButton, ViewOptions } from "@/components/page-actions";
-
-// import { createFileRoute, notFound } from "@tanstack/react-router";
-// import { DocsLayout } from "fumadocs-ui/layouts/docs";
-// import { createServerFn } from "@tanstack/react-start";
-// import { source } from "@/lib/source";
-// import browserCollections from 'fumadocs-mdx:collections/browser';
-// import { createClientLoader } from "fumadocs-mdx/runtime/vite";
-// import {
-//   DocsBody,
-//   DocsDescription,
-//   DocsPage,
-//   DocsTitle,
-//   PageLastUpdate,
-// } from "fumadocs-ui/layouts/docs/page";
-// import defaultMdxComponents from "fumadocs-ui/mdx";
-// import { baseOptions } from "@/lib/layout.shared";
-// import { useFumadocsLoader } from "fumadocs-core/source/client";
-// import { LLMCopyButton, ViewOptions } from "@/components/page-actions";
 import { PageProvider, usePageContext } from "@/lib/page-context";
-
-// export const Route = createFileRoute("/$")({
-//   component: Page,
-//   loader: async ({ params }) => {
-//     const slugs = params._splat?.split("/") ?? [];
-//     const data = await serverLoader({ data: slugs });
-//     await clientLoader.preload(data.path);
-//     return data;
-//   },
-//   notFoundComponent: () => {
-//     // const data = Route.useLoaderData();
-//     // const { pageTree } = useFumadocsLoader(data);
-
-//     return (
-//       <div>
-//         <h1>This page doesn't exist!</h1>
-//       </div>
-//       // <DocsLayout {...baseOptions()} tree={pageTree}>
-//       //   <PageProvider url={data.url} filePath={data.path}>
-//       //     This page doesn't exist!
-//       //   </PageProvider>
-//       // </DocsLayout>
-//     );
-//   },
-// });
-
-// const serverLoader = createServerFn({
-//   method: "GET",
-// })
-//   .inputValidator((slugs: string[]) => slugs)
-//   .handler(async ({ data: slugs }) => {
-//     const page = source.getPage(slugs);
-//     if (!page) throw notFound();
-
-//     return {
-//       path: page.path,
-//       url: page.url,
-//       // filePath: page.file.path,
-//       pageTree: await source.serializePageTree(source.getPageTree()),
-//     };
-//   });
 
 function PageActions() {
   const { url, filePath } = usePageContext();
@@ -315,39 +277,3 @@ function PageActions() {
     </div>
   );
 }
-
-// const clientLoader = createClientLoader(browserDocs.doc, {
-//   id: "docs",
-//   component({ toc, frontmatter, default: MDX, lastModified }) {
-//     return (
-//       <DocsPage toc={toc}>
-//         <DocsTitle>{frontmatter.title}</DocsTitle>
-//         <DocsDescription>{frontmatter.description}</DocsDescription>
-//         The date... {String(lastModified)}
-//         {lastModified && <PageLastUpdate date={lastModified} />}
-//         <PageActions />
-//         <DocsBody>
-//           <MDX
-//             components={{
-//               ...defaultMdxComponents,
-//             }}
-//           />
-//         </DocsBody>
-//       </DocsPage>
-//     );
-//   },
-// });
-
-// function Page() {
-//   const data = Route.useLoaderData();
-//   const { pageTree } = useFumadocsLoader(data);
-//   const Content = clientLoader.getComponent(data.path);
-
-//   return (
-//     <DocsLayout {...baseOptions()} tree={pageTree}>
-//       <PageProvider url={data.url} filePath={data.path}>
-//         <Content />
-//       </PageProvider>
-//     </DocsLayout>
-//   );
-// }

@@ -4,15 +4,17 @@ import { Logo } from "../components/logo";
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: (
-        <Logo className="sm:-translate-y-[6px] sm:translate-x-[1px] h-5 w-auto dark:text-white" />
-      ),
+      title: <Logo className="h-5 w-auto dark:text-white" />,
     },
+    themeSwitch: { mode: "light-dark" },
+    // The header is the only place the site links appear; `on: "nav"` keeps
+    // them out of the sidebar's menu items.
     links: [
       {
         url: "https://x.com/paradochq",
         text: "X (Twitter)",
         type: "icon",
+        on: "nav",
         external: true,
         icon: (
           <svg
@@ -30,6 +32,7 @@ export function baseOptions(): BaseLayoutProps {
         url: "https://github.com/paradoc-dev/paradoc",
         text: "GitHub",
         type: "icon",
+        on: "nav",
         icon: (
           <svg
             role="img"

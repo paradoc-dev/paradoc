@@ -13,7 +13,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 // scripts/ -> apps/docs/ -> apps/ -> paradoc/
 const SOURCE = resolve(here, "../../../CHANGELOG.md");
-const TARGET = resolve(here, "../content/docs/changelog.mdx");
+const TARGET = resolve(here, "../content/docs/changelog/index.mdx");
 
 /** Pull the first `## [x.y.z]` version from a Keep-a-Changelog document. */
 export function latestVersion(markdown: string): string | null {

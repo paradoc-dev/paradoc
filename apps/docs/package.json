@@ -17,7 +17,7 @@
     "lint": "biome lint",
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
-    "pretest": "pnpm sync:component-docs",
+    "pretest": "pnpm sync:changelog && pnpm sync:component-docs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

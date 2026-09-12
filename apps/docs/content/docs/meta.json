@@ -1,5 +1,5 @@
 {
-  "title": "Paradoc Documentation",
+  "title": "Docs",
   "pages": [
     "index",
     "quickstart",
@@ -8,11 +8,11 @@
     "--- Reference ---",
     "schemas",
     "sdk",
-    "components",
     "cli",
     "mcp",
     "skill",
     "ai",
+    "components",
     "changelog"
   ],
   "defaultOpen": true

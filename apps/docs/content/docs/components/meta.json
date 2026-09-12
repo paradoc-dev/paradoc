@@ -1,23 +1,14 @@
 {
   "title": "Components",
+  "root": true,
   "pages": [
+    "--- Getting started ---",
     "index",
     "installation",
     "typography",
-    "bundle",
-    "document",
-    "field",
-    "keep-together",
-    "pages",
-    "paper",
-    "part",
-    "pdf-pages",
-    "qr-code",
-    "section",
-    "signature",
-    "table",
-    "totals",
-    "blocks"
-  ],
-  "defaultOpen": false
+    "--- Components ---",
+    "...",
+    "--- Blocks ---",
+    "...blocks"
+  ]
 }
