@@ -4,7 +4,7 @@
  */
 /** @jsxRuntime classic */
 import React from "react";
-import { useDocumentTokens, useField } from "@paradoc/react";
+import { scaleTextClasses, useDocumentTokens, useField } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 export interface FieldProps {
@@ -18,12 +18,12 @@ export interface FieldProps {
 
 export function Field({ path, label, className }: FieldProps) {
   const binding = useField(path);
-  const { dir } = useDocumentTokens();
+  const { dir, typography } = useDocumentTokens();
   const heading = label === false ? undefined : (label ?? binding.field.label ?? path);
   const isolated = dir === "rtl" && ["phone", "identification"].includes(binding.field.type);
   return (
     <KeepTogether keepId={`field:${path}`} data-field-path={path} className={className ?? "flex flex-col gap-0.5"}>
-      {heading ? <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">{heading}</span> : null}
+      {heading ? <span className={scaleTextClasses("text-xs font-medium uppercase tracking-wide text-neutral-500", typography.scale)}>{heading}</span> : null}
       <span className="whitespace-pre-line text-neutral-900" style={isolated ? { direction: "ltr", unicodeBidi: "isolate" } : undefined}>
         {binding.text}
       </span>

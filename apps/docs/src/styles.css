@@ -2,8 +2,13 @@
 @import "@fontsource/geist-sans";
 @import "@fontsource-variable/geist-mono";
 
-/* Tailwind */
-@import "tailwindcss";
+/*
+ * Tailwind, through the document components' own stylesheet: it imports
+ * Tailwind itself and declares the classes the `typography` token can produce,
+ * which no source file carries. Importing it here is what an installed
+ * project does, so the component previews are styled exactly as a consumer's.
+ */
+@import "@paradoc/components/styles.css";
 @import "tw-animate-css";
 
 /*

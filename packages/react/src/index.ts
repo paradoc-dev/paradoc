@@ -173,6 +173,15 @@ export {
   type PageGeometry,
   type PageSize,
 } from "./lib/tokens";
+export {
+  DEFAULT_TYPOGRAPHY,
+  TYPOGRAPHY_LEVELS,
+  flowGapClasses,
+  scaleTextClasses,
+  type Typography,
+  type TypographyInput,
+  type TypographyLevel,
+} from "./lib/typography";
 export { measureKeeps } from "./lib/measure";
 export {
   MissingPdfPainterError,

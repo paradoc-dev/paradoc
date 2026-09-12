@@ -35,6 +35,15 @@ import {
   DEFAULT_TEXT_DIRECTION,
   type TextDirection,
 } from "./script";
+import {
+  DEFAULT_TYPOGRAPHY,
+  isTypographyLevel,
+  sameTypography,
+  TYPOGRAPHY_KEYS,
+  TYPOGRAPHY_LEVELS,
+  type Typography,
+  type TypographyInput,
+} from "./typography";
 
 /** The papers a document may be laid out on. */
 export type PageSize = "letter" | "a4";
@@ -95,6 +104,13 @@ export interface DocumentTokensInput {
    * document is written in, which the typeface has to carry glyphs for.
    */
   lang?: string;
+  /**
+   * The document's rhythm: `scale` for the size of every text role and its
+   * leading, `flow` for the space between blocks at the root. Each is
+   * `compact`, `regular`, or `roomy`, and either may be named alone. See
+   * `./typography.ts` for what a level is and why it is a step, not a number.
+   */
+  typography?: TypographyInput;
 }
 
 /** One document's branding, complete. */
@@ -111,6 +127,8 @@ export interface DocumentTokens {
   dir: TextDirection;
   /** The language the document is written in. */
   lang: string;
+  /** The document's rhythm. */
+  typography: Typography;
 }
 
 /**
@@ -127,6 +145,7 @@ const DOCUMENT_TOKEN_FIELDS = {
   logo: true,
   dir: true,
   lang: true,
+  typography: true,
 } satisfies Record<keyof DocumentTokens, true>;
 
 /** The field names, for anything that walks a resolved set. */
@@ -144,6 +163,7 @@ const DOCUMENT_TOKEN_INPUT_FIELDS = {
   logo: true,
   dir: true,
   lang: true,
+  typography: true,
 } satisfies Record<keyof DocumentTokensInput, true>;
 
 /** The settable names, for anything that has to recognise a token set. */
@@ -152,15 +172,15 @@ export const DOCUMENT_TOKEN_INPUT_KEYS = Object.keys(
 ) as (keyof DocumentTokensInput)[];
 
 /**
- * The tokens that describe the paper and the script.
+ * The tokens that describe the paper, the script, and the rhythm.
  *
  * They are the ones both outputs have to agree on, which is why only a document
  * root may set them: see `useDocumentRootTokens`. Direction and language belong
- * here because a bundle is one sequence of pages
- * running one way, and the loss when the two sides disagree is invisible in
- * either of them alone.
+ * here because a bundle is one sequence of pages running one way, and the
+ * rhythm because it decides where every page breaks; the loss when the two
+ * sides disagree is invisible in either of them alone.
  */
-export const ROOT_ONLY_TOKEN_KEYS = ["pageSize", "marginPx", "dir", "lang"] as const;
+export const ROOT_ONLY_TOKEN_KEYS = ["pageSize", "marginPx", "dir", "lang", "typography"] as const;
 
 /** A token whose value a renderer could not act on. */
 export class InvalidDocumentTokenError extends Error {
@@ -187,6 +207,7 @@ export const DEFAULT_DOCUMENT_TOKENS: DocumentTokens = {
   marginPx: DEFAULT_PAGE_MARGIN_PX,
   dir: DEFAULT_TEXT_DIRECTION,
   lang: DEFAULT_DOCUMENT_LANG,
+  typography: DEFAULT_TYPOGRAPHY,
 };
 
 /** The sheet and the box inside it, in the CSS pixels both outputs share. */
@@ -340,7 +361,42 @@ function assertValidTokens(tokens: DocumentTokens): DocumentTokens {
     );
   }
 
+  for (const knob of TYPOGRAPHY_KEYS) {
+    if (!isTypographyLevel(tokens.typography[knob])) {
+      throw new InvalidDocumentTokenError(
+        `typography.${knob}`,
+        tokens.typography[knob],
+        `is not one of ${TYPOGRAPHY_LEVELS.join(", ")}`
+      );
+    }
+  }
+
   return tokens;
+}
+
+/**
+ * Layers one rhythm over another, knob by knob, and refuses a knob it does
+ * not know: a misspelt `scael` would otherwise be dropped without a word,
+ * which is the loss every other token here is checked against.
+ */
+function resolveTypography(layer: TypographyInput | undefined, inherited: Typography): Typography {
+  if (layer === undefined) return inherited;
+  if (typeof layer !== "object" || layer === null) {
+    throw new InvalidDocumentTokenError("typography", layer, "is not an object of scale and flow");
+  }
+  for (const key of Object.keys(layer)) {
+    if (!(TYPOGRAPHY_KEYS as readonly string[]).includes(key)) {
+      throw new InvalidDocumentTokenError(
+        "typography",
+        layer,
+        `names "${key}", which is not a knob: the knobs are ${TYPOGRAPHY_KEYS.join(" and ")}`
+      );
+    }
+  }
+  return {
+    scale: layer.scale ?? inherited.scale,
+    flow: layer.flow ?? inherited.flow,
+  };
 }
 
 /**
@@ -369,6 +425,7 @@ export function resolveDocumentTokens(
       logo: resolveLogo(layer.logo) ?? resolved.logo,
       dir: layer.dir ?? resolved.dir,
       lang: layer.lang ?? resolved.lang,
+      typography: resolveTypography(layer.typography, resolved.typography),
     };
   }
 
@@ -391,9 +448,15 @@ export function localeAttributes(tokens: DocumentTokens): { dir?: TextDirection;
   };
 }
 
+/** True when one token reads the same in two resolved sets. */
+function sameToken(key: keyof DocumentTokens, a: DocumentTokens, b: DocumentTokens): boolean {
+  if (key === "typography") return sameTypography(a.typography, b.typography);
+  return a[key] === b[key];
+}
+
 /** True when two resolved sets describe the same document. */
 export function sameDocumentTokens(a: DocumentTokens, b: DocumentTokens): boolean {
-  return DOCUMENT_TOKEN_KEYS.every((key) => a[key] === b[key]);
+  return DOCUMENT_TOKEN_KEYS.every((key) => sameToken(key, a, b));
 }
 
 /**
@@ -406,5 +469,5 @@ export function disagreeingRootToken(
   a: DocumentTokens,
   b: DocumentTokens
 ): (typeof ROOT_ONLY_TOKEN_KEYS)[number] | undefined {
-  return ROOT_ONLY_TOKEN_KEYS.find((key) => a[key] !== b[key]);
+  return ROOT_ONLY_TOKEN_KEYS.find((key) => !sameToken(key, a, b));
 }

@@ -168,7 +168,7 @@ describe("the emitted files", () => {
     // to decide whether a phone number needs isolating — and both reach an
     // installed file through the package rather than through a copy of theirs.
     expect(byName.get("field")?.files[0]?.content).toContain(
-      `import { useDocumentTokens, useField } from "${SUBSTRATE_PACKAGE}";`
+      `import { scaleTextClasses, useDocumentTokens, useField } from "${SUBSTRATE_PACKAGE}";`
     );
   });
 

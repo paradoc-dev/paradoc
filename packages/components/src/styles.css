@@ -4,6 +4,21 @@
  */
 
 @import "tailwindcss";
+
+/*
+ * The classes the `typography` token can produce.
+ *
+ * A document's `scale` and `flow` step the size, leading, and gap classes the
+ * components carry, and the stepped names are built at render time, so no
+ * source file contains them for Tailwind to find. Without this, the default
+ * PDF engine would honour `leading-loose` while the browser had no rule for
+ * it, and the preview and the PDF would stop being one document. Listing the
+ * whole verified scale here, rather than only what the shipped components
+ * reach, keeps a copy owner's own literal on the same footing.
+ */
+@source inline("text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,8xl,9xl}");
+@source inline("leading-{none,tight,snug,relaxed,loose,{0..16},{0.5,1.5,2.5}}");
+@source inline("gap-{{0..24},{0.5,1.5,2.5}} gap-x-{{0..24},{0.5,1.5,2.5}} gap-y-{{0..24},{0.5,1.5,2.5}}");
 /*
  * A value that is left to right whatever the document is.
  *

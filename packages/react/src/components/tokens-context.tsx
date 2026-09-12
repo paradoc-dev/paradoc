@@ -16,10 +16,10 @@
  * a layer rather than a replacement, so a render can change the accent without
  * also deciding the paper.
  *
- * **Two rules, both loud.** Paper and typeface are declared once, at the root: a
- * nested `Document` that sets them fails rather than having them dropped. And a
- * root whose paper or typeface is not the one being drawn with fails naming the
- * token, which is what catches a composition that hides its tokens somewhere the
+ * **Two rules, both loud.** Paper, script, and rhythm are declared once, at the
+ * root: a nested `Document` that sets them fails rather than having them
+ * dropped. And a root whose paper, script, or rhythm is not the one being drawn
+ * with fails naming the token, which is what catches a composition that hides its tokens somewhere the
  * element walk cannot see. The second check runs on both sides, because
  * `renderPdf` supplies the same context the furniture does.
  */
@@ -88,9 +88,10 @@ export class NestedPaperTokenError extends Error {
   constructor(token: string, value: unknown) {
     super(
       `A <Document> inside a <Bundle> set the token "${token}" to ${JSON.stringify(value)}. ` +
-        "Paper and typeface are declared once, on the root: a bundle is one sequence of pages " +
-        "in one typeface, and the page furniture and the PDF both read that one declaration. " +
-        "Set it on the <Bundle> instead. A nested document may still set accentColor and logo."
+        "Paper, script, and rhythm are declared once, on the root: a bundle is one sequence of " +
+        "pages laid out one way, and the page furniture and the PDF both read that one " +
+        "declaration. Set it on the <Bundle> instead. A nested document may still set " +
+        "accentColor and logo."
     );
     this.name = "NestedPaperTokenError";
     this.token = token;

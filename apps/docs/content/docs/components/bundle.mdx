@@ -30,7 +30,7 @@ whichever of `Bundle` or `Document` renders first without an inherited token
 set becomes the root, and every `Document` nested inside it inherits that set
 instead of resolving its own.
 
-Only the root may set `pageSize`, `marginPx`, `dir`, or `lang` — a `Document`
+Only the root may set `pageSize`, `marginPx`, `dir`, `lang`, or `typography` — a `Document`
 nested inside a `Bundle` that tries to set one of these throws, because those
 tokens decide the paper every document in the bundle shares. `accentColor`
 and `logo` carry no such restriction: a nested `Document` may still override

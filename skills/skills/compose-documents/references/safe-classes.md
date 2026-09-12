@@ -124,6 +124,7 @@ root and read by both outputs:
 | `pageSize` | `"letter"` | `"letter"` (816×1056 px) or `"a4"` (794×1123 px). |
 | `marginPx` | `48` | Margin on all four sides of every page. |
 | `logo` | none | Bytes (`Uint8Array`, becomes a `data:` URI) or a source string the browser can load. |
+| `typography` | `{ scale: "regular", flow: "regular" }` | The document's rhythm. `scale` steps every text role's size and leading one place on the verified scale, `flow` steps the root's block gap; each is `compact`, `regular`, or `roomy`. Root-only. |
 
 ```tsx
 <Bundle tokens={{ pageSize: "a4", marginPx: 56, fontFamily: "Source Serif 4 Variable", accentColor: "#1d4ed8" }}>

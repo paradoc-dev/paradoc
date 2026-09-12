@@ -25,7 +25,7 @@ provides. Rendering any of those components outside a `Document` throws.
 A `Document` is its own root when nothing wraps it, exactly like a
 [`Bundle`](/components/bundle) around one. Nested inside a `Bundle`, it
 inherits that bundle's tokens instead of resolving its own, and only the
-outermost of the two may set `pageSize`, `marginPx`, `dir`, or `lang` — a
+outermost of the two may set `pageSize`, `marginPx`, `dir`, `lang`, or `typography` — a
 nested `Document` that tries throws, since those tokens decide the paper
 every document in the composition shares.
 
