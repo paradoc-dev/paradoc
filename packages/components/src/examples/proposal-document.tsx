@@ -21,7 +21,7 @@ import { Field } from "../components/field";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
 import { Table } from "../components/table";
-import { markDocumentRoot, useDocumentTokens } from "@paradoc/react";
+import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import { Totals } from "../components/totals";
 import type { DocumentTokensInput } from "@paradoc/react";
 import { proposalForm } from "./proposal";
@@ -78,32 +78,27 @@ export interface ProposalDocumentProps {
 }
 
 /**
- * The composed proposal.
- *
- * Exported by name and as the module's default. The default is what a React
- * layer binds to when the renderer imports the module the layer's path names,
- * which is the convention a composition module follows.
+ * The composition's content, below the `Document` that supplies its tokens: a
+ * hook called in `ProposalDocument`'s own body would see the package's defaults.
+ * Every size and leading here is routed through the token, so the whole
+ * document follows `typography` rather than the components alone.
  */
-export function ProposalDocument({
-  data,
-  artifact = proposalForm,
-  logoSrc = PROPOSAL_LOGO_SRC,
-  format = { formatter: proposalFormatter },
-  tokens,
-}: ProposalDocumentProps) {
+function ProposalBody({ artifact, logoSrc }: { artifact: Form; logoSrc: string }) {
+  const { typography } = useDocumentTokens();
+  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
   return (
-    <Bundle id="proposal-bundle" tokens={tokens}>
-      <Document artifact={artifact} data={data} format={format} id="proposal">
+    <>
+
         <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
           <div className="flex basis-1/2 flex-row gap-3">
             <ProposalMark fallbackSrc={logoSrc} />
             <div className="flex flex-col gap-1">
-              <KeepTogether as="span" keepId="title" className="text-lg font-semibold text-neutral-900">
+              <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
                 {artifact.title}
               </KeepTogether>
-              <Field path="provider" label={false} className="text-sm text-neutral-700" />
-              <Field path="providerAddress" label={false} className="text-sm text-neutral-600" />
-              <Field path="providerPhone" label={false} className="text-sm text-neutral-600" />
+              <Field path="provider" label={false} className={type("text-sm text-neutral-700")} />
+              <Field path="providerAddress" label={false} className={type("text-sm text-neutral-600")} />
+              <Field path="providerPhone" label={false} className={type("text-sm text-neutral-600")} />
             </div>
           </div>
           <div className="flex basis-1/3 flex-col gap-2">
@@ -115,13 +110,13 @@ export function ProposalDocument({
         </Section>
 
         <Section id="customer" title="Prepared for" className="flex flex-col gap-1">
-          <Field path="customer" label={false} className="text-sm font-medium text-neutral-900" />
-          <Field path="customerContact" label={false} className="text-sm text-neutral-700" />
-          <Field path="customerAddress" label={false} className="text-sm text-neutral-600" />
+          <Field path="customer" label={false} className={type("text-sm font-medium text-neutral-900")} />
+          <Field path="customerContact" label={false} className={type("text-sm text-neutral-700")} />
+          <Field path="customerAddress" label={false} className={type("text-sm text-neutral-600")} />
         </Section>
 
         <Section id="summary" title="Summary">
-          <Field path="summary" label={false} className="text-sm leading-relaxed text-neutral-800" />
+          <Field path="summary" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
         </Section>
 
         <Section id="line-items" title="Scope and pricing" className="flex flex-col gap-3">
@@ -146,7 +141,7 @@ export function ProposalDocument({
         </Section>
 
         <Section id="terms" title="Terms">
-          <Field path="terms" label={false} className="text-sm leading-relaxed text-neutral-800" />
+          <Field path="terms" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
         </Section>
 
         <Section id="acceptance" title="Acceptance" className="flex flex-col gap-4 pt-4">
@@ -155,7 +150,29 @@ export function ProposalDocument({
             <Signature party="customer" className="flex basis-1/2 flex-col gap-1" />
           </div>
         </Section>
-      </Document>
+    </>
+  );
+}
+
+/**
+ * The composed proposal.
+ *
+ * Exported by name and as the module's default. The default is what a React
+ * layer binds to when the renderer imports the module the layer's path names,
+ * which is the convention a composition module follows.
+ */
+export function ProposalDocument({
+  data,
+  artifact = proposalForm,
+  logoSrc = PROPOSAL_LOGO_SRC,
+  format = { formatter: proposalFormatter },
+  tokens,
+}: ProposalDocumentProps) {
+  return (
+    <Bundle id="proposal-bundle" tokens={tokens}>
+      <Document artifact={artifact} data={data} format={format} id="proposal">
+      <ProposalBody artifact={artifact} logoSrc={logoSrc} />
+    </Document>
     </Bundle>
   );
 }

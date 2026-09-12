@@ -16,7 +16,7 @@ import type { Form } from "@paradoc/types";
 
 import { KeepTogether } from "../components/keep-together";
 import { Document } from "../components/document";
-import { markDocumentRoot } from "@paradoc/react";
+import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import type { FormatOptions } from "@paradoc/react";
 import type { DocumentData } from "@paradoc/react";
 import { Field } from "../components/field";
@@ -39,27 +39,24 @@ export interface PurchaseOrderDocumentProps {
 }
 
 /**
- * The composed purchase order.
- *
- * Exported by name and as the module's default. The default is what a React
- * layer binds to when the renderer imports the module the layer's path names,
- * which is the convention a composition module follows.
+ * The composition's content, below the `Document` that supplies its tokens: a
+ * hook called in `PurchaseOrderDocument`'s own body would see the package's defaults.
+ * Every size and leading here is routed through the token, so the whole
+ * document follows `typography` rather than the components alone.
  */
-export function PurchaseOrderDocument({
-  data,
-  artifact = purchaseOrderForm,
-  format,
-  tokens,
-}: PurchaseOrderDocumentProps) {
+function PurchaseOrderBody({ artifact }: { artifact: Form }) {
+  const { typography } = useDocumentTokens();
+  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
   return (
-    <Document artifact={artifact} data={data} format={format} tokens={tokens} id="purchase-order">
+    <>
+
       <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
         <div className="flex basis-1/2 flex-col gap-1">
-          <KeepTogether as="span" keepId="title" className="text-lg font-semibold text-neutral-900">
+          <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
             {artifact.title}
           </KeepTogether>
-          <Field path="buyer" label={false} className="text-sm text-neutral-700" />
-          <Field path="buyerAddress" label={false} className="text-sm text-neutral-600" />
+          <Field path="buyer" label={false} className={type("text-sm text-neutral-700")} />
+          <Field path="buyerAddress" label={false} className={type("text-sm text-neutral-600")} />
         </div>
         <div className="flex basis-1/3 flex-col gap-2">
           <Field path="orderNumber" />
@@ -70,13 +67,13 @@ export function PurchaseOrderDocument({
       </Section>
 
       <Section id="supplier" title="Supplier" className="flex flex-col gap-1">
-        <Field path="supplier" label={false} className="text-sm font-medium text-neutral-900" />
-        <Field path="supplierContact" label={false} className="text-sm text-neutral-700" />
-        <Field path="supplierAddress" label={false} className="text-sm text-neutral-600" />
+        <Field path="supplier" label={false} className={type("text-sm font-medium text-neutral-900")} />
+        <Field path="supplierContact" label={false} className={type("text-sm text-neutral-700")} />
+        <Field path="supplierAddress" label={false} className={type("text-sm text-neutral-600")} />
       </Section>
 
       <Section id="ship-to" title="Ship to" className="flex flex-col gap-1">
-        <Field path="shipTo" label={false} className="text-sm text-neutral-600" />
+        <Field path="shipTo" label={false} className={type("text-sm text-neutral-600")} />
       </Section>
 
       <Section id="line-items" title="Ordered items" className="flex flex-col gap-3">
@@ -101,7 +98,7 @@ export function PurchaseOrderDocument({
       </Section>
 
       <Section id="terms" title="Terms">
-        <Field path="terms" label={false} className="text-sm leading-relaxed text-neutral-800" />
+        <Field path="terms" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
       </Section>
 
       <Section id="acceptance" title="Acceptance" className="flex flex-col gap-4 pt-4">
@@ -110,6 +107,26 @@ export function PurchaseOrderDocument({
           <Signature party="supplier" className="flex basis-1/2 flex-col gap-1" />
         </div>
       </Section>
+    </>
+  );
+}
+
+/**
+ * The composed purchase order.
+ *
+ * Exported by name and as the module's default. The default is what a React
+ * layer binds to when the renderer imports the module the layer's path names,
+ * which is the convention a composition module follows.
+ */
+export function PurchaseOrderDocument({
+  data,
+  artifact = purchaseOrderForm,
+  format,
+  tokens,
+}: PurchaseOrderDocumentProps) {
+  return (
+    <Document artifact={artifact} data={data} format={format} tokens={tokens} id="purchase-order">
+      <PurchaseOrderBody artifact={artifact} />
     </Document>
   );
 }

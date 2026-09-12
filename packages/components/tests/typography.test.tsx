@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm } from "../src/examples/purchase-order";
-import { InvoiceDocument, overflowInvoiceData } from "../src/examples";
-import { Bundle, Document, Field, Section, Table } from "../src";
+import { EngagementLetterDocument, InvoiceDocument, engagementLetterData, overflowInvoiceData } from "../src/examples";
+import { Attachment, Bundle, Document, Field, Part, Section, Signature, Table, Totals } from "../src";
 import { readPdf } from "./pdf-reader";
 
 type Tokens = Parameters<typeof Document>[0]["tokens"];
@@ -24,7 +24,7 @@ function render(tokens?: Tokens, className?: string) {
 
 const ROOT_REGULAR = 'class="flex flex-col gap-6 text-sm leading-relaxed text-neutral-900"';
 
-describe("the typography token in Field, Section, Table, and the root", () => {
+describe("the typography token", () => {
   it("changes nothing when no rhythm is named", () => {
     const baseline = render();
     expect(baseline).toContain(ROOT_REGULAR);
@@ -71,18 +71,100 @@ describe("the typography token in Field, Section, Table, and the root", () => {
     );
   });
 
+  it("steps Signature and Totals with the scale, mirrored at compact where the scale has a step", () => {
+    const composed = (tokens?: Tokens) =>
+      renderToStaticMarkup(
+        <Document artifact={purchaseOrderForm} data={purchaseOrderData} tokens={tokens}>
+          <Signature party="buyer" />
+          <Totals rows={[{ def: "subtotal" }, { def: "total", emphasis: true }]} />
+        </Document>
+      );
+
+    const roomy = composed({ typography: { scale: "roomy" } });
+    expect(roomy).toContain('data-party-role="buyer"');
+    expect(roomy).toContain('class="text-sm font-semibold uppercase tracking-wider text-neutral-500"');
+    expect(roomy).toContain('class="text-base text-neutral-900"');
+    expect(roomy).toContain('class="text-base text-neutral-800">________________</span><span class="text-sm text-neutral-500">');
+    expect(roomy).toContain('class="text-base text-neutral-800">__________</span><span class="text-sm text-neutral-500">Date</span>');
+    expect(roomy).toContain('class="flex w-full justify-between text-base"');
+    expect(roomy).toContain('class="flex w-full justify-between border-t border-neutral-800 pt-1 text-lg font-semibold"');
+
+    const compact = composed({ typography: { scale: "compact" } });
+    expect(compact).toContain('class="text-xs font-semibold uppercase tracking-wider text-neutral-500"');
+    expect(compact).toContain('class="text-xs text-neutral-900"');
+    expect(compact).toContain('class="text-xs text-neutral-800">________________</span><span class="text-xs text-neutral-500">');
+    expect(compact).toContain('class="text-xs text-neutral-800">__________</span><span class="text-xs text-neutral-500">Date</span>');
+    expect(compact).toContain('class="flex w-full justify-between text-xs"');
+    expect(compact).toContain('class="flex w-full justify-between border-t border-neutral-800 pt-1 text-sm font-semibold"');
+
+    expect(composed()).toBe(composed({ typography: { scale: "regular", flow: "regular" } }));
+  });
+
+  it("steps a Part header and an Attachment from the Bundle around them", () => {
+    const packet = (tokens?: Tokens) =>
+      renderToStaticMarkup(
+        <Bundle tokens={tokens}>
+          <Part id="order" kind="composition" label="Order">
+            <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
+              <Field path="orderNumber" />
+            </Document>
+          </Part>
+          <Part id="w9" kind="form" label="W-9" attached>
+            <Attachment filename="w9.pdf" mimeType="application/pdf" reason="encrypted" />
+          </Part>
+        </Bundle>
+      );
+
+    const roomy = packet({ typography: { scale: "roomy", flow: "roomy" } });
+    expect(roomy).toContain('data-part-label="order" class="flex items-baseline justify-between px-6 text-sm font-medium text-neutral-600"');
+    expect(roomy).toContain('class="text-base font-medium text-neutral-900">w9.pdf</span>');
+    expect(roomy).toContain('data-attachment-reason="true" class="text-sm text-neutral-500"');
+    expect(roomy).toContain('class="flex flex-col gap-14"');
+    expect(roomy).toContain('class="flex flex-col gap-8 text-base leading-loose text-neutral-900"');
+
+    const compact = packet({ typography: { scale: "compact", flow: "compact" } });
+    expect(compact).toContain('data-part-label="order" class="flex items-baseline justify-between px-6 text-xs font-medium text-neutral-600"');
+    expect(compact).toContain('class="text-xs font-medium text-neutral-900">w9.pdf</span>');
+    expect(compact).toContain('data-attachment-reason="true" class="text-xs text-neutral-500"');
+    expect(compact).toContain('class="flex flex-col gap-10"');
+
+    expect(packet()).toContain('class="flex flex-col gap-12"');
+    expect(packet()).toBe(packet({ typography: { scale: "regular", flow: "regular" } }));
+  });
+
+  it("steps a Part header from the document below it when no Bundle is the root", () => {
+    const framed = (tokens?: Tokens) =>
+      renderToStaticMarkup(
+        <Part id="order" kind="composition" label="Order">
+          <Document artifact={purchaseOrderForm} data={purchaseOrderData} tokens={tokens}>
+            <Field path="orderNumber" />
+          </Document>
+        </Part>
+      );
+    expect(framed({ typography: { scale: "roomy" } })).toContain(
+      'data-part-label="order" class="flex items-baseline justify-between px-6 text-sm font-medium text-neutral-600"'
+    );
+    expect(framed()).toContain(
+      'data-part-label="order" class="flex items-baseline justify-between px-6 text-xs font-medium text-neutral-600"'
+    );
+  });
+
   it("renders every scale and flow on the default engine through the per-render override", async () => {
     // The PDF path refuses any class outside the verified vocabulary, so a
     // render that returns pages is the class check passing for that level.
     const pages: Record<string, number> = {};
     for (const scale of TYPOGRAPHY_LEVELS) {
       for (const flow of TYPOGRAPHY_LEVELS) {
-        const result = await renderPdf(<InvoiceDocument data={overflowInvoiceData} />, {
-          tokens: { typography: { scale, flow } },
-        });
-        const read = await readPdf(result.bytes);
-        expect(read[0]?.text, `${scale}/${flow}`).toContain("INV-2026-0432");
-        pages[`${scale}/${flow}`] = read.length;
+        const tokens = { typography: { scale, flow } };
+        const invoice = await readPdf(
+          (await renderPdf(<InvoiceDocument data={overflowInvoiceData} />, { tokens })).bytes
+        );
+        expect(invoice[0]?.text, `invoice ${scale}/${flow}`).toContain("INV-2026-0432");
+        pages[`${scale}/${flow}`] = invoice.length;
+        const letter = await readPdf(
+          (await renderPdf(<EngagementLetterDocument data={engagementLetterData} />, { tokens })).bytes
+        );
+        expect(letter.map((page) => page.text).join(" "), `letter ${scale}/${flow}`).toContain("Date");
       }
     }
     expect(pages["roomy/roomy"]).toBeGreaterThan(pages["regular/regular"] ?? 0);

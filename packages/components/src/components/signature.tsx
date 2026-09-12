@@ -26,7 +26,7 @@
  */
 /** @jsxRuntime classic */
 import React from "react";
-import { useSignature, type SigningMarkType } from "@paradoc/react";
+import { scaleTextClasses, useDocumentTokens, useSignature, type SigningMarkType } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 /**
@@ -68,6 +68,7 @@ export interface SignatureProps {
 /** One party's signing block, for one field type. */
 export function Signature({ party, index = 0, type = "signature", id, className }: SignatureProps) {
   const binding = useSignature(party, index, type);
+  const { typography } = useDocumentTokens();
 
   return (
     <KeepTogether
@@ -76,10 +77,10 @@ export function Signature({ party, index = 0, type = "signature", id, className 
       data-signing-type={type}
       className={className ?? "flex flex-col gap-1"}
     >
-      <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+      <span className={scaleTextClasses("text-xs font-semibold uppercase tracking-wider text-neutral-500", typography.scale)}>
         {binding.roleLabel}
       </span>
-      <span className="text-sm text-neutral-900">
+      <span className={scaleTextClasses("text-sm text-neutral-900", typography.scale)}>
         {binding.partyText}
       </span>
       <div className="mt-6 flex gap-6">
@@ -87,15 +88,15 @@ export function Signature({ party, index = 0, type = "signature", id, className 
           {/* One string, not two children: the locator sizes the field from the
               underscore run that carries the marker, so they must reach the PDF
               as a single text run. */}
-          <span className="text-sm text-neutral-800">{`${binding.marker ?? ""}${binding.rule}`}</span>
-          <span className="text-xs text-neutral-500">
+          <span className={scaleTextClasses("text-sm text-neutral-800", typography.scale)}>{`${binding.marker ?? ""}${binding.rule}`}</span>
+          <span className={scaleTextClasses("text-xs text-neutral-500", typography.scale)}>
             {binding.fieldLabel}
             {binding.required ? " (required)" : ""}
           </span>
         </div>
         <div className="flex basis-1/3 flex-col gap-1">
-          <span className="text-sm text-neutral-800">{binding.dateRule}</span>
-          <span className="text-xs text-neutral-500">Date</span>
+          <span className={scaleTextClasses("text-sm text-neutral-800", typography.scale)}>{binding.dateRule}</span>
+          <span className={scaleTextClasses("text-xs text-neutral-500", typography.scale)}>Date</span>
         </div>
       </div>
     </KeepTogether>

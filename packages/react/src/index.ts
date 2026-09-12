@@ -79,6 +79,7 @@ export {
   TokenOverrideProvider,
   useDocumentRootTokens,
   useDocumentTokens,
+  useDocumentTokensAround,
   useTokenOverride,
   type ResolvedRoot,
   type TokenOverrideProviderProps,

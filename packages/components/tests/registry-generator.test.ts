@@ -175,7 +175,7 @@ describe("the emitted files", () => {
   it("merges two authoring imports that land on one specifier", () => {
     const signature = byName.get("signature")?.files[0]?.content ?? "";
     expect(signature).toContain(
-      `import { useSignature, type SigningMarkType } from "${SUBSTRATE_PACKAGE}";`
+      `import {\n  scaleTextClasses,\n  useDocumentTokens,\n  useSignature,\n  type SigningMarkType,\n} from "${SUBSTRATE_PACKAGE}";`
     );
     expect(signature.match(/from "@paradoc\/react";/g)).toHaveLength(1);
   });

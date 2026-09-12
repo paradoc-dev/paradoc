@@ -28,7 +28,7 @@ import React from "react";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
-import { markDocumentRoot } from "@paradoc/react";
+import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import { useList, type DocumentData } from "@paradoc/react";
 import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
@@ -54,6 +54,8 @@ function Clauses({ path }: { path: string }) {
   const list = useList(path);
   const page = usePage();
   const rows = list.rows;
+  const { typography } = useDocumentTokens();
+  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
 
   const keepIds = rows.map((_clause, index) => `${CLAUSE_KEEP_PREFIX}:${index}`);
   if (page && !keepIds.some((keepId) => page.keeps.has(keepId))) return null;
@@ -69,12 +71,12 @@ function Clauses({ path }: { path: string }) {
             keepId={keepIds[index]!}
             className="flex flex-row gap-4"
           >
-            <span className="basis-1/12 text-sm font-semibold text-neutral-500">{index + 1}.</span>
+            <span className={type("basis-1/12 text-sm font-semibold text-neutral-500")}>{index + 1}.</span>
             <span className="flex basis-11/12 flex-col gap-1">
-              <span data-field-path={headingPath} className="text-sm font-semibold text-neutral-900">
+              <span data-field-path={headingPath} className={type("text-sm font-semibold text-neutral-900")}>
                 {list.text(index, "heading")}
               </span>
-              <span data-field-path={detailPath} className="text-sm leading-relaxed text-neutral-800">
+              <span data-field-path={detailPath} className={type("text-sm leading-relaxed text-neutral-800")}>
                 {list.text(index, "detail")}
               </span>
             </span>
@@ -97,6 +99,70 @@ export interface EngagementLetterDocumentProps {
 }
 
 /**
+ * The composition's content, below the `Document` that supplies its tokens: a
+ * hook called in `EngagementLetterDocument`'s own body would see the package's defaults.
+ * Every size and leading here is routed through the token, so the whole
+ * document follows `typography` rather than the components alone.
+ */
+function EngagementLetterBody({ artifact }: { artifact: Form }) {
+  const { typography } = useDocumentTokens();
+  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
+  return (
+    <>
+
+      <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
+        <div className="flex basis-1/2 flex-col gap-1">
+          <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
+            {artifact.title}
+          </KeepTogether>
+          <Field path="firm" label={false} className={type("text-sm text-neutral-700")} />
+          <Field path="firmAddress" label={false} className={type("text-sm text-neutral-600")} />
+        </div>
+        <div className="flex basis-1/3 flex-col gap-2">
+          <Field path="reference" />
+          <Field path="effectiveDate" />
+        </div>
+      </Section>
+
+      <Section id="client" title="To" className="flex flex-col gap-1">
+        <Field path="client" label={false} className={type("text-sm font-medium text-neutral-900")} />
+        <Field path="clientContact" label={false} className={type("text-sm text-neutral-700")} />
+        <Field path="clientAddress" label={false} className={type("text-sm text-neutral-600")} />
+      </Section>
+
+      <Section id="matter" title="Matter">
+        <Field path="matter" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+      </Section>
+
+      <Section id="scope" title="Scope of services">
+        <Clauses path="scopeOfServices" />
+      </Section>
+
+      <Section id="fees" title="Fees" className="flex flex-col gap-2">
+        <Field path="feeBasis" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="retainer" className={type("flex flex-col gap-0.5 text-sm text-neutral-800")} />
+      </Section>
+
+      <Section id="term" title="Term and termination" className="flex flex-col gap-2">
+        <Field path="term" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="termination" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+      </Section>
+
+      <Section id="governing-law" title="Governing law">
+        <Field path="governingLaw" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+      </Section>
+
+      <Section id="acceptance" title="Agreed" className="flex flex-col gap-4 pt-4">
+        <div className="flex flex-row gap-10">
+          <Signature party="firm" className="flex basis-1/2 flex-col gap-1" />
+          <Signature party="client" className="flex basis-1/2 flex-col gap-1" />
+        </div>
+      </Section>
+    </>
+  );
+}
+
+/**
  * The composed engagement letter.
  *
  * Exported by name and as the module's default. The default is what a React
@@ -111,54 +177,7 @@ export function EngagementLetterDocument({
 }: EngagementLetterDocumentProps) {
   return (
     <Document artifact={artifact} data={data} format={format} tokens={tokens} id="engagement-letter">
-      <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
-        <div className="flex basis-1/2 flex-col gap-1">
-          <KeepTogether as="span" keepId="title" className="text-lg font-semibold text-neutral-900">
-            {artifact.title}
-          </KeepTogether>
-          <Field path="firm" label={false} className="text-sm text-neutral-700" />
-          <Field path="firmAddress" label={false} className="text-sm text-neutral-600" />
-        </div>
-        <div className="flex basis-1/3 flex-col gap-2">
-          <Field path="reference" />
-          <Field path="effectiveDate" />
-        </div>
-      </Section>
-
-      <Section id="client" title="To" className="flex flex-col gap-1">
-        <Field path="client" label={false} className="text-sm font-medium text-neutral-900" />
-        <Field path="clientContact" label={false} className="text-sm text-neutral-700" />
-        <Field path="clientAddress" label={false} className="text-sm text-neutral-600" />
-      </Section>
-
-      <Section id="matter" title="Matter">
-        <Field path="matter" label={false} className="text-sm leading-relaxed text-neutral-800" />
-      </Section>
-
-      <Section id="scope" title="Scope of services">
-        <Clauses path="scopeOfServices" />
-      </Section>
-
-      <Section id="fees" title="Fees" className="flex flex-col gap-2">
-        <Field path="feeBasis" label={false} className="text-sm leading-relaxed text-neutral-800" />
-        <Field path="retainer" className="flex flex-col gap-0.5 text-sm text-neutral-800" />
-      </Section>
-
-      <Section id="term" title="Term and termination" className="flex flex-col gap-2">
-        <Field path="term" label={false} className="text-sm leading-relaxed text-neutral-800" />
-        <Field path="termination" label={false} className="text-sm leading-relaxed text-neutral-800" />
-      </Section>
-
-      <Section id="governing-law" title="Governing law">
-        <Field path="governingLaw" label={false} className="text-sm leading-relaxed text-neutral-800" />
-      </Section>
-
-      <Section id="acceptance" title="Agreed" className="flex flex-col gap-4 pt-4">
-        <div className="flex flex-row gap-10">
-          <Signature party="firm" className="flex basis-1/2 flex-col gap-1" />
-          <Signature party="client" className="flex basis-1/2 flex-col gap-1" />
-        </div>
-      </Section>
+      <EngagementLetterBody artifact={artifact} />
     </Document>
   );
 }

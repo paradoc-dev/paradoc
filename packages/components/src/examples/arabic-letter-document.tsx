@@ -28,7 +28,7 @@ import { createFormatter } from "@paradoc/format";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
-import { markDocumentRoot } from "@paradoc/react";
+import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import type { DocumentData } from "@paradoc/react";
 import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
@@ -62,21 +62,18 @@ export interface ArabicLetterDocumentProps {
   tokens?: DocumentTokensInput;
 }
 
-/** The composed letter. */
-export function ArabicLetterDocument({
-  data,
-  artifact = arabicLetterForm,
-  format = { formatter: arabicFormatter },
-  tokens = arabicLetterTokens,
-}: ArabicLetterDocumentProps) {
+/**
+ * The composition's content, below the `Document` that supplies its tokens: a
+ * hook called in `ArabicLetterDocument`'s own body would see the package's defaults.
+ * Every size and leading here is routed through the token, so the whole
+ * document follows `typography` rather than the components alone.
+ */
+function ArabicLetterBody({ artifact }: { artifact: Form }) {
+  const { typography } = useDocumentTokens();
+  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
   return (
-    <Document
-      artifact={artifact}
-      data={data}
-      format={format}
-      tokens={tokens}
-      id="arabic-letter"
-    >
+    <>
+
       <Section
         id="masthead"
         className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4"
@@ -85,13 +82,13 @@ export function ArabicLetterDocument({
           <KeepTogether
             as="span"
             keepId="title"
-            className="text-lg font-semibold text-neutral-900"
+            className={type("text-lg font-semibold text-neutral-900")}
           >
             {artifact.title}
           </KeepTogether>
-          <Field path="sender" label={false} className="text-sm text-neutral-700" />
-          <Field path="senderAddress" label={false} className="text-sm text-neutral-600" />
-          <Field path="senderPhone" label={false} className="text-sm text-neutral-600" />
+          <Field path="sender" label={false} className={type("text-sm text-neutral-700")} />
+          <Field path="senderAddress" label={false} className={type("text-sm text-neutral-600")} />
+          <Field path="senderPhone" label={false} className={type("text-sm text-neutral-600")} />
         </div>
         <div className="flex basis-1/3 flex-col gap-2">
           <Field path="letterNumber" />
@@ -101,13 +98,13 @@ export function ArabicLetterDocument({
       </Section>
 
       <Section id="recipient" title="إلى" className="flex flex-col gap-1">
-        <Field path="recipient" label={false} className="text-sm font-medium text-neutral-900" />
-        <Field path="recipientContact" label={false} className="text-sm text-neutral-700" />
-        <Field path="recipientAddress" label={false} className="text-sm text-neutral-600" />
+        <Field path="recipient" label={false} className={type("text-sm font-medium text-neutral-900")} />
+        <Field path="recipientContact" label={false} className={type("text-sm text-neutral-700")} />
+        <Field path="recipientAddress" label={false} className={type("text-sm text-neutral-600")} />
       </Section>
 
       <Section id="body" title="الموضوع">
-        <Field path="body" label={false} className="text-sm leading-relaxed text-neutral-800" />
+        <Field path="body" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
       </Section>
 
       <Section id="items" title="بنود الطلب" className="flex flex-col gap-3">
@@ -134,8 +131,28 @@ export function ArabicLetterDocument({
       </Section>
 
       <Section id="closing" title="الخاتمة">
-        <Field path="closing" label={false} className="text-sm leading-relaxed text-neutral-800" />
+        <Field path="closing" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
       </Section>
+    </>
+  );
+}
+
+/** The composed letter. */
+export function ArabicLetterDocument({
+  data,
+  artifact = arabicLetterForm,
+  format = { formatter: arabicFormatter },
+  tokens = arabicLetterTokens,
+}: ArabicLetterDocumentProps) {
+  return (
+    <Document
+      artifact={artifact}
+      data={data}
+      format={format}
+      tokens={tokens}
+      id="arabic-letter"
+    >
+      <ArabicLetterBody artifact={artifact} />
     </Document>
   );
 }

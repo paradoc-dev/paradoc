@@ -20,6 +20,7 @@ import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
 import type { DocumentData } from "@paradoc/react";
+import { scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
 import { Section } from "../components/section";
@@ -106,19 +107,24 @@ export interface InsuranceCertificateDocumentProps {
   artifact?: Form;
 }
 
-/** The composed certificate. */
-export function InsuranceCertificateDocument({
-  data = insuranceCertificateData,
-  artifact = insuranceCertificateForm,
-}: InsuranceCertificateDocumentProps = {}) {
+/**
+ * The composition's content, below the `Document` that supplies its tokens: a
+ * hook called in `InsuranceCertificateDocument`'s own body would see the package's defaults.
+ * Every size and leading here is routed through the token, so the whole
+ * document follows `typography` rather than the components alone.
+ */
+function InsuranceCertificateBody({ artifact }: { artifact: Form }) {
+  const { typography } = useDocumentTokens();
+  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
   return (
-    <Document artifact={artifact} data={data} id="certificate-of-insurance">
+    <>
+
       <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
         <div className="flex basis-1/2 flex-col gap-1">
-          <KeepTogether as="span" keepId="title" className="text-lg font-semibold text-neutral-900">
+          <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
             {artifact.title}
           </KeepTogether>
-          <Field path="insurer" label={false} className="text-sm text-neutral-700" />
+          <Field path="insurer" label={false} className={type("text-sm text-neutral-700")} />
         </div>
         <div className="flex basis-1/3 flex-col gap-2">
           <Field path="certificateNumber" />
@@ -127,12 +133,12 @@ export function InsuranceCertificateDocument({
       </Section>
 
       <Section id="insured" title="Named insured" className="flex flex-col gap-1">
-        <Field path="insured" label={false} className="text-sm font-medium text-neutral-900" />
-        <Field path="insuredAddress" label={false} className="text-sm text-neutral-600" />
+        <Field path="insured" label={false} className={type("text-sm font-medium text-neutral-900")} />
+        <Field path="insuredAddress" label={false} className={type("text-sm text-neutral-600")} />
       </Section>
 
       <Section id="holder" title="Certificate holder" className="flex flex-col gap-1">
-        <Field path="certificateHolder" label={false} className="text-sm font-medium text-neutral-900" />
+        <Field path="certificateHolder" label={false} className={type("text-sm font-medium text-neutral-900")} />
       </Section>
 
       <Section id="period" title="Policy period" className="flex flex-row gap-10">
@@ -153,8 +159,20 @@ export function InsuranceCertificateDocument({
       </Section>
 
       <Section id="remarks" title="Remarks">
-        <Field path="remarks" label={false} className="text-sm leading-relaxed text-neutral-800" />
+        <Field path="remarks" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
       </Section>
+    </>
+  );
+}
+
+/** The composed certificate. */
+export function InsuranceCertificateDocument({
+  data = insuranceCertificateData,
+  artifact = insuranceCertificateForm,
+}: InsuranceCertificateDocumentProps = {}) {
+  return (
+    <Document artifact={artifact} data={data} id="certificate-of-insurance">
+      <InsuranceCertificateBody artifact={artifact} />
     </Document>
   );
 }

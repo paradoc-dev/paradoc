@@ -15,7 +15,7 @@
 /** @jsxRuntime classic */
 import React from "react";
 import { useRef } from "react";
-import { useFitToWidth, usePdfPages, type PdfPaintReport } from "@paradoc/react";
+import { scaleTextClasses, useDocumentTokens, useFitToWidth, usePdfPages, type PdfPaintReport } from "@paradoc/react";
 
 export interface AttachmentProps {
   /** Name the packet carries the content under. */
@@ -45,6 +45,7 @@ export function Attachment({
   reason,
   className,
 }: AttachmentProps) {
+  const { typography } = useDocumentTokens();
   return (
     <div
       data-attachment={filename}
@@ -53,12 +54,12 @@ export function Attachment({
         "mx-6 flex flex-col gap-1 rounded border border-dashed border-neutral-400 bg-white p-4"
       }
     >
-      <span className="text-sm font-medium text-neutral-900">{filename}</span>
-      <span className="text-xs text-neutral-600">
+      <span className={scaleTextClasses("text-sm font-medium text-neutral-900", typography.scale)}>{filename}</span>
+      <span className={scaleTextClasses("text-xs text-neutral-600", typography.scale)}>
         {mimeType}
         {byteLength === undefined ? "" : ` · ${readableSize(byteLength)}`}
       </span>
-      <span data-attachment-reason="true" className="text-xs text-neutral-500">
+      <span data-attachment-reason="true" className={scaleTextClasses("text-xs text-neutral-500", typography.scale)}>
         {reason}
       </span>
     </div>
@@ -127,6 +128,7 @@ export function PdfPages({
   className,
 }: PdfPagesProps) {
   const frameRef = useRef<HTMLDivElement>(null);
+  const { typography } = useDocumentTokens();
   const stackRef = useRef<HTMLDivElement>(null);
   const binding = usePdfPages({ bytes, filename, onPaint, workerSrc, standardFontDataUrl, cMapUrl, scale, timeoutMs });
   const pages = binding.pages;
@@ -148,7 +150,7 @@ export function PdfPages({
   return (
     <div ref={frameRef} className={className ?? "w-full overflow-hidden bg-neutral-200 p-6"}>
       {binding.status === "painting" ? (
-        <p data-painting="true" className="text-xs text-neutral-500">
+        <p data-painting="true" className={scaleTextClasses("text-xs text-neutral-500", typography.scale)}>
           Painting {filename}…
         </p>
       ) : (

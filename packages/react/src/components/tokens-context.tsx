@@ -26,7 +26,12 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import { DOCUMENT_ROOT, TOKEN_OVERRIDE, type TokenMarkers } from "../lib/document-tokens";
+import {
+  DOCUMENT_ROOT,
+  TOKEN_OVERRIDE,
+  documentTokensOf,
+  type TokenMarkers,
+} from "../lib/document-tokens";
 import {
   disagreeingRootToken,
   resolveDocumentTokens,
@@ -48,6 +53,25 @@ const TokenOverrideContext = createContext<DocumentTokensInput | undefined>(unde
  */
 export function useDocumentTokens(): DocumentTokens {
   return useContext(DocumentTokensContext) ?? resolveDocumentTokens();
+}
+
+/**
+ * The tokens that govern `children`, read from wherever they are declared.
+ *
+ * For something that sits *above* a document root and draws around it — a
+ * packet's `Part` header, most often — context is the wrong place to look
+ * when the root is inside: `useDocumentTokens` would answer with the package
+ * defaults. So this reads the enclosing root's tokens when there is one, and
+ * otherwise reads them off the element the way the page furniture does, with
+ * the render's override as the last layer either way.
+ */
+export function useDocumentTokensAround(children: ReactNode): DocumentTokens {
+  const inherited = useContext(DocumentTokensContext);
+  const override = useTokenOverride();
+  return useMemo(
+    () => inherited ?? documentTokensOf(children, override),
+    [inherited, children, override]
+  );
 }
 
 /**

@@ -28,7 +28,7 @@ import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
 import { Section } from "../components/section";
 import { Table } from "../components/table";
-import { markDocumentRoot, useDocumentTokens } from "@paradoc/react";
+import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import { Totals } from "../components/totals";
 import type { FormatOptions } from "@paradoc/react";
 import type { DocumentTokensInput } from "@paradoc/react";
@@ -78,30 +78,26 @@ export interface InvoiceDocumentProps {
 }
 
 /**
- * The composed invoice.
- *
- * Exported by name and as the module's default. The default is what a React
- * layer binds to when the renderer imports the module the layer's path names,
- * which is the convention a composition module follows.
+ * The composition's content, below the `Document` that supplies its tokens: a
+ * hook called in `InvoiceDocument`'s own body would see the package's defaults.
+ * Every size and leading here is routed through the token, so the whole
+ * document follows `typography` rather than the components alone.
  */
-export function InvoiceDocument({
-  data,
-  artifact = invoiceForm,
-  format,
-  tokens = invoiceTokens,
-  className,
-}: InvoiceDocumentProps) {
+function InvoiceBody({ artifact }: { artifact: Form }) {
+  const { typography } = useDocumentTokens();
+  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
   return (
-    <Document artifact={artifact} data={data} format={format} tokens={tokens} id="invoice" className={className}>
+    <>
+
       <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
         <div className="flex basis-1/2 flex-row gap-3">
           <IssuerMark />
           <div className="flex flex-col gap-1">
-            <KeepTogether as="span" keepId="title" className="text-lg font-semibold text-neutral-900">
+            <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
               {artifact.title}
             </KeepTogether>
-            <Field path="issuer" label={false} className="text-sm text-neutral-700" />
-            <Field path="issuerEmail" label={false} className="text-sm text-neutral-600" />
+            <Field path="issuer" label={false} className={type("text-sm text-neutral-700")} />
+            <Field path="issuerEmail" label={false} className={type("text-sm text-neutral-600")} />
           </div>
         </div>
         <div className="flex basis-1/3 flex-col gap-2">
@@ -115,13 +111,13 @@ export function InvoiceDocument({
       <Section id="parties" title="Addresses">
         <div className="flex flex-row gap-10">
           <div className="flex basis-1/2 flex-col gap-2">
-            <Field path="issuerAddress" label="From" className="flex flex-col gap-0.5 text-sm text-neutral-600" />
-            <Field path="purchaseOrderNumber" className="flex flex-col gap-0.5 text-sm text-neutral-600" />
+            <Field path="issuerAddress" label="From" className={type("flex flex-col gap-0.5 text-sm text-neutral-600")} />
+            <Field path="purchaseOrderNumber" className={type("flex flex-col gap-0.5 text-sm text-neutral-600")} />
           </div>
           <div className="flex basis-1/2 flex-col gap-1">
-            <Field path="customer" className="flex flex-col gap-0.5 text-sm font-medium text-neutral-900" />
-            <Field path="customerContact" label={false} className="text-sm text-neutral-700" />
-            <Field path="customerAddress" label={false} className="text-sm text-neutral-600" />
+            <Field path="customer" className={type("flex flex-col gap-0.5 text-sm font-medium text-neutral-900")} />
+            <Field path="customerContact" label={false} className={type("text-sm text-neutral-700")} />
+            <Field path="customerAddress" label={false} className={type("text-sm text-neutral-600")} />
           </div>
         </div>
       </Section>
@@ -148,9 +144,30 @@ export function InvoiceDocument({
       </Section>
 
       <Section id="terms" title="Payment" className="flex flex-col gap-2">
-        <Field path="paymentTerms" label={false} className="text-sm leading-relaxed text-neutral-800" />
-        <Field path="notes" label={false} className="text-sm leading-relaxed text-neutral-600" />
+        <Field path="paymentTerms" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="notes" label={false} className={type("text-sm leading-relaxed text-neutral-600")} />
       </Section>
+    </>
+  );
+}
+
+/**
+ * The composed invoice.
+ *
+ * Exported by name and as the module's default. The default is what a React
+ * layer binds to when the renderer imports the module the layer's path names,
+ * which is the convention a composition module follows.
+ */
+export function InvoiceDocument({
+  data,
+  artifact = invoiceForm,
+  format,
+  tokens = invoiceTokens,
+  className,
+}: InvoiceDocumentProps) {
+  return (
+    <Document artifact={artifact} data={data} format={format} tokens={tokens} id="invoice" className={className}>
+      <InvoiceBody artifact={artifact} />
     </Document>
   );
 }

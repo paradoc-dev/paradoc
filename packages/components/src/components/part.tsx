@@ -22,7 +22,7 @@
 /** @jsxRuntime classic */
 import React from "react";
 import type { ReactNode } from "react";
-import { resolvePartPlacement } from "@paradoc/react";
+import { resolvePartPlacement, scaleTextClasses, useDocumentTokensAround } from "@paradoc/react";
 
 /** What kind of document this part is. */
 export type PartKind = "composition" | "form" | "annex";
@@ -58,6 +58,9 @@ export interface PartProps {
 export function Part(props: PartProps) {
   const { id, kind, label, attached, className, children } = props;
   const placement = resolvePartPlacement(props);
+  // A part sits above the document it frames, so its rhythm is read from the
+  // bundle around it when there is one and off the document below otherwise.
+  const { typography } = useDocumentTokensAround(children);
 
   return (
     <section
@@ -74,7 +77,7 @@ export function Part(props: PartProps) {
       {label === undefined ? null : (
         <header
           data-part-label={id}
-          className="flex items-baseline justify-between px-6 text-xs font-medium text-neutral-600"
+          className={scaleTextClasses("flex items-baseline justify-between px-6 text-xs font-medium text-neutral-600", typography.scale)}
         >
           <span>{label}</span>
           {placement.label === null ? null : <span className="text-neutral-500">{placement.label}</span>}
