@@ -15,7 +15,18 @@ export interface Fit {
   height: number;
 }
 
-/** Measures copy-owned page furniture without choosing any markup or styles. */
+/**
+ * Measures copy-owned page furniture without choosing any markup or styles.
+ *
+ * `frame`'s own horizontal padding is subtracted before dividing: the
+ * installed `Paper`/`Pages` markup puts padding directly on the same element
+ * it hands this hook as `frame` (their default "desk" styling around the
+ * sheet), and `clientWidth` includes that padding. Scaling the content to the
+ * full padded width, then placing it flush against the padding's inner edge,
+ * overflows past the frame's own right edge by exactly the padding this hook
+ * did not know to leave room for. A frame with no padding of its own measures
+ * the same as before.
+ */
 export function useFitToWidth(
   frameRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
@@ -29,7 +40,9 @@ export function useFitToWidth(
     if (!frame || !content) return;
 
     const measure = () => {
-      const scale = Math.min(1, frame.clientWidth / width);
+      const { paddingLeft, paddingRight } = getComputedStyle(frame);
+      const availableWidth = frame.clientWidth - (parseFloat(paddingLeft) || 0) - (parseFloat(paddingRight) || 0);
+      const scale = Math.min(1, availableWidth / width);
       setFit({ scale, height: content.scrollHeight * scale });
     };
     measure();

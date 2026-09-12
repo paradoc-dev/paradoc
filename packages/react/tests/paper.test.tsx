@@ -120,4 +120,25 @@ describe("Paper", () => {
     expect(holder.style.height).toBe(`${2000 * 0.5}px`);
     expect(holder.className).toContain("mx-auto");
   });
+
+  it("leaves room for its own frame's padding, so the scaled sheet never overflows it", () => {
+    // `Paper`'s default className puts padding directly on the same element
+    // this hook measures. A frame 700px wide (clientWidth, padding included)
+    // with 24px of padding on each side has only 652px of real room; scaling
+    // to the full 700 and placing the result flush against the padding's
+    // inner edge would push the sheet's right edge 24px past the frame's own.
+    const sheet = mountAt(700);
+    const frame = sheet.parentElement!.parentElement!;
+    frame.style.paddingLeft = "24px";
+    frame.style.paddingRight = "24px";
+    act(() => {
+      for (const notify of observers) notify();
+    });
+
+    const holder = sheet.parentElement!;
+    const scaledWidth = PAPER_WIDTH_PX * scaleOf(sheet);
+    expect(scaleOf(sheet)).toBeCloseTo((700 - 48) / PAPER_WIDTH_PX, 5);
+    expect(parseFloat(holder.style.width)).toBeCloseTo(scaledWidth, 5);
+    expect(scaledWidth).toBeLessThanOrEqual(700 - 48);
+  });
 });
