@@ -12,8 +12,7 @@ Two skills. `skills/paradoc/` is the general skill, with topic-organized referen
 
 ```
 .
-├── AGENTS.md         # This file (CLAUDE.md is a symlink to it)
-├── CLAUDE.md         # → AGENTS.md
+├── AGENTS.md         # This file — the agent rulebook for this tree
 ├── README.md         # User-facing overview
 └── skills/
     ├── paradoc/
