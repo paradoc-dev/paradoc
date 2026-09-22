@@ -142,6 +142,8 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "default-label", file: "field-variant-default-label.tsx" },
     { key: "no-label", file: "field-variant-no-label.tsx" },
     { key: "custom-label", file: "field-variant-custom-label.tsx" },
+    { key: "paragraphs", file: "field-variant-paragraphs.tsx" },
+    { key: "rule", file: "field-variant-rule.tsx" },
   ],
   image: [
     { key: "source", file: "image-variant-source.tsx" },

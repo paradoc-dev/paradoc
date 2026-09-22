@@ -33,6 +33,13 @@ preview and the PDF read it:
 - **`List` is a container too.** It carries `data-list`; each *item* is the
   keep, so a list breaks between items and never inside one, and a nested
   level withdraws from a page holding none of its items.
+- **A newline is a line break, not a page break.** A newline inside a value
+  wraps the text in both outputs (`Field` draws every value with
+  `whitespace-pre-line`) and never paginates. A **blank line** — two or more
+  newlines — splits the value into paragraphs only with `<Field paragraphs />`,
+  and each paragraph is then its own keep, `field:<path>:<index>`, with the
+  label kept on the first. The wrapper is a container like `List`'s and
+  withdraws from a page holding none of them.
 - **Keep ids are stable across renders.** `renderPdf` accepts them as
   `plan.breaks` and turns each into a page break, so changing an id (or
   generating one from an index that can shift) changes where both outputs
@@ -45,9 +52,11 @@ header — it is built by the pagination pass from the header already in the
 tree — and a composition never has to draw it itself.
 
 **An oversize keep overflows its own page**, reported with what it consumed;
-nothing else joins it. This is a signal to shorten the content or split it
-into more than one keep (e.g. more than one `Field` per long block of text),
-not something a composition can suppress.
+nothing else joins it. This is a signal to split the content into more than
+one keep — for a long block of prose that is `<Field paragraphs />`, which
+makes each paragraph a keep — not something a composition can suppress. A
+single paragraph taller than a page is still oversize, because a pagination
+unit is never split inside itself.
 
 ## No `<table>`
 

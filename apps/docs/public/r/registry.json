@@ -480,6 +480,7 @@
         "@paradoc/document",
         "@paradoc/field",
         "@paradoc/keep-together",
+        "@paradoc/list",
         "@paradoc/pages",
         "@paradoc/section",
         "@paradoc/signature"

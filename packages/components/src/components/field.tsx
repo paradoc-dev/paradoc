@@ -8,18 +8,83 @@
  * drawn at the declared size; anything else prints its file name, because a
  * contract PDF is not the place to discover that a photograph was a
  * spreadsheet.
+ *
+ * **Newlines inside a value are line breaks, in both outputs.** The value is
+ * drawn with `whitespace-pre-line`, so a value the filler typed on three lines
+ * reaches the preview and the PDF on three lines rather than being collapsed
+ * into one. That is all a newline does: it wraps, it never paginates.
+ *
+ * **`paragraphs` is what paginates.** A field is one keep, and a keep is never
+ * split, so a value long enough to pass a page overflows it and is reported as
+ * oversize. Splitting the value at its blank lines turns each paragraph into a
+ * keep of its own, keyed `field:<path>:<index>`, and long prose then breaks
+ * between paragraphs like any other run of units. A single paragraph taller
+ * than a page is still oversize: a pagination unit is never split inside
+ * itself.
+ *
+ * The label stays with the first paragraph, for the reason the field is a keep
+ * at all — a heading on the page above its own words is what pagination is
+ * supposed to prevent. The wrapper is not a keep, so it withdraws from a page
+ * holding none of its paragraphs, exactly as `Table`'s and `List`'s do: an
+ * empty flex child still takes its parent's gap and would make the drawn page
+ * taller than the flow the plan was measured against.
+ *
+ * **`rule` is for a document printed before it is filled.** A value the
+ * artifact has no answer for prints the document's blank placeholder, an em
+ * dash, which is the right mark for a document nobody is going to write on and
+ * the wrong one for a document somebody is. `rule` draws the underscore run a
+ * person signs or writes on instead, the same way `Signature` draws its own.
  */
 /** @jsxRuntime classic */
 import React from "react";
 import {
+  flowGapClasses,
   imageSource,
   MissingImageSizeError,
   scaleTextClasses,
   useAnnexPicture,
   useDocumentTokens,
   useField,
+  usePage,
 } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
+
+/**
+ * The fill line `rule` draws: twenty-four underscores.
+ *
+ * Underscores rather than a bottom border, for the reason `Signature`'s rules
+ * are underscores — a rule drawn as a border is a box the engine sizes from
+ * the text inside it, and there is no text inside an unanswered field.
+ */
+export const FIELD_RULE = "________________________";
+
+/**
+ * A blank line: two line endings with nothing but spaces or tabs between them.
+ *
+ * `\r\n` as well as `\n`, because the value is whatever a filler pasted, and
+ * prose pasted out of a Windows editor arrives with carriage returns. A
+ * pattern that missed them would silently leave that value as one keep — the
+ * oversize case this component exists to remove.
+ */
+const PARAGRAPH_BREAK = /\r?\n(?:[ \t]*\r?\n)+/u;
+
+/**
+ * `text` split into paragraphs at its blank lines, each one trimmed.
+ *
+ * Trimmed because the split leaves the whitespace that surrounded a blank line
+ * on the paragraphs either side of it, and a paragraph that began with a
+ * newline would draw an empty first line. So a value padded with whitespace
+ * prints tighter here than it does in the single-keep path, which draws the
+ * value exactly as the formatter returned it.
+ *
+ * Never empty: a value that is nothing but blank lines is still a field the
+ * composition asked for, and a field that vanished would take its label with
+ * it and leave the plan a keep short.
+ */
+export function fieldParagraphs(text: string): string[] {
+  const parts = text.split(PARAGRAPH_BREAK).map((part) => part.trim()).filter((part) => part.length > 0);
+  return parts.length > 0 ? parts : [text];
+}
 
 export interface FieldProps {
   /** Path into the artifact this field reads its label and value from. `as="image"` names an annex slot as `annexes.<slot>`. */
@@ -32,13 +97,25 @@ export interface FieldProps {
    * @default "text"
    */
   as?: "text" | "image";
-  /** Rendered width in CSS pixels. Required by `as="image"`, whatever the slot holds. */
+  /** Rendered width in CSS pixels. Required by `as="image"`, whatever the slot holds; ignored by `as="text"`. */
   width?: number;
-  /** Rendered height in CSS pixels. Required by `as="image"`, whatever the slot holds. */
+  /** Rendered height in CSS pixels. Required by `as="image"`, whatever the slot holds; ignored by `as="text"`. */
   height?: number;
-  /** Where a browser preview loads the picture from. Defaults to the attachment's own file name, which is the key the PDF path supplies its bytes under. */
+  /** Where a browser preview loads an `as="image"` picture from. Defaults to the attachment's own file name, which is the key the PDF path supplies its bytes under. Ignored by `as="text"`. */
   src?: string;
-  /** Classes for the field's wrapping element. */
+  /**
+   * Splits the value at its blank lines and paginates each paragraph on its own, keyed `field:<path>:<index>`. Text only: ignored by `as="image"`, which is always one keep.
+   *
+   * @default false
+   */
+  paragraphs?: boolean;
+  /**
+   * Draws a fill line in place of the blank placeholder when the artifact has no value at this path. Text only: ignored by `as="image"`, which prints the slot's own placeholder.
+   *
+   * @default false
+   */
+  rule?: boolean;
+  /** Classes for the field's wrapping element: the keep itself, or the element holding the paragraphs. */
   className?: string;
 }
 
@@ -53,18 +130,44 @@ function FieldHeading({ heading }: { heading: string | undefined }) {
   );
 }
 
-function FieldValue({ path, label, className }: FieldProps) {
+function FieldValue({ path, label, paragraphs = false, rule = false, className }: FieldProps) {
   const binding = useField(path);
-  const { dir } = useDocumentTokens();
+  const { dir, typography } = useDocumentTokens();
+  const page = usePage();
   const heading = label === false ? undefined : (label ?? binding.field.label ?? path);
   const isolated = dir === "rtl" && ["phone", "identification"].includes(binding.field.type);
+  const text = rule && binding.blank ? FIELD_RULE : binding.text;
+  const headingText = <FieldHeading heading={heading} />;
+  const valueText = (part: string) => (
+    <span className="whitespace-pre-line text-neutral-900" style={isolated ? { direction: "ltr", unicodeBidi: "isolate" } : undefined}>
+      {part}
+    </span>
+  );
+
+  if (!paragraphs) {
+    return (
+      <KeepTogether keepId={`field:${path}`} data-field-path={path} className={className ?? "flex flex-col gap-0.5"}>
+        {headingText}
+        {valueText(text)}
+      </KeepTogether>
+    );
+  }
+
+  const parts = fieldParagraphs(text);
+  const keepIds = parts.map((_part, index) => `field:${path}:${index}`);
+  if (page && !keepIds.some((keepId) => page.keeps.has(keepId))) return null;
+  // `gap-3` rather than `gap-2`, for the reason `List` starts there: `flow`
+  // moves a gap two spacing units per level, so a paragraph gap set at `gap-2`
+  // would reach `gap-0` at compact and run the paragraphs together.
   return (
-    <KeepTogether keepId={`field:${path}`} data-field-path={path} className={className ?? "flex flex-col gap-0.5"}>
-      <FieldHeading heading={heading} />
-      <span className="whitespace-pre-line text-neutral-900" style={isolated ? { direction: "ltr", unicodeBidi: "isolate" } : undefined}>
-        {binding.text}
-      </span>
-    </KeepTogether>
+    <div className={className ?? flowGapClasses("flex flex-col gap-3", typography.flow)} data-field-path={path}>
+      {parts.map((part, index) => (
+        <KeepTogether key={keepIds[index]} keepId={keepIds[index]!} className="flex flex-col gap-0.5">
+          {index === 0 ? headingText : null}
+          {valueText(part)}
+        </KeepTogether>
+      ))}
+    </div>
   );
 }
 

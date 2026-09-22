@@ -95,6 +95,43 @@ describe("headless artifact bindings", () => {
     expect(html).toContain("pending");
   });
 
+  it("reports a value that printed blank, including one the data is not missing", () => {
+    // `blank` is what a component asks before it draws something else in place
+    // of the placeholder — a fill line on a form printed to be written on. It
+    // is not "the value is nullish": a money value whose amount has not been
+    // answered yet is a value, and it prints blank.
+    function Blankness({ path }: { path: string }) {
+      const binding = useField(path);
+      return <p>{`${binding.text}|${binding.blank}|${binding.value === undefined}`}</p>;
+    }
+    const answered = renderToStaticMarkup(
+      <ArtifactProvider artifact={purchaseOrderForm} data={purchaseOrderData}>
+        <Blankness path="orderNumber" />
+      </ArtifactProvider>
+    );
+    expect(answered).toBe("<p>PO-2026-0512|false|false</p>");
+
+    const rows = purchaseOrderData.fields.lineItems as Record<string, unknown>[];
+    const unpriced = {
+      ...purchaseOrderData,
+      fields: {
+        ...purchaseOrderData.fields,
+        orderNumber: undefined,
+        lineItems: [{ ...rows[0], unitPrice: { amount: null, currency: "USD" } }, ...rows.slice(1)],
+      },
+    };
+    const partial = (path: string) =>
+      renderToStaticMarkup(
+        <ArtifactProvider artifact={purchaseOrderForm} data={unpriced} format={{ partial: true }}>
+          <Blankness path={path} />
+        </ArtifactProvider>
+      );
+    // Missing outright: blank, and the data has nothing there.
+    expect(partial("orderNumber")).toBe("<p>\u2014|true|true</p>");
+    // Half-supplied: blank, and the data has something there.
+    expect(partial("lineItems.0.unitPrice")).toBe("<p>\u2014|true|false</p>");
+  });
+
   it("keeps a focused subscriber stable for an unrelated immutable update", async () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     const node = document.createElement("div");

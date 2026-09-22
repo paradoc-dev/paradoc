@@ -19,7 +19,14 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { overflowProposalData, ProposalDocument } from "../../components/src/examples";
+import { Document } from "../../components/src/components/document";
+import { Field } from "../../components/src/components/field";
+import {
+  overflowProposalData,
+  proposalForm,
+  ProposalDocument,
+  shortProposalData,
+} from "../../components/src/examples";
 import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/headless/paper";
 import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { renderPdf, UnsupportedFurnitureError, type PdfImage } from "../src/pdf";
@@ -29,6 +36,13 @@ import { PREVIEW_PLAN } from "./preview-plan";
 
 /** CSS pixels at 96 dpi to the PDF's points at 72 dpi. */
 const PX_TO_PT = 72 / 96;
+
+/** Three paragraphs of one value, each recognisable in a PDF's text layer. */
+const PARAGRAPHED_TERMS = [
+  "Payment is due thirty days from the date of the invoice.",
+  "Work begins once both parties have signed this proposal.",
+  "Either party may end the engagement on fourteen days notice.",
+];
 
 /** The text the table header carries, which is how a copy is recognised in a PDF. */
 const HEADER_TEXT = "DESCRIPTION";
@@ -124,6 +138,33 @@ describe.skipIf(skipped)("the Chromium adapter", () => {
     for (const page of pages) {
       expect(page.text.split(HEADER_TEXT)).toHaveLength(2);
     }
+  }, 120_000);
+
+  it("breaks a paragraphed field between the paragraphs the plan broke it between", async () => {
+    // The other adapter's side of the same claim, checked on the default
+    // engine in `@paradoc/components`' `field-prose` suite: `paragraphs` makes
+    // each paragraph a keep, so a break named between two of them is a break
+    // this adapter can honour. Without the prop there is one keep and the
+    // break would be a hint the tree cannot carry.
+    const data = {
+      ...shortProposalData,
+      fields: { ...shortProposalData.fields, terms: PARAGRAPHED_TERMS.join("\n\n") },
+    };
+    const { bytes, unknownBreaks } = await renderPdf(
+      <Document artifact={proposalForm} data={data} id="field-prose">
+        <Field path="terms" paragraphs />
+      </Document>,
+      { adapter: "chromium", plan: { breaks: ["field:terms:2"], repeats: [[], []] } }
+    );
+    const pages = await readPdf(bytes);
+
+    expect(unknownBreaks).toEqual([]);
+    expect(pages).toHaveLength(2);
+    expect(pages[0]!.text).toContain(PARAGRAPHED_TERMS[0]);
+    expect(pages[0]!.text).toContain(PARAGRAPHED_TERMS[1]);
+    expect(pages[0]!.text).not.toContain(PARAGRAPHED_TERMS[2]);
+    expect(pages[1]!.text).toContain(PARAGRAPHED_TERMS[2]);
+    expect(pages[1]!.text).not.toContain(PARAGRAPHED_TERMS[0]);
   }, 120_000);
 
   it("paginates on its own when it is given no plan", async () => {

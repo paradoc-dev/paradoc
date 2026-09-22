@@ -135,6 +135,11 @@ import with no corresponding prop. `data` is a `DocumentData`:
   already keeps. Do not wrap one in another `KeepTogether` and do not build a
   custom keep that contains a `Field` or `Table`. See
   [pagination.md](./references/pagination.md).
+- **A field of running prose is `<Field paragraphs />`.** Without it the whole
+  value is one keep, and a value longer than a page overflows it as an oversize
+  unit; with it the value splits at its blank lines and each paragraph
+  paginates on its own. A newline inside a value is a line break in both
+  outputs either way, and never a page break.
 - **Static prose is a `Text`, and a numbered or bulleted list is a `List`.**
   Never size a heading or a paragraph with a hand-picked `text-*` class, and
   never write `<ul>`/`<ol>` with a marker class: `list-*` is outside the

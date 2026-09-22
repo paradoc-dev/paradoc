@@ -487,12 +487,13 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     ],
     dependencies: [SUBSTRATE_PACKAGE, "@paradoc/core", "@paradoc/types"],
     // No `table` and no `totals`: the letter prices nothing and lists nothing in
-    // rows. What it does carry is `signature`, twice, and the clauses are plain
-    // `keep-together` units the composition builds itself.
+    // rows. What it does carry is `signature`, twice, and `list`, whose items
+    // are the numbered clauses.
     registryDependencies: [
       "document",
       "field",
       "keep-together",
+      "list",
       "pages",
       "section",
       "signature",

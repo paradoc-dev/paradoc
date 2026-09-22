@@ -175,6 +175,8 @@ export { FieldDemo } from "./field-demo";
 export { FieldVariantDefaultLabel } from "./field-variant-default-label";
 export { FieldVariantNoLabel } from "./field-variant-no-label";
 export { FieldVariantCustomLabel } from "./field-variant-custom-label";
+export { FieldVariantParagraphs } from "./field-variant-paragraphs";
+export { FieldVariantRule } from "./field-variant-rule";
 export { ImageDemo } from "./image-demo";
 export { ImageVariantSource } from "./image-variant-source";
 export { ImageVariantAttachmentField } from "./image-variant-attachment-field";

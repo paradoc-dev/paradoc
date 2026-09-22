@@ -198,10 +198,26 @@ export interface FieldBinding {
   field: FormField;
   value: unknown;
   text: string;
+  /**
+   * True when `text` came out as the document's blank placeholder.
+   *
+   * Which is not the same question as whether `value` is nullish: a composite
+   * a serializer rejects because one member of it is unanswered — a money
+   * amount with its currency and no number — is a value that prints blank. A
+   * component drawing something else in place of a blank asks this because the
+   * placeholder is the document's choice (`FormatOptions.blank`) and a
+   * component cannot know the spelling it settled on.
+   *
+   * It is the comparison, not a claim about why the text is what it is: a
+   * value that formats to exactly the placeholder reads as blank. The
+   * formatter reports no reason of its own, and inventing one here would be a
+   * second answer to a question only it can settle.
+   */
+  blank: boolean;
 }
 
 function sameField(a: FieldBinding, b: FieldBinding): boolean {
-  return a.field === b.field && Object.is(a.value, b.value) && a.text === b.text;
+  return a.field === b.field && Object.is(a.value, b.value) && a.text === b.text && a.blank === b.blank;
 }
 
 /** Reads and formats one declared field path. */
@@ -216,7 +232,8 @@ export function useField(path: string): FieldBinding {
       field = { type: "text", label: path, required: false, visible: true };
     }
     const value = readValue(snapshot.data.fields, path);
-    return { field, value, text: formatOrReport(snapshot, path, () => snapshot.formatting.format(field, value, path)) };
+    const text = formatOrReport(snapshot, path, () => snapshot.formatting.format(field, value, path));
+    return { field, value, text, blank: text === snapshot.formatting.blank };
   }, sameField);
 }
 

@@ -42,6 +42,14 @@ the page the plan assigned it to. A [`Table`](/components/table)'s cells
 reuse the same serializers a `Field` does, just as flex cells rather than as
 `Field` instances.
 
+A newline inside a value is a line break in both outputs — the value is drawn
+with `whitespace-pre-line`, so a value typed on three lines prints on three
+lines. A newline never paginates: a blank line only splits the value into
+paragraphs when `paragraphs` is set, and then each paragraph is its own
+pagination unit. Without it, a value longer than a page is one keep, and a
+keep that does not fit the page opened for it overflows and is reported as
+oversize.
+
 The label's size follows the document's [typography](/components/typography)
 token; the value inherits the root's.
 
@@ -55,10 +63,13 @@ name instead, and `paradoc check` reports the mismatch. See
 
 # Variants
 
-`Field` takes one prop of its own beyond `path` and `className`: `label`,
-which can be omitted (uses the artifact's own label), set to `false` (no
-label), or overridden with a string. `as`, `width`, `height` and `src` belong
-to the attachment form above, and are shown on [`Image`](/components/image).
+Beyond `path` and `className`, `Field` takes `label`, which can be omitted
+(uses the artifact's own label), set to `false` (no label), or overridden with
+a string; `paragraphs`, which splits a long value into one pagination unit per
+paragraph; and `rule`, which draws a fill line where a value is missing.
+`paragraphs` and `rule` apply to text only. `as`, `width`, `height` and `src`
+belong to the attachment form above, and are shown on
+[`Image`](/components/image).
 
 ## Default label
 
@@ -78,3 +89,21 @@ definition.
 A string `label` overrides the artifact's own.
 
 <ComponentVariant name="field" variant="custom-label" />
+
+## Paragraphs
+
+`paragraphs` splits the value at its blank lines and gives each paragraph its
+own keep, `field:<path>:<index>`, so long prose breaks between paragraphs at a
+page boundary rather than overflowing as one oversize unit. The label stays
+with the first paragraph. A single paragraph taller than a page is still
+oversize: a pagination unit is never split inside itself.
+
+<ComponentVariant name="field" variant="paragraphs" />
+
+## Fill line
+
+`rule` draws an underscore run where the artifact has no value, instead of the
+document's blank placeholder — a document printed for somebody to write on
+rather than one nobody will.
+
+<ComponentVariant name="field" variant="rule" />

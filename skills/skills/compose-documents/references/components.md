@@ -149,10 +149,33 @@ artifact's serializers. Never format a value yourself — pass the path and let
 | `width` | `number?` | Rendered width in CSS pixels. Required by `as="image"`, whatever the slot holds. |
 | `height` | `number?` | Rendered height in CSS pixels. Required by `as="image"`, whatever the slot holds. |
 | `src` | `string?` | Where a browser preview loads an `as="image"` picture from. Defaults to the attachment's own file name. |
+| `paragraphs` | `boolean?` | Splits the value at blank lines, one keep per paragraph. Defaults to `false`. |
+| `rule` | `boolean?` | Draws a fill line where the value is blank. Defaults to `false`. |
 | `className` | `string?` | |
 
 A path the artifact does not declare throws `UnknownFieldPathError` — it is
 a fault, never a blank.
+
+**Newlines are line breaks, blank lines are paragraphs.** A newline inside a
+value wraps as a line break in both outputs — the value carries
+`whitespace-pre-line`, which the browser and the default engine both honour —
+so never replace one with markup of your own. A newline never paginates. A **blank line** (two or more newlines) splits the value only with
+`paragraphs`, and then each paragraph is its own keep, `field:<path>:<index>`,
+with the label on the first one; the wrapper is not a keep and withdraws from
+a page holding none of them.
+
+```tsx
+<Field path="scopeOfServices" paragraphs />
+```
+
+Reach for `paragraphs` on any field whose value is running prose a filler
+supplies: without it the whole value is one keep, and a value longer than a
+page overflows it as an oversize unit. A single paragraph taller than a page
+is still oversize — a pagination unit is never split inside itself.
+
+`rule` is for a document printed before it is filled: where the artifact has
+no value, it draws an underscore run (`FIELD_RULE`) to write on instead of the
+document's blank placeholder.
 
 ### `Table`
 

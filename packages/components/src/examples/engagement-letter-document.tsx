@@ -5,19 +5,24 @@
  * `Signature`, that carries no copy of any label or format. It is the same tree
  * the preview paginates and the PDF renders.
  *
- * **The clauses are keeps, not a table.** A numbered clause is a heading and a
- * paragraph that belong together: split one across a page and the number is on
- * the page above its own words. So each clause is one `KeepTogether`, which is
- * the whole of what makes it unbreakable — nothing here measures anything or
- * decides a page. The list is read from the data rather than written out,
- * because the artifact declares the clauses as a list and a composition that
- * hard-coded ten of them would render nine when a filler supplies nine.
+ * **The clauses are a `List`, not a hand-built row.** A numbered clause is a
+ * heading and a paragraph that belong together: split one across a page and the
+ * number is on the page above its own words. `List` is exactly that rule —
+ * every item is one keep, keyed `clause:<index>`, and the level withdraws from
+ * a page holding none of them — so the composition writes no marker, no keep
+ * and no withdrawal of its own. The items are read from the data rather than
+ * written out, because the artifact declares the clauses as a list and a
+ * composition that hard-coded ten of them would render nine when a filler
+ * supplies nine.
  *
- * **The clause text is read from the context, not from a nested `Field`.** A
- * `Field` is itself a keep, and a keep inside a keep is measured twice: the
+ * **The clause text is read from the context, not from a nested `Field` or
+ * `Text`.** An item is a keep, and a keep inside a keep is measured twice: the
  * plan would see the clause and its own paragraph as two overlapping units. So
  * the clause draws the value the same way `Field` does — through the document's
- * formatter, at the path the artifact names — and stays one unit.
+ * formatter, at the path the artifact names — and stays one unit. The prose
+ * fields outside the clauses are `Field`s of their own, and the long ones are
+ * printed as paragraphs so a filler's blank line breaks the page rather than
+ * overflowing it.
  *
  * **There is no `Bundle`.** A letter is one document, and the element walk
  * stops at the first root it finds. One root is what keeps one declaration from
@@ -28,11 +33,11 @@ import React from "react";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
-import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
+import { flowGapClasses, markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import { useList, type DocumentData } from "@paradoc/react";
 import { Field } from "../components/field";
 import { KeepTogether } from "../components/keep-together";
-import { usePage } from "@paradoc/react";
+import { List, type ListItem } from "../components/list";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
 import type { FormatOptions } from "@paradoc/react";
@@ -43,48 +48,32 @@ import { engagementLetterForm } from "./engagement-letter";
 const CLAUSE_KEEP_PREFIX = "clause";
 
 /**
- * The scope of services, one numbered keep per clause.
+ * The scope of services, one numbered clause per item.
  *
- * The wrapper is not a keep, so it has to withdraw on its own, exactly as
- * `Table`'s does: a page holding none of the clauses renders no list at all,
- * because an empty flex child still takes the section's gap and would make the
- * rendered page taller than the flow the plan was measured against.
+ * The marker, the keep per item and the withdrawal from a page holding none of
+ * them are all `List`'s. What is left here is the one thing the component
+ * cannot know: that a clause is a heading over its own detail, at two paths the
+ * artifact declares.
  */
 function Clauses({ path }: { path: string }) {
   const list = useList(path);
-  const page = usePage();
-  const rows = list.rows;
   const { typography } = useDocumentTokens();
   const type = (classes: string) => scaleTextClasses(classes, typography.scale);
 
-  const keepIds = rows.map((_clause, index) => `${CLAUSE_KEEP_PREFIX}:${index}`);
-  if (page && !keepIds.some((keepId) => page.keeps.has(keepId))) return null;
+  const items: ListItem[] = list.rows.map((_clause, index) => ({
+    text: (
+      <span className="flex flex-col gap-1">
+        <span data-field-path={`${path}.${index}.heading`} className={type("text-sm font-semibold text-neutral-900")}>
+          {list.text(index, "heading")}
+        </span>
+        <span data-field-path={`${path}.${index}.detail`} className={type("text-sm leading-relaxed text-neutral-800")}>
+          {list.text(index, "detail")}
+        </span>
+      </span>
+    ),
+  }));
 
-  return (
-    <div className="flex flex-col gap-3">
-      {rows.map((_clause, index) => {
-        const headingPath = `${path}.${index}.heading`;
-        const detailPath = `${path}.${index}.detail`;
-        return (
-          <KeepTogether
-            key={keepIds[index]}
-            keepId={keepIds[index]!}
-            className="flex flex-row gap-4"
-          >
-            <span className={type("basis-1/12 text-sm font-semibold text-neutral-500")}>{index + 1}.</span>
-            <span className="flex basis-11/12 flex-col gap-1">
-              <span data-field-path={headingPath} className={type("text-sm font-semibold text-neutral-900")}>
-                {list.text(index, "heading")}
-              </span>
-              <span data-field-path={detailPath} className={type("text-sm leading-relaxed text-neutral-800")}>
-                {list.text(index, "detail")}
-              </span>
-            </span>
-          </KeepTogether>
-        );
-      })}
-    </div>
-  );
+  return <List id={CLAUSE_KEEP_PREFIX} items={items} />;
 }
 
 export interface EngagementLetterDocumentProps {
@@ -107,6 +96,15 @@ export interface EngagementLetterDocumentProps {
 function EngagementLetterBody({ artifact }: { artifact: Form }) {
   const { typography } = useDocumentTokens();
   const type = (classes: string) => scaleTextClasses(classes, typography.scale);
+  // The letter's running prose: paragraphs at the document's own rhythm, so a
+  // filler's blank line breaks the page instead of overflowing it. Written
+  // once rather than at each of the five fields that carry it, and stepped
+  // through both helpers because a gap follows `flow` while a size follows
+  // `scale`.
+  const prose = flowGapClasses(
+    type("flex flex-col gap-3 text-sm leading-relaxed text-neutral-800"),
+    typography.flow
+  );
   return (
     <>
 
@@ -131,7 +129,7 @@ function EngagementLetterBody({ artifact }: { artifact: Form }) {
       </Section>
 
       <Section id="matter" title="Matter">
-        <Field path="matter" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="matter" label={false} paragraphs className={prose} />
       </Section>
 
       <Section id="scope" title="Scope of services">
@@ -139,17 +137,17 @@ function EngagementLetterBody({ artifact }: { artifact: Form }) {
       </Section>
 
       <Section id="fees" title="Fees" className="flex flex-col gap-2">
-        <Field path="feeBasis" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="feeBasis" label={false} paragraphs className={prose} />
         <Field path="retainer" className={type("flex flex-col gap-0.5 text-sm text-neutral-800")} />
       </Section>
 
       <Section id="term" title="Term and termination" className="flex flex-col gap-2">
-        <Field path="term" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
-        <Field path="termination" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="term" label={false} paragraphs className={prose} />
+        <Field path="termination" label={false} paragraphs className={prose} />
       </Section>
 
       <Section id="governing-law" title="Governing law">
-        <Field path="governingLaw" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="governingLaw" label={false} paragraphs className={prose} />
       </Section>
 
       <Section id="acceptance" title="Agreed" className="flex flex-col gap-4 pt-4">

@@ -24,6 +24,8 @@ import {
   FieldVariantCustomLabel,
   FieldVariantDefaultLabel,
   FieldVariantNoLabel,
+  FieldVariantParagraphs,
+  FieldVariantRule,
   ImageDemo,
   ImageVariantAttachmentField,
   ImageVariantAttachmentName,
@@ -154,6 +156,8 @@ export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> =
     "default-label": FieldVariantDefaultLabel,
     "no-label": FieldVariantNoLabel,
     "custom-label": FieldVariantCustomLabel,
+    paragraphs: FieldVariantParagraphs,
+    rule: FieldVariantRule,
   },
   image: {
     source: ImageVariantSource,
