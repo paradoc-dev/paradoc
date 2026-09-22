@@ -184,6 +184,44 @@
       ]
     },
     {
+      "name": "text",
+      "type": "registry:ui",
+      "title": "Text",
+      "description": "Static prose in a named role — heading, body, caption, or small — sized and led by the document's typography token.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/components/text.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/text.tsx"
+        }
+      ]
+    },
+    {
+      "name": "list",
+      "type": "registry:ui",
+      "title": "List",
+      "description": "An ordered or unordered list whose markers are text, so both outputs draw the same ones. Every item is its own pagination unit.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/components/list.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/list.tsx"
+        }
+      ]
+    },
+    {
       "name": "table",
       "type": "registry:ui",
       "title": "Table",

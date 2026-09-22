@@ -16,8 +16,8 @@
  * `src/examples/pdf.ts`, and the PNG itself is beside this module as
  * `proposal-logo.png`.
  *
- * `{Bundle,Document,KeepTogether,Pages,Paper,Field,Section,Table,Part,
- * PdfPages,QRCode,Signature,Totals}Demo` and their per-variant siblings
+ * `{Bundle,Document,KeepTogether,List,Pages,Paper,Field,Section,Table,Text,
+ * Part,PdfPages,QRCode,Signature,Totals}Demo` and their per-variant siblings
  * (`FieldVariantDefaultLabel`, `TableVariantCompact`, and so on — one export
  * per alternate configuration, so each can render and show its own source)
  * are smaller demo compositions for the docs site's `/components/<name>`
@@ -162,10 +162,19 @@ export { FieldDemo } from "./field-demo";
 export { FieldVariantDefaultLabel } from "./field-variant-default-label";
 export { FieldVariantNoLabel } from "./field-variant-no-label";
 export { FieldVariantCustomLabel } from "./field-variant-custom-label";
+export { ListDemo } from "./list-demo";
+export { ListVariantUnordered } from "./list-variant-unordered";
+export { ListVariantNested } from "./list-variant-nested";
+export { ListVariantRoman } from "./list-variant-roman";
 export { SectionDemo } from "./section-demo";
 export { SectionVariantTitled } from "./section-variant-titled";
 export { SectionVariantUntitled } from "./section-variant-untitled";
 export { SectionVariantRow } from "./section-variant-row";
+export { TextDemo } from "./text-demo";
+export { TextVariantHeading } from "./text-variant-heading";
+export { TextVariantCaption } from "./text-variant-caption";
+export { TextVariantSmall } from "./text-variant-small";
+export { TextVariantCustomElement } from "./text-variant-custom-element";
 export { TableDemo } from "./table-demo";
 export { TableVariantCompact } from "./table-variant-compact";
 export { TableVariantLeftAligned } from "./table-variant-left-aligned";

@@ -24,6 +24,7 @@ const DOCUMENTED_COMPONENTS = [
   'document',
   'field',
   'keep-together',
+  'list',
   'pages',
   'paper',
   'part',
@@ -32,6 +33,7 @@ const DOCUMENTED_COMPONENTS = [
   'section',
   'signature',
   'table',
+  'text',
   'totals',
 ]
 
@@ -92,7 +94,7 @@ test("pdf-pages' props table describes PdfPagesProps, not AttachmentProps", () =
   expect(names).not.toContain('reason') // Attachment-only
 })
 
-describe.each(['part', 'pdf-pages', 'qr-code', 'signature', 'totals'])(
+describe.each(['list', 'part', 'pdf-pages', 'qr-code', 'signature', 'text', 'totals'])(
   "%s's props table has no blank description",
   (name) => {
     test('every prop carries its own JSDoc description', () => {

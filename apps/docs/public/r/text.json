@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "text",
+  "type": "registry:ui",
+  "title": "Text",
+  "description": "Static prose in a named role — heading, body, caption, or small — sized and led by the document's typography token.",
+  "dependencies": [
+    "@paradoc/react@^0.5.0"
+  ],
+  "registryDependencies": [
+    "@paradoc/keep-together"
+  ],
+  "files": [
+    {
+      "path": "components/paradoc/text.tsx",
+      "type": "registry:ui",
+      "target": "components/paradoc/text.tsx",
+      "content": "/** @jsxRuntime classic */\nimport React from \"react\";\nimport { scaleTextClasses, useDocumentTokens, type TypographyLevel } from \"@paradoc/react\";\nimport type { ElementType, ReactNode } from \"react\";\nimport { KeepTogether } from \"@/components/paradoc/keep-together\";\n\n/**\n * Static prose in a named role.\n *\n * A composition's headings, paragraphs, captions and fine print were raw\n * markup until now, each one sized by hand, which is how a document ends up\n * with four spellings of the same paragraph. `Text` names the four roles a\n * document actually has and gives each one its size and leading from the\n * document's `typography` token, so an installed heading moves with the fields\n * around it rather than staying where its author left it.\n *\n * **It is a pagination unit.** Prose is the content most likely to sit at a\n * page boundary, so every `Text` is a `KeepTogether` with an id of its own and\n * is never split. That is also why `keepId` is required rather than derived:\n * the plan names a unit by id, and an id the composition did not choose is an\n * id it cannot hint the PDF with. For the same reason a `Text` never goes\n * inside another keep — a keep inside a keep is measured twice.\n *\n * **An explicit `className` wins**, as everywhere else: passing one replaces\n * the role's classes outright, which is how a copy owner pins one piece of\n * prose while the rest of the document still follows the token.\n */\n\n/** The prose roles a document has. */\nexport type TextRole = \"heading\" | \"body\" | \"caption\" | \"small\";\n\n/**\n * Each role's own classes, at the document's scale.\n *\n * A function per role rather than a literal per role: the size and the leading\n * have to reach `scaleTextClasses` for the token to move them, and the guard\n * suite reads that call rather than trusting the component to make it.\n */\nconst ROLE_CLASSES: Record<TextRole, (scale: TypographyLevel) => string> = {\n  heading: (scale) => scaleTextClasses(\"text-lg font-semibold leading-tight text-neutral-900\", scale),\n  body: (scale) => scaleTextClasses(\"text-sm leading-relaxed text-neutral-800\", scale),\n  caption: (scale) => scaleTextClasses(\"text-xs italic leading-snug text-neutral-500\", scale),\n  small: (scale) => scaleTextClasses(\"text-xs leading-snug text-neutral-600\", scale),\n};\n\n/** The element each role renders as when the caller names none. */\nconst ROLE_ELEMENTS: Record<TextRole, ElementType> = {\n  heading: \"h2\",\n  body: \"p\",\n  caption: \"p\",\n  small: \"p\",\n};\n\nexport interface TextProps {\n  /** Stable id the page plan tracks this prose by; must be unique within the document. */\n  keepId: string;\n  /**\n   * Which role the prose plays. Sets its size and leading from the document's typography token.\n   *\n   * @default \"body\"\n   */\n  role?: TextRole;\n  /**\n   * Element the prose renders as.\n   *\n   * @default \"h2\" for a heading, \"p\" for every other role\n   */\n  as?: ElementType;\n  /** Classes replacing the role's own size, leading, weight and colour. */\n  className?: string;\n  /** The prose. */\n  children?: ReactNode;\n}\n\nexport function Text({ keepId, role = \"body\", as, className, children }: TextProps) {\n  const { typography } = useDocumentTokens();\n  return (\n    <KeepTogether\n      keepId={keepId}\n      as={as ?? ROLE_ELEMENTS[role]}\n      data-text-role={role}\n      className={className ?? ROLE_CLASSES[role](typography.scale)}\n    >\n      {children}\n    </KeepTogether>\n  );\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+---
+title: List
+description: An ordered or unordered list whose markers are text, so both outputs draw the same ones.
+---
+
+`List` prints numbered or bulleted items. The markers are text — `1.`, `a.`,
+`i.`, `•` — written into the tree rather than asked of the renderer, because
+the default PDF engine draws no list markers of its own. That is what makes
+the preview and the PDF show the same characters.
+
+# Preview
+
+<ComponentPreview name="list" />
+
+# Installation
+
+<ComponentInstallation name="list" />
+
+# Usage
+
+<ComponentUsage name="list" />
+
+# Composition
+
+Items are data, not children: `items` is an array of `{ text, items? }`, and
+an item's own `items` are a nested level. `text` takes anything React can
+render, so a clause can carry a `<span>` of emphasis or a piece of text the
+composition built — but never a [`Field`](/components/field),
+[`Text`](/components/text), [`Table`](/components/table) or any other
+[`Keep Together`](/components/keep-together), because the item already is one
+and a keep inside a keep is measured twice. A value from the artifact goes
+into an item as the text a composition read for it, not as a nested keep.
+
+```tsx
+<List
+  id="clauses"
+  items={[
+    { text: "The provider performs the services." },
+    {
+      text: "The customer provides:",
+      items: [{ text: "Site access." }, { text: "Power at each position." }],
+    },
+  ]}
+/>
+```
+
+Every item is a [`Keep Together`](/components/keep-together) of its own, keyed
+`<id>:<index>`, and a nested item extends its parent's key
+(`clauses:1:0`). So a list that crosses a page boundary breaks between items,
+never inside one, and the page plan can name any item as a break. A level
+withdraws from a page holding none of its items, the same way a
+[`Table`](/components/table) does, so a continued page carries no empty
+indent.
+
+A nested list carries its parent's marker as a prefix: the second sub-item of
+clause 2 reads `2.b.`, which is how a numbered agreement refers to itself. A
+bullet contributes nothing to that chain, because a bullet names nothing.
+
+`marker` sets the top level's style and `nestedMarker` sets every level under
+it. Markers, item text, and the gap between items all follow the document's
+[typography](/components/typography) token.
+
+`id` is required, not defaulted: it is the prefix every item's keep id is built
+from, and two lists sharing one would claim the same ids and fail the page
+plan. `className` replaces the top level's column layout; a nested level keeps
+its own indent.
+
+# Variants
+
+## Unordered
+
+`marker="bullet"` marks every item with the same character and numbers
+nothing.
+
+<ComponentVariant name="list" variant="unordered" />
+
+## Nested
+
+An item's own `items` are a level of their own, marked with `nestedMarker` and
+prefixed with the parent's marker.
+
+<ComponentVariant name="list" variant="nested" />
+
+## Roman
+
+`marker="roman"` marks the items `i.`, `ii.`, `iii.`, the way a recitals block
+is numbered.
+
+<ComponentVariant name="list" variant="roman" />

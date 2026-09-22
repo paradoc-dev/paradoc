@@ -30,6 +30,7 @@ scale and block spacing.
 | [`document`](/components/document) | Binds one form artifact and its data to everything beneath it. |
 | [`field`](/components/field) | One labelled value at a path into the artifact, printed by the artifact's serializers. |
 | [`keep-together`](/components/keep-together) | The pagination unit. Content inside one is never split across a page break. |
+| [`list`](/components/list) | An ordered or unordered list whose markers are text, with every item its own pagination unit. |
 | [`pages`](/components/pages) | Measures the document once and lays it out as paginated sheets. |
 | [`paper`](/components/paper) | One sheet at the document's page geometry, and the fit-to-width hook. |
 | [`part`](/components/part) | One document of a packet, numbering its own pages and saying where it sits in the packet. |
@@ -38,10 +39,11 @@ scale and block spacing.
 | [`section`](/components/section) | A titled container that collapses on pages holding none of its keeps. |
 | [`signature`](/components/signature) | A party's signing block, with the rule the seal measures a signature field from. |
 | [`table`](/components/table) | A list field as rows, with a header that repeats on every page it continues onto. |
+| [`text`](/components/text) | Static prose in a named role — heading, body, caption, or small — sized by the typography token. |
 | [`totals`](/components/totals) | The artifact's computed amounts, evaluated by `@paradoc/core`. |
 | [`priced-line-items`](https://docs.paradoc.dev/r/priced-line-items.json) | Sample line-item arithmetic installed with the worked invoice and purchase-order blocks. |
 
-All 13 components link to a full reference page: a live preview,
+All 15 components link to a full reference page: a live preview,
 installation, usage, the composition it was rendered from, and a few
 alternate configurations. `document-styles` and `priced-line-items` link
 straight to their registry JSON — they're supporting presets, not

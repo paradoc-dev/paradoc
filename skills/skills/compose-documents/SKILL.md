@@ -37,7 +37,7 @@ for that; otherwise, read the artifact's own schema directly.
 
 | Reference | Load for |
 |---|---|
-| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Field`, `Table`, `Totals`, `Signature`, plus the furniture (`Paper`, `Pages`, `KeepTogether`) — with exact props. |
+| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Text`, `List`, `Field`, `Table`, `Totals`, `Signature`, plus the furniture (`Paper`, `Pages`, `KeepTogether`) — with exact props. |
 | [references/pagination.md](./references/pagination.md) | The keep-together rule, how the table header repeats, and the two layout constraints (no `<table>`, one paper declared once). |
 | [references/safe-classes.md](./references/safe-classes.md) | Which Tailwind classes the default PDF engine renders, how an unsupported one fails, and branding tokens (font, accent, page size, margin, logo). |
 | [references/artifact-binding.md](./references/artifact-binding.md) | Declaring a React layer on a form artifact, binding the module at render time, and the seal (a `Signature` block emits its own marker). |
@@ -127,10 +127,16 @@ import with no corresponding prop. `data` is a `DocumentData`:
   computed string. A path the artifact does not declare is a fault, not a
   blank: `resolveField` throws `UnknownFieldPathError` naming the path.
 - **A pagination unit is a `KeepTogether` leaf, never nested inside another
-  one.** `Field`, a table row, a table header, a section heading, `Totals`,
-  and `Signature` are already keeps. Do not wrap one in another `KeepTogether`
-  and do not build a custom keep that contains a `Field` or `Table`. See
+  one.** `Field`, a table row, a table header, a section heading, every
+  `Text`, every `List` item, `Totals`, and `Signature` are already keeps. Do
+  not wrap one in another `KeepTogether` and do not build a custom keep that
+  contains a `Field` or `Table`. See
   [pagination.md](./references/pagination.md).
+- **Static prose is a `Text`, and a numbered or bulleted list is a `List`.**
+  Never size a heading or a paragraph with a hand-picked `text-*` class, and
+  never write `<ul>`/`<ol>` with a marker class: `list-*` is outside the
+  verified vocabulary and the engine draws no marker of its own. `List` writes
+  its markers as text, so both outputs draw the same characters.
 - **No `<table>`, `<thead>`, `<tr>`, or `<td>`.** The default PDF engine has no
   table support. `Table` renders flex rows for this reason — compose with it
   or with `div`s, never real table markup.

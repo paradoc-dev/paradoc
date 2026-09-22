@@ -1,6 +1,6 @@
 ---
 name: components
-description: The composition component vocabulary — Bundle, Document, Section, Field, Table, Totals, Signature, QRCode, and the page furniture — with exact props.
+description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Signature, QRCode, and the page furniture — with exact props.
 metadata:
   tags: components, props, react
 ---
@@ -26,8 +26,9 @@ way a render or a check does, not through a separate preview-only path.
 ## Document tree components
 
 These compose the artifact into content. Every one of them (except `Section`,
-`Bundle`, and `Document` themselves, and `QRCode`, which carries no pagination
-unit) is a `KeepTogether` leaf — see [pagination.md](./pagination.md).
+`Bundle`, `Document` and `List` themselves, and `QRCode`, which carries no
+pagination unit) is a `KeepTogether` leaf — a `List` is not one, but each of
+its items is. See [pagination.md](./pagination.md).
 
 ### `Bundle`
 
@@ -71,6 +72,68 @@ collapses to `null` on a page that holds none of its keeps.
 | `title` | `string?` | Rendered as a heading `KeepTogether` (`heading:<id>`). Omit for an untitled section. |
 | `className` | `string?` | Defaults to `"flex flex-col gap-2"`. |
 | `children` | `ReactNode` | | |
+
+### `Text`
+
+Static prose in a named role: `heading`, `body`, `caption`, or `small`. Each
+role's size and leading come from the document's `typography` token, so never
+write a heading as a raw element with a hand-picked `text-*` class. Reads
+nothing from the artifact — a value belongs to `Field`.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `keepId` | `string` | Stable id, unique in the document. Required: the plan names a unit by id. |
+| `role` | `"heading" \| "body" \| "caption" \| "small"?` | Defaults to `"body"`. |
+| `as` | `ElementType?` | Defaults to `h2` for `heading`, `p` for every other role. |
+| `className` | `string?` | Replaces the role's own classes outright. |
+| `children` | `ReactNode` | The prose. |
+
+```tsx
+<Text keepId="scope:heading" role="heading">Scope of services</Text>
+<Text keepId="scope:body">The provider will survey the site and commission the equipment.</Text>
+```
+
+Each `Text` is a `KeepTogether`, so never put one inside another keep.
+
+### `List`
+
+Ordered or unordered items. The markers are **text**, because the engine
+draws no list markers and `list-*` classes are outside the verified
+vocabulary — never write `<ul>`/`<ol>` with a marker class and expect the PDF
+to draw one.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `items` | `ListItem[]` | See below. |
+| `marker` | `"decimal" \| "lower-alpha" \| "roman" \| "bullet"?` | Top level. Defaults to `"decimal"`. |
+| `nestedMarker` | same | Every level below the top. Defaults to `"lower-alpha"`. |
+| `id` | `string` | Keep-id prefix, unique in the document; an item's own id is `<id>:<index>`. Two lists sharing one would claim the same keeps. |
+| `className` | `string?` | Replaces the top level's default column layout. |
+
+`ListItem`:
+
+| Prop | Type | Notes |
+|---|---|---|
+| `text` | `ReactNode` | The item's own text. |
+| `items` | `ListItem[]?` | A nested level. Its markers carry this item's as a prefix, so `2.b.`. |
+
+```tsx
+<List
+  id="clauses"
+  items={[
+    { text: "The provider performs the services." },
+    { text: "The customer provides:", items: [{ text: "Site access." }] },
+  ]}
+/>
+```
+
+Every item is its own pagination unit (`clauses:1:0` for a nested one), so a
+list breaks between items and never inside one. A level withdraws from a page
+holding none of its items, as `Table` does.
+
+An item's `text` is content, never another keep: no `Field`, `Text`, `Table`
+or `KeepTogether` inside it. A value from the artifact reaches an item as the
+text the composition read for it.
 
 ### `Field`
 

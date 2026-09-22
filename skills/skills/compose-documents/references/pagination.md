@@ -17,8 +17,8 @@ preview and the PDF read it:
 
 - **An element with `data-keep-id` is a pagination unit and is never split.**
   Every `Field`, the table header, every table row, every section heading,
-  `Totals`, and each `Signature` block already carries one — `KeepTogether` is
-  where `data-keep-id` comes from.
+  every `Text`, every `List` item, `Totals`, and each `Signature` block
+  already carries one — `KeepTogether` is where `data-keep-id` comes from.
 - **A keep never contains another keep.** Keeps are leaves. Do not nest a
   `Field` or `Table` inside a custom `KeepTogether`, and do not nest one
   `KeepTogether` inside another.
@@ -30,6 +30,9 @@ preview and the PDF read it:
   of `data-keep-id` precisely because a section commonly runs past one page —
   treating it as one pagination unit would force the whole section onto one
   page or fail it outright.
+- **`List` is a container too.** It carries `data-list`; each *item* is the
+  keep, so a list breaks between items and never inside one, and a nested
+  level withdraws from a page holding none of its items.
 - **Keep ids are stable across renders.** `renderPdf` accepts them as
   `plan.breaks` and turns each into a page break, so changing an id (or
   generating one from an index that can shift) changes where both outputs

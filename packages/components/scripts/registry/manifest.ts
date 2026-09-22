@@ -304,6 +304,26 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: ["keep-together"],
   },
   {
+    name: "text",
+    type: "registry:ui",
+    title: "Text",
+    description:
+      "Static prose in a named role — heading, body, caption, or small — sized and led by the document's typography token.",
+    files: [component("text")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    registryDependencies: ["keep-together"],
+  },
+  {
+    name: "list",
+    type: "registry:ui",
+    title: "List",
+    description:
+      "An ordered or unordered list whose markers are text, so both outputs draw the same ones. Every item is its own pagination unit.",
+    files: [component("list")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    registryDependencies: ["keep-together"],
+  },
+  {
     name: "table",
     type: "registry:ui",
     title: "Table",

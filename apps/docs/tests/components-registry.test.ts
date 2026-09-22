@@ -26,6 +26,7 @@ const referencePages = new Set([
   'document',
   'field',
   'keep-together',
+  'list',
   'pages',
   'paper',
   'part',
@@ -34,6 +35,7 @@ const referencePages = new Set([
   'section',
   'signature',
   'table',
+  'text',
   'totals',
 ])
 

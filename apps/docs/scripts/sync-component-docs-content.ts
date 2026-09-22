@@ -105,10 +105,12 @@ const DEMO_FILES: Record<string, string> = {
   document: "document-demo.tsx",
   field: "field-demo.tsx",
   "keep-together": "keep-together-demo.tsx",
+  list: "list-demo.tsx",
   pages: "pages-demo.tsx",
   paper: "paper-demo.tsx",
   section: "section-demo.tsx",
   table: "table-demo.tsx",
+  text: "text-demo.tsx",
   part: "part-demo.tsx",
   "pdf-pages": "pdf-pages-demo.tsx",
   "qr-code": "qr-code-demo.tsx",
@@ -142,6 +144,11 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "custom-element", file: "keep-together-variant-custom-element.tsx" },
     { key: "passthrough-attributes", file: "keep-together-variant-passthrough-attributes.tsx" },
   ],
+  list: [
+    { key: "unordered", file: "list-variant-unordered.tsx" },
+    { key: "nested", file: "list-variant-nested.tsx" },
+    { key: "roman", file: "list-variant-roman.tsx" },
+  ],
   pages: [
     { key: "multi-page", file: "pages-variant-multi-page.tsx" },
     { key: "custom-frame", file: "pages-variant-custom-frame.tsx" },
@@ -161,6 +168,12 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "compact", file: "table-variant-compact.tsx" },
     { key: "left-aligned", file: "table-variant-left-aligned.tsx" },
     { key: "custom-headers", file: "table-variant-custom-headers.tsx" },
+  ],
+  text: [
+    { key: "heading", file: "text-variant-heading.tsx" },
+    { key: "caption", file: "text-variant-caption.tsx" },
+    { key: "small", file: "text-variant-small.tsx" },
+    { key: "custom-element", file: "text-variant-custom-element.tsx" },
   ],
   part: [
     { key: "unplaced", file: "part-variant-unplaced.tsx" },
@@ -256,10 +269,15 @@ const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> 
   document: { file: "document.tsx", interfaceName: "DocumentProps" },
   field: { file: "field.tsx", interfaceName: "FieldProps" },
   "keep-together": { file: "keep-together.tsx", interfaceName: "KeepTogetherProps" },
+  // `list.tsx` also carries the recursive `ListLevel` the component builds
+  // each level from; it is internal, so the item's own `ListProps` backs the
+  // table and the `ListItem` shape is covered in the page's Composition prose.
+  list: { file: "list.tsx", interfaceName: "ListProps" },
   pages: { file: "pages.tsx", interfaceName: "PagesProps" },
   paper: { file: "paper.tsx", interfaceName: "PaperProps" },
   section: { file: "section.tsx", interfaceName: "SectionProps" },
   table: { file: "table.tsx", interfaceName: "TableProps" },
+  text: { file: "text.tsx", interfaceName: "TextProps" },
   part: { file: "part.tsx", interfaceName: "PartProps" },
   // `pdf-pages.tsx` ships both `Attachment` and `PdfPages`, but the item's own
   // description centers on painting pages ("painted page by page ... or a
