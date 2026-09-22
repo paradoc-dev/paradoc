@@ -436,10 +436,12 @@ Rules:
   cannot use `Field` or name a path. Pass what it prints in as props.
 - Every class in a slot is checked against the verified vocabulary exactly as
   the document tree is.
-- Each engine declares the slots it draws. The default (takumi) draws all
-  three; the experimental Chromium adapter draws none yet, and a render that
-  names it with furniture fails with `UnsupportedFurnitureError` rather than
-  writing a document with every page missing its header.
+- Each engine declares the slots it draws. The default (takumi) and the
+  experimental Chromium adapter both draw all three. Chromium cannot print a
+  page number in the `stamp` and refuses one by name; put it in the header or
+  the footer. An engine that does not draw a slot fails with
+  `UnsupportedFurnitureError` rather than writing a document with every page
+  missing its header.
 
 ### `PageNumber`
 

@@ -99,6 +99,13 @@ export {
   BRANDED_ACCENT_COLOR,
 } from "./tokens";
 export {
+  proposalFurniture,
+  PROPOSAL_FURNITURE_FIRM,
+  PROPOSAL_FURNITURE_STAMP,
+  PROPOSAL_FURNITURE_TITLE,
+  type ProposalFurnitureOptions,
+} from "./proposal-furniture";
+export {
   arabicLetter,
   arabicLetterForm,
   arabicLetterSpec,

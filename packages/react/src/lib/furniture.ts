@@ -55,13 +55,15 @@ export const FURNITURE_SLOTS: readonly FurnitureSlot[] = ["header", "footer", "s
  * How far a band sits from the paper's edge, in the CSS pixels both outputs
  * measure paper in.
  *
- * It is a placement rule both outputs follow rather than a preference: the
- * preview draws its bands at this inset and the default engine draws its own at
- * the same one, so the two sheets agree. The engine exposes no inset to set, so
- * the value is calibrated by observation, and `tests/pdf-furniture.test.tsx`
- * solves the band's top edge back out of two rendered pages set at different
- * sizes and pins it to this number. An engine that moved its inset would fail
- * there rather than drift the two outputs apart in silence.
+ * It is a placement rule every output follows rather than a preference: the
+ * preview draws its bands at this inset, the default engine draws its own at
+ * the same one, and the Chromium adapter places its print templates there, so
+ * the sheets agree. The default engine exposes no inset to set, so the value is
+ * calibrated by observation, and `tests/pdf-furniture.test.tsx` and
+ * `tests/pdf-chromium-furniture.test.tsx` each solve the band's top edge back
+ * out of two rendered pages set at different sizes and pin it to this number.
+ * An engine that moved its inset would fail there rather than drift the outputs
+ * apart in silence.
  */
 export const FURNITURE_EDGE_INSET_PX = 20;
 
@@ -125,6 +127,35 @@ export class UnsupportedFurnitureError extends Error {
     this.adapter = adapter;
     this.slots = slots;
     this.drawn = drawn;
+  }
+}
+
+/**
+ * A slot an engine draws, holding something that engine cannot draw there.
+ *
+ * The slot itself is supported, so this is not `UnsupportedFurnitureError`: it
+ * is one kind of content in one slot. The Chromium adapter prints the stamp
+ * inside the document, where it fills no page counter, so a page number in
+ * the stamp would print the same number on every page. That is refused naming
+ * the adapter, the slot and what it could not draw.
+ */
+export class UnsupportedFurnitureContentError extends Error {
+  /** The engine that was asked. */
+  readonly adapter: string;
+  /** The slot holding what it cannot draw. */
+  readonly slot: FurnitureSlot;
+  /** What it cannot draw there, in words. */
+  readonly content: string;
+
+  constructor(adapter: string, slot: FurnitureSlot, content: string, remedy: string) {
+    super(
+      `The "${adapter}" adapter cannot draw ${content} in the page furniture's ${slot}. ` +
+        `Rendering it anyway would print a page that looks right and is not. ${remedy}`
+    );
+    this.name = "UnsupportedFurnitureContentError";
+    this.adapter = adapter;
+    this.slot = slot;
+    this.content = content;
   }
 }
 

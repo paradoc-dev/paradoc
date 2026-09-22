@@ -19,7 +19,15 @@
 
 import type { ElementHandle, Page } from "puppeteer";
 import { describe, expect, it, vi } from "vitest";
-import { assertPainted, captureWhenPainted, type CaptureSample } from "./parity/preview";
+import { FURNITURE_EDGE_INSET_PX } from "../src/lib/furniture";
+import { DEFAULT_PAGE_MARGIN_PX, PAGE_SIZES } from "../src/lib/tokens";
+import {
+  assertPainted,
+  CAPTURE_SAMPLE_INSETS,
+  captureWhenPainted,
+  samplePoints,
+  type CaptureSample,
+} from "./parity/preview";
 
 type Point = readonly [number, number, number];
 
@@ -43,9 +51,17 @@ function overhangingBorder(): Point[] {
   return border;
 }
 
-/** A `Page` stub whose `evaluate` hands back one canned reading. */
+/** What the stub says a capture measures: a US Letter sheet at twice its size. */
+const CAPTURE_SIZE = { width: 1632, height: 2112, scale: 2 };
+
+/**
+ * A `Page` stub whose `evaluate` hands back one canned reading. The guard asks
+ * the page twice, once for the capture's size and once for its points, and the
+ * two calls differ in argument count the way the real ones do.
+ */
 function stubPage(sample: CaptureSample): Page {
-  return { evaluate: vi.fn().mockResolvedValue(sample) } as unknown as Page;
+  const evaluate = vi.fn(async (...args: unknown[]) => (args.length === 2 ? CAPTURE_SIZE : sample));
+  return { evaluate } as unknown as Page;
 }
 
 /**
@@ -71,6 +87,7 @@ function stubPollingPage(
   let sample = 0;
   const evaluate = vi.fn(async (...args: unknown[]) => {
     if (args.length === 1) return undefined; // the requestAnimationFrame wait
+    if (args.length === 2) return CAPTURE_SIZE; // the capture's size
     const next = samples[Math.min(sample, samples.length - 1)];
     sample += 1;
     return next;
@@ -205,5 +222,67 @@ describe("captureWhenPainted", () => {
     await expect(captureWhenPainted(page, sheet, 1, 250)).rejects.toThrow(
       /page 1.*did not sit on the sheet/s
     );
+  });
+});
+
+/**
+ * Where the guard samples, against a furnished sheet.
+ *
+ * A running head and a foot fill the margin from the furniture inset to the
+ * content box, across the whole width of the paper, and a band can carry ink
+ * anywhere in that strip: a rule, a ground, a mark in a corner. A sample that
+ * landed there would read the band's ink as an unpainted sheet and refuse every
+ * furnished capture. The placement is the guard's own `samplePoints`, checked
+ * at both capture scales the suite could use.
+ */
+describe("the capture guard's samples on a furnished sheet", () => {
+  /** The strips a band may draw in, on one paper and margin. */
+  function bandStrips(widthPx: number, heightPx: number, marginPx: number) {
+    return [
+      { slot: "header", top: FURNITURE_EDGE_INSET_PX, bottom: marginPx, left: 0, right: widthPx },
+      { slot: "footer", top: heightPx - marginPx, bottom: heightPx - FURNITURE_EDGE_INSET_PX, left: 0, right: widthPx },
+    ];
+  }
+
+  const papers = [
+    { name: "US Letter", ...PAGE_SIZES.letter, marginPx: DEFAULT_PAGE_MARGIN_PX },
+    // The branded proposal's paper and margin.
+    { name: "A4", ...PAGE_SIZES.a4, marginPx: 56 },
+  ];
+
+  const corners = ["top left", "top right", "bottom left", "bottom right"] as const;
+  const cases = papers.flatMap((paper) => [1, 2].map((scale) => ({ ...paper, scale })));
+
+  describe.each(cases)("on $name at scale $scale", ({ widthPx, heightPx, marginPx, scale }) => {
+    const strips = bandStrips(widthPx, heightPx, marginPx);
+    // Device pixels back to CSS pixels, which is what the strips are in.
+    const inStrip = ([x, y]: readonly [number, number]) =>
+      strips.find(
+        (strip) =>
+          x / scale >= strip.left && x / scale <= strip.right &&
+          y / scale >= strip.top && y / scale <= strip.bottom
+      );
+    const points = samplePoints(widthPx * scale, heightPx * scale, scale);
+
+    it.each(corners.map((corner, index) => [corner, index] as const))(
+      "puts the %s corner sample clear of a band with ink in that corner",
+      (_corner, index) => {
+        expect(inStrip(points.corners[index]!)?.slot).toBeUndefined();
+      }
+    );
+
+    it("puts every border sample clear of both bands", () => {
+      expect(points.border.filter((point) => inStrip(point) !== undefined)).toEqual([]);
+    });
+  });
+
+  // The previous rule sampled 3 percent of the shorter side in, about 24 CSS
+  // pixels: inside the running head's strip on both papers. This is what the
+  // corner inset has to stay under for the rule above to hold.
+  it("keeps every sample in the strip between the paper's edge and the furniture", () => {
+    expect(CAPTURE_SAMPLE_INSETS.corner).toBeLessThan(FURNITURE_EDGE_INSET_PX);
+    for (const depth of CAPTURE_SAMPLE_INSETS.border) {
+      expect(depth).toBeLessThan(FURNITURE_EDGE_INSET_PX);
+    }
   });
 });

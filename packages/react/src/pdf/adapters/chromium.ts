@@ -34,7 +34,7 @@
  */
 
 import { existsSync } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -48,9 +48,19 @@ import {
   type PdfRenderResult,
   type PreparedPdfInput,
 } from "../adapter";
-import { imageFormat } from "../resources";
+import { PAGE_COUNTER_ATTRIBUTE, type FurnitureBandSlot } from "../../lib/furniture";
+import { imageFormat, type PdfFontFile } from "../resources";
 import { CONTINUED_LABEL_ATTRIBUTE, KEEP_ID_ATTRIBUTE, KEEP_REPEAT_ATTRIBUTE } from "../tree";
-import { chromiumStylesheet, cssPixelsToInches } from "./chromium-stylesheet";
+import {
+  assertBandsFit,
+  bandTemplate,
+  CHROMIUM_COUNTER_CLASS,
+  furnitureMarkup,
+  prepareBandsInPage,
+  stampLayer,
+  type BandInput,
+} from "./chromium-furniture";
+import { chromiumStylesheets, cssPixelsToInches } from "./chromium-stylesheet";
 
 /**
  * Where a Chrome is looked for when the workspace does not name one.
@@ -154,6 +164,21 @@ function dataUri(data: Uint8Array): string | undefined {
   return `data:${mime};base64,${Buffer.from(data).toString("base64")}`;
 }
 
+/**
+ * The faces with their bytes in hand.
+ *
+ * A print template loads nothing from disk, so a face it draws a band in has to
+ * travel as a `data:` URI. The printed document is sent the same rules, so the
+ * band and the page it sits on select the same faces.
+ */
+async function withFontBytes(fonts: readonly PdfFontFile[]): Promise<PdfFontFile[]> {
+  return Promise.all(
+    fonts.map(async (font) =>
+      font.data === undefined ? { ...font, data: new Uint8Array(await readFile(font.path)) } : font
+    )
+  );
+}
+
 /** The page, as one file a browser can open. */
 function documentHtml(markup: string, css: string, lang: string, dir: string): string {
   return [
@@ -169,8 +194,10 @@ function documentHtml(markup: string, css: string, lang: string, dir: string): s
     "</head>",
     // The sheet's own classes, minus the ones that are about being on screen:
     // the preview's shadow and its explicit width belong to a sheet sitting on
-    // a backdrop, and the page box supplies both here.
-    `<body><div class="paradoc-document relative">${markup}</div></body>`,
+    // a backdrop, and the page box supplies both here. It isolates, as the
+    // preview's sheet does, so a stamp's layer below the content is painted
+    // above the page's white ground rather than behind it.
+    `<body><div class="paradoc-document relative" style="isolation: isolate">${markup}</div></body>`,
     "</html>",
   ].join("\n");
 }
@@ -319,11 +346,10 @@ export const chromiumAdapter: PdfAdapter = {
   // taking it: see "Right to left" in the README.
   directions: ["ltr", "rtl"],
 
-  // No slot yet. Chromium prints a header and a footer through its own print
-  // templates, with the same counter hooks, and wiring them is a change of its
-  // own; until then a document that declares furniture is refused here by name
-  // rather than printed with every page missing it.
-  furniture: [],
+  // All three: the header and the footer ride Chromium's own print templates,
+  // which repeat on every page and fill the same counters, and the stamp is a
+  // fixed layer Blink repeats on every printed page. See `chromium-furniture.ts`.
+  furniture: ["header", "footer", "stamp"],
 
   async render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult> {
     const images: Record<string, string> = {};
@@ -335,9 +361,25 @@ export const chromiumAdapter: PdfAdapter = {
     }
     if (undecodable.length > 0) throw new UnsupportedPdfContentError([], undecodable);
 
+    const furniture = furnitureMarkup(input.furniture);
+    const bandInputs: BandInput[] = [];
+    if (furniture.header !== undefined) bandInputs.push({ slot: "header", html: furniture.header });
+    if (furniture.footer !== undefined) bandInputs.push({ slot: "footer", html: furniture.footer });
+
+    // The stamp is part of the printed document, so its classes and faces are
+    // the document's; the bands' classes are compiled in the same pass, so a
+    // template carries every rule its band was written against.
     const markup = renderToStaticMarkup(input.element);
-    const css = await chromiumStylesheet(markup, input.fonts, input.geometry, input.applicationCss);
-    const html = documentHtml(markup, css, options.lang, options.dir);
+    const printed =
+      furniture.stamp === undefined ? markup : `${markup}${stampLayer(furniture.stamp, input.geometry)}`;
+    const fonts = bandInputs.length === 0 ? input.fonts : await withFontBytes(input.fonts);
+    const stylesheets = await chromiumStylesheets(
+      [printed, ...bandInputs.map((band) => band.html)].join("\n"),
+      fonts,
+      input.geometry,
+      input.applicationCss
+    );
+    const html = documentHtml(printed, stylesheets.document, options.lang, options.dir);
 
     // The page is written outside the repository, because it is a render's
     // scratch file and not an artefact of it.
@@ -375,14 +417,42 @@ export const chromiumAdapter: PdfAdapter = {
         );
       }
 
+      // The bands are laid out in this document, with its faces and images, so
+      // what is measured is what the templates will draw. After the face check,
+      // so a band is never measured against a fallback.
+      const prepared = await page.evaluate(prepareBandsInPage, bandInputs, images, {
+        widthPx: input.geometry.widthPx,
+        marginPx: input.geometry.marginPx,
+        counterAttribute: PAGE_COUNTER_ATTRIBUTE,
+        counterClasses: CHROMIUM_COUNTER_CLASS,
+      });
+      if (prepared.missingImages.length > 0) {
+        throw new UnsupportedPdfContentError([], prepared.missingImages);
+      }
+      assertBandsFit(prepared.bands, input.geometry);
+
+      const template = {
+        css: stylesheets.content,
+        geometry: input.geometry,
+        lang: options.lang,
+        dir: options.dir,
+        rootFontSizePx: prepared.rootFontSizePx,
+      };
+      const band = (slot: FurnitureBandSlot) =>
+        bandTemplate(slot, prepared.bands.find((each) => each.slot === slot)?.html, template);
+
       const bytes = await page.pdf({
         width: cssPixelsToInches(input.geometry.widthPx),
         height: cssPixelsToInches(input.geometry.heightPx),
         // The margin is the page box's, stated in the stylesheet, so every page
-        // carries it. A margin given here would be a second opinion about it.
+        // carries it. A margin given here would be a second opinion about it,
+        // and the templates are drawn inside the page box's margin either way.
         margin: { top: 0, right: 0, bottom: 0, left: 0 },
         printBackground: true,
         preferCSSPageSize: false,
+        ...(prepared.bands.length === 0
+          ? {}
+          : { displayHeaderFooter: true, headerTemplate: band("header"), footerTemplate: band("footer") }),
       });
 
       return {

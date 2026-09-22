@@ -75,6 +75,7 @@ export {
   FURNITURE_SLOTS,
   PAGE_COUNTER_ATTRIBUTE,
   PageFurnitureOverflowError,
+  UnsupportedFurnitureContentError,
   UnsupportedFurnitureError,
   type FurnitureBandSlot,
   type FurnitureSlot,

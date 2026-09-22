@@ -32,7 +32,7 @@ import { Table } from "../../components/src/components/table";
 import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/headless/paper";
 import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { planPages, type MeasuredKeep } from "../src/lib/plan";
-import { renderPdf, UnsupportedFurnitureError, type PdfImage } from "../src/pdf";
+import { renderPdf, type PdfImage } from "../src/pdf";
 import { chromiumExecutable, closeChromium } from "../src/pdf/adapters/chromium";
 import { readPdf } from "./pdf-reader";
 import { treeKeeps } from "./tree-keeps";
@@ -245,20 +245,6 @@ describe.skipIf(skipped)("the Chromium adapter", () => {
     expect(unknownRepeats).toEqual(["line-items:missing-header"]);
     expect(pages.length).toBeGreaterThan(1);
   }, 120_000);
-});
-
-describe("page furniture on an adapter that does not draw it", () => {
-  it("refuses the render rather than printing every page without its header", async () => {
-    const failure = await renderPdf(<ProposalDocument data={overflowProposalData} />, {
-      adapter: "chromium",
-      images: [await proposalLogoImage()],
-      furniture: { header: <span>Northwind Partners LLP</span> },
-    }).catch((error: unknown) => error);
-
-    expect(failure).toBeInstanceOf(UnsupportedFurnitureError);
-    expect((failure as UnsupportedFurnitureError).adapter).toBe("chromium");
-    expect((failure as UnsupportedFurnitureError).slots).toEqual(["header"]);
-  }, 60_000);
 });
 
 describe("renderPdf without an adapter", () => {

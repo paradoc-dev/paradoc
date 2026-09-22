@@ -16,6 +16,7 @@
 
 import type { Browser, ElementHandle, Page } from "puppeteer";
 
+import { FURNITURE_EDGE_INSET_PX } from "../../src/lib/furniture";
 import type { PageDimensions } from "../../src/lib/tokens";
 import { DEFAULT_TYPOGRAPHY, type Typography as Rhythm, type TypographyLevel } from "../../src/lib/typography";
 import type { ApplicationFontSnapshot } from "../../src/lib/application-fonts";
@@ -29,6 +30,16 @@ export type DataSet = "short" | "overflow";
 
 /** Which token set the lab is showing it under. */
 export type Branding = "default" | "branded";
+
+/** Whether the lab draws the proposal with its page furniture. */
+export type Furniture = "none" | "furnished";
+
+/** What one sheet's furniture reads as, slot by slot; empty where a slot is not drawn. */
+export interface SheetFurniture {
+  header: string;
+  footer: string;
+  stamp: string;
+}
 
 /**
  * Wide enough that the preview pane, which is half the window less its padding,
@@ -61,6 +72,8 @@ export interface PreviewPlan {
   repeats: string[][];
   /** The keep that starts each page from page 2 on. */
   breaks: string[];
+  /** The text each sheet's furniture drew, in page order. */
+  furniture: SheetFurniture[];
 }
 
 /** One captured page of the preview. */
@@ -81,7 +94,8 @@ export interface Preview {
     branding: Branding,
     paper: PageDimensions,
     typography?: Typography,
-    rhythm?: Rhythm
+    rhythm?: Rhythm,
+    furniture?: Furniture
   ) => Promise<PreviewPlan>;
   /** One image per drawn page. */
   capture: () => Promise<PreviewCapture[]>;
@@ -101,6 +115,7 @@ interface PlanStamp {
   dataSet: DataSet | null;
   branding: Branding | null;
   typography: Typography | null;
+  furniture: Furniture | null;
   scale: string | null;
   flow: string | null;
 }
@@ -118,6 +133,8 @@ export interface VariantStamp {
   dataSet: DataSet | null;
   branding: Branding | null;
   typography: Typography | null;
+  /** The proposal's furniture, and the proposal's alone, like its data set. */
+  furniture: Furniture | null;
   /** The rhythm every document is stamped with; `regular` when the variant names none. */
   scale: TypographyLevel;
   flow: TypographyLevel;
@@ -129,16 +146,18 @@ function stampFor(
   set: DataSet,
   branding: Branding,
   typography?: Typography,
-  rhythm: Rhythm = DEFAULT_TYPOGRAPHY
+  rhythm: Rhythm = DEFAULT_TYPOGRAPHY,
+  furniture: Furniture = "none"
 ): VariantStamp {
   const { scale, flow } = rhythm;
   return doc === "proposal"
-    ? { document: doc, dataSet: set, branding, typography: null, scale, flow }
+    ? { document: doc, dataSet: set, branding, typography: null, furniture, scale, flow }
     : {
         document: doc,
         dataSet: null,
         branding: null,
         typography: doc === "invoice" ? typography ?? "sans" : null,
+        furniture: null,
         scale,
         flow,
       };
@@ -151,18 +170,19 @@ function sameStamp(stamp: PlanStamp, wanted: VariantStamp): boolean {
     stamp.dataSet === wanted.dataSet &&
     stamp.branding === wanted.branding &&
     stamp.typography === wanted.typography &&
+    stamp.furniture === wanted.furniture &&
     stamp.scale === wanted.scale &&
     stamp.flow === wanted.flow
   );
 }
 
 /**
- * Runs inside the browser. Self-contained on purpose, like `sampleCapture`.
+ * Runs inside the browser. Self-contained on purpose, like `readPoints`.
  */
 function readPlanStamp(): PlanStamp {
   const readout = document.querySelector("[data-plan-revision]");
   if (readout === null) {
-    return { revision: 0, document: null, dataSet: null, branding: null, typography: null, scale: null, flow: null };
+    return { revision: 0, document: null, dataSet: null, branding: null, typography: null, furniture: null, scale: null, flow: null };
   }
   return {
     revision: Number(readout.getAttribute("data-plan-revision")),
@@ -170,6 +190,7 @@ function readPlanStamp(): PlanStamp {
     dataSet: readout.getAttribute("data-plan-data-set") as DataSet | null,
     branding: readout.getAttribute("data-plan-branding") as Branding | null,
     typography: readout.getAttribute("data-plan-typography") as Typography | null,
+    furniture: readout.getAttribute("data-plan-furniture") as Furniture | null,
     scale: readout.getAttribute("data-plan-scale"),
     flow: readout.getAttribute("data-plan-flow"),
   };
@@ -210,6 +231,11 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
         )
       ),
       breaks: firstKeeps.slice(1),
+      furniture: sheets.map((sheet) => ({
+        header: sheet.querySelector("[data-page-header]")?.textContent ?? "",
+        footer: sheet.querySelector("[data-page-footer]")?.textContent ?? "",
+        stamp: sheet.querySelector("[data-page-stamp]")?.textContent ?? "",
+      })),
       fonts: JSON.parse(readout?.getAttribute("data-plan-fonts") ?? "null") as ApplicationFontSnapshot | null,
       stamp: {
         revision: Number(readout?.getAttribute("data-plan-revision") ?? 0),
@@ -217,6 +243,7 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
         dataSet: (readout?.getAttribute("data-plan-data-set") ?? null) as DataSet | null,
         branding: (readout?.getAttribute("data-plan-branding") ?? null) as Branding | null,
         typography: (readout?.getAttribute("data-plan-typography") ?? null) as Typography | null,
+        furniture: (readout?.getAttribute("data-plan-furniture") ?? null) as Furniture | null,
         scale: readout?.getAttribute("data-plan-scale") ?? null,
         flow: readout?.getAttribute("data-plan-flow") ?? null,
       } satisfies PlanStamp,
@@ -235,10 +262,11 @@ async function readPlan(page: Page, expected?: VariantStamp): Promise<PreviewPla
     dataSet: string | null;
     branding: string | null;
     typography?: string | null;
+    furniture?: string | null;
     scale?: string | null;
     flow?: string | null;
   }) =>
-    [stamp.document, stamp.dataSet, stamp.branding, stamp.typography, stamp.scale, stamp.flow]
+    [stamp.document, stamp.dataSet, stamp.branding, stamp.typography, stamp.furniture, stamp.scale, stamp.flow]
       .filter(Boolean)
       .join("/") || "no plan";
 
@@ -312,22 +340,34 @@ async function assertUnscaled(page: Page, paper: PageDimensions): Promise<void> 
 }
 
 /**
- * How far into each capture the corner sample sits, as a fraction of the
- * screenshot's shorter side.
+ * Where on a capture the guard samples, in CSS pixels in from the sheet's edge.
  *
- * Every reference document's margin — 48 or 56 pixels, on paper 794 to 1123
- * pixels wide — is comfortably wider than this fraction of either side, so a
- * sample this close to a corner always lands on the sheet's own margin and
- * never on a keep's content.
+ * Every point sits in the strip between the paper's edge and the inset page
+ * furniture is drawn at, which is the one part of a sheet nothing is ever drawn
+ * on. The margin beyond that strip is not blank on a furnished document: a
+ * running head or a foot fills it from the inset to the content box, across the
+ * whole width, and a sample there would read the band's ink and refuse a sheet
+ * that painted perfectly. So the corners sit half the inset in, and the border
+ * is read at three depths inside the strip.
+ *
+ * The strip is still deep enough for the guard's own job. A clip that overhangs
+ * the sheet brings in the lab's frame from the edge inward, so a clip out by
+ * more than a CSS pixel shows grey at the shallowest border depth, and one out
+ * by the half inset shows it at all four corners.
  */
-const CORNER_SAMPLE_FRACTION = 0.03;
+export const CAPTURE_SAMPLE_INSETS = {
+  /** How far each corner sample sits in from both of its edges. */
+  corner: FURNITURE_EDGE_INSET_PX / 2,
+  /** How far the border samples sit in from their edge. */
+  border: [1, 4, FURNITURE_EDGE_INSET_PX / 2],
+} as const;
 
 /** One sampled pixel, as its RGB channels. */
 type Corner = readonly [number, number, number];
 
 /** What one capture reads back as: the corners inside the sheet, and its own border. */
 export interface CaptureSample {
-  /** Four points, each inset by `CORNER_SAMPLE_FRACTION` of the shorter side. */
+  /** Four points, each inset by `CAPTURE_SAMPLE_INSETS.corner` from both edges. */
   corners: Corner[];
   /**
    * Points along the capture's own outermost row, column, last row and last
@@ -336,14 +376,74 @@ export interface CaptureSample {
   border: Corner[];
 }
 
+/** Pixel positions on a capture, as `[x, y]` device pixels. */
+export interface SamplePoints {
+  /** Four points, each `CAPTURE_SAMPLE_INSETS.corner` in from both of its edges. */
+  corners: [number, number][];
+  /** Points along the middle of each edge, at each of the border depths. */
+  border: [number, number][];
+}
+
 /**
- * Runs inside the browser. Decodes the capture and reads back the two sets of
- * points the guards below judge it by.
+ * Where the guard reads a capture `width` by `height` device pixels, drawn at
+ * `scale` device pixels per CSS pixel.
+ *
+ * Pure, so the placement the guard relies on is the placement its tests check.
+ */
+export function samplePoints(width: number, height: number, scale: number): SamplePoints {
+  const inset = Math.round(CAPTURE_SAMPLE_INSETS.corner * scale);
+  const corners: [number, number][] = [
+    [inset, inset],
+    [width - inset, inset],
+    [inset, height - inset],
+    [width - inset, height - inset],
+  ];
+
+  // Spread across the middle of each edge rather than at its ends, so a shadow
+  // bleeding round a corner is never mistaken for the frame, and at three
+  // depths rather than on the outermost row alone. Not the outermost row,
+  // because a clip whose own coordinates are not whole pixels leaves it a blend
+  // of what is on either side of the boundary. Not one depth, because what a
+  // misplaced clip brings in depends on how far it is out: the frame's own 24
+  // pixels of padding and the 24 pixel gap between sheets sit immediately
+  // outside every sheet, so three depths inside that catch a clip anywhere from
+  // a pixel out to the whole of it.
+  const across = [0.2, 0.35, 0.5, 0.65, 0.8];
+  const depths = CAPTURE_SAMPLE_INSETS.border.map((depth) => Math.round(depth * scale));
+  const border: [number, number][] = [];
+  for (const at of across) {
+    const x = Math.round(width * at);
+    const y = Math.round(height * at);
+    for (const depth of depths) {
+      border.push([x, depth], [x, height - 1 - depth]);
+      border.push([depth, y], [width - 1 - depth, y]);
+    }
+  }
+  return { corners, border };
+}
+
+/**
+ * Runs inside the browser. The capture's size, and the device pixels per CSS
+ * pixel it was taken at.
  *
  * Self-contained on purpose: `page.evaluate` sends the source of this
  * function to the page, so it can close over nothing.
  */
-async function sampleCapture(base64: string, fraction: number): Promise<CaptureSample> {
+async function captureSize(base64: string): Promise<{ width: number; height: number; scale: number }> {
+  const image = new Image();
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("the capture did not decode"));
+    image.src = `data:image/png;base64,${base64}`;
+  });
+  return { width: image.naturalWidth, height: image.naturalHeight, scale: window.devicePixelRatio };
+}
+
+/**
+ * Runs inside the browser. Decodes the capture and reads back the points the
+ * guards below judge it by. Self-contained, like `captureSize`.
+ */
+async function readPoints(base64: string, points: SamplePoints): Promise<CaptureSample> {
   const image = new Image();
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
@@ -360,37 +460,7 @@ async function sampleCapture(base64: string, fraction: number): Promise<CaptureS
     const [r, g, b] = context.getImageData(x, y, 1, 1).data;
     return [r ?? 0, g ?? 0, b ?? 0] as const;
   };
-
-  const inset = Math.round(Math.min(canvas.width, canvas.height) * fraction);
-  const corners: Array<[number, number]> = [
-    [inset, inset],
-    [canvas.width - inset, inset],
-    [inset, canvas.height - inset],
-    [canvas.width - inset, canvas.height - inset],
-  ];
-
-  // Spread across the middle of each edge rather than at its ends, so a shadow
-  // bleeding round a corner is never mistaken for the frame, and at three
-  // depths rather than on the outermost row alone. Not the outermost row,
-  // because a clip whose own coordinates are not whole pixels leaves it a blend
-  // of what is on either side of the boundary. Not one depth, because what a
-  // misplaced clip brings in depends on how far it is out: the frame's own 24
-  // pixels of padding and the 24 pixel gap between sheets sit immediately
-  // outside every sheet, so three depths inside that catch a clip anywhere from
-  // two pixels out to the whole of it.
-  const across = [0.2, 0.35, 0.5, 0.65, 0.8];
-  const depths = [2, 8, 20];
-  const border: Array<[number, number]> = [];
-  for (const at of across) {
-    const x = Math.round(canvas.width * at);
-    const y = Math.round(canvas.height * at);
-    for (const depth of depths) {
-      border.push([x, depth], [x, canvas.height - 1 - depth]);
-      border.push([depth, y], [canvas.width - 1 - depth, y]);
-    }
-  }
-
-  return { corners: corners.map(read), border: border.map(read) };
+  return { corners: points.corners.map(read), border: points.border.map(read) };
 }
 
 /** True once a sampled pixel reads as the sheet's own paper rather than as ink or frame. */
@@ -428,7 +498,12 @@ function isPaperWhite([r, g, b]: Corner): boolean {
  * of that run both missed.
  */
 export async function assertPainted(page: Page, capture: PreviewCapture): Promise<void> {
-  const sample = await page.evaluate(sampleCapture, capture.png, CORNER_SAMPLE_FRACTION);
+  const size = await page.evaluate(captureSize, capture.png);
+  const sample = await page.evaluate(
+    readPoints,
+    capture.png,
+    samplePoints(size.width, size.height, size.scale)
+  );
   const unpainted = sample.corners.filter((corner) => !isPaperWhite(corner));
   if (unpainted.length > 0) {
     throw new Error(
@@ -455,7 +530,7 @@ const PAINT_POLL_INTERVAL_MS = 100;
 /**
  * Runs inside the browser: two ticks and nothing else.
  *
- * Self-contained on purpose, like `sampleCapture`. Used both after the scroll
+ * Self-contained on purpose, like `readPoints`. Used both after the scroll
  * that puts the sheet where a screenshot will clip it, and between the pair of
  * screenshots `captureWhenPainted` compares — the same two ticks either way,
  * because either way what is being waited for is the browser to have actually
@@ -590,7 +665,8 @@ export async function openPreview(
     branding: Branding,
     paper: PageDimensions,
     typography?: Typography,
-    rhythm: Rhythm = DEFAULT_TYPOGRAPHY
+    rhythm: Rhythm = DEFAULT_TYPOGRAPHY,
+    furniture: Furniture = "none"
   ): Promise<PreviewPlan> => {
     await page.bringToFront();
     const before = await page.evaluate(readPlanStamp);
@@ -603,6 +679,7 @@ export async function openPreview(
       // paper and captured on another would compare two documents.
       await page.click(`[data-choice="branding"] [data-choice-option="${branding}"]`);
       await page.click(`[data-choice="data-set"] [data-choice-option="${set}"]`);
+      await page.click(`[data-choice="furniture"] [data-choice-option="${furniture}"]`);
     } else if (doc === "invoice") {
       await page.click(`[data-choice="typography"] [data-choice-option="${typography ?? "sans"}"]`);
     }
@@ -620,7 +697,7 @@ export async function openPreview(
     // "this plan is the previous variant's, and just happens to paginate to
     // the same number of pages", which is exactly how a stale plan passed
     // this wait before: the readout's own variant and revision can.
-    const wanted = stampFor(doc, set, branding, typography, rhythm);
+    const wanted = stampFor(doc, set, branding, typography, rhythm, furniture);
     if (!sameStamp(before, wanted)) {
       await page.waitForFunction(
         (expected: VariantStamp, baselineRevision: number) => {
@@ -636,6 +713,7 @@ export async function openPreview(
             readout.getAttribute("data-plan-data-set") === expected.dataSet &&
             readout.getAttribute("data-plan-branding") === expected.branding &&
             readout.getAttribute("data-plan-typography") === expected.typography &&
+            readout.getAttribute("data-plan-furniture") === expected.furniture &&
             readout.getAttribute("data-plan-scale") === expected.scale &&
             readout.getAttribute("data-plan-flow") === expected.flow
           );
@@ -656,7 +734,7 @@ export async function openPreview(
     // real.
     await assertSheetsMatchReadout(page);
     await assertUnscaled(page, paper);
-    return readPlan(page, stampFor(doc, set, branding, typography, rhythm));
+    return readPlan(page, stampFor(doc, set, branding, typography, rhythm, furniture));
   };
 
   const capture = async (): Promise<PreviewCapture[]> => {

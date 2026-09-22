@@ -53,6 +53,35 @@ const BAND_HEIGHT = 48;
  */
 const MAX_DRIFT = 12;
 
+/**
+ * How far a furniture band may slide, either way on either axis, to find its
+ * counterpart.
+ *
+ * A band is a line of small type in the margin, and what moves it between two
+ * outputs is where each rounds a baseline and where each starts a run. Three
+ * pixels covers that; a band drawn at the wrong edge or in the wrong words is
+ * much further out than three pixels from anything that matches it.
+ */
+const BAND_SHIFT = 3;
+
+/** One margin band of a page pair: the furniture's own strip, compared on its own. */
+export interface BandDifference {
+  /** Preview pixels in the strip that are not blank. */
+  previewInkPixels: number;
+  /** PDF pixels in the strip that are not blank. */
+  pdfInkPixels: number;
+  /** Pixels still differing once the strip is allowed to slide by up to `BAND_SHIFT`. */
+  alignedPixels: number;
+}
+
+/** The two margin strips of a page pair. */
+export interface FurnitureDifference {
+  /** The strip from the paper's top edge to the content box. */
+  header: BandDifference;
+  /** The strip from the content box to the paper's bottom edge. */
+  footer: BandDifference;
+}
+
 /** Everything measured about one page pair. */
 export interface PageDifference {
   /** 1-based page number. */
@@ -83,6 +112,12 @@ export interface PageDifference {
    * at least that and the search could not see how much more.
    */
   driftSaturated: boolean;
+  /**
+   * The margin strips compared on their own, when the comparison was told the
+   * margin. The whole-page residual counts a band as a few hundred pixels of a
+   * page; this is what can say the band itself is wrong.
+   */
+  furniture?: FurnitureDifference;
   /** A picture of the difference: the preview in gray, differing pixels in red. */
   image: string;
 }
@@ -114,7 +149,8 @@ export interface Rasterizer {
   compare: (
     pdf: Uint8Array,
     previews: readonly string[],
-    paper: PageDimensions
+    paper: PageDimensions,
+    marginPx?: number
   ) => Promise<Difference>;
 }
 
@@ -158,7 +194,8 @@ export async function openRasterizer(browser: Browser, labUrl: string): Promise<
   const compare = async (
     pdf: Uint8Array,
     previews: readonly string[],
-    paper: PageDimensions
+    paper: PageDimensions,
+    marginPx?: number
   ): Promise<Difference> => {
     // Shown, because a browser gives a hidden tab no frames and rendering a PDF
     // page into a canvas is rendering.
@@ -169,6 +206,8 @@ export async function openRasterizer(browser: Browser, labUrl: string): Promise<
       tolerance: DIFFERENCE_TOLERANCE,
       band: BAND_HEIGHT,
       maxDrift: MAX_DRIFT,
+      marginPx: marginPx ?? null,
+      bandShift: BAND_SHIFT,
     });
   };
 
@@ -182,6 +221,9 @@ interface MeasureSettings {
   tolerance: number;
   band: number;
   maxDrift: number;
+  /** The document's margin, when the margin strips are to be compared on their own. */
+  marginPx: number | null;
+  bandShift: number;
 }
 
 /**
@@ -197,7 +239,7 @@ async function measureInPage(
   previews: string[],
   settings: MeasureSettings
 ): Promise<Difference> {
-  const { width, height, tolerance, band, maxDrift } = settings;
+  const { width, height, tolerance, band, maxDrift, marginPx, bandShift } = settings;
   /** Ink a band needs before its best offset is treated as a measurement. */
   const INK_BAND_MINIMUM = 50;
   const pdfjs = (globalThis as unknown as { pdfjs: PdfjsLike }).pdfjs;
@@ -426,6 +468,39 @@ async function measureInPage(
         }
       }
 
+      // The margin strips, each on its own. A slide never reads across the
+      // strip's own edge, so content below the margin cannot stand in for a
+      // band that is missing.
+      const strip = (top: number, bottom: number) => {
+        let previewInkPixels = 0;
+        let pdfInkPixels = 0;
+        for (let y = top; y < bottom; y++) {
+          for (let x = 0; x < width; x++) {
+            if (preview[y * width + x]! < 250) previewInkPixels++;
+            if (pdf[y * width + x]! < 250) pdfInkPixels++;
+          }
+        }
+        let alignedPixels = Number.POSITIVE_INFINITY;
+        for (let dy = -bandShift; dy <= bandShift; dy++) {
+          for (let dx = -bandShift; dx <= bandShift; dx++) {
+            let count = 0;
+            for (let y = top; y < bottom; y++) {
+              const fromY = Math.min(bottom - 1, Math.max(top, y + dy));
+              for (let x = 0; x < width; x++) {
+                const fromX = Math.min(width - 1, Math.max(0, x + dx));
+                if (Math.abs(pdf[fromY * width + fromX]! - preview[y * width + x]!) > tolerance) count++;
+              }
+            }
+            alignedPixels = Math.min(alignedPixels, count);
+          }
+        }
+        return { previewInkPixels, pdfInkPixels, alignedPixels };
+      };
+      const furniture =
+        marginPx === null
+          ? undefined
+          : { header: strip(0, marginPx), footer: strip(height - marginPx, height) };
+
       // The picture: the preview faded to gray, every differing pixel in red.
       const diffContext = sheet(width, height);
       const picture = diffContext.createImageData(width, height);
@@ -452,6 +527,7 @@ async function measureInPage(
         driftPixels,
         horizontalDriftPixels,
         driftSaturated,
+        furniture,
         image: diffContext.canvas.toDataURL("image/png"),
       });
     }

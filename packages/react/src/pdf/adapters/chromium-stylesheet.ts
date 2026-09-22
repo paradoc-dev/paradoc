@@ -157,23 +157,38 @@ function pageBox(geometry: PdfPageGeometry): string {
   ].join("\n");
 }
 
+/** The two stylesheets one render prints against. */
+export interface ChromiumStylesheets {
+  /** The printed document's: the content's rules and the page box. */
+  document: string;
+  /**
+   * A print template's: the content's rules without the page box. A template
+   * is a document of its own and inherits nothing, so a band is sent these.
+   */
+  content: string;
+}
+
 /**
- * The whole stylesheet for one render: Tailwind compiled for this markup, the
- * document's faces, and the page.
+ * The stylesheets for one render: Tailwind compiled for this markup, the
+ * application's CSS, the document's faces, and, for the printed document, the
+ * page.
+ *
+ * `markup` is every piece of markup the render prints, furniture included, so
+ * one compile covers the page and its templates alike.
  */
-export async function chromiumStylesheet(
+export async function chromiumStylesheets(
   markup: string,
   fonts: readonly PdfFontFile[],
   geometry: PdfPageGeometry,
   applicationCss?: string
-): Promise<string> {
+): Promise<ChromiumStylesheets> {
   const source = `@import "tailwindcss";\n${DOCUMENT_STYLES}`;
   const compiled = await compile(source, { base: process.cwd(), loadStylesheet });
 
-  return [
+  const content = [
     compiled.build(classCandidates(markup)),
     applicationCss ?? "",
     fonts.map(fontFace).join("\n\n"),
-    pageBox(geometry),
   ].join("\n\n");
+  return { content, document: [content, pageBox(geometry)].join("\n\n") };
 }
