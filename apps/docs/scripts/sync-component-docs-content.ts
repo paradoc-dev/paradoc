@@ -192,6 +192,9 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "compact", file: "table-variant-compact.tsx" },
     { key: "left-aligned", file: "table-variant-left-aligned.tsx" },
     { key: "custom-headers", file: "table-variant-custom-headers.tsx" },
+    { key: "continued", file: "table-variant-continued.tsx" },
+    { key: "footer", file: "table-variant-footer.tsx" },
+    { key: "cell-renderer", file: "table-variant-cell-renderer.tsx" },
   ],
   text: [
     { key: "heading", file: "text-variant-heading.tsx" },

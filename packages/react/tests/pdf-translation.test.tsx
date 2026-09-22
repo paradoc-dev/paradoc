@@ -9,6 +9,7 @@
 
 import type { Node } from "@takumi-rs/helpers";
 import { fromJsx } from "@takumi-rs/helpers/jsx";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { ProposalDocument, overflowProposalData, shortProposalData } from "../../components/src/examples";
 import {
@@ -18,7 +19,7 @@ import {
   SUPPORTED_CLASS_FAMILIES,
   unsupportedClasses,
 } from "../src/pdf/tailwind";
-import { preparePdfTree } from "../src/pdf/tree";
+import { ContinuedLabelShapeError, preparePdfTree } from "../src/pdf/tree";
 
 function flatten(node: Node): Node[] {
   const found = [node];
@@ -246,5 +247,31 @@ describe("the walk over the resolved tree", () => {
       </div>
     );
     expect(preparePdfTree(node).missingImages).toEqual(["logo.png"]);
+  });
+});
+
+describe("a continued-page label", () => {
+  const table = (label: ReactNode) => (
+    <div className="flex flex-col">
+      <div className="flex flex-col" data-keep-id="t:header" data-table-header="t">
+        <span className="text-xs" data-continued-label="(continued)">{label}</span>
+      </div>
+      <div className="flex" data-keep-id="t:0" data-table-row="t">first</div>
+      <div className="flex" data-keep-id="t:1" data-table-row="t">second</div>
+    </div>
+  );
+  const plan = { breaks: ["t:1"], repeats: [[], ["t:header"]] };
+  const texts = (node: Node) => flatten(node).filter((each) => each.type === "text").map((each) => (each as { text: string }).text);
+
+  it("reads on the header copy alone, never in the header's own place", async () => {
+    const { node } = await fromJsx(table("\u00a0"));
+    const all = texts(preparePdfTree(node, { plan }).node);
+    expect(all.filter((text) => text === "(continued)")).toHaveLength(1);
+    expect(all.filter((text) => text === "\u00a0")).toHaveLength(1);
+  });
+
+  it("fails rather than dropping a label that holds more than text", async () => {
+    const { node } = await fromJsx(table(<b>nested</b>));
+    expect(() => preparePdfTree(node, { plan })).toThrow(ContinuedLabelShapeError);
   });
 });

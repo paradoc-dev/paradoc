@@ -266,6 +266,57 @@ describe("a table header repeats on every continued page", () => {
   });
 });
 
+describe("a table footer never opens a page without the last row", () => {
+  const footer = (name: string, height: number) => keep(`${name}:footer`, height, { table: name, tableFooter: true });
+
+  it("stays on the last row's page when it fits", () => {
+    const plan = planPages(stack(...table("items", 3, 100), footer("items", 100)), 500);
+    expect(plan.pages).toEqual([["items:header", "items:0", "items:1", "items:2", "items:footer"]]);
+  });
+
+  it("carries the last row forward with it when it does not fit, under a header copy", () => {
+    // Header and three rows fill the first page exactly; the footer would open the next alone.
+    const plan = planPages(stack(...table("items", 3, 100), footer("items", 100)), 400);
+    expect(plan.pages).toEqual([
+      ["items:header", "items:0", "items:1"],
+      ["items:header", "items:2", "items:footer"],
+    ]);
+    expect(plan.repeats).toEqual([[], ["items:header"]]);
+    expect(plan.breaks).toEqual(["items:2"]);
+    expect(plan.oversize).toEqual([]);
+  });
+
+  it("takes the header itself along when carrying the row would leave it orphaned", () => {
+    const plan = planPages(stack(...table("items", 1, 100), footer("items", 100)), 200);
+    expect(plan.pages).toEqual([["items:header", "items:0", "items:footer"]]);
+    expect(plan.repeats).toEqual([[]]);
+    expect(plan.oversize).toEqual([{ id: "items:footer", height: 300 }]);
+  });
+
+  it("leaves a row alone on its page where it is, since carrying it would only empty that page", () => {
+    const header = keep("items:header", 100, { table: "items", tableHeader: true });
+    const rows = [0, 1].map((index) => keep(`items:${index}`, 200, { table: "items" }));
+    const plan = planPages(stack(header, ...rows, footer("items", 100)), 300);
+    // Page 2 holds a header copy and row 1 alone; the footer opens page 3 under its own header copy.
+    expect(plan.pages).toEqual([
+      ["items:header", "items:0"],
+      ["items:header", "items:1"],
+      ["items:header", "items:footer"],
+    ]);
+    expect(plan.repeats).toEqual([[], ["items:header"], ["items:header"]]);
+  });
+
+  it("carries nothing that is not its own table's row", () => {
+    const plan = planPages(stack(...table("a", 2, 100), keep("note", 100), footer("a", 100)), 400);
+    expect(plan.pages).toEqual([["a:header", "a:0", "a:1", "note"], ["a:header", "a:footer"]]);
+  });
+
+  it("is an ordinary keep for a planner given no footer flag", () => {
+    const plan = planPages(stack(...table("items", 3, 100), keep("items:footer", 100)), 400);
+    expect(plan.pages).toEqual([["items:header", "items:0", "items:1", "items:2"], ["items:footer"]]);
+  });
+});
+
 describe("a keep taller than a page", () => {
   const plan = planPages(
     stack(keep("before", 200), keep("giant", 1400), keep("after", 200)),

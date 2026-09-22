@@ -7,7 +7,10 @@ description: A list field as rows, with a header that repeats on every page it c
 table's rows continue past a page break, the page plan copies its header
 onto the next page so the columns stay legible, and marks that copy
 `data-keep-repeat` so it is never confused with the header's one real place
-in the flow.
+in the flow. A `continuedLabel` reads on that copy alone; a `footer`
+evaluates rows from the artifact's own definitions and stays with the
+table's last row; and a column's `render` can replace one cell's plain text
+with markup of its own, without changing how the row paginates.
 
 # Preview
 
@@ -69,3 +72,31 @@ ones.
 `header` overrides the artifact's own field labels.
 
 <ComponentVariant name="table" variant="custom-headers" />
+
+## Continued
+
+`continuedLabel` shows on the repeated header once the table's rows carry it
+past a page break, and only there — the table's own, first header never
+shows it. This variant is the page's only one that self-wraps in
+[`Pages`](/components/pages): every other table on this page fits one page,
+which is exactly where the label has nothing to show.
+
+<ComponentVariant name="table" variant="continued" />
+
+## Footer
+
+`footer` takes rows shaped like [`Totals`](/components/totals)'s: a `def`,
+an optional `label`, and `emphasis`. Each is evaluated from the artifact's
+own definitions and printed as one more keep after the last row. When the
+footer does not fit on the last row's page, the last row moves to the next
+page with it, so the totals never print without a row above them.
+
+<ComponentVariant name="table" variant="footer" />
+
+## Cell renderer
+
+A column's `render` receives the cell's already-formatted text and the row
+it belongs to, and returns the markup to print instead. The row underneath
+still paginates as one unit.
+
+<ComponentVariant name="table" variant="cell-renderer" />

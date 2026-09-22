@@ -34,15 +34,17 @@ export function measureKeeps(root: HTMLElement): MeasuredKeep[] {
     const header = node.getAttribute("data-table-header");
     const row = node.getAttribute("data-table-row");
     const breakBefore = node.getAttribute("data-break-before");
+    const footer = node.getAttribute("data-table-footer");
 
     return {
       id: node.getAttribute("data-keep-id") ?? "",
       top: rect.top - origin,
       bottom: rect.bottom - origin,
       sections: sectionChain(node, root),
-      table: header ?? row ?? undefined,
+      table: header ?? row ?? footer ?? undefined,
       tableHeader: header !== null,
       breakBefore: breakBefore === "page" ? "page" : undefined,
+      tableFooter: footer !== null,
     };
   });
 }

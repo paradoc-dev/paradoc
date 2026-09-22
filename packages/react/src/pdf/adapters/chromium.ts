@@ -49,7 +49,7 @@ import {
   type PreparedPdfInput,
 } from "../adapter";
 import { imageFormat } from "../resources";
-import { KEEP_ID_ATTRIBUTE, KEEP_REPEAT_ATTRIBUTE } from "../tree";
+import { CONTINUED_LABEL_ATTRIBUTE, KEEP_ID_ATTRIBUTE, KEEP_REPEAT_ATTRIBUTE } from "../tree";
 import { chromiumStylesheet, cssPixelsToInches } from "./chromium-stylesheet";
 
 /**
@@ -200,10 +200,10 @@ interface PagePlanInput {
 function applyInPage(
   plan: PagePlanInput | null,
   images: Record<string, string>,
-  attributes: { keep: string; repeat: string },
+  attributes: { keep: string; repeat: string; continuedLabel: string },
   faces: { family: string; weight: string; style: string }[]
 ): PageOutcome {
-  const { keep: KEEP, repeat: REPEAT } = attributes;
+  const { keep: KEEP, repeat: REPEAT, continuedLabel: CONTINUED_LABEL } = attributes;
 
   const missingImages: string[] = [];
   for (const image of [...document.querySelectorAll("img")]) {
@@ -250,6 +250,15 @@ function applyInPage(
       const copy = source.cloneNode(true) as HTMLElement;
       copy.setAttribute(REPEAT, "true");
       copy.style.breakInside = "avoid";
+      // `Table`'s continued-page label is written once, as a placeholder
+      // character, in the header's own place in the flow; only the copy this
+      // loop just built should show the real words. `tree.ts`'s takumi walk
+      // makes the same substitution on its own node tree, so the two engines
+      // agree on which header shows it.
+      for (const label of copy.querySelectorAll<HTMLElement>(`[${CONTINUED_LABEL}]`)) {
+        const text = label.getAttribute(CONTINUED_LABEL);
+        if (text !== null) label.textContent = text;
+      }
       // Built, never inherited: a header that is itself a planned break carries
       // `break-before` in its own place in the flow, and a copy that kept it
       // would break the page it was meant to open. Only the first copy opens
@@ -351,7 +360,7 @@ export const chromiumAdapter: PdfAdapter = {
               repeats: input.plan.repeats.map((copies) => [...copies]),
             },
         images,
-        { keep: KEEP_ID_ATTRIBUTE, repeat: KEEP_REPEAT_ATTRIBUTE },
+        { keep: KEEP_ID_ATTRIBUTE, repeat: KEEP_REPEAT_ATTRIBUTE, continuedLabel: CONTINUED_LABEL_ATTRIBUTE },
         input.fonts.map((font) => ({ family: font.family, weight: font.weight, style: font.style ?? "normal" }))
       );
 

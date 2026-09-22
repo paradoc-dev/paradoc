@@ -46,6 +46,19 @@ export const KEEP_ID_ATTRIBUTE = "data-keep-id";
 export const KEEP_REPEAT_ATTRIBUTE = "data-keep-repeat";
 
 /**
+ * The attribute a table header's continued-page label carries, holding the
+ * label's real text.
+ *
+ * The rendered text is written once, in the header's one place in the flow,
+ * as a placeholder character at the same font metrics as the label — a first
+ * header never shows the real words, but it still measures the line the words
+ * will take. The copy is the only place they should read, so substituting the
+ * real text is a translation decision made here rather than a second thing
+ * the component renders.
+ */
+export const CONTINUED_LABEL_ATTRIBUTE = "data-continued-label";
+
+/**
  * The half of the preview's page plan the PDF engine can act on.
  *
  * Page starts and header copies travel together because they are one decision:
@@ -233,7 +246,7 @@ export function preparePdfTree(root: Node, options: PrepareOptions = {}): Prepar
           const source = keeps.get(copyId);
           if (source === undefined) continue;
           const opensPage: boolean = !taken && childId !== undefined && breaks.has(childId);
-          children.push(headerCopy(walk(source, { asCopy: true }), opensPage));
+          children.push(headerCopy(revealContinuedLabel(walk(source, { asCopy: true })), opensPage));
           taken ||= opensPage;
         }
         children.push(walk(child, { breakTaken: taken, asCopy: context.asCopy }));
@@ -257,6 +270,39 @@ export function preparePdfTree(root: Node, options: PrepareOptions = {}): Prepar
     unknownBreaks: [...breaks].filter((id) => !keeps.has(id)),
     unknownRepeats: plannedRepeats(options.plan).filter((id) => !keeps.has(id)),
   };
+}
+
+/** A continued-page label that did not resolve to the single text node the copy rewrites. */
+export class ContinuedLabelShapeError extends Error {
+  constructor(type: string) {
+    super(`A continued-page label must hold text alone; it resolved to a "${type}" node.`);
+    this.name = "ContinuedLabelShapeError";
+  }
+}
+
+/**
+ * Writes a copied header's continued-page label.
+ *
+ * `Table` renders a placeholder character in the header's one place in the
+ * flow and carries the real words on `data-continued-label`, because a first
+ * header never shows them. Only the copy this walk is building should read
+ * them, so the text is substituted here, on the copy alone; the header's own
+ * place in the flow, walked separately, keeps the placeholder.
+ */
+function revealContinuedLabel(node: Node): Node {
+  const label = node.attributes?.[CONTINUED_LABEL_ATTRIBUTE];
+  if (label !== undefined) {
+    // A leaf element with only text content resolves to one text node
+    // carrying its own attributes, rather than a container wrapping a text
+    // child. Anything else would drop the label without a word, so it fails.
+    if (node.type !== "text") throw new ContinuedLabelShapeError(node.type);
+    return { ...node, text: label };
+  }
+  const revealed: Node = { ...node };
+  if (revealed.type === "container" && revealed.children) {
+    revealed.children = revealed.children.map(revealContinuedLabel);
+  }
+  return revealed;
 }
 
 /**

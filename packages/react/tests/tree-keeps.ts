@@ -18,10 +18,12 @@ export interface TreeKeep {
   id: string;
   /** Every text run under the keep, joined. */
   text: string;
-  /** The table this keep belongs to, when it is a header or a row. */
+  /** The table this keep belongs to, when it is a header, a row, or a footer. */
   table?: string;
   /** True when the keep is its table's repeatable header. */
   tableHeader: boolean;
+  /** True when the keep is its table's footer. */
+  tableFooter: boolean;
 }
 
 /** Every node under `node`, itself included, in document order. */
@@ -52,7 +54,14 @@ export function treeKeeps(node: Node, into: TreeKeep[] = []): TreeKeep[] {
   if (id !== undefined) {
     const header = attributes["data-table-header"];
     const row = attributes["data-table-row"];
-    into.push({ id, text: textOf(node), table: header ?? row, tableHeader: header !== undefined });
+    const footer = attributes["data-table-footer"];
+    into.push({
+      id,
+      text: textOf(node),
+      table: header ?? row ?? footer,
+      tableHeader: header !== undefined,
+      tableFooter: footer !== undefined,
+    });
   }
   if (node.type === "container" && node.children) {
     for (const child of node.children) treeKeeps(child, into);

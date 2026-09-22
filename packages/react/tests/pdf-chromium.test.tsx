@@ -18,6 +18,7 @@
  * `PARADOC_SKIP_CHROMIUM_TESTS=1` to opt out deliberately.
  */
 
+import { fromJsx } from "@takumi-rs/helpers/jsx";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Document } from "../../components/src/components/document";
 import { Field } from "../../components/src/components/field";
@@ -27,11 +28,14 @@ import {
   ProposalDocument,
   shortProposalData,
 } from "../../components/src/examples";
+import { Table } from "../../components/src/components/table";
 import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX } from "../src/headless/paper";
 import { proposalLogoImage } from "../../components/src/examples/pdf";
+import { planPages, type MeasuredKeep } from "../src/lib/plan";
 import { renderPdf, UnsupportedFurnitureError, type PdfImage } from "../src/pdf";
 import { chromiumExecutable, closeChromium } from "../src/pdf/adapters/chromium";
 import { readPdf } from "./pdf-reader";
+import { treeKeeps } from "./tree-keeps";
 import { PREVIEW_PLAN } from "./preview-plan";
 
 /** CSS pixels at 96 dpi to the PDF's points at 72 dpi. */
@@ -168,6 +172,45 @@ describe.skipIf(skipped)("the Chromium adapter", () => {
     expect(pages[0]!.text).not.toContain(PARAGRAPHED_TERMS[2]);
     expect(pages[1]!.text).toContain(PARAGRAPHED_TERMS[2]);
     expect(pages[1]!.text).not.toContain(PARAGRAPHED_TERMS[0]);
+  }, 120_000);
+
+  it("carries Table's continued-page label, the same substitution takumi's node-tree walk makes", async () => {
+    // The Chromium adapter clones its header copies straight from the DOM
+    // rather than walking a resolved node tree, so the substitution
+    // `tree.ts`'s `revealContinuedLabel` makes has its own translation here —
+    // this is the proof the two agree on which header shows the label.
+    const element = (
+      <Document artifact={proposalForm} data={overflowProposalData} id="continued-chromium">
+        <Table
+          path="lineItems"
+          id="line-items"
+          continuedLabel="(continued)"
+          columns={[{ field: "description", width: "basis-1/2" }, { field: "amount", width: "basis-1/2", align: "right" }]}
+        />
+      </Document>
+    );
+    const { node } = await fromJsx(element);
+    let y = 0;
+    const keeps: MeasuredKeep[] = treeKeeps(node).map(({ id, table, tableHeader, tableFooter }) => {
+      const laid = { id, table, tableHeader, tableFooter, top: y, bottom: y + 60 };
+      y = laid.bottom;
+      return laid;
+    });
+    const plan = planPages(keeps, 300);
+    const repeatedPageIndexes = plan.repeats
+      .map((copies, index) => (copies.length > 0 ? index : -1))
+      .filter((index) => index >= 0);
+    expect(repeatedPageIndexes.length).toBeGreaterThanOrEqual(1);
+
+    const { bytes, unknownBreaks, unknownRepeats } = await renderPdf(element, { adapter: "chromium", plan });
+    expect(unknownBreaks).toEqual([]);
+    expect(unknownRepeats).toEqual([]);
+    const pages = await readPdf(bytes);
+
+    expect(pages[0]?.text).not.toContain("(continued)");
+    for (const index of repeatedPageIndexes) {
+      expect(pages[index]?.text, `page ${index + 1}`).toContain("(continued)");
+    }
   }, 120_000);
 
   it("paginates on its own when it is given no plan", async () => {

@@ -190,6 +190,8 @@ continued row.
 | `columns` | `TableColumn[]` | See below. |
 | `id` | `string?` | Keep-id prefix. Defaults to `path`. |
 | `className` | `string?` | |
+| `continuedLabel` | `string?` | Shown on the repeated header once rows carry it past a page break, never on the table's own, first header. Kept to one line. |
+| `footer` | `TableFooterRow[]?` | Rows `{ def, label?, emphasis? }` evaluated from the artifact's own definitions. Rendered as one more keep, `` `${id}:footer` ``. When it does not fit on the last row's page, the plan moves the last row onto the next page with it. |
 
 `TableColumn`:
 
@@ -199,15 +201,18 @@ continued row.
 | `header` | `string?` | Defaults to the item field's own label. |
 | `width` | `string?` | A Tailwind basis class, e.g. `"basis-1/2"`. Defaults to `"basis-1/4"`. |
 | `align` | `"left" \| "right"?` | Defaults to `"left"`. |
+| `render` | `(text: string, row: unknown) => ReactNode` | Replaces the cell's plain text with markup built from the column's already-formatted text and the row value. The row still paginates as one unit. |
 
 ```tsx
 <Table
   path="lineItems"
   id="line-items"
+  continuedLabel="(continued)"
+  footer={[{ def: "subtotal" }, { def: "total", emphasis: true }]}
   columns={[
     { field: "description", width: "basis-1/2" },
     { field: "quantity", header: "Qty", width: "basis-1/12", align: "right" },
-    { field: "amount", width: "basis-1/6", align: "right" },
+    { field: "amount", width: "basis-1/6", align: "right", render: (text) => <strong>{text}</strong> },
   ]}
 />
 ```

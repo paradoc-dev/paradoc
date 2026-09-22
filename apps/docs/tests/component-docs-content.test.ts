@@ -71,6 +71,18 @@ describe.each(DOCUMENTED_COMPONENTS)('%s docs content', (name) => {
   })
 })
 
+test("table's page shows its three extensions, each through the prop it documents", () => {
+  const variants = VARIANT_SOURCES.table
+  expect(Object.keys(variants)).toEqual(
+    expect.arrayContaining(['continued', 'footer', 'cell-renderer'])
+  )
+  expect(variants.continued).toContain('continuedLabel="(continued)"')
+  expect(variants.footer).toContain('footer={')
+  expect(variants['cell-renderer']).toContain('render: (text)')
+  // Each extension appears on its own variant alone, so a page reader sees one at a time.
+  expect(variants.compact).not.toMatch(/continuedLabel|footer=|render:/)
+})
+
 test("field's props table matches its real, currently-shipping props interface", () => {
   // Regression check for reading the props table from the wrong file
   // (paradoc/packages/react's parallel substrate component instead of the

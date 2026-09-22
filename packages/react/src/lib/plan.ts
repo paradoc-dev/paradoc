@@ -24,10 +24,14 @@
  * 3. A page that opens on a table row repeats that table's header above it. The
  *    copy is not in the flow, so it takes its own height plus the gap to the
  *    first row out of the page's budget, and it is listed in `repeats`.
- * 4. A keep that still does not fit the page opened for it overflows that page
+ * 4. A page opened for a table footer carries that table's last row forward
+ *    with it, so the totals never read on a page without the rows they
+ *    total. A row alone on its page stays where it is, because carrying it
+ *    would only empty that page.
+ * 5. A keep that still does not fit the page opened for it overflows that page
  *    and is reported in `oversize` with what it actually consumed, which for a
  *    page carrying a header copy includes that copy.
- * 5. A section is present on a page when any of its keeps are.
+ * 6. A section is present on a page when any of its keeps are.
  */
 
 /** One pagination unit, as an interval in the flow measured at page content width. */
@@ -40,7 +44,7 @@ export interface MeasuredKeep {
   bottom: number;
   /** Sections enclosing this keep, outermost first. */
   sections?: readonly string[];
-  /** The table this keep belongs to, when it is a header or a row. */
+  /** The table this keep belongs to, when it is a header, a row, or a footer. */
   table?: string;
   /** True when this keep is its table's repeatable header. */
   tableHeader?: boolean;
@@ -51,6 +55,8 @@ export interface MeasuredKeep {
    * moves everything after it.
    */
   breakBefore?: "page";
+  /** True when this keep is its table's footer, which never opens a page without the last row. */
+  tableFooter?: boolean;
 }
 
 /** A keep that does not fit the page opened for it. */
@@ -146,9 +152,11 @@ export function planPages(keeps: readonly MeasuredKeep[], budget: number): PageP
     // An explicit break named for this table (see `PageBreak`'s `table` prop)
     // is not a row: it must never stand in for the real first row here, or a
     // break placed directly after a header would charge the gap to the break
-    // instead of to the row the copy actually sits above.
+    // instead of to the row the copy actually sits above. A footer is not a
+    // row either.
     const firstRow = keeps.find(
-      (keep) => keep.table === table && !keep.tableHeader && keep.breakBefore === undefined
+      (keep) =>
+        keep.table === table && !keep.tableHeader && !keep.tableFooter && keep.breakBefore === undefined
     );
     const gap = firstRow ? Math.max(0, firstRow.top - header.bottom) : 0;
     charges.set(table, header.bottom - header.top + gap);
@@ -178,8 +186,36 @@ export function planPages(keeps: readonly MeasuredKeep[], budget: number): PageP
     return header;
   };
 
+  /**
+   * Takes the row a table footer follows off the foot of the page just filled,
+   * so the footer can open the next page beside it. The row is carried only
+   * when it is the last keep of that page, belongs to the footer's table, and
+   * is not the only keep there.
+   */
+  const carryLastRow = (footer: MeasuredKeep): MeasuredKeep | undefined => {
+    const page = pages[pages.length - 1];
+    const last = page?.keeps[page.keeps.length - 1];
+    if (!page || last === undefined || page.repeats.includes(last)) return undefined;
+
+    const row = byId.get(last);
+    if (!row || row.table !== footer.table || row.tableHeader || row.tableFooter) return undefined;
+    if (page.keeps.length - page.repeats.length <= 1) return undefined;
+
+    page.keeps.pop();
+    return row;
+  };
+
   /** Opens a page for `keep`, carrying or repeating a table header above it. */
   const openPage = (keep: MeasuredKeep): PageBuild => {
+    const row = keep.tableFooter ? carryLastRow(keep) : undefined;
+    if (row) {
+      // The row opens the page as any continued row does: behind the header
+      // itself when carrying it left the header orphaned, else a copy of it.
+      const page = openPage(row);
+      page.keeps.push(row.id);
+      return page;
+    }
+
     const carried = carryOrphanHeader();
     if (carried) {
       // The header keeps its place in the flow, one page later.
