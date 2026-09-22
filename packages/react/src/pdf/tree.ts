@@ -90,9 +90,23 @@ export function recordOnce(into: string[], value: string): void {
   if (!into.includes(value)) into.push(value);
 }
 
-/** A `data:` URI carries its own bytes, so the caller owes nothing for it. */
+/**
+ * A `data:` URI, or inline SVG markup, carries its own bytes, so the caller
+ * owes nothing for it.
+ *
+ * `@takumi-rs/helpers` turns a literal `<svg>` element into an image node
+ * whose `src` is the element's own serialized markup rather than a reference
+ * to anything external — the same text `imageFormat` (`../lib/image.ts`)
+ * already recognizes as the `svg` format. There is nothing to fetch: the
+ * "bytes" the render needs are the string that is already sitting in `src`,
+ * so asking the caller to hand that same text back as a supplied image would
+ * only be able to succeed by reproducing this exact serialization. A `Field`
+ * on an attachment or a `<img src="...">` naming a real file still resolves
+ * through the caller-supplied `images` list, which is the only place a
+ * render can find bytes it did not already have.
+ */
 function carriesOwnBytes(src: string): boolean {
-  return src.startsWith("data:");
+  return src.startsWith("data:") || src.startsWith("<svg") || src.startsWith("<?xml");
 }
 
 function keepId(node: Node): string | undefined {

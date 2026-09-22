@@ -345,6 +345,9 @@ code stays sharp at any output scale.
 | `color` | `string?` | Module colour. Defaults to `"#000000"`. |
 | `backgroundColor` | `string?` | Colour behind the modules. Defaults to `"#ffffff"`. |
 | `label` | `string?` | Accessible name for the SVG. Defaults to `` `QR code for ${url}` ``. |
+
+An empty `url` throws `EmptyQRCodeUrlError` rather than drawing a code with
+nothing encoded in it.
 | `className` | `string?` | |
 
 ```tsx

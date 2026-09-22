@@ -21,6 +21,6 @@ export { Text, type TextProps, type TextRole } from "./components/text";
 export { Totals, type TotalRow, type TotalsProps } from "./components/totals";
 export { Signature, type SignatureProps } from "./components/signature";
 export { Party, type PartyProps } from "./components/party";
-export { QRCode, type QRCodeProps } from "./components/qr-code";
+export { EmptyQRCodeUrlError, QRCode, type QRCodeProps } from "./components/qr-code";
 export { Part, type PartKind, type PartPlacementState, type PartProps } from "./components/part";
 export { Attachment, PdfPages, type AttachmentProps, type PdfPagesProps, type PdfPaintReport } from "./components/pdf-pages";

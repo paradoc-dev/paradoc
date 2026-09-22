@@ -9,6 +9,17 @@
 import React from "react";
 import { QRCodeSVG } from "qrcode.react";
 
+/** Thrown when a {@link QRCode} is asked to encode an empty URL. */
+export class EmptyQRCodeUrlError extends Error {
+  constructor() {
+    super(
+      "QRCode needs a non-empty url to encode. A code with nothing to encode would print a " +
+        "pattern that scans to nothing, which is worse than failing before the page is drawn."
+    );
+    this.name = "EmptyQRCodeUrlError";
+  }
+}
+
 export interface QRCodeProps {
   /** The URL encoded by the QR code. */
   url: string;
@@ -36,7 +47,11 @@ export interface QRCodeProps {
   className?: string;
 }
 
-/** An SVG QR code that encodes one URL. */
+/**
+ * An SVG QR code that encodes one URL.
+ *
+ * @throws {EmptyQRCodeUrlError} when `url` is empty.
+ */
 export function QRCode({
   url,
   size = 128,
@@ -45,6 +60,7 @@ export function QRCode({
   label = `QR code for ${url}`,
   className,
 }: QRCodeProps) {
+  if (url.length === 0) throw new EmptyQRCodeUrlError();
   return (
     <QRCodeSVG
       value={url}
