@@ -205,7 +205,10 @@ async function resolveAdapter(name: PdfAdapterName | PdfAdapter): Promise<PdfAda
  * @throws {UnsupportedPdfContentError} when the tree uses a class or an image
  * the chosen engine cannot express. Every offender is listed in one error.
  * @throws {PageFurnitureOverflowError} when a header or footer band is taller
- * than the margin it is drawn in, naming the slot, the height and the margin.
+ * than the margin it is drawn in, naming the slot, the height and the margin,
+ * or when the stamp is taller than the sheet, naming the sheet's height.
+ * @throws {PageStampTooWideError} when the stamp has a word wider than the
+ * sheet, naming the sheet's width.
  * @throws {UnsupportedFurnitureError} when the chosen engine does not draw a
  * furniture slot the render declares, naming the adapter and the slot.
  */

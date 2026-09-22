@@ -430,8 +430,21 @@ Rules:
   `PageFurnitureOverflowError`, naming the slot, the height and the margin.
   With the default 48 px margin a band has about 28 px; widen `marginPx` for
   a taller one.
-- The `stamp` is drawn across the whole sheet, behind the content, and takes no
-  room in the margin.
+- The `stamp` is drawn across the whole sheet, centred on it and behind the
+  content, and takes no room in the margin. A stamp taller than the sheet (for
+  example text so large it wraps many times) fails with
+  `PageFurnitureOverflowError` naming the `stamp` slot and the sheet's height,
+  and a stamp with a word wider than the sheet fails with
+  `PageStampTooWideError`. Both are measured before any rotation, so keep a
+  rotated stamp well inside the sheet.
+- A draft watermark is a light, large stamp turned with `-rotate-45`, which is
+  in the verified vocabulary (see [safe-classes.md](./safe-classes.md)):
+
+  ```tsx
+  const furniture = {
+    stamp: <span className="-rotate-45 text-9xl font-bold text-neutral-200">DRAFT</span>,
+  };
+  ```
 - Furniture renders **outside** the document's artifact binding, so a slot
   cannot use `Field` or name a path. Pass what it prints in as props.
 - Every class in a slot is checked against the verified vocabulary exactly as

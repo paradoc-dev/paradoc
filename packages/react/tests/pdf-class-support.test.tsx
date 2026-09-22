@@ -77,7 +77,23 @@ const inline = (tw: string): ReactNode => (
   </div>
 );
 
-const HARNESSES: Record<ProbeHarness, (tw: string) => ReactNode> = { layout, narrow, text, inline };
+/**
+ * A page stamp: a line of large text centred on a layer, with the class on the
+ * text itself, which is where a watermark's rotation goes.
+ */
+const stamp = (tw: string): ReactNode => (
+  <div tw="flex items-center justify-center" style={{ width: 600, height: 400 }}>
+    <span tw={`text-6xl text-neutral-300 ${tw}`}>DRAFT</span>
+  </div>
+);
+
+const HARNESSES: Record<ProbeHarness, (tw: string) => ReactNode> = {
+  layout,
+  narrow,
+  text,
+  inline,
+  stamp,
+};
 
 async function bytes(element: ReactNode): Promise<Buffer> {
   return Buffer.from(
@@ -219,17 +235,16 @@ describe("classes the specification asked to re-probe, still excluded on takumi"
 });
 
 /**
- * `rotate-*` is probed here for the watermark ticket
- * (`ticket:stamp-every-page-with-a-watermark`), which needs to know whether
- * rotation is available before it designs the stamp's family and harness.
- * takumi honours it — this only records the finding; admitting `rotate-*` to
- * `SUPPORTED_CLASS_FAMILIES` is that ticket's decision to make, alongside its
- * own probe of the values a stamp actually needs.
+ * The family probe shows `-rotate-45` changes the page. A stamp turned the
+ * other way has to change it differently, or the engine is drawing one fixed
+ * turn for any rotation and the class would be a silent loss in one direction.
  */
-describe("rotate-45, probed for the watermark ticket and not admitted here", () => {
-  it("changes the PDF on takumi", async () => {
-    const base = await bytes(layout(""));
-    const probed = await bytes(layout("rotate-45"));
-    expect(probed.equals(base)).toBe(false);
+describe("rotation, probed as a stamp", () => {
+  it("draws rotate-45 and -rotate-45 as two different pages", async () => {
+    const [clockwise, anticlockwise] = await Promise.all([
+      bytes(stamp("rotate-45")),
+      bytes(stamp("-rotate-45")),
+    ]);
+    expect(clockwise.equals(anticlockwise)).toBe(false);
   }, 60_000);
 });

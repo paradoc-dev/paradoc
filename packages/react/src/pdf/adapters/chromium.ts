@@ -48,7 +48,11 @@ import {
   type PdfRenderResult,
   type PreparedPdfInput,
 } from "../adapter";
-import { PAGE_COUNTER_ATTRIBUTE, type FurnitureBandSlot } from "../../lib/furniture";
+import {
+  assertFurnitureStampFits,
+  PAGE_COUNTER_ATTRIBUTE,
+  type FurnitureBandSlot,
+} from "../../lib/furniture";
 import { imageFormat, type PdfFontFile } from "../resources";
 import { CONTINUED_LABEL_ATTRIBUTE, KEEP_ID_ATTRIBUTE, KEEP_REPEAT_ATTRIBUTE } from "../tree";
 import {
@@ -57,7 +61,9 @@ import {
   CHROMIUM_COUNTER_CLASS,
   furnitureMarkup,
   prepareBandsInPage,
+  measureStampInPage,
   stampLayer,
+  STAMP_LAYER_ATTRIBUTE,
   type BandInput,
 } from "./chromium-furniture";
 import { chromiumStylesheets, cssPixelsToInches } from "./chromium-stylesheet";
@@ -430,6 +436,9 @@ export const chromiumAdapter: PdfAdapter = {
         throw new UnsupportedPdfContentError([], prepared.missingImages);
       }
       assertBandsFit(prepared.bands, input.geometry);
+      if (furniture.stamp !== undefined) {
+        assertFurnitureStampFits(await page.evaluate(measureStampInPage, STAMP_LAYER_ATTRIBUTE), input.geometry);
+      }
 
       const template = {
         css: stylesheets.content,

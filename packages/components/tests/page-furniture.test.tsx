@@ -72,6 +72,16 @@ describe("every sheet of a paginated preview", () => {
     }
   });
 
+  it("carries a rotated stamp on every sheet with its rotation intact", () => {
+    const rotated = <span className="-rotate-45 text-9xl">{STAMP}</span>;
+    for (let index = 0; index < plan.pages.length; index++) {
+      const stamps = sheet(index, { stamp: rotated }).querySelectorAll("[data-page-stamp]");
+      expect(stamps).toHaveLength(1);
+      expect(stamps[0]!.textContent).toBe(STAMP);
+      expect(stamps[0]!.firstElementChild?.classList.contains("-rotate-45")).toBe(true);
+    }
+  });
+
   it("draws the bands inside the sheet, not in the content flow", () => {
     const page = sheet(0, furniture);
     const band = page.querySelector<HTMLElement>("[data-page-header]")!;

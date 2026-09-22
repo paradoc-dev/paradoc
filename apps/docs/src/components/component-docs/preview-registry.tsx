@@ -48,6 +48,7 @@ import {
   PageNumberVariantNumberOnly,
   PagesDemo,
   PagesVariantCustomFrame,
+  PagesVariantDraftWatermark,
   PagesVariantMultiPage,
   PagesVariantPageCount,
   PagesVariantPageFurniture,
@@ -184,6 +185,7 @@ export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> =
   pages: {
     "multi-page": PagesVariantMultiPage,
     "page-furniture": PagesVariantPageFurniture,
+    "draft-watermark": PagesVariantDraftWatermark,
     "custom-frame": PagesVariantCustomFrame,
     "page-count": PagesVariantPageCount,
   },

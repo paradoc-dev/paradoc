@@ -21,7 +21,10 @@
  * rides takumi's header band. It is printed as a fixed-position layer inside
  * the document instead, which Blink repeats on every printed page, sized to the
  * whole sheet and set behind the content. It takes no room in the flow, so the
- * page plan and the page count are what they are without it.
+ * page plan and the page count are what they are without it. It is measured as
+ * it lays out at the sheet's width, and a stamp taller than the sheet, or with
+ * a word wider than it, is refused by name rather than cut off at the paper's
+ * edge on every page.
  *
  * Every band is measured in the printed document before the print, with the
  * document's own faces and images, and a band taller than the margin is refused
@@ -38,6 +41,7 @@ import {
   type FurnitureBandSlot,
   type PageCounter,
   type PageFurniture,
+  type StampMeasure,
 } from "../../lib/furniture";
 import type { PdfPageGeometry } from "../adapter";
 
@@ -84,6 +88,9 @@ export function furnitureMarkup(furniture: PageFurniture | undefined): Furniture
   return markup;
 }
 
+/** The attribute the stamp's layer is marked with in the printed document. */
+export const STAMP_LAYER_ATTRIBUTE = "data-page-stamp";
+
 /**
  * The stamp's layer, as markup inside the printed document.
  *
@@ -106,7 +113,38 @@ export function stampLayer(markup: string, geometry: PdfPageGeometry): string {
     "z-index: -1",
     "pointer-events: none",
   ].join("; ");
-  return `<div data-page-stamp="true" style="${style}">${markup}</div>`;
+  return `<div ${STAMP_LAYER_ATTRIBUTE}="true" style="${style}">${markup}</div>`;
+}
+
+/**
+ * Runs inside the page: the stamp laid out at the sheet's width, as it is and
+ * with every word allowed to break.
+ *
+ * The layer is fixed to the height of the sheet, so it is copied with its
+ * height left to its content and read there. A layout box, not a painted one:
+ * a rotation inside the stamp does not change it, which is the same box the
+ * default engine measures. Letting words break grows the copy only when a word
+ * is wider than the sheet. It is one self-contained function because
+ * `page.evaluate` sends its source to the browser.
+ */
+export function measureStampInPage(attribute: string): StampMeasure {
+  const layer = document.querySelector(`[${attribute}]`);
+  if (!(layer instanceof HTMLElement)) {
+    throw new Error("The printed document carries no stamp layer to measure.");
+  }
+  const probe = layer.cloneNode(true) as HTMLElement;
+  probe.removeAttribute(attribute);
+  probe.style.position = "absolute";
+  probe.style.top = "0";
+  probe.style.left = "0";
+  probe.style.height = "auto";
+  probe.style.visibility = "hidden";
+  document.body.append(probe);
+  const heightPx = probe.getBoundingClientRect().height;
+  probe.style.overflowWrap = "anywhere";
+  const brokenHeightPx = probe.getBoundingClientRect().height;
+  probe.remove();
+  return { heightPx, brokenHeightPx };
 }
 
 /** One band to prepare in the page, by slot. */

@@ -21,6 +21,13 @@ export interface ReadItem {
   leftPx: number;
   /** Distance from the page's top edge to the run's baseline, in CSS pixels. */
   topPx: number;
+  /** The run's advance along its baseline, in CSS pixels. */
+  widthPx: number;
+  /**
+   * The angle the run's baseline rises at, in degrees anticlockwise as a reader
+   * sees the page: 0 for level text, 45 for a watermark rising to the right.
+   */
+  angleDeg: number;
 }
 
 export interface ReadPage {
@@ -67,6 +74,8 @@ export async function readPdf(bytes: Uint8Array): Promise<ReadPage[]> {
               text: item.str,
               leftPx: item.transform[4] / PT_PER_PX,
               topPx: (viewport.height - item.transform[5]) / PT_PER_PX,
+              widthPx: item.width / PT_PER_PX,
+              angleDeg: (Math.atan2(item.transform[1], item.transform[0]) * 180) / Math.PI,
             }]
           : []
       );

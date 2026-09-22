@@ -167,6 +167,7 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
   pages: [
     { key: "multi-page", file: "pages-variant-multi-page.tsx" },
     { key: "page-furniture", file: "pages-variant-page-furniture.tsx" },
+    { key: "draft-watermark", file: "pages-variant-draft-watermark.tsx" },
     { key: "custom-frame", file: "pages-variant-custom-frame.tsx" },
     { key: "page-count", file: "pages-variant-page-count.tsx" },
   ],

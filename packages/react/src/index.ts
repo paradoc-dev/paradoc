@@ -67,6 +67,7 @@ export {
 // shared by the preview's bands and the PDF path's, so neither owns them.
 export {
   assertFurnitureBandFits,
+  assertFurnitureStampFits,
   assertFurnitureSupported,
   declaredFurnitureSlots,
   furnitureBandBudgetPx,
@@ -75,12 +76,15 @@ export {
   FURNITURE_SLOTS,
   PAGE_COUNTER_ATTRIBUTE,
   PageFurnitureOverflowError,
+  PageStampTooWideError,
   UnsupportedFurnitureContentError,
   UnsupportedFurnitureError,
   type FurnitureBandSlot,
+  type FurnitureFit,
   type FurnitureSlot,
   type PageCounter,
   type PageFurniture,
+  type StampMeasure,
 } from "./lib/furniture";
 export {
   useFitToWidth,

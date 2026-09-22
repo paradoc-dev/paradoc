@@ -30,6 +30,10 @@
  * engine paints the band before the content, which is what puts a watermark
  * behind the text rather than over it. The band that carries it is stretched to
  * the height of the paper, because a band clips what overflows it.
+ *
+ * The stamp is measured too, as it lays out at the sheet's width, and a stamp
+ * taller than the sheet, or with a word wider than it, is refused by name: it
+ * would be cut off at the paper's edge on every page.
  */
 
 import type { Node } from "@takumi-rs/helpers";
@@ -38,6 +42,7 @@ import type { ReactNode } from "react";
 
 import {
   assertFurnitureBandFits,
+  assertFurnitureStampFits,
   FURNITURE_EDGE_INSET_PX,
   PAGE_COUNTER_ATTRIBUTE,
   type FurnitureBandSlot,
@@ -64,7 +69,7 @@ export interface TranslatedFurniture {
   header?: BandNode;
   /** The bottom band. */
   footer?: BandNode;
-  /** The whole-sheet layer a stamp is drawn on. */
+  /** The stamp's content, which is drawn on a whole-sheet layer once it is measured. */
   stamp?: Node;
   /** Classes outside the verified vocabulary, unique and in document order. */
   unsupportedClasses: string[];
@@ -133,27 +138,44 @@ function band(content: Node, geometry: PdfPageGeometry): BandNode {
 }
 
 /**
+ * The stamp's content, centred both ways on a row the width of the sheet.
+ *
+ * Measured as it is, this answers the height the stamp lays out to, which is
+ * what has to fit on the sheet. The layer the engine draws is this row, sized
+ * and placed; the two share one definition so they cannot lay out apart.
+ */
+function stampRow(content: Node, geometry: PdfPageGeometry): BandNode {
+  return {
+    type: "container",
+    tagName: "div",
+    style: {
+      width: geometry.widthPx,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    children: [content],
+  };
+}
+
+/**
  * The whole-sheet layer a stamp is drawn on.
  *
  * `top` pulls the layer back up by the inset the band itself sits at, so the
  * layer covers the paper rather than the paper minus that inset, and the stamp
  * inside it is centred on the page.
  */
-function stampLayer(content: Node, geometry: PdfPageGeometry): Node {
+function stampLayer(content: Node, geometry: PdfPageGeometry): BandNode {
+  const row = stampRow(content, geometry);
   return {
-    type: "container",
-    tagName: "div",
+    ...row,
     style: {
+      ...row.style,
       position: "absolute",
       top: -FURNITURE_EDGE_INSET_PX,
       left: 0,
-      width: geometry.widthPx,
       height: geometry.heightPx,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
     },
-    children: [content],
   };
 }
 
@@ -198,10 +220,7 @@ export async function translateFurniture(
     translated.footer = band(await translateSlot(furniture.footer, translated, options), options.geometry);
   }
   if (furniture.stamp !== undefined) {
-    translated.stamp = stampLayer(
-      await translateSlot(furniture.stamp, translated, options),
-      options.geometry
-    );
+    translated.stamp = await translateSlot(furniture.stamp, translated, options);
   }
   return translated;
 }
@@ -225,7 +244,7 @@ export interface FurnitureBands {
  * in, and a document with a stamp and no header gets a band whose only child
  * takes no room.
  *
- * @throws {PageFurnitureOverflowError} naming the slot, its height and the margin.
+ * @throws {PageFurnitureOverflowError} naming the slot, its height and the room it had.
  */
 export async function measureFurnitureBands(
   translated: TranslatedFurniture,
@@ -243,17 +262,39 @@ export async function measureFurnitureBands(
     bands[slot] = node;
   }
   if (translated.stamp !== undefined) {
-    const header = bands.header ?? band({ type: "container", tagName: "div" }, geometry);
+    const row = stampRow(translated.stamp, geometry);
+    assertFurnitureStampFits(
+      {
+        heightPx: await measure(row),
+        // Inherited by the text, so a word wider than the sheet breaks and
+        // the row grows; nothing else in the stamp moves.
+        brokenHeightPx: await measure({ ...row, style: { ...row.style, overflowWrap: "anywhere" } }),
+      },
+      geometry
+    );
     bands.header = {
-      ...header,
-      // The band clips what overflows it, and a band is a line or two tall, so a
-      // whole-sheet layer inside one is drawn and then cut away to nothing. The
-      // band that carries the stamp is therefore given the height of the paper.
-      // It is measured before this, so the running head still answers for its
-      // own height against the margin, and the engine's content box is fixed by
-      // the page margin rather than by a band, so nothing moves.
-      style: { ...header.style, height: geometry.heightPx },
-      children: [translated.stamp, ...(header.children ?? [])],
+      type: "container",
+      tagName: "div",
+      style: {
+        position: "relative",
+        // A column, so the layer is taken out of the flow. Without it, the
+        // engine lays the layer out in line with a sibling that is a bare span
+        // or an empty box: the stamp lands in the page's top corner and its
+        // rotation is dropped. `tests/pdf-stamp.test.tsx` holds it centred.
+        display: "flex",
+        flexDirection: "column",
+        // The band clips what overflows it, and a band is a line or two tall, so
+        // a whole-sheet layer inside one is drawn and then cut away to nothing.
+        // The band that carries the stamp is therefore given the height of the
+        // paper. The running head keeps its own band inside it, measured above
+        // against the margin, and the engine's content box is fixed by the page
+        // margin rather than by a band, so nothing moves.
+        height: geometry.heightPx,
+      },
+      children: [
+        stampLayer(translated.stamp, geometry),
+        ...(bands.header === undefined ? [] : [bands.header]),
+      ],
     };
   }
   return bands;

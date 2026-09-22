@@ -68,6 +68,13 @@ const layout = (className: string): ReactNode => (
   </div>
 );
 
+/** A page stamp: a line of large text centred on a layer, the class on the text. */
+const stamp = (className: string): ReactNode => (
+  <div className="flex items-center justify-center" style={{ width: 600, height: 400 }}>
+    <span className={`text-6xl text-neutral-300 ${className}`}>DRAFT</span>
+  </div>
+);
+
 async function bytes(element: ReactNode): Promise<Buffer> {
   const { bytes: rendered } = await renderPdf(element, { adapter: "chromium" });
   return Buffer.from(rendered);
@@ -112,11 +119,10 @@ describe.skipIf(skipped)("the re-probed classes against the Chromium adapter", (
     expect(probed.equals(base)).toBe(false);
   }, 120_000);
 
-  // Recorded for `ticket:stamp-every-page-with-a-watermark`, same as the
-  // takumi side of this probe: Chromium honours it too, so both engines agree
-  // rotation is available. Admitting `rotate-*` is still that ticket's call.
-  it("rotate-45 changes the PDF, for the watermark ticket's record", async () => {
-    const [base, probed] = await Promise.all([bytes(layout("")), bytes(layout("rotate-45"))]);
+  // Rotation is admitted for the page stamp, so it is probed here in the
+  // stamp's own shape, as it is on takumi: large text centred on a layer.
+  it.each(["-rotate-45", "rotate-45"] as const)("%s changes the PDF, and is admitted", async (name) => {
+    const [base, probed] = await Promise.all([bytes(stamp("")), bytes(stamp(name))]);
     expect(probed.equals(base)).toBe(false);
   }, 120_000);
 });

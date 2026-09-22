@@ -33,6 +33,7 @@ export { takumiAdapter } from "./adapters/takumi";
 // surface that produces the bytes it stands in front of.
 export {
   assertFurnitureBandFits,
+  assertFurnitureStampFits,
   assertFurnitureSupported,
   declaredFurnitureSlots,
   furnitureBandBudgetPx,
@@ -41,12 +42,15 @@ export {
   FURNITURE_SLOTS,
   PAGE_COUNTER_ATTRIBUTE,
   PageFurnitureOverflowError,
+  PageStampTooWideError,
   UnsupportedFurnitureContentError,
   UnsupportedFurnitureError,
   type FurnitureBandSlot,
+  type FurnitureFit,
   type FurnitureSlot,
   type PageCounter,
   type PageFurniture,
+  type StampMeasure,
 } from "../lib/furniture";
 export { withDrawnPaper, withTokenOverride } from "./token-override";
 export {

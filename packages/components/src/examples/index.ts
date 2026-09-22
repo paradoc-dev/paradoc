@@ -171,6 +171,7 @@ export { PagesVariantMultiPage } from "./pages-variant-multi-page";
 export { PagesVariantCustomFrame } from "./pages-variant-custom-frame";
 export { PagesVariantPageCount } from "./pages-variant-page-count";
 export { PagesVariantPageFurniture } from "./pages-variant-page-furniture";
+export { PagesVariantDraftWatermark } from "./pages-variant-draft-watermark";
 export { PageNumberDemo } from "./page-number-demo";
 export { PageNumberVariantNumberOnly } from "./page-number-variant-number-only";
 export { PageNumberVariantCustomWording } from "./page-number-variant-custom-wording";

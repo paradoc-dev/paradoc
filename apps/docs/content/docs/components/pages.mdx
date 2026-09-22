@@ -70,6 +70,12 @@ margin leaves it fails the render by name, saying which slot, how tall it laid
 out, and how much margin it had; widen the document's `marginPx` token or
 shorten the band.
 
+The stamp is drawn across the whole sheet, centred on it and behind the
+content, so it takes no room in the margin. Its limit is the sheet itself: a
+stamp that lays out taller than the paper, or with a word wider than it, fails
+by name rather than being cut off at the paper's edge on every page. It is
+measured before any rotation.
+
 Furniture is drawn around the document rather than inside it, so it cannot
 read a field path. Pass what it prints in as props.
 
@@ -99,6 +105,15 @@ behind the content, all drawn inside the margin, so the page count is the one
 the same document has without them.
 
 <ComponentVariant name="pages" variant="page-furniture" />
+
+## Draft watermark
+
+A `stamp` of large, light text turned with `-rotate-45` says DRAFT across
+every sheet, rising from the bottom left. Rotation is in the verified class
+vocabulary, so both PDF engines draw the stamp turned and centred as the
+preview does.
+
+<ComponentVariant name="pages" variant="draft-watermark" />
 
 ## Custom frame
 

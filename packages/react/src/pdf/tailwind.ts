@@ -43,10 +43,12 @@
  * Chromium renders every one of the re-probed classes, admitted or not (its
  * own sibling file, `tests/pdf-class-support-chromium.test.tsx`), which is
  * expected: it is a real browser compiling real Tailwind CSS, so a gap here is
- * always takumi's, never the class's. `rotate-*` was probed at the same time,
- * for `ticket:stamp-every-page-with-a-watermark`: both engines honour it, but
- * it is not admitted here — that ticket owns the family and the harness a
- * stamp actually needs.
+ * always takumi's, never the class's.
+ *
+ * **Rotation** is admitted for the page stamp, and probed in the shape a stamp
+ * takes: a line of large text centred on a layer, rotated where it sits (the
+ * `stamp` harness). Both engines draw it turned about its centre, which
+ * `tests/pdf-stamp.test.tsx` reads back from each engine's text matrix.
  *
  * The spacing, sizing and border-width scales are Tailwind v4's open numeric
  * scales rather than v3's fixed steps, because the engine honours `p-13`,
@@ -115,9 +117,10 @@ const NON_UTILITY_CLASSES = new Set(["paradoc-document", "paradoc-ltr-isolate"])
  * container to the text inside it — `text-decoration` is one such property,
  * discovered when the 2026-09 re-probe first tried `text` for it and got a
  * false negative. `inline` applies the class directly to the text-bearing
- * element instead.
+ * element instead. `stamp` is a page stamp: a line of large text centred on a
+ * layer, with the class on the text.
  */
-export type ProbeHarness = "layout" | "narrow" | "text" | "inline";
+export type ProbeHarness = "layout" | "narrow" | "text" | "inline" | "stamp";
 
 /** One verified family of utilities. */
 export interface ClassFamily {
@@ -261,6 +264,12 @@ export const SUPPORTED_CLASS_FAMILIES: readonly ClassFamily[] = [
     pattern: /^(?:underline|line-through|overline|no-underline)$/,
     probe: "underline",
     harness: "inline",
+  },
+  {
+    name: "rotation",
+    pattern: /^-?rotate-(?:0|1|2|3|6|12|45|90|180)$/,
+    probe: "-rotate-45",
+    harness: "stamp",
   },
   {
     name: "text colour",

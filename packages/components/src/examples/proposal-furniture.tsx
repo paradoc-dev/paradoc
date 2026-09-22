@@ -12,7 +12,8 @@ import { PageNumber } from "../components/page-number";
  * so a furnished document is measured on the page it is drawn on. It carries
  * all three slots: a running head with text at both ends of the band, a foot
  * whose page number the engine fills, and a stamp dark enough that the
- * suite's comparison sees it rather than reading it as paper.
+ * suite's comparison sees it rather than reading it as paper, turned the way
+ * the documented draft watermark is.
  */
 
 /** The firm the running head names. */
@@ -48,6 +49,8 @@ export function proposalFurniture({ footerLabel = "Page" }: ProposalFurnitureOpt
         <PageNumber label={footerLabel} />
       </div>
     ),
-    stamp: <span className="text-6xl font-semibold text-neutral-300">{PROPOSAL_FURNITURE_STAMP}</span>,
+    stamp: (
+      <span className="-rotate-45 text-6xl font-semibold text-neutral-300">{PROPOSAL_FURNITURE_STAMP}</span>
+    ),
   };
 }

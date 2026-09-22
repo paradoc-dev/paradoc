@@ -53,6 +53,7 @@ until it is added and verified upstream in `@paradoc/react`.
 | Text alignment | `text-left`, `text-center`, `text-right`, `text-justify`, `text-start`, `text-end` |
 | Text truncation | `truncate` |
 | Text decoration | `underline`, `line-through`, `overline`, `no-underline` |
+| Rotation | `rotate-45`, `-rotate-45`, and the other steps `0`, `1`, `2`, `3`, `6`, `12`, `90`, `180` either way |
 | Text colour | `text-neutral-500`, `text-<palette>-<50..950>`, `text-black`, `text-white` |
 | Background colour | `bg-white`, `bg-<palette>-<50..950>` |
 | Opacity | `opacity-50`, `opacity-100` |
@@ -63,6 +64,14 @@ until it is added and verified upstream in `@paradoc/react`.
 The spacing, sizing, and border-width scales are Tailwind v4's **open**
 numeric scale: `p-13`, `p-104`, `gap-15`, and `border-3` are all valid because
 the engine honours arbitrary numeric steps, not only v3's fixed set.
+
+**Rotation is meant for a page stamp** (see the furniture slots in
+[components.md](./components.md#furniture-slots)): `-rotate-45` turns a
+`DRAFT` watermark to rise across the sheet on both engines. It turns a box
+without moving it in the layout, so rotated content in the document flow can
+reach past its own keep; keep it to the stamp. Only Tailwind's
+named steps are admitted; `rotate-30` and `rotate-[30deg]` are not, and
+neither is `rotate-x-*` or `rotate-y-*`.
 
 **Fractions are limited to denominators 2, 3, 4, 5, 6, and 12** — `basis-1/2`,
 `w-2/3`, `h-5/6`, `basis-7/12`. A fraction with any other denominator

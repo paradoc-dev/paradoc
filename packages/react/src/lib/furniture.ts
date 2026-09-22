@@ -37,7 +37,7 @@ export interface PageFurniture {
   footer?: ReactNode;
   /**
    * Drawn across the whole of every page, behind the content: a watermark.
-   * It takes no room in the margin, so it has no height limit.
+   * It takes no room in the margin, so its only limit is the sheet itself.
    */
   stamp?: ReactNode;
 }
@@ -180,40 +180,85 @@ export function assertFurnitureSupported(
   if (undrawn.length > 0) throw new UnsupportedFurnitureError(adapter.name, undrawn, drawn);
 }
 
+/** What a slot laid out to, and the room it had. */
+export interface FurnitureFit {
+  /** The height the slot laid out to, in CSS pixels. */
+  heightPx: number;
+  /**
+   * The height the slot may take: a band's share of the margin, or the height
+   * of the sheet for the stamp.
+   */
+  budgetPx: number;
+  /** The document's margin, in CSS pixels. */
+  marginPx: number;
+}
+
 /**
- * A band that does not fit in the margin it is drawn in.
+ * Furniture that does not fit in the room it is drawn in.
  *
- * Drawing it anyway is the silent loss this package exists to rule out: the
+ * Drawing it anyway is the silent loss this package exists to rule out. The
  * engine does not reflow for a band, so an oversize header prints over the
- * first line of every page and the file still opens. The refusal names the
- * slot, the height the band needed, and the margin it had, because those three
- * are the whole decision — widen the margin or shorten the band.
+ * first line of every page and the file still opens. A stamp is drawn across
+ * the whole sheet, so one taller than the sheet is cut off at the paper's edge
+ * on every page. The refusal names the slot, the height it needed, and the
+ * room it had, because those are the whole decision.
  */
 export class PageFurnitureOverflowError extends Error {
   /** The slot that did not fit. */
-  readonly slot: FurnitureBandSlot;
-  /** The height the band laid out to, in CSS pixels. */
+  readonly slot: FurnitureSlot;
+  /** The height the slot laid out to, in CSS pixels. */
   readonly heightPx: number;
-  /** The height a band may take inside this margin. */
+  /**
+   * The height the slot may take: a band's share of the margin, or the height
+   * of the sheet for the stamp.
+   */
   readonly budgetPx: number;
   /** The document's margin, in CSS pixels. */
   readonly marginPx: number;
 
-  constructor(slot: FurnitureBandSlot, heightPx: number, marginPx: number) {
-    const budgetPx = furnitureBandBudgetPx(marginPx);
+  constructor(slot: FurnitureSlot, { heightPx, budgetPx, marginPx }: FurnitureFit) {
     super(
-      `The page furniture's ${slot} is ${heightPx} px tall and does not fit in this document's ` +
-        `${marginPx} px margin, which leaves ${budgetPx} px for a band once the ` +
-        `${FURNITURE_EDGE_INSET_PX} px inset from the paper's edge is taken. Furniture is drawn ` +
-        "inside the margin so the content budget and the page count do not change, so it cannot " +
-        `be given room by reflowing the page: either shorten the ${slot} or raise the document's ` +
-        "marginPx token."
+      slot === "stamp"
+        ? `The page furniture's stamp is ${heightPx} px tall and does not fit on this document's ` +
+            `${budgetPx} px sheet. The stamp is drawn across the whole sheet, so the part that ` +
+            "does not fit would be cut off at the paper's edge on every page: set the stamp " +
+            "smaller or shorten its text."
+        : `The page furniture's ${slot} is ${heightPx} px tall and does not fit in this document's ` +
+            `${marginPx} px margin, which leaves ${budgetPx} px for a band once the ` +
+            `${FURNITURE_EDGE_INSET_PX} px inset from the paper's edge is taken. Furniture is drawn ` +
+            "inside the margin so the content budget and the page count do not change, so it cannot " +
+            `be given room by reflowing the page: either shorten the ${slot} or raise the document's ` +
+            "marginPx token."
     );
     this.name = "PageFurnitureOverflowError";
     this.slot = slot;
     this.heightPx = heightPx;
     this.budgetPx = budgetPx;
     this.marginPx = marginPx;
+  }
+}
+
+/**
+ * A stamp with a word wider than the sheet it is drawn across.
+ *
+ * A word does not wrap, so it lays out on one line wider than the paper and is
+ * cut off at both edges on every page, however short the stamp is. The height
+ * check cannot see it, so it is refused on its own, naming the sheet's width.
+ */
+export class PageStampTooWideError extends Error {
+  /** The slot, which is always the stamp. */
+  readonly slot = "stamp" as const;
+  /** The sheet's width, in CSS pixels. */
+  readonly sheetWidthPx: number;
+
+  constructor(sheetWidthPx: number) {
+    super(
+      `The page furniture's stamp has a word wider than this document's ${sheetWidthPx} px sheet. ` +
+        "A word does not wrap, so it would be cut off at both edges of the paper on every page: " +
+        "set the stamp smaller or break the word."
+    );
+    this.name = "PageStampTooWideError";
+    this.sheetWidthPx = sheetWidthPx;
   }
 }
 
@@ -227,7 +272,44 @@ export function assertFurnitureBandFits(
   heightPx: number,
   marginPx: number
 ): void {
-  if (heightPx > furnitureBandBudgetPx(marginPx)) {
-    throw new PageFurnitureOverflowError(slot, heightPx, marginPx);
+  const budgetPx = furnitureBandBudgetPx(marginPx);
+  if (heightPx > budgetPx) throw new PageFurnitureOverflowError(slot, { heightPx, budgetPx, marginPx });
+}
+
+/** The stamp, laid out at the sheet's width twice. */
+export interface StampMeasure {
+  /** The height it lays out to, in CSS pixels. */
+  heightPx: number;
+  /**
+   * The height it lays out to when any word may break. Taller than
+   * `heightPx` only when a word did not fit the sheet's width.
+   */
+  brokenHeightPx: number;
+}
+
+/**
+ * Checks the measured stamp against the sheet it is drawn across.
+ *
+ * The stamp is measured as it lays out at the sheet's width, before any
+ * rotation, which is the box both engines and the preview centre on the
+ * sheet. Text that wraps grows taller, and a word that cannot wrap is found by
+ * letting it break and seeing the stamp grow. A rotation can still carry a box
+ * that fits past the sheet's corners; that is not measured.
+ *
+ * @throws {PageFurnitureOverflowError} naming the stamp, its height and the sheet's.
+ * @throws {PageStampTooWideError} when a word is wider than the sheet.
+ */
+export function assertFurnitureStampFits(
+  measured: StampMeasure,
+  geometry: { widthPx: number; heightPx: number; marginPx: number }
+): void {
+  const heightPx = Math.ceil(measured.heightPx);
+  if (heightPx > geometry.heightPx) {
+    throw new PageFurnitureOverflowError("stamp", {
+      heightPx,
+      budgetPx: geometry.heightPx,
+      marginPx: geometry.marginPx,
+    });
   }
+  if (Math.ceil(measured.brokenHeightPx) > heightPx) throw new PageStampTooWideError(geometry.widthPx);
 }

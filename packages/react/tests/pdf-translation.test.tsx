@@ -46,8 +46,17 @@ describe("the verified class vocabulary", () => {
 
   it("rejects a utility the probe suite never verified", () => {
     expect(isSupportedClass("grid-cols-3")).toBe(false);
-    expect(isSupportedClass("rotate-45")).toBe(false);
+    expect(isSupportedClass("skew-x-12")).toBe(false);
     expect(isSupportedClass("backdrop-blur-sm")).toBe(false);
+  });
+
+  it("admits Tailwind's rotation steps in both directions, and nothing between them", () => {
+    for (const name of ["rotate-45", "-rotate-45", "rotate-90", "-rotate-12", "rotate-0"]) {
+      expect(isSupportedClass(name), name).toBe(true);
+    }
+    for (const name of ["rotate-30", "rotate-[30deg]", "rotate-x-45", "-rotate-y-12"]) {
+      expect(isSupportedClass(name), name).toBe(false);
+    }
   });
 
   it("rejects every variant, because the engine has no state to vary on", () => {
