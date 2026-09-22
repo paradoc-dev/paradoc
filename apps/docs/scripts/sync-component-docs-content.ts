@@ -106,6 +106,7 @@ const DEMO_FILES: Record<string, string> = {
   field: "field-demo.tsx",
   "keep-together": "keep-together-demo.tsx",
   list: "list-demo.tsx",
+  "page-break": "page-break-demo.tsx",
   pages: "pages-demo.tsx",
   "page-number": "page-number-demo.tsx",
   paper: "paper-demo.tsx",
@@ -149,6 +150,10 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "unordered", file: "list-variant-unordered.tsx" },
     { key: "nested", file: "list-variant-nested.tsx" },
     { key: "roman", file: "list-variant-roman.tsx" },
+  ],
+  "page-break": [
+    { key: "before-a-section", file: "page-break-variant-before-a-section.tsx" },
+    { key: "inside-a-tables-rows", file: "page-break-variant-inside-a-tables-rows.tsx" },
   ],
   pages: [
     { key: "multi-page", file: "pages-variant-multi-page.tsx" },
@@ -279,6 +284,7 @@ const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> 
   // each level from; it is internal, so the item's own `ListProps` backs the
   // table and the `ListItem` shape is covered in the page's Composition prose.
   list: { file: "list.tsx", interfaceName: "ListProps" },
+  "page-break": { file: "page-break.tsx", interfaceName: "PageBreakProps" },
   pages: { file: "pages.tsx", interfaceName: "PagesProps" },
   "page-number": { file: "page-number.tsx", interfaceName: "PageNumberProps" },
   paper: { file: "paper.tsx", interfaceName: "PaperProps" },

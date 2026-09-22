@@ -59,6 +59,7 @@ export const COMPONENT_ITEMS = [
   'field',
   'keep-together',
   'list',
+  'page-break',
   'page-number',
   'pages',
   'paper',

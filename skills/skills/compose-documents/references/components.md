@@ -375,6 +375,30 @@ image, a custom banner) — never wrap it around a `Field`, `Table`, or another
 <KeepTogether as="img" keepId="logo" src={logoSrc} alt="" width={40} height={40} className="h-10 w-10" />
 ```
 
+### `PageBreak`
+
+A `KeepTogether` with no content: starts a new page at its position and
+occupies no height of its own in either output — a flex flow around it
+still puts its own gap where the break sits. The plan opens a page there
+the same way it opens one for an overflowing keep, so an orphaned table
+header still carries forward ahead of it rather than being stranded.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `keepId` | `string` | Stable id, like any other `KeepTogether`. |
+| `table` | `string?` | Set to the id a hand-built table's rows carry when the break sits between two of them, so the table's header still repeats on the page it opens. Omit it for a break anywhere else. |
+
+```tsx
+<Section id="summary" title="Summary">…</Section>
+<PageBreak keepId="signature-page" />
+<Section id="signature" title="Signature">…</Section>
+```
+
+`Table` generates its own rows from a bound list and cannot be interrupted
+this way; a table a break needs to split is built directly with
+`KeepTogether`, the way `Table` itself is, and the break's `table` names the
+same id the rows carry.
+
 ## Hooks a composition may call directly
 
 - `useDocumentTokens()` — the resolved branding (`accentColor`, `pageSize`,

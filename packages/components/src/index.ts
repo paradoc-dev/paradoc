@@ -3,6 +3,7 @@ export { Document, type DocumentProps } from "./components/document";
 export { Field, type FieldProps } from "./components/field";
 export { KeepTogether, type KeepTogetherProps } from "./components/keep-together";
 export { List, type ListItem, type ListMarker, type ListProps } from "./components/list";
+export { PageBreak, type PageBreakProps } from "./components/page-break";
 export { Page, Pages, type PageProps, type PagesProps } from "./components/pages";
 export { PageNumber, type PageNumberProps } from "./components/page-number";
 export {

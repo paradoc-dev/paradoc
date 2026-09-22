@@ -34,6 +34,9 @@ import {
   ListVariantNested,
   ListVariantRoman,
   ListVariantUnordered,
+  PageBreakDemo,
+  PageBreakVariantBeforeASection,
+  PageBreakVariantInsideATablesRows,
   PageNumberDemo,
   PageNumberVariantCustomWording,
   PageNumberVariantNumberOnly,
@@ -97,6 +100,7 @@ export const COMPONENT_DEMOS: Record<string, ComponentType> = {
   field: FieldDemo,
   "keep-together": KeepTogetherDemo,
   list: ListDemo,
+  "page-break": PageBreakDemo,
   pages: PagesDemo,
   "page-number": PageNumberDemo,
   paper: PaperDemo,
@@ -151,6 +155,10 @@ export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> =
     unordered: ListVariantUnordered,
     nested: ListVariantNested,
     roman: ListVariantRoman,
+  },
+  "page-break": {
+    "before-a-section": PageBreakVariantBeforeASection,
+    "inside-a-tables-rows": PageBreakVariantInsideATablesRows,
   },
   pages: {
     "multi-page": PagesVariantMultiPage,

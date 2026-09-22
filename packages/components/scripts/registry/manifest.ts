@@ -224,6 +224,16 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: [],
   },
   {
+    name: "page-break",
+    type: "registry:ui",
+    title: "Page Break",
+    description:
+      "Starts a new page at its position and occupies no height of its own. The plan opens a page there in both outputs, and a table's header still repeats on the page it opens.",
+    files: [component("page-break")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    registryDependencies: ["keep-together"],
+  },
+  {
     name: "document",
     type: "registry:ui",
     title: "Document",

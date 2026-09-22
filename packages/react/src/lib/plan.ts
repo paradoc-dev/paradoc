@@ -44,6 +44,13 @@ export interface MeasuredKeep {
   table?: string;
   /** True when this keep is its table's repeatable header. */
   tableHeader?: boolean;
+  /**
+   * Set by an explicit `PageBreak`: this keep must open a fresh page even
+   * though it would otherwise fit on the current one. The keep still carries
+   * no height of its own — the flow ordering, not a forced height, is what
+   * moves everything after it.
+   */
+  breakBefore?: "page";
 }
 
 /** A keep that does not fit the page opened for it. */
@@ -136,7 +143,13 @@ export function planPages(keeps: readonly MeasuredKeep[], budget: number): PageP
    */
   const charges = new Map<string, number>();
   for (const [table, header] of headers) {
-    const firstRow = keeps.find((keep) => keep.table === table && !keep.tableHeader);
+    // An explicit break named for this table (see `PageBreak`'s `table` prop)
+    // is not a row: it must never stand in for the real first row here, or a
+    // break placed directly after a header would charge the gap to the break
+    // instead of to the row the copy actually sits above.
+    const firstRow = keeps.find(
+      (keep) => keep.table === table && !keep.tableHeader && keep.breakBefore === undefined
+    );
     const gap = firstRow ? Math.max(0, firstRow.top - header.bottom) : 0;
     charges.set(table, header.bottom - header.top + gap);
   }
@@ -196,7 +209,13 @@ export function planPages(keeps: readonly MeasuredKeep[], budget: number): PageP
   };
 
   for (const keep of keeps) {
-    if (current === null || keep.bottom - origin > budget) current = openPage(keep);
+    // An explicit break forces the same fresh-page path an overflowing keep
+    // takes: `openPage` decides what carries or repeats onto it exactly as it
+    // would for a natural break, so a break landing on an orphaned table
+    // header or inside a table's rows is handled the one way, not two.
+    if (current === null || keep.bottom - origin > budget || keep.breakBefore === "page") {
+      current = openPage(keep);
+    }
     current.keeps.push(keep.id);
 
     const used = keep.bottom - origin;

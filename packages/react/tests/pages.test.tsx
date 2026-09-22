@@ -12,6 +12,8 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { KeepTogether } from "../../components/src/components/keep-together";
+import { PageBreak } from "../../components/src/components/page-break";
 import { Page } from "../../components/src/components/pages";
 import { ProposalDocument, overflowProposalData, shortProposalData } from "../../components/src/examples";
 import { measureKeeps } from "../src/lib/measure";
@@ -278,5 +280,48 @@ describe("the short set fits one page", () => {
     expect(single.pages).toHaveLength(1);
     expect(single.breaks).toEqual([]);
     expect(single.oversize).toEqual([]);
+  });
+});
+
+describe("an explicit page break in the preview", () => {
+  function BreakingComposition() {
+    return (
+      <>
+        <KeepTogether keepId="intro">Intro</KeepTogether>
+        <PageBreak keepId="the-break" />
+        <KeepTogether keepId="after">After</KeepTogether>
+      </>
+    );
+  }
+
+  // Both keeps fit on one page together (400 total, well under the budget);
+  // only the break forces the second one onto a sheet of its own.
+  const host = parse(renderToStaticMarkup(<BreakingComposition />));
+  let y = 0;
+  const breakingKeeps: MeasuredKeep[] = measureKeeps(host).map((keep) => {
+    const laid = { ...keep, top: y, bottom: y + (keep.id === "the-break" ? 0 : 200) };
+    y = laid.bottom;
+    return laid;
+  });
+  const breakingPlan = planPages(breakingKeeps, BUDGET);
+
+  it("would otherwise fit on one page", () => {
+    expect(breakingKeeps.at(-1)!.bottom).toBeLessThan(BUDGET);
+  });
+
+  it("starts a fresh page at the break instead", () => {
+    expect(breakingPlan.pages).toEqual([["intro"], ["the-break", "after"]]);
+    expect(breakingPlan.breaks).toEqual(["the-break"]);
+  });
+
+  it("renders the sheet after the break starting with the next keep", () => {
+    const secondSheet = parse(
+      renderToStaticMarkup(
+        <Page plan={breakingPlan} index={1}>
+          <BreakingComposition />
+        </Page>
+      )
+    );
+    expect(idsOn(secondSheet)).toEqual(["the-break", "after"]);
   });
 });

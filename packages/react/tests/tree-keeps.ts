@@ -24,6 +24,20 @@ export interface TreeKeep {
   tableHeader: boolean;
 }
 
+/** Every node under `node`, itself included, in document order. */
+export function flattenNodes(node: Node): Node[] {
+  const found = [node];
+  if (node.type === "container" && node.children) {
+    for (const child of node.children) found.push(...flattenNodes(child));
+  }
+  return found;
+}
+
+/** The node carrying `data-keep-id={id}` in the resolved tree, if any. */
+export function nodeByKeepId(node: Node, id: string): Node | undefined {
+  return flattenNodes(node).find((each) => each.attributes?.["data-keep-id"] === id);
+}
+
 /** Every text run under `node`, joined. */
 export function textOf(node: Node): string {
   if (node.type === "text") return node.text;

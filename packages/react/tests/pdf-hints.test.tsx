@@ -17,15 +17,25 @@
  *   the preview's breaks.
  */
 
+import type { Node } from "@takumi-rs/helpers";
 import { fromJsx } from "@takumi-rs/helpers/jsx";
 import { beforeAll, describe, expect, it } from "vitest";
+import { KeepTogether } from "../../components/src/components/keep-together";
+import { PageBreak } from "../../components/src/components/page-break";
 import { ProposalDocument, overflowProposalData } from "../../components/src/examples";
 import { planPages, type MeasuredKeep, type PagePlan } from "../src/lib/plan";
 import { preparePdfTree, renderPdf, type PageBreakPlan } from "../src/pdf";
 import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";
 import { PREVIEW_PLAN } from "./preview-plan";
-import { normalizeText as normalize, treeKeeps } from "./tree-keeps";
+import { normalizeText as normalize, nodeByKeepId, textOf, treeKeeps } from "./tree-keeps";
+
+/** The node carrying `data-keep-id={id}` in the resolved tree. */
+function byKeepId(node: Node, id: string): Node {
+  const match = nodeByKeepId(node, id);
+  expect(match, `no keep "${id}" in the tree`).toBeDefined();
+  return match!;
+}
 
 const rows = overflowProposalData.fields.lineItems as { description: string }[];
 
@@ -316,5 +326,61 @@ describe("a copy the plan names for a page no break opens is still reported", ()
 
     expect(prepared.unknownRepeats).toEqual(["gone"]);
     expect(prepared.unknownBreaks).toEqual([]);
+  });
+});
+
+describe("an explicit page break", () => {
+  it("occupies no height and carries the plan's break style on its own keep", async () => {
+    const { node } = await fromJsx(
+      <div>
+        <KeepTogether keepId="before">Before</KeepTogether>
+        <PageBreak keepId="the-break" />
+        <KeepTogether keepId="after">After</KeepTogether>
+      </div>
+    );
+
+    // Nothing about the break's own markup grows the page: exactly `h-0`,
+    // and no text.
+    const raw = byKeepId(node, "the-break");
+    expect(raw.className).toBe("h-0");
+    expect(textOf(raw)).toBe("");
+    expect(raw.attributes?.["data-break-before"]).toBe("page");
+
+    const prepared = preparePdfTree(node, { plan: { breaks: ["the-break"], repeats: [[], []] } });
+    expect(prepared.unknownBreaks).toEqual([]);
+    expect(prepared.appliedBreaks).toEqual(["the-break"]);
+
+    const translated = byKeepId(prepared.node, "the-break");
+    expect(translated.style?.breakBefore).toBe("page");
+    expect(translated.style?.breakInside).toBe("avoid");
+  });
+
+  it("sets `data-table-row` from `table`, so the header-copy walk treats it like a row", async () => {
+    // What the composed "inside a table's rows" variant relies on: `table`
+    // makes the break's own resolved node indistinguishable from a real row
+    // to the header-copy machinery, which is what lets `plan.test.ts`'s
+    // "repeats a table's header on the page a break between its rows opens"
+    // hold once it is measured.
+    const { node } = await fromJsx(<PageBreak keepId="items:break" table="items" />);
+    expect(node.attributes?.["data-table-row"]).toBe("items");
+  });
+
+  it("splits a real PDF into two pages at the break, on the default engine", async () => {
+    // The PDF-path proof every new component ships with: real bytes, from
+    // the default (takumi) adapter, not just the translated node tree.
+    const result = await renderPdf(
+      <div>
+        <KeepTogether keepId="before">Before the break</KeepTogether>
+        <PageBreak keepId="the-break" />
+        <KeepTogether keepId="after">After the break</KeepTogether>
+      </div>,
+      { plan: { breaks: ["the-break"], repeats: [[], []] } }
+    );
+    expect(result.unknownBreaks).toEqual([]);
+
+    const pages = await readPdf(result.bytes);
+    expect(pages).toHaveLength(2);
+    expect(normalize(pages[0]!.text)).toBe(normalize("Before the break"));
+    expect(normalize(pages[1]!.text)).toBe(normalize("After the break"));
   });
 });

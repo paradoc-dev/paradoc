@@ -25,6 +25,7 @@ const DOCUMENTED_COMPONENTS = [
   'field',
   'keep-together',
   'list',
+  'page-break',
   'page-number',
   'pages',
   'paper',
@@ -97,6 +98,7 @@ test("pdf-pages' props table describes PdfPagesProps, not AttachmentProps", () =
 
 describe.each([
   'list',
+  'page-break',
   'page-number',
   'part',
   'pdf-pages',

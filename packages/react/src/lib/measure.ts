@@ -33,6 +33,7 @@ export function measureKeeps(root: HTMLElement): MeasuredKeep[] {
     const rect = node.getBoundingClientRect();
     const header = node.getAttribute("data-table-header");
     const row = node.getAttribute("data-table-row");
+    const breakBefore = node.getAttribute("data-break-before");
 
     return {
       id: node.getAttribute("data-keep-id") ?? "",
@@ -41,6 +42,7 @@ export function measureKeeps(root: HTMLElement): MeasuredKeep[] {
       sections: sectionChain(node, root),
       table: header ?? row ?? undefined,
       tableHeader: header !== null,
+      breakBefore: breakBefore === "page" ? "page" : undefined,
     };
   });
 }

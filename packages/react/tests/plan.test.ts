@@ -343,3 +343,79 @@ describe("sections follow their keeps", () => {
     expect(planPages(stack(keep("a", 100)), BUDGET).sections).toEqual([[]]);
   });
 });
+
+describe("an explicit page break", () => {
+  it("forces a new page even though the keep would otherwise fit", () => {
+    const plan = planPages(
+      stack(keep("a", 100), keep("b", 100, { breakBefore: "page" }), keep("c", 100)),
+      BUDGET
+    );
+    expect(plan.pages).toEqual([["a"], ["b", "c"]]);
+    expect(plan.breaks).toEqual(["b"]);
+  });
+
+  it("does not create an empty first page when the break is the first keep", () => {
+    const withBreak = planPages(
+      stack(keep("a", 100, { breakBefore: "page" }), keep("b", 100)),
+      BUDGET
+    );
+    // A leading break must be indistinguishable from no break at all: the
+    // same two keeps, planned with no `breakBefore`, are the control.
+    const withoutBreak = planPages(stack(keep("a", 100), keep("b", 100)), BUDGET);
+    expect(withBreak.pages).toEqual([["a", "b"]]);
+    expect(withBreak.breaks).toEqual([]);
+    expect(withBreak).toEqual(withoutBreak);
+  });
+
+  it("still carries an orphaned table header forward instead of stranding it", () => {
+    // The header ends up alone at the foot of the first page whether or not
+    // "b" carries an explicit break — the orphan rule fires either way, and
+    // the break must not steal the header's carried page for itself.
+    const plan = planPages(
+      stack(
+        keep("a", 400),
+        keep("items:header", 80, { table: "items", tableHeader: true }),
+        keep("b", 50, { breakBefore: "page" })
+      ),
+      600
+    );
+    expect(plan.pages).toEqual([["a"], ["items:header", "b"]]);
+    expect(plan.breaks).toEqual(["items:header"]);
+    expect(plan.repeats).toEqual([[], []]);
+  });
+
+  it("repeats a table's header on the page a break between its rows opens", () => {
+    const plan = planPages(
+      stack(
+        keep("items:header", 50, { table: "items", tableHeader: true }),
+        keep("items:0", 50, { table: "items" }),
+        keep("items:break", 0, { table: "items", breakBefore: "page" }),
+        keep("items:1", 50, { table: "items" })
+      ),
+      500
+    );
+    expect(plan.pages).toEqual([
+      ["items:header", "items:0"],
+      ["items:header", "items:break", "items:1"],
+    ]);
+    expect(plan.repeats).toEqual([[], ["items:header"]]);
+    expect(plan.breaks).toEqual(["items:break"]);
+  });
+
+  it("charges the gap to the first real row, not to a break standing where it would be", () => {
+    // A break named for "items" sits directly after its header, before any
+    // real row — the one position where it could be mistaken for the row
+    // the header-copy charge measures to. Getting this wrong under-charges
+    // every later continuation of the table and can let an oversize row
+    // pass unreported.
+    const plan = planPages(
+      stack(
+        keep("items:header", 100, { table: "items", tableHeader: true }),
+        keep("items:break", 0, { table: "items", breakBefore: "page", gap: 10 }),
+        keep("items:0", 200, { table: "items", gap: 40 })
+      ),
+      340
+    );
+    expect(plan.oversize).toEqual([{ id: "items:0", height: 350 }]);
+  });
+});

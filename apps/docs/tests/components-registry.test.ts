@@ -27,6 +27,7 @@ const referencePages = new Set([
   'field',
   'keep-together',
   'list',
+  'page-break',
   'page-number',
   'pages',
   'paper',

@@ -1,0 +1,63 @@
+---
+title: Page Break
+description: Starts a new page at its position, occupying no height of its own. The plan opens a page there in both outputs.
+---
+
+`PageBreak` is a `KeepTogether` that carries no content: the measuring pass
+reads its `data-break-before="page"` attribute and the plan opens a fresh
+page there, the same way it already opens one for a keep that overflows. The
+preview and the PDF read the same plan, so both start the next page in the
+same place.
+
+# Preview
+
+<ComponentPreview name="page-break" />
+
+# Installation
+
+<ComponentInstallation name="page-break" />
+
+# Usage
+
+<ComponentUsage name="page-break" />
+
+# Composition
+
+`PageBreak` needs a [`Document`](/components/document) above it like any
+other keep, and a [`Pages`](/components/pages) preview above that for the
+break to do anything: outside a paginated preview every keep renders, so an
+unpaginated `Paper` view or a bare render shows nothing different.
+
+It takes a required `keepId`, the same stable id every `KeepTogether` needs,
+and an optional `table`. Leave `table` unset for a break between two
+sections or two unrelated blocks. Set it to the same id a hand-built table's
+rows carry when the break sits between two of them — the plan then treats
+the break as belonging to that table, so the table's header still repeats
+above the row that follows the break, on the new page. [`Table`](/components/table)
+generates its own rows from a bound list and cannot be interrupted this way;
+a table a break needs to split is built directly with `KeepTogether`, the
+way `Table` itself is, and the break sets its own `table` to match.
+
+An orphaned table header — one the plan would otherwise carry forward alone
+to keep it off the foot of a page — still carries forward first: the break
+opens the page either way, so the header is never stranded.
+
+# Variants
+
+`PageBreak` takes `keepId` and an optional `table`.
+
+## Before a section
+
+Placed directly ahead of a [`Section`](/components/section), the break
+starts that section on a fresh page even though it would otherwise fit
+under the section before it.
+
+<ComponentVariant name="page-break" variant="before-a-section" />
+
+## Inside a table's rows
+
+Placed between two rows of a hand-built table and given the same `table` id
+the rows carry, the break still lets the table's header repeat above the
+row that follows it on the new page.
+
+<ComponentVariant name="page-break" variant="inside-a-tables-rows" />
