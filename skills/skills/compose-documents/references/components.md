@@ -1,6 +1,6 @@
 ---
 name: components
-description: The composition component vocabulary — Bundle, Document, Section, Field, Table, Totals, Signature, and the page furniture — with exact props.
+description: The composition component vocabulary — Bundle, Document, Section, Field, Table, Totals, Signature, QRCode, and the page furniture — with exact props.
 metadata:
   tags: components, props, react
 ---
@@ -26,8 +26,8 @@ way a render or a check does, not through a separate preview-only path.
 ## Document tree components
 
 These compose the artifact into content. Every one of them (except `Section`,
-`Bundle`, and `Document` themselves) is a `KeepTogether` leaf — see
-[pagination.md](./pagination.md).
+`Bundle`, and `Document` themselves, and `QRCode`, which carries no pagination
+unit) is a `KeepTogether` leaf — see [pagination.md](./pagination.md).
 
 ### `Bundle`
 
@@ -170,6 +170,30 @@ A party signing **and** initialling is two blocks:
 
 Two blocks for the same party and the same `type` throw
 `AmbiguousSigningMarkError` — one flow slot per type per party.
+
+### `QRCode`
+
+Links a document to a URL. The one component here that reads nothing from
+the artifact: it takes the URL directly and draws it as an inline SVG. takumi
+serializes that SVG straight into the PDF rather than rasterising it, so the
+code stays sharp at any output scale.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `url` | `string` | The URL the code encodes. |
+| `size` | `number?` | Width and height in pixels. Defaults to `128`. |
+| `color` | `string?` | Module colour. Defaults to `"#000000"`. |
+| `backgroundColor` | `string?` | Colour behind the modules. Defaults to `"#ffffff"`. |
+| `label` | `string?` | Accessible name for the SVG. Defaults to `` `QR code for ${url}` ``. |
+| `className` | `string?` | |
+
+```tsx
+<QRCode url={`https://docs.paradoc.dev/forms/${id}`} size={96} className="place-self-end" />
+```
+
+It needs no `Document` above it and carries no pagination unit of its own:
+it is not a `KeepTogether`. To hold it with the content beside it, wrap both
+in one.
 
 ## Page furniture
 

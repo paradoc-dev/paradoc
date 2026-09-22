@@ -64,6 +64,7 @@ export const COMPONENT_ITEMS = [
   'pdf-pages',
   'section',
   'signature',
+  'qr-code',
   'table',
   'totals',
   'priced-line-items',
