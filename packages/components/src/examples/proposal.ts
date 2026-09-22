@@ -277,6 +277,22 @@ export const proposalSpec = {
       },
     },
   },
+  annexes: {
+    sitePhoto: {
+      title: "Site photograph",
+      description: "A photograph of the yard the dispatch system is installed at.",
+      required: false,
+      visible: true,
+      order: 1,
+    },
+    surveyReport: {
+      title: "Survey report",
+      description: "The surveyor's own report, carried with the proposal rather than drawn in it.",
+      required: false,
+      visible: true,
+      order: 2,
+    },
+  },
   defaultLayer: PROPOSAL_REACT_LAYER,
   layers: {
     [PROPOSAL_REACT_LAYER]: {

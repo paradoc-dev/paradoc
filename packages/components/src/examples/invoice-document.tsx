@@ -25,6 +25,7 @@ import type { Form } from "@paradoc/types";
 import { Document } from "../components/document";
 import type { DocumentData } from "@paradoc/react";
 import { Field } from "../components/field";
+import { Image } from "../components/image";
 import { KeepTogether } from "../components/keep-together";
 import { Section } from "../components/section";
 import { Table } from "../components/table";
@@ -52,8 +53,7 @@ function IssuerMark() {
   return (
     // Decorative: the issuer is named beside it. The mark sits in the row
     // rather than above it so it costs the page no height.
-    <KeepTogether
-      as="img"
+    <Image
       keepId="logo"
       src={logo}
       alt=""

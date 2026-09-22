@@ -327,6 +327,16 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: ["keep-together"],
   },
   {
+    name: "image",
+    type: "registry:ui",
+    title: "Image",
+    description:
+      "A picture at a declared size, from its own bytes or from a source. The encoding is sniffed and one an engine cannot decode fails by name.",
+    files: [component("image")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    registryDependencies: ["keep-together"],
+  },
+  {
     name: "text",
     type: "registry:ui",
     title: "Text",
@@ -455,6 +465,7 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: [
       "document",
       "field",
+      "image",
       "keep-together",
       "priced-line-items",
       "pages",

@@ -23,6 +23,7 @@ const DOCUMENTED_COMPONENTS = [
   'bundle',
   'document',
   'field',
+  'image',
   'keep-together',
   'list',
   'page-break',
@@ -76,7 +77,7 @@ test("field's props table matches its real, currently-shipping props interface",
   // real, shipping paradoc/packages/components one): the two have already
   // diverged, so asserting the real shape here is meaningful, not tautological.
   const names = PROPS_TABLES.field?.map((prop) => prop.name).sort()
-  expect(names).toEqual(['className', 'label', 'path'])
+  expect(names).toEqual(['as', 'className', 'height', 'label', 'path', 'src', 'width'])
 })
 
 test("table's props table reads `columns` as the real component declares it", () => {
@@ -98,6 +99,7 @@ test("pdf-pages' props table describes PdfPagesProps, not AttachmentProps", () =
 })
 
 describe.each([
+  'image',
   'list',
   'page-break',
   'page-number',

@@ -15,6 +15,7 @@
  */
 
 import { computeLineAmounts, type LineItemInput } from "./line-items";
+import { sitePhotoAttachment, surveyReportAttachment } from "./sample-image";
 import type { RuntimeParty } from "@paradoc/types";
 
 import type { DocumentData } from "@paradoc/react";
@@ -151,6 +152,12 @@ function build(
     parties: {
       provider: { id: "provider-0", ...provider },
       customer: { id: "customer-0", ...customer },
+    },
+    // One slot holds a picture and one holds a PDF, which is what a composition
+    // asking to draw an attachment has to tell apart.
+    annexes: {
+      sitePhoto: sitePhotoAttachment,
+      surveyReport: surveyReportAttachment,
     },
   };
 }

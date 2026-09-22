@@ -1,6 +1,7 @@
 export { Bundle, type BundleProps } from "./components/bundle";
 export { Document, type DocumentProps } from "./components/document";
 export { Field, type FieldProps } from "./components/field";
+export { Image, type ImageProps } from "./components/image";
 export { KeepTogether, type KeepTogetherProps } from "./components/keep-together";
 export { List, type ListItem, type ListMarker, type ListProps } from "./components/list";
 export { PageBreak, type PageBreakProps } from "./components/page-break";

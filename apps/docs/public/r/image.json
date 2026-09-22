@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "image",
+  "type": "registry:ui",
+  "title": "Image",
+  "description": "A picture at a declared size, from its own bytes or from a source. The encoding is sniffed and one an engine cannot decode fails by name.",
+  "dependencies": [
+    "@paradoc/react@^0.5.0"
+  ],
+  "registryDependencies": [
+    "@paradoc/keep-together"
+  ],
+  "files": [
+    {
+      "path": "components/paradoc/image.tsx",
+      "type": "registry:ui",
+      "target": "components/paradoc/image.tsx",
+      "content": "/** @jsxRuntime classic */\nimport React from \"react\";\nimport { imageSource } from \"@paradoc/react\";\nimport { KeepTogether } from \"@/components/paradoc/keep-together\";\n\n/**\n * A picture placed in a document at a declared size.\n *\n * An image reaches both outputs as one source string. Bytes are embedded as a\n * `data:` URI after the encoding is sniffed, so the picture travels inside the\n * tree and neither output fetches anything; a `src` string is the key the PDF\n * path supplies bytes under and the URL a browser preview loads, which is why\n * the two agree on the key rather than on a URL.\n *\n * The size is declared rather than measured. Neither the preview nor the PDF\n * engine reads an image's intrinsic size during layout, so an image with no\n * declared width and height would take a different amount of the page in each\n * output, and the page plan the two share would stop agreeing.\n *\n * It is declared twice, as attributes and inline. The engine reads the\n * attributes; a browser does not, because Tailwind's preflight sets\n * `img { max-width: 100%; height: auto }` and an author rule beats a\n * presentational hint. Without the inline size the preview would draw the\n * picture at its own aspect ratio while the PDF drew it at the declared one,\n * which is the disagreement the declared size exists to prevent.\n */\n\nexport interface ImageProps {\n  /**\n   * Where the render loads the picture from: the key the PDF path supplies its\n   * bytes under, or a URL a browser preview can load. Ignored when `bytes` is\n   * given.\n   */\n  src?: string;\n  /** The picture's own bytes, embedded after the encoding is sniffed. Wins over `src`. */\n  bytes?: Uint8Array;\n  /** Rendered width in CSS pixels. */\n  width: number;\n  /** Rendered height in CSS pixels. */\n  height: number;\n  /**\n   * Accessible description. Leave it empty for a decorative mark the text\n   * beside it already names.\n   * @default \"\"\n   */\n  alt?: string;\n  /** Stable id the page plan tracks this image by; must be unique within the document. */\n  keepId: string;\n  /** Application-owned classes on the image. */\n  className?: string;\n}\n\n/**\n * One picture, kept together as its own pagination unit.\n *\n * @throws {UndecodableImageError} when `bytes` are not a PNG, JPEG, GIF, WebP or SVG.\n * @throws {MissingImageSourceError} when neither `bytes` nor `src` is given.\n */\nexport function Image({ src, bytes, width, height, alt = \"\", keepId, className }: ImageProps) {\n  return (\n    <KeepTogether\n      as=\"img\"\n      keepId={keepId}\n      src={imageSource({ src, bytes }, `image \"${keepId}\"`)}\n      alt={alt}\n      width={width}\n      height={height}\n      style={{ width, height }}\n      className={className}\n    />\n  );\n}\n"
+    }
+  ]
+}

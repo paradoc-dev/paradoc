@@ -12,6 +12,7 @@ import { createFormatter } from "@paradoc/format";
 
 import type { Form } from "@paradoc/types";
 
+import { Image } from "../components/image";
 import { KeepTogether } from "../components/keep-together";
 import { Bundle } from "../components/bundle";
 import { Document } from "../components/document";
@@ -46,8 +47,7 @@ function ProposalMark({ fallbackSrc }: { fallbackSrc: string }) {
   return (
     // Decorative: the organization is named beside it. The mark sits in the row
     // rather than above it so it costs the page no height.
-    <KeepTogether
-      as="img"
+    <Image
       keepId="logo"
       src={logo ?? fallbackSrc}
       alt=""

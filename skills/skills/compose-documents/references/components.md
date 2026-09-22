@@ -1,6 +1,6 @@
 ---
 name: components
-description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Party, Signature, QRCode, PageNumber, and the page furniture — with exact props.
+description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Party, Signature, Image, QRCode, PageNumber, and the page furniture — with exact props.
 metadata:
   tags: components, props, react
 ---
@@ -145,6 +145,10 @@ artifact's serializers. Never format a value yourself — pass the path and let
 |---|---|---|
 | `path` | `string` | Dotted path into the artifact, e.g. `customerAddress` or `lineItems.0.unitPrice`. |
 | `label` | `string \| false?` | Overrides the artifact's label. `false` renders the value with no heading. |
+| `as` | `"text" \| "image"?` | Defaults to `"text"`. `"image"` draws an attachment — see [`Image`](#image). |
+| `width` | `number?` | Rendered width in CSS pixels. Required by `as="image"`, whatever the slot holds. |
+| `height` | `number?` | Rendered height in CSS pixels. Required by `as="image"`, whatever the slot holds. |
+| `src` | `string?` | Where a browser preview loads an `as="image"` picture from. Defaults to the attachment's own file name. |
 | `className` | `string?` | |
 
 A path the artifact does not declare throws `UnknownFieldPathError` — it is
@@ -263,6 +267,46 @@ A party signing **and** initialling is two blocks:
 
 Two blocks for the same party and the same `type` throw
 `AmbiguousSigningMarkError` — one flow slot per type per party.
+
+### `Image`
+
+One picture at a declared size. `bytes` are sniffed for their encoding (PNG,
+JPEG, GIF, WebP, SVG) and embedded as a `data:` URI, so nothing is fetched;
+`src` is a key the PDF path supplies bytes under and a URL a browser preview
+loads, never rewritten by the component. Declare the size: neither output
+measures an image while it lays the page out.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `bytes` | `Uint8Array?` | The picture's own bytes. Wins over `src`. |
+| `src` | `string?` | Where the render loads the picture from. |
+| `width` | `number` | Rendered width in CSS pixels. |
+| `height` | `number` | Rendered height in CSS pixels. |
+| `alt` | `string?` | Accessible description. Defaults to `""` for a decorative mark. |
+| `keepId` | `string` | Keep id. Required and unique: an image names no path to derive one from. |
+| `className` | `string?` | |
+
+```tsx
+<Image bytes={logoBytes} width={40} height={40} alt="" keepId="logo" />
+```
+
+Bytes no engine can decode throw `UndecodableImageError`; neither bytes nor a
+source throws `MissingImageSourceError`; and a `Field` asked to draw with no
+`width` or `height` throws `MissingImageSizeError`. A `src` with no bytes behind
+it is reported by `paradoc check` as a missing image.
+
+**An attachment is not a field value.** The artifact declares annex slots and
+the filled data carries one `Attachment` (`name`, `mimeType`) per slot, so a
+composition draws one with `Field` at the annex path:
+
+```tsx
+<Field path="annexes.sitePhoto" as="image" width={160} height={160} />
+```
+
+The attachment is drawn when its MIME type starts with `image/` and its file
+name is printed when it does not; `paradoc check` reports the mismatch as
+`image:<path>`. A slot the artifact does not declare throws
+`UnknownAnnexError`.
 
 ### `QRCode`
 

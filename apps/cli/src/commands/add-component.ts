@@ -57,6 +57,7 @@ export const COMPONENT_ITEMS = [
   'bundle',
   'document',
   'field',
+  'image',
   'keep-together',
   'list',
   'page-break',

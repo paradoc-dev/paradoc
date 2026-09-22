@@ -1,0 +1,77 @@
+---
+title: Image
+description: A picture at a declared size, from its own bytes or from a source, kept together as one pagination unit.
+---
+
+`Image` places a picture in a document at a size you declare. Give it `bytes`
+and the picture travels inside the tree; give it `src` and the render loads it
+from there.
+
+# Preview
+
+<ComponentPreview name="image" />
+
+# Installation
+
+<ComponentInstallation name="image" />
+
+# Usage
+
+<ComponentUsage name="image" />
+
+# Composition
+
+**Bytes win over a source.** `bytes` are sniffed for their encoding —
+PNG, JPEG, GIF, WebP or SVG — and embedded as a `data:` URI, so neither the
+preview nor the PDF engine fetches anything. Bytes the engine cannot decode
+fail with `UndecodableImageError` naming the image, before any bytes are
+written. An image with neither fails with `MissingImageSourceError`.
+
+A `src` string is passed through untouched, because it is a key rather than a
+URL: the PDF path is handed its images as `{ src, data }` pairs and matches
+them by that string, while a browser preview loads whatever the string
+resolves to. The two agree on the key, not on a URL. `paradoc check` reports
+every `src` that is not a `data:` URI, because a render needs bytes behind each
+one.
+
+**The size is declared, not measured.** Neither output reads an image's
+intrinsic size while it lays the page out, so an image with no `width` and
+`height` would take a different amount of the page in each one and the page
+plan the two share would stop agreeing.
+
+`Image` is its own pagination unit, so it is never split across a page break,
+and `keepId` is the id the page plan tracks it by. It must be unique in the
+document: an image names no path and no party, so unlike `Field` or `Signature`
+there is nothing to derive one from.
+
+# Variants
+
+## From a source
+
+`src` names where the picture is loaded from instead of carrying it as bytes.
+
+<ComponentVariant name="image" variant="source" />
+
+## Attachment field
+
+An attachment is not a field value: the artifact declares annex slots and the
+filled data carries one `Attachment` per slot. `Field` with `as="image"` draws
+the attachment at `annexes.<slot>` at the declared size, taking its heading
+from the slot's own title. Its `src` is where a browser preview loads the
+picture from; the default is the attachment's own file name, which is the key
+the PDF path supplies its bytes under, and which `paradoc check` reports as a
+missing image until a render supplies them. `width` and `height` are required
+whatever the slot holds — omitting either throws `MissingImageSizeError`, so a
+composition cannot pass a check on a sample with nothing attached and then fail
+on the day a real photograph arrives.
+
+<ComponentVariant name="image" variant="attachment-field" />
+
+## Attachment that is not a picture
+
+The same `Field` prints the attachment's file name when its MIME type is not
+an image, and `paradoc check` reports the mismatch as `image:<path>`. Nothing
+is drawn and nothing throws: the document still says truthfully what is
+attached.
+
+<ComponentVariant name="image" variant="attachment-name" />

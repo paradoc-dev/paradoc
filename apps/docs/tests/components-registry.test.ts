@@ -25,6 +25,7 @@ const referencePages = new Set([
   'bundle',
   'document',
   'field',
+  'image',
   'keep-together',
   'list',
   'page-break',

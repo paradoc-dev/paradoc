@@ -3,7 +3,8 @@
  *
  * A composition can fail three ways the PDF path would only discover at
  * render time: a class the default engine has not verified, a `Field`/`Table`
- * path (or `Signature` party role) the artifact does not declare, or an image
+ * path (or `Signature` party role, or an annex asked to be drawn as a picture
+ * while holding something else) the artifact does not declare, or an image
  * with no bytes a render would need to embed. All three are worth catching
  * before a render is attempted, so this walks the same tree the PDF path
  * walks and never produces PDF bytes.
@@ -116,13 +117,14 @@ export interface CompositionCheckResult {
    * `Party` role it does not declare (reported as `party:<role>`), any
    * `Party` index past how many that role was actually filled with
    * (reported as `party:<role>[<index>]`), any `Field` path that resolves to
-   * a fieldset or a list, which has no one value to print, and any `Field`
-   * path or `Totals` def whose resolved value carries real data a serializer
-   * still rejects (a def reported as `defs.<name>`) — in the order the tree
-   * first names each one, each named once. A value with no data anywhere in
-   * it (a def computed from fields the sample never set, say) is not
-   * reported here: that is what running with no sample data looks like, not
-   * a fault.
+   * a fieldset or a list, which has no one value to print, any annex a
+   * `Field` asked to draw whose attachment is not a picture (reported as
+   * `image:<path>`), and any `Field` path or `Totals` def whose resolved
+   * value carries real data a serializer still rejects (a def reported as
+   * `defs.<name>`) — in the order the tree first names each one, each named
+   * once. A value with no data anywhere in it (a def computed from fields
+   * the sample never set, say) is not reported here: that is what running
+   * with no sample data looks like, not a fault.
    */
   unresolvedPaths: string[];
   /** Image `src` values that are not `data:` URIs, in document order. */

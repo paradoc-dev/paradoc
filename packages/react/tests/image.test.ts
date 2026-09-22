@@ -14,6 +14,8 @@ import {
   imageDataUri,
   imageFormat,
   imageMediaType,
+  imageSource,
+  MissingImageSourceError,
   UndecodableImageError,
 } from "../src/lib/image";
 
@@ -89,5 +91,32 @@ describe("bytes as a source both outputs can read", () => {
   it("refuses bytes that are not an image, naming what they were meant to be", () => {
     expect(() => imageDataUri(text("nope"), "logo")).toThrow(UndecodableImageError);
     expect(() => imageDataUri(text("nope"), "logo")).toThrow(/logo bytes/);
+  });
+});
+
+describe("the one source both outputs read", () => {
+  it("embeds bytes and leaves a source string alone", () => {
+    expect(imageSource({ bytes: PNG }, "logo")).toBe(imageDataUri(PNG, "logo"));
+    expect(imageSource({ src: "paradoc:logo.png" }, "logo")).toBe("paradoc:logo.png");
+  });
+
+  it("prefers bytes over a source, because bytes need nothing supplied", () => {
+    expect(imageSource({ bytes: PNG, src: "paradoc:logo.png" }, "logo")).toBe(
+      imageDataUri(PNG, "logo")
+    );
+  });
+
+  it("encodes one array once, because a tree is rendered more than once", () => {
+    // Same array, same string identity: the encoding is cached against it.
+    // Equal bytes in a different array are a different picture to the cache.
+    const twin = new Uint8Array(PNG);
+    expect(imageSource({ bytes: PNG }, "logo")).toBe(imageSource({ bytes: PNG }, "logo"));
+    expect(imageSource({ bytes: twin }, "logo")).toBe(imageSource({ bytes: PNG }, "logo"));
+  });
+
+  it("fails by name with neither, and on bytes no renderer decodes", () => {
+    expect(() => imageSource({}, "logo")).toThrow(MissingImageSourceError);
+    expect(() => imageSource({ src: "" }, "logo")).toThrow(/logo/);
+    expect(() => imageSource({ bytes: text("nope") }, "logo")).toThrow(UndecodableImageError);
   });
 });

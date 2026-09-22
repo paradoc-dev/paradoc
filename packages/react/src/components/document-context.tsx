@@ -8,7 +8,7 @@ import { formatParties } from "@paradoc/render/text/field-formatter";
  */
 
 import { createContext, useContext } from "react";
-import type { Form, FormField, Party, Formatter } from "@paradoc/types";
+import type { Attachment, Form, FormField, Party, Formatter } from "@paradoc/types";
 
 import { CompositeFieldPathError, itemField, readValue, resolveField, UnknownFieldPathError } from "../lib/fields";
 import { findSigningMark, type SigningMarks, type SigningMarkType } from "./signing-context";
@@ -27,6 +27,14 @@ export interface DocumentData {
    * request hands over, so nothing has to assert an id that may not be there.
    */
   parties: Record<string, Party | Party[]>;
+  /**
+   * Attachments keyed by annex slot, exactly as `FormData` carries them.
+   *
+   * An attachment is not a field value: the artifact declares annex slots and
+   * the filled data carries one `Attachment` per slot, which is why this is
+   * its own record rather than something read out of `fields`.
+   */
+  annexes?: Record<string, Attachment>;
 }
 
 /** What every component below `Document` can read. */

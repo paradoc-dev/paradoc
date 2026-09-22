@@ -104,6 +104,7 @@ const DEMO_FILES: Record<string, string> = {
   bundle: "bundle-demo.tsx",
   document: "document-demo.tsx",
   field: "field-demo.tsx",
+  image: "image-demo.tsx",
   "keep-together": "keep-together-demo.tsx",
   list: "list-demo.tsx",
   "page-break": "page-break-demo.tsx",
@@ -141,6 +142,11 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "default-label", file: "field-variant-default-label.tsx" },
     { key: "no-label", file: "field-variant-no-label.tsx" },
     { key: "custom-label", file: "field-variant-custom-label.tsx" },
+  ],
+  image: [
+    { key: "source", file: "image-variant-source.tsx" },
+    { key: "attachment-field", file: "image-variant-attachment-field.tsx" },
+    { key: "attachment-name", file: "image-variant-attachment-name.tsx" },
   ],
   "keep-together": [
     { key: "default-element", file: "keep-together-variant-default-element.tsx" },
@@ -284,6 +290,7 @@ const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> 
   bundle: { file: "bundle.tsx", interfaceName: "BundleProps" },
   document: { file: "document.tsx", interfaceName: "DocumentProps" },
   field: { file: "field.tsx", interfaceName: "FieldProps" },
+  image: { file: "image.tsx", interfaceName: "ImageProps" },
   "keep-together": { file: "keep-together.tsx", interfaceName: "KeepTogetherProps" },
   // `list.tsx` also carries the recursive `ListLevel` the component builds
   // each level from; it is internal, so the item's own `ListProps` backs the
@@ -330,7 +337,7 @@ function readRegistryContent(): Record<string, RegistryItem> {
  * consumer installs from npm).
  */
 const SAMPLE_DATA_ITEM_NAME = "docs-sample-data";
-const SAMPLE_DATA_FILES = ["proposal.ts", "proposal-data.ts", "party-artifact.ts", "party-demo-data.ts"];
+const SAMPLE_DATA_FILES = ["proposal.ts", "proposal-data.ts", "party-artifact.ts", "party-demo-data.ts", "sample-image.ts"];
 const SAMPLE_DATA_ITEM: RegistryManifestItem = {
   name: SAMPLE_DATA_ITEM_NAME,
   type: "registry:lib",

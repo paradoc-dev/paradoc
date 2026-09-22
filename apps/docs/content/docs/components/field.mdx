@@ -45,11 +45,20 @@ reuse the same serializers a `Field` does, just as flex cells rather than as
 The label's size follows the document's [typography](/components/typography)
 token; the value inherits the root's.
 
+`as="image"` prints the other thing a document binds by path: an attachment.
+An attachment is not a field value — the artifact declares annex slots and the
+filled data carries one per slot — so the path is `annexes.<slot>`, the
+heading comes from the slot's own title, and `width` and `height` say how big
+to draw it. An attachment whose MIME type is not a picture prints its file
+name instead, and `paradoc check` reports the mismatch. See
+[`Image`](/components/image).
+
 # Variants
 
 `Field` takes one prop of its own beyond `path` and `className`: `label`,
 which can be omitted (uses the artifact's own label), set to `false` (no
-label), or overridden with a string.
+label), or overridden with a string. `as`, `width`, `height` and `src` belong
+to the attachment form above, and are shown on [`Image`](/components/image).
 
 ## Default label
 

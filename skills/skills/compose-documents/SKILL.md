@@ -37,7 +37,7 @@ for that; otherwise, read the artifact's own schema directly.
 
 | Reference | Load for |
 |---|---|
-| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Text`, `List`, `Field`, `Table`, `Totals`, `Signature`, `PageNumber`, plus the furniture (`Paper`, `Pages`, `KeepTogether`) and its header/footer/stamp slots — with exact props. |
+| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Text`, `List`, `Field`, `Table`, `Totals`, `Signature`, `Image`, `PageNumber`, plus the furniture (`Paper`, `Pages`, `KeepTogether`) and its header/footer/stamp slots — with exact props. |
 | [references/pagination.md](./references/pagination.md) | The keep-together rule, how the table header repeats, and the two layout constraints (no `<table>`, one paper declared once). |
 | [references/safe-classes.md](./references/safe-classes.md) | Which Tailwind classes the default PDF engine renders, how an unsupported one fails, and branding tokens (font, accent, page size, margin, logo). |
 | [references/artifact-binding.md](./references/artifact-binding.md) | Declaring a React layer on a form artifact, binding the module at render time, and the seal (a `Signature` block emits its own marker). |
@@ -131,15 +131,20 @@ import with no corresponding prop. `data` is a `DocumentData`:
   and `Signature` for a party.
 - **A pagination unit is a `KeepTogether` leaf, never nested inside another
   one.** `Field`, a table row, a table header, a section heading, every
-  `Text`, every `List` item, `Totals`, and `Signature` are already keeps. Do
-  not wrap one in another `KeepTogether` and do not build a custom keep that
-  contains a `Field` or `Table`. See
+  `Text`, every `List` item, every `Image`, `Totals`, and `Signature` are
+  already keeps. Do not wrap one in another `KeepTogether` and do not build a
+  custom keep that contains a `Field` or `Table`. See
   [pagination.md](./references/pagination.md).
 - **Static prose is a `Text`, and a numbered or bulleted list is a `List`.**
   Never size a heading or a paragraph with a hand-picked `text-*` class, and
   never write `<ul>`/`<ol>` with a marker class: `list-*` is outside the
   verified vocabulary and the engine draws no marker of its own. `List` writes
   its markers as text, so both outputs draw the same characters.
+- **A picture is an `Image`, never a hand-built `<img>` or data URI.** It
+  sniffs its own bytes, fails by name on an encoding no engine decodes, and
+  declares the size both outputs lay it out at. An attachment is drawn by
+  `Field` with `as="image"` at its `annexes.<slot>` path, never by reading the
+  attachment yourself.
 - **No `<table>`, `<thead>`, `<tr>`, or `<td>`.** The default PDF engine has no
   table support. `Table` renders flex rows for this reason — compose with it
   or with `div`s, never real table markup.
@@ -198,4 +203,9 @@ import with no corresponding prop. `data` is a `DocumentData`:
 | A page silently loses the organization mark | The composition rendered without the `tokens` the caller resolved. | Pass `tokens` through rather than hiding them inside the composition. |
 | `CompositeFieldPathError` | `Field` names a fieldset or a list, which has no single value. | Name a field inside it (`lineItems.0.description`), or use `Table` for the list and `Signature` for the party. |
 | `AmbiguousSigningMarkError` | Two `Signature` blocks for the same party and the same `type` (both `signature`, say). | One block per party per field type; a party that signs and initials is two blocks with different `type`. |
+| `UndecodableImageError` | `Image` bytes are not a PNG, JPEG, GIF, WebP or SVG. | Supply the picture in an encoding both engines decode; nothing converts it for you. |
+| `MissingImageSourceError` | `Image` was given neither `bytes` nor `src`. | Give it one. Bytes travel inside the tree; a `src` is the key the render supplies bytes under. |
+| `MissingImageSizeError` | `Field` with `as="image"` was given no `width` or no `height`. | State both, in CSS pixels. Neither output measures a picture while it lays the page out. |
+| `UnknownAnnexError` | `Field` with `as="image"` names a slot the artifact does not declare, or a path that is not `annexes.<slot>`. | Check the artifact's `annexes` keys; an attachment is never a field value. |
+| `paradoc check` reports `image:<path>` | A `Field` asked to draw an attachment whose MIME type is not an image. | Either the slot holds the wrong file, or the composition should print its name rather than draw it. |
 | Composition compiles but `paradoc check` can't find its artifact | The artifact does not declare a React layer whose `path` resolves to this file. | Add or fix the `layers.<key>` entry: `kind: "file"`, `mimeType: "text/tsx"`, `path` relative to the artifact file. |

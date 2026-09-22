@@ -1,5 +1,5 @@
 import { evaluateFormDefs } from "@paradoc/core";
-import type { Form, FormField, Formatter, Party } from "@paradoc/types";
+import type { Attachment, Form, FormAnnex, FormField, Formatter, Party } from "@paradoc/types";
 import {
   createContext,
   useContext,
@@ -11,7 +11,15 @@ import {
   type ReactNode,
 } from "react";
 
-import { CompositeFieldPathError, itemField, readValue, resolveField } from "../lib/fields";
+import {
+  annexSlot,
+  CompositeFieldPathError,
+  itemField,
+  readAnnex,
+  readValue,
+  resolveAnnex,
+  resolveField,
+} from "../lib/fields";
 import {
   createValueFormatter,
   formatByType,
@@ -210,6 +218,98 @@ export function useField(path: string): FieldBinding {
     const value = readValue(snapshot.data.fields, path);
     return { field, value, text: formatOrReport(snapshot, path, () => snapshot.formatting.format(field, value, path)) };
   }, sameField);
+}
+
+export interface AnnexBinding {
+  /** The annex slot the artifact declares, or an empty slot on a form that admits ad-hoc annexes. */
+  annex: FormAnnex;
+  /** The slot's own heading, falling back to the slot name. */
+  label: string;
+  /** The attachment filled into the slot, or `undefined` when nothing is attached. */
+  attachment: Attachment | undefined;
+  /** The attachment as the shared formatter prints it, or the blank placeholder. */
+  text: string;
+}
+
+function sameAnnex(a: AnnexBinding, b: AnnexBinding): boolean {
+  return (
+    a.annex === b.annex &&
+    a.label === b.label &&
+    Object.is(a.attachment, b.attachment) &&
+    a.text === b.text
+  );
+}
+
+/** What an unresolved slot binds to under a check, shared so the binding is stable. */
+const UNRESOLVED_ANNEX: FormAnnex = Object.freeze({});
+
+/** True when a value carries the two things every attachment names itself by. */
+function isAttachment(value: unknown): value is Attachment {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.name === "string" && typeof record.mimeType === "string";
+}
+
+/**
+ * Reads and formats the attachment at one declared `annexes.<slot>` path.
+ *
+ * The text comes from the shared formatter's `attachment` kind, the same one
+ * the text, DOCX, and PDF outputs print an annex with, so a composition that
+ * prints an attachment's name prints what every other output prints.
+ */
+export function useAnnex(path: string): AnnexBinding {
+  return useSelection(`annex:${path}`, (snapshot) => {
+    let annex: FormAnnex;
+    try {
+      annex = resolveAnnex(snapshot.artifact, path);
+    } catch (error) {
+      if (!snapshot.collector) throw error;
+      snapshot.collector.report(path);
+      annex = UNRESOLVED_ANNEX;
+    }
+    const value = readAnnex(snapshot.data.annexes, path);
+    return {
+      annex,
+      label: annex.title ?? annexSlot(path) ?? path,
+      attachment: isAttachment(value) ? value : undefined,
+      text: formatByType(
+        "attachment",
+        value,
+        snapshot.formatting.formatter,
+        snapshot.formatting.blank,
+        path,
+        snapshot.formatting.progressive
+      ),
+    };
+  }, sameAnnex);
+}
+
+export interface AnnexPictureBinding extends AnnexBinding {
+  /** The attachment when its MIME type is a picture, and `undefined` when it is not one. */
+  picture: Attachment | undefined;
+}
+
+/** A MIME type a renderer draws rather than names. */
+function isPicture(attachment: Attachment | undefined): boolean {
+  return attachment?.mimeType.startsWith("image/") === true;
+}
+
+/**
+ * The attachment at one annex path, read as a picture.
+ *
+ * Asking for a picture is what makes an attachment that is not one a mismatch,
+ * so the report belongs here rather than in whatever draws it: `useAnnex` on
+ * its own has no reason to call a spreadsheet wrong, and a composition that
+ * owns its own markup cannot lose a check result the package promises.
+ */
+export function useAnnexPicture(path: string): AnnexPictureBinding {
+  const binding = useAnnex(path);
+  const collector = useUnresolvedPathCollector();
+  const picture = isPicture(binding.attachment) ? binding.attachment : undefined;
+  if (binding.attachment !== undefined && picture === undefined) {
+    collector?.report(`image:${path}`);
+  }
+  return useMemo(() => ({ ...binding, picture }), [binding, picture]);
 }
 
 export interface ListBinding {

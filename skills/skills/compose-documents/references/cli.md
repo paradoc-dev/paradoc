@@ -112,7 +112,7 @@ the installed file, never copied into it.
 `@paradoc/<name>`):
 
 ```
-bundle  document  field  keep-together  list  page-break  page-number  pages  paper  part  party  pdf-pages  qr-code  section  signature  table  text  totals
+bundle  document  field  image  keep-together  list  page-break  page-number  pages  paper  part  party  pdf-pages  qr-code  section  signature  table  text  totals
 ```
 
 A bare name not in that list, or an argument shaped like `@namespace/name`

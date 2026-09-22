@@ -127,12 +127,16 @@ export {
 } from "./headless/signing";
 
 export {
+  annexSlot,
   CompositeFieldPathError,
   itemField,
   InvalidFieldPathError,
   pathSegments,
+  readAnnex,
   readValue,
+  resolveAnnex,
   resolveField,
+  UnknownAnnexError,
   UnknownFieldPathError,
 } from "./lib/fields";
 export {
@@ -141,12 +145,16 @@ export {
   MissingArtifactProviderError,
   UnknownDefinitionError,
   UnknownPartyRoleError,
+  useAnnex,
+  useAnnexPicture,
   useArtifact,
   useField,
   useFormatter,
   useList,
   useParty,
   useTotals,
+  type AnnexBinding,
+  type AnnexPictureBinding,
   type ArtifactProviderProps,
   type FieldBinding,
   type ListBinding,
@@ -180,6 +188,9 @@ export {
   imageDataUri,
   imageFormat,
   imageMediaType,
+  imageSource,
+  MissingImageSizeError,
+  MissingImageSourceError,
   UndecodableImageError,
 } from "./lib/image";
 export {

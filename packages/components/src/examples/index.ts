@@ -39,6 +39,12 @@ export {
   PROPOSAL_SIGNATURE_SLOTS,
 } from "./proposal";
 export { overflowProposalData, shortProposalData, type ProposalData } from "./proposal-data";
+export {
+  sitePhotoAttachment,
+  sitePhotoBytes,
+  sitePhotoDataUri,
+  surveyReportAttachment,
+} from "./sample-image";
 export { ProposalDocument, proposalFormatter, type ProposalDocumentProps } from "./proposal-document";
 export {
   purchaseOrder,
@@ -169,6 +175,10 @@ export { FieldDemo } from "./field-demo";
 export { FieldVariantDefaultLabel } from "./field-variant-default-label";
 export { FieldVariantNoLabel } from "./field-variant-no-label";
 export { FieldVariantCustomLabel } from "./field-variant-custom-label";
+export { ImageDemo } from "./image-demo";
+export { ImageVariantSource } from "./image-variant-source";
+export { ImageVariantAttachmentField } from "./image-variant-attachment-field";
+export { ImageVariantAttachmentName } from "./image-variant-attachment-name";
 export { ListDemo } from "./list-demo";
 export { ListVariantUnordered } from "./list-variant-unordered";
 export { ListVariantNested } from "./list-variant-nested";

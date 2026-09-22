@@ -222,6 +222,25 @@
       ]
     },
     {
+      "name": "image",
+      "type": "registry:ui",
+      "title": "Image",
+      "description": "A picture at a declared size, from its own bytes or from a source. The encoding is sniffed and one an engine cannot decode fails by name.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/components/image.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/image.tsx"
+        }
+      ]
+    },
+    {
       "name": "text",
       "type": "registry:ui",
       "title": "Text",
@@ -421,6 +440,7 @@
       "registryDependencies": [
         "@paradoc/document",
         "@paradoc/field",
+        "@paradoc/image",
         "@paradoc/keep-together",
         "@paradoc/priced-line-items",
         "@paradoc/pages",

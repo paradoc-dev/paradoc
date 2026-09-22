@@ -168,7 +168,12 @@ describe("the emitted files", () => {
     // to decide whether a phone number needs isolating — and both reach an
     // installed file through the package rather than through a copy of theirs.
     expect(byName.get("field")?.files[0]?.content).toContain(
-      `import { scaleTextClasses, useDocumentTokens, useField } from "${SUBSTRATE_PACKAGE}";`
+      `import {\n  imageSource,\n  MissingImageSizeError,\n  scaleTextClasses,\n  useAnnexPicture,\n  useDocumentTokens,\n  useField,\n} from "${SUBSTRATE_PACKAGE}";`
+    );
+    // `Image` resolves its one source through the package too, so the sniffing
+    // and the failure it names are the same on both sides of the seam.
+    expect(byName.get("image")?.files[0]?.content).toContain(
+      `import { imageSource } from "${SUBSTRATE_PACKAGE}";`
     );
   });
 

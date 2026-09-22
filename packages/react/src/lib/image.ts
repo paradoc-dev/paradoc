@@ -64,13 +64,72 @@ function base64(data: Uint8Array): string {
 }
 
 /**
+ * Encoded pictures, against the array they came from.
+ *
+ * Base 64 of a picture is not free, and the same bytes are encoded again on
+ * every render of the tree that carries them — a document root resolves its
+ * tokens each time, and pagination renders the tree once per page. The cache is
+ * weak, so it holds nothing the caller has let go.
+ */
+const dataUris = new WeakMap<Uint8Array, string>();
+
+/**
  * Bytes as a `data:` URI, which is the one image source both outputs read
  * without fetching anything.
  *
  * @throws {UndecodableImageError} when the bytes are not an image.
  */
 export function imageDataUri(data: Uint8Array, what: string): string {
+  const cached = dataUris.get(data);
+  if (cached !== undefined) return cached;
   const format = imageFormat(data);
   if (format === undefined) throw new UndecodableImageError(what);
-  return `data:${imageMediaType(format)};base64,${base64(data)}`;
+  const uri = `data:${imageMediaType(format)};base64,${base64(data)}`;
+  dataUris.set(data, uri);
+  return uri;
+}
+
+/** Thrown when an image is placed with neither bytes nor a source to load. */
+export class MissingImageSourceError extends Error {
+  constructor(what: string) {
+    super(
+      `The ${what} has neither bytes nor a source. An image reaches both outputs as one ` +
+        "source string: bytes are embedded as a `data:` URI, and a source string is the key " +
+        "the PDF path supplies bytes under or a URL the browser loads."
+    );
+    this.name = "MissingImageSourceError";
+  }
+}
+
+/** Thrown when an image is placed without the size both outputs lay it out at. */
+export class MissingImageSizeError extends Error {
+  constructor(what: string) {
+    super(
+      `The ${what} has no declared width and height. Neither the preview nor the PDF engine ` +
+        "measures an image to find its size, so an image with no declared size would take a " +
+        "different amount of the page in each output."
+    );
+    this.name = "MissingImageSizeError";
+  }
+}
+
+/**
+ * The one source string both outputs read for an image, from bytes or from a
+ * source already named.
+ *
+ * Bytes win: a caller that has the picture itself needs nothing fetched or
+ * supplied, in either output. A source string is passed through untouched,
+ * because it is a key the PDF path supplies bytes under, not a URL this layer
+ * may rewrite.
+ *
+ * @throws {UndecodableImageError} when the bytes are not an image.
+ * @throws {MissingImageSourceError} when neither is given.
+ */
+export function imageSource(
+  source: { src?: string; bytes?: Uint8Array },
+  what: string
+): string {
+  if (source.bytes !== undefined) return imageDataUri(source.bytes, what);
+  if (source.src !== undefined && source.src !== "") return source.src;
+  throw new MissingImageSourceError(what);
 }

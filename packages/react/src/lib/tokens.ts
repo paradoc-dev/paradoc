@@ -235,20 +235,14 @@ export function pageGeometry(tokens: DocumentTokens): PageGeometry {
 /**
  * The mark as an image source, or `undefined` when the tokens carry none.
  *
- * Encoded bytes are cached against the array they came from, because a token
- * set is resolved on every render of a document root and base 64 of a mark is
- * not free. The cache is weak, so it holds nothing the caller has let go.
+ * A source string is passed through as the caller wrote it, including an empty
+ * one: a token set is not where a mark's absence is decided. Bytes go through
+ * `imageDataUri`, which caches the encoding against the array it came from,
+ * because a token set is resolved on every render of a document root.
  */
-const logoUris = new WeakMap<Uint8Array, string>();
-
 function resolveLogo(logo: Uint8Array | string | undefined): string | undefined {
   if (logo === undefined) return undefined;
-  if (typeof logo === "string") return logo;
-  const cached = logoUris.get(logo);
-  if (cached !== undefined) return cached;
-  const uri = imageDataUri(logo, "logo");
-  logoUris.set(logo, uri);
-  return uri;
+  return typeof logo === "string" ? logo : imageDataUri(logo, "logo");
 }
 
 /** CSS colour function notations any renderer here is expected to parse. */

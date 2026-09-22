@@ -10,7 +10,7 @@
  * so `resolveField` throws rather than letting a typo render as an em dash.
  */
 
-import type { Form, FormField } from "@paradoc/types";
+import type { Attachment, Form, FormAnnex, FormField } from "@paradoc/types";
 
 /** Raised when a component names a path the artifact does not declare. */
 export class UnknownFieldPathError extends Error {
@@ -128,4 +128,70 @@ export function readValue(fields: Record<string, unknown>, path: string): unknow
     current = record[segment];
   }
   return current;
+}
+
+/**
+ * The root segment an annex path starts with.
+ *
+ * An attachment is not a field: the artifact declares annex slots and the
+ * filled data carries one `Attachment` per slot. The shared formatter already
+ * addresses them as `annexes.<slot>`, so a composition names them the same way
+ * rather than inventing a second grammar for the same value.
+ */
+const ANNEX_ROOT = "annexes";
+
+/** Raised when a component names an annex slot the artifact does not declare. */
+export class UnknownAnnexError extends Error {
+  constructor(
+    readonly path: string,
+    readonly formName: string
+  ) {
+    super(
+      `The form "${formName}" declares no annex at path "${path}". An attachment is carried ` +
+        `by an annex slot, so its path is "${ANNEX_ROOT}.<slot>".`
+    );
+    this.name = "UnknownAnnexError";
+  }
+}
+
+/**
+ * The slot a form admits but never declared, shared so two reads of one ad-hoc
+ * annex are the same value and a binding that compares by identity is stable.
+ */
+const AD_HOC_ANNEX: FormAnnex = Object.freeze({});
+
+/** The slot an `annexes.<slot>` path names, or `undefined` for any other path. */
+export function annexSlot(path: string): string | undefined {
+  const segments = pathSegments(path);
+  if (segments.length !== 2 || segments[0] !== ANNEX_ROOT) return undefined;
+  return segments[1];
+}
+
+/**
+ * Resolves the annex slot a path names.
+ *
+ * A form that admits ad-hoc annexes resolves a slot it never declared, exactly
+ * as the shared formatter does, and the slot it returns then carries no title.
+ *
+ * @throws {UnknownAnnexError} when the path is not an annex path, or names a
+ * slot this form neither declares nor admits.
+ */
+export function resolveAnnex(form: Form, path: string): FormAnnex {
+  const slot = annexSlot(path);
+  if (slot === undefined) throw new UnknownAnnexError(path, form.name);
+  const declared = Object.hasOwn(form.annexes ?? {}, slot) ? form.annexes?.[slot] : undefined;
+  if (declared === undefined && form.allowAdditionalAnnexes !== true) {
+    throw new UnknownAnnexError(path, form.name);
+  }
+  return declared ?? AD_HOC_ANNEX;
+}
+
+/** Reads the attachment an `annexes.<slot>` path names out of a document's annexes. */
+export function readAnnex(
+  annexes: Record<string, Attachment> | undefined,
+  path: string
+): Attachment | undefined {
+  const slot = annexSlot(path);
+  if (slot === undefined || annexes === undefined) return undefined;
+  return Object.hasOwn(annexes, slot) ? annexes[slot] : undefined;
 }
