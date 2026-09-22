@@ -1,14 +1,15 @@
 ---
 name: components
-description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Party, Signature, Image, QRCode, PageNumber, and the page furniture — with exact props.
+description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Party, Signature, Image, QRCode, the packet parts (Part, PdfPages), and the page furniture (Pages, Paper, PageNumber, KeepTogether, PageBreak) — with exact props.
 metadata:
   tags: components, props, react
 ---
 
 # The component vocabulary
 
-**Contents:** [Import](#import) · [Document tree](#document-tree-components) ·
-[Page furniture](#page-furniture) · [Hooks a composition may call directly](#hooks-a-composition-may-call-directly)
+**Contents:** [Document tree](#document-tree-components) ·
+[Packet parts](#packet-parts) · [Page furniture](#page-furniture) ·
+[Hooks a composition may call directly](#hooks-a-composition-may-call-directly)
 
 Install components from the registry and import them from
 `@/components/paradoc/<name>` (see
@@ -350,10 +351,10 @@ code stays sharp at any output scale.
 | `color` | `string?` | Module colour. Defaults to `"#000000"`. |
 | `backgroundColor` | `string?` | Colour behind the modules. Defaults to `"#ffffff"`. |
 | `label` | `string?` | Accessible name for the SVG. Defaults to `` `QR code for ${url}` ``. |
+| `className` | `string?` | |
 
 An empty `url` throws `EmptyQRCodeUrlError` rather than drawing a code with
 nothing encoded in it.
-| `className` | `string?` | |
 
 ```tsx
 <QRCode url={`https://docs.paradoc.dev/forms/${id}`} size={96} className="place-self-end" />
@@ -362,6 +363,76 @@ nothing encoded in it.
 It needs no `Document` above it and carries no pagination unit of its own:
 it is not a `KeepTogether`. To hold it with the content beside it, wrap both
 in one.
+
+## Packet parts
+
+A packet is a `Bundle` of several documents shown in one scroll: a
+composition rendered live, a filled PDF form, an annex. Each is one `Part`;
+the PDF ones are painted by `PdfPages`. Neither is a pagination unit.
+
+### `Part`
+
+One document of a packet. Everything inside it numbers its pages from one.
+Its header says where the part sits in the whole packet, and those numbers
+come from core's `sealBundle` (a first page and a page count per part), never
+from the screen.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `id` | `string` | The bundle content key. |
+| `kind` | `"composition" \| "form" \| "annex"` | A composition rendered live, a filled PDF form, or an annex. |
+| `label` | `ReactNode?` | Shown above the document. Omit it and no header is drawn. |
+| `firstPage` | `number?` | 1-based packet page of this part's first page, once the packet is sealed. |
+| `pageCount` | `number?` | Pages this part contributes, once the packet is sealed. |
+| `attached` | `boolean?` | The part is carried beside the packet rather than merged into its page count. |
+| `placedFor` | `string?` | The `packetHash` the placement was computed for. |
+| `packetHash` | `string?` | The `packetHash` of the packet on screen now. Page numbers show only while it matches `placedFor`. |
+| `className` | `string?` | Defaults to `"flex flex-col gap-2"`. |
+| `children` | `ReactNode` | The part's document: a composition, `PdfPages`, or an attachment. |
+
+The header reads "Packet page 2" or "Packet pages 2 to 4" when placed,
+"Attached, not paginated" when `attached`, and "Pages pending" when
+`placedFor` no longer matches `packetHash`: an edit repaginated the packet
+and it has not been resealed, so a stale page number is never shown. With no
+`firstPage`/`pageCount` it shows no numbers. The same states are exported
+headless as `resolvePartPlacement`.
+
+```tsx
+<Bundle id="packet">
+  <Part id="order" kind="composition" label="Purchase order" firstPage={1} pageCount={3}
+    placedFor={sealedHash} packetHash={packetHash}>
+    <Document artifact={orderForm} data={orderData}>…</Document>
+  </Part>
+  <Part id="coi" kind="annex" label="Certificate of insurance">
+    <PdfPages bytes={coiBytes} filename="certificate-of-insurance.pdf" />
+  </Part>
+</Bundle>
+```
+
+### `PdfPages`
+
+A PDF part of a packet, painted page by page in the browser through pdf.js.
+A PDF already has its pages, so they are painted at their own paper size and
+not planned, even inside a packet branded to another size. Content that
+cannot be painted (no PDF viewer installed, no readable PDF, or a paint
+that times out) renders as an
+`Attachment` card naming the file and the reason, so the part stays visible.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `bytes` | `Uint8Array` | The PDF. **Keep the reference stable** (state or a memo): painting restarts whenever it changes. |
+| `filename` | `string` | Name the fallback attachment card shows. |
+| `mimeType` | `string?` | Defaults to `"application/pdf"`. |
+| `workerSrc` | `string?` | Where pdf.js loads its worker from. |
+| `standardFontDataUrl` | `string?` | Where pdf.js loads the standard fourteen fonts from. |
+| `cMapUrl` | `string?` | Where pdf.js loads its CMaps from. |
+| `scale` | `number?` | CSS pixels per PDF point. Defaults to `96 / 72`. |
+| `timeoutMs` | `number?` | How long the paint may take before the part becomes an attachment. Defaults to `20000`. |
+| `onPaint` | `(report: PdfPaintReport) => void?` | Called once the paint has settled, painted or not. |
+| `className` | `string?` | The frame around the pages. Defaults to `"w-full overflow-hidden bg-neutral-200 p-6"`. |
+
+`PdfPages` is a preview surface: the sealed packet merges the PDF part's own
+bytes, so the painted images never reach a render.
 
 ## Page furniture
 
@@ -530,7 +601,7 @@ same id the rows carry.
 - `usePageNumber()` — `{ page, pages }` for a component drawn in a furniture
   slot. Outside a paginated preview it is page 1 of 1.
 
-Everything else — `field`, `text`, `value`, `item`, `party` resolution — is
-already wrapped by `Field`, `Table`, `Totals`, and `Signature`. A composition
-should not need `useDocument()` directly; if it seems to, prefer composing
+Everything else — field, list, total, party, annex, and signing resolution — is
+already wrapped by `Field`, `Table`, `List`, `Totals`, `Party`, and
+`Signature`. A composition should not need `useDocument()` directly; if it seems to, prefer composing
 existing components first.

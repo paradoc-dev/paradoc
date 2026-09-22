@@ -37,11 +37,11 @@ for that; otherwise, read the artifact's own schema directly.
 
 | Reference | Load for |
 |---|---|
-| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Text`, `List`, `Field`, `Table`, `Totals`, `Signature`, `Image`, `PageNumber`, plus the furniture (`Paper`, `Pages`, `KeepTogether`) and its header/footer/stamp slots — with exact props. |
+| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Text`, `List`, `Field`, `Table`, `Totals`, `Party`, `Signature`, `Image`, `QRCode`, the packet parts (`Part`, `PdfPages`), plus the furniture (`Pages`, `Paper`, `PageNumber`, `KeepTogether`, `PageBreak`) and its header/footer/stamp slots — with exact props. |
 | [references/pagination.md](./references/pagination.md) | The keep-together rule, how the table header repeats, and the two layout constraints (no `<table>`, one paper declared once). |
-| [references/safe-classes.md](./references/safe-classes.md) | Which Tailwind classes the default PDF engine renders, how an unsupported one fails, and branding tokens (font, accent, page size, margin, logo). |
+| [references/safe-classes.md](./references/safe-classes.md) | Which Tailwind classes the default PDF engine renders, how an unsupported one fails, and branding tokens (accent, page size, margin, direction, language, logo, typography). |
 | [references/artifact-binding.md](./references/artifact-binding.md) | Declaring a React layer on a form artifact, binding the module at render time, and the seal (a `Signature` block emits its own marker). |
-| [references/cli.md](./references/cli.md) | `paradoc check` (verify a composition without rendering) and `paradoc add` / `npx shadcn@4 add @paradoc/<name>` (install a component). |
+| [references/cli.md](./references/cli.md) | `paradoc check` (verify a composition without rendering) and `paradoc add` / `npx shadcn@4 add @paradoc/<name>` (install a component, preset, or block), and every installable item. |
 
 ## The shape of a composition
 

@@ -1,6 +1,6 @@
 ---
 name: cli
-description: paradoc check (verify a composition without rendering) and paradoc add / npx shadcn@4 add @paradoc/<name> (install a document component).
+description: paradoc check (verify a composition without rendering) and paradoc add / npx shadcn@4 add @paradoc/<name> (install a component, preset, or block).
 metadata:
   tags: cli, paradoc, check, add, registry
 ---
@@ -112,8 +112,20 @@ the installed file, never copied into it.
 `@paradoc/<name>`):
 
 ```
+# components
 bundle  document  field  image  keep-together  list  page-break  page-number  pages  paper  part  party  pdf-pages  qr-code  section  signature  table  text  totals
+# supporting presets
+document-styles  priced-line-items
+# blocks
+purchase-order  invoice  engagement-letter  vendor-packet
 ```
+
+`document-styles` is the Tailwind preset `document` brings with it, installed
+at `styles/paradoc.css`.
+`priced-line-items` is sample line-item arithmetic the `invoice` and
+`purchase-order` blocks bring with them. A block is a whole document: its
+composition lands in `components/paradoc/`, and its artifact and sample data
+in `artifacts/paradoc/`.
 
 A bare name not in that list, or an argument shaped like `@namespace/name`
 or a URL, is treated as an **artifact** reference instead (a different
@@ -129,7 +141,8 @@ npx shadcn@4 add https://docs.paradoc.dev/r/field.json
 ## The registry index
 
 `https://docs.paradoc.dev/r/registry.json` is a machine-readable index of
-every item: name, `type` (`registry:ui`), title, description, dependencies,
+every item: name, `type` (`registry:ui` for a component, `registry:lib` for a
+preset, `registry:block` for a block), title, description, dependencies,
 and the files it installs. Fetch it directly to enumerate what is available
 without scraping the docs page — for example, to decide which components a
 composition needs before running `paradoc add`. Each item's own JSON is at

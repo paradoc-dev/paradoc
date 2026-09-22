@@ -28,9 +28,11 @@ export function Profile({ artifact, data }: { artifact: Form; data: DocumentData
 
 Providers emit no styled DOM. Focused hooks expose data and correctness bindings:
 
-- `useField`, `useList`, `useTotals`, `useParty`, and `useFormatter`
-- `useDocumentSettings`, `useDocumentTokens`, and `usePaperGeometry`
+- `useField`, `useList`, `useTotals`, `useParty`, `usePartyContact`, and `useFormatter`
+- `useAnnex` and `useAnnexPicture` for attachments at an annex path
+- `useDocumentSettings`, `useDocumentTokens`, `useDocumentTokensAround`, and `usePaperGeometry`
 - `usePagination`, `usePage`, `usePagePlan`, and visibility bindings
+- `usePageNumber` for a page number drawn in page furniture
 - `useSignature`, `resolvePartPlacement`, and `usePdfPages`
 - `useFitToWidth` for consumer-owned page furniture
 
