@@ -23,6 +23,24 @@ export class UnknownFieldPathError extends Error {
   }
 }
 
+/**
+ * Raised when a field component names a path that resolves to a composite: a
+ * fieldset or a list. Neither has one value to print, so the binding names the
+ * two that do rather than letting an object placeholder reach the page.
+ */
+export class CompositeFieldPathError extends Error {
+  constructor(
+    readonly path: string,
+    readonly fieldType: "fieldset" | "list"
+  ) {
+    super(
+      `The field at path "${path}" is a ${fieldType}, which has no single value to print. ` +
+        `Use useList()/<Table> for a list and useParty()/<Signature> for a party, or name a field inside it.`
+    );
+    this.name = "CompositeFieldPathError";
+  }
+}
+
 /** Raised when a path does not use Paradoc's explicit dot-path grammar. */
 export class InvalidFieldPathError extends Error {
   constructor(readonly path: string) {

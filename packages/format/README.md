@@ -2,7 +2,7 @@
 
 `@paradoc/format` presents structured Paradoc values as human-readable text. It keeps display policy separate from stored values, localized input parsing, currency conversion, and artifact validation.
 
-The formatter presents numbers, money, percentage points, people, organizations, parties, phones, postal addresses, coordinates, bounding boxes, identifications, attachments, signatures, dates, datetimes, times, and ISO 8601 durations. It is immutable and reusable, so repeated calls under one effective policy reuse bounded Intl formatter caches.
+The formatter presents numbers, money, percentage points, people, organizations, parties, phones, postal addresses, coordinates, bounding boxes, identifications, attachments, signatures, dates, datetimes, times, ISO 8601 durations, and the selection values a form field carries: booleans, single choices, multiple choices, and ratings. It is immutable and reusable, so repeated calls under one effective policy reuse bounded Intl formatter caches.
 
 ```ts
 import { createFormatter } from '@paradoc/format'
@@ -51,6 +51,19 @@ Temporal values keep their declared meaning. A plain `YYYY-MM-DD` date is a cale
 
 Durations use Paradoc's canonical ISO 8601 syntax (`P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S`, with fractional seconds allowed). Zero components are omitted and a zero duration is shown as zero seconds. Duration components display with up to nine fractional digits by default; set `maximumFractionDigits` or related Intl number options to choose a different display precision without changing the stored duration. Duration unit labels are supplied for the initial English, German, French, and Arabic resources, and multiple components use the runtime's standard unit-list conventions. Additional locales must provide `duration.<unit>.<plural-category>` messages, such as `duration.day.one: '{value} day'`, or explicitly choose a configured `fallbackLocale` for package messages. The requested locale still controls number and list formatting when a message fallback is used. Without a supplied fallback language, missing package messages return `unsupported`.
 
+Selection values are presented with what the field declares. A boolean prints the locale's own yes and no words, which `trueLabel` and `falseLabel` replace. An enum and a multiselect print the label of the option that carries the value; a value no option declares is `invalid`, unless `unknownOption: 'value'` explicitly prints it as itself. A multiselect joins those labels with the locale's own list conjunction and separator, in the locale's direction; `listType` (`conjunction`, `disjunction`, `unit`) and `listStyle` (`long`, `short`, `narrow`) choose the relation and its verbosity. A rating prints with the scale it was given on.
+
+```ts
+const services = [{ value: 'plumbing', label: 'Plumbing' }, { value: 'wiring', label: 'Wiring' }]
+
+formatter.formatBoolean(true) // 'Ja' for de-DE
+formatter.formatEnum('wiring', { options: services }) // 'Wiring'
+formatter.formatMultiselect(['plumbing', 'wiring'], { options: services }) // 'Plumbing und Wiring' for de-DE
+formatter.formatRating(4, { max: 5 }) // '4 von 5' for de-DE
+```
+
+Two selection presentations can be unavailable rather than wrong, and both return an `unsupported` result the caller decides about. A rating with no `max` has no scale to print; a runtime whose locale data carries no list conjunction cannot join a multiselect. Paradoc's renderers fall back to the plain number and to a comma join respectively, and keep the formatter's outcome on the value. The fallback join uses a plain comma on purpose: it only runs when the runtime holds no list data for the locale, so there is no locale-correct separator left to use.
+
 Strict methods return text and throw a `FormatError` for missing, incomplete, invalid, unsupported, or unexpected values. Use the safe methods when a progressive flow needs structured diagnostics:
 
 ```ts
@@ -58,7 +71,7 @@ const result = formatter.safeFormatMoney({ amount: 10 })
 // { success: false, status: 'incomplete', issues: [...] }
 ```
 
-The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, `safeFormatParty`, `safeFormatCoordinate`, `safeFormatBbox`, `safeFormatIdentification`, `safeFormatAttachment`, `safeFormatSignature`, `safeFormatDate`, `safeFormatDatetime`, `safeFormatTime`, and `safeFormatDuration`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. Value families that have not been implemented yet return `unsupported` rather than a fake successful string.
+The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, `safeFormatParty`, `safeFormatCoordinate`, `safeFormatBbox`, `safeFormatIdentification`, `safeFormatAttachment`, `safeFormatSignature`, `safeFormatDate`, `safeFormatDatetime`, `safeFormatTime`, `safeFormatDuration`, `safeFormatBoolean`, `safeFormatEnum`, `safeFormatMultiselect`, and `safeFormatRating`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. Value families that have not been implemented yet return `unsupported` rather than a fake successful string.
 
 Locale, numbering-system, calendar, and timezone choices are independent. The default locale is `en-US`; temporal defaults are retained as explicit `UTC` and Gregorian settings for the temporal formatter slice. An unsupported runtime locale fails at construction unless `unsupportedLocale: 'fallback'` and an explicit `fallbackLocale` are provided. `fallbackLocale` also supplies package-authored messages when the requested runtime locale is supported but has no matching messages; it does not change the requested locale used for Intl numbers, dates, times, or lists.
 

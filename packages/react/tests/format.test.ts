@@ -1,8 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { createFormatter } from "@paradoc/format";
 import { createValueFormatter, formatByType, ArtifactFieldFormatError } from "../src/lib/format";
-import type { FormField } from "@paradoc/types";
+import { renderText } from "@paradoc/render/text";
+import type { Form, FormField, Formatter } from "@paradoc/types";
+import { CompositeFieldPathError } from "../src/lib/fields";
 const money = { type: "money" } as FormField;
+
+const services = [
+  { value: "plumbing", label: "Plumbing" },
+  { value: "wiring", label: "Wiring" },
+  { value: "roofing", label: "Roofing" },
+];
+const survey = {
+  enabled: { type: "boolean" } as FormField,
+  choice: { type: "enum", enum: services } as FormField,
+  choices: { type: "multiselect", enum: services } as FormField,
+  score: { type: "rating", min: 1, max: 5 } as FormField,
+  unscored: { type: "rating" } as FormField,
+};
+
+/** The same five values through `@paradoc/render`'s own text output. */
+function renderedByText(formatter?: Formatter): string[] {
+  return renderText({
+    form: { fields: survey } as unknown as Form,
+    formatter,
+    template: "{{enabled}}|{{choice}}|{{choices}}|{{score}}|{{unscored}}",
+    data: { enabled: true, choice: "wiring", choices: ["plumbing", "roofing"], score: 4, unscored: 3 },
+  }).split("|");
+}
 
 describe("shared structured formatting", () => {
   it("uses the selected formatter for fields and computed values", () => {
@@ -33,5 +58,32 @@ describe("shared structured formatting", () => {
     const document = createValueFormatter({ formatter: createFormatter({ locale: "de-DE" }) });
     expect(document.format({ type: "boolean" } as FormField, false)).toBe("Nein");
     expect(document.format({ type: "multiselect", enum: [{ value: "a", label: "Alpha" }] } as FormField, ["a"])).toBe("Alpha");
+  });
+  it("prints the same choice and rating text React prints as the text renderer", () => {
+    const enUS = createValueFormatter();
+    const deDE = createValueFormatter({ formatter: createFormatter({ locale: "de-DE" }) });
+    const through = (document: ReturnType<typeof createValueFormatter>) => [
+      document.format(survey.enabled, true, "fields.enabled"),
+      document.format(survey.choice, "wiring", "fields.choice"),
+      document.format(survey.choices, ["plumbing", "roofing"], "fields.choices"),
+      document.format(survey.score, 4, "fields.score"),
+      document.format(survey.unscored, 3, "fields.unscored"),
+    ];
+    const arSA = createValueFormatter({ formatter: createFormatter({ locale: "ar-SA" }) });
+    expect(through(enUS)).toEqual(renderedByText());
+    expect(through(deDE)).toEqual(renderedByText(createFormatter({ locale: "de-DE" })));
+    expect(through(arSA)).toEqual(renderedByText(createFormatter({ locale: "ar-SA" })));
+    // Pinned, so an identical regression on both sides of the comparison cannot pass.
+    expect(through(enUS)).toEqual(["Yes", "Wiring", "Plumbing and Roofing", "4 of 5", "3"]);
+    expect(through(deDE)).toEqual(["Ja", "Wiring", "Plumbing und Roofing", "4 von 5", "3"]);
+    expect(through(arSA)).toEqual(["نعم", "Wiring", "Plumbing وRoofing", "٤ من ٥", "٣"]);
+  });
+  it("refuses a fieldset or list path instead of printing an object placeholder", () => {
+    const document = createValueFormatter();
+    expect(document.format(survey.choice, "wiring", "fields.choice")).toBe("Wiring");
+    expect(() => document.format({ type: "list", item: survey.choice } as FormField, ["wiring"], "fields.rows"))
+      .toThrowError(CompositeFieldPathError);
+    expect(() => document.format({ type: "fieldset", fields: { choice: survey.choice } } as FormField, {}, "fields.row"))
+      .toThrowError(/fields\.row.*fieldset.*useList\(\)\/<Table>.*useParty\(\)\/<Signature>/s);
   });
 });

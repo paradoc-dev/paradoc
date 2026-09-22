@@ -1,3 +1,4 @@
+import { resolveMessage } from './messages'
 import type {
 	DateFormatOptions,
 	DatetimeFormatOptions,
@@ -355,27 +356,13 @@ export function validateDuration(value: unknown): TemporalValidation<ParsedDurat
 	}
 }
 
-function findTemporalMessage(messages: FormatterMessages, locale: string, key: string): string | undefined {
-	const exact = messages[locale]?.[key]
-	if (exact !== undefined) return exact
-	const language = locale.split('-')[0]
-	const languageMessages = Object.entries(messages).find(([candidate]) => candidate.split('-')[0] === language)?.[1]
-	return languageMessages?.[key]
-}
-
 export function resolveTemporalMessage(
 	messages: FormatterMessages,
 	locale: string,
 	key: string,
 	fallbackLocale?: string,
 ): string {
-	const message = findTemporalMessage(messages, locale, key)
-	if (message !== undefined) return message
-	if (fallbackLocale !== undefined) {
-		const fallbackMessage = findTemporalMessage(messages, fallbackLocale, key)
-		if (fallbackMessage !== undefined) return fallbackMessage
-	}
-	throw new MissingTemporalMessageError(key, locale)
+	return resolveMessage(messages, locale, key, fallbackLocale, (missingKey, missingLocale) => new MissingTemporalMessageError(missingKey, missingLocale))
 }
 
 export function formatDurationValue(

@@ -32,11 +32,16 @@ export type FormatKind =
 	| 'time'
 	| 'number'
 	| 'percentage'
+	| 'boolean'
+	| 'enum'
+	| 'multiselect'
+	| 'rating'
 
 export type NumericFormatKind = 'money' | 'number' | 'percentage'
 export type ContactFormatKind = 'address' | 'phone' | 'person' | 'organization' | 'party'
 export type TemporalFormatKind = 'date' | 'datetime' | 'time' | 'duration'
 export type CaptureFormatKind = 'coordinate' | 'bbox' | 'identification' | 'attachment' | 'signature'
+export type SelectionFormatKind = 'boolean' | 'enum' | 'multiselect' | 'rating'
 
 type NumberOptionsBase = Omit<
 	Intl.NumberFormatOptions,
@@ -130,6 +135,61 @@ export type AttachmentFormatOptions = Record<string, never>
 /** Options for signature presentation, including nested capture-date formatting. */
 export type SignatureFormatOptions = DateFormatOptions
 
+/** The stored value one selectable option is chosen by. */
+export type SelectionOptionValue = string | number
+
+/** One selectable option, as an artifact's field declares it. */
+export interface SelectionOption {
+	/** The stored value this option is selected by. */
+	readonly value: SelectionOptionValue
+	/** Human-readable label in the artifact's source language. */
+	readonly label?: string
+}
+
+/** What to do with a value no declared option matches. */
+export type UnknownOptionPolicy = 'error' | 'value'
+
+/** Options for boolean presentation. */
+export interface BooleanFormatOptions {
+	/** Replaces the locale's own word for true. */
+	trueLabel?: string
+	/** Replaces the locale's own word for false. */
+	falseLabel?: string
+}
+
+/** Options for single-choice presentation. */
+export interface EnumFormatOptions {
+	/** The declared options whose labels present the value. */
+	options?: readonly SelectionOption[]
+	/** Print a value no option declares as itself, or refuse it. @default 'error' */
+	unknownOption?: UnknownOptionPolicy
+}
+
+/** Which relation the locale's list joiner expresses between the labels. */
+export type SelectionListType = 'conjunction' | 'disjunction' | 'unit'
+
+/** How verbose the locale's list conjunction and separator are. */
+export type SelectionListStyle = 'long' | 'short' | 'narrow'
+
+/** Options for multiple-choice presentation. */
+export interface MultiselectFormatOptions extends EnumFormatOptions {
+	/** Which list relation joins the labels. @default 'conjunction' */
+	listType?: SelectionListType
+	/** How verbose the locale's list conjunction and separator are. @default 'long' */
+	listStyle?: SelectionListStyle
+}
+
+/** Whether a rating prints with its scale or alone. */
+export type RatingDisplay = 'scale' | 'value'
+
+/** Options for rating presentation. */
+export interface RatingFormatOptions {
+	/** Top of the rating's scale, as the field declares it. A rating with no scale is unsupported. */
+	max?: number
+	/** Print the value with its scale, or the value alone. @default 'scale' */
+	display?: RatingDisplay
+}
+
 export type FormatOptionsByKind = {
 	money: MoneyFormatOptions
 	number: NumberFormatOptions
@@ -148,6 +208,10 @@ export type FormatOptionsByKind = {
 	date: DateFormatOptions
 	datetime: DatetimeFormatOptions
 	time: TimeFormatOptions
+	boolean: BooleanFormatOptions
+	enum: EnumFormatOptions
+	multiselect: MultiselectFormatOptions
+	rating: RatingFormatOptions
 }
 
 export type FormatInputByKind = {
@@ -168,6 +232,10 @@ export type FormatInputByKind = {
 	date: string | Date | null | undefined
 	datetime: string | Date | null | undefined
 	time: string | null | undefined
+	boolean: boolean | null | undefined
+	enum: SelectionOptionValue | null | undefined
+	multiselect: readonly SelectionOptionValue[] | null | undefined
+	rating: number | null | undefined
 }
 
 /** Per-call locale settings can specialize a formatter without mutating it. */
@@ -230,6 +298,10 @@ export interface FormatterOptions {
 	identification?: IdentificationFormatOptions
 	attachment?: AttachmentFormatOptions
 	signature?: SignatureFormatOptions
+	boolean?: BooleanFormatOptions
+	enum?: EnumFormatOptions
+	multiselect?: MultiselectFormatOptions
+	rating?: RatingFormatOptions
 	overrides?: FormatterOverrides
 }
 
@@ -260,6 +332,13 @@ export type CaptureValueByKind = {
 	identification: FormatInputByKind['identification']
 	attachment: FormatInputByKind['attachment']
 	signature: FormatInputByKind['signature']
+}
+
+export type SelectionValueByKind = {
+	boolean: boolean
+	enum: SelectionOptionValue
+	multiselect: readonly SelectionOptionValue[]
+	rating: number
 }
 
 export interface FormatImplementationContext<K extends NumericFormatKind> {
@@ -330,6 +409,23 @@ export type CaptureFormatImplementation<K extends CaptureFormatKind> = (
 	context: CaptureFormatImplementationContext<K>,
 ) => string
 
+export interface SelectionFormatImplementationContext<K extends SelectionFormatKind> {
+	readonly kind: K
+	readonly locale: string
+	readonly options: FormatCallOptions<K>
+	/** Call the implementation that was active before this override. */
+	readonly delegate: (
+		value?: SelectionValueByKind[K],
+		options?: FormatCallOptions<K>,
+	) => string
+}
+
+export type SelectionFormatImplementation<K extends SelectionFormatKind> = (
+	value: SelectionValueByKind[K],
+	options: FormatCallOptions<K>,
+	context: SelectionFormatImplementationContext<K>,
+) => string
+
 export type FormatterOverrides = Partial<{
 	[K in NumericFormatKind]: FormatImplementation<K>
 }> & Partial<{
@@ -338,6 +434,8 @@ export type FormatterOverrides = Partial<{
 	[K in TemporalFormatKind]: TemporalFormatImplementation<K>
 }> & Partial<{
 	[K in CaptureFormatKind]: CaptureFormatImplementation<K>
+}> & Partial<{
+	[K in SelectionFormatKind]: SelectionFormatImplementation<K>
 }>
 
 export type FormatStatus =
@@ -420,6 +518,10 @@ export interface Formatter {
 	formatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): string
 	formatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): string
 	formatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): string
+	formatBoolean(value: FormatInputByKind['boolean'], options?: FormatCallOptions<'boolean'>): string
+	formatEnum(value: FormatInputByKind['enum'], options?: FormatCallOptions<'enum'>): string
+	formatMultiselect(value: FormatInputByKind['multiselect'], options?: FormatCallOptions<'multiselect'>): string
+	formatRating(value: FormatInputByKind['rating'], options?: FormatCallOptions<'rating'>): string
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult
 	safeFormatMoney(value: FormatInputByKind['money'], options?: FormatCallOptions<'money'>): FormatResult
 	safeFormatPercentage(value: FormatInputByKind['percentage'], options?: FormatCallOptions<'percentage'>): FormatResult
@@ -437,6 +539,10 @@ export interface Formatter {
 	safeFormatIdentification(value: FormatInputByKind['identification'], options?: FormatCallOptions<'identification'>): FormatResult
 	safeFormatAttachment(value: FormatInputByKind['attachment'], options?: FormatCallOptions<'attachment'>): FormatResult
 	safeFormatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): FormatResult
+	safeFormatBoolean(value: FormatInputByKind['boolean'], options?: FormatCallOptions<'boolean'>): FormatResult
+	safeFormatEnum(value: FormatInputByKind['enum'], options?: FormatCallOptions<'enum'>): FormatResult
+	safeFormatMultiselect(value: FormatInputByKind['multiselect'], options?: FormatCallOptions<'multiselect'>): FormatResult
+	safeFormatRating(value: FormatInputByKind['rating'], options?: FormatCallOptions<'rating'>): FormatResult
 
 	/** Create an independent formatter with merged configuration. */
 	compose(options?: FormatterOptions): Formatter

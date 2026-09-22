@@ -125,7 +125,10 @@ import with no corresponding prop. `data` is a `DocumentData`:
 - **Every value comes from the artifact.** `Field`, `Table`, `Totals`, and
   `Signature` name a path, a def, or a party role — never a literal value or a
   computed string. A path the artifact does not declare is a fault, not a
-  blank: `resolveField` throws `UnknownFieldPathError` naming the path.
+  blank: `resolveField` throws `UnknownFieldPathError` naming the path. A path
+  that names a fieldset or a list has no one value to print and throws
+  `CompositeFieldPathError`: name a field inside it, or use `Table` for a list
+  and `Signature` for a party.
 - **A pagination unit is a `KeepTogether` leaf, never nested inside another
   one.** `Field`, a table row, a table header, a section heading, every
   `Text`, every `List` item, `Totals`, and `Signature` are already keeps. Do
@@ -193,5 +196,6 @@ import with no corresponding prop. `data` is a `DocumentData`:
 | `paradoc check` reports an unsupported class | A Tailwind class outside the verified subset, or an arbitrary value like `text-[13px]`. | Replace with the nearest class in [safe-classes.md](./references/safe-classes.md), or restructure with spacing/sizing utilities that are on the list. |
 | `RootTokenMismatchError` / `NestedPaperTokenError` | `pageSize`, `marginPx`, `dir`, `lang`, or `typography` set on a `Document` nested inside a `Bundle`, or a composition setting tokens on itself instead of forwarding a `tokens` prop. | Set paper tokens once, on the outermost `Bundle` or `Document`; a nested document may still set `accentColor` and `logo`. |
 | A page silently loses the organization mark | The composition rendered without the `tokens` the caller resolved. | Pass `tokens` through rather than hiding them inside the composition. |
+| `CompositeFieldPathError` | `Field` names a fieldset or a list, which has no single value. | Name a field inside it (`lineItems.0.description`), or use `Table` for the list and `Signature` for the party. |
 | `AmbiguousSigningMarkError` | Two `Signature` blocks for the same party and the same `type` (both `signature`, say). | One block per party per field type; a party that signs and initials is two blocks with different `type`. |
 | Composition compiles but `paradoc check` can't find its artifact | The artifact does not declare a React layer whose `path` resolves to this file. | Add or fix the `layers.<key>` entry: `kind: "file"`, `mimeType: "text/tsx"`, `path` relative to the artifact file. |

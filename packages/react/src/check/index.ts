@@ -68,7 +68,7 @@ import type { Form } from "@paradoc/types";
 import { CheckModeProvider, type UnresolvedPathCollector } from "../components/check-context";
 import { PartialValuesProvider } from "../components/partial-context";
 import type { DocumentData } from "../components/document-context";
-import { UnknownFieldPathError } from "../lib/fields";
+import { CompositeFieldPathError, UnknownFieldPathError } from "../lib/fields";
 import { ArtifactFieldFormatError } from "../lib/format";
 import type { ReactLayerComponent } from "../pdf/layer";
 import { preparePdfTree } from "../pdf/tree";
@@ -113,9 +113,10 @@ export interface CompositionCheckResult {
   unsupportedClasses: string[];
   /**
    * `Field`/`Table` paths the artifact does not declare, any `Signature`
-   * party role it does not declare (reported as `party:<role>`), and any
-   * `Field` path or `Totals` def whose resolved value carries real data a
-   * serializer still rejects (a def reported as `defs.<name>`) — in the
+   * party role it does not declare (reported as `party:<role>`), any `Field`
+   * path that resolves to a fieldset or a list, which has no one value to
+   * print, and any `Field` path or `Totals` def whose resolved value carries
+   * real data a serializer still rejects (a def reported as `defs.<name>`) — in the
    * order the tree first names each one, each named once. A value with no
    * data anywhere in it (a def computed from fields the sample never set,
    * say) is not reported here: that is what running with no sample data
@@ -195,7 +196,7 @@ export async function checkElement(
   try {
     ({ node } = await fromJsx(wrapped));
   } catch (error) {
-    if (error instanceof UnknownFieldPathError) {
+    if (error instanceof UnknownFieldPathError || error instanceof CompositeFieldPathError) {
       collector.report(error.path);
       return { unsupportedClasses: [], unresolvedPaths, missingImages: [] };
     }

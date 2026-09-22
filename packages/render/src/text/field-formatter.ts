@@ -3,12 +3,15 @@ import type {
 	FormatResult,
 	Formatter,
 	FormatterProgressivePolicy,
+	SelectionOption,
+	SelectionOptionValue,
 	Form,
 	FormField,
 	FormAnnex,
 	DefsSection,
 	Bindings,
 } from '@paradoc/types'
+import { MISSING_RATING_SCALE, UNSUPPORTED_LIST_JOIN } from '@paradoc/format'
 import { pathSegments } from '../path'
 
 /** Explicit policy for rendering a value that is missing or incomplete. */
@@ -23,13 +26,14 @@ type RecordValue = Record<string, unknown>
 
 const rawValues = new WeakMap<FormattedFieldValue, unknown>()
 const renderedValues = new WeakMap<FormattedFieldValue, string>()
+const recordedIssues = new WeakMap<FormattedFieldValue, readonly FormatIssue[]>()
 
 /**
  * A template value that keeps its source value for logic/property access while
  * supplying the selected formatter's text for interpolation.
  */
 export class FormattedFieldValue {
-	constructor(value: unknown, text: string) {
+	constructor(value: unknown, text: string, issues?: readonly FormatIssue[]) {
 		if (value !== null && typeof value === 'object') {
 			for (const [key, member] of Object.entries(value)) {
 				if (key === 'toString' || key === '__proto__' || key === 'constructor' || key === 'prototype') continue
@@ -38,6 +42,7 @@ export class FormattedFieldValue {
 		}
 		rawValues.set(this, value)
 		renderedValues.set(this, text)
+		if (issues !== undefined && issues.length > 0) recordedIssues.set(this, issues)
 	}
 
 	get raw(): unknown {
@@ -51,6 +56,15 @@ export class FormattedFieldValue {
 
 export function unwrapFormattedValue(value: unknown): unknown {
 	return value instanceof FormattedFieldValue ? value.raw : value
+}
+
+/**
+ * The outcome a formatted value fell back from, if it fell back at all. A
+ * rating with no declared scale and a locale with no list conjunction still
+ * print, and this is where the formatter's structured reason is kept.
+ */
+export function formattedValueIssues(value: unknown): readonly FormatIssue[] {
+	return (value instanceof FormattedFieldValue ? recordedIssues.get(value) : undefined) ?? []
 }
 
 /** Raised when a declared artifact value cannot be presented. */
@@ -135,16 +149,9 @@ function presentResult(
 	throw new ArtifactFieldFormatError(path, fieldType, result.status, presentIssues(result.issues, path, fieldType))
 }
 
-function callFormatter(
-	formatter: Formatter,
-	path: string,
-	fieldType: string,
-	value: unknown,
-	call: () => FormatResult,
-	options?: FieldFormattingOptions,
-): unknown {
+function guardFormatting<T>(path: string, fieldType: string, run: () => T): T {
 	try {
-		return presentResult(call(), value, path, fieldType, options)
+		return run()
 	} catch (error) {
 		if (error instanceof ArtifactFieldFormatError) throw error
 		throw new ArtifactFieldFormatError(path, fieldType, 'error', [{
@@ -155,6 +162,48 @@ function callFormatter(
 			cause: error,
 		}], error)
 	}
+}
+
+function callFormatter(
+	path: string,
+	fieldType: string,
+	value: unknown,
+	call: () => FormatResult,
+	options?: FieldFormattingOptions,
+): unknown {
+	return guardFormatting(path, fieldType, () => presentResult(call(), value, path, fieldType, options))
+}
+
+/**
+ * Formats a value whose presentation the runtime may not carry, substituting
+ * the documented plain form and keeping the formatter's reason on the result.
+ * A rating whose field declares no scale and a locale with no list conjunction
+ * are gaps in what can be said, not faults in the document, so the value still
+ * prints; an invalid value is still refused.
+ */
+interface FallbackFormatting {
+	/** The formatter's `unsupported` code this fallback answers, and only that code. */
+	readonly code: string
+	/** The documented plain presentation to substitute. */
+	readonly substitute: () => FormatResult
+	readonly options?: FieldFormattingOptions
+}
+
+function callFormatterWithFallback(
+	path: string,
+	fieldType: string,
+	value: unknown,
+	call: () => FormatResult,
+	fallback: FallbackFormatting,
+): unknown {
+	return guardFormatting(path, fieldType, () => {
+		const result = call()
+		const fellShort = !result.success && result.status === 'unsupported' && result.issues.some((entry) => entry.code === fallback.code)
+		if (!fellShort) return presentResult(result, value, path, fieldType, fallback.options)
+		const substitute = fallback.substitute()
+		if (!substitute.success) return presentResult(substitute, value, path, fieldType, fallback.options)
+		return new FormattedFieldValue(value, substitute.value, result.issues)
+	})
 }
 
 function recordInput(value: unknown, path: string, fieldType: string): RecordValue {
@@ -177,49 +226,38 @@ function numberInput(value: unknown, path: string, fieldType: string): number {
 	throw formatIssue(path, fieldType, 'invalid_value', `Expected a finite number for ${fieldType}.`)
 }
 
-function messageFor(formatter: Formatter, key: string, path: string): string {
-	const findMessage = (locale: string | undefined): string | undefined => {
-		if (!locale) return undefined
-		const exact = formatter.messages[locale]?.[key]
-		if (exact !== undefined) return exact
-		const language = locale.split('-')[0]
-		return Object.entries(formatter.messages).find(([candidate]) => candidate.split('-')[0] === language)?.[1]?.[key]
+function booleanInput(value: unknown, path: string, fieldType: string): boolean {
+	if (typeof value === 'boolean') return value
+	throw formatIssue(path, fieldType, 'invalid_value', 'Expected a boolean value.')
+}
+
+function optionInput(value: unknown, path: string, fieldType: string): SelectionOptionValue {
+	if (typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value))) return value
+	throw formatIssue(path, fieldType, 'invalid_value', `Expected a string or number ${fieldType} value.`)
+}
+
+function optionListInput(value: unknown, path: string, fieldType: string): readonly SelectionOptionValue[] {
+	if (!Array.isArray(value)) throw formatIssue(path, fieldType, 'invalid_value', `Expected an array of ${fieldType} values.`)
+	return value.map((entry) => optionInput(entry, path, fieldType))
+}
+
+/**
+ * The documented fallback for a runtime whose locale data carries no list
+ * conjunction: the same option labels, joined with a comma. It asks the
+ * formatter for each label, so the labels are still the formatter's.
+ */
+function commaJoinedLabels(
+	formatter: Formatter,
+	values: readonly SelectionOptionValue[],
+	options: readonly SelectionOption[],
+): FormatResult {
+	const labels: string[] = []
+	for (const value of values) {
+		const result = formatter.safeFormatEnum(value, { options })
+		if (!result.success) return result
+		labels.push(result.value)
 	}
-
-	const message = findMessage(formatter.locale) ?? findMessage(formatter.fallbackLocale)
-	if (message !== undefined) return message
-	throw new ArtifactFieldFormatError(path, 'boolean', 'unsupported', [{
-		code: 'missing_message',
-		message: `No ${JSON.stringify(key)} message is available for locale ${JSON.stringify(formatter.locale)}.`,
-		path,
-		kind: 'boolean',
-	}])
-}
-
-function enumLabel(field: Extract<FormField, { type: 'enum' }>, value: unknown, path: string): string {
-	if (typeof value !== 'string' && typeof value !== 'number') {
-		throw formatIssue(path, field.type, 'invalid_value', 'Expected a string or number enum value.')
-	}
-	const option = field.enum.find((candidate) => candidate.value === value)
-	if (!option) throw formatIssue(path, field.type, 'invalid_value', `Unknown enum value ${JSON.stringify(value)}.`)
-	return option.label ?? String(value)
-}
-
-function multiselectLabel(field: Extract<FormField, { type: 'multiselect' }>, value: unknown, path: string): string {
-	if (!Array.isArray(value)) throw formatIssue(path, field.type, 'invalid_value', 'Expected an array of multiselect values.')
-	return value.map((entry) => {
-		if (typeof entry !== 'string' && typeof entry !== 'number') {
-			throw formatIssue(path, field.type, 'invalid_value', 'Expected string or number multiselect values.')
-		}
-		const option = field.enum.find((candidate) => candidate.value === entry)
-		if (!option) throw formatIssue(path, field.type, 'invalid_value', `Unknown multiselect value ${JSON.stringify(entry)}.`)
-		return option.label ?? String(entry)
-	}).join(', ')
-}
-
-function formatBoolean(formatter: Formatter, value: unknown, path: string): unknown {
-	if (typeof value !== 'boolean') throw formatIssue(path, 'boolean', 'invalid_value', 'Expected a boolean value.')
-	return new FormattedFieldValue(value, messageFor(formatter, value ? 'boolean.true' : 'boolean.false', path))
+	return { success: true, status: 'formatted', value: labels.join(', ') }
 }
 
 function formatLeaf(
@@ -234,28 +272,49 @@ function formatLeaf(
 
 	try {
 		switch (field.type) {
-			case 'money': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatMoney(recordInput(value, path, field.type)), options)
-			case 'address': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatAddress(recordInput(value, path, field.type)), options)
-			case 'phone': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatPhone(typeof value === 'string' ? value : recordInput(value, path, field.type)), options)
-			case 'person': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatPerson(recordInput(value, path, field.type)), options)
-			case 'organization': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatOrganization(recordInput(value, path, field.type)), options)
-			case 'coordinate': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatCoordinate(recordInput(value, path, field.type)), options)
-			case 'bbox': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatBbox(recordInput(value, path, field.type)), options)
-			case 'duration': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatDuration(stringInput(value, path, field.type)), options)
-			case 'identification': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatIdentification(recordInput(value, path, field.type)), options)
-			case 'date': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatDate(dateInput(value, path, field.type)), options)
-			case 'datetime': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatDatetime(dateInput(value, path, field.type)), options)
-			case 'time': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatTime(stringInput(value, path, field.type)), options)
-			case 'number': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatNumber(numberInput(value, path, field.type)), options)
-			case 'percentage': return callFormatter(formatter, path, field.type, value, () => formatter.safeFormatPercentage(numberInput(value, path, field.type)), options)
-			case 'boolean': return formatBoolean(formatter, value, path)
-			case 'enum': return new FormattedFieldValue(value, enumLabel(field, value, path))
-			case 'multiselect': return new FormattedFieldValue(value, multiselectLabel(field, value, path))
+			case 'money': return callFormatter(path, field.type, value, () => formatter.safeFormatMoney(recordInput(value, path, field.type)), options)
+			case 'address': return callFormatter(path, field.type, value, () => formatter.safeFormatAddress(recordInput(value, path, field.type)), options)
+			case 'phone': return callFormatter(path, field.type, value, () => formatter.safeFormatPhone(typeof value === 'string' ? value : recordInput(value, path, field.type)), options)
+			case 'person': return callFormatter(path, field.type, value, () => formatter.safeFormatPerson(recordInput(value, path, field.type)), options)
+			case 'organization': return callFormatter(path, field.type, value, () => formatter.safeFormatOrganization(recordInput(value, path, field.type)), options)
+			case 'coordinate': return callFormatter(path, field.type, value, () => formatter.safeFormatCoordinate(recordInput(value, path, field.type)), options)
+			case 'bbox': return callFormatter(path, field.type, value, () => formatter.safeFormatBbox(recordInput(value, path, field.type)), options)
+			case 'duration': return callFormatter(path, field.type, value, () => formatter.safeFormatDuration(stringInput(value, path, field.type)), options)
+			case 'identification': return callFormatter(path, field.type, value, () => formatter.safeFormatIdentification(recordInput(value, path, field.type)), options)
+			case 'date': return callFormatter(path, field.type, value, () => formatter.safeFormatDate(dateInput(value, path, field.type)), options)
+			case 'datetime': return callFormatter(path, field.type, value, () => formatter.safeFormatDatetime(dateInput(value, path, field.type)), options)
+			case 'time': return callFormatter(path, field.type, value, () => formatter.safeFormatTime(stringInput(value, path, field.type)), options)
+			case 'number': return callFormatter(path, field.type, value, () => formatter.safeFormatNumber(numberInput(value, path, field.type)), options)
+			case 'percentage': return callFormatter(path, field.type, value, () => formatter.safeFormatPercentage(numberInput(value, path, field.type)), options)
+			case 'boolean': return callFormatter(path, field.type, value, () => formatter.safeFormatBoolean(booleanInput(value, path, field.type)), options)
+			case 'enum': return callFormatter(path, field.type, value, () => formatter.safeFormatEnum(optionInput(value, path, field.type), { options: field.enum }), options)
+			case 'multiselect': return callFormatterWithFallback(
+				path,
+				field.type,
+				value,
+				() => formatter.safeFormatMultiselect(optionListInput(value, path, field.type), { options: field.enum }),
+				{
+					code: UNSUPPORTED_LIST_JOIN,
+					substitute: () => commaJoinedLabels(formatter, optionListInput(value, path, field.type), field.enum),
+					options,
+				},
+			)
 			case 'text':
 			case 'email':
 			case 'uuid':
 			case 'uri': return stringInput(value, path, field.type)
-			case 'rating': return numberInput(value, path, field.type)
+			// An absent `max` is left out, so a formatter-level rating scale still applies.
+			case 'rating': return callFormatterWithFallback(
+				path,
+				field.type,
+				value,
+				() => formatter.safeFormatRating(numberInput(value, path, field.type), field.max === undefined ? {} : { max: field.max }),
+				{
+					code: MISSING_RATING_SCALE,
+					substitute: () => formatter.safeFormatNumber(numberInput(value, path, field.type)),
+					options,
+				},
+			)
 		}
 	} catch (error) {
 		if (error instanceof ArtifactFieldFormatError) throw error
@@ -307,30 +366,41 @@ export function formatDefinitionValue(
 	if (isMissing(value)) return missingValue(value, path, type, options)
 	try {
 		switch (type) {
-			case 'money': return callFormatter(formatter, path, type, value, () => formatter.safeFormatMoney(recordInput(value, path, type)), options)
-			case 'address': return callFormatter(formatter, path, type, value, () => formatter.safeFormatAddress(recordInput(value, path, type)), options)
-			case 'phone': return callFormatter(formatter, path, type, value, () => formatter.safeFormatPhone(typeof value === 'string' ? value : recordInput(value, path, type)), options)
-			case 'person': return callFormatter(formatter, path, type, value, () => formatter.safeFormatPerson(recordInput(value, path, type)), options)
-			case 'organization': return callFormatter(formatter, path, type, value, () => formatter.safeFormatOrganization(recordInput(value, path, type)), options)
-			case 'party': return callFormatter(formatter, path, type, value, () => formatter.safeFormatParty(recordInput(value, path, type)), options)
-			case 'coordinate': return callFormatter(formatter, path, type, value, () => formatter.safeFormatCoordinate(recordInput(value, path, type)), options)
-			case 'bbox': return callFormatter(formatter, path, type, value, () => formatter.safeFormatBbox(recordInput(value, path, type)), options)
-			case 'duration': return callFormatter(formatter, path, type, value, () => formatter.safeFormatDuration(stringInput(value, path, type)), options)
-			case 'identification': return callFormatter(formatter, path, type, value, () => formatter.safeFormatIdentification(recordInput(value, path, type)), options)
-			case 'attachment': return callFormatter(formatter, path, type, value, () => formatter.safeFormatAttachment(recordInput(value, path, type)), options)
-			case 'signature': return callFormatter(formatter, path, type, value, () => formatter.safeFormatSignature(recordInput(value, path, type)), options)
-			case 'date': return callFormatter(formatter, path, type, value, () => formatter.safeFormatDate(dateInput(value, path, type)), options)
-			case 'datetime': return callFormatter(formatter, path, type, value, () => formatter.safeFormatDatetime(dateInput(value, path, type)), options)
-			case 'time': return callFormatter(formatter, path, type, value, () => formatter.safeFormatTime(stringInput(value, path, type)), options)
-			case 'number':
-			case 'rating': return callFormatter(formatter, path, type, value, () => formatter.safeFormatNumber(numberInput(value, path, type)), options)
+			case 'money': return callFormatter(path, type, value, () => formatter.safeFormatMoney(recordInput(value, path, type)), options)
+			case 'address': return callFormatter(path, type, value, () => formatter.safeFormatAddress(recordInput(value, path, type)), options)
+			case 'phone': return callFormatter(path, type, value, () => formatter.safeFormatPhone(typeof value === 'string' ? value : recordInput(value, path, type)), options)
+			case 'person': return callFormatter(path, type, value, () => formatter.safeFormatPerson(recordInput(value, path, type)), options)
+			case 'organization': return callFormatter(path, type, value, () => formatter.safeFormatOrganization(recordInput(value, path, type)), options)
+			case 'party': return callFormatter(path, type, value, () => formatter.safeFormatParty(recordInput(value, path, type)), options)
+			case 'coordinate': return callFormatter(path, type, value, () => formatter.safeFormatCoordinate(recordInput(value, path, type)), options)
+			case 'bbox': return callFormatter(path, type, value, () => formatter.safeFormatBbox(recordInput(value, path, type)), options)
+			case 'duration': return callFormatter(path, type, value, () => formatter.safeFormatDuration(stringInput(value, path, type)), options)
+			case 'identification': return callFormatter(path, type, value, () => formatter.safeFormatIdentification(recordInput(value, path, type)), options)
+			case 'attachment': return callFormatter(path, type, value, () => formatter.safeFormatAttachment(recordInput(value, path, type)), options)
+			case 'signature': return callFormatter(path, type, value, () => formatter.safeFormatSignature(recordInput(value, path, type)), options)
+			case 'date': return callFormatter(path, type, value, () => formatter.safeFormatDate(dateInput(value, path, type)), options)
+			case 'datetime': return callFormatter(path, type, value, () => formatter.safeFormatDatetime(dateInput(value, path, type)), options)
+			case 'time': return callFormatter(path, type, value, () => formatter.safeFormatTime(stringInput(value, path, type)), options)
+			case 'number': return callFormatter(path, type, value, () => formatter.safeFormatNumber(numberInput(value, path, type)), options)
+			// A computed value carries no field, so only a formatter-level scale can apply.
+			case 'rating': return callFormatterWithFallback(
+				path,
+				type,
+				value,
+				() => formatter.safeFormatRating(numberInput(value, path, type)),
+				{
+					code: MISSING_RATING_SCALE,
+					substitute: () => formatter.safeFormatNumber(numberInput(value, path, type)),
+					options,
+				},
+			)
 			case 'integer': {
 				const number = numberInput(value, path, type)
 				if (!Number.isInteger(number)) throw formatIssue(path, type, 'invalid_value', 'Expected an integer value.')
-				return callFormatter(formatter, path, type, value, () => formatter.safeFormatNumber(number), options)
+				return callFormatter(path, type, value, () => formatter.safeFormatNumber(number), options)
 			}
-			case 'percentage': return callFormatter(formatter, path, type, value, () => formatter.safeFormatPercentage(numberInput(value, path, type)), options)
-			case 'boolean': return formatBoolean(formatter, value, path)
+			case 'percentage': return callFormatter(path, type, value, () => formatter.safeFormatPercentage(numberInput(value, path, type)), options)
+			case 'boolean': return callFormatter(path, type, value, () => formatter.safeFormatBoolean(booleanInput(value, path, type)), options)
 			case 'string': return stringInput(value, path, type)
 			default: throw new ArtifactFieldFormatError(path, type, 'unsupported', [{ code: 'unsupported_type', message: `Unsupported computed value type ${JSON.stringify(type)}.`, path, kind: type }])
 		}
@@ -352,7 +422,7 @@ export function formatParties(
 	if (Array.isArray(value)) return value.map((entry, index) => formatParties(formatter, form, entry, childPath(path, index), options, role))
 	const party = recordInput(value, path, 'party')
 	const partyType = role ? form.parties?.[role]?.partyType : undefined
-	return callFormatter(formatter, path, 'party', value, () => formatter.safeFormatParty(party, partyType === 'person' || partyType === 'organization' ? { partyType } : undefined), options)
+	return callFormatter(path, 'party', value, () => formatter.safeFormatParty(party, partyType === 'person' || partyType === 'organization' ? { partyType } : undefined), options)
 }
 
 function formatAnnexes(
@@ -371,7 +441,7 @@ function formatAnnexes(
 		const definition: FormAnnex | undefined = form.annexes?.[key]
 		if (!definition && !form.allowAdditionalAnnexes) throw formatIssue(path, 'attachment', 'unknown_path', `Unknown annex ${JSON.stringify(key)}.`)
 		if (isMissing(annexValue)) result[key] = missingValue(annexValue, path, 'attachment', options)
-		else result[key] = callFormatter(formatter, path, 'attachment', annexValue, () => formatter.safeFormatAttachment(recordInput(annexValue, path, 'attachment')), options)
+		else result[key] = callFormatter(path, 'attachment', annexValue, () => formatter.safeFormatAttachment(recordInput(annexValue, path, 'attachment')), options)
 	}
 	for (const key of Object.keys(form.annexes ?? {})) {
 		if (!Object.prototype.hasOwnProperty.call(result, key) && options?.progressive) {

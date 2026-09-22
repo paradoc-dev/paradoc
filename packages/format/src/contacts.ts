@@ -1,5 +1,6 @@
 import type { Address, Organization, Person } from '@paradoc/types'
 
+import { findMessage } from './messages'
 import type {
 	AddressFormatOptions,
 	AddressLayoutContext,
@@ -348,12 +349,9 @@ export function validateParty(value: unknown, options: PartyFormatOptions): Cont
 	return { ok: true, value }
 }
 
-export function resolveMessage(context: ContactMessageContext, key: string): string {
-	const exact = context.messages[context.locale]?.[key]
-	if (exact !== undefined) return exact
-	const language = context.locale.split('-')[0]
-	const languageMessages = Object.entries(context.messages).find(([locale]) => locale.split('-')[0] === language)?.[1]
-	if (languageMessages?.[key] !== undefined) return languageMessages[key]
+export function resolveContactMessage(context: ContactMessageContext, key: string): string {
+	const message = findMessage(context.messages, context.locale, key)
+	if (message !== undefined) return message
 	throw new MissingContactMessageError(key, context.locale)
 }
 
@@ -392,7 +390,7 @@ const COUNTRY_LAYOUTS: Readonly<Record<string, (address: NormalizedAddress, cont
 
 export function formatPhone(phone: NormalizedPhone, options: PhoneFormatOptions, context: ContactMessageContext): string {
 	if (phone.extension === undefined) return phone.number
-	const label = options.extensionLabel ?? resolveMessage(context, 'phone.extension')
+	const label = options.extensionLabel ?? resolveContactMessage(context, 'phone.extension')
 	return `${phone.number} ${label} ${phone.extension}`
 }
 
@@ -408,11 +406,11 @@ export function formatPerson(person: PersonValue): string {
 export function formatOrganization(organization: OrganizationValue, context: ContactMessageContext): string {
 	const value = organization as Record<string, unknown>
 	const details: string[] = []
-	if (typeof value.legalName === 'string' && value.legalName !== value.name) details.push(`${resolveMessage(context, 'organization.legalName')}: ${value.legalName}`)
-	if (typeof value.entityType === 'string') details.push(`${resolveMessage(context, 'organization.entityType')}: ${value.entityType}`)
-	if (typeof value.entityId === 'string') details.push(`${resolveMessage(context, 'organization.entityId')}: ${value.entityId}`)
-	if (typeof value.taxId === 'string') details.push(`${resolveMessage(context, 'organization.taxId')}: ${value.taxId}`)
-	if (typeof value.domicile === 'string') details.push(`${resolveMessage(context, 'organization.domicile')}: ${value.domicile}`)
+	if (typeof value.legalName === 'string' && value.legalName !== value.name) details.push(`${resolveContactMessage(context, 'organization.legalName')}: ${value.legalName}`)
+	if (typeof value.entityType === 'string') details.push(`${resolveContactMessage(context, 'organization.entityType')}: ${value.entityType}`)
+	if (typeof value.entityId === 'string') details.push(`${resolveContactMessage(context, 'organization.entityId')}: ${value.entityId}`)
+	if (typeof value.taxId === 'string') details.push(`${resolveContactMessage(context, 'organization.taxId')}: ${value.taxId}`)
+	if (typeof value.domicile === 'string') details.push(`${resolveContactMessage(context, 'organization.domicile')}: ${value.domicile}`)
 	return details.length === 0 ? String(value.name) : `${String(value.name)} (${details.join(', ')})`
 }
 

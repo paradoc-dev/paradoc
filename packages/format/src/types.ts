@@ -19,6 +19,10 @@ export const FORMAT_KINDS = [
 	'time',
 	'number',
 	'percentage',
+	'boolean',
+	'enum',
+	'multiselect',
+	'rating',
 ] as const satisfies readonly FormatKind[]
 
 export type * from '@paradoc/types'

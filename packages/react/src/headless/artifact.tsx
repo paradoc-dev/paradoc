@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { itemField, readValue, resolveField } from "../lib/fields";
+import { CompositeFieldPathError, itemField, readValue, resolveField } from "../lib/fields";
 import {
   createValueFormatter,
   formatByType,
@@ -168,6 +168,24 @@ export function useArtifact(): Form {
   return useSelection("artifact", (snapshot) => snapshot.artifact, same);
 }
 
+/**
+ * Runs `attempt`, reporting a composite path to a check's collector rather
+ * than throwing, so one bad binding does not stop the walk. Outside check mode
+ * the refusal reaches the caller, which is what a render wants.
+ */
+function formatOrReport(snapshot: ArtifactSnapshot, path: string, attempt: () => string): string {
+  if (!snapshot.collector) return attempt();
+  try {
+    return attempt();
+  } catch (error) {
+    if (error instanceof CompositeFieldPathError) {
+      snapshot.collector.report(path);
+      return snapshot.formatting.blank;
+    }
+    throw error;
+  }
+}
+
 export interface FieldBinding {
   field: FormField;
   value: unknown;
@@ -190,7 +208,7 @@ export function useField(path: string): FieldBinding {
       field = { type: "text", label: path, required: false, visible: true };
     }
     const value = readValue(snapshot.data.fields, path);
-    return { field, value, text: snapshot.formatting.format(field, value, path) };
+    return { field, value, text: formatOrReport(snapshot, path, () => snapshot.formatting.format(field, value, path)) };
   }, sameField);
 }
 

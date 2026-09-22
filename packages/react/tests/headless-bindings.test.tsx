@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   ArtifactProvider,
+  CompositeFieldPathError,
   InvalidFieldPathError,
   InvalidListValueError,
   UnknownDefinitionError,
@@ -28,6 +29,41 @@ function BoundSummary() {
   const totals = useTotals(["subtotal", "total"]);
   return <p>{number.text}|{items.text(0, "description")}|{totals.map((total) => total.text).join("|")}</p>;
 }
+
+function OneField({ path }: { path: string }) {
+  return <span>{useField(path).text}</span>;
+}
+
+describe("a composite path is a fault, not a placeholder", () => {
+  it("refuses a list path and a fieldset path, naming the bindings that do carry them", () => {
+    const bind = (path: string) =>
+      renderToStaticMarkup(
+        <ArtifactProvider artifact={purchaseOrderForm} data={purchaseOrderData}>
+          <OneField path={path} />
+        </ArtifactProvider>
+      );
+    expect(() => bind("lineItems")).toThrow(CompositeFieldPathError);
+    expect(() => bind("lineItems")).toThrow(/lineItems.*list.*useList\(\)\/<Table>.*useParty\(\)\/<Signature>/s);
+    expect(() => bind("lineItems.0")).toThrow(CompositeFieldPathError);
+    expect(() => bind("lineItems.0")).toThrow(/fieldset/);
+  });
+
+  it("still binds a field inside the composite, and the list binding still reads its rows", () => {
+    const html = renderToStaticMarkup(
+      <ArtifactProvider artifact={purchaseOrderForm} data={purchaseOrderData}>
+        <OneField path="lineItems.0.description" />
+      </ArtifactProvider>
+    );
+    expect(html).toContain("27-inch 4K monitor");
+    expect(
+      renderToStaticMarkup(
+        <ArtifactProvider artifact={purchaseOrderForm} data={purchaseOrderData}>
+          <BoundSummary />
+        </ArtifactProvider>
+      )
+    ).toContain("27-inch 4K monitor");
+  });
+});
 
 describe("headless artifact bindings", () => {
   it("renders field, list and computed outputs in SSR without adding provider markup", () => {

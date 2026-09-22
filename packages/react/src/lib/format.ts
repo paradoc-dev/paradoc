@@ -1,6 +1,7 @@
 import { defaultFormatter } from "@paradoc/format";
 import type { FormField, Formatter, FormatterProgressivePolicy } from "@paradoc/types";
 import { formatFieldValue, formatDefinitionValue } from "@paradoc/render/text/field-formatter";
+import { CompositeFieldPathError } from "./fields";
 export { ArtifactFieldFormatError } from "@paradoc/render/text/field-formatter";
 
 export const BLANK = "—";
@@ -41,8 +42,10 @@ export function createValueFormatter(options: FormatOptions = {}): DocumentForma
   const partial = options.partial ?? false;
   const progressive = options.progressive ?? (partial ? { missing: blank, incomplete: blank } : undefined);
   const format: ValueFormatter = (field, value, location) => {
-    const formatted = formatFieldValue(formatter, field ?? { type: "text" } as FormField, value,
-      location ?? field?.label ?? field?.type ?? "value", { progressive });
+    const path = location ?? field?.label ?? field?.type ?? "value";
+    // A composite has no one value; `String(...)` on it would print `[object Object]`.
+    if (field?.type === "fieldset" || field?.type === "list") throw new CompositeFieldPathError(path, field.type);
+    const formatted = formatFieldValue(formatter, field ?? { type: "text" } as FormField, value, path, { progressive });
     return formatted == null ? blank : String(formatted);
   };
   return { format, formatter, blank, partial, progressive };

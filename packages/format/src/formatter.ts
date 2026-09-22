@@ -43,7 +43,22 @@ import {
 	type CaptureFormattingContext,
 	type CaptureValidation,
 } from './captures'
-import { BUILT_IN_FIELD_MESSAGES } from './field-messages'
+import {
+	BUILT_IN_SELECTION_MESSAGES,
+	MissingSelectionMessageError,
+	SelectionFormatError,
+	formatBooleanValue,
+	formatEnumValue,
+	formatMultiselectValue,
+	formatRatingValue,
+	validateBoolean,
+	validateEnumValue,
+	validateMultiselectValue,
+	validateRating,
+	validateSelectionOptions,
+	type SelectionFormattingContext,
+	type SelectionValidation,
+} from './selection'
 import { FormatConfigurationError, FormatError } from './errors'
 import {
 	FORMAT_KINDS,
@@ -78,6 +93,12 @@ import {
 	type TemporalFormatImplementationContext,
 	type TemporalFormatKind,
 	type TemporalValueByKind,
+	type SelectionFormatImplementation,
+	type SelectionFormatImplementationContext,
+	type SelectionFormatKind,
+	type SelectionListStyle,
+	type SelectionListType,
+	type SelectionValueByKind,
 } from './types'
 
 const DEFAULT_LOCALE = 'en-US'
@@ -87,6 +108,7 @@ const NUMERIC_KINDS: readonly NumericFormatKind[] = ['number', 'money', 'percent
 const CONTACT_KINDS: readonly ContactFormatKind[] = ['address', 'phone', 'person', 'organization', 'party']
 const TEMPORAL_KINDS: readonly TemporalFormatKind[] = ['date', 'datetime', 'time', 'duration']
 const CAPTURE_KINDS: readonly CaptureFormatKind[] = ['coordinate', 'bbox', 'identification', 'attachment', 'signature']
+const SELECTION_KINDS: readonly SelectionFormatKind[] = ['boolean', 'enum', 'multiselect', 'rating']
 
 type NumericImplementationMap = {
 	[K in NumericFormatKind]: FormatImplementation<K>
@@ -140,6 +162,19 @@ interface CaptureChainEntry<K extends CaptureFormatKind> {
 	readonly previous?: CaptureChainEntry<K>
 }
 
+type SelectionImplementationMap = {
+	[K in SelectionFormatKind]: SelectionFormatImplementation<K>
+}
+
+type SelectionChainMap = {
+	[K in SelectionFormatKind]: SelectionChainEntry<K>
+}
+
+interface SelectionChainEntry<K extends SelectionFormatKind> {
+	readonly implementation: SelectionFormatImplementation<K>
+	readonly previous?: SelectionChainEntry<K>
+}
+
 interface FormatterConfig {
 	readonly locale: string
 	readonly fallbackLocale?: string
@@ -165,6 +200,10 @@ interface FormatterConfig {
 	readonly identification: FormatOptionsByKind['identification']
 	readonly attachment: FormatOptionsByKind['attachment']
 	readonly signature: FormatOptionsByKind['signature']
+	readonly boolean: FormatOptionsByKind['boolean']
+	readonly enum: FormatOptionsByKind['enum']
+	readonly multiselect: FormatOptionsByKind['multiselect']
+	readonly rating: FormatOptionsByKind['rating']
 	readonly messages: FormatterMessages
 }
 
@@ -197,6 +236,11 @@ interface ResolvedTemporalCall<K extends TemporalFormatKind> {
 	readonly timeZone: string
 	readonly calendar: string
 	readonly numberingSystem?: string
+	readonly options: FormatCallOptions<K>
+}
+
+interface ResolvedSelectionCall<K extends SelectionFormatKind> {
+	readonly locale: string
 	readonly options: FormatCallOptions<K>
 }
 
@@ -393,6 +437,10 @@ function mergeConfig(base: FormatterConfig, addition: FormatterOptions): Formatt
 		identification: { ...base.identification, ...(addition.identification ?? {}) },
 		attachment: { ...base.attachment, ...(addition.attachment ?? {}) },
 		signature: { ...base.signature, ...(addition.signature ?? {}) },
+		boolean: { ...base.boolean, ...(addition.boolean ?? {}) },
+		enum: { ...base.enum, ...(addition.enum ?? {}) },
+		multiselect: { ...base.multiselect, ...(addition.multiselect ?? {}) },
+		rating: { ...base.rating, ...(addition.rating ?? {}) },
 		messages: mergeMessages(base.messages, addition.messages),
 	}
 }
@@ -627,6 +675,10 @@ function isCaptureKind(kind: FormatKind | string): kind is CaptureFormatKind {
 	return CAPTURE_KINDS.includes(kind as CaptureFormatKind)
 }
 
+function isSelectionKind(kind: FormatKind | string): kind is SelectionFormatKind {
+	return SELECTION_KINDS.includes(kind as SelectionFormatKind)
+}
+
 function createConfig(options: FormatterOptions): FormatterConfig {
 	const policy = options.unsupportedLocale ?? 'error'
 	const requestedLocale = options.locale ?? DEFAULT_LOCALE
@@ -659,6 +711,10 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 	const identificationOptions = options.identification ?? {}
 	const attachmentOptions = options.attachment ?? {}
 	const signatureOptions = options.signature ?? {}
+	const booleanOptions = options.boolean ?? {}
+	const enumOptions = options.enum ?? {}
+	const multiselectOptions = options.multiselect ?? {}
+	const ratingOptions = options.rating ?? {}
 	validateIntlOptions('number', locale, options.numberingSystem, numberOptions)
 	validateIntlOptions('money', locale, options.numberingSystem, moneyOptions as Record<string, unknown>)
 	validateIntlOptions('percentage', locale, options.numberingSystem, percentageOptions)
@@ -674,6 +730,18 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 		validateContactOptions(addressOptions, phoneOptions, personOptions, organizationOptions, partyOptions)
 	} catch (error) {
 		throw new FormatConfigurationError(error instanceof Error ? error.message : 'Invalid contact formatting options.', { cause: error })
+	}
+	for (const [kind, selectionOptions] of [
+		['boolean', booleanOptions],
+		['enum', enumOptions],
+		['multiselect', multiselectOptions],
+		['rating', ratingOptions],
+	] as const) {
+		try {
+			validateSelectionOptions(kind, selectionOptions)
+		} catch (error) {
+			throw new FormatConfigurationError(error instanceof Error ? error.message : `Invalid ${kind} formatting options.`, { cause: error })
+		}
 	}
 
 	return {
@@ -701,10 +769,14 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 		identification: cloneAndFreeze(identificationOptions),
 		attachment: cloneAndFreeze(attachmentOptions),
 		signature: cloneAndFreeze(signatureOptions),
+		boolean: cloneAndFreeze(booleanOptions),
+		enum: cloneAndFreeze(enumOptions),
+		multiselect: cloneAndFreeze(multiselectOptions),
+		rating: cloneAndFreeze(ratingOptions),
 		messages: mergeMessages(
 			mergeMessages(
 				mergeMessages(mergeMessages(BUILT_IN_CONTACT_MESSAGES, BUILT_IN_TEMPORAL_MESSAGES), BUILT_IN_CAPTURE_MESSAGES),
-				BUILT_IN_FIELD_MESSAGES,
+				BUILT_IN_SELECTION_MESSAGES,
 			),
 			options.messages,
 		),
@@ -742,10 +814,14 @@ class FormatterImpl implements Formatter {
 	private readonly temporalChains: TemporalChainMap
 	private readonly baseCaptureImplementations: CaptureImplementationMap
 	private readonly captureChains: CaptureChainMap
+	private readonly baseSelectionImplementations: SelectionImplementationMap
+	private readonly selectionChains: SelectionChainMap
+	private readonly selectionListCache: BoundedCache<Intl.ListFormat>
 	private readonly numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[]
 	private readonly contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[]
 	private readonly temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[]
 	private readonly captureLayers: readonly { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[]
+	private readonly selectionLayers: readonly { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[]
 
 	constructor(
 		options: FormatterOptions = {},
@@ -753,6 +829,7 @@ class FormatterImpl implements Formatter {
 		contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = [],
 		temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = [],
 		captureLayers: readonly { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = [],
+		selectionLayers: readonly { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] = [],
 	) {
 		this.config = createConfig(options)
 		this.locale = this.config.locale
@@ -771,6 +848,7 @@ class FormatterImpl implements Formatter {
 		this.durationCache = new BoundedCache(this.config.cacheSize)
 		this.durationPluralCache = new BoundedCache(this.config.cacheSize)
 		this.durationListCache = new BoundedCache(this.config.cacheSize)
+		this.selectionListCache = new BoundedCache(this.config.cacheSize)
 		this.baseImplementations = {
 			number: (value, options) => this.formatPlainNumber(value, options),
 			money: (value, options) => this.formatMoneyValue(value as { amount: number; currency: string }, options),
@@ -796,6 +874,12 @@ class FormatterImpl implements Formatter {
 			attachment: (value, options, context) => this.formatAttachmentValue(value, options, context),
 			signature: (value, options, context) => this.formatSignatureValue(value, options, context),
 		}
+		this.baseSelectionImplementations = {
+			boolean: (value, options, context) => this.formatBooleanValue(value, options, context),
+			enum: (value, options) => formatEnumValue(value, options),
+			multiselect: (value, options, context) => this.formatMultiselectValue(value, options, context),
+			rating: (value, options, context) => this.formatRatingValue(value, options, context),
+		}
 		const optionLayers: { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = []
 		for (const kind of NUMERIC_KINDS) {
 			const implementation = options.overrides?.[kind] as FormatImplementation<NumericFormatKind> | undefined
@@ -805,6 +889,7 @@ class FormatterImpl implements Formatter {
 		this.contactLayers = [...contactLayers, ...this.contactOptionLayers(options.overrides)]
 		this.temporalLayers = [...temporalLayers, ...this.temporalOptionLayers(options.overrides)]
 		this.captureLayers = [...captureLayers, ...this.captureOptionLayers(options.overrides)]
+		this.selectionLayers = [...selectionLayers, ...this.selectionOptionLayers(options.overrides)]
 		this.chains = {
 			number: { implementation: this.baseImplementations.number },
 			money: { implementation: this.baseImplementations.money },
@@ -830,10 +915,17 @@ class FormatterImpl implements Formatter {
 			attachment: { implementation: this.baseCaptureImplementations.attachment },
 			signature: { implementation: this.baseCaptureImplementations.signature },
 		}
+		this.selectionChains = {
+			boolean: { implementation: this.baseSelectionImplementations.boolean },
+			enum: { implementation: this.baseSelectionImplementations.enum },
+			multiselect: { implementation: this.baseSelectionImplementations.multiselect },
+			rating: { implementation: this.baseSelectionImplementations.rating },
+		}
 		for (const layer of this.numericLayers) this.addLayer(layer.kind, layer.implementation)
 		for (const layer of this.contactLayers) this.addContactLayer(layer.kind, layer.implementation)
 		for (const layer of this.temporalLayers) this.addTemporalLayer(layer.kind, layer.implementation)
 		for (const layer of this.captureLayers) this.addCaptureLayer(layer.kind, layer.implementation)
+		for (const layer of this.selectionLayers) this.addSelectionLayer(layer.kind, layer.implementation)
 	}
 
 	private contactOptionLayers(overrides: FormatterOverrides | undefined): { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] {
@@ -861,6 +953,16 @@ class FormatterImpl implements Formatter {
 		const layers: { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = []
 		for (const kind of CAPTURE_KINDS) {
 			const implementation = overrides[kind] as CaptureFormatImplementation<CaptureFormatKind> | undefined
+			if (implementation !== undefined) layers.push({ kind, implementation })
+		}
+		return layers
+	}
+
+	private selectionOptionLayers(overrides: FormatterOverrides | undefined): { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] {
+		if (overrides === undefined) return []
+		const layers: { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] = []
+		for (const kind of SELECTION_KINDS) {
+			const implementation = overrides[kind] as SelectionFormatImplementation<SelectionFormatKind> | undefined
 			if (implementation !== undefined) layers.push({ kind, implementation })
 		}
 		return layers
@@ -905,6 +1007,17 @@ class FormatterImpl implements Formatter {
 		}
 		const previous = this.captureChains[kind] as unknown as CaptureChainEntry<CaptureFormatKind>
 		;(this.captureChains as Record<CaptureFormatKind, CaptureChainEntry<CaptureFormatKind>>)[kind] = {
+			implementation,
+			previous,
+		}
+	}
+
+	private addSelectionLayer(kind: SelectionFormatKind, implementation: SelectionFormatImplementation<SelectionFormatKind>): void {
+		if (typeof implementation !== 'function') {
+			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
+		}
+		const previous = this.selectionChains[kind] as unknown as SelectionChainEntry<SelectionFormatKind>
+		;(this.selectionChains as Record<SelectionFormatKind, SelectionChainEntry<SelectionFormatKind>>)[kind] = {
 			implementation,
 			previous,
 		}
@@ -1013,6 +1126,26 @@ class FormatterImpl implements Formatter {
 		return { locale, numberingSystem, calendar, timeZone, options: merged }
 	}
 
+	private resolveSelectionCall<K extends SelectionFormatKind>(
+		kind: K,
+		options: FormatCallOptions<K> | undefined,
+	): ResolvedSelectionCall<K> {
+		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
+		const raw = merged as FormatCallOptions<K> & { locale?: string; numberingSystem?: string }
+		const locale = resolveConfiguredLocale(
+			raw.locale ?? this.locale,
+			this.config.unsupportedLocale,
+			this.config.fallbackLocale,
+		)
+		validateNumberingSystem(raw.numberingSystem ?? this.numberingSystem)
+		try {
+			validateSelectionOptions(kind, merged)
+		} catch (error) {
+			throw new FormatConfigurationError(error instanceof Error ? error.message : `Invalid ${kind} formatting options.`, { cause: error })
+		}
+		return { locale, options: merged }
+	}
+
 	private validateTimeZone(timeZone: string, locale: string): void {
 		const key = this.cacheKey(locale, undefined, { timeZone })
 		if (this.timeZoneCache.get(key) !== undefined) return
@@ -1104,6 +1237,68 @@ class FormatterImpl implements Formatter {
 		const listFormat = new Intl.ListFormat(locale, { style: 'long', type: 'unit' })
 		this.durationListCache.set(key, listFormat)
 		return listFormat
+	}
+
+	private getSelectionListFormat(locale: string, type: SelectionListType, style: SelectionListStyle): Intl.ListFormat | undefined {
+		if (typeof Intl.ListFormat !== 'function' || Intl.ListFormat.supportedLocalesOf([locale]).length === 0) return undefined
+		const key = this.cacheKey(locale, undefined, { type, style })
+		const existing = this.selectionListCache.get(key)
+		if (existing !== undefined) return existing
+		const listFormat = new Intl.ListFormat(locale, { type, style })
+		this.selectionListCache.set(key, listFormat)
+		return listFormat
+	}
+
+	private selectionFormattingContext(locale: string, numberingSystem: string | undefined): SelectionFormattingContext {
+		return {
+			locale,
+			messages: this.messages,
+			fallbackLocale: this.config.fallbackLocale,
+			formatNumber: (value, options) => {
+				const resolved = this.resolveCall('number', { ...options, locale, ...(numberingSystem === undefined ? {} : { numberingSystem }) } as FormatCallOptions<'number'>)
+				const output = this.invoke(this.chains.number, 'number', value, resolved.options, resolved.locale)
+				if (typeof output !== 'string') throw new Error('A nested number formatter implementation must return a string.')
+				return output
+			},
+			formatEnum: (value, enumOptions) => {
+				const resolved = this.resolveSelectionCall('enum', { ...enumOptions, locale } as FormatCallOptions<'enum'>)
+				const output = this.invokeSelection(this.selectionChains.enum, 'enum', value, resolved.options, resolved.locale)
+				if (typeof output !== 'string') throw new Error('A nested enum formatter implementation must return a string.')
+				return output
+			},
+			listFormat: (type, style) => this.getSelectionListFormat(locale, type, style),
+		}
+	}
+
+	private selectionContextFor<K extends SelectionFormatKind>(
+		context: SelectionFormatImplementationContext<K>,
+	): SelectionFormattingContext {
+		const { numberingSystem } = context.options as FormatCallOptions<K> & { numberingSystem?: string }
+		return this.selectionFormattingContext(context.locale, numberingSystem ?? this.numberingSystem)
+	}
+
+	private formatBooleanValue(
+		value: SelectionValueByKind['boolean'],
+		options: FormatCallOptions<'boolean'>,
+		context: SelectionFormatImplementationContext<'boolean'>,
+	): string {
+		return formatBooleanValue(value, options, this.selectionContextFor(context))
+	}
+
+	private formatMultiselectValue(
+		value: SelectionValueByKind['multiselect'],
+		options: FormatCallOptions<'multiselect'>,
+		context: SelectionFormatImplementationContext<'multiselect'>,
+	): string {
+		return formatMultiselectValue(value, options, this.selectionContextFor(context))
+	}
+
+	private formatRatingValue(
+		value: SelectionValueByKind['rating'],
+		options: FormatCallOptions<'rating'>,
+		context: SelectionFormatImplementationContext<'rating'>,
+	): string {
+		return formatRatingValue(value, options, this.selectionContextFor(context))
 	}
 
 	private formatPlainNumber(value: number, options: FormatCallOptions<'number'>): string {
@@ -1548,11 +1743,52 @@ class FormatterImpl implements Formatter {
 		return entry.implementation(validatedValue, options, context)
 	}
 
+	private validateSelectionValue<K extends SelectionFormatKind>(
+		kind: K,
+		value: unknown,
+	): SelectionValidation<SelectionValueByKind[K]> {
+		if (kind === 'boolean') return validateBoolean(value) as SelectionValidation<SelectionValueByKind[K]>
+		if (kind === 'enum') return validateEnumValue(value) as SelectionValidation<SelectionValueByKind[K]>
+		if (kind === 'multiselect') return validateMultiselectValue(value) as SelectionValidation<SelectionValueByKind[K]>
+		return validateRating(value) as SelectionValidation<SelectionValueByKind[K]>
+	}
+
+	private invokeSelection<K extends SelectionFormatKind>(
+		entry: SelectionChainEntry<K>,
+		kind: K,
+		value: SelectionValueByKind[K],
+		options: FormatCallOptions<K>,
+		locale: string,
+	): string {
+		const validation = this.validateSelectionValue(kind, value)
+		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
+		const validatedValue = validation.value
+		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
+			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
+			const resolved = this.resolveSelectionCall(kind, delegatedOptions)
+			const delegatedValidation = this.validateSelectionValue(kind, nextValue)
+			if (!delegatedValidation.ok) throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
+			if (entry.previous === undefined) {
+				return this.baseSelectionImplementations[kind](delegatedValidation.value, resolved.options, {
+					kind,
+					locale: resolved.locale,
+					options: resolved.options,
+					delegate: () => {
+						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
+					},
+				} as SelectionFormatImplementationContext<K>)
+			}
+			return this.invokeSelection(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
+		}
+		const context: SelectionFormatImplementationContext<K> = { kind, locale, options, delegate }
+		return entry.implementation(validatedValue, options, context)
+	}
+
 	private evaluate(kind: FormatKind | string, value: unknown, options: unknown): FormatResult {
 		if (!FORMAT_KINDS.includes(kind as FormatKind)) {
 			return failed('unsupported', [issue(kind, 'unknown_kind', `Unknown format kind ${JSON.stringify(kind)}.`)])
 		}
-		if (!isNumericKind(kind) && !isContactKind(kind) && !isTemporalKind(kind) && !isCaptureKind(kind)) {
+		if (!isNumericKind(kind) && !isContactKind(kind) && !isTemporalKind(kind) && !isCaptureKind(kind) && !isSelectionKind(kind)) {
 			return failed('unsupported', [issue(kind, 'unsupported_kind', `Formatting ${kind} values is not implemented in this formatter.`)])
 		}
 
@@ -1579,6 +1815,21 @@ class FormatterImpl implements Formatter {
 					this.temporalChains[kind] as TemporalChainEntry<typeof kind>,
 					kind,
 					value as TemporalValueByKind[typeof kind],
+					resolved.options,
+					resolved.locale,
+				)
+				if (typeof output !== 'string') {
+					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
+				}
+				return formatted(output)
+			}
+			if (isSelectionKind(kind)) {
+				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
+				const resolved = this.resolveSelectionCall(kind, typedOptions)
+				const output = this.invokeSelection(
+					this.selectionChains[kind] as SelectionChainEntry<typeof kind>,
+					kind,
+					value as SelectionValueByKind[typeof kind],
 					resolved.options,
 					resolved.locale,
 				)
@@ -1624,6 +1875,12 @@ class FormatterImpl implements Formatter {
 			return formatted(output)
 		} catch (error) {
 			if (error instanceof FormatProblem) return failed(error.status, error.issues)
+			if (error instanceof SelectionFormatError) {
+				return failed(error.status, [issue(kind, error.code, error.message)])
+			}
+			if (error instanceof MissingSelectionMessageError) {
+				return failed('unsupported', [issue(kind, 'missing_message', error.message, undefined, error)])
+			}
 			if (error instanceof FormatConfigurationError) {
 				return failed('unsupported', [issue(kind, 'unsupported_configuration', error.message, undefined, error)])
 			}
@@ -1709,6 +1966,22 @@ class FormatterImpl implements Formatter {
 		return this.format('signature', value, options)
 	}
 
+	formatBoolean(value: FormatInputByKind['boolean'], options?: FormatCallOptions<'boolean'>): string {
+		return this.format('boolean', value, options)
+	}
+
+	formatEnum(value: FormatInputByKind['enum'], options?: FormatCallOptions<'enum'>): string {
+		return this.format('enum', value, options)
+	}
+
+	formatMultiselect(value: FormatInputByKind['multiselect'], options?: FormatCallOptions<'multiselect'>): string {
+		return this.format('multiselect', value, options)
+	}
+
+	formatRating(value: FormatInputByKind['rating'], options?: FormatCallOptions<'rating'>): string {
+		return this.format('rating', value, options)
+	}
+
 	safeFormatNumber(value: FormatInputByKind['number'], options?: FormatCallOptions<'number'>): FormatResult {
 		return this.safeFormat('number', value, options)
 	}
@@ -1777,10 +2050,26 @@ class FormatterImpl implements Formatter {
 		return this.safeFormat('signature', value, options)
 	}
 
+	safeFormatBoolean(value: FormatInputByKind['boolean'], options?: FormatCallOptions<'boolean'>): FormatResult {
+		return this.safeFormat('boolean', value, options)
+	}
+
+	safeFormatEnum(value: FormatInputByKind['enum'], options?: FormatCallOptions<'enum'>): FormatResult {
+		return this.safeFormat('enum', value, options)
+	}
+
+	safeFormatMultiselect(value: FormatInputByKind['multiselect'], options?: FormatCallOptions<'multiselect'>): FormatResult {
+		return this.safeFormat('multiselect', value, options)
+	}
+
+	safeFormatRating(value: FormatInputByKind['rating'], options?: FormatCallOptions<'rating'>): FormatResult {
+		return this.safeFormat('rating', value, options)
+	}
+
 	compose(options: FormatterOptions = {}): Formatter {
 		const { overrides: _overrides, ...withoutOverrides } = options
 		const merged = mergeConfig(this.config, withoutOverrides)
-		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers, this.temporalLayers, this.captureLayers)
+		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers, this.temporalLayers, this.captureLayers, this.selectionLayers)
 		if (options.overrides !== undefined) return next.withOverrides(options.overrides)
 		return next
 	}
@@ -1806,12 +2095,18 @@ class FormatterImpl implements Formatter {
 			const implementation = overrides[kind] as CaptureFormatImplementation<CaptureFormatKind> | undefined
 			if (implementation !== undefined) captureAdditions.push({ kind, implementation })
 		}
+		const selectionAdditions: { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] = []
+		for (const kind of SELECTION_KINDS) {
+			const implementation = overrides[kind] as SelectionFormatImplementation<SelectionFormatKind> | undefined
+			if (implementation !== undefined) selectionAdditions.push({ kind, implementation })
+		}
 		const next = new FormatterImpl(
 			this.config,
 			[...this.numericLayers, ...additions],
 			[...this.contactLayers, ...contactAdditions],
 			[...this.temporalLayers, ...temporalAdditions],
 			[...this.captureLayers, ...captureAdditions],
+			[...this.selectionLayers, ...selectionAdditions],
 		)
 		return next
 	}
@@ -1899,6 +2194,22 @@ export function formatSignature(value: FormatInputByKind['signature'], options?:
 	return defaultFormatter.formatSignature(value, options)
 }
 
+export function formatBoolean(value: FormatInputByKind['boolean'], options?: FormatCallOptions<'boolean'>): string {
+	return defaultFormatter.formatBoolean(value, options)
+}
+
+export function formatEnum(value: FormatInputByKind['enum'], options?: FormatCallOptions<'enum'>): string {
+	return defaultFormatter.formatEnum(value, options)
+}
+
+export function formatMultiselect(value: FormatInputByKind['multiselect'], options?: FormatCallOptions<'multiselect'>): string {
+	return defaultFormatter.formatMultiselect(value, options)
+}
+
+export function formatRating(value: FormatInputByKind['rating'], options?: FormatCallOptions<'rating'>): string {
+	return defaultFormatter.formatRating(value, options)
+}
+
 export function formatValue<K extends FormatKind>(
 	kind: K,
 	value: FormatInputByKind[K],
@@ -1981,4 +2292,20 @@ export function safeFormatAttachment(value: FormatInputByKind['attachment'], opt
 
 export function safeFormatSignature(value: FormatInputByKind['signature'], options?: FormatCallOptions<'signature'>): FormatResult {
 	return defaultFormatter.safeFormatSignature(value, options)
+}
+
+export function safeFormatBoolean(value: FormatInputByKind['boolean'], options?: FormatCallOptions<'boolean'>): FormatResult {
+	return defaultFormatter.safeFormatBoolean(value, options)
+}
+
+export function safeFormatEnum(value: FormatInputByKind['enum'], options?: FormatCallOptions<'enum'>): FormatResult {
+	return defaultFormatter.safeFormatEnum(value, options)
+}
+
+export function safeFormatMultiselect(value: FormatInputByKind['multiselect'], options?: FormatCallOptions<'multiselect'>): FormatResult {
+	return defaultFormatter.safeFormatMultiselect(value, options)
+}
+
+export function safeFormatRating(value: FormatInputByKind['rating'], options?: FormatCallOptions<'rating'>): FormatResult {
+	return defaultFormatter.safeFormatRating(value, options)
 }

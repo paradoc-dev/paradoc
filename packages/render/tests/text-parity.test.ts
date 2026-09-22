@@ -215,7 +215,7 @@ describe('text renderer behavior', () => {
         defs: { total: { amount: 12.5, currency: 'USD' } },
         rows: [{ amount: { amount: 2, currency: 'USD' } }],
       },
-    })).toBe('MONEY:12.5:$12.50/12.5/DATE:2024-01-15/Active/&lt;Alpha&gt;/Alpha, Beta/PERSON:Ada/MONEY:12.5:$12.50/MONEY:2:$2.00;')
+    })).toBe('MONEY:12.5:$12.50/12.5/DATE:2024-01-15/Active/&lt;Alpha&gt;/Alpha and Beta/PERSON:Ada/MONEY:12.5:$12.50/MONEY:2:$2.00;')
   })
 
   it('keeps missing and incomplete values explicit when progressive presentation is selected', () => {

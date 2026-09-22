@@ -1,5 +1,6 @@
 import type { Attachment, Bbox, Coordinate, Identification, Signature } from '@paradoc/types'
 
+import { resolveMessage } from './messages'
 import { validateDate, validateDatetime } from './temporal'
 import type {
 	AttachmentFormatOptions,
@@ -354,26 +355,13 @@ export function validateSignature(value: unknown): CaptureValidation<Signature> 
 	}
 }
 
-function findMessage(messages: FormatterMessages, locale: string, key: string): string | undefined {
-	const exact = messages[locale]?.[key]
-	if (exact !== undefined) return exact
-	const language = locale.split('-')[0]
-	return Object.entries(messages).find(([candidate]) => candidate.split('-')[0] === language)?.[1]?.[key]
-}
-
 export function resolveCaptureMessage(
 	messages: FormatterMessages,
 	locale: string,
 	key: string,
 	fallbackLocale?: string,
 ): string {
-	const message = findMessage(messages, locale, key)
-	if (message !== undefined) return message
-	if (fallbackLocale !== undefined) {
-		const fallbackMessage = findMessage(messages, fallbackLocale, key)
-		if (fallbackMessage !== undefined) return fallbackMessage
-	}
-	throw new MissingCaptureMessageError(key, locale)
+	return resolveMessage(messages, locale, key, fallbackLocale, (missingKey, missingLocale) => new MissingCaptureMessageError(missingKey, missingLocale))
 }
 
 function interpolate(message: string, value: string): string {

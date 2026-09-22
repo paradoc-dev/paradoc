@@ -39,6 +39,13 @@ const spec = {
       required: true,
       visible: true,
     },
+    tags: {
+      type: "list",
+      label: "Tags",
+      required: false,
+      visible: true,
+      item: { type: "text", label: "Tag", required: false, visible: true },
+    },
   },
 } as const;
 
@@ -115,6 +122,13 @@ const BothFaults: ReactLayerComponent = ({ artifact, data }) => (
   </Document>
 );
 
+/** A composition whose `Field` names a list, which has no one value to print. */
+const CompositePath: ReactLayerComponent = ({ artifact, data }) => (
+  <Document artifact={artifact} data={data}>
+    <Field path="tags" />
+  </Document>
+);
+
 /** A composition with an image whose `src` is not a `data:` URI. */
 const RemoteImage: ReactLayerComponent = ({ artifact, data }) => (
   <Document artifact={artifact} data={data}>
@@ -159,6 +173,16 @@ describe("checkComposition", () => {
 
     expect(result.unresolvedPaths).toEqual(["doesNotExist"]);
     expect(result.unsupportedClasses).toEqual([]);
+  });
+
+  it("names a composite path rather than throwing on it", async () => {
+    const result = await checkComposition({
+      artifact: fixtureForm,
+      composition: CompositePath,
+      data: fixtureData,
+    });
+
+    expect(result.unresolvedPaths).toEqual(["tags"]);
   });
 
   it("names an unresolved signature party role", async () => {

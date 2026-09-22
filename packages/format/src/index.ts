@@ -14,6 +14,10 @@ export {
 	formatAddress,
 	formatAttachment,
 	formatBbox,
+	formatBoolean,
+	formatEnum,
+	formatMultiselect,
+	formatRating,
 	formatCoordinate,
 	formatDate,
 	formatDatetime,
@@ -32,6 +36,10 @@ export {
 	safeFormatAddress,
 	safeFormatAttachment,
 	safeFormatBbox,
+	safeFormatBoolean,
+	safeFormatEnum,
+	safeFormatMultiselect,
+	safeFormatRating,
 	safeFormatDate,
 	safeFormatDatetime,
 	safeFormatDuration,
@@ -51,10 +59,26 @@ export {
 
 export { FormatConfigurationError, FormatError, isFormatError } from './errors'
 
+export { MISSING_RATING_SCALE, UNSUPPORTED_LIST_JOIN } from './selection'
+
 export {
 	FORMAT_KINDS,
 	type AttachmentFormatOptions,
 	type BboxFormatOptions,
+	type BooleanFormatOptions,
+	type EnumFormatOptions,
+	type MultiselectFormatOptions,
+	type RatingDisplay,
+	type RatingFormatOptions,
+	type SelectionFormatImplementation,
+	type SelectionFormatImplementationContext,
+	type SelectionFormatKind,
+	type SelectionListStyle,
+	type SelectionListType,
+	type SelectionOption,
+	type SelectionOptionValue,
+	type SelectionValueByKind,
+	type UnknownOptionPolicy,
 	type CaptureFormatImplementation,
 	type CaptureFormatImplementationContext,
 	type CaptureFormatKind,

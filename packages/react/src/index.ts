@@ -107,6 +107,7 @@ export {
 } from "./headless/signing";
 
 export {
+  CompositeFieldPathError,
   itemField,
   InvalidFieldPathError,
   pathSegments,

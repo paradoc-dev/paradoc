@@ -10,7 +10,7 @@ import { formatParties } from "@paradoc/render/text/field-formatter";
 import { createContext, useContext } from "react";
 import type { Form, FormField, Party, Formatter } from "@paradoc/types";
 
-import { itemField, readValue, resolveField, UnknownFieldPathError } from "../lib/fields";
+import { CompositeFieldPathError, itemField, readValue, resolveField, UnknownFieldPathError } from "../lib/fields";
 import { findSigningMark, type SigningMarks, type SigningMarkType } from "./signing-context";
 import { formatByType, ArtifactFieldFormatError, type DocumentFormatter, type ValueFormatter } from "../lib/format";
 import type { UnresolvedPathCollector } from "./check-context";
@@ -133,7 +133,7 @@ function formatOrCollect(
   try {
     return attempt();
   } catch (error) {
-    if (error instanceof ArtifactFieldFormatError) {
+    if (error instanceof ArtifactFieldFormatError || error instanceof CompositeFieldPathError) {
       collector.report(error.path);
       return blank;
     }
