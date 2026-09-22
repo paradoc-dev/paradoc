@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "party",
+  "type": "registry:ui",
+  "title": "Party",
+  "description": "One party of a declared role — name, organization, address, and contact — as a block or inline, through the shared formatter.",
+  "dependencies": [
+    "@paradoc/react@^0.5.0"
+  ],
+  "registryDependencies": [
+    "@paradoc/keep-together"
+  ],
+  "files": [
+    {
+      "path": "components/paradoc/party.tsx",
+      "type": "registry:ui",
+      "target": "components/paradoc/party.tsx",
+      "content": "/** @jsxRuntime classic */\nimport React from \"react\";\nimport { scaleTextClasses, useDocumentTokens, usePartyContact } from \"@paradoc/react\";\nimport { KeepTogether } from \"@/components/paradoc/keep-together\";\n\n/**\n * A copy-owned party block. It reads one party of a declared role from the\n * headless runtime and prints its name, its affiliated organization, its\n * address, and its contact line, through the shared formatter, as a block\n * or inline.\n *\n * The artifact's own person/organization schema carries only name-shaped\n * fields. A filled party record may carry its own `organization`, `address`,\n * or `phone` member beyond that schema — a person signing for a firm, say —\n * and each one prints as its own line when present. A member the record does\n * not carry is left out, never printed blank.\n */\n\nexport interface PartyProps {\n  /** Party role declared by the artifact, such as `\"buyer\"`. */\n  role: string;\n  /**\n   * 0-based index, for a role admitting several parties.\n   * @default 0\n   */\n  index?: number;\n  /**\n   * `\"block\"` stacks the name, organization, address, and contact each on\n   * their own line; `\"inline\"` joins them into one run for a sentence.\n   * @default \"block\"\n   */\n  variant?: \"block\" | \"inline\";\n  /** Overrides the role heading: a string replaces it, `false` hides it, omitted uses the artifact's own label. */\n  label?: string | false;\n  /**\n   * Stable keep id.\n   * @default \"party:<role>\" or \"party:<role>:<index>\" past the first\n   */\n  keepId?: string;\n  /** Classes for the party's wrapping element. */\n  className?: string;\n}\n\n/** One party's presentation, for one declared role. */\nexport function Party({ role, index = 0, variant = \"block\", label, keepId, className }: PartyProps) {\n  const binding = usePartyContact(role, index);\n  const { typography } = useDocumentTokens();\n  const heading = label === false ? undefined : (label ?? binding.roleLabel);\n  const id = keepId ?? `party:${role}${index === 0 ? \"\" : `:${index}`}`;\n  // A member the binding leaves `undefined` is one the party record does not\n  // carry at all, so it is left off; a member the record carries but is still\n  // being filled comes back as the binding's own placeholder text and prints\n  // like any other in-progress value.\n  const lines = [binding.nameText, binding.organizationText, binding.addressText, binding.contactText].filter(\n    (line): line is string => line !== undefined\n  );\n\n  if (variant === \"inline\") {\n    const text = (heading ? [heading, ...lines] : lines).join(\", \");\n    return (\n      <KeepTogether as=\"span\" keepId={id} data-party-role={role} data-party-index={index} className={className}>\n        <span className={scaleTextClasses(\"text-sm text-neutral-900\", typography.scale)}>{text}</span>\n      </KeepTogether>\n    );\n  }\n\n  return (\n    <KeepTogether\n      keepId={id}\n      data-party-role={role}\n      data-party-index={index}\n      className={className ?? \"flex flex-col gap-0.5\"}\n    >\n      {heading ? (\n        <span className={scaleTextClasses(\"text-xs font-medium uppercase tracking-wide text-neutral-500\", typography.scale)}>\n          {heading}\n        </span>\n      ) : null}\n      {lines.map((line, lineIndex) => (\n        <span key={lineIndex} className={scaleTextClasses(\"text-sm text-neutral-900\", typography.scale)}>\n          {line}\n        </span>\n      ))}\n    </KeepTogether>\n  );\n}\n"
+    }
+  ]
+}

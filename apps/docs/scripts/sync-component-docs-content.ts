@@ -110,6 +110,7 @@ const DEMO_FILES: Record<string, string> = {
   pages: "pages-demo.tsx",
   "page-number": "page-number-demo.tsx",
   paper: "paper-demo.tsx",
+  party: "party-demo.tsx",
   section: "section-demo.tsx",
   table: "table-demo.tsx",
   text: "text-demo.tsx",
@@ -169,6 +170,10 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
     { key: "minimal-content", file: "paper-variant-minimal-content.tsx" },
     { key: "custom-frame", file: "paper-variant-custom-frame.tsx" },
     { key: "overflowing-content", file: "paper-variant-overflowing-content.tsx" },
+  ],
+  party: [
+    { key: "inline", file: "party-variant-inline.tsx" },
+    { key: "multiple", file: "party-variant-multiple.tsx" },
   ],
   section: [
     { key: "titled", file: "section-variant-titled.tsx" },
@@ -288,6 +293,7 @@ const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> 
   pages: { file: "pages.tsx", interfaceName: "PagesProps" },
   "page-number": { file: "page-number.tsx", interfaceName: "PageNumberProps" },
   paper: { file: "paper.tsx", interfaceName: "PaperProps" },
+  party: { file: "party.tsx", interfaceName: "PartyProps" },
   section: { file: "section.tsx", interfaceName: "SectionProps" },
   table: { file: "table.tsx", interfaceName: "TableProps" },
   text: { file: "text.tsx", interfaceName: "TextProps" },
@@ -315,14 +321,16 @@ function readRegistryContent(): Record<string, RegistryItem> {
 
 /**
  * A registry item that carries no real files, so the import-rewriter treats
- * the sample data every demo/variant file binds (the services-proposal
- * artifact and its data) as an item it owns, resolving imports of it to an
- * illustrative installed-style path rather than refusing to rewrite them (a
- * bare package specifier would be wrong here: this is package-internal
- * sample material, not something a consumer installs from npm).
+ * the sample data most demo/variant files bind (the services-proposal
+ * artifact and its data, plus `party`'s own minimal fixture — no shared
+ * sample declares a multiply-filled role with contact details) as an item it
+ * owns, resolving imports of it to an illustrative installed-style path
+ * rather than refusing to rewrite them (a bare package specifier would be
+ * wrong here: this is package-internal sample material, not something a
+ * consumer installs from npm).
  */
 const SAMPLE_DATA_ITEM_NAME = "docs-sample-data";
-const SAMPLE_DATA_FILES = ["proposal.ts", "proposal-data.ts"];
+const SAMPLE_DATA_FILES = ["proposal.ts", "proposal-data.ts", "party-artifact.ts", "party-demo-data.ts"];
 const SAMPLE_DATA_ITEM: RegistryManifestItem = {
   name: SAMPLE_DATA_ITEM_NAME,
   type: "registry:lib",

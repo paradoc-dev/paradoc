@@ -1,0 +1,64 @@
+---
+title: Party
+description: One party of a declared role — name, organization, address, and contact — as a block or inline, through the shared formatter.
+---
+
+`Party` prints one party of an artifact-declared role as a whole thing,
+rather than field by field: its name, its affiliated organization, its
+address, and its contact line, each through the same shared formatter a
+[`Field`](/components/field) reads through. It reads no member it does not
+find, so a party carrying only a name prints only a name — nothing prints
+blank.
+
+# Preview
+
+<ComponentPreview name="party" />
+
+# Installation
+
+<ComponentInstallation name="party" />
+
+# Usage
+
+<ComponentUsage name="party" />
+
+# Composition
+
+`Party` needs the same `Document` context every other component here does:
+`role` names a role the artifact declares, and `index` selects which one for
+a role a document may fill more than once. `Party` is a `Keep Together`, so
+it is never split across a page break, and it carries `data-party-role` and
+`data-party-index` the way a `Field` carries `data-field-path`.
+
+The artifact's own person/organization schema carries only name-shaped
+fields — it has no place for an address or a phone. A party record that
+also carries its own `organization`, `address`, or `phone` member (a person
+signing for a firm, say) has each one printed as its own line; a member the
+record does not carry is left out rather than printed blank. `role` names an
+undeclared role, and `index` a party past how many the role was actually
+filled with, each fail by name the same way an unknown [`Field`](/components/field)
+path does — including an optional role (`min: 0`) a document has not filled
+at all, where index `0` is already past the parties it carries. `Party`
+never prints a placeholder for a party that is not there, unlike
+[`Signature`](/components/signature)'s em dash for the same case: a
+composition that wants a placeholder for an unfilled optional party checks
+for one before rendering `Party`.
+
+Every size in the block — the role heading and every line beneath it —
+follows the document's [typography](/components/typography) token.
+
+# Variants
+
+## Inline
+
+`variant="inline"` joins the same values into one run, for a sentence,
+instead of stacking them as a block.
+
+<ComponentVariant name="party" variant="inline" />
+
+## Multiple parties
+
+A role a document may fill more than once — `witness` here admits two —
+selects which party this block prints with `index`.
+
+<ComponentVariant name="party" variant="multiple" />

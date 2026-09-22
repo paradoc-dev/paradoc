@@ -367,6 +367,16 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: ["keep-together"],
   },
   {
+    name: "party",
+    type: "registry:ui",
+    title: "Party",
+    description:
+      "One party of a declared role — name, organization, address, and contact — as a block or inline, through the shared formatter.",
+    files: [component("party")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    registryDependencies: ["keep-together"],
+  },
+  {
     name: "signature",
     type: "registry:ui",
     title: "Signature",

@@ -53,6 +53,9 @@ import {
   PartVariantPending,
   PartVariantPlaced,
   PartVariantUnplaced,
+  PartyDemo,
+  PartyVariantInline,
+  PartyVariantMultiple,
   PdfPagesDemo,
   PdfPagesVariantAttachment,
   PdfPagesVariantStandalone,
@@ -108,6 +111,7 @@ export const COMPONENT_DEMOS: Record<string, ComponentType> = {
   table: TableDemo,
   text: TextDemo,
   part: PartDemo,
+  party: PartyDemo,
   "pdf-pages": PdfPagesDemo,
   "qr-code": QRCodeDemo,
   signature: SignatureDemo,
@@ -195,6 +199,10 @@ export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> =
     unplaced: PartVariantUnplaced,
     placed: PartVariantPlaced,
     pending: PartVariantPending,
+  },
+  party: {
+    inline: PartyVariantInline,
+    multiple: PartyVariantMultiple,
   },
   "pdf-pages": {
     standalone: PdfPagesVariantStandalone,

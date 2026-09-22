@@ -12,6 +12,7 @@ import { checkComposition, checkElement } from "../src/check";
 import { Document } from "../../components/src/components/document";
 import { Field } from "../../components/src/components/field";
 import { KeepTogether } from "../../components/src/components/keep-together";
+import { Party } from "../../components/src/components/party";
 import { Signature } from "../../components/src/components/signature";
 import { Totals } from "../../components/src/components/totals";
 import type { DocumentData } from "../src/components/document-context";
@@ -109,6 +110,13 @@ const UnresolvedParty: ReactLayerComponent = ({ artifact, data }) => (
   </Document>
 );
 
+/** A composition whose `Party` names an index past how many the role was filled with. */
+const UnresolvedPartyIndex: ReactLayerComponent = ({ artifact, data }) => (
+  <Document artifact={artifact} data={data}>
+    <Party role="customer" index={0} />
+  </Document>
+);
+
 /**
  * A composition with two faults of different kinds at once: an unsupported
  * class on one `Field`, and an unresolved path on another. Both must be
@@ -193,6 +201,16 @@ describe("checkComposition", () => {
     });
 
     expect(result.unresolvedPaths).toEqual(["party:notary"]);
+  });
+
+  it("names a Party index past how many the role was filled with", async () => {
+    const result = await checkComposition({
+      artifact: fixtureForm,
+      composition: UnresolvedPartyIndex,
+      data: fixtureData,
+    });
+
+    expect(result.unresolvedPaths).toEqual(["party:customer[0]"]);
   });
 
   it("reports an unsupported class and an unresolved path from one composition", async () => {

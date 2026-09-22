@@ -64,6 +64,7 @@ export const COMPONENT_ITEMS = [
   'pages',
   'paper',
   'part',
+  'party',
   'pdf-pages',
   'section',
   'signature',

@@ -32,6 +32,7 @@ const referencePages = new Set([
   'pages',
   'paper',
   'part',
+  'party',
   'pdf-pages',
   'qr-code',
   'section',

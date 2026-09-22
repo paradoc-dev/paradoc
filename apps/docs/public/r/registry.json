@@ -298,6 +298,25 @@
       ]
     },
     {
+      "name": "party",
+      "type": "registry:ui",
+      "title": "Party",
+      "description": "One party of a declared role — name, organization, address, and contact — as a block or inline, through the shared formatter.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/keep-together"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/components/party.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/party.tsx"
+        }
+      ]
+    },
+    {
       "name": "signature",
       "type": "registry:ui",
       "title": "Signature",

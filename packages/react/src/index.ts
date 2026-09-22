@@ -153,6 +153,12 @@ export {
   type TotalBinding,
 } from "./headless/artifact";
 export {
+  PartyIndexOutOfRangeError,
+  usePartyContact,
+  type PartyContactBinding,
+  type PartyWithContact,
+} from "./headless/party";
+export {
   BLANK,
   createValueFormatter,
   formatByType,

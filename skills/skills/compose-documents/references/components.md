@@ -1,6 +1,6 @@
 ---
 name: components
-description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Signature, QRCode, PageNumber, and the page furniture — with exact props.
+description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Party, Signature, QRCode, PageNumber, and the page furniture — with exact props.
 metadata:
   tags: components, props, react
 ---
@@ -207,6 +207,36 @@ value is a def the artifact evaluates and a serializer formats.
 
 ```tsx
 <Totals rows={[{ def: "subtotal" }, { def: "tax", ratePath: "taxRatePercent" }, { def: "total", emphasis: true }]} />
+```
+
+### `Party`
+
+One party of a declared role — name, organization, address, and contact
+each on its own line, as a block, or joined into one run inline — through
+the shared formatter. The artifact's own person/organization schema carries
+only name-shaped fields; a filled party record that also carries its own
+`organization`, `address`, or `phone` member has each one printed, and a
+member the record does not carry is left out rather than printed blank.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `role` | `string` | Party role declared by the artifact, e.g. `"buyer"`. |
+| `index` | `number?` | 0-based, for a role admitting several parties. Defaults to `0`. |
+| `variant` | `"block" \| "inline"?` | `"block"` stacks each line; `"inline"` joins them into one run. Defaults to `"block"`. |
+| `label` | `string \| false?` | Overrides the role heading. `false` renders with no heading. |
+| `keepId` | `string?` | Keep id. Defaults to `` `party:${role}` `` or `` `party:${role}:${index}` `` past the first. |
+| `className` | `string?` | |
+
+A role the artifact does not declare throws `UnknownPartyRoleError`; an
+`index` past how many the role was actually filled with throws
+`PartyIndexOutOfRangeError` — both faults, never a blank. This includes an
+optional role (`min: 0`) nothing has filled yet: unlike `Signature`, which
+prints an em dash for the same case, `Party` fails rather than printing a
+placeholder for a party that is not there.
+
+```tsx
+<Party role="buyer" />
+<Party role="witness" index={1} variant="inline" />
 ```
 
 ### `Signature`
