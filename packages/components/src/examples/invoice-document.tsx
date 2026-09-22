@@ -1,9 +1,17 @@
 /**
  * The invoice, composed from the components.
  *
- * One tree, built only from `Document`, `Section`, `Field`, `Table` and
- * `Totals`, that carries no copy of any label, format, or total. It is the same
- * tree the preview paginates and the PDF renders.
+ * One tree, built only from `Document`, `Section`, `Text`, `Party`, `Field`,
+ * `Image`, `Table` and `Totals`, that carries no copy of any label, format, or
+ * total and sizes none of its own text. It is the same tree the preview
+ * paginates and the PDF renders; `invoiceFurniture` numbers its pages in both.
+ *
+ * **The parties are `Party` blocks, and what a party record does not carry
+ * sits beside them.** The issuer and the customer are the artifact's parties,
+ * so each is named by its own block. Their addresses and the customer's
+ * accounts contact are fields: the party schema models the party itself, not
+ * where it is or who in it the invoice is addressed to, so those stay `Field`s
+ * beside the block rather than members of the record.
  *
  * **There is no `Signature`.** An invoice is a demand for payment rather than
  * an agreement, so the artifact declares no signature slot and the composition
@@ -26,10 +34,13 @@ import { Document } from "../components/document";
 import type { DocumentData } from "@paradoc/react";
 import { Field } from "../components/field";
 import { Image } from "../components/image";
-import { KeepTogether } from "../components/keep-together";
+import { PageNumber } from "../components/page-number";
+import { Party } from "../components/party";
 import { Section } from "../components/section";
 import { Table } from "../components/table";
-import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
+import { Text } from "../components/text";
+import { markDocumentRoot, useDocumentTokens } from "@paradoc/react";
+import type { PageFurniture } from "@paradoc/react";
 import { Totals } from "../components/totals";
 import type { FormatOptions } from "@paradoc/react";
 import type { DocumentTokensInput } from "@paradoc/react";
@@ -64,6 +75,15 @@ function IssuerMark() {
   );
 }
 
+/**
+ * The invoice's page furniture: the page number and the count, in the footer.
+ *
+ * Hand the same object to `<Pages furniture>` and to `renderPdf`, so the
+ * preview and the PDF number the same pages. It is drawn inside the margin, so
+ * the page plan and the page count are what they are without it.
+ */
+export const invoiceFurniture: PageFurniture = { footer: <PageNumber /> };
+
 export interface InvoiceDocumentProps {
   /** The invoice data to render. */
   data: DocumentData;
@@ -78,14 +98,13 @@ export interface InvoiceDocumentProps {
 }
 
 /**
- * The composition's content, below the `Document` that supplies its tokens: a
- * hook called in `InvoiceDocument`'s own body would see the package's defaults.
- * Every size and leading here is routed through the token, so the whole
- * document follows `typography` rather than the components alone.
+ * The composition's content, below the `Document` that supplies its tokens: the
+ * mark reads them, and a hook above the `Document` would see the package's
+ * defaults. Nothing here sizes its own text: the title is a `Text` heading, the
+ * parties are `Party` blocks, and every value inherits the document's body
+ * size, so the whole invoice follows `typography`.
  */
 function InvoiceBody({ artifact }: { artifact: Form }) {
-  const { typography } = useDocumentTokens();
-  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
   return (
     <>
 
@@ -93,11 +112,11 @@ function InvoiceBody({ artifact }: { artifact: Form }) {
         <div className="flex basis-1/2 flex-row gap-3">
           <IssuerMark />
           <div className="flex flex-col gap-1">
-            <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
+            <Text keepId="title" role="heading" as="span">
               {artifact.title}
-            </KeepTogether>
-            <Field path="issuer" label={false} className={type("text-sm text-neutral-700")} />
-            <Field path="issuerEmail" label={false} className={type("text-sm text-neutral-600")} />
+            </Text>
+            <Party role="issuer" label={false} />
+            <Field path="issuerEmail" label={false} />
           </div>
         </div>
         <div className="flex basis-1/3 flex-col gap-2">
@@ -111,13 +130,16 @@ function InvoiceBody({ artifact }: { artifact: Form }) {
       <Section id="parties" title="Addresses">
         <div className="flex flex-row gap-10">
           <div className="flex basis-1/2 flex-col gap-2">
-            <Field path="issuerAddress" label="From" className={type("flex flex-col gap-0.5 text-sm text-neutral-600")} />
-            <Field path="purchaseOrderNumber" className={type("flex flex-col gap-0.5 text-sm text-neutral-600")} />
+            <Field path="issuerAddress" label="From" />
+            <Field path="purchaseOrderNumber" />
           </div>
+          {/* The customer is a party, named from its own record. Its accounts
+              contact and its address are not members of that record, so they
+              are fields beside it. */}
           <div className="flex basis-1/2 flex-col gap-1">
-            <Field path="customer" className={type("flex flex-col gap-0.5 text-sm font-medium text-neutral-900")} />
-            <Field path="customerContact" label={false} className={type("text-sm text-neutral-700")} />
-            <Field path="customerAddress" label={false} className={type("text-sm text-neutral-600")} />
+            <Party role="customer" className="flex flex-col gap-0.5 font-medium" />
+            <Field path="customerContact" label={false} />
+            <Field path="customerAddress" label={false} />
           </div>
         </div>
       </Section>
@@ -144,8 +166,8 @@ function InvoiceBody({ artifact }: { artifact: Form }) {
       </Section>
 
       <Section id="terms" title="Payment" className="flex flex-col gap-2">
-        <Field path="paymentTerms" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
-        <Field path="notes" label={false} className={type("text-sm leading-relaxed text-neutral-600")} />
+        <Field path="paymentTerms" label={false} />
+        <Field path="notes" label={false} />
       </Section>
     </>
   );

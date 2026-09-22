@@ -24,7 +24,7 @@ import { Pages } from "../components/pages";
 import { Part } from "../components/part";
 import { PdfPages } from "../components/pdf-pages";
 import type { PagePlan } from "@paradoc/react";
-import { PurchaseOrderDocument } from "./purchase-order-document";
+import { PurchaseOrderDocument, purchaseOrderFurniture } from "./purchase-order-document";
 import type { PurchaseOrderData } from "./purchase-order-data";
 import { purchaseOrderData as defaultPurchaseOrderData } from "./purchase-order-data";
 import { VENDOR_PACKET_ANNEX_FILENAME, VENDOR_PACKET_KEYS } from "./vendor-packet";
@@ -105,7 +105,7 @@ export function VendorPacketDocument({
         label="Purchase order · composed live"
         {...placement(VENDOR_PACKET_KEYS.purchaseOrder)}
       >
-        <Pages onPaginate={onPaginate}>
+        <Pages furniture={purchaseOrderFurniture} onPaginate={onPaginate}>
           <PurchaseOrderDocument data={purchaseOrderData} />
         </Pages>
       </Part>

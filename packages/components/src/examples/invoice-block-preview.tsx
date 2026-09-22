@@ -15,11 +15,11 @@ import React from "react";
 
 import { Pages } from "../components/pages";
 import { shortInvoiceData } from "./invoice-data";
-import { InvoiceDocument } from "./invoice-document";
+import { InvoiceDocument, invoiceFurniture } from "./invoice-document";
 
 export function InvoiceBlockPreview() {
   return (
-    <Pages>
+    <Pages furniture={invoiceFurniture}>
       <InvoiceDocument data={shortInvoiceData} />
     </Pages>
   );

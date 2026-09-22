@@ -102,6 +102,16 @@ describe("the packet is one document", () => {
     expect(packet.packetHash).not.toBe(packet.canonicalPdfHash);
   });
 
+  it("numbers the order's pages through its own furniture, counting the order alone", () => {
+    // Each part counts its own pages: the order's footer says "of 3" inside a
+    // packet of five, and the W-9 and the annex carry no footer of the order's.
+    const [order, taxpayer] = packet.parts;
+    for (let page = 1; page <= order!.pageCount; page += 1) {
+      expect(textOf(order!.firstPage + page - 1)).toContain(`Page ${page} of ${order!.pageCount}`);
+    }
+    expect(textOf(taxpayer!.firstPage)).not.toMatch(/Page \d+ of \d+/u);
+  });
+
   it("puts each part's own content on the pages it claims", async () => {
     const [order, taxpayer, insurance] = packet.parts;
 

@@ -18,11 +18,11 @@ import React from "react";
 
 import { Pages } from "../components/pages";
 import { purchaseOrderData } from "./purchase-order-data";
-import { PurchaseOrderDocument } from "./purchase-order-document";
+import { PurchaseOrderDocument, purchaseOrderFurniture } from "./purchase-order-document";
 
 export function PurchaseOrderBlockPreview() {
   return (
-    <Pages>
+    <Pages furniture={purchaseOrderFurniture}>
       <PurchaseOrderDocument data={purchaseOrderData} />
     </Pages>
   );

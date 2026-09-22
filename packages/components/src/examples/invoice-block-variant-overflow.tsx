@@ -13,11 +13,11 @@ import React from "react";
 
 import { Pages } from "../components/pages";
 import { overflowInvoiceData } from "./invoice-data";
-import { InvoiceDocument } from "./invoice-document";
+import { InvoiceDocument, invoiceFurniture } from "./invoice-document";
 
 export function InvoiceBlockVariantOverflow() {
   return (
-    <Pages>
+    <Pages furniture={invoiceFurniture}>
       <InvoiceDocument data={overflowInvoiceData} />
     </Pages>
   );

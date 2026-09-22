@@ -31,7 +31,7 @@ import {
   ENGAGEMENT_LETTER_SIGNATURE_SLOTS,
 } from "./engagement-letter";
 import type { EngagementLetterData } from "./engagement-letter-data";
-import { EngagementLetterDocument } from "./engagement-letter-document";
+import { EngagementLetterDocument, engagementLetterFurniture } from "./engagement-letter-document";
 
 /** The party roles the artifact declares a signature slot for. */
 export type EngagementLetterPartyRole = keyof typeof ENGAGEMENT_LETTER_SIGNATURE_SLOTS;
@@ -86,7 +86,8 @@ export interface EngagementLetterRenderersOptions {
  * The renderer registry that renders and seals the letter's React layer.
  *
  * The composition is bound by the layer's own path, so nothing here touches the
- * file system and the artifact never picks the component.
+ * file system and the artifact never picks the component. The letter's own
+ * furniture numbers the sealed pages, as it numbers the preview's.
  */
 export function engagementLetterRenderers({
   images = [],
@@ -97,7 +98,7 @@ export function engagementLetterRenderers({
       [ENGAGEMENT_LETTER_REACT_LAYER_PATH]: EngagementLetterDocument,
       [ENGAGEMENT_LETTER_REACT_LAYER]: EngagementLetterDocument,
     },
-    pdf: { images, ...pdf },
+    pdf: { images, furniture: engagementLetterFurniture, ...pdf },
   });
 }
 

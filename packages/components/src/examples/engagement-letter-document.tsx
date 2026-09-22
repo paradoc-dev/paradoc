@@ -1,9 +1,10 @@
 /**
  * The engagement letter, composed from the components.
  *
- * One tree, built from `Document`, `Section`, `Field`, `KeepTogether` and
- * `Signature`, that carries no copy of any label or format. It is the same tree
- * the preview paginates and the PDF renders.
+ * One tree, built from `Document`, `Section`, `Text`, `Party`, `Field`, `List`
+ * and `Signature`, that carries no copy of any label or format and
+ * sizes none of its own text. It is the same tree the preview paginates and the
+ * PDF renders; `engagementLetterFurniture` numbers its pages in both.
  *
  * **The clauses are a `List`, not a hand-built row.** A numbered clause is a
  * heading and a paragraph that belong together: split one across a page and the
@@ -19,10 +20,16 @@
  * `Text`.** An item is a keep, and a keep inside a keep is measured twice: the
  * plan would see the clause and its own paragraph as two overlapping units. So
  * the clause draws the value the same way `Field` does — through the document's
- * formatter, at the path the artifact names — and stays one unit. The prose
- * fields outside the clauses are `Field`s of their own, and the long ones are
- * printed as paragraphs so a filler's blank line breaks the page rather than
+ * formatter, at the path the artifact names — and stays one unit, set in the
+ * item's own body text with only the heading's weight added. The prose fields
+ * outside the clauses are `Field`s of their own, and the long ones are printed
+ * as paragraphs so a filler's blank line breaks the page rather than
  * overflowing it.
+ *
+ * **The parties are `Party` blocks.** The firm and the client are the
+ * artifact's parties, so each is named by its own block. Their addresses and
+ * the client's contact are fields beside it: the party schema models the party
+ * itself, not where it is or who in it the letter is addressed to.
  *
  * **There is no `Bundle`.** A letter is one document, and the element walk
  * stops at the first root it finds. One root is what keeps one declaration from
@@ -33,13 +40,15 @@ import React from "react";
 import type { Form } from "@paradoc/types";
 
 import { Document } from "../components/document";
-import { flowGapClasses, markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
-import { useList, type DocumentData } from "@paradoc/react";
+import { markDocumentRoot } from "@paradoc/react";
+import { useList, type DocumentData, type PageFurniture } from "@paradoc/react";
 import { Field } from "../components/field";
-import { KeepTogether } from "../components/keep-together";
 import { List, type ListItem } from "../components/list";
+import { PageNumber } from "../components/page-number";
+import { Party } from "../components/party";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
+import { Text } from "../components/text";
 import type { FormatOptions } from "@paradoc/react";
 import type { DocumentTokensInput } from "@paradoc/react";
 import { engagementLetterForm } from "./engagement-letter";
@@ -57,24 +66,31 @@ const CLAUSE_KEEP_PREFIX = "clause";
  */
 function Clauses({ path }: { path: string }) {
   const list = useList(path);
-  const { typography } = useDocumentTokens();
-  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
 
+  // Both lines take the item's own size and leading from `List`; the heading
+  // adds only its weight.
   const items: ListItem[] = list.rows.map((_clause, index) => ({
     text: (
       <span className="flex flex-col gap-1">
-        <span data-field-path={`${path}.${index}.heading`} className={type("text-sm font-semibold text-neutral-900")}>
+        <span data-field-path={`${path}.${index}.heading`} className="font-semibold text-neutral-900">
           {list.text(index, "heading")}
         </span>
-        <span data-field-path={`${path}.${index}.detail`} className={type("text-sm leading-relaxed text-neutral-800")}>
-          {list.text(index, "detail")}
-        </span>
+        <span data-field-path={`${path}.${index}.detail`}>{list.text(index, "detail")}</span>
       </span>
     ),
   }));
 
   return <List id={CLAUSE_KEEP_PREFIX} items={items} />;
 }
+
+/**
+ * The letter's page furniture: the page number and the count, in the footer.
+ *
+ * Hand the same object to `<Pages furniture>` and to `renderPdf`, so the
+ * preview and the PDF number the same pages. It is drawn inside the margin, so
+ * the page plan and the page count are what they are without it.
+ */
+export const engagementLetterFurniture: PageFurniture = { footer: <PageNumber /> };
 
 export interface EngagementLetterDocumentProps {
   /** The engagement letter data to render. */
@@ -88,33 +104,21 @@ export interface EngagementLetterDocumentProps {
 }
 
 /**
- * The composition's content, below the `Document` that supplies its tokens: a
- * hook called in `EngagementLetterDocument`'s own body would see the package's defaults.
- * Every size and leading here is routed through the token, so the whole
- * document follows `typography` rather than the components alone.
+ * The composition's content. Nothing here sizes its own text: the title is a
+ * `Text` heading, the parties are `Party` blocks, and every value inherits the
+ * document's body size, so the whole letter follows `typography`.
  */
 function EngagementLetterBody({ artifact }: { artifact: Form }) {
-  const { typography } = useDocumentTokens();
-  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
-  // The letter's running prose: paragraphs at the document's own rhythm, so a
-  // filler's blank line breaks the page instead of overflowing it. Written
-  // once rather than at each of the five fields that carry it, and stepped
-  // through both helpers because a gap follows `flow` while a size follows
-  // `scale`.
-  const prose = flowGapClasses(
-    type("flex flex-col gap-3 text-sm leading-relaxed text-neutral-800"),
-    typography.flow
-  );
   return (
     <>
 
       <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
         <div className="flex basis-1/2 flex-col gap-1">
-          <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
+          <Text keepId="title" role="heading" as="span">
             {artifact.title}
-          </KeepTogether>
-          <Field path="firm" label={false} className={type("text-sm text-neutral-700")} />
-          <Field path="firmAddress" label={false} className={type("text-sm text-neutral-600")} />
+          </Text>
+          <Party role="firm" label={false} />
+          <Field path="firmAddress" label={false} />
         </div>
         <div className="flex basis-1/3 flex-col gap-2">
           <Field path="reference" />
@@ -123,13 +127,13 @@ function EngagementLetterBody({ artifact }: { artifact: Form }) {
       </Section>
 
       <Section id="client" title="To" className="flex flex-col gap-1">
-        <Field path="client" label={false} className={type("text-sm font-medium text-neutral-900")} />
-        <Field path="clientContact" label={false} className={type("text-sm text-neutral-700")} />
-        <Field path="clientAddress" label={false} className={type("text-sm text-neutral-600")} />
+        <Party role="client" label={false} className="flex flex-col gap-0.5 font-medium" />
+        <Field path="clientContact" label={false} />
+        <Field path="clientAddress" label={false} />
       </Section>
 
       <Section id="matter" title="Matter">
-        <Field path="matter" label={false} paragraphs className={prose} />
+        <Field path="matter" label={false} paragraphs />
       </Section>
 
       <Section id="scope" title="Scope of services">
@@ -137,17 +141,17 @@ function EngagementLetterBody({ artifact }: { artifact: Form }) {
       </Section>
 
       <Section id="fees" title="Fees" className="flex flex-col gap-2">
-        <Field path="feeBasis" label={false} paragraphs className={prose} />
-        <Field path="retainer" className={type("flex flex-col gap-0.5 text-sm text-neutral-800")} />
+        <Field path="feeBasis" label={false} paragraphs />
+        <Field path="retainer" />
       </Section>
 
       <Section id="term" title="Term and termination" className="flex flex-col gap-2">
-        <Field path="term" label={false} paragraphs className={prose} />
-        <Field path="termination" label={false} paragraphs className={prose} />
+        <Field path="term" label={false} paragraphs />
+        <Field path="termination" label={false} paragraphs />
       </Section>
 
       <Section id="governing-law" title="Governing law">
-        <Field path="governingLaw" label={false} paragraphs className={prose} />
+        <Field path="governingLaw" label={false} paragraphs />
       </Section>
 
       <Section id="acceptance" title="Agreed" className="flex flex-col gap-4 pt-4">

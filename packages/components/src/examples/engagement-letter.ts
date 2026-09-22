@@ -10,6 +10,11 @@
  * breaks, and it ends in two signing blocks that must not be split from the
  * clause above them. That is the case the components are otherwise never asked.
  *
+ * The firm and the client are parties and nothing else: their names and legal
+ * details live in the filled party records alone, and no field repeats them.
+ * Their addresses and the person who signs for each are fields, because the
+ * party schema does not carry either.
+ *
  * It carries no `defs`. Nothing on a letter is computed: the fee basis is a
  * sentence and the retainer is a figure the parties agreed, so there is no
  * arithmetic for the expression language to do and none is invented to give it
@@ -101,13 +106,6 @@ export const engagementLetterSpec = {
       required: true,
       visible: true,
     },
-    firm: {
-      type: "organization",
-      label: "Firm",
-      description: "Legal name and identifiers of the firm.",
-      required: true,
-      visible: true,
-    },
     firmAddress: {
       type: "address",
       label: "Firm address",
@@ -120,13 +118,6 @@ export const engagementLetterSpec = {
       label: "Engagement partner",
       description:
         "The person who signs for the firm. `sealEngagementLetter` reads this field to bind the firm's signer, because core's Signer.person is always a Person and an organization cannot fill it.",
-      required: true,
-      visible: true,
-    },
-    client: {
-      type: "organization",
-      label: "Client",
-      description: "Legal name and identifiers of the client.",
       required: true,
       visible: true,
     },

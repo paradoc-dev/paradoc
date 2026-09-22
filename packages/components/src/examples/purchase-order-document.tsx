@@ -1,9 +1,17 @@
 /**
  * The purchase order, composed from the components.
  *
- * One tree, built only from `Document`, `Section`, `Field`, `Table`,
+ * One tree, built only from `Document`, `Section`, `Text`, `Field`, `Table`,
  * `Totals`, and `Signature`, that carries no copy of any label, format, or
- * total. It is the same tree the preview paginates and the PDF renders.
+ * total and sizes none of its own text. It is the same tree the preview
+ * paginates and the PDF renders; `purchaseOrderFurniture` numbers its pages in
+ * both.
+ *
+ * The buyer and the supplier are printed from the artifact's own `buyer` and
+ * `supplier` fields rather than through `Party`. A session fills this order,
+ * and a document mid-session has parties nobody has answered yet: `Field`
+ * prints the blank placeholder for those, where `Party` fails on a role with
+ * no party filled.
  *
  * Unlike the proposal, this composition does not wrap itself in a `Bundle`.
  * It is used both on its own and as one part of a larger packet, and a
@@ -14,18 +22,28 @@
 import React from "react";
 import type { Form } from "@paradoc/types";
 
-import { KeepTogether } from "../components/keep-together";
 import { Document } from "../components/document";
-import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
+import { markDocumentRoot, type PageFurniture } from "@paradoc/react";
 import type { FormatOptions } from "@paradoc/react";
 import type { DocumentData } from "@paradoc/react";
 import { Field } from "../components/field";
+import { PageNumber } from "../components/page-number";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
 import { Table } from "../components/table";
+import { Text } from "../components/text";
 import { Totals } from "../components/totals";
 import type { DocumentTokensInput } from "@paradoc/react";
 import { purchaseOrderForm } from "./purchase-order";
+
+/**
+ * The order's page furniture: the page number and the count, in the footer.
+ *
+ * Hand the same object to `<Pages furniture>` and to `renderPdf`, so the
+ * preview and the PDF number the same pages. It is drawn inside the margin, so
+ * the page plan and the page count are what they are without it.
+ */
+export const purchaseOrderFurniture: PageFurniture = { footer: <PageNumber /> };
 
 export interface PurchaseOrderDocumentProps {
   /** The purchase order data to render. */
@@ -39,24 +57,21 @@ export interface PurchaseOrderDocumentProps {
 }
 
 /**
- * The composition's content, below the `Document` that supplies its tokens: a
- * hook called in `PurchaseOrderDocument`'s own body would see the package's defaults.
- * Every size and leading here is routed through the token, so the whole
- * document follows `typography` rather than the components alone.
+ * The composition's content. Nothing here sizes its own text: the title is a
+ * `Text` heading and every value inherits the document's body size, so the
+ * whole order follows `typography`.
  */
 function PurchaseOrderBody({ artifact }: { artifact: Form }) {
-  const { typography } = useDocumentTokens();
-  const type = (classes: string) => scaleTextClasses(classes, typography.scale);
   return (
     <>
 
       <Section id="masthead" className="flex flex-row justify-between gap-8 border-b border-neutral-800 pb-4">
         <div className="flex basis-1/2 flex-col gap-1">
-          <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
+          <Text keepId="title" role="heading" as="span">
             {artifact.title}
-          </KeepTogether>
-          <Field path="buyer" label={false} className={type("text-sm text-neutral-700")} />
-          <Field path="buyerAddress" label={false} className={type("text-sm text-neutral-600")} />
+          </Text>
+          <Field path="buyer" label={false} />
+          <Field path="buyerAddress" label={false} />
         </div>
         <div className="flex basis-1/3 flex-col gap-2">
           <Field path="orderNumber" />
@@ -67,13 +82,13 @@ function PurchaseOrderBody({ artifact }: { artifact: Form }) {
       </Section>
 
       <Section id="supplier" title="Supplier" className="flex flex-col gap-1">
-        <Field path="supplier" label={false} className={type("text-sm font-medium text-neutral-900")} />
-        <Field path="supplierContact" label={false} className={type("text-sm text-neutral-700")} />
-        <Field path="supplierAddress" label={false} className={type("text-sm text-neutral-600")} />
+        <Field path="supplier" label={false} className="font-medium" />
+        <Field path="supplierContact" label={false} />
+        <Field path="supplierAddress" label={false} />
       </Section>
 
       <Section id="ship-to" title="Ship to" className="flex flex-col gap-1">
-        <Field path="shipTo" label={false} className={type("text-sm text-neutral-600")} />
+        <Field path="shipTo" label={false} />
       </Section>
 
       <Section id="line-items" title="Ordered items" className="flex flex-col gap-3">
@@ -98,7 +113,7 @@ function PurchaseOrderBody({ artifact }: { artifact: Form }) {
       </Section>
 
       <Section id="terms" title="Terms">
-        <Field path="terms" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+        <Field path="terms" label={false} />
       </Section>
 
       <Section id="acceptance" title="Acceptance" className="flex flex-col gap-4 pt-4">

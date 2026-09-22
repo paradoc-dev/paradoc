@@ -81,6 +81,15 @@ describe("the seal flow places both parties", () => {
     expect(pages.at(-1)?.text).toContain("Signature (required)");
   });
 
+  it("numbers every sealed page through the letter's own furniture", () => {
+    // The renderer hands the composition's footer to the engine, so the sealed
+    // bytes carry the same page numbers the preview draws. The seal reads only
+    // the content box, so the footer moves no box and adds no page.
+    pages.forEach((page, index) => {
+      expect(page.text).toContain(`Page ${index + 1} of ${pages.length}`);
+    });
+  });
+
   it("repeats exactly: the same data seals to the same hash and the same map", async () => {
     const again = await sealEngagementLetter({ data: engagementLetterData });
     expect(again.canonicalPdfHash).toBe(sealed.canonicalPdfHash);

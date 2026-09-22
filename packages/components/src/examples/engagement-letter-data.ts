@@ -106,7 +106,6 @@ export const engagementLetterData: EngagementLetterData = {
     reference: "AR-2026-0917",
     effectiveDate: "2026-09-15",
     matter: "Carrier contracts and regulatory review",
-    firm,
     firmAddress: {
       line1: "310 Congress Avenue",
       line2: "Floor 11",
@@ -116,7 +115,6 @@ export const engagementLetterData: EngagementLetterData = {
       country: "US",
     },
     firmContact: { name: "Priya Raman", firstName: "Priya", lastName: "Raman", title: "Ms." },
-    client,
     clientAddress: {
       line1: "88 Wharf Road",
       locality: "Oakland",

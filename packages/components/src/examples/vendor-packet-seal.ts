@@ -31,7 +31,7 @@ import {
   purchaseOrder,
 } from "./purchase-order";
 import { purchaseOrderData, type PurchaseOrderData } from "./purchase-order-data";
-import { PurchaseOrderDocument } from "./purchase-order-document";
+import { PurchaseOrderDocument, purchaseOrderFurniture } from "./purchase-order-document";
 import {
   VENDOR_PACKET_ANNEX_FILENAME,
   VENDOR_PACKET_ANNEX_PATH,
@@ -77,14 +77,15 @@ export class MissingPurchaseOrderSignerError extends Error {
  *
  * One registry serves the whole packet: it is keyed by MIME type, and every
  * composition in the packet is a `text/tsx` layer, so each is bound by its own
- * layer path.
+ * layer path. The order's own furniture numbers its pages, as it numbers the
+ * preview's: each part counts its own pages, not the packet's.
  */
 export function vendorPacketRenderers(options: { pdf?: RenderPdfOptions } = {}) {
   const components: NonNullable<ReactLayerRendererOptions["components"]> = {
     [PURCHASE_ORDER_REACT_LAYER_PATH]: PurchaseOrderDocument,
     [PURCHASE_ORDER_REACT_LAYER]: PurchaseOrderDocument,
   };
-  return reactLayerRenderers({ components, pdf: options.pdf });
+  return reactLayerRenderers({ components, pdf: { furniture: purchaseOrderFurniture, ...options.pdf } });
 }
 
 /**

@@ -29,18 +29,24 @@ them to you, both real and currently shipping.
 # Composition
 
 The invoice composes [`Document`](/components/document),
-[`Section`](/components/section), [`Field`](/components/field),
-[`Table`](/components/table), and [`Totals`](/components/totals) — deliberately
-no [`Signature`](/components/signature). An invoice bills for work already
+[`Section`](/components/section), [`Text`](/components/text),
+[`Party`](/components/party), [`Field`](/components/field),
+[`Image`](/components/image), [`Table`](/components/table), and
+[`Totals`](/components/totals) — deliberately no
+[`Signature`](/components/signature). An invoice bills for work already
 done; it asks to be paid rather than agreed to, and the artifact carries no
 signature slot to draw one from.
 
 Each masthead reads the issuer's mark and accent from `Document`'s own
 tokens rather than a prop passed to the composition, so a tenant's own
-branding replaces both together. The mark itself, and the invoice's title,
-are each a [`Keep Together`](/components/keep-together), brought along the
-same way every other component here brings one, so neither is ever split
-across a page break. The line-item [`Table`](/components/table) sits in the
+branding replaces both together. The title is a `Text` heading, and no line
+of the invoice sets its own text size: every size comes from the document's
+typography token. The issuer and the customer are named by `Party` blocks,
+read from the artifact's parties; their addresses and the customer's
+accounts contact are fields beside them, because a party record does not
+carry either. A [`Page Number`](/components/page-number) in the footer,
+exported as `invoiceFurniture`, numbers every page of the preview and the
+PDF alike. The line-item [`Table`](/components/table) sits in the
 same section as the [`Totals`](/components/totals) that follows it, and
 neither carries a copy of the subtotal, tax, or total — `@paradoc/core`
 evaluates each from the artifact's own `defs`.

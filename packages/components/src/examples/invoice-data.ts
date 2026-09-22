@@ -114,7 +114,6 @@ function build(
       invoiceNumber,
       issuedOn: "2026-10-01",
       dueOn: "2026-10-31",
-      issuer,
       issuerAddress: {
         line1: "1400 Rio Grande Street",
         line2: "Suite 220",
@@ -124,7 +123,6 @@ function build(
         country: "US",
       },
       issuerEmail: "billing@northgate-systems.example",
-      customer,
       customerAddress: {
         line1: "88 Wharf Road",
         locality: "Oakland",

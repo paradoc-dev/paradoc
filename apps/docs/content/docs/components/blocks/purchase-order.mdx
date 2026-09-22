@@ -28,18 +28,23 @@ gives them to you, both real and currently shipping.
 # Composition
 
 The purchase order composes [`Document`](/components/document),
-[`Section`](/components/section), [`Field`](/components/field),
-[`Table`](/components/table), [`Totals`](/components/totals), and
-[`Signature`](/components/signature). The closing "Acceptance" section places
-both parties' signature blocks side by side, `buyer` and `supplier`, the same
-arrangement [`Signature`](/components/signature)'s own docs page shows.
+[`Section`](/components/section), [`Text`](/components/text),
+[`Field`](/components/field), [`Table`](/components/table),
+[`Totals`](/components/totals), and [`Signature`](/components/signature).
+The closing "Acceptance" section places both parties' signature blocks side
+by side, `buyer` and `supplier`, the same arrangement
+[`Signature`](/components/signature)'s own docs page shows.
 
 The line-item [`Table`](/components/table) sits in the same section as the
 [`Totals`](/components/totals) that follows it, and neither carries a copy
 of the subtotal, tax, or total — `@paradoc/core` evaluates each from the
-artifact's own `defs`. The title in the masthead is a
-[`Keep Together`](/components/keep-together), so it is never split across a
-page break.
+artifact's own `defs`. The title in the masthead is a `Text` heading, and no
+line of the order sets its own text size. The buyer and the supplier print
+through their `Field`s rather than `Party`: a session fills this order, and
+`Party` refuses a role nobody has answered yet where `Field` prints the blank
+placeholder. A [`Page Number`](/components/page-number) in the footer,
+exported as `purchaseOrderFurniture`, numbers the order's pages in the
+preview, in the PDF, and inside the vendor packet.
 
 Like the invoice, the composition renders bare, with no self-wrapping
 [`Pages`](/components/pages): it is used both on its own and as one part of

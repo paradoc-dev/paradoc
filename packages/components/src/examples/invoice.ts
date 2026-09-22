@@ -15,6 +15,11 @@
  * this artifact and never carry their own copy of a label, a format, or a
  * total.
  *
+ * The issuer and the customer are parties and nothing else: their names and
+ * legal details live in the filled party records alone, and no field repeats
+ * them. Their addresses and the customer's accounts contact are fields,
+ * because the party schema does not carry either.
+ *
  * The one limitation the other priced samples record applies here too. The
  * expression language indexes lists and reads their length, but it has no
  * aggregate over a list, so a subtotal cannot be expressed as a def.
@@ -137,13 +142,6 @@ export const invoiceSpec = {
       required: true,
       visible: true,
     },
-    issuer: {
-      type: "organization",
-      label: "Issuer",
-      description: "Legal name and identifiers of the billing organization.",
-      required: true,
-      visible: true,
-    },
     issuerAddress: {
       type: "address",
       label: "Issuer address",
@@ -155,13 +153,6 @@ export const invoiceSpec = {
       type: "email",
       label: "Billing email",
       description: "Where the customer writes about this invoice.",
-      required: true,
-      visible: true,
-    },
-    customer: {
-      type: "organization",
-      label: "Bill to",
-      description: "The organization the invoice is addressed to.",
       required: true,
       visible: true,
     },

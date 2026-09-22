@@ -15,11 +15,11 @@ import React from "react";
 
 import { Pages } from "../components/pages";
 import { engagementLetterData } from "./engagement-letter-data";
-import { EngagementLetterDocument } from "./engagement-letter-document";
+import { EngagementLetterDocument, engagementLetterFurniture } from "./engagement-letter-document";
 
 export function EngagementLetterBlockPreview() {
   return (
-    <Pages>
+    <Pages furniture={engagementLetterFurniture}>
       <EngagementLetterDocument data={engagementLetterData} />
     </Pages>
   );

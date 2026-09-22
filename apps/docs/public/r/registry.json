@@ -401,12 +401,13 @@
       "registryDependencies": [
         "@paradoc/document",
         "@paradoc/field",
-        "@paradoc/keep-together",
+        "@paradoc/page-number",
         "@paradoc/priced-line-items",
         "@paradoc/pages",
         "@paradoc/section",
         "@paradoc/signature",
         "@paradoc/table",
+        "@paradoc/text",
         "@paradoc/totals"
       ],
       "files": [
@@ -441,11 +442,13 @@
         "@paradoc/document",
         "@paradoc/field",
         "@paradoc/image",
-        "@paradoc/keep-together",
+        "@paradoc/page-number",
+        "@paradoc/party",
         "@paradoc/priced-line-items",
         "@paradoc/pages",
         "@paradoc/section",
         "@paradoc/table",
+        "@paradoc/text",
         "@paradoc/totals"
       ],
       "files": [
@@ -479,11 +482,13 @@
       "registryDependencies": [
         "@paradoc/document",
         "@paradoc/field",
-        "@paradoc/keep-together",
         "@paradoc/list",
+        "@paradoc/page-number",
         "@paradoc/pages",
+        "@paradoc/party",
         "@paradoc/section",
-        "@paradoc/signature"
+        "@paradoc/signature",
+        "@paradoc/text"
       ],
       "files": [
         {

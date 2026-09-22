@@ -13,7 +13,6 @@ import { createFormatter } from "@paradoc/format";
 import type { Form } from "@paradoc/types";
 
 import { Image } from "../components/image";
-import { KeepTogether } from "../components/keep-together";
 import { Bundle } from "../components/bundle";
 import { Document } from "../components/document";
 import type { FormatOptions } from "@paradoc/react";
@@ -22,6 +21,7 @@ import { Field } from "../components/field";
 import { Section } from "../components/section";
 import { Signature } from "../components/signature";
 import { Table } from "../components/table";
+import { Text } from "../components/text";
 import { markDocumentRoot, scaleTextClasses, useDocumentTokens } from "@paradoc/react";
 import { Totals } from "../components/totals";
 import type { DocumentTokensInput } from "@paradoc/react";
@@ -78,10 +78,18 @@ export interface ProposalDocumentProps {
 }
 
 /**
- * The composition's content, below the `Document` that supplies its tokens: a
- * hook called in `ProposalDocument`'s own body would see the package's defaults.
- * Every size and leading here is routed through the token, so the whole
- * document follows `typography` rather than the components alone.
+ * The composition's content, below the `Document` that supplies its tokens:
+ * the mark reads them, and a hook above the `Document` would see the package's
+ * defaults. The title is a `Text` heading and the masthead's values inherit the
+ * document's body size.
+ *
+ * One section still sizes its own lines: "Prepared for" sets its three at the
+ * tighter `text-sm` pitch. The proposal is the sample the recorded preview plan
+ * (`tests/preview-plan.ts` in `@paradoc/react`) was measured on, and the body
+ * pitch would move that section's height and so the plan's first break. Moving
+ * it means measuring the plan again in a browser, which is the parity lab's
+ * job, not a composition's. The masthead's values are free to move because the
+ * masthead's height is its taller right-hand column's.
  */
 function ProposalBody({ artifact, logoSrc }: { artifact: Form; logoSrc: string }) {
   const { typography } = useDocumentTokens();
@@ -93,12 +101,12 @@ function ProposalBody({ artifact, logoSrc }: { artifact: Form; logoSrc: string }
           <div className="flex basis-1/2 flex-row gap-3">
             <ProposalMark fallbackSrc={logoSrc} />
             <div className="flex flex-col gap-1">
-              <KeepTogether as="span" keepId="title" className={type("text-lg font-semibold text-neutral-900")}>
+              <Text keepId="title" role="heading" as="span">
                 {artifact.title}
-              </KeepTogether>
-              <Field path="provider" label={false} className={type("text-sm text-neutral-700")} />
-              <Field path="providerAddress" label={false} className={type("text-sm text-neutral-600")} />
-              <Field path="providerPhone" label={false} className={type("text-sm text-neutral-600")} />
+              </Text>
+              <Field path="provider" label={false} className="text-neutral-700" />
+              <Field path="providerAddress" label={false} className="text-neutral-600" />
+              <Field path="providerPhone" label={false} className="text-neutral-600" />
             </div>
           </div>
           <div className="flex basis-1/3 flex-col gap-2">
@@ -116,7 +124,7 @@ function ProposalBody({ artifact, logoSrc }: { artifact: Form; logoSrc: string }
         </Section>
 
         <Section id="summary" title="Summary">
-          <Field path="summary" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+          <Field path="summary" label={false} className="text-neutral-800" />
         </Section>
 
         <Section id="line-items" title="Scope and pricing" className="flex flex-col gap-3">
@@ -141,7 +149,7 @@ function ProposalBody({ artifact, logoSrc }: { artifact: Form; logoSrc: string }
         </Section>
 
         <Section id="terms" title="Terms">
-          <Field path="terms" label={false} className={type("text-sm leading-relaxed text-neutral-800")} />
+          <Field path="terms" label={false} className="text-neutral-800" />
         </Section>
 
         <Section id="acceptance" title="Acceptance" className="flex flex-col gap-4 pt-4">
