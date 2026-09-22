@@ -146,6 +146,25 @@
       ]
     },
     {
+      "name": "page-number",
+      "type": "registry:ui",
+      "title": "Page Number",
+      "description": "The page being drawn and how many there are, for a document's page furniture. The preview counts the sheets it laid out and the PDF engine fills the same two numbers.",
+      "dependencies": [
+        "@paradoc/react@^0.5.0"
+      ],
+      "registryDependencies": [
+        "@paradoc/pages"
+      ],
+      "files": [
+        {
+          "path": "paradoc/packages/components/src/components/page-number.tsx",
+          "type": "registry:ui",
+          "target": "components/paradoc/page-number.tsx"
+        }
+      ]
+    },
+    {
       "name": "section",
       "type": "registry:ui",
       "title": "Section",

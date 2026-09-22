@@ -15,6 +15,7 @@
 
 import type { ReactNode } from "react";
 
+import type { FurnitureSlot, PageFurniture } from "../lib/furniture";
 import type { TextDirection } from "../lib/script";
 import type { DocumentTokens } from "../lib/tokens";
 import type { PdfFontFile, PdfImage } from "./resources";
@@ -53,6 +54,15 @@ export interface PreparedPdfInput {
   tokens: DocumentTokens;
   /** The preview's page plan. Absent, the engine paginates on its own. */
   plan?: PageBreakPlan;
+  /**
+   * What every page carries outside the flow: a header, a footer, a stamp.
+   *
+   * It reaches the adapter rather than the tree because every engine repeats a
+   * band its own way, and that is the whole of what is engine-specific about
+   * furniture. Each slot arrives already wrapped in the document's tokens, so
+   * an adapter resolves it exactly as the sheet does.
+   */
+  furniture?: PageFurniture;
   /** Pre-fetched bytes for every image the tree names. */
   images: readonly PdfImage[];
   /** The faces to embed, as files, in the order they are declared. */
@@ -109,6 +119,14 @@ export interface PdfAdapter {
    * the engine that has it and `renderPdf` refuses the pairing it cannot make.
    */
   readonly directions: readonly TextDirection[];
+  /**
+   * The furniture slots this engine draws, **measured** rather than expected,
+   * for the reason `directions` is measured: an engine with no per-page
+   * mechanism does not fail on a header, it writes a document without one on
+   * every page. Omitted, the engine draws none and a document that declares any
+   * is refused by name.
+   */
+  readonly furniture?: readonly FurnitureSlot[];
   /** Writes the PDF, and reports every hint the tree could not honour. */
   render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult>;
 }

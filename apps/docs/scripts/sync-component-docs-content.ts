@@ -107,6 +107,7 @@ const DEMO_FILES: Record<string, string> = {
   "keep-together": "keep-together-demo.tsx",
   list: "list-demo.tsx",
   pages: "pages-demo.tsx",
+  "page-number": "page-number-demo.tsx",
   paper: "paper-demo.tsx",
   section: "section-demo.tsx",
   table: "table-demo.tsx",
@@ -151,8 +152,13 @@ const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
   ],
   pages: [
     { key: "multi-page", file: "pages-variant-multi-page.tsx" },
+    { key: "page-furniture", file: "pages-variant-page-furniture.tsx" },
     { key: "custom-frame", file: "pages-variant-custom-frame.tsx" },
     { key: "page-count", file: "pages-variant-page-count.tsx" },
+  ],
+  "page-number": [
+    { key: "number-only", file: "page-number-variant-number-only.tsx" },
+    { key: "custom-wording", file: "page-number-variant-custom-wording.tsx" },
   ],
   paper: [
     { key: "minimal-content", file: "paper-variant-minimal-content.tsx" },
@@ -274,6 +280,7 @@ const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> 
   // table and the `ListItem` shape is covered in the page's Composition prose.
   list: { file: "list.tsx", interfaceName: "ListProps" },
   pages: { file: "pages.tsx", interfaceName: "PagesProps" },
+  "page-number": { file: "page-number.tsx", interfaceName: "PageNumberProps" },
   paper: { file: "paper.tsx", interfaceName: "PaperProps" },
   section: { file: "section.tsx", interfaceName: "SectionProps" },
   table: { file: "table.tsx", interfaceName: "TableProps" },

@@ -28,6 +28,25 @@ export {
   type RenderPdfOptions,
 } from "./render";
 export { takumiAdapter } from "./adapters/takumi";
+// The furniture vocabulary is the browser entry's, because one declaration
+// serves both outputs; the refusal is re-exported here because this is the
+// surface that produces the bytes it stands in front of.
+export {
+  assertFurnitureBandFits,
+  assertFurnitureSupported,
+  declaredFurnitureSlots,
+  furnitureBandBudgetPx,
+  hasPageFurniture,
+  FURNITURE_EDGE_INSET_PX,
+  FURNITURE_SLOTS,
+  PAGE_COUNTER_ATTRIBUTE,
+  PageFurnitureOverflowError,
+  UnsupportedFurnitureError,
+  type FurnitureBandSlot,
+  type FurnitureSlot,
+  type PageCounter,
+  type PageFurniture,
+} from "../lib/furniture";
 export { withDrawnPaper, withTokenOverride } from "./token-override";
 export {
   SigningMarkerProvider,

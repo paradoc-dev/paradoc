@@ -37,9 +37,28 @@ is for showing however many a document's content actually needs.
 for a caller that needs the same fit-to-frame behavior without the sheet
 markup itself.
 
+## Page furniture
+
+`furniture` is what the sheet carries outside the flow: a `header` band, a
+`footer` band, and a `stamp` behind the content — the same object
+[`Pages`](/components/pages) takes and the same object
+`renderPdf({ furniture })` takes. Each band is drawn inside the margin the
+document declares, so it never moves the content; a band taller than that
+margin fails by name rather than printing over the first line.
+
+```tsx
+<Paper furniture={{ header: <span>Northwind Partners LLP</span>, footer: <PageNumber /> }}>
+  {document}
+</Paper>
+```
+
+One sheet is page 1 of 1, so a [`PageNumber`](/components/page-number) drawn
+here says so.
+
 # Variants
 
-`Paper` takes an optional `className` for its outer frame, and `children`.
+`Paper` takes an optional `className` for its outer frame, `furniture`, and
+`children`.
 
 ## Minimal content
 

@@ -1,0 +1,260 @@
+/**
+ * How page furniture reaches a takumi page.
+ *
+ * The engine repeats a band at the top and the bottom of every page itself, and
+ * fills the text of any node whose class list names one of its counters. That
+ * is the whole of what is engine-specific about furniture, so it lives here
+ * rather than in a component: a page-number component marks its slots with
+ * `data-page-counter` and this module translates those marks into the class
+ * hooks this engine reads. A component that named `pageNumber` itself would be
+ * a component that names an engine.
+ *
+ * Three things happen to a slot on the way to a band:
+ *
+ * 1. It is resolved and translated exactly as the document tree is, by
+ *    `preparePdfTree`, so a class the engine cannot express fails the render
+ *    rather than being dropped in a band nobody reads closely.
+ * 2. It is wrapped in a band that carries the document's own margin as
+ *    horizontal padding. The engine lays a band out at the full width of the
+ *    paper, so without this the running head would start at the paper's edge
+ *    rather than above the first column of the content it heads.
+ * 3. It is measured, and a band taller than the margin is refused by name. The
+ *    engine does not reflow the page for a band: an oversize one simply prints
+ *    over the first line of every page.
+ *
+ * The stamp is not a band. It is an absolutely positioned layer the width and
+ * height of the whole sheet, carried inside the header band because that is the
+ * one thing the engine already repeats on every page, and pulled back up by the
+ * band's own inset so it is centred on the paper rather than on the band. It
+ * takes no room in the margin, so it has no height to answer for, and the
+ * engine paints the band before the content, which is what puts a watermark
+ * behind the text rather than over it. The band that carries it is stretched to
+ * the height of the paper, because a band clips what overflows it.
+ */
+
+import type { Node } from "@takumi-rs/helpers";
+import { fromJsx } from "@takumi-rs/helpers/jsx";
+import type { ReactNode } from "react";
+
+import {
+  assertFurnitureBandFits,
+  FURNITURE_EDGE_INSET_PX,
+  PAGE_COUNTER_ATTRIBUTE,
+  type FurnitureBandSlot,
+  type PageCounter,
+  type PageFurniture,
+} from "../../lib/furniture";
+import type { PdfPageGeometry } from "../adapter";
+import { preparePdfTree, recordOnce } from "../tree";
+
+/** The class this engine fills with each counter a component marked. */
+const COUNTER_CLASS: Record<PageCounter, string> = {
+  current: "pageNumber",
+  total: "totalPages",
+};
+
+/** True when a marked slot names a counter this engine fills. */
+function isPageCounter(value: string | undefined): value is PageCounter {
+  return value !== undefined && value in COUNTER_CLASS;
+}
+
+/** The bands, and everything translating them turned up. */
+export interface TranslatedFurniture {
+  /** The top band, without the stamp layer. */
+  header?: BandNode;
+  /** The bottom band. */
+  footer?: BandNode;
+  /** The whole-sheet layer a stamp is drawn on. */
+  stamp?: Node;
+  /** Classes outside the verified vocabulary, unique and in document order. */
+  unsupportedClasses: string[];
+  /** Image `src` values the caller supplied no bytes for. */
+  missingImages: string[];
+  /**
+   * Stylesheets the slots' own markup carried, in the order they were found.
+   *
+   * A band is resolved by the same function the document tree is, and that
+   * function hands back whatever `<style>` the markup declared. Dropping them
+   * would be a band that renders without the rules it was written against and
+   * says nothing, so they join the render's stylesheets with the tree's.
+   */
+  stylesheets: string[];
+}
+
+/** Nothing declared, nothing to draw. */
+const NO_FURNITURE: TranslatedFurniture = {
+  unsupportedClasses: [],
+  missingImages: [],
+  stylesheets: [],
+};
+
+/** What a slot needs to be resolved and checked the way the document tree is. */
+export interface TranslateFurnitureOptions {
+  /** The page both outputs are measured against. */
+  geometry: PdfPageGeometry;
+  /** `src` values the caller supplied bytes for. */
+  imageSources: Iterable<string>;
+  /** The document's language, for the checks the tree walk makes. */
+  lang: string;
+}
+
+/**
+ * Replaces this engine's counter hooks onto the slots a component marked.
+ *
+ * The class is written as `className` rather than `tw`: `tw` is the engine's
+ * styling property and only the class list it reads carries the counters. The
+ * walk has already moved every styling class to `tw`, so nothing is overwritten
+ * here.
+ */
+function withCounterHooks(node: Node): Node {
+  const counter = node.attributes?.[PAGE_COUNTER_ATTRIBUTE];
+  const hooked: Node = isPageCounter(counter)
+    ? { ...node, className: COUNTER_CLASS[counter] }
+    : node;
+  if (hooked.type !== "container" || hooked.children === undefined) return hooked;
+  return { ...hooked, children: hooked.children.map(withCounterHooks) };
+}
+
+/** A node that holds children, which every band is. */
+type BandNode = Extract<Node, { type: "container" }>;
+
+/** One band: the slot's content, indented to the document's own margin. */
+function band(content: Node, geometry: PdfPageGeometry): BandNode {
+  return {
+    type: "container",
+    tagName: "div",
+    style: {
+      position: "relative",
+      paddingLeft: geometry.marginPx,
+      paddingRight: geometry.marginPx,
+    },
+    children: [content],
+  };
+}
+
+/**
+ * The whole-sheet layer a stamp is drawn on.
+ *
+ * `top` pulls the layer back up by the inset the band itself sits at, so the
+ * layer covers the paper rather than the paper minus that inset, and the stamp
+ * inside it is centred on the page.
+ */
+function stampLayer(content: Node, geometry: PdfPageGeometry): Node {
+  return {
+    type: "container",
+    tagName: "div",
+    style: {
+      position: "absolute",
+      top: -FURNITURE_EDGE_INSET_PX,
+      left: 0,
+      width: geometry.widthPx,
+      height: geometry.heightPx,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    children: [content],
+  };
+}
+
+/** Resolves and checks one slot, collecting what the walk found. */
+async function translateSlot(
+  content: ReactNode,
+  into: TranslatedFurniture,
+  options: TranslateFurnitureOptions
+): Promise<Node> {
+  const { node, stylesheets } = await fromJsx(content);
+  for (const sheet of stylesheets) recordOnce(into.stylesheets, sheet);
+  const prepared = preparePdfTree(node, {
+    imageSources: options.imageSources,
+    lang: options.lang,
+  });
+  for (const name of prepared.unsupportedClasses) recordOnce(into.unsupportedClasses, name);
+  for (const src of prepared.missingImages) recordOnce(into.missingImages, src);
+  return withCounterHooks(prepared.node);
+}
+
+/**
+ * Every declared slot, translated for this engine.
+ *
+ * Nothing is measured here. The classes the whole render refuses are collected
+ * in one pass with the document tree's, so a band and a body that both name an
+ * unsupported class are one error rather than two renders.
+ */
+export async function translateFurniture(
+  furniture: PageFurniture | undefined,
+  options: TranslateFurnitureOptions
+): Promise<TranslatedFurniture> {
+  if (furniture === undefined) return NO_FURNITURE;
+  const translated: TranslatedFurniture = {
+    unsupportedClasses: [],
+    missingImages: [],
+    stylesheets: [],
+  };
+  if (furniture.header !== undefined) {
+    translated.header = band(await translateSlot(furniture.header, translated, options), options.geometry);
+  }
+  if (furniture.footer !== undefined) {
+    translated.footer = band(await translateSlot(furniture.footer, translated, options), options.geometry);
+  }
+  if (furniture.stamp !== undefined) {
+    translated.stamp = stampLayer(
+      await translateSlot(furniture.stamp, translated, options),
+      options.geometry
+    );
+  }
+  return translated;
+}
+
+/** Lays a band out at the page width and answers its height in CSS pixels. */
+export type MeasureBand = (node: Node) => Promise<number>;
+
+/** The bands this render hands the engine. */
+export interface FurnitureBands {
+  /** Repeated at the top of every page, and the stamp's layer when there is one. */
+  header?: BandNode;
+  /** Repeated at the bottom of every page. */
+  footer?: BandNode;
+}
+
+/**
+ * The measured bands, or the refusal.
+ *
+ * The stamp joins the header band only after both have been measured, so a
+ * whole-sheet layer never counts against the margin a running head has to fit
+ * in, and a document with a stamp and no header gets a band whose only child
+ * takes no room.
+ *
+ * @throws {PageFurnitureOverflowError} naming the slot, its height and the margin.
+ */
+export async function measureFurnitureBands(
+  translated: TranslatedFurniture,
+  geometry: PdfPageGeometry,
+  measure: MeasureBand
+): Promise<FurnitureBands> {
+  const bands: FurnitureBands = {};
+  const slots: readonly [FurnitureBandSlot, BandNode | undefined][] = [
+    ["header", translated.header],
+    ["footer", translated.footer],
+  ];
+  for (const [slot, node] of slots) {
+    if (node === undefined) continue;
+    assertFurnitureBandFits(slot, Math.ceil(await measure(node)), geometry.marginPx);
+    bands[slot] = node;
+  }
+  if (translated.stamp !== undefined) {
+    const header = bands.header ?? band({ type: "container", tagName: "div" }, geometry);
+    bands.header = {
+      ...header,
+      // The band clips what overflows it, and a band is a line or two tall, so a
+      // whole-sheet layer inside one is drawn and then cut away to nothing. The
+      // band that carries the stamp is therefore given the height of the paper.
+      // It is measured before this, so the running head still answers for its
+      // own height against the margin, and the engine's content box is fixed by
+      // the page margin rather than by a band, so nothing moves.
+      style: { ...header.style, height: geometry.heightPx },
+      children: [translated.stamp, ...(header.children ?? [])],
+    };
+  }
+  return bands;
+}

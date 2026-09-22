@@ -4,7 +4,15 @@ export { Field, type FieldProps } from "./components/field";
 export { KeepTogether, type KeepTogetherProps } from "./components/keep-together";
 export { List, type ListItem, type ListMarker, type ListProps } from "./components/list";
 export { Page, Pages, type PageProps, type PagesProps } from "./components/pages";
-export { Paper, Sheet, type PaperProps, type SheetProps } from "./components/paper";
+export { PageNumber, type PageNumberProps } from "./components/page-number";
+export {
+  PageFurnitureBands,
+  Paper,
+  Sheet,
+  type PageFurnitureBandsProps,
+  type PaperProps,
+  type SheetProps,
+} from "./components/paper";
 export { Section, type SectionProps } from "./components/section";
 export { Table, type TableColumn, type TableProps } from "./components/table";
 export { Text, type TextProps, type TextRole } from "./components/text";

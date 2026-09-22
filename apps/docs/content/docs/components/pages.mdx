@@ -42,9 +42,45 @@ Unlike [`Paper`](/components/paper) alone, which draws one sheet and lets
 content run past its bottom, `Pages` is what keeps a document's rendered
 pages matching what a reader would expect from a printed or exported copy.
 
+## Page furniture
+
+`furniture` is what every sheet carries outside the flow: a `header` band, a
+`footer` band, and a `stamp` drawn across the whole sheet behind the content.
+Each slot is composed content, and
+[`PageNumber`](/components/page-number) is the one that prints the sheet it is
+on.
+
+```tsx
+const furniture = {
+  header: <span>Northwind Partners LLP</span>,
+  footer: <PageNumber />,
+  stamp: <span className="text-6xl text-neutral-200">DRAFT</span>,
+};
+
+<Pages furniture={furniture}>{document}</Pages>;
+// and, on the server, the same object:
+await renderPdf(document, { plan, furniture });
+```
+
+A band is drawn inside the margin the document already declares, between the
+paper's edge and the content box, so the content budget, the page plan and the
+page count are exactly what they are without it: adding a footer never
+repaginates a document. The price is a height limit. A band taller than the
+margin leaves it fails the render by name, saying which slot, how tall it laid
+out, and how much margin it had; widen the document's `marginPx` token or
+shorten the band.
+
+Furniture is drawn around the document rather than inside it, so it cannot
+read a field path. Pass what it prints in as props.
+
+Each engine declares which slots it draws. The default engine draws all three;
+the experimental Chromium adapter draws none yet, and a render that names it
+with furniture fails by name rather than writing a document whose every page is
+missing its header.
+
 # Variants
 
-`Pages` takes an optional `className` and `onPaginate`.
+`Pages` takes an optional `className`, `onPaginate`, and `furniture`.
 
 ## Multi-page overflow
 
@@ -53,6 +89,14 @@ same one tree out across several sheets and repeats the table's header on
 every page it continues onto.
 
 <ComponentVariant name="pages" variant="multi-page" />
+
+## Page furniture
+
+`furniture` gives every sheet a running head, a numbered foot, and a stamp
+behind the content, all drawn inside the margin, so the page count is the one
+the same document has without them.
+
+<ComponentVariant name="pages" variant="page-furniture" />
 
 ## Custom frame
 

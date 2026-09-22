@@ -57,10 +57,30 @@ export {
   PageContextProvider,
   useKeepVisible,
   usePage,
+  usePageNumber,
   usePagePlan,
   useSectionVisible,
   type PageContextValue,
+  type PageNumbering,
 } from "./components/page-context";
+// What a document carries on every page. The type and the placement rule are
+// shared by the preview's bands and the PDF path's, so neither owns them.
+export {
+  assertFurnitureBandFits,
+  assertFurnitureSupported,
+  declaredFurnitureSlots,
+  furnitureBandBudgetPx,
+  hasPageFurniture,
+  FURNITURE_EDGE_INSET_PX,
+  FURNITURE_SLOTS,
+  PAGE_COUNTER_ATTRIBUTE,
+  PageFurnitureOverflowError,
+  UnsupportedFurnitureError,
+  type FurnitureBandSlot,
+  type FurnitureSlot,
+  type PageCounter,
+  type PageFurniture,
+} from "./lib/furniture";
 export {
   useFitToWidth,
   PAGE_CONTENT_HEIGHT_PX,

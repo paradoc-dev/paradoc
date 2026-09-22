@@ -41,6 +41,29 @@ export function usePagePlan(): PagePlan | null {
   return useContext(PageContext)?.plan ?? null;
 }
 
+/** Which page of how many is being drawn. */
+export interface PageNumbering {
+  /** 1-based number of the page being drawn. */
+  page: number;
+  /** How many pages the plan laid out. */
+  pages: number;
+}
+
+/**
+ * The page being drawn and how many there are, for a page-number component.
+ *
+ * Outside a paginated preview — a plain `Paper`, the measuring pass, a PDF
+ * render whose engine fills the counters itself — there is one sheet, so the
+ * answer is page 1 of 1 rather than nothing. A component that printed nothing
+ * there would leave a hole in a single-sheet preview, and on the PDF path the
+ * engine replaces the text either way.
+ */
+export function usePageNumber(): PageNumbering {
+  const page = useContext(PageContext);
+  if (page === null) return { page: 1, pages: 1 };
+  return { page: page.index + 1, pages: Math.max(1, page.plan.pages.length) };
+}
+
 /** True when this keep renders here. Unpaginated, every keep renders. */
 export function useKeepVisible(id: string): boolean {
   const page = useContext(PageContext);

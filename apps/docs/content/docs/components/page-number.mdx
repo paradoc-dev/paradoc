@@ -1,0 +1,64 @@
+---
+title: Page Number
+description: The page being drawn and how many there are, for a document's page furniture.
+---
+
+`PageNumber` is the one component whose text comes from neither the artifact
+nor the caller: the two numbers come from whatever is drawing the page. In the
+preview that is the page plan, so each sheet prints its own number. On the PDF
+path the engine repeats the footer on every page and fills the same two
+numbers itself.
+
+# Preview
+
+<ComponentPreview name="page-number" />
+
+# Installation
+
+<ComponentInstallation name="page-number" />
+
+# Usage
+
+<ComponentUsage name="page-number" />
+
+# Composition
+
+It belongs in a page-furniture slot: the `furniture` prop of
+[`Pages`](/components/pages) or [`Paper`](/components/paper). Hand the same
+object to `renderPdf({ furniture })` and the PDF carries the footer the
+preview drew, page for page.
+
+```tsx
+const furniture = { footer: <PageNumber /> };
+
+<Pages furniture={furniture}>{document}</Pages>;
+// and, on the server:
+await renderPdf(document, { plan, furniture });
+```
+
+The numbers are two marked slots rather than one string, because the PDF
+engine substitutes its own counters into them. That is why the wording is
+`label` and `separator` rather than a format function: a function could not
+run inside the engine. Anywhere with nothing paginating above it — a bare
+`Paper`, a component rendered on its own — it reads "Page 1 of 1", because
+there is one sheet.
+
+It carries no pagination unit of its own: furniture is not part of the flow,
+so it is never planned onto a page and never a
+[`Keep Together`](/components/keep-together).
+
+# Variants
+
+## Number only
+
+`total` drops the page count, so the foot reads "Page 2" rather than
+"Page 2 of 4".
+
+<ComponentVariant name="page-number" variant="number-only" />
+
+## Custom wording
+
+`label` and `separator` replace the default "Page" and "of", so the same two
+numbers read "Sheet 2 / 4".
+
+<ComponentVariant name="page-number" variant="custom-wording" />

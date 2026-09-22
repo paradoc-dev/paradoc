@@ -21,7 +21,8 @@ import type { ReactNode } from "react";
 
 import { DrawnPaperProvider, drawnPaper } from "../components/paper-geometry";
 import { PartialValuesProvider } from "../components/partial-context";
-import { TokenOverrideProvider } from "../components/tokens-context";
+import { DocumentTokensProvider, TokenOverrideProvider } from "../components/tokens-context";
+import type { PageFurniture } from "../lib/furniture";
 import type { DocumentTokens, DocumentTokensInput } from "../lib/tokens";
 
 /** Puts one render's tokens above the document, or leaves the tree alone. */
@@ -53,4 +54,32 @@ export function withDrawnPaper(element: ReactNode, tokens: DocumentTokens): Reac
 
 export function withFormatter(element: ReactNode, options: ArtifactFormatting): ReactNode {
   return <FormatterProvider {...options}>{element}</FormatterProvider>;
+}
+
+/**
+ * Puts one slot of furniture in the same rhythm the document is set in.
+ *
+ * A band is drawn around the document rather than inside it, so it is outside
+ * the root's own context: a page number that asked for the document's type
+ * scale there would be answered with the package defaults and come out a step
+ * off the document it numbers. The preview's bands are wrapped the same way, by
+ * the sheet that draws them.
+ */
+function withDocumentTokens(content: ReactNode, tokens: DocumentTokens): ReactNode {
+  return (
+    <DrawnPaperProvider value={drawnPaper(tokens)}>
+      <DocumentTokensProvider tokens={tokens}>{content}</DocumentTokensProvider>
+    </DrawnPaperProvider>
+  );
+}
+
+/** Every declared slot, in the document's own tokens. */
+export function withFurnitureTokens(
+  furniture: PageFurniture | undefined,
+  tokens: DocumentTokens
+): PageFurniture | undefined {
+  if (furniture === undefined) return undefined;
+  const slot = (content: ReactNode) =>
+    content === undefined ? undefined : withDocumentTokens(content, tokens);
+  return { header: slot(furniture.header), footer: slot(furniture.footer), stamp: slot(furniture.stamp) };
 }

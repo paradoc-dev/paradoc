@@ -37,7 +37,7 @@ for that; otherwise, read the artifact's own schema directly.
 
 | Reference | Load for |
 |---|---|
-| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Text`, `List`, `Field`, `Table`, `Totals`, `Signature`, plus the furniture (`Paper`, `Pages`, `KeepTogether`) — with exact props. |
+| [references/components.md](./references/components.md) | The component vocabulary — `Bundle`, `Document`, `Section`, `Text`, `List`, `Field`, `Table`, `Totals`, `Signature`, `PageNumber`, plus the furniture (`Paper`, `Pages`, `KeepTogether`) and its header/footer/stamp slots — with exact props. |
 | [references/pagination.md](./references/pagination.md) | The keep-together rule, how the table header repeats, and the two layout constraints (no `<table>`, one paper declared once). |
 | [references/safe-classes.md](./references/safe-classes.md) | Which Tailwind classes the default PDF engine renders, how an unsupported one fails, and branding tokens (font, accent, page size, margin, logo). |
 | [references/artifact-binding.md](./references/artifact-binding.md) | Declaring a React layer on a form artifact, binding the module at render time, and the seal (a `Signature` block emits its own marker). |

@@ -31,6 +31,7 @@ import type { Formatter, FormatterProgressivePolicy } from "@paradoc/types";
 import type { ReactNode } from "react";
 
 import { documentTokensOf } from "../lib/document-tokens";
+import { assertFurnitureSupported, hasPageFurniture, type PageFurniture } from "../lib/furniture";
 import { scriptOf } from "../lib/script";
 import { pageGeometry, type DocumentTokensInput } from "../lib/tokens";
 import {
@@ -42,7 +43,7 @@ import {
 } from "./adapter";
 import { takumiAdapter } from "./adapters/takumi";
 import { markerFontFile, resolveFontResources, type PdfFontResource, type PdfImage } from "./resources";
-import { withDrawnPaper, withPartialValues, withTokenOverride, withFormatter } from "./token-override";
+import { withDrawnPaper, withFurnitureTokens, withPartialValues, withTokenOverride, withFormatter } from "./token-override";
 import type { PageBreakPlan } from "./tree";
 
 export {
@@ -79,6 +80,16 @@ export interface RenderPdfOptions {
    * one carries above its first row. Absent, the engine paginates on its own.
    */
   plan?: PageBreakPlan;
+  /**
+   * What every page carries outside the flow: a header, a footer, a stamp.
+   *
+   * The same object the preview's `<Pages furniture={…}>` was given, so the two
+   * outputs draw one declaration. The engine repeats it on every page and fills
+   * the page-number counters itself, and the bands are drawn inside the
+   * document's margin, so the page plan and the page count are what they would
+   * be without any furniture at all.
+   */
+  furniture?: PageFurniture;
   /**
    * Tenant branding for this render alone: typeface, accent colour, paper,
    * mark, and the script the document is written in. It is the last layer over
@@ -193,6 +204,10 @@ async function resolveAdapter(name: PdfAdapterName | PdfAdapter): Promise<PdfAda
  * the direction the document is written in, naming the adapter and the script.
  * @throws {UnsupportedPdfContentError} when the tree uses a class or an image
  * the chosen engine cannot express. Every offender is listed in one error.
+ * @throws {PageFurnitureOverflowError} when a header or footer band is taller
+ * than the margin it is drawn in, naming the slot, the height and the margin.
+ * @throws {UnsupportedFurnitureError} when the chosen engine does not draw a
+ * furniture slot the render declares, naming the adapter and the slot.
  */
 export async function renderPdf(
   element: ReactNode,
@@ -234,6 +249,9 @@ export async function renderPdf(
     ),
     tokens,
     plan: options.plan,
+    furniture: hasPageFurniture(options.furniture)
+      ? withFurnitureTokens(options.furniture, tokens)
+      : undefined,
     images: options.images ?? [],
     fonts,
     applicationCss: options.applicationCss ?? options.plan?.fonts?.css,
@@ -247,6 +265,10 @@ export async function renderPdf(
   // The engine, which is the question this render alone asks: whether the one
   // chosen lays the document's direction out at all.
   assertDirectionSupported(adapter, tokens.dir, scriptOf(tokens.lang), tokens.lang);
+  // And whether it repeats a band on every page at all, which is the same
+  // question one level along: an engine that does not is an engine that writes
+  // the document with its furniture missing and says nothing.
+  assertFurnitureSupported(adapter, options.furniture);
   const result = await adapter.render(input, { lang: tokens.lang, dir: tokens.dir, signingMarkers });
   return {
     ...result,

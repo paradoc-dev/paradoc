@@ -1,6 +1,6 @@
 ---
 name: components
-description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Signature, QRCode, and the page furniture — with exact props.
+description: The composition component vocabulary — Bundle, Document, Section, Text, List, Field, Table, Totals, Signature, QRCode, PageNumber, and the page furniture — with exact props.
 metadata:
   tags: components, props, react
 ---
@@ -271,6 +271,7 @@ keep-together boundaries, and renders the tree once per page.
 |---|---|---|
 | `className` | `string?` | |
 | `onPaginate` | `(plan: PagePlan) => void?` | Called with the fresh plan whenever measurement changes it — not on every render. Safe to pass an inline function; `Pages` never keys off prop identity. |
+| `furniture` | `PageFurniture?` | What every sheet carries outside the flow. See [Furniture slots](#furniture-slots). |
 | `children` | `ReactNode` | One document root (`Document` or `Bundle`). |
 
 ```tsx
@@ -295,7 +296,66 @@ geometry props; paper size comes from the document's own `tokens`.
 | Prop | Type | Notes |
 |---|---|---|
 | `className` | `string?` | |
+| `furniture` | `PageFurniture?` | The same slots `Pages` takes; one sheet is page 1 of 1. |
 | `children` | `ReactNode` | The document root shown as one sheet. |
+
+### Furniture slots
+
+`PageFurniture` is `{ header?, footer?, stamp? }`, each composed content. The
+preview draws the bands on every sheet; the PDF engine repeats them on every
+page. Declare the object once and hand the same one to the preview and to the
+render:
+
+```tsx
+const furniture = {
+  header: <span className="text-xs text-neutral-500">Northwind Partners LLP</span>,
+  footer: <PageNumber />,
+  stamp: <span className="text-6xl text-neutral-200">DRAFT</span>,
+};
+
+<Pages furniture={furniture}>{document}</Pages>;
+await renderPdf(document, { plan, furniture });
+```
+
+Rules:
+
+- A band is drawn **inside the margin the document declares**, so the content
+  budget, the page plan and the page count never change because furniture
+  exists. A band taller than that margin fails the render with
+  `PageFurnitureOverflowError`, naming the slot, the height and the margin.
+  With the default 48 px margin a band has about 28 px; widen `marginPx` for
+  a taller one.
+- The `stamp` is drawn across the whole sheet, behind the content, and takes no
+  room in the margin.
+- Furniture renders **outside** the document's artifact binding, so a slot
+  cannot use `Field` or name a path. Pass what it prints in as props.
+- Every class in a slot is checked against the verified vocabulary exactly as
+  the document tree is.
+- Each engine declares the slots it draws. The default (takumi) draws all
+  three; the experimental Chromium adapter draws none yet, and a render that
+  names it with furniture fails with `UnsupportedFurnitureError` rather than
+  writing a document with every page missing its header.
+
+### `PageNumber`
+
+The page being drawn and how many there are. The preview counts the sheets it
+laid out; the PDF engine fills the same two numbers itself, which is why the
+wording is two words rather than a format function.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `label` | `string?` | Words before the number. Defaults to `"Page"`; `""` prints the number alone. |
+| `separator` | `string?` | Words between the number and the count. Defaults to `"of"`. |
+| `total` | `boolean?` | Prints the count after the separator. Defaults to `true`. |
+| `className` | `string?` | |
+
+```tsx
+<PageNumber label="Sheet" separator="/" />
+```
+
+Put it in a furniture slot. Anywhere with nothing paginating above it, it reads
+"Page 1 of 1". It carries no pagination unit of its own: furniture is not part
+of the flow.
 
 ### `KeepTogether`
 
@@ -323,6 +383,8 @@ image, a custom banner) — never wrap it around a `Field`, `Table`, or another
   prefer a tenant `logo` over its own default).
 - `usePagePlan()` — the current `PagePlan` for a component inside a page that
   needs to know what the plan decided.
+- `usePageNumber()` — `{ page, pages }` for a component drawn in a furniture
+  slot. Outside a paginated preview it is page 1 of 1.
 
 Everything else — `field`, `text`, `value`, `item`, `party` resolution — is
 already wrapped by `Field`, `Table`, `Totals`, and `Signature`. A composition

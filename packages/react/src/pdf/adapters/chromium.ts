@@ -310,6 +310,12 @@ export const chromiumAdapter: PdfAdapter = {
   // taking it: see "Right to left" in the README.
   directions: ["ltr", "rtl"],
 
+  // No slot yet. Chromium prints a header and a footer through its own print
+  // templates, with the same counter hooks, and wiring them is a change of its
+  // own; until then a document that declares furniture is refused here by name
+  // rather than printed with every page missing it.
+  furniture: [],
+
   async render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult> {
     const images: Record<string, string> = {};
     const undecodable: string[] = [];

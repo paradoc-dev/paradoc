@@ -284,6 +284,19 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     registryDependencies: ["paper"],
   },
   {
+    name: "page-number",
+    type: "registry:ui",
+    title: "Page Number",
+    description:
+      "The page being drawn and how many there are, for a document's page furniture. The preview counts the sheets it laid out and the PDF engine fills the same two numbers.",
+    files: [component("page-number")],
+    dependencies: [SUBSTRATE_PACKAGE],
+    // It imports nothing from `pages`, and it is listed anyway for the reason
+    // the blocks list it: a page number with nothing paginating above it is a
+    // page number that always reads "Page 1 of 1".
+    registryDependencies: ["pages"],
+  },
+  {
     name: "section",
     type: "registry:ui",
     title: "Section",

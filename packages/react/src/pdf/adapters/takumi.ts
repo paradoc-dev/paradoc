@@ -18,7 +18,7 @@
  */
 
 import { fromJsx } from "@takumi-rs/helpers/jsx";
-import { render } from "takumi-pdf";
+import { measure, render } from "takumi-pdf";
 
 import {
   UnsupportedPdfContentError,
@@ -30,6 +30,7 @@ import {
 import { PDF_RESET_STYLESHEET } from "../reset";
 import { imageFormat, pdfFonts } from "../resources";
 import { preparePdfTree, recordOnce } from "../tree";
+import { measureFurnitureBands, translateFurniture } from "./takumi-furniture";
 
 /** The engine the parity numbers are measured on, and the default `renderPdf` reaches for. */
 export const takumiAdapter: PdfAdapter = {
@@ -44,8 +45,13 @@ export const takumiAdapter: PdfAdapter = {
   // which is worse than a refusal. See "Right to left" in the README.
   directions: ["ltr"],
 
+  // All three: the engine repeats a header and a footer band on every page of
+  // its own accord, and the stamp rides the header band as a whole-sheet layer.
+  // See `takumi-furniture.ts`.
+  furniture: ["header", "footer", "stamp"],
+
   async render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult> {
-    const { node, stylesheets } = await fromJsx(input.element);
+    const { node, stylesheets: treeStylesheets } = await fromJsx(input.element);
 
     const prepared = preparePdfTree(node, {
       plan: input.plan,
@@ -56,13 +62,24 @@ export const takumiAdapter: PdfAdapter = {
       lang: options.lang,
     });
 
-    const badImages = [...prepared.missingImages];
+    // The bands the engine repeats on every page. They are translated with the
+    // tree rather than after it so that one unsupported class fails one render,
+    // wherever on the page it is.
+    const furniture = await translateFurniture(input.furniture, {
+      geometry: input.geometry,
+      imageSources: input.images.map((image) => image.src),
+      lang: options.lang,
+    });
+
+    const offendingClasses = [...prepared.unsupportedClasses];
+    for (const name of furniture.unsupportedClasses) recordOnce(offendingClasses, name);
+    const badImages = [...prepared.missingImages, ...furniture.missingImages];
     for (const image of input.images) {
       if (imageFormat(image.data) === undefined) recordOnce(badImages, image.src);
     }
 
-    if (prepared.unsupportedClasses.length > 0 || badImages.length > 0) {
-      throw new UnsupportedPdfContentError(prepared.unsupportedClasses, badImages);
+    if (offendingClasses.length > 0 || badImages.length > 0) {
+      throw new UnsupportedPdfContentError(offendingClasses, badImages);
     }
 
     // The faces are the prepared input's, loaded rather than resolved again:
@@ -70,15 +87,30 @@ export const takumiAdapter: PdfAdapter = {
     // two adapters that looked their own files up could embed different ones.
     const fonts = await pdfFonts(input.fonts);
 
+    const size = { width: input.geometry.widthPx, height: input.geometry.heightPx };
+    const fontFamilies = [...new Set(input.fonts.map((font) => font.family)), "sans-serif"];
+    const stylesheets = [PDF_RESET_STYLESHEET, ...treeStylesheets, ...furniture.stylesheets];
+
+    // Measured with the same faces, images and stylesheets the page is
+    // rendered with, because a band measured against anything else is a band
+    // measured wrong: a running head carrying a mark whose bytes the measure
+    // never saw lays out short and then overprints the first line of the page.
+    const images = input.images.map((image) => ({ src: image.src, data: image.data }));
+    const bands = await measureFurnitureBands(furniture, input.geometry, async (band) => {
+      const measured = await measure(band, { size, fonts, fontFamilies, images, stylesheets, lang: options.lang });
+      return measured.height;
+    });
+
     const bytes = await render(prepared.node, {
-      size: { width: input.geometry.widthPx, height: input.geometry.heightPx },
+      size,
       margin: input.geometry.marginPx,
+      ...bands,
       fonts,
       // The generic comes from the family's own registration: a serif that fell
       // back to a sans would be a different document.
-      fontFamilies: [...new Set(input.fonts.map((font) => font.family)), "sans-serif"],
-      images: input.images.map((image) => ({ src: image.src, data: image.data })),
-      stylesheets: [PDF_RESET_STYLESHEET, ...stylesheets],
+      fontFamilies,
+      images,
+      stylesheets,
       lang: options.lang,
     });
 
