@@ -78,6 +78,10 @@ describe("the verified class vocabulary", () => {
       "rounded-md",
       "text-xs",
       "text-right",
+      "underline",
+      "line-through",
+      "overline",
+      "no-underline",
       "text-neutral-500",
       "bg-white",
       "font-semibold",
@@ -96,10 +100,12 @@ describe("the verified class vocabulary", () => {
   it("rejects the utilities the engine drops in silence", () => {
     // Every one of these probed byte-identical with and without. The browser
     // honours them, so admitting them would be a silent loss on paper.
+    // `underline`/`line-through`/`overline`/`no-underline` moved out of this
+    // list in the 2026-09 re-probe: the original exclusion put the class on a
+    // flex container the text sat inside, which takumi does not propagate
+    // `text-decoration` through, and applied to the text itself takumi does
+    // honour all four (see `src/pdf/tailwind.ts`'s module doc).
     for (const name of [
-      "underline",
-      "line-through",
-      "overline",
       "border-dashed",
       "border-dotted",
       "order-2",

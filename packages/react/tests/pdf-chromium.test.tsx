@@ -76,7 +76,10 @@ describe.skipIf(skipped)("the Chromium adapter", () => {
   });
 
   afterAll(async () => {
-    // This file owns the browser it started, and nothing else in the run does.
+    // This file owns the browser it started for its own suite. `isolate: true`
+    // in vitest.config.ts gives every test file a fresh module registry, so
+    // `pdf-class-support-chromium.test.tsx`'s own `shared` browser and its own
+    // `closeChromium` call are independent of this one.
     await closeChromium();
   });
 

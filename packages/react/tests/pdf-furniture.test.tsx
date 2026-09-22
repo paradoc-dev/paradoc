@@ -182,11 +182,11 @@ describe("furniture that cannot be drawn", () => {
   it("refuses a class in a band the engine cannot express, naming the class", async () => {
     const failure = await renderPdf(document, {
       images: [logo],
-      furniture: { header: <span className="underline">Defined term</span> },
+      furniture: { header: <span className="align-super">Defined term</span> },
     }).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(UnsupportedPdfContentError);
-    expect((failure as UnsupportedPdfContentError).classes).toContain("underline");
+    expect((failure as UnsupportedPdfContentError).classes).toContain("align-super");
   }, 60_000);
 
   it("refuses an image in a band the render supplied no bytes for, naming it", async () => {

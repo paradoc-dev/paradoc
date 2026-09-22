@@ -96,6 +96,38 @@ const UnsupportedClass: ReactLayerComponent = ({ artifact, data }) => (
   </Document>
 );
 
+/**
+ * A composition using `border-dashed`, re-probed against the current engine
+ * and Chromium and still excluded: takumi renders it byte-identical to a
+ * solid border, even though Chromium (a real browser) draws it. `safe-classes.md`
+ * names a solid `border` as its substitute — see the sibling
+ * `RecommendedSubstitute` composition below, which the check passes.
+ */
+const ExcludedBorderStyle: ReactLayerComponent = ({ artifact, data }) => (
+  <Document artifact={artifact} data={data}>
+    <Field path="name" className="border border-dashed" />
+  </Document>
+);
+
+/** The skill's named substitute for a dashed or dotted border: a solid one. */
+const RecommendedSubstitute: ReactLayerComponent = ({ artifact, data }) => (
+  <Document artifact={artifact} data={data}>
+    <Field path="name" className="border" />
+  </Document>
+);
+
+/**
+ * A composition using `underline`, admitted by this same change: the
+ * 2026-09 re-probe found the original exclusion rested on a harness that put
+ * the class where takumi does not inherit it (see `src/pdf/tailwind.ts`'s
+ * module doc). Applied to the text itself, takumi renders it.
+ */
+const AdmittedTextDecoration: ReactLayerComponent = ({ artifact, data }) => (
+  <Document artifact={artifact} data={data}>
+    <Field path="name" className="underline" />
+  </Document>
+);
+
 /** A composition whose `Field` names a path the artifact does not declare. */
 const UnresolvedPath: ReactLayerComponent = ({ artifact, data }) => (
   <Document artifact={artifact} data={data}>
@@ -170,6 +202,36 @@ describe("checkComposition", () => {
 
     expect(result.unsupportedClasses).toEqual(["grid-cols-3"]);
     expect(result.unresolvedPaths).toEqual([]);
+  });
+
+  it("refuses border-dashed, one of the re-probed and still-excluded classes", async () => {
+    const result = await checkComposition({
+      artifact: fixtureForm,
+      composition: ExcludedBorderStyle,
+      data: fixtureData,
+    });
+
+    expect(result.unsupportedClasses).toEqual(["border-dashed"]);
+  });
+
+  it("accepts a solid border, the skill's named substitute for border-dashed", async () => {
+    const result = await checkComposition({
+      artifact: fixtureForm,
+      composition: RecommendedSubstitute,
+      data: fixtureData,
+    });
+
+    expect(result.unsupportedClasses).toEqual([]);
+  });
+
+  it("accepts underline, admitted by the 2026-09 re-probe", async () => {
+    const result = await checkComposition({
+      artifact: fixtureForm,
+      composition: AdmittedTextDecoration,
+      data: fixtureData,
+    });
+
+    expect(result.unsupportedClasses).toEqual([]);
   });
 
   it("names an unresolved field path", async () => {

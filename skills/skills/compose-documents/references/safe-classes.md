@@ -33,7 +33,7 @@ until it is added and verified upstream in `@paradoc/react`.
 |---|---|
 | Display | `block`, `inline-block`, `inline`, `flex`, `hidden` |
 | Overflow | `overflow-hidden`, `overflow-x-hidden`, `overflow-clip` |
-| Position | `absolute` |
+| Absolute positioning | `absolute` |
 | Flex direction | `flex-row`, `flex-col`, `flex-row-reverse`, `flex-col-reverse` |
 | Flex wrapping | `flex-wrap`, `flex-wrap-reverse`, `flex-nowrap` |
 | Flex sizing | `flex-1`, `flex-auto`, `grow`, `basis-1/2`, `basis-104`, … |
@@ -46,12 +46,13 @@ until it is added and verified upstream in `@paradoc/react`.
 | Border colour | `border-neutral-800`, `border-<palette>-<50..950>` |
 | Border radius | `rounded`, `rounded-lg`, `rounded-t-none`, `rounded-full` |
 | Font size | `text-xs` … `text-9xl` |
-| Font weight / style | `font-thin` … `font-black`, `italic`, `not-italic` |
+| Font weight and style | `font-thin` … `font-black`, `italic`, `not-italic` |
 | Line height | `leading-tight`, `leading-13`, … |
 | Letter spacing | `tracking-tight` … `tracking-widest` |
 | Text transform | `uppercase`, `lowercase`, `capitalize`, `normal-case` |
 | Text alignment | `text-left`, `text-center`, `text-right`, `text-justify`, `text-start`, `text-end` |
 | Text truncation | `truncate` |
+| Text decoration | `underline`, `line-through`, `overline`, `no-underline` |
 | Text colour | `text-neutral-500`, `text-<palette>-<50..950>`, `text-black`, `text-white` |
 | Background colour | `bg-white`, `bg-<palette>-<50..950>` |
 | Opacity | `opacity-50`, `opacity-100` |
@@ -91,18 +92,36 @@ style.
 ## What is never on the list
 
 These plausibly work in a real browser but probed byte-identical (no
-observable effect) against the engine and are therefore **excluded**, even
-though they might "just work": text decoration (`underline`,
-`line-through`), border styles (`border-dashed`), `order-*`, `align-*`,
-`text-ellipsis`, `break-words`, `flex-none`, `shrink-0`, `grow-0`, and
-`break-inside-*`/`break-before-*` as classes (the pagination pass applies the
-break intent as an inline style instead — a composition never needs these
-directly). Arbitrary-value classes (`text-[13px]`, `bg-[#112233]`,
+observable effect) against the default engine and are therefore
+**excluded**, even though they might "just work": vertical alignment
+(`align-super`, `align-sub`, and the rest of `align-*`), border styles
+(`border-dashed`, `border-dotted`), `order-*`, `text-ellipsis`,
+`break-words`, `flex-none`, `shrink-0`, `grow-0`, and
+`break-inside-*`/`break-before-*` as classes (the pagination pass applies
+the break intent as an inline style instead — a composition never needs
+these directly). Arbitrary-value classes (`text-[13px]`, `bg-[#112233]`,
 `p-[7px]`) are never in the allow-list either.
 
-If a design needs one of these, restructure with a class that **is** on the
-list, or accept the difference between the preview and the PDF for that
-detail.
+Vertical alignment and the two border styles were re-probed against the
+current default engine and against the Chromium adapter, alongside text
+decoration (`underline`, `line-through`), which the same re-probe found the
+default engine does render — see "The verified families" above. The
+Chromium adapter — a real browser compiling real Tailwind CSS — renders
+every one of these classes, admitted or not; only the default engine draws
+the line between them. A class either engine does not render stays
+excluded, so vertical alignment and the two border styles stay excluded
+until the default engine changes.
+
+Substitutes:
+
+- **`align-super`, `align-sub`** — no engine substitute. Write a value and
+  its exponent or unit in parentheses (`10^2`, `H2O`) rather than a true
+  superscript or subscript.
+- **`border-dashed`, `border-dotted`** — use a solid `border` (already on
+  the list) in place of the dashed or dotted style.
+
+If neither fits, accept the difference between the preview and the PDF for
+that detail.
 
 ## Checking against a different adapter
 

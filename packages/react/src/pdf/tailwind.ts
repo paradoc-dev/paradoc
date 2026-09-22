@@ -17,12 +17,36 @@
  *
  * A utility the engine may well support but the probe cannot show it honours is
  * outside the list and fails loudly. That is the right answer for a package whose
- * output is evidence. Text decoration (`underline`, `line-through`), border
- * styles (`border-dashed`), `order-*`, `align-*`, `break-inside-*` and
- * `break-before-*` as classes, `text-ellipsis`, `break-words`, `flex-none`,
- * `shrink-0` and `grow-0` all probed byte-identical against takumi-pdf 0.4.2 and
- * are excluded for that reason. The walk in `tree.ts` applies the page-break
- * intent as an inline style, which the engine does honour.
+ * output is evidence. Vertical alignment (`align-super`, `align-sub`, and the
+ * rest of `align-*`), border styles (`border-dashed`, `border-dotted`),
+ * `order-*`, `break-inside-*` and `break-before-*` as classes, `text-ellipsis`,
+ * `break-words`, `flex-none`, `shrink-0` and `grow-0` all probed byte-identical
+ * against takumi-pdf 0.4.2 and are excluded for that reason. The walk in
+ * `tree.ts` applies the page-break intent as an inline style, which the engine
+ * does honour.
+ *
+ * **Re-probed 2026-09.** The specification asked for the text-decoration,
+ * vertical-alignment and border-style exclusions to be checked again against
+ * the current engine and against the Chromium adapter, because the original
+ * probe predated Chromium as a supported adapter and its text-decoration
+ * result turned out to rest on a harness defect: the class sat on a flex
+ * container, and takumi does not propagate `text-decoration` from a flex
+ * container to the text inside it, which is not the same question as whether
+ * takumi honours the class at all. Applied directly to the text run — the
+ * `inline` harness in `tests/pdf-class-support.test.tsx` — `underline`,
+ * `line-through` and `overline` each change the PDF, distinctly from one
+ * another, and `no-underline` correctly cancels `underline`; all four are
+ * admitted below, under "text decoration". Vertical alignment and the two
+ * border styles stay
+ * byte-identical on takumi even with the corrected harness (see the "still
+ * excluded on takumi" describe block in the same file) and remain excluded.
+ * Chromium renders every one of the re-probed classes, admitted or not (its
+ * own sibling file, `tests/pdf-class-support-chromium.test.tsx`), which is
+ * expected: it is a real browser compiling real Tailwind CSS, so a gap here is
+ * always takumi's, never the class's. `rotate-*` was probed at the same time,
+ * for `ticket:stamp-every-page-with-a-watermark`: both engines honour it, but
+ * it is not admitted here — that ticket owns the family and the harness a
+ * stamp actually needs.
  *
  * The spacing, sizing and border-width scales are Tailwind v4's open numeric
  * scales rather than v3's fixed steps, because the engine honours `p-13`,
@@ -84,8 +108,16 @@ const COLOR = `black|white|transparent|(?:${PALETTE})-(?:50|100|200|300|400|500|
  */
 const NON_UTILITY_CLASSES = new Set(["paradoc-document", "paradoc-ltr-isolate"]);
 
-/** Which fragment makes a family's effect visible. */
-export type ProbeHarness = "layout" | "narrow" | "text";
+/**
+ * Which fragment makes a family's effect visible. `inline` is distinct from
+ * `text`: `text` applies the class to a flex container wrapping the text, and
+ * takumi does not propagate every text-level property down through that
+ * container to the text inside it — `text-decoration` is one such property,
+ * discovered when the 2026-09 re-probe first tried `text` for it and got a
+ * false negative. `inline` applies the class directly to the text-bearing
+ * element instead.
+ */
+export type ProbeHarness = "layout" | "narrow" | "text" | "inline";
 
 /** One verified family of utilities. */
 export interface ClassFamily {
@@ -224,6 +256,12 @@ export const SUPPORTED_CLASS_FAMILIES: readonly ClassFamily[] = [
     harness: "text",
   },
   { name: "text truncation", pattern: /^truncate$/, probe: "truncate", harness: "text" },
+  {
+    name: "text decoration",
+    pattern: /^(?:underline|line-through|overline|no-underline)$/,
+    probe: "underline",
+    harness: "inline",
+  },
   {
     name: "text colour",
     pattern: new RegExp(`^text-(?:${COLOR})$`),

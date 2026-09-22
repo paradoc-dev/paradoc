@@ -62,7 +62,22 @@ const text = (tw: string): ReactNode => (
   </div>
 );
 
-const HARNESSES: Record<ProbeHarness, (tw: string) => ReactNode> = { layout, narrow, text };
+/**
+ * The same text, with the class on the text-bearing `span` itself rather than
+ * on a flex ancestor. The two are not interchangeable: takumi does not
+ * propagate every text-level property down through a flex container to the
+ * text inside it, `text-decoration` among them (found when the 2026-09
+ * re-probe first tried `text` for `underline` and got a false negative — see
+ * the module doc in `src/pdf/tailwind.ts`). A property that acts on the text
+ * itself needs `inline`, not `text`.
+ */
+const inline = (tw: string): ReactNode => (
+  <div tw="flex flex-col" style={{ width: 300 }}>
+    <span tw={tw}>{"Alpha bravo charlie delta echo foxtrot golf\nsecond line"}</span>
+  </div>
+);
+
+const HARNESSES: Record<ProbeHarness, (tw: string) => ReactNode> = { layout, narrow, text, inline };
 
 async function bytes(element: ReactNode): Promise<Buffer> {
   return Buffer.from(
@@ -111,5 +126,110 @@ describe("every class admitted as an engine default really is one", () => {
       probed.equals(base),
       `"${name}" changed the output, so it is not the value the engine already applies`
     ).toBe(true);
+  }, 60_000);
+});
+
+it("no-underline is supported and cancels underline without a visible effect on its own", async () => {
+  expect(isSupportedClass("no-underline")).toBe(true);
+  const [base, probed, sensitivityControl] = await Promise.all([
+    bytes(inline("")),
+    bytes(inline("no-underline")),
+    // The harness itself has to be capable of showing a decoration change, or
+    // "no-underline changed nothing" proves nothing about no-underline.
+    bytes(inline("underline")),
+  ]);
+  expect(probed.equals(base), '"no-underline" changed a page with no underline to remove').toBe(true);
+  expect(
+    sensitivityControl.equals(base),
+    "the inline harness did not register underline either, so it cannot show no-underline's absence of effect"
+  ).toBe(false);
+}, 60_000);
+
+/**
+ * A run of inline text with a nested span, so vertical-align has a line box to
+ * act inside and a sibling run to be measured against. `inline` above applies
+ * the whole class to the only content on its line, which is enough to reveal
+ * `text-decoration` but not reliably `vertical-align`: probed the same way,
+ * `align-super` came back byte-identical on Chromium too, a false negative
+ * from having nothing on the line for the shifted box to be measured against.
+ * `align-sub` did not, which is exactly the unreliability that ruled `inline`
+ * out for this family and kept `supersub` a separate harness.
+ */
+const supersub = (className: string): ReactNode => (
+  <div tw="flex flex-col" style={{ width: 300 }}>
+    <span>
+      {"Value E=mc"}
+      <span tw={className}>{"2"}</span>
+      {" continues after"}
+    </span>
+  </div>
+);
+
+/**
+ * Re-probes the classes the module doc names as excluded, against the current
+ * takumi-pdf version, so a version bump that starts honouring one of them is
+ * caught here rather than by someone reading the comment. Each byte-identical
+ * assertion is paired with `isSupportedClass` and a sensitivity control — a
+ * class known to change bytes in the same harness — because a byte-identical
+ * result proves an exclusion only if the harness can tell the difference at
+ * all; the `text-decoration` family exists because the original probe skipped
+ * that control. See `pdf-class-support-chromium.test.tsx` for the same
+ * classes against the Chromium adapter, which renders every one of them: the
+ * engine, not the class, is what is unsupported.
+ */
+describe("classes the specification asked to re-probe, still excluded on takumi", () => {
+  it.each([
+    ["border-dashed", layout, "border-4"],
+    ["border-dotted", layout, "border-4"],
+  ] as const)("%s stays byte-identical", async (name, harness, control) => {
+    expect(isSupportedClass(name), `${name} should not be covered by any family`).toBe(false);
+    const [base, probed, sensitivityControl] = await Promise.all([
+      bytes(harness("")),
+      bytes(harness(name)),
+      bytes(harness(control)),
+    ]);
+    expect(
+      probed.equals(base),
+      `"${name}" changed the output; takumi-pdf may now honour it — update tailwind.ts and safe-classes.md`
+    ).toBe(true);
+    expect(
+      sensitivityControl.equals(base),
+      `the "${harness.name}" harness did not register "${control}" either, so it cannot show "${name}"'s absence of effect`
+    ).toBe(false);
+  }, 60_000);
+
+  it.each(["align-super", "align-sub"] as const)("%s stays byte-identical", async (name) => {
+    expect(isSupportedClass(name), `${name} should not be covered by any family`).toBe(false);
+    const [base, probed, sensitivityControl] = await Promise.all([
+      bytes(supersub("")),
+      bytes(supersub(name)),
+      // `text-2xl` on the same nested span, known to move the bytes: proof
+      // the harness can register a change in the superscript span itself.
+      bytes(supersub("text-2xl")),
+    ]);
+    expect(
+      probed.equals(base),
+      `"${name}" changed the output; takumi-pdf may now honour vertical-align — update tailwind.ts and safe-classes.md`
+    ).toBe(true);
+    expect(
+      sensitivityControl.equals(base),
+      "the supersub harness did not register text-2xl either, so it cannot show vertical-align's absence of effect"
+    ).toBe(false);
+  }, 60_000);
+});
+
+/**
+ * `rotate-*` is probed here for the watermark ticket
+ * (`ticket:stamp-every-page-with-a-watermark`), which needs to know whether
+ * rotation is available before it designs the stamp's family and harness.
+ * takumi honours it — this only records the finding; admitting `rotate-*` to
+ * `SUPPORTED_CLASS_FAMILIES` is that ticket's decision to make, alongside its
+ * own probe of the values a stamp actually needs.
+ */
+describe("rotate-45, probed for the watermark ticket and not admitted here", () => {
+  it("changes the PDF on takumi", async () => {
+    const base = await bytes(layout(""));
+    const probed = await bytes(layout("rotate-45"));
+    expect(probed.equals(base)).toBe(false);
   }, 60_000);
 });

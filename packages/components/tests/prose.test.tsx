@@ -421,12 +421,12 @@ describe("the check", () => {
     const report = await checkElement(
       inDocument(
         <>
-          <Text keepId="check:body" className="text-[13px] underline">Body</Text>
+          <Text keepId="check:body" className="text-[13px] align-super">Body</Text>
           <List id="check" className="list-decimal" items={[{ text: "One" }]} />
         </>
       )
     );
-    expect(report.unsupportedClasses.sort()).toEqual(["list-decimal", "text-[13px]", "underline"]);
+    expect(report.unsupportedClasses.sort()).toEqual(["align-super", "list-decimal", "text-[13px]"]);
   });
 });
 
