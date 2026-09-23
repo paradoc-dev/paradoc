@@ -24,6 +24,11 @@
  * materializes with `computeLineAmounts`, and the artifact computes tax and total
  * from it. See the package README.
  *
+ * Tax and total are null until both the subtotal and the tax rate have values.
+ * Arithmetic over a missing value is an evaluation error, and core refuses to
+ * fill a form whose defs do not evaluate, so an unguarded def would block a
+ * session before its first answer.
+ *
  * Unlike the proposal, this composition does not wrap itself in a `Bundle`: it
  * is designed to also sit inside a packet whose own layer supplies the bundle,
  * so it renders bare and lets the caller decide.
@@ -261,7 +266,7 @@ export const purchaseOrderSpec = {
       label: "Tax",
       description: "Sales tax on the subtotal at the quoted rate.",
       value: {
-        amount: "fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },
@@ -270,7 +275,8 @@ export const purchaseOrderSpec = {
       label: "Total",
       description: "Amount due for the order.",
       value: {
-        amount: "fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount:
+          "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },

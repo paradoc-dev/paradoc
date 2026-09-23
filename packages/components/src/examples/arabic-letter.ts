@@ -247,7 +247,7 @@ export const arabicLetterSpec = {
       label: "ضريبة القيمة المضافة",
       description: "Value-added tax on the subtotal at the quoted rate.",
       value: {
-        amount: "fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },
@@ -256,7 +256,8 @@ export const arabicLetterSpec = {
       label: "الإجمالي المستحق",
       description: "Amount due.",
       value: {
-        amount: "fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount:
+          "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },

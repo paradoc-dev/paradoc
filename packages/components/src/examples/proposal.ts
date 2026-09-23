@@ -23,6 +23,11 @@
  * expressed as a def. `subtotalAmount` is therefore a field the caller
  * materializes with `computeLineAmounts`, and the artifact computes tax and total
  * from it. See the package README.
+ *
+ * Tax and total are null until both the subtotal and the tax rate have values.
+ * Arithmetic over a missing value is an evaluation error, and core refuses to
+ * fill a form whose defs do not evaluate, so an unguarded def would block a
+ * session before its first answer.
  */
 
 import { p } from "@paradoc/core";
@@ -263,7 +268,7 @@ export const proposalSpec = {
       label: "Tax",
       description: "Sales tax on the subtotal at the quoted rate.",
       value: {
-        amount: "fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },
@@ -272,7 +277,8 @@ export const proposalSpec = {
       label: "Total",
       description: "Amount due if the customer accepts the proposal.",
       value: {
-        amount: "fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount:
+          "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },

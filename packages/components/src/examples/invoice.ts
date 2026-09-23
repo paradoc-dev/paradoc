@@ -294,7 +294,7 @@ export const invoiceSpec = {
       label: "Tax",
       description: "Sales tax on the taxable subtotal at the quoted rate.",
       value: {
-        amount: "taxableSubtotal.amount * fields.taxRatePercent / 100",
+        amount: "fields.taxRatePercent == null ? null : taxableSubtotal.amount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },
@@ -303,7 +303,7 @@ export const invoiceSpec = {
       label: "Amount due",
       description: "What the customer owes.",
       value: {
-        amount: "subtotal.amount + tax.amount",
+        amount: "subtotal.amount == null or tax.amount == null ? null : subtotal.amount + tax.amount",
         currency: "fields.currency",
       },
     },
