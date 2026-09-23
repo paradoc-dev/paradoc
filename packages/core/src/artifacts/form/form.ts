@@ -942,6 +942,11 @@ interface RuntimeFormBase<F extends Form> {
 
 	// Serialization
 	render<Output = string | Uint8Array>(options?: RuntimeFormRenderOptions<Output>): Promise<Output>
+	/**
+	 * Serialize the form state. A sealed form keeps `signatureMap` and
+	 * `canonicalPdfHash`; `canonicalPdfBytes` is binary and is not serialized,
+	 * so persist those bytes out of band, keyed by `canonicalPdfHash`.
+	 */
 	toJSON(): RuntimeFormJSON<F>
 	toYAML(): string
 }
@@ -3169,6 +3174,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				context: deepClone(context),
 				targetLayer,
 				executedAt: executedAt!,
+				...(signatureMap && { signatureMap: deepClone(signatureMap) }),
+				...(canonicalPdfHash && { canonicalPdfHash }),
 			}
 		},
 

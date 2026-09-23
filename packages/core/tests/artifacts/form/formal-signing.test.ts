@@ -762,6 +762,87 @@ describe('Formal Signing', () => {
 			expect(restored.signatureMap).toHaveLength(3)
 			expect(restored.canonicalPdfHash).toBe('sha256:abc123def456')
 		})
+
+		const sealedDraft = () =>
+			createFormWithSignature()
+				.fill({
+					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
+					},
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSigner('tenant-signer', createTenantSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+
+		test('executed form JSON round-trip preserves signatureMap and canonicalPdfHash', async () => {
+			const executed = (await sealedDraft().seal(createMockAdapter())).finalize()
+			expect(executed.isFormal).toBe(true)
+
+			const json = executed.toJSON()
+			expect(json.phase).toBe('executed')
+			expect('signatureMap' in json && json.signatureMap).toEqual(executed.signatureMap)
+			expect('canonicalPdfHash' in json && json.canonicalPdfHash).toBe('sha256:abc123def456')
+
+			const restored = runtimeFormFromJSON(json)
+			expect(restored.phase).toBe('executed')
+			expect(restored.isFormal).toBe(true)
+			expect(restored.canonicalPdfHash).toBe(executed.canonicalPdfHash)
+			expect(restored.signatureMap).toEqual(executed.signatureMap)
+			expect(restored.executedAt).toBe(executed.executedAt)
+			expect(restored.getSignerForField('sig-landlord-0')?.person.name).toBe('John Landlord')
+			expect(restored.getFieldsForSigner('tenant-signer')).toHaveLength(2)
+		})
+
+		test('executed form YAML round-trip preserves signatureMap and canonicalPdfHash', async () => {
+			const executed = (await sealedDraft().seal(createMockAdapter())).finalize()
+
+			const restored = runtimeFormFromJSON(fromYAML(executed.toYAML()) as any)
+			expect(restored.phase).toBe('executed')
+			expect(restored.isFormal).toBe(true)
+			expect(restored.canonicalPdfHash).toBe(executed.canonicalPdfHash)
+			expect(restored.signatureMap).toEqual(executed.signatureMap)
+		})
+
+		test('executed form JSON is a copy: mutating it leaves the form unchanged', async () => {
+			const executed = (await sealedDraft().seal(createMockAdapter())).finalize()
+			const json = executed.toJSON() as any
+			json.signatureMap[0].x = 999
+
+			expect(executed.signatureMap?.[0]?.x).toBe(100)
+		})
+
+		test('unsealed executed form JSON omits formal signing fields and restores as not formal', () => {
+			const executed = sealedDraft().prepareForSigning().finalize()
+			expect(executed.isFormal).toBe(false)
+
+			const json = executed.toJSON()
+			expect('signatureMap' in json).toBe(false)
+			expect('canonicalPdfHash' in json).toBe(false)
+
+			const restored = runtimeFormFromJSON(json)
+			expect(restored.phase).toBe('executed')
+			expect(restored.isFormal).toBe(false)
+			expect(restored.signatureMap).toBeUndefined()
+			expect(restored.canonicalPdfHash).toBeUndefined()
+		})
+
+		test('canonicalPdfBytes are not serialized', async () => {
+			const bytes = new Uint8Array([1, 2, 3])
+			const adapter: Sealer = {
+				async seal() {
+					return { signatureMap: [], canonicalPdfHash: 'sha256:bytes', canonicalPdfBytes: bytes }
+				},
+			}
+			const executed = (await sealedDraft().seal(adapter)).finalize()
+			expect(executed.canonicalPdfBytes).toEqual(bytes)
+
+			const json = executed.toJSON()
+			expect('canonicalPdfBytes' in json).toBe(false)
+			expect(runtimeFormFromJSON(json).canonicalPdfBytes).toBeUndefined()
+		})
 	})
 
 	// ============================================================================

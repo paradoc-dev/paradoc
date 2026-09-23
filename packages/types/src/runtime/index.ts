@@ -348,7 +348,10 @@ export interface SignableFormJSON<F = unknown> {
 	// === Formal Signing Fields (Optional) ===
 	/** Signing field coordinates for e-signing services. Present when prepared for formal signing. */
 	signatureMap?: SigningField[];
-	/** SHA-256 hash of the canonical PDF for integrity verification. Present when prepared for formal signing. */
+	/**
+	 * SHA-256 hash of the canonical PDF for integrity verification. Present when prepared for formal signing.
+	 * The canonical PDF bytes are not serialized: persist them out of band, keyed by this hash.
+	 */
 	canonicalPdfHash?: string;
 }
 
@@ -387,6 +390,14 @@ export interface ExecutedFormJSON<F = unknown> {
 	context: RuntimeContext;
 	/** ISO 8601 date-time when the form was executed. */
 	executedAt: string;
+	// === Formal Signing Fields (Optional) ===
+	/** Signing field coordinates for e-signing services. Present when the form was sealed for formal signing. */
+	signatureMap?: SigningField[];
+	/**
+	 * SHA-256 hash of the canonical PDF for integrity verification. Present when the form was sealed for formal signing.
+	 * The canonical PDF bytes are not serialized: persist them out of band, keyed by this hash.
+	 */
+	canonicalPdfHash?: string;
 }
 
 /**
