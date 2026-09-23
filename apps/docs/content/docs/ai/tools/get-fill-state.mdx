@@ -1,0 +1,93 @@
+---
+title: get_fill_state
+description: Report a draft's progress, open targets, rules, and the next target to fill
+ogTitle: get_fill_state — Paradoc AI Tools
+ogDescription: Tell an agent how far a Paradoc form or checklist draft has got and what to ask for next
+---
+
+Reports where a form or checklist draft stands: how many required targets are done, which are still open or blocked, whether the rules pass, and which target to fill next. An agent uses it to decide its next question.
+
+The draft is not changed. Only forms and checklists are supported.
+
+## Input
+
+Takes a [source](/ai/tools#sources) plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `data` | `object` | No | The draft payload, usually `data` from [`fill`](/ai/tools/fill) or [`update_fill`](/ai/tools/update-fill). Default `{}`. |
+| `evaluation_context` | `object` | No | The draft's `evaluation_context` |
+| `include_optional` | `boolean` | No | Include optional targets in `candidates`. Default `false`. |
+
+## Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `artifact_kind` | `"form" \| "checklist"` | Artifact kind |
+| `phase` | `string` | Draft phase, such as `draft` |
+| `summary` | `object` | `required_total`, `required_done`, `required_remaining`, `completion_percent` |
+| `defs_values` | `object` | Evaluated `defs` values |
+| `rules` | `object` | `valid`, `errors[]`, `warnings[]` from the artifact's rules |
+| `open_required` | `FillItemState[]` | Visible, required, unfilled targets |
+| `open_optional` | `FillItemState[]` | Visible, optional, unfilled targets |
+| `blocked` | `FillItemState[]` | Hidden targets that can become visible once their prerequisites are filled |
+| `done` | `FillItemState[]` | Filled targets |
+| `candidates` | `FillTarget[]` | Targets that can be filled now, in declaration order |
+| `next` | `FillTarget \| null` | The first candidate, or `null` when nothing is left |
+| `evaluation_context` | `object` | The draft's fixed context |
+| `errors` | [`ToolError[]`](/ai/tools#errors) | Set when the draft data was rejected |
+| `error` | [`ToolError`](/ai/tools#errors) | Set when the state could not be computed |
+
+A `FillTarget` has `kind` (`field`, `party`, or `annex`), `key`, `required`, and `order`. A `FillItemState` adds `visible`, `status` (`hidden`, `optional`, or `required`), `filled`, and `blockedBy` (the unfilled targets that keep it hidden). These nested entries keep their camelCase keys.
+
+## Direct usage
+
+```typescript
+import { executeGetFillState } from "@paradoc/ai-tools"
+
+const state = await executeGetFillState({
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+  data: draft.data,
+  evaluation_context: draft.evaluation_context,
+})
+
+if (state.next) {
+  // Ask the user for state.next.key
+}
+```
+
+## Example response
+
+For a pet addendum with the tenant, pet name, and species filled. The `open_required`, `done`, and `candidates` lists are shortened.
+
+```json
+{
+  "artifact_kind": "form",
+  "phase": "draft",
+  "summary": {
+    "required_total": 6,
+    "required_done": 3,
+    "required_remaining": 3,
+    "completion_percent": 50
+  },
+  "defs_values": {},
+  "rules": { "valid": true, "errors": [], "warnings": [] },
+  "open_required": [
+    { "kind": "party", "key": "landlord", "required": true, "order": 1, "visible": true, "status": "required", "filled": false, "blockedBy": [] }
+  ],
+  "open_optional": [],
+  "blocked": [],
+  "done": [
+    { "kind": "party", "key": "tenant", "required": true, "order": 0, "visible": true, "status": "required", "filled": true, "blockedBy": [] }
+  ],
+  "candidates": [
+    { "kind": "party", "key": "landlord", "required": true, "order": 1 }
+  ],
+  "next": { "kind": "party", "key": "landlord", "required": true, "order": 1 },
+  "evaluation_context": {
+    "asOf": { "date": "2026-09-22", "datetime": "2026-09-22T14:05:11.630Z" }
+  }
+}
+```

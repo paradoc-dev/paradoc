@@ -1,54 +1,65 @@
 ---
 title: fill
-description: Fill an Paradoc form or checklist with data, apply defaults, and validate
+description: Start a Paradoc form or checklist draft from seed data
 ogTitle: fill — Paradoc AI Tools
-ogDescription: Fill an Paradoc form or checklist with data and validate the result
+ogDescription: Apply seed data to a Paradoc form or checklist and report acceptance separately from completeness
 ---
 
-Creates a progressive form or checklist draft, applies defaults, and validates supplied values. The response reports `accepted` for the patch and `complete` for full readiness. Drafts may render before completion.
+Starts a draft of a form or checklist from seed data and applies defaults. The result reports two things separately: `accepted` says the supplied values passed validation, and `complete` says the draft meets every requirement. A draft does not need to be complete to be updated or rendered.
 
 <Callout type="info">
-  Only forms and checklists support filling. Passing a document or bundle returns an error.
+  Only forms and checklists can be filled. A document or bundle returns an `unsupported_artifact` error.
 </Callout>
 
-## Input modes
+## Input
 
-The fill tool accepts three input modes via a discriminated union on the `source` field:
+Takes a [source](/ai/tools#sources) plus:
 
-| Mode | Fields | Resolution |
-|------|--------|------------|
-| `source: "artifact"` | `artifact`, `baseUrl?` | Direct — artifact JSON provided inline |
-| `source: "url"` | `url` | Fetches artifact JSON from a URL |
-| `source: "registry"` | `registryUrl`, `artifactName` | Fetches registry.json, finds item, fetches artifact |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `data` | `object` | Yes | For a form: `{ fields, parties?, annexes? }`. For a checklist: item values keyed by item ID. |
+| `evaluation_context` | `object` | No | The `evaluation_context` from a previous draft, so date logic keeps the same "as of" date |
 
-All modes share these fields:
+Party IDs follow the pattern `<role>-<index>`, such as `tenant-0`.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `data` | `Record<string, unknown>` | Yes | Data to fill. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
-
-## Response
+## Output
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `valid` | `boolean` | Whether the data passed validation |
-| `artifactKind` | `string` | Detected kind: `form` or `checklist` |
-| `data` | `object` | The validated data with defaults applied (on success) |
-| `errors` | `array` | List of validation errors, each with `field` and `message` |
-| `error` | `string` | Error message if filling could not be performed |
+| `accepted` | `boolean` | Whether the supplied values passed validation |
+| `complete` | `boolean` | Whether the draft meets every requirement |
+| `artifact_kind` | `"form" \| "checklist"` | Artifact kind |
+| `data` | `object` | The full draft payload, with defaults applied. Pass it to [`update_fill`](/ai/tools/update-fill), [`get_fill_state`](/ai/tools/get-fill-state), or [`render`](/ai/tools/render). |
+| `evaluation_context` | `object` | The fixed context of the draft, such as `asOf`. Pass it to the next call. |
+| `errors` | [`ToolError[]`](/ai/tools#errors) | One entry per rejected value |
+| `error` | [`ToolError`](/ai/tools#errors) | Summary error when the fill failed |
 
 ## Direct usage
-
-### From artifact JSON
 
 ```typescript
 import { executeFill } from "@paradoc/ai-tools"
 
 const result = await executeFill({
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+  data: {
+    fields: { petName: "Buddy", species: "dog" },
+    parties: { tenant: { id: "tenant-0", name: "Jane Doe" } },
+  },
+})
+```
+
+From inline artifact JSON:
+
+```typescript
+const result = await executeFill({
   source: "artifact",
   artifact: {
     kind: "form",
-    name: "my-form",
+    name: "contact",
+    version: "1.0.0",
+    title: "Contact",
     fields: {
       name: { type: "text", label: "Name", required: true },
       email: { type: "email", label: "Email" },
@@ -58,61 +69,44 @@ const result = await executeFill({
     fields: { name: "Jane Doe", email: "jane@example.com" },
   },
 })
-// { valid: true, artifactKind: "form", data: { name: "Jane Doe", email: "jane@example.com" } }
-```
-
-The `executeFill` function accepts an optional second `config` parameter for custom fetch settings. See the [configuration reference](/ai#configuration).
-
-### From URL
-
-```typescript
-const result = await executeFill({
-  source: "url",
-  url: "https://public.paradoc.dev/pet-addendum/pet-addendum.json",
-  data: {
-    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
-    parties: { tenant: { id: "t1", name: "Jane Doe" } },
-  },
-})
-```
-
-### From registry
-
-```typescript
-const result = await executeFill({
-  source: "registry",
-  registryUrl: "https://public.paradoc.dev",
-  artifactName: "pet-addendum",
-  data: {
-    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
-    parties: {
-      tenant: { id: "t1", name: "Jane Doe" },
-      landlord: { id: "l1", name: "Acme Properties LLC" },
-    },
-  },
-})
 ```
 
 ## Example responses
 
-### Successful fill
+### Accepted but not complete
 
 ```json
 {
-  "valid": true,
-  "artifactKind": "form",
-  "data": { "name": "Jane Doe", "email": "jane@example.com" }
+  "accepted": true,
+  "complete": false,
+  "artifact_kind": "form",
+  "data": {
+    "fields": { "petName": "Buddy", "species": "dog" },
+    "parties": { "tenant": { "id": "tenant-0", "name": "Jane Doe" } }
+  },
+  "evaluation_context": {
+    "asOf": { "date": "2026-09-22", "datetime": "2026-09-22T14:05:11.630Z" }
+  }
 }
 ```
 
-### Failed validation
+### Rejected value
 
 ```json
 {
-  "valid": false,
-  "artifactKind": "form",
+  "accepted": false,
+  "complete": false,
+  "artifact_kind": "form",
   "errors": [
-    { "field": "name", "message": "Missing required field: name" }
-  ]
+    {
+      "code": "validation_error",
+      "message": "Invalid input: expected number, received string",
+      "path": ["fields", "weight"]
+    }
+  ],
+  "error": {
+    "code": "validation_error",
+    "message": "Form data validation failed: Invalid input: expected number, received string"
+  }
 }
 ```

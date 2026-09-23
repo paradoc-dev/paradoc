@@ -1,0 +1,105 @@
+---
+title: Mastra
+description: Use Paradoc tools with Mastra agents
+ogTitle: Mastra — Paradoc AI
+ogDescription: Integrate Paradoc tools into Mastra agents with @paradoc/mastra
+---
+
+`@paradoc/mastra` wraps the [`@paradoc/ai-tools`](/ai/ai-tools) operations with Mastra's `createTool()`. Pass the tools to a Mastra `Agent`.
+
+## Installation
+
+```bash
+npm install @paradoc/mastra @mastra/core zod
+```
+
+Peer dependencies: `@mastra/core` ^1.64.0 and `zod` ^4.0.0. Requires Node.js 22.13 or newer.
+
+## Usage
+
+```typescript
+import { Agent } from "@mastra/core/agent"
+import { paradocTools } from "@paradoc/mastra"
+
+const agent = new Agent({
+  id: "document-agent",
+  name: "Document agent",
+  instructions: "Use the Paradoc tools to inspect and complete documents.",
+  model: "openai/gpt-4o",
+  tools: paradocTools({
+    defaultRegistryUrl: "https://public.paradoc.dev",
+  }),
+})
+```
+
+## Composing with other tools
+
+`paradocTools()` returns an object keyed by tool name. Each tool's Mastra `id` is the same snake_case name. Spread it next to your own tools, or pick the ones you need:
+
+```typescript
+import { paradocTools } from "@paradoc/mastra"
+
+const { inspect_artifact, fill, get_fill_state, update_fill } = paradocTools()
+
+const agent = new Agent({
+  id: "intake-agent",
+  name: "Intake agent",
+  instructions: "Collect the values the form needs, one question at a time.",
+  model: "openai/gpt-4o",
+  tools: { inspect_artifact, fill, get_fill_state, update_fill },
+})
+```
+
+Each operation also has its own factory, such as `createRenderTool()`.
+
+## Configuration
+
+The adapter takes `ParadocMastraConfig`, which extends [`ParadocToolsConfig`](/ai#configuration) with one option:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `modelOutputMaxBytes` | `number` | Maximum bytes of `content` the model sees, through Mastra's `toModelOutput`. Default `DEFAULT_MODEL_OUTPUT_MAX_BYTES` (16,384). |
+
+The limit applies to text and base64 content, such as a [`render`](/ai/tools/render) result. Content over the limit is cut and marked `truncated: true`. Your application code still gets the full result.
+
+```typescript
+const tools = paradocTools({
+  defaultRegistryUrl: "https://public.paradoc.dev",
+  modelOutputMaxBytes: 32_000,
+})
+```
+
+Mastra's execution `abortSignal` is passed to the operation as `signal`.
+
+## API
+
+### `paradocTools(config?)`
+
+Returns nine Mastra tools keyed by their snake_case names. `createParadocTools` and `createMastraTools` are aliases of `paradocTools`.
+
+| Key | Factory |
+|-----|---------|
+| [`get_registry`](/ai/tools/get-registry) | `createGetRegistryTool()` |
+| [`get_artifact`](/ai/tools/get-artifact) | `createGetArtifactTool()` |
+| [`inspect_artifact`](/ai/tools/inspect-artifact) | `createInspectArtifactTool()` |
+| [`validate_artifact`](/ai/tools/validate-artifact) | `createValidateArtifactTool()` |
+| [`validate_input`](/ai/tools/validate-input) | `createValidateInputTool()` |
+| [`fill`](/ai/tools/fill) | `createFillTool()` |
+| [`get_fill_state`](/ai/tools/get-fill-state) | `createGetFillStateTool()` |
+| [`update_fill`](/ai/tools/update-fill) | `createUpdateFillTool()` |
+| [`render`](/ai/tools/render) | `createRenderTool()` |
+
+Every factory takes an optional `ParadocMastraConfig`. The package also exports `operationNames` and `DEFAULT_MODEL_OUTPUT_MAX_BYTES`.
+
+### Types
+
+The package exports `ParadocMastraConfig` and re-exports `ParadocToolsConfig`, `OperationName`, `ToolDefinitions`, and the input and output type of every operation from `@paradoc/ai-tools`:
+
+```typescript
+import type {
+  ParadocMastraConfig,
+  FillOutput,
+  FillStateOutput,
+  RenderOutput,
+} from "@paradoc/mastra"
+```

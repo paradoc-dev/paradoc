@@ -1,130 +1,126 @@
 ---
 title: render
-description: Render an Paradoc form to PDF, markdown, or DOCX
+description: Render a Paradoc form, document, or checklist through one of its layers
 ogTitle: render — Paradoc AI Tools
-ogDescription: Render an Paradoc form artifact to PDF, markdown, or DOCX using three input modes
+ogDescription: Render a Paradoc form, document, or checklist to text, PDF, or DOCX
 ---
 
-Renders a form artifact to PDF, markdown, or DOCX. Validates, fills with data, and renders via the appropriate renderer. Output is always inline (base64 for binary, utf-8 for text).
+Renders a form, document, or checklist through one of its layers. The tool validates the artifact, fills forms and checklists with `data`, and renders with the layer's renderer: text layers (`text/plain`, `text/markdown`, `text/html`), PDF, and DOCX. Output is always inline: text as UTF-8, binary as base64.
 
-<Callout type="info">
-  Only form artifacts can be rendered.
-</Callout>
+A form or checklist draft does not need to be complete to render. Bundles are not supported.
 
-## Input modes
+## Input
 
-The render tool accepts three input modes via a discriminated union on the `source` field:
+Takes a [source](/ai/tools#sources) plus:
 
-| Mode | Fields | Resolution |
-|------|--------|------------|
-| `source: "artifact"` | `artifact`, `baseUrl?` | Direct — no artifact fetch needed. File-backed layers use `baseUrl` to fetch templates. |
-| `source: "url"` | `url` | Fetches artifact JSON, derives baseUrl from URL dirname |
-| `source: "registry"` | `registryUrl`, `artifactName` | Fetches registry.json, finds item, fetches artifact |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `data` | `object` | No | Form or checklist payload, usually `data` from [`fill`](/ai/tools/fill) or [`update_fill`](/ai/tools/update-fill). Documents need none. |
+| `evaluation_context` | `object` | No | The draft's `evaluation_context` |
+| `layer` | `string` | No | Layer key. Default: the artifact's `defaultLayer`, then its first layer. |
+| `presentation.max_bytes` | `integer` | No | Cut `content` to this many bytes. Base64 is cut at a whole 4-character group so it still decodes. |
+| `presentation.include_content` | `boolean` | No | Set `false` to return only metadata, with no `content`. Default `true`. |
 
-All modes share these fields:
+Without `presentation`, the `maxOutputBytes` [config](/ai#configuration) value sets `max_bytes`. File-backed layers load relative to the source's base URL; with an [artifact source](/ai/tools#sources), set `base_url`.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `data` | `Record<string, unknown>` | Yes | Data to fill before rendering |
-| `layer` | `string` | No | Layer key to render. Falls back to `defaultLayer`, then first layer |
-
-## Response
+## Output
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `success` | `boolean` | Whether the render completed successfully |
-| `artifactKind` | `string` | Detected artifact kind |
-| `content` | `string` | Rendered content |
-| `encoding` | `string` | Content encoding: `utf-8` or `base64` |
-| `mimeType` | `string` | MIME type of the rendered output |
-| `error` | `string` | Error message if rendering failed |
-| `errors` | `array` | List of fill errors, each with `field` and `message` |
-| `validationIssues` | `array` | List of schema validation issues, each with `message` and optional `path` |
+| `success` | `boolean` | Whether the render completed |
+| `artifact_kind` | `string` | `form`, `document`, or `checklist` |
+| `content` | `string` | The rendered output |
+| `encoding` | `"utf-8" \| "base64"` | `utf-8` for text, `base64` for PDF and DOCX |
+| `mime_type` | `string` | The layer's MIME type |
+| `byte_length` | `number` | Full size of the rendered output, before any cut |
+| `truncated` | `boolean` | `true` when `content` was cut or left out |
+| `validation_issues` | `{ message, path? }[]` | Schema issues when the artifact is invalid |
+| `errors` | [`ToolError[]`](/ai/tools#errors) | Rejected `data` values |
+| `error` | [`ToolError`](/ai/tools#errors) | Why the render failed, such as `invalid_artifact`, `missing_layer`, or `unsupported_artifact` |
 
 ## Direct usage
-
-### From artifact JSON
 
 ```typescript
 import { executeRender } from "@paradoc/ai-tools"
 
 const result = await executeRender({
   source: "artifact",
-  artifact: myFormArtifact,
-  data: { fields: { name: "Jane Doe" } },
-  layer: "markdown",
-})
-```
-
-All execute functions (`executeRender`, `executeValidateArtifact`, `executeFill`, `executeGetRegistry`, `executeGetArtifact`) accept an optional second `config` parameter for custom fetch or proxy text renderer settings. See the [configuration reference](/ai#configuration).
-
-### From URL
-
-```typescript
-const result = await executeRender({
-  source: "url",
-  url: "https://public.paradoc.dev/pet-addendum/pet-addendum.json",
-  data: {
-    fields: { petName: "Buddy", species: "dog" },
-    parties: { tenant: { id: "t1", name: "Jane Doe" } },
+  artifact: {
+    kind: "form",
+    name: "note",
+    version: "1.0.0",
+    title: "Note",
+    fields: { name: { type: "text", label: "Name", required: true } },
+    layers: {
+      markdown: { kind: "inline", mimeType: "text/markdown", text: "# Note for {{name}}" },
+    },
+    defaultLayer: "markdown",
   },
-  layer: "markdown",
+  data: { fields: { name: "Jane Doe" } },
 })
 ```
 
-### From registry
+From a registry, to PDF, with a limit on what goes back to the model:
 
 ```typescript
 const result = await executeRender({
   source: "registry",
-  registryUrl: "https://public.paradoc.dev",
-  artifactName: "pet-addendum",
-  data: {
-    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
-    parties: {
-      tenant: { id: "t1", name: "Jane Doe" },
-      landlord: { id: "l1", name: "Acme Properties LLC" },
-    },
-  },
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+  data: draft.data,
+  evaluation_context: draft.evaluation_context,
   layer: "pdf",
+  presentation: { max_bytes: 20_000 },
 })
-// result.encoding === "base64", result.mimeType === "application/pdf"
+// result.encoding === "base64", result.mime_type === "application/pdf"
 ```
 
 ## Example responses
 
-### Successful text render
+### Text render
 
 ```json
 {
   "success": true,
-  "artifactKind": "form",
-  "content": "# Pet Addendum\n\nPet Name: Buddy\nSpecies: dog\n...",
+  "artifact_kind": "form",
   "encoding": "utf-8",
-  "mimeType": "text/markdown"
+  "mime_type": "text/markdown",
+  "byte_length": 19,
+  "content": "# Note for Jane Doe"
 }
 ```
 
-### Successful PDF render
+### Content left out
+
+With `presentation: { include_content: false }`:
 
 ```json
 {
   "success": true,
-  "artifactKind": "form",
-  "content": "JVBERi0xLjcK...",
-  "encoding": "base64",
-  "mimeType": "application/pdf"
+  "artifact_kind": "form",
+  "encoding": "utf-8",
+  "mime_type": "text/markdown",
+  "byte_length": 19,
+  "truncated": true
 }
 ```
 
-### Fill validation failure
+### Rejected data
 
 ```json
 {
   "success": false,
-  "artifactKind": "form",
+  "artifact_kind": "form",
   "errors": [
-    { "field": "petName", "message": "Missing required field: petName" }
-  ]
+    {
+      "code": "validation_error",
+      "message": "Invalid input: expected string, received number",
+      "path": ["fields", "name"]
+    }
+  ],
+  "error": {
+    "code": "validation_error",
+    "message": "Form data validation failed: Invalid input: expected string, received number"
+  }
 }
 ```

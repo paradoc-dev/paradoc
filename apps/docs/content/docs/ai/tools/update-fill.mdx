@@ -1,0 +1,89 @@
+---
+title: update_fill
+description: Merge, clear, or reset values in an existing form or checklist draft
+ogTitle: update_fill — Paradoc AI Tools
+ogDescription: Change a Paradoc form or checklist draft while keeping untouched values and the evaluation context
+---
+
+Changes an existing draft. It merges a patch, then clears paths, then resets paths. Values you do not touch stay as they were, and the draft keeps its `evaluation_context`. The output has the same shape as [`fill`](/ai/tools/fill).
+
+Only forms and checklists are supported.
+
+## Input
+
+Takes a [source](/ai/tools#sources) plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `data` | `object` | Yes | The current draft payload, usually `data` from the last `fill` or `update_fill` |
+| `patch` | `object` | No | Values to merge, in the same shape as `data` |
+| `clear` | `string[]` | No | Paths to empty, such as `fields.weight`, `annexes.<id>`, or `items.<id>` for a checklist |
+| `reset` | `string[]` | No | Paths to set back to their declared default. A path with no default is emptied. |
+| `evaluation_context` | `object` | No | The draft's `evaluation_context` |
+
+A path that the artifact does not declare fails the call.
+
+## Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `accepted` | `boolean` | Whether the update was applied |
+| `complete` | `boolean` | Whether the updated draft meets every requirement |
+| `artifact_kind` | `"form" \| "checklist"` | Artifact kind |
+| `data` | `object` | The full updated draft payload |
+| `evaluation_context` | `object` | The draft's fixed context |
+| `errors` | [`ToolError[]`](/ai/tools#errors) | One entry per rejected value |
+| `error` | [`ToolError`](/ai/tools#errors) | Summary error when the update failed |
+
+## Direct usage
+
+```typescript
+import { executeUpdateFill } from "@paradoc/ai-tools"
+
+const updated = await executeUpdateFill({
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+  data: draft.data,
+  evaluation_context: draft.evaluation_context,
+  patch: {
+    fields: { weight: 45, isVaccinated: true },
+    parties: {
+      landlord: { id: "landlord-0", name: "Acme Properties LLC", legalName: "Acme Properties LLC" },
+    },
+  },
+})
+```
+
+Clear a value the user wants to take back:
+
+```typescript
+const cleared = await executeUpdateFill({
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+  data: updated.data,
+  evaluation_context: updated.evaluation_context,
+  clear: ["fields.weight"],
+})
+```
+
+## Example response
+
+```json
+{
+  "accepted": true,
+  "complete": true,
+  "artifact_kind": "form",
+  "data": {
+    "fields": { "petName": "Buddy", "species": "dog", "weight": 45, "isVaccinated": true },
+    "parties": {
+      "tenant": { "id": "tenant-0", "name": "Jane Doe" },
+      "landlord": { "id": "landlord-0", "name": "Acme Properties LLC", "legalName": "Acme Properties LLC" }
+    }
+  },
+  "evaluation_context": {
+    "asOf": { "date": "2026-09-22", "datetime": "2026-09-22T14:05:11.630Z" }
+  }
+}
+```

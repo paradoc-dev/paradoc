@@ -1,0 +1,80 @@
+---
+title: inspect_artifact
+description: Return a bounded description of an artifact's schema, targets, and layers
+ogTitle: inspect_artifact — Paradoc AI Tools
+ogDescription: Give an agent a bounded, selectable view of a Paradoc artifact's fields, parties, annexes, items, and layers
+---
+
+Returns a compact description of an artifact, so an agent can see what to collect without reading the full JSON. You choose the sections, and each section is capped at `max_items` entries.
+
+## Input
+
+Takes a [source](/ai/tools#sources) plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `sections` | `string[]` | No | Any of `metadata`, `fields`, `parties`, `annexes`, `items`, `layers`. Default: all. |
+| `max_items` | `integer` | No | Maximum entries per section, 1 to 500. Default `100`. |
+
+## Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `artifact_kind` | `string` | `form`, `document`, `bundle`, or `checklist` |
+| `name` | `string` | Artifact name |
+| `version` | `string` | Artifact version |
+| `title` | `string` | Artifact title |
+| `description` | `string` | Artifact description |
+| `sections` | `object` | One entry per requested section (see below) |
+| `truncated` | `boolean` | `true` when any section had more than `max_items` entries |
+| `error` | [`ToolError`](/ai/tools#errors) | Set when the artifact could not be loaded |
+
+The sections contain:
+
+| Section | Content |
+|---------|---------|
+| `metadata` | `name`, `version`, `title`, `description`, `code`, `language` |
+| `fields` | Object keyed by field ID. Each entry keeps `type`, `label`, `description`, `required`, `default`, `min`, `max`, `minLength`, `maxLength`, `enum`, `format`, `items`, and nested `fields`. |
+| `parties`, `annexes`, `items` | Arrays of `{ id, ...definition }` |
+| `layers` | Arrays of `{ id, kind, mime_type, path, title, description }` |
+
+Values nested deeper than four levels are replaced with `"[nested value omitted]"`.
+
+## Direct usage
+
+```typescript
+import { executeInspectArtifact } from "@paradoc/ai-tools"
+
+const result = await executeInspectArtifact({
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+  sections: ["fields", "parties"],
+})
+```
+
+## Example response
+
+Party descriptions are left out here.
+
+```json
+{
+  "artifact_kind": "form",
+  "name": "pet-addendum",
+  "version": "1.0.0",
+  "title": "Pet Addendum to Lease Agreement",
+  "sections": {
+    "fields": {
+      "petName": { "type": "text", "label": "Pet name", "description": "Name of the pet", "required": true, "maxLength": 100 },
+      "species": { "type": "enum", "label": "Species", "description": "Species of the pet", "required": true, "enum": [{ "value": "dog" }, { "value": "cat" }, { "value": "fish" }] },
+      "weight": { "type": "number", "label": "Weight (lbs)", "description": "Weight of the pet in pounds", "required": true, "min": 0 },
+      "isVaccinated": { "type": "boolean", "label": "Vaccinated", "description": "Whether the pet is up to date on all required vaccinations", "required": true }
+    },
+    "parties": [
+      { "id": "tenant", "label": "Tenant", "partyType": "person", "min": 1, "max": 1, "signature": { "required": true, "witnesses": 0, "notarized": false } },
+      { "id": "landlord", "label": "Landlord", "partyType": "organization", "min": 1, "max": 1, "signature": { "required": true, "witnesses": 0, "notarized": false } }
+    ]
+  },
+  "truncated": false
+}
+```

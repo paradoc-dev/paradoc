@@ -1,26 +1,41 @@
 ---
-title: getArtifact
-description: Fetch artifact JSON from a registry by name
-ogTitle: getArtifact — Paradoc AI Tools
-ogDescription: Fetch the full artifact JSON from an Paradoc registry by name
+title: get_artifact
+description: Retrieve one artifact and its instructions from a Paradoc registry
+ogTitle: get_artifact — Paradoc AI Tools
+ogDescription: Fetch an artifact and its human and agent instructions from a Paradoc registry by name
 ---
 
-Fetches the full artifact JSON from a registry. First fetches `registry.json` to find the artifact path, then fetches the artifact itself.
+Retrieves one artifact from a registry. The tool reads `registry.json`, checks the artifact is listed, and fetches it. By default it also returns the artifact's `instructions` and `agentInstructions`.
 
-## Parameters
+## Input
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `registryUrl` | `string` | Yes | Registry base URL (e.g. `https://public.paradoc.dev`) |
-| `artifactName` | `string` | Yes | Artifact name within the registry |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `registry_url` | `string` (URL) | No | Registry base URL. Falls back to `defaultRegistryUrl` in the [config](/ai#configuration). |
+| `artifact_name` | `string` | Yes | Artifact name within the registry |
+| `include_instructions` | `boolean` | No | Return the artifact's `instructions`. Default `true`. |
+| `include_agent_instructions` | `boolean` | No | Return the artifact's `agentInstructions`. Default `true`. |
 
-## Response
+## Output
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `artifact` | `object` | The full artifact JSON (form, document, bundle, or checklist) |
-| `artifactName` | `string` | The artifact name |
-| `error` | `string` | Error message if the fetch failed |
+| `artifact` | `object` | The artifact JSON (form, document, bundle, or checklist) |
+| `artifact_name` | `string` | The requested name |
+| `base_url` | `string` | The artifact's directory. Pass it as `base_url` in an [artifact source](/ai/tools#sources) so file-backed layers resolve. |
+| `instructions` | `InstructionContent` | The artifact's instructions, when present and requested |
+| `agent_instructions` | `InstructionContent` | The artifact's agent instructions, when present and requested |
+| `error` | [`ToolError`](/ai/tools#errors) | Set when the artifact could not be fetched, for example `artifact_not_found` |
+
+`InstructionContent` has these fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `kind` | `"inline" \| "file"` | Inline text or a file next to the artifact |
+| `mime_type` | `string` | File MIME type (file only) |
+| `path` | `string` | File path relative to the artifact (file only) |
+| `content` | `string` | The instruction content |
+| `encoding` | `"utf-8" \| "base64"` | `utf-8` for text, `base64` for binary files |
 
 ## Direct usage
 
@@ -28,39 +43,25 @@ Fetches the full artifact JSON from a registry. First fetches `registry.json` to
 import { executeGetArtifact } from "@paradoc/ai-tools"
 
 const result = await executeGetArtifact({
-  registryUrl: "https://public.paradoc.dev",
-  artifactName: "pet-addendum",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
 })
-// {
-//   artifact: { kind: "form", name: "pet-addendum", fields: { ... }, ... },
-//   artifactName: "pet-addendum"
-// }
 ```
 
 ## Example response
+
+The artifact is shortened here. `instructions` and `agent_instructions` are absent because this artifact has none.
 
 ```json
 {
   "artifact": {
     "kind": "form",
     "name": "pet-addendum",
-    "fields": {
-      "petName": { "type": "text", "label": "Pet Name", "required": true },
-      "species": { "type": "enum", "label": "Species", "enum": [{ "value": "dog" }, { "value": "cat" }] },
-      "weight": { "type": "number", "label": "Weight (lbs)" },
-      "isVaccinated": { "type": "boolean", "label": "Vaccinated" }
-    }
+    "version": "1.0.0",
+    "title": "Pet Addendum to Lease Agreement",
+    "fields": { "petName": { "type": "text", "label": "Pet name", "required": true } }
   },
-  "artifactName": "pet-addendum"
-}
-```
-
-## Error response
-
-When the artifact is not found in the registry:
-
-```json
-{
-  "error": "Artifact \"does-not-exist\" not found in registry. Available: pet-addendum, w-9"
+  "artifact_name": "pet-addendum",
+  "base_url": "https://public.paradoc.dev/pet-addendum"
 }
 ```

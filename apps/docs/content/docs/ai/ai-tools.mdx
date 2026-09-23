@@ -1,0 +1,134 @@
+---
+title: "@paradoc/ai-tools"
+description: The framework-neutral Paradoc tool contract, with schemas and execute functions
+ogTitle: "@paradoc/ai-tools — Paradoc AI"
+ogDescription: Use the Paradoc tool schemas and execute functions directly, or build an adapter for another AI framework
+---
+
+`@paradoc/ai-tools` is the contract every Paradoc AI adapter wraps. It has the nine tool definitions, their Zod input and output schemas, an execute function per tool, and a registry client. It has no AI framework dependency.
+
+Use it directly to call the tools from your own code, or to build an adapter for a framework without one.
+
+## Installation
+
+```bash
+npm install @paradoc/ai-tools
+```
+
+Requires Node.js 18 or newer.
+
+## Tool definitions
+
+`toolDefinitions` maps each tool name to its definition:
+
+```typescript
+import { toolDefinitions } from "@paradoc/ai-tools"
+
+const { name, description, input_schema, output_schema, execute } = toolDefinitions.render
+```
+
+| Key | Description |
+|-----|-------------|
+| `name` | The snake_case tool name, same as the key |
+| `description` | Model-facing description |
+| `input_schema` | Zod schema for the input |
+| `output_schema` | Zod schema for the output |
+| `execute` | `(input, config?) => Promise<output>` |
+
+`operationNames` lists the nine names in order: `get_registry`, `get_artifact`, `inspect_artifact`, `validate_artifact`, `validate_input`, `fill`, `get_fill_state`, `update_fill`, `render`. The `OperationName` type is their union.
+
+An adapter maps each definition to its framework's tool type. See the [AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), and [Mastra](/ai/mastra) adapters.
+
+## Execute functions
+
+Each tool has an execute function. They take the tool's snake_case input and an optional [`ParadocToolsConfig`](/ai#configuration):
+
+| Function | Tool |
+|----------|------|
+| `executeGetRegistry(input?, config?)` | [`get_registry`](/ai/tools/get-registry) |
+| `executeGetArtifact(input, config?)` | [`get_artifact`](/ai/tools/get-artifact) |
+| `executeInspectArtifact(input, config?)` | [`inspect_artifact`](/ai/tools/inspect-artifact) |
+| `executeValidateArtifact(input, config?)` | [`validate_artifact`](/ai/tools/validate-artifact) |
+| `executeValidateInput(input, config?)` | [`validate_input`](/ai/tools/validate-input) |
+| `executeFill(input, config?)` | [`fill`](/ai/tools/fill) |
+| `executeGetFillState(input, config?)` | [`get_fill_state`](/ai/tools/get-fill-state) |
+| `executeUpdateFill(input, config?)` | [`update_fill`](/ai/tools/update-fill) |
+| `executeRender(input, config?)` | [`render`](/ai/tools/render) |
+
+The execute functions do not throw for tool failures. They return a result with an `error` object (`code`, `message`, and optional `path` and `retryable`).
+
+The execute functions do not parse their input with the Zod schema; the adapters leave that to the framework, which validates model calls first. When you call them directly, pass the snake_case field names shown on each tool page.
+
+```typescript
+import { executeFill, executeGetFillState, executeRender } from "@paradoc/ai-tools"
+
+const source = {
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+} as const
+
+const draft = await executeFill({
+  ...source,
+  data: {
+    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
+    parties: {
+      tenant: { id: "tenant-0", name: "Jane Doe" },
+      landlord: { id: "landlord-0", name: "Acme Properties LLC", legalName: "Acme Properties LLC" },
+    },
+  },
+})
+if (!draft.accepted) throw new Error(draft.error?.message)
+
+const state = await executeGetFillState({
+  ...source,
+  data: draft.data,
+  evaluation_context: draft.evaluation_context,
+})
+
+const rendered = await executeRender({
+  ...source,
+  data: draft.data,
+  evaluation_context: draft.evaluation_context,
+  layer: "markdown",
+})
+```
+
+## Resolving a source
+
+`resolveSource(input, config?)` loads the artifact for a [source](/ai/tools#sources). It returns a `ResolvedSource`: `{ artifact, base_url?, artifact_url? }`. The tools use it internally; use it when an adapter needs the artifact itself.
+
+## Request context
+
+`createToolExecutionContext(options?)` makes a `ToolExecutionContext` that caches registry responses and carries an abort signal for one request or tool turn. Pass it as `config.context`. Options are `signal` and `maxCacheEntries` (default 32).
+
+```typescript
+import { createToolExecutionContext, executeGetArtifact } from "@paradoc/ai-tools"
+
+const context = createToolExecutionContext({ signal: request.signal })
+
+const result = await executeGetArtifact(
+  { registry_url: "https://public.paradoc.dev", artifact_name: "pet-addendum" },
+  { context },
+)
+```
+
+Create a new context for each request. The package never shares a cache between requests, so cached data cannot cross users or credentials.
+
+## Registry client
+
+These helpers fetch from a Paradoc registry with the same URL and size checks the tools use:
+
+| Export | Description |
+|--------|-------------|
+| `safeFetch` | Fetch with URL validation, a size limit, a timeout, and validated redirects |
+| `validateFetchUrl` | Check a URL against the fetch policy (HTTPS, local addresses, `approvedOrigins`) |
+| `fetchRegistryIndex`, `fetchRegistryIndexResponse` | Fetch and parse `registry.json` |
+| `fetchRegistryItem`, `fetchRegistryItemResponse` | Fetch one artifact from a registry |
+| `buildArtifactItemUrl` | Build an artifact URL from a registry URL and item |
+| `resolveRelativeUrl` | Resolve a layer or instruction path against a base URL |
+| `bytesToBase64`, `bytesToText` | Encode fetched bytes |
+
+## Schemas and types
+
+The package exports every input and output schema, such as `FillInputSchema` and `FillOutputSchema`, and the types inferred from them, such as `FillInput` and `FillOutput`. It also exports `SourceSchema` (the source union), `SourceOperationSchema`, `ToolErrorSchema`, `ValidationIssueSchema`, and the `ToolDefinitions` type.

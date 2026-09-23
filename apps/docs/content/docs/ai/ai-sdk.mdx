@@ -2,10 +2,10 @@
 title: Vercel AI SDK
 description: Use Paradoc tools with the Vercel AI SDK
 ogTitle: Vercel AI SDK — Paradoc AI
-ogDescription: Integrate Paradoc tools into Vercel AI SDK applications with @paradoc/ai-sdk
+ogDescription: Integrate Paradoc tools into Vercel AI SDK 7 applications with @paradoc/ai-sdk
 ---
 
-`@paradoc/ai-sdk` wraps `@paradoc/ai-tools` with Vercel AI SDK's `tool()` function. Works with `generateText`, `streamText`, and any AI SDK-compatible model.
+`@paradoc/ai-sdk` wraps the [`@paradoc/ai-tools`](/ai/ai-tools) operations with the AI SDK's `tool()` function. It works with `generateText`, `streamText`, and AI SDK agents.
 
 ## Installation
 
@@ -13,7 +13,7 @@ ogDescription: Integrate Paradoc tools into Vercel AI SDK applications with @par
 npm install @paradoc/ai-sdk ai zod
 ```
 
-Peer dependencies: `ai` ^6.0.0 and `zod` ^4.0.0.
+Peer dependencies: `ai` ^7.0.94 and `zod` ^4.1.8.
 
 ## Usage
 
@@ -38,7 +38,9 @@ import { streamText } from "ai"
 
 const result = streamText({
   model: openai("gpt-4o"),
-  tools: paradocTools(),
+  tools: paradocTools({
+    defaultRegistryUrl: "https://public.paradoc.dev",
+  }),
   prompt: "What artifacts are available in the public registry?",
 })
 
@@ -49,18 +51,18 @@ for await (const part of result.textStream) {
 
 ## Composing with other tools
 
-Spread alongside your own tools:
+Spread the tool map next to your own tools:
 
 ```typescript
 import { paradocTools } from "@paradoc/ai-sdk"
-import { tool } from "ai"
+import { generateText, tool } from "ai"
 import { z } from "zod"
 
 const result = await generateText({
   model,
   tools: {
     ...paradocTools(),
-    lookupCustomer: tool({
+    lookup_customer: tool({
       description: "Look up a customer by ID",
       inputSchema: z.object({ id: z.string() }),
       execute: async ({ id }) => fetchCustomer(id),
@@ -70,48 +72,86 @@ const result = await generateText({
 })
 ```
 
-Or pick individual tools:
+Or pick individual tools by name:
 
 ```typescript
-const { validateArtifact, render } = paradocTools()
+const { validate_artifact, render } = paradocTools()
 ```
+
+## Use one tool
+
+Each operation also has a factory, exported from the package root and from its own subpath. A subpath import loads one operation without building the full map.
+
+```typescript
+import { getFillState } from "@paradoc/ai-sdk"
+import updateFill from "@paradoc/ai-sdk/update-fill"
+
+const tools = {
+  get_fill_state: getFillState({ defaultRegistryUrl: "https://public.paradoc.dev" }),
+  update_fill: updateFill(),
+}
+```
+
+## Output limits
+
+`render` can return large content. Bound what goes back to the model with `maxOutputBytes`, or per call with the `presentation` input. The result keeps `byte_length` and `truncated`, so your code can tell when content was cut.
+
+```typescript
+const tools = paradocTools({ maxOutputBytes: 200_000 })
+```
+
+`maxOutputBytes` applies only when the call has no `presentation`. See [`render`](/ai/tools/render).
 
 ## Configuration
 
-```typescript
-paradocTools({
-  defaultRegistryUrl: "https://public.paradoc.dev",
-  fetch: customFetchWithAuth,
-})
-```
-
-See the [configuration reference](/ai#configuration) for details on each option.
+`paradocTools()` and each factory take `ParadocToolsConfig`. See the [configuration reference](/ai#configuration). The AI SDK's `abortSignal` is combined with `signal` and `context.signal`, so registry and layer requests stop when the call is aborted.
 
 ## API
 
 ### `paradocTools(config?)`
 
-Returns an object with five tools:
+Returns a `ParadocToolSet`: nine AI SDK tools keyed by their snake_case names. Each tool uses the shared Zod input and output schemas.
 
-| Key | AI SDK `tool()` description |
-|-----|----------------------------|
-| `validateArtifact` | Validates an Paradoc artifact against its schema |
-| `fill` | Fills an Paradoc artifact with data and validates |
-| `render` | Renders an Paradoc artifact to PDF, markdown, or DOCX |
-| `getRegistry` | Fetches registry.json from a URL, returns available artifacts |
-| `getArtifact` | Fetches artifact JSON from a registry by name |
+| Key | Factory | Subpath |
+|-----|---------|---------|
+| [`get_registry`](/ai/tools/get-registry) | `getRegistry()` | `@paradoc/ai-sdk/get-registry` |
+| [`get_artifact`](/ai/tools/get-artifact) | `getArtifact()` | `@paradoc/ai-sdk/get-artifact` |
+| [`inspect_artifact`](/ai/tools/inspect-artifact) | `inspectArtifact()` | `@paradoc/ai-sdk/inspect-artifact` |
+| [`validate_artifact`](/ai/tools/validate-artifact) | `validateArtifact()` | `@paradoc/ai-sdk/validate-artifact` |
+| [`validate_input`](/ai/tools/validate-input) | `validateInput()` | `@paradoc/ai-sdk/validate-input` |
+| [`fill`](/ai/tools/fill) | `fill()` | `@paradoc/ai-sdk/fill` |
+| [`get_fill_state`](/ai/tools/get-fill-state) | `getFillState()` | `@paradoc/ai-sdk/get-fill-state` |
+| [`update_fill`](/ai/tools/update-fill) | `updateFill()` | `@paradoc/ai-sdk/update-fill` |
+| [`render`](/ai/tools/render) | `render()` | `@paradoc/ai-sdk/render` |
 
-### Re-exports
+Each subpath default-exports its factory and also exports it by name. The package root also exports `operationNames`, the list of the nine tool names.
 
-The package also re-exports all output types from `@paradoc/ai-tools`:
+### Types
+
+The package re-exports `ParadocToolsConfig` and the input and output type of every operation from `@paradoc/ai-tools`:
 
 ```typescript
 import type {
   ParadocToolsConfig,
-  ValidateOutput,
-  FillOutput,
-  RenderOutput,
+  GetRegistryInput,
   GetRegistryOutput,
+  GetArtifactInput,
   GetArtifactOutput,
+  InspectArtifactInput,
+  InspectArtifactOutput,
+  ValidateArtifactInput,
+  ValidateArtifactOutput,
+  ValidateInputValue,
+  ValidateInputOutput,
+  FillInput,
+  FillOutput,
+  FillStateInput,
+  FillStateOutput,
+  UpdateFillInput,
+  UpdateFillOutput,
+  RenderInput,
+  RenderOutput,
 } from "@paradoc/ai-sdk"
 ```
+
+It also exports `ParadocTool<Name>` and `ParadocToolSet`.

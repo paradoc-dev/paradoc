@@ -1,42 +1,47 @@
 ---
 title: AI Tools
-description: Integrate Paradoc tools into your own AI applications with framework-specific adapters
+description: Add Paradoc document tools to your own AI agents with framework adapters
 ogTitle: Paradoc AI Tools
-ogDescription: npm packages for adding Paradoc validateArtifact, fill, render, and registry tools to AI agents
+ogDescription: npm packages that give AI agents nine Paradoc tools to find, inspect, validate, fill, and render documents
 ---
 
-The Paradoc AI packages let you add Paradoc tools to your own AI applications. Unlike the [MCP server](/mcp), which is a hosted service, these are npm packages you install and run in your own stack.
+The Paradoc AI packages give your own AI agents tools to find, inspect, validate, fill, and render documents. Unlike the [MCP server](/mcp), which is a hosted service, these are npm packages you install and run in your own stack.
 
 ## Packages
 
 | Package | Description | Install |
 |---------|-------------|---------|
-| `@paradoc/ai-tools` | Core tool protocol — schemas, execute functions, registry client | `npm install @paradoc/ai-tools` |
-| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK adapter | `npm install @paradoc/ai-sdk` |
-| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai` |
+| [`@paradoc/ai-tools`](/ai/ai-tools) | Framework-neutral tool contract: Zod schemas, execute functions, registry client | `npm install @paradoc/ai-tools` |
+| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK 7 adapter | `npm install @paradoc/ai-sdk ai zod` |
+| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai @tanstack/ai zod` |
+| [`@paradoc/mastra`](/ai/mastra) | Mastra adapter | `npm install @paradoc/mastra @mastra/core zod` |
 
-Install the adapter for your framework. Both adapters depend on `@paradoc/ai-tools` internally.
+Install the adapter for your framework. Each adapter depends on `@paradoc/ai-tools`, so every adapter exposes the same tools with the same schemas.
 
 ## Tools
 
-All adapters expose the same five tools:
+Every adapter exposes nine tools. Tool names and input fields are snake_case.
 
-| Tool | Description | Network? |
-|------|-------------|----------|
-| [`validateArtifact`](/ai/tools/validate-artifact) | Validate an artifact against the Paradoc schema | Yes\* |
-| [`fill`](/ai/tools/fill) | Fill a form or checklist with data and validate | Yes\* |
-| [`render`](/ai/tools/render) | Render a form to PDF, markdown, or DOCX | Yes\* |
-| [`getRegistry`](/ai/tools/get-registry) | Fetch registry.json, returns available artifacts | Yes |
-| [`getArtifact`](/ai/tools/get-artifact) | Fetch artifact JSON from a registry by name | Yes |
+| Tool | Description |
+|------|-------------|
+| [`get_registry`](/ai/tools/get-registry) | Discover the artifacts in a registry |
+| [`get_artifact`](/ai/tools/get-artifact) | Retrieve one artifact and its instructions from a registry |
+| [`inspect_artifact`](/ai/tools/inspect-artifact) | Return a bounded description of an artifact's fields, parties, annexes, items, and layers |
+| [`validate_artifact`](/ai/tools/validate-artifact) | Validate an artifact definition against the schema and logic rules |
+| [`validate_input`](/ai/tools/validate-input) | Validate and normalize one field, party, annex, or checklist item value |
+| [`fill`](/ai/tools/fill) | Start a form or checklist draft from seed data |
+| [`get_fill_state`](/ai/tools/get-fill-state) | Report draft progress, open targets, rules, and the next target |
+| [`update_fill`](/ai/tools/update-fill) | Merge, clear, or reset values in an existing draft |
+| [`render`](/ai/tools/render) | Render a form, document, or checklist through one of its layers |
 
-\* `validateArtifact`, `fill`, and `render` all fetch in URL and registry modes. In artifact mode, only `render` may fetch (file-backed layers use `baseUrl` to resolve templates).
+All tools except `get_registry` and `get_artifact` take a [source](/ai/tools#sources): inline artifact JSON, a URL, or a registry item.
 
 ## Quick start
 
-<Tabs items={['Vercel AI SDK', 'TanStack AI']} groupId="ai-framework" persist>
+<Tabs items={['Vercel AI SDK', 'TanStack AI', 'Mastra']} groupId="ai-framework" persist>
   <Tab value="Vercel AI SDK">
     ```bash
-    npm install @paradoc/ai-sdk ai zod
+    npm install @paradoc/ai-sdk ai zod @ai-sdk/openai
     ```
 
     ```typescript
@@ -55,14 +60,41 @@ All adapters expose the same five tools:
   </Tab>
   <Tab value="TanStack AI">
     ```bash
-    npm install @paradoc/tanstack-ai @tanstack/ai zod
+    npm install @paradoc/tanstack-ai @tanstack/ai zod @tanstack/ai-openai
     ```
 
     ```typescript
+    import { chat } from "@tanstack/ai"
+    import { openaiText } from "@tanstack/ai-openai"
     import { paradocTools } from "@paradoc/tanstack-ai"
 
-    const tools = paradocTools({
-      defaultRegistryUrl: "https://public.paradoc.dev",
+    const result = await chat({
+      adapter: openaiText("gpt-4o"),
+      messages: [{ role: "user", content: "Fill the pet addendum for my dog Rex" }],
+      tools: paradocTools({
+        defaultRegistryUrl: "https://public.paradoc.dev",
+      }),
+      stream: false,
+    })
+    ```
+  </Tab>
+  <Tab value="Mastra">
+    ```bash
+    npm install @paradoc/mastra @mastra/core zod
+    ```
+
+    ```typescript
+    import { Agent } from "@mastra/core/agent"
+    import { paradocTools } from "@paradoc/mastra"
+
+    const agent = new Agent({
+      id: "document-agent",
+      name: "Document agent",
+      instructions: "Use the Paradoc tools to inspect and complete documents.",
+      model: "openai/gpt-4o",
+      tools: paradocTools({
+        defaultRegistryUrl: "https://public.paradoc.dev",
+      }),
     })
     ```
   </Tab>
@@ -70,62 +102,57 @@ All adapters expose the same five tools:
 
 ## Composing with other tools
 
-`paradocTools()` returns a plain object. Spread it alongside your own tools:
+In the AI SDK and Mastra adapters, `paradocTools()` returns an object keyed by tool name. Spread it next to your own tools, or pick the ones you need:
 
 ```typescript
 import { paradocTools } from "@paradoc/ai-sdk"
-import { tool } from "ai"
+
+const { validate_artifact, render } = paradocTools()
 
 const result = await generateText({
   model,
-  tools: {
-    ...paradocTools(),
-    lookupCustomer: tool({ /* ... */ }),
-  },
+  tools: { validate_artifact, render },
   prompt: "...",
 })
 ```
 
-Or cherry-pick individual tools:
-
-```typescript
-const { validateArtifact, render } = paradocTools()
-
-const result = await generateText({
-  model,
-  tools: { validateArtifact, render },
-  prompt: "...",
-})
-```
+The TanStack AI adapter returns an array, as TanStack AI's `chat()` expects. See [TanStack AI](/ai/tanstack-ai#composing-with-other-tools).
 
 ## Configuration
 
-All adapters accept the same `ParadocToolsConfig`:
+All adapters accept `ParadocToolsConfig` from `@paradoc/ai-tools`:
 
 ```typescript
 paradocTools({
   defaultRegistryUrl: "https://public.paradoc.dev",
   fetch: customFetchWithAuth,
+  approvedOrigins: ["https://public.paradoc.dev"],
+  maxOutputBytes: 200_000,
 })
 ```
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `defaultRegistryUrl` | `string` | Default registry URL for getRegistry and getArtifact |
+| `defaultRegistryUrl` | `string` | Registry used when a call omits `registry_url`. An explicit input always wins. |
 | `fetch` | `typeof fetch` | Custom fetch for auth headers or test mocks |
+| `allowLocalDevelopment` | `boolean` | Allow loopback and private-network hosts, including over HTTP. Off by default; otherwise only public HTTPS URLs are fetched. |
+| `approvedOrigins` | `string[]` | Origin allowlist for every registry, artifact, instruction, and layer request |
+| `maxRedirects` | `number` | Maximum validated redirects per request. Default `3`. |
+| `context` | `ToolExecutionContext` | Request-scoped cache and signal. Create one per request with `createToolExecutionContext()`. |
+| `signal` | `AbortSignal` | Abort all work for the call |
+| `maxOutputBytes` | `number` | Default `render` output budget when the call has no `presentation` |
 
-## Runtime compatibility
+`approvedOrigins` checks hostnames only. When sources are untrusted, pair it with a network egress policy, because a hostname check cannot stop DNS rebinding.
 
-Text, PDF, and DOCX layers render locally in browsers, edge runtimes, and
-Node.js. Rendering does not require a proxy or runtime-specific configuration.
+The AI SDK and TanStack AI adapters combine the framework's abort signal with `signal` and `context.signal`. The Mastra adapter passes its execution abort signal as `signal` and adds one option, [`modelOutputMaxBytes`](/ai/mastra#configuration).
 
-## Differences from MCP server
+## Differences from the MCP server
 
 | | MCP server | AI packages |
 |---|---|---|
 | **Runs where** | Hosted at `mcp.paradoc.dev` | Your own application |
-| **Protocol** | Model Context Protocol | Framework-specific (AI SDK, TanStack) |
+| **Protocol** | Model Context Protocol | Your framework's tool API (AI SDK, TanStack AI, Mastra) |
 | **Registry lookup** | DB-backed registry IDs | Direct registry URLs |
-| **Render output** | URL (R2 upload) or inline | Inline only |
-| **Auth** | None (public) | Your config (fetch, API keys) |
-| **Extra tools** | list_artifacts, list_registries, search | Not included (require DB) |
+| **Render output** | Short-link URL or inline | Inline only |
+| **Auth** | Every `/mcp` request needs an OAuth bearer token scoped to an organization, or an `x-api-key` header. See [MCP server](/mcp). | Your config (`fetch`, API keys) |
+| **Tools only here** | `list_artifacts`, `list_registries`, `search`, and platform tools for e-signature envelopes, payments, and extraction jobs | `inspect_artifact`, `validate_input`, `get_fill_state`, `update_fill` |

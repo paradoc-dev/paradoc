@@ -5,91 +5,111 @@ ogTitle: TanStack AI — Paradoc AI
 ogDescription: Integrate Paradoc tools into TanStack AI applications with @paradoc/tanstack-ai
 ---
 
-`@paradoc/tanstack-ai` wraps `@paradoc/ai-tools` with TanStack AI's `toolDefinition().server()` pattern. Tools run server-side and work with TanStack AI's chat, agent, and server handler APIs.
+`@paradoc/tanstack-ai` wraps the [`@paradoc/ai-tools`](/ai/ai-tools) operations with TanStack AI's `toolDefinition().server()` pattern. The tools run on the server and pass straight to `chat()`.
 
 ## Installation
 
 ```bash
-npm install @paradoc/tanstack-ai @tanstack/ai zod
+npm install @paradoc/tanstack-ai @tanstack/ai@0.53.0 zod
 ```
 
-Peer dependencies: `@tanstack/ai` and `zod` ^4.0.0.
+Peer dependencies: `@tanstack/ai` 0.53.0 (exact version) and `zod` ^4.0.0.
 
 ## Usage
 
 ```typescript
+import { chat } from "@tanstack/ai"
+import { openaiText } from "@tanstack/ai-openai"
 import { paradocTools } from "@paradoc/tanstack-ai"
 
-const tools = paradocTools({
-  defaultRegistryUrl: "https://public.paradoc.dev",
+const result = await chat({
+  adapter: openaiText("gpt-4o"),
+  messages: [{ role: "user", content: "Inspect the pet addendum fields." }],
+  tools: paradocTools({
+    defaultRegistryUrl: "https://public.paradoc.dev",
+  }),
+  stream: false,
 })
-
-// Use with TanStack AI's chat, agent, or server handler
 ```
 
 ## Composing with other tools
 
-Spread alongside your own tools:
+`paradocTools()` returns a readonly array of nine server tools. Spread it into the array you pass to `chat()`:
 
 ```typescript
-import { paradocTools } from "@paradoc/tanstack-ai"
 import { toolDefinition } from "@tanstack/ai"
+import { paradocTools } from "@paradoc/tanstack-ai"
 import { z } from "zod"
 
 const lookupCustomer = toolDefinition({
-  name: "lookupCustomer",
+  name: "lookup_customer",
   description: "Look up a customer by ID",
   inputSchema: z.object({ id: z.string() }),
 }).server(async ({ id }) => fetchCustomer(id))
 
-const allTools = {
-  ...paradocTools(),
-  lookupCustomer,
-}
+const tools = [...paradocTools(), lookupCustomer]
 ```
 
-Or pick individual tools:
+To pick individual tools, call their factories:
 
 ```typescript
-const { validateArtifact, render } = paradocTools()
+import { validateArtifact, render } from "@paradoc/tanstack-ai"
+
+const tools = [validateArtifact(), render()]
 ```
+
+## Definitions without execution
+
+`paradocToolDefinitions()` returns the nine tool definitions with their names and schemas but no server execution. Use it when a client needs the tool metadata, then instantiate each definition with TanStack AI's `.client()` or `.server()` where execution belongs:
+
+```typescript
+import { paradocToolDefinitions } from "@paradoc/tanstack-ai"
+
+const clientTools = paradocToolDefinitions().map((definition) => definition.client())
+```
+
+Each tool also has a definition function, such as `renderDefinition()`.
 
 ## Configuration
 
-```typescript
-paradocTools({
-  defaultRegistryUrl: "https://public.paradoc.dev",
-  fetch: customFetchWithAuth,
-})
-```
-
-See the [configuration reference](/ai#configuration) for details on each option.
+`paradocTools()` and each factory take `ParadocToolsConfig`. See the [configuration reference](/ai#configuration). TanStack AI's execution `abortSignal` is combined with `signal` and `context.signal`. `maxOutputBytes` sets the default [`render`](/ai/tools/render) output budget when a call has no `presentation`.
 
 ## API
 
 ### `paradocTools(config?)`
 
-Returns an object with five server tools:
+Returns a `ParadocToolSet`: a readonly array of nine server tools in this order.
 
-| Key | Tool name | Description |
-|-----|-----------|-------------|
-| `validateArtifact` | `validateArtifact` | Validates an Paradoc artifact against its schema |
-| `fill` | `fill` | Fills an Paradoc artifact with data and validates |
-| `render` | `render` | Renders an Paradoc artifact to PDF, markdown, or DOCX |
-| `getRegistry` | `getRegistry` | Fetches registry.json from a URL, returns available artifacts |
-| `getArtifact` | `getArtifact` | Fetches artifact JSON from a registry by name |
+| Tool name | Server factory | Definition | Subpath |
+|-----------|----------------|------------|---------|
+| [`get_registry`](/ai/tools/get-registry) | `getRegistry()` | `getRegistryDefinition()` | `@paradoc/tanstack-ai/get-registry` |
+| [`get_artifact`](/ai/tools/get-artifact) | `getArtifact()` | `getArtifactDefinition()` | `@paradoc/tanstack-ai/get-artifact` |
+| [`inspect_artifact`](/ai/tools/inspect-artifact) | `inspectArtifact()` | `inspectArtifactDefinition()` | `@paradoc/tanstack-ai/inspect-artifact` |
+| [`validate_artifact`](/ai/tools/validate-artifact) | `validateArtifact()` | `validateArtifactDefinition()` | `@paradoc/tanstack-ai/validate-artifact` |
+| [`validate_input`](/ai/tools/validate-input) | `validateInput()` | `validateInputDefinition()` | `@paradoc/tanstack-ai/validate-input` |
+| [`fill`](/ai/tools/fill) | `fill()` | `fillDefinition()` | `@paradoc/tanstack-ai/fill` |
+| [`get_fill_state`](/ai/tools/get-fill-state) | `getFillState()` | `getFillStateDefinition()` | `@paradoc/tanstack-ai/get-fill-state` |
+| [`update_fill`](/ai/tools/update-fill) | `updateFill()` | `updateFillDefinition()` | `@paradoc/tanstack-ai/update-fill` |
+| [`render`](/ai/tools/render) | `render()` | `renderDefinition()` | `@paradoc/tanstack-ai/render` |
 
-### Re-exports
+Each subpath default-exports its server factory and also exports the factory and definition function by name. The package root also exports `operationNames`.
 
-The package also re-exports all output types from `@paradoc/ai-tools`:
+### Types
+
+The package re-exports `ParadocToolsConfig`, `OperationName`, `ToolDefinitions`, and the input and output type of every operation from `@paradoc/ai-tools`:
 
 ```typescript
 import type {
   ParadocToolsConfig,
-  ValidateOutput,
+  ValidateArtifactInput,
+  ValidateArtifactOutput,
+  ValidateInputValue,
+  ValidateInputOutput,
   FillOutput,
+  FillStateOutput,
+  UpdateFillOutput,
   RenderOutput,
-  GetRegistryOutput,
-  GetArtifactOutput,
 } from "@paradoc/tanstack-ai"
 ```
+
+It also exports `ParadocToolDefinition<Name>`, `ParadocServerTool<Name>`, `ParadocToolDefinitions`, and `ParadocToolSet`.

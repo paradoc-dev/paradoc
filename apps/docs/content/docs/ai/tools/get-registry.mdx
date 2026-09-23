@@ -1,26 +1,28 @@
 ---
-title: getRegistry
-description: Fetch registry.json from a URL, returns available artifacts
-ogTitle: getRegistry — Paradoc AI Tools
-ogDescription: Fetch an Paradoc registry index to discover available artifacts
+title: get_registry
+description: Discover the artifacts available in a Paradoc registry
+ogTitle: get_registry — Paradoc AI Tools
+ogDescription: Fetch a Paradoc registry index to discover the artifacts it lists
 ---
 
-Fetches `registry.json` from a registry URL and returns the list of available artifacts.
+Fetches a registry's `registry.json` and returns the artifacts it lists.
 
-## Parameters
+## Input
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `registryUrl` | `string` | Yes | Registry base URL (e.g. `https://public.paradoc.dev`) |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `registry_url` | `string` (URL) | No | Registry base URL. Falls back to `defaultRegistryUrl` in the [config](/ai#configuration). |
 
-## Response
+If neither is set, the tool returns a `missing_registry_url` error.
+
+## Output
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | `string` | The registry URL |
-| `artifactsPath` | `string` | Base path for artifact files within the registry |
-| `items` | `array` | List of artifacts, each with `name` and optional `path` |
-| `error` | `string` | Error message if the fetch failed |
+| `registry_url` | `string` | The registry that was read |
+| `artifacts_path` | `string` | Optional path under which the registry keeps its artifacts |
+| `items` | `{ name, path? }[]` | The listed artifacts. Empty when the call fails. |
+| `error` | [`ToolError`](/ai/tools#errors) | Set when the registry could not be read |
 
 ## Direct usage
 
@@ -28,31 +30,27 @@ Fetches `registry.json` from a registry URL and returns the list of available ar
 import { executeGetRegistry } from "@paradoc/ai-tools"
 
 const result = await executeGetRegistry({
-  registryUrl: "https://public.paradoc.dev",
+  registry_url: "https://public.paradoc.dev",
 })
-// {
-//   name: "https://public.paradoc.dev",
-//   items: [
-//     { name: "pet-addendum", path: "pet-addendum/pet-addendum.json" },
-//     { name: "w-9", path: "w-9/w-9.json" },
-//   ]
-// }
+```
+
+With a configured default, the input can be empty:
+
+```typescript
+const result = await executeGetRegistry({}, {
+  defaultRegistryUrl: "https://public.paradoc.dev",
+})
 ```
 
 ## Example response
 
+The item list is shortened here.
+
 ```json
 {
-  "name": "https://public.paradoc.dev",
+  "registry_url": "https://public.paradoc.dev",
   "items": [
-    {
-      "name": "pet-addendum",
-      "path": "pet-addendum/pet-addendum.json"
-    },
-    {
-      "name": "w-9",
-      "path": "w-9/w-9.json"
-    }
+    { "name": "pet-addendum" }
   ]
 }
 ```

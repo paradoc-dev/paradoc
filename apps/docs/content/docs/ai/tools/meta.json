@@ -2,11 +2,15 @@
   "title": "Tools",
   "pages": [
     "index",
-    "validate-artifact",
-    "fill",
-    "render",
     "get-registry",
-    "get-artifact"
+    "get-artifact",
+    "inspect-artifact",
+    "validate-artifact",
+    "validate-input",
+    "fill",
+    "get-fill-state",
+    "update-fill",
+    "render"
   ],
   "defaultOpen": false
 }

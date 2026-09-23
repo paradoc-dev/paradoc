@@ -1,16 +1,58 @@
 ---
 title: Tool Reference
-description: All tools available in the Paradoc AI packages
+description: The nine tools in the Paradoc AI packages, with their inputs and outputs
 ogTitle: Tools — Paradoc AI
-ogDescription: Reference for all tools available in the Paradoc AI packages
+ogDescription: Reference for the nine tools in the Paradoc AI packages
 ---
 
-All tools available via `paradocTools()` in `@paradoc/ai-sdk` and `@paradoc/tanstack-ai`.
+Every Paradoc AI adapter ([AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), [Mastra](/ai/mastra)) exposes these nine tools. They come from [`@paradoc/ai-tools`](/ai/ai-tools), so names, inputs, and outputs are the same in every adapter. Input and output fields are snake_case. Artifact JSON and fill data keep their own field names.
 
 | Tool | Category | Description |
 |------|----------|-------------|
-| [`validateArtifact`](/ai/tools/validate-artifact) | Core | Validate an artifact against the Paradoc schema from artifact JSON, URL, or registry |
-| [`fill`](/ai/tools/fill) | Core | Fill a form or checklist with data from artifact JSON, URL, or registry |
-| [`render`](/ai/tools/render) | Rendering | Render a form to PDF, markdown, or DOCX from artifact JSON, URL, or registry |
-| [`getRegistry`](/ai/tools/get-registry) | Registry | Fetch registry.json from a URL, returns available artifacts |
-| [`getArtifact`](/ai/tools/get-artifact) | Registry | Fetch artifact JSON from a registry by name |
+| [`get_registry`](/ai/tools/get-registry) | Registry | Discover the artifacts in a registry |
+| [`get_artifact`](/ai/tools/get-artifact) | Registry | Retrieve one artifact and its instructions from a registry |
+| [`inspect_artifact`](/ai/tools/inspect-artifact) | Artifacts | Return a bounded description of an artifact |
+| [`validate_artifact`](/ai/tools/validate-artifact) | Artifacts | Validate an artifact definition |
+| [`validate_input`](/ai/tools/validate-input) | Filling | Validate and normalize one value before it goes into a draft |
+| [`fill`](/ai/tools/fill) | Filling | Start a form or checklist draft from seed data |
+| [`get_fill_state`](/ai/tools/get-fill-state) | Filling | Report draft progress and the next target to fill |
+| [`update_fill`](/ai/tools/update-fill) | Filling | Merge, clear, or reset values in a draft |
+| [`render`](/ai/tools/render) | Rendering | Render a form, document, or checklist through one of its layers |
+
+## Sources
+
+All tools except `get_registry` and `get_artifact` work on an artifact that you identify with a source. The `source` field selects one of three modes:
+
+| Mode | Fields | Resolution |
+|------|--------|------------|
+| `source: "artifact"` | `artifact`, `base_url?` | Artifact JSON passed inline. File-backed layers resolve against `base_url`. |
+| `source: "url"` | `url` | Fetches the artifact JSON. File-backed layers resolve against the URL's directory. |
+| `source: "registry"` | `registry_url`, `artifact_name` | Fetches `registry.json`, checks the artifact is listed, then fetches it |
+
+```typescript
+{ source: "artifact", artifact: { kind: "form", name: "my-form", /* ... */ } }
+{ source: "url", url: "https://example.com/forms/my-form.json" }
+{ source: "registry", registry_url: "https://public.paradoc.dev", artifact_name: "pet-addendum" }
+```
+
+## Errors
+
+Tools return failures in the result instead of throwing. A failed call carries an `error` object, and tools that validate values also return an `errors` array of the same shape:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `code` | `string` | Machine-readable code, such as `validation_error`, `unsupported_artifact`, or `missing_registry_url` |
+| `message` | `string` | Human-readable message |
+| `path` | `(string \| number)[]` | Optional path to the value that failed |
+| `retryable` | `boolean` | Optional hint that the call may succeed if retried |
+
+## A typical fill flow
+
+1. `get_registry` and `get_artifact` find the artifact.
+2. `inspect_artifact` shows the fields and parties to collect.
+3. `validate_input` checks each value as the user gives it.
+4. `fill` starts the draft; `update_fill` changes it.
+5. `get_fill_state` reports what is still open and what to ask next.
+6. `render` produces the document, complete or not.
+
+Pass `data` and `evaluation_context` from each `fill` or `update_fill` result into the next call, so the draft and its date context stay the same across turns.

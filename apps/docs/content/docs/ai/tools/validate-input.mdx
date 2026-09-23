@@ -1,0 +1,106 @@
+---
+title: validate_input
+description: Validate and normalize one field, party, annex, or checklist item value
+ogTitle: validate_input — Paradoc AI Tools
+ogDescription: Check one value against a Paradoc form or checklist before it goes into a draft
+---
+
+Validates one value against the artifact that owns it, without touching a draft. Use it to check each answer as a user gives it, then pass the accepted values to [`fill`](/ai/tools/fill) or [`update_fill`](/ai/tools/update-fill).
+
+## Input
+
+Takes a [source](/ai/tools#sources) plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `target` | `"field" \| "party" \| "annex" \| "checklist_item"` | Yes | What the value is for |
+| `value` | `unknown` | Yes | The value to check |
+| `field_path` | `string` | For `field` | Field path, such as `weight` |
+| `role_id` | `string` | For `party` | Party role ID, such as `tenant` |
+| `index` | `integer` | No | Party index for roles with more than one party. Default `0`. |
+| `annex_id` | `string` | For `annex` | Annex ID |
+| `item_id` | `string` | For `checklist_item` | Checklist item ID |
+
+`field`, `party`, and `annex` need a form. `checklist_item` needs a checklist.
+
+## Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `valid` | `boolean` | Whether the value passed |
+| `target` | `string` | The requested target |
+| `artifact_kind` | `string` | Artifact kind, when detected |
+| `normalized_value` | `unknown` | The value as the artifact stores it, when valid |
+| `errors` | [`ToolError[]`](/ai/tools#errors) | Why the value failed. `validation_error` for a bad value, `invalid_target` for a target the artifact does not have. |
+| `error` | [`ToolError`](/ai/tools#errors) | Set when validation could not run |
+
+## Direct usage
+
+```typescript
+import { executeValidateInput } from "@paradoc/ai-tools"
+
+const source = {
+  source: "registry",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+} as const
+
+const weight = await executeValidateInput({
+  ...source,
+  target: "field",
+  field_path: "weight",
+  value: 45,
+})
+
+const tenant = await executeValidateInput({
+  ...source,
+  target: "party",
+  role_id: "tenant",
+  value: { id: "tenant-0", name: "Jane Doe" },
+})
+```
+
+## Example responses
+
+### Valid field
+
+```json
+{
+  "valid": true,
+  "target": "field",
+  "artifact_kind": "form",
+  "normalized_value": 45
+}
+```
+
+### Valid party
+
+```json
+{
+  "valid": true,
+  "target": "party",
+  "artifact_kind": "form",
+  "normalized_value": {
+    "roleId": "tenant",
+    "index": 0,
+    "party": { "id": "tenant-0", "name": "Jane Doe" }
+  }
+}
+```
+
+### Invalid value
+
+```json
+{
+  "valid": false,
+  "target": "field",
+  "artifact_kind": "form",
+  "errors": [
+    {
+      "code": "validation_error",
+      "message": "Must be one of: dog, cat, fish",
+      "path": ["fields", "species"]
+    }
+  ]
+}
+```

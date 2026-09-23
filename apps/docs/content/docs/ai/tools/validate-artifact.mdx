@@ -1,41 +1,31 @@
 ---
-title: validateArtifact
-description: Validate an Paradoc artifact against the schema and logic rules
-ogTitle: validateArtifact — Paradoc AI Tools
-ogDescription: Validate an Paradoc artifact against the schema and logic rules
+title: validate_artifact
+description: Validate a Paradoc artifact definition against the schema and logic rules
+ogTitle: validate_artifact — Paradoc AI Tools
+ogDescription: Validate a Paradoc artifact definition against the schema and logic rules
 ---
 
-Validates an Paradoc artifact (form, document, bundle, or checklist) against the Paradoc schema and optionally checks logic expressions.
+Checks an artifact definition (form, document, bundle, or checklist) against the Paradoc schema and its logic rules. Use it after an agent writes or edits an artifact. To check a value a user gives, use [`validate_input`](/ai/tools/validate-input).
 
-## Input modes
+## Input
 
-The validateArtifact tool accepts three input modes via a discriminated union on the `source` field:
+Takes a [source](/ai/tools#sources) plus:
 
-| Mode | Fields | Resolution |
-|------|--------|------------|
-| `source: "artifact"` | `artifact`, `baseUrl?` | Direct — artifact JSON provided inline |
-| `source: "url"` | `url` | Fetches artifact JSON from a URL |
-| `source: "registry"` | `registryUrl`, `artifactName` | Fetches registry.json, finds item, fetches artifact |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `options.schema` | `boolean` | No | Run schema validation. Default `true`. |
+| `options.logic` | `boolean` | No | Validate logic expressions. Default `true`. |
 
-All modes share these fields:
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `options.schema` | `boolean` | No | Validate schema structure (default: `true`) |
-| `options.logic` | `boolean` | No | Validate logic expressions (default: `true`) |
-
-## Response
+## Output
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `valid` | `boolean` | Whether the artifact passed validation |
-| `detectedKind` | `string` | Detected artifact kind: `form`, `document`, `bundle`, or `checklist` |
-| `issues` | `array` | List of validation issues, each with `message` and optional `path` |
-| `error` | `string` | Error message if validation could not be performed |
+| `valid` | `boolean` | Whether the artifact passed |
+| `artifact_kind` | `string` | `form`, `document`, `bundle`, or `checklist`, when detected |
+| `issues` | `{ message, path? }[]` | Validation issues, when invalid |
+| `error` | [`ToolError`](/ai/tools#errors) | Set when validation could not run, for example because the source could not be loaded |
 
 ## Direct usage
-
-### From artifact JSON
 
 ```typescript
 import { executeValidateArtifact } from "@paradoc/ai-tools"
@@ -44,33 +34,24 @@ const result = await executeValidateArtifact({
   source: "artifact",
   artifact: {
     kind: "form",
-    name: "my-form",
+    name: "contact",
+    version: "1.0.0",
+    title: "Contact",
     fields: {
-      name: { type: "text", label: "Name" },
+      name: { type: "text", label: "Name", required: true },
     },
   },
 })
-// { valid: true, detectedKind: "form" }
 ```
 
-The `executeValidateArtifact` function accepts an optional second `config` parameter for custom fetch settings. See the [configuration reference](/ai#configuration).
-
-### From URL
-
-```typescript
-const result = await executeValidateArtifact({
-  source: "url",
-  url: "https://public.paradoc.dev/pet-addendum/pet-addendum.json",
-})
-```
-
-### From registry
+From a registry, with logic checks off:
 
 ```typescript
 const result = await executeValidateArtifact({
   source: "registry",
-  registryUrl: "https://public.paradoc.dev",
-  artifactName: "pet-addendum",
+  registry_url: "https://public.paradoc.dev",
+  artifact_name: "pet-addendum",
+  options: { logic: false },
 })
 ```
 
@@ -81,7 +62,7 @@ const result = await executeValidateArtifact({
 ```json
 {
   "valid": true,
-  "detectedKind": "form"
+  "artifact_kind": "form"
 }
 ```
 
@@ -90,28 +71,9 @@ const result = await executeValidateArtifact({
 ```json
 {
   "valid": false,
-  "detectedKind": "form",
+  "artifact_kind": "form",
   "issues": [
-    {
-      "message": "Required property 'name' is missing",
-      "path": ["name"]
-    }
+    { "message": "Invalid input", "path": ["fields", "name"] }
   ]
 }
 ```
-
-## Disabling checks
-
-Pass `options` to disable schema or logic validation independently:
-
-```typescript
-await executeValidateArtifact({
-  source: "artifact",
-  artifact: { kind: "form", name: "my-form", /* ... */ },
-  options: { schema: true, logic: false },
-})
-```
-
-## Logic checking
-
-With `options.logic` on, every `visible` / `required` / `def` / `rule` expression is checked by the typed `@paradoc/expr` checker. Each issue names the offending expression and its path, catching unknown references (fields are addressed as `fields.<id>`, with no `.value`), unknown functions, type mismatches, and gates that don't return a boolean. The checker shares its type system with runtime evaluation, so a passing artifact won't behave differently when filled.
