@@ -15,6 +15,7 @@ import {
 	AddressSchema,
 	BboxSchema,
 	CoordinateSchema,
+	CurrencyCodeSchema,
 	DurationSchema,
 	IdentificationSchema,
 	MoneySchema,
@@ -88,7 +89,7 @@ const moneyInputProps = catalogObject({
 	default: MoneySchema.optional(),
 	min: z.number().optional(),
 	max: z.number().optional(),
-	defaultCurrency: z.string().optional(),
+	currency: CurrencyCodeSchema.optional(),
 });
 
 const percentageInputProps = catalogObject({

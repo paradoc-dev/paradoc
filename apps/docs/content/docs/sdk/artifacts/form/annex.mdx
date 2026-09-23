@@ -142,6 +142,8 @@ const form = p.form({
 })
 ```
 
+An additional annex value must still be an [Attachment](/schemas/primitives/attachment). Without `allowAdditionalAnnexes: true`, a payload with an undeclared annex key fails validation. The inferred payload type (`InferFormPayload`) follows the same rule for the object pattern and the builder.
+
 ## Related
 
 - [form](/sdk/artifacts/form) - Parent form artifact

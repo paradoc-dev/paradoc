@@ -1,6 +1,7 @@
 import { defaultFormatter } from '@paradoc/format'
 import type { BinaryContent, EnumOption, Form, FormField, Formatter, LayerFormat } from '@paradoc/types'
 import { validateFieldBindings } from '../text/field-formatter'
+import { resolveLayerBindings } from '../layer-bindings'
 import { pathSegments } from '../path'
 import { acroFields, type AcroField } from './acroform'
 import { isDict, isName, PdfModel, type PdfValue } from './syntax'
@@ -749,7 +750,13 @@ export function selectPdfExtractionLayer(
     key = pdfKeys[0]!
   }
   const layer = all[key]!
-  const bindings = layer.bindings ?? (layer.bindingsFrom ? all[layer.bindingsFrom]?.bindings : undefined)
+  // A bindingsFrom naming no layer leaves the layer with no bindings to read by.
+  let bindings: Record<string, string> | undefined
+  try {
+    bindings = resolveLayerBindings(all, layer)
+  } catch {
+    bindings = undefined
+  }
   if (!bindings || Object.keys(bindings).length === 0) {
     throw new PdfExtractionError('not_matching', `Layer "${key}" has no bindings, so no PDF field maps to the artifact.`)
   }

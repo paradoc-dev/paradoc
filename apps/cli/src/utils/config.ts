@@ -1,5 +1,5 @@
 import { LocalFileSystem } from './local-fs.js'
-import { ManifestSchema, GlobalConfigSchema, type GlobalConfig, type Manifest } from '@paradoc/schemas'
+import { GlobalConfigSchema, type GlobalConfig } from '@paradoc/schemas'
 import { z } from 'zod'
 
 import type {
@@ -22,22 +22,7 @@ const GLOBAL_CONFIG_FILE = 'config.json'
 const GLOBAL_CONFIG_SCHEMA_URL = 'https://schema.paradoc.dev/config.json'
 const DEFAULT_REGISTRY_URL = 'https://registry.paradoc.dev'
 
-// Re-export Manifest type for convenience
-export type { Manifest }
-
 import type { ZodError } from 'zod'
-
-/**
- * Format Zod validation errors into human-readable messages
- */
-function formatValidationErrors(error: ZodError): string {
-  return error.issues
-    .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join('.') : 'root'
-      return `${path}: ${issue.message}`
-    })
-    .join('; ')
-}
 
 /**
  * Describe each global config problem by key: unknown keys by name, other
@@ -69,43 +54,6 @@ export async function findConfig(cwd?: string): Promise<string | undefined> {
   const storage = new LocalFileSystem(cwd)
   const result = await storage.findUp('paradoc.json')
   return result ?? undefined
-}
-
-/**
- * Read and parse paradoc.json with validation
- * @param configPath - Path to paradoc.json
- * @returns Parsed and validated manifest object
- * @throws Error if the manifest is invalid
- */
-export async function readConfig(configPath: string): Promise<Manifest> {
-  const storage = new LocalFileSystem()
-  const content = await storage.readFile(configPath)
-
-  let data: unknown
-  try {
-    data = JSON.parse(content)
-  } catch (e) {
-    throw new Error(`Invalid JSON in ${configPath}: ${e instanceof Error ? e.message : String(e)}`)
-  }
-
-  // Validate against manifest schema using Zod
-  const result = ManifestSchema.safeParse(data)
-  if (!result.success) {
-    const errors = formatValidationErrors(result.error)
-    throw new Error(`Invalid manifest in ${configPath}: ${errors}`)
-  }
-
-  return result.data
-}
-
-/**
- * Get the project root directory (where paradoc.json is located)
- * @param configPath - Path to paradoc.json
- * @returns Directory path
- */
-export function getProjectRoot(configPath: string): string {
-  const storage = new LocalFileSystem()
-  return storage.dirname(configPath)
 }
 
 // ============================================================================

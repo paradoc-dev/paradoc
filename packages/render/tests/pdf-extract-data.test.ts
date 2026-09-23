@@ -322,6 +322,14 @@ describe('selectPdfExtractionLayer', () => {
     expect(selectPdfExtractionLayer(layers)).toEqual({ key: 'pdf', bindings: { a: 'b' } })
   })
 
+  it('refuses a layer whose bindingsFrom names no layer, as a layer with no bindings', () => {
+    const layers = { pdf: { mimeType: 'application/pdf', bindingsFrom: 'missing' } }
+    expect(() => selectPdfExtractionLayer(layers)).toThrow(expect.objectContaining({
+      code: 'not_matching',
+      message: 'Layer "pdf" has no bindings, so no PDF field maps to the artifact.',
+    }))
+  })
+
   it('refuses an artifact with no PDF layer, listing its layers', () => {
     expect(() => selectPdfExtractionLayer({ md: { mimeType: 'text/markdown' } })).toThrow(expect.objectContaining({ code: 'no_pdf_layer', message: expect.stringContaining('md') }))
   })

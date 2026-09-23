@@ -106,6 +106,15 @@ describe("catalog", () => {
 			expect(JSON.parse(JSON.stringify(parsed.default))).toEqual(money);
 		});
 
+		it("accepts a MoneyInput currency that is an ISO 4217 alpha-3 code", () => {
+			expect(validateProps("MoneyInput", { currency: "USD" }).currency).toBe("USD");
+		});
+
+		it("rejects a MoneyInput currency that is not an ISO 4217 alpha-3 code", () => {
+			expect(() => validateProps("MoneyInput", { currency: "usd" })).toThrow();
+			expect(() => validateProps("MoneyInput", { currency: "US" })).toThrow();
+		});
+
 		it("distinguishes an absent optional line2 from an explicitly empty one", () => {
 			const required = {
 				line1: "123 Main St",

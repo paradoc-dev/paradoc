@@ -42,7 +42,7 @@ import type {
 	ParadocRenderer,
 	Formatter,
 } from '@paradoc/types'
-import { renderLayer as createRenderer } from '@paradoc/render'
+import { renderLayer as createRenderer, resolveLayerBindings } from '@paradoc/render'
 import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
 import { encode as encodeMarker } from '@paradoc/render/pdf'
 import { extractPdfData, selectPdfExtractionLayer } from '@paradoc/render/pdf'
@@ -3172,16 +3172,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			const renderer = selectLayerRenderer<Output>(key, layerSpec, rendererOverride, renderers)
 
-			let bindings: Record<string, string> | undefined = layerSpec.bindings
-
-			// Resolve bindingsFrom reference if no direct bindings
-			if (!bindings && layerSpec.bindingsFrom) {
-				const refLayer = formDef.layers[layerSpec.bindingsFrom]
-				if (!refLayer) {
-					throw new Error(`bindingsFrom "${layerSpec.bindingsFrom}" references unknown layer. Available: ${Object.keys(formDef.layers).join(', ')}`)
-				}
-				bindings = refLayer.bindings
-			}
+			let bindings = resolveLayerBindings(formDef.layers, layerSpec)
 
 			// Merge caller-provided bindings (override layer-spec bindings)
 			if (optionsBindings) {
@@ -3511,16 +3502,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 			const renderer = selectLayerRenderer<Output>(key, layerSpec, rendererOverride, renderers)
 
-			let bindings: Record<string, string> | undefined = layerSpec.bindings
-
-			// Resolve bindingsFrom reference if no direct bindings
-			if (!bindings && layerSpec.bindingsFrom) {
-				const refLayer = formDef.layers[layerSpec.bindingsFrom]
-				if (!refLayer) {
-					throw new Error(`bindingsFrom "${layerSpec.bindingsFrom}" references unknown layer. Available: ${Object.keys(formDef.layers).join(', ')}`)
-				}
-				bindings = refLayer.bindings
-			}
+			let bindings = resolveLayerBindings(formDef.layers, layerSpec)
 
 			// Merge caller-provided bindings (override layer-spec bindings)
 			if (optionsBindings) {
@@ -3575,24 +3557,25 @@ export interface FormBuilderInterface<
 	TFields extends Record<string, FormField> = Record<string, never>,
 	TParties extends Record<string, FormParty> = Record<string, never>,
 	TAnnexes extends Record<string, FormAnnex> = Record<string, never>,
+	TAllowAdditionalAnnexes extends boolean = false,
 > {
-	from(formValue: Form): FormBuilderInterface<TFields, TParties, TAnnexes>
-	name(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	version(value?: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	title(value?: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	description(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	code(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	language(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	releaseDate(value: string): FormBuilderInterface<TFields, TParties, TAnnexes>
-	metadata(value: Metadata): FormBuilderInterface<TFields, TParties, TAnnexes>
-	instructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes>
-	agentInstructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes>
-	defs(defsDef: DefsSection): FormBuilderInterface<TFields, TParties, TAnnexes>
-	def(name: string, expression: string | Expression): FormBuilderInterface<TFields, TParties, TAnnexes>
+	from(formValue: Form): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	name(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	version(value?: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	title(value?: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	description(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	code(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	language(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	releaseDate(value: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	metadata(value: Metadata): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	instructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	agentInstructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	defs(defsDef: DefsSection): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	def(name: string, expression: string | Expression): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	field<const K extends string, const D extends Buildable<FormField>>(
 		id: K,
 		fieldDef: D,
-	): FormBuilderInterface<AddFormDefinition<TFields, K, D extends { build(): infer T extends FormField } ? T : D extends FormField ? D : FormField, FormField>, TParties, TAnnexes>
+	): FormBuilderInterface<AddFormDefinition<TFields, K, D extends { build(): infer T extends FormField } ? T : D extends FormField ? D : FormField, FormField>, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	fields<const F extends Record<string, Buildable<FormField>>>(
 		fieldsObj: F,
 	): FormBuilderInterface<
@@ -3600,10 +3583,11 @@ export interface FormBuilderInterface<
 			[K in keyof F]: F[K] extends { build(): infer T extends FormField } ? T : F[K] extends FormField ? F[K] : FormField
 		},
 		TParties,
-		TAnnexes
+		TAnnexes,
+		TAllowAdditionalAnnexes
 	>
-	layers(value: Record<string, Layer | FileLayerBuilderType | InlineLayerBuilderType>): FormBuilderInterface<TFields, TParties, TAnnexes>
-	layer(key: string, layerDef: Layer | FileLayerBuilderType | InlineLayerBuilderType): FormBuilderInterface<TFields, TParties, TAnnexes>
+	layers(value: Record<string, Layer | FileLayerBuilderType | InlineLayerBuilderType>): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	layer(key: string, layerDef: Layer | FileLayerBuilderType | InlineLayerBuilderType): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	inlineLayer(
 		key: string,
 		layer: {
@@ -3616,7 +3600,7 @@ export interface FormBuilderInterface<
 			anchorBlocks?: Record<string, AnchorBlock>
 			signatures?: Record<string, SignatureSlot>
 		},
-	): FormBuilderInterface<TFields, TParties, TAnnexes>
+	): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	fileLayer(
 		key: string,
 		layer: {
@@ -3630,12 +3614,12 @@ export interface FormBuilderInterface<
 			anchorBlocks?: Record<string, AnchorBlock>
 			signatures?: Record<string, SignatureSlot>
 		},
-	): FormBuilderInterface<TFields, TParties, TAnnexes>
-	defaultLayer(key: string): FormBuilderInterface<TFields, TParties, TAnnexes>
+	): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	defaultLayer(key: string): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	annex<const K extends string, const D extends Buildable<FormAnnex>>(
 		annexId: K,
 		annexDef: D,
-	): FormBuilderInterface<TFields, TParties, AddFormDefinition<TAnnexes, K, D extends { build(): infer T extends FormAnnex } ? T : D extends FormAnnex ? D : FormAnnex, FormAnnex>>
+	): FormBuilderInterface<TFields, TParties, AddFormDefinition<TAnnexes, K, D extends { build(): infer T extends FormAnnex } ? T : D extends FormAnnex ? D : FormAnnex, FormAnnex>, TAllowAdditionalAnnexes>
 	annexes<const A extends Record<string, Buildable<FormAnnex>>>(
 		annexesRecord: A,
 	): FormBuilderInterface<
@@ -3643,13 +3627,14 @@ export interface FormBuilderInterface<
 		TParties,
 		{
 			[K in keyof A]: A[K] extends Buildable<infer T extends FormAnnex> ? T : A[K] extends FormAnnex ? A[K] : FormAnnex
-		}
+		},
+		TAllowAdditionalAnnexes
 	>
-	allowAdditionalAnnexes(value: boolean): FormBuilderInterface<TFields, TParties, TAnnexes>
+	allowAdditionalAnnexes<const V extends boolean>(value: V): FormBuilderInterface<TFields, TParties, TAnnexes, V>
 	party<const K extends string, const D extends Buildable<FormParty>>(
 		roleId: K,
 		partyDef: D,
-	): FormBuilderInterface<TFields, AddFormDefinition<TParties, K, D extends { build(): infer T extends FormParty } ? T : D extends FormParty ? D : FormParty, FormParty>, TAnnexes>
+	): FormBuilderInterface<TFields, AddFormDefinition<TParties, K, D extends { build(): infer T extends FormParty } ? T : D extends FormParty ? D : FormParty, FormParty>, TAnnexes, TAllowAdditionalAnnexes>
 	parties<const P extends Record<string, Buildable<FormParty>>>(
 		partiesObj: P,
 	): FormBuilderInterface<
@@ -3657,13 +3642,15 @@ export interface FormBuilderInterface<
 		{
 			[K in keyof P]: P[K] extends Buildable<infer T extends FormParty> ? T : P[K] extends FormParty ? P[K] : FormParty
 		},
-		TAnnexes
+		TAnnexes,
+		TAllowAdditionalAnnexes
 	>
 	build(options?: ArtifactInstanceOptions): FormInstance<
-		Omit<Form, 'fields' | 'parties' | 'annexes'> & {
+		Omit<Form, 'fields' | 'parties' | 'annexes' | 'allowAdditionalAnnexes'> & {
 			fields: TFields
 			parties: TParties extends Record<string, never> ? undefined : TParties
 			annexes: TAnnexes extends Record<string, never> ? undefined : TAnnexes
+			allowAdditionalAnnexes: TAllowAdditionalAnnexes
 		}
 	>
 }
@@ -3675,7 +3662,8 @@ function createFormBuilder<
 	TFields extends Record<string, FormField> = Record<string, never>,
 	TParties extends Record<string, FormParty> = Record<string, never>,
 	TAnnexes extends Record<string, FormAnnex> = Record<string, never>,
->(): FormBuilderInterface<TFields, TParties, TAnnexes> {
+	TAllowAdditionalAnnexes extends boolean = false,
+>(): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes> {
 	const _def: Record<string, unknown> = {
 		kind: 'form',
 		name: '',
@@ -3697,7 +3685,7 @@ function createFormBuilder<
 		parties: undefined,
 	}
 
-	const builder: FormBuilderInterface<TFields, TParties, TAnnexes> = {
+	const builder: FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes> = {
 		from(formValue: Form) {
 			const parsed = parseForm(formValue)
 			_def.kind = 'form'
@@ -3802,7 +3790,8 @@ function createFormBuilder<
 			return builder as unknown as FormBuilderInterface<
 				AddFormDefinition<TFields, K, D extends { build(): infer T extends FormField } ? T : D extends FormField ? D : FormField, FormField>,
 				TParties,
-				TAnnexes
+				TAnnexes,
+				TAllowAdditionalAnnexes
 			>
 		},
 
@@ -3813,7 +3802,8 @@ function createFormBuilder<
 					[K in keyof F]: F[K] extends { build(): infer T extends FormField } ? T : F[K] extends FormField ? F[K] : FormField
 				},
 				TParties,
-				TAnnexes
+				TAnnexes,
+				TAllowAdditionalAnnexes
 			>
 		},
 
@@ -3874,7 +3864,8 @@ function createFormBuilder<
 			return builder as unknown as FormBuilderInterface<
 				TFields,
 				TParties,
-				AddFormDefinition<TAnnexes, K, D extends { build(): infer T extends FormAnnex } ? T : D extends FormAnnex ? D : FormAnnex, FormAnnex>
+				AddFormDefinition<TAnnexes, K, D extends { build(): infer T extends FormAnnex } ? T : D extends FormAnnex ? D : FormAnnex, FormAnnex>,
+				TAllowAdditionalAnnexes
 			>
 		},
 
@@ -3889,13 +3880,14 @@ function createFormBuilder<
 				TParties,
 				{
 					[K in keyof A]: A[K] extends Buildable<infer T extends FormAnnex> ? T : A[K] extends FormAnnex ? A[K] : FormAnnex
-				}
+				},
+				TAllowAdditionalAnnexes
 			>
 		},
 
-		allowAdditionalAnnexes(value: boolean) {
+		allowAdditionalAnnexes<const V extends boolean>(value: V) {
 			_def.allowAdditionalAnnexes = value
-			return builder
+			return builder as unknown as FormBuilderInterface<TFields, TParties, TAnnexes, V>
 		},
 
 		party<const K extends string, const D extends Buildable<FormParty>>(roleId: K, partyDef: D) {
@@ -3905,7 +3897,8 @@ function createFormBuilder<
 			return builder as unknown as FormBuilderInterface<
 				TFields,
 				AddFormDefinition<TParties, K, D extends { build(): infer T extends FormParty } ? T : D extends FormParty ? D : FormParty, FormParty>,
-				TAnnexes
+				TAnnexes,
+				TAllowAdditionalAnnexes
 			>
 		},
 
@@ -3920,7 +3913,8 @@ function createFormBuilder<
 				{
 					[K in keyof P]: P[K] extends Buildable<infer T extends FormParty> ? T : P[K] extends FormParty ? P[K] : FormParty
 				},
-				TAnnexes
+				TAnnexes,
+				TAllowAdditionalAnnexes
 			>
 		},
 
@@ -3939,10 +3933,11 @@ function createFormBuilder<
 			}
 			const result = parseForm(cleaned)
 			return createFormInstance(
-				result as Omit<Form, 'fields' | 'parties' | 'annexes'> & {
+				result as Omit<Form, 'fields' | 'parties' | 'annexes' | 'allowAdditionalAnnexes'> & {
 					fields: TFields
 					parties: TParties extends Record<string, never> ? undefined : TParties
 					annexes: TAnnexes extends Record<string, never> ? undefined : TAnnexes
+					allowAdditionalAnnexes: TAllowAdditionalAnnexes
 				},
 				options,
 			)

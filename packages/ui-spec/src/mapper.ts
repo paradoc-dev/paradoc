@@ -124,6 +124,7 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 					default: (field as NumberField).default,
 					min: (field as NumberField).min,
 					max: (field as NumberField).max,
+					step: (field as NumberField).step,
 				},
 				...optionalFieldPath(ctx),
 			};
@@ -136,6 +137,7 @@ export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode
 					default: (field as MoneyField).default,
 					min: (field as MoneyField).min,
 					max: (field as MoneyField).max,
+					currency: (field as MoneyField).currency,
 				},
 				...optionalFieldPath(ctx),
 			};

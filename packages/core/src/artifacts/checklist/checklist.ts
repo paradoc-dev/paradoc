@@ -7,6 +7,7 @@
 
 import type { Checklist, ChecklistItem, Layer, Metadata, ParadocRenderer, RendererLayer, Form, ContentRef, Resolver } from '@paradoc/types'
 import { createContext } from '@paradoc/expr'
+import { resolveLayerBindings } from '@paradoc/render'
 import { buildRendererLayer } from '../shared/render-layer'
 import type { ArtifactInstanceOptions } from '../shared/render-layer'
 import {
@@ -566,16 +567,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(layers).join(', ')}`)
 		}
 
-		let bindings: Record<string, string> | undefined = layerSpec.bindings
-
-		// Resolve bindingsFrom reference if no direct bindings
-		if (!bindings && layerSpec.bindingsFrom) {
-			const refLayer = layers[layerSpec.bindingsFrom]
-			if (!refLayer) {
-				throw new Error(`bindingsFrom "${layerSpec.bindingsFrom}" references unknown layer. Available: ${Object.keys(layers).join(', ')}`)
-			}
-			bindings = refLayer.bindings
-		}
+		const bindings = resolveLayerBindings(layers, layerSpec)
 
 		// An explicit renderer wins, then one registered for the layer's MIME
 		// type. With neither, a checklist returns its raw layer content — except
@@ -974,16 +966,7 @@ function createChecklistInstance<C extends Checklist>(
 				throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(layers).join(', ')}`)
 			}
 
-			let bindings: Record<string, string> | undefined = layerSpec.bindings
-
-			// Resolve bindingsFrom reference if no direct bindings
-			if (!bindings && layerSpec.bindingsFrom) {
-				const refLayer = layers[layerSpec.bindingsFrom]
-				if (!refLayer) {
-					throw new Error(`bindingsFrom "${layerSpec.bindingsFrom}" references unknown layer. Available: ${Object.keys(layers).join(', ')}`)
-				}
-				bindings = refLayer.bindings
-			}
+			const bindings = resolveLayerBindings(layers, layerSpec)
 
 			// As in the filled path: an explicit renderer, then the registry, then
 			// raw content — and a React layer, which has none, fails instead.

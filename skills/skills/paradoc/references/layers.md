@@ -121,6 +121,8 @@ Use `bindingsFrom` to reuse another layer's bindings:
 }
 ```
 
+A layer's own `bindings` win over `bindingsFrom`. The reuse is one hop: the named layer's own `bindings`, never its `bindingsFrom`. The named layer must exist: rendering fails and `validateLayers()` reports an error when it does not.
+
 PDF AcroForm bindings have additional rules — see [pdf-bindings.md](./pdf-bindings.md).
 
 ## Format

@@ -1,6 +1,6 @@
 import type { Attachment, Checklist, ChecklistItem, Form, FormParty, RuntimeParty } from '@paradoc/types'
 import type { ValidationError } from '@/types'
-import { ATTACHMENT_SCHEMA, compile } from '@/inference'
+import { compile } from '@/inference'
 import { jsonSchemaToZod, mapZodIssueToValidationError } from './data'
 import { validatePartyForRole, validatePartyId } from './party'
 
@@ -507,13 +507,12 @@ export function validateAnnexInput(
 		return failure([createValidationError('annexes', 'annexId is required.')])
 	}
 
-	const annexDefinitions = form.annexes ?? {}
-	const allowAdditionalAnnexes = form.allowAdditionalAnnexes === true
-	if (!annexDefinitions[annexId] && !allowAdditionalAnnexes) {
+	const annexSchema = getAnnexSchema(getFormAnnexesSchema(form), annexId)
+	if (!annexSchema) {
 		return failure([createValidationError(`annexes.${annexId}`, `Unknown annex "${annexId}".`)])
 	}
 
-	return validateAttachment(annexId, input.value)
+	return validateAttachment(annexId, annexSchema, input.value)
 }
 
 /**
@@ -527,20 +526,20 @@ export function validateAnnexesPatch(
 		return failure([createValidationError('annexes', 'Annexes patch must be an object.')])
 	}
 
-	const annexDefinitions = form.annexes ?? {}
-	const allowAdditionalAnnexes = form.allowAdditionalAnnexes === true
+	const annexesSchema = getFormAnnexesSchema(form)
 	const errors: ValidationError[] = []
 
 	const validated: Record<string, Attachment> = {}
 
 	for (const [annexId, value] of Object.entries(annexes)) {
-		if (!annexDefinitions[annexId] && !allowAdditionalAnnexes) {
+		const annexSchema = getAnnexSchema(annexesSchema, annexId)
+		if (!annexSchema) {
 			errors.push(createValidationError(`annexes.${annexId}`, `Unknown annex "${annexId}".`))
 			continue
 		}
 		// An undefined entry leaves the slot as it is, the same as an absent key.
 		if (value === undefined) continue
-		const attachment = validateAttachment(annexId, value)
+		const attachment = validateAttachment(annexId, annexSchema, value)
 		if (!attachment.success) {
 			errors.push(...attachment.errors)
 			continue
@@ -556,11 +555,37 @@ export function validateAnnexesPatch(
 }
 
 /**
- * Check one annex value against the Attachment primitive, reporting issues
+ * The compiled annexes schema of the full payload schema. It is the one source
+ * of which annex ids a form accepts (declared, or any when the form allows
+ * additional annexes) and of the Attachment shape each value must have.
+ */
+function getFormAnnexesSchema(form: Form): JsonSchemaObject {
+	const annexesSchema = (compile(form) as JsonSchemaObject).properties
+	if (!isRecord(annexesSchema) || !isRecord(annexesSchema.annexes)) {
+		throw new Error('Compiled form schema has no annexes schema.')
+	}
+	return annexesSchema.annexes
+}
+
+/**
+ * The schema for one annex id, or null when the form does not accept that id.
+ */
+function getAnnexSchema(annexesSchema: JsonSchemaObject, annexId: string): JsonSchemaObject | null {
+	const declared = isRecord(annexesSchema.properties) ? annexesSchema.properties : {}
+	if (Object.hasOwn(declared, annexId) && isRecord(declared[annexId])) return declared[annexId]
+	return isRecord(annexesSchema.additionalProperties) ? annexesSchema.additionalProperties : null
+}
+
+/**
+ * Check one annex value against its Attachment schema, reporting issues
  * under `annexes.<annexId>`.
  */
-function validateAttachment(annexId: string, value: unknown): ProgressiveValidationResult<Attachment> {
-	const parsed = jsonSchemaToZod(ATTACHMENT_SCHEMA).safeParse(value)
+function validateAttachment(
+	annexId: string,
+	schema: JsonSchemaObject,
+	value: unknown,
+): ProgressiveValidationResult<Attachment> {
+	const parsed = jsonSchemaToZod(schema).safeParse(value)
 	if (parsed.success) {
 		return success(parsed.data as Attachment)
 	}

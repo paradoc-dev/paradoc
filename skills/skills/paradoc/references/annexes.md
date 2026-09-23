@@ -42,7 +42,7 @@ Annexes are defined as a top-level `annexes` object on a form. Each key is an an
 
 ## Additional Annexes
 
-Set `allowAdditionalAnnexes: true` on the form to accept attachments beyond the defined slots. Default is `false`.
+Set `allowAdditionalAnnexes: true` on the form to accept attachments beyond the defined slots. Each additional value must still be an Attachment. Default is `false`: a payload with an undeclared annex key fails validation.
 
 ```json schema=form
 "allowAdditionalAnnexes": true

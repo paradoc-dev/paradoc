@@ -99,6 +99,30 @@ describe("fieldToSpec", () => {
 		expect(propsOf(spec).default).toEqual({ amount: 50000, currency: "USD" });
 	});
 
+	it("passes a number field's step to NumberInput", () => {
+		const spec = fieldToSpec({ type: "number", label: "Rate", step: 0.01 });
+		expect(propsOf(spec).step).toBe(0.01);
+		expect(validateProps("NumberInput", spec.props).step).toBe(0.01);
+	});
+
+	it("omits step from NumberInput when the number field declares none", () => {
+		const spec = fieldToSpec({ type: "number", label: "Count" });
+		expect(propsOf(spec).step).toBeUndefined();
+		expect(JSON.parse(JSON.stringify(spec.props))).not.toHaveProperty("step");
+	});
+
+	it("passes a money field's currency to MoneyInput", () => {
+		const spec = fieldToSpec({ type: "money", label: "Fee", currency: "EUR" });
+		expect(propsOf(spec).currency).toBe("EUR");
+		expect(validateProps("MoneyInput", spec.props).currency).toBe("EUR");
+	});
+
+	it("omits currency from MoneyInput when the money field declares none", () => {
+		const spec = fieldToSpec({ type: "money", label: "Fee" });
+		expect(propsOf(spec).currency).toBeUndefined();
+		expect(JSON.parse(JSON.stringify(spec.props))).not.toHaveProperty("currency");
+	});
+
 	it("round-trips canonical defaults through mapping and prop validation", () => {
 		const fields: FormField[] = [
 			{

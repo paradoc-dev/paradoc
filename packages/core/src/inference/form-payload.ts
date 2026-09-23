@@ -19,7 +19,7 @@ export type JsonSchema = {
   type?: string
   properties?: Record<string, JsonSchema>
   required?: string[]
-  additionalProperties?: boolean
+  additionalProperties?: boolean | JsonSchema
   items?: JsonSchema
   anyOf?: JsonSchema[]
   const?: unknown
@@ -289,13 +289,24 @@ type PartiesPayload<FormSchema> = FormSchema extends { parties: infer P }
       : { parties?: Record<string, RuntimePerson | RuntimeOrganization | (RuntimePerson | RuntimeOrganization)[]> }
   : { parties?: Record<string, RuntimePerson | RuntimeOrganization | (RuntimePerson | RuntimeOrganization)[]> }
 
+/**
+ * Extra annex keys a form with declared annexes accepts: any Attachment when
+ * the schema has a literal `allowAdditionalAnnexes: true` (the builder and the
+ * object pattern both keep the literal), none otherwise. The runtime default
+ * is `false`. A form without declared annexes keeps the open
+ * `Record<string, Attachment>` so it stays assignable to the generic `Form`.
+ */
+type AdditionalAnnexes<FormSchema> = FormSchema extends { allowAdditionalAnnexes: true }
+  ? Record<string, Attachment>
+  : unknown
+
 type AnnexesPayload<FormSchema> = FormSchema extends { annexes: infer A }
   ? [NonNullable<A>] extends [never]
     ? { annexes?: Record<string, Attachment> }
     : NonNullable<A> extends Record<string, FormAnnex>
       ? [RequiredKeys<NonNullable<A>>] extends [never]
-        ? { annexes?: AnnexesToDataType<NonNullable<A>> }
-        : { annexes: AnnexesToDataType<NonNullable<A>> }
+        ? { annexes?: AnnexesToDataType<NonNullable<A>> & AdditionalAnnexes<FormSchema> }
+        : { annexes: AnnexesToDataType<NonNullable<A>> & AdditionalAnnexes<FormSchema> }
       : { annexes?: Record<string, Attachment> }
   : { annexes?: Record<string, Attachment> }
 
@@ -405,19 +416,11 @@ export function compile(form: Form): JsonSchema {
     properties.parties = { type: 'object', additionalProperties: false }
   }
 
-  // Compile annexes if defined
-  if (form.annexes && Object.keys(form.annexes).length > 0) {
-    const annexesSchema = compileAnnexes(form.annexes)
-    properties.annexes = annexesSchema
-
-    // Check if any annexes are required
-    const hasRequiredAnnexes = Object.values(form.annexes).some((annex) => annex.required === true)
-    if (hasRequiredAnnexes) {
-      required.push('annexes')
-    }
-  } else {
-    // No annexes defined - accept optional empty annexes property
-    properties.annexes = { type: 'object', additionalProperties: false }
+  // Compile annexes. Undeclared annex ids are accepted only when the form
+  // allows additional annexes, and each one must still be an Attachment.
+  properties.annexes = compileAnnexes(form.annexes ?? {}, form.allowAdditionalAnnexes === true)
+  if (Object.values(form.annexes ?? {}).some((annex) => annex.required === true)) {
+    required.push('annexes')
   }
 
   return {
@@ -784,7 +787,7 @@ function compileField(field: FormField): JsonSchema {
  * JSON Schema for an annex value: the Attachment primitive (`AttachmentSchema`
  * in @paradoc/schemas). Every annex slot holds exactly one Attachment.
  */
-export const ATTACHMENT_SCHEMA: JsonSchema = {
+const ATTACHMENT_SCHEMA: JsonSchema = {
   type: 'object',
   properties: {
     name: { type: 'string', minLength: 1, maxLength: 255 },
@@ -796,12 +799,15 @@ export const ATTACHMENT_SCHEMA: JsonSchema = {
 }
 
 /**
- * Convert annex definitions into a data validation schema
+ * Convert annex definitions into a data validation schema. With
+ * `allowAdditional`, an undeclared annex id is accepted and its value is
+ * checked against the Attachment shape; without it, an undeclared id fails.
  */
-function compileAnnexes(annexes: Record<string, FormAnnex>): JsonSchema {
+function compileAnnexes(annexes: Record<string, FormAnnex>, allowAdditional: boolean): JsonSchema {
+  const additionalProperties = allowAdditional ? ATTACHMENT_SCHEMA : false
   const annexEntries = Object.entries(annexes)
   if (annexEntries.length === 0) {
-    return { type: 'object', additionalProperties: false }
+    return { type: 'object', additionalProperties }
   }
 
   const properties: Record<string, JsonSchema> = {}
@@ -823,7 +829,7 @@ function compileAnnexes(annexes: Record<string, FormAnnex>): JsonSchema {
     type: 'object',
     properties,
     ...(required.length > 0 && { required }),
-    additionalProperties: false,
+    additionalProperties,
   }
 }
 

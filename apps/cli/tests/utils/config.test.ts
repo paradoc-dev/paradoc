@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { ConfigManager, readConfig } from '../../src/utils/config.js'
+import { ConfigManager } from '../../src/utils/config.js'
 import { configAllowsTelemetry } from '../../src/utils/telemetry.js'
 
 describe('ConfigManager', () => {
@@ -223,25 +223,6 @@ describe('ConfigManager', () => {
       visibility: 'private',
       security: { allowedContentTypes: ['text/csv'] },
     }
-
-    it('reads a paradoc.json that sets security.allowedContentTypes', async () => {
-      const manifestPath = join(tempDir, 'paradoc.json')
-      await fs.writeFile(manifestPath, JSON.stringify(manifest))
-
-      const loaded = await readConfig(manifestPath)
-
-      expect(loaded.security).toEqual({ allowedContentTypes: ['text/csv'] })
-    })
-
-    it('rejects an unknown key inside the project security settings', async () => {
-      const manifestPath = join(tempDir, 'paradoc.json')
-      await fs.writeFile(
-        manifestPath,
-        JSON.stringify({ ...manifest, security: { allowedContentType: ['text/csv'] } }),
-      )
-
-      await expect(readConfig(manifestPath)).rejects.toThrow(/Invalid manifest/)
-    })
 
     it('uses the project content types in place of the global ones', async () => {
       await fs.mkdir(join(tempDir, '.paradoc'))

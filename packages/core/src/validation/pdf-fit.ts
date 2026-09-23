@@ -8,7 +8,8 @@
  */
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import type { FileLayer, Form, Layer, Resolver } from '@paradoc/types'
+import type { FileLayer, Form, Resolver } from '@paradoc/types'
+import { resolveLayerBindings } from '@paradoc/render'
 import { checkPdfBindingFit, type PdfBindingFitIssue } from '@paradoc/render/pdf'
 
 /** A validation issue with the severity the validation model gives it. */
@@ -32,12 +33,6 @@ function readFailure(key: string, what: string, path: string, error: unknown): L
     path: ['layers', key],
     severity: 'error',
   }
-}
-
-/** The bindings a layer fills with: its own, or those of the sibling it names. */
-function layerBindings(layers: Record<string, Layer>, layer: Layer): Record<string, string> | undefined {
-  if (layer.bindings) return layer.bindings
-  return layer.bindingsFrom ? layers[layer.bindingsFrom]?.bindings : undefined
 }
 
 /**
@@ -68,7 +63,7 @@ export async function validatePdfBindingFit(form: Form, resolver: Resolver): Pro
       }
     }
     try {
-      const found = await checkPdfBindingFit({ template, form, bindings: layerBindings(layers, layer), ...(layerFont && { layerFont }) })
+      const found = await checkPdfBindingFit({ template, form, bindings: resolveLayerBindings(layers, layer), ...(layerFont && { layerFont }) })
       issues.push(...found.map((issue) => issueFor(key, issue)))
     } catch (error) {
       issues.push({

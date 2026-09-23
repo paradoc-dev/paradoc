@@ -60,6 +60,56 @@ describe('definition payload inference', () => {
 		expect(form.fill(payload).fields.age).toBe(42)
 	})
 
+	test('accepts extra annex keys only when the form allows additional annexes', () => {
+		const attachment = { name: 'extra.pdf', mimeType: 'application/pdf' }
+		const openBuilt = p
+			.form()
+			.name('open-built')
+			.annexes({ proof: p.annex().required(true) })
+			.allowAdditionalAnnexes(true)
+			.build()
+		const openLiteral = p.form({
+			kind: 'form',
+			name: 'open-literal',
+			annexes: { proof: { required: true } },
+			allowAdditionalAnnexes: true,
+		})
+		const closedBuilt = p.form().name('closed-built').annexes({ proof: p.annex().required(true) }).build()
+		const closedExplicit = p
+			.form()
+			.name('closed-explicit')
+			.annexes({ proof: p.annex().required(true) })
+			.allowAdditionalAnnexes(false)
+			.build()
+		const closedLiteral = p.form({ kind: 'form', name: 'closed-literal', annexes: { proof: { required: true } } })
+
+		const openBuiltPayload: InferFormPayload<typeof openBuilt> = {
+			fields: {},
+			annexes: { proof: attachment, extra: attachment },
+		}
+		const openLiteralPayload: InferFormPayload<typeof openLiteral> = {
+			fields: {},
+			annexes: { proof: attachment, extra: attachment },
+		}
+		const openPatch: ProgressiveFormPayload<typeof openBuilt> = { annexes: { extra: attachment } }
+		// @ts-expect-error an allowed extra annex must still be an Attachment
+		const openBadValue: InferFormPayload<typeof openBuilt> = { fields: {}, annexes: { proof: attachment, extra: 'extra.pdf' } }
+		// @ts-expect-error a declared required annex stays required on an open form
+		const openMissingProof: InferFormPayload<typeof openBuilt> = { fields: {}, annexes: { extra: attachment } }
+		// @ts-expect-error a default form rejects an undeclared annex key
+		const closedBuiltPayload: InferFormPayload<typeof closedBuilt> = { fields: {}, annexes: { proof: attachment, extra: attachment } }
+		// @ts-expect-error allowAdditionalAnnexes(false) rejects an undeclared annex key
+		const closedExplicitPayload: InferFormPayload<typeof closedExplicit> = { fields: {}, annexes: { proof: attachment, extra: attachment } }
+		// @ts-expect-error a literal form without the flag rejects an undeclared annex key
+		const closedLiteralPayload: InferFormPayload<typeof closedLiteral> = { fields: {}, annexes: { proof: attachment, extra: attachment } }
+
+		expect(openBuilt.fill(openBuiltPayload).getAnnex('extra')).toEqual(attachment)
+		expect(openLiteral.fill(openLiteralPayload).getAnnex('extra')).toEqual(attachment)
+		expect(openBuilt.allowAdditionalAnnexes).toBe(true)
+		expect(closedBuilt.allowAdditionalAnnexes).toBe(false)
+		void [openPatch, openBadValue, openMissingProof, closedBuiltPayload, closedExplicitPayload, closedLiteralPayload]
+	})
+
 	test('preserves nested fieldset and list inference through fluent builders', () => {
 		const profileBuilder = p.field
 			.fieldset()

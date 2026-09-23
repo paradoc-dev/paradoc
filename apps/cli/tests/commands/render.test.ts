@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
-import { execFile, spawn } from 'node:child_process'
-import { promisify } from 'node:util'
+import { spawn } from 'node:child_process'
 import path from 'node:path'
 import fs from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { createFsResolver } from '@paradoc/resolvers/fs'
@@ -11,14 +11,18 @@ import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const fixturesDir = path.resolve(__dirname, '../fixtures')
-const execFileAsync = promisify(execFile)
-
-// Build with tsup directly: the test home is empty, so going through pnpm
-// would make corepack download pnpm into it first.
-beforeAll(async () => {
-  await execFileAsync('tsup', [], {
-    cwd: path.resolve(__dirname, '../..'),
-  })
+// The package's turbo.json makes `test` depend on `build`, so the built
+// binary exists whenever this suite runs through the task graph. Fail loudly
+// when it is missing rather than rebuild here: a rebuild inside the hook
+// races the hook timeout under load.
+const builtCliPath = path.resolve(__dirname, '../../dist/index.js')
+beforeAll(() => {
+  if (!existsSync(builtCliPath)) {
+    throw new Error(
+      `Built binary not found at ${builtCliPath}. Run 'pnpm build' first, or run this suite through ` +
+        "'pnpm turbo run test --filter=@paradoc/cli'.",
+    )
+  }
 })
 
 async function executeCliCommand(
@@ -32,7 +36,7 @@ async function executeCliCommand(
   }
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
-    const cliPath = path.resolve(__dirname, options?.built ? '../../dist/index.js' : '../../src/index.ts')
+    const cliPath = path.resolve(__dirname, options?.built ? builtCliPath : '../../src/index.ts')
     const executable = options?.built ? process.execPath : 'tsx'
     const child = spawn(executable, [cliPath, ...args], {
       cwd: options?.cwd || process.cwd(),

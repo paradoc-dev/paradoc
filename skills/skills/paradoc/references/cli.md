@@ -51,7 +51,7 @@ paradoc init my-new-project
 
 | Path | Purpose |
 |------|---------|
-| `paradoc.json` | Project manifest (name, title, description, registries, config) |
+| `paradoc.json` | Project manifest with `$schema`, `name` (`@your-org/<title-slug>`; replace `your-org`), `title`, `description`, `visibility`. Add `registries`, `artifacts`, `security`, `cache` by hand |
 | `.paradoc/` | CLI state directory, created empty; holds `lock.json` once an artifact is installed |
 
 ### Output formats

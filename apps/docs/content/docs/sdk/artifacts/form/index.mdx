@@ -330,7 +330,7 @@ const annexPatch = form.validateAnnexesPatch({
 
 Every annex value must be an [Attachment](/schemas/primitives/attachment): `{ name, mimeType, checksum? }` with no other keys. A value of any other shape fails with an error under `annexes.<annexId>`. `fill`, `update`, and `setAnnex` apply the same check.
 
-When `allowAdditionalAnnexes` is `false`, unknown annex keys are rejected.
+When `allowAdditionalAnnexes` is `false`, unknown annex keys are rejected. When it is `true`, an unknown key is accepted and its value must still be an Attachment. The progressive validators and full payload validation (`validateFormData`, `fill`) apply the same rule.
 
 ## Incremental Filling
 

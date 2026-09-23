@@ -503,6 +503,59 @@ describe('progressive form validation', () => {
 			}
 		})
 
+		test('full payload validation accepts an additional annex when the form allows it, as an Attachment', () => {
+			const openForm = form()
+				.name('open-annexes-declared')
+				.annexes({ proof: { title: 'Proof', required: true } })
+				.allowAdditionalAnnexes(true)
+				.build()
+			const proof = { name: 'proof.pdf', mimeType: 'application/pdf' }
+			const extra = { name: 'extra.pdf', mimeType: 'application/pdf' }
+
+			expect(validateFormData(openForm, { fields: {}, annexes: { proof, customAnnex: extra } }).success).toBe(true)
+			expect(openForm.fill({ fields: {}, annexes: { proof, customAnnex: extra } }).getAnnex('customAnnex')).toEqual(extra)
+
+			const invalid = validateFormData(openForm, { fields: {}, annexes: { proof, customAnnex: { path: 'extra.pdf' } } })
+			expect(invalid.success).toBe(false)
+			if (!invalid.success) {
+				expect(invalid.errors.length).toBeGreaterThan(0)
+				for (const error of invalid.errors) expect(error.field.startsWith('annexes.customAnnex')).toBe(true)
+			}
+		})
+
+		test('full payload validation accepts an additional annex on a form that declares no annexes', () => {
+			const openForm = form().name('open-annexes').allowAdditionalAnnexes(true).build()
+
+			const valid = validateFormData(openForm, {
+				fields: {},
+				annexes: { extra: { name: 'extra.pdf', mimeType: 'application/pdf' } },
+			})
+			expect(valid.success).toBe(true)
+
+			const invalid = validateFormData(openForm, { fields: {}, annexes: { extra: 'extra.pdf' } })
+			expect(invalid.success).toBe(false)
+		})
+
+		test('full payload validation rejects an additional annex when the form does not allow it', () => {
+			for (const closedForm of [
+				createPetAddendumLikeForm(),
+				form().name('closed-annexes').build(),
+			]) {
+				const result = validateFormData(closedForm, {
+					fields: {},
+					annexes: { customAnnex: { name: 'extra.pdf', mimeType: 'application/pdf' } },
+				})
+				expect(result.success).toBe(false)
+				if (!result.success) {
+					expect(result.errors.some((error) => error.field.startsWith('annexes'))).toBe(true)
+				}
+			}
+			expect(validateAnnexInput(createPetAddendumLikeForm(), {
+				annexId: 'customAnnex',
+				value: { name: 'extra.pdf', mimeType: 'application/pdf' },
+			}).success).toBe(false)
+		})
+
 		test('setAnnex rejects a value that is not an Attachment', () => {
 			const petForm = createPetAddendumLikeForm()
 			const draft = petForm.fill()

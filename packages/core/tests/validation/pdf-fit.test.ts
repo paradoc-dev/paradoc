@@ -112,6 +112,26 @@ describe('validateLayers PDF binding fit', () => {
     })])
   })
 
+  it('checks a layer that reuses another layer bindings through bindingsFrom', async () => {
+    const base = artifact({ amountSource: { type: 'text', label: 'Source', maxLength: 200 } }, { amountSource: 'amountSource' })
+    const form = { ...base, layers: { ...base.layers, copy: { kind: 'file', mimeType: 'application/pdf', path: 'form.pdf', bindingsFrom: 'pdf' } } }
+    const result = await validateLayers(form, { resolver })
+    expect(result.issues).toEqual([
+      expect.objectContaining({ message: expect.stringMatching(/^Layer "pdf", PDF field "amountSource"/), path: ['layers', 'pdf', 'bindings', 'amountSource'] }),
+      expect.objectContaining({ message: expect.stringMatching(/^Layer "copy", PDF field "amountSource"/), path: ['layers', 'copy', 'bindings', 'amountSource'] }),
+    ])
+  })
+
+  it('reports a bindingsFrom that names no layer, as rendering would', async () => {
+    const form = { ...artifact({}, {}), layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'form.pdf', bindingsFrom: 'missing' } } }
+    const result = await validateLayers(form, { resolver })
+    expect(result.issues).toEqual([expect.objectContaining({
+      message: 'Layer "pdf" could not be checked: bindingsFrom "missing" references unknown layer. Available: pdf',
+      path: ['layers', 'pdf'],
+      severity: 'error',
+    })])
+  })
+
   it('reports a PDF layer the resolver cannot read', async () => {
     const form = { ...artifact({}, {}), layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'missing.pdf' } } }
     const result = await validateLayers(form, { resolver })
