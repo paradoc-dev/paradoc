@@ -16,12 +16,34 @@
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer, { type Browser } from "puppeteer";
 
-/** Where the lab is started. Fixed, so a stray server from a previous run is obvious. */
-export const PARITY_LAB_PORT = 5182;
+/**
+ * A port nothing on the loopback interface is listening on.
+ *
+ * The operating system picks it: binding port 0 asks for any free one, and the
+ * port is read back and released. Each run of the suite therefore starts its
+ * lab on its own port, so two runs at once, in two worktrees or two terminals,
+ * do not collide.
+ */
+export async function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (address === null || typeof address === "string") {
+        server.close();
+        reject(new Error("The loopback interface gave no TCP port to bind the lab on."));
+        return;
+      }
+      server.close(() => resolve(address.port));
+    });
+  });
+}
 
 /** The workspace package this suite drives. */
 const LAB_PACKAGE = "@paradoc/react-lab";
@@ -132,13 +154,15 @@ async function answering(url: string): Promise<boolean> {
 }
 
 /**
- * Starts the lab on a fixed port and resolves once it answers.
+ * Starts the lab and resolves once it answers.
  *
- * `--strictPort` rather than Vite's usual hunt for a free one: a suite that
- * quietly measured against a server it did not start would report whatever that
- * server happened to be serving.
+ * The port is a free one unless the caller names it. `--strictPort` rather than
+ * Vite's usual hunt for a free one: the returned URL must be the server this
+ * call started, and a suite that quietly measured against another server would
+ * report whatever that server happened to be serving.
  */
-export async function startLab(port: number = PARITY_LAB_PORT): Promise<Lab> {
+export async function startLab(port?: number): Promise<Lab> {
+  port ??= await freePort();
   const url = `http://127.0.0.1:${port}`;
   if (await answering(url)) {
     throw new Error(`Something is already listening on ${url}. Stop it and run the suite again.`);
@@ -185,10 +209,10 @@ export async function startLab(port: number = PARITY_LAB_PORT): Promise<Lab> {
 
     signal("SIGTERM");
     await settle(50);
-    // A dev server that ignored the polite signal still holds port 5182, and
-    // the next run of this suite refuses to start against a server it did not
-    // start. Leaving one behind would fail that run for a reason belonging to
-    // this one, so the wait is followed through rather than given up on.
+    // A dev server that ignored the polite signal still holds its port and
+    // keeps a dev server running that no run owns. Leaving one behind would
+    // cost a later run for a reason belonging to this one, so the wait is
+    // followed through rather than given up on.
     if (!exited()) {
       signal("SIGKILL");
       await settle(50);

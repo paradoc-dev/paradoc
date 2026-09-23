@@ -8,8 +8,8 @@ import base from "./vitest.config";
  * Everything it shares with the ordinary tests — the alias, the environment,
  * the process isolation — comes from the base config rather than being
  * restated, so the two cannot drift apart. What it overrides is only what makes
- * this suite different: it starts the lab's dev server on a fixed port and
- * drives one Chrome, so it cannot run beside itself. One file, one process, no
+ * this suite different: each file starts the lab's dev server and
+ * drives one Chrome, so files run one at a time. One file, one process, no
  * parallelism, and timeouts measured in minutes because the work is a
  * browser's, not a test runner's.
  */
