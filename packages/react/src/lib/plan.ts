@@ -18,9 +18,11 @@
  * 1. Keeps fill a page greedily in document order and are never split. A keep
  *    whose bottom would fall past the budget starts the next page, which then
  *    begins at that keep's top.
- * 2. A page that closes on a table header carries that header forward instead
- *    of keeping it, because rows only ever follow a header, so a page never
- *    ends on a header with nothing under it.
+ * 2. A page that closes on a table header or on a keep marked to stay with
+ *    the next one (a section heading) carries it forward instead of keeping
+ *    it, so a page never ends on a heading with nothing under it. A run of
+ *    such keeps, like a section heading over a table header, carries whole.
+ *    The last keep of the document has nothing to carry with, so it stays.
  * 3. A page that opens on a table row repeats that table's header above it. The
  *    copy is not in the flow, so it takes its own height plus the gap to the
  *    first row out of the page's budget, and it is listed in `repeats`.
@@ -48,6 +50,11 @@ export interface MeasuredKeep {
   table?: string;
   /** True when this keep is its table's repeatable header. */
   tableHeader?: boolean;
+  /**
+   * True when this keep must share a page with the keep that follows it, as a
+   * section heading does with the first keep of its content.
+   */
+  keepWithNext?: boolean;
   /**
    * Set by an explicit `PageBreak`: this keep must open a fresh page even
    * though it would otherwise fit on the current one. The keep still carries
@@ -169,21 +176,26 @@ export function planPages(keeps: readonly MeasuredKeep[], budget: number): PageP
   let origin = 0;
 
   /**
-   * Takes a table header left alone at the foot of the page just filled, so it
-   * can open the next page instead. A copy is never carried: it is not the
-   * header's place in the flow.
+   * Takes the table headers and section headings left alone at the foot of
+   * the page just filled, in flow order, so they can open the next page
+   * instead. A copy is never carried: it is not the header's place in the flow.
    */
-  const carryOrphanHeader = (): MeasuredKeep | undefined => {
+  const carryOrphanHeaders = (): MeasuredKeep[] => {
     const page = pages[pages.length - 1];
-    const last = page?.keeps[page.keeps.length - 1];
-    if (!page || last === undefined || page.repeats.includes(last)) return undefined;
+    const carried: MeasuredKeep[] = [];
+    if (!page) return carried;
 
-    const header = byId.get(last);
-    if (!header?.tableHeader) return undefined;
+    for (;;) {
+      const last = page.keeps[page.keeps.length - 1];
+      if (last === undefined || page.repeats.includes(last)) break;
+      const header = byId.get(last);
+      if (!header || !(header.tableHeader || header.keepWithNext)) break;
+      page.keeps.pop();
+      carried.unshift(header);
+    }
 
-    page.keeps.pop();
-    if (page.keeps.length === 0) pages.pop();
-    return header;
+    if (carried.length > 0 && page.keeps.length === 0) pages.pop();
+    return carried;
   };
 
   /**
@@ -216,12 +228,13 @@ export function planPages(keeps: readonly MeasuredKeep[], budget: number): PageP
       return page;
     }
 
-    const carried = carryOrphanHeader();
-    if (carried) {
-      // The header keeps its place in the flow, one page later.
-      const page: PageBuild = { keeps: [carried.id], repeats: [], start: carried.id };
+    const carried = carryOrphanHeaders();
+    const first = carried[0];
+    if (first) {
+      // The headers keep their place in the flow, one page later.
+      const page: PageBuild = { keeps: carried.map((header) => header.id), repeats: [], start: first.id };
       pages.push(page);
-      origin = carried.top;
+      origin = first.top;
       return page;
     }
 

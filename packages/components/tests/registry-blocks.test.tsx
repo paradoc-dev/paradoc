@@ -66,8 +66,8 @@ beforeAll(async () => {
   // engine copies the table header onto every page it said to.
   const { node } = await fromJsx(<PurchaseOrderDocument data={purchaseOrderData} />);
   let y = 0;
-  const keeps: MeasuredKeep[] = treeKeeps(node).map(({ id, table, tableHeader }) => {
-    const laid = { id, table, tableHeader, top: y, bottom: y + 100 };
+  const keeps: MeasuredKeep[] = treeKeeps(node).map(({ id, table, tableHeader, keepWithNext }) => {
+    const laid = { id, table, tableHeader, keepWithNext, top: y, bottom: y + 100 };
     y = laid.bottom;
     return laid;
   });

@@ -24,6 +24,8 @@ export interface TreeKeep {
   tableHeader: boolean;
   /** True when the keep is its table's footer. */
   tableFooter: boolean;
+  /** True when the keep must share a page with the keep after it, as a section heading does. */
+  keepWithNext: boolean;
 }
 
 /** Every node under `node`, itself included, in document order. */
@@ -61,6 +63,7 @@ export function treeKeeps(node: Node, into: TreeKeep[] = []): TreeKeep[] {
       table: header ?? row ?? footer,
       tableHeader: header !== undefined,
       tableFooter: footer !== undefined,
+      keepWithNext: attributes["data-keep-with-next"] !== undefined,
     });
   }
   if (node.type === "container" && node.children) {

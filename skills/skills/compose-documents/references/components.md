@@ -70,7 +70,7 @@ collapses to `null` on a page that holds none of its keeps.
 | Prop | Type | Notes |
 |---|---|---|
 | `id` | `string` | Stable section id. |
-| `title` | `string?` | Rendered as a heading `KeepTogether` (`heading:<id>`). Omit for an untitled section. |
+| `title` | `string?` | Rendered as a heading `KeepTogether` (`heading:<id>`) that the plan never leaves alone at a page foot: it moves on with the section's first keep. Omit for an untitled section. |
 | `className` | `string?` | Defaults to `"flex flex-col gap-2"`. |
 | `children` | `ReactNode` | | |
 

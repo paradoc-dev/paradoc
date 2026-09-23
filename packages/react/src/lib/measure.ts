@@ -36,6 +36,7 @@ export function measureKeeps(root: HTMLElement): MeasuredKeep[] {
     const row = node.getAttribute("data-table-row");
     const breakBefore = node.getAttribute("data-break-before");
     const footer = node.getAttribute("data-table-footer");
+    const keepWithNext = node.getAttribute("data-keep-with-next");
 
     return {
       id: node.getAttribute("data-keep-id") ?? "",
@@ -44,6 +45,7 @@ export function measureKeeps(root: HTMLElement): MeasuredKeep[] {
       sections: sectionChain(node, root),
       table: header ?? row ?? footer ?? undefined,
       tableHeader: header !== null,
+      keepWithNext: keepWithNext !== null,
       breakBefore: breakBefore === "page" ? "page" : undefined,
       tableFooter: footer !== null,
     };

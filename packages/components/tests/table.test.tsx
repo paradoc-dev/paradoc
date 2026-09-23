@@ -157,11 +157,12 @@ describe("Table footer pagination", () => {
     const { node } = await fromJsx(
       inDocument(<Table path="lineItems" id="line-items" columns={COLUMNS} footer={[{ def: "subtotal" }]} />)
     );
-    return treeKeeps(node).map(({ id, table, tableHeader, tableFooter }, index) => ({
+    return treeKeeps(node).map(({ id, table, tableHeader, tableFooter, keepWithNext }, index) => ({
       id,
       table,
       tableHeader,
       tableFooter,
+      keepWithNext,
       top: index * height,
       bottom: (index + 1) * height,
     }));
@@ -262,8 +263,8 @@ describe("the PDF path", () => {
     // table header.
     const { node } = await fromJsx(element);
     let y = 0;
-    const keeps: MeasuredKeep[] = treeKeeps(node).map(({ id, table, tableHeader, tableFooter }) => {
-      const laid = { id, table, tableHeader, tableFooter, top: y, bottom: y + 60 };
+    const keeps: MeasuredKeep[] = treeKeeps(node).map(({ id, table, tableHeader, tableFooter, keepWithNext }) => {
+      const laid = { id, table, tableHeader, tableFooter, keepWithNext, top: y, bottom: y + 60 };
       y = laid.bottom;
       return laid;
     });

@@ -63,8 +63,8 @@ async function stubDocument(
   const found = treeKeeps(node);
 
   let y = 0;
-  const keeps: MeasuredKeep[] = found.map(({ id, table, tableHeader }) => {
-    const laid = { id, table, tableHeader, top: y, bottom: y + height };
+  const keeps: MeasuredKeep[] = found.map(({ id, table, tableHeader, keepWithNext }) => {
+    const laid = { id, table, tableHeader, keepWithNext, top: y, bottom: y + height };
     y = laid.bottom;
     return laid;
   });

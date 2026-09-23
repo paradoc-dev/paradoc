@@ -191,8 +191,8 @@ describe.skipIf(skipped)("the Chromium adapter", () => {
     );
     const { node } = await fromJsx(element);
     let y = 0;
-    const keeps: MeasuredKeep[] = treeKeeps(node).map(({ id, table, tableHeader, tableFooter }) => {
-      const laid = { id, table, tableHeader, tableFooter, top: y, bottom: y + 60 };
+    const keeps: MeasuredKeep[] = treeKeeps(node).map(({ id, table, tableHeader, tableFooter, keepWithNext }) => {
+      const laid = { id, table, tableHeader, tableFooter, keepWithNext, top: y, bottom: y + 60 };
       y = laid.bottom;
       return laid;
     });

@@ -33,6 +33,8 @@ across renders, not derived from the data being shown.
 A `Section`'s heading, when it has a `title`, is itself a
 [`Keep Together`](/components/keep-together) — that is
 the one piece of pagination machinery it brings along automatically. The
+heading stays with the section's first keep: when that keep starts the next
+page, the heading moves there with it rather than ending a page alone. The
 rest of the section is ordinary children: put whatever
 [`Field`](/components/field)s or [`Table`](/components/table)s belong
 together inside it. `Section` renders them as given and collapses to

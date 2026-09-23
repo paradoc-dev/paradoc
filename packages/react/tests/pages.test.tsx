@@ -86,6 +86,12 @@ describe("the measured keeps come from the tree itself", () => {
     expect(row).toMatchObject({ table: "line-items", tableHeader: false });
   });
 
+  it("marks a section heading, and nothing else, to stay with the keep after it", () => {
+    expect(keeps.find((keep) => keep.id === "heading:terms")!.keepWithNext).toBe(true);
+    expect(keeps.find((keep) => keep.id === "field:summary")!.keepWithNext).toBe(false);
+    expect(keeps.find((keep) => keep.id === "line-items:header")!.keepWithNext).toBe(false);
+  });
+
   it("records the sections enclosing each keep", () => {
     expect(keeps.find((keep) => keep.id === "field:summary")!.sections).toEqual(["summary"]);
     expect(keeps.find((keep) => keep.id === "totals")!.sections).toEqual(["line-items"]);
@@ -249,9 +255,11 @@ describe("an oversize keep", () => {
   );
   const oversizePage = tallPlan.pages.findIndex((page) => page.includes("field:terms"));
 
-  it("is alone on its own page", () => {
-    expect(tallPlan.oversize).toEqual([{ id: "field:terms", height: 1400 }]);
-    expect(tallPlan.pages[oversizePage]).toEqual(["field:terms"]);
+  it("opens its own page under its section heading, which it counts against the budget", () => {
+    // The heading carries on with the first keep of its content even when that
+    // keep overflows, so the reported height includes the heading's 10 px.
+    expect(tallPlan.oversize).toEqual([{ id: "field:terms", height: 1410 }]);
+    expect(tallPlan.pages[oversizePage]).toEqual(["heading:terms", "field:terms"]);
   });
 
   it("is reported on that page, naming the keep and its height", () => {
@@ -260,7 +268,7 @@ describe("an oversize keep", () => {
     )!;
     expect(marker.getAttribute("data-oversize-keep")).toBe("field:terms");
     expect(marker.textContent).toContain("field:terms");
-    expect(marker.textContent).toContain("1400 px");
+    expect(marker.textContent).toContain("1410 px");
     expect(marker.textContent).toContain(`${BUDGET} px`);
   });
 

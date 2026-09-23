@@ -470,3 +470,57 @@ describe("an explicit page break", () => {
     expect(plan.oversize).toEqual([{ id: "items:0", height: 350 }]);
   });
 });
+
+describe("a section heading stays with its first keep", () => {
+  it("moves a section heading alone at the foot of a page on with its first keep", () => {
+    const plan = planPages(
+      stack(keep("intro", 400), keep("heading:terms", 50, { keepWithNext: true }), keep("terms", 100)),
+      500
+    );
+    expect(plan.pages).toEqual([["intro"], ["heading:terms", "terms"]]);
+    expect(plan.breaks).toEqual(["heading:terms"]);
+    expect(plan.oversize).toEqual([]);
+  });
+
+  it("leaves a section heading in place when its first keep fits under it", () => {
+    const plan = planPages(
+      stack(keep("intro", 300), keep("heading:terms", 50, { keepWithNext: true }), keep("terms", 100)),
+      500
+    );
+    expect(plan.pages).toEqual([["intro", "heading:terms", "terms"]]);
+    expect(plan.breaks).toEqual([]);
+  });
+
+  it("leaves a heading that is the document's last keep where it is", () => {
+    const plan = planPages(
+      stack(keep("intro", 400), keep("heading:notes", 50, { keepWithNext: true })),
+      500
+    );
+    expect(plan.pages).toEqual([["intro", "heading:notes"]]);
+    expect(plan.breaks).toEqual([]);
+  });
+
+  it("carries a section heading and the table header under it on together", () => {
+    const plan = planPages(
+      stack(
+        keep("intro", 300),
+        keep("heading:items", 50, { sections: ["items"], keepWithNext: true }),
+        ...table("items", 2, 100).map((each) => ({ ...each, sections: ["items"] }))
+      ),
+      500
+    );
+    expect(plan.pages).toEqual([
+      ["intro"],
+      ["heading:items", "items:header", "items:0", "items:1"],
+    ]);
+    expect(plan.repeats).toEqual([[], []]);
+    expect(plan.breaks).toEqual(["heading:items"]);
+    expect(plan.sections).toEqual([[], ["items"]]);
+  });
+
+  it("does not carry a keep that is not marked to stay with the next one", () => {
+    const plan = planPages(stack(keep("intro", 400), keep("note", 50), keep("terms", 100)), 500);
+    expect(plan.pages).toEqual([["intro", "note"], ["terms"]]);
+    expect(plan.breaks).toEqual(["terms"]);
+  });
+});
