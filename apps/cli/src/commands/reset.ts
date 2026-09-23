@@ -5,7 +5,7 @@ import ora from 'ora'
 import prompts from 'prompts'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
-import type { GlobalConfig } from '../types.js'
+import type { GlobalConfig } from '@paradoc/schemas'
 import { registryClient } from '../utils/registry-client.js'
 import { configManager } from '../utils/config.js'
 import { rendererManager } from '../utils/renderer-manager.js'
@@ -83,6 +83,10 @@ export function createResetCommand(): Command {
 
         configExists = await globalStorage.exists(GLOBAL_CONFIG_PATH)
 
+        // Read the current config before anything is cleared, so a config the
+        // CLI cannot read stops the reset with nothing changed.
+        const currentConfig = await configManager.loadGlobalConfig()
+
         if (!options.keepCache) {
           cacheSize = await getDirectorySize(GLOBAL_CACHE_DIR)
         }
@@ -146,24 +150,16 @@ export function createResetCommand(): Command {
         spinner.succeed('Cleared installed renderers')
 
         // Preserve user preferences from existing config
-        let existingRegistries: GlobalConfig['registries'] | undefined
-        let existingTelemetryEnabled: boolean | undefined
-        let existingAnonymousId: string | undefined
-        if (configExists) {
-          const config = await configManager.loadGlobalConfig()
-          if (options.keepRegistries) {
-            existingRegistries = config.registries
-          }
-          existingTelemetryEnabled = config.telemetry?.enabled
-          existingAnonymousId = config.anonymousId
-        }
+        const existingRegistries: GlobalConfig['registries'] | undefined =
+          options.keepRegistries ? currentConfig.registries : undefined
+        const existingTelemetryEnabled = currentConfig.telemetry?.enabled
+        const existingAnonymousId = currentConfig.anonymousId
 
         // Create fresh default config
         spinner.start('Creating default configuration...')
 
         // Default config with recommended settings
         const defaultConfig: GlobalConfig = {
-          $schema: 'https://schema.paradoc.dev/config.json',
           registries: existingRegistries ?? {},
           defaults: {
             output: 'json' as const,

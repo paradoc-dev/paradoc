@@ -13,7 +13,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/cli/global-config.json",
+  "$schema": "https://schema.paradoc.dev/config.json",
   "defaults": {
     "output": "json",
     "artifactsDir": "artifacts",
@@ -28,6 +28,9 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
   },
   "security": {
     "allowedContentTypes": ["application/pdf", "text/markdown"]
+  },
+  "telemetry": {
+    "enabled": false
   }
 }
 ```
@@ -43,6 +46,10 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 | `cache.ttl` | number | `3600` | Cache time-to-live in seconds |
 | `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory |
 | `security.allowedContentTypes` | array | — | Permitted content types for layer downloads |
+| `telemetry.enabled` | boolean | `true` | Set to `false` to turn off [telemetry](#telemetry) |
+| `anonymousId` | string | — | Anonymous telemetry ID. The CLI creates it once and keeps it across resets |
+
+The CLI validates this file each time it reads or writes it. A missing file means no settings. If the file is not valid JSON, or has a key or value the schema does not accept, the command stops with an error that names the file and each bad key. The CLI does not change the file; fix it by hand.
 
 ## Project overrides
 

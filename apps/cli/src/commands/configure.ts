@@ -2,7 +2,8 @@ import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
 
-import type { GlobalConfig, OutputFormat } from '../types.js'
+import type { GlobalConfig } from '@paradoc/schemas'
+import type { OutputFormat } from '../types.js'
 import { configManager } from '../utils/config.js'
 import { DEFAULT_CACHE_TTL } from '../utils/cache.js'
 
@@ -38,8 +39,15 @@ export function createConfigureCommand(): Command {
       console.log(kleur.gray('Press Enter to keep the current value, or select a new one.'))
       console.log()
 
-      // Load current config
-      const currentConfig = await configManager.loadGlobalConfig()
+      // Load current config. A config the CLI cannot read stops the wizard
+      // before it asks anything, and the file is left as it is.
+      let currentConfig: GlobalConfig
+      try {
+        currentConfig = await configManager.loadGlobalConfig()
+      } catch (error) {
+        console.error(kleur.red(error instanceof Error ? error.message : String(error)))
+        process.exit(1)
+      }
 
       // Track new values
       const currentOutput = currentConfig.defaults?.output ?? 'json'
@@ -312,8 +320,10 @@ export function createConfigureCommand(): Command {
       }
 
       // Build and save config
+      // Keep every setting the wizard does not ask about (security, cache
+      // directory, anonymous ID) and replace only the ones it does.
       const newConfig: GlobalConfig = {
-        $schema: 'https://schema.paradoc.dev/config.json',
+        ...currentConfig,
         registries: currentConfig.registries ?? {},
         defaults: {
           output: output as OutputFormat,
@@ -321,13 +331,12 @@ export function createConfigureCommand(): Command {
           ...(defaultRegistry && { registry: defaultRegistry }),
         },
         cache: {
+          ...currentConfig.cache,
           ttl: cacheTtl,
         },
         telemetry: {
           enabled: telemetryEnabled,
         },
-        // Preserve anonymous ID across config saves
-        ...(currentConfig.anonymousId && { anonymousId: currentConfig.anonymousId }),
       }
 
       await configManager.saveGlobalConfig(newConfig)

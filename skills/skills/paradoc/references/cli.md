@@ -89,9 +89,13 @@ Global config at `~/.paradoc/config.json`:
   "registries": {
     "@acme": { "url": "https://registry.acme.com" }
   },
-  "cache": { "ttl": 3600, "directory": "~/.paradoc/cache" }
+  "cache": { "ttl": 3600, "directory": "~/.paradoc/cache" },
+  "security": { "allowedContentTypes": ["application/pdf"] },
+  "telemetry": { "enabled": false }
 }
 ```
+
+An unknown key or invalid JSON stops every command with an error that names the file and each bad key; the file is not changed.
 
 Registry URLs support env-var expansion:
 

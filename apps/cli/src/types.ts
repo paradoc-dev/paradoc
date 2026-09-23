@@ -59,38 +59,6 @@ export interface ContentTypeConfig {
 }
 
 /**
- * Global CLI configuration
- */
-export interface GlobalConfig {
-  $schema?: string
-  registries?: Record<string, RegistryEntry>
-  defaults?: {
-    output?: OutputFormat
-    artifactsDir?: string
-    registry?: string
-  }
-  /**
-   * Security settings for layer downloads
-   */
-  security?: ContentTypeConfig
-  /**
-   * Global cache configuration for registry data
-   */
-  cache?: CacheConfig
-  /**
-   * Telemetry preferences
-   */
-  telemetry?: {
-    enabled?: boolean
-  }
-  /**
-   * Persistent anonymous identifier for telemetry (UUID v4).
-   * Generated once on first use, preserved across resets.
-   */
-  anonymousId?: string
-}
-
-/**
  * Project-level cache configuration (without directory - uses global)
  */
 export interface ProjectCacheConfig {

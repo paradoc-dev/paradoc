@@ -42,10 +42,38 @@
       "title": "CacheConfig",
       "description": "Global cache configuration for registry data"
     },
-    "enableTelemetry": {
-      "default": true,
-      "description": "Enable anonymous usage telemetry for artifact installs. Overrides registry settings when false. Defaults to true.",
-      "type": "boolean"
+    "security": {
+      "type": "object",
+      "properties": {
+        "allowedContentTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Content types permitted for layer downloads, added to the built-in defaults. Blocked types are never allowed."
+        }
+      },
+      "additionalProperties": false,
+      "title": "SecurityConfig",
+      "description": "Security settings for layer downloads"
+    },
+    "telemetry": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Send anonymous CLI usage telemetry. Set to false to opt out. Default: true"
+        }
+      },
+      "additionalProperties": false,
+      "title": "TelemetryConfig",
+      "description": "Telemetry preferences"
+    },
+    "anonymousId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Anonymous telemetry identifier. The CLI generates it once and keeps it across resets."
     }
   },
   "additionalProperties": false,

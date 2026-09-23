@@ -48,6 +48,30 @@ export const GlobalDefaultsSchema = z.object({
 });
 
 /**
+ * Telemetry preferences
+ */
+export const TelemetryConfigSchema = z.strictObject({
+	enabled: z.boolean()
+		.describe('Send anonymous CLI usage telemetry. Set to false to opt out. Default: true')
+		.optional(),
+}).meta({
+	title: 'TelemetryConfig',
+	description: 'Telemetry preferences for the CLI',
+});
+
+/**
+ * Security settings for layer downloads
+ */
+export const SecurityConfigSchema = z.strictObject({
+	allowedContentTypes: z.array(z.string())
+		.describe('Content types permitted for layer downloads, added to the built-in defaults. Blocked types are never allowed.')
+		.optional(),
+}).meta({
+	title: 'SecurityConfig',
+	description: 'Security settings for layer downloads',
+});
+
+/**
  * Global config schema for ~/.paradoc/config.json
  */
 export const GlobalConfigSchema = z.object({
@@ -63,9 +87,14 @@ export const GlobalConfigSchema = z.object({
 	cache: CacheConfigSchema
 		.describe('Global cache configuration for registry data')
 		.optional(),
-	enableTelemetry: z.boolean()
-		.default(true)
-		.describe('Enable anonymous usage telemetry for artifact installs. Overrides registry settings when false. Defaults to true.')
+	security: SecurityConfigSchema
+		.describe('Security settings for layer downloads')
+		.optional(),
+	telemetry: TelemetryConfigSchema
+		.describe('Telemetry preferences')
+		.optional(),
+	anonymousId: z.uuid()
+		.describe('Anonymous telemetry identifier. The CLI generates it once and keeps it across resets.')
 		.optional(),
 }).meta({
 	title: 'Paradoc Global Config',
@@ -77,4 +106,6 @@ export const GlobalConfigSchema = z.object({
  */
 export type CacheConfig = z.infer<typeof CacheConfigSchema>;
 export type GlobalDefaults = z.infer<typeof GlobalDefaultsSchema>;
+export type TelemetryConfig = z.infer<typeof TelemetryConfigSchema>;
+export type SecurityConfig = z.infer<typeof SecurityConfigSchema>;
 export type GlobalConfig = z.infer<typeof GlobalConfigSchema>;

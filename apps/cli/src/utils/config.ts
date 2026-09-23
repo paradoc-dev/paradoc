@@ -1,10 +1,9 @@
 import { homedir } from 'node:os'
 import { LocalFileSystem } from './local-fs.js'
-import { ManifestSchema, GlobalConfigSchema, type Manifest } from '@paradoc/schemas'
+import { ManifestSchema, GlobalConfigSchema, type GlobalConfig, type Manifest } from '@paradoc/schemas'
 import { z } from 'zod'
 
 import type {
-  GlobalConfig,
   ProjectManifest,
   RegistryEntry,
   OutputFormat,
@@ -17,12 +16,10 @@ import {
   isBlockedContentType,
 } from './constants.js'
 
-// Global storage instance for ~/.paradoc operations
-const globalStorage = new LocalFileSystem(homedir())
-
-// Default paths (relative to home directory for globalStorage)
+// Default paths (relative to the home directory)
 const GLOBAL_CONFIG_DIR = '.paradoc'
 const GLOBAL_CONFIG_FILE = 'config.json'
+const GLOBAL_CONFIG_SCHEMA_URL = 'https://schema.paradoc.dev/config.json'
 const DEFAULT_REGISTRY_URL = 'https://registry.paradoc.dev'
 
 // Re-export Manifest type for convenience
@@ -40,6 +37,27 @@ function formatValidationErrors(error: ZodError): string {
       return `${path}: ${issue.message}`
     })
     .join('; ')
+}
+
+/**
+ * Describe each global config problem by key: unknown keys by name, other
+ * problems by their dotted path.
+ */
+function formatGlobalConfigIssues(error: ZodError): string {
+  return error.issues
+    .flatMap((issue) => {
+      const prefix = issue.path.length > 0 ? `${issue.path.join('.')}.` : ''
+      if (issue.code === 'unrecognized_keys') {
+        return issue.keys.map((key) => `unknown key "${prefix}${key}"`)
+      }
+      const path = issue.path.length > 0 ? issue.path.join('.') : 'root'
+      return [`"${path}": ${issue.message}`]
+    })
+    .join('; ')
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT'
 }
 
 /**
@@ -102,45 +120,82 @@ export class ConfigManager {
   private globalConfig: GlobalConfig | null = null
   private projectManifest: ProjectManifest | null = null
   private projectRoot: string | null = null
+  private readonly globalStorage: LocalFileSystem
 
   /**
-   * Load the global config from ~/.paradoc/config.json
+   * @param homeDir - Directory that holds `.paradoc/config.json`. Defaults to the user's home.
+   */
+  constructor(homeDir: string = homedir()) {
+    this.globalStorage = new LocalFileSystem(homeDir)
+  }
+
+  /**
+   * Absolute path of the global config file
+   */
+  getGlobalConfigPath(): string {
+    return this.globalStorage.joinPath(GLOBAL_CONFIG_DIR, GLOBAL_CONFIG_FILE)
+  }
+
+  /**
+   * Load the global config from ~/.paradoc/config.json.
+   *
+   * A missing file loads as an empty config. Invalid JSON or a config the
+   * schema rejects throws an error naming the file and each bad key; the file
+   * is left as it is.
    */
   async loadGlobalConfig(): Promise<GlobalConfig> {
     if (this.globalConfig) {
       return this.globalConfig
     }
 
+    const configPath = this.getGlobalConfigPath()
+    let content: string
     try {
-      const configPath = globalStorage.joinPath(GLOBAL_CONFIG_DIR, GLOBAL_CONFIG_FILE)
-      const content = await globalStorage.readFile(configPath, 'utf-8')
-      const data = JSON.parse(content)
-      const result = GlobalConfigSchema.safeParse(data)
-      this.globalConfig = result.success ? result.data : {}
-    } catch {
-      // Return empty config if file doesn't exist
-      this.globalConfig = {}
+      content = await this.globalStorage.readFile(configPath, 'utf-8')
+    } catch (error) {
+      if (isMissingFileError(error)) {
+        this.globalConfig = {}
+        return this.globalConfig
+      }
+      throw error
     }
 
+    let data: unknown
+    try {
+      data = JSON.parse(content)
+    } catch (error) {
+      throw new Error(
+        `Invalid JSON in ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+
+    const result = GlobalConfigSchema.safeParse(data)
+    if (!result.success) {
+      throw new Error(`Invalid global config in ${configPath}: ${formatGlobalConfigIssues(result.error)}`)
+    }
+
+    this.globalConfig = result.data
     return this.globalConfig
   }
 
   /**
-   * Save the global config to ~/.paradoc/config.json
+   * Save the global config to ~/.paradoc/config.json.
+   * The config is validated first; an invalid config throws and nothing is written.
    */
   async saveGlobalConfig(config: GlobalConfig): Promise<void> {
-    // Ensure directory exists
-    await globalStorage.mkdir(GLOBAL_CONFIG_DIR, true)
-
-    // Write config with schema
-    const configWithSchema: GlobalConfig = {
-      $schema: 'https://schema.paradoc.dev/cli/global-config.json',
-      ...config,
+    const configPath = this.getGlobalConfigPath()
+    const { $schema: _schema, ...settings } = config
+    const configWithSchema: GlobalConfig = { $schema: GLOBAL_CONFIG_SCHEMA_URL, ...settings }
+    const result = GlobalConfigSchema.safeParse(configWithSchema)
+    if (!result.success) {
+      throw new Error(
+        `Refusing to write an invalid global config to ${configPath}: ${formatGlobalConfigIssues(result.error)}`,
+      )
     }
 
-    const configPath = globalStorage.joinPath(GLOBAL_CONFIG_DIR, GLOBAL_CONFIG_FILE)
-    await globalStorage.writeFile(configPath, JSON.stringify(configWithSchema, null, 2))
-    this.globalConfig = configWithSchema
+    await this.globalStorage.mkdir(GLOBAL_CONFIG_DIR, true)
+    await this.globalStorage.writeFile(configPath, JSON.stringify(configWithSchema, null, 2))
+    this.globalConfig = result.data
   }
 
   /**

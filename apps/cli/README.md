@@ -209,11 +209,16 @@ User-level settings at `~/.paradoc/config.json`. Applies to all projects.
     }
   },
   "defaults": {
-    "format": "yaml",
+    "output": "yaml",
     "artifactsDir": "artifacts"
+  },
+  "telemetry": {
+    "enabled": false
   }
 }
 ```
+
+The CLI checks this file on every read and write. A missing file means no settings. If the file is not valid JSON or has a key the schema does not know, the command stops and names the file and each bad key; the CLI does not change the file.
 
 Environment variables in `${VAR_NAME}` format are automatically expanded.
 

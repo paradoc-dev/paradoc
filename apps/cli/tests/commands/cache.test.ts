@@ -1,10 +1,23 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
+import { promises as fs } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+// Every command runs against a throwaway home, never the real ~/.paradoc.
+let testHome: string
+
+beforeEach(async () => {
+  testHome = await fs.mkdtemp(path.join(tmpdir(), 'paradoc-home-'))
+})
+
+afterEach(async () => {
+  await fs.rm(testHome, { recursive: true, force: true })
+})
 
 async function executeCliCommand(
   args: string[],
@@ -18,7 +31,7 @@ async function executeCliCommand(
     const cliPath = path.resolve(__dirname, '../../src/index.ts')
     const child = spawn('tsx', [cliPath, ...args], {
       cwd: options?.cwd || process.cwd(),
-      env: { ...process.env, ...options?.env },
+      env: { ...process.env, HOME: testHome, ...options?.env },
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 

@@ -14,6 +14,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { platform, arch, release } from 'node:os'
+import type { GlobalConfig } from '@paradoc/schemas'
 import { configManager } from './config.js'
 import { VERSION } from '../constants.js'
 
@@ -71,15 +72,20 @@ async function isTelemetryEnabled(): Promise<boolean> {
   if (process.env.PARADOC_TELEMETRY_DISABLED === '1') return false
   if (process.env.DO_NOT_TRACK === '1') return false
 
-  // Config-based opt-out
+  // Config-based opt-out. A config that cannot be read may hold an opt-out,
+  // so it disables telemetry.
   try {
-    const config = await configManager.loadGlobalConfig()
-    if (config.telemetry?.enabled === false) return false
+    return configAllowsTelemetry(await configManager.loadGlobalConfig())
   } catch {
-    // If config can't be loaded, default to enabled
+    return false
   }
+}
 
-  return true
+/**
+ * Whether the global config allows telemetry: only `telemetry.enabled: false` opts out.
+ */
+export function configAllowsTelemetry(config: GlobalConfig): boolean {
+  return config.telemetry?.enabled !== false
 }
 
 /**
