@@ -1,4 +1,4 @@
-import type { CondExpr, Form, Bundle, BundleContentItem } from '@paradoc/types'
+import type { CondExpr, Form, Bundle, BundleContentItem, DefsSection } from '@paradoc/types'
 import type { LogicValidationIssue } from './validate-form-logic'
 import { parseExpression } from './expression-parser'
 
@@ -85,7 +85,7 @@ export function validateExpression(
   for (const variable of parseResult.variables) {
     if (!validVariables.has(variable)) {
       issues.push({
-        message: `Unknown variable: "${variable}"`,
+        message: unknownVariableMessage(variable, validVariables),
         path,
         expression: expr,
         variable,
@@ -94,5 +94,48 @@ export function validateExpression(
     }
   }
 
+  return true
+}
+
+/**
+ * The diagnostic for a reference that does not resolve. A row reference used
+ * where no list row encloses the expression gets a message that names the
+ * contexts where it is available.
+ */
+export function unknownVariableMessage(variable: string, validVariables: ReadonlySet<string>): string {
+  const root = variable.split('.')[0]!
+  if (root === 'item' && !validVariables.has('item')) {
+    return '"item" refers to the current list row and is only available in expressions inside a list item (its visible and required conditions and those of its nested fields)'
+  }
+  if (root === 'parent' && !validVariables.has('parent')) {
+    return validVariables.has('item')
+      ? '"parent" refers to the enclosing row of a nested list; this list is not nested inside another list item, so use "item" or "fields.<id>"'
+      : '"parent" refers to the enclosing row of a nested list and is only available in expressions inside an item of a list nested in another list item'
+  }
+  return `Unknown variable: "${variable}"`
+}
+
+/** Definition names reserved for list row references. */
+const RESERVED_DEFINITION_NAMES: ReadonlySet<string> = new Set(['item', 'parent'])
+
+/**
+ * Rejects computed values named `item` or `parent`: those names refer to list
+ * rows inside list-item expressions and cannot be redefined.
+ */
+export function validateReservedDefinitionNames(
+  defs: DefsSection | undefined,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (!defs) return true
+  for (const key of Object.keys(defs)) {
+    if (!RESERVED_DEFINITION_NAMES.has(key)) continue
+    issues.push({
+      message: `Computed value name "${key}" is reserved for list row references; rename this definition`,
+      path: ['defs', key],
+      severity: 'error',
+    })
+    if (!collectAllErrors) return false
+  }
   return true
 }

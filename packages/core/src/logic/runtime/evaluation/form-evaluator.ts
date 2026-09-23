@@ -18,7 +18,7 @@ import type {
   FormEvaluationResult,
 } from './types'
 import { buildFormContext, type FormDataPayload } from './context-builder'
-import { evaluateExpression, markEvaluationContextReusable } from './expression-evaluator'
+import { evaluateExpression, markEvaluationContextReusable, withRowReferences } from './expression-evaluator'
 
 /**
  * Default values for expression evaluation failures.
@@ -48,6 +48,25 @@ interface EvaluationState {
   annexes: Map<string, AnnexRuntimeState>
   defsValues: Map<string, unknown>
   issues: EvaluationIssue[]
+  /** The form-level context every row context derives from. */
+  formContext: EvaluationContext
+}
+
+/**
+ * The context for expressions inside one row of a list: `item` is the row, and
+ * `parent` is the row of the enclosing list when the list sits inside another
+ * list item (`enclosingRow` is that row, or absent at the top level).
+ */
+function rowContext(
+  state: EvaluationState,
+  row: unknown,
+  enclosingRow: { value: unknown } | undefined,
+): EvaluationContext {
+  return withRowReferences(state.formContext, {
+    item: row,
+    hasParent: enclosingRow !== undefined,
+    parent: enclosingRow?.value,
+  })
 }
 
 function evaluateCondition(
@@ -80,6 +99,7 @@ function evaluateRepeatedItem(
   context: EvaluationContext,
   state: EvaluationState,
   parentVisible: boolean,
+  row: { value: unknown },
 ): void {
   const visible = parentVisible && evaluateCondition(
     field.visible,
@@ -101,10 +121,32 @@ function evaluateRepeatedItem(
     const nested = value !== null && typeof value === 'object' && !Array.isArray(value)
       ? value as Record<string, unknown>
       : undefined
-    evaluateFields(field.fields, nested, context, state, fullId, visible)
+    evaluateFields(field.fields, nested, context, state, fullId, visible, row)
   } else if (field.type === 'list' && Array.isArray(value)) {
-    value.forEach((item, index) => evaluateRepeatedItem(field.item, item, `${fullId}[${index}]`, context, state, visible))
+    evaluateRows(field.item, value, fullId, state, visible, row)
   }
+}
+
+/** Evaluates every row of a list, each against its own row context. */
+function evaluateRows(
+  itemField: FormField,
+  rows: unknown[],
+  listId: string,
+  state: EvaluationState,
+  listVisible: boolean,
+  enclosingRow: { value: unknown } | undefined,
+): void {
+  rows.forEach((value, index) => {
+    evaluateRepeatedItem(
+      itemField,
+      value,
+      `${listId}[${index}]`,
+      rowContext(state, value, enclosingRow),
+      state,
+      listVisible,
+      { value },
+    )
+  })
 }
 
 /**
@@ -123,6 +165,7 @@ function evaluateRepeatedItem(
  * @param state - Evaluation state to accumulate results
  * @param prefix - Path prefix for nested fields
  * @param parentVisible - Effective visibility of the enclosing fieldset
+ * @param row - The list row enclosing these fields, if any
  */
 function evaluateFields(
   fields: Record<string, FormField> | undefined,
@@ -130,7 +173,8 @@ function evaluateFields(
   context: EvaluationContext,
   state: EvaluationState,
   prefix: string = '',
-  parentVisible: boolean = true
+  parentVisible: boolean = true,
+  row?: { value: unknown },
 ): void {
   if (!fields) return
 
@@ -179,9 +223,9 @@ function evaluateFields(
       const fieldset = field as FieldsetField
       const nestedData = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined
 
-      evaluateFields(fieldset.fields, nestedData, context, state, fullId, visible)
+      evaluateFields(fieldset.fields, nestedData, context, state, fullId, visible, row)
     } else if (field.type === 'list' && Array.isArray(value)) {
-      value.forEach((item, index) => evaluateRepeatedItem(field.item, item, `${fullId}[${index}]`, context, state, visible))
+      evaluateRows(field.item, value, fullId, state, visible, row)
     }
   }
 }
@@ -294,6 +338,7 @@ export function evaluateFormDefs(
       annexes: new Map(),
       defsValues: new Map(),
       issues: [],
+      formContext: context,
     }
 
     // Extract defs values from context

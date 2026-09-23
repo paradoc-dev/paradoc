@@ -12,7 +12,7 @@ import type {
   ScalarExpressionType,
 } from '@paradoc/types'
 import { T, type ExprType } from '@paradoc/expr'
-import type { TypeEnvironment, TypeValidationSeverity, InferredType } from '../type-checking'
+import type { TypeEnvironment, TypeValidationSeverity, InferredType, ListRowScope } from '../type-checking'
 import { collectFieldPaths } from './field-paths'
 import {
   buildFormRuleTypeEnvironment,
@@ -21,8 +21,12 @@ import {
   validateBooleanType,
   validateExpressionType,
   topologicalSortDefsKeys,
+  enterListRow,
+  isRowReferencePath,
+  rowScopeTypes,
+  withRowScopeTypes,
 } from '../type-checking'
-import { validateExpression } from './shared'
+import { validateExpression, validateReservedDefinitionNames } from './shared'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -157,6 +161,7 @@ function typeCheckExpression(
  * @param validVariables - Set of valid variable names
  * @param issues - Array to accumulate issues
  * @param collectAllErrors - Whether to collect all errors
+ * @param rows - The list rows enclosing these fields, which `item` and `parent` resolve to
  * @returns true if should continue validation
  */
 function validateFieldExpressions(
@@ -164,7 +169,8 @@ function validateFieldExpressions(
   basePath: (string | number)[],
   validVariables: Set<string>,
   issues: LogicValidationIssue[],
-  collectAllErrors: boolean
+  collectAllErrors: boolean,
+  rows?: ListRowScope
 ): boolean {
   if (!fields) return true
 
@@ -206,18 +212,25 @@ function validateFieldExpressions(
           [...fieldPath, 'fields'],
           validVariables,
           issues,
-          collectAllErrors
+          collectAllErrors,
+          rows
         )
       ) {
         return false
       }
     } else if (field.type === 'list') {
+      // The item definition and everything inside it see the row as `item`
+      // and, in a nested list, the enclosing row as `parent`.
+      const rowScope = enterListRow(field, rows)
+      const rowVariables = new Set([...validVariables].filter((path) => !isRowReferencePath(path)))
+      for (const path of Object.keys(rowScopeTypes(rowScope))) rowVariables.add(path)
       if (!validateFieldExpressions(
         { item: field.item },
         fieldPath,
-        validVariables,
+        rowVariables,
         issues,
         collectAllErrors,
+        rowScope,
       )) return false
     }
   }
@@ -399,7 +412,8 @@ function typeCheckFieldExpressions(
   basePath: (string | number)[],
   typeEnv: TypeEnvironment,
   issues: LogicValidationIssue[],
-  collectAllErrors: boolean
+  collectAllErrors: boolean,
+  rows?: ListRowScope
 ): boolean {
   if (!fields) return true
 
@@ -441,18 +455,21 @@ function typeCheckFieldExpressions(
           [...fieldPath, 'fields'],
           typeEnv,
           issues,
-          collectAllErrors
+          collectAllErrors,
+          rows
         )
       ) {
         return false
       }
     } else if (field.type === 'list') {
+      const rowScope = enterListRow(field, rows)
       if (!typeCheckFieldExpressions(
         { item: field.item },
         fieldPath,
-        typeEnv,
+        withRowScopeTypes(typeEnv, rowScope),
         issues,
         collectAllErrors,
+        rowScope,
       )) return false
     }
   }
@@ -799,8 +816,10 @@ export function validateFormDefs(
     }
   }
 
+  validateReservedDefinitionNames(form.defs, issues, collectAllErrors)
+
   // Validate defs section expressions
-  if (form.defs) {
+  if ((collectAllErrors || issues.length === 0) && form.defs) {
     for (const [key, expr] of Object.entries(form.defs)) {
       if (!validateDefsExpression(expr, key, validVariables, issues, collectAllErrors)) {
         break

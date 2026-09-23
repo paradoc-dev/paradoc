@@ -45,10 +45,39 @@ CRITICAL: the context for referencing fields/defs differs by location.
 | Context | Field access | Defs access |
 |---------|-------------|-------------|
 | Field `required` / `visible` | `fields.<id>` | Direct def key name |
+| List-item `required` / `visible` (the item and fields inside it) | `fields.<id>`, plus `item.<id>` for the current row and `parent.<id>` for the enclosing row of a nested list | Direct def key name |
 | Defs `value` | `fields.<id>` | Direct key name (previously evaluated defs) |
 | Rules `expr` | Direct field name (no prefix) | Direct key name |
 
 Field-level expressions ALWAYS use `fields.<id>`. Rules expressions use bare names.
+
+### Row references (`item`, `parent`)
+
+Inside a list item, `item` is the current row. In a list nested in a list item, `parent` is the enclosing row. Use them for per-row conditions:
+
+```json
+"lines": {
+  "type": "list",
+  "item": {
+    "type": "fieldset",
+    "fields": {
+      "kind": { "type": "enum", "enum": [{ "value": "travel" }, { "value": "other" }] },
+      "explanation": { "type": "text", "visible": "item.kind == 'other'", "required": "item.kind == 'other'" },
+      "parts": {
+        "type": "list",
+        "item": { "type": "fieldset", "fields": {
+          "cost": { "type": "number" },
+          "note": { "type": "text", "required": "parent.kind == 'other' and item.cost > 100" }
+        } }
+      }
+    }
+  }
+}
+```
+
+- A scalar item (a list of `number`) is `item` itself; composite values keep their parts (`item.amount`).
+- Only row conditions see rows. Defs, rules, annexes, parties, and the list field's own `visible`/`required` do not; `item` there fails validation, and so does `parent` outside a nested list.
+- `item` and `parent` are reserved: a def with either name fails validation.
 
 ## Available Functions
 

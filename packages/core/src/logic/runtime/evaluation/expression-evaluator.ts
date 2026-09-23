@@ -107,6 +107,36 @@ export function markEvaluationContextReusable(context: EvaluationContext): () =>
 	}
 }
 
+/** The list rows a list-item expression evaluates against. */
+export interface RowReferences {
+	/** The current row. */
+	readonly item: unknown
+	/** Whether an enclosing row exists (the list is nested in another list item). */
+	readonly hasParent: boolean
+	/** The enclosing row of a nested list. */
+	readonly parent?: unknown
+}
+
+/**
+ * Derive a context in which `item` (and `parent`, when an enclosing row
+ * exists) resolve to list rows. Converted values of a reusable base context
+ * are shared, so evaluating every row does not reconvert the whole form.
+ */
+export function withRowReferences(context: EvaluationContext, rows: RowReferences): EvaluationContext {
+	const scoped: EvaluationContext = { ...context, item: rows.item }
+	if (rows.hasParent) scoped.parent = rows.parent
+	if (reusableEvaluationContext in context) {
+		Object.defineProperty(scoped, reusableEvaluationContext, { value: true, configurable: true })
+		let shared = convertedContexts.get(context)
+		if (!shared) {
+			shared = new Map()
+			convertedContexts.set(context, shared)
+		}
+		convertedContexts.set(scoped, shared)
+	}
+	return scoped
+}
+
 function buildExprContext(context: EvaluationContext): ExprContext {
 	const hostFunctions: Record<string, HostFunction> = {
 		partyCount: (args) => Values.num(String(partyCount(roleArg(args), context))),

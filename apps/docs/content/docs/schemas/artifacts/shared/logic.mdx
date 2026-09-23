@@ -14,6 +14,8 @@ A mapping of named typed expressions keyed by camelCase identifier.
 
 Each entry specifies a `type` and `value`. For scalar types the value is a string expression; for composite types (money, address, etc.) the value is an object with component expressions.
 
+The keys `item` and `parent` are reserved for list row references and fail validation.
+
 <PropertiesTable properties={[
   {
     name: '[key]',
@@ -66,6 +68,7 @@ type CondExpr = boolean | string
 When a string is provided, it can reference:
 - Named defs from the `defs` section
 - Field values using `fields.<fieldName>` (composite parts as `fields.<fieldName>.<part>`, e.g. `fields.rent.amount`)
+- Inside a list item, the current row as `item` and, in a nested list, the enclosing row as `parent` (e.g. `item.kind == 'other'`)
 - Comparison operators (`==`, `!=`, `>`, `<`, `>=`, `<=`)
 - Logical operators (`and`, `or`, `not`)
 - Membership operators (`in`, `not in`)

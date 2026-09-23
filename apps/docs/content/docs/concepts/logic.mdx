@@ -53,6 +53,47 @@ Validation rules (`rules`) are the one exception: there, field values are also a
 
 ---
 
+## Row References
+
+Inside a list item, `item` refers to the current row. Use it in the `visible` and `required` conditions of the item and of the fields inside it:
+
+```ts
+const form = p.form()
+  .name("expenses")
+  .fields({
+    lines: {
+      type: "list",
+      item: {
+        type: "fieldset",
+        fields: {
+          kind: { type: "enum", enum: [{ value: "travel" }, { value: "other" }] },
+          explanation: {
+            type: "text",
+            visible: "item.kind == 'other'",
+            required: "item.kind == 'other'",
+          },
+        },
+      },
+    },
+  })
+  .build()
+```
+
+Each row is evaluated on its own, so only the rows whose `kind` is `other` ask for an explanation. The reference follows the row when rows are added, removed, or reordered.
+
+In a list nested inside a list item, `item` is the inner row and `parent` is the row that contains it:
+
+```ts
+// A part's note is required when its line is flagged and the part costs more than 100
+note: { type: "text", required: "parent.flagged and item.cost > 100" }
+```
+
+A row whose item is a single value (for example a list of `number`) exposes that value as `item`, and composite values keep their parts (`item.amount`, `item.currency`). The row's other fields and the rest of the form stay available through `fields.<id>` and defs.
+
+`item` and `parent` are reserved. The checker rejects `item` outside a list item, `parent` outside an item of a nested list, and a def named `item` or `parent`. Defs, rules, annexes, parties, and the list field's own conditions are outside any row.
+
+---
+
 ## Operators
 
 ```ts
@@ -143,6 +184,7 @@ Field references carry their type into the expression, and the checker enforces 
 Because evaluation and checking share one type system, mistakes surface when the artifact is authored, not when a user fills it. Building or validating a form runs the checker over every expression, which catches:
 
 - unknown references (`fields.hasVehicle.value` — there is no `.value`)
+- row references (`item`, `parent`) used where no list row encloses the expression
 - unknown functions
 - type mismatches (comparing a string field to a number)
 - gates that don't evaluate to a boolean

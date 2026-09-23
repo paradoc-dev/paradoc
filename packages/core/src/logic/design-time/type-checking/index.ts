@@ -32,7 +32,13 @@ export {
   buildFormRuleTypeEnvironment,
   buildBundleTypeEnvironment,
   DEFINITION_PROPERTY_TYPES,
+  ROW_REFERENCE_NAMES,
+  enterListRow,
+  isRowReferencePath,
+  rowScopeTypes,
+  withRowScopeTypes,
 } from './build-type-environment'
+export type { ListRowScope, RowReferenceName } from './build-type-environment'
 
 // Boolean-gate type validation
 export { validateBooleanType, validateExpressionType } from './validate-boolean-type'

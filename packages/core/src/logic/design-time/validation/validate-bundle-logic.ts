@@ -11,7 +11,14 @@ import { parseExpression } from './expression-parser'
 import { collectFieldPaths } from './field-paths'
 import { validateFormDefs, type LogicValidationOptions, type LogicValidationIssue } from './validate-form-logic'
 import { buildBundleTypeEnvironment, validateBooleanType, topologicalSortDefsKeys } from '../type-checking'
-import { validateExpression, isInlineBundleArtifact, isFormArtifact, isBundleArtifact } from './shared'
+import {
+  validateExpression,
+  isInlineBundleArtifact,
+  isFormArtifact,
+  isBundleArtifact,
+  unknownVariableMessage,
+  validateReservedDefinitionNames,
+} from './shared'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -205,6 +212,10 @@ export function validateBundleDefs(
   // Collect field paths from inline Form artifacts
   collectBundleFieldPaths(bundle, validVariables)
 
+  if (!validateReservedDefinitionNames(bundle.defs, issues, collectAllErrors)) {
+    return { issues }
+  }
+
   // Validate defs section expressions
   if (bundle.defs) {
     for (const [key, expr] of Object.entries(bundle.defs)) {
@@ -262,7 +273,7 @@ export function validateBundleDefs(
           for (const variable of parseResult.variables) {
             if (!validVariables.has(variable)) {
               issues.push({
-                message: `Unknown variable: "${variable}"`,
+                message: unknownVariableMessage(variable, validVariables),
                 path: [...itemPath, 'include'],
                 expression: include,
                 variable,

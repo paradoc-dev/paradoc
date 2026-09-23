@@ -14,6 +14,7 @@ import type {
   Bundle,
   FormField,
   FieldsetField,
+  ListField,
   EnumOption,
   Expression,
   DefsSection,
@@ -218,6 +219,67 @@ function registerFieldTypes(
         registerFieldTypes(fieldset.fields, fieldPath, acc)
       }
     }
+  }
+}
+
+// ============================================================================
+// List row references (`item`, `parent`)
+// ============================================================================
+
+/** Reserved names that refer to list rows inside list-item expressions. */
+export const ROW_REFERENCE_NAMES = ['item', 'parent'] as const
+export type RowReferenceName = (typeof ROW_REFERENCE_NAMES)[number]
+
+/**
+ * The list rows an expression can see. `item` is the item definition of the
+ * innermost list enclosing the expression; `parent` is the item definition of
+ * the list that encloses that list, when one exists.
+ */
+export interface ListRowScope {
+  readonly item: FormField
+  readonly parent?: FormField
+}
+
+/** The row scope for expressions inside an item of `list`, nested in `outer`. */
+export function enterListRow(list: ListField, outer: ListRowScope | undefined): ListRowScope {
+  return outer ? { item: list.item, parent: outer.item } : { item: list.item }
+}
+
+/**
+ * Reference paths and types a row scope exposes: `item` and its members, plus
+ * `parent` and its members when an enclosing row exists.
+ */
+export function rowScopeTypes(scope: ListRowScope): Record<string, ExprType> {
+  const acc: Record<string, ExprType> = {}
+  const register = (root: RowReferenceName, row: FormField): void => {
+    acc[root] = fieldExprType(row)
+    const props = COMPLEX_PROPERTY_TYPES[row.type]
+    if (props) {
+      for (const [prop, propType] of Object.entries(props)) acc[`${root}.${prop}`] = propType
+    }
+    if (row.type === 'fieldset') registerFieldTypes(row.fields, root, acc)
+  }
+  register('item', scope.item)
+  if (scope.parent) register('parent', scope.parent)
+  return acc
+}
+
+/** Whether a reference path is rooted at a row reference (`item`, `parent`). */
+export function isRowReferencePath(path: string): boolean {
+  const root = path.split('.')[0]
+  return root === 'item' || root === 'parent'
+}
+
+/**
+ * A type environment that resolves row references from `scope` only, so an
+ * enclosing row's members never leak into a nested row, and every other path
+ * from `env`.
+ */
+export function withRowScopeTypes(env: TypeEnv, scope: ListRowScope): TypeEnv {
+  const rows = new Map(Object.entries(rowScopeTypes(scope)))
+  return {
+    resolve: (path) => (isRowReferencePath(path) ? rows.get(path) : env.resolve(path)),
+    registry: env.registry,
   }
 }
 
