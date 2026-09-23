@@ -22,22 +22,22 @@ The Paradoc CLI (`paradoc`) is a command-line tool for working with Paradoc arti
 <Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
   <Tab value="npm">
     ```bash
-    npm install -g paradoc
+    npm install -g paradoc-cli
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
-    pnpm add -g paradoc
+    pnpm add -g paradoc-cli
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn global add paradoc
+    yarn global add paradoc-cli
     ```
   </Tab>
   <Tab value="bun">
     ```bash
-    bun add -g paradoc
+    bun add -g paradoc-cli
     ```
   </Tab>
 </Tabs>
@@ -49,6 +49,12 @@ paradoc --version
 ```
 
 The package registers one command, `paradoc`.
+
+To run it once without a global install:
+
+```bash
+npx paradoc-cli --version
+```
 
 ## Next steps
 

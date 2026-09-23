@@ -18,8 +18,8 @@ paradoc data <command> [options]
 | Command | Description |
 |---------|-------------|
 | `template` | Generate an instance template from a form |
-| `fill` | Interactively fill form data |
-| `validate` | Validate data against a form schema |
+| `fill` | Fill form data interactively or from a data payload |
+| `validate` | Validate instance data against a form artifact |
 
 ---
 
@@ -44,7 +44,7 @@ paradoc data template <file> [options]
 | `--out <file>` | Output file path (format detected from extension) |
 | `--json` | Force JSON output format |
 | `--yaml` | Force YAML output format |
-| `--silent` | Suppress console output |
+| `--silent` | Suppress console output (exit code only) |
 
 ### Examples
 
@@ -74,10 +74,10 @@ fields:
 
 ## data fill
 
-Interactively fill form data and save to an output file.
+Fill form data interactively, or from a data payload, and save it to an output file.
 
 ```bash
-paradoc data fill <file> --out <file>
+paradoc data fill <file> --out <file> [options]
 ```
 
 ### Arguments
@@ -90,18 +90,29 @@ paradoc data fill <file> --out <file>
 
 | Option | Description |
 |--------|-------------|
-| `--out <file>` | Output file path (required) |
+| `--out <file>` | Output file path, format detected from extension (required) |
+| `--data <pathOrJson>` | Data payload: file path, `-` for stdin, or inline JSON. Skips the prompts |
 | `--json` | Force JSON output format |
 | `--yaml` | Force YAML output format |
 
 ### Description
 
-The `fill` command walks you through each field in the form with interactive prompts. Field types are validated, and complex types (like addresses or money) can be entered as JSON.
+Without `--data`, the `fill` command walks you through each field in the form with interactive prompts. Field types are validated, and complex types (like addresses or money) can be entered as JSON.
 
-### Example
+With `--data`, it runs without prompts: the payload is validated against the form and written to `--out`. The command exits with code 1 if validation fails.
+
+### Examples
+
+Fill interactively:
 
 ```bash
 paradoc data fill my-form.yaml --out filled-data.yaml
+```
+
+Fill from a data file:
+
+```bash
+paradoc data fill my-form.yaml --data input.json --out filled-data.yaml
 ```
 
 Interactive session:
@@ -123,18 +134,39 @@ Fill Form: Residential Lease Agreement
 
 ## data validate
 
-Validate data against a form's schema.
+Validate instance data against a form artifact. Exits with code 0 when the data is valid and 1 when it is not.
 
 ```bash
-paradoc data validate <form> <data>
+paradoc data validate <form-file> <data> [options]
 ```
 
 ### Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `form` | Form artifact file |
-| `data` | Data file to validate |
+| `form-file` | Form artifact file (JSON/YAML) |
+| `data` | Instance data: file path, `-` for stdin, or inline JSON |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output a machine-readable JSON result |
+| `--silent` | Suppress console output (exit code only) |
+
+### Examples
+
+Validate a data file:
+
+```bash
+paradoc data validate my-form.yaml data.json
+```
+
+Validate data from stdin and print a JSON result:
+
+```bash
+cat data.json | paradoc data validate my-form.yaml - --json
+```
 
 ## See also
 

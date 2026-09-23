@@ -5,7 +5,7 @@ ogTitle: Paradoc CLI Command Reference
 ogDescription: Full documentation for all paradoc commands
 ---
 
-The Paradoc CLI provides commands for managing projects, working with registries, authoring artifacts, and more.
+The Paradoc CLI provides commands for working with registries, authoring and rendering artifacts, managing projects, and configuring the CLI. The groups below match the output of `paradoc --help`.
 
 ## Usage
 
@@ -19,15 +19,7 @@ Global options:
 |--------|-------------|
 | `-h, --help` | Display help for a command |
 | `-v, --version` | Display CLI version |
-
-## Project
-
-Commands for initializing and managing Paradoc projects.
-
-| Command | Description |
-|---------|-------------|
-| [init](/cli/commands/init) | Initialize a new Paradoc project |
-| [dev](/cli/commands/dev) | Preview React compositions live beside their PDF |
+| `--no-telemetry` | Disable telemetry for this invocation |
 
 ## Registry
 
@@ -35,57 +27,52 @@ Commands for discovering and installing artifacts from registries.
 
 | Command | Description |
 |---------|-------------|
-| [add](/cli/commands/add) | Add an artifact from a registry |
-| [search](/cli/commands/search) | Search for artifacts in registries |
-| [list](/cli/commands/list) | List installed artifacts |
+| [add](/cli/commands/add) | Add an artifact from a registry, or a document component or block |
+| [list](/cli/commands/list) | List installed artifacts (alias: `ls`) |
+| [search](/cli/commands/search) | Search for artifacts in a registry |
 | [registry](/cli/commands/registry) | Manage registry configurations |
 
-## Authoring
+## Artifacts
 
-Commands for creating and modifying artifacts.
+Commands for creating, inspecting, rendering, and changing artifacts.
 
 | Command | Description |
 |---------|-------------|
-| [new](/cli/commands/new) | Create a new artifact (form, checklist, document, bundle) |
-| [validate](/cli/commands/validate) | Validate artifacts against schemas |
-| [fix](/cli/commands/fix) | Auto-fix common artifact issues |
-| [version](/cli/commands/version) | Bump artifact version numbers |
-| [attach](/cli/commands/attach) | Attach files to artifacts as layers |
+| [show](/cli/commands/show) | Show details about an artifact |
+| [validate](/cli/commands/validate) | Validate artifacts against the core schema |
+| [inspect](/cli/commands/inspect) | Inspect PDF form fields to aid in bindings configuration |
+| [render](/cli/commands/render) | Render an artifact layer |
+| [check](/cli/commands/check) | Check a React composition against its artifact without rendering |
+| [new](/cli/commands/new) | Create a new artifact (form, document, checklist, bundle) |
+| [fix](/cli/commands/fix) | Fix artifact metadata, such as layer checksums |
+| [version](/cli/commands/version) | Bump the semantic version in an artifact file |
+| [attach](/cli/commands/attach) | Attach a file as a layer to an artifact |
 | [detach](/cli/commands/detach) | Detach a layer from an artifact |
 | [generate](/cli/commands/generate) | Generate TypeScript types from artifacts |
 | [hash](/cli/commands/hash) | Compute SHA256 checksums for layer definitions |
+| [data](/cli/commands/data) | Data operations (fill, template, validate) |
+| [diff](/cli/commands/diff) | Show differences between two artifact files |
 
-## Working with artifacts
+## Project
 
-Commands for inspecting, rendering, and working with artifact data.
+Commands for initializing and working in Paradoc projects.
 
 | Command | Description |
 |---------|-------------|
-| [inspect](/cli/commands/inspect) | Inspect artifact structure and metadata |
-| [render](/cli/commands/render) | Render an artifact layer to output |
-| [check](/cli/commands/check) | Check a React composition against its artifact without rendering |
-| [show](/cli/commands/show) | Display artifact content |
-| [data](/cli/commands/data) | Data operations (fill, template) |
-| [diff](/cli/commands/diff) | Compare two artifacts |
-| [apply](/cli/commands/apply) | Apply changes to artifacts |
+| [init](/cli/commands/init) | Initialize a new Paradoc project |
+| [dev](/cli/commands/dev) | Preview React compositions live beside their PDF |
+| [apply](/cli/commands/apply) | Apply a unified diff patch to the working directory |
 
 ## Settings
 
-Commands for configuring the CLI.
+Commands for configuring the CLI and opening related resources.
 
 | Command | Description |
 |---------|-------------|
-| [configure](/cli/commands/configure) | Interactive configuration wizard |
+| [configure](/cli/commands/configure) | Interactive configuration wizard (alias: `config`) |
 | [cache](/cli/commands/cache) | Manage registry cache |
 | [renderers](/cli/commands/renderers) | Manage renderer plugins |
 | [reset](/cli/commands/reset) | Reset CLI to factory defaults |
-
-## Utility
-
-Helpful utility commands.
-
-| Command | Description |
-|---------|-------------|
 | [docs](/cli/commands/docs) | Open documentation in browser |
 | [console](/cli/commands/console) | Open web console |
 | [about](/cli/commands/about) | Display information about Paradoc |

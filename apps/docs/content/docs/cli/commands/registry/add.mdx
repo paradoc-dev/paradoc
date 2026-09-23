@@ -10,6 +10,7 @@ Add or update a registry configuration.
 ## Usage
 
 ```bash
+paradoc registry add <url> [options]
 paradoc registry add <namespace> <url> [options]
 ```
 
@@ -17,8 +18,8 @@ paradoc registry add <namespace> <url> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `namespace` | Registry namespace (e.g., `@acme`) |
-| `url` | Registry base URL |
+| `first` | Registry namespace (e.g., `@acme`), or the registry URL when it is the only argument |
+| `second` | Registry base URL (required when the first argument is a namespace) |
 
 ## Options
 
@@ -27,10 +28,17 @@ paradoc registry add <namespace> <url> [options]
 | `--header <header>` | Add HTTP header (format: "Name: Value"). Can be used multiple times. |
 | `--global` | Save to global config (~/.paradoc/config.json) |
 | `--project` | Save to project config (paradoc.json) |
+| `-y, --yes` | Skip confirmation prompts. Uses the registry's suggested namespace and overwrites an existing namespace |
 
 ## Description
 
-Adds a registry to your configuration. If neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
+Adds a registry to your configuration. The `@` prefix on the namespace is optional.
+
+With a URL alone, the CLI fetches the registry's `registry.json` and suggests `@<name>` as the namespace. You confirm or change it at the prompt, or `--yes` accepts it.
+
+If the namespace already exists, you are asked to overwrite it, pick a different name, or cancel. `--yes` overwrites.
+
+If neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
 
 ## Examples
 
@@ -38,6 +46,12 @@ Add a public registry:
 
 ```bash
 paradoc registry add @acme https://registry.acme.com
+```
+
+Add by URL and take the namespace from the registry:
+
+```bash
+paradoc registry add https://registry.acme.com --yes
 ```
 
 Add with authentication:

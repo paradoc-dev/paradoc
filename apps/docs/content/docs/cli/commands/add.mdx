@@ -1,31 +1,31 @@
 ---
 title: add
-description: Add an artifact from a registry, or a document component
+description: Add an artifact from a registry, or document components and blocks
 ogTitle: paradoc add
 ogDescription: Install artifacts from Paradoc registries, and document components from the Paradoc component registry
 ---
 
-Adds an artifact from a registry into your project, or a document component from
-the [Paradoc component registry](/components).
+Adds an artifact from a registry into your project, or one or more document
+components and blocks from the [Paradoc component registry](/components).
 
 ## Usage
 
 ```bash
-paradoc add <artifact> [options]
+paradoc add <targets...> [options]
 ```
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `artifact` | Artifact reference (`@namespace/name`), namespace (`@namespace`), direct URL, or a document component name (`field`) |
+| `targets` | Artifact reference (`@namespace/name`), namespace (`@namespace`), direct URL, or one or more document component or block names (`field`). Several targets must all be component or block names; add artifacts one at a time. |
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
 | `--layers <layers>` | Layers to download (comma-separated, or `"all"`) |
-| `--output <format>` | Output format: `json`, `yaml` (default), `typed` (json + .d.ts), or `ts` (TypeScript module) |
+| `--output <format>` | Output format: `json`, `yaml`, `typed` (json + .d.ts), or `ts` (TypeScript module). Default: `artifacts.output` in `paradoc.json`, then `defaults.output` in global config, then `json` |
 | `--header <header...>` | HTTP header for direct URL auth (format: `"Name: Value"`) |
 | `--cache-ttl <seconds>` | Cache TTL in seconds (`0` = no cache, default: use config) |
 | `--no-cache` | Skip cache and fetch fresh |
@@ -49,6 +49,12 @@ reference always carries a namespace or is a URL, so the two cannot be confused.
 
 ```bash
 paradoc add field
+```
+
+Name several components to install them in one call. Each one reports its own result:
+
+```bash
+paradoc add field image
 ```
 
 That writes the `@paradoc` namespace into the project's `components.json` if it
@@ -95,7 +101,7 @@ paradoc add @acme/residential-lease --layers pdf,markdown
 Add with a specific output format:
 
 ```bash
-paradoc add @acme/residential-lease --output json
+paradoc add @acme/residential-lease --output yaml
 ```
 
 Add as a TypeScript module:
@@ -133,13 +139,13 @@ paradoc add field
 ```
 ✓ Registry: https://registry.acme.com
 ✓ Found residential-lease v1.0.0
-✓ Written: artifacts/@acme/residential-lease.yaml
+✓ Written: artifacts/@acme/residential-lease.json
 ✓ Downloaded: artifacts/@acme/instructions.md
 
 ✓ Added @acme/residential-lease v1.0.0
 
-Format: yaml
-  → artifacts/@acme/residential-lease.yaml
+Format: json
+  → artifacts/@acme/residential-lease.json
 Layers: pdf, markdown
 Content:
   → artifacts/@acme/instructions.md

@@ -80,10 +80,15 @@ paradoc new document <name> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-y, --yes` | Non-interactive mode |
+| `-y, --yes` | Non-interactive mode (skip prompts) |
 | `--slug <slug>` | Override auto-generated slug |
-| `--format <format>` | Output format: `json` or `yaml` |
+| `--title <title>` | Human-readable title |
+| `--description <desc>` | Description |
+| `--code <code>` | Code/reference |
+| `--artifact-version <version>` | Version (default: 1.0.0) |
+| `--dir <path>` | Custom output directory |
 | `--dry-run` | Preview without creating files |
+| `--format <format>` | Output format: `json` or `yaml` (default: json) |
 
 ---
 
@@ -99,10 +104,26 @@ paradoc new checklist <name> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-y, --yes` | Non-interactive mode |
+| `-y, --yes` | Non-interactive mode (skip prompts) |
 | `--slug <slug>` | Override auto-generated slug |
-| `--format <format>` | Output format: `json` or `yaml` |
+| `--title <title>` | Human-readable title |
+| `--description <desc>` | Description |
+| `--code <code>` | Code/reference |
+| `--artifact-version <version>` | Version (default: 1.0.0) |
+| `--dir <path>` | Custom output directory |
+| `--item <text>` | Add item (can be used multiple times) |
 | `--dry-run` | Preview without creating files |
+| `--format <format>` | Output format: `json` or `yaml` (default: json) |
+
+### Example
+
+```bash
+paradoc new checklist move-in \
+  --yes \
+  --title "Move-in Checklist" \
+  --item "Collect keys" \
+  --item "Record meter readings"
+```
 
 ---
 
@@ -118,10 +139,15 @@ paradoc new bundle <name> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-y, --yes` | Non-interactive mode |
+| `-y, --yes` | Non-interactive mode (skip prompts) |
 | `--slug <slug>` | Override auto-generated slug |
-| `--format <format>` | Output format: `json` or `yaml` |
+| `--title <title>` | Human-readable title |
+| `--description <desc>` | Description |
+| `--code <code>` | Code/reference |
+| `--artifact-version <version>` | Version (default: 1.0.0) |
+| `--dir <path>` | Custom output directory |
 | `--dry-run` | Preview without creating files |
+| `--format <format>` | Output format: `json` or `yaml` (default: json) |
 
 ## See also
 

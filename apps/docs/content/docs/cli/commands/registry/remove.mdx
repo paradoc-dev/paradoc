@@ -10,32 +10,35 @@ Remove a registry configuration.
 ## Usage
 
 ```bash
-paradoc registry remove <namespace> [options]
-paradoc registry rm <namespace> [options]
+paradoc registry remove [namespace] [options]
+paradoc registry rm [namespace] [options]
 ```
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `namespace` | Registry namespace to remove |
+| `namespace` | Registry namespace to remove (optional; prompts for a selection if omitted) |
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `--global` | Remove from global config |
-| `--project` | Remove from project config |
+| `--global` | Remove from global config (~/.paradoc/config.json) |
+| `--project` | Remove from project config (paradoc.json) |
 
 ## Description
 
-Removes a registry from your configuration. If neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
+Removes a registry from your configuration. Without a namespace, the command lists every configured registry and lets you select one or more to remove.
+
+With a namespace, if neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
 
 ## Examples
 
 ```bash
 paradoc registry remove @acme
 paradoc registry rm @acme --global
+paradoc registry remove
 ```
 
 ## See also

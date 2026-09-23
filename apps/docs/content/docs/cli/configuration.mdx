@@ -15,7 +15,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 {
   "$schema": "https://schema.paradoc.dev/cli/global-config.json",
   "defaults": {
-    "format": "yaml",
+    "output": "json",
     "artifactsDir": "artifacts",
     "registry": "@paradoc"
   },
@@ -36,7 +36,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `defaults.format` | string | `"yaml"` | Default output format (`json`, `yaml`, `typed`, `ts`) |
+| `defaults.output` | string | `"json"` | Default output format (`json`, `yaml`, `typed`, `ts`) |
 | `defaults.artifactsDir` | string | `"artifacts"` | Default directory for downloaded artifacts |
 | `defaults.registry` | string | `"@paradoc"` | Registry namespace used when none is specified |
 | `registries` | object | — | Registry configuration by namespace |
@@ -48,7 +48,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 
 The `paradoc.json` manifest can override global settings on a per-project basis. These fields take precedence over the global config:
 
-- `artifacts.format` — output format
+- `artifacts.output` — output format
 - `artifacts.dir` — artifacts directory
 - `registries` — registry mappings
 - `cache.ttl` — cache duration
@@ -177,7 +177,7 @@ The CLI respects standard proxy environment variables for outbound HTTP requests
 
 ```bash
 export HTTPS_PROXY=http://proxy.example.com:8080
-paradoc search --query "lease"
+paradoc search lease
 ```
 
 ## Telemetry

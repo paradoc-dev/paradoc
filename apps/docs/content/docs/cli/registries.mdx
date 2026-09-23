@@ -54,7 +54,7 @@ For registries that require authentication, use the extended format:
 Use [`paradoc search`](/cli/commands/search) to query a registry:
 
 ```bash
-paradoc search --query "lease"
+paradoc search lease
 paradoc search --kind form --tags legal
 paradoc search --registry @acme "tax"
 ```
@@ -169,10 +169,10 @@ The `registry.json` file lists all available artifacts:
 ```json
 {
   "$schema": "https://schema.paradoc.dev/registry.json",
-  "name": "@acme",
-  "title": "Acme Forms Registry",
+  "name": "acme",
   "description": "Official forms and documents for Acme Corp",
-  "artifacts": [
+  "homepage": "https://acme.com/forms",
+  "items": [
     {
       "name": "residential-lease",
       "version": "1.0.0",
@@ -191,10 +191,11 @@ The `registry.json` file lists all available artifacts:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `$schema` | string | No | JSON schema URL |
-| `name` | string | Yes | Registry namespace (e.g., `@acme`) |
-| `title` | string | Yes | Human-readable registry name |
+| `name` | string | Yes | Registry name, a lowercase slug (e.g., `acme`) |
 | `description` | string | No | Registry description |
-| `artifacts` | array | Yes | List of artifact entries |
+| `homepage` | string | No | Registry homepage URL |
+| `artifactsPath` | string | No | Path prefix for artifact URLs (e.g., `/r`) |
+| `items` | array | Yes | List of artifact entries |
 
 #### Artifact entry fields
 
@@ -203,24 +204,25 @@ The `registry.json` file lists all available artifacts:
 | `name` | string | Yes | Artifact identifier (slug) |
 | `version` | string | Yes | Semantic version |
 | `kind` | string | Yes | Artifact type: `form`, `checklist`, `document`, `bundle` |
-| `title` | string | Yes | Human-readable name |
+| `title` | string | No | Human-readable name |
 | `description` | string | No | Artifact description |
+| `layers` | array | No | Layer keys the artifact provides |
 | `tags` | array | No | Searchable tags |
-| `path` | string | Yes | Path to artifact file (relative to registry root) |
+| `path` | string | No | Path to the artifact file, relative to the registry URL plus `artifactsPath`. Default: `<name>.json` |
 
 ### Workflow
 
 The CLI provides commands to scaffold and manage a registry:
 
-1. **Create the registry** — [`paradoc registry make`](/cli/commands/registry/make) generates a `registry.json` with your namespace and metadata.
+1. **Create the registry** — [`paradoc registry make`](/cli/commands/registry/make) generates a `registry.json` with your registry name and metadata.
 
 2. **Add artifacts to the catalog** — [`paradoc registry catalog`](/cli/commands/registry/catalog) manages the artifacts listed in the index.
 
 3. **Compile** — [`paradoc registry compile`](/cli/commands/registry/compile) validates all artifacts and prepares the registry for publishing.
 
 ```bash
-paradoc registry make --name @acme --title "Acme Forms Registry"
-paradoc registry catalog add residential-lease ./artifacts/residential-lease/artifact.yaml
+paradoc registry make --name acme --description "Official forms and documents for Acme Corp"
+paradoc registry catalog add ./artifacts/residential-lease/artifact.yaml
 paradoc registry compile
 ```
 
