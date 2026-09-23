@@ -1350,6 +1350,47 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		}
 	}
 
+	/**
+	 * Rejects a capture whose (role, partyId, signerId, locationId, type) does
+	 * not name a real signing slot: the role and party must exist, the signer
+	 * must be a signatory for that party, and a sealed form's signatureMap must
+	 * hold a field with that id, signer, and type.
+	 */
+	const ensureCaptureSlot = (
+		operation: string,
+		role: string,
+		partyId: string,
+		signerId: string,
+		locationId: string,
+		type: SignatureCapture['type'],
+	): void => {
+		if (!signerValues[signerId]) {
+			throw new Error(`Signer with ID "${signerId}" not found in registry`)
+		}
+		validateRoleId(role)
+		const partyExists = getPartiesInternal(role).some(
+			(party, index) => ((party as { id?: string }).id ?? `${role}-${index}`) === partyId,
+		)
+		if (!partyExists) {
+			throw new Error(`Cannot ${operation}: party "${partyId}" not found for role "${role}"`)
+		}
+		const isSignatory = (signatoryValues[role]?.[partyId] ?? []).some((signatory) => signatory.signerId === signerId)
+		if (!isSignatory) {
+			throw new Error(`Cannot ${operation}: signer "${signerId}" is not a signatory for party "${partyId}" in role "${role}"`)
+		}
+		if (signatureMap === undefined) return
+		const slot = signatureMap.find((field) => field.id === locationId)
+		if (!slot) {
+			throw new Error(`Cannot ${operation}: location "${locationId}" not found in signatureMap`)
+		}
+		if (slot.signerId !== signerId) {
+			throw new Error(`Cannot ${operation}: location "${locationId}" belongs to signer "${slot.signerId}", not "${signerId}"`)
+		}
+		if (slot.type !== type) {
+			throw new Error(`Cannot ${operation}: location "${locationId}" is a ${slot.type} field, not ${type}`)
+		}
+	}
+
 	const getRuntimeState = (): FormRuntimeState => {
 		if (!_runtimeState) {
 			const result = evaluateFormDefs(formDef, {
@@ -1822,9 +1863,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			options?: CaptureOptions,
 		): RuntimeForm<F> {
 			ensureSignable('captureSignature')
-			if (!signerValues[signerId]) {
-				throw new Error(`Signer with ID "${signerId}" not found in registry`)
-			}
+			ensureCaptureSlot('captureSignature', role, partyId, signerId, locationId, 'signature')
 			const capture: SignatureCapture = {
 				role,
 				partyId,
@@ -1849,9 +1888,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			options?: CaptureOptions,
 		): RuntimeForm<F> {
 			ensureSignable('captureInitials')
-			if (!signerValues[signerId]) {
-				throw new Error(`Signer with ID "${signerId}" not found in registry`)
-			}
+			ensureCaptureSlot('captureInitials', role, partyId, signerId, locationId, 'initials')
 			const capture: SignatureCapture = {
 				role,
 				partyId,
@@ -1877,9 +1914,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			options?: Omit<CaptureOptions, 'text'>,
 		): RuntimeForm<F> {
 			ensureSignable('captureCapacity')
-			if (!signerValues[signerId]) {
-				throw new Error(`Signer with ID "${signerId}" not found in registry`)
-			}
+			ensureCaptureSlot('captureCapacity', role, partyId, signerId, locationId, 'capacity')
 			const capture: SignatureCapture = {
 				role,
 				partyId,
@@ -1905,9 +1940,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			options?: Omit<CaptureOptions, 'text'>,
 		): RuntimeForm<F> {
 			ensureSignable('capturePrintedName')
-			if (!signerValues[signerId]) {
-				throw new Error(`Signer with ID "${signerId}" not found in registry`)
-			}
+			ensureCaptureSlot('capturePrintedName', role, partyId, signerId, locationId, 'printed_name')
 			const capture: SignatureCapture = {
 				role,
 				partyId,

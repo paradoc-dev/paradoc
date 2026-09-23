@@ -175,6 +175,8 @@ const signed = signable.captureSignature('tenant', 'tenant-0', 'jane', 'page-1-s
 const initialed = signed.captureInitials('tenant', 'tenant-0', 'jane', 'page-1-init')
 ```
 
+Each capture method checks its slot and throws, naming the value, when the role is not declared, the party is not filled for that role, or the signer is not a signatory for that party. On a sealed form, `locationId` must also be a `signatureMap` field assigned to that signer with the same type (`signature`, `initials`, `capacity`, or `printed_name`).
+
 ## WitnessParty
 
 A `WitnessParty` represents a witness who can attest to signatures.

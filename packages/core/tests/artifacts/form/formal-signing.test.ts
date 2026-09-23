@@ -937,6 +937,111 @@ describe('Formal Signing', () => {
 	})
 
 	// ============================================================================
+	// Capture slot validation
+	// ============================================================================
+
+	describe('Capture slot validation', () => {
+		const buildDraft = () =>
+			createFormWithSignature()
+				.fill({
+					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
+					},
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSigner('tenant-signer', createTenantSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+
+		const sealWithAllTypes = () =>
+			buildDraft().seal(
+				createMockAdapter({
+					signatureMap: [
+						{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 0, y: 0, width: 200, height: 50 },
+						{ id: 'cap-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'capacity', page: 1, x: 0, y: 60, width: 200, height: 20 },
+						{ id: 'name-tenant-0', signerIndex: 1, signerId: 'tenant-signer', type: 'printed_name', page: 1, x: 0, y: 90, width: 200, height: 20 },
+						{ id: 'initials-tenant-0', signerIndex: 1, signerId: 'tenant-signer', type: 'initials', page: 2, x: 0, y: 0, width: 50, height: 30 },
+					],
+				}),
+			)
+
+		test('formal form accepts each capture type at its matching slot', async () => {
+			const formal = await sealWithAllTypes()
+			const signed = formal
+				.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
+				.captureCapacity('landlord', 'landlord-0', 'landlord-signer', 'cap-landlord-0', 'Owner')
+				.capturePrintedName('tenant', 'tenant-0', 'tenant-signer', 'name-tenant-0', 'JANE TENANT')
+				.captureInitials('tenant', 'tenant-0', 'tenant-signer', 'initials-tenant-0')
+
+			expect(signed.getCapture('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0', 'signature')).toBeDefined()
+			expect(signed.getCapture('landlord', 'landlord-0', 'landlord-signer', 'cap-landlord-0', 'capacity')?.text).toBe('Owner')
+			expect(signed.getCapture('tenant', 'tenant-0', 'tenant-signer', 'name-tenant-0', 'printed_name')?.text).toBe('JANE TENANT')
+			expect(signed.getCapture('tenant', 'tenant-0', 'tenant-signer', 'initials-tenant-0', 'initials')).toBeDefined()
+		})
+
+		test('formal form rejects a locationId absent from signatureMap for every capture method', async () => {
+			const formal = await sealWithAllTypes()
+			expect(() => formal.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'bogus-slot'))
+				.toThrow('Cannot captureSignature: location "bogus-slot" not found in signatureMap')
+			expect(() => formal.captureInitials('tenant', 'tenant-0', 'tenant-signer', 'bogus-slot'))
+				.toThrow('Cannot captureInitials: location "bogus-slot" not found in signatureMap')
+			expect(() => formal.captureCapacity('landlord', 'landlord-0', 'landlord-signer', 'bogus-slot', 'Owner'))
+				.toThrow('Cannot captureCapacity: location "bogus-slot" not found in signatureMap')
+			expect(() => formal.capturePrintedName('tenant', 'tenant-0', 'tenant-signer', 'bogus-slot', 'JANE'))
+				.toThrow('Cannot capturePrintedName: location "bogus-slot" not found in signatureMap')
+		})
+
+		test('formal form rejects a slot that belongs to another signer', async () => {
+			const formal = await sealWithAllTypes()
+			expect(() => formal.captureInitials('landlord', 'landlord-0', 'landlord-signer', 'initials-tenant-0'))
+				.toThrow('Cannot captureInitials: location "initials-tenant-0" belongs to signer "tenant-signer", not "landlord-signer"')
+		})
+
+		test('formal form rejects a capture whose type does not match the slot type', async () => {
+			const formal = await sealWithAllTypes()
+			expect(() => formal.captureInitials('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0'))
+				.toThrow('Cannot captureInitials: location "sig-landlord-0" is a signature field, not initials')
+			expect(() => formal.capturePrintedName('landlord', 'landlord-0', 'landlord-signer', 'cap-landlord-0', 'JOHN'))
+				.toThrow('Cannot capturePrintedName: location "cap-landlord-0" is a capacity field, not printed_name')
+		})
+
+		test('rejects an unknown role on formal and informal forms', async () => {
+			const formal = await sealWithAllTypes()
+			const informal = buildDraft().prepareForSigning()
+			for (const signable of [formal, informal]) {
+				expect(() => signable.captureSignature('NOT_A_ROLE', 'landlord-0', 'landlord-signer', 'sig-landlord-0'))
+					.toThrow('Role "NOT_A_ROLE" not found in form. Valid roles: landlord, tenant')
+			}
+		})
+
+		test('rejects an unknown partyId on formal and informal forms', async () => {
+			const formal = await sealWithAllTypes()
+			const informal = buildDraft().prepareForSigning()
+			for (const signable of [formal, informal]) {
+				expect(() => signable.captureCapacity('landlord', 'landlord-9', 'landlord-signer', 'cap-landlord-0', 'Owner'))
+					.toThrow('Cannot captureCapacity: party "landlord-9" not found for role "landlord"')
+			}
+		})
+
+		test('rejects a signer who is not a signatory for the party', async () => {
+			const formal = await sealWithAllTypes()
+			const informal = buildDraft().prepareForSigning()
+			for (const signable of [formal, informal]) {
+				expect(() => signable.captureSignature('landlord', 'landlord-0', 'tenant-signer', 'sig-landlord-0'))
+					.toThrow('Cannot captureSignature: signer "tenant-signer" is not a signatory for party "landlord-0" in role "landlord"')
+			}
+		})
+
+		test('informal form without a signatureMap accepts any locationId for a bound signatory', () => {
+			const signed = buildDraft().prepareForSigning()
+				.capturePrintedName('tenant', 'tenant-0', 'tenant-signer', 'any-location', 'JANE')
+			expect(signed.getCapture('tenant', 'tenant-0', 'tenant-signer', 'any-location', 'printed_name')?.text).toBe('JANE')
+		})
+	})
+
+	// ============================================================================
 	// Sigblock → SigningField pass-through (v2-minimal)
 	// ============================================================================
 
