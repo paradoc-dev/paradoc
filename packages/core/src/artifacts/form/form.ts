@@ -1123,7 +1123,11 @@ export interface SignableForm<F extends Form> extends RuntimeFormBase<F> {
 	 */
 	setTargetLayer<K extends keyof F['layers'] & string>(layer: K): SignableForm<F>
 
-	// Phase Transition (signable → executed)
+	/**
+	 * Move to the executed phase. On a sealed form, throws listing each
+	 * signatureMap slot (other than `required: false` and date_signed) that
+	 * has no capture.
+	 */
 	finalize(): ExecutedForm<F>
 
 	// Formal signing helpers
@@ -1432,6 +1436,48 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		}
 		if (slot.type !== type) {
 			throw new Error(`Cannot ${operation}: location "${locationId}" is a ${slot.type} field, not ${type}`)
+		}
+	}
+
+	/**
+	 * Rejects a second capture of the same (role, partyId, signerId,
+	 * locationId, type) slot. A capture is never replaced: to correct one,
+	 * capture again from the earlier form instance.
+	 */
+	const ensureSlotUncaptured = (
+		operation: string,
+		role: string,
+		partyId: string,
+		signerId: string,
+		locationId: string,
+		type: SignatureCapture['type'],
+	): void => {
+		const existing = captures.some(
+			(c) =>
+				c.role === role && c.partyId === partyId && c.signerId === signerId && c.locationId === locationId && c.type === type,
+		)
+		if (existing) {
+			throw new Error(`Cannot ${operation}: location "${locationId}" already has a ${type} capture for signer "${signerId}"`)
+		}
+	}
+
+	/**
+	 * Rejects finalizing a formal form while a required signatureMap slot has
+	 * no capture. A slot counts as captured when a capture has its locationId,
+	 * signerId, and type. date_signed slots are stamped by the signing act,
+	 * not captured, so they are not checked.
+	 */
+	const ensureRequiredSlotsCaptured = (): void => {
+		if (signatureMap === undefined || canonicalPdfHash === undefined) return
+		const missing = signatureMap.filter(
+			(field) =>
+				field.required !== false &&
+				field.type !== 'date_signed' &&
+				!captures.some((c) => c.locationId === field.id && c.signerId === field.signerId && c.type === field.type),
+		)
+		if (missing.length > 0) {
+			const list = missing.map((field) => `"${field.id}" (${field.type}, signer "${field.signerId}")`).join(', ')
+			throw new Error(`Cannot finalize: required signing slots have no capture: ${list}`)
 		}
 	}
 
@@ -1936,6 +1982,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		): RuntimeForm<F> {
 			ensureSignable('captureSignature')
 			ensureCaptureSlot('captureSignature', role, partyId, signerId, locationId, 'signature')
+			ensureSlotUncaptured('captureSignature', role, partyId, signerId, locationId, 'signature')
 			const capture: SignatureCapture = {
 				role,
 				partyId,
@@ -1961,6 +2008,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		): RuntimeForm<F> {
 			ensureSignable('captureInitials')
 			ensureCaptureSlot('captureInitials', role, partyId, signerId, locationId, 'initials')
+			ensureSlotUncaptured('captureInitials', role, partyId, signerId, locationId, 'initials')
 			const capture: SignatureCapture = {
 				role,
 				partyId,
@@ -1987,6 +2035,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		): RuntimeForm<F> {
 			ensureSignable('captureCapacity')
 			ensureCaptureSlot('captureCapacity', role, partyId, signerId, locationId, 'capacity')
+			ensureSlotUncaptured('captureCapacity', role, partyId, signerId, locationId, 'capacity')
 			const capture: SignatureCapture = {
 				role,
 				partyId,
@@ -2013,6 +2062,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		): RuntimeForm<F> {
 			ensureSignable('capturePrintedName')
 			ensureCaptureSlot('capturePrintedName', role, partyId, signerId, locationId, 'printed_name')
+			ensureSlotUncaptured('capturePrintedName', role, partyId, signerId, locationId, 'printed_name')
 			const capture: SignatureCapture = {
 				role,
 				partyId,
@@ -3061,6 +3111,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		finalize(): RuntimeForm<F> {
 			ensureSignable('finalize')
+			ensureRequiredSlotsCaptured()
 			return createRuntimeForm({
 				...config,
 				phase: 'executed',

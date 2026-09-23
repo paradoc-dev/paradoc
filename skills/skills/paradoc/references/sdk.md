@@ -208,14 +208,15 @@ draft.updateFields({ monthlyRent: { amount: 2000, currency: "USD" } });
 // Transition to signable
 const signable = draft.prepareForSigning();
 
-// Capture signatures (positional: role, partyId, signerId, locationId)
-signable.captureSignature("landlord", "landlord-1", "signer-1", "sig-loc-1");
+// Capture signatures (positional: role, partyId, signerId, locationId).
+// Each capture returns a new form; a slot takes one capture.
+const signed = signable.captureSignature("landlord", "landlord-0", "signer-1", "sig-loc-1");
 
 // Status check
-const status = signable.getOverallSignatureStatus();
+const status = signed.getOverallSignatureStatus();
 
-// Finalize
-const executed = signable.finalize();
+// Finalize. On a sealed form, every required signatureMap slot needs a capture.
+const executed = signed.finalize();
 ```
 
 For party data shape, see [parties.md](./parties.md).

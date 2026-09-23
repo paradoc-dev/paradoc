@@ -121,6 +121,13 @@ describe('Formal Signing', () => {
 		person: { name: 'Jane Tenant' },
 	})
 
+	/** Captures every required slot of the default mock adapter's signatureMap. */
+	const captureDefaultSlots = <T extends SignableForm<any>>(sealed: T): T =>
+		sealed
+			.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
+			.captureSignature('tenant', 'tenant-0', 'tenant-signer', 'sig-tenant-0')
+			.captureInitials('tenant', 'tenant-0', 'tenant-signer', 'initials-tenant-0') as T
+
 	// ============================================================================
 	// SignableForm.isFormal
 	// ============================================================================
@@ -404,8 +411,15 @@ describe('Formal Signing', () => {
 		})
 
 		test('refuses to retarget an executed form', async () => {
-			const sealed = await buildDraft().seal(createMockAdapter())
-			const executed = sealed.finalize()
+			const landlordOnly = createMockAdapter({
+				signatureMap: [
+					{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 100, y: 500, width: 200, height: 50 },
+				],
+			})
+			const sealed = await buildDraft().seal(landlordOnly)
+			const executed = sealed
+				.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
+				.finalize()
 			// ExecutedForm's type omits setTargetLayer; JS callers still reach the runtime method.
 			const runtime = executed as unknown as { setTargetLayer(layer: string): unknown }
 			expect(() => runtime.setTargetLayer('markdown')).toThrow(
@@ -778,7 +792,7 @@ describe('Formal Signing', () => {
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
 		test('executed form JSON round-trip preserves signatureMap and canonicalPdfHash', async () => {
-			const executed = (await sealedDraft().seal(createMockAdapter())).finalize()
+			const executed = captureDefaultSlots(await sealedDraft().seal(createMockAdapter())).finalize()
 			expect(executed.isFormal).toBe(true)
 
 			const json = executed.toJSON()
@@ -797,7 +811,7 @@ describe('Formal Signing', () => {
 		})
 
 		test('executed form YAML round-trip preserves signatureMap and canonicalPdfHash', async () => {
-			const executed = (await sealedDraft().seal(createMockAdapter())).finalize()
+			const executed = captureDefaultSlots(await sealedDraft().seal(createMockAdapter())).finalize()
 
 			const restored = runtimeFormFromJSON(fromYAML(executed.toYAML()) as any)
 			expect(restored.phase).toBe('executed')
@@ -807,7 +821,7 @@ describe('Formal Signing', () => {
 		})
 
 		test('executed form JSON is a copy: mutating it leaves the form unchanged', async () => {
-			const executed = (await sealedDraft().seal(createMockAdapter())).finalize()
+			const executed = captureDefaultSlots(await sealedDraft().seal(createMockAdapter())).finalize()
 			const json = executed.toJSON() as any
 			json.signatureMap[0].x = 999
 
@@ -1165,6 +1179,106 @@ describe('Formal Signing', () => {
 			const signed = buildDraft().prepareForSigning()
 				.capturePrintedName('tenant', 'tenant-0', 'tenant-signer', 'any-location', 'JANE')
 			expect(signed.getCapture('tenant', 'tenant-0', 'tenant-signer', 'any-location', 'printed_name')?.text).toBe('JANE')
+		})
+
+		test('rejects a second capture of the same slot for every capture method', async () => {
+			const signed = (await sealWithAllTypes())
+				.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0', { image: 'FIRST' })
+				.captureCapacity('landlord', 'landlord-0', 'landlord-signer', 'cap-landlord-0', 'Owner')
+				.capturePrintedName('tenant', 'tenant-0', 'tenant-signer', 'name-tenant-0', 'JANE TENANT')
+				.captureInitials('tenant', 'tenant-0', 'tenant-signer', 'initials-tenant-0')
+
+			expect(() => signed.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0', { image: 'SECOND' }))
+				.toThrow('Cannot captureSignature: location "sig-landlord-0" already has a signature capture for signer "landlord-signer"')
+			expect(() => signed.captureCapacity('landlord', 'landlord-0', 'landlord-signer', 'cap-landlord-0', 'Agent'))
+				.toThrow('Cannot captureCapacity: location "cap-landlord-0" already has a capacity capture for signer "landlord-signer"')
+			expect(() => signed.capturePrintedName('tenant', 'tenant-0', 'tenant-signer', 'name-tenant-0', 'J. TENANT'))
+				.toThrow('Cannot capturePrintedName: location "name-tenant-0" already has a printed_name capture for signer "tenant-signer"')
+			expect(() => signed.captureInitials('tenant', 'tenant-0', 'tenant-signer', 'initials-tenant-0'))
+				.toThrow('Cannot captureInitials: location "initials-tenant-0" already has a initials capture for signer "tenant-signer"')
+			expect(signed.getCapturesForLocation('sig-landlord-0')).toHaveLength(1)
+			expect(signed.getCapture('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0', 'signature')?.image).toBe('FIRST')
+		})
+
+		test('an informal form also rejects a second capture of the same slot', () => {
+			const signed = buildDraft().prepareForSigning()
+				.captureSignature('tenant', 'tenant-0', 'tenant-signer', 'any-location')
+			expect(() => signed.captureSignature('tenant', 'tenant-0', 'tenant-signer', 'any-location'))
+				.toThrow('Cannot captureSignature: location "any-location" already has a signature capture for signer "tenant-signer"')
+			// A different capture type at the same location is a different slot.
+			const withName = signed.capturePrintedName('tenant', 'tenant-0', 'tenant-signer', 'any-location', 'JANE')
+			expect(withName.getCapturesForLocation('any-location')).toHaveLength(2)
+		})
+
+		test('a capture is corrected by capturing again from the earlier form instance', async () => {
+			const formal = await sealWithAllTypes()
+			formal.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0', { image: 'FIRST' })
+			const corrected = formal.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0', { image: 'SECOND' })
+			expect(corrected.getCapture('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0', 'signature')?.image).toBe('SECOND')
+		})
+	})
+
+	describe('Finalize completeness', () => {
+		const buildDraft = () =>
+			createFormWithSignature()
+				.fill({
+					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
+					},
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSigner('tenant-signer', createTenantSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+
+		test('refuses to finalize a formal form with no captures, listing every missing slot', async () => {
+			const formal = await buildDraft().seal(createMockAdapter())
+			expect(() => formal.finalize()).toThrow(
+				'Cannot finalize: required signing slots have no capture: ' +
+					'"sig-landlord-0" (signature, signer "landlord-signer"), ' +
+					'"sig-tenant-0" (signature, signer "tenant-signer"), ' +
+					'"initials-tenant-0" (initials, signer "tenant-signer")',
+			)
+		})
+
+		test('lists only the slots that are still missing', async () => {
+			const partial = (await buildDraft().seal(createMockAdapter()))
+				.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
+				.captureSignature('tenant', 'tenant-0', 'tenant-signer', 'sig-tenant-0')
+			expect(() => partial.finalize()).toThrow(
+				'Cannot finalize: required signing slots have no capture: "initials-tenant-0" (initials, signer "tenant-signer")',
+			)
+		})
+
+		test('finalizes a formal form once every required slot is captured', async () => {
+			const executed = captureDefaultSlots(await buildDraft().seal(createMockAdapter())).finalize()
+			expect(executed.phase).toBe('executed')
+			expect(executed.captures).toHaveLength(3)
+		})
+
+		test('skips slots marked required: false and date_signed slots', async () => {
+			const formal = await buildDraft().seal(
+				createMockAdapter({
+					signatureMap: [
+						{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 0, y: 0, width: 200, height: 50 },
+						{ id: 'date-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'date_signed', page: 1, x: 0, y: 60, width: 100, height: 20 },
+						{ id: 'initials-tenant-0', signerIndex: 1, signerId: 'tenant-signer', type: 'initials', page: 2, x: 0, y: 0, width: 50, height: 30, required: false },
+					],
+				}),
+			)
+			expect(() => formal.finalize()).toThrow(
+				'Cannot finalize: required signing slots have no capture: "sig-landlord-0" (signature, signer "landlord-signer")',
+			)
+			const executed = formal.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0').finalize()
+			expect(executed.phase).toBe('executed')
+		})
+
+		test('a formal form sealed with an empty signatureMap finalizes', async () => {
+			const formal = await buildDraft().seal(createMockAdapter({ signatureMap: [] }))
+			expect(formal.isFormal).toBe(true)
+			expect(formal.finalize().phase).toBe('executed')
 		})
 	})
 

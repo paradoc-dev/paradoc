@@ -177,6 +177,12 @@ const initialed = signed.captureInitials('tenant', 'tenant-0', 'jane', 'page-1-i
 
 Each capture method checks its slot and throws, naming the value, when the role is not declared, the party is not filled for that role, or the signer is not a signatory for that party. On a sealed form, `locationId` must also be a `signatureMap` field assigned to that signer with the same type (`signature`, `initials`, `capacity`, or `printed_name`).
 
+A slot takes one capture. Capturing the same role, party, signer, location, and type again throws. Forms are immutable, so to correct a capture, capture again from the form instance before the first capture.
+
+### Finalizing
+
+`finalize()` moves a signable form to the executed phase. On a sealed form, every `signatureMap` field that is not `required: false` must have a capture first, or `finalize()` throws and lists the missing slots. `date_signed` fields are stamped when the document is signed, so they are not checked.
+
 ## WitnessParty
 
 A `WitnessParty` represents a witness who can attest to signatures.

@@ -184,14 +184,14 @@ const form = p.form()
 
 ## Party Data (runtime)
 
-Party data is shape-inferred — no explicit discriminator field. The `id` is REQUIRED at runtime for signature tracking.
+Party data is shape-inferred — no explicit discriminator field. Each party's `id` is `<role>-<index>` (`tenant-0`, `tenant-1`). The form assigns it; a supplied `id` that does not match the party's position is refused.
 
 ```typescript
 // Person — default when no organization-specific fields present
-{ id: "p1", name: "Jane Smith", firstName: "Jane", lastName: "Smith" }
+{ name: "Jane Smith", firstName: "Jane", lastName: "Smith" }
 
 // Organization — detected by legalName, taxId, entityType, etc.
-{ id: "o1", name: "Acme Corp", legalName: "Acme Corporation LLC", taxId: "12-3456789" }
+{ name: "Acme Corp", legalName: "Acme Corporation LLC", taxId: "12-3456789" }
 ```
 
 Party values are ALWAYS arrays at fill time, even for single-party roles:
@@ -200,10 +200,10 @@ Party values are ALWAYS arrays at fill time, even for single-party roles:
 form.fill({
   fields: { /* ... */ },
   parties: {
-    landlord: [{ id: "landlord-1", name: "Jane Smith" }],
+    landlord: [{ id: "landlord-0", name: "Jane Smith" }],
     tenant: [
-      { id: "tenant-1", name: "John Doe" },
-      { id: "tenant-2", name: "Alice Doe" },
+      { id: "tenant-0", name: "John Doe" },
+      { id: "tenant-1", name: "Alice Doe" },
     ],
   },
 });
@@ -221,14 +221,15 @@ draft.addSigner("s1", { person: { name: "Jane Smith" } });
 // 3. Transition to signable
 const signable = draft.prepareForSigning();
 
-// 4. Capture signatures (positional: role, partyId, signerId, locationId)
-signable.captureSignature("landlord", "landlord-1", "s1", "sig-loc-1");
+// 4. Capture signatures (positional: role, partyId, signerId, locationId).
+// Each capture returns a new form; a slot takes one capture.
+const signed = signable.captureSignature("landlord", "landlord-0", "s1", "sig-loc-1");
 
 // 5. Status check
-const status = signable.getOverallSignatureStatus();
+const status = signed.getOverallSignatureStatus();
 
-// 6. Finalize
-const executed = signable.finalize();
+// 6. Finalize. On a sealed form, every required signatureMap slot needs a capture.
+const executed = signed.finalize();
 ```
 
 Phase transitions are one-way: `draft → signable → executed`. NEVER attempt to go backwards.
