@@ -81,4 +81,22 @@ describe('CLI configure command', () => {
       await fs.rm(home, { recursive: true, force: true })
     }
   })
+
+  it('stops on a global config that still sets the removed defaults.registry', async () => {
+    const home = await fs.mkdtemp(path.join(tmpdir(), 'paradoc-home-'))
+    try {
+      const configPath = path.join(home, '.paradoc', 'config.json')
+      const stale = '{ "defaults": { "output": "json", "registry": "@paradoc" } }'
+      await fs.mkdir(path.dirname(configPath), { recursive: true })
+      await fs.writeFile(configPath, stale)
+
+      const result = await executeCliCommand(['configure'], { env: { HOME: home } })
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('unknown key "defaults.registry"')
+      expect(await fs.readFile(configPath, 'utf-8')).toBe(stale)
+    } finally {
+      await fs.rm(home, { recursive: true, force: true })
+    }
+  })
 })

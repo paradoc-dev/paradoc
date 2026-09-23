@@ -100,6 +100,14 @@ describe('paradoc add', () => {
       expect(result.exitCode).not.toBe(0)
     })
 
+    it('rejects a bare artifact name and asks for its registry namespace', async () => {
+      const result = await executeCliCommand(['add', 'w9'], { cwd: tempDir })
+      expect(result.stderr).toContain('"w9" is not a document component')
+      expect(result.stderr).toContain('paradoc add @registry/w9')
+      expect(result.stderr).not.toContain('Invalid artifact')
+      expect(result.exitCode).toBe(1)
+    })
+
     it('shows error for empty artifact name', async () => {
       const result = await executeCliCommand(['add', '@acme/'], { cwd: tempDir })
       expect(result.stderr).toContain('Invalid artifact')

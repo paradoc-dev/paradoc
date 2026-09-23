@@ -1,6 +1,6 @@
 # paradoc-cli
 
-Convenience alias for [`@paradoc/cli`](https://www.npmjs.com/package/@paradoc/cli). Installing this package gives you the `paradoc` command — same binary, same behavior, just a shorter unscoped name to type.
+The documented install of the Paradoc CLI. It runs [`@paradoc/cli`](https://www.npmjs.com/package/@paradoc/cli) and gives you the `paradoc` command.
 
 ## Install
 
@@ -10,11 +10,7 @@ npm install -g paradoc-cli
 npx paradoc-cli
 ```
 
-Equivalent to:
-
-```bash
-npm install -g @paradoc/cli
-```
+`@paradoc/cli` is an alternative with the same version and behavior. Install one of them, not both. Each registers the `paradoc` command, so a second global install fails with `EEXIST`.
 
 ## Documentation
 

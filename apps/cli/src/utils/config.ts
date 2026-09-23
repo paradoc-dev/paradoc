@@ -331,14 +331,6 @@ export class ConfigManager {
   }
 
   /**
-   * Get default registry namespace
-   * Returns undefined if no default is set
-   */
-  getDefaultRegistry(): string | undefined {
-    return this.globalConfig?.defaults?.registry
-  }
-
-  /**
    * Get allowed content types for layer downloads.
    * Project config takes precedence over global config.
    * User-specified types are merged with defaults, blocked types are filtered out.

@@ -110,6 +110,26 @@ describe('update-notifier', () => {
 
 			expect(fetchSpy).not.toHaveBeenCalled()
 		})
+
+		it('checks the documented paradoc-cli package on npm', async () => {
+			vi.resetModules()
+
+			const fetchSpy = vi
+				.spyOn(globalThis, 'fetch')
+				.mockResolvedValue(new Response(JSON.stringify({ version: '0.2.0' }), { status: 200 }))
+			const { checkForUpdate } = await import('../../src/utils/update-notifier.js')
+
+			checkForUpdate()
+			await vi.waitFor(async () => {
+				const written = JSON.parse(await fs.readFile(cacheFile, 'utf-8')) as { latestVersion: string }
+				expect(written.latestVersion).toBe('0.2.0')
+			})
+
+			expect(fetchSpy).toHaveBeenCalledWith(
+				'https://registry.npmjs.org/paradoc-cli/latest',
+				expect.anything(),
+			)
+		})
 	})
 
 	describe('printUpdateNotice', () => {
@@ -168,7 +188,10 @@ describe('update-notifier', () => {
 
 			printUpdateNotice()
 
-			expect(consoleSpy.mock.calls.flat().join('\n')).toContain('0.2.0')
+			const output = consoleSpy.mock.calls.flat().join('\n')
+			expect(output).toContain('0.2.0')
+			expect(output).toContain('npm i -g paradoc-cli')
+			expect(output).not.toContain('@paradoc/cli')
 		})
 
 		it('skips notice when PARADOC_NO_UPDATE_CHECK is set', async () => {

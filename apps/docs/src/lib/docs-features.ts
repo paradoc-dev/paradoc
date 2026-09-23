@@ -6,7 +6,7 @@ export const platformApiDocsEnabled =
     : typeof process !== "undefined" &&
       process.env.PARADOC_DOCS_PLATFORM_API === "true";
 
-const PLATFORM_API_PAGE = "guides/hosted-sealing-and-conversion.mdx";
+export const PLATFORM_API_PAGE = "guides/hosted-sealing-and-conversion.mdx";
 const PLATFORM_API_META = "guides/meta.json";
 const PLATFORM_API_META_ENTRY = "hosted-sealing-and-conversion";
 

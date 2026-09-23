@@ -64,7 +64,6 @@ export function createRenderersCommand(): Command {
       try {
         if (name) {
           const packages = rendererManager.getRendererPackages()
-          // Allow short names like "text", "pdf", "docx"
           const pkg = resolveRendererName(name, packages)
           await rendererManager.installRenderer(pkg)
         } else {
@@ -125,17 +124,22 @@ export function createRenderersCommand(): Command {
   return renderers
 }
 
-/** Resolve short renderer names (text, pdf, docx) to the unified package. */
-function resolveRendererName(name: string, packages: Record<string, string>): string {
-  // If it's already a full package name, validate it
-  if (name in packages) return name
+/** Format names whose entry points all live in @paradoc/render. */
+const RENDER_FORMATS = ['text', 'pdf', 'docx']
 
-  // The format-specific entry points all live in @paradoc/render.
-  const fullName = ['text', 'pdf', 'docx'].includes(name) || name.startsWith('@paradoc/render/')
-    ? '@paradoc/render'
-    : name
-  if (fullName in packages) return fullName
+/**
+ * Resolve a renderer name to its package. Accepts the full package name, its
+ * short name (`render`, `react`), one of its subpaths (`@paradoc/react/pdf`),
+ * or a format served by @paradoc/render (`text`, `pdf`, `docx`).
+ */
+export function resolveRendererName(name: string, packages: Record<string, string>): string {
+  if (RENDER_FORMATS.includes(name) && '@paradoc/render' in packages) return '@paradoc/render'
 
-  const available = Object.keys(packages).map(p => p.split('/').pop()).join(', ')
+  const match = Object.keys(packages).find(
+    (pkg) => name === pkg || name.startsWith(`${pkg}/`) || name === pkg.split('/').pop(),
+  )
+  if (match) return match
+
+  const available = [...Object.keys(packages).map((pkg) => pkg.split('/').pop()), ...RENDER_FORMATS].join(', ')
   throw new Error(`Unknown renderer "${name}". Available: ${available}`)
 }

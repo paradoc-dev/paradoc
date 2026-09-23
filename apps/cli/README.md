@@ -31,14 +31,16 @@
 ## Installation
 
 ```bash
-npm install -g @paradoc/cli
+npm install -g paradoc-cli
 ```
 
 Or use with npx:
 
 ```bash
-npx @paradoc/cli --help
+npx paradoc-cli --help
 ```
+
+The CLI is published as two packages with the same version and behavior: `paradoc-cli`, the documented install, and `@paradoc/cli`. Install one of them, not both. Each registers the `paradoc` command, so a second global install fails with `EEXIST`.
 
 ## Quick start
 

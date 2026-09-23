@@ -127,10 +127,10 @@ at `styles/paradoc.css`.
 composition lands in `components/paradoc/`, and its artifact and sample data
 in `artifacts/paradoc/`.
 
-A bare name not in that list, or an argument shaped like `@namespace/name`
-or a URL, is treated as an **artifact** reference instead (a different
-registry, for form artifacts like a W-9) — the two are told apart by shape,
-never ambiguous.
+An argument shaped like `@namespace/name` or a URL is an **artifact**
+reference instead (a different registry, for form artifacts like a W-9). The
+two are told apart by shape, never ambiguous. A bare name not in that list
+fails: an artifact always names its registry, as in `@registry/w9`.
 
 Without a `components.json` entry, the full URL still works:
 

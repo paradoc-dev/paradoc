@@ -390,6 +390,9 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   }
 }
 
+/** A name with no namespace, path, or scheme, such as `w9`. */
+const BARE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
+
 /**
  * Create the 'add' command
  * Adds artifacts from a registry into the project
@@ -470,6 +473,14 @@ export function createAddCommand(): Command {
         // 1. Parse artifact argument (reference, namespace-only, or direct URL)
         const parsed = parseArtifactArg(artifact)
         const nsOnly = !parsed ? parseNamespaceOnly(artifact) : null
+
+        // An artifact always names its registry; there is no default namespace.
+        if (!parsed && !nsOnly && BARE_NAME_PATTERN.test(artifact)) {
+          console.error(kleur.red(`"${artifact}" is not a document component.`))
+          console.error(kleur.gray(`To add an artifact, name its registry: paradoc add @registry/${artifact}`))
+          console.error(kleur.gray(`Document components: ${COMPONENT_ITEMS.join(', ')}`))
+          process.exit(1)
+        }
 
         if (!parsed && !nsOnly) {
           console.error(kleur.red(`Invalid artifact: ${artifact}`))

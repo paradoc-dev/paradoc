@@ -38,6 +38,10 @@ describe('GlobalConfigSchema', () => {
 		expect(unknownKeys({ enableTelemetry: false })).toEqual(['enableTelemetry']);
 	});
 
+	it('does not know the removed defaults.registry key', () => {
+		expect(unknownKeys({ defaults: { output: 'json', registry: '@paradoc' } })).toEqual(['defaults.registry']);
+	});
+
 	it('names unknown keys at the top level and inside telemetry and security', () => {
 		expect(unknownKeys({ telemetry: { enabled: true, level: 'full' } })).toEqual(['telemetry.level']);
 		expect(unknownKeys({ security: { allowedContentType: ['text/plain'] } })).toEqual(['security.allowedContentType']);

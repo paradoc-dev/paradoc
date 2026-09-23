@@ -172,11 +172,6 @@
           "default": "artifacts",
           "description": "Default directory for installed artifacts",
           "type": "string"
-        },
-        "registry": {
-          "type": "string",
-          "pattern": "^@[a-zA-Z0-9][a-zA-Z0-9-_]*$",
-          "description": "Default registry namespace for artifact operations (must start with @)"
         }
       },
       "additionalProperties": false,

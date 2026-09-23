@@ -29,7 +29,7 @@ export const CacheConfigSchema = z.object({
 /**
  * Default settings for artifact operations
  */
-export const GlobalDefaultsSchema = z.object({
+export const GlobalDefaultsSchema = z.strictObject({
 	output: ArtifactOutputFormatSchema
 		.default('json')
 		.describe('Default output format for artifacts: json, yaml, typed (json + .d.ts), or ts (TypeScript module)')
@@ -37,10 +37,6 @@ export const GlobalDefaultsSchema = z.object({
 	artifactsDir: z.string()
 		.default('artifacts')
 		.describe('Default directory for installed artifacts')
-		.optional(),
-	registry: z.string()
-		.regex(/^@[a-zA-Z0-9][a-zA-Z0-9-_]*$/)
-		.describe('Default registry namespace for artifact operations (must start with @)')
 		.optional(),
 }).meta({
 	title: 'GlobalDefaults',

@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { SecurityConfigSchema } from './registry/global-config';
 import { ArtifactOutputFormatSchema, RegistryEntrySchema } from './registry/registry-entry';
 
 /**
@@ -73,6 +74,9 @@ export const ManifestSchema = z.object({
 	artifacts: ManifestArtifactConfigSchema.optional(),
 	cache: ManifestCacheConfigSchema
 		.describe('Project-level cache configuration (overrides global config)')
+		.optional(),
+	security: SecurityConfigSchema
+		.describe('Security settings for layer downloads (overrides global config)')
 		.optional(),
 }).meta({
 	title: 'Paradoc Project Manifest',

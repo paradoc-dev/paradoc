@@ -50,6 +50,8 @@ paradoc --version
 
 The package registers one command, `paradoc`.
 
+The CLI is published as two packages with the same version and behavior: `paradoc-cli` and `@paradoc/cli`. Install one of them, not both. Each registers the `paradoc` command, so a second global install fails with `EEXIST`. These docs use `paradoc-cli`.
+
 To run it once without a global install:
 
 ```bash

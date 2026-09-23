@@ -1,11 +1,24 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { spawn } from 'node:child_process'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveRendererName } from '../../src/commands/renderers'
 import { rendererManager } from '../../src/utils/renderer-manager'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+let tempHome = ''
+
+beforeAll(async () => {
+  tempHome = await mkdtemp(path.join(tmpdir(), 'paradoc-renderers-home-'))
+})
+
+afterAll(async () => {
+  await rm(tempHome, { recursive: true, force: true })
+})
 
 async function executeCliCommand(
   args: string[],
@@ -17,9 +30,10 @@ async function executeCliCommand(
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
     const cliPath = path.resolve(__dirname, '../../src/index.ts')
+    // The CLI keeps renderers under ~/.paradoc; never let it touch the real home
     const child = spawn('tsx', [cliPath, ...args], {
       cwd: options?.cwd || process.cwd(),
-      env: { ...process.env, ...options?.env },
+      env: { ...process.env, HOME: tempHome, USERPROFILE: tempHome, XDG_CONFIG_HOME: path.join(tempHome, '.config'), ...options?.env },
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 
@@ -67,6 +81,34 @@ describe('CLI renderers command', () => {
         react: '19.2.3',
         'react-dom': '19.2.3',
       },
+    })
+  })
+
+  describe('resolveRendererName', () => {
+    const packages = { '@paradoc/render': '0.4.0', '@paradoc/react': '0.4.0' }
+
+    it.each([
+      ['render', '@paradoc/render'],
+      ['react', '@paradoc/react'],
+      ['@paradoc/render', '@paradoc/render'],
+      ['@paradoc/react', '@paradoc/react'],
+      ['text', '@paradoc/render'],
+      ['pdf', '@paradoc/render'],
+      ['docx', '@paradoc/render'],
+      ['@paradoc/render/pdf', '@paradoc/render'],
+      ['@paradoc/react/pdf', '@paradoc/react'],
+    ])('resolves %s to %s', (name, expected) => {
+      expect(resolveRendererName(name, packages)).toBe(expected)
+    })
+
+    it('rejects an unknown name and lists every name it accepts', () => {
+      expect(() => resolveRendererName('nonexistent', packages)).toThrow(
+        'Unknown renderer "nonexistent". Available: render, react, text, pdf, docx',
+      )
+    })
+
+    it.each(['rend', '@paradoc/renderer', '@paradoc', 'paradoc/render'])('rejects %s, which only resembles a package', (name) => {
+      expect(() => resolveRendererName(name, packages)).toThrow(`Unknown renderer "${name}"`)
     })
   })
 

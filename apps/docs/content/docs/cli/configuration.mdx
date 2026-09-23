@@ -16,8 +16,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
   "$schema": "https://schema.paradoc.dev/config.json",
   "defaults": {
     "output": "json",
-    "artifactsDir": "artifacts",
-    "registry": "@paradoc"
+    "artifactsDir": "artifacts"
   },
   "registries": {
     "@company": "https://registry.company.com"
@@ -41,8 +40,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 |-------|------|---------|-------------|
 | `defaults.output` | string | `"json"` | Default output format (`json`, `yaml`, `typed`, `ts`) |
 | `defaults.artifactsDir` | string | `"artifacts"` | Default directory for downloaded artifacts |
-| `defaults.registry` | string | `"@paradoc"` | Registry namespace used when none is specified |
-| `registries` | object | — | Registry configuration by namespace |
+| `registries` | object | — | Registry configuration by namespace. There is no default registry: an artifact reference always names its namespace, as in `@acme/w9` |
 | `cache.ttl` | number | `3600` | Cache time-to-live in seconds |
 | `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory |
 | `security.allowedContentTypes` | array | — | Permitted content types for layer downloads |
@@ -96,7 +94,7 @@ The [`paradoc configure`](/cli/commands/configure) command walks you through eac
 paradoc configure
 ```
 
-The wizard covers output format, artifacts directory, cache TTL, and default registry. Press Enter at any prompt to keep the current value.
+The wizard covers output format, artifacts directory, cache TTL, and telemetry. Press Enter at any prompt to keep the current value.
 
 ## Environment variables
 
@@ -200,7 +198,7 @@ paradoc search lease
 
 ## Update check
 
-Once a day, the CLI checks npm for a newer `@paradoc/cli` and prints a one-line notice after the command output. The check is skipped when `CI` is set or output is not a terminal.
+Once a day, the CLI checks npm for a newer `paradoc-cli` and prints a one-line notice after the command output, with the command to update it. The check is skipped when `CI` is set or output is not a terminal.
 
 To turn it off:
 

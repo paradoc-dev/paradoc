@@ -52,11 +52,7 @@ export function createConfigureCommand(): Command {
       // Track new values
       const currentOutput = currentConfig.defaults?.output ?? 'json'
       const currentArtifactsDir = currentConfig.defaults?.artifactsDir ?? 'artifacts'
-      const currentRegistry = currentConfig.defaults?.registry
       const currentCacheTtl = currentConfig.cache?.ttl ?? DEFAULT_CACHE_TTL
-
-      // Get configured registries for selection
-      const configuredRegistries = Object.keys(currentConfig.registries ?? {})
 
       // ═══════════════════════════════════════════════════════════════════════
       // Step 1: Output Format
@@ -192,64 +188,12 @@ export function createConfigureCommand(): Command {
       }
 
       // ═══════════════════════════════════════════════════════════════════════
-      // Step 4: Default Registry
+      // Step 4: Telemetry
       // ═══════════════════════════════════════════════════════════════════════
       console.log()
       console.log(kleur.gray('─'.repeat(50)))
       console.log()
-      console.log(kleur.bold().white('4. Default Registry'))
-      console.log(kleur.gray('   Registry to use when no namespace is specified.'))
-      console.log(kleur.gray('   Leave unset to require explicit @namespace/artifact.'))
-      console.log()
-
-      let defaultRegistry: string | undefined = currentRegistry
-
-      if (configuredRegistries.length === 0) {
-        console.log(kleur.gray('   No registries configured. Skipping.'))
-        console.log(kleur.gray('   Run ' + kleur.white('paradoc registry add') + ' to add registries.'))
-      } else {
-        const registryChoices = [
-          {
-            title: 'None' + kleur.gray(' — always require @namespace'),
-            value: '',
-          },
-          ...configuredRegistries.map(ns => ({
-            title: ns + kleur.gray(currentRegistry === ns ? ' — current default' : ''),
-            value: ns,
-          })),
-        ]
-
-        // Find current selection index
-        let registryInitial = 0
-        if (currentRegistry) {
-          const idx = configuredRegistries.indexOf(currentRegistry)
-          if (idx !== -1) registryInitial = idx + 1
-        }
-
-        const { registry } = await prompts({
-          type: 'select',
-          name: 'registry',
-          message: `Default registry ${kleur.green(`(current: ${currentRegistry ?? 'none'})`)}`,
-          choices: registryChoices,
-          initial: registryInitial,
-        })
-
-        if (registry === undefined) {
-          console.log()
-          console.log(kleur.gray('Configuration cancelled.'))
-          return
-        }
-
-        defaultRegistry = registry || undefined
-      }
-
-      // ═══════════════════════════════════════════════════════════════════════
-      // Step 5: Telemetry
-      // ═══════════════════════════════════════════════════════════════════════
-      console.log()
-      console.log(kleur.gray('─'.repeat(50)))
-      console.log()
-      console.log(kleur.bold().white('5. Telemetry'))
+      console.log(kleur.bold().white('4. Telemetry'))
       console.log(kleur.gray('   Anonymous usage data helps improve the CLI.'))
       console.log(kleur.gray('   No personal or project data is collected.'))
       console.log()
@@ -286,7 +230,6 @@ export function createConfigureCommand(): Command {
       const outputChanged = output !== currentOutput
       const artifactsDirChanged = artifactsDir.trim() !== currentArtifactsDir
       const cacheTtlChanged = cacheTtl !== currentCacheTtl
-      const registryChanged = defaultRegistry !== currentRegistry
       const telemetryChanged = telemetryEnabled !== currentTelemetryEnabled
 
       const formatValue = (value: string, changed: boolean) =>
@@ -295,11 +238,10 @@ export function createConfigureCommand(): Command {
       console.log(`  Output format:     ${formatValue(output.toUpperCase(), outputChanged)}${outputChanged ? kleur.yellow(' (changed)') : ''}`)
       console.log(`  Artifacts dir:     ${formatValue(artifactsDir.trim(), artifactsDirChanged)}${artifactsDirChanged ? kleur.yellow(' (changed)') : ''}`)
       console.log(`  Cache TTL:         ${formatValue(formatTtl(cacheTtl), cacheTtlChanged)}${cacheTtlChanged ? kleur.yellow(' (changed)') : ''}`)
-      console.log(`  Default registry:  ${formatValue(defaultRegistry ?? 'none', registryChanged)}${registryChanged ? kleur.yellow(' (changed)') : ''}`)
       console.log(`  Telemetry:         ${formatValue(telemetryEnabled ? 'enabled' : 'disabled', telemetryChanged)}${telemetryChanged ? kleur.yellow(' (changed)') : ''}`)
       console.log()
 
-      const anyChanged = outputChanged || artifactsDirChanged || cacheTtlChanged || registryChanged || telemetryChanged
+      const anyChanged = outputChanged || artifactsDirChanged || cacheTtlChanged || telemetryChanged
 
       if (!anyChanged) {
         console.log(kleur.gray('No changes made.'))
@@ -328,7 +270,6 @@ export function createConfigureCommand(): Command {
         defaults: {
           output: output as OutputFormat,
           artifactsDir: artifactsDir.trim(),
-          ...(defaultRegistry && { registry: defaultRegistry }),
         },
         cache: {
           ...currentConfig.cache,

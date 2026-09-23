@@ -164,6 +164,21 @@
       "additionalProperties": false,
       "title": "ManifestCacheConfig",
       "description": "Project-level cache configuration (overrides global config)"
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "allowedContentTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Content types permitted for layer downloads, added to the built-in defaults. Blocked types are never allowed."
+        }
+      },
+      "additionalProperties": false,
+      "title": "SecurityConfig",
+      "description": "Security settings for layer downloads (overrides global config)"
     }
   },
   "required": [

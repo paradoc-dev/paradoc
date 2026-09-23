@@ -54,3 +54,18 @@ describe('shared artifact output format schema', () => {
 		expect(GlobalConfigSchema.safeParse({ defaults: { output } }).success).toBe(false);
 	});
 });
+
+describe('project manifest security settings', () => {
+	it('accepts security.allowedContentTypes, the setting the CLI reads before the global config', () => {
+		const result = ManifestSchema.safeParse({ ...manifestBase, security: { allowedContentTypes: ['text/csv'] } });
+		expect(result.success).toBe(true);
+		expect(result.data?.security).toEqual({ allowedContentTypes: ['text/csv'] });
+	});
+
+	it.each([
+		['an unknown key', { allowedContentType: ['text/csv'] }],
+		['allowedContentTypes that is not a list of strings', { allowedContentTypes: 'text/csv' }],
+	])('rejects %s', (_label, security) => {
+		expect(ManifestSchema.safeParse({ ...manifestBase, security }).success).toBe(false);
+	});
+});

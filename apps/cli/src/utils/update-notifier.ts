@@ -17,7 +17,9 @@ const CACHE_DIR = join(homedir(), '.paradoc')
 const CACHE_FILE = join(CACHE_DIR, 'update-check.json')
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 hours
 const FETCH_TIMEOUT_MS = 5_000
-const NPM_REGISTRY_URL = 'https://registry.npmjs.org/@paradoc/cli/latest'
+/** The documented install. @paradoc/cli is an alternative that publishes the same version. */
+const CLI_PACKAGE = 'paradoc-cli'
+const NPM_REGISTRY_URL = `https://registry.npmjs.org/${CLI_PACKAGE}/latest`
 
 interface UpdateCache {
 	lastChecked: number
@@ -107,7 +109,7 @@ export function printUpdateNotice(): void {
 			console.log()
 			console.log(
 				kleur.yellow(
-					`Update available: ${VERSION} \u2192 ${cache.latestVersion}  Run: npm i -g @paradoc/cli`,
+					`Update available: ${VERSION} \u2192 ${cache.latestVersion}  Run: npm i -g ${CLI_PACKAGE}`,
 				),
 			)
 		}

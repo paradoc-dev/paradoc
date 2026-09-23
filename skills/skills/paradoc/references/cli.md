@@ -14,10 +14,12 @@ ALWAYS use `npx paradoc-cli validate` to validate artifacts when you can't guara
 ## Installation
 
 ```bash
-npm install -g @paradoc/cli
-# or run via npx: paradoc-cli wraps @paradoc/cli (the bare `paradoc` npm package is unrelated)
+npm install -g paradoc-cli
+# or run via npx (the bare `paradoc` npm package is unrelated)
 npx paradoc-cli <command>
 ```
+
+`paradoc-cli` and `@paradoc/cli` publish the same CLI. Install one, not both: each registers the `paradoc` command, so a second global install fails with `EEXIST`.
 
 If `paradoc: command not found`: install globally, run via `npx paradoc-cli`, or ensure `node_modules/.bin` is on PATH.
 
@@ -70,7 +72,7 @@ paradoc init my-new-project
 Precedence (highest to lowest): CLI flags → `paradoc.json` → `~/.paradoc/config.json` → built-in defaults.
 
 ```bash
-paradoc configure          # Interactive — output, artifacts dir, cache, registry, telemetry
+paradoc configure          # Interactive — output, artifacts dir, cache, telemetry
 ```
 
 Global config at `~/.paradoc/config.json`:
@@ -79,8 +81,7 @@ Global config at `~/.paradoc/config.json`:
 {
   "defaults": {
     "output": "json",
-    "artifactsDir": "artifacts",
-    "registry": "@paradoc"
+    "artifactsDir": "artifacts"
   },
   "registries": {
     "@acme": { "url": "https://registry.acme.com" }
@@ -159,6 +160,8 @@ paradoc add @acme/residential-lease --no-cache
 paradoc add @acme/residential-lease --cache-ttl 0
 paradoc add https://example.com/form.json --header "Authorization: Bearer TOKEN"
 ```
+
+An artifact reference ALWAYS names its registry (`@acme/residential-lease`). There is no default registry: a bare name that is not a document component (`paradoc add w9`) fails and asks for `@registry/w9`.
 
 ### Searching
 
@@ -421,12 +424,13 @@ paradoc render form.json --data '{"fields":{"name":"Alice"}}'
 
 ### Renderer management
 
-The unified `@paradoc/render` package auto-installs on first use under
-`~/.paradoc/renderers/`.
+The renderer packages auto-install on first use under `~/.paradoc/renderers/`:
+`@paradoc/render` (`render`, `inspect`) and `@paradoc/react` (`check`).
 
 ```bash
 paradoc renderers status     # Check installation
-paradoc renderers install    # Install (or reinstall) the renderer package
+paradoc renderers install    # Install (or reinstall) every renderer package
+paradoc renderers install react   # One package: render, react, or a format (text, pdf, docx)
 paradoc renderers update     # Reinstall to match the current CLI version
 paradoc renderers remove     # Remove installed renderers
 ```
@@ -515,7 +519,7 @@ Reads AcroForm field values back through the PDF layer's bindings. Output per PD
 ## Common CLI Issues
 
 **`paradoc: command not found`**
-Install `@paradoc/cli` globally or use `npx paradoc-cli`.
+Install `paradoc-cli` globally or use `npx paradoc-cli`.
 
 **Validation errors on `paradoc validate`**
 Check `--verbose` output. Use `paradoc fix` to auto-correct. Verify all field IDs in rules/logic/bindings exist in `fields`.
