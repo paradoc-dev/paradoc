@@ -1,0 +1,222 @@
+---
+title: React
+description: Headless React bindings, document tokens, and pagination for composing a document from a Paradoc artifact.
+---
+
+`@paradoc/react` binds React components to a Paradoc form artifact. One tree is the source of truth for the paginated browser preview and for the PDF. The package ships behavior only: providers, hooks, measurement, and page planning. It emits no styled markup and ships no stylesheet.
+
+The visible components (`Document`, `Field`, `Pages`, `Table`, and the rest) are source you install into your project. They are documented in the [Components](/components) area. This page is the reference for the runtime they import.
+
+## Installation
+
+```bash
+npm install @paradoc/react react react-dom
+```
+
+React 19 is required. The root entry is browser-safe: it loads no PDF engine, browser driver, CSS compiler, or font files. To check a composition or render it to PDF on the server, add [`@paradoc/react-pdf`](/sdk/react-pdf).
+
+| Entry | Purpose |
+| --- | --- |
+| `@paradoc/react` | Providers, hooks, tokens, typography, furniture, and page planning |
+| `@paradoc/react/discovery` | Node-only conventions that pair a composition with its artifact and sample data |
+
+## Bind an artifact
+
+`ArtifactProvider` scopes one document store. Hooks under it read focused values from the artifact and the data.
+
+```tsx
+import { ArtifactProvider, useField, type DocumentData } from "@paradoc/react";
+import type { Form } from "@paradoc/types";
+
+function Name() {
+  const name = useField("name");
+  return (
+    <p>
+      {name.field.label}: {name.text}
+    </p>
+  );
+}
+
+export function Profile({ artifact, data }: { artifact: Form; data: DocumentData }) {
+  return (
+    <ArtifactProvider artifact={artifact} data={data}>
+      <Name />
+    </ArtifactProvider>
+  );
+}
+```
+
+`ArtifactProvider` takes:
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `artifact` | `Form` | The form artifact every hook reads from |
+| `data` | `DocumentData` | `{ fields, parties, annexes? }`, the same shape `FormData` carries |
+| `format` | `FormatOptions` | Optional `formatter`, `blank` placeholder, `partial`, and `progressive` policy |
+
+Inputs are immutable snapshots. A provider update republishes only the selectors whose resolved value changed. Each provider creates an isolated store, including during SSR.
+
+An installed `Document` component wraps `ArtifactProvider` and the token providers for you. Use the provider directly only when you write your own document root.
+
+## Hooks
+
+### Artifact data
+
+| Hook | Returns |
+| --- | --- |
+| `useArtifact()` | The bound `Form` |
+| `useField(path)` | `FieldBinding`: `field`, raw `value`, formatted `text`, and `blank` (true when `text` is the blank placeholder) |
+| `useList(path)` | `ListBinding`: the list `field`, its `item` definition, `rows`, and `text(index, path?)` for one cell |
+| `useTotals(names)` | One `TotalBinding` (`name`, `label`, `value`, `text`) per computed definition in `defs`, in the order given |
+| `useParty(role)` | The parties filled for one declared role, always as an array |
+| `usePartyContact(role, index?)` | `PartyContactBinding`: `roleLabel`, `nameText`, and `organizationText`, `addressText`, `contactText` when present |
+| `useAnnex(path)` | `AnnexBinding`: the annex slot, its `label`, the `attachment`, and its `text` |
+| `useAnnexPicture(path)` | `AnnexBinding` plus `picture`, set only when the attachment is an image |
+| `useFormatter()` | The formatter registry, for components that format values themselves |
+
+Paths are field paths as the artifact declares them. A path the artifact does not declare throws `UnknownFieldPathError`. A path that resolves to a fieldset or a list throws `CompositeFieldPathError`, because it has no single value to print. An undeclared role throws `UnknownPartyRoleError`, and an undeclared definition throws `UnknownDefinitionError`. A hook used outside `ArtifactProvider` throws `MissingArtifactProviderError`.
+
+### Signing
+
+`useSignature(role, index?, type?)` returns a `SignatureBinding` for one signing mark: `roleLabel`, `partyText`, `fieldLabel`, `required`, the `rule` and `dateRule` strings, and the invisible `marker` the seal flow locates. `type` is `"signature"` (the default) or `"initials"`. `SIGNATURE_RULE`, `INITIALS_RULE`, and `DATE_RULE` are the rules the default components draw.
+
+### Document settings and paper
+
+| Hook | Returns |
+| --- | --- |
+| `useDocumentTokens()` | The resolved `DocumentTokens` in scope, or the defaults outside a document |
+| `useDocumentTokensAround(children)` | The tokens a subtree resolves to, read without rendering it |
+| `useDocumentSettings(children)` | `DocumentSettingsBinding`: the drawn paper, `tokens`, `geometry`, and a `sheetStyle` |
+| `usePaperGeometry()` | The `PageGeometry` of the paper being drawn |
+| `useDrawnPaper()` | The `DrawnPaper` in scope, or `null` |
+| `useFitToWidth(frameRef, contentRef, width?)` | A `Fit` that scales a sheet down to its frame |
+
+### Pages
+
+| Hook | Returns |
+| --- | --- |
+| `usePagination({ budget, onPaginate })` | `PaginationBinding`: `plan`, `measureRef`, `repaginate()`, `ready`, and `error` |
+| `usePagePlan()` | The `PagePlan` of the page being drawn, or `null` outside one |
+| `usePage()` | The `PageContextValue` of the page being drawn, or `null` |
+| `usePageNumber()` | `{ page, pages }`, 1-based; `{ page: 1, pages: 1 }` outside a page |
+| `useKeepVisible(id)` | Whether a keep belongs on the current page |
+| `useSectionVisible(id)` | Whether a section has content on the current page |
+| `useFontReadiness(family?)` | `{ ready, error }` once the fonts have loaded |
+
+### Packets
+
+| Hook or function | Returns |
+| --- | --- |
+| `usePdfPages(options)` | `PdfPagesBinding`: `status`, painted `pages`, and `attachmentReason` for a PDF part drawn in the preview. Needs the optional `pdfjs-dist` peer |
+| `resolvePartPlacement(input)` | Where a bundled part sits: `placed`, `pending`, `attached`, or `unplaced`, with a label |
+
+## Document tokens
+
+Tokens carry one document's branding. A document root (an installed `Document` or `Bundle`) takes them as `tokens`, and `renderPdf` accepts a last override for one render.
+
+| Token | Type | Default | Description |
+| --- | --- | --- | --- |
+| `accentColor` | `string` | none | Colour for section headings and the emphasised total. A hex triplet, a CSS colour function, or a named colour |
+| `pageSize` | `"letter" \| "a4"` | `"letter"` | The paper |
+| `marginPx` | `number` | `48` | The margin on all four sides, in CSS pixels |
+| `logo` | `Uint8Array \| string` | none | The organization's mark. Bytes become a `data:` URI; keep it small |
+| `dir` | `"ltr" \| "rtl"` | `"ltr"` | Which way lines run |
+| `lang` | `string` | `"en"` | BCP-47 language tag; the typeface must carry glyphs for its script |
+| `typography` | `{ scale?, flow? }` | `regular` / `regular` | The document's rhythm (below) |
+
+```tsx
+<Document
+  artifact={artifact}
+  data={data}
+  tokens={{ accentColor: "#1d4ed8", pageSize: "a4", marginPx: 64, lang: "en-GB" }}
+>
+  {children}
+</Document>
+```
+
+`pageSize`, `marginPx`, `dir`, `lang`, and `typography` are root-only (`ROOT_ONLY_TOKEN_KEYS`). Set them on the outermost root. A `Document` inside a `Bundle` that sets one throws `NestedPaperTokenError`. A root that resolves one differently from the paper drawing it throws `RootTokenMismatchError`. A value no renderer can act on throws `InvalidDocumentTokenError`, naming the token.
+
+`PAGE_SIZES` gives each sheet in CSS pixels (letter is 816 by 1056, A4 is 794 by 1123). `pageGeometry(tokens)` adds the margin and the content box, and `resolveDocumentTokens(...layers)` resolves a stack of inputs over `DEFAULT_DOCUMENT_TOKENS`.
+
+### Typography
+
+`typography` has two knobs, each `compact`, `regular`, or `roomy` (`TYPOGRAPHY_LEVELS`). `scale` moves the size and leading of every text role. `flow` moves the space between blocks at the root. `DEFAULT_TYPOGRAPHY` is `regular` for both.
+
+A level is one step along the Tailwind scale, not a number, so every class it produces is one the default PDF engine accepts. `scaleTextClasses(classes, scale)` and `flowGapClasses(classes, flow)` rewrite a class string for a level, which is how copy-owned components follow the token. See [Typography](/components/typography) for how the installed components apply it.
+
+## Page furniture
+
+Furniture is what every page carries outside the flow. The same `PageFurniture` object goes to the preview's `Pages` and to `renderPdf`, so both outputs draw one declaration.
+
+```ts
+interface PageFurniture {
+  header?: ReactNode; // drawn in the top margin of every page
+  footer?: ReactNode; // drawn in the bottom margin of every page
+  stamp?: ReactNode; // drawn across the whole page, behind the content
+}
+```
+
+Bands are drawn inside the margin, so furniture never changes the page plan. A header or footer taller than its margin, or a stamp taller than the sheet, throws `PageFurnitureOverflowError`, naming the slot. A stamp with a word wider than the sheet throws `PageStampTooWideError`. An engine that cannot draw a declared slot throws `UnsupportedFurnitureError`, and content it cannot draw in a slot throws `UnsupportedFurnitureContentError`.
+
+`usePageNumber` prints the current page inside furniture. The installed [`PageNumber`](/components/page-number) component uses it and marks its slots with `PAGE_COUNTER_ATTRIBUTE` so the PDF engine fills the counters itself. Usage with `Pages` is on the [Pages](/components/pages) component page.
+
+## Pagination
+
+The preview paginates by measuring. Every `KeepTogether` renders with a `data-keep-id`, `measureKeeps(root)` reads their heights, and `planPages(keeps, budget)` assigns them to pages that fit the content height. `usePagination` runs both after the fonts are ready and again whenever the measured tree resizes.
+
+```tsx
+import { usePagination, usePaperGeometry } from "@paradoc/react";
+import type { ReactNode } from "react";
+
+function PageCount({ children }: { children: ReactNode }) {
+  const { contentHeightPx } = usePaperGeometry();
+  const { plan, measureRef, ready } = usePagination({ budget: contentHeightPx });
+  return (
+    <>
+      <div ref={measureRef} style={{ position: "absolute", visibility: "hidden" }}>
+        {children}
+      </div>
+      <p>{ready && plan ? `${plan.pages.length} pages` : "Measuring"}</p>
+    </>
+  );
+}
+```
+
+A `PagePlan` lists the keep ids on each page (`pages`), the repeated table headers (`repeats`), the sections on each page, the keep that starts each page after the first (`breaks`), keeps too tall for a page (`oversize`), the `budget`, and the measured `fonts`. Pass the plan to `renderPdf` so the PDF breaks where the preview did. The installed [`Pages`](/components/pages) component does all of this and exposes the plan through `onPaginate`.
+
+## Errors
+
+| Error | Thrown when |
+| --- | --- |
+| `MissingArtifactProviderError` | A hook runs outside `ArtifactProvider` |
+| `UnknownFieldPathError` / `InvalidFieldPathError` | A path is not declared, or is not a valid dot path |
+| `CompositeFieldPathError` | A path resolves to a fieldset or list |
+| `UnknownPartyRoleError` / `PartyIndexOutOfRangeError` | A role is not declared, or has fewer parties than the index |
+| `UnknownDefinitionError` | A `useTotals` name is not in `defs` |
+| `UnknownAnnexError` | An annex slot is not declared |
+| `InvalidListValueError` | A list field holds something other than an array |
+| `ArtifactFieldFormatError` | A serializer rejects a value that carries data |
+| `InvalidDocumentTokenError` | A token value is invalid |
+| `NestedPaperTokenError` / `RootTokenMismatchError` | A nested document sets a root-only token, or a root disagrees with the paper drawing it |
+| `MultipleDocumentRootsError` | More than one document root sits under one piece of page furniture |
+| `PageFurnitureOverflowError` / `PageStampTooWideError` | Furniture does not fit |
+| `InvalidPagePlanInputError` | `planPages` gets invalid keeps or budget |
+| `MissingImageSourceError` / `MissingImageSizeError` / `UndecodableImageError` | An image cannot be drawn |
+
+## Discovery
+
+`@paradoc/react/discovery` holds the project conventions that [`paradoc dev`](/cli/commands/dev) and [`paradoc check`](/cli/commands/check) share, for authoring tools that need the same answers. It reads files and artifacts only; it never loads a composition.
+
+- A composition is a `.tsx` or `.jsx` file under a `compositions/` directory. Its default export is the component.
+- Its artifact is the one whose `text/tsx` or `text/jsx` layer resolves to the file. If none does, an artifact file of the same name beside it is used.
+- Its sample data is a sibling `<name>.sample.{ts,tsx,js,mjs,jsx}` default export, or else a `sample` export on the composition itself.
+
+```ts
+import { discoverCompositions } from "@paradoc/react/discovery";
+
+for (const entry of await discoverCompositions(process.cwd())) {
+  console.log(entry.id, entry.artifact?.relative, entry.problems);
+}
+```
+
+`discoverCompositions(root)` returns one `DiscoveredComposition` per file, with its `artifact`, `samples`, and any `problems`. `findCompositionArtifact(root, file)`, `siblingArtifact(root, file)`, and `sampleSources(root, file)` answer the same questions for one file.

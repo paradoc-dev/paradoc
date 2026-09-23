@@ -1,0 +1,184 @@
+---
+title: React PDF
+description: Render a React composition to PDF on the server, and check it against its artifact first.
+---
+
+`@paradoc/react-pdf` is the Node half of [`@paradoc/react`](/sdk/react). It renders a composed document to PDF bytes, checks a composition before a render, and plugs React layers into a form's `render()` call. The components it renders are the ones in the [Components](/components) area.
+
+## Installation
+
+```bash
+npm install @paradoc/react-pdf @paradoc/react react react-dom
+```
+
+The default entry installs Takumi, the WebAssembly engine every render uses unless you pick another. Install the optional `puppeteer` and `tailwindcss` peers only if you use the Chromium adapter.
+
+| Entry | Purpose |
+| --- | --- |
+| `@paradoc/react-pdf` | `renderPdf`, the adapter types, the Takumi adapter, font and image resources, and React layer renderers |
+| `@paradoc/react-pdf/check` | `checkComposition` and `checkElement`, which check a composition without producing PDF bytes |
+| `@paradoc/react-pdf/chromium` | The experimental Chromium adapter |
+
+## Render a PDF
+
+`renderPdf(element, options?)` renders one element, usually an installed `Document`, `Bundle`, or `Pages` tree, and resolves to a `PdfRenderResult`.
+
+```tsx
+import { writeFile } from "node:fs/promises";
+import { renderPdf } from "@paradoc/react-pdf";
+import { Document } from "@/components/paradoc/document";
+import { Field } from "@/components/paradoc/field";
+
+const { bytes } = await renderPdf(
+  <Document artifact={artifact} data={data}>
+    <Field path="name" />
+  </Document>,
+);
+
+await writeFile("invoice.pdf", bytes);
+```
+
+`Document` and `Field` are installed components; `artifact` is a `Form` and `data` is its `DocumentData`. The document's tokens are read off the element itself, so the paper, margin, language, and typography you declared on the root apply to the PDF too.
+
+### Options
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `plan` | `PageBreakPlan` | The preview's page plan, so the PDF breaks where the preview did. Without it the engine paginates on its own |
+| `furniture` | `PageFurniture` | Header, footer, and stamp drawn on every page. Pass the same object the preview's `Pages` received |
+| `tokens` | `DocumentTokensInput` | A last token layer for this render only, for example one tenant's accent colour or logo |
+| `partial` | `boolean` | Print missing values blank instead of failing. Off by default; use it for drafts, never for a finished document |
+| `adapter` | `"takumi" \| "chromium" \| PdfAdapter` | The engine that writes the bytes. Defaults to `"takumi"` |
+| `images` | `PdfImage[]` | Bytes for every image `src` that is not a `data:` URI. No engine fetches images; a missing one fails the render |
+| `fonts` | `PdfFontResource[]` | Application font faces (Chromium adapter only) |
+| `applicationCss` | `string` | Compiled application CSS (Chromium adapter only) |
+| `formatter` / `progressive` | | Override the formatter and its progressive policy |
+| `signingMarkers` | `boolean` | Embeds the face that carries seal markers. Set by the seal flow; you rarely set it yourself |
+
+The result carries `bytes`, plus `unknownBreaks` and `unknownRepeats`: plan entries the tree had no keep for.
+
+### Use the preview's plan and furniture
+
+The preview's [`Pages`](/components/pages) component reports its plan through `onPaginate`. Send that plan with the render, together with the same furniture, and the PDF matches the preview page for page.
+
+```tsx
+import type { ReactElement } from "react";
+import { renderPdf, type PageBreakPlan, type PageFurniture } from "@paradoc/react-pdf";
+import { PageNumber } from "@/components/paradoc/page-number";
+
+const furniture: PageFurniture = {
+  header: <span>Northwind Partners LLP</span>,
+  footer: <PageNumber />,
+};
+
+async function render(document: ReactElement, plan: PageBreakPlan) {
+  return renderPdf(document, { plan, furniture, tokens: { accentColor: "#0f766e" } });
+}
+```
+
+A band taller than the margin fails with `PageFurnitureOverflowError`. Widen the `marginPx` token or shorten the band. See [Page furniture](/sdk/react#page-furniture).
+
+## Adapters
+
+An adapter is one engine behind `renderPdf`. Each declares the text directions and furniture slots it was measured to draw, and `renderPdf` refuses a pairing it cannot make instead of writing a wrong PDF.
+
+| Adapter | Directions | Furniture | Notes |
+| --- | --- | --- | --- |
+| `takumi` (default) | `ltr` | header, footer, stamp | WebAssembly. Draws from a verified vocabulary of Tailwind classes |
+| `chromium` | `ltr`, `rtl` | header, footer, stamp | Experimental. Prints through Chrome, so it matches the browser preview and honours application fonts and CSS |
+
+A right-to-left document on Takumi throws `UnsupportedDirectionError`. Application `fonts` or `applicationCss` on Takumi throw `UnsupportedApplicationTypographyError`. Classes outside Takumi's vocabulary, or images with no bytes, throw `UnsupportedPdfContentError`, naming each one.
+
+### Chromium
+
+```bash
+npm install puppeteer tailwindcss
+```
+
+```tsx
+import { renderPdf } from "@paradoc/react-pdf";
+import { closeChromium } from "@paradoc/react-pdf/chromium";
+
+const { bytes } = await renderPdf(document, { adapter: "chromium" });
+await closeChromium();
+```
+
+`adapter: "chromium"` loads the adapter on demand and throws `MissingAdapterPeerError` if a peer is missing. The adapter needs a Chrome: it uses `PUPPETEER_EXECUTABLE_PATH` when set, then well-known install paths, then Puppeteer's bundled browser (`chromiumExecutable()` reports which). It keeps one browser open across renders; `closeChromium()` closes it. Import `chromiumAdapter` to hold the adapter directly.
+
+### Your own engine
+
+Pass any object that implements `PdfAdapter`.
+
+```ts
+import { renderPdf, type PdfAdapter } from "@paradoc/react-pdf";
+
+const companyEngine: PdfAdapter = {
+  name: "company-engine",
+  directions: ["ltr"],
+  furniture: ["header", "footer"],
+  async render(input, options) {
+    // input: element, tokens, plan, furniture, images, fonts, geometry
+    // options: lang, dir, signingMarkers
+    return { bytes: await printWithCompanyEngine(input, options), unknownBreaks: [], unknownRepeats: [] };
+  },
+};
+
+await renderPdf(document, { adapter: companyEngine });
+```
+
+An adapter that omits `furniture` draws none, and a document that declares furniture is refused with `UnsupportedFurnitureError`.
+
+## Check a composition
+
+`@paradoc/react-pdf/check` walks the same tree a render walks and reports what would fail, without producing a PDF. It is fast enough to run on every save. [`paradoc check`](/cli/commands/check) uses it.
+
+```ts
+import { checkComposition } from "@paradoc/react-pdf/check";
+
+const result = await checkComposition({
+  artifact,
+  composition: InvoiceDocument,
+  data: sample, // optional; defaults to empty fields and parties
+});
+
+if (result.unresolvedPaths.length > 0 || result.unsupportedClasses.length > 0) {
+  process.exitCode = 1;
+}
+```
+
+`checkComposition` builds the element from `composition`, `artifact`, and `data`. `checkElement(element, { adapter? })` checks an element you have already built. Both return a `CompositionCheckResult` with three lists:
+
+| List | Contents |
+| --- | --- |
+| `unsupportedClasses` | Classes outside the adapter's verified vocabulary. Always empty for `chromium` |
+| `unresolvedPaths` | Field paths, party roles (`party:<role>`), party indexes (`party:<role>[<index>]`), non-picture annexes (`image:<path>`), and definitions (`defs.<name>`) that would fail |
+| `missingImages` | Image `src` values that are not `data:` URIs, which a render needs bytes for |
+
+The lists do not combine into a verdict. Whether `missingImages` fails your check depends on whether you supply image bytes at render time.
+
+## React layers
+
+A form artifact can declare a layer with MIME type `text/tsx` or `text/jsx` whose path names a composition. `reactLayerRenderers(options)` returns renderers for both MIME types, so a form's `render()` call produces a PDF through that layer.
+
+```ts
+import { p } from "@paradoc/core";
+import { reactLayerRenderers } from "@paradoc/react-pdf";
+
+const form = p.form(spec);
+
+const bytes = await form.fill({ fields, parties }).render<Uint8Array>({
+  layer: "document",
+  renderers: reactLayerRenderers({
+    components: { document: InvoiceDocument },
+    pdf: { images },
+  }),
+});
+```
+
+A layer binds through `components`, keyed by the layer's path or key, or by importing its path from `baseDir` (the artifact file's directory) and taking `exportName` (default `default`). `pdf` passes `RenderPdfOptions` to every render. A layer that cannot be bound throws `UnboundReactLayerError`. `reactRenderer(options)` returns the single renderer, and `bindComponent(layer, options)` returns the bound component without rendering.
+
+## Fonts and images
+
+`resolveFontResources(resources)` resolves `PdfFontResource` entries (a local path, package specifier, file URL, or HTTP(S) URL, with an optional SHA-256 `integrity`) and throws `FontResourceError` on failure. If `fonts` and the plan's measured fonts name different faces, the render throws `FontResourceIdentityMismatchError`: repaginate with the current fonts first.
+
+Images are passed as `{ src, data }` pairs in `images`, keyed by the `src` the tree names.

@@ -8,7 +8,9 @@
     "formatting",
     "resolvers",
     "sessions",
-    "expr"
+    "expr",
+    "react",
+    "react-pdf"
   ],
   "defaultOpen": false
 }
