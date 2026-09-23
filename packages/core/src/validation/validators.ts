@@ -81,75 +81,6 @@ function mapZodErrors(error: ZodError): ValidatorError[] {
 	})
 }
 
-// Map schema names from $defs (PascalCase) to validator keys (camelCase)
-const schemaNameMap: Record<string, string> = {
-	// Artifacts
-	Form: 'form',
-	Document: 'document',
-	Bundle: 'bundle',
-	BundleContentItem: 'bundleContentItem',
-	Checklist: 'checklist',
-	ChecklistItem: 'checklistItem',
-	// Blocks (design-time form components)
-	FormField: 'formField',
-	FormAnnex: 'formAnnex',
-	FormParty: 'formParty',
-	Layer: 'layer',
-	// Runtime types
-	Signature: 'signature',
-	Attachment: 'attachment',
-	// Primitives
-	Address: 'address',
-	Bbox: 'bbox',
-	Coordinate: 'coordinate',
-	Duration: 'duration',
-	Identification: 'identification',
-	Metadata: 'metadata',
-	Money: 'money',
-	Organization: 'organization',
-	Person: 'person',
-	Phone: 'phone',
-}
-
-// Schema map for getValidatorErrors lookup
-const schemaMap: Record<string, ZodSchema> = {
-	Form: FormSchema,
-	Document: DocumentSchema,
-	Bundle: BundleSchema,
-	BundleContentItem: BundleContentItemSchema,
-	Checklist: ChecklistSchema,
-	ChecklistItem: ChecklistItemSchema,
-	FormField: FormFieldSchema,
-	FormAnnex: FormAnnexSchema,
-	FormParty: FormPartySchema,
-	Layer: LayerSchema,
-	Signature: SignatureSchema,
-	Attachment: AttachmentSchema,
-	Address: AddressSchema,
-	Bbox: BboxSchema,
-	Coordinate: CoordinateSchema,
-	Duration: DurationSchema,
-	Identification: IdentificationSchema,
-	Metadata: MetadataSchema,
-	Money: MoneySchema,
-	Organization: OrganizationSchema,
-	Person: PersonSchema,
-	Phone: PhoneSchema,
-}
-
-// Validator cache for getValidatorErrors
-const validatorCache = new Map<string, ReturnType<typeof createValidator>>()
-
-function getCachedValidator(schemaName: string): ReturnType<typeof createValidator> | undefined {
-	if (!validatorCache.has(schemaName)) {
-		const schema = schemaMap[schemaName]
-		if (schema) {
-			validatorCache.set(schemaName, createValidator(schema))
-		}
-	}
-	return validatorCache.get(schemaName)
-}
-
 // Artifacts
 export const validateForm = createValidator(FormSchema)
 export const validateDocument = createValidator(DocumentSchema)
@@ -180,13 +111,46 @@ export const validateOrganization = createValidator(OrganizationSchema)
 export const validatePerson = createValidator(PersonSchema)
 export const validatePhone = createValidator(PhoneSchema)
 
+type Validator = ReturnType<typeof createValidator>
+
+// Validator keys (camelCase) mapped to the exported validators themselves
+const validatorsByName: Record<string, Validator> = {
+	// Artifacts
+	form: validateForm,
+	document: validateDocument,
+	bundle: validateBundle,
+	checklist: validateChecklist,
+	// Blocks (design-time form components)
+	formField: validateFormField,
+	formAnnex: validateFormAnnex,
+	formParty: validateFormParty,
+	layer: validateLayer,
+	checklistItem: validateChecklistItem,
+	bundleContentItem: validateBundleContentItem,
+	// Runtime types
+	signature: validateSignature,
+	attachment: validateAttachment,
+	// Primitives
+	address: validateAddress,
+	bbox: validateBbox,
+	coordinate: validateCoordinate,
+	duration: validateDuration,
+	identification: validateIdentification,
+	metadata: validateMetadata,
+	money: validateMoney,
+	organization: validateOrganization,
+	person: validatePerson,
+	phone: validatePhone,
+}
+
 /**
- * Get errors for a validator by schema name
- * This accesses the .errors property on the cached validator
+ * Get the errors from the last run of a validator, by validator key
+ * (for example 'form' for validateForm).
+ * Returns null for an unknown key or when the last run passed.
  */
-export function getValidatorErrors(validatorName: string): ValidatorError[] | null | undefined {
-	const schemaName = Object.entries(schemaNameMap).find(([, key]) => key === validatorName)?.[0]
-	if (!schemaName) return null
-	const validator = getCachedValidator(schemaName)
-	return validator?.errors || null
+export function getValidatorErrors(validatorName: string): ValidatorError[] | null {
+	const validator = Object.hasOwn(validatorsByName, validatorName)
+		? validatorsByName[validatorName]
+		: undefined
+	return validator?.errors ?? null
 }
