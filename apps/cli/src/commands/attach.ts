@@ -63,19 +63,31 @@ export function createAttachCommand(): Command {
 
         const artifact = validation.value as Artifact
 
-        // Validate file to attach exists
+        // Validate the file to attach: it must exist, be a regular file,
+        // and live inside the artifact's directory so the bundle stays portable
         const absoluteFilePath = storage.getAbsolutePath(fileTarget)
+        let fileStats
         try {
-          await storage.stat(absoluteFilePath)
+          fileStats = await storage.stat(absoluteFilePath)
         } catch {
           console.error(kleur.red(`File not found: ${fileTarget}`))
           process.exit(1)
         }
 
-        // Security: validate path is safe (no path traversal)
-        const safePath = sanitizePath(baseDir, fileTarget)
-        if (!safePath) {
-          console.error(kleur.red('Invalid file path: path traversal not allowed'))
+        if (!fileStats.isFile) {
+          const kind = fileStats.isDirectory ? 'a directory' : 'not a regular file'
+          console.error(kleur.red(`Cannot attach ${fileTarget}: it is ${kind}. Attach a file instead.`))
+          process.exit(1)
+        }
+
+        if (!sanitizePath(baseDir, absoluteFilePath)) {
+          console.error(
+            kleur.red(
+              `Cannot attach ${fileTarget}: it is outside the artifact's directory (${baseDir}). ` +
+                'Attached files must live inside that directory. ' +
+                'Copy the file there first, then attach the copy.',
+            ),
+          )
           process.exit(1)
         }
 

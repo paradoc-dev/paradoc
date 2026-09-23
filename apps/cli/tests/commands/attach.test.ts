@@ -113,5 +113,79 @@ describe('CLI attach command', () => {
 
     expect(result.exitCode).toBe(1)
     expect(result.stderr).toContain('File not found')
+    expect(result.stderr).not.toContain('path traversal')
+  })
+
+  describe('file outside the artifact directory', () => {
+    let artifactDir: string
+    let outsideFile: string
+
+    beforeEach(async () => {
+      artifactDir = path.join(tmpDir, 'project')
+      await fs.mkdir(artifactDir)
+      await fs.rename(
+        path.join(tmpDir, 'pet-addendum.yaml'),
+        path.join(artifactDir, 'pet-addendum.yaml')
+      )
+      outsideFile = path.join(tmpDir, 'readme.txt')
+    })
+
+    it('names the containment rule and the fix for an absolute path', async () => {
+      const artifact = path.join(artifactDir, 'pet-addendum.yaml')
+      const before = await fs.readFile(artifact, 'utf-8')
+      const result = await executeCliCommand(['attach', artifact, outsideFile, '--yes'])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain(`Cannot attach ${outsideFile}: it is outside the artifact's directory`)
+      expect(result.stderr).toContain('Copy the file there first')
+      expect(result.stderr).not.toContain('path traversal')
+      expect(await fs.readFile(artifact, 'utf-8')).toBe(before)
+    })
+
+    it('names the containment rule for a relative ../ path', async () => {
+      const result = await executeCliCommand(
+        ['attach', 'pet-addendum.yaml', '../readme.txt', '--yes'],
+        { cwd: artifactDir }
+      )
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain("it is outside the artifact's directory")
+    })
+
+    it('checks the file the cwd-relative path names, not the same path under the artifact directory', async () => {
+      // Resolved against the artifact directory this name would look inside;
+      // resolved against cwd, as the CLI reads it, it is outside
+      await fs.writeFile(path.join(tmpDir, 'project-readme.txt'), 'outside')
+
+      const result = await executeCliCommand(
+        ['attach', 'project/pet-addendum.yaml', 'project-readme.txt', '--yes'],
+        { cwd: tmpDir }
+      )
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain("it is outside the artifact's directory")
+    })
+
+    it('attaches a cwd-relative path that resolves inside the artifact directory', async () => {
+      await fs.writeFile(path.join(artifactDir, 'inside.txt'), 'inside')
+      const result = await executeCliCommand(
+        ['attach', 'project/pet-addendum.yaml', 'project/inside.txt', '--yes', '--name', 'inside'],
+        { cwd: tmpDir }
+      )
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('Attached')
+      expect(await fs.readFile(path.join(artifactDir, 'pet-addendum.yaml'), 'utf-8')).toContain('inside.txt')
+    })
+  })
+
+  it('rejects a directory with a message that says it is a directory', async () => {
+    const artifact = path.join(tmpDir, 'pet-addendum.yaml')
+    await fs.mkdir(path.join(tmpDir, 'assets'))
+    const result = await executeCliCommand(['attach', artifact, path.join(tmpDir, 'assets'), '--yes'])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('it is a directory')
+    expect(result.stderr).not.toContain('path traversal')
   })
 })
