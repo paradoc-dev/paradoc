@@ -6,6 +6,7 @@ import {
   PageContextProvider,
   useDocumentSettings,
   useFitToWidth,
+  useFurnitureFit,
   usePagination,
   usePaperGeometry,
   type PageContextValue,
@@ -13,7 +14,7 @@ import {
   type PagePlan,
 } from "@paradoc/react";
 import { useMemo, useRef, type ReactNode } from "react";
-import { PageFurnitureBands, Sheet } from "./paper";
+import { PageFurnitureBands, PageFurnitureMeasure, Sheet } from "./paper";
 
 export interface PageProps {
   /** The plan the whole preview was laid out from. */
@@ -59,7 +60,9 @@ export function Pages({ className, onPaginate, furniture, children }: PagesProps
   const { drawn, geometry, sheetStyle } = useDocumentSettings(children);
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
   const pagination = usePagination({ budget: geometry.contentHeightPx, onPaginate });
+  const bands = useFurnitureFit(geometry.marginPx);
   if (pagination.error) throw pagination.error;
+  if (bands.error) throw bands.error;
   const sheets = pagination.plan === null ? 0 : Math.max(1, pagination.plan.pages.length);
   return <DrawnPaperProvider value={drawn}>
     <div ref={frameRef} className={className ?? "w-full overflow-hidden bg-neutral-200 p-6"}>
@@ -70,5 +73,6 @@ export function Pages({ className, onPaginate, furniture, children }: PagesProps
       </div>
     </div>
     <div ref={pagination.measureRef} data-paper-measure="true" className="paradoc-document" aria-hidden="true" style={{ ...sheetStyle, position: "fixed", insetInlineStart: -10000, top: 0, visibility: "hidden", pointerEvents: "none", width: geometry.contentWidthPx }}>{children}</div>
+    <PageFurnitureMeasure furniture={furniture} measureRef={bands.measureRef} style={sheetStyle} />
   </DrawnPaperProvider>;
 }

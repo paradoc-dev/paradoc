@@ -8,6 +8,7 @@ import {
   useDocumentSettings,
   useDrawnPaper,
   useFitToWidth,
+  useFurnitureFit,
   usePaperGeometry,
   type PageFurniture,
 } from "@paradoc/react";
@@ -64,6 +65,28 @@ export function PageFurnitureBands({ furniture }: PageFurnitureBandsProps) {
   return drawn === null ? bands : <DocumentTokensProvider tokens={drawn.tokens}>{bands}</DocumentTokensProvider>;
 }
 
+export interface PageFurnitureMeasureProps {
+  /** What every sheet carries; only its header and footer are measured. */
+  furniture?: PageFurniture;
+  /** The layer `useFurnitureFit` measures the bands in. */
+  measureRef: Ref<HTMLDivElement>;
+  /** The document's settings, so a band lays out as it does on a sheet. */
+  style?: CSSProperties;
+}
+
+/**
+ * The header and footer laid out once, off screen and unscaled, at the sheet's
+ * width, so their heights can be checked against the margin before a band is
+ * drawn over the first line of a sheet.
+ */
+export function PageFurnitureMeasure({ furniture, measureRef, style }: PageFurnitureMeasureProps) {
+  const geometry = usePaperGeometry();
+  if (furniture?.header === undefined && furniture?.footer === undefined) return null;
+  return <div ref={measureRef} data-furniture-measure="true" className="paradoc-document" aria-hidden="true" style={{ ...style, position: "fixed", insetInlineStart: -10000, top: 0, visibility: "hidden", pointerEvents: "none", width: geometry.widthPx, height: geometry.heightPx }}>
+    <PageFurnitureBands furniture={{ header: furniture.header, footer: furniture.footer }} />
+  </div>;
+}
+
 export interface PaperProps {
   /** Classes for the outer frame that scales and centers the sheet. */
   className?: string;
@@ -81,12 +104,15 @@ export function Paper({ className, furniture, children }: PaperProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const { drawn, geometry, sheetStyle } = useDocumentSettings(children);
   const fit = useFitToWidth(frameRef, sheetRef, geometry.widthPx);
+  const bands = useFurnitureFit(geometry.marginPx);
+  if (bands.error) throw bands.error;
   return <DrawnPaperProvider value={drawn}>
     <div ref={frameRef} className={className ?? "w-full overflow-hidden bg-neutral-200 p-6"}>
       <div className="mx-auto" style={{ width: geometry.widthPx * fit.scale, height: fit.height || undefined }}>
         <Sheet ref={sheetRef} style={{ ...sheetStyle, transform: `scale(${fit.scale})`, transformOrigin: "top left" }}><PageFurnitureBands furniture={furniture} />{children}</Sheet>
       </div>
     </div>
+    <PageFurnitureMeasure furniture={furniture} measureRef={bands.measureRef} style={sheetStyle} />
   </DrawnPaperProvider>;
 }
 

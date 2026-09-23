@@ -72,6 +72,7 @@ export {
   declaredFurnitureSlots,
   furnitureBandBudgetPx,
   hasPageFurniture,
+  FURNITURE_BAND_ATTRIBUTES,
   FURNITURE_EDGE_INSET_PX,
   FURNITURE_SLOTS,
   PAGE_COUNTER_ATTRIBUTE,
@@ -88,6 +89,7 @@ export {
 } from "./lib/furniture";
 export {
   useFitToWidth,
+  useFurnitureFit,
   PAGE_CONTENT_HEIGHT_PX,
   PAGE_CONTENT_WIDTH_PX,
   PAGE_GAP_PX,
@@ -95,6 +97,7 @@ export {
   PAPER_MARGIN_PX,
   PAPER_WIDTH_PX,
   type Fit,
+  type FurnitureFitBinding,
 } from "./headless/paper";
 export {
   DocumentTokensProvider,
@@ -227,7 +230,7 @@ export {
   type TypographyInput,
   type TypographyLevel,
 } from "./lib/typography";
-export { measureKeeps } from "./lib/measure";
+export { measureFurnitureBands, measureKeeps, type MeasuredFurnitureBand } from "./lib/measure";
 export {
   MissingPdfPainterError,
   paintPdfPages,

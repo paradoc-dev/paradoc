@@ -1,6 +1,9 @@
-import { useLayoutEffect, useState, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 
 import { DEFAULT_PAGE_GEOMETRY } from "../components/paper-geometry";
+import { assertFurnitureBandFits, PageFurnitureOverflowError } from "../lib/furniture";
+import { measureFurnitureBands } from "../lib/measure";
+import { useFontReadiness } from "./pagination";
 import { DEFAULT_PAGE_MARGIN_PX, PAGE_SIZES } from "../lib/tokens";
 
 export const PAPER_WIDTH_PX = PAGE_SIZES.letter.widthPx;
@@ -55,4 +58,57 @@ export function useFitToWidth(
   }, [frameRef, contentRef, width]);
 
   return fit;
+}
+
+export interface FurnitureFitBinding {
+  /**
+   * The unscaled layer the preview lays its header and footer bands out in to
+   * be measured. It holds the bands only, never the document.
+   */
+  measureRef: RefObject<HTMLDivElement | null>;
+  /** The band that does not fit in the margin, or null while every band fits. */
+  error: PageFurnitureOverflowError | null;
+}
+
+function sameOverflow(a: PageFurnitureOverflowError | null, b: PageFurnitureOverflowError | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.slot === b.slot && a.heightPx === b.heightPx && a.marginPx === b.marginPx;
+}
+
+/**
+ * Measures the preview's header and footer bands against the margin they are
+ * drawn in.
+ *
+ * It runs the check `renderPdf` runs, on the bands the preview draws, so a
+ * band that does not fit fails by name in both outputs instead of printing
+ * over the first line of every sheet in the preview. The caller throws the
+ * error from render, as it throws a pagination error.
+ */
+export function useFurnitureFit(marginPx: number): FurnitureFitBinding {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<PageFurnitureOverflowError | null>(null);
+  const fonts = useFontReadiness();
+  const check = useCallback(() => {
+    const container = measureRef.current;
+    let next: PageFurnitureOverflowError | null = null;
+    if (container) {
+      try {
+        for (const band of measureFurnitureBands(container)) {
+          assertFurnitureBandFits(band.slot, Math.ceil(band.heightPx), marginPx);
+        }
+      } catch (cause) {
+        if (!(cause instanceof PageFurnitureOverflowError)) throw cause;
+        next = cause;
+      }
+    }
+    setError((previous) => sameOverflow(previous, next) ? previous : next);
+  }, [marginPx]);
+  useLayoutEffect(() => { if (fonts.ready) check(); });
+  useEffect(() => {
+    if (!fonts.ready || typeof ResizeObserver === "undefined" || !measureRef.current) return;
+    const observer = new ResizeObserver(check);
+    observer.observe(measureRef.current);
+    return () => observer.disconnect();
+  }, [fonts.ready, check]);
+  return { measureRef, error };
 }

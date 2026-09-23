@@ -70,6 +70,17 @@ export const FURNITURE_EDGE_INSET_PX = 20;
 /** The attribute a page-number component marks its counter slots with. */
 export const PAGE_COUNTER_ATTRIBUTE = "data-page-counter";
 
+/**
+ * The attribute the preview marks each drawn band with, by slot.
+ *
+ * The preview's fit check finds the bands it measures by these, so the markup
+ * that draws a band and the check that measures it agree on one name.
+ */
+export const FURNITURE_BAND_ATTRIBUTES: Readonly<Record<FurnitureBandSlot, string>> = {
+  header: "data-page-header",
+  footer: "data-page-footer",
+};
+
 /** Which number a counter slot prints. */
 export type PageCounter = "current" | "total";
 

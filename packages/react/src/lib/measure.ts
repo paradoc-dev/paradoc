@@ -6,6 +6,7 @@
  * about pages; the plan knows nothing about the DOM.
  */
 
+import { FURNITURE_BAND_ATTRIBUTES, type FurnitureBandSlot } from "./furniture";
 import type { MeasuredKeep } from "./plan";
 
 /** The sections enclosing `node`, outermost first, within `root`. */
@@ -47,4 +48,28 @@ export function measureKeeps(root: HTMLElement): MeasuredKeep[] {
       tableFooter: footer !== null,
     };
   });
+}
+
+/** One band of page furniture as it laid out. */
+export interface MeasuredFurnitureBand {
+  /** The slot the band is drawn in. */
+  slot: FurnitureBandSlot;
+  /** The height it laid out to, in CSS pixels. */
+  heightPx: number;
+}
+
+/**
+ * Measures the header and footer bands laid out under `root`, in slot order.
+ *
+ * A band is found by the attribute its slot is marked with, and a slot with no
+ * band is left out. `root` must not be scaled: the height is read from the
+ * layout box, which a transform would shrink.
+ */
+export function measureFurnitureBands(root: HTMLElement): MeasuredFurnitureBand[] {
+  const bands: MeasuredFurnitureBand[] = [];
+  for (const slot of ["header", "footer"] as const) {
+    const node = root.querySelector<HTMLElement>(`[${FURNITURE_BAND_ATTRIBUTES[slot]}]`);
+    if (node !== null) bands.push({ slot, heightPx: node.getBoundingClientRect().height });
+  }
+  return bands;
 }
