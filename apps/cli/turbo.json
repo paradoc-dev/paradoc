@@ -4,6 +4,10 @@
 	"tasks": {
 		"test": {
 			"dependsOn": ["^build", "build"]
+		},
+		"test:perf": {
+			"dependsOn": ["^build", "build"],
+			"cache": false
 		}
 	}
 }

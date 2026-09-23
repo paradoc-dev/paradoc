@@ -247,6 +247,18 @@ The `.paradoc/lock.json` file tracks installed artifacts with their versions and
 - [`@paradoc/schemas`](../../packages/schemas) — JSON Schema definitions
 - [`@paradoc/render`](../../packages/render) — Unified PDF, DOCX, and text rendering
 
+## Testing
+
+`pnpm test` runs the default suite. It builds the CLI first and checks that the built binary starts, prints its version, and rejects unknown commands.
+
+The startup timing check is opt-in, because wall-clock budgets fail on a loaded machine. Run it on a quiet machine:
+
+```bash
+pnpm turbo run test:perf --filter=@paradoc/cli
+```
+
+This builds the CLI, then runs `test:perf`, which sets `PARADOC_PERF_TESTS=1` and asserts that the built binary's `--version` and `--help` have a p95 under 500ms over 10 runs.
+
 ## Contributing
 
 We're open to all community contributions! If you'd like to contribute in any way, please read our [contribution guidelines](https://github.com/paradoc-dev/paradoc/blob/main/CONTRIBUTING.md) and [code of conduct](https://github.com/paradoc-dev/paradoc/blob/main/CODE_OF_CONDUCT.md).

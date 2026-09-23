@@ -49,6 +49,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:perf": "PARADOC_PERF_TESTS=1 vitest run tests/commands/startup.test.ts",
     "test-registry": "tsx test-registry/server.ts"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { beforeAll, describe, it, expect } from 'vitest'
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { performance } from 'node:perf_hooks'
@@ -9,19 +9,32 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const cliPath = path.resolve(__dirname, '../../src/index.ts')
 const builtCliPath = path.resolve(__dirname, '../../dist/index.js')
+const packageVersion = (
+  JSON.parse(readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')) as { version: string }
+).version
 
 /**
  * Spawn a command and resolve when the process exits.
- * Returns elapsed wall-clock time in milliseconds.
+ * Returns elapsed wall-clock time in milliseconds and the captured output.
  */
-function timeCommand(
+function runCommand(
   bin: string,
   args: string[],
-): Promise<{ ms: number; exitCode: number }> {
+): Promise<{ ms: number; exitCode: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const start = performance.now()
     const child = spawn(bin, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', (chunk: string) => {
+      stdout += chunk
+    })
+    child.stderr.on('data', (chunk: string) => {
+      stderr += chunk
     })
 
     const timer = setTimeout(() => {
@@ -31,7 +44,7 @@ function timeCommand(
 
     child.on('close', (code) => {
       clearTimeout(timer)
-      resolve({ ms: performance.now() - start, exitCode: code ?? 0 })
+      resolve({ ms: performance.now() - start, exitCode: code ?? 0, stdout, stderr })
     })
 
     child.on('error', (err) => {
@@ -64,7 +77,7 @@ describe('CLI startup performance (tsx)', { timeout: 60_000 }, () => {
     const times: number[] = []
 
     for (let i = 0; i < ITERATIONS; i++) {
-      const { ms, exitCode } = await timeCommand('tsx', [cliPath, '--version'])
+      const { ms, exitCode } = await runCommand('tsx', [cliPath, '--version'])
       expect(exitCode).toBe(0)
       times.push(ms)
     }
@@ -80,7 +93,7 @@ describe('CLI startup performance (tsx)', { timeout: 60_000 }, () => {
     const times: number[] = []
 
     for (let i = 0; i < ITERATIONS; i++) {
-      const { ms, exitCode } = await timeCommand('tsx', [cliPath, '--help'])
+      const { ms, exitCode } = await runCommand('tsx', [cliPath, '--help'])
       expect(exitCode).toBe(0)
       times.push(ms)
     }
@@ -93,44 +106,88 @@ describe('CLI startup performance (tsx)', { timeout: 60_000 }, () => {
   })
 })
 
-describe('CLI startup performance (built)', { timeout: 60_000 }, () => {
-  const hasBuilt = existsSync(builtCliPath)
-
-  it.skipIf(!hasBuilt)('--version starts quickly (built)', async () => {
-    const times: number[] = []
-
-    for (let i = 0; i < ITERATIONS; i++) {
-      const { ms, exitCode } = await timeCommand('node', [
-        builtCliPath,
-        '--version',
-      ])
-      expect(exitCode).toBe(0)
-      times.push(ms)
+/**
+ * Correctness of the built binary. Runs in the default suite: the package's
+ * turbo.json makes `test` depend on `build`, so a missing dist fails loudly
+ * instead of skipping.
+ */
+describe('CLI startup (built)', () => {
+  beforeAll(() => {
+    if (!existsSync(builtCliPath)) {
+      throw new Error(
+        `Built binary not found at ${builtCliPath}. Run 'pnpm build' first, or run this suite through ` +
+          "'pnpm turbo run test --filter=@paradoc/cli', which builds before testing.",
+      )
     }
-
-    const s = stats(times)
-    console.log(
-      `built --version (${ITERATIONS} runs): min=${s.min.toFixed(0)}ms avg=${s.avg.toFixed(0)}ms p95=${s.p95.toFixed(0)}ms max=${s.max.toFixed(0)}ms`,
-    )
-    expect(s.p95).toBeLessThan(500)
   })
 
-  it.skipIf(!hasBuilt)('--help starts quickly (built)', async () => {
-    const times: number[] = []
+  it('--version prints the package version and exits 0', async () => {
+    const { exitCode, stdout } = await runCommand('node', [builtCliPath, '--version'])
+    expect(exitCode).toBe(0)
+    expect(stdout.trim()).toBe(packageVersion)
+  })
 
-    for (let i = 0; i < ITERATIONS; i++) {
-      const { ms, exitCode } = await timeCommand('node', [
-        builtCliPath,
-        '--help',
-      ])
-      expect(exitCode).toBe(0)
-      times.push(ms)
-    }
+  it('--help prints usage and exits 0', async () => {
+    const { exitCode, stdout } = await runCommand('node', [builtCliPath, '--help'])
+    expect(exitCode).toBe(0)
+    expect(stdout).toContain('Paradoc CLI')
+  })
 
-    const s = stats(times)
-    console.log(
-      `built --help (${ITERATIONS} runs): min=${s.min.toFixed(0)}ms avg=${s.avg.toFixed(0)}ms p95=${s.p95.toFixed(0)}ms max=${s.max.toFixed(0)}ms`,
-    )
-    expect(s.p95).toBeLessThan(500)
+  it('an unknown command exits non-zero', async () => {
+    const { exitCode, stderr } = await runCommand('node', [builtCliPath, 'not-a-command'])
+    expect(exitCode).not.toBe(0)
+    expect(stderr).toContain("unknown command 'not-a-command'")
   })
 })
+
+/**
+ * Wall-clock startup budget for the built binary. Opt-in only: the 500ms p95
+ * target holds on an idle machine but not inside a loaded parallel run, where
+ * CPU contention inflates spawn and boot time. Run it with `pnpm test:perf`
+ * (sets PARADOC_PERF_TESTS=1) on a quiet machine.
+ */
+describe.runIf(process.env.PARADOC_PERF_TESTS === '1')(
+  'CLI startup performance (built)',
+  { timeout: 60_000 },
+  () => {
+    const BUILT_MAX_P95_MS = 500
+
+    beforeAll(() => {
+      if (!existsSync(builtCliPath)) {
+        throw new Error(`Built binary not found at ${builtCliPath}. Run 'pnpm build' first.`)
+      }
+    })
+
+    it('--version starts quickly (built)', async () => {
+      const times: number[] = []
+
+      for (let i = 0; i < ITERATIONS; i++) {
+        const { ms, exitCode } = await runCommand('node', [builtCliPath, '--version'])
+        expect(exitCode).toBe(0)
+        times.push(ms)
+      }
+
+      const s = stats(times)
+      console.log(
+        `built --version (${ITERATIONS} runs): min=${s.min.toFixed(0)}ms avg=${s.avg.toFixed(0)}ms p95=${s.p95.toFixed(0)}ms max=${s.max.toFixed(0)}ms`,
+      )
+      expect(s.p95).toBeLessThan(BUILT_MAX_P95_MS)
+    })
+
+    it('--help starts quickly (built)', async () => {
+      const times: number[] = []
+
+      for (let i = 0; i < ITERATIONS; i++) {
+        const { ms, exitCode } = await runCommand('node', [builtCliPath, '--help'])
+        expect(exitCode).toBe(0)
+        times.push(ms)
+      }
+
+      const s = stats(times)
+      console.log(
+        `built --help (${ITERATIONS} runs): min=${s.min.toFixed(0)}ms avg=${s.avg.toFixed(0)}ms p95=${s.p95.toFixed(0)}ms max=${s.max.toFixed(0)}ms`,
+      )
+      expect(s.p95).toBeLessThan(BUILT_MAX_P95_MS)
+    })
+  },
+)
