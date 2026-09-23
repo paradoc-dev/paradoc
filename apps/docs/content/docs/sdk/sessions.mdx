@@ -123,7 +123,7 @@ A PDF layer seals locally. Other layer types need a seal adapter; see [DraftForm
 
 ## Storage-agnostic persistence
 
-The engine holds no database. A `FormSession` is a plain object whose `events` array is the single source of truth; `execute` hands you back a new one to persist however you want. To rebuild state from any store, replay the log with `deriveView`. The package ships adapters for this seam, including `createSpineStateAdapter` for backing a session on an append-only event spine.
+The engine holds no database. A `FormSession` is a plain object whose `events` array is the single source of truth; `execute` hands you back a new one to persist however you want. To rebuild state from any store, replay the log with `deriveView`. Store the events append-only, in order, and without duplicates: `deriveView` folds the log exactly as given and does not reorder or deduplicate it.
 
 ```ts
 // Persist the new event log after each accepted command.

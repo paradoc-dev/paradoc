@@ -92,7 +92,7 @@ import { sessionPayload } from "@paradoc/sessions";
 const { fields, parties } = sessionPayload(view.projected);
 ```
 
-Because storage is not baked in, you persist and rehydrate the event log yourself:
+Because storage is not baked in, you persist and rehydrate the event log yourself. Store the events append-only, in order, and without duplicates; `deriveView` folds the log exactly as given:
 
 ```typescript
 // Persist the new event log after each command.
