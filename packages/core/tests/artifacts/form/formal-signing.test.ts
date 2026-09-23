@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest'
-import { form, runtimeFormFromJSON } from '@/artifacts'
+import { form, runtimeFormFromJSON, SealConfigError } from '@/artifacts'
 import type { DraftForm, SignableForm } from '@/artifacts'
 import type { SealAdapter, Sealer, SigningField, Signer, SignatureBlock, AnchorBlock } from '@paradoc/types'
 import { fromYAML } from '@/serialization'
@@ -615,6 +615,54 @@ describe('Formal Signing', () => {
 	})
 
 	// ============================================================================
+	// Definition mode: required parties without signatories
+	// ============================================================================
+
+	describe('Definition mode seal with an unbound required party', () => {
+		const blocks = (tenantRequired?: boolean): Record<string, SignatureBlock> => ({
+			'sb-landlord': { type: 'signature', page: 1, x: 50, y: 100, width: 120, height: 30, partyRole: 'landlord' },
+			'sb-tenant': {
+				type: 'signature',
+				page: 1,
+				x: 50,
+				y: 200,
+				width: 120,
+				height: 30,
+				partyRole: 'tenant',
+				...(tenantRequired !== undefined && { required: tenantRequired }),
+			},
+		})
+
+		const landlordOnlyDraft = (signatureBlocks: Record<string, SignatureBlock>) =>
+			createFormWithSignature(signatureBlocks)
+				.fill({
+					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
+					},
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+
+		test('rejects and names the required party instead of dropping its block', async () => {
+			const adapter = { seal: vi.fn(createMockAdapter().seal) }
+			const sealing = landlordOnlyDraft(blocks()).seal(adapter)
+
+			await expect(sealing).rejects.toThrow(SealConfigError)
+			await expect(sealing).rejects.toThrow(
+				'Cannot seal: 1 required signature block without signatories: block "sb-tenant" (tenant[0]) has no signatory',
+			)
+			expect(adapter.seal).not.toHaveBeenCalled()
+		})
+
+		test('skips a block marked required: false for an unbound party', async () => {
+			const sealed = await landlordOnlyDraft(blocks(false)).seal(createMockAdapter())
+			expect(sealed.signatureMap?.map((field) => field.id)).toEqual(['sb-landlord'])
+		})
+	})
+
+	// ============================================================================
 	// Serialization Round-Trip
 	// ============================================================================
 
@@ -1078,6 +1126,25 @@ describe('Formal Signing', () => {
 				.addSigner('tenant-signer', { person: { name: 'Jane Tenant' } })
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+
+		test('rejects and names a required party with no signatory instead of dropping its anchor', async () => {
+			const adapter = { seal: vi.fn(createAnchorAdapter().seal) }
+			const sealing = createFormWithAnchorBlocks()
+				.fill({
+					fields: { rentAmount: 1200 },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: { id: 'tenant-0', name: 'Jane Tenant' },
+					},
+				})
+				.addSigner('landlord-signer', { person: { name: 'John Landlord' } })
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.seal(adapter)
+
+			await expect(sealing).rejects.toThrow(SealConfigError)
+			await expect(sealing).rejects.toThrow('block "anc-tenant-sig" (tenant[0]) has no signatory')
+			expect(adapter.seal).not.toHaveBeenCalled()
+		})
 
 		test('anchor mode passes anchorFields to adapter with correct signer bindings', async () => {
 			let capturedRequest: Parameters<Sealer['seal']>[0] | undefined

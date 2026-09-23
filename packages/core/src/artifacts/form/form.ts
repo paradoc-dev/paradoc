@@ -2642,6 +2642,24 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				})
 			}
 
+			// Legacy blocks fail loud like the slot engine: a block for a party
+			// whose signature is required cannot be dropped because the party has
+			// no signatory, or the sealed document would lack a required signature.
+			const missingRequiredSigners: string[] = []
+			const noteMissingSigner = (blockId: string, block: { required?: boolean }, role: string, index: number) => {
+				const party = (formDef.parties as Record<string, { signature?: { required?: boolean } }> | undefined)?.[role]
+				if (party?.signature?.required && block.required !== false) {
+					missingRequiredSigners.push(`block "${blockId}" (${role}[${index}]) has no signatory`)
+				}
+			}
+			const assertRequiredSignersBound = () => {
+				if (missingRequiredSigners.length === 0) return
+				throw new SealConfigError(
+					`Cannot seal: ${missingRequiredSigners.length} required signature block${missingRequiredSigners.length === 1 ? '' : 's'} without signatories: ${missingRequiredSigners.join('; ')}`,
+					missingRequiredSigners,
+				)
+			}
+
 			// Check if layer has pre-defined signatureBlocks
 			const hasDefinedBlocks = layerSpec?.signatureBlocks &&
 				Object.keys(layerSpec.signatureBlocks).length > 0
@@ -2689,7 +2707,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					// Get the signer for this party
 					const signerId = signerMap.get(`${partyRole}:${partyIndex}`)
 					if (!signerId) {
-						// No signatory assigned to this party, skip
+						noteMissingSigner(locationId, block, partyRole, partyIndex)
 						continue
 					}
 
@@ -2713,6 +2731,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					signatureMap.push(signingField)
 				}
 
+				assertRequiredSignersBound()
 				if (signatureMap.length === 0) {
 					throw new Error(
 						'Cannot seal: no signature blocks could be mapped to signatories. ' +
@@ -2790,7 +2809,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 					// Get the signer for this party
 					const signerId = anchorSignerMap.get(`${partyRole}:${partyIndex}`)
-					if (!signerId) continue
+					if (!signerId) {
+						noteMissingSigner(locationId, block, partyRole, partyIndex)
+						continue
+					}
 
 					// Map SignatureBlockType to SigningFieldType
 					const fieldType: SigningFieldType = block.type === 'date' ? 'date_signed' : block.type
@@ -2814,6 +2836,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					anchorFields.push(anchorField)
 				}
 
+				assertRequiredSignersBound()
 				if (anchorFields.length === 0) {
 					throw new Error(
 						'Cannot seal: no anchor blocks could be mapped to signatories. ' +
