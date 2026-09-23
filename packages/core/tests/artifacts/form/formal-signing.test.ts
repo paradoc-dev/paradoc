@@ -843,6 +843,52 @@ describe('Formal Signing', () => {
 			expect('canonicalPdfBytes' in json).toBe(false)
 			expect(runtimeFormFromJSON(json).canonicalPdfBytes).toBeUndefined()
 		})
+
+		const bytesAdapter = (bytes: Uint8Array): Sealer => {
+			const { seal } = createMockAdapter()
+			return {
+				async seal(...args) {
+					return { ...(await seal(...args)), canonicalPdfBytes: bytes }
+				},
+			}
+		}
+
+		const carriesBytes = (value: unknown): boolean =>
+			value instanceof Uint8Array ||
+			(typeof value === 'object' && value !== null && 'canonicalPdfBytes' in value)
+
+		test('clone and transitions share the sealed bytes instead of copying them', async () => {
+			const bytes = new Uint8Array(1024).fill(7)
+			const sealed = await sealedDraft().seal(bytesAdapter(bytes))
+
+			const spy = vi.spyOn(globalThis, 'structuredClone')
+			try {
+				const cloned = sealed.clone()
+				const captured = cloned.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
+				expect(spy.mock.calls.filter(([value]) => carriesBytes(value))).toEqual([])
+				expect(captured.canonicalPdfBytes).toEqual(bytes)
+				expect(cloned.canonicalPdfBytes).toEqual(bytes)
+			} finally {
+				spy.mockRestore()
+			}
+		})
+
+		test('a clone stays independent of the original and of the sealer bytes', async () => {
+			const bytes = new Uint8Array([1, 2, 3])
+			const sealed = await sealedDraft().seal(bytesAdapter(bytes))
+			bytes[0] = 99
+			expect(sealed.canonicalPdfBytes).toEqual(new Uint8Array([1, 2, 3]))
+
+			const cloned = sealed.clone()
+			expect(cloned.canonicalPdfBytes).not.toBe(sealed.canonicalPdfBytes)
+
+			cloned.canonicalPdfBytes![1] = 42
+			const captured = cloned.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
+			expect(captured.captures).toHaveLength(1)
+			expect(sealed.captures).toHaveLength(0)
+			expect(sealed.canonicalPdfBytes).toEqual(new Uint8Array([1, 2, 3]))
+			expect(captured.canonicalPdfBytes).toEqual(new Uint8Array([1, 2, 3]))
+		})
 	})
 
 	// ============================================================================

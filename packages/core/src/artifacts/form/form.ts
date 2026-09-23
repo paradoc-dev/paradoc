@@ -1253,6 +1253,21 @@ type RuntimeFormConfig<F extends Form> =
 	| RuntimeFormConfigExecuted<F>
 
 /**
+ * Sealed PDF byte buffers that a runtime owns. A sealed PDF is immutable, and
+ * an owned buffer is never mutated or exposed (the public getter returns a
+ * detached copy), so every instance derived from it, by clone or by a phase
+ * transition, shares the one buffer instead of copying it.
+ */
+const ownedCanonicalPdfBytes = new WeakSet<Uint8Array>()
+
+function ownCanonicalPdfBytes(bytes: Uint8Array): Uint8Array {
+	if (ownedCanonicalPdfBytes.has(bytes)) return bytes
+	const owned = deepClone(bytes)
+	ownedCanonicalPdfBytes.add(owned)
+	return owned
+}
+
+/**
  * Creates a RuntimeForm object (replaces DraftForm, SignableForm, ExecutedForm classes)
  * Uses function overloads for correct return type narrowing.
  */
@@ -1294,7 +1309,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 	const witnesses = deepClone(witnessesInput ?? [])
 	const attestations = deepClone(attestationsInput ?? [])
 	const signatureMap = signatureMapInput === undefined ? undefined : deepClone(signatureMapInput)
-	const canonicalPdfBytes = canonicalPdfBytesInput === undefined ? undefined : deepClone(canonicalPdfBytesInput)
+	const canonicalPdfBytes =
+		canonicalPdfBytesInput === undefined ? undefined : ownCanonicalPdfBytes(canonicalPdfBytesInput)
 	config = {
 		...config,
 		fields: fieldValues,
@@ -1321,7 +1337,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 	const witnessesView = deepReadonlyClone(witnesses)
 	const attestationsView = deepReadonlyClone(attestations)
 	const signatureMapView = signatureMap === undefined ? undefined : deepReadonlyClone(signatureMap)
-	const canonicalPdfBytesView = canonicalPdfBytes === undefined ? undefined : deepReadonlyClone(canonicalPdfBytes)
+	// Made on first read, so a clone or transition copies no bytes until a
+	// caller asks for them.
+	let canonicalPdfBytesView: Uint8Array | undefined
 	const contextView = deepReadonlyClone(context)
 
 	// Cached runtime state
@@ -1524,6 +1542,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		},
 		canonicalPdfHash,
 		get canonicalPdfBytes() {
+			if (canonicalPdfBytes === undefined) return undefined
+			canonicalPdfBytesView ??= deepReadonlyClone(canonicalPdfBytes)
 			return canonicalPdfBytesView
 		},
 
@@ -3185,9 +3205,14 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		clone(): RuntimeForm<F> {
 			// The resolver is behavior, not data: it is carried across rather
-			// than cloned, because `structuredClone` cannot copy a function.
-			const { resolver: _bound, ...cloneable } = config
-			return createRuntimeForm({ ...structuredClone(cloneable), resolver } as RuntimeFormConfig<F>)
+			// than cloned, because `structuredClone` cannot copy a function. The
+			// sealed PDF bytes are owned and immutable, so the clone shares them.
+			const { resolver: _bound, canonicalPdfBytes: sealedBytes, ...cloneable } = config
+			return createRuntimeForm({
+				...structuredClone(cloneable),
+				resolver,
+				canonicalPdfBytes: sealedBytes,
+			} as RuntimeFormConfig<F>)
 		},
 	}
 
