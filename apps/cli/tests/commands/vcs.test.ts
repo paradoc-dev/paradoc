@@ -173,7 +173,7 @@ describe('CLI Project Commands', () => {
       expect(result.stdout).toContain('diff')
     })
 
-    it('should require two file arguments', async () => {
+    it('should exit 2 when only one file argument is given', async () => {
       // Initialize repository
       await executeCliCommand(['init', '--yes', '--name', 'Test Project'], { cwd: tempDir })
 
@@ -183,10 +183,11 @@ describe('CLI Project Commands', () => {
       // Run diff with only one file
       const result = await executeCliCommand(['diff', 'test-form.json'], { cwd: tempDir })
 
-      expect(result.exitCode).toBe(1)
+      expect(result.exitCode).toBe(2)
+      expect(result.stderr).toContain("missing required argument 'file2'")
     })
 
-    it('should compare two artifact files', async () => {
+    it('should exit 1 and print a diff when two artifact files differ', async () => {
       // Initialize repository
       await executeCliCommand(['init', '--yes', '--name', 'Test Project'], { cwd: tempDir })
 
@@ -197,8 +198,20 @@ describe('CLI Project Commands', () => {
       // Run diff
       const result = await executeCliCommand(['diff', 'form-a.json', 'form-b.json'], { cwd: tempDir })
 
-      // Should succeed (both files exist)
+      expect(result.exitCode).toBe(1)
+      expect(result.stdout).toContain('--- form-a (form)')
+      expect(result.stdout).toContain('+++ form-b (form)')
+      expect(result.stderr).toBe('')
+    })
+
+    it('should exit 0 when an artifact file is compared with itself', async () => {
+      await executeCliCommand(['init', '--yes', '--name', 'Test Project'], { cwd: tempDir })
+      await executeCliCommand(['new', 'form', 'form-a', '--yes'], { cwd: tempDir })
+
+      const result = await executeCliCommand(['diff', 'form-a.json', 'form-a.json'], { cwd: tempDir })
+
       expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('Files are identical')
     })
   })
 
