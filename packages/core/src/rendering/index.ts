@@ -2,7 +2,8 @@
  * Rendering module - the renderer registry and bundle assembly utilities
  */
 
-export { assembleBundle, isAssemblyBytesEntry, producedMimeType } from './bundle-assembler'
+export { assembleBundle, isAssemblyBytesEntry } from './bundle-assembler'
+export { producedMimeType } from './part-mime'
 export type {
   AssemblyBytesEntry,
   AssemblyContentEntry,

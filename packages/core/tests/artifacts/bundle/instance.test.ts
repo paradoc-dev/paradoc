@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest'
 import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 import { bundle, document, form } from '@/artifacts'
 import { load } from '@/serialization'
+import type { ParadocRenderer, RendererLayer } from '@paradoc/types'
 
 /**
  * Tests for BundleInstance methods.
@@ -171,6 +172,40 @@ describe('BundleInstance', () => {
       })
 
       expect(new TextDecoder().decode(assembled.outputs.greeting?.content)).toBe('Custom output')
+    })
+
+    test('render and assemble name a plain-text part the same way', async () => {
+      const { bundleInstance, filledForm } = createRenderableBundle()
+
+      const rendered = await bundleInstance.prepare({ greeting: filledForm }).render()
+      const assembled = await bundleInstance.assemble({ contents: { greeting: filledForm } })
+
+      expect(rendered.outputs.greeting).toMatchObject({ mimeType: 'text/plain', filename: 'greeting.txt' })
+      expect(assembled.outputs.greeting).toMatchObject({ mimeType: 'text/plain', filename: 'greeting.txt' })
+    })
+
+    test('render and assemble name a React part by the PDF it produced, not text/tsx', async () => {
+      const pdf = new TextEncoder().encode('%PDF-1.7 stand-in')
+      const renderers = {
+        'text/tsx': { id: 'stub', render: () => pdf } as ParadocRenderer<RendererLayer, Uint8Array>,
+      }
+      const composed = form()
+        .name('composed')
+        .version('1.0.0')
+        .title('Composed')
+        .fields({ amount: { type: 'number', label: 'Amount', required: true } })
+        .fileLayer('composition', { mimeType: 'text/tsx', path: 'composed.tsx' })
+        .defaultLayer('composition')
+        .build()
+      const bundleInstance = bundle().name('composed-bundle').inline('composition', composed).build()
+      const filled = composed.fill({ fields: { amount: 1 } })
+
+      const rendered = await bundleInstance.prepare({ composition: filled }).render({ renderers })
+      const assembled = await bundleInstance.assemble({ contents: { composition: filled }, renderers })
+
+      const expected = { content: pdf, mimeType: 'application/pdf', filename: 'composition.pdf' }
+      expect(rendered.outputs.composition).toMatchObject(expected)
+      expect(assembled.outputs.composition).toMatchObject(expected)
     })
   })
 

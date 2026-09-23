@@ -40,6 +40,7 @@ import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RendererRegistry } from '@/rendering'
 import { findRegisteredRenderer } from '@/rendering/renderer-registry'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
+import { getExtensionForMime, producedMimeType } from '@/rendering/part-mime'
 import { renderLayer as createRenderer } from '@paradoc/render'
 
 // Import artifacts runtime types for content
@@ -272,23 +273,6 @@ export type RuntimeBundle<B extends Bundle> = DraftBundle<B> | SignableBundle<B>
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Get file extension for a MIME type.
- */
-function getExtensionForMime(mimeType: string): string {
-	const mimeToExt: Record<string, string> = {
-		'text/markdown': 'md',
-		'text/html': 'html',
-		'text/plain': 'txt',
-		'application/pdf': 'pdf',
-		'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-		'application/json': 'json',
-		'text/yaml': 'yaml',
-		'application/yaml': 'yaml',
-	}
-	return mimeToExt[mimeType] ?? 'bin'
-}
 
 /**
  * Serialize a runtime instance to RuntimeContentJSON format.
@@ -870,10 +854,12 @@ async function renderInstance(
 	const binaryContent: BinaryContent =
 		typeof content === 'string' ? new TextEncoder().encode(content) : (content as BinaryContent)
 
+	// The part is named after what it is, not after the module that drew it.
+	const produced = producedMimeType(mimeType)
 	return {
 		content: binaryContent,
-		mimeType,
-		filename: `${key}.${getExtensionForMime(mimeType)}`,
+		mimeType: produced,
+		filename: `${key}.${getExtensionForMime(produced)}`,
 	}
 }
 

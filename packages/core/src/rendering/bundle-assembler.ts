@@ -12,7 +12,8 @@ import type { DraftForm } from '@/artifacts/form'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import { renderLayer } from '@paradoc/render'
-import { findRegisteredRenderer, isReactLayerMimeType, type RendererRegistry } from './renderer-registry'
+import { findRegisteredRenderer, type RendererRegistry } from './renderer-registry'
+import { getExtensionForMime, producedMimeType } from './part-mime'
 import {
   assertBundleInclusionResolved,
   evaluateBundleInclusion,
@@ -104,37 +105,6 @@ export interface AssembledBundle {
   bundle: Bundle
   /** Rendered outputs keyed by content key */
   outputs: Record<string, AssembledBundleOutput>
-}
-
-/**
- * Get the appropriate file extension for a MIME type.
- */
-function getExtensionForMime(mimeType: string): string {
-  const mimeToExt: Record<string, string> = {
-    'text/markdown': 'md',
-    'text/html': 'html',
-    'text/plain': 'txt',
-    'application/pdf': 'pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-    'application/json': 'json',
-    'text/yaml': 'yaml',
-    'application/yaml': 'yaml',
-  }
-
-  return mimeToExt[mimeType] ?? 'bin'
-}
-
-/**
- * The MIME type of what a layer's renderer actually produced.
- *
- * A layer's declared type describes its source, and for most layers the source
- * and the output are the same thing. A React layer is the exception: it is a
- * `text/tsx` pointer at a composition, and the renderer registered for it
- * writes a PDF. The layer's own type would name the packet's part after the
- * module that drew it, so the produced type is asked for separately.
- */
-export function producedMimeType(layerMimeType: string): string {
-  return isReactLayerMimeType(layerMimeType) ? 'application/pdf' : layerMimeType
 }
 
 /**
