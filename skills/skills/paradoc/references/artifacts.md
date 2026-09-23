@@ -52,7 +52,7 @@ Interactive data collection with fields, parties, signatures, layers, and logic.
 
 ### Minimal form (JSON)
 
-```json
+```json schema=artifact
 {
   "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "my-form",
@@ -62,7 +62,7 @@ Interactive data collection with fields, parties, signatures, layers, and logic.
 
 ### Realistic form (JSON)
 
-```json
+```json schema=artifact
 {
   "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "rental-application",
@@ -98,7 +98,7 @@ Static content with data placeholders — no fields, no parties.
 
 ### Realistic document (JSON)
 
-```json
+```json schema=artifact
 {
   "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "privacy-policy",
@@ -149,7 +149,7 @@ Each content item is one of three types:
 
 ### Realistic bundle (JSON)
 
-```json
+```json schema=artifact
 {
   "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "loan-package",
@@ -188,7 +188,7 @@ Each item:
 
 ### Realistic checklist (JSON)
 
-```json
+```json schema=artifact
 {
   "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "closing-checklist",

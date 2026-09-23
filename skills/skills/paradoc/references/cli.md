@@ -79,7 +79,7 @@ paradoc configure          # Interactive — output, artifacts dir, cache, regis
 
 Global config at `~/.paradoc/config.json`:
 
-```json
+```json schema=cli-config
 {
   "defaults": {
     "output": "json",
@@ -95,7 +95,7 @@ Global config at `~/.paradoc/config.json`:
 
 Registry URLs support env-var expansion:
 
-```json
+```json schema=registries
 {
   "@private": {
     "url": "https://registry.example.com",

@@ -391,7 +391,7 @@ Ambiguous? Ask:
 
 ALWAYS use file ContentRef. Extract the instruction text into `instructions/<artifact-name>-instructions.md`. NEVER inline.
 
-```json
+```json schema=form
 "instructions": {
   "kind": "file",
   "path": "instructions/w9-instructions.md",

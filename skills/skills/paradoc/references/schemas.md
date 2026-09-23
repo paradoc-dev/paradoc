@@ -15,7 +15,7 @@ For TypeScript SDK usage, see [sdk.md](./sdk.md). For CLI workflow, see [cli.md]
 
 The current schema version is `2026-09-22`. Every artifact file names the version it follows in `$schema`, with the dated address of that version. The address is the same for every artifact kind:
 
-```json
+```json schema=artifact
 { "$schema": "https://schema.paradoc.dev/2026-09-22.json", "kind": "form", "name": "intake" }
 ```
 
@@ -138,7 +138,7 @@ Fix to camelCase: `firstName`, `firstField`.
 
 ### Missing `type` on field
 
-Every non-fieldset field MUST have `type`:
+Every field, including a fieldset or list, MUST have `type`:
 
 ```json
 "missingType": { "label": "Some Field" }   // wrong
@@ -174,7 +174,7 @@ Fix: `"enum": [{ "value": "active" }, { "value": "inactive" }]`.
 
 Bundles MUST have `contents` (array, may be empty):
 
-```json
+```json schema=artifact
 { "name": "my-bundle", "kind": "bundle", "contents": [] }
 ```
 

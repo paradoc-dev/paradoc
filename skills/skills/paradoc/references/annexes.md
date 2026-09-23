@@ -44,7 +44,7 @@ Annexes are defined as a top-level `annexes` object on a form. Each key is an an
 
 Set `allowAdditionalAnnexes: true` on the form to accept attachments beyond the defined slots. Default is `false`.
 
-```json
+```json schema=form
 "allowAdditionalAnnexes": true
 ```
 

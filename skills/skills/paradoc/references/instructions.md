@@ -29,7 +29,7 @@ Embeds content in the artifact JSON.
 | `kind` | YES | `"inline"` | Discriminator |
 | `text` | YES | string | Content text (max 1,000,000 chars) |
 
-```json
+```json schema=form
 "instructions": {
   "kind": "inline",
   "text": "Line 1: Enter your full legal name as it appears on your tax return.\nLine 2: Enter your SSN."
@@ -51,7 +51,7 @@ References an external content file.
 | `description` | No | string | Description (max 2000) |
 | `checksum` | No | string | `sha256:<64-hex>` |
 
-```json
+```json schema=form
 "instructions": {
   "kind": "file",
   "path": "instructions/w9-instructions.md",
@@ -94,7 +94,7 @@ When using file ContentRef, you MUST create the referenced file.
 
 Most forms benefit from both — `instructions` for the human-facing context, `agentInstructions` for AI behavior.
 
-```json
+```json schema=artifact
 {
   "name": "rental-application",
   "kind": "form",

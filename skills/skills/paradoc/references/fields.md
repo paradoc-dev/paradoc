@@ -84,7 +84,7 @@ A `CondExpr` is a boolean literal OR an expression string. See [logic.md](./logi
 | `maxLength` | number | Maximum length |
 | `pattern` | string | Regex (max 500 chars) — text/uuid/uri only |
 
-```json
+```json schema=fields
 "fullName": { "type": "text", "label": "Full Legal Name", "required": true, "minLength": 2, "maxLength": 100 }
 ```
 
@@ -92,7 +92,7 @@ A `CondExpr` is a boolean literal OR an expression string. See [logic.md](./logi
 
 No type-specific properties.
 
-```json
+```json schema=fields
 "agreeToTerms": { "type": "boolean", "label": "I agree", "required": true, "default": false }
 ```
 
@@ -103,7 +103,7 @@ No type-specific properties.
 | `min` | number | Minimum value |
 | `max` | number | Maximum value |
 
-```json
+```json schema=fields
 "annualSalary": { "type": "money", "label": "Annual Salary", "required": true, "min": 0 }
 ```
 
@@ -127,7 +127,7 @@ No type-specific properties.
 
 `min` and `max` are ISO strings appropriate to the type.
 
-```json
+```json schema=fields
 "dateOfBirth": { "type": "date", "label": "Date of Birth", "required": true, "max": "2008-01-01" }
 ```
 
@@ -143,7 +143,7 @@ No type-specific properties.
 |----------|----------|------|-------------|
 | `enum` | YES | `{ value: string\|number; label?: string }[]` | Allowed options (min 1 item) |
 
-```json
+```json schema=fields
 "employmentStatus": {
   "type": "enum",
   "label": "Employment Status",
@@ -185,7 +185,7 @@ A fieldset groups nested fields under a single key.
 | `required` | No | CondExpr | Whether the fieldset is required |
 | `visible` | No | CondExpr | Conditional visibility |
 
-```json
+```json schema=fields
 "previousAddress": {
   "type": "fieldset",
   "label": "Previous Address",
@@ -213,7 +213,7 @@ A list holds zero or more entries of one field shape.
 | `minItems` | No | integer | Minimum entries (min 0) |
 | `maxItems` | No | integer | Maximum entries (min 0, at least `minItems`) |
 
-```json
+```json schema=fields
 "dependents": {
   "type": "list",
   "label": "Dependents",
@@ -297,7 +297,7 @@ Fields render in definition order. Suggested order:
 
 Use `visible` expressions to keep the form simple:
 
-```json
+```json schema=fields
 "hasPets": { "type": "boolean", "label": "Do you have pets?", "default": false },
 "petCount": {
   "type": "number",
@@ -334,7 +334,7 @@ NEVER mix object and builder patterns within a single artifact.
 
 1. Choose a camelCase identifier matching `^[a-z][a-zA-Z0-9_]*$`
 2. Add the field to the `fields` object
-3. Set `type` (REQUIRED for all non-fieldset fields)
+3. Set `type` (REQUIRED for every field)
 4. Add `label`, `required`, `visible`, type-specific constraints
 5. Run `npx paradoc-cli validate <file>` (see [schemas.md](./schemas.md))
 

@@ -61,7 +61,7 @@ Field-level expressions ALWAYS use `fields.<id>`. Rules expressions use bare nam
 
 Inside a list item, `item` is the current row. In a list nested in a list item, `parent` is the enclosing row. Use them for per-row conditions:
 
-```json
+```json schema=fields
 "lines": {
   "type": "list",
   "item": {
@@ -118,7 +118,7 @@ Seven functions compute one value from the rows of a `list` field. Each takes a 
 | `any(path, filter?)` | boolean | `false` |
 | `all(path, filter?)` | boolean | `true` |
 
-```json
+```json schema=defs
 "subtotal": { "type": "money", "value": { "amount": "sum(fields.lineItems.amount).amount", "currency": "fields.currency" } },
 "taxableTotal": { "type": "number", "value": "sum(fields.lineItems.amount.amount, fields.lineItems.taxable)" },
 "hasOther": { "type": "boolean", "value": "count(fields.lineItems, fields.lineItems.kind == 'other') > 0" }
@@ -158,7 +158,7 @@ For simple types, `value` is an expression string.
 | `datetime` | ISO datetime |
 | `duration` | ISO duration |
 
-```json
+```json schema=form
 "defs": {
   "isHighValue": {
     "type": "boolean",
@@ -181,7 +181,7 @@ For simple types, `value` is an expression string.
 For compound types, `value` is an object with expression strings per component.
 
 **money** — `amount`, `currency` required:
-```json
+```json schema=defs
 "totalCost": {
   "type": "money",
   "value": { "amount": "fields.price + fields.tax", "currency": "'USD'" }
@@ -189,7 +189,7 @@ For compound types, `value` is an object with expression strings per component.
 ```
 
 **address** — `line1`, `locality`, `region`, `postalCode`, `country` required; `line2` optional:
-```json
+```json schema=defs
 "computedAddress": {
   "type": "address",
   "value": {
@@ -225,7 +225,7 @@ The `rules` section defines form-level validation. Available on **forms** only. 
 
 In rules, field values are accessed **directly by name** (NO `fields.` prefix). Defs values are also accessible directly.
 
-```json
+```json schema=form
 "rules": {
   "endAfterStart": {
     "expr": "endDate > startDate",
@@ -248,7 +248,7 @@ In rules, field values are accessed **directly by name** (NO `fields.` prefix). 
 
 Defs are referenced by their key name:
 
-```json
+```json schema=form
 "defs": {
   "totalDebt": {
     "type": "number",
@@ -282,7 +282,7 @@ Defs are referenced by their key name:
 
 Most common conditional pattern — show fields based on a trigger:
 
-```json
+```json schema=fields
 "hasVehicle": { "type": "boolean", "label": "Do you own a vehicle?", "default": false },
 "vehicleMake": {
   "type": "text",
@@ -301,14 +301,14 @@ Most common conditional pattern — show fields based on a trigger:
 ### Extracting repeated conditions into defs
 
 Before (repeated):
-```json
-"petCount": { "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" },
-"petBreed": { "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" },
-"petDeposit": { "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" }
+```json schema=fields
+"petCount": { "type": "number", "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" },
+"petBreed": { "type": "text", "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" },
+"petDeposit": { "type": "money", "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" }
 ```
 
 After (extracted):
-```json
+```json schema=form
 "defs": {
   "petsApplicable": {
     "type": "boolean",

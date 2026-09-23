@@ -133,6 +133,8 @@ skills-ref validate ./skills/paradoc
 skills-ref validate ./skills/compose-documents
 ```
 
+`packages/schemas/tests/skill-docs.test.ts` checks the `paradoc` skill against the schemas: the field type lists, the signature block and slot types, and every JSON example. Label each JSON example that is valid JSON with the container it belongs to, for example ```` ```json schema=fields ````. The labels are `artifact`, `form`, `fields`, `parties`, `defs`, `layers`, `layer`, `cli-config`, and `registries`.
+
 ## When Editing
 
 1. Identify the right category (surface / topic / workflow). Resist re-documenting concepts in surface or workflow refs — link to the topic ref instead.

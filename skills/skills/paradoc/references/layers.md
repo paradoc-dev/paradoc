@@ -34,7 +34,7 @@ Embed template content in the artifact JSON.
 | `anchorBlocks` | No | object | Signature locations found by document text |
 | `signatures` | No | object | Unified signature slots (supersede `signatureBlocks`/`anchorBlocks`) |
 
-```json
+```json schema=form
 "layers": {
   "markdown": {
     "kind": "inline",
@@ -66,13 +66,13 @@ Reference an external template file.
 | `anchorBlocks` | No | object | Signature locations found by document text |
 | `signatures` | No | object | Unified signature slots (supersede `signatureBlocks`/`anchorBlocks`) |
 
-```json
+```json schema=form
 "layers": {
   "pdf": {
     "kind": "file",
     "mimeType": "application/pdf",
     "path": "templates/lease-agreement.pdf",
-    "checksum": "sha256:a1b2c3d4..."
+    "checksum": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
   }
 }
 ```
@@ -93,7 +93,7 @@ For workflow contexts (creating artifacts from scratch, converting PDFs): ALWAYS
 
 Bindings map template placeholder or PDF field names (keys) to Paradoc data paths (values). Essential for PDF/DOCX where placeholder names differ from field IDs. Optional for text/markdown/HTML where you can use `{{fields.fieldName}}` directly.
 
-```json
+```json schema=layer
 "bindings": {
   "Tenant_Full_Name": "tenantName",
   "Monthly_Rent_Amount": "monthlyRent",
@@ -103,7 +103,7 @@ Bindings map template placeholder or PDF field names (keys) to Paradoc data path
 
 Use `bindingsFrom` to reuse another layer's bindings:
 
-```json
+```json schema=form
 "layers": {
   "markdown": {
     "kind": "inline",
@@ -141,7 +141,7 @@ Signature blocks define positioned signature locations within a layer. Keyed by 
 | `label` | string | Human-readable label |
 | `required` | boolean | Required (default `true`) |
 
-```json
+```json schema=layer
 "signatureBlocks": {
   "tenantSig": {
     "type": "signature",
@@ -180,7 +180,7 @@ For PDF coordinate estimation, see [pdf-bindings.md](./pdf-bindings.md).
 
 A slot's date type is `"date_signed"`. A signature or anchor block's date type is `"date"`. Do not mix them.
 
-```json
+```json schema=layer
 "signatures": {
   "tenantSig": {
     "party": { "role": "tenant" },

@@ -41,7 +41,7 @@ Parties represent roles in a form (landlord, tenant, buyer, seller). Each role c
 
 ### Two-party agreement (landlord/tenant, buyer/seller)
 
-```json
+```json schema=form
 "parties": {
   "tenant": {
     "label": "Tenant",
@@ -61,7 +61,7 @@ Parties represent roles in a form (landlord, tenant, buyer, seller). Each role c
 
 ### Single signer with witness
 
-```json
+```json schema=parties
 "applicant": {
   "label": "Applicant",
   "partyType": "person",
@@ -72,7 +72,7 @@ Parties represent roles in a form (landlord, tenant, buyer, seller). Each role c
 
 ### Conditional party
 
-```json
+```json schema=parties
 "guarantor": {
   "label": "Guarantor",
   "partyType": "person",
@@ -83,7 +83,7 @@ Parties represent roles in a form (landlord, tenant, buyer, seller). Each role c
 
 ### Notarized signature
 
-```json
+```json schema=parties
 "seller": {
   "label": "Seller",
   "partyType": "any",
@@ -96,7 +96,7 @@ Parties represent roles in a form (landlord, tenant, buyer, seller). Each role c
 
 Set `max > 1`. In layers, use `partyIndex` (0-based) to target individual parties — see [layers.md](./layers.md).
 
-```json
+```json schema=parties
 "tenant": {
   "label": "Tenant",
   "partyType": "person",

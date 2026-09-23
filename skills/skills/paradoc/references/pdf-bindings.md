@@ -18,7 +18,7 @@ PDF-specific layer details. For generic layer concepts (kinds, MIME types, signa
 
 ## PDF File Layer Structure
 
-```json
+```json schema=form
 "layers": {
   "pdf": {
     "kind": "file",
@@ -45,7 +45,7 @@ PDF-specific layer details. For generic layer concepts (kinds, MIME types, signa
 
 Maps PDF AcroForm field names (keys) to Paradoc data paths (values).
 
-```json
+```json schema=layer
 "bindings": {
   "Text_FullName": "fullName",
   "SSN_Field": "ssn",
@@ -72,7 +72,7 @@ Filling honors each PDF field's own settings: its declared font size (or automat
 
 Each value uses the first font that can draw all of it: a font supplied at render time, then the layer's declared `font`, then the form's own embedded font for the field, then Helvetica for Latin-1 text. Latin-1 forms need no font. If the data can hold names in Latin Extended, Greek, Cyrillic, or CJK scripts, declare a TrueType font (`.ttf`, TrueType outlines) on the PDF layer; the resolver reads it like the PDF and it is embedded in the output:
 
-```json
+```json schema=layers
 "pdf": {
   "kind": "file",
   "mimeType": "application/pdf",
@@ -142,7 +142,7 @@ Combine party role and block type:
 
 ALWAYS create a markdown inline layer alongside the PDF layer (or as the only layer when the PDF is flat). It serves as a human-readable template.
 
-```json
+```json schema=layers
 "markdown": {
   "kind": "inline",
   "mimeType": "text/markdown",
@@ -178,7 +178,7 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
 
 ## Complete Example
 
-```json
+```json schema=form
 "defaultLayer": "pdf",
 "layers": {
   "pdf": {
@@ -187,11 +187,11 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
     "path": "w9.pdf",
     "title": "IRS Form W-9 PDF",
     "bindings": {
-      "name": "f1_01",
-      "businessName": "f1_02",
-      "federalTaxClassification": "c1_1",
-      "address": "f1_04",
-      "ssn": "f1_11"
+      "f1_01": "name",
+      "f1_02": "businessName",
+      "c1_1": "federalTaxClassification",
+      "f1_04": "address",
+      "f1_11": "ssn"
     },
     "signatureBlocks": {
       "taxpayerSig": {
