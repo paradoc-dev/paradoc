@@ -74,8 +74,11 @@ const fillResult = await executeFill({
   source: "artifact",
   artifact,
   data: {
-    fields: { petName: "Buddy", species: "dog", weight: 45 },
-    parties: { tenant: { id: "t1", name: "Jane Doe" } },
+    fields: { petName: "Buddy", species: "dog", weight: 45, isVaccinated: true },
+    parties: {
+      tenant: { id: "tenant-0", name: "Jane Doe" },
+      landlord: { id: "landlord-0", name: "Acme Properties LLC", legalName: "Acme Properties LLC" },
+    },
   },
 });
 
