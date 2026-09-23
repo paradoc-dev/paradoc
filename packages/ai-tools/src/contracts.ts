@@ -239,12 +239,17 @@ export const FillOutputSchema = z.object({
 /** Update returns the same lossless draft contract as fill. */
 export const UpdateFillOutputSchema = FillOutputSchema
 
+export const RuleViolationSchema = z.object({
+	rule_id: z.string().describe('Key of the violated rule in the artifact rules section'),
+	message: z.string().describe('The rule message'),
+})
+
 export const FillStateOutputSchema = z.object({
 	artifact_kind: z.enum(['form', 'checklist']),
 	phase: z.string(),
 	summary: z.object({ required_total: z.number(), required_done: z.number(), required_remaining: z.number(), completion_percent: z.number() }),
 	defs_values: z.record(z.string(), z.unknown()).optional(),
-	rules: z.object({ valid: z.boolean(), errors: z.array(z.string()), warnings: z.array(z.string()) }),
+	rules: z.object({ valid: z.boolean(), errors: z.array(RuleViolationSchema), warnings: z.array(RuleViolationSchema) }),
 	open_required: z.array(z.unknown()),
 	open_optional: z.array(z.unknown()),
 	blocked: z.array(z.unknown()),
@@ -330,6 +335,7 @@ export type ValidateArtifactOutput = z.infer<typeof ValidateArtifactOutputSchema
 export type ValidateInputOutput = z.infer<typeof ValidateInputOutputSchema>
 export type FillOutput = z.infer<typeof FillOutputSchema>
 export type FillStateOutput = z.infer<typeof FillStateOutputSchema>
+export type RuleViolation = z.infer<typeof RuleViolationSchema>
 export type UpdateFillOutput = z.infer<typeof UpdateFillOutputSchema>
 export type RenderOutput = z.infer<typeof RenderOutputSchema>
 export type GetRegistryOutput = z.infer<typeof GetRegistryOutputSchema>

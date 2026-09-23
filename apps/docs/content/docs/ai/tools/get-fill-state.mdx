@@ -27,7 +27,7 @@ Takes a [source](/ai/tools#sources) plus:
 | `phase` | `string` | Draft phase, such as `draft` |
 | `summary` | `object` | `required_total`, `required_done`, `required_remaining`, `completion_percent` |
 | `defs_values` | `object` | Evaluated `defs` values |
-| `rules` | `object` | `valid`, `errors[]`, `warnings[]` from the artifact's rules |
+| `rules` | `object` | `valid`, plus `errors[]` and `warnings[]` of `RuleViolation` entries from the artifact's rules |
 | `open_required` | `FillItemState[]` | Visible, required, unfilled targets |
 | `open_optional` | `FillItemState[]` | Visible, optional, unfilled targets |
 | `blocked` | `FillItemState[]` | Hidden targets that can become visible once their prerequisites are filled |
@@ -35,8 +35,18 @@ Takes a [source](/ai/tools#sources) plus:
 | `candidates` | `FillTarget[]` | Targets that can be filled now, in declaration order |
 | `next` | `FillTarget \| null` | The first candidate, or `null` when nothing is left |
 | `evaluation_context` | `object` | The draft's fixed context |
-| `errors` | [`ToolError[]`](/ai/tools#errors) | Set when the draft data was rejected |
+| `errors` | [`ToolError[]`](/ai/tools#errors) | Set when the draft data was rejected (`validation_error`), or when the form's logic could not be evaluated (`logic_unresolved`) and the rules were not run |
 | `error` | [`ToolError`](/ai/tools#errors) | Set when the state could not be computed |
+
+A `RuleViolation` has `rule_id`, the key of the failed rule in the artifact's `rules` section, and `message`, the rule's message. Errors come from rules with `error` severity and make `valid` false. Warnings come from rules with `warning` severity and do not.
+
+```json
+{
+  "valid": false,
+  "errors": [{ "rule_id": "depositWithinLimit", "message": "Pet deposit cannot exceed $500" }],
+  "warnings": []
+}
+```
 
 A `FillTarget` has `kind` (`field`, `party`, or `annex`), `key`, `required`, and `order`. A `FillItemState` adds `visible`, `status` (`hidden`, `optional`, or `required`), `filled`, and `blockedBy` (the unfilled targets that keep it hidden). These nested entries keep their camelCase keys.
 
