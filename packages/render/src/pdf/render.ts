@@ -29,7 +29,7 @@ export interface RenderPdfOptions {
 
 function assign(field: AcroField | undefined, value: unknown, model: PdfModel, fonts: PdfFontSet): void {
   if (!field || value === null || value === undefined) return
-  setAcroFieldValue(model, fonts, field, field.type === 'checkbox' || field.type === 'radio' || field.type === 'choice'
+  setAcroFieldValue(model, fonts, field, field.type === 'checkbox' || field.type === 'radio' || field.type === 'dropdown'
     ? unwrapFormattedValue(value)
     : value)
 }

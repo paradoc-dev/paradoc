@@ -1,11 +1,10 @@
 import type { BinaryContent } from '@paradoc/types'
 import { acroFields, type AcroWidget } from './acroform'
-import { documentPages, type PageRecord } from './page-tree'
+import { addPageResource, appendPageContent, documentPages, type PageRecord } from './page-tree'
 import {
   isDict,
   isName,
   isRef,
-  type PdfDict,
   type PdfRef,
   PdfModel,
   type PdfValue,
@@ -13,10 +12,6 @@ import {
 
 
 const encoder = new TextEncoder()
-
-function cloneDict(dict: PdfDict | undefined): PdfDict {
-  return { kind: 'dict', entries: new Map(dict?.entries) }
-}
 
 function appearanceRef(model: PdfModel, widget: AcroWidget): PdfRef | undefined {
   const appearance = model.dict(widget.dict.entries.get('AP'))
@@ -40,36 +35,6 @@ function widgetPage(model: PdfModel, pages: PageRecord[], widget: AcroWidget): P
     return Array.isArray(annotations)
       && annotations.some((annotation) => isRef(annotation) && annotation.object === widget.ref!.object)
   })
-}
-
-function addAppearanceResource(
-  model: PdfModel,
-  page: PageRecord,
-  name: string,
-  appearance: PdfRef,
-): void {
-  if (!isDict(page.record.value)) return
-  // The page's own entry first, and freshly: an earlier widget or overlay on
-  // this page has already written its resource dictionary there, and reading
-  // the walk's snapshot instead would drop it.
-  const resources = cloneDict(
-    model.dict(page.record.value.entries.get('Resources') ?? page.inherited.get('Resources')),
-  )
-  const xObjects = cloneDict(model.dict(resources.entries.get('XObject')))
-  xObjects.entries.set(name, appearance)
-  resources.entries.set('XObject', xObjects)
-  page.record.value.entries.set('Resources', resources)
-  model.markUpdated(page.record)
-}
-
-function appendContent(model: PdfModel, page: PageRecord, stream: PdfRef): void {
-  if (!isDict(page.record.value)) return
-  const current = page.record.value.entries.get('Contents')
-  const resolved = model.resolve(current)
-  if (Array.isArray(resolved)) page.record.value.entries.set('Contents', [...resolved, stream])
-  else if (current === undefined) page.record.value.entries.set('Contents', stream)
-  else page.record.value.entries.set('Contents', [current, stream])
-  model.markUpdated(page.record)
 }
 
 function removeWidgetAnnotation(model: PdfModel, page: PageRecord, widget: AcroWidget): void {
@@ -144,8 +109,8 @@ export async function flattenPdf(template: BinaryContent): Promise<Uint8Array> {
         const transform = placement(model, widget, appearance)
         if (transform) {
           const name = `PdrA${appearanceIndex++}`
-          addAppearanceResource(model, page, name, appearance)
-          appendContent(
+          addPageResource(model, page, 'XObject', name, appearance)
+          appendPageContent(
             model,
             page,
             model.addObject(

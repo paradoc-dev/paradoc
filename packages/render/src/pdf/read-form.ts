@@ -120,7 +120,7 @@ function readField(model: PdfModel, field: AcroField): FieldState {
     return { field, raw, on: raw !== undefined && raw !== 'Off' }
   }
   const value = model.resolve(field.dict.entries.get('V'))
-  if (field.type === 'choice') {
+  if (field.type === 'dropdown') {
     const selected = (Array.isArray(value) ? value : [value])
       .map((entry) => typeof entry === 'string' ? entry : undefined)
       .filter((entry): entry is string => entry !== undefined && entry.trim() !== '')
@@ -508,7 +508,7 @@ function readDirect(state: FieldState, target: Target, formatter: Formatter): Re
     const parsed = parseTarget(state.raw, target, formatter, false)
     return parsed.ok ? { kind: 'value', value: parsed.value } : { kind: 'unparseable', reason: parsed.reason }
   }
-  if (field.type === 'choice') {
+  if (field.type === 'dropdown') {
     if (!state.selected || state.selected.length === 0) return { kind: 'empty' }
     const raw = state.selected.join(', ')
     const parsed = parseTarget(raw, target, formatter, false)
@@ -694,7 +694,7 @@ export async function extractPdfData({ pdf, form, bindings, formatter = defaultF
   const unbound: PdfUnboundField[] = []
   for (const state of states.values()) {
     if (boundNames.has(state.field.name)) continue
-    const type = state.field.type === 'choice' ? 'dropdown' : state.field.type
+    const type = state.field.type
     if (type !== 'text' && type !== 'checkbox' && type !== 'radio' && type !== 'dropdown') continue
     const hasValue = type === 'checkbox' || type === 'radio' ? state.on : state.raw !== undefined
     if (hasValue && state.raw !== undefined) unbound.push({ field: state.field.name, type, value: state.raw })

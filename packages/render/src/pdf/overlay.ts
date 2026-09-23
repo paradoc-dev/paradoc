@@ -1,9 +1,9 @@
 import { unzlibSync, zlibSync } from 'fflate'
 import type { PdfFontSet } from './drawing-fonts'
 import { MIN_FONT_SIZE, PdfFieldFillError, type DrawingFont } from './field-appearance'
-import { isDict, type PdfDict, type PdfObject, type PdfRef, PdfModel, type PdfValue } from './syntax'
+import { type PdfRef, PdfModel, type PdfValue } from './syntax'
 import { getPath } from '../path'
-import { documentPages, type PageRecord } from './page-tree'
+import { addPageResource, appendPageContent, documentPages } from './page-tree'
 
 interface PdfOverlayBase {
   /** One-based page number. */
@@ -45,41 +45,6 @@ interface EmbeddedImage {
   ref: PdfRef
   width: number
   height: number
-}
-
-function cloneDict(dict: PdfDict | undefined): PdfDict {
-  return { kind: 'dict', entries: new Map(dict?.entries) }
-}
-
-function addResource(
-  model: PdfModel,
-  page: PageRecord,
-  category: 'Font' | 'XObject',
-  name: string,
-  ref: PdfRef,
-): void {
-  if (!isDict(page.record.value)) return
-  // The page's own entry first, and freshly: an earlier widget or overlay on
-  // this page has already written its resource dictionary there, and reading
-  // the walk's snapshot instead would drop it.
-  const resources = cloneDict(
-    model.dict(page.record.value.entries.get('Resources') ?? page.inherited.get('Resources')),
-  )
-  const entries = cloneDict(model.dict(resources.entries.get(category)))
-  entries.entries.set(name, ref)
-  resources.entries.set(category, entries)
-  page.record.value.entries.set('Resources', resources)
-  model.markUpdated(page.record)
-}
-
-function appendContent(model: PdfModel, page: PdfObject, stream: PdfRef): void {
-  if (!isDict(page.value)) return
-  const current = page.value.entries.get('Contents')
-  const resolved = model.resolve(current)
-  if (Array.isArray(resolved)) page.value.entries.set('Contents', [...resolved, stream])
-  else if (current === undefined) page.value.entries.set('Contents', stream)
-  else page.value.entries.set('Contents', [current, stream])
-  model.markUpdated(page)
 }
 
 function textValue(overlay: PdfTextOverlay, data: Record<string, unknown>): unknown {
@@ -290,7 +255,7 @@ export function applyPdfOverlays(
           ? embedPng(model, overlay.image)
           : embedJpeg(model, overlay.image)
         const name = `PdrI${imageIndex++}`
-        addResource(model, page, 'XObject', name, embedded.ref)
+        addPageResource(model, page, 'XObject', name, embedded.ref)
         const scale = overlay.fit === 'fill'
           ? undefined
           : Math.min(overlay.width / embedded.width, overlay.height / embedded.height)
@@ -309,8 +274,8 @@ export function applyPdfOverlays(
       const [red, green, blue] = (overlay.color ?? [0, 0, 0]).map(component)
       commands.push(`BT\n/${font.resourceName} ${size} Tf\n${red} ${green} ${blue} rg\n${x} ${y} Td\n${font.encode(text)} Tj\nET`)
     }
-    for (const [name, ref] of pageFonts) addResource(model, page, 'Font', name, ref)
+    for (const [name, ref] of pageFonts) addPageResource(model, page, 'Font', name, ref)
     const stream = model.addObject({ kind: 'dict', entries: new Map() }, new TextEncoder().encode(`q\n${commands.join('\n')}\nQ`))
-    appendContent(model, page.record, stream)
+    appendPageContent(model, page, stream)
   }
 }

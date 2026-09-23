@@ -1,8 +1,10 @@
 import type { PdfFontSet } from './drawing-fonts'
 import { layoutFieldText, parseDefaultAppearance } from './field-appearance'
+import { catalogRecord } from './page-tree'
 import { isDict, isName, isRef, type PdfDict, type PdfRef, PdfModel, type PdfValue } from './syntax'
 
-export type AcroFieldType = 'text' | 'checkbox' | 'choice' | 'radio' | 'button' | 'signature' | 'unknown'
+/** What kind of control an AcroForm field is, read from its `/FT` and `/Ff`. */
+export type PdfFieldType = 'text' | 'checkbox' | 'dropdown' | 'radio' | 'button' | 'signature' | 'unknown'
 
 export interface AcroWidget {
   ref?: PdfRef
@@ -13,7 +15,7 @@ export interface AcroField {
   ref?: PdfRef
   dict: PdfDict
   name: string
-  type: AcroFieldType
+  type: PdfFieldType
   flags: number
   widgets: AcroWidget[]
   /** Default appearance (`/DA`), inherited from ancestors or the AcroForm. */
@@ -35,9 +37,14 @@ function stringValue(value: PdfValue | undefined): string | undefined {
   return isName(value) ? value.value : undefined
 }
 
-function fieldType(value: string | undefined, flags: number): AcroFieldType {
+/**
+ * Classify a field from its (inherited) field type and flags: a `/Ch` field is
+ * a dropdown, and a `/Btn` field is a push button, a radio group, or a checkbox
+ * by its flag bits.
+ */
+export function classifyField(value: string | undefined, flags: number): PdfFieldType {
   if (value === 'Tx') return 'text'
-  if (value === 'Ch') return 'choice'
+  if (value === 'Ch') return 'dropdown'
   if (value === 'Sig') return 'signature'
   if (value !== 'Btn') return 'unknown'
   if ((flags & (1 << 16)) !== 0) return 'button'
@@ -53,14 +60,23 @@ function widget(model: PdfModel, value: PdfValue): AcroWidget | undefined {
   return { ref: isRef(value) ? value : undefined, dict }
 }
 
+/**
+ * Whether an entry of a field's `/Kids` is a child field rather than one of
+ * the field's own widget annotations. A kid that is not a widget, or that
+ * carries its own name, type, or kids, is a field in its own right.
+ */
+export function isChildField(model: PdfModel, kid: PdfValue): boolean {
+  const dict = model.dict(kid)
+  return widget(model, kid) === undefined
+    || dict?.entries.has('T') === true
+    || dict?.entries.has('FT') === true
+    || dict?.entries.has('Kids') === true
+}
+
 export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: PdfDict; acroRef?: PdfRef; catalogRef?: PdfRef } {
-  const catalogRecord = [...model.objects.values()].find((record) => {
-    if (!isDict(record.value)) return false
-    const type = record.value.entries.get('Type')
-    return isName(type) && type.value === 'Catalog'
-  })
-  if (!catalogRecord || !isDict(catalogRecord.value)) throw new Error('PDF catalog not found')
-  const acroValue = catalogRecord.value.entries.get('AcroForm')
+  const catalog = catalogRecord(model)
+  if (!catalog || !isDict(catalog.value)) throw new Error('PDF catalog not found')
+  const acroValue = catalog.value.entries.get('AcroForm')
   const acroForm = model.dict(acroValue)
   if (!acroForm) throw new Error('PDF does not contain an AcroForm')
   const roots = model.resolve(acroForm.entries.get('Fields'))
@@ -97,18 +113,11 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
       maxLength: typeof ownMaxLength === 'number' ? ownMaxLength : inherited.maxLength,
     }
     const kids = model.resolve(dict.entries.get('Kids'))
-    const isChildField = (child: PdfValue) => {
-      const childDict = model.dict(child)
-      return widget(model, child) === undefined
-        || childDict?.entries.has('T')
-        || childDict?.entries.has('FT')
-        || childDict?.entries.has('Kids')
-    }
     const widgets = Array.isArray(kids)
-      ? kids.filter((child) => !isChildField(child)).map((child) => widget(model, child)).filter((item): item is AcroWidget => item !== undefined)
+      ? kids.filter((child) => !isChildField(model, child)).map((child) => widget(model, child)).filter((item): item is AcroWidget => item !== undefined)
       : []
     const childFields = Array.isArray(kids)
-      ? kids.filter(isChildField)
+      ? kids.filter((child) => isChildField(model, child))
       : []
     if (childFields.length > 0) {
       childFields.forEach((child) => visit(child, settings))
@@ -120,7 +129,7 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
       ref: isRef(value) ? value : undefined,
       dict,
       name,
-      type: fieldType(typeName, flags),
+      type: classifyField(typeName, flags),
       flags,
       widgets: self ? [self] : widgets,
       defaultAppearance: settings.defaultAppearance ?? (typeof formAppearance === 'string' ? formAppearance : undefined),
@@ -134,7 +143,7 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
     fields,
     acroForm,
     acroRef: isRef(acroValue) ? acroValue : undefined,
-    catalogRef: { kind: 'ref', object: catalogRecord.object, generation: catalogRecord.generation },
+    catalogRef: { kind: 'ref', object: catalog.object, generation: catalog.generation },
   }
 }
 
@@ -250,7 +259,7 @@ function setTextValue(model: PdfModel, fonts: PdfFontSet, field: AcroField, valu
 
 export function setAcroFieldValue(model: PdfModel, fonts: PdfFontSet, field: AcroField, value: unknown): void {
   if (field.type === 'text') setTextValue(model, fonts, field, value)
-  else if (field.type === 'choice') setChoiceValue(model, fonts, field, value)
+  else if (field.type === 'dropdown') setChoiceValue(model, fonts, field, value)
   else if (field.type === 'checkbox') {
     const checked = Boolean(value)
     const state = checked ? onState(model, field.widgets[0] ?? { dict: field.dict }) : 'Off'

@@ -2,13 +2,13 @@ import { deflateSync } from 'node:zlib'
 
 const encoder = new TextEncoder()
 
-interface PdfObject {
+export interface FixtureObject {
   id: number
   body: string
   stream?: Uint8Array
 }
 
-function assemblePdf(objects: PdfObject[], trailerEntries = ''): Uint8Array {
+export function assemblePdf(objects: FixtureObject[], trailerEntries = ''): Uint8Array {
   const chunks: Uint8Array[] = [encoder.encode('%PDF-1.5\n')]
   const offsets = new Map<number, number>()
   let offset = chunks[0]!.length
@@ -207,7 +207,7 @@ export interface AcroFormFixtureOptions {
  * fields whose names and values are controlled by the test.
  */
 export function acroFormPdf(fields: AcroFormFixtureField[], options: AcroFormFixtureOptions = {}): Uint8Array {
-  const objects: PdfObject[] = []
+  const objects: FixtureObject[] = []
   const roots: number[] = []
   const widgets: number[] = []
   let next = 4

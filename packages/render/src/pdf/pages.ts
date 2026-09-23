@@ -1,3 +1,4 @@
+import { catalogRecord, pageRecords } from './page-tree'
 import { isDict, isName, isRef, type PdfDict, type PdfModel, type PdfValue } from './syntax'
 
 export interface PdfPage {
@@ -50,50 +51,24 @@ function asNumberArray(model: PdfModel, value: PdfValue | undefined): number[] |
   return numbers.length === resolved.length ? numbers : undefined
 }
 
-/** Walk the page tree in document order, resolving inherited attributes. */
+/** Every page in document order, with its inherited resources and media box. */
 export async function loadPages(model: PdfModel): Promise<PdfPage[]> {
-  const catalog = [...model.objects.values()].find((record) => {
-    if (!isDict(record.value)) return false
-    const type = record.value.entries.get('Type')
-    return isName(type) && type.value === 'Catalog'
-  })
+  const catalog = catalogRecord(model)
   if (!catalog || !isDict(catalog.value)) throw new Error('PDF catalog not found')
-  const root = model.dict(catalog.value.entries.get('Pages'))
-  if (!root) throw new Error('PDF page tree not found')
+  if (!model.dict(catalog.value.entries.get('Pages'))) throw new Error('PDF page tree not found')
 
   const pages: PdfPage[] = []
-  const visited = new Set<PdfValue>()
-
-  const walk = async (
-    node: PdfDict,
-    inherited: { resources?: PdfDict; mediaBox?: number[] },
-  ): Promise<void> => {
-    if (visited.has(node)) return
-    visited.add(node)
-    const resources = model.dict(node.entries.get('Resources')) ?? inherited.resources
-    const mediaBox = asNumberArray(model, node.entries.get('MediaBox')) ?? inherited.mediaBox
-    const type = model.resolve(node.entries.get('Type'))
-
-    if (isName(type) && type.value === 'Page') {
-      const box = mediaBox && mediaBox.length === 4 ? mediaBox : [0, 0, 612, 792]
-      pages.push({
-        dict: node,
-        resources,
-        mediaBox: [box[0]!, box[1]!, box[2]!, box[3]!],
-        content: await pageContent(model, node),
-      })
-      return
-    }
-
-    const kids = model.resolve(node.entries.get('Kids'))
-    if (!Array.isArray(kids)) return
-    for (const kid of kids) {
-      const child = model.dict(kid)
-      if (child) await walk(child, { resources, mediaBox })
-    }
+  for (const { record, inherited } of pageRecords(model, catalog.value)) {
+    if (!isDict(record.value)) continue
+    const mediaBox = asNumberArray(model, inherited.get('MediaBox'))
+    const box = mediaBox && mediaBox.length === 4 ? mediaBox : [0, 0, 612, 792]
+    pages.push({
+      dict: record.value,
+      resources: model.dict(inherited.get('Resources')),
+      mediaBox: [box[0]!, box[1]!, box[2]!, box[3]!],
+      content: await pageContent(model, record.value),
+    })
   }
-
-  await walk(root, {})
   return pages
 }
 

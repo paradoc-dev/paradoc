@@ -1,7 +1,9 @@
 import type { BinaryContent } from '@paradoc/types'
+import { classifyField, isChildField, type PdfFieldType } from './acroform'
+import { catalogRecord, documentPages } from './page-tree'
 import { isDict, isName, isRef, PdfModel, type PdfDict, type PdfValue } from './syntax'
 
-export type PdfFieldType = 'text' | 'checkbox' | 'dropdown' | 'radio' | 'button' | 'signature' | 'unknown'
+export type { PdfFieldType } from './acroform'
 
 export interface PdfFieldInfo {
   name: string
@@ -43,60 +45,18 @@ function valueString(value: PdfValue | undefined): string | undefined {
   return isName(value) ? value.value : undefined
 }
 
-function catalog(model: PdfModel): PdfDict | undefined {
-  return [...model.objects.values()]
-    .map((record) => record.value)
-    .find((value): value is PdfDict => {
-      if (!isDict(value)) return false
-      const type = value.entries.get('Type')
-      return isName(type) && type.value === 'Catalog'
-    })
-}
-
 /** Inspect page count and dimensions without loading a full PDF toolkit. */
 export async function inspectPdf(template: BinaryContent): Promise<PdfInfo> {
   const model = await PdfModel.load(template)
-  const root = catalog(model)
-  const pages: PdfPageInfo[] = []
-
-  const visit = (value: PdfValue | undefined, inheritedMediaBox?: PdfValue) => {
-    const dict = model.dict(value)
-    if (!dict) return
-    const mediaBox = dict.entries.get('MediaBox') ?? inheritedMediaBox
-    const type = dict.entries.get('Type')
-    if (isName(type) && type.value === 'Page') {
-      const box = model.resolve(mediaBox)
-      if (!Array.isArray(box) || box.length !== 4 || !box.every((item) => typeof item === 'number')) {
-        throw new Error(`PDF page ${pages.length + 1} has no readable MediaBox`)
-      }
-      const [left, bottom, right, top] = box as [number, number, number, number]
-      pages.push({ page: pages.length + 1, width: right - left, height: top - bottom })
-      return
+  const pages = documentPages(model).map(({ inherited }, index): PdfPageInfo => {
+    const box = model.resolve(inherited.get('MediaBox'))
+    if (!Array.isArray(box) || box.length !== 4 || !box.every((item) => typeof item === 'number')) {
+      throw new Error(`PDF page ${index + 1} has no readable MediaBox`)
     }
-    const kids = model.resolve(dict.entries.get('Kids'))
-    if (Array.isArray(kids)) kids.forEach((kid) => visit(kid, mediaBox))
-  }
-
-  visit(root?.entries.get('Pages'))
+    const [left, bottom, right, top] = box as [number, number, number, number]
+    return { page: index + 1, width: right - left, height: top - bottom }
+  })
   return { pageCount: pages.length, pages }
-}
-
-function pageMap(model: PdfModel, root: PdfValue | undefined): Map<number, number> {
-  const pages = new Map<number, number>()
-  const visit = (value: PdfValue | undefined) => {
-    const ref = isRef(value) ? value : undefined
-    const dict = model.dict(value)
-    if (!dict) return
-    const type = dict.entries.get('Type')
-    if (isName(type) && type.value === 'Page') {
-      if (ref) pages.set(ref.object, pages.size + 1)
-      return
-    }
-    const kids = model.resolve(dict.entries.get('Kids'))
-    if (Array.isArray(kids)) kids.forEach(visit)
-  }
-  visit(root)
-  return pages
 }
 
 function widgetFor(model: PdfModel, field: PdfDict): PdfDict | undefined {
@@ -110,26 +70,16 @@ function widgetFor(model: PdfModel, field: PdfDict): PdfDict | undefined {
   })
 }
 
-function classify(fieldType: string | undefined, flags: number): PdfFieldType {
-  if (fieldType === 'Tx') return 'text'
-  if (fieldType === 'Ch') return 'dropdown'
-  if (fieldType === 'Sig') return 'signature'
-  if (fieldType !== 'Btn') return 'unknown'
-  if ((flags & (1 << 16)) !== 0) return 'button'
-  if ((flags & (1 << 15)) !== 0) return 'radio'
-  return 'checkbox'
-}
-
 export async function inspectAcroFormFields(
   template: BinaryContent,
   options: InspectOptions = {},
 ): Promise<PdfFieldInfo[]> {
   const model = await PdfModel.load(template)
-  const root = catalog(model)
-  const acroForm = model.dict(root?.entries.get('AcroForm'))
+  const root = catalogRecord(model)?.value
+  const acroForm = model.dict(isDict(root) ? root.entries.get('AcroForm') : undefined)
   const fields = model.resolve(acroForm?.entries.get('Fields'))
   if (!Array.isArray(fields)) return []
-  const pages = pageMap(model, root?.entries.get('Pages'))
+  const pages = new Map(documentPages(model).map(({ ref }, index) => [ref.object, index + 1]))
   const result: PdfFieldInfo[] = []
 
   const visit = (value: PdfValue, inherited: InheritedField = {}) => {
@@ -143,12 +93,7 @@ export async function inspectAcroFormFields(
     }
     const kids = model.resolve(field.entries.get('Kids'))
     const childFields = Array.isArray(kids)
-      ? kids.filter((kid) => {
-          const child = model.dict(kid)
-          const subtype = child?.entries.get('Subtype')
-          const isWidget = isName(subtype) && subtype.value === 'Widget'
-          return !isWidget || child?.entries.has('T') || child?.entries.has('FT') || child?.entries.has('Kids')
-        })
+      ? kids.filter((kid) => isChildField(model, kid))
       : []
     if (childFields.length > 0) {
       childFields.forEach((child) => visit(child, state))
@@ -157,7 +102,7 @@ export async function inspectAcroFormFields(
     if (!state.name) return
 
     const flags = state.flags ?? 0
-    const type = classify(state.fieldType, flags)
+    const type = classifyField(state.fieldType, flags)
     if (type === 'button' && !options.includeButton) return
     if (type === 'signature' && !options.includeSignature) return
     const rawValue = model.resolve(field.entries.get('V'))
