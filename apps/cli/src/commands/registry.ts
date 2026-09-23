@@ -11,6 +11,7 @@ import { parseArtifactRef, resolveRegistry } from '../utils/registry.js'
 import { findRepoRoot } from '../utils/project.js'
 import { trackRegistryAdd } from '../utils/telemetry.js'
 import { parseArtifactFile } from '../utils/artifact-file.js'
+import { collectHeader } from '../utils/cli-helpers.js'
 
 type ConfigTarget = 'global' | 'project'
 
@@ -58,7 +59,7 @@ export function createRegistryCommand(): Command {
     .command('add')
     .argument('<first>', 'Registry namespace (e.g., @acme) or URL')
     .argument('[second]', 'Registry base URL (required when first arg is a namespace)')
-    .option('--header <header>', 'Add HTTP header (format: "Name: Value")', collectHeaders, {})
+    .option('--header <header>', 'Add HTTP header (format: "Name: Value")', collectHeader, {})
     .option('--global', 'Save to global config (~/.paradoc/config.json)')
     .option('--project', 'Save to project config (paradoc.json)')
     .option('-y, --yes', 'Skip confirmation prompts (overwrites on conflict)')
@@ -1197,15 +1198,3 @@ export function createRegistryCommand(): Command {
   return registry
 }
 
-/**
- * Collect --header options into an object
- */
-function collectHeaders(value: string, previous: Record<string, string>): Record<string, string> {
-  const colonIndex = value.indexOf(':')
-  if (colonIndex === -1) {
-    throw new Error(`Invalid header format: ${value}. Expected "Name: Value"`)
-  }
-  const name = value.substring(0, colonIndex).trim()
-  const headerValue = value.substring(colonIndex + 1).trim()
-  return { ...previous, [name]: headerValue }
-}

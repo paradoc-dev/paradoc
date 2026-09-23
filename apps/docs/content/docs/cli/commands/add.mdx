@@ -26,7 +26,7 @@ paradoc add <targets...> [options]
 |--------|-------------|
 | `--layers <layers>` | Layers to download (comma-separated, or `"all"`) |
 | `--output <format>` | Output format: `json`, `yaml`, `typed` (json + .d.ts), or `ts` (TypeScript module). Default: `artifacts.output` in `paradoc.json`, then `defaults.output` in global config, then `json` |
-| `--header <header...>` | HTTP header for direct URL auth (format: `"Name: Value"`) |
+| `--header <header>` | HTTP header for direct URL auth (format: `"Name: Value"`). Can be used multiple times. A malformed header fails the command. |
 | `--cache-ttl <seconds>` | Cache TTL in seconds (`0` = no cache, default: use config) |
 | `--no-cache` | Skip cache and fetch fresh |
 | `--registry <url>` | Component registry URL template for `@paradoc` (must contain `{name}`) |

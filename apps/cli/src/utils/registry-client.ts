@@ -32,7 +32,11 @@ export type RegistryContentRef =
   | { kind: 'file'; path: string; mimeType: string; checksum?: string }
 
 /**
- * Registry item with full details (fetched from r/{name}.json)
+ * Registry item with full details (fetched from r/{name}.json).
+ *
+ * A registry serves the artifact itself, flat, as `paradoc registry build`
+ * writes it. `tags` and a file layer's `url` are registry metadata that the
+ * installed artifact does not carry.
  */
 export interface RegistryItem {
   $schema?: string
@@ -45,7 +49,6 @@ export interface RegistryItem {
   layers?: Record<string, RegistryLayerInfo>
   instructions?: RegistryContentRef
   agentInstructions?: RegistryContentRef
-  artifact: Record<string, unknown> // The actual artifact definition
 }
 
 /**
@@ -73,6 +76,8 @@ export interface RegistryInlineLayer extends RegistryLayerBase {
 export interface RegistryFileLayer extends RegistryLayerBase {
   kind: 'file'
   path: string
+  /** Download URL a registry may publish; registry metadata, never installed. */
+  url?: string
   /** Font a PDF layer draws with; downloaded beside the layer file. */
   font?: { path: string; checksum?: string }
 }

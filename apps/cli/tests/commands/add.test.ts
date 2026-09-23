@@ -199,6 +199,8 @@ describe('paradoc add (files the artifact references)', () => {
   let tempDir: string
   let server: Server
   let serve: Record<string, { status: number; type: string; body: Buffer }>
+  let connections: number
+  let registryUrl: string
 
   beforeEach(async () => {
     const w9 = JSON.parse(await fs.readFile(path.resolve(__dirname, '../../test-registry/r/w9.json'), 'utf-8'))
@@ -224,13 +226,16 @@ describe('paradoc add (files the artifact references)', () => {
       '/r/packet.pdf': { status: 200, type: 'application/pdf', body: layerBytes },
       '/r/packet-instructions.md': { status: 200, type: 'text/markdown', body: instructionsBytes },
     }
+    connections = 0
     server = createServer((req, res) => {
       const file = serve[new URL(req.url ?? '/', 'http://127.0.0.1').pathname]
       res.writeHead(file?.status ?? 404, { 'Content-Type': file?.type ?? 'application/json' })
       res.end(file?.body ?? '{}')
     })
+    server.on('connection', () => { connections++ })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     const { port } = server.address() as AddressInfo
+    registryUrl = `http://127.0.0.1:${port}`
 
     tempDir = await fs.mkdtemp(join(tmpdir(), 'paradoc-add-files-'))
     await executeCliCommand(['init', '--yes', '--name', 'test-project'], { cwd: tempDir })
@@ -302,6 +307,81 @@ describe('paradoc add (files the artifact references)', () => {
     expect(result.stderr).toContain('2 files failed to download or verify')
     expect(result.stderr).toContain('layer "pdf" (packet.pdf)')
     expect(result.stderr).toContain('instructions (packet-instructions.md)')
+  }, 30000)
+
+  const installedArtifact = async (): Promise<Record<string, unknown>> =>
+    JSON.parse(await fs.readFile(join(tempDir, 'artifacts/@fixture/packet.json'), 'utf-8')) as Record<string, unknown>
+
+  const servePacket = (item: Record<string, unknown>): void => {
+    serve['/r/packet.json']!.body = Buffer.from(JSON.stringify(item))
+  }
+
+  it('installs only the artifact, without the registry metadata the item carries', async () => {
+    const item = JSON.parse(serve['/r/packet.json']!.body.toString()) as Record<string, unknown> & { layers: { pdf: Record<string, unknown> } }
+    item.tags = ['tax']
+    item.layers.pdf.url = `${registryUrl}/r/packet.pdf`
+    servePacket(item)
+
+    const result = await executeCliCommand(['add', '@fixture/packet', '--output', 'json', '--layers', 'all', '--no-cache'], { cwd: tempDir })
+
+    expect(result.exitCode).toBe(0)
+    const installed = await installedArtifact()
+    expect(Object.keys(installed).sort()).toEqual(['$schema', 'fields', 'instructions', 'kind', 'layers', 'name', 'title', 'version'])
+    expect(installed.fields).toEqual({ name: { type: 'text', label: 'Name' } })
+    expect((installed.layers as { pdf: Record<string, unknown> }).pdf).not.toHaveProperty('url')
+    const validated = await executeCliCommand(['validate', 'artifacts/@fixture/packet.json'], { cwd: tempDir })
+    expect(validated.exitCode).toBe(0)
+  }, 30000)
+
+  it('fails and installs nothing when the item wraps its artifact in an envelope', async () => {
+    const { $schema, kind, name, version, title, ...definition } = JSON.parse(serve['/r/packet.json']!.body.toString()) as Record<string, unknown>
+    servePacket({ $schema, kind, name, version, title, artifact: { $schema, kind, name, version, title, ...definition } })
+
+    const result = await executeCliCommand(['add', '@fixture/packet', '--no-cache'], { cwd: tempDir })
+
+    expect(result.exitCode).not.toBe(0)
+    expect(result.stderr).toContain('@fixture/packet from the registry is not a valid artifact')
+    expect(result.stderr).toContain('Unrecognized key: "artifact"')
+    expect(result.stdout).not.toContain('Added')
+    expect(await exists('artifacts/@fixture/packet.json')).toBe(false)
+    expect(Object.keys(await lockedArtifacts())).not.toContain('@fixture/packet')
+  }, 30000)
+
+  // A direct URL must be https, which this plain server cannot answer, so these
+  // tests observe whether `add` opens a connection at all, not what it sends.
+  const directUrl = (): string => `${registryUrl.replace('http://', 'https://')}/r/packet.json`
+
+  it('goes on to contact the registry when every --header is well formed', async () => {
+    await executeCliCommand(['add', directUrl(), '--header', 'Authorization: Bearer abc', '--no-cache'], { cwd: tempDir })
+
+    expect(connections).toBeGreaterThan(0)
+  }, 30000)
+
+  it.each([
+    ['no colon', 'Authorization Bearer abc', 'Invalid header "Authorization Bearer abc": expected "Name: Value".'],
+    ['an empty name', ': Bearer abc', 'Invalid header ": Bearer abc": the header name is empty.'],
+    ['an empty value', 'Authorization: ', 'Invalid header "Authorization": the header value is empty.'],
+  ])('fails by name, without sending a request, on a --header with %s', async (_shape, header, message) => {
+    const result = await executeCliCommand(['add', directUrl(), '--header', header, '--no-cache'], { cwd: tempDir })
+
+    expect(result.exitCode).not.toBe(0)
+    expect(result.stderr).toContain(message)
+    expect(connections).toBe(0)
+    expect(await exists('artifacts/@fixture/packet.json')).toBe(false)
+  }, 30000)
+
+  it.each([
+    ['no colon', 'Authorization Bearer abc', 'Invalid header "Authorization Bearer abc": expected "Name: Value".'],
+    ['an empty name', ': Bearer abc', 'Invalid header ": Bearer abc": the header name is empty.'],
+    ['an empty value', 'Authorization: ', 'Invalid header "Authorization": the header value is empty.'],
+  ])('paradoc registry add fails by name on a --header with %s', async (_shape, header, message) => {
+    const result = await executeCliCommand(['registry', 'add', '@other', registryUrl, '--header', header, '--project', '--yes'], { cwd: tempDir })
+
+    expect(result.exitCode).not.toBe(0)
+    expect(result.stderr).toContain(message)
+    expect(connections).toBe(0)
+    const manifest = JSON.parse(await fs.readFile(join(tempDir, 'paradoc.json'), 'utf-8')) as { registries: Record<string, unknown> }
+    expect(manifest.registries).not.toHaveProperty('@other')
   }, 30000)
 })
 

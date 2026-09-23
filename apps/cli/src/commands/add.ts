@@ -3,19 +3,20 @@ import kleur from 'kleur'
 import YAML from 'yaml'
 import ora, { type Ora } from 'ora'
 import prompts from 'prompts'
-import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule } from '@paradoc/core'
+import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule, validate } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import type { AddOptions, OutputFormat, ArtifactKind, ResolvedRegistry, RegistryItemSummary } from '../types.js'
 import { parseArtifactArg, resolveRegistry, createRegistryFromUrl, buildArtifactItemUrl, parseNamespaceOnly } from '../utils/registry.js'
 import { addComponents, COMPONENT_ITEMS, COMPONENT_NAMESPACE, isComponentName } from './add-component.js'
-import { registryClient, RegistryFetchError } from '../utils/registry-client.js'
+import { registryClient, RegistryFetchError, type RegistryItem } from '../utils/registry-client.js'
 import { lockFileManager } from '../utils/lock.js'
 import { configManager } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
 import { sanitizePath, validateDownloadedArtifact, assertNotSymlink, SymlinkError } from '../utils/security.js'
 import { verifyChecksum } from '../utils/hash.js'
 import { trackInstall } from '../utils/telemetry.js'
+import { collectHeader } from '../utils/cli-helpers.js'
 import { join } from 'node:path'
 
 interface InstallArtifactOpts {
@@ -25,7 +26,7 @@ interface InstallArtifactOpts {
   artifactFull: string
   resolvedUrl?: string
   projectRoot: string
-  options: AddOptions & { header?: string[]; cache?: boolean }
+  options: AddOptions & { header: Record<string, string>; cache?: boolean }
   spinner: Ora
 }
 
@@ -41,6 +42,26 @@ interface FileFailure {
   label: string
   path: string
   cause: string
+}
+
+/**
+ * The artifact a registry item installs: the item without the registry
+ * metadata the artifact schema does not carry (search `tags` and each file
+ * layer's download `url`).
+ */
+function toInstalledArtifact(item: RegistryItem): Record<string, unknown> {
+  const { tags: _tags, ...rest } = item
+  const artifact: Record<string, unknown> = { ...rest }
+  if (item.layers) {
+    artifact.layers = Object.fromEntries(
+      Object.entries(item.layers).map(([key, layer]) => {
+        if (layer.kind !== 'file') return [key, layer]
+        const { url: _url, ...installed } = layer
+        return [key, installed]
+      }),
+    )
+  }
+  return artifact
 }
 
 /**
@@ -128,8 +149,22 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   const artifactsDir = configManager.getArtifactsDir()
   const namespaceDir = storage.joinPath(artifactsDir, artifactNamespace)
 
+  // Install only the artifact: registry metadata is dropped, and what remains
+  // must be a valid artifact, so an item in another shape (such as one that
+  // wraps its artifact in an `artifact` key) fails here with nothing written.
   // The installed file keeps the registry artifact's dated $schema.
-  const artifactContent: Record<string, unknown> = { ...registryItem }
+  const artifactContent = toInstalledArtifact(registryItem)
+  const artifactValidation = validate(artifactContent)
+  if (artifactValidation.issues) {
+    console.error()
+    console.error(kleur.red(`${artifactFull} from the registry is not a valid artifact:`))
+    for (const issue of artifactValidation.issues) {
+      const location = issue.path?.length ? issue.path.map(String).join('.') : 'root'
+      console.error(kleur.red(`  • ${location}: ${issue.message}`))
+    }
+    console.error(kleur.gray('Nothing was installed. Consider contacting the registry maintainer.'))
+    process.exit(1)
+  }
   const artifactKind = registryItem.kind as ArtifactKind
 
   // Determine primary file extension based on format
@@ -367,12 +402,12 @@ export function createAddCommand(): Command {
     .description('Add an artifact from a registry, or one or more document components from the Paradoc component registry')
     .option('--layers <layers>', 'Layers to download (comma-separated, or "all")')
     .option('--output <output>', 'Output format: json, yaml, typed (json + .d.ts), or ts (TypeScript module)')
-    .option('--header <header...>', 'HTTP header for direct URL auth (format: "Name: Value")')
+    .option('--header <header>', 'HTTP header for direct URL auth (format: "Name: Value"). Can be used multiple times.', collectHeader, {})
     .option('--cache-ttl <seconds>', 'Cache TTL in seconds (0 = no cache, default: use config)', parseInt)
     .option('--no-cache', 'Skip cache and fetch fresh')
     .option('--registry <url>', `Component registry URL template for ${COMPONENT_NAMESPACE} (must contain {name})`)
     .option('--dry-run', 'For a component, print the install command instead of running it')
-    .action(async (targets: string[], options: AddOptions & { header?: string[]; cache?: boolean; registry?: string; dryRun?: boolean }) => {
+    .action(async (targets: string[], options: AddOptions & { header: Record<string, string>; cache?: boolean; registry?: string; dryRun?: boolean }) => {
       const spinner = ora()
 
       try {
@@ -529,7 +564,7 @@ export function createAddCommand(): Command {
         let resolvedUrl: string | undefined
 
         if (parsedArg.type === 'url') {
-          const headers = collectHeaders(options.header)
+          const headers = Object.keys(options.header).length > 0 ? options.header : undefined
           registry = createRegistryFromUrl(parsedArg.baseUrl, parsedArg.namespace, headers)
           artifactName = parsedArg.name
           artifactNamespace = parsedArg.namespace
@@ -587,29 +622,3 @@ function toCamelCase(str: string): string {
   return str.replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase())
 }
 
-/**
- * Collect headers from command-line options
- * @param headerArgs - Array of "Name: Value" strings
- * @returns Record of headers or undefined if none
- */
-function collectHeaders(headerArgs?: string[]): Record<string, string> | undefined {
-  if (!headerArgs || headerArgs.length === 0) {
-    return undefined
-  }
-
-  const headers: Record<string, string> = {}
-  for (const header of headerArgs) {
-    const colonIndex = header.indexOf(':')
-    if (colonIndex === -1) {
-      console.warn(`Invalid header format (expected "Name: Value"): ${header}`)
-      continue
-    }
-    const name = header.substring(0, colonIndex).trim()
-    const value = header.substring(colonIndex + 1).trim()
-    if (name && value) {
-      headers[name] = value
-    }
-  }
-
-  return Object.keys(headers).length > 0 ? headers : undefined
-}
