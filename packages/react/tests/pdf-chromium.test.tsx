@@ -245,6 +245,21 @@ describe.skipIf(skipped)("the Chromium adapter", () => {
     expect(unknownRepeats).toEqual(["line-items:missing-header"]);
     expect(pages.length).toBeGreaterThan(1);
   }, 120_000);
+
+  it("prints the same bytes for the same document across a second boundary", async () => {
+    const element = <ProposalDocument data={shortProposalData} />;
+    const first = await renderPdf(element, { adapter: "chromium", images: [logo] });
+    // Skia stamps the print time to the second, so the second render starts
+    // in a later second than the first one finished in.
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    const second = await renderPdf(element, { adapter: "chromium", images: [logo] });
+
+    const text = Buffer.from(second.bytes).toString("latin1");
+    expect(text).not.toMatch(/\/(?:CreationDate|ModDate)/u);
+    expect(Buffer.from(second.bytes).equals(Buffer.from(first.bytes))).toBe(true);
+    // Blanking moved no byte, so the file still opens as the document it was.
+    expect((await readPdf(second.bytes))[0]!.text).toContain("Services Proposal");
+  }, 120_000);
 });
 
 describe("renderPdf without an adapter", () => {

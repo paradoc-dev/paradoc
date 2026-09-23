@@ -66,6 +66,7 @@ import {
   STAMP_LAYER_ATTRIBUTE,
   type BandInput,
 } from "./chromium-furniture";
+import { withoutPrintDates } from "./chromium-dates";
 import { chromiumStylesheets, cssPixelsToInches } from "./chromium-stylesheet";
 
 /**
@@ -465,7 +466,9 @@ export const chromiumAdapter: PdfAdapter = {
       });
 
       return {
-        bytes: new Uint8Array(bytes),
+        // Skia stamps the print time into the file; without it the bytes are a
+        // function of the document alone. See `chromium-dates.ts`.
+        bytes: withoutPrintDates(new Uint8Array(bytes)),
         unknownBreaks: outcome.unknownBreaks,
         unknownRepeats: outcome.unknownRepeats,
       };
