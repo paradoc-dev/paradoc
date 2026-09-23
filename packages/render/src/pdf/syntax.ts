@@ -46,6 +46,7 @@ class Parser {
     const entries = new Map<string, PdfValue>()
     while (true) {
       this.skip()
+      this.assertNotAtEnd()
       if (this.source.startsWith('>>', this.position)) {
         this.position += 2
         return { kind: 'dict', entries }
@@ -60,6 +61,7 @@ class Parser {
     const values: PdfValue[] = []
     while (true) {
       this.skip()
+      this.assertNotAtEnd()
       if (this.source[this.position] === ']') {
         this.position++
         return values
@@ -142,6 +144,10 @@ class Parser {
     const value = Number(this.source.slice(start, this.position))
     if (!Number.isFinite(value)) throw new Error(`Invalid PDF number at byte ${start}`)
     return value
+  }
+
+  private assertNotAtEnd(): void {
+    if (this.position >= this.source.length) throw new Error('Unexpected end of PDF data')
   }
 
   private skip(): void {

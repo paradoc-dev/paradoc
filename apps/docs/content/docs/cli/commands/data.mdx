@@ -2,7 +2,7 @@
 title: data
 description: Data operations for artifacts
 ogTitle: paradoc data
-ogDescription: Generate templates and fill forms with data
+ogDescription: Generate templates, fill forms with data, and extract data from filled PDFs
 ---
 
 Data operations for Paradoc artifacts.
@@ -20,6 +20,7 @@ paradoc data <command> [options]
 | `template` | Generate an instance template from a form |
 | `fill` | Fill form data interactively or from a data payload |
 | `validate` | Validate instance data against a form artifact |
+| `extract` | Extract form data from filled PDF forms |
 
 ---
 
@@ -168,7 +169,54 @@ Validate data from stdin and print a JSON result:
 cat data.json | paradoc data validate my-form.yaml - --json
 ```
 
+---
+
+## data extract
+
+Read filled PDF forms back into form data through the form's PDF layer bindings, and write the data and a report for each field as JSON. It reads fillable (AcroForm) fields only; flattened and scanned PDFs need the hosted Paradoc extraction service. The result is the same as the SDK's [`form.extract()`](/sdk/artifacts/form#extracting-data-from-a-filled-pdf).
+
+```bash
+paradoc data extract <form-file> <pdf> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `form-file` | Form artifact file (JSON/YAML) |
+| `pdf` | A filled PDF, or a directory of filled PDFs |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--layer <key>` | PDF layer to read against. Required when the form has more than one PDF layer. |
+| `--out <file>` | Write the JSON to a file instead of stdout |
+
+### Output
+
+For one PDF, the output is `{ file, layer, data, report }`. `data` holds only the values read back exactly, as a `{ fields, parties }` payload you can pass to [`data validate`](#data-validate) or [`data fill`](#data-fill). `report.entries` has one entry for each binding target, with a `status` of `recovered`, `empty`, `not_recoverable`, or `unparseable` and the raw PDF values. `report.unbound` lists PDF fields that hold a value no binding covers.
+
+For a directory, the output is `{ results: [...] }` with one result for each `.pdf` file in name order. A file that cannot be read has `{ file, error: { code, message } }` in place of the data.
+
+The command exits with code 1 when a PDF cannot be read: for example, `no_form_fields` for a PDF with no fields, `encrypted_pdf`, `not_matching` when the PDF is not this form, or `layer_required` when the form has several PDF layers and `--layer` is not set.
+
+### Examples
+
+Extract one PDF:
+
+```bash
+paradoc data extract w-9.yaml completed-w9.pdf
+```
+
+Extract a directory of filled copies against one layer and save the result:
+
+```bash
+paradoc data extract 1099-nec.yaml ./filled --layer pdfCopyB --out extracted.json
+```
+
 ## See also
 
 - [new](/cli/commands/new) - Create new form artifacts
 - [render](/cli/commands/render) - Render forms with data
+- [inspect](/cli/commands/inspect) - List the raw AcroForm fields of a PDF

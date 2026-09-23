@@ -2,6 +2,7 @@ import { Command } from 'commander'
 import { createTemplateCommand } from './template.js'
 import { createValidateCommand } from './validate.js'
 import { createFillCommand } from './fill.js'
+import { createExtractCommand } from './extract.js'
 
 /**
  * Create the 'data' command group
@@ -16,6 +17,7 @@ export function createDataCommand(): Command {
 	dataCmd.addCommand(createTemplateCommand())
 	dataCmd.addCommand(createValidateCommand())
 	dataCmd.addCommand(createFillCommand())
+	dataCmd.addCommand(createExtractCommand())
 
 	return dataCmd
 }

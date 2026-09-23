@@ -34,7 +34,7 @@ const result = await chat({
 
 ## Composing with other tools
 
-`paradocTools()` returns a readonly array of nine server tools. Spread it into the array you pass to `chat()`:
+`paradocTools()` returns a readonly array of ten server tools. Spread it into the array you pass to `chat()`:
 
 ```typescript
 import { toolDefinition } from "@tanstack/ai"
@@ -60,7 +60,7 @@ const tools = [validateArtifact(), render()]
 
 ## Definitions without execution
 
-`paradocToolDefinitions()` returns the nine tool definitions with their names and schemas but no server execution. Use it when a client needs the tool metadata, then instantiate each definition with TanStack AI's `.client()` or `.server()` where execution belongs:
+`paradocToolDefinitions()` returns the ten tool definitions with their names and schemas but no server execution. Use it when a client needs the tool metadata, then instantiate each definition with TanStack AI's `.client()` or `.server()` where execution belongs:
 
 ```typescript
 import { paradocToolDefinitions } from "@paradoc/tanstack-ai"
@@ -78,7 +78,7 @@ Each tool also has a definition function, such as `renderDefinition()`.
 
 ### `paradocTools(config?)`
 
-Returns a `ParadocToolSet`: a readonly array of nine server tools in this order.
+Returns a `ParadocToolSet`: a readonly array of ten server tools in this order.
 
 | Tool name | Server factory | Definition | Subpath |
 |-----------|----------------|------------|---------|
@@ -91,6 +91,7 @@ Returns a `ParadocToolSet`: a readonly array of nine server tools in this order.
 | [`get_fill_state`](/ai/tools/get-fill-state) | `getFillState()` | `getFillStateDefinition()` | `@paradoc/tanstack-ai/get-fill-state` |
 | [`update_fill`](/ai/tools/update-fill) | `updateFill()` | `updateFillDefinition()` | `@paradoc/tanstack-ai/update-fill` |
 | [`render`](/ai/tools/render) | `render()` | `renderDefinition()` | `@paradoc/tanstack-ai/render` |
+| [`extract`](/ai/tools/extract) | `extract()` | `extractDefinition()` | `@paradoc/tanstack-ai/extract` |
 
 Each subpath default-exports its server factory and also exports the factory and definition function by name. The package root also exports `operationNames`.
 
@@ -109,6 +110,7 @@ import type {
   FillStateOutput,
   UpdateFillOutput,
   RenderOutput,
+  ExtractOutput,
 } from "@paradoc/tanstack-ai"
 ```
 

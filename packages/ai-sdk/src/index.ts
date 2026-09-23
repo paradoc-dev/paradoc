@@ -3,6 +3,8 @@ import {
 	createToolExecutionContext,
 	operationNames,
 	toolDefinitions,
+	type ExtractInput,
+	type ExtractOutput,
 	type FillInput,
 	type FillOutput,
 	type FillStateInput,
@@ -28,6 +30,8 @@ import {
 
 export type { ParadocToolsConfig }
 export type {
+	ExtractInput,
+	ExtractOutput,
 	FillInput,
 	FillOutput,
 	FillStateInput,
@@ -58,6 +62,7 @@ type OperationInputs = {
 	get_fill_state: FillStateInput
 	update_fill: UpdateFillInput
 	render: RenderInput
+	extract: ExtractInput
 }
 
 type OperationOutputs = {
@@ -70,6 +75,7 @@ type OperationOutputs = {
 	get_fill_state: FillStateOutput
 	update_fill: UpdateFillOutput
 	render: RenderOutput
+	extract: ExtractOutput
 }
 
 type OperationInput<Name extends OperationName> = OperationInputs[Name]
@@ -185,8 +191,13 @@ export function render(config?: ParadocToolsConfig): ParadocTool<'render'> {
 	return createTool('render', config)
 }
 
+/** Create the filled-PDF extraction tool. */
+export function extract(config?: ParadocToolsConfig): ParadocTool<'extract'> {
+	return createTool('extract', config)
+}
+
 /**
- * Return all nine native AI SDK tools, keyed by their canonical model-facing
+ * Return all ten native AI SDK tools, keyed by their canonical model-facing
  * snake_case names.
  */
 export function paradocTools(config?: ParadocToolsConfig): ParadocToolSet {
@@ -200,6 +211,7 @@ export function paradocTools(config?: ParadocToolsConfig): ParadocToolSet {
 		get_fill_state: getFillState(config),
 		update_fill: updateFill(config),
 		render: render(config),
+		extract: extract(config),
 	}
 }
 

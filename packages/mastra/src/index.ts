@@ -7,6 +7,8 @@ import {
 import type { ZodType } from 'zod'
 
 export type {
+	ExtractInput,
+	ExtractOutput,
 	FillInput,
 	FillOutput,
 	FillStateInput,
@@ -151,7 +153,11 @@ export function createRenderTool(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.render, config)
 }
 
-/** Create all nine shared Paradoc operations with their canonical snake_case IDs. */
+export function createExtractTool(config?: ParadocMastraConfig) {
+	return createMastraTool(toolDefinitions.extract, config)
+}
+
+/** Create all ten shared Paradoc operations with their canonical snake_case IDs. */
 export function paradocTools(config?: ParadocMastraConfig) {
 	return {
 		get_registry: createGetRegistryTool(config),
@@ -163,6 +169,7 @@ export function paradocTools(config?: ParadocMastraConfig) {
 		get_fill_state: createGetFillStateTool(config),
 		update_fill: createUpdateFillTool(config),
 		render: createRenderTool(config),
+		extract: createExtractTool(config),
 	} as const
 }
 

@@ -57,7 +57,7 @@ Topic refs are surface-agnostic — they describe the underlying concept and con
 | Annexes — file attachments | [references/annexes.md](./references/annexes.md) |
 | Logic — CondExpr, defs, rules | [references/logic.md](./references/logic.md) |
 | Layers — templates, MIME types, signature blocks, template syntax | [references/layers.md](./references/layers.md) |
-| PDF AcroForm bindings, signature block coordinates | [references/pdf-bindings.md](./references/pdf-bindings.md) |
+| PDF AcroForm bindings, signature block coordinates, reading filled PDFs back | [references/pdf-bindings.md](./references/pdf-bindings.md) |
 | Rendering — text, PDF, DOCX, resolvers | [references/rendering.md](./references/rendering.md) |
 | Formatting — locale-aware presentation of artifact values | [references/formatting.md](./references/formatting.md) |
 | Instructions / agentInstructions — ContentRef | [references/instructions.md](./references/instructions.md) |

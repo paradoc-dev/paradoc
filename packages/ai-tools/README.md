@@ -139,6 +139,7 @@ The configured default is used only when an operation omits `registry_url`; an e
 | `get_fill_state` | A source plus draft data | Progress, open targets, rules, and next target | Source dependent |
 | `update_fill` | A source plus draft, patch, clear/reset paths | Lossless reusable draft payload | Source dependent |
 | `render` | A source plus optional data and layer | Text or base64 result with byte length | Source dependent |
+| `extract` | A source plus a filled PDF (`pdf` base64 or `pdf_url`) and optional layer | `{layer, data, report}` read back from the PDF's form fields | Source dependent |
 
 The public operation names and schemas are available from `toolDefinitions`. Wire fields use `snake_case`; artifact JSON keeps its own field names. Form and checklist fill output keeps the accepted payload shape (`fields`, `parties`, `annexes`, and supported signer data), so it can be passed directly to `update_fill` or `render`. `accepted` means supplied values were accepted; `complete` reports whether the draft is ready according to the artifact's rules.
 

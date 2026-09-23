@@ -9,6 +9,8 @@ import {
 	createToolExecutionContext,
 	operationNames,
 	toolDefinitions,
+	type ExtractInput,
+	type ExtractOutput,
 	type FillInput,
 	type FillOutput,
 	type FillStateInput,
@@ -34,6 +36,8 @@ import {
 
 export type { ParadocToolsConfig }
 export type {
+	ExtractInput,
+	ExtractOutput,
 	FillInput,
 	FillOutput,
 	FillStateInput,
@@ -66,6 +70,7 @@ type OperationInputs = {
 	get_fill_state: FillStateInput
 	update_fill: UpdateFillInput
 	render: RenderInput
+	extract: ExtractInput
 }
 
 type OperationOutputs = {
@@ -78,6 +83,7 @@ type OperationOutputs = {
 	get_fill_state: FillStateOutput
 	update_fill: UpdateFillOutput
 	render: RenderOutput
+	extract: ExtractOutput
 }
 
 type OperationInput<Name extends OperationName> = OperationInputs[Name]
@@ -109,6 +115,7 @@ export type ParadocToolDefinitions = readonly [
 	ParadocToolDefinition<'get_fill_state'>,
 	ParadocToolDefinition<'update_fill'>,
 	ParadocToolDefinition<'render'>,
+	ParadocToolDefinition<'extract'>,
 ]
 
 export type ParadocToolSet = readonly [
@@ -121,6 +128,7 @@ export type ParadocToolSet = readonly [
 	ParadocServerTool<'get_fill_state'>,
 	ParadocServerTool<'update_fill'>,
 	ParadocServerTool<'render'>,
+	ParadocServerTool<'extract'>,
 ]
 
 function mergeAbortSignals(...signals: Array<AbortSignal | undefined>): AbortSignal | undefined {
@@ -179,6 +187,7 @@ const definitions = {
 	get_fill_state: definitionFor('get_fill_state'),
 	update_fill: definitionFor('update_fill'),
 	render: definitionFor('render'),
+	extract: definitionFor('extract'),
 } satisfies { [Name in OperationName]: ParadocToolDefinition<Name> }
 
 function createTool<Name extends OperationName>(name: Name, config?: ParadocToolsConfig): ParadocServerTool<Name> {
@@ -205,6 +214,7 @@ export function paradocToolDefinitions(): ParadocToolDefinitions {
 		definitions.get_fill_state,
 		definitions.update_fill,
 		definitions.render,
+		definitions.extract,
 	]
 }
 
@@ -298,7 +308,17 @@ export function renderDefinition(): ParadocToolDefinition<'render'> {
 	return definitions.render
 }
 
-/** Create all nine native TanStack AI server tools for `chat({ tools })`. */
+/** Create the filled-PDF extraction tool. */
+export function extract(config?: ParadocToolsConfig): ParadocServerTool<'extract'> {
+	return createTool('extract', config)
+}
+
+/** Return the filled-PDF extraction definition without server execution context. */
+export function extractDefinition(): ParadocToolDefinition<'extract'> {
+	return definitions.extract
+}
+
+/** Create all ten native TanStack AI server tools for `chat({ tools })`. */
 export function paradocTools(config?: ParadocToolsConfig): ParadocToolSet {
 	return [
 		getRegistry(config),
@@ -310,6 +330,7 @@ export function paradocTools(config?: ParadocToolsConfig): ParadocToolSet {
 		getFillState(config),
 		updateFill(config),
 		render(config),
+		extract(config),
 	]
 }
 

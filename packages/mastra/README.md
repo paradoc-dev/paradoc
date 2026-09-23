@@ -46,6 +46,7 @@ tools.fill;
 tools.get_fill_state;
 tools.update_fill;
 tools.render;
+tools.extract;
 ```
 
 Each operation is also available through an individual factory, such as `createRenderTool()` or `createUpdateFillTool()`. The factories pass the shared Zod input and output schemas directly to Mastra, and the tool IDs and descriptions remain aligned with the neutral contract.

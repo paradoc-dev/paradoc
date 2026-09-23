@@ -491,6 +491,16 @@ paradoc data validate my-form.json payload.json --json
 paradoc data validate my-form.json payload.json --silent
 ```
 
+### Extracting data from filled PDFs
+
+```bash
+paradoc data extract my-form.json completed.pdf                      # JSON to stdout
+paradoc data extract my-form.json ./filled --out extracted.json      # Every .pdf in a directory
+paradoc data extract 1099-nec.json completed.pdf --layer pdfCopyB    # Form with several PDF layers
+```
+
+Reads AcroForm field values back through the PDF layer's bindings. Output per PDF is `{ file, layer, data, report }`: `data` is a `{ fields, parties }` payload holding only exact reversals; `report.entries` gives each binding target a status (`recovered`, `empty`, `not_recoverable`, `unparseable`) with the raw PDF values; `report.unbound` lists filled PDF fields no binding covers. A directory gives `{ results: [...] }`, with `{ file, error: { code, message } }` for a PDF that fails, and exits 1. ALWAYS run `data validate` on the extracted `data`: extraction does not validate. Flattened or scanned PDFs (`no_form_fields`) need the hosted extraction service.
+
 ### Typical data workflow
 
 1. `paradoc data template form.json --out payload.json` — empty template

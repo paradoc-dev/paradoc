@@ -1,6 +1,7 @@
 import { generateText, InvalidToolInputError, stepCountIs, type LanguageModel } from 'ai'
 import { describe, expect, it } from 'vitest'
 import {
+	extract,
 	fill,
 	getArtifact,
 	getFillState,
@@ -12,7 +13,7 @@ import {
 	validateArtifact,
 	validateInput,
 } from '../src/index'
-import { operationNames, toolDefinitions } from '@paradoc/ai-tools'
+import { executeExtract, operationNames, toolDefinitions } from '@paradoc/ai-tools'
 
 const executionOptions = {
 	toolCallId: 'test-call',
@@ -35,8 +36,31 @@ const formArtifact = {
 	fields: { name: { type: 'text', label: 'Name', required: true } },
 }
 
+/** A one-field AcroForm PDF whose field already holds a value, and the form that binds it. */
+const filledPdf = [
+	'%PDF-1.4',
+	'1 0 obj << /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R >> endobj',
+	'2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+	'3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [5 0 R] >> endobj',
+	'4 0 obj << /Fields [5 0 R] >> endobj',
+	'5 0 obj << /FT /Tx /T (applicant) /Subtype /Widget /Rect [10 10 190 30] /P 3 0 R /V (Ada Lovelace) >> endobj',
+	'trailer << /Root 1 0 R >>',
+	'%%EOF',
+	'',
+].join('\n')
+const extractInput = {
+	source: 'artifact' as const,
+	artifact: {
+		kind: 'form',
+		name: 'intake',
+		fields: { name: { type: 'text', label: 'Name', required: true } },
+		layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'intake.pdf', bindings: { applicant: 'name' } } },
+	},
+	pdf: btoa(filledPdf),
+}
+
 describe('AI SDK 7 Paradoc tools', () => {
-	it('returns the nine canonical tools under their model-facing names', () => {
+	it('returns the ten canonical tools under their model-facing names', () => {
 		const tools = paradocTools()
 
 		expect(Object.keys(tools)).toEqual(operationNames)
@@ -59,12 +83,20 @@ describe('AI SDK 7 Paradoc tools', () => {
 			get_fill_state: getFillState(),
 			update_fill: updateFill(),
 			render: render(),
+			extract: extract(),
 		}
 
 		expect(Object.keys(tools)).toEqual(operationNames)
 		for (const [name, tool] of Object.entries(tools)) {
 			expect(tool, `${name} should expose the AI SDK execute callback`).toHaveProperty('execute')
 		}
+	})
+
+	it('reads a filled PDF through the extract tool with the shared result', async () => {
+		const result = await resolveToolResult(paradocTools().extract.execute(extractInput, executionOptions))
+
+		expect(result).toMatchObject({ success: true, layer: 'pdf', data: { fields: { name: 'Ada Lovelace' } } })
+		expect(result).toEqual(await executeExtract(extractInput))
 	})
 
 	it('uses canonical snake_case input without a second adapter parse', async () => {

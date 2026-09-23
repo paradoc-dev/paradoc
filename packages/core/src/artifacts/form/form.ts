@@ -44,6 +44,8 @@ import type {
 import { renderLayer as createRenderer } from '@paradoc/render'
 import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
 import { encode as encodeMarker } from '@paradoc/render/pdf'
+import { extractPdfData, selectPdfExtractionLayer } from '@paradoc/render/pdf'
+import type { PdfExtraction } from '@paradoc/render/pdf'
 import type { TextSignatureOptions } from '@paradoc/render/text'
 import { SealConfigError, buildSlotPlan, compileLegacySignatureSlots, hasSignatureSlots } from './seal-slots'
 import type { PlacementProvenance, SealPreparation } from './seal-slots'
@@ -729,6 +731,27 @@ export type SafeFillResult<F extends Form> =
 /**
  * FormInstance - design-time wrapper for Form artifacts
  */
+/** Options for {@link FormInstance.extract}. */
+export interface ExtractOptions {
+	/** The PDF layer to read against. Required when the form has more than one PDF layer. */
+	layer?: string
+	/** The formatter the PDF was filled with. Defaults to the default formatter. */
+	formatter?: Formatter
+}
+
+/**
+ * Data read back from a filled PDF, with a per-field report.
+ *
+ * `data` holds only values recovered exactly, in the fill payload shape; pass
+ * it to `fill` or `safeFill` to apply validation and fill state. `report` has
+ * one entry per binding target and lists PDF fields with values no binding
+ * covers.
+ */
+export interface FormExtraction extends PdfExtraction {
+	/** The PDF layer the PDF was read against. */
+	layer: string
+}
+
 export interface FormInstance<F extends Form> extends ArtifactMethods<F> {
 	/** Form defs section */
 	readonly defs: F extends { defs: infer L } ? L : DefsSection | undefined
@@ -809,6 +832,13 @@ export interface FormInstance<F extends Form> extends ArtifactMethods<F> {
 	 * Render form content directly.
 	 */
 	render<Output = string | Uint8Array>(options?: RenderOptions<Output>): Promise<Output>
+
+	/**
+	 * Read a filled PDF back into form data through a PDF layer's bindings.
+	 * Reads AcroForm field values only; the PDF is not modified.
+	 * @throws PdfExtractionError when the PDF or the layer choice cannot be read
+	 */
+	extract(pdf: Uint8Array, options?: ExtractOptions): Promise<FormExtraction>
 
 	/**
 	 * Create an exact copy of this instance.
@@ -3285,6 +3315,13 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				bindings,
 				ctx: formatter || progressive ? { formatter, progressive } : undefined,
 			}) as Output
+		},
+
+		async extract(pdf: Uint8Array, extractOptions: ExtractOptions = {}): Promise<FormExtraction> {
+			assertValidArtifactDefinition(formDef)
+			const { key, bindings } = selectPdfExtractionLayer(formDef.layers, extractOptions.layer)
+			const result = await extractPdfData({ pdf, form: formDef, bindings, formatter: extractOptions.formatter })
+			return { layer: key, ...result }
 		},
 
 		clone(): FormInstance<F> {

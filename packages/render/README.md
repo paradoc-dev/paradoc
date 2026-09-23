@@ -96,6 +96,17 @@ Past that, or with more characters than a comb field has boxes, the render throw
 `PdfFieldFillError` with the field name, the `reason` (`overflow` or
 `comb-length`), and the `limit`.
 
+## Reading filled forms back
+
+`extractPdfData()` reads a filled PDF's AcroForm fields back through a layer's
+bindings into artifact data, with a report for each binding target. Combined
+bindings are reported as not recoverable rather than split. Most callers use
+`form.extract()` from `@paradoc/core`, which also chooses the PDF layer.
+
+```ts
+const { data, report } = await extractPdfData({ pdf: filled, form, bindings })
+```
+
 ## Merging PDFs
 
 `mergePdfs()` concatenates PDFs into one document, keeping every page in the

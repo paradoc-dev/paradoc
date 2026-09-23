@@ -12,7 +12,7 @@ npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 zod
 
 ## Native server tools
 
-`paradocTools()` returns a readonly nine-tool tuple that can be passed directly to TanStack AI's `chat` activity:
+`paradocTools()` returns a readonly ten-tool tuple that can be passed directly to TanStack AI's `chat` activity:
 
 ```typescript
 import { chat } from "@tanstack/ai";
@@ -42,6 +42,7 @@ The collection contains these canonical wire names:
 | `get_fill_state` | Inspect draft progress and the next target |
 | `update_fill` | Merge, clear, or reset a draft |
 | `render` | Render a form, document, or checklist |
+| `extract` | Read a filled PDF form back into form data |
 
 Each tool uses the shared Zod input and output schemas. TanStack AI validates tool input before calling the server function and validates output through `outputSchema`, so application code retains the inferred result type.
 

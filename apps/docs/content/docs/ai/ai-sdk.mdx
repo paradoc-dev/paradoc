@@ -110,7 +110,7 @@ const tools = paradocTools({ maxOutputBytes: 200_000 })
 
 ### `paradocTools(config?)`
 
-Returns a `ParadocToolSet`: nine AI SDK tools keyed by their snake_case names. Each tool uses the shared Zod input and output schemas.
+Returns a `ParadocToolSet`: ten AI SDK tools keyed by their snake_case names. Each tool uses the shared Zod input and output schemas.
 
 | Key | Factory | Subpath |
 |-----|---------|---------|
@@ -123,8 +123,9 @@ Returns a `ParadocToolSet`: nine AI SDK tools keyed by their snake_case names. E
 | [`get_fill_state`](/ai/tools/get-fill-state) | `getFillState()` | `@paradoc/ai-sdk/get-fill-state` |
 | [`update_fill`](/ai/tools/update-fill) | `updateFill()` | `@paradoc/ai-sdk/update-fill` |
 | [`render`](/ai/tools/render) | `render()` | `@paradoc/ai-sdk/render` |
+| [`extract`](/ai/tools/extract) | `extract()` | `@paradoc/ai-sdk/extract` |
 
-Each subpath default-exports its factory and also exports it by name. The package root also exports `operationNames`, the list of the nine tool names.
+Each subpath default-exports its factory and also exports it by name. The package root also exports `operationNames`, the list of the ten tool names.
 
 ### Types
 
@@ -151,6 +152,8 @@ import type {
   UpdateFillOutput,
   RenderInput,
   RenderOutput,
+  ExtractInput,
+  ExtractOutput,
 } from "@paradoc/ai-sdk"
 ```
 

@@ -244,6 +244,21 @@ wrapping. The SSN parts land one digit per box. A value too long for its field f
 `PdfFieldFillError`, naming the field, rather than being clipped. See
 [Field appearance](/sdk/renderers/pdf#field-appearance).
 </Step>
+
+<Step>
+## Read a Filled PDF Back
+
+The same bindings work in reverse. Given a completed W-9, `extract` returns the form data and a report for each field:
+
+```ts
+import { readFileSync } from 'node:fs'
+
+const { data, report } = await w9Form.extract(readFileSync('output/w9-filled.pdf'))
+const draft = w9Form.safeFill(data)
+```
+
+The combined city, state, and ZIP code box cannot be split back into its parts, so the report marks those fields `not_recoverable` and `data` leaves them out. See [Extracting data from a filled PDF](/sdk/artifacts/form#extracting-data-from-a-filled-pdf).
+</Step>
 </Steps>
 
 You've now created a form that fills an existing PDF template using field bindings. The binding syntax handles common patterns like checkboxes for enum values, split fields for formatted data like SSN/EIN, and combined fields for address components.

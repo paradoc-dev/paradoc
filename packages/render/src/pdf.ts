@@ -37,3 +37,15 @@ export { pageTextRuns } from './pdf/extract'
 export type { TextRun } from './pdf/scanner'
 export { LocateError, locate, locator } from './pdf/locate'
 export type { LocateHit, LocateQuery } from './pdf/locate'
+export { PdfExtractionError, extractPdfData, selectPdfExtractionLayer } from './pdf/read-form'
+export type {
+	ExtractPdfDataOptions,
+	PdfExtractedData,
+	PdfExtraction,
+	PdfExtractionEntry,
+	PdfExtractionErrorCode,
+	PdfExtractionReport,
+	PdfExtractionSource,
+	PdfExtractionStatus,
+	PdfUnboundField,
+} from './pdf/read-form'

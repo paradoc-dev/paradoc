@@ -180,6 +180,23 @@ async function inspectAcroFormFields(
   { name: 'maxLen', type: 'number | null', description: 'Maximum text length, when the field declares one', isOptional: true },
 ]} />
 
+### extractPdfData()
+
+Reads a filled PDF back into artifact data through a layer's bindings. [`form.extract()`](/sdk/artifacts/form#extracting-data-from-a-filled-pdf) calls it after choosing the layer with `selectPdfExtractionLayer(layers, name?)`.
+
+```ts
+async function extractPdfData(options: ExtractPdfDataOptions): Promise<PdfExtraction>
+```
+
+<PropertiesTable properties={[
+  { name: 'pdf', type: 'Uint8Array', description: 'The filled PDF. It is read, never changed.' },
+  { name: 'form', type: 'Form', description: 'The artifact whose layer produced the PDF' },
+  { name: 'bindings', type: 'Record<string, string>', description: 'The PDF layer bindings' },
+  { name: 'formatter', type: 'Formatter', description: 'The formatter the PDF was filled with. Defaults to en-US.', isOptional: true },
+]} />
+
+Returns `{ data, report }`. Failures throw `PdfExtractionError` with a `code`.
+
 ## Inspecting PDF Fields
 
 Use `inspectAcroFormFields()` to discover field names in a PDF template:
@@ -283,6 +300,10 @@ bindings: {
   'buyer_name': 'parties.buyer.name'
 }
 ```
+
+### Reading bindings back
+
+[Extraction](/sdk/artifacts/form#extracting-data-from-a-filled-pdf) reverses simple, nested, enum checkbox, and split bindings exactly. A combined binding cannot be split back, so its fields are reported as not recoverable.
 
 ## Automatic Serialization
 

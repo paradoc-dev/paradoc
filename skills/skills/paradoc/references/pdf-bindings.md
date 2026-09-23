@@ -199,9 +199,25 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
 }
 ```
 
+## Reading Filled PDFs Back
+
+`form.extract(pdf)`, `paradoc data extract`, and the AI tool `extract` run the bindings in reverse. Binding shape decides what comes back:
+
+| Binding | Example | Extraction |
+|---------|---------|------------|
+| Direct or nested | `"parties.taxpayer.name"`, `"address.line1"` | Recovered; text is parsed into the field's type |
+| Enum checkbox map | `"taxClassification:llc"` | Recovered from the one checked box; two checked is `unparseable` |
+| Radio group or dropdown | `"species"` | Recovered from the selected export value |
+| Split | `"ssn:1"`, `"ssn:2"`, `"ssn:3"` | Recovered by joining the parts in order with `-` |
+| Combined | `"locality,region,postalCode"` | `not_recoverable`; the raw text is in the report and the fields stay empty |
+| Whole structured value in one box | `"mailingAddress"` | `not_recoverable`; bind the parts instead |
+
+When a value must be readable back, bind each part to its own PDF field rather than combining them. A money value in one box needs its currency symbol to be read back; bind `amount` alone when the box holds a bare number.
+
 ## See Also
 
 - [layers.md](./layers.md) — generic layer concepts, signature block schema
 - [rendering.md](./rendering.md) — `renderPdf`, `inspectAcroFormFields`, `paradoc inspect`
 - [parties.md](./parties.md) — party roles for signature blocks
-- [cli.md](./cli.md) — `paradoc inspect`, `paradoc render --layer pdf`
+- [cli.md](./cli.md) — `paradoc inspect`, `paradoc render --layer pdf`, `paradoc data extract`
+- [sdk.md](./sdk.md) — `form.extract()` and its report

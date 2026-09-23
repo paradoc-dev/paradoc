@@ -10,7 +10,8 @@
     "fill",
     "get-fill-state",
     "update-fill",
-    "render"
+    "render",
+    "extract"
   ],
   "defaultOpen": false
 }

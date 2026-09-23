@@ -1,14 +1,16 @@
 import { paradocTools } from '../src/index'
 import type { InferToolOutput } from 'ai'
-import type { RenderOutput, ValidateArtifactOutput } from '../src/index'
+import type { ExtractOutput, RenderOutput, ValidateArtifactOutput } from '../src/index'
 
 const tools = paradocTools()
 
 type ValidateResult = InferToolOutput<typeof tools.validate_artifact>
 type RenderResult = InferToolOutput<typeof tools.render>
+type ExtractResult = InferToolOutput<typeof tools.extract>
 
 const validateOutput: ValidateArtifactOutput = {} as ValidateResult
 const renderOutput: RenderOutput = {} as RenderResult
+const extractOutput: ExtractOutput = {} as ExtractResult
 
 // These assignments are intentional compile-time guards for the published
 // result types. A result must not grow an untyped catch-all property.
@@ -16,6 +18,9 @@ const renderOutput: RenderOutput = {} as RenderResult
 const invalidValidateField = validateOutput.nonexistent
 // @ts-expect-error Result types do not expose arbitrary properties.
 const invalidRenderField = renderOutput.nonexistent
+// @ts-expect-error Result types do not expose arbitrary properties.
+const invalidExtractField = extractOutput.nonexistent
 
 void invalidValidateField
 void invalidRenderField
+void invalidExtractField

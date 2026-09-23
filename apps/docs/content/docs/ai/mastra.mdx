@@ -75,7 +75,7 @@ Mastra's execution `abortSignal` is passed to the operation as `signal`.
 
 ### `paradocTools(config?)`
 
-Returns nine Mastra tools keyed by their snake_case names. `createParadocTools` and `createMastraTools` are aliases of `paradocTools`.
+Returns ten Mastra tools keyed by their snake_case names. `createParadocTools` and `createMastraTools` are aliases of `paradocTools`.
 
 | Key | Factory |
 |-----|---------|
@@ -88,6 +88,7 @@ Returns nine Mastra tools keyed by their snake_case names. `createParadocTools` 
 | [`get_fill_state`](/ai/tools/get-fill-state) | `createGetFillStateTool()` |
 | [`update_fill`](/ai/tools/update-fill) | `createUpdateFillTool()` |
 | [`render`](/ai/tools/render) | `createRenderTool()` |
+| [`extract`](/ai/tools/extract) | `createExtractTool()` |
 
 Every factory takes an optional `ParadocMastraConfig`. The package also exports `operationNames` and `DEFAULT_MODEL_OUTPUT_MAX_BYTES`.
 

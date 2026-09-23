@@ -1,0 +1,103 @@
+---
+title: extract
+description: Read a filled PDF form back into Paradoc form data, with a report for each field
+ogTitle: extract — Paradoc AI Tools
+ogDescription: Read the AcroForm fields of a filled PDF back into Paradoc form data
+---
+
+Reads a filled PDF back into form data through the form's PDF layer bindings. It reads the PDF's AcroForm field values, maps each back to its artifact path, and returns the recovered data with a report for each binding target. It is the same operation as [`form.extract()`](/sdk/artifacts/form#extracting-data-from-a-filled-pdf) in the SDK and [`paradoc data extract`](/cli/commands/data#data-extract) in the CLI, and returns the same result.
+
+The tool reads fillable fields only. A flattened or scanned PDF has no fields to read; use the hosted Paradoc extraction service for those. The tool does not validate the data. Pass `data` to [`fill`](/ai/tools/fill), then use [`get_fill_state`](/ai/tools/get-fill-state) to see what is still missing.
+
+## Input
+
+Takes a [source](/ai/tools#sources) plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pdf` | `string` | One of `pdf` or `pdf_url` | The filled PDF, base64-encoded |
+| `pdf_url` | `string` | One of `pdf` or `pdf_url` | URL of the filled PDF. The fetch follows the same origin, redirect, and size rules as layer files. |
+| `layer` | `string` | No | PDF layer key. Required when the form has more than one PDF layer. |
+
+The PDF can be at most 20 MB.
+
+## Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether the PDF was read |
+| `artifact_kind` | `string` | `form` |
+| `layer` | `string` | The PDF layer the PDF was read against |
+| `data` | `object` | The recovered values as a form payload: `{ fields, parties? }`. Only values read back exactly are here. |
+| `report.entries` | `object[]` | One entry for each binding target: `{ path, status, sources, reason? }` |
+| `report.unbound` | `object[]` | PDF fields that hold a value no binding covers: `{ field, type, value }` |
+| `validation_issues` | `{ message, path? }[]` | Schema issues when the artifact is invalid |
+| `error` | [`ToolError`](/ai/tools#errors) | Why the call failed |
+
+Each entry's `sources` lists the PDF fields that carry the path, as `{ field, value? }`, with the raw PDF value where there is one. `status` is one of:
+
+| Status | Meaning |
+|--------|---------|
+| `recovered` | The value was read back exactly and is in `data` |
+| `empty` | The PDF fields are empty. An unchecked box counts as empty, because it cannot be told apart from an unanswered one. |
+| `not_recoverable` | The PDF holds a value that cannot be mapped back, such as a box that joins several values. `reason` says why. |
+| `unparseable` | The PDF text does not parse into the field's type, or the fields that carry the path disagree. `reason` says why. |
+
+### Error codes
+
+| Code | Cause |
+|------|-------|
+| `no_form_fields` | The PDF has no AcroForm fields. A flattened or scanned PDF needs the hosted extraction service. |
+| `encrypted_pdf` | The PDF is encrypted |
+| `not_matching` | None of the PDF's fields match the layer's bindings |
+| `malformed_pdf` | The input is not a PDF, or it is truncated or cannot be parsed |
+| `no_pdf_layer` | The form has no PDF layer |
+| `layer_required` | The form has several PDF layers and `layer` is not set. The message lists them. |
+| `layer_not_found`, `not_pdf_layer` | `layer` names no layer, or a layer that is not a PDF |
+| `invalid_input` | Neither or both of `pdf` and `pdf_url` are set, or `pdf` is not base64 |
+| `pdf_too_large` | The PDF is over the size limit |
+| `unsupported_artifact` | The artifact is not a form |
+
+## Direct usage
+
+```typescript
+import { executeExtract, executeFill } from "@paradoc/ai-tools"
+
+// w9 is the W-9 form artifact JSON; filledPdfBase64 is a completed W-9.
+const source = { source: "artifact", artifact: w9 } as const
+
+const extracted = await executeExtract({ ...source, pdf: filledPdfBase64 })
+if (!extracted.success) throw new Error(extracted.error?.message)
+
+const draft = await executeFill({ ...source, data: extracted.data ?? {} })
+```
+
+## Example response
+
+```json
+{
+  "success": true,
+  "artifact_kind": "form",
+  "layer": "pdf",
+  "data": {
+    "fields": { "taxClassification": "individual_or_sole_proprietor", "ssn": "123-45-6789" },
+    "parties": { "taxpayer": { "name": "Jane Q. Public" } }
+  },
+  "report": {
+    "entries": [
+      {
+        "path": "parties.taxpayer.name",
+        "status": "recovered",
+        "sources": [{ "field": "topmostSubform[0].Page1[0].f1_01[0]", "value": "Jane Q. Public" }]
+      },
+      {
+        "path": "mailingAddress.locality",
+        "status": "not_recoverable",
+        "sources": [{ "field": "topmostSubform[0].Page1[0].Address_ReadOrder[0].f1_08[0]", "value": "Springfield, IL, 62704" }],
+        "reason": "Several values are joined into one PDF field, and extraction does not guess how to split them."
+      }
+    ],
+    "unbound": []
+  }
+}
+```

@@ -395,6 +395,49 @@ const all = draft.getAvailableFillTargets()
 
 `fill()` and `update()` validate every supplied value. Omitted required values remain open so a caller can build a draft across turns. `safeFill()` succeeds when that supplied patch is accepted. Use `draft.isValid()` or `draft.validate()` to assess full readiness, including rules. Rendering a draft is allowed; signing, sealing, and final bundle operations require readiness.
 
+## Extracting data from a filled PDF
+
+`form.extract(pdf, options?)` reads a filled PDF back into form data through a PDF layer's bindings. It reads the PDF's AcroForm field values and maps each one back to its artifact path. The PDF is not changed.
+
+```ts
+import { readFileSync } from 'node:fs'
+import { w9 } from '@paradoc/essentials'
+
+const { layer, data, report } = await w9.extract(readFileSync('completed-w9.pdf'))
+
+// Extraction does not validate. The normal fill path does.
+const result = w9.safeFill(data)
+if (result.success) {
+  const state = result.data.getFillState() // required values the PDF did not hold are open
+}
+```
+
+With no `layer` option, `extract` uses the form's only PDF layer. A form with several PDF layers, such as the copies of a 1099, needs `{ layer: 'pdfCopyB' }`. Pass `formatter` when the PDF was filled with a formatter other than the default.
+
+The result has three parts:
+
+| Part | Description |
+|------|-------------|
+| `layer` | The PDF layer the PDF was read against |
+| `data` | A `{ fields, parties? }` payload with only the values read back exactly |
+| `report.entries` | One entry for each binding target: `{ path, status, sources, reason? }`. `sources` lists the PDF fields that carry the path with their raw values. |
+| `report.unbound` | PDF fields that hold a value no binding covers |
+
+Each entry's `status` is one of:
+
+- `recovered`: the value was read back exactly and is in `data`.
+- `empty`: the PDF fields are empty. An unchecked box counts as empty, because it cannot be told apart from an unanswered one.
+- `not_recoverable`: the value cannot be mapped back. A combined binding (`'city,state,zipCode'`) writes several values into one box, and extraction does not guess how to split it; the raw text is in `sources`.
+- `unparseable`: the text does not parse into the field's type, or two PDF fields that carry the path disagree.
+
+Direct bindings, enum checkboxes, radio groups, dropdowns, and split fields are reversed exactly. Text is parsed back into the field's type: the formatter's own output for enums, numbers, percentages, dates, and money, as well as plain values a person might type, such as `1234.50` or a date in the locale's numeric order. A money amount needs its currency symbol, or a binding to its `amount` alone. A structured value written into one box, such as a whole address, is `not_recoverable`; bind its parts to recover them.
+
+A partial value from a combined box stays partial. On the W-9, the city, state, and ZIP code share one box, so `data` has `mailingAddress.line1` only, and `safeFill` names the missing parts.
+
+`extract` throws a `PdfExtractionError` whose `code` names the failure: `no_form_fields` (a flattened or scanned PDF, which needs the hosted Paradoc extraction service), `encrypted_pdf`, `not_matching` (none of the PDF's fields match the layer), `malformed_pdf` (not a PDF, truncated, or unreadable), `no_pdf_layer`, `layer_required`, `layer_not_found`, or `not_pdf_layer`.
+
+The CLI's [`paradoc data extract`](/cli/commands/data#data-extract) and the AI [`extract`](/ai/tools/extract) tool return the same result.
+
 ## Lifecycle Types
 
 The `fill()` method returns a `DraftForm` that follows the form lifecycle:

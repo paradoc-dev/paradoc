@@ -26,4 +26,6 @@ export type {
 	FormBuilderInterface,
 	SafeFillResult,
 	FormValidationResult,
+	ExtractOptions,
+	FormExtraction,
 } from './form'

@@ -400,4 +400,77 @@ describe('CLI Data Commands', () => {
       expect(result.exitCode).toBe(1)
     })
   })
+  describe('data extract', () => {
+    const extractForm = {
+      kind: 'form',
+      name: 'pet-addendum',
+      version: '1.0.0',
+      title: 'Pet Addendum',
+      fields: {
+        name: { type: 'text', label: 'Name', required: true },
+        species: { type: 'enum', label: 'Species', enum: [{ value: 'dog' }, { value: 'cat' }, { value: 'bird' }, { value: 'turtle' }] },
+        weight: { type: 'number', label: 'Weight', required: true },
+        hasVaccination: { type: 'boolean', label: 'Has vaccination' },
+      },
+      defaultLayer: 'pdf',
+      layers: {
+        pdf: {
+          kind: 'file',
+          mimeType: 'application/pdf',
+          path: 'pet-addendum-bindings.pdf',
+          bindings: { pet_name: 'name', petWeight: 'weight', SPECIES: 'species', is_vaccinated: 'hasVaccination' },
+        },
+      },
+    }
+    const values = { fields: { name: 'Fluffy', species: 'cat', weight: 3, hasVaccination: true } }
+
+    async function filledPdf(): Promise<{ formPath: string; pdfPath: string }> {
+      const formPath = path.join(tempDir, 'pet.json')
+      const pdfPath = path.join(tempDir, 'filled.pdf')
+      await fs.writeFile(formPath, JSON.stringify(extractForm))
+      await fs.copyFile(path.join(fixturesDir, 'pet-addendum-bindings.pdf'), path.join(tempDir, 'pet-addendum-bindings.pdf'))
+      const rendered = await executeCliCommand(['render', formPath, '--data', JSON.stringify(values), '--out', pdfPath])
+      expect(rendered.exitCode).toBe(0)
+      return { formPath, pdfPath }
+    }
+
+    it('extracts one filled PDF as the SDK does', async () => {
+      const { formPath, pdfPath } = await filledPdf()
+      const result = await executeCliCommand(['data', 'extract', formPath, pdfPath])
+
+      expect(result.exitCode).toBe(0)
+      const output = JSON.parse(result.stdout)
+      expect(output.data).toEqual(values)
+      const { form } = await import('@paradoc/core')
+      const sdk = await form.from(extractForm as never).extract(new Uint8Array(await fs.readFile(pdfPath)))
+      expect(output).toEqual({ file: pdfPath, ...JSON.parse(JSON.stringify(sdk)) })
+    })
+
+    it('extracts every PDF in a directory and reports the ones that fail', async () => {
+      const { formPath, pdfPath } = await filledPdf()
+      const batch = path.join(tempDir, 'batch')
+      await fs.mkdir(batch)
+      await fs.copyFile(pdfPath, path.join(batch, 'a.pdf'))
+      await fs.copyFile(path.join(fixturesDir, 'Pet Care Guide.pdf'), path.join(batch, 'b.pdf'))
+      await fs.writeFile(path.join(batch, 'notes.txt'), 'ignored')
+      const outPath = path.join(tempDir, 'extracted.json')
+
+      const result = await executeCliCommand(['data', 'extract', formPath, batch, '--out', outPath])
+
+      expect(result.exitCode).toBe(1)
+      const output = JSON.parse(await fs.readFile(outPath, 'utf-8'))
+      expect(output.results.map((entry: { file: string }) => entry.file)).toEqual(['a.pdf', 'b.pdf'])
+      expect(output.results[0].data).toEqual(values)
+      expect(output.results[1].error.code).toBe('no_form_fields')
+    })
+
+    it('fails with the extraction error code for a PDF without form fields', async () => {
+      const { formPath } = await filledPdf()
+      const result = await executeCliCommand(['data', 'extract', formPath, path.join(fixturesDir, 'Pet Care Guide.pdf')])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('no_form_fields')
+      expect(result.stdout).toBe('')
+    })
+  })
 })

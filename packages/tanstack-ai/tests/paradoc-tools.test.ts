@@ -1,7 +1,8 @@
 import { chat, type AdapterYieldChunk, type AnyTextAdapter } from '@tanstack/ai'
 import { describe, expect, it } from 'vitest'
-import { operationNames, toolDefinitions } from '@paradoc/ai-tools'
+import { executeExtract, operationNames, toolDefinitions } from '@paradoc/ai-tools'
 import {
+	extract,
 	fill,
 	getFillState,
 	getRegistry,
@@ -21,11 +22,34 @@ const artifact = {
 	},
 }
 
+/** A one-field AcroForm PDF whose field already holds a value, and the form that binds it. */
+const filledPdf = [
+	'%PDF-1.4',
+	'1 0 obj << /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R >> endobj',
+	'2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+	'3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [5 0 R] >> endobj',
+	'4 0 obj << /Fields [5 0 R] >> endobj',
+	'5 0 obj << /FT /Tx /T (applicant) /Subtype /Widget /Rect [10 10 190 30] /P 3 0 R /V (Ada Lovelace) >> endobj',
+	'trailer << /Root 1 0 R >>',
+	'%%EOF',
+	'',
+].join('\n')
+const extractInput = {
+	source: 'artifact' as const,
+	artifact: {
+		kind: 'form',
+		name: 'intake',
+		fields: { name: { type: 'text', label: 'Name', required: true } },
+		layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'intake.pdf', bindings: { applicant: 'name' } } },
+	},
+	pdf: btoa(filledPdf),
+}
+
 describe('paradocTools', () => {
-	it('returns all nine native server tools in contract order', () => {
+	it('returns all ten native server tools in contract order', () => {
 		const tools = paradocTools()
 
-		expect(tools).toHaveLength(9)
+		expect(tools).toHaveLength(10)
 		expect(tools.map((tool) => tool.name)).toEqual(operationNames)
 		expect(tools.every((tool) => tool.__toolSide === 'server')).toBe(true)
 		expect(tools.every((tool) => typeof tool.execute === 'function')).toBe(true)
@@ -34,7 +58,7 @@ describe('paradocTools', () => {
 	it('exposes definition-only tools without server execution', () => {
 		const definitions = paradocToolDefinitions()
 
-		expect(definitions).toHaveLength(9)
+		expect(definitions).toHaveLength(10)
 		expect(definitions.map((definition) => definition.name)).toEqual(operationNames)
 		expect(definitions.every((definition) => definition.__toolSide === 'definition')).toBe(true)
 		expect(definitions.every((definition) => !('execute' in definition))).toBe(true)
@@ -49,6 +73,13 @@ describe('paradocTools', () => {
 			expect(tool.inputSchema).toBe(definition.input_schema)
 			expect(tool.outputSchema).toBe(definition.output_schema)
 		}
+	})
+
+	it('reads a filled PDF through the extract server tool with the shared result', async () => {
+		const result = await extract().execute!(extractInput)
+
+		expect(result).toMatchObject({ success: true, layer: 'pdf', data: { fields: { name: 'Ada Lovelace' } } })
+		expect(result).toEqual(await executeExtract(extractInput))
 	})
 
 	it('validates an artifact through the native server tool', async () => {
@@ -195,7 +226,7 @@ describe('paradocTools', () => {
 
 		const toolResult = chunks.find((chunk) => chunk.type === 'TOOL_CALL_RESULT')
 		expect(callCount).toBe(2)
-		expect(receivedToolCount).toBe(9)
+		expect(receivedToolCount).toBe(10)
 		expect(toolResult).toMatchObject({
 			toolCallId: 'validate-1',
 			content: JSON.stringify({ valid: true, artifact_kind: 'form' }),

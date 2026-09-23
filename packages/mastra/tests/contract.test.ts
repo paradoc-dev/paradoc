@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+	createExtractTool,
 	createFillTool,
 	createGetArtifactTool,
 	createGetFillStateTool,
@@ -12,7 +13,7 @@ import {
 	DEFAULT_MODEL_OUTPUT_MAX_BYTES,
 	paradocTools,
 } from '../src'
-import { operationNames, toolDefinitions } from '@paradoc/ai-tools'
+import { executeExtract, operationNames, toolDefinitions } from '@paradoc/ai-tools'
 
 const documentArtifact = {
 	kind: 'document' as const,
@@ -39,8 +40,31 @@ async function execute<Tool extends { execute?: (input: never, context: never) =
 	return tool.execute?.(input as never, context as never)
 }
 
+/** A one-field AcroForm PDF whose field already holds a value, and the form that binds it. */
+const filledPdf = [
+	'%PDF-1.4',
+	'1 0 obj << /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R >> endobj',
+	'2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+	'3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [5 0 R] >> endobj',
+	'4 0 obj << /Fields [5 0 R] >> endobj',
+	'5 0 obj << /FT /Tx /T (applicant) /Subtype /Widget /Rect [10 10 190 30] /P 3 0 R /V (Ada Lovelace) >> endobj',
+	'trailer << /Root 1 0 R >>',
+	'%%EOF',
+	'',
+].join('\n')
+const extractInput = {
+	source: 'artifact' as const,
+	artifact: {
+		kind: 'form',
+		name: 'intake',
+		fields: { name: { type: 'text', label: 'Name', required: true } },
+		layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'intake.pdf', bindings: { applicant: 'name' } } },
+	},
+	pdf: btoa(filledPdf),
+}
+
 describe('@paradoc/mastra', () => {
-	it('publishes the nine canonical operations as native Mastra tools', () => {
+	it('publishes the ten canonical operations as native Mastra tools', () => {
 		const tools = paradocTools()
 
 		expect(Object.keys(tools)).toEqual(operationNames)
@@ -65,8 +89,16 @@ describe('@paradoc/mastra', () => {
 			createGetFillStateTool,
 			createUpdateFillTool,
 			createRenderTool,
+			createExtractTool,
 		]
 		expect(factories.map((factory) => factory().id)).toEqual(operationNames)
+	})
+
+	it('reads a filled PDF through the extract tool with the shared result', async () => {
+		const result = await execute(createExtractTool(), extractInput)
+
+		expect(result).toMatchObject({ success: true, layer: 'pdf', data: { fields: { name: 'Ada Lovelace' } } })
+		expect(result).toEqual(await executeExtract(extractInput))
 	})
 
 	it('executes registry, validation, draft, and rendering operations through Mastra', async () => {

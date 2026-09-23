@@ -159,6 +159,13 @@ export const RenderInputSchema = withSourceFields({
 })
 export type RenderInput = z.infer<typeof RenderInputSchema>
 
+export const ExtractInputSchema = withSourceFields({
+	pdf: z.string().min(1).optional().describe('The filled PDF, base64-encoded. Give this or pdf_url.'),
+	pdf_url: z.string().url().optional().describe('URL of the filled PDF. Give this or pdf.'),
+	layer: z.string().optional().describe('PDF layer key; required when the artifact has more than one PDF layer'),
+})
+export type ExtractInput = z.infer<typeof ExtractInputSchema>
+
 export const ToolErrorSchema = z.object({
 	code: z.string(),
 	message: z.string(),
@@ -289,6 +296,33 @@ export const InspectArtifactOutputSchema = z.object({
 	error: ToolErrorSchema.optional(),
 })
 
+export const ExtractionEntrySchema = z.object({
+	path: z.string().describe('The binding target, as written in the layer bindings'),
+	status: z.enum(['recovered', 'empty', 'not_recoverable', 'unparseable']),
+	sources: z.array(z.object({
+		field: z.string().describe('AcroForm field name'),
+		value: z.string().optional().describe('Raw PDF value, when the field has one'),
+	})),
+	reason: z.string().optional(),
+})
+
+export const ExtractOutputSchema = z.object({
+	success: z.boolean(),
+	artifact_kind: z.enum(['form', 'document', 'bundle', 'checklist']).optional(),
+	layer: z.string().optional().describe('The PDF layer the PDF was read against'),
+	data: z.record(z.string(), z.unknown()).optional().describe('Recovered values as a form payload { fields, parties }; pass it to fill to validate'),
+	report: z.object({
+		entries: z.array(ExtractionEntrySchema),
+		unbound: z.array(z.object({
+			field: z.string(),
+			type: z.enum(['text', 'checkbox', 'radio', 'dropdown']),
+			value: z.string(),
+		})).describe('PDF fields with values that no binding covers'),
+	}).optional(),
+	validation_issues: z.array(ValidationIssueSchema).optional(),
+	error: ToolErrorSchema.optional(),
+})
+
 // Public result types are inferred from the same schemas exposed to adapters.
 // Keeping these aliases beside the schema declarations prevents handwritten
 // adapter contracts from drifting away from the neutral wire format.
@@ -301,6 +335,7 @@ export type RenderOutput = z.infer<typeof RenderOutputSchema>
 export type GetRegistryOutput = z.infer<typeof GetRegistryOutputSchema>
 export type GetArtifactOutput = z.infer<typeof GetArtifactOutputSchema>
 export type InspectArtifactOutput = z.infer<typeof InspectArtifactOutputSchema>
+export type ExtractOutput = z.infer<typeof ExtractOutputSchema>
 
 export const operationNames = [
 	'get_registry',
@@ -312,6 +347,7 @@ export const operationNames = [
 	'get_fill_state',
 	'update_fill',
 	'render',
+	'extract',
 ] as const
 
 export type OperationName = (typeof operationNames)[number]

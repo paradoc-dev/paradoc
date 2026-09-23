@@ -1,11 +1,11 @@
 ---
 title: Tool Reference
-description: The nine tools in the Paradoc AI packages, with their inputs and outputs
+description: The ten tools in the Paradoc AI packages, with their inputs and outputs
 ogTitle: Tools — Paradoc AI
-ogDescription: Reference for the nine tools in the Paradoc AI packages
+ogDescription: Reference for the ten tools in the Paradoc AI packages
 ---
 
-Every Paradoc AI adapter ([AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), [Mastra](/ai/mastra)) exposes these nine tools. They come from [`@paradoc/ai-tools`](/ai/ai-tools), so names, inputs, and outputs are the same in every adapter. Input and output fields are snake_case. Artifact JSON and fill data keep their own field names.
+Every Paradoc AI adapter ([AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), [Mastra](/ai/mastra)) exposes these ten tools. They come from [`@paradoc/ai-tools`](/ai/ai-tools), so names, inputs, and outputs are the same in every adapter. Input and output fields are snake_case. Artifact JSON and fill data keep their own field names.
 
 | Tool | Category | Description |
 |------|----------|-------------|
@@ -18,6 +18,7 @@ Every Paradoc AI adapter ([AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), 
 | [`get_fill_state`](/ai/tools/get-fill-state) | Filling | Report draft progress and the next target to fill |
 | [`update_fill`](/ai/tools/update-fill) | Filling | Merge, clear, or reset values in a draft |
 | [`render`](/ai/tools/render) | Rendering | Render a form, document, or checklist through one of its layers |
+| [`extract`](/ai/tools/extract) | Extraction | Read a filled PDF form back into form data, with a report for each field |
 
 ## Sources
 
@@ -54,5 +55,7 @@ Tools return failures in the result instead of throwing. A failed call carries a
 4. `fill` starts the draft; `update_fill` changes it.
 5. `get_fill_state` reports what is still open and what to ask next.
 6. `render` produces the document, complete or not.
+
+To start from a completed PDF instead, call [`extract`](/ai/tools/extract) and pass its `data` to `fill`.
 
 Pass `data` and `evaluation_context` from each `fill` or `update_fill` result into the next call, so the draft and its date context stay the same across turns.

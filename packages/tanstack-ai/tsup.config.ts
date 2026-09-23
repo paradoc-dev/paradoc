@@ -12,6 +12,7 @@ export default defineConfig({
 		'src/get-fill-state.ts',
 		'src/update-fill.ts',
 		'src/render.ts',
+		'src/extract.ts',
 	],
 	format: ['esm'],
 	dts: {

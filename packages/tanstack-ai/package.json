@@ -56,6 +56,11 @@
       "types": "./dist/render.d.ts",
       "import": "./dist/render.js",
       "default": "./dist/render.js"
+    },
+    "./extract": {
+      "types": "./dist/extract.d.ts",
+      "import": "./dist/extract.js",
+      "default": "./dist/extract.js"
     }
   },
   "sideEffects": false,

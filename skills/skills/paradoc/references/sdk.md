@@ -169,6 +169,21 @@ const targets = draft.getAvailableFillTargets(); // FillTarget[]
 
 Essential for AI agent workflows where forms are filled incrementally.
 
+### Extracting data from a filled PDF
+
+```typescript
+const { layer, data, report } = await form.extract(pdfBytes);        // the only PDF layer
+const copyB = await f1099NEC.extract(pdfBytes, { layer: "pdfCopyB" }); // several PDF layers
+const draft = form.safeFill(data);                                    // validation happens here
+```
+
+- Reads AcroForm field values back through the PDF layer's bindings. NEVER treat `data` as validated; pass it to `fill`/`safeFill`, then use `getFillState()` for what is missing.
+- `data` holds only exact reversals: direct, nested, enum checkbox, radio, dropdown, and split bindings. A combined binding (`"a,b,c"`) is reported `not_recoverable`, never split. An unchecked box reads as `empty`, not `false`.
+- `report.entries[]` is `{ path, status, sources: [{ field, value? }], reason? }` with status `recovered | empty | not_recoverable | unparseable`; `report.unbound[]` lists filled PDF fields no binding covers.
+- A partial structured value stays partial: `mailingAddress: { line1 }` from a W-9 fails `safeFill` naming the missing parts.
+- Failures throw `PdfExtractionError` with `code`: `no_form_fields` (flattened or scanned; use the hosted extraction service), `encrypted_pdf`, `not_matching`, `malformed_pdf`, `no_pdf_layer`, `layer_required`, `layer_not_found`, `not_pdf_layer`.
+- The CLI `paradoc data extract` and the AI tool `extract` return the same result.
+
 ## Form Lifecycle Phases
 
 Forms progress through three immutable phases. Mutations return new objects. Phase transitions are one-way — NEVER go backwards.

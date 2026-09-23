@@ -12,7 +12,7 @@ npm install @paradoc/ai-sdk ai zod @ai-sdk/openai
 
 ## Use the native tool map
 
-`paradocTools()` returns all nine operations under their canonical snake_case names so the map can be passed directly to `generateText`, `streamText`, or an AI SDK agent.
+`paradocTools()` returns all ten operations under their canonical snake_case names so the map can be passed directly to `generateText`, `streamText`, or an AI SDK agent.
 
 ```typescript
 import { generateText } from "ai";
@@ -41,6 +41,7 @@ The collection keys and tool IDs are:
 | `get_fill_state` | Inspect progress and the next available target |
 | `update_fill` | Merge, clear, or reset a draft |
 | `render` | Render a form, document, or checklist |
+| `extract` | Read a filled PDF form back into form data |
 
 ## Use one tool
 
@@ -54,7 +55,7 @@ const fillState = getFillState({
 });
 ```
 
-The root named factories are `getRegistry`, `getArtifact`, `inspectArtifact`, `validateArtifact`, `validateInput`, `fill`, `getFillState`, `updateFill`, and `render`.
+The root named factories are `getRegistry`, `getArtifact`, `inspectArtifact`, `validateArtifact`, `validateInput`, `fill`, `getFillState`, `updateFill`, `render`, and `extract`.
 
 ## Canonical inputs and results
 

@@ -1,5 +1,7 @@
 import {
 	ArtifactSourceSchema,
+	ExtractInputSchema,
+	ExtractOutputSchema,
 	FillInputSchema,
 	FillStateInputSchema,
 	GetArtifactInputSchema,
@@ -21,6 +23,8 @@ import {
 	GetArtifactOutputSchema,
 	InspectArtifactOutputSchema,
 	operationNames,
+	type ExtractInput,
+	type ExtractOutput,
 	type FillInput,
 	type FillStateInput,
 	type GetArtifactInput,
@@ -100,6 +104,10 @@ export async function executeRender(input: RenderInput | Record<string, unknown>
 	return (await import('./tools/render')).executeRender(input, config)
 }
 
+export async function executeExtract(input: ExtractInput | Record<string, unknown>, config?: ParadocToolsConfig): Promise<ExtractOutput> {
+	return (await import('./tools/extract')).executeExtract(input, config)
+}
+
 export const toolDefinitions = {
 	get_registry: {
 		name: 'get_registry',
@@ -163,6 +171,13 @@ export const toolDefinitions = {
 		input_schema: RenderInputSchema,
 		output_schema: RenderOutputSchema,
 		execute: executeRender,
+	},
+	extract: {
+		name: 'extract',
+		description: 'Read a filled PDF form back into form data through the artifact\'s PDF layer bindings, with a per-field report. Reads AcroForm fields only; flattened or scanned PDFs need the hosted extraction service.',
+		input_schema: ExtractInputSchema,
+		output_schema: ExtractOutputSchema,
+		execute: executeExtract,
 	},
 } as const
 

@@ -8,7 +8,7 @@ interface PdfObject {
   stream?: Uint8Array
 }
 
-function assemblePdf(objects: PdfObject[]): Uint8Array {
+function assemblePdf(objects: PdfObject[], trailerEntries = ''): Uint8Array {
   const chunks: Uint8Array[] = [encoder.encode('%PDF-1.5\n')]
   const offsets = new Map<number, number>()
   let offset = chunks[0]!.length
@@ -36,7 +36,7 @@ function assemblePdf(objects: PdfObject[]): Uint8Array {
       ? '0000000000 00000 f \n'
       : `${String(objectOffset).padStart(10, '0')} 00000 n \n`
   }
-  xref += `trailer\n<< /Size ${size} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`
+  xref += `trailer\n<< /Size ${size} /Root 1 0 R${trailerEntries} >>\nstartxref\n${xrefOffset}\n%%EOF\n`
   chunks.push(encoder.encode(xref))
 
   const length = chunks.reduce((total, chunk) => total + chunk.length, 0)
@@ -163,4 +163,81 @@ export function acroFieldsPdf(fields: FixtureField[], formDa?: string): Uint8Arr
     ...fieldObjects,
     { id: acroFormId, body: `<< /Fields [${refs}]${formDa === undefined ? '' : ` /DA ${literal(formDa)}`} >>` },
   ])
+}
+
+/** One AcroForm field of a purpose-built fixture. */
+export type AcroFormFixtureField =
+  | { kind: 'text'; name: string; value?: string }
+  | { kind: 'checkbox'; name: string; onState?: string; checked?: boolean }
+  | { kind: 'radio'; name: string; states: string[]; selected?: string }
+  | { kind: 'choice'; name: string; options: string[]; value?: string }
+
+export interface AcroFormFixtureOptions {
+  /** Declare the file encrypted in its trailer, as a password-protected PDF does. */
+  encrypted?: boolean
+}
+
+/**
+ * Build a one-page AcroForm PDF with text, checkbox, radio, and dropdown
+ * fields whose names and values are controlled by the test.
+ */
+export function acroFormPdf(fields: AcroFormFixtureField[], options: AcroFormFixtureOptions = {}): Uint8Array {
+  const objects: PdfObject[] = []
+  const roots: number[] = []
+  const widgets: number[] = []
+  let next = 4
+  let y = 270
+
+  const rect = () => {
+    const box = `[20 ${y} 200 ${y + 14}]`
+    y -= 18
+    return box
+  }
+
+  for (const field of fields) {
+    if (field.kind === 'text') {
+      const id = next++
+      const value = field.value === undefined ? '' : ` /V (${field.value})`
+      objects.push({ id, body: `<< /FT /Tx /T (${field.name}) /Subtype /Widget /Rect ${rect()} /P 3 0 R${value} >>` })
+      roots.push(id)
+      widgets.push(id)
+    } else if (field.kind === 'checkbox') {
+      const id = next++
+      const on = field.onState ?? 'Yes'
+      const state = field.checked ? on : 'Off'
+      objects.push({ id, body: `<< /FT /Btn /T (${field.name}) /Subtype /Widget /Rect ${rect()} /P 3 0 R /V /${state} /AS /${state} /AP << /N << /Off null /${on} null >> >> >>` })
+      roots.push(id)
+      widgets.push(id)
+    } else if (field.kind === 'radio') {
+      const parent = next++
+      const kids = field.states.map((state) => {
+        const id = next++
+        const current = field.selected === state ? state : 'Off'
+        objects.push({ id, body: `<< /Subtype /Widget /Parent ${parent} 0 R /Rect ${rect()} /P 3 0 R /AS /${current} /AP << /N << /Off null /${state} null >> >> >>` })
+        widgets.push(id)
+        return id
+      })
+      objects.push({ id: parent, body: `<< /FT /Btn /Ff 49152 /T (${field.name}) /V /${field.selected ?? 'Off'} /Kids [${kids.map((kid) => `${kid} 0 R`).join(' ')}] >>` })
+      roots.push(parent)
+    } else {
+      const id = next++
+      const value = field.value === undefined ? '' : ` /V (${field.value})`
+      const opts = field.options.map((option) => `(${option})`).join(' ')
+      objects.push({ id, body: `<< /FT /Ch /Ff 131072 /T (${field.name}) /Subtype /Widget /Rect ${rect()} /P 3 0 R /Opt [${opts}]${value} >>` })
+      roots.push(id)
+      widgets.push(id)
+    }
+  }
+
+  const acroFormId = next++
+  const encryptId = next++
+  const refs = (ids: number[]) => ids.map((id) => `${id} 0 R`).join(' ')
+  return assemblePdf([
+    { id: 1, body: `<< /Type /Catalog /Pages 2 0 R /AcroForm ${acroFormId} 0 R >>` },
+    { id: 2, body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
+    { id: 3, body: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << >> /Annots [${refs(widgets)}] >>` },
+    ...objects,
+    { id: acroFormId, body: `<< /Fields [${refs(roots)}] >>` },
+    ...(options.encrypted ? [{ id: encryptId, body: '<< /Filter /Standard /V 2 /R 3 /Length 128 /P -44 >>' }] : []),
+  ].sort((left, right) => left.id - right.id), options.encrypted ? ` /Encrypt ${encryptId} 0 R` : '')
 }

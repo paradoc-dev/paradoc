@@ -74,6 +74,8 @@ export type {
   DraftForm,
 	SafeFillResult,
   FormValidationResult,
+  ExtractOptions,
+  FormExtraction,
   SignableForm,
   ExecutedForm,
   FormInput,
@@ -209,6 +211,18 @@ export {
 export { assembleBundle, isAssemblyBytesEntry, producedMimeType, sealBundle } from "./rendering";
 
 export { BundleSealError } from "./rendering";
+
+// Reading filled PDF forms back into data
+export { PdfExtractionError } from "@paradoc/render/pdf";
+export type {
+  PdfExtractedData,
+  PdfExtractionEntry,
+  PdfExtractionErrorCode,
+  PdfExtractionReport,
+  PdfExtractionSource,
+  PdfExtractionStatus,
+  PdfUnboundField,
+} from "@paradoc/render/pdf";
 
 export {
   InlineReactLayerError,

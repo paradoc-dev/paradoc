@@ -5,7 +5,7 @@ ogTitle: "@paradoc/ai-tools — Paradoc AI"
 ogDescription: Use the Paradoc tool schemas and execute functions directly, or build an adapter for another AI framework
 ---
 
-`@paradoc/ai-tools` is the contract every Paradoc AI adapter wraps. It has the nine tool definitions, their Zod input and output schemas, an execute function per tool, and a registry client. It has no AI framework dependency.
+`@paradoc/ai-tools` is the contract every Paradoc AI adapter wraps. It has the ten tool definitions, their Zod input and output schemas, an execute function per tool, and a registry client. It has no AI framework dependency.
 
 Use it directly to call the tools from your own code, or to build an adapter for a framework without one.
 
@@ -35,7 +35,7 @@ const { name, description, input_schema, output_schema, execute } = toolDefiniti
 | `output_schema` | Zod schema for the output |
 | `execute` | `(input, config?) => Promise<output>` |
 
-`operationNames` lists the nine names in order: `get_registry`, `get_artifact`, `inspect_artifact`, `validate_artifact`, `validate_input`, `fill`, `get_fill_state`, `update_fill`, `render`. The `OperationName` type is their union.
+`operationNames` lists the ten names in order: `get_registry`, `get_artifact`, `inspect_artifact`, `validate_artifact`, `validate_input`, `fill`, `get_fill_state`, `update_fill`, `render`, `extract`. The `OperationName` type is their union.
 
 An adapter maps each definition to its framework's tool type. See the [AI SDK](/ai/ai-sdk), [TanStack AI](/ai/tanstack-ai), and [Mastra](/ai/mastra) adapters.
 
@@ -54,6 +54,7 @@ Each tool has an execute function. They take the tool's snake_case input and an 
 | `executeGetFillState(input, config?)` | [`get_fill_state`](/ai/tools/get-fill-state) |
 | `executeUpdateFill(input, config?)` | [`update_fill`](/ai/tools/update-fill) |
 | `executeRender(input, config?)` | [`render`](/ai/tools/render) |
+| `executeExtract(input, config?)` | [`extract`](/ai/tools/extract) |
 
 The execute functions do not throw for tool failures. They return a result with an `error` object (`code`, `message`, and optional `path` and `retryable`).
 

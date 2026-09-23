@@ -33,7 +33,7 @@ async function assertPreciseExecutionResult() {
 
 const tools = paradocTools()
 const firstToolName: 'get_registry' = tools[0].name
-const lastToolName: 'render' = tools[8].name
+const lastToolName: 'extract' = tools[9].name
 void firstToolName
 void lastToolName
 void assertPreciseExecutionResult

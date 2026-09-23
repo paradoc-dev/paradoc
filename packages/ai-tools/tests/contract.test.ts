@@ -53,7 +53,7 @@ const documentArtifact = {
 const tenant = { name: 'Alice Tenant', firstName: 'Alice', lastName: 'Tenant' }
 
 describe('shared AI tool contract', () => {
-	it('publishes exactly nine independently usable operations', () => {
+	it('publishes exactly ten independently usable operations', () => {
 		expect(Object.keys(toolDefinitions)).toEqual([
 			'get_registry',
 			'get_artifact',
@@ -64,6 +64,7 @@ describe('shared AI tool contract', () => {
 			'get_fill_state',
 			'update_fill',
 			'render',
+			'extract',
 		])
 		for (const [name, definition] of Object.entries(toolDefinitions)) {
 			expect(definition.name).toBe(name)

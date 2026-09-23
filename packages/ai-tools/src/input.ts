@@ -1,4 +1,5 @@
 import type {
+	ExtractInput,
 	FillInput,
 	FillStateInput,
 	GetArtifactInput,
@@ -60,4 +61,8 @@ export function normalizeUpdateFillInput(input: UpdateFillInput | UnknownRecord)
 
 export function normalizeRenderInput(input: RenderInput | UnknownRecord): RenderInput {
 	return normalizeInput(input) as unknown as RenderInput
+}
+
+export function normalizeExtractInput(input: ExtractInput | UnknownRecord): ExtractInput {
+	return normalizeInput(input) as unknown as ExtractInput
 }
