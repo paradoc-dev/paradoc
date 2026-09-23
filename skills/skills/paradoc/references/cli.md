@@ -132,7 +132,7 @@ paradoc reset --keep-cache       # Preserve cached data
 paradoc --no-telemetry <command>
 ```
 
-Or permanently: config `telemetry.enabled: false`, env `OFM_TELEMETRY_DISABLED=1` / `DO_NOT_TRACK=1`.
+Or permanently: config `telemetry.enabled: false`, env `PARADOC_TELEMETRY_DISABLED=1` / `DO_NOT_TRACK=1`.
 
 ### Utility commands
 

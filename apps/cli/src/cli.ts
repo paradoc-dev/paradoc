@@ -74,7 +74,7 @@ program.on('command:*', (operands) => {
 // Bridge --no-telemetry flag to env var before commands run
 program.hook('preAction', () => {
 	if (program.opts().telemetry === false) {
-		process.env.OFM_TELEMETRY_DISABLED = '1'
+		process.env.PARADOC_TELEMETRY_DISABLED = '1'
 	}
 })
 

@@ -27,7 +27,7 @@ interface UpdateCache {
 function shouldSkipCheck(): boolean {
 	if (VERSION === 'dev') return true
 	if (process.env.CI) return true
-	if (process.env.OFM_NO_UPDATE_CHECK) return true
+	if (process.env.PARADOC_NO_UPDATE_CHECK) return true
 	if (!process.stdout.isTTY) return true
 	return false
 }

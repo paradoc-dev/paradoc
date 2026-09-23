@@ -6,9 +6,20 @@ import { tmpdir } from 'node:os'
 // We need to mock modules before importing the module under test
 const mockVersion = vi.hoisted(() => ({ value: '0.1.3' }))
 
+// A getter keeps VERSION live: the factory result is cached across resetModules
 vi.mock('../../src/constants.js', () => ({
-	VERSION: mockVersion.value,
+	get VERSION() {
+		return mockVersion.value
+	},
 }))
+
+// Point the notifier's cache at a per-test temp home instead of the real one
+const mockHome = vi.hoisted(() => ({ value: '' }))
+
+vi.mock('node:os', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('node:os')>()
+	return { ...actual, homedir: () => mockHome.value || actual.homedir() }
+})
 
 describe('update-notifier', () => {
 	let tempDir: string
@@ -18,7 +29,8 @@ describe('update-notifier', () => {
 
 	beforeEach(async () => {
 		tempDir = await fs.mkdtemp(join(tmpdir(), 'paradoc-update-test-'))
-		cacheFile = join(tempDir, 'update-check.json')
+		cacheFile = join(tempDir, '.paradoc', 'update-check.json')
+		mockHome.value = tempDir
 		originalEnv = { ...process.env }
 		originalIsTTY = process.stdout.isTTY
 
@@ -28,7 +40,7 @@ describe('update-notifier', () => {
 		// Default: pretend we're in a TTY, not CI
 		Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
 		delete process.env.CI
-		delete process.env.OFM_NO_UPDATE_CHECK
+		delete process.env.PARADOC_NO_UPDATE_CHECK
 		mockVersion.value = '0.1.3'
 	})
 
@@ -70,8 +82,8 @@ describe('update-notifier', () => {
 			expect(fetchSpy).not.toHaveBeenCalled()
 		})
 
-		it('skips check when OFM_NO_UPDATE_CHECK is set', async () => {
-			process.env.OFM_NO_UPDATE_CHECK = '1'
+		it('skips check when PARADOC_NO_UPDATE_CHECK is set', async () => {
+			process.env.PARADOC_NO_UPDATE_CHECK = '1'
 			vi.resetModules()
 
 			const fetchSpy = vi.spyOn(globalThis, 'fetch')
@@ -103,7 +115,7 @@ describe('update-notifier', () => {
 	describe('printUpdateNotice', () => {
 		it('prints notice when cache has newer version', async () => {
 			const cache = { lastChecked: Date.now(), latestVersion: '0.2.0' }
-			await fs.mkdir(tempDir, { recursive: true })
+			await fs.mkdir(join(tempDir, '.paradoc'), { recursive: true })
 			await fs.writeFile(cacheFile, JSON.stringify(cache))
 
 			// We need to test the print logic directly since it reads from a fixed path.
@@ -144,6 +156,47 @@ describe('update-notifier', () => {
 			printUpdateNotice()
 
 			expect(consoleSpy).not.toHaveBeenCalled()
+		})
+
+		it('prints notice for a newer cached version when no opt-out is set', async () => {
+			await fs.mkdir(join(tempDir, '.paradoc'), { recursive: true })
+			await fs.writeFile(cacheFile, JSON.stringify({ lastChecked: Date.now(), latestVersion: '0.2.0' }))
+			vi.resetModules()
+
+			const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+			const { printUpdateNotice } = await import('../../src/utils/update-notifier.js')
+
+			printUpdateNotice()
+
+			expect(consoleSpy.mock.calls.flat().join('\n')).toContain('0.2.0')
+		})
+
+		it('skips notice when PARADOC_NO_UPDATE_CHECK is set', async () => {
+			await fs.mkdir(join(tempDir, '.paradoc'), { recursive: true })
+			await fs.writeFile(cacheFile, JSON.stringify({ lastChecked: Date.now(), latestVersion: '0.2.0' }))
+			process.env.PARADOC_NO_UPDATE_CHECK = '1'
+			vi.resetModules()
+
+			const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+			const { printUpdateNotice } = await import('../../src/utils/update-notifier.js')
+
+			printUpdateNotice()
+
+			expect(consoleSpy).not.toHaveBeenCalled()
+		})
+
+		it('ignores the retired OFM_NO_UPDATE_CHECK name', async () => {
+			await fs.mkdir(join(tempDir, '.paradoc'), { recursive: true })
+			await fs.writeFile(cacheFile, JSON.stringify({ lastChecked: Date.now(), latestVersion: '0.2.0' }))
+			process.env.OFM_NO_UPDATE_CHECK = '1'
+			vi.resetModules()
+
+			const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+			const { printUpdateNotice } = await import('../../src/utils/update-notifier.js')
+
+			printUpdateNotice()
+
+			expect(consoleSpy.mock.calls.flat().join('\n')).toContain('0.2.0')
 		})
 
 		it('skips notice when stdout is not a TTY', async () => {

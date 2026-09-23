@@ -5,11 +5,11 @@
  *
  * Opt-out:
  *   - Set `telemetry.enabled: false` in ~/.paradoc/config.json
- *   - Set `OFM_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` env vars
+ *   - Set `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` env vars
  *   - Pass `--no-telemetry` flag to any command
  *
  * Debug:
- *   - Set `OFM_TELEMETRY_DEBUG=1` to log events to console
+ *   - Set `PARADOC_TELEMETRY_DEBUG=1` to log events to console
  */
 
 import { randomUUID } from 'node:crypto'
@@ -68,7 +68,7 @@ async function isTelemetryEnabled(): Promise<boolean> {
   if (VERSION === 'dev') return false
 
   // Env var opt-outs (highest priority)
-  if (process.env.OFM_TELEMETRY_DISABLED === '1') return false
+  if (process.env.PARADOC_TELEMETRY_DISABLED === '1') return false
   if (process.env.DO_NOT_TRACK === '1') return false
 
   // Config-based opt-out
@@ -200,7 +200,7 @@ async function sendDirectoryEvent(event: Record<string, string>): Promise<void> 
  * @param type - Event type in `resource.action` format (e.g. `project.initialized`)
  *
  * Fire-and-forget — errors are silently swallowed.
- * Use `OFM_TELEMETRY_DEBUG=1` to see events in the console.
+ * Use `PARADOC_TELEMETRY_DEBUG=1` to see events in the console.
  */
 export async function trackEvent(
   type: string,
@@ -215,7 +215,7 @@ export async function trackEvent(
 
   const event = await buildEvent(type, opts)
 
-  if (process.env.OFM_TELEMETRY_DEBUG) {
+  if (process.env.PARADOC_TELEMETRY_DEBUG) {
     console.log('[telemetry]', JSON.stringify(event, null, 2))
   }
 

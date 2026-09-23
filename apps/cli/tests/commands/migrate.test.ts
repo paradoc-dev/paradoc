@@ -12,7 +12,7 @@ function run(args: string[], cwd: string): Promise<{ stdout: string; stderr: str
   return new Promise((resolve, reject) => {
     const child = spawn('tsx', [path.resolve(__dirname, '../../src/index.ts'), ...args], {
       cwd,
-      env: { ...process.env, OFM_TELEMETRY_DISABLED: '1', NO_COLOR: '1' },
+      env: { ...process.env, PARADOC_TELEMETRY_DISABLED: '1', NO_COLOR: '1' },
       stdio: ['pipe', 'pipe', 'pipe'],
     })
     let stdout = ''
