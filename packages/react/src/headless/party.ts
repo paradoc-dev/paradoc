@@ -1,26 +1,28 @@
 import { formatParties } from "@paradoc/render/text/field-formatter";
-import type { Address, Formatter, Organization, Party, Phone } from "@paradoc/types";
 
 import { useUnresolvedPathCollector } from "../components/check-context";
-import { formatByType } from "../lib/format";
-import { useArtifact, useFormatter, useParty, usePartialPlaceholder } from "./artifact";
+import { useArtifact, useFields, useFormatter, useParty, usePartialPlaceholder, type FieldBinding } from "./artifact";
 
 /**
- * A filled `Party` that also carries an affiliated organization, an address,
- * or a phone.
+ * The field paths a party's organization, address, and contact lines print
+ * from.
  *
- * `Party` (`Person | Organization`) carries only name-shaped fields — the
- * artifact's own schema has no place for a party's address or contact
- * details. A composition that wants `Party`'s organization, address, and
- * contact lines fills that role's data with a record shaped like this
- * instead; a member the record does not carry is left off the printed
- * block, never printed blank.
+ * A party record carries only its name-shaped person or organization
+ * members. What else a document prints about a party lives in fields the
+ * artifact declares beside it, each with its own label, requiredness, and
+ * layer binding, so a party block names those fields rather than reading
+ * members the record does not have. Each path resolves as a `Field` path does;
+ * for a role filled more than once, pass the list item's concrete path, such
+ * as `witnessContacts.1.address`, for each index.
  */
-export type PartyWithContact = Party & {
-  organization?: Organization | string;
-  address?: Address;
-  phone?: Phone | string;
-};
+export interface PartyContactPaths {
+  /** Path of the field naming the organization the party acts for. */
+  organization?: string;
+  /** Path of the party's address field. */
+  address?: string;
+  /** Path of the party's contact field, or several (a phone and an email) printed together. */
+  contact?: string | readonly string[];
+}
 
 /**
  * Raised when a role's filled parties do not reach `index` in a finished
@@ -45,45 +47,48 @@ export interface PartyContactBinding {
   roleLabel: string;
   /** The party's own name, or an organization's name and legal details, through the shared formatter. */
   nameText: string;
-  /**
-   * The affiliated organization's formatted name and details, when the
-   * filled party record carries an `organization` member beyond the
-   * artifact's own person/organization schema. Undefined, not blank, when
-   * the record carries none.
-   */
+  /** The bound organization field's text. Undefined when no path is bound or the field is blank. */
   organizationText?: string;
-  /** The party's formatted address, when the record carries one. */
+  /** The bound address field's text. Undefined when no path is bound or the field is blank. */
   addressText?: string;
-  /** The party's formatted phone, when the record carries one. */
+  /**
+   * The bound contact fields' texts, joined into one line. Undefined when no
+   * path is bound or every bound field is blank.
+   */
   contactText?: string;
 }
 
 // The same placeholder `useSignature` (`../headless/signing.ts`) prints for a
-// party's own name, kept here for its extension members too: a party mid-fill
-// — an organization whose name has not been answered yet, say — is the normal
-// state of a document being filled, not a fault, so it prints a placeholder
-// rather than throwing formatting a record that is not finished.
+// party's own name: a party mid-fill, an organization whose name has not been
+// answered yet, say, is the normal state of a document being filled, not a
+// fault, so it prints a placeholder rather than throwing.
 const PARTY_PROGRESSIVE = { progressive: { missing: "—", incomplete: "—" } };
 
-function formatExtension(kind: "organization" | "address" | "phone", value: unknown, formatter: Formatter, path: string): string | undefined {
-  if (value === undefined || value === null) return undefined;
-  return formatByType(kind, value, formatter, undefined, path, PARTY_PROGRESSIVE.progressive);
+const EMPTY_PATHS: PartyContactPaths = {};
+
+function lineText(bindings: readonly FieldBinding[]): string | undefined {
+  const texts = bindings.filter((binding) => !binding.blank).map((binding) => binding.text);
+  return texts.length > 0 ? texts.join(", ") : undefined;
 }
 
 /**
- * Resolves one party's contact presentation without rendering its markup.
+ * Resolves one party's presentation without rendering its markup: its name
+ * from the party record, and its organization, address, and contact lines
+ * from the fields `paths` names.
  *
- * The artifact's own `Person`/`Organization` schema carries only name-shaped
- * fields; a filled party record beyond that may carry its own `organization`,
- * `address`, or `phone` member (a person signing for a firm, say), each
- * formatted through the same shared formatter a `Field` reads through.
+ * Each bound path reads and formats exactly as `useField` does, so an
+ * unresolved path fails by name, or is reported to a check. A bound field
+ * that is blank is left off, so an optional line never prints empty.
  */
-export function usePartyContact(role: string, index = 0): PartyContactBinding {
+export function usePartyContact(role: string, index = 0, paths: PartyContactPaths = EMPTY_PATHS): PartyContactBinding {
   const artifact = useArtifact();
   const parties = useParty(role);
   const formatter = useFormatter();
   const collector = useUnresolvedPathCollector();
   const partialPlaceholder = usePartialPlaceholder();
+  const contactPaths = paths.contact === undefined ? [] : typeof paths.contact === "string" ? [paths.contact] : paths.contact;
+  const bound = [paths.organization, paths.address].filter((path): path is string => path !== undefined);
+  const fields = useFields([...bound, ...contactPaths]);
   const definition = artifact.parties?.[role];
   const roleLabel = definition?.label ?? role;
   const party = parties[index];
@@ -104,15 +109,10 @@ export function usePartyContact(role: string, index = 0): PartyContactBinding {
 
   const path = `parties.${role}[${index}]`;
   const nameText = String(formatParties(formatter, artifact, party, path, PARTY_PROGRESSIVE, role) ?? "—");
-  const record = party as PartyWithContact;
+  let next = 0;
+  const organizationText = paths.organization === undefined ? undefined : lineText([fields[next++]!]);
+  const addressText = paths.address === undefined ? undefined : lineText([fields[next++]!]);
+  const contactText = contactPaths.length === 0 ? undefined : lineText(fields.slice(next));
 
-  return {
-    role,
-    index,
-    roleLabel,
-    nameText,
-    organizationText: formatExtension("organization", record.organization, formatter, `${path}.organization`),
-    addressText: formatExtension("address", record.address, formatter, `${path}.address`),
-    contactText: formatExtension("phone", record.phone, formatter, `${path}.phone`),
-  };
+  return { role, index, roleLabel, nameText, organizationText, addressText, contactText };
 }

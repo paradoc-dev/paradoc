@@ -6,16 +6,33 @@ import type { Form } from "@paradoc/types";
 
 import {
   ArtifactProvider,
+  CheckModeProvider,
   PartialValuesProvider,
   PartyIndexOutOfRangeError,
   UnknownPartyRoleError,
+  UnknownFieldPathError,
   usePartyContact,
   type FormatOptions,
+  type PartyContactPaths,
 } from "../src";
 
 const artifact = {
   name: "party-bindings",
-  fields: {},
+  fields: {
+    buyerOrganization: { type: "organization", label: "Buyer organization" },
+    buyerAddress: { type: "address", label: "Buyer address" },
+    buyerPhone: { type: "phone", label: "Buyer phone" },
+    buyerEmail: { type: "email", label: "Buyer email" },
+    witnessContacts: {
+      type: "list",
+      label: "Witness contacts",
+      item: {
+        type: "fieldset",
+        label: "Witness contact",
+        fields: { address: { type: "address", label: "Address" } },
+      },
+    },
+  },
   parties: {
     buyer: { label: "Buyer", partyType: "person", min: 1, max: 1 },
     witness: { label: "Witness", partyType: "person", min: 0, max: 3 },
@@ -23,15 +40,18 @@ const artifact = {
 } as unknown as Form;
 
 const data = {
-  fields: {},
+  fields: {
+    buyerOrganization: { name: "Northgate Systems" },
+    buyerAddress: { line1: "1400 Rio Grande Street", locality: "Austin", region: "TX", postalCode: "78701", country: "US" },
+    buyerPhone: { number: "+15125550123" },
+    buyerEmail: "dana@northgate.example",
+    witnessContacts: [
+      { address: { line1: "12 First Street", locality: "Austin", region: "TX", postalCode: "78702", country: "US" } },
+      { address: { line1: "88 Wharf Road", locality: "Oakland", region: "CA", postalCode: "94607", country: "US" } },
+    ],
+  },
   parties: {
-    buyer: {
-      id: "buyer-0",
-      name: "Dana Whitfield",
-      organization: { name: "Northgate Systems" },
-      address: { line1: "1400 Rio Grande Street", locality: "Austin", region: "TX", postalCode: "78701", country: "US" },
-      phone: { number: "+15125550123" },
-    },
+    buyer: { id: "buyer-0", name: "Dana Whitfield" },
     witness: [
       { id: "witness-0", name: "First Witness" },
       { id: "witness-1", name: "Second Witness" },
@@ -39,8 +59,14 @@ const data = {
   },
 };
 
-function Report({ role, index }: { role: string; index?: number }) {
-  const binding = usePartyContact(role, index);
+const buyerPaths: PartyContactPaths = {
+  organization: "buyerOrganization",
+  address: "buyerAddress",
+  contact: ["buyerPhone", "buyerEmail"],
+};
+
+function Report({ role, index, paths }: { role: string; index?: number; paths?: PartyContactPaths }) {
+  const binding = usePartyContact(role, index, paths);
   return (
     <p>
       {binding.nameText}|{binding.organizationText ?? "none"}|{binding.addressText ?? "none"}|{binding.contactText ?? "none"}
@@ -48,47 +74,50 @@ function Report({ role, index }: { role: string; index?: number }) {
   );
 }
 
-function renderReport(role: string, index?: number) {
+function renderReport(role: string, index?: number, paths?: PartyContactPaths, fields: Record<string, unknown> = data.fields) {
   return renderToStaticMarkup(
-    <ArtifactProvider artifact={artifact} data={data}>
-      <Report role={role} index={index} />
+    <ArtifactProvider artifact={artifact} data={{ ...data, fields }}>
+      <Report role={role} index={index} paths={paths} />
     </ArtifactProvider>
   );
 }
 
 describe("usePartyContact", () => {
-  it("formats a single-filled party's name, organization, address, and contact through the shared formatter", () => {
-    const html = renderReport("buyer");
-    expect(html).toContain("Dana Whitfield");
-    expect(html).toContain("Northgate Systems");
-    expect(html).toContain("1400 Rio Grande Street");
-    expect(html).toContain("+15125550123");
+  it("prints the party's name from its record and its other lines from the fields its paths name", () => {
+    const html = renderReport("buyer", 0, buyerPaths);
+    expect(html).toContain("Dana Whitfield|Northgate Systems|1400 Rio Grande Street");
+    expect(html).toContain("+15125550123, dana@northgate.example");
   });
 
-  it("omits a member the party record does not carry, rather than printing it blank", () => {
-    const html = renderReport("witness", 0);
-    expect(html).toContain("First Witness|none|none|none");
+  it("prints only the name when no paths are bound", () => {
+    expect(renderReport("buyer")).toContain("Dana Whitfield|none|none|none");
   });
 
-  it("selects the party at the given index for a role filled more than once", () => {
-    expect(renderReport("witness", 0)).toContain("First Witness");
-    expect(renderReport("witness", 1)).toContain("Second Witness");
+  it("leaves off a bound line whose field is blank", () => {
+    const html = renderReport("buyer", 0, buyerPaths, { buyerEmail: "dana@northgate.example" });
+    expect(html).toContain("Dana Whitfield|none|none|dana@northgate.example");
   });
 
-  it("prints a placeholder rather than throwing for a party mid-fill", () => {
-    // An organization whose name has not been answered yet is the normal
-    // state of a document being filled, not a fault — the same treatment
-    // `useSignature` gives a party's own name.
-    const midFill = {
-      fields: {},
-      parties: { buyer: { id: "buyer-0", name: "Dana Whitfield", organization: {} } },
-    };
+  it("binds each party of a multiply-filled role to its own list item", () => {
+    expect(renderReport("witness", 0, { address: "witnessContacts.0.address" })).toContain("First Witness|none|12 First Street");
+    expect(renderReport("witness", 1, { address: "witnessContacts.1.address" })).toContain("Second Witness|none|88 Wharf Road");
+  });
+
+  it("fails a path the artifact does not declare by name", () => {
+    expect(() => renderReport("buyer", 0, { address: "buyerHome" })).toThrow(UnknownFieldPathError);
+  });
+
+  it("reports a path the artifact does not declare to a check instead of throwing", () => {
+    const reported: string[] = [];
     const html = renderToStaticMarkup(
-      <ArtifactProvider artifact={artifact} data={midFill}>
-        <Report role="buyer" />
-      </ArtifactProvider>
+      <CheckModeProvider collector={{ report: (path) => reported.push(path) }}>
+        <ArtifactProvider artifact={artifact} data={data}>
+          <Report role="buyer" paths={{ address: "buyerHome" }} />
+        </ArtifactProvider>
+      </CheckModeProvider>
     );
-    expect(html).toContain("Dana Whitfield|—|none|none");
+    expect(reported).toEqual(["buyerHome"]);
+    expect(html).toContain("Dana Whitfield|none|none|none");
   });
 
   it("fails an undeclared role by name", () => {

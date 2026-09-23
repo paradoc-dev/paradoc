@@ -1,14 +1,13 @@
 ---
 title: Party
-description: One party of a declared role — name, organization, address, and contact — as a block or inline, through the shared formatter.
+description: One party of a declared role, with the organization, address, and contact fields beside it, as a block or inline, through the shared formatter.
 ---
 
-`Party` prints one party of an artifact-declared role as a whole thing,
-rather than field by field: its name, its affiliated organization, its
-address, and its contact line, each through the same shared formatter a
-[`Field`](/components/field) reads through. It reads no member it does not
-find, so a party carrying only a name prints only a name — nothing prints
-blank.
+`Party` prints one party of an artifact-declared role as one kept-together
+block: its name from the party record, then the organization, address, and
+contact lines from the fields you name, each through the same shared
+formatter a [`Field`](/components/field) reads through. A line with no path,
+or whose field is blank, is left out, so nothing prints empty.
 
 ## Preview
 
@@ -30,14 +29,21 @@ a role a document may fill more than once. `Party` is a `Keep Together`, so
 it is never split across a page break, and it carries `data-party-role` and
 `data-party-index` the way a `Field` carries `data-field-path`.
 
-The artifact's own person/organization schema carries only name-shaped
-fields — it has no place for an address or a phone. A party record that
-also carries its own `organization`, `address`, or `phone` member (a person
-signing for a firm, say) has each one printed as its own line; a member the
-record does not carry is left out rather than printed blank. `role` names an
-undeclared role, and `index` a party past how many the role was actually
-filled with, each fail by name the same way an unknown [`Field`](/components/field)
-path does — including an optional role (`min: 0`) a document has not filled
+A party record carries only name-shaped person or organization members.
+Where a party is, how to reach it, and whom it acts for are fields the
+artifact declares beside the role, each with its own label, requiredness,
+and layer binding. `organization`, `address`, and `contact` name those
+fields by path; `contact` takes one path or several (a phone and an email),
+printed on one line. For a role filled more than once, bind each index to
+its own list item, such as `address="tenants.1.address"`.
+
+```tsx
+<Party role="buyer" organization="buyerOrganization" address="buyerAddress" contact={["buyerPhone", "buyerEmail"]} />
+```
+
+`role` names an undeclared role, `index` a party past how many the role was
+actually filled with, and a path a field the artifact does not declare: each
+fails by name the same way an unknown [`Field`](/components/field) path does — including an optional role (`min: 0`) a document has not filled
 at all, where index `0` is already past the parties it carries. `Party`
 never prints a placeholder for a party that is not there, unlike
 [`Signature`](/components/signature)'s em dash for the same case: a

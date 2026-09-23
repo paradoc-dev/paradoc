@@ -10,7 +10,7 @@
  */
 
 import type { Form } from '../schemas/artifacts'
-import type { Party, Signer, PartySignatory } from './index'
+import type { RuntimeParty, Signer, PartySignatory } from './index'
 
 // ============================================================================
 // Signing Field Types
@@ -88,7 +88,7 @@ export interface SealingRequest<F extends Form = Form> {
 	/** Field values keyed by field identifier. */
 	fields: Record<string, unknown>
 	/** Party data keyed by role identifier. */
-	parties: Record<string, Party | Party[]>
+	parties: Record<string, RuntimeParty | RuntimeParty[]>
 	/** Global registry of signers with their adopted signatures. */
 	signers: Record<string, Signer>
 	/** Maps parties to their signatories. Structure: role -> partyId -> signatories. */

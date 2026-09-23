@@ -538,7 +538,7 @@ export class FormRuleViolationError extends Error {
 
 interface CompleteFormData {
 	fields: Record<string, unknown>
-	parties: Record<string, Party | Party[]>
+	parties: Record<string, RuntimeParty | RuntimeParty[]>
 	annexes: Record<string, unknown>
 }
 
@@ -866,8 +866,8 @@ interface RuntimeFormBase<F extends Form> {
 	/** Field values */
 	readonly fields: Record<string, unknown>
 
-	/** Party data indexed by role ID */
-	readonly parties: Record<string, Party | Party[]>
+	/** Party data indexed by role ID. Each party carries its `<role>-<index>` id. */
+	readonly parties: Record<string, RuntimeParty | RuntimeParty[]>
 
 	/** Fixed evaluation context captured when this instance was created. */
 	readonly context: RuntimeContext
@@ -891,8 +891,8 @@ interface RuntimeFormBase<F extends Form> {
 	getAllFields(): ExtractFields<F>
 
 	// Party Access
-	getParty<R extends PartyRoleKeys<F>>(roleId: R): Party | Party[] | undefined
-	getParties<R extends PartyRoleKeys<F>>(roleId: R): Party[]
+	getParty<R extends PartyRoleKeys<F>>(roleId: R): RuntimeParty | RuntimeParty[] | undefined
+	getParties<R extends PartyRoleKeys<F>>(roleId: R): RuntimeParty[]
 	getPartyCount<R extends PartyRoleKeys<F>>(roleId: R): number
 
 	// Signer Access
@@ -984,8 +984,17 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	updateFields(partial: DeepPartial<ExtractFields<F>>): DraftForm<F>
 
 	// Party Mutation
+	/**
+	 * Replace a role's parties. Each party is validated for the role and
+	 * given its `<role>-<index>` id; a supplied id must already match it.
+	 */
 	setParty<R extends PartyRoleKeys<F>>(roleId: R, party: Party | Party[]): DraftForm<F>
+	/** Append a party to a multiply-filled role, assigning the next `<role>-<index>` id. */
 	addParty<R extends PartyRoleKeys<F>>(roleId: R, party: Party): DraftForm<F>
+	/**
+	 * Remove the party at `index`. Later parties move down one index, take the
+	 * matching `<role>-<index>` id, and keep their signatories.
+	 */
 	removeParty<R extends PartyRoleKeys<F>>(roleId: R, index: number): DraftForm<F>
 
 	// Signer Mutation
@@ -1213,7 +1222,7 @@ class RuntimeStateMap<K, V> extends Map<K, V> {
 interface RuntimeFormConfigBase<F extends Form> {
 	form: F
 	fields: Record<string, unknown>
-	parties: Record<string, Party | Party[]>
+	parties: Record<string, RuntimeParty | RuntimeParty[]>
 	annexes: Record<string, unknown>
 	signers: Record<string, Signer>
 	signatories: Record<string, Record<string, PartySignatory[]>>
@@ -1357,10 +1366,20 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		}
 	}
 
-	const getPartiesInternal = (roleId: string): Party[] => {
+	const getPartiesInternal = (roleId: string): RuntimeParty[] => {
 		const p = partyValues[roleId]
 		if (!p) return []
 		return Array.isArray(p) ? p : [p]
+	}
+
+	/**
+	 * Validate a role's parties and give each its `<role>-<index>` id, so every
+	 * party a form holds carries the id signatories and captures reference.
+	 */
+	const normalizeRoleParties = (roleId: string, value: unknown): RuntimeParty | RuntimeParty[] => {
+		const result = validateProgressivePartiesPatch(formDef, { [roleId]: value })
+		if (!result.success) throw new FormValidationError(result.errors)
+		return result.value[roleId]!
 	}
 
 	const ensureDraft = (operation: string): void => {
@@ -1394,7 +1413,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		}
 		validateRoleId(role)
 		const partyExists = getPartiesInternal(role).some(
-			(party, index) => ((party as { id?: string }).id ?? `${role}-${index}`) === partyId,
+			(party) => party.id === partyId,
 		)
 		if (!partyExists) {
 			throw new Error(`Cannot ${operation}: party "${partyId}" not found for role "${role}"`)
@@ -1462,20 +1481,16 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		return _runtimeStateView
 	}
 
-	const augmentPartiesForRender = (): Record<string, Party | Party[]> => {
-		const augmented: Record<string, Party | Party[]> = {}
+	const augmentPartiesForRender = (): Record<string, RuntimeParty | RuntimeParty[]> => {
+		const augmented: Record<string, RuntimeParty | RuntimeParty[]> = {}
 
 		for (const [roleId, partyOrParties] of Object.entries(partyValues)) {
 			const roleSignatories = signatoryValues[roleId] ?? {}
 
 			if (Array.isArray(partyOrParties)) {
-				augmented[roleId] = partyOrParties.map((party) => {
-					const partyId = (party as { id?: string }).id
-					return augmentParty(party, roleId, partyId, roleSignatories)
-				})
+				augmented[roleId] = partyOrParties.map((party) => augmentParty(party, roleId, roleSignatories))
 			} else {
-				const partyId = (partyOrParties as { id?: string }).id
-				augmented[roleId] = augmentParty(partyOrParties, roleId, partyId, roleSignatories)
+				augmented[roleId] = augmentParty(partyOrParties, roleId, roleSignatories)
 			}
 		}
 
@@ -1483,18 +1498,17 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 	}
 
 	const augmentParty = (
-		party: Party,
+		party: RuntimeParty,
 		roleId: string,
-		partyId: string | undefined,
 		roleSignatories: Record<string, PartySignatory[]>,
-	): Party & { _role: string; signatories: Array<PartySignatory & { signer: Signer; _role: string; _partyId: string }> } => {
-		const partySignatories = partyId ? (roleSignatories[partyId] ?? []) : []
+	): RuntimeParty & { _role: string; signatories: Array<PartySignatory & { signer: Signer; _role: string; _partyId: string }> } => {
+		const partySignatories = roleSignatories[party.id] ?? []
 
 		const resolvedSignatories = partySignatories.map((signatory) => ({
 			...signatory,
 			signer: signerValues[signatory.signerId]!,
 			_role: roleId,
-			_partyId: partyId ?? '',
+			_partyId: party.id,
 		}))
 
 		return {
@@ -1598,15 +1612,15 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// Party Access
 		// ============================================================================
 
-		getParty<R extends PartyRoleKeys<F>>(roleId: R): Party | Party[] | undefined {
+		getParty<R extends PartyRoleKeys<F>>(roleId: R): RuntimeParty | RuntimeParty[] | undefined {
 			validateRoleId(roleId)
 			return partiesView[roleId]
 		},
 
-		getParties<R extends PartyRoleKeys<F>>(roleId: R): Party[] {
+		getParties<R extends PartyRoleKeys<F>>(roleId: R): RuntimeParty[] {
 			validateRoleId(roleId)
 			const parties = partiesView[roleId]
-			return deepReadonlyClone((Array.isArray(parties) ? parties : parties ? [parties] : []) as Party[])
+			return deepReadonlyClone(Array.isArray(parties) ? parties : parties ? [parties] : [])
 		},
 
 		getPartyCount<R extends PartyRoleKeys<F>>(roleId: R): number {
@@ -1623,7 +1637,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			validateRoleId(roleId)
 			return createRuntimeForm({
 				...config,
-				parties: { ...partyValues, [roleId]: party },
+				parties: { ...partyValues, [roleId]: normalizeRoleParties(roleId, party) },
 			})
 		},
 
@@ -1631,9 +1645,17 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			ensureDraft('addParty')
 			validateRoleId(roleId)
 			const currentParties = getPartiesInternal(roleId)
+			const max = formDef.parties?.[roleId]?.max ?? 1
+			if (max <= 1 && currentParties.length > 0) {
+				throw new Error(`Cannot addParty: role "${roleId}" accepts a single party and already has one. Use setParty to replace it.`)
+			}
+			const nextParties = [...currentParties, party]
 			return createRuntimeForm({
 				...config,
-				parties: { ...partyValues, [roleId]: [...currentParties, party] },
+				parties: {
+					...partyValues,
+					[roleId]: normalizeRoleParties(roleId, max > 1 ? nextParties : nextParties[0]),
+				},
 			})
 		},
 
@@ -1642,25 +1664,48 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			validateRoleId(roleId)
 			const currentParties = getPartiesInternal(roleId)
 
-			if (index < 0 || index >= currentParties.length) {
+			if (!Number.isInteger(index) || index < 0 || index >= currentParties.length) {
 				throw new Error(`Invalid party index ${index} for role "${roleId}". Valid indices: 0-${currentParties.length - 1}`)
 			}
 
-			const newParties = [...currentParties]
-			newParties.splice(index, 1)
-
+			// Later parties move down one index, so each takes the id of its new
+			// position and brings its signatories along.
+			const remaining = currentParties
+				.filter((_, partyIndex) => partyIndex !== index)
+				.map(({ id: _id, ...party }) => party)
 			const newPartiesRecord = { ...partyValues }
-			if (newParties.length === 0) {
+			if (remaining.length === 0) {
 				delete newPartiesRecord[roleId]
-			} else if (newParties.length === 1) {
-				newPartiesRecord[roleId] = newParties[0]!
 			} else {
-				newPartiesRecord[roleId] = newParties
+				newPartiesRecord[roleId] = normalizeRoleParties(roleId, remaining)
+			}
+
+			const newSignatories = { ...signatoryValues }
+			const roleSignatories = signatoryValues[roleId]
+			if (roleSignatories) {
+				const partyIds = new Set(currentParties.map((party) => party.id))
+				const movedSignatories: Record<string, PartySignatory[]> = {}
+				for (const [partyId, signatories] of Object.entries(roleSignatories)) {
+					if (!partyIds.has(partyId)) movedSignatories[partyId] = signatories
+				}
+				currentParties.forEach((party, partyIndex) => {
+					if (partyIndex === index) return
+					const signatories = roleSignatories[party.id]
+					if (!signatories) return
+					const newIndex = partyIndex < index ? partyIndex : partyIndex - 1
+					movedSignatories[`${roleId}-${newIndex}`] = signatories
+				})
+				if (Object.keys(movedSignatories).length === 0) {
+					delete newSignatories[roleId]
+				} else {
+					newSignatories[roleId] = movedSignatories
+				}
 			}
 
 			return createRuntimeForm({
 				...config,
 				parties: newPartiesRecord,
+				signatories: newSignatories,
 			})
 		},
 
@@ -1771,7 +1816,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			ensureDraft('update')
 
 			const patchFields = (patch as Record<string, unknown>).fields as Record<string, unknown> | undefined
-			const patchParties = (patch as Record<string, unknown>).parties as Record<string, Party | Party[]> | undefined
+			const patchParties = (patch as Record<string, unknown>).parties
 			const patchAnnexes = (patch as Record<string, unknown>).annexes as Record<string, unknown> | undefined
 
 			let validatedFields = mergePatchValues(fieldValues, patchFields)
@@ -2077,8 +2122,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const formParty = formDef.parties?.[roleId]
 			const signatureRequired = formParty?.signature?.required ?? false
 
-			const partyStatuses = roleParties.map((party, index) => {
-				const partyId = (party as { id?: string }).id ?? `${roleId}-${index}`
+			const partyStatuses = roleParties.map((party) => {
+				const partyId = party.id
 				const partySignatories = roleSignatories[partyId] ?? []
 				const hasSignatory = partySignatories.length > 0
 				const hasCapture = partySignatories.some((s) =>
@@ -2738,8 +2783,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
 
 					for (let i = 0; i < partyArray.length; i++) {
-						const party = partyArray[i] as { id?: string }
-						const partyId = party.id ?? `${roleId}-${i}`
+						const partyId = partyArray[i]!.id
 						const partySignatories = roleSignatories[partyId] ?? []
 						if (partySignatories.length > 0) {
 							// Use the first signatory's signerId for this party
@@ -2844,8 +2888,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
 
 					for (let i = 0; i < partyArray.length; i++) {
-						const party = partyArray[i] as { id?: string }
-						const partyId = party.id ?? `${roleId}-${i}`
+						const partyId = partyArray[i]!.id
 						const partySignatories = roleSignatories[partyId] ?? []
 						if (partySignatories.length > 0) {
 							anchorSignerMap.set(`${roleId}:${i}`, partySignatories[0]!.signerId)
@@ -3223,6 +3266,21 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 }
 
 /**
+ * Check rehydrated parties against the form's roles and their
+ * `<role>-<index>` ids, so a loaded form holds the same party shape a filled
+ * one does.
+ */
+function normalizeRehydratedParties(
+	formDef: Form,
+	parties: Record<string, RuntimeParty | RuntimeParty[]> | undefined,
+): Record<string, RuntimeParty | RuntimeParty[]> {
+	if (!parties || Object.keys(parties).length === 0) return {}
+	const result = validateProgressivePartiesPatch(formDef, parties)
+	if (!result.success) throw new FormValidationError(result.errors)
+	return result.value
+}
+
+/**
  * Load a RuntimeForm from JSON.
  *
  * A resolver is behavior, not data, so it is not in the JSON: bind it here to
@@ -3237,7 +3295,7 @@ export function runtimeFormFromJSON<F extends Form>(
 	const config = {
 		form: snapshotArtifactDefinition(json.form),
 		fields: json.fields,
-		parties: json.parties,
+		parties: normalizeRehydratedParties(json.form, json.parties),
 		annexes: json.annexes,
 		signers: json.signers,
 		signatories: json.signatories,
@@ -3331,7 +3389,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const defaultedFields = validateFormData(fieldsOnlyForm, { fields }, { applyDefaults: true })
 			if (!defaultedFields.success) throw new FormValidationError(defaultedFields.errors)
 			let validatedFields = (defaultedFields.data as { fields?: Record<string, unknown> }).fields ?? {}
-			let validatedParties: Record<string, Party | Party[]> = {}
+			let validatedParties: Record<string, RuntimeParty | RuntimeParty[]> = {}
 			let validatedAnnexes: Record<string, unknown> = {}
 			if (Object.keys(parties as Record<string, unknown>).length > 0) {
 				const partyResult = validateProgressivePartiesPatch(formDef, parties)

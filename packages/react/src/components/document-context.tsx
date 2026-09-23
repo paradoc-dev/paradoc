@@ -20,11 +20,12 @@ export interface DocumentData {
   /** Field values keyed the way the artifact names its fields. */
   fields: Record<string, unknown>;
   /**
-   * Parties keyed by role, exactly as `FormData` carries them.
+   * Parties keyed by role, as `FormData` carries them.
    *
-   * A document prints a party; it never needs the runtime id one carries, so
-   * this is the wider `Party` rather than `RuntimeParty`. That is what a render
-   * request hands over, so nothing has to assert an id that may not be there.
+   * A document prints a party; it never needs the `<role>-<index>` id a filled
+   * form gives each one, so this is the wider `Party` rather than
+   * `RuntimeParty`. A render request's parties fit it as they are, and sample
+   * data for a composition need not carry ids.
    */
   parties: Record<string, Party | Party[]>;
   /**

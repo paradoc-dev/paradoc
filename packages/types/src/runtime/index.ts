@@ -17,12 +17,14 @@ export type Party = Person | Organization;
 /**
  * RuntimeParty
  *
- * Party (Person or Organization) with required ID for runtime execution context.
- * The ID is user-supplied and can be any format (UUID, email, etc.).
- * Used for signature and witness tracking.
+ * Party (Person or Organization) with the ID a filled form assigns it.
+ * Core derives the ID from the party's position in its role, as
+ * `<role>-<index>` (for example `buyer-0`, `witness-1`), and keeps it in step
+ * when parties are added or removed. Signatories, captures and attestations
+ * reference parties by this ID.
  */
 export type RuntimeParty = (Person | Organization) & {
-	/** Unique identifier for this party in the execution context. */
+	/** The party's `<role>-<index>` ID, assigned by core. */
 	id: string;
 };
 
@@ -96,7 +98,7 @@ export interface PartySignatory {
 export interface SignatureCapture {
 	/** The role ID of the party (e.g., "landlord", "tenant"). */
 	role: string;
-	/** The party ID (user-supplied, any format). */
+	/** The party's `<role>-<index>` ID (see RuntimeParty). */
 	partyId: string;
 	/** The signer ID (references signers registry). */
 	signerId: string;
@@ -155,7 +157,7 @@ export interface FormData {
 	/** Field values keyed by field identifier. */
 	fields: Record<string, unknown>;
 	/** Party data keyed by role identifier. */
-	parties?: Record<string, Party | Party[]>;
+	parties?: Record<string, RuntimeParty | RuntimeParty[]>;
 	/**
 	 * Global registry of signers with their adopted signatures.
 	 * Keyed by signer ID. One signer can sign for multiple parties.
@@ -298,7 +300,7 @@ export interface DraftFormJSON<F = unknown> {
 	/** Field values keyed by field identifier. */
 	fields: Record<string, unknown>;
 	/** Party data keyed by role identifier. */
-	parties: Record<string, Party | Party[]>;
+	parties: Record<string, RuntimeParty | RuntimeParty[]>;
 	/** Annex data keyed by annex identifier. */
 	annexes: Record<string, unknown>;
 	/** Global registry of signers with their adopted signatures. */
@@ -328,7 +330,7 @@ export interface SignableFormJSON<F = unknown> {
 	/** Field values keyed by field identifier (frozen). */
 	fields: Record<string, unknown>;
 	/** Party data keyed by role identifier (frozen). */
-	parties: Record<string, Party | Party[]>;
+	parties: Record<string, RuntimeParty | RuntimeParty[]>;
 	/** Annex data keyed by annex identifier (frozen). */
 	annexes: Record<string, unknown>;
 	/** Global registry of signers with their adopted signatures (frozen). */
@@ -371,7 +373,7 @@ export interface ExecutedFormJSON<F = unknown> {
 	/** Field values keyed by field identifier (frozen). */
 	fields: Record<string, unknown>;
 	/** Party data keyed by role identifier (frozen). */
-	parties: Record<string, Party | Party[]>;
+	parties: Record<string, RuntimeParty | RuntimeParty[]>;
 	/** Annex data keyed by annex identifier (frozen). */
 	annexes: Record<string, unknown>;
 	/** Global registry of signers with their adopted signatures (frozen). */

@@ -66,6 +66,16 @@ function resolveValue<T extends SignaturePlaceholderContext | SignatureCapturedC
   return value === undefined ? fallback : typeof value === 'function' ? value(context) : value
 }
 
+/**
+ * A party as a filled form hands it to renderers: its runtime record, with
+ * its `<role>-<index>` id, plus its role and resolved signatories.
+ */
+type RenderParty = RuntimeParty & { _role: string; signatories?: unknown }
+
+function isRenderParty(value: Record<string, unknown>): value is Record<string, unknown> & RenderParty {
+  return typeof value._role === 'string' && typeof value.id === 'string'
+}
+
 function resolveContext(value: unknown): ResolvedContext | undefined {
   if (!value || typeof value !== 'object') return undefined
   const context = value as Record<string, unknown>
@@ -82,7 +92,7 @@ function resolveContext(value: unknown): ResolvedContext | undefined {
       capacity: context.capacity as string | undefined,
     }
   }
-  if (typeof context._role === 'string' && typeof context.id === 'string' && !context.signerId) {
+  if (isRenderParty(context) && !context.signerId) {
     const signatory = Array.isArray(context.signatories)
       ? context.signatories[0] as Record<string, unknown> | undefined
       : undefined
@@ -90,7 +100,7 @@ function resolveContext(value: unknown): ResolvedContext | undefined {
       role: context._role,
       partyId: context.id,
       signerId: typeof signatory?.signerId === 'string' ? signatory.signerId : '',
-      party: context as unknown as RuntimeParty,
+      party: context,
       signer: signatory?.signer as Signer | undefined,
       capacity: signatory?.capacity as string | undefined,
     }

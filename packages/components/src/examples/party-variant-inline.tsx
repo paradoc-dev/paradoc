@@ -15,7 +15,14 @@ import { partyDemoData } from "./party-demo-data";
 export function PartyVariantInline() {
   return (
     <Document artifact={partyDemoForm} data={partyDemoData} id="party-variant-inline">
-      <Party role="buyer" variant="inline" label={false} />
+      <Party
+        role="buyer"
+        organization="buyerOrganization"
+        address="buyerAddress"
+        contact="buyerPhone"
+        variant="inline"
+        label={false}
+      />
     </Document>
   );
 }

@@ -244,17 +244,20 @@ value is a def the artifact evaluates and a serializer formats.
 
 ### `Party`
 
-One party of a declared role — name, organization, address, and contact
-each on its own line, as a block, or joined into one run inline — through
-the shared formatter. The artifact's own person/organization schema carries
-only name-shaped fields; a filled party record that also carries its own
-`organization`, `address`, or `phone` member has each one printed, and a
-member the record does not carry is left out rather than printed blank.
+One party of a declared role, as a block or joined into one run inline,
+through the shared formatter. The name comes from the party record, which
+carries only name-shaped person or organization members. The organization,
+address, and contact lines come from fields the artifact declares beside the
+role, named by path. A line with no path, or whose field is blank, is left
+out. Never put an address or phone on the party record: core refuses it.
 
 | Prop | Type | Notes |
 |---|---|---|
 | `role` | `string` | Party role declared by the artifact, e.g. `"buyer"`. |
 | `index` | `number?` | 0-based, for a role admitting several parties. Defaults to `0`. |
+| `organization` | `string?` | Path of the field naming the organization the party acts for. |
+| `address` | `string?` | Path of the party's address field. For a multiply-filled role, the item path, e.g. `"tenants.1.address"`. |
+| `contact` | `string \| string[]?` | Path of the contact field, or several (phone and email) printed on one line. |
 | `variant` | `"block" \| "inline"?` | `"block"` stacks each line; `"inline"` joins them into one run. Defaults to `"block"`. |
 | `label` | `string \| false?` | Overrides the role heading. `false` renders with no heading. |
 | `keepId` | `string?` | Keep id. Defaults to `` `party:${role}` `` or `` `party:${role}:${index}` `` past the first. |
@@ -262,14 +265,15 @@ member the record does not carry is left out rather than printed blank.
 
 A role the artifact does not declare throws `UnknownPartyRoleError`; an
 `index` past how many the role was actually filled with throws
-`PartyIndexOutOfRangeError` — both faults, never a blank. This includes an
+`PartyIndexOutOfRangeError`, and an undeclared path throws
+`UnknownFieldPathError`: all faults, never a blank. This includes an
 optional role (`min: 0`) nothing has filled yet: unlike `Signature`, which
 prints an em dash for the same case, `Party` fails rather than printing a
 placeholder for a party that is not there.
 
 ```tsx
-<Party role="buyer" />
-<Party role="witness" index={1} variant="inline" />
+<Party role="buyer" organization="buyerOrganization" address="buyerAddress" contact={["buyerPhone", "buyerEmail"]} />
+<Party role="witness" index={1} address="witnessContacts.1.address" variant="inline" />
 ```
 
 ### `Signature`

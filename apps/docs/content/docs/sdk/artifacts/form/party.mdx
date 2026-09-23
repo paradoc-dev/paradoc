@@ -269,15 +269,17 @@ Party type is inferred from shape:
 
 ### RuntimeParty
 
-`RuntimeParty` extends `Party` with a required `id` field for tracking in the execution context:
+`RuntimeParty` extends `Party` with the `id` a filled form gives each party. Signatories, captures, and attestations reference a party by it:
 
 ```typescript
 type RuntimeParty = (Person | Organization) & {
-  id: string  // Unique identifier for this party
+  id: string  // `<roleId>-<index>`, assigned by core
 }
 ```
 
-The ID convention is `{roleId}-{index}`:
+The id is always `{roleId}-{index}`, the party's position in its role. `fill`, `update`, `setParty`, `addParty`, and `runtimeFormFromJSON` assign it, so you can leave it out. An id you do supply must match that position, or the call throws. `removeParty` gives each later party the id of its new position and moves its signatories with it.
+
+A party record holds only its `Person` or `Organization` members. A member the schema does not declare, such as `address` or `phone`, is refused. Declare those as fields beside the party instead; the [`Party`](/components/party) component prints them by path.
 
 ```ts
 // Fill a form with party data (single parties)
@@ -285,13 +287,13 @@ const filled = form.fill({
   fields: { /* ... */ },
   parties: {
     buyer: {
-      id: 'buyer-0',  // Required ID
+      id: 'buyer-0',  // Optional: core assigns it
       name: 'John Smith',
       firstName: 'John',
       lastName: 'Smith'
     },
     seller: {
-      id: 'seller-0',  // Required ID
+      id: 'seller-0',  // Optional: core assigns it
       name: 'Acme Corporation, Inc.',
       entityType: 'corporation'
     }

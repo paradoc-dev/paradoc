@@ -1,18 +1,18 @@
 /**
  * A copy-owned party block. It reads one party of a declared role from the
- * headless runtime and prints its name, its affiliated organization, its
- * address, and its contact line, through the shared formatter, as a block
- * or inline.
+ * headless runtime and prints its name, then the organization, address, and
+ * contact lines the artifact keeps in fields beside the party, through the
+ * shared formatter, as a block or inline.
  *
- * The artifact's own person/organization schema carries only name-shaped
- * fields. A filled party record may carry its own `organization`, `address`,
- * or `phone` member beyond that schema — a person signing for a firm, say —
- * and each one prints as its own line when present. A member the record does
- * not carry is left out, never printed blank.
+ * A party record carries only its name-shaped person or organization
+ * members. The fields a document prints about a party (where it is, how to
+ * reach it, whom it acts for) are declared fields with their own labels and
+ * requiredness, and this block names them by path. A line with no path, or
+ * whose field is blank, is left out, never printed empty.
  */
 /** @jsxRuntime classic */
 import React from "react";
-import { scaleTextClasses, useDocumentTokens, usePartyContact } from "@paradoc/react";
+import { scaleTextClasses, useDocumentTokens, usePartyContact, type PartyContactPaths } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 export interface PartyProps {
@@ -23,6 +23,12 @@ export interface PartyProps {
    * @default 0
    */
   index?: number;
+  /** Path of the field naming the organization the party acts for, such as `"buyerOrganization"`. */
+  organization?: string;
+  /** Path of the party's address field, such as `"buyerAddress"`, or `"tenants.1.address"` for a list item. */
+  address?: string;
+  /** Path of the party's contact field, or several (a phone and an email) printed on one line. */
+  contact?: string | readonly string[];
   /**
    * `"block"` stacks the name, organization, address, and contact each on
    * their own line; `"inline"` joins them into one run for a sentence.
@@ -41,15 +47,24 @@ export interface PartyProps {
 }
 
 /** One party's presentation, for one declared role. */
-export function Party({ role, index = 0, variant = "block", label, keepId, className }: PartyProps) {
-  const binding = usePartyContact(role, index);
+export function Party({
+  role,
+  index = 0,
+  organization,
+  address,
+  contact,
+  variant = "block",
+  label,
+  keepId,
+  className,
+}: PartyProps) {
+  const paths: PartyContactPaths = { organization, address, contact };
+  const binding = usePartyContact(role, index, paths);
   const { typography } = useDocumentTokens();
   const heading = label === false ? undefined : (label ?? binding.roleLabel);
   const id = keepId ?? `party:${role}${index === 0 ? "" : `:${index}`}`;
-  // A member the binding leaves `undefined` is one the party record does not
-  // carry at all, so it is left off; a member the record carries but is still
-  // being filled comes back as the binding's own placeholder text and prints
-  // like any other in-progress value.
+  // A line the binding leaves `undefined` has no path bound or a blank field,
+  // so it is left off rather than printed empty.
   const lines = [binding.nameText, binding.organizationText, binding.addressText, binding.contactText].filter(
     (line): line is string => line !== undefined
   );

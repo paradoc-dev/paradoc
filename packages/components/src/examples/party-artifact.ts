@@ -1,7 +1,7 @@
 /**
  * A minimal form artifact for the `/components/party` docs page, declaring a
- * single-filled `buyer` role and a `witness` role a document may fill more
- * than once, so the page's demo and variants can show both an `index` and an
+ * single-filled `buyer` role, the fields its block prints beside the name,
+ * and a `witness` role a document may fill more than once, so the page's demo and variants can show both an `index` and an
  * `undeclared role`/`index past the filled parties` failure without pulling
  * in a full priced document.
  *
@@ -19,7 +19,29 @@ const partyDemoSpec = {
   version: "1.0.0",
   title: "Party Demo",
   description: "A minimal artifact declaring parties for the Party component's reference page.",
-  fields: {},
+  fields: {
+    buyerOrganization: {
+      type: "organization",
+      label: "Buyer organization",
+      description: "The organization the buyer acts for.",
+      required: false,
+      visible: true,
+    },
+    buyerAddress: {
+      type: "address",
+      label: "Buyer address",
+      description: "Where the buyer receives notices.",
+      required: true,
+      visible: true,
+    },
+    buyerPhone: {
+      type: "phone",
+      label: "Buyer phone",
+      description: "The buyer's daytime phone.",
+      required: false,
+      visible: true,
+    },
+  },
   parties: {
     buyer: {
       label: "Buyer",

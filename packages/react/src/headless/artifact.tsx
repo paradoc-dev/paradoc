@@ -220,21 +220,40 @@ function sameField(a: FieldBinding, b: FieldBinding): boolean {
   return a.field === b.field && Object.is(a.value, b.value) && a.text === b.text && a.blank === b.blank;
 }
 
+function selectField(snapshot: ArtifactSnapshot, path: string): FieldBinding {
+  let field: FormField;
+  try {
+    field = resolveField(snapshot.artifact, path);
+  } catch (error) {
+    if (!snapshot.collector) throw error;
+    snapshot.collector.report(path);
+    field = { type: "text", label: path, required: false, visible: true };
+  }
+  const value = readValue(snapshot.data.fields, path);
+  const text = formatOrReport(snapshot, path, () => snapshot.formatting.format(field, value, path));
+  return { field, value, text, blank: text === snapshot.formatting.blank };
+}
+
 /** Reads and formats one declared field path. */
 export function useField(path: string): FieldBinding {
-  return useSelection(`field:${path}`, (snapshot) => {
-    let field: FormField;
-    try {
-      field = resolveField(snapshot.artifact, path);
-    } catch (error) {
-      if (!snapshot.collector) throw error;
-      snapshot.collector.report(path);
-      field = { type: "text", label: path, required: false, visible: true };
-    }
-    const value = readValue(snapshot.data.fields, path);
-    const text = formatOrReport(snapshot, path, () => snapshot.formatting.format(field, value, path));
-    return { field, value, text, blank: text === snapshot.formatting.blank };
-  }, sameField);
+  return useSelection(`field:${path}`, (snapshot) => selectField(snapshot, path), sameField);
+}
+
+function sameFields(a: readonly FieldBinding[], b: readonly FieldBinding[]): boolean {
+  return a.length === b.length && a.every((binding, index) => sameField(binding, b[index]!));
+}
+
+/**
+ * Reads and formats several declared field paths, each exactly as `useField`
+ * reads its one, for a component binding a number of paths its props decide
+ * (a party's organization, address, and contact lines).
+ */
+export function useFields(paths: readonly string[]): readonly FieldBinding[] {
+  return useSelection(
+    `fields:${JSON.stringify(paths)}`,
+    (snapshot) => paths.map((path) => selectField(snapshot, path)),
+    sameFields
+  );
 }
 
 export interface AnnexBinding {

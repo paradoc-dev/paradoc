@@ -1,4 +1,4 @@
-import type { Form, Layer, SignatureSlot, SigningField } from '@paradoc/types'
+import type { Form, Layer, RuntimeParty, SignatureSlot, SigningField } from '@paradoc/types'
 
 /**
  * Unified signature-slot planning for seal().
@@ -60,7 +60,7 @@ export interface SealPreparation {
 interface PlanInput {
 	formDef: Form
 	slots: Record<string, SignatureSlot>
-	partyValues: Record<string, unknown>
+	partyValues: Record<string, RuntimeParty | RuntimeParty[]>
 	signatoryValues: Record<string, Record<string, { signerId: string }[]>>
 	/**
 	 * Slots compiled from legacy signatureBlocks/anchorBlocks keep legacy
@@ -70,7 +70,7 @@ interface PlanInput {
 	legacy?: boolean
 }
 
-const partyArrayFor = (partyValues: Record<string, unknown>, role: string): unknown[] => {
+const partyArrayFor = (partyValues: Record<string, RuntimeParty | RuntimeParty[]>, role: string): RuntimeParty[] => {
 	const parties = partyValues[role]
 	return Array.isArray(parties) ? parties : parties ? [parties] : []
 }
@@ -115,8 +115,7 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues, le
 	for (const [roleId, roleSignatories] of Object.entries(signatoryValues)) {
 		const partyArray = partyArrayFor(partyValues, roleId)
 		for (let index = 0; index < partyArray.length; index++) {
-			const party = partyArray[index] as { id?: string }
-			const partyId = party.id ?? `${roleId}-${index}`
+			const partyId = partyArray[index]!.id
 			const partySignatories = roleSignatories[partyId] ?? []
 			if (partySignatories.length > 0) {
 				signerMap.set(`${roleId}:${index}`, partySignatories[0]!.signerId)

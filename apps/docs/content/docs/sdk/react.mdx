@@ -69,7 +69,7 @@ An installed `Document` component wraps `ArtifactProvider` and the token provide
 | `useList(path)` | `ListBinding`: the list `field`, its `item` definition, `rows`, and `text(index, path?)` for one cell |
 | `useTotals(names)` | One `TotalBinding` (`name`, `label`, `value`, `text`) per computed definition in `defs`, in the order given |
 | `useParty(role)` | The parties filled for one declared role, always as an array |
-| `usePartyContact(role, index?)` | `PartyContactBinding`: `roleLabel`, `nameText`, and `organizationText`, `addressText`, `contactText` when present |
+| `usePartyContact(role, index?, paths?)` | `PartyContactBinding`: `roleLabel`, `nameText` from the party record, and `organizationText`, `addressText`, `contactText` from the fields `paths` names (`organization`, `address`, and `contact`, one path or several), each left undefined when unbound or blank |
 | `useAnnex(path)` | `AnnexBinding`: the annex slot, its `label`, the `attachment`, and its `text` |
 | `useAnnexPicture(path)` | `AnnexBinding` plus `picture`, set only when the attachment is an image |
 | `useFormatter()` | The formatter registry, for components that format values themselves |

@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 
 import { Document, Party } from "../src";
 import { readPdf } from "./pdf-reader";
-import { partyFixtureData as data, partyFixtureForm as artifact } from "./party-fixture";
+import { buyerPaths, partyFixtureData as data, partyFixtureForm as artifact, witnessPaths } from "./party-fixture";
 
 describe("Party PDF path", () => {
-  it("prints a block party's name, organization, address, and contact on the rendered page", async () => {
+  it("prints a block party's name and its bound organization, address, and contact on the rendered page", async () => {
     const element = (
       <Document artifact={artifact} data={data}>
-        <Party role="buyer" />
+        <Party role="buyer" {...buyerPaths} />
       </Document>
     );
     const { bytes } = await renderPdf(element);
@@ -20,12 +20,13 @@ describe("Party PDF path", () => {
     expect(text).toContain("Northgate Systems");
     expect(text).toContain("1400 Rio Grande Street");
     expect(text).toContain("+15125550123");
+    expect(text).toContain("dana@northgate.example");
   });
 
-  it("prints an inline party's name, organization, address, and contact on the rendered page", async () => {
+  it("prints an inline party's name and its bound organization, address, and contact on the rendered page", async () => {
     const element = (
       <Document artifact={artifact} data={data}>
-        <Party role="witness" index={1} variant="inline" label={false} />
+        <Party role="witness" index={1} variant="inline" label={false} {...witnessPaths(1)} />
       </Document>
     );
     const { bytes } = await renderPdf(element);

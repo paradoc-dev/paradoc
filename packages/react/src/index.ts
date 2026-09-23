@@ -172,7 +172,7 @@ export {
   PartyIndexOutOfRangeError,
   usePartyContact,
   type PartyContactBinding,
-  type PartyWithContact,
+  type PartyContactPaths,
 } from "./headless/party";
 export {
   BLANK,
