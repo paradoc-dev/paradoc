@@ -486,6 +486,89 @@ describe('fill-state', () => {
 			expect(state.openRequired.map((item) => item.key)).toContain('items[0].name')
 		})
 
+		describe('blockedBy for list item fields', () => {
+			const gatedList = () => form().name('gated-list').fields({
+				gate: { type: 'boolean' },
+				gatedField: { type: 'text', required: true, visible: 'fields.gate == true' },
+				items: {
+					type: 'list', minItems: 1,
+					item: {
+						type: 'fieldset',
+						fields: {
+							flag: { type: 'boolean' },
+							note: { type: 'text', required: true, visible: 'fields.gate == true' },
+							detail: { type: 'text', required: true, visible: 'item.flag == true' },
+							extra: { type: 'text', required: true, visible: 'item.detail != null' },
+							free: { type: 'text', required: true },
+						},
+					},
+				},
+			}).build()
+			const stateOf = (fields: Record<string, unknown>) =>
+				gatedList().fill({ fields } as any).getFillState({ includeOptional: true })
+			const blockersOf = (state: ReturnType<typeof stateOf>, key: string) =>
+				[...state.blocked, ...state.openRequired, ...state.openOptional, ...state.done]
+					.find((item) => item.key === key)?.blockedBy
+
+			test('names the unfilled top-level field that hides a list item field', () => {
+				const state = stateOf({ items: [{}, {}] })
+				expect(blockersOf(state, 'gatedField')).toEqual(['gate'])
+				expect(blockersOf(state, 'items[0].note')).toEqual(['gate'])
+				expect(blockersOf(state, 'items[1].note')).toEqual(['gate'])
+			})
+
+			test('names the unfilled sibling in the same row, transitively', () => {
+				const state = stateOf({ gate: true, items: [{}, { flag: true }] })
+				expect(blockersOf(state, 'items[0].detail')).toEqual(['items[0].flag'])
+				expect(blockersOf(state, 'items[0].extra')?.sort()).toEqual(['items[0].detail', 'items[0].flag'])
+				expect(blockersOf(state, 'items[1].detail')).toEqual([])
+				expect(blockersOf(state, 'items[1].extra')).toEqual(['items[1].detail'])
+			})
+
+			test('reports no blockers for an ungated list item field or a filled gate', () => {
+				const state = stateOf({ gate: true, items: [{ flag: true, detail: 'x' }] })
+				expect(blockersOf(state, 'items[0].free')).toEqual([])
+				expect(blockersOf(state, 'items[0].note')).toEqual([])
+				expect(blockersOf(state, 'items[0].extra')).toEqual([])
+				expect(state.openRequired.map((item) => item.key)).toEqual(
+					expect.arrayContaining(['items[0].note', 'items[0].extra', 'items[0].free']),
+				)
+			})
+
+			test('resolves parent references in a nested list to the enclosing row', () => {
+				const nested = form().name('nested-rows').fields({
+					items: {
+						type: 'list',
+						item: {
+							type: 'fieldset',
+							fields: {
+								flag: { type: 'boolean' },
+								parts: {
+									type: 'list',
+									item: {
+										type: 'fieldset',
+										fields: { cost: { type: 'number', visible: 'parent.flag == true' } },
+									},
+								},
+							},
+						},
+					},
+				}).build()
+				const state = nested.fill({ fields: { items: [{ parts: [{}] }, { flag: true, parts: [{}] }] } } as any)
+					.getFillState({ includeOptional: true })
+				const all = [...state.blocked, ...state.openOptional]
+				expect(all.find((item) => item.key === 'items[0].parts[0].cost')?.blockedBy).toEqual(['items[0].flag'])
+				expect(all.find((item) => item.key === 'items[1].parts[0].cost')?.blockedBy).toEqual([])
+			})
+
+			test('keeps bucket placement driven by visibility, not blockers', () => {
+				const state = stateOf({ items: [{}] })
+				const blockedKeys = state.blocked.map((item) => item.key)
+				expect(blockedKeys).toEqual(expect.arrayContaining(['items[0].note', 'items[0].detail', 'items[0].extra']))
+				expect(state.openRequired.map((item) => item.key)).toContain('items[0].free')
+			})
+		})
+
 		test('does not offer fields while a runtime expression is unresolved', () => {
 			const conditional = form({
 				kind: 'form',

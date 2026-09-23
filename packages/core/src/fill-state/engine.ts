@@ -21,8 +21,33 @@ import { buildFormBaseContext } from '@/logic/runtime/evaluation/context-builder
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { evaluateFormRules } from '@/logic/runtime/evaluation/rule-evaluator'
 import { evaluatePartyRequiredness } from '@/validation/party'
-import { buildFieldDependencyGraph, transitiveBlockers } from './dependency-graph'
+import { buildFieldDependencyGraph, referencedIds, transitiveBlockers } from './dependency-graph'
 import { fillNodeOf } from '@/logic/shared/list-paths'
+
+/** A list row enclosing fields: its runtime id and item definition. */
+interface RowScope {
+	readonly id: string
+	readonly field: FormField
+}
+
+/** The rows a field inside a list sees: `item`, and `parent` in a nested list. */
+interface RowScopes {
+	readonly item: RowScope
+	readonly parent?: RowScope
+}
+
+/**
+ * The runtime id an expression reference inside a row points at. `item.x` and
+ * `parent.x` resolve against the bound rows; any other reference is a form-level
+ * graph node. A path into a list's rows resolves to that list, as in the graph.
+ */
+function resolveRowReference(form: Form, ref: string, rows: RowScopes): string {
+	const [root, ...rest] = ref.split('.')
+	const row = root === 'item' ? rows.item : root === 'parent' ? rows.parent : undefined
+	if (!row) return fillNodeOf(form.fields, ref)
+	if (rest.length === 0 || row.field.type !== 'fieldset') return row.id
+	return `${row.id}.${fillNodeOf(row.field.fields, rest.join('.'))}`
+}
 
 /** A field/annex's effective status from its visibility and required flags. */
 function statusOf(visible: boolean, required: boolean): FillItemStatus {
@@ -250,9 +275,46 @@ export function computeFillState(
 	const blocked: FillItemState[] = []
 	const done: FillItemState[] = []
 
+	/**
+	 * List rows are not graph nodes, so a field inside a row records its direct
+	 * dependencies by runtime id: its `visible` references (resolved against the
+	 * bound rows) and its container. Its blockers are resolved once every row is
+	 * walked, so a reference to a later sibling sees that sibling's dependencies.
+	 */
+	const rowDeps = new Map<string, string[]>()
+	const rowItems: FillItemState[] = []
+	const rowBlockers = (id: string): string[] => {
+		const blockers = new Set<string>()
+		const visited = new Set<string>()
+		const stack = [...(rowDeps.get(id) ?? [])]
+		while (stack.length > 0) {
+			const dep = stack.pop()!
+			if (dep === id || visited.has(dep)) continue
+			visited.add(dep)
+			const nested = rowDeps.get(dep)
+			if (nested) {
+				if (unfilledIds.has(dep)) blockers.add(dep)
+				stack.push(...nested)
+				continue
+			}
+			if (graph.fillable.has(dep) && unfilledIds.has(dep)) blockers.add(dep)
+			for (const blocker of transitiveBlockers(graph, dep, unfilledIds)) blockers.add(blocker)
+		}
+		return [...blockers]
+	}
+
 	let order = 0
-	const addRepeatedState = (field: FormField, value: unknown, fullId: string): void => {
-		const filled = isFieldFilled(field, value)
+	const addRowItem = (
+		field: FormField,
+		fullId: string,
+		filled: boolean,
+		containerId: string,
+		rows: RowScopes,
+	): void => {
+		rowDeps.set(fullId, [
+			...referencedIds(field.visible).map((ref) => resolveRowReference(form, ref, rows)),
+			containerId,
+		])
 		const fieldState = runtimeState.fields.get(fullId)
 		const visible = fieldState?.visible ?? true
 		const isRequired = fieldState?.required ?? false
@@ -260,17 +322,26 @@ export function computeFillState(
 			kind: 'field', key: fullId, required: isRequired, order: order++, visible,
 			status: statusOf(visible, isRequired), filled, blockedBy: [],
 		}
+		rowItems.push(item)
 		if (filled) done.push(item)
 		else if (visible && isRequired) openRequired.push(item)
 		else if (visible) openOptional.push(item)
 		else blocked.push(item)
+	}
 
+	/** Walks the fields under `fullId`: a fieldset's children, or a list's rows. */
+	const walkChildren = (field: FormField, value: unknown, fullId: string, rows?: RowScopes): void => {
 		if (field.type === 'fieldset') {
 			const nested = value !== null && typeof value === 'object' && !Array.isArray(value)
 				? value as Record<string, unknown> : undefined
-			walkFieldsForState(field.fields, nested, fullId)
+			walkFieldsForState(field.fields, nested, fullId, rows)
 		} else if (field.type === 'list' && Array.isArray(value)) {
-			value.forEach((nestedValue, index) => addRepeatedState(field.item, nestedValue, `${fullId}[${index}]`))
+			value.forEach((itemValue, index) => {
+				const rowId = `${fullId}[${index}]`
+				const row: RowScopes = { item: { id: rowId, field: field.item }, ...(rows && { parent: rows.item }) }
+				addRowItem(field.item, rowId, isFieldFilled(field.item, itemValue), fullId, row)
+				walkChildren(field.item, itemValue, rowId, row)
+			})
 		}
 	}
 
@@ -307,12 +378,19 @@ export function computeFillState(
 		fields: Record<string, FormField> | undefined,
 		data: Record<string, unknown> | undefined,
 		prefix: string = '',
+		rows?: RowScopes,
 	) {
 		if (!fields) return
 		for (const [fieldId, field] of Object.entries(fields)) {
 			const fullId = prefix ? `${prefix}.${fieldId}` : fieldId
 			const value = data?.[fieldId]
 			const filled = isFieldFilled(field, value)
+
+			if (rows) {
+				addRowItem(field, fullId, filled, prefix, rows)
+				walkChildren(field, value, fullId, rows)
+				continue
+			}
 
 			const fieldState = runtimeState.fields.get(fullId)
 			const visible = fieldState?.visible ?? true
@@ -345,16 +423,11 @@ export function computeFillState(
 				blocked.push(item)
 			}
 
-			// Recurse into fieldsets
-			if (field.type === 'fieldset') {
-				const nested = typeof value === 'object' && value !== null ? value as Record<string, unknown> : undefined
-				walkFieldsForState((field as FieldsetField).fields, nested, fullId)
-			} else if (field.type === 'list' && Array.isArray(value)) {
-				value.forEach((itemValue, index) => addRepeatedState(field.item, itemValue, `${fullId}[${index}]`))
-			}
+			walkChildren(field, value, fullId)
 		}
 	}
 	walkFieldsForState(form.fields, fieldValues)
+	for (const item of rowItems) item.blockedBy = rowBlockers(item.key)
 
 	// --- Annexes ---
 	if (form.annexes) {
