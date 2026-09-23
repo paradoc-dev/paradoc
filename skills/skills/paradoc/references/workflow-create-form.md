@@ -15,6 +15,7 @@ Interactive pipeline that guides creation of a new Paradoc form artifact through
 
 ## Setup
 
+- Before you start, check whether `@paradoc/essentials` already ships the form (W-9, 1099-NEC, 1099-MISC, 4506-T, I-9, ACH forms). If it does, use that export and stop. See [SKILL.md](../SKILL.md#ready-made-forms-paradocessentials)
 - All artifacts use schema version `2026-09-22` (`$schema` per [artifacts.md](./artifacts.md))
 - ALWAYS use `npx paradoc-cli validate <file>` after every significant change — see [schemas.md](./schemas.md)
 - File MUST be named `<name>.json` or `<name>.yaml`. Name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`

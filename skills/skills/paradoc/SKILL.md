@@ -9,7 +9,7 @@ description: >
   Paradoc artifacts, including AcroForm bindings and signature blocks.
 metadata:
   author: paradoc
-  version: "0.2.1"
+  version: "0.3.0"
   tags: paradoc, sdk, cli, schemas, mcp, forms, documents, bundles, checklists, rendering
   license: MIT
 allowed-tools: "Bash(npx:*) Read Write Edit Glob Grep WebSearch"
@@ -62,6 +62,20 @@ Topic refs are surface-agnostic — they describe the underlying concept and con
 | Formatting — locale-aware presentation of artifact values | [references/formatting.md](./references/formatting.md) |
 | Instructions / agentInstructions — ContentRef | [references/instructions.md](./references/instructions.md) |
 
+## Ready-Made Forms (`@paradoc/essentials`)
+
+`@paradoc/essentials` ships finished form artifacts, with their markdown and PDF layers bundled. Install with `npm install @paradoc/essentials @paradoc/sdk`.
+
+| Import path | Exports |
+|-------------|---------|
+| `@paradoc/essentials/tax` | `w9` (IRS W-9), `f1099NEC` (1099-NEC), `f1099MISC` (1099-MISC), `f4506T` (4506-T) |
+| `@paradoc/essentials/employment` | `i9` (USCIS I-9) |
+| `@paradoc/essentials/banking` | `achBankAccountInfo`, `achChangeForm`, `achCreditAuthorization`, `achDebitAuthorization`, `achDirectDeposit` (NACHA ACH forms) |
+
+All exports are also available from `@paradoc/essentials`. Each export is a form: use it as-is, for example `await w9.fill(data).render({ layer: "pdf" })` or `w9.safeParseData(input)`.
+
+When the user needs one of these forms, ALWAYS use the essentials export. Do NOT author or convert it again. Author a new form only when the form is not in this list or the user needs a different version of it.
+
 ## Workflows
 
 End-to-end pipelines that orchestrate multiple topics. Load when the user requests one of these tasks:
@@ -74,7 +88,7 @@ Workflows link to topic refs at each stage. Load topic refs as the workflow dire
 ## Common Issues (Cross-Surface)
 
 **Validation: "unknown field type"**
-Common mismatches: `string` → `text`, `number` (when money) → `money`, `currency` → `money`, `datetime` (when date-only) → `date`. See [fields.md](./references/fields.md).
+Common mismatches: `string` → `text`, `integer` → `number`, `currency` → `money`, `select` → `enum`, `checkbox` → `boolean`. `number` and `datetime` are valid types. See [fields.md](./references/fields.md).
 
 **Render produces blank or empty output**
 Forms rendered without data produce empty output. ALWAYS pass data (CLI: `--data`, SDK: `form.fill(data).render(...)`). Validate the artifact first. Ensure layer MIME type matches the renderer.

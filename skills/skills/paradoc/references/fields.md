@@ -1,13 +1,13 @@
 ---
 name: fields
-description: All 23 Paradoc field types — JSON shape, SDK builders, identifier rules, constraints, fieldsets, design heuristics
+description: All 24 Paradoc field types — JSON shape, SDK builders, identifier rules, constraints, fieldsets, design heuristics
 metadata:
   tags: fields, types, identifier, constraints, fieldset, enum, money, address
 ---
 
 # Fields
 
-**Contents:** [Identifier rules](#field-identifier-rules) · [Common properties](#common-properties) · [Field type reference](#field-type-reference) · [Fieldsets](#fieldsets) · [Design heuristics](#design-heuristics)
+**Contents:** [Identifier rules](#field-identifier-rules) · [Common properties](#common-properties) · [Field type reference](#field-type-reference) · [Fieldsets](#fieldsets) · [Lists](#lists) · [Design heuristics](#design-heuristics)
 
 Fields are the data-collection units of a form. Defined as a `fields` object — each key is a field identifier, each value is a field definition.
 
@@ -28,7 +28,7 @@ All field types share:
 
 | Property | Required | Type | Description |
 |----------|----------|------|-------------|
-| `type` | YES | string | One of the 23 field types below |
+| `type` | YES | string | One of the 24 field types below |
 | `label` | No | string | Display label (max 200 chars) |
 | `description` | No | string | Help text (max 1000 chars) |
 | `required` | No | CondExpr | `true`, `false`, or expression string |
@@ -45,7 +45,7 @@ A `CondExpr` is a boolean literal OR an expression string. See [logic.md](./logi
 
 ## Field Type Reference
 
-23 typed field definitions. ALWAYS use the most specific type — NEVER use `text` when a structured type fits.
+24 typed field definitions. ALWAYS use the most specific type — NEVER use `text` when a structured type fits.
 
 | Type | Data Shape | Use For |
 |------|-----------|---------|
@@ -72,6 +72,7 @@ A `CondExpr` is a boolean literal OR an expression string. See [logic.md](./logi
 | `coordinate` | `{ lat, lon }` | GPS coordinates |
 | `bbox` | `{ southWest, northEast }` | Geographic bounding boxes |
 | `fieldset` | nested fields | Grouped/nested fields |
+| `list` | `item[]` | Repeating entries (dependents, line items) |
 
 ### Type-specific properties
 
@@ -198,6 +199,34 @@ A fieldset groups nested fields under a single key.
 
 **Use fieldsets when:** 3+ closely-related fields, repeated logical groupings (previous address, emergency contact), rendered output needs a section heading.
 **Skip fieldsets when:** 1-2 fields, unrelated fields, small flat form.
+
+## Lists
+
+A list holds zero or more entries of one field shape.
+
+**Required:** `type: "list"`, `item`
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| `type` | YES | `"list"` | Discriminator |
+| `item` | YES | field | Field definition for each entry (any type, including `fieldset` or `list`) |
+| `minItems` | No | integer | Minimum entries (min 0) |
+| `maxItems` | No | integer | Maximum entries (min 0, at least `minItems`) |
+
+```json
+"dependents": {
+  "type": "list",
+  "label": "Dependents",
+  "maxItems": 4,
+  "item": {
+    "type": "fieldset",
+    "fields": {
+      "name": { "type": "text", "label": "Name", "required": true },
+      "dateOfBirth": { "type": "date", "label": "Date of Birth" }
+    }
+  }
+}
+```
 
 ## Design Heuristics
 

@@ -109,7 +109,9 @@ Signature blocks are positioned by `(page, x, y, width, height)` in PDF points. 
 |------|-------------|
 | `signature` | Signature line |
 | `initials` | Initials line ("Initial here: ____") |
-| `date` | "Date Signed" field next to a signature |
+| `date` | "Date Signed" field next to a signature (`date_signed` in a `signatures` slot) |
+| `capacity` | Signer's role or title ("Title: ____") |
+| `printed_name` | "Print Name: ____" line |
 
 ### Estimating coordinates
 

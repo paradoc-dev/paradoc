@@ -153,9 +153,12 @@ Common mismatches:
 | Wrong | Right |
 |-------|-------|
 | `"type": "string"` | `"type": "text"` |
-| `"type": "number"` | `"type": "integer"` or use `money`/`percentage` |
+| `"type": "integer"` | `"type": "number"` |
 | `"type": "currency"` | `"type": "money"` |
-| `"type": "datetime"` (when only date) | `"type": "date"` |
+| `"type": "select"` | `"type": "enum"` |
+| `"type": "checkbox"` | `"type": "boolean"` |
+
+`number` and `datetime` are valid types. Do not change them to clear this error. Pick `money`, `percentage`, or `date` only when the data needs that more specific type. The full list is in [fields.md](./fields.md).
 
 ### Missing `enum` on enum / multiselect
 

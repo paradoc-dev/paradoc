@@ -31,6 +31,8 @@ Embed template content in the artifact JSON.
 | `bindings` | No | object | Field-to-template mapping |
 | `bindingsFrom` | No | string | Reuse another layer's bindings |
 | `signatureBlocks` | No | object | Positioned signature locations |
+| `anchorBlocks` | No | object | Signature locations found by document text |
+| `signatures` | No | object | Unified signature slots (supersede `signatureBlocks`/`anchorBlocks`) |
 
 ```json
 "layers": {
@@ -61,6 +63,8 @@ Reference an external template file.
 | `bindings` | No | object | Field-to-template mapping |
 | `bindingsFrom` | No | string | Reuse another layer's bindings |
 | `signatureBlocks` | No | object | Positioned signature locations |
+| `anchorBlocks` | No | object | Signature locations found by document text |
+| `signatures` | No | object | Unified signature slots (supersede `signatureBlocks`/`anchorBlocks`) |
 
 ```json
 "layers": {
@@ -126,7 +130,7 @@ Signature blocks define positioned signature locations within a layer. Keyed by 
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | string | `"signature"`, `"initials"`, or `"date"` |
+| `type` | string | `"signature"`, `"initials"`, `"date"`, `"capacity"` (signer role or title), or `"printed_name"` |
 | `page` | integer | 1-based page number (min 1) |
 | `x` | number | X coord in points from left edge (min 0) |
 | `y` | number | Y coord in points from top edge (min 0) |
@@ -155,6 +159,41 @@ Signature blocks define positioned signature locations within a layer. Keyed by 
 ```
 
 For PDF coordinate estimation, see [pdf-bindings.md](./pdf-bindings.md).
+
+### Anchor blocks
+
+`anchorBlocks` takes the same `type`, `width`, `height`, `partyRole`, `partyIndex`, `label`, and `required` as a signature block. In place of `page`/`x`/`y` it has `anchor: { text, offsetX, offsetY }`: the position is found from that text in the rendered document.
+
+### Signature slots
+
+`signatures` is the unified form. It supersedes `signatureBlocks` and `anchorBlocks`, which stay readable during their deprecation window. Keyed by slot ID.
+
+**Required per slot:** `party`, `type`, `placement`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `party` | object | `{ role, index? }`: party role and 0-based index (default 0) |
+| `type` | string | `"signature"`, `"initials"`, `"date_signed"`, `"capacity"`, or `"printed_name"` |
+| `placement` | string or object | `"flow"` (where the template places it), `{ page, x, y, width, height }`, or `{ anchor: { text, offsetX?, offsetY?, occurrence? }, width, height }` |
+| `required` | boolean | Required (default `true`) |
+| `label` | string | Human-readable label |
+
+A slot's date type is `"date_signed"`. A signature or anchor block's date type is `"date"`. Do not mix them.
+
+```json
+"signatures": {
+  "tenantSig": {
+    "party": { "role": "tenant" },
+    "type": "signature",
+    "placement": { "page": 3, "x": 72, "y": 600, "width": 200, "height": 50 }
+  },
+  "tenantDate": {
+    "party": { "role": "tenant" },
+    "type": "date_signed",
+    "placement": { "anchor": { "text": "Date:", "offsetX": 40 }, "width": 150, "height": 30 }
+  }
+}
+```
 
 ## Default Layer
 

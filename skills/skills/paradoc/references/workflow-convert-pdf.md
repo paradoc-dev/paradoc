@@ -19,6 +19,7 @@ Interactive pipeline that converts an existing PDF form into a valid Paradoc for
 
 ## Setup
 
+- Before you start, check whether `@paradoc/essentials` already ships the form (W-9, 1099-NEC, 1099-MISC, 4506-T, I-9, ACH forms). If it does, use that export and stop. See [SKILL.md](../SKILL.md#ready-made-forms-paradocessentials)
 - All output uses schema version `2026-09-22` (`$schema: https://schema.paradoc.dev/2026-09-22.json`)
 - ALWAYS run `npx paradoc-cli validate <file>` after every significant change — see [schemas.md](./schemas.md)
 - ALWAYS use camelCase for field IDs, kebab-case for artifact names
