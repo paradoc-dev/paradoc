@@ -222,42 +222,15 @@ export function createInitCommand(): Command {
           console.log()
         }
 
-        // Create .paradoc directory structure
+        // Create the .paradoc directory. It marks the project root beside
+        // paradoc.json (see findRepoRoot) and holds lock.json once an artifact
+        // is installed.
         if (!dryRun) {
           try {
-            const paradocDir = storage.joinPath('.paradoc')
-            const commitsDir = storage.joinPath('.paradoc', 'commits')
-            const objectsDir = storage.joinPath('.paradoc', 'objects')
-
-            // Create directories
-            await storage.mkdir(paradocDir, true)
-            await storage.mkdir(commitsDir, true)
-            await storage.mkdir(objectsDir, true)
-
-            // Create HEAD file
-            await storage.writeFile(storage.joinPath('.paradoc', 'HEAD'), 'null')
-
-            // Create index.json
-            const indexContent = {
-              artifacts: {},
-            }
-            await storage.writeFile(
-              storage.joinPath('.paradoc', 'index.json'),
-              JSON.stringify(indexContent, null, 2)
-            )
-
-            // Create config.json with current timestamp
-            const configContent = {
-              version: '1.0',
-              created_at: new Date().toISOString(),
-            }
-            await storage.writeFile(
-              storage.joinPath('.paradoc', 'config.json'),
-              JSON.stringify(configContent, null, 2)
-            )
+            await storage.mkdir(storage.joinPath('.paradoc'), true)
           } catch (error) {
             throw new Error(
-              `Failed to create .paradoc directory structure: ${error instanceof Error ? error.message : String(error)}`
+              `Failed to create .paradoc directory: ${error instanceof Error ? error.message : String(error)}`
             )
           }
         }

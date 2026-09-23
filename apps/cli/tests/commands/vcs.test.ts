@@ -94,6 +94,21 @@ describe('CLI Project Commands', () => {
       expect(stats.isDirectory()).toBe(true)
     })
 
+    it('should create an empty .paradoc directory with no version-control scaffolding', async () => {
+      const result = await executeCliCommand(['init', '--yes', '--name', 'Test Project'], { cwd: tempDir })
+
+      expect(result.exitCode).toBe(0)
+      // .paradoc marks the project root and later holds lock.json; init writes nothing into it.
+      expect(await fs.readdir(path.join(tempDir, '.paradoc'))).toEqual([])
+    })
+
+    it('should not create .paradoc in dry-run mode', async () => {
+      const result = await executeCliCommand(['init', '--yes', '--name', 'Test Project', '--dry-run'], { cwd: tempDir })
+
+      expect(result.exitCode).toBe(0)
+      await expect(fs.stat(path.join(tempDir, '.paradoc'))).rejects.toThrow()
+    })
+
     it('should create paradoc.json manifest', async () => {
       await executeCliCommand(['init', '--yes', '--name', 'Test Project'], { cwd: tempDir })
 

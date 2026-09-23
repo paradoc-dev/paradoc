@@ -50,11 +50,7 @@ paradoc init my-new-project
 | Path | Purpose |
 |------|---------|
 | `paradoc.json` | Project manifest (name, title, description, registries, config) |
-| `.paradoc/HEAD` | Current commit reference |
-| `.paradoc/index.json` | Artifact index |
-| `.paradoc/config.json` | Local project config |
-| `.paradoc/commits/` | Commit history |
-| `.paradoc/objects/` | Content-addressed storage |
+| `.paradoc/` | CLI state directory, created empty; holds `lock.json` once an artifact is installed |
 
 ### Output formats
 

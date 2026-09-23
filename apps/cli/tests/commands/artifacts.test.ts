@@ -168,6 +168,9 @@ describe('CLI Artifact Commands', () => {
 
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('1.0.1')
+      // No tips for commands that do not exist.
+      expect(result.stdout).not.toContain('Next steps')
+      expect(result.stdout).not.toContain('paradoc commit')
     })
 
     it('should bump major version', async () => {

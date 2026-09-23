@@ -95,12 +95,7 @@ After initialization and installing an artifact, your project looks like this:
 my-project/
 ├── paradoc.json          # Project manifest
 ├── .paradoc/                   # CLI state directory
-│   ├── HEAD
-│   ├── index.json
-│   ├── config.json
-│   ├── lock.json
-│   ├── commits/
-│   └── objects/
+│   └── lock.json
 └── artifacts/              # Downloaded artifacts
     └── @acme/
         └── residential-lease.yaml
@@ -108,16 +103,11 @@ my-project/
 
 ## The `.paradoc/` directory
 
-The `.paradoc/` directory stores internal CLI state. You should not edit these files directly — the CLI manages them.
+The `.paradoc/` directory stores internal CLI state. Together with `paradoc.json`, it marks the project root. `paradoc init` creates it empty. You should not edit its files directly — the CLI manages them.
 
 | File | Purpose |
 |------|---------|
-| `HEAD` | Points to the current commit |
-| `index.json` | Tracks installed artifacts and their versions |
-| `config.json` | Local CLI configuration (written by [`paradoc configure`](/cli/commands/configure)) |
 | `lock.json` | Pinned versions and checksums for reproducible installs |
-| `commits/` | Commit history for artifact changes |
-| `objects/` | Content-addressable object store |
 
 ## The lock file
 

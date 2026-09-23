@@ -139,6 +139,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Removed
 
+- CLI: `paradoc init` no longer writes `.paradoc/HEAD`, `.paradoc/index.json`, `.paradoc/config.json`, `.paradoc/commits/`, or `.paradoc/objects/`. Nothing read them, and there are no `status` or `commit` commands. `.paradoc/` is created empty and holds `lock.json` once an artifact is installed. `paradoc version` no longer prints next steps that name `paradoc commit`.
 - **Breaking.** `@paradoc/sessions`: the spine adapter is removed. `createSpineStateAdapter`, `spineEventToAgentEvent`, `agentEventToSpineAppend`, `SpineConflictError`, `SessionSpinePort`, `SpineEvent`, `SpineAppend`, and `SpineAppendResult` had no users; `@paradoc/sdk` no longer re-exports them. Persist `session.events` yourself and replay them with `deriveView`; the sessions docs now state that a store must keep events append-only, in order, and without duplicates.
 - **Breaking.** `@paradoc/schemas`: `GlobalConfigSchema` drops `enableTelemetry`, which nothing read; use `telemetry.enabled`. The schema adds `telemetry: { enabled }`, `security: { allowedContentTypes }`, and `anonymousId` (a UUID), and `telemetry` and `security` reject unknown keys.
 - **Breaking.** `@paradoc/core`: `party().multiple()`. Its key was already dropped by the schema; `min` and `max` say how many parties fill a role.
