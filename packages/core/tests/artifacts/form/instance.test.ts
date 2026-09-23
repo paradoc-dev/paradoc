@@ -267,12 +267,12 @@ describe('FormInstance', () => {
       const json = instance.toJSON({ includeSchema: false })
       expect(json.kind).toBe('form')
       expect(json.name).toBe('minimal-form')
-      expect((json as { $schema?: string }).$schema).toBeUndefined()
+      expect(json.$schema).toBeUndefined()
     })
 
     test('includes $schema by default', () => {
       const instance = createMinimalForm()
-      const json = instance.toJSON() as { $schema: string }
+      const json = instance.toJSON()
       expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
     })
 

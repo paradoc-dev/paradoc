@@ -219,12 +219,12 @@ describe('BundleInstance', () => {
       const json = instance.toJSON({ includeSchema: false })
       expect(json.kind).toBe('bundle')
       expect(json.name).toBe('minimal-bundle')
-      expect((json as { $schema?: string }).$schema).toBeUndefined()
+      expect(json.$schema).toBeUndefined()
     })
 
     test('includes $schema by default', () => {
       const instance = createMinimalBundle()
-      const json = instance.toJSON() as { $schema: string }
+      const json = instance.toJSON()
       expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
     })
 

@@ -10,6 +10,8 @@ import type { ContentRef } from "./content-ref";
  * Provides common fields like name, version, title, and metadata.
  */
 export interface ArtifactBase {
+  /** JSON Schema URI for this artifact instance: the dated schema address it follows. */
+  $schema?: string;
   /** Unique identifier; must follow slug constraints. */
   name: string;
   /** Artifact version (semantic versioning). Required for publishing to registry. */

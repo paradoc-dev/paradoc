@@ -69,7 +69,7 @@ export interface ArtifactMethods<T extends Artifact> {
 	 * Serialize to JSON object.
 	 * Includes the current dated `$schema` unless `includeSchema` is false.
 	 */
-	toJSON(options?: SerializationOptions): T | (T & { $schema: string })
+	toJSON(options?: SerializationOptions): T
 
 	/**
 	 * Serialize to YAML string.
@@ -115,10 +115,10 @@ export function snapshotArtifactDefinition<T extends Artifact>(data: T): T {
  * An instance always holds a current-version definition, so it serializes
  * with the current dated `$schema` first, whatever address it was read with.
  */
-function serializableArtifact<T extends Artifact>(data: T, includeSchema: boolean): T | (T & { $schema: string }) {
-	const { $schema: _read, ...definition } = data as T & { $schema?: string }
-	if (includeSchema) return { $schema: PARADOC_SCHEMA_URL, ...definition } as T & { $schema: string }
-	return definition as T
+function serializableArtifact<T extends Artifact>(data: T, includeSchema: boolean): T {
+	const definition: T = { ...data }
+	delete definition.$schema
+	return includeSchema ? { $schema: PARADOC_SCHEMA_URL, ...definition } : definition
 }
 
 /**
@@ -167,7 +167,7 @@ export function withArtifactMethods<T extends Artifact>(data: T): ArtifactMethod
 		},
 
 		// Serialization
-		toJSON(options: SerializationOptions = {}): T | (T & { $schema: string }) {
+		toJSON(options: SerializationOptions = {}): T {
 			return serializableArtifact(data, options.includeSchema ?? true)
 		},
 

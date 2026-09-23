@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, expectTypeOf, test } from 'vitest'
+import type { Bundle, Checklist, Document, Form } from '@paradoc/types'
 import { parse as parseYaml } from 'yaml'
 import { PARADOC_SCHEMA_URL, SCHEMA_VERSION, readSchemaAddress } from '@paradoc/schemas'
 import { document, form } from '@/artifacts'
@@ -25,10 +26,28 @@ describe('serialized artifacts carry the current dated $schema', () => {
 		expect(parseYaml(read.toYAML()).$schema).toBe(PARADOC_SCHEMA_URL)
 	})
 
+	test('every artifact type declares an optional $schema string', () => {
+		expectTypeOf<Form['$schema']>().toEqualTypeOf<string | undefined>()
+		expectTypeOf<Document['$schema']>().toEqualTypeOf<string | undefined>()
+		expectTypeOf<Checklist['$schema']>().toEqualTypeOf<string | undefined>()
+		expectTypeOf<Bundle['$schema']>().toEqualTypeOf<string | undefined>()
+		const json: Form = form({ name: 'intake' }).toJSON()
+		expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
+	})
+
 	test('includeSchema: false writes no $schema at all', () => {
 		const read = form.from({ $schema: 'https://schema.paradoc.dev/schema.json', kind: 'form', name: 'intake', fields: {} })
 		expect(read.toJSON({ includeSchema: false })).not.toHaveProperty('$schema')
 		const yaml = read.toYAML({ includeSchema: false })
 		expect(yaml).not.toContain('$schema')
+	})
+
+	test('serializing leaves the input and the instance unchanged', () => {
+		const input = { $schema: 'https://schema.paradoc.dev/schema.json', kind: 'form' as const, name: 'intake', fields: {} }
+		const read = form.from(input)
+		expect(read.toJSON({ includeSchema: false })).not.toHaveProperty('$schema')
+		expect(input.$schema).toBe('https://schema.paradoc.dev/schema.json')
+		expect(Object.keys(read.toJSON())[0]).toBe('$schema')
+		expect(Object.keys(read.toJSON()).filter((key) => key === '$schema')).toHaveLength(1)
 	})
 })

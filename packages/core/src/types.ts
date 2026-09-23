@@ -192,7 +192,7 @@ export interface IArtifactInstance<T extends Artifact> {
    * Serialize to JSON object. Called by JSON.stringify().
    * @param options - Serialization options (includeSchema defaults to true)
    */
-  toJSON(options?: SerializationOptions): T | (T & { $schema: string })
+  toJSON(options?: SerializationOptions): T
 
   /**
    * Serialize to YAML string.

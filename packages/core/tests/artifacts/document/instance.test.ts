@@ -116,12 +116,12 @@ describe('DocumentInstance', () => {
       const json = instance.toJSON({ includeSchema: false })
       expect(json.kind).toBe('document')
       expect(json.name).toBe('minimal-document')
-      expect((json as { $schema?: string }).$schema).toBeUndefined()
+      expect(json.$schema).toBeUndefined()
     })
 
     test('includes $schema by default', () => {
       const instance = createMinimalDocument()
-      const json = instance.toJSON() as { $schema: string }
+      const json = instance.toJSON()
       expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
     })
 

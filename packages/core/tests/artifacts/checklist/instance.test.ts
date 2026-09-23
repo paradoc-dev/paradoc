@@ -121,12 +121,12 @@ describe('ChecklistInstance', () => {
       const json = instance.toJSON({ includeSchema: false })
       expect(json.kind).toBe('checklist')
       expect(json.name).toBe('minimal-checklist')
-      expect((json as { $schema?: string }).$schema).toBeUndefined()
+      expect(json.$schema).toBeUndefined()
     })
 
     test('includes $schema by default', () => {
       const instance = createMinimalChecklist()
-      const json = instance.toJSON() as { $schema: string }
+      const json = instance.toJSON()
       expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
     })
 
