@@ -6,6 +6,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Fixed
 
+- `@paradoc/render`: text layers escape values by their MIME type. `text/plain` and `text/markdown` print values as written, so `O'Brien` and `Smith & Sons` no longer come out as `O&#x27;Brien` and `Smith &amp; Sons`; `text/html` still escapes. `renderText` takes `mimeType` for the same choice and prints raw values without it. HTML signing marks escape the role, party, signer, and location attributes and the image, alt text, and class of a captured mark, and a captured Markdown mark escapes its alt text and image address, so a crafted value cannot add tags, attributes, or links.
 - `@paradoc/render`: an enum or multiselect bound to a PDF text box, or drawn by a PDF overlay, writes the option value (the code the form expects, such as `C`, `5`, or `A`), not its label. The W-9 LLC classification, exempt payee code, and FATCA code boxes fill again; since field appearances were honored, their labels overflowed the boxes. Text, Markdown, HTML, and DOCX layers still print labels. `formatFieldData` takes `choices: 'value'` for the same behavior.
 - `@paradoc/expr`: the checker keeps the numeric-index rule for arrays, so `list["key"]` reports a type mismatch instead of an unknown reference, matching evaluation. Bracket keys still read object members.
 - The `paradoc` skill's PDF bindings and layers references state the binding direction correctly: keys are template or PDF field names, values are Paradoc data paths.

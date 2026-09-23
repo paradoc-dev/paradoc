@@ -7,7 +7,7 @@ import type {
   SignaturePlaceholderValue,
   Signer,
 } from '@paradoc/types'
-import type { SigningDirective } from './template'
+import { escapeHtml, type SigningDirective } from './template'
 
 export interface TextSignatureOptions {
   format?: 'text' | 'html' | 'markdown'
@@ -137,6 +137,21 @@ function placeholderContext(
   }
 }
 
+/** The `data-*` attributes that tie an HTML signing mark to its party, signer, and location. */
+function markAttributes(context: { role: string; partyId: string; signerId: string }, locationId: string): string {
+  return `data-role="${escapeHtml(context.role)}" data-party-id="${escapeHtml(context.partyId)}" data-signer-id="${escapeHtml(context.signerId)}" data-location-id="${escapeHtml(locationId)}"`
+}
+
+/** Escapes Markdown image alt text so it cannot close the `[...]` label. */
+function markdownAlt(value: string): string {
+  return value.replace(/[\\[\]]/g, (char) => `\\${char}`)
+}
+
+/** Percent-encodes the characters that would end or break a Markdown image destination. */
+function markdownDestination(value: string): string {
+  return value.replace(/[\s()<>\\]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`)
+}
+
 function invalid(name: string, args: unknown[]): string | undefined {
   return typeof args[0] === 'string' ? undefined : `[Invalid ${name}: expected a location]`
 }
@@ -162,11 +177,11 @@ function renderMark(
   if (options.format === 'html') {
     const adopted = type === 'signature' ? context.signer?.adopted?.signature : context.signer?.adopted?.initials
     const image = capture?.image ?? adopted?.image
-    const attributes = `data-role="${context.role}" data-party-id="${context.partyId}" data-signer-id="${context.signerId}" data-location-id="${context.locationId}"`
+    const attributes = markAttributes(context, context.locationId)
     if (captured && image) {
       const alt = options.altText ?? (type === 'signature' ? 'Signature' : 'Initials')
       const cssClass = options.cssClass ?? `${type}-image`
-      return `<img src="${image}" alt="${alt}" class="${cssClass}" ${attributes} />`
+      return `<img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" class="${escapeHtml(cssClass)}" ${attributes} />`
     }
     const text = capturedContext
       ? resolveValue(capturedOption, capturedContext, capturedDefault)
@@ -179,7 +194,7 @@ function renderMark(
     const image = capture?.image ?? adopted?.image
     if (captured && image) {
       const alt = options.altText ?? (type === 'signature' ? 'Signature' : 'Initials')
-      return `![${alt}](${image})`
+      return `![${markdownAlt(alt)}](${markdownDestination(image)})`
     }
     const text = capturedContext
       ? resolveValue(capturedOption, capturedContext, capturedDefault)
@@ -216,13 +231,13 @@ function createDateDirective(options: TextSignatureOptions, signatureDefaults: S
     if (!capture) {
       const text = resolveValue(options.placeholder?.signatureDate, placeholder, signatureDefaults.date)
       if (options.format !== 'html') return text
-      return `<span class="signature-date-placeholder" data-role="${context.role}" data-party-id="${context.partyId}" data-signer-id="${context.signerId}" data-location-id="${locationId}">${text}</span>`
+      return `<span class="signature-date-placeholder" ${markAttributes(context, locationId)}>${text}</span>`
     }
     const captured = { ...placeholder, capture }
     const date = capture.timestamp ? capture.timestamp.slice(0, 10) : signatureDefaults.date
     const text = resolveValue(options.captured?.signatureDate, captured, date)
     if (options.format !== 'html' || options.captured?.signatureDate !== undefined) return text
-    return `<span class="signature-date" data-role="${context.role}" data-party-id="${context.partyId}" data-signer-id="${context.signerId}" data-location-id="${locationId}">${text}</span>`
+    return `<span class="signature-date" ${markAttributes(context, locationId)}>${text}</span>`
   }
 }
 

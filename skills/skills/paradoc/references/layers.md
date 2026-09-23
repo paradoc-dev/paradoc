@@ -196,7 +196,7 @@ ALWAYS write `{{fields.tenantName}}`. A bare `{{tenantName}}` is an unknown refe
 **Start Date:** {{fields.leaseStartDate}}
 ```
 
-A placeholder that is a path prints the value formatted for its type. A computed value is formatted by its result type. `{{{ }}}` prints without HTML escaping.
+A placeholder that is a path prints the value formatted for its type. A computed value is formatted by its result type. In a `text/html` layer, `{{ }}` escapes the value for HTML and `{{{ }}}` prints it without escaping; `text/plain` and `text/markdown` layers print values as written.
 
 ### Conditional sections
 

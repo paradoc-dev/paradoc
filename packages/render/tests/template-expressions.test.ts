@@ -145,6 +145,7 @@ describe('one condition language', () => {
         '{{fields.approved ? "yes" : "no"}}',
         '{{{fields.note}}}',
       ].join('|'),
+      mimeType: 'text/html',
     })
     expect(text).toBe('59.85|0.3|BOLT|&lt;b&gt;&amp;&lt;/b&gt;|$19.95|Mar 5, 2024|Mar 15, 2024|yes|<b>&</b>')
   })

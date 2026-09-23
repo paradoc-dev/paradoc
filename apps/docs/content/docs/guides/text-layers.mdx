@@ -321,7 +321,7 @@ Everything inside a marker is an [artifact expression](/concepts/logic). Templat
 | Loop | `{{#each parties.tenant}}{{item.name}}{{/each}}` | Iterate over a list; `item` is the current row |
 | Enclosing row | `{{parent.name}}` | The outer row inside a nested loop |
 | Loop position | `{{index(item)}}`, `{{#if first(item)}}`, `{{#unless last(item)}}` | Zero-based position, first row, last row; only inside a loop |
-| Raw HTML | `{{{fields.notes}}}` | Output without HTML escaping |
+| Raw HTML | `{{{fields.notes}}}` | Output without HTML escaping; only `text/html` layers escape values |
 | Signing mark | `{{signature(parties.landlord, "landlord-sign")}}` | Place a signature; inside a party loop, `{{signature("tenant-sign")}}` |
 | Comment | `{{!-- comment --}}` | Not rendered in output |
 

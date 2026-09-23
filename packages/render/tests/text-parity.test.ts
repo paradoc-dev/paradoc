@@ -5,7 +5,6 @@ import { ArtifactFieldFormatError, renderText, textRenderer } from '../src/text'
 
 const cases: Array<{ name: string; template: string; data: Record<string, unknown>; expected: string }> = [
   { name: 'nested interpolation', template: 'Hello {{fields.person.name}}', data: { person: { name: 'Ada' } }, expected: 'Hello Ada' },
-  { name: 'HTML escaping', template: '{{fields.value}} / {{{fields.value}}} / {{& fields.value}}', data: { value: '<b>A & B</b>' }, expected: '&lt;b&gt;A &amp; B&lt;/b&gt; / <b>A & B</b> / <b>A & B</b>' },
   { name: 'if and comparison', template: '{{#if fields.count >= 2}}many{{else}}few{{/if}}', data: { count: 2 }, expected: 'many' },
   { name: 'unless', template: '{{#unless fields.closed}}open{{else}}closed{{/unless}}', data: { closed: false }, expected: 'open' },
   { name: 'logic operators', template: '{{#if fields.enabled and "a" in fields.tags}}yes{{else}}no{{/if}}', data: { enabled: true, tags: ['a'] }, expected: 'yes' },
@@ -59,6 +58,30 @@ describe('text renderer behavior', () => {
 
   it.each(cases)('$name', ({ template, data, expected }) => {
     expect(renderText({ template, data })).toBe(expected)
+  })
+
+  const escapingCases = [
+    { mimeType: 'text/plain', expected: "Name: O'Brien <b> / Smith & Sons" },
+    { mimeType: 'text/markdown', expected: "Name: O'Brien <b> / Smith & Sons" },
+    { mimeType: undefined, expected: "Name: O'Brien <b> / Smith & Sons" },
+    { mimeType: 'text/html', expected: 'Name: O&#x27;Brien &lt;b&gt; / Smith &amp; Sons' },
+    { mimeType: 'TEXT/HTML', expected: 'Name: O&#x27;Brien &lt;b&gt; / Smith &amp; Sons' },
+  ]
+
+  it.each(escapingCases)('escapes values for $mimeType output', async ({ mimeType, expected }) => {
+    const template = 'Name: {{fields.name}} / {{fields.business}}'
+    const data = { name: "O'Brien <b>", business: 'Smith & Sons' }
+    expect(renderText({ template, data, mimeType })).toBe(expected)
+    const request = { template: { type: 'text', key: 'body', mimeType, content: template }, data: { fields: data } }
+    expect(await textRenderer().render(request as never)).toBe(expected)
+  })
+
+  it('leaves raw placeholders unescaped in HTML output', () => {
+    expect(renderText({
+      template: '{{{fields.value}}} / {{& fields.value}}',
+      data: { value: '<b>A & B</b>' },
+      mimeType: 'text/html',
+    })).toBe('<b>A & B</b> / <b>A & B</b>')
   })
 
   it('applies nested bindings with the same result', () => {
@@ -140,7 +163,46 @@ describe('text renderer behavior', () => {
     }])
     const template = '{{initials(parties.tenant, "final")}}'
     const signatureOptions = { format: 'markdown' as const }
-    expect(renderText({ template, data, signatureOptions })).toBe('![Initials](data:image/png;base64,aW5pdA&#x3D;&#x3D;)')
+    expect(renderText({ template, data, signatureOptions })).toBe('![Initials](data:image/png;base64,aW5pdA==)')
+  })
+
+  const hostileParty = (captures: unknown[] = []) => ({
+    parties: {
+      tenant: {
+        _role: '"><script>alert(1)</script>',
+        id: 'tenant-1" onmouseover="alert(2)',
+        signatories: [{ signerId: 'signer-1"><b>', signer: { id: 'signer-1', person: { name: 'Ada' } } }],
+      },
+    },
+    _captures: captures,
+  })
+  const hostileCapture = (type: string) => ({
+    role: '"><script>alert(1)</script>', partyId: 'tenant-1" onmouseover="alert(2)', signerId: 'signer-1"><b>',
+    locationId: 'final', type, timestamp: '2026-07-12T10:30:00Z', method: 'drawn', image: 'x.png"><script>alert(4)</script>',
+  })
+  const hostileAttributes = 'data-role="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;" data-party-id="tenant-1&quot; onmouseover&#x3D;&quot;alert(2)" data-signer-id="signer-1&quot;&gt;&lt;b&gt;" data-location-id="final"'
+
+  it('escapes party, signer, and location values in HTML signing marks', () => {
+    const signatureOptions = { format: 'html' as const }
+    expect(renderText({ template: '{{{signature(parties.tenant, "final")}}}', data: hostileParty(), signatureOptions }))
+      .toBe(`<span class="signature-placeholder" ${hostileAttributes}>[SIGNATURE]</span>`)
+    expect(renderText({ template: '{{{signatureDate(parties.tenant, "final")}}}', data: hostileParty(), signatureOptions }))
+      .toBe(`<span class="signature-date-placeholder" ${hostileAttributes}>[DATE]</span>`)
+    expect(renderText({ template: '{{{signatureDate(parties.tenant, "final")}}}', data: hostileParty([hostileCapture('signature')]), signatureOptions }))
+      .toBe(`<span class="signature-date" ${hostileAttributes}>2026-07-12</span>`)
+  })
+
+  it('escapes the image, alt text, and class of a captured HTML signature', () => {
+    const signatureOptions = { format: 'html' as const, altText: '"><b>evil-alt</b>', cssClass: 'sig" onclick="x' }
+    expect(renderText({ template: '{{{signature(parties.tenant, "final")}}}', data: hostileParty([hostileCapture('signature')]), signatureOptions }))
+      .toBe(`<img src="x.png&quot;&gt;&lt;script&gt;alert(4)&lt;/script&gt;" alt="&quot;&gt;&lt;b&gt;evil-alt&lt;/b&gt;" class="sig&quot; onclick&#x3D;&quot;x" ${hostileAttributes} />`)
+  })
+
+  it('keeps a captured Markdown image inside its alt text and destination', () => {
+    const capture = { ...hostileCapture('initials'), image: 'x.png)[click](javascript:alert(5)' }
+    const signatureOptions = { format: 'markdown' as const, altText: 'Initials] [link' }
+    expect(renderText({ template: '{{{initials(parties.tenant, "final")}}}', data: hostileParty([capture]), signatureOptions }))
+      .toBe('![Initials\\] \\[link](x.png%29[click]%28javascript:alert%285%29)')
   })
 
   it('matches automatic field formatting while preserving raw properties', () => {
@@ -222,7 +284,7 @@ describe('text renderer behavior', () => {
         defs: { total: { amount: 12.5, currency: 'USD' } },
         rows: [{ amount: { amount: 2, currency: 'USD' } }],
       },
-    })).toBe('MONEY:12.5:$12.50/12.5/DATE:2024-01-15/Active/&lt;Alpha&gt;/Alpha and Beta/PERSON:Ada/MONEY:12.5:$12.50/MONEY:2:$2.00;')
+    })).toBe('MONEY:12.5:$12.50/12.5/DATE:2024-01-15/Active/<Alpha>/Alpha and Beta/PERSON:Ada/MONEY:12.5:$12.50/MONEY:2:$2.00;')
   })
 
   it('keeps missing and incomplete values explicit when progressive presentation is selected', () => {

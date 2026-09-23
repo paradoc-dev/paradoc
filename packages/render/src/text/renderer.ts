@@ -31,6 +31,7 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
         ...(request.ctx?.expressions as TemplateExpressionOptions | undefined),
       }
       const layer = request.template.key
+      const mimeType = request.template.mimeType
       if (!('fields' in source)) {
         return renderText({
           template: request.template.content,
@@ -42,6 +43,7 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
           signatureOptions: options.signatureOptions,
           expressions,
           layer,
+          mimeType,
         })
       }
 
@@ -71,6 +73,7 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
         signatureOptions: options.signatureOptions,
         expressions,
         layer,
+        mimeType,
       })
     },
   }

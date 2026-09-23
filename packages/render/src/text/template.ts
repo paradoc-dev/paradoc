@@ -20,7 +20,8 @@ export interface TemplateRenderOptions {
   root: Record<string, unknown>
   formatter: Formatter
   directives?: Record<string, SigningDirective>
-  escape?: (value: string) => string
+  /** Escapes an interpolated value for the output format; identity when the format needs none. */
+  escape: (value: string) => string
   /** The layer key, for error messages. */
   layer?: string
 }
@@ -97,7 +98,7 @@ export function renderDirective(
 }
 
 export function renderTemplateNodes(nodes: readonly TemplateNode[], scope: TemplateScope, options: TemplateRenderOptions): string {
-  const escape = options.escape ?? escapeHtml
+  const { escape } = options
   let result = ''
   for (const node of nodes) {
     if (node.type === 'text') {
