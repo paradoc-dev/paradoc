@@ -21,7 +21,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { stylesheetModule } from '../../src/commands/dev/harness.js'
+import { clientModule, stylesheetModule } from '../../src/commands/dev/harness.js'
 import { MissingDevPeerError, missingDevPeers } from '../../src/commands/dev/peers.js'
 import { servableRoots } from '../../src/commands/dev/server.js'
 
@@ -244,5 +244,13 @@ describe('the stylesheet the preview compiles', () => {
     } finally {
       await fs.rm(root, { recursive: true, force: true })
     }
+  })
+})
+
+describe('the proof view', () => {
+  it('asks for the PDF with the fonts the preview measured with', () => {
+    const client = clientModule()
+    expect(client).toContain('fetch(PDF_ROUTE')
+    expect(client).toContain('plan: plan ? { breaks: plan.breaks, repeats: plan.repeats, fonts: plan.fonts } : undefined')
   })
 })

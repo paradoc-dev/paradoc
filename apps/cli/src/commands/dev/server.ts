@@ -24,6 +24,7 @@ import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { resolve } from 'node:path'
 
+import type { PageBreakPlan } from '@paradoc/react/pdf'
 import type { Plugin, ViteDevServer } from 'vite'
 
 import { loadDiscovery, type DiscoveredComposition } from './discovery.js'
@@ -42,7 +43,8 @@ import { loadDevToolchain } from './peers.js'
 /** What the browser asks the PDF route for. */
 interface PdfRequest {
 	id?: string
-	plan?: { breaks: string[]; repeats: string[][] }
+	/** The preview's plan: its breaks, repeated headers and measured fonts. */
+	plan?: PageBreakPlan
 }
 
 /** How `paradoc dev` was invoked. */

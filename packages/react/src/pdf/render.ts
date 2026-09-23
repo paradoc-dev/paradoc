@@ -61,7 +61,10 @@ export {
 export interface RenderPdfOptions {
   /** Application-owned font faces shared by headless renders. */
   fonts?: readonly PdfFontResource[];
-  /** The relevant compiled application CSS for browser-backed fidelity rendering. */
+  /**
+   * The relevant compiled application CSS for browser-backed fidelity rendering.
+   * Chromium adapter only: Takumi refuses it.
+   */
   applicationCss?: string;
   formatter?: Formatter;
   progressive?: FormatterProgressivePolicy;
@@ -123,7 +126,7 @@ export class FontResourceIdentityMismatchError extends Error {
 
 export class UnsupportedApplicationTypographyError extends Error {
   constructor(readonly adapter: string) {
-    super(`The "${adapter}" adapter cannot honor application CSS or multiple application font families. Use the Chromium adapter for application-typography fidelity.`);
+    super(`The "${adapter}" adapter cannot apply application CSS. Use the Chromium adapter to render with application CSS.`);
     this.name = "UnsupportedApplicationTypographyError";
   }
 }
@@ -200,6 +203,8 @@ async function resolveAdapter(name: PdfAdapterName | PdfAdapter): Promise<PdfAda
  * @throws {UnsupportedScriptError} when the family it does name carries no
  * glyphs for the script the document's language is written in, which is the
  * same loss one level down.
+ * @throws {UnsupportedApplicationTypographyError} when `applicationCss` is
+ * passed to the Takumi adapter, which cannot apply a stylesheet.
  * @throws {UnsupportedDirectionError} when the chosen engine does not lay out
  * the direction the document is written in, naming the adapter and the script.
  * @throws {UnsupportedPdfContentError} when the tree uses a class or an image
@@ -262,7 +267,12 @@ export async function renderPdf(
   };
 
   const adapter = await resolveAdapter(options.adapter ?? "takumi");
-  if (adapter.name === "takumi" && (options.applicationCss !== undefined || options.plan?.fonts?.css || (options.fonts ?? options.plan?.fonts?.resources)?.length)) {
+  // Takumi embeds application fonts, explicit or captured by the preview, through
+  // the same loaders as the built-in faces. It cannot apply a stylesheet, so CSS
+  // the caller passes is refused. The page-wide CSS a preview plan captures is
+  // not: every class the document uses is already checked against Takumi's own
+  // vocabulary, so the engine ignores that capture rather than failing on it.
+  if (adapter.name === "takumi" && options.applicationCss !== undefined) {
     throw new UnsupportedApplicationTypographyError(adapter.name);
   }
   // The engine, which is the question this render alone asks: whether the one

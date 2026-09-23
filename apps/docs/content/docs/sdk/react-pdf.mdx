@@ -50,7 +50,7 @@ await writeFile("invoice.pdf", bytes);
 | `partial` | `boolean` | Print missing values blank instead of failing. Off by default; use it for drafts, never for a finished document |
 | `adapter` | `"takumi" \| "chromium" \| PdfAdapter` | The engine that writes the bytes. Defaults to `"takumi"` |
 | `images` | `PdfImage[]` | Bytes for every image `src` that is not a `data:` URI. No engine fetches images; a missing one fails the render |
-| `fonts` | `PdfFontResource[]` | Application font faces (Chromium adapter only) |
+| `fonts` | `PdfFontResource[]` | Application font faces to embed. A preview plan already carries the faces it measured with |
 | `applicationCss` | `string` | Compiled application CSS (Chromium adapter only) |
 | `formatter` / `progressive` | | Override the formatter and its progressive policy |
 | `signingMarkers` | `boolean` | Embeds the face that carries seal markers. Set by the seal flow; you rarely set it yourself |
@@ -59,7 +59,7 @@ The result carries `bytes`, plus `unknownBreaks` and `unknownRepeats`: plan entr
 
 ### Use the preview's plan and furniture
 
-The preview's [`Pages`](/components/pages) component reports its plan through `onPaginate`. Send that plan with the render, together with the same furniture, and the PDF matches the preview page for page.
+The preview's [`Pages`](/components/pages) component reports its plan through `onPaginate`. Send that plan with the render, together with the same furniture, and the PDF matches the preview page for page. The plan also carries the application fonts the preview measured with, and the default adapter embeds them.
 
 ```tsx
 import type { ReactElement } from "react";
@@ -84,10 +84,10 @@ An adapter is one engine behind `renderPdf`. Each declares the text directions a
 
 | Adapter | Directions | Furniture | Notes |
 | --- | --- | --- | --- |
-| `takumi` (default) | `ltr` | header, footer, stamp | WebAssembly. Draws from a verified vocabulary of Tailwind classes |
+| `takumi` (default) | `ltr` | header, footer, stamp | WebAssembly. Draws from a verified vocabulary of Tailwind classes and embeds application fonts |
 | `chromium` | `ltr`, `rtl` | header, footer, stamp | Experimental. Prints through Chrome, so it matches the browser preview and honours application fonts and CSS |
 
-A right-to-left document on Takumi throws `UnsupportedDirectionError`. Application `fonts` or `applicationCss` on Takumi throw `UnsupportedApplicationTypographyError`. Classes outside Takumi's vocabulary, or images with no bytes, throw `UnsupportedPdfContentError`, naming each one.
+A right-to-left document on Takumi throws `UnsupportedDirectionError`. `applicationCss` on Takumi throws `UnsupportedApplicationTypographyError`. Takumi embeds the plan's captured fonts and ignores the page CSS the plan captured. Classes outside Takumi's vocabulary, or images with no bytes, throw `UnsupportedPdfContentError`, naming each one.
 
 ### Chromium
 

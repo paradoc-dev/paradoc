@@ -480,7 +480,9 @@ function usePdf(entry, plan, nonce) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id: entry.id,
-            plan: plan ? { breaks: plan.breaks, repeats: plan.repeats } : undefined,
+            // The fonts go with the breaks: the PDF embeds the faces the
+            // preview measured with, so its pages break where these did.
+            plan: plan ? { breaks: plan.breaks, repeats: plan.repeats, fonts: plan.fonts } : undefined,
           }),
           signal: abort.signal,
         });

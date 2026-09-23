@@ -116,9 +116,42 @@ describe("the proposal renders to PDF", () => {
     })).rejects.toBeInstanceOf(FontResourceIdentityMismatchError);
   });
 
-  it("makes the constrained adapter refuse application typography explicitly", async () => {
+  it("makes the default adapter refuse application CSS the caller passes", async () => {
     await expect(renderPdf(<div>Unsupported</div>, { applicationCss: ".x { font-family: App }" }))
       .rejects.toBeInstanceOf(UnsupportedApplicationTypographyError);
+  });
+
+  it("embeds a preview plan's captured fonts on the default adapter", async () => {
+    const inter = "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+    const serif = "@fontsource-variable/source-serif-4/files/source-serif-4-latin-wght-normal.woff2";
+    const faces = [
+      { family: "Inter Variable", source: inter, weight: "100 900" },
+      { family: "Source Serif 4 Variable", source: serif, weight: "200 900" },
+    ];
+    const resources = await Promise.all(faces.map(async (face) => ({
+      ...face,
+      style: "normal",
+      integrity: (await resolveFontResource(face)).identity!,
+    })));
+
+    // The capture copies every rule on the page, so a real preview's plan
+    // always carries CSS. Takumi checks classes against its own vocabulary and
+    // ignores that CSS rather than failing on it.
+    const result = await renderPdf(
+      <div>
+        <p style={{ fontFamily: "Inter Variable" }}>Sans line</p>
+        <p style={{ fontFamily: '"Source Serif 4 Variable"' }}>Serif line</p>
+      </div>,
+      { plan: { breaks: [], repeats: [], fonts: { identity: "preview", css: "body { margin: 0 }", resources } } }
+    );
+
+    const embedded = Buffer.from(result.bytes).toString("latin1").match(/\/BaseFont\s*\/[^\s/>]+/gu) ?? [];
+    expect(embedded.some((name) => name.includes("Inter"))).toBe(true);
+    expect(embedded.some((name) => name.includes("SourceSerif4"))).toBe(true);
+    expect(result.fontResources?.map((face) => face.family)).toEqual(["Inter Variable", "Source Serif 4 Variable"]);
+    const [page] = await readPdf(result.bytes);
+    expect(page!.text).toContain("Sans line");
+    expect(page!.text).toContain("Serif line");
   });
 
   it("uses the page geometry the preview fixes", () => {

@@ -182,7 +182,7 @@ function PageCount({ children }: { children: ReactNode }) {
 }
 ```
 
-A `PagePlan` lists the keep ids on each page (`pages`), the repeated table headers (`repeats`), the sections on each page, the keep that starts each page after the first (`breaks`), keeps too tall for a page (`oversize`), the `budget`, and the measured `fonts`. Pass the plan to `renderPdf` so the PDF breaks where the preview did. The installed [`Pages`](/components/pages) component does all of this and exposes the plan through `onPaginate`.
+A `PagePlan` lists the keep ids on each page (`pages`), the repeated table headers (`repeats`), the sections on each page, the keep that starts each page after the first (`breaks`), keeps too tall for a page (`oversize`), the `budget`, and the measured `fonts`. Pass the plan to `renderPdf` so the PDF breaks where the preview did and embeds the measured fonts. The installed [`Pages`](/components/pages) component does all of this and exposes the plan through `onPaginate`.
 
 ## Errors
 

@@ -458,10 +458,10 @@ const [plan, setPlan] = useState<PagePlan | null>(null);
 </Pages>;
 ```
 
-Hand `plan.breaks`/`plan.repeats` to `renderPdf({ plan })` from
-`@paradoc/react-pdf` so the PDF starts
-each page where the preview did (see the react package README's "Hand-off to
-the PDF path"). Omit `plan` and the engine paginates on its own.
+Hand the whole plan to `renderPdf({ plan })` from `@paradoc/react-pdf` so the
+PDF starts each page where the preview did and embeds the application fonts the
+preview measured with. The default Takumi engine embeds those fonts and ignores
+the page CSS the plan captured. Omit `plan` and the engine paginates on its own.
 
 ### `Paper`
 
