@@ -1,6 +1,6 @@
-import type { Checklist, ChecklistItem, Form, FormParty, RuntimeParty } from '@paradoc/types'
+import type { Attachment, Checklist, ChecklistItem, Form, FormParty, RuntimeParty } from '@paradoc/types'
 import type { ValidationError } from '@/types'
-import { compile } from '@/inference'
+import { ATTACHMENT_SCHEMA, compile } from '@/inference'
 import { jsonSchemaToZod, mapZodIssueToValidationError } from './data'
 import { validatePartyForRole, validatePartyId } from './party'
 
@@ -496,12 +496,12 @@ export function validatePartiesPatch(
 }
 
 /**
- * Validate a single annex input key/value.
+ * Validate a single annex input key/value. The value must be an Attachment.
  */
 export function validateAnnexInput(
 	form: Form,
 	input: AnnexInputValidationInput,
-): ProgressiveValidationResult<unknown> {
+): ProgressiveValidationResult<Attachment> {
 	const annexId = input.annexId.trim()
 	if (annexId.length === 0) {
 		return failure([createValidationError('annexes', 'annexId is required.')])
@@ -513,16 +513,16 @@ export function validateAnnexInput(
 		return failure([createValidationError(`annexes.${annexId}`, `Unknown annex "${annexId}".`)])
 	}
 
-	return success(input.value)
+	return validateAttachment(annexId, input.value)
 }
 
 /**
- * Validate a partial annexes patch object.
+ * Validate a partial annexes patch object. Each value must be an Attachment.
  */
 export function validateAnnexesPatch(
 	form: Form,
 	annexes: unknown,
-): ProgressiveValidationResult<Record<string, unknown>> {
+): ProgressiveValidationResult<Record<string, Attachment>> {
 	if (!isRecord(annexes)) {
 		return failure([createValidationError('annexes', 'Annexes patch must be an object.')])
 	}
@@ -531,17 +531,42 @@ export function validateAnnexesPatch(
 	const allowAdditionalAnnexes = form.allowAdditionalAnnexes === true
 	const errors: ValidationError[] = []
 
-	for (const annexId of Object.keys(annexes)) {
+	const validated: Record<string, Attachment> = {}
+
+	for (const [annexId, value] of Object.entries(annexes)) {
 		if (!annexDefinitions[annexId] && !allowAdditionalAnnexes) {
 			errors.push(createValidationError(`annexes.${annexId}`, `Unknown annex "${annexId}".`))
+			continue
 		}
+		// An undefined entry leaves the slot as it is, the same as an absent key.
+		if (value === undefined) continue
+		const attachment = validateAttachment(annexId, value)
+		if (!attachment.success) {
+			errors.push(...attachment.errors)
+			continue
+		}
+		validated[annexId] = attachment.value
 	}
 
 	if (errors.length > 0) {
 		return failure(errors)
 	}
 
-	return success(annexes)
+	return success(validated)
+}
+
+/**
+ * Check one annex value against the Attachment primitive, reporting issues
+ * under `annexes.<annexId>`.
+ */
+function validateAttachment(annexId: string, value: unknown): ProgressiveValidationResult<Attachment> {
+	const parsed = jsonSchemaToZod(ATTACHMENT_SCHEMA).safeParse(value)
+	if (parsed.success) {
+		return success(parsed.data as Attachment)
+	}
+	return failure(
+		parsed.error.issues.map((issue) => mapZodIssueToValidationError(issue, ['annexes', annexId])),
+	)
 }
 
 /**

@@ -101,7 +101,7 @@ describe('shared AI tool contract', () => {
 		const result = await executeUpdateFill({
 			source: 'artifact',
 			artifact: formArtifact,
-			data: { fields: { name: 'Application', city: 'Boston' }, parties: { tenant }, annexes: { identity: { name: 'id.pdf' } } },
+			data: { fields: { name: 'Application', city: 'Boston' }, parties: { tenant }, annexes: { identity: { name: 'id.pdf', mimeType: 'application/pdf' } } },
 			patch: { fields: { name: 'Updated application' } },
 			clear: ['fields.city'],
 			reset: ['fields.city'],

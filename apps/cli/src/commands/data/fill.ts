@@ -319,11 +319,13 @@ export function createFillCommand(): Command {
             return
           }
 
+          // An empty annex (null) is left out: a stored annex is always an Attachment.
+          const annexes = Object.fromEntries(
+            Object.entries(normalizedData.annexes ?? {}).filter(([, value]) => value !== undefined && value !== null),
+          )
           data = {
             fields: normalizedData.fields,
-            ...(normalizedData.annexes && Object.keys(normalizedData.annexes).length > 0 && {
-              annexes: normalizedData.annexes,
-            }),
+            ...(Object.keys(annexes).length > 0 && { annexes }),
           }
 
           // Log source info for non-interactive mode
@@ -348,13 +350,9 @@ export function createFillCommand(): Command {
             filledFields[fieldId] = await promptForField(fieldId, field, defaultValue)
           }
 
+          // Interactive mode collects field values only; annexes are attached separately.
           data = {
             fields: filledFields,
-          }
-
-          // Include annexes if form has defined annexes
-          if (template.annexes && Object.keys(template.annexes).length > 0) {
-            data.annexes = template.annexes
           }
         }
 

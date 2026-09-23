@@ -72,7 +72,7 @@ describe('DraftForm clear and reset', () => {
 	test('reset does not invent list rows and annex reset removes the stored value', () => {
 		const draft = createFormWithDefaults().fill({
 			fields: { rows: [{ label: 'First' }] },
-			annexes: { proof: { path: 'proof.pdf' } },
+			annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' } },
 		} as never)
 
 		const cleared = draft.clear('fields.rows').clear('annexes.proof')

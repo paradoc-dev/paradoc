@@ -16,9 +16,6 @@ import type {
   Checklist,
   Artifact,
   Metadata,
-  Party,
-  Signer,
-  PartySignatory,
   ParadocRenderer,
   RendererLayer,
   Formatter,
@@ -331,37 +328,6 @@ export interface RuntimeChecklistRenderOptions<Output = unknown> {
 
   /** Key of the layer to use. If not provided, uses defaultLayer or first available. */
   layer?: string
-}
-
-/**
- * Options for filling a form with data.
- *
- * @example
- * ```typescript
- * const filled = form.fill({
- *   fields: { name: 'John', age: 30 },
- *   annexes: { schedule: { items: [...] } },
- *   parties: { buyer: { type: 'person', name: { firstName: 'John' } } },
- *   signers: { john: { person: { name: 'John Doe' } } },
- *   signatories: { buyer: { 'buyer-0': [{ signerId: 'john' }] } }
- * })
- * ```
- */
-export interface FillOptions {
-  /** Field values to populate the form with */
-  fields?: Record<string, unknown>
-
-  /** Annex data */
-  annexes?: Record<string, unknown>
-
-  /** Party data indexed by role ID */
-  parties?: Record<string, Party | Party[]>
-
-  /** Global registry of signers with their adopted signatures */
-  signers?: Record<string, Signer>
-
-  /** Maps parties to their signatories. Structure: role → partyId → signatories */
-  signatories?: Record<string, Record<string, PartySignatory[]>>
 }
 
 // ============================================================================

@@ -6,7 +6,7 @@
  * compiled form schema through @paradoc/core, so their shapes cannot drift.
  */
 
-import { validateFieldInput, type Form, type FormField, type FormAnnex } from '@paradoc/core'
+import { validateAnnexInput, validateFieldInput, type Form, type FormField, type FormAnnex } from '@paradoc/core'
 
 export interface ValidationError {
   field: string
@@ -196,6 +196,13 @@ export function validateInstanceData(form: Form, data: InstanceData): Validation
       const value = data.fields[fieldId]
       errors.push(...validateFieldValue(form, fieldId, field, value))
     }
+  }
+
+  // Every supplied annex value must be an Attachment; null means empty.
+  for (const [annexId, annexValue] of Object.entries(data.annexes ?? {})) {
+    if (annexValue === undefined || annexValue === null) continue
+    const result = validateAnnexInput(form, { annexId, value: annexValue })
+    if (!result.success) errors.push(...result.errors)
   }
 
   // Validate annexes if form has required annexes

@@ -102,7 +102,7 @@ const createFormWithProgressiveParties = () =>
 const createCompletePartyPayload = () => ({
 	fields: { amount: 100 },
 	parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
-	annexes: { receipt: { filename: 'receipt.pdf' } },
+	annexes: { receipt: { name: 'receipt.pdf', mimeType: 'application/pdf' } },
 })
 
 const createFormWithDefsAndRules = () =>
@@ -1091,7 +1091,7 @@ describe('fill-state', () => {
 				requiredFlag: true,
 				requiredCount: 0,
 			},
-			annexes: { proof: { filename: 'proof.pdf' } },
+			annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' } },
 		}
 
 		test('full fill resolves conditional requiredness and ignores hidden required values', () => {
@@ -1109,7 +1109,7 @@ describe('fill-state', () => {
 
 			const incomplete = f.safeFill({
 				fields: { enabled: true, requiredFlag: true, requiredCount: 0 },
-				annexes: { proof: { filename: 'proof.pdf' } },
+				annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' } },
 			} as any)
 			expect(incomplete.success).toBe(true)
 			if (incomplete.success) expect(incomplete.data.isValid()).toBe(false)
@@ -1146,28 +1146,42 @@ describe('fill-state', () => {
 			const draft = f.fill({
 				fields: { enabled: false, hiddenText: 'kept', requiredFlag: true, requiredCount: 0 },
 				annexes: {
-					hiddenProof: { filename: 'kept.pdf' },
-					proof: { filename: 'kept-conditional.pdf' },
+					hiddenProof: { name: 'kept.pdf', mimeType: 'application/pdf' },
+					proof: { name: 'kept-conditional.pdf', mimeType: 'application/pdf' },
 				},
 			} as any)
 			const shown = draft.update({ fields: { enabled: true } } as any)
 
 			expect(shown.getField('hiddenText')).toBe('kept')
-			expect(shown.getAnnex('hiddenProof')).toEqual({ filename: 'kept.pdf' })
-			expect(shown.getAnnex('proof')).toEqual({ filename: 'kept-conditional.pdf' })
+			expect(shown.getAnnex('hiddenProof')).toEqual({ name: 'kept.pdf', mimeType: 'application/pdf' })
+			expect(shown.getAnnex('proof')).toEqual({ name: 'kept-conditional.pdf', mimeType: 'application/pdf' })
 			expect(shown.isAnnexRequired('proof')).toBe(true)
 			expect(() => f.fill({ fields: { hiddenText: 123 } } as any)).toThrow(FormValidationError)
 		})
 
-		test('null and undefined do not satisfy a visible required annex', () => {
+		test('an undefined annex does not satisfy a visible required annex', () => {
 			const f = createCompletionContractForm()
-			for (const value of [null, undefined]) {
-				const result = f.safeFill({
-					fields: { enabled: true, license: 'DL-123', requiredFlag: true, requiredCount: 0 },
-					annexes: { proof: value },
-				} as any)
-				expect(result.success).toBe(true)
-				if (result.success) expect(result.data.isValid()).toBe(false)
+			const result = f.safeFill({
+				fields: { enabled: true, license: 'DL-123', requiredFlag: true, requiredCount: 0 },
+				annexes: { proof: undefined },
+			} as any)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.annexes).not.toHaveProperty('proof')
+				expect(result.data.isValid()).toBe(false)
+			}
+		})
+
+		test('a null annex is rejected by name because it is not an Attachment', () => {
+			const f = createCompletionContractForm()
+			const result = f.safeFill({
+				fields: { enabled: true, license: 'DL-123', requiredFlag: true, requiredCount: 0 },
+				annexes: { proof: null },
+			} as any)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.error).toBeInstanceOf(FormValidationError)
+				expect((result.error as FormValidationError).errors.map((error) => error.field)).toEqual(['annexes.proof'])
 			}
 		})
 

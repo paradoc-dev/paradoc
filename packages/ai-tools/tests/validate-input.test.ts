@@ -85,6 +85,36 @@ describe('executeValidateInput', () => {
     expect(result.errors![0]!.path).toEqual(['fields', 'species'])
   })
 
+  it('accepts an Attachment for annex validation', async () => {
+    const attachment = { name: 'pet.jpg', mimeType: 'image/jpeg' }
+    const result = await executeValidateInput({
+      source: 'artifact',
+      artifact: formArtifact,
+      target: 'annex',
+      annex_id: 'petPhoto',
+      value: attachment,
+    })
+
+    expect(result.valid).toBe(true)
+    expect(result.target).toBe('annex')
+    expect(result.normalized_value).toEqual(attachment)
+  })
+
+  it('rejects an annex value that is not an Attachment, naming the annex', async () => {
+    const result = await executeValidateInput({
+      source: 'artifact',
+      artifact: formArtifact,
+      target: 'annex',
+      annex_id: 'petPhoto',
+      value: { evil: true, sql: 'DROP TABLE users;' },
+    })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toBeDefined()
+    expect(result.errors!.length).toBeGreaterThan(0)
+    for (const error of result.errors!) expect(error.path.slice(0, 2)).toEqual(['annexes', 'petPhoto'])
+  })
+
   it('normalizes party id for party validation', async () => {
     const result = await executeValidateInput({
       source: 'artifact',

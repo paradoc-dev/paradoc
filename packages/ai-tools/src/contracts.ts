@@ -113,7 +113,7 @@ const ValidateInputSelectorsSchema = {
 	index: z.number().int().nonnegative().optional().describe('Party index, default 0'),
 	annex_id: z.string().optional().describe('Annex ID for target="annex"'),
 	item_id: z.string().optional().describe('Checklist item ID for target="checklist_item"'),
-	value: z.unknown().describe('Value supplied for the selected target'),
+	value: z.unknown().describe('Value supplied for the selected target; for target="annex", an Attachment { name, mimeType, checksum? }'),
 }
 
 export const ValidateInputValueSchema = withSourceFields(ValidateInputSelectorsSchema)

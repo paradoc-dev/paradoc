@@ -96,11 +96,13 @@ const form = p.form()
 const draft = form.fill({
   fields: { /* ... */ },
   annexes: {
-    photoId: { filename: "id-front.pdf", contentType: "application/pdf" },
-    proofOfIncome: { filename: "paystub.pdf", contentType: "application/pdf" },
+    photoId: { name: "id-front.pdf", mimeType: "application/pdf" },
+    proofOfIncome: { name: "paystub.pdf", mimeType: "application/pdf" },
   },
 });
 ```
+
+Each annex value is an Attachment: `{ name, mimeType, checksum? }` with no other keys (`checksum` is `sha256:<64 hex>`). Any other shape fails validation under `annexes.<annexId>`.
 
 ## See Also
 

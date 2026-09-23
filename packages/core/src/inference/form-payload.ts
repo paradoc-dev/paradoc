@@ -781,6 +781,21 @@ function compileField(field: FormField): JsonSchema {
 }
 
 /**
+ * JSON Schema for an annex value: the Attachment primitive (`AttachmentSchema`
+ * in @paradoc/schemas). Every annex slot holds exactly one Attachment.
+ */
+export const ATTACHMENT_SCHEMA: JsonSchema = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', minLength: 1, maxLength: 255 },
+    mimeType: { type: 'string', minLength: 1, maxLength: 100 },
+    checksum: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' },
+  },
+  required: ['name', 'mimeType'],
+  additionalProperties: false,
+}
+
+/**
  * Convert annex definitions into a data validation schema
  */
 function compileAnnexes(annexes: Record<string, FormAnnex>): JsonSchema {
@@ -793,10 +808,10 @@ function compileAnnexes(annexes: Record<string, FormAnnex>): JsonSchema {
   const required: string[] = []
 
   for (const [annexId, annex] of annexEntries) {
-    // Annexes typically contain files or references
-    // For now, we'll accept any value (could be file descriptor, path, etc.)
+    const description = annex.description || annex.title
     properties[annexId] = {
-      description: annex.description || annex.title,
+      ...ATTACHMENT_SCHEMA,
+      ...(description !== undefined && { description }),
     }
 
     if (annex.required) {

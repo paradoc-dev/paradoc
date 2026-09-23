@@ -108,3 +108,35 @@ describe('validateInstanceData composite shapes', () => {
     expect(result).toMatchObject({ success: true, errors: [] })
   })
 })
+
+describe('validateInstanceData annex values', () => {
+  const annexForm = {
+    kind: 'form',
+    name: 'annex-probe',
+    version: '1.0.0',
+    title: 'Annex probe',
+    fields: { note: { type: 'text', label: 'Note' } },
+    annexes: {
+      proof: { title: 'Proof', required: true },
+      extra: { title: 'Extra' },
+    },
+  } as unknown as Form
+
+  it('accepts an Attachment and treats null as an empty optional annex', () => {
+    const result = validateInstanceData(annexForm, {
+      fields: {},
+      annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' }, extra: null },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects an annex value that is not an Attachment, naming the annex', () => {
+    const result = validateInstanceData(annexForm, {
+      fields: {},
+      annexes: { proof: { filename: 'proof.pdf' } },
+    })
+    expect(result.success).toBe(false)
+    expect(result.errors.length).toBeGreaterThan(0)
+    for (const error of result.errors) expect(error.field.startsWith('annexes.proof')).toBe(true)
+  })
+})

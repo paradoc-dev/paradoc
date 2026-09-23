@@ -183,8 +183,8 @@ Returns a `FormInstance` with the following properties and methods:
   { name: 'validateFieldsPatch', type: '(fields: unknown) => ProgressiveValidationResult<Record<string, unknown>>', description: 'Validate a partial fields patch without requiring unrelated fields', isMethod: true },
   { name: 'validatePartyInput', type: '(input: { roleId: string; index?: number; value: unknown }) => ProgressiveValidationResult<{ roleId; index; party }>', description: 'Validate one party input and normalize runtime party id', isMethod: true },
   { name: 'validatePartiesPatch', type: '(parties: unknown) => ProgressiveValidationResult<Record<string, RuntimeParty | RuntimeParty[]>>', description: 'Validate a partial parties patch', isMethod: true },
-  { name: 'validateAnnexInput', type: '(input: { annexId: string; value: unknown }) => ProgressiveValidationResult<unknown>', description: 'Validate one annex input key/value', isMethod: true },
-  { name: 'validateAnnexesPatch', type: '(annexes: unknown) => ProgressiveValidationResult<Record<string, unknown>>', description: 'Validate a partial annexes patch', isMethod: true },
+  { name: 'validateAnnexInput', type: '(input: { annexId: string; value: unknown }) => ProgressiveValidationResult<Attachment>', description: 'Validate one annex input key/value; the value must be an Attachment', isMethod: true },
+  { name: 'validateAnnexesPatch', type: '(annexes: unknown) => ProgressiveValidationResult<Record<string, Attachment>>', description: 'Validate a partial annexes patch; each value must be an Attachment', isMethod: true },
   { name: 'fill', type: '(seed?: ProgressiveFormPayload, options?: FillOptions) => DraftForm', description: 'Create a draft from empty, partial, or complete data; supplied values validate immediately', isMethod: true },
   { name: 'safeFill', type: '(seed?: ProgressiveFormPayload, options?: FillOptions) => SafeFillResult', description: 'Safely create a draft; success means the supplied patch was accepted', isMethod: true },
   { name: 'render', type: '(options?: RenderOptions) => Promise<Output>', description: 'Render a layer, with `data` if supplied. See [Render options](#render-options)', isMethod: true },
@@ -327,6 +327,8 @@ const annexPatch = form.validateAnnexesPatch({
   photoId: { name: 'photo-id.pdf', mimeType: 'application/pdf' },
 })
 ```
+
+Every annex value must be an [Attachment](/schemas/primitives/attachment): `{ name, mimeType, checksum? }` with no other keys. A value of any other shape fails with an error under `annexes.<annexId>`. `fill`, `update`, and `setAnnex` apply the same check.
 
 When `allowAdditionalAnnexes` is `false`, unknown annex keys are rejected.
 

@@ -428,10 +428,89 @@ describe('progressive form validation', () => {
 		test('allows unknown annex id when additional annexes are enabled', () => {
 			const petForm = createPetAddendumLikeForm({ allowAdditionalAnnexes: true })
 			const result = validateAnnexesPatch(petForm, {
-				customAnnex: { any: 'value' },
+				customAnnex: { name: 'extra.pdf', mimeType: 'application/pdf' },
 			})
 
 			expect(result.success).toBe(true)
+		})
+
+		test.each([
+			['a string', 'just a raw string, not an Attachment'],
+			['a number', 123],
+			['null', null],
+			['an object without name or mimeType', { evil: true, sql: 'DROP TABLE users;' }],
+			['an empty object', {}],
+			['an empty name', { name: '', mimeType: 'application/pdf' }],
+			['an unknown key', { name: 'pet.pdf', mimeType: 'application/pdf', url: 'https://example.com' }],
+			['a malformed checksum', { name: 'pet.pdf', mimeType: 'application/pdf', checksum: 'md5:abc' }],
+		])('rejects %s as an annex value, naming the annex', (_label, value) => {
+			const petForm = createPetAddendumLikeForm()
+
+			const single = validateAnnexInput(petForm, { annexId: 'petPhoto', value })
+			expect(single.success).toBe(false)
+			if (!single.success) {
+				expect(single.errors.length).toBeGreaterThan(0)
+				for (const error of single.errors) expect(error.field.startsWith('annexes.petPhoto')).toBe(true)
+			}
+
+			const patch = validateAnnexesPatch(petForm, { petPhoto: value })
+			expect(patch.success).toBe(false)
+			if (!patch.success) {
+				for (const error of patch.errors) expect(error.field.startsWith('annexes.petPhoto')).toBe(true)
+			}
+		})
+
+		test('accepts an Attachment with a checksum and returns it', () => {
+			const petForm = createPetAddendumLikeForm()
+			const attachment = { name: 'pet.jpg', mimeType: 'image/jpeg', checksum: `sha256:${'a'.repeat(64)}` }
+
+			const single = validateAnnexInput(petForm, { annexId: 'petPhoto', value: attachment })
+			expect(single).toEqual({ success: true, value: attachment, errors: null })
+
+			const patch = validateAnnexesPatch(petForm, { petPhoto: attachment })
+			expect(patch).toEqual({ success: true, value: { petPhoto: attachment }, errors: null })
+		})
+
+		test('checks additional annexes against the Attachment shape too', () => {
+			const petForm = createPetAddendumLikeForm({ allowAdditionalAnnexes: true })
+			const result = validateAnnexesPatch(petForm, { customAnnex: { any: 'value' } })
+
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.errors.every((error) => error.field.startsWith('annexes.customAnnex'))).toBe(true)
+			}
+		})
+
+		test('full payload validation checks annex values against the Attachment shape', () => {
+			const proofForm = form()
+				.name('annex-shape')
+				.annexes({ proof: { title: 'Proof', required: true } })
+				.build()
+
+			const valid = validateFormData(proofForm, {
+				fields: {},
+				annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' } },
+			})
+			expect(valid.success).toBe(true)
+
+			for (const value of ['proof.pdf', { path: 'proof.pdf' }, { name: 'proof.pdf' }]) {
+				const invalid = validateFormData(proofForm, { fields: {}, annexes: { proof: value } })
+				expect(invalid.success).toBe(false)
+				if (!invalid.success) {
+					expect(invalid.errors.length).toBeGreaterThan(0)
+					for (const error of invalid.errors) expect(error.field.startsWith('annexes.proof')).toBe(true)
+				}
+			}
+		})
+
+		test('setAnnex rejects a value that is not an Attachment', () => {
+			const petForm = createPetAddendumLikeForm()
+			const draft = petForm.fill()
+
+			const next = draft.setAnnex('petPhoto', { name: 'pet.pdf', mimeType: 'application/pdf' })
+			expect(next.getAnnex('petPhoto')).toEqual({ name: 'pet.pdf', mimeType: 'application/pdf' })
+
+			expect(() => draft.setAnnex('petPhoto', { path: 'pet.pdf' } as never)).toThrow(/annexes\.petPhoto/)
 		})
 	})
 

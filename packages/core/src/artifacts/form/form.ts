@@ -6,6 +6,7 @@
  */
 
 import type {
+	Attachment,
 	Form,
 	FormField,
 	FieldsetField,
@@ -810,14 +811,14 @@ export interface FormInstance<F extends Form> extends ArtifactMethods<F> {
 	validatePartiesPatch(parties: unknown): ProgressiveValidationResult<Record<string, RuntimeParty | RuntimeParty[]>>
 
 	/**
-	 * Validate one annex value against configured annex keys.
+	 * Validate one annex value: the key must be a configured annex and the value an Attachment.
 	 */
-	validateAnnexInput(input: AnnexInputValidationInput): ProgressiveValidationResult<unknown>
+	validateAnnexInput(input: AnnexInputValidationInput): ProgressiveValidationResult<Attachment>
 
 	/**
-	 * Validate a partial annexes patch against configured annex keys.
+	 * Validate a partial annexes patch: each key must be a configured annex and each value an Attachment.
 	 */
-	validateAnnexesPatch(annexes: unknown): ProgressiveValidationResult<Record<string, unknown>>
+	validateAnnexesPatch(annexes: unknown): ProgressiveValidationResult<Record<string, Attachment>>
 
 	/**
 	 * Create a draft form from empty, partial, or complete data.
@@ -1005,7 +1006,7 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	addSignatory<R extends PartyRoleKeys<F>>(roleId: R, partyId: string, signatory: PartySignatory): DraftForm<F>
 
 	// Annex Mutation
-	setAnnex(annexId: string, annexData: unknown): DraftForm<F>
+	setAnnex(annexId: string, annexData: Attachment): DraftForm<F>
 
 	// Progressive Fill
 	/**
@@ -1846,11 +1847,13 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			return annexesView[annexId]
 		},
 
-		setAnnex(annexId: string, annexData: unknown): RuntimeForm<F> {
+		setAnnex(annexId: string, annexData: Attachment): RuntimeForm<F> {
 			ensureDraft('setAnnex')
+			const annexResult = validateProgressiveAnnexInput(formDef, { annexId, value: annexData })
+			if (!annexResult.success) throw new FormValidationError(annexResult.errors)
 			return createRuntimeForm({
 				...config,
-				annexes: { ...annexValues, [annexId]: annexData },
+				annexes: { ...annexValues, [annexId]: annexResult.value },
 			})
 		},
 
@@ -3415,11 +3418,11 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				return validateProgressivePartiesPatch(formDef, parties)
 			},
 
-			validateAnnexInput(input: AnnexInputValidationInput): ProgressiveValidationResult<unknown> {
+			validateAnnexInput(input: AnnexInputValidationInput): ProgressiveValidationResult<Attachment> {
 				return validateProgressiveAnnexInput(formDef, input)
 			},
 
-			validateAnnexesPatch(annexes: unknown): ProgressiveValidationResult<Record<string, unknown>> {
+			validateAnnexesPatch(annexes: unknown): ProgressiveValidationResult<Record<string, Attachment>> {
 				return validateProgressiveAnnexesPatch(formDef, annexes)
 			},
 

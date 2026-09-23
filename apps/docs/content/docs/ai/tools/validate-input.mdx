@@ -14,7 +14,7 @@ Takes a [source](/ai/tools#sources) plus:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `target` | `"field" \| "party" \| "annex" \| "checklist_item"` | Yes | What the value is for |
-| `value` | `unknown` | Yes | The value to check |
+| `value` | `unknown` | Yes | The value to check. For `annex`, an [Attachment](/schemas/primitives/attachment): `{ name, mimeType, checksum? }`. |
 | `field_path` | `string` | For `field` | Field path, such as `weight` |
 | `role_id` | `string` | For `party` | Party role ID, such as `tenant` |
 | `index` | `integer` | No | Party index for roles with more than one party. Default `0`. |
