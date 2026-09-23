@@ -16,7 +16,7 @@ Interactive pipeline that guides creation of a new Paradoc form artifact through
 ## Setup
 
 - All artifacts use schema version `2026-09-22` (`$schema` per [artifacts.md](./artifacts.md))
-- ALWAYS use `npx paradoc validate <file>` after every significant change — see [schemas.md](./schemas.md)
+- ALWAYS use `npx paradoc-cli validate <file>` after every significant change — see [schemas.md](./schemas.md)
 - File MUST be named `<name>.json` or `<name>.yaml`. Name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`
 
 ## Pipeline Overview
@@ -178,7 +178,7 @@ For ambiguous types, present as multiple choice: "For 'Monthly Rent', should thi
 
 Ask: "Here are the fields I recommend. Should I add, remove, or change any?"
 
-Wait for confirmation. Then run `npx paradoc validate` on the partial artifact.
+Wait for confirmation. Then run `npx paradoc-cli validate` on the partial artifact.
 
 ## Stage 3: Design Parties (if needed)
 
@@ -296,7 +296,7 @@ Wait for confirmation. Then validate.
 
 **Load:** [schemas.md](./schemas.md) — validation rules and common errors. Re-load topic refs as needed.
 
-1. Run `npx paradoc validate <file>`
+1. Run `npx paradoc-cli validate <file>`
 2. Fix all errors. NEVER skip.
 3. Present final summary: field count, parties, logic rules, layers, instructions
 4. Ask user to confirm

@@ -9,17 +9,17 @@ metadata:
 
 The `paradoc` binary manages Paradoc artifacts — projects, registries, authoring, validation, rendering, data.
 
-ALWAYS use `npx paradoc validate` to validate artifacts when you can't guarantee a global install.
+ALWAYS use `npx paradoc-cli validate` to validate artifacts when you can't guarantee a global install.
 
 ## Installation
 
 ```bash
 npm install -g @paradoc/cli
-# or run via npx
-npx paradoc <command>
+# or run via npx: paradoc-cli wraps @paradoc/cli (the bare `paradoc` npm package is unrelated)
+npx paradoc-cli <command>
 ```
 
-If `paradoc: command not found`: install globally, run via `npx paradoc`, or ensure `node_modules/.bin` is on PATH.
+If `paradoc: command not found`: install globally, run via `npx paradoc-cli`, or ensure `node_modules/.bin` is on PATH.
 
 ## Project Lifecycle
 
@@ -515,7 +515,7 @@ Reads AcroForm field values back through the PDF layer's bindings. Output per PD
 ## Common CLI Issues
 
 **`paradoc: command not found`**
-Install `@paradoc/cli` globally or use `npx paradoc`.
+Install `@paradoc/cli` globally or use `npx paradoc-cli`.
 
 **Validation errors on `paradoc validate`**
 Check `--verbose` output. Use `paradoc fix` to auto-correct. Verify all field IDs in rules/logic/bindings exist in `fields`.

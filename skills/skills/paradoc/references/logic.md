@@ -406,4 +406,4 @@ const errors = validateLogic(form);
 - [fields.md](./fields.md) — `required` / `visible` CondExpr on fields
 - [parties.md](./parties.md) — `required` CondExpr; party functions
 - [artifacts.md](./artifacts.md) — which artifacts support defs and rules
-- [schemas.md](./schemas.md) — `npx paradoc validate`
+- [schemas.md](./schemas.md) — `npx paradoc-cli validate`

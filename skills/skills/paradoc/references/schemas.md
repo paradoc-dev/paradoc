@@ -1,6 +1,6 @@
 ---
 name: schemas
-description: Raw JSON/YAML artifact manipulation surface — schema URIs, top-level structure, validation rules, common errors, npx paradoc validate
+description: Raw JSON/YAML artifact manipulation surface — schema URIs, top-level structure, validation rules, common errors, npx paradoc-cli validate
 metadata:
   tags: schemas, json, yaml, validation, schema-uri, identifiers, naming, errors
 ---
@@ -43,10 +43,10 @@ When you see one of these errors, run `paradoc migrate` on the file. NEVER work 
 When a file names an earlier version, migrate it. NEVER edit `$schema` by hand: the migration steps change the values the new version reads differently.
 
 ```bash
-npx paradoc migrate my-form.yaml --dry-run   # print the diff, write nothing
-npx paradoc migrate my-form.yaml             # rewrite in place, keeps JSON or YAML
-npx paradoc migrate forms/                   # every artifact file in a directory
-npx paradoc migrate my-form.json --from 2026-08-10   # $schema missing or names no published version
+npx paradoc-cli migrate my-form.yaml --dry-run   # print the diff, write nothing
+npx paradoc-cli migrate my-form.yaml             # rewrite in place, keeps JSON or YAML
+npx paradoc-cli migrate forms/                   # every artifact file in a directory
+npx paradoc-cli migrate my-form.json --from 2026-08-10   # $schema missing or names no published version
 ```
 
 A value a step cannot convert safely is named, and that file is left unchanged. Fix the value by hand, then run `migrate` again. See [cli.md](./cli.md#migrating-schema-versions).
@@ -56,20 +56,20 @@ A value a step cannot convert safely is named, and that file is left unchanged. 
 ALWAYS run validation after every mutation:
 
 ```bash
-npx paradoc validate <file>
+npx paradoc-cli validate <file>
 ```
 
-Use `npx paradoc` when working directly with files — it ensures the CLI is available without a global install.
+Use `npx paradoc-cli` when working directly with files — it ensures the CLI is available without a global install.
 
 ```bash
 # Single file
-npx paradoc validate my-form.json
+npx paradoc-cli validate my-form.json
 
 # YAML
-npx paradoc validate my-form.yaml
+npx paradoc-cli validate my-form.yaml
 
 # Multiple files
-npx paradoc validate form.json document.json bundle.json
+npx paradoc-cli validate form.json document.json bundle.json
 ```
 
 For more validation flags (`--silent`, `--json`, `--expect-kind`, `--schema-only`, etc.), see [cli.md](./cli.md#validation).
@@ -207,7 +207,7 @@ See [logic.md](./logic.md) for expression context rules.
 ## Workflow
 
 1. Make changes to the artifact JSON / YAML
-2. `npx paradoc validate <file>`
+2. `npx paradoc-cli validate <file>`
 3. If errors, fix and repeat
 4. NEVER skip validation
 

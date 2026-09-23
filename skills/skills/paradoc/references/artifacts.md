@@ -29,7 +29,7 @@ All four artifact types share these properties:
 | `instructions` | No | ContentRef | Domain/compliance reference content |
 | `agentInstructions` | No | ContentRef | LLM/agent prompts for presentation |
 
-Schema URI (current schema version `2026-09-22`, the same for every kind): `https://schema.paradoc.dev/2026-09-22.json`. To bring an older file up to date, run `npx paradoc migrate <file>` (see [schemas.md](./schemas.md#migrating-an-older-artifact)).
+Schema URI (current schema version `2026-09-22`, the same for every kind): `https://schema.paradoc.dev/2026-09-22.json`. To bring an older file up to date, run `npx paradoc-cli migrate <file>` (see [schemas.md](./schemas.md#migrating-an-older-artifact)).
 
 ## Form
 
@@ -253,4 +253,4 @@ ALWAYS pass `{ includeSchema: false }` when inlining artifacts in bundles — sc
 - [annexes.md](./annexes.md) — file attachments
 - [instructions.md](./instructions.md) — ContentRef
 - [sdk.md](./sdk.md) — TypeScript SDK lifecycle (fill, sign, render)
-- [schemas.md](./schemas.md) — `npx paradoc validate` and shared rules
+- [schemas.md](./schemas.md) — `npx paradoc-cli validate` and shared rules

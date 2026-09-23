@@ -20,7 +20,7 @@ Interactive pipeline that converts an existing PDF form into a valid Paradoc for
 ## Setup
 
 - All output uses schema version `2026-09-22` (`$schema: https://schema.paradoc.dev/2026-09-22.json`)
-- ALWAYS run `npx paradoc validate <file>` after every significant change — see [schemas.md](./schemas.md)
+- ALWAYS run `npx paradoc-cli validate <file>` after every significant change — see [schemas.md](./schemas.md)
 - ALWAYS use camelCase for field IDs, kebab-case for artifact names
 - ALWAYS present findings and wait for user confirmation at each checkpoint
 - ALWAYS ask the user when something is ambiguous rather than guessing
@@ -468,7 +468,7 @@ Ambiguous? Ask:
 **Load:** [schemas.md](./schemas.md) — validation rules and common errors.
 
 1. Write the artifact
-2. Run `npx paradoc validate <output-file>`
+2. Run `npx paradoc-cli validate <output-file>`
 3. Fix all errors and re-validate
 4. Present final summary: field count, parties, logic rules, layers, instructions
 5. User confirms

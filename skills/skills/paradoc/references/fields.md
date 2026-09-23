@@ -307,7 +307,7 @@ NEVER mix object and builder patterns within a single artifact.
 2. Add the field to the `fields` object
 3. Set `type` (REQUIRED for all non-fieldset fields)
 4. Add `label`, `required`, `visible`, type-specific constraints
-5. Run `npx paradoc validate <file>` (see [schemas.md](./schemas.md))
+5. Run `npx paradoc-cli validate <file>` (see [schemas.md](./schemas.md))
 
 ## See Also
 
