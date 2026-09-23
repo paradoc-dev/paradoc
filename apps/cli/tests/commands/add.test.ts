@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { createServer, type Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -184,6 +187,122 @@ describe('paradoc add', () => {
       expect(result.stdout).toContain('all')
     })
   })
+})
+
+describe('paradoc add (files the artifact references)', () => {
+  // A registry of one artifact with a file layer and an instructions file. Each
+  // test decides what the registry serves for those two files.
+  const layerBytes = Buffer.from('%PDF-1.4 layer bytes')
+  const instructionsBytes = Buffer.from('# Instructions\n')
+  const sha256 = (content: Buffer): string => `sha256:${createHash('sha256').update(content).digest('hex')}`
+
+  let tempDir: string
+  let server: Server
+  let serve: Record<string, { status: number; type: string; body: Buffer }>
+
+  beforeEach(async () => {
+    const w9 = JSON.parse(await fs.readFile(path.resolve(__dirname, '../../test-registry/r/w9.json'), 'utf-8'))
+    const artifact = {
+      $schema: w9.$schema,
+      kind: 'form',
+      name: 'packet',
+      version: '1.0.0',
+      title: 'Packet',
+      fields: { name: { type: 'text', label: 'Name' } },
+      layers: {
+        pdf: { kind: 'file', mimeType: 'application/pdf', path: 'packet.pdf', checksum: sha256(layerBytes) },
+      },
+      instructions: { kind: 'file', path: 'packet-instructions.md', mimeType: 'text/markdown', checksum: sha256(instructionsBytes) },
+    }
+    serve = {
+      '/registry.json': {
+        status: 200,
+        type: 'application/json',
+        body: Buffer.from(JSON.stringify({ name: 'fixture', artifactsPath: '/r', items: [{ name: 'packet', kind: 'form', version: '1.0.0' }] })),
+      },
+      '/r/packet.json': { status: 200, type: 'application/json', body: Buffer.from(JSON.stringify(artifact)) },
+      '/r/packet.pdf': { status: 200, type: 'application/pdf', body: layerBytes },
+      '/r/packet-instructions.md': { status: 200, type: 'text/markdown', body: instructionsBytes },
+    }
+    server = createServer((req, res) => {
+      const file = serve[new URL(req.url ?? '/', 'http://127.0.0.1').pathname]
+      res.writeHead(file?.status ?? 404, { 'Content-Type': file?.type ?? 'application/json' })
+      res.end(file?.body ?? '{}')
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const { port } = server.address() as AddressInfo
+
+    tempDir = await fs.mkdtemp(join(tmpdir(), 'paradoc-add-files-'))
+    await executeCliCommand(['init', '--yes', '--name', 'test-project'], { cwd: tempDir })
+    const manifestPath = join(tempDir, 'paradoc.json')
+    const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8'))
+    manifest.registries = { '@fixture': { url: `http://127.0.0.1:${port}` } }
+    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2))
+  })
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+    await fs.rm(tempDir, { recursive: true, force: true })
+  })
+
+  const exists = (file: string): Promise<boolean> =>
+    fs.access(join(tempDir, file)).then(() => true, () => false)
+
+  const lockedArtifacts = async (): Promise<Record<string, unknown>> => {
+    const lock = await fs.readFile(join(tempDir, '.paradoc', 'lock.json'), 'utf-8').catch(() => '{}')
+    return (JSON.parse(lock) as { artifacts?: Record<string, unknown> }).artifacts ?? {}
+  }
+
+  it('installs the artifact with its layer and instructions when every file verifies', async () => {
+    const result = await executeCliCommand(['add', '@fixture/packet', '--layers', 'all', '--no-cache'], { cwd: tempDir })
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Added')
+    expect(await fs.readFile(join(tempDir, 'artifacts/@fixture/packet.pdf'))).toEqual(layerBytes)
+    expect(await fs.readFile(join(tempDir, 'artifacts/@fixture/packet-instructions.md'))).toEqual(instructionsBytes)
+    expect(await exists('artifacts/@fixture/packet.json')).toBe(true)
+    expect(Object.keys(await lockedArtifacts())).toContain('@fixture/packet')
+  }, 30000)
+
+  it('fails and installs nothing when a layer does not match its checksum', async () => {
+    serve['/r/packet.pdf']!.body = Buffer.from('tampered bytes')
+
+    const result = await executeCliCommand(['add', '@fixture/packet', '--layers', 'all', '--no-cache'], { cwd: tempDir })
+
+    expect(result.exitCode).not.toBe(0)
+    expect(result.stderr).toContain('Could not add @fixture/packet')
+    expect(result.stderr).toContain('layer "pdf" (packet.pdf): checksum mismatch')
+    expect(result.stdout).not.toContain('Added')
+    expect(await exists('artifacts/@fixture/packet.json')).toBe(false)
+    expect(await exists('artifacts/@fixture/packet.pdf')).toBe(false)
+    expect(await exists('artifacts/@fixture/packet-instructions.md')).toBe(false)
+    expect(Object.keys(await lockedArtifacts())).not.toContain('@fixture/packet')
+  }, 30000)
+
+  it('fails and installs nothing when the instructions file cannot be downloaded', async () => {
+    serve['/r/packet-instructions.md'] = { status: 500, type: 'text/plain', body: Buffer.from('boom') }
+
+    const result = await executeCliCommand(['add', '@fixture/packet', '--no-cache'], { cwd: tempDir })
+
+    expect(result.exitCode).not.toBe(0)
+    expect(result.stderr).toContain('Could not add @fixture/packet')
+    expect(result.stderr).toContain('instructions (packet-instructions.md):')
+    expect(result.stdout).not.toContain('Added')
+    expect(await exists('artifacts/@fixture/packet.json')).toBe(false)
+    expect(Object.keys(await lockedArtifacts())).not.toContain('@fixture/packet')
+  }, 30000)
+
+  it('names every failed file, not just the first', async () => {
+    serve['/r/packet.pdf']!.body = Buffer.from('tampered bytes')
+    delete serve['/r/packet-instructions.md']
+
+    const result = await executeCliCommand(['add', '@fixture/packet', '--layers', 'all', '--no-cache'], { cwd: tempDir })
+
+    expect(result.exitCode).not.toBe(0)
+    expect(result.stderr).toContain('2 files failed to download or verify')
+    expect(result.stderr).toContain('layer "pdf" (packet.pdf)')
+    expect(result.stderr).toContain('instructions (packet-instructions.md)')
+  }, 30000)
 })
 
 describe('paradoc add (registry integration)', () => {

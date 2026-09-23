@@ -29,6 +29,20 @@ interface InstallArtifactOpts {
   spinner: Ora
 }
 
+/** A downloaded file whose checksum matched, waiting to be written */
+interface VerifiedFile {
+  path: string
+  destination: string
+  content: Buffer
+}
+
+/** A file the artifact references that could not be downloaded or verified */
+interface FileFailure {
+  label: string
+  path: string
+  cause: string
+}
+
 /**
  * Install a single artifact from a registry into the project
  */
@@ -110,11 +124,9 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   // Determine output format
   const format: OutputFormat = (options.output as OutputFormat) || configManager.getDefaultFormat()
 
-  // Create artifacts directory
   const storage = new LocalFileSystem(projectRoot)
   const artifactsDir = configManager.getArtifactsDir()
   const namespaceDir = storage.joinPath(artifactsDir, artifactNamespace)
-  await storage.mkdir(namespaceDir, true)
 
   // The installed file keeps the registry artifact's dated $schema.
   const artifactContent: Record<string, unknown> = { ...registryItem }
@@ -130,6 +142,125 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     console.error(kleur.red('Invalid artifact name (path traversal detected)'))
     process.exit(1)
   }
+
+  // Download and verify every file the artifact brings with it before anything
+  // is written. The artifact file references these files, so one that fails to
+  // download or verify fails the whole install: nothing lands on disk, and the
+  // lock file does not record an install that did not happen.
+  const artifactDir = resolvedUrl!.substring(0, resolvedUrl!.lastIndexOf('/'))
+  const allowedContentTypes = await configManager.getAllowedContentTypes()
+  const verifiedFiles: VerifiedFile[] = []
+  const failures: FileFailure[] = []
+
+  const fetchVerified = async (label: string, filePath: string, destination: string, checksum: string): Promise<Buffer | null> => {
+    spinner.start(`Downloading ${label}: ${filePath}...`)
+    let cause: string
+    try {
+      const content = Buffer.from(await registryClient.fetchLayerBinary(
+        registry,
+        `${artifactDir}/${filePath}`,
+        allowedContentTypes
+      ))
+      const checksumResult = verifyChecksum(content, checksum)
+      if (checksumResult.valid) {
+        await assertNotSymlink(destination)
+        verifiedFiles.push({ path: filePath, destination, content })
+        spinner.succeed(`Verified ${label}: ${filePath}`)
+        return content
+      }
+      cause = `checksum mismatch (expected ${checksumResult.expected}, got ${checksumResult.actual}); the file may have been tampered with or corrupted`
+    } catch (error) {
+      cause = error instanceof SymlinkError
+        ? `the destination is a symlink, which is not allowed (${error.message})`
+        : error instanceof Error ? error.message : String(error)
+    }
+    spinner.fail(`Failed ${label}: ${filePath}`)
+    failures.push({ label, path: filePath, cause })
+    return null
+  }
+
+  // Layers, when requested
+  const downloadedLayers: Record<string, { content: Buffer; path: string }> = {}
+  if (options.layers && registryItem.layers) {
+    const layerKeys = parseLayerOption(options.layers, Object.keys(registryItem.layers))
+
+    for (const layerKey of layerKeys) {
+      const layer = registryItem.layers[layerKey]
+      if (!layer) {
+        console.warn(kleur.yellow(`Layer not found: ${layerKey}`))
+        continue
+      }
+      if (layer.kind !== 'file') continue
+
+      if (!layer.checksum) {
+        console.warn(kleur.yellow(`Skipping layer "${layerKey}": missing required checksum`))
+        console.warn(kleur.gray('  Layers must have a checksum for integrity verification'))
+        continue
+      }
+
+      const sanitizedPath = sanitizePath(namespaceDir, layer.path)
+      if (!sanitizedPath) {
+        console.warn(kleur.yellow(`Invalid layer path (path traversal detected): ${layer.path}`))
+        continue
+      }
+
+      const layerContent = await fetchVerified(`layer "${layerKey}"`, layer.path, sanitizedPath, layer.checksum)
+      if (layerContent) {
+        downloadedLayers[layerKey] = { content: layerContent, path: layer.path }
+      }
+
+      // A declared font travels with its layer, verified the same way.
+      if (layer.font) {
+        if (!layer.font.checksum) {
+          console.warn(kleur.yellow(`Skipping font for layer "${layerKey}": missing required checksum`))
+          continue
+        }
+        const sanitizedFontPath = sanitizePath(namespaceDir, layer.font.path)
+        if (!sanitizedFontPath) {
+          console.warn(kleur.yellow(`Invalid font path (path traversal detected): ${layer.font.path}`))
+          continue
+        }
+        await fetchVerified(`font of layer "${layerKey}"`, layer.font.path, sanitizedFontPath, layer.font.checksum)
+      }
+    }
+  }
+
+  // ContentRef files (instructions, agentInstructions): always, no --layers flag needed
+  const contentRefFields = ['instructions', 'agentInstructions'] as const
+  const downloadedContentRefs: string[] = []
+
+  for (const field of contentRefFields) {
+    const ref = registryItem[field]
+    if (!ref || ref.kind !== 'file') continue
+
+    if (!ref.checksum) {
+      console.warn(kleur.yellow(`Skipping ${field} file: missing required checksum`))
+      console.warn(kleur.gray('  Content files must have a checksum for integrity verification'))
+      continue
+    }
+
+    const sanitizedRefPath = sanitizePath(namespaceDir, ref.path)
+    if (!sanitizedRefPath) {
+      console.warn(kleur.yellow(`Invalid ${field} path (path traversal detected): ${ref.path}`))
+      continue
+    }
+
+    if (await fetchVerified(field, ref.path, sanitizedRefPath, ref.checksum)) {
+      downloadedContentRefs.push(ref.path)
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error()
+    console.error(kleur.red(`Could not add ${artifactFull} v${registryItem.version}: ${failures.length === 1 ? '1 file' : `${failures.length} files`} failed to download or verify.`))
+    for (const failure of failures) {
+      console.error(kleur.red(`  • ${failure.label} (${failure.path}): ${failure.cause}`))
+    }
+    console.error(kleur.gray('Nothing was installed. Try again, or contact the registry maintainer if it keeps failing.'))
+    process.exit(1)
+  }
+
+  await storage.mkdir(namespaceDir, true)
 
   // Write artifact file(s) based on format
   let contentString: string
@@ -174,166 +305,11 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     spinner.succeed(`Written: ${join(artifactsDir, artifactNamespace, artifactFileName)}`)
   }
 
-  // Download layers if requested
-  const downloadedLayers: Record<string, { content: Buffer; path: string }> = {}
-  if (options.layers && registryItem.layers) {
-    const layerKeys = parseLayerOption(options.layers, Object.keys(registryItem.layers))
-    const allowedContentTypes = await configManager.getAllowedContentTypes()
-
-    for (const layerKey of layerKeys) {
-      const layer = registryItem.layers[layerKey]
-      if (!layer) {
-        console.warn(kleur.yellow(`Layer not found: ${layerKey}`))
-        continue
-      }
-
-      if (layer.kind === 'file') {
-        if (!layer.checksum) {
-          console.warn(kleur.yellow(`Skipping layer "${layerKey}": missing required checksum`))
-          console.warn(kleur.gray('  Layers must have a checksum for integrity verification'))
-          continue
-        }
-
-        const sanitizedPath = sanitizePath(namespaceDir, layer.path)
-        if (!sanitizedPath) {
-          console.warn(kleur.yellow(`Invalid layer path (path traversal detected): ${layer.path}`))
-          continue
-        }
-
-        // Derive layer URL from artifact's resolved URL directory + layer path
-        const artifactDir = resolvedUrl!.substring(0, resolvedUrl!.lastIndexOf('/'))
-        const layerUrl = `${artifactDir}/${layer.path}`
-
-        spinner.start(`Downloading layer: ${layerKey}...`)
-        try {
-          const layerBuffer = Buffer.from(await registryClient.fetchLayerBinary(
-            registry,
-            layerUrl,
-            allowedContentTypes
-          ))
-
-          const checksumResult = verifyChecksum(layerBuffer, layer.checksum)
-          if (!checksumResult.valid) {
-            spinner.fail(`Checksum mismatch for layer: ${layerKey}`)
-            console.error(kleur.red(`  Expected: ${checksumResult.expected}`))
-            console.error(kleur.red(`  Actual:   ${checksumResult.actual}`))
-            console.error(kleur.gray('  The downloaded file may have been tampered with or corrupted'))
-            continue
-          }
-
-          const layerDir = storage.dirname(sanitizedPath)
-          await storage.mkdir(layerDir, true)
-
-          await assertNotSymlink(sanitizedPath)
-          await storage.writeFile(sanitizedPath, layerBuffer)
-
-          downloadedLayers[layerKey] = { content: layerBuffer, path: layer.path }
-          spinner.succeed(`Downloaded: ${join(artifactsDir, artifactNamespace, layer.path)}`)
-
-          // A declared font travels with its layer, verified the same way.
-          if (layer.font) {
-            if (!layer.font.checksum) {
-              console.warn(kleur.yellow(`Skipping font for layer "${layerKey}": missing required checksum`))
-            } else {
-              const sanitizedFontPath = sanitizePath(namespaceDir, layer.font.path)
-              if (!sanitizedFontPath) {
-                console.warn(kleur.yellow(`Invalid font path (path traversal detected): ${layer.font.path}`))
-              } else {
-                spinner.start(`Downloading font for layer: ${layerKey}...`)
-                const fontBuffer = Buffer.from(await registryClient.fetchLayerBinary(
-                  registry,
-                  `${artifactDir}/${layer.font.path}`,
-                  allowedContentTypes
-                ))
-                const fontChecksum = verifyChecksum(fontBuffer, layer.font.checksum)
-                if (!fontChecksum.valid) {
-                  spinner.fail(`Checksum mismatch for the font of layer: ${layerKey}`)
-                  console.error(kleur.red(`  Expected: ${fontChecksum.expected}`))
-                  console.error(kleur.red(`  Actual:   ${fontChecksum.actual}`))
-                  console.error(kleur.gray('  The downloaded file may have been tampered with or corrupted'))
-                } else {
-                  await storage.mkdir(storage.dirname(sanitizedFontPath), true)
-                  await assertNotSymlink(sanitizedFontPath)
-                  await storage.writeFile(sanitizedFontPath, fontBuffer)
-                  spinner.succeed(`Downloaded: ${join(artifactsDir, artifactNamespace, layer.font.path)}`)
-                }
-              }
-            }
-          }
-        } catch (error) {
-          if (error instanceof SymlinkError) {
-            spinner.fail(`Security error: layer path is a symlink`)
-            console.error(kleur.red(`  ${error.message}`))
-            console.error(kleur.gray('  Symlinks are not allowed for security reasons'))
-          } else {
-            spinner.fail(`Failed to download layer: ${layerKey}`)
-            console.error(kleur.red(error instanceof Error ? error.message : String(error)))
-          }
-        }
-      }
-    }
-  }
-
-  // Download ContentRef files (instructions, agentInstructions) — always, no --layers flag needed
-  const contentRefFields = ['instructions', 'agentInstructions'] as const
-  const downloadedContentRefs: string[] = []
-
-  for (const field of contentRefFields) {
-    const ref = registryItem[field]
-    if (!ref || ref.kind !== 'file') continue
-
-    if (!ref.checksum) {
-      console.warn(kleur.yellow(`Skipping ${field} file: missing required checksum`))
-      console.warn(kleur.gray('  Content files must have a checksum for integrity verification'))
-      continue
-    }
-
-    const sanitizedRefPath = sanitizePath(namespaceDir, ref.path)
-    if (!sanitizedRefPath) {
-      console.warn(kleur.yellow(`Invalid ${field} path (path traversal detected): ${ref.path}`))
-      continue
-    }
-
-    // Derive URL from artifact's resolved URL directory + ref path
-    const artifactDir = resolvedUrl!.substring(0, resolvedUrl!.lastIndexOf('/'))
-    const refUrl = `${artifactDir}/${ref.path}`
-
-    spinner.start(`Downloading ${field}: ${ref.path}...`)
-    try {
-      const allowedContentTypes = await configManager.getAllowedContentTypes()
-      const refBuffer = Buffer.from(await registryClient.fetchLayerBinary(
-        registry,
-        refUrl,
-        allowedContentTypes
-      ))
-
-      const checksumResult = verifyChecksum(refBuffer, ref.checksum)
-      if (!checksumResult.valid) {
-        spinner.fail(`Checksum mismatch for ${field}: ${ref.path}`)
-        console.error(kleur.red(`  Expected: ${checksumResult.expected}`))
-        console.error(kleur.red(`  Actual:   ${checksumResult.actual}`))
-        console.error(kleur.gray('  The downloaded file may have been tampered with or corrupted'))
-        continue
-      }
-
-      const refDir = storage.dirname(sanitizedRefPath)
-      await storage.mkdir(refDir, true)
-
-      await assertNotSymlink(sanitizedRefPath)
-      await storage.writeFile(sanitizedRefPath, refBuffer)
-
-      downloadedContentRefs.push(ref.path)
-      spinner.succeed(`Downloaded: ${join(artifactsDir, artifactNamespace, ref.path)}`)
-    } catch (error) {
-      if (error instanceof SymlinkError) {
-        spinner.fail(`Security error: ${field} path is a symlink`)
-        console.error(kleur.red(`  ${error.message}`))
-        console.error(kleur.gray('  Symlinks are not allowed for security reasons'))
-      } else {
-        spinner.fail(`Failed to download ${field}: ${ref.path}`)
-        console.error(kleur.red(error instanceof Error ? error.message : String(error)))
-      }
-    }
+  // Write the verified files the artifact references
+  for (const file of verifiedFiles) {
+    await storage.mkdir(storage.dirname(file.destination), true)
+    await assertNotSymlink(file.destination)
+    await storage.writeFile(file.destination, file.content)
   }
 
   // Update lock file
