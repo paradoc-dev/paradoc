@@ -96,11 +96,16 @@ export interface SealingRequest<F extends Form = Form> {
 	/** Target layer key for rendering (e.g., 'docx', 'markdown'). */
 	targetLayer: string
 	/**
-	 * Pre-built anchor fields requiring position resolution.
-	 * Present only in anchor mode (layer has anchorBlocks, no signatureBlocks).
-	 * Each field has signer bindings and anchor info populated; the adapter
-	 * must resolve the anchor text to actual page/x/y coordinates and return
-	 * completed SigningField[] in SealingResult.signatureMap.
+	 * Signature fields placed by anchor text, still awaiting position resolution.
+	 * Present when at least one signature slot bound to a filled party uses
+	 * anchor placement: unified `signatures` slots with `placement.anchor`, or
+	 * legacy `anchorBlocks` (in `seal()`, only when the layer declares no
+	 * `signatureBlocks`). Absent when no such slot resolves.
+	 * Each field carries its signer binding and anchor info; page/x/y are
+	 * placeholders. Core resolves positions by locating the anchor text in the
+	 * converted PDF (the `locate` option overrides the locator). Only the legacy
+	 * `anchorBlocks` path accepts positions from the adapter's signature map
+	 * instead, when it returns one field per anchor field.
 	 */
 	anchorFields?: SigningField[]
 }

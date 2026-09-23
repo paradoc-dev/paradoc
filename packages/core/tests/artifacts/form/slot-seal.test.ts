@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test, expect } from 'vitest'
 import { form, SealConfigError } from '@/artifacts'
-import type { SealAdapter, SignatureSlot } from '@paradoc/types'
+import type { SealAdapter, SealAdapterRequest, SignatureSlot } from '@paradoc/types'
 
 /**
  * Unified signature-slot sealing: one `signatures` map per layer, one engine
@@ -130,6 +130,80 @@ describe('Unified signature slots', () => {
 
 		expect(sealed.signatureMap!.map((field) => field.id)).toEqual(['client-sig', 'client-date'])
 		expect(sealed.signatureMap![1]!.type).toBe('date_signed')
+	})
+
+	describe('SealingRequest.anchorFields', () => {
+		const capturing = () => {
+			const requests: SealAdapterRequest[] = []
+			const adapter: SealAdapter = {
+				convert: async (request) => {
+					requests.push(request)
+					return { pdf: contractPdf }
+				},
+			}
+			return { adapter, requests }
+		}
+
+		const anchorSlot: SignatureSlot = {
+			party: { role: 'client' },
+			type: 'signature',
+			placement: { anchor: { text: 'Witnessed by:', offsetX: 90 }, width: 220, height: 44 },
+		}
+		const absoluteSlot: SignatureSlot = {
+			party: { role: 'client' },
+			type: 'date_signed',
+			placement: { page: 1, x: 400, y: 700, width: 100, height: 20 },
+		}
+
+		test('seal() sends anchor-placed unified slots, with no legacy blocks on the layer', async () => {
+			const { adapter, requests } = capturing()
+			await filled({ 'client-sig': anchorSlot, 'client-date': absoluteSlot }).seal({ adapter })
+
+			expect(requests).toHaveLength(1)
+			expect(requests[0]!.anchorFields).toEqual([
+				{
+					id: 'client-sig',
+					signerIndex: 0,
+					signerId: 'client-signer',
+					type: 'signature',
+					page: 1,
+					x: 0,
+					y: 0,
+					width: 220,
+					height: 44,
+					anchor: { text: 'Witnessed by:', offsetX: 90, offsetY: 0 },
+				},
+			])
+		})
+
+		test('prepareSeal() sends anchor-placed unified slots', async () => {
+			const { adapter, requests } = capturing()
+			await filled({ 'client-sig': anchorSlot }).prepareSeal({ adapter })
+
+			expect(requests.length).toBeGreaterThan(0)
+			for (const request of requests) {
+				expect(request.anchorFields?.map((field) => field.id)).toEqual(['client-sig'])
+			}
+		})
+
+		test('is absent when no slot uses anchor placement', async () => {
+			const { adapter, requests } = capturing()
+			await filled({ 'client-date': absoluteSlot }).seal({ adapter })
+
+			expect(requests).toHaveLength(1)
+			expect(requests[0]).not.toHaveProperty('anchorFields')
+		})
+
+		test('is absent when the only anchor slot targets an unfilled party index', async () => {
+			const { adapter, requests } = capturing()
+			await filled({
+				'client-date': absoluteSlot,
+				'client-2-sig': { ...anchorSlot, party: { role: 'client', index: 3 } },
+			}).seal({ adapter })
+
+			expect(requests).toHaveLength(1)
+			expect(requests[0]).not.toHaveProperty('anchorFields')
+		})
 	})
 
 	test('unknown party role fails at entry, before conversion', async () => {
