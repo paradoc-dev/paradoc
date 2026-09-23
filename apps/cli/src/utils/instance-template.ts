@@ -3,7 +3,18 @@
  * This is a CLI-specific implementation that doesn't modify core packages.
  */
 
-import type { Form, FormField } from '@paradoc/core'
+import type {
+  Address,
+  Bbox,
+  Coordinate,
+  Form,
+  FormField,
+  Identification,
+  Money,
+  Organization,
+  Person,
+  Phone,
+} from '@paradoc/core'
 
 /**
  * Instance template structure for form data
@@ -49,45 +60,44 @@ function getFieldDefault(field: FormField): unknown {
       return []
 
     case 'coordinate':
-      return { lat: 0, lng: 0 }
+      return { lat: 0, lon: 0 } satisfies Coordinate
 
     case 'bbox':
-      return { north: 0, south: 0, east: 0, west: 0 }
+      return { southWest: { lat: 0, lon: 0 }, northEast: { lat: 0, lon: 0 } } satisfies Bbox
 
     case 'money':
-      return { amount: 0, currency: 'USD' }
+      return { amount: 0, currency: 'USD' } satisfies Money
 
     case 'address':
       return {
-        street: '',
-        city: '',
-        state: '',
+        line1: '',
+        locality: '',
+        region: '',
         postalCode: '',
         country: '',
-      }
+      } satisfies Address
 
     case 'phone':
-      return { number: '' }
+      return { number: '' } satisfies Phone
 
     case 'duration':
       return 'PT0S'
 
     case 'person':
       return {
-        firstName: '',
-        lastName: '',
-      }
+        name: '',
+      } satisfies Person
 
     case 'organization':
       return {
         name: '',
-      }
+      } satisfies Organization
 
     case 'identification':
       return {
         type: '',
         number: '',
-      }
+      } satisfies Identification
 
     case 'fieldset':
       // Recursively process nested fields
