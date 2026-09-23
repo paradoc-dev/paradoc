@@ -299,7 +299,7 @@ const schema = {
       "description": "Fixed dollar amount to deposit into the secondary account each pay cycle. Required when account2AllotmentType is 'fixed_amount'.",
       "min": 0.01,
       "required": "fields.account2Enabled and fields.actionType != 'stop' and fields.account2AllotmentType == 'fixed_amount'",
-      "visible": "fields.account2Enabled and fields.account2AllotmentType == 'fixed_amount'"
+      "visible": "fields.account2Enabled and fields.actionType != 'stop' and fields.account2AllotmentType == 'fixed_amount'"
     },
     "account2Percent": {
       "type": "number",
@@ -309,7 +309,7 @@ const schema = {
       "max": 100,
       "step": 1,
       "required": "fields.account2Enabled and fields.actionType != 'stop' and fields.account2AllotmentType == 'percent'",
-      "visible": "fields.account2Enabled and fields.account2AllotmentType == 'percent'"
+      "visible": "fields.account2Enabled and fields.actionType != 'stop' and fields.account2AllotmentType == 'percent'"
     },
     "account2VoidedCheckAttached": {
       "type": "boolean",
@@ -395,7 +395,7 @@ const schema = {
       "description": "Fixed dollar amount to deposit into the third account each pay cycle. Required when account3AllotmentType is 'fixed_amount'.",
       "min": 0.01,
       "required": "fields.account3Enabled and fields.actionType != 'stop' and fields.account3AllotmentType == 'fixed_amount'",
-      "visible": "fields.account3Enabled and fields.account3AllotmentType == 'fixed_amount'"
+      "visible": "fields.account3Enabled and fields.actionType != 'stop' and fields.account3AllotmentType == 'fixed_amount'"
     },
     "account3Percent": {
       "type": "number",
@@ -405,7 +405,7 @@ const schema = {
       "max": 100,
       "step": 1,
       "required": "fields.account3Enabled and fields.actionType != 'stop' and fields.account3AllotmentType == 'percent'",
-      "visible": "fields.account3Enabled and fields.account3AllotmentType == 'percent'"
+      "visible": "fields.account3Enabled and fields.actionType != 'stop' and fields.account3AllotmentType == 'percent'"
     },
     "account3VoidedCheckAttached": {
       "type": "boolean",
@@ -491,7 +491,7 @@ const schema = {
       "description": "Fixed dollar amount to deposit into the fourth account each pay cycle. Required when account4AllotmentType is 'fixed_amount'.",
       "min": 0.01,
       "required": "fields.account4Enabled and fields.actionType != 'stop' and fields.account4AllotmentType == 'fixed_amount'",
-      "visible": "fields.account4Enabled and fields.account4AllotmentType == 'fixed_amount'"
+      "visible": "fields.account4Enabled and fields.actionType != 'stop' and fields.account4AllotmentType == 'fixed_amount'"
     },
     "account4Percent": {
       "type": "number",
@@ -501,7 +501,7 @@ const schema = {
       "max": 100,
       "step": 1,
       "required": "fields.account4Enabled and fields.actionType != 'stop' and fields.account4AllotmentType == 'percent'",
-      "visible": "fields.account4Enabled and fields.account4AllotmentType == 'percent'"
+      "visible": "fields.account4Enabled and fields.actionType != 'stop' and fields.account4AllotmentType == 'percent'"
     },
     "account4VoidedCheckAttached": {
       "type": "boolean",
