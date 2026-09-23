@@ -7,6 +7,8 @@ Set this up once per project, before installing any component or block.
 
 ## Register the namespace
 
+Add the `@paradoc` registry to your project's `components.json`:
+
 ```json
 {
   "registries": {
@@ -17,12 +19,15 @@ Set this up once per project, before installing any component or block.
 
 ## Install the substrate
 
-Then install the substrate. Installing `document` also installs the owned
-`document-styles` preset:
+Install the `document` component. It brings the `@paradoc/react` substrate
+with it, along with `@paradoc/core` and `@paradoc/types`, and the
+`document-styles` preset, which writes `styles/paradoc.css`:
 
 ```bash
-npm install @paradoc/react
+npx shadcn@4 add @paradoc/document
 ```
+
+Then import the preset in your global stylesheet:
 
 ```css
 /* your global stylesheet */
@@ -46,6 +51,16 @@ generated from. Two consequences worth knowing before you start:
   The CLI does not overwrite an edited file unless you explicitly pass
   `--overwrite`, so upgrades remain a source change you control.
 
+## Install PDF output
+
+The components render in the browser without anything else. To render a
+composition to PDF on the server, add
+[`@paradoc/react-pdf`](/sdk/react-pdf):
+
+```bash
+npm install @paradoc/react-pdf
+```
+
 ## Adding a component
 
 With the registry namespace registered, install a component by name:
@@ -54,12 +69,15 @@ With the registry namespace registered, install a component by name:
 npx shadcn@4 add @paradoc/field
 ```
 
-Or, with the Paradoc CLI, which writes the namespace into `components.json` for
-you and then runs the same install:
+Or, with the [Paradoc CLI](/cli), which writes the namespace into
+`components.json` for you and then runs the same install:
 
 ```bash
-paradoc add field
+npx paradoc-cli add field
 ```
+
+With the CLI installed globally (`npm install -g paradoc-cli`), the command is
+`paradoc add field`.
 
 Files land in `components/paradoc/`. A component that builds on another brings it
 along: installing `field` also installs `keep-together`.

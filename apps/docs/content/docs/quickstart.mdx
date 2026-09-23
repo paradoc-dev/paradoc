@@ -28,7 +28,7 @@ Let's make a new project and install the SDK and filesystem resolver. The SDK in
   <Tab value="pnpm">
     ```bash
     mkdir quickstart && cd quickstart
-    pnpm init -y
+    pnpm init
     pnpm add @paradoc/sdk @paradoc/resolvers
     ```
   </Tab>
@@ -47,8 +47,9 @@ Let's make a new project and install the SDK and filesystem resolver. The SDK in
     ```
   </Tab>
 </Tabs>
-</Step>
 
+The examples use ES modules and top-level `await`. Set `"type": "module"` in `package.json`, put the code from each step in one `index.ts` file, and run it with `npx tsx index.ts`.
+</Step>
 
 <Step>
 ## Define the Form
@@ -102,7 +103,7 @@ form parties and fields into the layer.
 {{parties.seller.name}} agrees to deliver by {{date}}.
 ```
 
-Paradoc is agonstic to the rendering engine and file format you choose. You can use any rendering engine and file format you want.
+Paradoc is agnostic to the rendering engine and file format you choose. You can use any rendering engine and file format you want.
 
 </Step>
 
@@ -119,8 +120,8 @@ const draft = purchaseAgreement.fill({
     date: '2025-03-01',
   },
   parties: {
-    buyer: { id: 'buyer-1', name: 'Alice Johnson' },
-    seller: { id: 'seller-1', name: 'Bob Smith' },
+    buyer: { name: 'Alice Johnson' },
+    seller: { name: 'Bob Smith' },
   },
 })
 ```
@@ -149,10 +150,10 @@ Let's render the purchase agreement with the data using the `.render()` method. 
 const output = await draft.render({ layer: 'markdown' })
 
 console.log(output)
-// Purchase Agreement
+// # Purchase Agreement
 //
 // Alice Johnson agrees to purchase 100 units at $25.00 each.
-// Bob Smith agrees to deliver by March 1, 2025.
+// Bob Smith agrees to deliver by Mar 1, 2025.
 ```
 </Step>
 
@@ -166,7 +167,7 @@ If we want to save our form for future use, we can either save it as a typescrip
     ```ts
     import { writeFileSync } from 'node:fs'
 
-    writeFileSync('purchase-agreement.json', purchaseAgreement.toJSON())
+    writeFileSync('purchase-agreement.json', JSON.stringify(purchaseAgreement.toJSON(), null, 2))
     ```
   </Tab>
   <Tab value="YAML">
@@ -182,64 +183,112 @@ If we want to save our form for future use, we can either save it as a typescrip
   <Tab value="JSON">
     ```json
     {
-      "$schema": "https://schema.paradoc.dev/2026-08-06.json",
-      "kind": "form",
+      "$schema": "https://schema.paradoc.dev/schema.json",
       "name": "purchase-agreement",
-      "title": "Purchase Agreement",
       "version": "1.0.0",
+      "title": "Purchase Agreement",
+      "metadata": {},
+      "kind": "form",
       "fields": {
-        "quantity": { "type": "number", "label": "Quantity", "required": true },
-        "price": { "type": "money", "label": "Price", "required": true },
-        "date": { "type": "date", "label": "Date", "required": true }
-      },
-      "parties": {
-        "buyer": { "label": "Buyer", "signature": { "required": true } },
-        "seller": { "label": "Seller", "signature": { "required": true } }
+        "quantity": {
+          "label": "Quantity",
+          "required": true,
+          "type": "number"
+        },
+        "price": {
+          "label": "Price",
+          "required": true,
+          "type": "money"
+        },
+        "date": {
+          "label": "Date",
+          "required": true,
+          "type": "date"
+        }
       },
       "layers": {
-        "text": { "kind": "inline", "mimeType": "text/plain", "text": "..." }
+        "markdown": {
+          "mimeType": "text/markdown",
+          "kind": "file",
+          "path": "purchase-agreement.md"
+        }
       },
-      "defaultLayer": "text"
+      "defaultLayer": "markdown",
+      "allowAdditionalAnnexes": false,
+      "parties": {
+        "buyer": {
+          "label": "Buyer",
+          "partyType": "person",
+          "min": 1,
+          "max": 1,
+          "signature": {
+            "required": true,
+            "witnesses": 0,
+            "notarized": false
+          }
+        },
+        "seller": {
+          "label": "Seller",
+          "partyType": "person",
+          "min": 1,
+          "max": 1,
+          "signature": {
+            "required": true,
+            "witnesses": 0,
+            "notarized": false
+          }
+        }
+      }
     }
     ```
   </Tab>
   <Tab value="YAML">
     ```yaml
-    $schema: https://schema.paradoc.dev/2026-08-06.json
-    kind: form
+    # yaml-language-server: $schema=https://schema.paradoc.dev/schema.json
     name: purchase-agreement
-    title: Purchase Agreement
     version: 1.0.0
+    title: Purchase Agreement
+    metadata: {}
+    kind: form
     fields:
       quantity:
-        type: number
         label: Quantity
         required: true
+        type: number
       price:
-        type: money
         label: Price
         required: true
+        type: money
       date:
-        type: date
         label: Date
         required: true
+        type: date
+    layers:
+      markdown:
+        mimeType: text/markdown
+        kind: file
+        path: purchase-agreement.md
+    defaultLayer: markdown
+    allowAdditionalAnnexes: false
     parties:
       buyer:
         label: Buyer
         partyType: person
+        min: 1
+        max: 1
         signature:
           required: true
+          witnesses: 0
+          notarized: false
       seller:
         label: Seller
         partyType: person
+        min: 1
+        max: 1
         signature:
           required: true
-    layers:
-      text:
-        kind: inline
-        mimeType: text/plain
-        text: "..."
-    defaultLayer: text
+          witnesses: 0
+          notarized: false
     ```
   </Tab>
 </Tabs>

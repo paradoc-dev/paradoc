@@ -108,4 +108,14 @@ describe('the components page', () => {
   test('names the namespace and the URL template a consumer registers', () => {
     expect(installationPage).toContain('"@paradoc": "https://docs.paradoc.dev/r/{name}.json"')
   })
+
+  test('installs the substrate through the document item and PDF output through react-pdf', () => {
+    expect(installationPage).toContain('npx shadcn@4 add @paradoc/document')
+    expect(installationPage).toContain('npm install @paradoc/react-pdf')
+  })
+
+  test('runs the Paradoc CLI through the paradoc-cli package', () => {
+    expect(installationPage).toContain('npx paradoc-cli add field')
+    expect(installationPage).not.toMatch(/npx paradoc add|@paradoc\/cli/)
+  })
 })

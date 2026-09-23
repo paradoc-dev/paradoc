@@ -48,9 +48,14 @@ pages matching what a reader would expect from a printed or exported copy.
 `footer` band, and a `stamp` drawn across the whole sheet behind the content.
 Each slot is composed content, and
 [`PageNumber`](/components/page-number) is the one that prints the sheet it is
-on.
+on. The PDF render from [`@paradoc/react-pdf`](/sdk/react-pdf) takes the same
+object.
 
 ```tsx
+import { renderPdf } from "@paradoc/react-pdf";
+import { PageNumber } from "@/components/paradoc/page-number";
+import { Pages } from "@/components/paradoc/pages";
+
 const furniture = {
   header: <span>Northwind Partners LLP</span>,
   footer: <PageNumber />,

@@ -2,6 +2,7 @@
  * Tests for code snippets in quickstart.mdx
  */
 import { describe, test, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { p } from '@paradoc/sdk'
@@ -10,6 +11,15 @@ import { createFsResolver } from '@paradoc/resolvers/fs'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const fixturesRoot = path.resolve(__dirname, '../fixtures/templates')
+const page = readFileSync(path.resolve(__dirname, '../../content/docs/quickstart.mdx'), 'utf8')
+
+/** The body of the page's one fenced block in `lang`, with the tab indent removed. */
+function pageBlock(lang: string): string {
+  const match = page.match(new RegExp('\\n( *)```' + lang + '\\n([\\s\\S]*?)\\n\\1```'))
+  if (!match) throw new Error(`quickstart.mdx has no ${lang} block`)
+  const indent = match[1]!
+  return match[2]!.split('\n').map((line) => line.slice(indent.length)).join('\n')
+}
 
 describe('Quickstart Guide', () => {
   // ============================================================================
@@ -60,8 +70,8 @@ describe('Quickstart Guide', () => {
       date: '2025-03-01',
     },
     parties: {
-      buyer: { id: 'buyer-0', name: 'Alice Johnson' },
-      seller: { id: 'seller-0', name: 'Bob Smith' },
+      buyer: { name: 'Alice Johnson' },
+      seller: { name: 'Bob Smith' },
     },
   })
 
@@ -70,6 +80,18 @@ describe('Quickstart Guide', () => {
     expect(draft.phase).toBe('draft')
     expect(draft.getField('quantity')).toBe(100)
     expect(draft.getField('date')).toBe('2025-03-01')
+  })
+
+  test('rejects a party id that is not the role and index', () => {
+    expect(() =>
+      purchaseAgreement.fill({
+        fields: { quantity: 100, price: { amount: 25, currency: 'USD' }, date: '2025-03-01' },
+        parties: {
+          buyer: { id: 'buyer-1', name: 'Alice Johnson' },
+          seller: { name: 'Bob Smith' },
+        },
+      }),
+    ).toThrow('Party ID "buyer-1" does not match expected "buyer-0"')
   })
 
   // ============================================================================
@@ -113,6 +135,14 @@ describe('Quickstart Guide', () => {
     expect(typeof yaml).toBe('string')
     expect(yaml).toContain('kind: form')
     expect(yaml).toContain('name: purchase-agreement')
+  })
+
+  test('the saved JSON on the page is what toJSON produces', () => {
+    expect(JSON.parse(pageBlock('json'))).toEqual(purchaseAgreement.toJSON())
+  })
+
+  test('the saved YAML on the page is what toYAML produces', () => {
+    expect(pageBlock('yaml').trimEnd()).toBe(purchaseAgreement.toYAML().trimEnd())
   })
 
   test('round-trips through JSON', () => {

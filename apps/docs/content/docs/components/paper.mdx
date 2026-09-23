@@ -42,7 +42,8 @@ markup itself.
 `furniture` is what the sheet carries outside the flow: a `header` band, a
 `footer` band, and a `stamp` behind the content — the same object
 [`Pages`](/components/pages) takes and the same object
-`renderPdf({ furniture })` takes. Each band is drawn inside the margin the
+`renderPdf(element, { plan, furniture })` from
+[`@paradoc/react-pdf`](/sdk/react-pdf) takes. Each band is drawn inside the margin the
 document declares, so it never moves the content; a band taller than that
 margin fails by name rather than printing over the first line.
 
