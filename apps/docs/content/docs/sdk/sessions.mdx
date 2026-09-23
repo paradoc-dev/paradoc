@@ -74,6 +74,8 @@ A rejection carries no session. Keep the one you had: nothing about the fill cha
 
 Commands cover the full lifecycle: `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
 
+A field locked by prefill rejects `answer`, `revise`, and `clear` with `field-locked`; the reason names the field.
+
 `options` takes `expectedEventCount`, which rejects with `stale-state` when another writer appended first, and `now`, a clock for deterministic tests.
 
 ### 4. Derive the view

@@ -47,6 +47,13 @@ function fieldIsVisible(
 	);
 }
 
+function lockedReason(fieldPath: string): CommandResult {
+	return reject(
+		"field-locked",
+		`field ${fieldPath} is locked by prefill and cannot be changed`,
+	);
+}
+
 function unresolvedReason(fieldPath: string): CommandResult {
 	return reject(
 		"unresolved-state",
@@ -105,6 +112,7 @@ export function execute(
 					`field ${cmd.fieldPath} does not exist on the artifact`,
 				);
 			}
+			if (projected.lockedPaths.has(cmd.fieldPath)) return lockedReason(cmd.fieldPath);
 			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
 			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			const visible = fieldIsVisible(
@@ -152,6 +160,7 @@ export function execute(
 					`field ${cmd.fieldPath} does not exist on the artifact`,
 				);
 			}
+			if (projected.lockedPaths.has(cmd.fieldPath)) return lockedReason(cmd.fieldPath);
 			const existing = projected.answers[cmd.fieldPath];
 			if (!existing) {
 				return reject(
@@ -196,6 +205,7 @@ export function execute(
 					`field ${cmd.fieldPath} does not exist on the artifact`,
 				);
 			}
+			if (projected.lockedPaths.has(cmd.fieldPath)) return lockedReason(cmd.fieldPath);
 			const existing = projected.answers[cmd.fieldPath];
 			if (!existing) {
 				return reject(

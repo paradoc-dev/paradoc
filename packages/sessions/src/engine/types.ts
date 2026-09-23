@@ -59,6 +59,7 @@ export type Command =
 export type CommandErrorCode =
 	| "field-not-found"
 	| "field-not-visible"
+	| "field-locked"
 	| "unresolved-state"
 	| "field-required"
 	| "field-not-required"

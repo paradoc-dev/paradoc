@@ -861,6 +861,88 @@ describe("execute — expectedEventCount", () => {
 
 // ─── immutability ───────────────────────────────────────────────────────────
 
+describe("execute — locked prefill fields", () => {
+	function prefilled(lockedPaths: string[]): FormSession {
+		return emptySession([
+			{
+				v: 1,
+				t: "PrefillApplied",
+				at: "2026-01-01T00:00:00.000Z",
+				by: SYSTEM,
+				values: { "/ssn": "123-45-6789" },
+				sources: { "/ssn": "prefill" },
+				lockedPaths,
+			},
+		]);
+	}
+	const rt = makeRuntime({ fields: ["/ssn", "/name"] });
+
+	it("rejects revise on a locked path, names the path, and leaves the answer unchanged", () => {
+		const session = prefilled(["/ssn"]);
+		const result = execute(
+			session,
+			rt,
+			{ kind: "revise", fieldPath: "/ssn", value: "000-00-0000" },
+			AGENT,
+			{ now: nextTick },
+		);
+		expect(result).toMatchObject({ ok: false, code: "field-locked" });
+		if (result.ok) throw new Error("expected rejection");
+		expect(result.reason).toContain("/ssn");
+		expect(session.events).toHaveLength(1);
+	});
+
+	it("rejects clear on a locked path", () => {
+		const result = execute(
+			prefilled(["/ssn"]),
+			rt,
+			{ kind: "clear", fieldPath: "/ssn" },
+			AGENT,
+			{ now: nextTick },
+		);
+		expect(result).toMatchObject({ ok: false, code: "field-locked" });
+		if (result.ok) throw new Error("expected rejection");
+		expect(result.reason).toContain("/ssn");
+	});
+
+	it("rejects a first answer to a locked path that carries no prefilled value", () => {
+		const result = execute(
+			prefilled(["/name"]),
+			rt,
+			{ kind: "answer", fieldPath: "/name", value: "Mallory", source: "user" },
+			USER,
+			{ now: nextTick },
+		);
+		expect(result).toMatchObject({ ok: false, code: "field-locked" });
+		if (result.ok) throw new Error("expected rejection");
+		expect(result.reason).toContain("/name");
+	});
+
+	it("still accepts revise, clear, and answer on unlocked paths of a prefilled session", () => {
+		const session = prefilled([]);
+		const revised = execute(
+			session,
+			rt,
+			{ kind: "revise", fieldPath: "/ssn", value: "000-00-0000" },
+			AGENT,
+			{ now: nextTick },
+		);
+		expect(revised.ok).toBe(true);
+		const cleared = execute(session, rt, { kind: "clear", fieldPath: "/ssn" }, AGENT, {
+			now: nextTick,
+		});
+		expect(cleared.ok).toBe(true);
+		const answered = execute(
+			prefilled(["/ssn"]),
+			rt,
+			{ kind: "answer", fieldPath: "/name", value: "Toby", source: "user" },
+			USER,
+			{ now: nextTick },
+		);
+		expect(answered.ok).toBe(true);
+	});
+});
+
 describe("execute — input immutability", () => {
 	it("does not mutate the input session", () => {
 		const session = emptySession();
