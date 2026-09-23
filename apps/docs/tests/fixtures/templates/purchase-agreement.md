@@ -1,4 +1,4 @@
 # Purchase Agreement
 
-{{parties.buyer.name}} agrees to purchase {{quantity}} units at {{price}} each.
-{{parties.seller.name}} agrees to deliver by {{date}}.
+{{parties.buyer.name}} agrees to purchase {{fields.quantity}} units at {{fields.price}} each.
+{{parties.seller.name}} agrees to deliver by {{fields.date}}.

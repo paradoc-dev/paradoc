@@ -364,10 +364,42 @@ function inferDefsInto(
   }
 }
 
+/** Members a party value carries: its identity, and the person or organization parts its type allows. */
+export function partyMemberTypes(partyType: string | undefined): Record<string, ExprType> {
+  const person = DEFINITION_PROPERTY_TYPES.person!
+  const organization = DEFINITION_PROPERTY_TYPES.organization!
+  const identity = partyType === 'person'
+    ? person
+    : partyType === 'organization'
+      ? organization
+      : { ...person, ...organization }
+  return { id: T.string, ...identity }
+}
+
+/**
+ * Registers `parties.<role>`: one party, or a list for a role that allows
+ * several. A list role's members are typed per row, so `parties.tenant.name`
+ * is one tenant's name and reads inside an aggregate or a loop.
+ */
+export function registerPartyTypes(
+  parties: Form['parties'],
+  acc: Record<string, ExprType>,
+  extraMembers: Record<string, ExprType> = {},
+): void {
+  for (const [role, party] of Object.entries(parties ?? {})) {
+    const path = `parties.${role}`
+    acc[path] = (party.max ?? 1) > 1 ? T.array(T.object) : T.object
+    for (const [member, type] of Object.entries({ ...partyMemberTypes(party.partyType), ...extraMembers })) {
+      acc[`${path}.${member}`] = type
+    }
+  }
+}
+
 /** Field + inferred-defs types for a Form, in form-local paths. */
-function buildFormTypeAcc(form: Form): Record<string, ExprType> {
+export function buildFormTypeAcc(form: Form): Record<string, ExprType> {
   const acc: Record<string, ExprType> = {}
   registerFieldTypes(form.fields, 'fields', acc)
+  registerPartyTypes(form.parties, acc)
   if (form.defs) inferDefsInto(form.defs, acc, '')
   return acc
 }

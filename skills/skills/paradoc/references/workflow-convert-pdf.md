@@ -327,10 +327,10 @@ Ambiguous? Ask:
 
 ALWAYS create a markdown inline layer (even alongside a PDF layer) — it's a human-readable template:
 
-- Use `{{fieldId}}` (NOT `{{fields.fieldId}}`)
+- Use `{{fields.fieldId}}` paths; a bare `{{fieldId}}` is an unknown reference
 - Mirror the PDF's section structure
 - Include section headings from the PDF
-- Use signature helpers (see [layers.md](./layers.md)) — NEVER manual underscore lines
+- Use signing directives (see [layers.md](./layers.md)) — NEVER manual underscore lines
 - NEVER include "For Office Use" sections
 
 ### Default layer

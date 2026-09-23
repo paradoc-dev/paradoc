@@ -33,6 +33,18 @@ All artifact builders share common functionality:
 - `.toYAML()` - Serialize to YAML, with the current dated `$schema`
 - `.clone()` - Deep clone the instance
 
+### Validating templates
+
+`validate(artifact)` checks every template expression in inline text layers along with the schema and logic. File-backed text and DOCX layers are read through a resolver, so they are checked by `validateLayers`:
+
+```ts
+import { validateLayers } from '@paradoc/sdk'
+import { createFsResolver } from '@paradoc/resolvers/fs'
+
+const result = await validateLayers(artifact, { resolver: createFsResolver({ root: '.' }) })
+// result.issues: 'Template error at layer "markdown", line 12, column 7 in {{fields.amount}}: ...'
+```
+
 ### Schema versions
 
 An artifact built with the SDK is always the current [schema version](/schemas#schema-versions). To bring an artifact written for an earlier version up to date, use `migrateArtifact` for a parsed object or `migrateArtifactSource` for file content. Both apply the migration steps in order, validate the result, and fail with `SchemaMigrationError` instead of guessing. The [`paradoc migrate`](/cli/commands/migrate) command uses them.

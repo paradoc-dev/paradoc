@@ -47,11 +47,11 @@ describe('prepareSeal', () => {
 				text: [
 					'# Agreement',
 					'',
-					'The undersigned agree to the terms above. Amount: {{amount}}',
+					'The undersigned agree to the terms above. Amount: {{fields.amount}}',
 					'',
-					'{{#with parties.client}}Client signature: {{signature "client-sig"}}',
+					'Client signature: {{signature(parties.client, "client-sig")}}',
 					'',
-					'Client initials: {{initials "client-ini"}}{{/with}}',
+					'Client initials: {{initials(parties.client, "client-ini")}}',
 				].join('\n'),
 				signatures: SLOTS,
 			})
@@ -126,7 +126,7 @@ describe('prepareSeal', () => {
 			.parties({ client: { label: 'Client', partyType: 'person', signature: { required: true } } })
 			.inlineLayer('md', {
 				mimeType: 'text/markdown',
-				text: 'Sign: {{#with parties.client}}{{signature "c0"}}{{/with}}',
+				text: 'Sign: {{signature(parties.client, "c0")}}',
 				signatures: {
 					c0: { party: { role: 'client' }, type: 'signature', placement: 'flow' },
 					c1: {

@@ -130,7 +130,7 @@ describe('React layers dispatch by MIME type', () => {
 		const markdown = form()
 			.name('invoice')
 			.fields({ customer: { type: 'text', label: 'Customer' } })
-			.inlineLayer('markdown', { mimeType: 'text/markdown', text: '# {{customer}}' })
+			.inlineLayer('markdown', { mimeType: 'text/markdown', text: '# {{fields.customer}}' })
 			.defaultLayer('markdown')
 			.build()
 

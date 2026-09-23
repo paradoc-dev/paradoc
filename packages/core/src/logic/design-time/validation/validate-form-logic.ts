@@ -13,7 +13,7 @@ import type {
 } from '@paradoc/types'
 import { T, type ExprType } from '@paradoc/expr'
 import type { TypeEnvironment, TypeValidationSeverity, InferredType, ListRowScope } from '../type-checking'
-import { collectFieldPaths } from './field-paths'
+import { collectFieldPaths, collectPartyPaths } from './field-paths'
 import {
   buildFormRuleTypeEnvironment,
   buildFormTypeEnvironment,
@@ -776,6 +776,7 @@ export function validateFormDefs(
 
   // Add all field paths (e.g., 'fields.age', 'fields.address.street')
   collectFieldPaths(form.fields).forEach((p) => validVariables.add(p))
+  collectPartyPaths(form.parties).forEach((p) => validVariables.add(p))
 
   // Add all defs keys and their statically known object members as valid variables
   addDefinitionPaths(form.defs, validVariables)

@@ -39,7 +39,7 @@ describe('DraftForm', () => {
         name: { type: 'text', label: 'Name', required: true },
         greeting: { type: 'text', label: 'Greeting' },
       })
-      .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello, {{name}}! {{greeting}}' })
+      .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello, {{fields.name}}! {{fields.greeting}}' })
       .defaultLayer('default')
       .build()
 

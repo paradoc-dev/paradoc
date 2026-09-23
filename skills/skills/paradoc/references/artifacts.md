@@ -109,7 +109,7 @@ Static content with data placeholders — no fields, no parties.
     "markdown": {
       "kind": "inline",
       "mimeType": "text/markdown",
-      "text": "# Privacy Policy\n\nEffective: {{effectiveDate}}"
+      "text": "# Privacy Policy\n\nEffective: 2026-01-01"
     }
   },
   "defaultLayer": "markdown"

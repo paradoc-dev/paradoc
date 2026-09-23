@@ -226,14 +226,14 @@ Wait for confirmation. Then validate.
 
 **Goal:** generate Paradoc template files for requested output formats.
 
-**Load:** [layers.md](./layers.md) — layer kinds, MIME types, Paradoc template syntax, signature helpers, design checklist.
+**Load:** [layers.md](./layers.md) — layer kinds, MIME types, Paradoc template syntax, signing directives, design checklist.
 
 ### Workflow rules for this stage
 
 - ALWAYS use file layers (`"kind": "file"`). NEVER inline.
 - Create the template file at the specified `path`.
-- Use `{{fieldName}}` (NOT `{{fields.fieldName}}`).
-- Use signature helpers (`{{signature "loc"}}`, `{{initials "loc"}}`, `{{signatureDate "loc"}}`) inside party blocks. NEVER manual underscore lines.
+- Use `{{fields.fieldName}}` paths and boolean conditions; templates use the artifact expression language.
+- Use signing directives (`{{signature(parties.role, "loc")}}`, `{{initials(...)}}`, `{{signatureDate(...)}}`; inside a party loop `{{signature("loc")}}`). NEVER manual underscore lines.
 - Set `defaultLayer` on the artifact.
 
 Layer key convention:
@@ -310,7 +310,7 @@ Common mismatches: `currency` → `money`, `datetime` → `date` (for date-only)
 ALWAYS use the most specific type. `text` for an email is wrong — use `email`. See type-selection table in [fields.md](./fields.md).
 
 **Layer template syntax errors**
-Use `{{fieldName}}`, NOT `{{fields.fieldName}}` or `{{fieldName.value}}`. Fields are spread at top level during rendering.
+Use `{{fields.fieldName}}`, NOT `{{fieldName}}` or `{{fieldName.value}}`. A condition must be boolean (`{{#if fields.notes != null}}`). `paradoc validate` names the layer, line, and column of every template error.
 
 **Missing parties causing validation errors**
 Form references party roles in signature blocks or logic but no `parties` is defined. Either add the `parties` object or remove the references.

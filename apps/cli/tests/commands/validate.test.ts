@@ -282,4 +282,30 @@ describe('CLI Validate Command', () => {
       }
     })
   })
+
+  describe('template expressions', () => {
+    const write = async (template: string) => {
+      const formPath = path.join(tempDir, 'templated.json')
+      await fs.writeFile(path.join(tempDir, 'terms.md'), template)
+      await fs.writeFile(formPath, JSON.stringify({
+        kind: 'form',
+        name: 'templated',
+        fields: { qty: { type: 'number', label: 'Quantity' } },
+        layers: { md: { kind: 'file', mimeType: 'text/markdown', path: 'terms.md' } },
+      }))
+      return formPath
+    }
+
+    it('checks the template expressions of a file layer', async () => {
+      const result = await executeCliCommand(['validate', await write('ok\n{{default fields.qty 0}}'), '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(result.stdout).toContain('Template error at layer \\"md\\", line 2, column 3')
+      expect(result.stdout).toContain('coalesce')
+    })
+
+    it('passes a file layer whose templates are valid', async () => {
+      const result = await executeCliCommand(['validate', await write('{{fields.qty * 2}}')])
+      expect(result.exitCode).toBe(0)
+    })
+  })
 })

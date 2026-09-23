@@ -2,10 +2,13 @@ import { defaultFormatter } from '@paradoc/format'
 import type { Bindings, Form, Formatter } from '@paradoc/types'
 import { unzipSync, zipSync } from 'fflate'
 import { applyBindings } from '../text/bindings'
-import { formatFieldData, validateFieldBindings, unwrapFormattedValue } from '../text/field-formatter'
-import { renderTemplate } from '../text/template'
-import { getPath } from '../path'
-import { createDocxTemplateHelpers, type DocxSignatureOptions } from './signatures'
+import { formatFieldData, validateFieldBindings } from '../text/field-formatter'
+import { loopFrames, loopRows, renderTemplateNodes, type SigningDirective, type TemplateRenderOptions } from '../text/template'
+import { templateData, type TemplateExpressionOptions } from '../template/context'
+import { TemplateError } from '../template/errors'
+import { expressionSlot, parseTemplate } from '../template/markers'
+import { TemplateScope } from '../template/scope'
+import { createDocxSignatureDirectives, type DocxSignatureOptions } from './signatures'
 
 export type { DocxSignatureOptions } from './signatures'
 
@@ -22,6 +25,10 @@ export interface RenderDocxOptions {
   bindings?: Bindings
   signatureOptions?: DocxSignatureOptions
   options?: DocxRenderOptions
+  /** The expression context and configured functions templates read. */
+  expressions?: TemplateExpressionOptions
+  /** The layer key, named in template errors. */
+  layer?: string
 }
 
 const textDecoder = new TextDecoder()
@@ -58,7 +65,7 @@ function normalizeDelimiters(value: string, delimiters: [string, string]): strin
     .replace(new RegExp(regexEscape(delimiters[1]), 'g'), '}}')
 }
 
-function paragraphText(paragraph: string): string {
+export function paragraphText(paragraph: string): string {
   return [...paragraph.matchAll(/<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g)]
     .map((match) => decodeXml(match[1] ?? ''))
     .join('')
@@ -72,38 +79,6 @@ function commandIn(paragraph: string, delimiters: [string, string]): string | un
   const value = visibleParagraph(paragraph)
   if (!value.startsWith(delimiters[0]) || !value.endsWith(delimiters[1])) return undefined
   return value.slice(delimiters[0].length, -delimiters[1].length).trim()
-}
-
-function expressionValue(expression: string, data: Record<string, unknown>): unknown {
-  const value = expression.trim()
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    return value.slice(1, -1)
-  }
-  if (value === 'true') return true
-  if (value === 'false') return false
-  if (value === 'null') return null
-  if (/^-?\d+(?:\.\d+)?$/.test(value)) return Number(value)
-  return unwrapFormattedValue(getPath(data, value))
-}
-
-function evaluateCondition(expression: string, data: Record<string, unknown>): boolean {
-  const value = expression.trim()
-  if (value.startsWith('!')) return !expressionValue(value.slice(1), data)
-  const comparison = value.match(/^(.+?)\s*(===|!==|==|!=|>=|<=|>|<)\s*(.+)$/)
-  if (!comparison) return Boolean(expressionValue(value, data))
-  const left = expressionValue(comparison[1]!, data)
-  const right = expressionValue(comparison[3]!, data)
-  switch (comparison[2]) {
-    case '===': return left === right
-    case '!==': return left !== right
-    case '==': return String(left) === String(right)
-    case '!=': return String(left) !== String(right)
-    case '>=': return Number(left) >= Number(right)
-    case '<=': return Number(left) <= Number(right)
-    case '>': return Number(left) > Number(right)
-    case '<': return Number(left) < Number(right)
-    default: return false
-  }
 }
 
 interface Control {
@@ -137,7 +112,7 @@ function controlsIn(xml: string, delimiters: [string, string]): Control[] {
  * before expansion so the same syntax works whether Word kept the commands
  * on separate lines or in one run.
  */
-function normalizeInlineControls(xml: string): string {
+export function normalizeInlineControls(xml: string): string {
   const paragraphPattern = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g
   const inlinePattern = /^(\s*)(\{\{(?:FOR|IF)\s+[^{}]+\}\})([\s\S]*?)(\{\{END-(?:FOR|IF)(?:\s+[^{}]+)?\}\})(\s*)$/
 
@@ -161,89 +136,104 @@ function normalizeInlineControls(xml: string): string {
   })
 }
 
-type DocxHelpers = Record<string, import('../text/template').TemplateHelper>
+interface DocxRun {
+  scope: TemplateScope
+  options: TemplateRenderOptions
+  delimiters: [string, string]
+  processLineBreaks: boolean
+  part: string
+}
 
-function expandControls(
-  xml: string,
-  data: Record<string, unknown>,
-  delimiters: [string, string],
-  helpers: DocxHelpers,
-  processLineBreaks: boolean,
-): string {
-  const controls = controlsIn(xml, delimiters)
-  const openingIndex = controls.findIndex(({ command }) => /^(?:FOR\s+\S+\s+IN\s+.+|IF\s+.+)$/.test(command))
-  if (openingIndex === -1) return renderLeafXml(xml, data, delimiters, helpers, processLineBreaks)
+const PARAGRAPH_MARK = /<!--pdc:(\d+)-->/
+
+/** Number every paragraph of a part so errors can name it; removed after rendering. */
+function markParagraphs(xml: string): string {
+  let count = 0
+  return xml.replace(/<w:p\b[^>]*>/g, (open) => /^<w:pPr\b|^<w:p[A-Z]/.test(open) ? open : `${open}<!--pdc:${++count}-->`)
+}
+
+function unmarkParagraphs(xml: string): string {
+  return xml.replace(/<!--pdc:\d+-->/g, '')
+}
+
+function locate(run: DocxRun, xml: string): string {
+  const paragraph = xml.match(PARAGRAPH_MARK)?.[1]
+  return paragraph ? `${run.part} paragraph ${paragraph}` : run.part
+}
+
+function located<T>(run: DocxRun, xml: string, render: () => T): T {
+  try {
+    return render()
+  } catch (error) {
+    if (!(error instanceof TemplateError) || error.location) throw error
+    throw new TemplateError({ ...error.diagnostic, location: locate(run, xml) }, run.options.layer)
+  }
+}
+
+const OPENING = /^(?:FOR\s+\S+\s+IN\s+.+|IF\s+.+)$/
+const CLOSING = /^END-(?:FOR|IF)(?:\s+\S+)?$/
+
+function expandControls(xml: string, run: DocxRun): string {
+  const controls = controlsIn(xml, run.delimiters)
+  const openingIndex = controls.findIndex(({ command }) => OPENING.test(command))
+  if (openingIndex === -1) return renderLeafXml(xml, run)
   const opening = controls[openingIndex]!
   const isFor = opening.command.startsWith('FOR ')
   let depth = 1
   let closing: Control | undefined
   let alternative: Control | undefined
   for (const control of controls.slice(openingIndex + 1)) {
-    if (/^(?:FOR\s+\S+\s+IN\s+.+|IF\s+.+)$/.test(control.command)) depth++
-    else if (/^END-(?:FOR|IF)(?:\s+\S+)?$/.test(control.command)) {
+    if (OPENING.test(control.command)) depth++
+    else if (CLOSING.test(control.command)) {
       depth--
       if (depth === 0) { closing = control; break }
     } else if (control.command === 'ELSE' && depth === 1) alternative = control
   }
-  if (!closing) throw new Error(`Unclosed DOCX control command: ${opening.command}`)
+  const openingXml = xml.slice(opening.start, opening.end)
+  if (!closing) {
+    throw new TemplateError({ code: 'markers', message: `Unclosed DOCX control command: ${opening.command}`, location: locate(run, openingXml) }, run.options.layer)
+  }
 
   const before = xml.slice(0, opening.start)
   const truthyBody = xml.slice(opening.end, alternative?.start ?? closing.start)
   const falseBody = alternative ? xml.slice(alternative.end, closing.start) : ''
-  let expanded = ''
-  if (isFor) {
-    const match = opening.command.match(/^FOR\s+(\S+)\s+IN\s+(.+)$/)!
-    const alias = match[1]!
-    const collection = expressionValue(match[2]!, data)
-    const values = Array.isArray(collection)
-      ? collection
-      : collection && typeof collection === 'object' ? Object.values(collection) : []
-    expanded = values.map((value, index) => expandControls(truthyBody, {
-      ...data,
-      [`$${alias}`]: value,
-      $idx: index,
-    }, delimiters, helpers, processLineBreaks)).join('')
-  } else {
-    const condition = opening.command.slice(3)
-    expanded = expandControls(
-      evaluateCondition(condition, data) ? truthyBody : falseBody,
-      data,
-      delimiters,
-      helpers,
-      processLineBreaks,
-    )
-  }
-  return `${renderLeafXml(before, data, delimiters, helpers, processLineBreaks)}${expanded}${expandControls(xml.slice(closing.end), data, delimiters, helpers, processLineBreaks)}`
+  const expanded = located(run, openingXml, () => {
+    if (isFor) {
+      const match = opening.command.match(/^FOR\s+(\S+)\s+IN\s+(.+)$/)!
+      const alias = match[1]!
+      const slot = expressionSlot(match[2]!, { line: 1, column: 1 })
+      if (!slot.ast) throw new TemplateError(slot.problem!, run.options.layer)
+      const rows = loopRows(run.scope.evaluate(slot.ast, slot.source, slot.position), slot, run.options.layer)
+      return loopFrames(run.scope, slot.ast, rows, { kind: 'named', name: alias })
+        .map((frame) => expandControls(truthyBody, { ...run, scope: run.scope.push(frame) }))
+        .join('')
+    }
+    const slot = expressionSlot(opening.command.slice(3), { line: 1, column: 1 })
+    if (!slot.ast) throw new TemplateError(slot.problem!, run.options.layer)
+    const value = run.scope.evaluate(slot.ast, slot.source, slot.position)
+    if (value.kind !== 'boolean' && value.kind !== 'null') {
+      throw new TemplateError({ code: 'non-boolean-gate', message: `A condition must be boolean, got ${value.kind}.`, expression: slot.source }, run.options.layer)
+    }
+    return expandControls(value.kind === 'boolean' && value.value ? truthyBody : falseBody, run)
+  })
+  return `${renderLeafXml(before, run)}${expanded}${expandControls(xml.slice(closing.end), run)}`
 }
 
-function normalizeDocxExpressions(value: string, delimiters: [string, string]): string {
-  return normalizeDelimiters(value, delimiters)
-    .replace(/\{\{\s*INS\s+([^}]+)\}\}/g, '{{$1}}')
-    .replace(/\{\{\s*(signature|initials|signatureDate|capacity|printedName)\s*\(\s*([^,]+?)\s*,\s*((?:"[^"]*")|(?:'[^']*'))\s*\)\s*\}\}/g, '{{$1 $2 $3}}')
+/** The text of a run, with the layer's delimiters and the `INS` alias normalized. */
+export function normalizeDocxExpressions(value: string, delimiters: [string, string]): string {
+  return normalizeDelimiters(value, delimiters).replace(/\{\{\s*INS\s+([^}]+)\}\}/g, '{{$1}}')
 }
 
-function renderTextNodeContent(
-  value: string,
-  data: Record<string, unknown>,
-  delimiters: [string, string],
-  helpers: DocxHelpers,
-  processLineBreaks: boolean,
-): string {
-  const decoded = decodeXml(value)
-  const normalized = normalizeDocxExpressions(decoded, delimiters)
-  const rendered = encodeXml(renderTemplate(normalized, data, helpers, (text) => text))
-  return processLineBreaks ? rendered.replace(/\r?\n/g, '</w:t><w:br/><w:t xml:space="preserve">') : rendered
+function renderRunText(text: string, run: DocxRun): string {
+  const nodes = parseTemplate(normalizeDocxExpressions(text, run.delimiters))
+  const rendered = encodeXml(renderTemplateNodes(nodes, run.scope, run.options))
+  return run.processLineBreaks ? rendered.replace(/\r?\n/g, '</w:t><w:br/><w:t xml:space="preserve">') : rendered
 }
 
-function renderLeafXml(
-  xml: string,
-  data: Record<string, unknown>,
-  delimiters: [string, string],
-  helpers: DocxHelpers = {},
-  processLineBreaks = true,
-): string {
+function renderLeafXml(xml: string, run: DocxRun): string {
+  const { delimiters } = run
   const textNode = /(<w:t\b[^>]*>)([\s\S]*?)(<\/w:t>)/g
-  return xml.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (paragraph) => {
+  return xml.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (paragraph) => located(run, paragraph, () => {
     const nodes = [...paragraph.matchAll(textNode)]
     const texts = nodes.map((match) => decodeXml(match[2] ?? ''))
     const visible = texts.join('')
@@ -257,28 +247,16 @@ function renderLeafXml(
     // reinterpreted as a command, including literal braces from a formatter.
     if (!hasSplitCommand) {
       return paragraph.replace(textNode, (_, open: string, content: string, close: string) =>
-        `${open}${renderTextNodeContent(content, data, delimiters, helpers, processLineBreaks)}${close}`)
+        `${open}${renderRunText(decodeXml(content), run)}${close}`)
     }
-    const normalized = normalizeDocxExpressions(visible, delimiters)
-    let replacement = encodeXml(renderTemplate(normalized, data, helpers, (text) => text))
-    if (processLineBreaks) replacement = replacement.replace(/\r?\n/g, '</w:t><w:br/><w:t xml:space="preserve">')
+    const replacement = renderRunText(visible, run)
     let used = false
     return paragraph.replace(textNode, (_, open: string, _content: string, close: string) => {
       if (used) return `${open}${close}`
       used = true
       return `${open}${replacement}${close}`
     })
-  })
-}
-
-function renderXml(
-  xml: string,
-  data: Record<string, unknown>,
-  delimiters: [string, string],
-  helpers: DocxHelpers,
-  processLineBreaks: boolean,
-): string {
-  return expandControls(xml, data, delimiters, helpers, processLineBreaks)
+  }))
 }
 
 export async function renderDocx({
@@ -289,6 +267,8 @@ export async function renderDocx({
   bindings,
   signatureOptions,
   options = {},
+  expressions,
+  layer,
 }: RenderDocxOptions): Promise<Uint8Array> {
   let prepared = form
     ? formatFieldData(data, form, formatter)
@@ -297,14 +277,29 @@ export async function renderDocx({
     if (form) validateFieldBindings(form, bindings)
     prepared = applyBindings(prepared, bindings)
   }
+  const { context, resolveData } = templateData(data, prepared, form, expressions, bindings)
+  const directives: Record<string, SigningDirective> = createDocxSignatureDirectives(signatureOptions)
+  const templateOptions: TemplateRenderOptions = {
+    context,
+    resolveData,
+    root: prepared,
+    formatter,
+    directives,
+    escape: (text) => text,
+    layer,
+  }
+  const scope = new TemplateScope(context, { formatter, resolveData, layer })
   const files = unzipSync(template)
   const delimiters = options.cmdDelimiter ?? ['{{', '}}']
-  const helpers = createDocxTemplateHelpers(signatureOptions)
   const processLineBreaks = options.processLineBreaks ?? true
   for (const [name, bytes] of Object.entries(files)) {
-    if (!/^word\/(?:document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(name)) continue
-    const xml = normalizeInlineControls(textDecoder.decode(bytes))
-    files[name] = textEncoder.encode(renderXml(xml, prepared, delimiters, helpers, processLineBreaks))
+    if (!DOCX_TEMPLATE_PARTS.test(name)) continue
+    const xml = markParagraphs(normalizeInlineControls(textDecoder.decode(bytes)))
+    const run: DocxRun = { scope, options: templateOptions, delimiters, processLineBreaks, part: name }
+    files[name] = textEncoder.encode(unmarkParagraphs(expandControls(xml, run)))
   }
   return zipSync(files, { level: 6 })
 }
+
+/** The parts of a Word package that carry template text. */
+export const DOCX_TEMPLATE_PARTS = /^word\/(?:document|header\d*|footer\d*|footnotes|endnotes)\.xml$/

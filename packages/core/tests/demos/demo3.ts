@@ -55,7 +55,7 @@ const f1 = p.form({
     default: {
       kind: 'inline',
       mimeType: 'text/markdown',
-      text: `The pet owner is {{age}} years old and {{isSmoker ? 'is a smoker' : 'is not a smoker'}}.`,
+      text: `The pet owner is {{fields.age}} years old and {{fields.isSmoker ? "is a smoker" : "is not a smoker"}}.`,
     },
   },
   defaultLayer: 'default',

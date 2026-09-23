@@ -42,7 +42,7 @@ layers:
 
       ## Pet Information
 
-      **Pet Name:** {{name}}
-      **Species:** {{species}}
-      **Weight:** {{weight}}
-      **Has Vaccination:** {{hasVaccination}}
+      **Pet Name:** {{fields.name}}
+      **Species:** {{fields.species}}
+      **Weight:** {{fields.weight}}
+      **Has Vaccination:** {{fields.hasVaccination}}

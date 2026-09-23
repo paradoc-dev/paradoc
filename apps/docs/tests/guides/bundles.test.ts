@@ -26,7 +26,7 @@ describe('Bundles Guide', () => {
       },
       defaultLayer: 'markdown',
       layers: {
-        markdown: { kind: 'inline', mimeType: 'text/markdown', text: '# Lease\n\n{{address}}' },
+        markdown: { kind: 'inline', mimeType: 'text/markdown', text: '# Lease\n\n{{fields.address}}' },
       },
     })
 
@@ -55,7 +55,7 @@ describe('Bundles Guide', () => {
         text: {
           kind: 'inline',
           mimeType: 'text/plain',
-          text: '{{#each items}}- [{{#if value}}x{{else}} {{/if}}] {{title}}\n{{/each}}',
+          text: '- [{{#if items.keys}}x{{else}} {{/if}}] Keys Provided\n- [{{#if items.utilities}}x{{else}} {{/if}}] Utilities Transferred\n- [{{#if items.inspection}}x{{else}} {{/if}}] Walk-Through Complete\n',
         },
       },
     })
@@ -177,7 +177,7 @@ describe('Bundles Guide', () => {
       },
       defaultLayer: 'markdown',
       layers: {
-        markdown: { kind: 'inline', mimeType: 'text/markdown', text: '# Lease\n\n{{address}}' },
+        markdown: { kind: 'inline', mimeType: 'text/markdown', text: '# Lease\n\n{{fields.address}}' },
       },
     })
 

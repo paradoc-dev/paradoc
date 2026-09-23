@@ -24,7 +24,7 @@ function renderedByText(formatter?: Formatter): string[] {
   return renderText({
     form: { fields: survey } as unknown as Form,
     formatter,
-    template: "{{enabled}}|{{choice}}|{{choices}}|{{score}}|{{unscored}}",
+    template: "{{fields.enabled}}|{{fields.choice}}|{{fields.choices}}|{{fields.score}}|{{fields.unscored}}",
     data: { enabled: true, choice: "wiring", choices: ["plumbing", "roofing"], score: 4, unscored: 3 },
   }).split("|");
 }

@@ -62,7 +62,7 @@ describe('DraftChecklist', () => {
         html: {
           kind: 'inline',
           mimeType: 'text/html',
-          text: '<div>{{#each items}}<p>{{title}}: {{value}}</p>{{/each}}</div>',
+          text: '<div><p>Reviewed: {{items.reviewed}}</p><p>Approval: {{items.approval}}</p></div>',
         },
       },
       defaultLayer: 'html',

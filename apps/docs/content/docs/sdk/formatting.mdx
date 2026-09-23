@@ -118,7 +118,7 @@ const compact = formatter.withOverrides({
 
 ## In-progress documents
 
-By default a value that has not been supplied renders blank. To mark it in a preview, pass a `progressive` policy to `render()`. `missing` sets the text for an absent value (default: an em dash) and `incomplete` the text for a composite value that is only partly supplied (default: an ellipsis). For a layer `{{name}} / {{total}}` with only `name` filled:
+By default a value that has not been supplied renders blank. To mark it in a preview, pass a `progressive` policy to `render()`. `missing` sets the text for an absent value (default: an em dash) and `incomplete` the text for a composite value that is only partly supplied (default: an ellipsis). For a layer `{{fields.name}} / {{fields.total}}` with only `name` filled:
 
 ```ts
 const preview = await draft.render({ progressive: {} })

@@ -157,6 +157,12 @@ export interface ParadocRendererContext {
    * then. See {@link SigningMarkerRequest}.
    */
   signing?: SigningMarkerRequest;
+  /**
+   * What template expressions read: the artifact's expression context, supplied
+   * by `@paradoc/core`. Its shape is `TemplateExpressionOptions` from
+   * `@paradoc/render`; renderers without templates ignore it.
+   */
+  expressions?: unknown;
   // Room for future options:
   // e.g. dryRun?: boolean;
   //      timezone?: string;

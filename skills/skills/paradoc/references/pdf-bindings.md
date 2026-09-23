@@ -144,16 +144,16 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
   "kind": "inline",
   "mimeType": "text/markdown",
   "title": "Markdown Template",
-  "text": "# Form Title\n\n## Section 1: Personal Information\n\n**Full Name:** {{fullName}}\n**Date of Birth:** {{dateOfBirth}}\n**SSN:** {{ssn}}\n\n## Section 2: Employment\n\n**Employer:** {{employerName}}\n**Annual Salary:** {{annualSalary}}"
+  "text": "# Form Title\n\n## Section 1: Personal Information\n\n**Full Name:** {{fields.fullName}}\n**Date of Birth:** {{fields.dateOfBirth}}\n**SSN:** {{fields.ssn}}\n\n## Section 2: Employment\n\n**Employer:** {{fields.employerName}}\n**Annual Salary:** {{fields.annualSalary}}"
 }
 ```
 
 ### Markdown rules
 
-- Use `{{fieldId}}` (NOT `{{fields.fieldId}}`)
+- Use `{{fields.fieldId}}` paths; a bare `{{fieldId}}` is an unknown reference
 - Mirror the PDF's section structure
 - Include section headings from the PDF
-- Use signature helpers (see [layers.md](./layers.md)) — NEVER manual underscore lines
+- Use signing directives (see [layers.md](./layers.md)) — NEVER manual underscore lines
 - NEVER include "For Office Use" sections
 
 ## Default Layer
@@ -209,7 +209,7 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
     "kind": "inline",
     "mimeType": "text/markdown",
     "title": "W-9 Markdown Template",
-    "text": "# Request for Taxpayer Identification Number and Certification\n\n**Name:** {{name}}\n**Business Name:** {{businessName}}\n..."
+    "text": "# Request for Taxpayer Identification Number and Certification\n\n**Name:** {{fields.name}}\n**Business Name:** {{fields.businessName}}\n..."
   }
 }
 ```

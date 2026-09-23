@@ -175,7 +175,7 @@ const schema = {
       "mimeType": "text/markdown",
       "title": "Form 4506-T (markdown rendering)",
       "path": "4506-t.md",
-      "checksum": "sha256:f4c58a22e58df72db28fdef356b208ab214ae892bf29e0770991457660146076"
+      "checksum": "sha256:9e5ca498f8226247c468bd727c04f9d4ed946611fc0a516db1ac1f7672c80c58"
     },
     "pdf": {
       "kind": "file",
@@ -420,30 +420,30 @@ const __c_4506_t_md: string = `# Form 4506-T — Request for Transcript of Tax R
 **1a. Name shown on tax return** (if a joint return, enter the name shown first):
 {{parties.taxpayer.name}}
 
-**1b. First SSN, ITIN, or EIN on tax return:** {{taxpayerTin}}
+**1b. First SSN, ITIN, or EIN on tax return:** {{fields.taxpayerTin}}
 
 ## 2. Spouse (joint return only)
 
 **2a. Spouse's name shown on tax return:** {{parties.spouse.name}}
 
-**2b. Second SSN or ITIN (joint return only):** {{spouseTin}}
+**2b. Second SSN or ITIN (joint return only):** {{fields.spouseTin}}
 
 ## 3. Current address
 
 Current name, address (including apt., room, suite, or inmate no.), city, state, and ZIP code:
 
-{{currentAddress}}
+{{fields.currentAddress}}
 
 ## 4. Previous address
 
 Previous address shown on the last return filed if different from line 3:
 
-{{previousAddress}}
+{{fields.previousAddress}}
 
 ## 5. Customer file number
 
 Customer file number (if applicable; up to 10 characters; do not enter SSN):
-{{customerFileNumber}}
+{{fields.customerFileNumber}}
 
 > **Note:** Effective July 2019, the IRS will mail tax transcript requests only to your address of record.
 
@@ -453,19 +453,19 @@ Customer file number (if applicable; up to 10 characters; do not enter SSN):
 
 Enter the tax form number here (1040, 1065, 1120, etc.) and check the appropriate box below. Enter only one tax form number per request.
 
-**Tax form number:** {{taxFormNumber}}
+**Tax form number:** {{fields.taxFormNumber}}
 
-- [{{#if (eq transcriptType "return_transcript")}}x{{else}} {{/if}}] **a. Return Transcript** — most line items of a tax return as filed with the IRS. Does not reflect changes made after processing. Available for current year and prior 3 processing years.
-- [{{#if (eq transcriptType "account_transcript")}}x{{else}} {{/if}}] **b. Account Transcript** — financial status of the account: payments, penalty assessments, and post-filing adjustments.
-- [{{#if (eq transcriptType "record_of_account")}}x{{else}} {{/if}}] **c. Record of Account** — combination of Return Transcript and Account Transcript. Available for current year and 3 prior tax years.
+- [{{#if fields.transcriptType == "return_transcript"}}x{{else}} {{/if}}] **a. Return Transcript** — most line items of a tax return as filed with the IRS. Does not reflect changes made after processing. Available for current year and prior 3 processing years.
+- [{{#if fields.transcriptType == "account_transcript"}}x{{else}} {{/if}}] **b. Account Transcript** — financial status of the account: payments, penalty assessments, and post-filing adjustments.
+- [{{#if fields.transcriptType == "record_of_account"}}x{{else}} {{/if}}] **c. Record of Account** — combination of Return Transcript and Account Transcript. Available for current year and 3 prior tax years.
 
 ## 7. Verification of Nonfiling
 
-- [{{#if (eq transcriptType "verification_of_nonfiling")}}x{{else}} {{/if}}] Verification of Nonfiling — proof from the IRS that you did not file a return for the year. Current year requests are only available after June 15.
+- [{{#if fields.transcriptType == "verification_of_nonfiling"}}x{{else}} {{/if}}] Verification of Nonfiling — proof from the IRS that you did not file a return for the year. Current year requests are only available after June 15.
 
 ## 8. Wage and Income transcript
 
-- [{{#if (eq transcriptType "wage_and_income")}}x{{else}} {{/if}}] Form W-2, Form 1099 series, Form 1098 series, or Form 5498 series transcript. State or local information is not included with the Form W-2 information.
+- [{{#if fields.transcriptType == "wage_and_income"}}x{{else}} {{/if}}] Form W-2, Form 1099 series, Form 1098 series, or Form 5498 series transcript. State or local information is not included with the Form W-2 information.
 
 > **Caution:** If you need a copy of Form W-2 or Form 1099, contact the payer. To get a copy of the Form W-2 or Form 1099 filed with your return, use Form 4506.
 
@@ -475,10 +475,10 @@ Enter the tax form number here (1040, 1065, 1120, etc.) and check the appropriat
 
 Enter the end date of the tax year or period requested in mm/dd/yyyy format. This may be a calendar year, fiscal year, or quarter. Example: 12/31/2018 for a calendar-year 2018 Form 1040 transcript.
 
-- {{period1}}
-- {{period2}}
-- {{period3}}
-- {{period4}}
+- {{fields.period1}}
+- {{fields.period2}}
+- {{fields.period3}}
+- {{fields.period4}}
 
 ---
 
@@ -490,20 +490,18 @@ Enter the end date of the tax year or period requested in mm/dd/yyyy format. Thi
 
 > **Note:** This form must be received by IRS within 120 days of the signature date.
 
-- [{{#if attestationAck}}x{{else}} {{/if}}] Signatory attests that he/she has read the attestation clause and upon so reading declares that he/she has the authority to sign the Form 4506-T.
+- [{{#if fields.attestationAck}}x{{else}} {{/if}}] Signatory attests that he/she has read the attestation clause and upon so reading declares that he/she has the authority to sign the Form 4506-T.
 
-**Phone number of taxpayer on line 1a or 2a:** {{taxpayerPhone}}
+**Phone number of taxpayer on line 1a or 2a:** {{fields.taxpayerPhone}}
 
-{{#with parties.taxpayer}}
-**Signature:** {{signature "taxpayerSignature"}}
-**Date:** {{signatureDate "taxpayerDate"}}
-**Title** (if line 1a above is a corporation, partnership, estate, or trust): {{capacity "taxpayerCapacity"}}
-{{/with}}
+**Signature:** {{signature(parties.taxpayer, "taxpayerSignature")}}
+**Date:** {{signatureDate(parties.taxpayer, "taxpayerDate")}}
+**Title** (if line 1a above is a corporation, partnership, estate, or trust): {{capacity(parties.taxpayer, "taxpayerCapacity")}}
 
-{{#with parties.spouse}}
-**Spouse's signature:** {{signature "spouseSignature"}}
-**Date:** {{signatureDate "spouseDate"}}
-{{/with}}
+{{#if parties.spouse != null}}
+**Spouse's signature:** {{signature(parties.spouse, "spouseSignature")}}
+**Date:** {{signatureDate(parties.spouse, "spouseDate")}}
+{{/if}}
 
 ---
 

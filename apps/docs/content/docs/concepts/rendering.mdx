@@ -28,8 +28,8 @@ const form = p.form()
   .layers({
     markdown: p.layer().inline().mimeType("text/markdown").text(`
 # Invoice
-Customer: {{customer}}
-Total: {{total}}
+Customer: {{fields.customer}}
+Total: {{fields.total}}
     `),
     pdf: p.layer().file().mimeType("application/pdf").path("templates/invoice.pdf"),
   })
@@ -50,9 +50,11 @@ A React layer (`text/tsx` or `text/jsx`) must be a file layer. Its `path` names 
 
 ## Templates and Bindings
 
-Text-based layers (Markdown, HTML, plain text) use Paradoc's deterministic
-template syntax. Field values are inserted with `{{fieldName}}`; conditionals,
-loops, context blocks, and helpers are also supported.
+Text-based layers (Markdown, HTML, plain text) and DOCX layers use Paradoc
+templates. Everything inside a marker is an [artifact expression](/concepts/logic):
+`{{fields.fieldName}}` inserts a formatted value, `{{#if fields.total > 1000}}`
+tests a boolean condition, and `{{#each parties.tenant}}` loops with `item` as
+the current row. See [Text layers](/guides/text-layers#template-syntax-reference).
 
 PDF layers work differently—they use **bindings** to map form fields to PDF form fields:
 

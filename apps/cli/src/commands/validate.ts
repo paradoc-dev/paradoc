@@ -3,9 +3,11 @@ import kleur from 'kleur'
 import {
   parse,
   validate as validateArtifact,
+  validateLayers,
   type Artifact,
   type Layer,
 } from '@paradoc/core'
+import { createFsResolver } from '@paradoc/resolvers/fs'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
@@ -178,6 +180,17 @@ export function createValidateCommand(): Command {
               }
 
               layerChecks.push(check)
+            }
+
+            // Template expressions in file-backed text and DOCX layers
+            if (!options.checksumOnly) {
+              const templates = await validateLayers(parsed, { resolver: createFsResolver({ root: baseDir }) })
+              for (const issue of templates.issues ?? []) {
+                const key = String(issue.path?.[1] ?? '')
+                const check = layerChecks.find((candidate) => candidate.key === key)
+                if (!check || check.fileExists === false) continue
+                check.issues.push({ message: issue.message, path: ['layers', key], severity: 'error' })
+              }
             }
           }
         }

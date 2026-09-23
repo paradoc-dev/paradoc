@@ -5,7 +5,9 @@ description: Render Paradoc artifacts to Word documents
 
 Render forms to DOCX (Word) documents with Paradoc's dependency-light Open XML
 implementation. It supports placeholders, conditionals, loops, custom
-delimiters, split Word runs, and automatic field formatting.
+delimiters, split Word runs, and automatic field formatting. Every condition,
+loop source, and placeholder is an [artifact expression](/concepts/logic), so a
+condition means the same thing in a Word layer as in a field rule.
 
 ## Example
 
@@ -120,6 +122,8 @@ async function renderDocx(options: RenderDocxOptions): Promise<Uint8Array>
   { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
   { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
   { name: 'options', type: 'DocxRenderOptions', description: 'DOCX-specific rendering options', isOptional: true },
+  { name: 'expressions', type: 'TemplateExpressionOptions', description: 'The expression context (`context`), or configured `functions` and their `signatures`. Artifact renders supply the artifact context.', isOptional: true },
+  { name: 'layer', type: 'string', description: 'Layer key, named in template errors', isOptional: true },
 ]} />
 
 #### DocxRenderOptions
@@ -135,27 +139,42 @@ Returns a `Promise<Uint8Array>` containing the rendered DOCX document.
 
 ## Template Syntax
 
-DOCX templates use Paradoc's deterministic placeholder and block syntax:
+DOCX templates use control paragraphs for blocks and `{{ }}` placeholders inside text. Every expression is an artifact expression:
 
 ```
-Contract for {{clientName}}
+Contract for {{fields.clientName}}
 
-Total Value: {{contractValue}}
-Start Date: {{startDate}}
+Total Value: {{fields.contractValue}}
+Start Date: {{fields.startDate}}
 
-{{#if hasDiscount}}
-Discount Applied: {{discountPercent}}
-{{/if}}
+{{IF fields.discountPercent > 0}}
+Discount Applied: {{fields.discountPercent}}
+{{ELSE}}
+No discount.
+{{END-IF}}
+
+{{FOR line IN fields.lines}}
+{{index(line) + 1}}. {{line.description}}: {{line.amount}}
+{{END-FOR line}}
 ```
+
+A `FOR` loop names its row (`line` above), and `index(line)`, `first(line)`, and `last(line)` give its position. A `FOR` paragraph inside a table row repeats the row. Text paragraphs can also use the text-template markers (`{{#if}}`, `{{#each}}`), where the row is `item`.
 
 ### Supported Features
 
 | Syntax | Description |
 |--------|-------------|
-| `{{fieldName}}` | Simple value insertion |
-| `{{#if condition}}...{{/if}}` | Conditional sections |
-| `{{#each items}}...{{/each}}` | Loop over arrays |
-| `{{#unless condition}}...{{/unless}}` | Negative conditionals |
+| `{{fields.fieldName}}` | Insert a value, formatted for its type |
+| `{{fields.qty * fields.price}}` | Insert any expression |
+| `{{IF condition}}...{{ELSE}}...{{END-IF}}` | Conditional paragraphs; the condition must be boolean |
+| `{{FOR row IN list}}...{{END-FOR row}}` | Repeat paragraphs or table rows |
+| `{{signature(parties.client, "client-sign")}}` | Place a signing mark; `initials`, `signatureDate`, `capacity`, and `printedName` work the same way |
+
+The old comparison syntax (`===`, `!==`, and `$row` loop names) is no longer accepted: write `==` and `!=`, and name the row directly (`{{line.amount}}`).
+
+### checkDocxTemplate()
+
+Checks every control command and expression in a Word package against a type environment. `validateLayers()` runs it on file-backed DOCX layers. Each diagnostic names the part and paragraph, such as `word/document.xml paragraph 12`.
 
 ## Automatic Formatting
 

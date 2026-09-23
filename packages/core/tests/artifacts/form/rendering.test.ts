@@ -9,7 +9,7 @@ describe('Form rendering', () => {
 			.fields({ customer: { type: 'text', label: 'Customer' } })
 			.inlineLayer('markdown', {
 				mimeType: 'text/markdown',
-				text: '# Invoice for {{customer}}',
+				text: '# Invoice for {{fields.customer}}',
 			})
 			.defaultLayer('markdown')
 			.build()
@@ -44,7 +44,7 @@ describe('Form rendering', () => {
 		const definition = form()
 			.name('formatted-invoice')
 			.fields({ amount: { type: 'money' } })
-			.inlineLayer('markdown', { mimeType: 'text/markdown', text: '{{amount}}' })
+			.inlineLayer('markdown', { mimeType: 'text/markdown', text: '{{fields.amount}}' })
 			.defaultLayer('markdown')
 			.build()
 

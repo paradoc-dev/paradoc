@@ -41,7 +41,7 @@
     "markdown": {
       "kind": "inline",
       "mimeType": "text/markdown",
-      "text": "# Purchase Agreement\n\n{{parties.buyer.name}} agrees to purchase {{quantity}} units at {{price}} each.\n{{parties.seller.name}} agrees to deliver by {{date}}."
+      "text": "# Purchase Agreement\n\n{{parties.buyer.name}} agrees to purchase {{fields.quantity}} units at {{fields.price}} each.\n{{parties.seller.name}} agrees to deliver by {{fields.date}}."
     }
   }
 }

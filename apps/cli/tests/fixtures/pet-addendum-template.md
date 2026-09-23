@@ -2,7 +2,7 @@
 
 ## Pet Information
 
-**Pet Name:** {{name}}
-**Species:** {{species}}
-**Age:** {{age}}
-**Has Vaccination:** {{hasVaccination}}
+**Pet Name:** {{fields.name}}
+**Species:** {{fields.species}}
+**Age:** {{fields.age}}
+**Has Vaccination:** {{fields.hasVaccination}}

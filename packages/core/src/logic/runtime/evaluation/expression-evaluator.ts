@@ -22,7 +22,7 @@ import {
 	type Value,
 	type EvalResult,
 } from '@paradoc/expr'
-import { ROW_ORIGINS, ROW_VISIBILITY, type EvaluationContext, type ExpressionResult, type EvaluationOptions, type PartyContextEntry } from './types'
+import { PARTY_ENTRIES, ROW_ORIGINS, ROW_VISIBILITY, WITNESS_ENTRIES, type EvaluationContext, type ExpressionResult, type EvaluationOptions, type PartyContextEntry } from './types'
 import { resolveRowListPath, type RowOrigin } from '../../shared/list-paths'
 import { ExpressionEvaluationError } from './errors'
 
@@ -31,7 +31,7 @@ import { ExpressionEvaluationError } from './errors'
 // ============================================================================
 
 function getPartiesFromContext(roleId: string, context: EvaluationContext): PartyContextEntry[] {
-	return context.parties?.[roleId] ?? []
+	return context[PARTY_ENTRIES]?.[roleId] ?? []
 }
 
 /** partyCount(roleId) - Get the count of parties for a role. */
@@ -64,19 +64,19 @@ function partyType(roleId: string, context: EvaluationContext): string {
 
 /** witnessCount() - Get the count of witnesses. */
 function witnessCount(context: EvaluationContext): number {
-	return context.witnesses?.length ?? 0
+	return context[WITNESS_ENTRIES]?.length ?? 0
 }
 
 /** allWitnessesSigned() - Check if all witnesses have signed (false when empty). */
 function allWitnessesSigned(context: EvaluationContext): boolean {
-	const witnesses = context.witnesses ?? []
+	const witnesses = context[WITNESS_ENTRIES] ?? []
 	if (witnesses.length === 0) return false
 	return witnesses.every((w) => w.signed)
 }
 
 /** anyWitnessSigned() - Check if any witness has signed. */
 function anyWitnessSigned(context: EvaluationContext): boolean {
-	return (context.witnesses ?? []).some((w) => w.signed)
+	return (context[WITNESS_ENTRIES] ?? []).some((w) => w.signed)
 }
 
 /** Extract a role-id string argument from an @paradoc/expr call. */
@@ -144,6 +144,11 @@ export function withRowReferences(context: EvaluationContext, rows: RowReference
 		convertedContexts.set(scoped, shared)
 	}
 	return scoped
+}
+
+/** The @paradoc/expr context for a runtime context: its roots, predicates, clock, and row visibility. */
+export function toExpressionContext(context: EvaluationContext): ExprContext {
+	return buildExprContext(context)
 }
 
 function buildExprContext(context: EvaluationContext): ExprContext {

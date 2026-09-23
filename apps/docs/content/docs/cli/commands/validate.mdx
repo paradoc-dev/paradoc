@@ -36,11 +36,13 @@ The scope flags (`--schema-only`, `--layers-only`, `--checksum-only`) are mutual
 
 The `validate` command parses an artifact file and runs up to three validation phases:
 
-1. **Schema** — checks the artifact structure against the Paradoc schema
-2. **Layers** — for file-backed layers, checks file existence and verifies checksums
+1. **Schema** — checks the artifact structure against the Paradoc schema, its logic expressions, and the template expressions of inline layers
+2. **Layers** — for file-backed layers, checks file existence and verifies checksums, and checks the template expressions of text and DOCX layers
 3. **Content references** — for file-backed `instructions` and `agentInstructions`, checks file existence and verifies checksums
 
 Content reference validation runs automatically for any artifact kind that has `instructions` or `agentInstructions` set with `kind: "file"`. It is skipped by `--schema-only` and when reading from stdin (no file context).
+
+A template error names the layer, the line and column (or, in a DOCX layer, the paragraph), the expression, and the problem, including the replacement for syntax templates no longer accept.
 
 The command exits with code `0` if valid (warnings are allowed), `1` if any errors are found.
 

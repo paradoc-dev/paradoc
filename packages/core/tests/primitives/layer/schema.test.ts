@@ -83,13 +83,13 @@ describe('Layer', () => {
 			it('creates an inline layer via layer().inline()', () => {
 				const result = layer()
 					.inline()
-					.text('Hello {{name}}!')
+					.text('Hello {{fields.name}}!')
 					.mimeType('text/plain')
 					.build();
 
 				expect(result).toEqual({
 					kind: 'inline',
-					text: 'Hello {{name}}!',
+					text: 'Hello {{fields.name}}!',
 					mimeType: 'text/plain',
 				});
 			});
@@ -97,13 +97,13 @@ describe('Layer', () => {
 			it('creates an inline layer via layer.inline()', () => {
 				const result = layer
 					.inline()
-					.text('Hello {{name}}!')
+					.text('Hello {{fields.name}}!')
 					.mimeType('text/plain')
 					.build();
 
 				expect(result).toEqual({
 					kind: 'inline',
-					text: 'Hello {{name}}!',
+					text: 'Hello {{fields.name}}!',
 					mimeType: 'text/plain',
 				});
 			});
@@ -111,7 +111,7 @@ describe('Layer', () => {
 			it('supports optional properties', () => {
 				const result = layer()
 					.inline()
-					.text('Hello {{name}}!')
+					.text('Hello {{fields.name}}!')
 					.mimeType('text/plain')
 					.title('Greeting')
 					.description('A greeting template')
@@ -120,7 +120,7 @@ describe('Layer', () => {
 
 				expect(result).toEqual({
 					kind: 'inline',
-					text: 'Hello {{name}}!',
+					text: 'Hello {{fields.name}}!',
 					mimeType: 'text/plain',
 					title: 'Greeting',
 					description: 'A greeting template',

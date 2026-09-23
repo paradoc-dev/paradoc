@@ -31,7 +31,7 @@ const formArtifact = {
 		name: { type: 'text' as const, label: 'Name', required: true },
 	},
 	layers: {
-		text: { kind: 'inline' as const, mimeType: 'text/plain', text: 'Name: {{name}}' },
+		text: { kind: 'inline' as const, mimeType: 'text/plain', text: 'Name: {{fields.name}}' },
 	},
 	defaultLayer: 'text',
 }

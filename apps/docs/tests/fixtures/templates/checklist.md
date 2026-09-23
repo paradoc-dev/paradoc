@@ -1,18 +1,10 @@
-# {{schema.title}}
-
-{{#if schema.description}}
-{{schema.description}}
-{{/if}}
-
-**Version:** {{schema.version}}
-
----
+# Employee Onboarding Checklist
 
 ## Items
 
-{{#each items}}
-- [{{#if value}}x{{else}} {{/if}}] **{{title}}**{{#if description}} - {{description}}{{/if}}
-{{/each}}
+- [{{#if items["signed-contract"]}}x{{else}} {{/if}}] **Signed Employment Contract**
+- [{{#if items["received-equipment"]}}x{{else}} {{/if}}] **Received Equipment**
+- [{{#if items["completed-training"]}}x{{else}} {{/if}}] **Completed Training**
 
 ---
 

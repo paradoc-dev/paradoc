@@ -28,7 +28,7 @@ const form = p.form({
     photoId: { title: 'Photo ID', required: true }
   },
   layers: {
-    html: { kind: 'inline', mimeType: 'text/html', text: '<p>Tenant: {{tenantName}}</p>' }
+    html: { kind: 'inline', mimeType: 'text/html', text: '<p>Tenant: {{fields.tenantName}}</p>' }
   },
   defaultLayer: 'html'
 })
@@ -46,7 +46,7 @@ const form = p.form()
   .party('landlord', party().label('Landlord')
     .signature({ required: true, witnesses: 1 }).build())
   .annex('photoId', annex().title('Photo ID').required().build())
-  .inlineLayer('html', { mimeType: 'text/html', text: '<p>Tenant: {{tenantName}}</p>' })
+  .inlineLayer('html', { mimeType: 'text/html', text: '<p>Tenant: {{fields.tenantName}}</p>' })
   .defaultLayer('html')
   .build()
 ```

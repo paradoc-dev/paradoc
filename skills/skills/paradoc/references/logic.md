@@ -17,6 +17,8 @@ Paradoc artifacts support three kinds of logic:
 | **Defs** | Top-level `defs` (forms + bundles) | Reusable computed values |
 | **Rules** | Top-level `rules` (forms only) | Cross-field validation |
 
+The same language runs inside every layer template (Markdown, HTML, text, DOCX): see [layers.md](./layers.md#paradoc-template-syntax).
+
 ## Conditional Expressions (CondExpr)
 
 A CondExpr is either a boolean literal or an expression string:
@@ -33,9 +35,10 @@ A CondExpr is either a boolean literal or an expression string:
 |----------|-------------|
 | `==`, `!=` | Equality / inequality |
 | `>`, `>=`, `<`, `<=` | Comparison |
-| `&&` | Logical AND |
-| `\|\|` | Logical OR |
-| `!` | Logical NOT |
+| `and` | Logical AND (`&&` is rejected) |
+| `or` | Logical OR (`\|\|` is rejected) |
+| `not`, `!` | Logical NOT |
+| `in`, `not in` | Membership in a list |
 | `+`, `-`, `*`, `/`, `%` | Arithmetic |
 
 ## Expression Context Summary
@@ -48,6 +51,9 @@ CRITICAL: the context for referencing fields/defs differs by location.
 | List-item `required` / `visible` (the item and fields inside it) | `fields.<id>`, plus `item.<id>` for the current row and `parent.<id>` for the enclosing row of a nested list | Direct def key name |
 | Defs `value` | `fields.<id>` | Direct key name (previously evaluated defs) |
 | Rules `expr` | Direct field name (no prefix) | Direct key name |
+| Layer templates (`{{ }}`) | `fields.<id>`, plus `item`/`parent` inside `{{#each}}` | Direct def key name |
+
+Every context also reads `parties.<role>` (a list for a role with `max > 1`: `count(parties.tenant) > 1`). A checklist template reads `items.<id>`; a key that is not an identifier uses brackets, `items["signed-contract"]`.
 
 Field-level expressions ALWAYS use `fields.<id>`. Rules expressions use bare names.
 

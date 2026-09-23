@@ -16,10 +16,10 @@ import { p, toYAML } from '@paradoc/core';
 
 ## Pet Information
 
-**Pet Name:** {{name}}
-**Species:** {{species}}
-**Age:** {{age}}
-**Has Vaccination:** {{hasVaccination}}
+**Pet Name:** {{fields.name}}
+**Species:** {{fields.species}}
+**Age:** {{fields.age}}
+**Has Vaccination:** {{fields.hasVaccination}}
 `;
 
 	const f1 = p.form({

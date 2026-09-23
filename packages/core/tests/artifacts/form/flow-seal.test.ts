@@ -45,9 +45,9 @@ describe("'flow' placement", () => {
 					'',
 					'The undersigned agree to the terms above.',
 					'',
-					'{{#with parties.client}}Client signature: {{signature "client-sig"}}',
+					'Client signature: {{signature(parties.client, "client-sig")}}',
 					'',
-					'Client initials: {{initials "client-ini"}}{{/with}}',
+					'Client initials: {{initials(parties.client, "client-ini")}}',
 				].join('\n'),
 				signatures: slots,
 			})

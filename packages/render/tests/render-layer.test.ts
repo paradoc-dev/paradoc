@@ -21,7 +21,7 @@ const form = { fields: { name: { type: 'string' } } } as never
 describe('renderLayer', () => {
   it('chooses the text engine from a text MIME type', async () => {
     await expect(renderLayer().render({
-      template: { type: 'text', mimeType: 'text/markdown', content: 'Hello {{name}}' },
+      template: { type: 'text', mimeType: 'text/markdown', content: 'Hello {{fields.name}}' },
       form,
       data: { fields: { name: 'Ada' } },
     } as never)).resolves.toBe('Hello Ada')
@@ -38,7 +38,7 @@ describe('renderLayer', () => {
 
   it('chooses the DOCX engine from the Office MIME type', async () => {
     const output = await renderLayer().render({
-      template: { type: 'docx', mimeType: DOCX_MIME_TYPE, content: minimalDocx('Hello {{name}}') },
+      template: { type: 'docx', mimeType: DOCX_MIME_TYPE, content: minimalDocx('Hello {{fields.name}}') },
       form,
       data: { fields: { name: 'Ada' } },
     } as never)
@@ -47,7 +47,7 @@ describe('renderLayer', () => {
 
   it('fails loudly for a missing or unsupported MIME type', async () => {
     await expect(renderLayer().render({
-      template: { type: 'text', content: 'Hello {{name}}' },
+      template: { type: 'text', content: 'Hello {{fields.name}}' },
       form,
       data: { fields: { name: 'Ada' } },
     } as never)).rejects.toThrow('Unsupported render layer MIME type: (missing)')

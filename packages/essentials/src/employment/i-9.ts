@@ -1104,7 +1104,7 @@ const schema = {
       "mimeType": "text/markdown",
       "title": "Markdown rendering",
       "path": "i-9.md",
-      "checksum": "sha256:bdc2caad8e1f1fb888e79fc14f970c299cf7a94c82a99e1f78cead308940d7b7"
+      "checksum": "sha256:5b2100b871e12f746db1a71a6358d75cb2e4c0db41a827b019f01eebcd43f01a"
     }
   },
   "defaultLayer": "pdf"
@@ -1408,46 +1408,44 @@ const __c_i_9_md: string = `# Employment Eligibility Verification
 **Last Name (Family Name):** {{parties.employee.lastName}}
 **First Name (Given Name):** {{parties.employee.firstName}}
 **Middle Initial (if any):** {{parties.employee.middleName}}
-**Other Last Names Used (if any):** {{employeeOtherLastNames}}
+**Other Last Names Used (if any):** {{fields.employeeOtherLastNames}}
 
-**Address (Street Number and Name):** {{employeeAddress.line1}}
-**Apt. Number (if any):** {{employeeAddress.line2}}
-**City or Town:** {{employeeAddress.locality}}
-**State:** {{employeeAddress.region}}
-**ZIP Code:** {{employeeAddress.postalCode}}
+**Address (Street Number and Name):** {{fields.employeeAddress.line1}}
+**Apt. Number (if any):** {{fields.employeeAddress.line2}}
+**City or Town:** {{fields.employeeAddress.locality}}
+**State:** {{fields.employeeAddress.region}}
+**ZIP Code:** {{fields.employeeAddress.postalCode}}
 
-**Date of Birth (mm/dd/yyyy):** {{employeeDateOfBirth}}
-**U.S. Social Security Number:** {{employeeSsn}}
-**Employee's Email Address:** {{employeeEmail}}
-**Employee's Telephone Number:** {{employeePhone.number}}
+**Date of Birth (mm/dd/yyyy):** {{fields.employeeDateOfBirth}}
+**U.S. Social Security Number:** {{fields.employeeSsn}}
+**Employee's Email Address:** {{fields.employeeEmail}}
+**Employee's Telephone Number:** {{fields.employeePhone.number}}
 
 > I am aware that federal law provides for imprisonment and/or fines for false statements, or the use of false documents, in connection with the completion of this form. I attest, under penalty of perjury, that this information, including my selection of the box attesting to my citizenship or immigration status, is true and correct.
 
 **Citizenship or immigration status (check exactly one):**
 
-- [{{#if (eq citizenshipStatus "us_citizen")}}x{{else}} {{/if}}] 1. A citizen of the United States
-- [{{#if (eq citizenshipStatus "noncitizen_national")}}x{{else}} {{/if}}] 2. A noncitizen national of the United States
-- [{{#if (eq citizenshipStatus "lawful_permanent_resident")}}x{{else}} {{/if}}] 3. A lawful permanent resident
-- [{{#if (eq citizenshipStatus "alien_authorized_to_work")}}x{{else}} {{/if}}] 4. An alien authorized to work
+- [{{#if fields.citizenshipStatus == "us_citizen"}}x{{else}} {{/if}}] 1. A citizen of the United States
+- [{{#if fields.citizenshipStatus == "noncitizen_national"}}x{{else}} {{/if}}] 2. A noncitizen national of the United States
+- [{{#if fields.citizenshipStatus == "lawful_permanent_resident"}}x{{else}} {{/if}}] 3. A lawful permanent resident
+- [{{#if fields.citizenshipStatus == "alien_authorized_to_work"}}x{{else}} {{/if}}] 4. An alien authorized to work
 
-{{#if (eq citizenshipStatus "lawful_permanent_resident")}}
-**USCIS or A-Number:** {{lprUscisOrANumber}}
+{{#if fields.citizenshipStatus == "lawful_permanent_resident"}}
+**USCIS or A-Number:** {{fields.lprUscisOrANumber}}
 {{/if}}
 
-{{#if (eq citizenshipStatus "alien_authorized_to_work")}}
-**Authorized to work until (exp. date, if any):** {{workAuthExpirationDate}}
+{{#if fields.citizenshipStatus == "alien_authorized_to_work"}}
+**Authorized to work until (exp. date, if any):** {{fields.workAuthExpirationDate}}
 
 If you checked Item 4, enter one of the following:
 
-- [{{#if (eq workAuthDocumentType "uscis_a_number")}}x{{else}} {{/if}}] **USCIS A-Number:** {{workAuthUscisANumber}}
-- [{{#if (eq workAuthDocumentType "i94_admission_number")}}x{{else}} {{/if}}] **Form I-94 Admission Number:** {{workAuthI94Number}}
-- [{{#if (eq workAuthDocumentType "foreign_passport")}}x{{else}} {{/if}}] **Foreign Passport Number and Country of Issuance:** {{workAuthForeignPassport}}
+- [{{#if fields.workAuthDocumentType == "uscis_a_number"}}x{{else}} {{/if}}] **USCIS A-Number:** {{fields.workAuthUscisANumber}}
+- [{{#if fields.workAuthDocumentType == "i94_admission_number"}}x{{else}} {{/if}}] **Form I-94 Admission Number:** {{fields.workAuthI94Number}}
+- [{{#if fields.workAuthDocumentType == "foreign_passport"}}x{{else}} {{/if}}] **Foreign Passport Number and Country of Issuance:** {{fields.workAuthForeignPassport}}
 {{/if}}
 
-{{#with parties.employee}}
-**Signature of Employee:** {{signature "sb01_employee_signature"}}
-**Today's Date (mm/dd/yyyy):** {{signatureDate "sb02_employee_date"}}
-{{/with}}
+**Signature of Employee:** {{signature(parties.employee, "sb01_employee_signature")}}
+**Today's Date (mm/dd/yyyy):** {{signatureDate(parties.employee, "sb02_employee_date")}}
 
 > If a preparer and/or translator assisted you in completing Section 1, that person MUST complete the Preparer and/or Translator Certification on Supplement A.
 
@@ -1459,72 +1457,70 @@ If you checked Item 4, enter one of the following:
 
 **Document examination route:**
 
-- [{{#if (eq documentRoute "list_a")}}x{{else}} {{/if}}] List A (one document establishing identity AND employment authorization)
-- [{{#if (eq documentRoute "list_b_and_c")}}x{{else}} {{/if}}] List B + List C (one identity document AND one employment-authorization document)
+- [{{#if fields.documentRoute == "list_a"}}x{{else}} {{/if}}] List A (one document establishing identity AND employment authorization)
+- [{{#if fields.documentRoute == "list_b_and_c"}}x{{else}} {{/if}}] List B + List C (one identity document AND one employment-authorization document)
 
-{{#if (eq documentRoute "list_a")}}
+{{#if fields.documentRoute == "list_a"}}
 ### List A
 
 **Document 1**
-- Title: {{listADocument1Title}}
-- Issuing Authority: {{listADocument1IssuingAuthority}}
-- Document Number (if any): {{listADocument1Number}}
-- Expiration Date (if any): {{listADocument1ExpirationDate}}
+- Title: {{fields.listADocument1Title}}
+- Issuing Authority: {{fields.listADocument1IssuingAuthority}}
+- Document Number (if any): {{fields.listADocument1Number}}
+- Expiration Date (if any): {{fields.listADocument1ExpirationDate}}
 
-{{#if listADocument2Title}}
+{{#if fields.listADocument2Title != null}}
 **Document 2 (if any)**
-- Title: {{listADocument2Title}}
-- Issuing Authority: {{listADocument2IssuingAuthority}}
-- Document Number (if any): {{listADocument2Number}}
-- Expiration Date (if any): {{listADocument2ExpirationDate}}
+- Title: {{fields.listADocument2Title}}
+- Issuing Authority: {{fields.listADocument2IssuingAuthority}}
+- Document Number (if any): {{fields.listADocument2Number}}
+- Expiration Date (if any): {{fields.listADocument2ExpirationDate}}
 {{/if}}
 
-{{#if listADocument3Title}}
+{{#if fields.listADocument3Title != null}}
 **Document 3 (if any)**
-- Title: {{listADocument3Title}}
-- Issuing Authority: {{listADocument3IssuingAuthority}}
-- Document Number (if any): {{listADocument3Number}}
-- Expiration Date (if any): {{listADocument3ExpirationDate}}
+- Title: {{fields.listADocument3Title}}
+- Issuing Authority: {{fields.listADocument3IssuingAuthority}}
+- Document Number (if any): {{fields.listADocument3Number}}
+- Expiration Date (if any): {{fields.listADocument3ExpirationDate}}
 {{/if}}
 {{/if}}
 
-{{#if (eq documentRoute "list_b_and_c")}}
+{{#if fields.documentRoute == "list_b_and_c"}}
 ### List B (Identity)
 
-- Title: {{listBDocumentTitle}}
-- Issuing Authority: {{listBIssuingAuthority}}
-- Document Number (if any): {{listBDocumentNumber}}
-- Expiration Date (if any): {{listBExpirationDate}}
+- Title: {{fields.listBDocumentTitle}}
+- Issuing Authority: {{fields.listBIssuingAuthority}}
+- Document Number (if any): {{fields.listBDocumentNumber}}
+- Expiration Date (if any): {{fields.listBExpirationDate}}
 
 ### List C (Employment Authorization)
 
-- Title: {{listCDocumentTitle}}
-- Issuing Authority: {{listCIssuingAuthority}}
-- Document Number (if any): {{listCDocumentNumber}}
-- Expiration Date (if any): {{listCExpirationDate}}
+- Title: {{fields.listCDocumentTitle}}
+- Issuing Authority: {{fields.listCIssuingAuthority}}
+- Document Number (if any): {{fields.listCDocumentNumber}}
+- Expiration Date (if any): {{fields.listCExpirationDate}}
 {{/if}}
 
-**Additional Information:** {{additionalInformation}}
+**Additional Information:** {{fields.additionalInformation}}
 
-- [{{#if alternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
+- [{{#if fields.alternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
 
-**First Day of Employment (mm/dd/yyyy):** {{firstDayOfEmployment}}
+**First Day of Employment (mm/dd/yyyy):** {{fields.firstDayOfEmployment}}
 
 > **Certification:** I attest, under penalty of perjury, that (1) I have examined the documentation presented by the above-named employee, (2) the above-listed documentation appears to be genuine and to relate to the employee named, and (3) to the best of my knowledge, the employee is authorized to work in the United States.
 
-**Last Name, First Name and Title of Employer or Authorized Representative:** {{employerRepresentativeName}}
+**Last Name, First Name and Title of Employer or Authorized Representative:** {{fields.employerRepresentativeName}}
 
-{{#with parties.employer}}
-**Signature of Employer or Authorized Representative:** {{signature "sb03_employer_s2_signature"}}
-**Today's Date (mm/dd/yyyy):** {{signatureDate "sb04_employer_s2_date"}}
-{{/with}}
+**Signature of Employer or Authorized Representative:** {{signature(parties.employer, "sb03_employer_s2_signature")}}
+**Today's Date (mm/dd/yyyy):** {{signatureDate(parties.employer, "sb04_employer_s2_date")}}
 
 **Employer's Business or Organization Name:** {{parties.employer.name}}
-**Employer's Business or Organization Address:** {{employerBusinessAddress.line1}}{{#if employerBusinessAddress.line2}}, {{employerBusinessAddress.line2}}{{/if}}, {{employerBusinessAddress.locality}}, {{employerBusinessAddress.region}} {{employerBusinessAddress.postalCode}}
+**Employer's Business or Organization Address:** {{fields.employerBusinessAddress.line1}}{{#if fields.employerBusinessAddress.line2 != null}}, {{fields.employerBusinessAddress.line2}}{{/if}}, {{fields.employerBusinessAddress.locality}}, {{fields.employerBusinessAddress.region}} {{fields.employerBusinessAddress.postalCode}}
 
 ---
 
-{{#if preparerAssistanceUsed}}
+{{#if fields.preparerAssistanceUsed}}
 ## Supplement A — Preparer and/or Translator Certification for Section 1
 
 > This supplement must be completed by any preparer and/or translator who assists an employee in completing Section 1 of Form I-9. The preparer and/or translator must enter the employee's name in the spaces provided. Each preparer or translator must complete, sign, and date a separate certification area. Employers must retain completed supplement sheets with the employee's completed Form I-9.
@@ -1533,82 +1529,82 @@ If you checked Item 4, enter one of the following:
 **First Name (Given Name) from Section 1:** {{parties.employee.firstName}}
 **Middle Initial (if any) from Section 1:** {{parties.employee.middleName}}
 
-{{#with parties.preparer.[0]}}
+{{#if parties.preparer[0] != null}}
 ### Preparer / Translator Entry 1
 
 > I attest, under penalty of perjury, that I have assisted in the completion of Section 1 of this form and that to the best of my knowledge the information is true and correct.
 
-**Signature of Preparer or Translator:** {{signature "sb05_preparer0_signature"}}
-**Date (mm/dd/yyyy):** {{signatureDate "sb06_preparer0_date"}}
+**Signature of Preparer or Translator:** {{signature(parties.preparer[0], "sb05_preparer0_signature")}}
+**Date (mm/dd/yyyy):** {{signatureDate(parties.preparer[0], "sb06_preparer0_date")}}
 
-**Last Name (Family Name):** {{lastName}}
-**First Name (Given Name):** {{firstName}}
-**Middle Initial (if any):** {{middleName}}
-{{/with}}
+**Last Name (Family Name):** {{parties.preparer[0].lastName}}
+**First Name (Given Name):** {{parties.preparer[0].firstName}}
+**Middle Initial (if any):** {{parties.preparer[0].middleName}}
+{{/if}}
 
-**Address (Street Number and Name):** {{preparer1Address.line1}}
-**City or Town:** {{preparer1Address.locality}}
-**State:** {{preparer1Address.region}}
-**ZIP Code:** {{preparer1Address.postalCode}}
+**Address (Street Number and Name):** {{fields.preparer1Address.line1}}
+**City or Town:** {{fields.preparer1Address.locality}}
+**State:** {{fields.preparer1Address.region}}
+**ZIP Code:** {{fields.preparer1Address.postalCode}}
 
-{{#with parties.preparer.[1]}}
+{{#if parties.preparer[1] != null}}
 ### Preparer / Translator Entry 2
 
 > I attest, under penalty of perjury, that I have assisted in the completion of Section 1 of this form and that to the best of my knowledge the information is true and correct.
 
-**Signature of Preparer or Translator:** {{signature "sb07_preparer1_signature"}}
-**Date (mm/dd/yyyy):** {{signatureDate "sb08_preparer1_date"}}
+**Signature of Preparer or Translator:** {{signature(parties.preparer[1], "sb07_preparer1_signature")}}
+**Date (mm/dd/yyyy):** {{signatureDate(parties.preparer[1], "sb08_preparer1_date")}}
 
-**Last Name (Family Name):** {{lastName}}
-**First Name (Given Name):** {{firstName}}
-**Middle Initial (if any):** {{middleName}}
-{{/with}}
+**Last Name (Family Name):** {{parties.preparer[1].lastName}}
+**First Name (Given Name):** {{parties.preparer[1].firstName}}
+**Middle Initial (if any):** {{parties.preparer[1].middleName}}
+{{/if}}
 
-**Address (Street Number and Name):** {{preparer2Address.line1}}
-**City or Town:** {{preparer2Address.locality}}
-**State:** {{preparer2Address.region}}
-**ZIP Code:** {{preparer2Address.postalCode}}
+**Address (Street Number and Name):** {{fields.preparer2Address.line1}}
+**City or Town:** {{fields.preparer2Address.locality}}
+**State:** {{fields.preparer2Address.region}}
+**ZIP Code:** {{fields.preparer2Address.postalCode}}
 
-{{#with parties.preparer.[2]}}
+{{#if parties.preparer[2] != null}}
 ### Preparer / Translator Entry 3
 
 > I attest, under penalty of perjury, that I have assisted in the completion of Section 1 of this form and that to the best of my knowledge the information is true and correct.
 
-**Signature of Preparer or Translator:** {{signature "sb09_preparer2_signature"}}
-**Date (mm/dd/yyyy):** {{signatureDate "sb10_preparer2_date"}}
+**Signature of Preparer or Translator:** {{signature(parties.preparer[2], "sb09_preparer2_signature")}}
+**Date (mm/dd/yyyy):** {{signatureDate(parties.preparer[2], "sb10_preparer2_date")}}
 
-**Last Name (Family Name):** {{lastName}}
-**First Name (Given Name):** {{firstName}}
-**Middle Initial (if any):** {{middleName}}
-{{/with}}
+**Last Name (Family Name):** {{parties.preparer[2].lastName}}
+**First Name (Given Name):** {{parties.preparer[2].firstName}}
+**Middle Initial (if any):** {{parties.preparer[2].middleName}}
+{{/if}}
 
-**Address (Street Number and Name):** {{preparer3Address.line1}}
-**City or Town:** {{preparer3Address.locality}}
-**State:** {{preparer3Address.region}}
-**ZIP Code:** {{preparer3Address.postalCode}}
+**Address (Street Number and Name):** {{fields.preparer3Address.line1}}
+**City or Town:** {{fields.preparer3Address.locality}}
+**State:** {{fields.preparer3Address.region}}
+**ZIP Code:** {{fields.preparer3Address.postalCode}}
 
-{{#with parties.preparer.[3]}}
+{{#if parties.preparer[3] != null}}
 ### Preparer / Translator Entry 4
 
 > I attest, under penalty of perjury, that I have assisted in the completion of Section 1 of this form and that to the best of my knowledge the information is true and correct.
 
-**Signature of Preparer or Translator:** {{signature "sb11_preparer3_signature"}}
-**Date (mm/dd/yyyy):** {{signatureDate "sb12_preparer3_date"}}
+**Signature of Preparer or Translator:** {{signature(parties.preparer[3], "sb11_preparer3_signature")}}
+**Date (mm/dd/yyyy):** {{signatureDate(parties.preparer[3], "sb12_preparer3_date")}}
 
-**Last Name (Family Name):** {{lastName}}
-**First Name (Given Name):** {{firstName}}
-**Middle Initial (if any):** {{middleName}}
-{{/with}}
+**Last Name (Family Name):** {{parties.preparer[3].lastName}}
+**First Name (Given Name):** {{parties.preparer[3].firstName}}
+**Middle Initial (if any):** {{parties.preparer[3].middleName}}
+{{/if}}
 
-**Address (Street Number and Name):** {{preparer4Address.line1}}
-**City or Town:** {{preparer4Address.locality}}
-**State:** {{preparer4Address.region}}
-**ZIP Code:** {{preparer4Address.postalCode}}
+**Address (Street Number and Name):** {{fields.preparer4Address.line1}}
+**City or Town:** {{fields.preparer4Address.locality}}
+**State:** {{fields.preparer4Address.region}}
+**ZIP Code:** {{fields.preparer4Address.postalCode}}
 {{/if}}
 
 ---
 
-{{#if reverification1DocumentTitle}}
+{{#if fields.reverification1DocumentTitle != null}}
 ## Supplement B — Reverification and Rehire (formerly Section 3)
 
 > This supplement replaces Section 3 on the previous version of Form I-9. Only use this page if your employee requires reverification, is rehired within three years of the date the original Form I-9 was completed, or provides proof of a legal name change. Use a new section for each reverification or rehire.
@@ -1619,75 +1615,69 @@ If you checked Item 4, enter one of the following:
 
 ### Reverification 1
 
-**Date of Rehire (if applicable, mm/dd/yyyy):** {{reverification1DateOfRehire}}
+**Date of Rehire (if applicable, mm/dd/yyyy):** {{fields.reverification1DateOfRehire}}
 
 **New Name (if applicable):**
-- Last Name (Family Name): {{reverification1NewLastName}}
-- First Name (Given Name): {{reverification1NewFirstName}}
-- Middle Initial: {{reverification1NewMiddleInitial}}
+- Last Name (Family Name): {{fields.reverification1NewLastName}}
+- First Name (Given Name): {{fields.reverification1NewFirstName}}
+- Middle Initial: {{fields.reverification1NewMiddleInitial}}
 
-**Document Title:** {{reverification1DocumentTitle}}
-**Document Number (if any):** {{reverification1DocumentNumber}}
-**Expiration Date (if any) (mm/dd/yyyy):** {{reverification1ExpirationDate}}
+**Document Title:** {{fields.reverification1DocumentTitle}}
+**Document Number (if any):** {{fields.reverification1DocumentNumber}}
+**Expiration Date (if any) (mm/dd/yyyy):** {{fields.reverification1ExpirationDate}}
 
 > I attest, under penalty of perjury, that to the best of my knowledge, this employee is authorized to work in the United States, and if the employee presented documentation, the documentation I examined appears to be genuine and to relate to the individual who presented it.
 
-**Name of Employer or Authorized Representative:** {{reverification1EmployerRepresentativeName}}
-{{#with parties.employer}}
-**Signature of Employer or Authorized Representative:** {{signature "sb13_employer_supb0_signature"}}
-**Today's Date (mm/dd/yyyy):** {{signatureDate "sb14_employer_supb0_date"}}
-{{/with}}
+**Name of Employer or Authorized Representative:** {{fields.reverification1EmployerRepresentativeName}}
+**Signature of Employer or Authorized Representative:** {{signature(parties.employer, "sb13_employer_supb0_signature")}}
+**Today's Date (mm/dd/yyyy):** {{signatureDate(parties.employer, "sb14_employer_supb0_date")}}
 
-**Additional Information (Initial and date each notation.):** {{reverification1AdditionalInformation}}
-- [{{#if reverification1AlternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
+**Additional Information (Initial and date each notation.):** {{fields.reverification1AdditionalInformation}}
+- [{{#if fields.reverification1AlternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
 {{/if}}
 
-{{#if reverification2DocumentTitle}}
+{{#if fields.reverification2DocumentTitle != null}}
 ### Reverification 2
 
-**Date of Rehire (if applicable, mm/dd/yyyy):** {{reverification2DateOfRehire}}
+**Date of Rehire (if applicable, mm/dd/yyyy):** {{fields.reverification2DateOfRehire}}
 
 **New Name (if applicable):**
-- Last Name (Family Name): {{reverification2NewLastName}}
-- First Name (Given Name): {{reverification2NewFirstName}}
-- Middle Initial: {{reverification2NewMiddleInitial}}
+- Last Name (Family Name): {{fields.reverification2NewLastName}}
+- First Name (Given Name): {{fields.reverification2NewFirstName}}
+- Middle Initial: {{fields.reverification2NewMiddleInitial}}
 
-**Document Title:** {{reverification2DocumentTitle}}
-**Document Number (if any):** {{reverification2DocumentNumber}}
-**Expiration Date (if any) (mm/dd/yyyy):** {{reverification2ExpirationDate}}
+**Document Title:** {{fields.reverification2DocumentTitle}}
+**Document Number (if any):** {{fields.reverification2DocumentNumber}}
+**Expiration Date (if any) (mm/dd/yyyy):** {{fields.reverification2ExpirationDate}}
 
-**Name of Employer or Authorized Representative:** {{reverification2EmployerRepresentativeName}}
-{{#with parties.employer}}
-**Signature of Employer or Authorized Representative:** {{signature "sb15_employer_supb1_signature"}}
-**Today's Date (mm/dd/yyyy):** {{signatureDate "sb16_employer_supb1_date"}}
-{{/with}}
+**Name of Employer or Authorized Representative:** {{fields.reverification2EmployerRepresentativeName}}
+**Signature of Employer or Authorized Representative:** {{signature(parties.employer, "sb15_employer_supb1_signature")}}
+**Today's Date (mm/dd/yyyy):** {{signatureDate(parties.employer, "sb16_employer_supb1_date")}}
 
-**Additional Information (Initial and date each notation.):** {{reverification2AdditionalInformation}}
-- [{{#if reverification2AlternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
+**Additional Information (Initial and date each notation.):** {{fields.reverification2AdditionalInformation}}
+- [{{#if fields.reverification2AlternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
 {{/if}}
 
-{{#if reverification3DocumentTitle}}
+{{#if fields.reverification3DocumentTitle != null}}
 ### Reverification 3
 
-**Date of Rehire (if applicable, mm/dd/yyyy):** {{reverification3DateOfRehire}}
+**Date of Rehire (if applicable, mm/dd/yyyy):** {{fields.reverification3DateOfRehire}}
 
 **New Name (if applicable):**
-- Last Name (Family Name): {{reverification3NewLastName}}
-- First Name (Given Name): {{reverification3NewFirstName}}
-- Middle Initial: {{reverification3NewMiddleInitial}}
+- Last Name (Family Name): {{fields.reverification3NewLastName}}
+- First Name (Given Name): {{fields.reverification3NewFirstName}}
+- Middle Initial: {{fields.reverification3NewMiddleInitial}}
 
-**Document Title:** {{reverification3DocumentTitle}}
-**Document Number (if any):** {{reverification3DocumentNumber}}
-**Expiration Date (if any) (mm/dd/yyyy):** {{reverification3ExpirationDate}}
+**Document Title:** {{fields.reverification3DocumentTitle}}
+**Document Number (if any):** {{fields.reverification3DocumentNumber}}
+**Expiration Date (if any) (mm/dd/yyyy):** {{fields.reverification3ExpirationDate}}
 
-**Name of Employer or Authorized Representative:** {{reverification3EmployerRepresentativeName}}
-{{#with parties.employer}}
-**Signature of Employer or Authorized Representative:** {{signature "sb17_employer_supb2_signature"}}
-**Today's Date (mm/dd/yyyy):** {{signatureDate "sb18_employer_supb2_date"}}
-{{/with}}
+**Name of Employer or Authorized Representative:** {{fields.reverification3EmployerRepresentativeName}}
+**Signature of Employer or Authorized Representative:** {{signature(parties.employer, "sb17_employer_supb2_signature")}}
+**Today's Date (mm/dd/yyyy):** {{signatureDate(parties.employer, "sb18_employer_supb2_date")}}
 
-**Additional Information (Initial and date each notation.):** {{reverification3AdditionalInformation}}
-- [{{#if reverification3AlternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
+**Additional Information (Initial and date each notation.):** {{fields.reverification3AdditionalInformation}}
+- [{{#if fields.reverification3AlternativeProcedureUsed}}x{{else}} {{/if}}] Alternative procedure authorized by DHS used to examine documents.
 {{/if}}
 `;
 

@@ -72,8 +72,8 @@ import { renderDocx } from "@paradoc/render/docx";
 
 // Text — synchronous
 const text = renderText({
-  template: "# {{title}}\n\nRent: {{monthlyRent}}",
-  data: { title: "Lease", monthlyRent: { amount: 1500, currency: "USD" } },
+  template: "# Lease\n\nRent: {{fields.monthlyRent}}",
+  data: { monthlyRent: { amount: 1500, currency: "USD" } },
   form: leaseForm, // enables automatic field type detection
 });
 
@@ -96,6 +96,10 @@ const docx = await renderDocx({
 `renderPdf()` draws each AcroForm value with the field's own size (or auto-size), alignment, color, comb, and multiline settings. A value that cannot fit at 6 points, or that has more characters than a comb field has boxes, throws `PdfFieldFillError` naming the field, the `reason` (`overflow` or `comb-length`), and the `limit`.
 
 Fonts: each value uses the first font that draws all of it: `font` (render time), then `layerFont` (the layer's declared `font`), then the form's own embedded font, then Helvetica for Latin-1. Through an artifact, supply the render-time font with `renderLayer({ pdfFont: { bytes, source } })` or `pdfRenderer({ font })`; the layer's font is read by the bound resolver. Missing glyphs (`missing-glyph`) and scripts that need shaping (`unsupported-script`) fail with `PdfFieldFillError`; an unusable font fails with `PdfFontError`. See [pdf-bindings.md](./pdf-bindings.md).
+
+### Template expressions
+
+Text and DOCX templates evaluate artifact expressions. `form.render()` supplies the artifact's own expression context, so templates read `fields`, defs, and `parties` exactly as field logic does. Rendering directly, pass `expressions: { functions, signatures }` to make host functions callable; a function without a signature cannot be called. A failed expression throws `TemplateError` with `layer`, `position` (line, column), and `expression`. Check templates without rendering through `validate()` (inline layers) and `validateLayers(artifact, { resolver })` (file layers).
 
 ### renderDocx() options
 
@@ -236,7 +240,7 @@ import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const resolver = createMemoryResolver({
   contents: {
-    "/templates/form.md": "# {{title}}\n\nRent: {{monthlyRent}}",
+    "/templates/form.md": "# Lease\n\nRent: {{fields.monthlyRent}}",
     "/templates/form.pdf": pdfBytes,
   },
 });
@@ -246,7 +250,7 @@ ALWAYS use `createMemoryResolver` in tests. NEVER read from the filesystem in un
 
 ## See Also
 
-- [layers.md](./layers.md) — layer definitions, Paradoc template syntax, signature helpers
+- [layers.md](./layers.md) — layer definitions, Paradoc template syntax, signing directives
 - [formatting.md](./formatting.md) — locale-aware formatters
 - [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings
 - [sdk.md](./sdk.md) — `form.fill().render()` pipeline

@@ -171,11 +171,11 @@ describe('Checklists Guide', () => {
         markdown: {
           kind: 'inline',
           mimeType: 'text/markdown',
-          text: `# {{schema.title}}
+          text: `# Employee Onboarding Checklist
 
-{{#each items}}
-- [{{#if value}}x{{else}} {{/if}}] {{title}}
-{{/each}}`,
+- [{{#if items["signed-contract"]}}x{{else}} {{/if}}] Signed Employment Contract
+- [{{#if items["received-equipment"]}}x{{else}} {{/if}}] Received Equipment
+- [{{#if items["completed-training"]}}x{{else}} {{/if}}] Completed Training`,
         },
       },
     })

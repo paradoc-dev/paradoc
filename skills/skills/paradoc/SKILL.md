@@ -31,8 +31,8 @@ These apply across every surface and workflow:
 - **Field/party/def/rule identifier pattern:** `^[a-z][a-zA-Z0-9_]*$` — camelCase, max 100 chars (50 for party roles).
 - **Versioning:** semver `MAJOR.MINOR.PATCH`. Major for breaking changes, minor for new optional, patch for cosmetic.
 - **Field types:** ALWAYS use the most specific type — NEVER `text` when a structured type fits (`money`, `date`, `email`, `phone`, `address`, etc.).
-- **Paradoc templates:** field values are spread at top level — use `{{fieldName}}`, NOT `{{fields.fieldName}}`. Parties and annexes remain namespaced (`{{parties.tenant}}`, `{{annexes.photoId}}`).
-- **Signatures in templates:** use `{{signature "loc"}}`, `{{initials "loc"}}`, `{{signatureDate "loc"}}` helpers inside party blocks (`{{#with}}` or `{{#each}}`). NEVER manual underscore lines.
+- **Paradoc templates:** everything inside `{{ }}` is an artifact expression — use `{{fields.fieldName}}`, `{{parties.tenant.name}}`, defs by name; conditions must be boolean; loops use `item`/`parent`. See [references/layers.md](./references/layers.md).
+- **Signatures in templates:** use the signing directives `{{signature(parties.role, "loc")}}`, `{{initials(...)}}`, `{{signatureDate(...)}}` (inside a party loop: `{{signature("loc")}}`). NEVER manual underscore lines.
 
 ## Pick a Surface
 

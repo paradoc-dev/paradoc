@@ -35,24 +35,27 @@ MIME type rather than guessing.
 
 ## Text templates
 
-Text rendering supports interpolation, nested paths, escaping, loops,
-conditionals, context changes, and a small set of deterministic helpers.
+Text templates keep the block markers `{{#if}}`, `{{#unless}}`, `{{else}}`, and
+`{{#each}}`. Everything inside a marker is an artifact expression from
+`@paradoc/expr`, the language field logic uses, so a condition means the same in
+a template as in a rule. Templates do not execute arbitrary JavaScript.
 
 ```text
-{{#if approved}}
-Approved for {{owner.name}}
+{{#if fields.approved and fields.total.amount > 1000}}
+Approved for {{parties.owner.name}}: {{fields.total}}
 {{else}}
 Pending
 {{/if}}
 
-{{#each items}}
-- {{name}}
+{{#each fields.items}}
+- {{index(item) + 1}}. {{item.name}}{{#unless last(item)}},{{/unless}}
 {{/each}}
 ```
 
-Supported block helpers are `if`, `unless`, `each`, and `with`. Expression
-helpers include `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `not`, `and`, `or`,
-`contains`, and `default`. Templates do not execute arbitrary JavaScript.
+Inside `{{#each}}`, `item` is the row and `parent` the enclosing row. A
+condition must be boolean and a loop source a list. `checkTextTemplate()` and
+`checkDocxTemplate()` check every expression against a type environment, and a
+failed render throws `TemplateError` with the layer, position, and expression.
 
 ## PDF forms and overlays
 
@@ -184,20 +187,21 @@ DOCX rendering supports direct values, commands split across Word runs, custom
 delimiters, line breaks, and structural commands:
 
 ```text
-{{FOR item IN items}}
-{{$item.name}}
-{{END-FOR item}}
+{{FOR line IN fields.items}}
+{{line.name}}
+{{END-FOR line}}
 
-{{IF approved}}
+{{IF fields.approved}}
 Approved
 {{ELSE}}
 Pending
 {{END-IF}}
 ```
 
-`ELSE` is a Paradoc extension beyond the legacy DOCX template syntax. DOCX
-templates also support the signature helpers `signature`, `initials`,
-`signatureDate`, `capacity`, and `printedName`.
+Conditions, loop sources, and placeholders are artifact expressions, as in text
+templates. DOCX templates also support the signing directives `signature`,
+`initials`, `signatureDate`, `capacity`, and `printedName`, written
+`{{signature(parties.client, "client-sign")}}`.
 
 ## Benchmarking
 

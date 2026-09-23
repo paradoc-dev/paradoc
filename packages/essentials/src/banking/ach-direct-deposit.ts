@@ -662,7 +662,7 @@ const schema = {
       "mimeType": "text/markdown",
       "title": "Markdown Form",
       "path": "ach-direct-deposit.md",
-      "checksum": "sha256:60bee6e0ad758de437c29364e7606a63214190170c02660c8981a4eb768eeb50"
+      "checksum": "sha256:517219b030c5c3587688307ac10ca49ee996efbc6a8d293a7960b301f23caa0f"
     }
   },
   "defaultLayer": "pdf"
@@ -754,87 +754,87 @@ const __c_ach_direct_deposit_md: string = `# ACH Direct Deposit Authorization
 
 ## Employer
 
-- **Name:** {{parties.employer.legalName}}{{#if parties.employer.name}} (DBA {{parties.employer.name}}){{/if}}
-- **Payroll provider:** {{employerPayrollProvider}}
-- **Address:** {{employerAddress.line1}}{{#if employerAddress.line2}}, {{employerAddress.line2}}{{/if}}, {{employerAddress.locality}}, {{employerAddress.region}} {{employerAddress.postalCode}}
-- **Phone:** {{employerPhone}}
-- **Email:** {{employerEmail}}
+- **Name:** {{parties.employer.legalName}}{{#if parties.employer.name != null}} (DBA {{parties.employer.name}}){{/if}}
+- **Payroll provider:** {{fields.employerPayrollProvider}}
+- **Address:** {{fields.employerAddress.line1}}{{#if fields.employerAddress.line2 != null}}, {{fields.employerAddress.line2}}{{/if}}, {{fields.employerAddress.locality}}, {{fields.employerAddress.region}} {{fields.employerAddress.postalCode}}
+- **Phone:** {{fields.employerPhone}}
+- **Email:** {{fields.employerEmail}}
 
 ## Employee
 
 - **Name:** {{parties.employee.name}}
-- **Employee ID:** {{employeeId}}
-- **SSN:** {{employeeSsn}}
-- **Address:** {{employeeAddress.line1}}{{#if employeeAddress.line2}}, {{employeeAddress.line2}}{{/if}}, {{employeeAddress.locality}}, {{employeeAddress.region}} {{employeeAddress.postalCode}}
-- **Phone:** {{employeePhone}}
-- **Email:** {{employeeEmail}}
+- **Employee ID:** {{fields.employeeId}}
+- **SSN:** {{fields.employeeSsn}}
+- **Address:** {{fields.employeeAddress.line1}}{{#if fields.employeeAddress.line2 != null}}, {{fields.employeeAddress.line2}}{{/if}}, {{fields.employeeAddress.locality}}, {{fields.employeeAddress.region}} {{fields.employeeAddress.postalCode}}
+- **Phone:** {{fields.employeePhone}}
+- **Email:** {{fields.employeeEmail}}
 
 ## Action
 
-- [{{#if (eq actionType "new")}}x{{else}} {{/if}}] New direct deposit
-- [{{#if (eq actionType "change")}}x{{else}} {{/if}}] Change existing direct deposit
-- [{{#if (eq actionType "stop")}}x{{else}} {{/if}}] Stop direct deposit
+- [{{#if fields.actionType == "new"}}x{{else}} {{/if}}] New direct deposit
+- [{{#if fields.actionType == "change"}}x{{else}} {{/if}}] Change existing direct deposit
+- [{{#if fields.actionType == "stop"}}x{{else}} {{/if}}] Stop direct deposit
 
 ## Account 1 — Primary
 
-- **Bank:** {{account1BankName}}
-- **Routing/ABA #:** {{account1RoutingNumber}}
-- **Account #:** {{account1AccountNumber}}
+- **Bank:** {{fields.account1BankName}}
+- **Routing/ABA #:** {{fields.account1RoutingNumber}}
+- **Account #:** {{fields.account1AccountNumber}}
 - **Type:**
-  - [{{#if (eq account1AccountType "checking")}}x{{else}} {{/if}}] Checking
-  - [{{#if (eq account1AccountType "savings")}}x{{else}} {{/if}}] Savings
+  - [{{#if fields.account1AccountType == "checking"}}x{{else}} {{/if}}] Checking
+  - [{{#if fields.account1AccountType == "savings"}}x{{else}} {{/if}}] Savings
 - **Allotment:**
-  - [{{#if (eq account1AllotmentType "fixed_amount")}}x{{else}} {{/if}}] Fixed amount: \${{account1Amount.amount}} {{account1Amount.currency}}
-  - [{{#if (eq account1AllotmentType "percent")}}x{{else}} {{/if}}] Percent of net pay: {{account1Percent}}%
-  - [{{#if (eq account1AllotmentType "net_remainder")}}x{{else}} {{/if}}] Net pay remainder
-- [{{#if account1VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
+  - [{{#if fields.account1AllotmentType == "fixed_amount"}}x{{else}} {{/if}}] Fixed amount: \${{fields.account1Amount.amount}} {{fields.account1Amount.currency}}
+  - [{{#if fields.account1AllotmentType == "percent"}}x{{else}} {{/if}}] Percent of net pay: {{fields.account1Percent}}%
+  - [{{#if fields.account1AllotmentType == "net_remainder"}}x{{else}} {{/if}}] Net pay remainder
+- [{{#if fields.account1VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
 
-{{#if account2Enabled}}
+{{#if fields.account2Enabled}}
 ## Account 2
 
-- **Bank:** {{account2BankName}}
-- **Routing/ABA #:** {{account2RoutingNumber}}
-- **Account #:** {{account2AccountNumber}}
+- **Bank:** {{fields.account2BankName}}
+- **Routing/ABA #:** {{fields.account2RoutingNumber}}
+- **Account #:** {{fields.account2AccountNumber}}
 - **Type:**
-  - [{{#if (eq account2AccountType "checking")}}x{{else}} {{/if}}] Checking
-  - [{{#if (eq account2AccountType "savings")}}x{{else}} {{/if}}] Savings
+  - [{{#if fields.account2AccountType == "checking"}}x{{else}} {{/if}}] Checking
+  - [{{#if fields.account2AccountType == "savings"}}x{{else}} {{/if}}] Savings
 - **Allotment:**
-  - [{{#if (eq account2AllotmentType "fixed_amount")}}x{{else}} {{/if}}] Fixed amount: \${{account2Amount.amount}} {{account2Amount.currency}}
-  - [{{#if (eq account2AllotmentType "percent")}}x{{else}} {{/if}}] Percent of net pay: {{account2Percent}}%
-  - [{{#if (eq account2AllotmentType "net_remainder")}}x{{else}} {{/if}}] Net pay remainder
-- [{{#if account2VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
+  - [{{#if fields.account2AllotmentType == "fixed_amount"}}x{{else}} {{/if}}] Fixed amount: \${{fields.account2Amount.amount}} {{fields.account2Amount.currency}}
+  - [{{#if fields.account2AllotmentType == "percent"}}x{{else}} {{/if}}] Percent of net pay: {{fields.account2Percent}}%
+  - [{{#if fields.account2AllotmentType == "net_remainder"}}x{{else}} {{/if}}] Net pay remainder
+- [{{#if fields.account2VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
 {{/if}}
 
-{{#if account3Enabled}}
+{{#if fields.account3Enabled}}
 ## Account 3
 
-- **Bank:** {{account3BankName}}
-- **Routing/ABA #:** {{account3RoutingNumber}}
-- **Account #:** {{account3AccountNumber}}
+- **Bank:** {{fields.account3BankName}}
+- **Routing/ABA #:** {{fields.account3RoutingNumber}}
+- **Account #:** {{fields.account3AccountNumber}}
 - **Type:**
-  - [{{#if (eq account3AccountType "checking")}}x{{else}} {{/if}}] Checking
-  - [{{#if (eq account3AccountType "savings")}}x{{else}} {{/if}}] Savings
+  - [{{#if fields.account3AccountType == "checking"}}x{{else}} {{/if}}] Checking
+  - [{{#if fields.account3AccountType == "savings"}}x{{else}} {{/if}}] Savings
 - **Allotment:**
-  - [{{#if (eq account3AllotmentType "fixed_amount")}}x{{else}} {{/if}}] Fixed amount: \${{account3Amount.amount}} {{account3Amount.currency}}
-  - [{{#if (eq account3AllotmentType "percent")}}x{{else}} {{/if}}] Percent of net pay: {{account3Percent}}%
-  - [{{#if (eq account3AllotmentType "net_remainder")}}x{{else}} {{/if}}] Net pay remainder
-- [{{#if account3VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
+  - [{{#if fields.account3AllotmentType == "fixed_amount"}}x{{else}} {{/if}}] Fixed amount: \${{fields.account3Amount.amount}} {{fields.account3Amount.currency}}
+  - [{{#if fields.account3AllotmentType == "percent"}}x{{else}} {{/if}}] Percent of net pay: {{fields.account3Percent}}%
+  - [{{#if fields.account3AllotmentType == "net_remainder"}}x{{else}} {{/if}}] Net pay remainder
+- [{{#if fields.account3VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
 {{/if}}
 
-{{#if account4Enabled}}
+{{#if fields.account4Enabled}}
 ## Account 4
 
-- **Bank:** {{account4BankName}}
-- **Routing/ABA #:** {{account4RoutingNumber}}
-- **Account #:** {{account4AccountNumber}}
+- **Bank:** {{fields.account4BankName}}
+- **Routing/ABA #:** {{fields.account4RoutingNumber}}
+- **Account #:** {{fields.account4AccountNumber}}
 - **Type:**
-  - [{{#if (eq account4AccountType "checking")}}x{{else}} {{/if}}] Checking
-  - [{{#if (eq account4AccountType "savings")}}x{{else}} {{/if}}] Savings
+  - [{{#if fields.account4AccountType == "checking"}}x{{else}} {{/if}}] Checking
+  - [{{#if fields.account4AccountType == "savings"}}x{{else}} {{/if}}] Savings
 - **Allotment:**
-  - [{{#if (eq account4AllotmentType "fixed_amount")}}x{{else}} {{/if}}] Fixed amount: \${{account4Amount.amount}} {{account4Amount.currency}}
-  - [{{#if (eq account4AllotmentType "percent")}}x{{else}} {{/if}}] Percent of net pay: {{account4Percent}}%
-  - [{{#if (eq account4AllotmentType "net_remainder")}}x{{else}} {{/if}}] Net pay remainder
-- [{{#if account4VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
+  - [{{#if fields.account4AllotmentType == "fixed_amount"}}x{{else}} {{/if}}] Fixed amount: \${{fields.account4Amount.amount}} {{fields.account4Amount.currency}}
+  - [{{#if fields.account4AllotmentType == "percent"}}x{{else}} {{/if}}] Percent of net pay: {{fields.account4Percent}}%
+  - [{{#if fields.account4AllotmentType == "net_remainder"}}x{{else}} {{/if}}] Net pay remainder
+- [{{#if fields.account4VoidedCheckAttached}}x{{else}} {{/if}}] Voided check or deposit slip attached
 {{/if}}
 
 ## Terms
@@ -847,11 +847,9 @@ const __c_ach_direct_deposit_md: string = `# ACH Direct Deposit Authorization
 
 ## Signature
 
-{{#with parties.employee}}
-**Signature:** {{signature "employeeSignature"}}
-**Date:** {{signatureDate "employeeSignature"}}
-**Printed name:** {{printedName "employeePrintedName"}}
-{{/with}}
+**Signature:** {{signature(parties.employee, "employeeSignature")}}
+**Date:** {{signatureDate(parties.employee, "employeeSignature")}}
+**Printed name:** {{printedName(parties.employee, "employeePrintedName")}}
 `;
 
 const contents: Record<string, string | Uint8Array> = {

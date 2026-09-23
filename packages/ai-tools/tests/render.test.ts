@@ -12,7 +12,7 @@ const textForm = {
     markdown: {
       kind: 'inline' as const,
       mimeType: 'text/markdown',
-      text: '# Hello {{name}}\n\nEmail: {{email}}',
+      text: '# Hello {{fields.name}}\n\nEmail: {{fields.email}}',
     },
   },
   defaultLayer: 'markdown',
@@ -79,7 +79,7 @@ describe('executeRender', () => {
           html: {
             kind: 'inline' as const,
             mimeType: 'text/html',
-            text: '<p>{{name}}</p>',
+            text: '<p>{{fields.name}}</p>',
           },
         },
       }

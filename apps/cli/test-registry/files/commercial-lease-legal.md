@@ -5,15 +5,15 @@
 This Commercial Lease Agreement ("Agreement") is entered into as of the Effective Date (defined below) by and between:
 
 **LANDLORD:**
-- Legal Name: {{landlordName}}
-- Address: {{landlordAddress}}
+- Legal Name: {{fields.landlordName}}
+- Address: {{fields.landlordAddress}}
 (hereinafter referred to as "Landlord")
 
 **TENANT:**
-- Business Name: {{businessName}}
-- Business Type: {{businessType}}
-- Primary Contact: {{contactName}}
-- Email: {{contactEmail}}
+- Business Name: {{fields.businessName}}
+- Business Type: {{fields.businessType}}
+- Primary Contact: {{fields.contactName}}
+- Email: {{fields.contactEmail}}
 (hereinafter referred to as "Tenant")
 
 ## ARTICLE 1: PREMISES
@@ -21,19 +21,19 @@ This Commercial Lease Agreement ("Agreement") is entered into as of the Effectiv
 ### 1.1 Leased Premises
 Landlord hereby leases to Tenant, and Tenant hereby leases from Landlord, the commercial property located at:
 
-**{{propertyAddress}}**
-Suite/Unit: {{suiteNumber}}
+**{{fields.propertyAddress}}**
+Suite/Unit: {{fields.suiteNumber}}
 
 ### 1.2 Square Footage
-The Premises contains approximately **{{squareFootage}}** square feet of rentable area.
+The Premises contains approximately **{{fields.squareFootage}}** square feet of rentable area.
 
 ### 1.3 Zoning
-The Premises is zoned for **{{zoning}}** use.
+The Premises is zoned for **{{fields.zoning}}** use.
 
 ## ARTICLE 2: PERMITTED USE
 
 ### 2.1 Permitted Use
-Tenant shall use and occupy the Premises solely for the following purpose: **{{permittedUse}}**
+Tenant shall use and occupy the Premises solely for the following purpose: **{{fields.permittedUse}}**
 
 ### 2.2 Prohibited Uses
 Tenant shall not use the Premises for any unlawful purpose or in violation of any applicable zoning ordinances, building codes, or other governmental regulations.
@@ -41,23 +41,23 @@ Tenant shall not use the Premises for any unlawful purpose or in violation of an
 ## ARTICLE 3: TERM
 
 ### 3.1 Initial Term
-The initial term of this Lease shall be **{{leaseTermYears}}** years, commencing on **{{leaseStartDate}}** (the "Commencement Date") and terminating on the date that is {{leaseTermYears}} years thereafter (the "Expiration Date").
+The initial term of this Lease shall be **{{fields.leaseTermYears}}** years, commencing on **{{fields.leaseStartDate}}** (the "Commencement Date") and terminating on the date that is {{fields.leaseTermYears}} years thereafter (the "Expiration Date").
 
 ### 3.2 Renewal Option
-Renewal Option Available: **{{renewalOption}}**
+Renewal Option Available: **{{fields.renewalOption}}**
 
-If renewal option is available, Tenant shall have the option to renew this Lease for an additional term of **{{renewalTermYears}}** years upon written notice to Landlord at least one hundred eighty (180) days prior to the Expiration Date.
+If renewal option is available, Tenant shall have the option to renew this Lease for an additional term of **{{fields.renewalTermYears}}** years upon written notice to Landlord at least one hundred eighty (180) days prior to the Expiration Date.
 
 ## ARTICLE 4: RENT
 
 ### 4.1 Base Rent
-Tenant agrees to pay to Landlord monthly base rent in the amount of **${{monthlyBaseRent}}** (the "Base Rent").
+Tenant agrees to pay to Landlord monthly base rent in the amount of **${{fields.monthlyBaseRent}}** (the "Base Rent").
 
 ### 4.2 Common Area Maintenance (CAM)
-In addition to Base Rent, Tenant shall pay monthly Common Area Maintenance charges of **${{camCharges}}** (the "CAM Charges").
+In addition to Base Rent, Tenant shall pay monthly Common Area Maintenance charges of **${{fields.camCharges}}** (the "CAM Charges").
 
 ### 4.3 Total Monthly Rent
-Total monthly rent due: Base Rent (${{monthlyBaseRent}}) + CAM Charges (${{camCharges}})
+Total monthly rent due: Base Rent (${{fields.monthlyBaseRent}}) + CAM Charges (${{fields.camCharges}})
 
 ### 4.4 Payment
 Rent shall be due and payable in advance on the first (1st) day of each calendar month during the Term.
@@ -68,7 +68,7 @@ If any installment of Rent is not received within five (5) business days after t
 ## ARTICLE 5: SECURITY DEPOSIT
 
 ### 5.1 Amount
-Upon execution of this Lease, Tenant shall deposit with Landlord the sum of **${{securityDeposit}}** as a security deposit (the "Security Deposit").
+Upon execution of this Lease, Tenant shall deposit with Landlord the sum of **${{fields.securityDeposit}}** as a security deposit (the "Security Deposit").
 
 ### 5.2 Application
 The Security Deposit shall be held by Landlord as security for the faithful performance by Tenant of all of Tenant's obligations under this Lease.
@@ -79,7 +79,7 @@ Within sixty (60) days following the termination of this Lease and Tenant's surr
 ## ARTICLE 6: TENANT IMPROVEMENTS
 
 ### 6.1 Tenant Improvements Allowed
-Tenant Improvements Permitted: **{{tenantImprovements}}**
+Tenant Improvements Permitted: **{{fields.tenantImprovements}}**
 
 ### 6.2 Approval Required
 Any alterations, additions, or improvements to the Premises ("Tenant Improvements") shall require the prior written consent of Landlord, which consent shall not be unreasonably withheld.
@@ -133,7 +133,7 @@ _____________________________
 Signature
 
 _____________________________
-Printed Name: {{landlordName}}
+Printed Name: {{fields.landlordName}}
 
 _____________________________
 Date
@@ -145,10 +145,10 @@ _____________________________
 Signature
 
 _____________________________
-Business Name: {{businessName}}
+Business Name: {{fields.businessName}}
 
 _____________________________
-Printed Name: {{contactName}}
+Printed Name: {{fields.contactName}}
 
 _____________________________
 Title

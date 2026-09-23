@@ -93,9 +93,9 @@ describe('Forms Guide', () => {
           text: `
 # Residential Lease Agreement
 
-**Property:** {{address}}
-**Monthly Rent:** {{monthlyRent}}
-**Term:** {{startDate}} to {{endDate}}
+**Property:** {{fields.address}}
+**Monthly Rent:** {{fields.monthlyRent}}
+**Term:** {{fields.startDate}} to {{fields.endDate}}
 
 **Landlord:** {{parties.landlord.name}}
 **Tenant:** {{parties.tenant.name}}

@@ -300,7 +300,7 @@ const schema = {
       "title": "Markdown rendering",
       "description": "Linearized markdown view of the form. Every field and party reference appears at least once.",
       "path": "1099-nec.md",
-      "checksum": "sha256:d07ca793f97ed10d657fdc678493850f954a92313a07b5406d748a47a4d71e13"
+      "checksum": "sha256:f0d31d6fa0004d0bbafd426241ed163dc2fabb8db7bd1ef8df4c45819c489b9b"
     },
     "pdfCopy2": {
       "kind": "file",
@@ -1037,53 +1037,53 @@ const __c_1099_nec_md: string = `# Form 1099-NEC — Nonemployee Compensation
 **Revision:** April 2025
 **Issuer:** U.S. Department of the Treasury — Internal Revenue Service
 
-For calendar year **{{calendarYear}}**.
+For calendar year **{{fields.calendarYear}}**.
 
 ---
 
 ## Indicators
 
-- [{{#if void}}x{{else}} {{/if}}] **VOID** (filer-side; renders on Copy A, Copy 1, and Copy 2 — Copy B has no VOID checkbox)
-- [{{#if corrected}}x{{else}} {{/if}}] **CORRECTED**
+- [{{#if fields.void}}x{{else}} {{/if}}] **VOID** (filer-side; renders on Copy A, Copy 1, and Copy 2 — Copy B has no VOID checkbox)
+- [{{#if fields.corrected}}x{{else}} {{/if}}] **CORRECTED**
 
 ## Payer
 
 **Name:** {{parties.payer.name}}
 
 **Mailing address:**
-- {{payerAddress.line1}}
-- {{#if payerAddress.line2}}{{payerAddress.line2}}{{/if}}
-- {{payerAddress.locality}}, {{payerAddress.region}} {{payerAddress.postalCode}}
-- {{payerAddress.country}}
+- {{fields.payerAddress.line1}}
+- {{#if fields.payerAddress.line2 != null}}{{fields.payerAddress.line2}}{{/if}}
+- {{fields.payerAddress.locality}}, {{fields.payerAddress.region}} {{fields.payerAddress.postalCode}}
+- {{fields.payerAddress.country}}
 
-**Telephone:** {{payerPhone.number}}
+**Telephone:** {{fields.payerPhone.number}}
 
-**TIN:** {{payerTin}}
+**TIN:** {{fields.payerTin}}
 
 ## Recipient
 
 **Name:** {{parties.recipient.name}}
 
 **Mailing address:**
-- {{recipientAddress.line1}}
-- {{#if recipientAddress.line2}}{{recipientAddress.line2}}{{/if}}
-- {{recipientAddress.locality}}, {{recipientAddress.region}} {{recipientAddress.postalCode}}
-- {{recipientAddress.country}}
+- {{fields.recipientAddress.line1}}
+- {{#if fields.recipientAddress.line2 != null}}{{fields.recipientAddress.line2}}{{/if}}
+- {{fields.recipientAddress.locality}}, {{fields.recipientAddress.region}} {{fields.recipientAddress.postalCode}}
+- {{fields.recipientAddress.country}}
 
-**TIN:** {{recipientTin}}
+**TIN:** {{fields.recipientTin}}
 
-**Account number:** {{accountNumber}}
+**Account number:** {{fields.accountNumber}}
 
-- [{{#if secondTinNotice}}x{{else}} {{/if}}] **2nd TIN not.** (Copy A only — payer flags two prior incorrect-TIN notices)
+- [{{#if fields.secondTinNotice}}x{{else}} {{/if}}] **2nd TIN not.** (Copy A only — payer flags two prior incorrect-TIN notices)
 
 ## Income / withholding
 
 | Box | Item | Amount |
 |---:|---|---:|
-| 1 | Nonemployee compensation | {{nonemployeeCompensation}} |
-| 2 | Payer made direct sales totaling $5,000 or more of consumer products to recipient for resale | [{{#if directSales5kOrMore}}x{{else}} {{/if}}] |
-| 3 | Excess golden parachute payments | {{excessGoldenParachutePayments}} |
-| 4 | Federal income tax withheld | {{federalIncomeTaxWithheld}} |
+| 1 | Nonemployee compensation | {{fields.nonemployeeCompensation}} |
+| 2 | Payer made direct sales totaling $5,000 or more of consumer products to recipient for resale | [{{#if fields.directSales5kOrMore}}x{{else}} {{/if}}] |
+| 3 | Excess golden parachute payments | {{fields.excessGoldenParachutePayments}} |
+| 4 | Federal income tax withheld | {{fields.federalIncomeTaxWithheld}} |
 
 ## State tax information (boxes 5–7)
 
@@ -1091,8 +1091,8 @@ For calendar year **{{calendarYear}}**.
 
 | Row | 5 — State tax withheld | 6 — State / payer's state no. | 7 — State income |
 |---|---:|---|---:|
-| 1 | {{state1TaxWithheld}} | {{state1PayerStateNo}} | {{state1Income}} |
-| 2 | {{state2TaxWithheld}} | {{state2PayerStateNo}} | {{state2Income}} |
+| 1 | {{fields.state1TaxWithheld}} | {{fields.state1PayerStateNo}} | {{fields.state1Income}} |
+| 2 | {{fields.state2TaxWithheld}} | {{fields.state2PayerStateNo}} | {{fields.state2Income}} |
 
 ---
 

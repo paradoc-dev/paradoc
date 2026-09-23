@@ -24,7 +24,7 @@ async function measureAsync(iterations, operation) {
 console.log(JSON.stringify({
   iterations: { text: textIterations, binary: binaryIterations },
   text_render_ms: measure(textIterations, () => {
-    renderText({ template: 'Hello {{person.name}}', data: { person: { name: 'Ada' } } })
+    renderText({ template: 'Hello {{fields.person.name}}', data: { person: { name: 'Ada' } } })
   }),
   pdf_inspect_ms: await measureAsync(binaryIterations, () => inspectAcroFormFields(pdf)),
   pdf_render_ms: await measureAsync(binaryIterations, () => renderPdf({

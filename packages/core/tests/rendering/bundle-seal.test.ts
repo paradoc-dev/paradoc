@@ -327,7 +327,7 @@ describe('sealing a bundle', () => {
 			.version('1.0.0')
 			.title('Notice')
 			.fields({ body: { type: 'text', label: 'Body', required: true } })
-			.inlineLayer('markdown', { mimeType: 'text/markdown', text: '{{body}}' })
+			.inlineLayer('markdown', { mimeType: 'text/markdown', text: '{{fields.body}}' })
 			.defaultLayer('markdown')
 			.build()
 			.fill({ fields: { body: 'a notice' } })

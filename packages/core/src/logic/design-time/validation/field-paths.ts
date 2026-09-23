@@ -113,3 +113,27 @@ export function collectFieldIds(
 
   return ids
 }
+
+const PARTY_MEMBERS: Record<string, string[]> = {
+  person: ['name', 'firstName', 'middleName', 'lastName', 'suffix', 'title'],
+  organization: ['name', 'legalName', 'domicile', 'entityType', 'entityId', 'taxId'],
+}
+
+/**
+ * Collects `parties.<role>` and its member paths: the party's id and the
+ * person or organization parts its type allows.
+ */
+export function collectPartyPaths(
+  parties: Record<string, { partyType?: string }> | undefined,
+): Set<string> {
+  const paths = new Set<string>()
+  for (const [role, party] of Object.entries(parties ?? {})) {
+    const path = `parties.${role}`
+    paths.add(path)
+    const members = party.partyType === 'person' || party.partyType === 'organization'
+      ? PARTY_MEMBERS[party.partyType]!
+      : [...PARTY_MEMBERS.person!, ...PARTY_MEMBERS.organization!]
+    for (const member of ['id', ...members]) paths.add(`${path}.${member}`)
+  }
+  return paths
+}

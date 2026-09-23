@@ -5,36 +5,36 @@
 This Residential Lease Agreement ("Agreement") is entered into on the date of last signature below (the "Effective Date") by and between:
 
 **LANDLORD:**
-- Legal Name: {{landlordName}}
-- Address: {{landlordAddress}}
+- Legal Name: {{fields.landlordName}}
+- Address: {{fields.landlordAddress}}
 (hereinafter referred to as "Landlord")
 
 **TENANT:**
-- Legal Name: {{tenantName}}
-- Email: {{tenantEmail}}
-- Phone: {{tenantPhone}}
+- Legal Name: {{fields.tenantName}}
+- Email: {{fields.tenantEmail}}
+- Phone: {{fields.tenantPhone}}
 (hereinafter referred to as "Tenant")
 
 ## 1. PREMISES
 
 Landlord hereby leases to Tenant, and Tenant hereby leases from Landlord, the residential property located at:
 
-**{{propertyAddress}}**
+**{{fields.propertyAddress}}**
 
-Property Type: {{propertyType}}
-Bedrooms: {{bedrooms}}
-Bathrooms: {{bathrooms}}
+Property Type: {{fields.propertyType}}
+Bedrooms: {{fields.bedrooms}}
+Bathrooms: {{fields.bathrooms}}
 
 (hereinafter referred to as the "Premises")
 
 ## 2. TERM OF LEASE
 
-The lease term shall commence on **{{leaseStartDate}}** and shall terminate on **{{leaseEndDate}}** ("Lease Term"), unless sooner terminated in accordance with the terms of this Agreement.
+The lease term shall commence on **{{fields.leaseStartDate}}** and shall terminate on **{{fields.leaseEndDate}}** ("Lease Term"), unless sooner terminated in accordance with the terms of this Agreement.
 
 ## 3. RENT
 
 ### 3.1 Monthly Rent
-Tenant agrees to pay Landlord monthly rent in the amount of **${{monthlyRent}}** (the "Rent"). Rent shall be due and payable on the first (1st) day of each calendar month during the Lease Term.
+Tenant agrees to pay Landlord monthly rent in the amount of **${{fields.monthlyRent}}** (the "Rent"). Rent shall be due and payable on the first (1st) day of each calendar month during the Lease Term.
 
 ### 3.2 Late Payment
 If Rent is not received by Landlord by the fifth (5th) day of any month, Tenant shall pay a late fee equal to five percent (5%) of the monthly Rent.
@@ -45,7 +45,7 @@ Rent shall be paid by check, money order, or electronic transfer to the account 
 ## 4. SECURITY DEPOSIT
 
 ### 4.1 Amount
-Upon execution of this Agreement, Tenant shall pay to Landlord a security deposit in the amount of **${{securityDeposit}}** (the "Security Deposit").
+Upon execution of this Agreement, Tenant shall pay to Landlord a security deposit in the amount of **${{fields.securityDeposit}}** (the "Security Deposit").
 
 ### 4.2 Purpose
 The Security Deposit shall be held by Landlord as security for the faithful performance by Tenant of all terms, covenants, and conditions of this Agreement.
@@ -56,21 +56,21 @@ Within thirty (30) days after termination of this Agreement and Tenant's vacatin
 ## 5. PETS
 
 ### 5.1 Pet Policy
-Pets Allowed: **{{petAllowed}}**
+Pets Allowed: **{{fields.petAllowed}}**
 
 ### 5.2 Pet Deposit
-If pets are permitted, an additional pet deposit of **${{petDeposit}}** is required prior to any pet residing on the Premises.
+If pets are permitted, an additional pet deposit of **${{fields.petDeposit}}** is required prior to any pet residing on the Premises.
 
 ### 5.3 Pet Conditions
 If pets are permitted, Tenant agrees to: (a) maintain control of pets at all times; (b) immediately clean up after pets; (c) ensure pets do not disturb neighbors; (d) be liable for any damage caused by pets.
 
 ## 6. PARKING
 
-Parking Included: **{{parkingIncluded}}**
+Parking Included: **{{fields.parkingIncluded}}**
 
 ## 7. UTILITIES
 
-The following utilities are included in the monthly rent: **{{utilitiesIncluded}}**
+The following utilities are included in the monthly rent: **{{fields.utilitiesIncluded}}**
 
 Tenant shall be responsible for all other utilities not listed above.
 
@@ -116,7 +116,7 @@ _____________________________
 Signature
 
 _____________________________
-Printed Name: {{landlordName}}
+Printed Name: {{fields.landlordName}}
 
 _____________________________
 Date
@@ -128,7 +128,7 @@ _____________________________
 Signature
 
 _____________________________
-Printed Name: {{tenantName}}
+Printed Name: {{fields.tenantName}}
 
 _____________________________
 Date

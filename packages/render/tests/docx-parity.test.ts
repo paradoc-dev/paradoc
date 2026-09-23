@@ -46,13 +46,13 @@ describe('DOCX renderer behavior', () => {
   })
 
   it('renders commands split across Word runs', async () => {
-    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello {{na</w:t></w:r><w:r><w:t>me}}!</w:t></w:r></w:p></w:body></w:document>')
+    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello {{fields.na</w:t></w:r><w:r><w:t>me}}!</w:t></w:r></w:p></w:body></w:document>')
     const output = await renderDocx({ template, data: { name: 'Ada' } })
     expect(visibleText(output)).toBe('Hello Ada!')
   })
 
   it('supports custom command delimiters', async () => {
-    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello [[name]]</w:t></w:r></w:p></w:body></w:document>')
+    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Hello [[fields.name]]</w:t></w:r></w:p></w:body></w:document>')
     const output = await renderDocx({ template, data: { name: 'Ada' }, options: { cmdDelimiter: ['[[', ']]'] } })
     expect(visibleText(output)).toBe('Hello Ada')
   })
@@ -60,10 +60,10 @@ describe('DOCX renderer behavior', () => {
   it('renders FOR and IF controls', async () => {
     const paragraph = (text: string) => `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`
     const template = minimalDocx(`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${[
-      paragraph('{{FOR item IN items}}'),
-      paragraph('{{$item.name}}'),
+      paragraph('{{FOR item IN fields.items}}'),
+      paragraph('{{item.name}}'),
       paragraph('{{END-FOR item}}'),
-      paragraph('{{IF approved}}'),
+      paragraph('{{IF fields.approved}}'),
       paragraph('Approved'),
       paragraph('{{END-IF}}'),
     ].join('')}</w:body></w:document>`)
@@ -74,16 +74,16 @@ describe('DOCX renderer behavior', () => {
     }
   })
 
-  it('handles inline FOR blocks and legacy dollar-prefixed loop aliases', async () => {
-    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{FOR item IN items}}{{$item.name}}, {{END-FOR item}}</w:t></w:r></w:p></w:body></w:document>')
+  it('handles inline FOR blocks with a named loop row', async () => {
+    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{FOR line IN fields.items}}{{line.name}}{{#unless last(line)}}, {{/unless}}{{END-FOR line}}</w:t></w:r></w:p></w:body></w:document>')
     const output = await renderDocx({ template, data: { items: [{ name: 'A' }, { name: 'B' }] } })
-    expect(visibleText(output)).toBe('A, B, ')
+    expect(visibleText(output)).toBe('A, B')
   })
 
-  it('adds ELSE as a safe extension to the compatibility syntax', async () => {
+  it('renders the ELSE branch of an IF', async () => {
     const paragraph = (text: string) => `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`
     const template = minimalDocx(`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${[
-      paragraph('{{IF approved}}'),
+      paragraph('{{IF fields.approved}}'),
       paragraph('Approved'),
       paragraph('{{ELSE}}'),
       paragraph('Pending'),
@@ -93,8 +93,8 @@ describe('DOCX renderer behavior', () => {
     expect(visibleText(output)).toBe('Pending')
   })
 
-  it('renders signature helpers and exposes all signature values in templates', async () => {
-    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{signature(signatory, "final")}}</w:t></w:r></w:p><w:p><w:r><w:t>{{signatureDate(signatory, "final")}}</w:t></w:r></w:p></w:body></w:document>')
+  it('renders signing directives with the party given first', async () => {
+    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{signature(fields.signatory, "final")}}</w:t></w:r></w:p><w:p><w:r><w:t>{{signatureDate(fields.signatory, "final")}}</w:t></w:r></w:p></w:body></w:document>')
     const signer = { person: { name: 'Ada Lovelace' } }
     const signatory = {
       signerId: 'signer-1',
@@ -119,13 +119,13 @@ describe('DOCX renderer behavior', () => {
     const actual = await renderDocx(options)
     expect(visibleText(actual)).toBe('[Signed]2026-08-04')
 
-    const extendedTemplate = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{capacity(signatory, "capacity")}}</w:t></w:r></w:p><w:p><w:r><w:t>{{printedName(signatory, "name")}}</w:t></w:r></w:p></w:body></w:document>')
+    const extendedTemplate = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{capacity(fields.signatory, "capacity")}}</w:t></w:r></w:p><w:p><w:r><w:t>{{printedName(fields.signatory, "name")}}</w:t></w:r></w:p></w:body></w:document>')
     const extended = await renderDocx({ template: extendedTemplate, data })
     expect(visibleText(extended)).toBe('DirectorAda Lovelace')
   })
 
   it('processes line breaks by default and permits opting out', async () => {
-    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{value}}</w:t></w:r></w:p></w:body></w:document>')
+    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{fields.value}}</w:t></w:r></w:p></w:body></w:document>')
     const enabled = await renderDocx({ template, data: { value: 'first\nsecond' } })
     const disabled = await renderDocx({ template, data: { value: 'first\nsecond' }, options: { processLineBreaks: false } })
     expect(documentXml(enabled)).toContain('<w:br/>')
@@ -135,8 +135,8 @@ describe('DOCX renderer behavior', () => {
   it('renders loops that repeat Word table rows', async () => {
     const row = (text: string) => `<w:tr><w:tc><w:p><w:r><w:t>${text}</w:t></w:r></w:p></w:tc></w:tr>`
     const template = minimalDocx(`<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:tbl>${[
-      row('{{FOR item IN items}}'),
-      row('{{$item.name}}'),
+      row('{{FOR item IN fields.items}}'),
+      row('{{item.name}}'),
       row('{{END-FOR item}}'),
     ].join('')}</w:tbl></w:body></w:document>`)
     const options = { template, data: { items: [{ name: 'A' }, { name: 'B' }] } }
@@ -184,13 +184,13 @@ describe('DOCX artifact formatting', () => {
   it('shares artifact context across nested, computed, party and boolean values', async () => {
     const formatter = createFormatter({ locale: 'de-DE' })
     const template = templateFor([
-      paragraph('{{defs.total}}|{{parties.owner}}|{{enabled}}|{{count}}|'),
-      paragraph('{{FOR row IN rows}}'), paragraph('{{$row.amount}}'), paragraph('{{END-FOR row}}'),
-      paragraph('{{IF enabled}}'), paragraph('WRONG'), paragraph('{{END-IF}}'),
-      paragraph('{{IF count == 0}}'), paragraph('|ZERO'), paragraph('{{END-IF}}'),
+      paragraph('{{total}}|{{parties.owner}}|{{fields.enabled}}|{{fields.count}}|'),
+      paragraph('{{FOR row IN fields.rows}}'), paragraph('{{row.amount}}'), paragraph('{{END-FOR row}}'),
+      paragraph('{{IF fields.enabled}}'), paragraph('WRONG'), paragraph('{{END-IF}}'),
+      paragraph('{{IF fields.count == 0}}'), paragraph('|ZERO'), paragraph('{{END-IF}}'),
     ].join(''))
     const expected = renderText({ form, formatter, data,
-      template: '{{defs.total}}|{{parties.owner}}|{{enabled}}|{{count}}|{{#each rows}}{{amount}}{{/each}}|ZERO',
+      template: '{{total}}|{{parties.owner}}|{{fields.enabled}}|{{fields.count}}|{{#each fields.rows}}{{item.amount}}{{/each}}|ZERO',
     })
     expect(visibleText(await renderDocx({ template, data, form, formatter }))).toBe(expected)
     const { parties, defs, ...fields } = data
@@ -211,8 +211,8 @@ describe('DOCX artifact formatting', () => {
   it.each([false, true])('inserts formatter output once with split runs = %s', async (split) => {
     const formatter = createFormatter({ overrides: { money: () => '<>& {{count}}' } })
     const body = split
-      ? '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>{{defs.to</w:t></w:r><w:r><w:t>tal}}</w:t></w:r></w:p>'
-      : '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>{{defs.total}}</w:t></w:r><w:r><w:t>!</w:t></w:r></w:p>'
+      ? '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>{{to</w:t></w:r><w:r><w:t>tal}}</w:t></w:r></w:p>'
+      : '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>{{total}}</w:t></w:r><w:r><w:t>!</w:t></w:r></w:p>'
     const output = await renderDocx({ template: templateFor(body), form, formatter, data })
     expect(visibleText(output)).toBe(split ? '<>& {{count}}' : '<>& {{count}}!')
     expect(documentXml(output)).toContain('&lt;&gt;&amp; {{count}}')
@@ -220,7 +220,7 @@ describe('DOCX artifact formatting', () => {
   })
 
   it('rejects malformed template controls instead of returning an unrendered file', async () => {
-    await expect(renderDocx({ template: templateFor(paragraph('{{IF enabled}}')), data }))
+    await expect(renderDocx({ template: templateFor(paragraph('{{IF fields.enabled}}')), data }))
       .rejects.toThrow('Unclosed DOCX control command')
   })
 })

@@ -202,10 +202,9 @@ describe('context-builder', () => {
         const context = buildFormContext(form, data)
 
         expect(context.fields).toBeDefined()
-        expect(context.parties).toBeDefined()
-        expect(context.witnesses).toBeDefined()
-        // No defs keys should be present (only fields, parties, witnesses are base context)
-        const baseKeys = ['fields', 'parties', 'witnesses']
+        expect(context.parties).toEqual({})
+        // No defs keys should be present (only fields and parties are roots)
+        const baseKeys = ['fields', 'parties']
         expect(Object.keys(context).filter((k) => !baseKeys.includes(k))).toHaveLength(0)
       })
     })

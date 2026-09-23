@@ -1,290 +1,140 @@
-import { pathSegments } from '../path'
+import type { Formatter } from '@paradoc/types'
+import type { EvaluationContext, Expr, Value } from '@paradoc/expr'
+import { TemplateError, type TemplateDiagnostic } from '../template/errors'
+import { parseTemplate, type ExpressionSlot, type TemplateNode } from '../template/markers'
+import { fromValue, TemplateScope, type Frame } from '../template/scope'
 import { unwrapFormattedValue } from './field-formatter'
 
-interface TextNode {
-  type: 'text'
-  value: string
+/** Places a signing mark for a party at a location: `signature`, `initials`, and the related directives. */
+export type SigningDirective = (party: unknown, root: Record<string, unknown>, args: unknown[]) => unknown
+
+/** Names a template writes as signing directives rather than as expression functions. */
+export const SIGNING_DIRECTIVES: ReadonlySet<string> = new Set(['signature', 'initials', 'signatureDate', 'capacity', 'printedName'])
+
+export interface TemplateRenderOptions {
+  /** The expression context: fields, computed values, parties, items, and configured functions. */
+  context: EvaluationContext
+  /** Render data (formatted values and signing records) at an expression path. */
+  resolveData(segments: readonly string[]): unknown
+  /** The render data root, which signing directives read captures and signers from. */
+  root: Record<string, unknown>
+  formatter: Formatter
+  directives?: Record<string, SigningDirective>
+  escape?: (value: string) => string
+  /** The layer key, for error messages. */
+  layer?: string
 }
 
-interface ExpressionNode {
-  type: 'expression'
-  value: string
-  escaped: boolean
+function fail(slot: ExpressionSlot, message: string, code: string, layer?: string): never {
+  throw new TemplateError({ code, message, expression: slot.source, position: slot.position }, layer)
 }
 
-interface BlockNode {
-  type: 'block'
-  name: string
-  expression: string
-  children: Node[]
-  inverse: Node[]
+function parsed(slot: ExpressionSlot, layer?: string): Expr {
+  if (slot.ast) return slot.ast
+  throw new TemplateError(slot.problem as TemplateDiagnostic, layer)
 }
 
-type Node = TextNode | ExpressionNode | BlockNode
-
-interface Frame {
-  context: unknown
-  parent?: Frame
-  data: Record<string, unknown>
+/** The answer a block condition gives: a boolean, with a missing value read as false. */
+function condition(value: Value, slot: ExpressionSlot, layer?: string): boolean {
+  if (value.kind === 'boolean') return value.value
+  if (value.kind === 'null') return false
+  return fail(slot, `A condition must be boolean, got ${value.kind}.`, 'non-boolean-gate', layer)
 }
 
-export type TemplateHelper = (context: unknown, root: Record<string, unknown>, args: unknown[]) => unknown
-
-type InternalHelper = (args: unknown[], frame: Frame, root: Record<string, unknown>) => unknown
-
-const blockedProperties = new Set(['__proto__', 'constructor', 'prototype'])
-
-const builtInHelpers: Record<string, InternalHelper> = {
-  eq: ([a, b]) => unwrapFormattedValue(a) === unwrapFormattedValue(b),
-  ne: ([a, b]) => unwrapFormattedValue(a) !== unwrapFormattedValue(b),
-  gt: ([a, b]) => Number(unwrapFormattedValue(a)) > Number(unwrapFormattedValue(b)),
-  gte: ([a, b]) => Number(unwrapFormattedValue(a)) >= Number(unwrapFormattedValue(b)),
-  lt: ([a, b]) => Number(unwrapFormattedValue(a)) < Number(unwrapFormattedValue(b)),
-  lte: ([a, b]) => Number(unwrapFormattedValue(a)) <= Number(unwrapFormattedValue(b)),
-  not: ([value]) => !isTruthy(value),
-  and: (args) => args.every(isTruthy),
-  or: (args) => args.some(isTruthy),
-  contains: ([value, expected]) => {
-    const collection = unwrapFormattedValue(value)
-    const item = unwrapFormattedValue(expected)
-    return Array.isArray(collection) && collection.some((entry) => unwrapFormattedValue(entry) === item)
-  },
-  default: ([value, fallback]) => {
-    const raw = unwrapFormattedValue(value)
-    return raw !== null && raw !== undefined && raw !== '' ? value : fallback
-  },
+/** The rows a loop runs over: a list, with a missing value read as no rows. */
+export function loopRows(value: Value, slot: ExpressionSlot, layer?: string): readonly Value[] {
+  if (value.kind === 'array') return value.value
+  if (value.kind === 'null') return []
+  return fail(slot, `A loop source must be a list, got ${value.kind}.`, 'type-mismatch', layer)
 }
 
-function parse(template: string): Node[] {
-  template = template.replace(/^[\t ]*(?:\{\{(?:#|\/)[^}\r\n]+\}\}|\{\{else\}\})[\t ]*(?:\r?\n|$)/gm, (line) => {
-    const tag = line.match(/\{\{[\s\S]*?\}\}/)?.[0] ?? ''
-    return tag
-  })
-  const root: Node[] = []
-  const stack: Array<{ block: BlockNode; output: Node[] }> = []
-  let output = root
-  let cursor = 0
-  const pattern = /\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g
-
-  for (const match of template.matchAll(pattern)) {
-    const index = match.index ?? 0
-    if (index > cursor) output.push({ type: 'text', value: template.slice(cursor, index) })
-
-    const token = match[0]
-    const escaped = !token.startsWith('{{{')
-    const inner = token.slice(escaped ? 2 : 3, escaped ? -2 : -3).trim()
-
-    if (inner.startsWith('!')) {
-      cursor = index + token.length
-      continue
-    }
-
-    if (inner.startsWith('#')) {
-      const expression = inner.slice(1).trim()
-      const separator = expression.search(/\s/)
-      const name = separator === -1 ? expression : expression.slice(0, separator)
-      const block: BlockNode = {
-        type: 'block',
-        name,
-        expression: separator === -1 ? '' : expression.slice(separator + 1).trim(),
-        children: [],
-        inverse: [],
-      }
-      output.push(block)
-      stack.push({ block, output })
-      output = block.children
-    } else if (inner === 'else') {
-      const current = stack.at(-1)
-      if (!current) throw new Error('Unexpected {{else}}')
-      output = current.block.inverse
-    } else if (inner.startsWith('/')) {
-      const current = stack.pop()
-      const name = inner.slice(1).trim()
-      if (!current || current.block.name !== name) {
-        throw new Error(`Unexpected closing block {{/${name}}}`)
-      }
-      output = current.output
-    } else {
-      output.push({ type: 'expression', value: inner.replace(/^&\s*/, ''), escaped: escaped && !inner.startsWith('&') })
-    }
-
-    cursor = index + token.length
-  }
-
-  if (cursor < template.length) output.push({ type: 'text', value: template.slice(cursor) })
-  if (stack.length > 0) throw new Error(`Unclosed block {{#${stack.at(-1)!.block.name}}}`)
-  return root
+/** Frames for each row of a loop source, carrying the rows' render data and origin. */
+export function loopFrames(
+  scope: TemplateScope,
+  node: Expr,
+  rows: readonly Value[],
+  bind: Pick<Frame, 'kind' | 'name'>,
+): Frame[] {
+  const data = unwrapFormattedValue(scope.dataAt(node))
+  const origin = scope.originOf(node)
+  return rows.map((value, index) => ({
+    ...bind,
+    value,
+    data: Array.isArray(data) ? data[index] : undefined,
+    index,
+    count: rows.length,
+    origin: origin ? { listPath: origin.listPath, indices: [...origin.indices, index] } : undefined,
+  }))
 }
 
-function tokenize(expression: string): string[] {
-  const tokens: string[] = []
-  let token = ''
-  let quote: '"' | "'" | undefined
-
-  const flush = () => {
-    if (token.length > 0) tokens.push(token)
-    token = ''
-  }
-
-  for (let index = 0; index < expression.length; index++) {
-    const char = expression[index]!
-    if (quote) {
-      token += char
-      if (char === '\\' && index + 1 < expression.length) token += expression[++index]
-      else if (char === quote) quote = undefined
-      continue
-    }
-    if (char === '"' || char === "'") {
-      quote = char
-      token += char
-    } else if (char === '(' || char === ')') {
-      flush()
-      tokens.push(char)
-    } else if (/\s/.test(char)) {
-      flush()
-    } else {
-      token += char
-    }
-  }
-  flush()
-  return tokens
-}
-
-function evaluate(
-  expression: string,
-  frame: Frame,
-  root: Record<string, unknown>,
-  customHelpers: Record<string, TemplateHelper>,
-): unknown {
-  const tokens = tokenize(expression)
-  let position = 0
-  const helperFor = (name: string): InternalHelper | undefined =>
-    builtInHelpers[name] ?? (customHelpers[name]
-      ? (args, activeFrame, activeRoot) => customHelpers[name]!(activeFrame.context, activeRoot, args)
-      : undefined)
-
-  const read = (nested = false): unknown => {
-    const token = tokens[position++]
-    if (token === undefined) return undefined
-    if (token === '(') {
-      const name = tokens[position++]
-      const helper = name ? helperFor(name) : undefined
-      if (!name || !helper) throw new Error(`Unknown helper ${name ?? ''}`.trim())
-      const args: unknown[] = []
-      while (position < tokens.length && tokens[position] !== ')') args.push(read(true))
-      if (tokens[position++] !== ')') throw new Error(`Unclosed subexpression (${name})`)
-      return helper(args, frame, root)
-    }
-    if (token === ')') throw new Error('Unexpected )')
-    if (nested) return valueForToken(token, frame, root)
-    const helper = helperFor(token)
-    if (helper && position < tokens.length) {
-      const args: unknown[] = []
-      while (position < tokens.length) args.push(read(true))
-      return helper(args, frame, root)
-    }
-    return valueForToken(token, frame, root)
-  }
-
-  return read()
-}
-
-function valueForToken(token: string, frame: Frame, root: Record<string, unknown>): unknown {
-  if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
-    return token.slice(1, -1).replace(/\\([\\"'])/g, '$1')
-  }
-  if (token === 'true') return true
-  if (token === 'false') return false
-  if (token === 'null') return null
-  if (token === 'undefined') return undefined
-  if (/^-?\d+(?:\.\d+)?$/.test(token)) return Number(token)
-
-  let targetFrame = frame
-  while (token.startsWith('../')) {
-    targetFrame = targetFrame.parent ?? targetFrame
-    token = token.slice(3)
-  }
-  if (token === 'this' || token === '.') return targetFrame.context
-  if (token.startsWith('this.')) token = token.slice(5)
-  if (token === '@root') return root
-  if (token.startsWith('@root.')) return getPath(root, token.slice(6))
-  if (token.startsWith('@')) return targetFrame.data[token.slice(1)]
-  if (token.startsWith('$')) return getPath(targetFrame.context, token)
-  return getPath(targetFrame.context, token)
-}
-
-function getPath(value: unknown, path: string): unknown {
-  if (path === '') return value
-  let current = unwrapFormattedValue(value)
-  const segments = pathSegments(path)
-  for (const [index, part] of segments.entries()) {
-    if (blockedProperties.has(part) || current === null || current === undefined) return undefined
-    if (typeof current !== 'object' && typeof current !== 'function') return undefined
-    current = (current as Record<string, unknown>)[part]
-    if (index < segments.length - 1) current = unwrapFormattedValue(current)
-  }
-  return current
-}
-
-function renderNodes(
-  nodes: Node[],
-  frame: Frame,
-  root: Record<string, unknown>,
-  customHelpers: Record<string, TemplateHelper>,
-  escape: (value: string) => string,
+/** Render one signing directive: the party is the innermost row, or given first. */
+export function renderDirective(
+  node: Extract<Expr, { kind: 'Call' }>,
+  slot: ExpressionSlot,
+  scope: TemplateScope,
+  options: Pick<TemplateRenderOptions, 'directives' | 'root' | 'layer'>,
 ): string {
+  const directive = options.directives?.[node.callee]
+  if (!directive) return fail(slot, `${node.callee}() is not available in this layer.`, 'unknown-function', options.layer)
+  if (node.args.length < 1 || node.args.length > 2) {
+    return fail(slot, `${node.callee} takes a location, or a party and a location, such as ${node.callee}(parties.tenant, "tenant-sign").`, 'arity', options.layer)
+  }
+  const locationNode = node.args.at(-1)!
+  const location = scope.evaluate(locationNode, slot.source, slot.position)
+  if (location.kind !== 'string') return fail(slot, `${node.callee}'s location must be a string.`, 'type-mismatch', options.layer)
+  let party: unknown
+  if (node.args.length === 2) {
+    const partyNode = node.args[0]!
+    const data = scope.dataAt(partyNode)
+    party = data === undefined ? fromValue(scope.evaluate(partyNode, slot.source, slot.position)) : unwrapFormattedValue(data)
+  } else {
+    const row = scope.current()
+    if (!row) return fail(slot, `${node.callee}("${location.value}") needs a party: use it inside a party loop, or pass the party first, such as ${node.callee}(parties.tenant, "${location.value}").`, 'arity', options.layer)
+    party = row.data === undefined ? fromValue(row.value) : unwrapFormattedValue(row.data)
+  }
+  const result = directive(party, options.root, [location.value])
+  return result === null || result === undefined ? '' : String(result)
+}
+
+export function renderTemplateNodes(nodes: readonly TemplateNode[], scope: TemplateScope, options: TemplateRenderOptions): string {
+  const escape = options.escape ?? escapeHtml
   let result = ''
   for (const node of nodes) {
     if (node.type === 'text') {
       result += node.value
       continue
     }
-    if (node.type === 'expression') {
-      const value = evaluate(node.value, frame, root, customHelpers)
-      const text = value === null || value === undefined ? '' : String(value)
+    const expression = parsed(node.slot, options.layer)
+
+    if (node.type === 'value') {
+      const text = expression.kind === 'Call' && SIGNING_DIRECTIVES.has(expression.callee)
+        ? renderDirective(expression, node.slot, scope, options)
+        : scope.present(expression, node.slot.source, node.slot.position)
       result += node.escaped ? escape(text) : text
       continue
     }
 
-    const value = evaluate(node.expression, frame, root, customHelpers)
-    if (node.name === 'if' || node.name === 'unless') {
-      const include = node.name === 'if' ? isTruthy(value) : !isTruthy(value)
-      result += renderNodes(include ? node.children : node.inverse, frame, root, customHelpers, escape)
-    } else if (node.name === 'with') {
-      result += isTruthy(value)
-        ? renderNodes(node.children, { context: value, parent: frame, data: frame.data }, root, customHelpers, escape)
-        : renderNodes(node.inverse, frame, root, customHelpers, escape)
-    } else if (node.name === 'each') {
-      const iterable = unwrapFormattedValue(value)
-      const entries = Array.isArray(iterable)
-        ? iterable.map((item, index) => [String(index), item] as const)
-        : iterable && typeof iterable === 'object'
-          ? Object.entries(iterable)
-          : []
-      if (entries.length === 0) {
-        result += renderNodes(node.inverse, frame, root, customHelpers, escape)
-      } else {
-        entries.forEach(([key, item], index) => {
-          result += renderNodes(node.children, {
-            context: item,
-            parent: frame,
-            data: { key, index, first: index === 0, last: index === entries.length - 1 },
-          }, root, customHelpers, escape)
-        })
-      }
-    } else {
-      throw new Error(`Unsupported block helper ${node.name}`)
+    const value = scope.evaluate(expression, node.slot.source, node.slot.position)
+    if (node.type === 'if' || node.type === 'unless') {
+      const answer = condition(value, node.slot, options.layer)
+      const include = node.type === 'if' ? answer : !answer
+      result += renderTemplateNodes(include ? node.children : node.inverse, scope, options)
+      continue
+    }
+
+    const rows = loopRows(value, node.slot, options.layer)
+    if (rows.length === 0) {
+      result += renderTemplateNodes(node.inverse, scope, options)
+      continue
+    }
+    for (const frame of loopFrames(scope, expression, rows, { kind: 'each' })) {
+      result += renderTemplateNodes(node.children, scope.push(frame), options)
     }
   }
   return result
 }
 
-function isTruthy(value: unknown): boolean {
-  const raw = unwrapFormattedValue(value)
-  return Array.isArray(raw) ? raw.length > 0 : Boolean(raw)
-}
-
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/[&<>"'`=]/g, (char) => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -296,11 +146,17 @@ function escapeHtml(value: string): string {
   })[char]!)
 }
 
-export function renderTemplate(
-  template: string,
-  data: Record<string, unknown>,
-  customHelpers: Record<string, TemplateHelper> = {},
-  escape: (value: string) => string = escapeHtml,
-): string {
-  return renderNodes(parse(template), { context: data, data: {} }, data, customHelpers, escape)
+/** Render a text template with the artifact expression language. */
+export function renderTemplate(template: string, options: TemplateRenderOptions): string {
+  const scope = new TemplateScope(options.context, {
+    formatter: options.formatter,
+    resolveData: options.resolveData,
+    layer: options.layer,
+  })
+  try {
+    return renderTemplateNodes(parseTemplate(template), scope, options)
+  } catch (error) {
+    throw error instanceof TemplateError ? error.inLayer(options.layer) : error
+  }
 }
+

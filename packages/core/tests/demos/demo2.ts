@@ -37,7 +37,7 @@ const myForm = p.form({
     default: {
       kind: 'inline',
       mimeType: 'text/plain',
-      text: `The pet is a {{name}} of type {{type}} and is {{age}} years old.`,
+      text: `The pet is a {{fields.name}} of type {{fields.type}} and is {{fields.age}} years old.`,
     },
   },
   defaultLayer: 'default',

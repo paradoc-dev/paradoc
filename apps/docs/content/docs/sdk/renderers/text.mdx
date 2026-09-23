@@ -3,10 +3,12 @@ title: textRenderer
 description: Render Paradoc artifacts to text-based formats
 ---
 
-Render forms to HTML, Markdown, or plain text with Paradoc's deterministic
-template syntax. It supports interpolation, nested paths, conditionals, loops,
-context blocks, and helpers without executing arbitrary JavaScript. Field
-values are automatically formatted from their schema types.
+Render forms to HTML, Markdown, or plain text. Templates keep the familiar
+block markers (`{{#if}}`, `{{#unless}}`, `{{else}}`, `{{#each}}`), and
+everything inside a marker is an [artifact expression](/concepts/logic): the
+same language, types, functions, and decimal precision as field conditions and
+computed values. Nothing runs arbitrary JavaScript. Values printed from a path
+are formatted from their schema types.
 
 ## Example
 
@@ -27,9 +29,9 @@ const form = p.form({
       mimeType: 'text/html',
       text: `
         <h1>Receipt</h1>
-        <p>Customer: {{customer}}</p>
-        <p>Total: {{total}}</p>
-        <p>Date: {{date}}</p>
+        <p>Customer: {{fields.customer}}</p>
+        <p>Total: {{fields.total}}</p>
+        <p>Date: {{fields.date}}</p>
       `
     }
   },
@@ -88,6 +90,7 @@ function textRenderer(options?: TextRendererOptions): ParadocRenderer<
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for every declared artifact value.', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
+  { name: 'expressions', type: '{ functions?, signatures? }', description: 'Host-configured expression functions templates can call, with their signatures. A template cannot call a function without a signature.', isOptional: true },
 ]} />
 
 #### TextSignatureOptions
@@ -121,6 +124,8 @@ function renderText(options: {
   formatter?: Formatter
   bindings?: Bindings
   signatureOptions?: TextSignatureOptions
+  expressions?: TemplateExpressionOptions
+  layer?: string
 }): string
 ```
 
@@ -133,11 +138,23 @@ function renderText(options: {
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for declared artifact values.', isOptional: true },
   { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
+  { name: 'expressions', type: 'TemplateExpressionOptions', description: 'The expression context (`context`), or configured `functions` and their `signatures`. Artifact renders supply the artifact context.', isOptional: true },
+  { name: 'layer', type: 'string', description: 'Layer key, named in template errors', isOptional: true },
 ]} />
 
 #### Returns
 
-Returns the rendered template as a `string`.
+Returns the rendered template as a `string`. A template that cannot render throws a `TemplateError` with the layer, the line and column, and the expression.
+
+### checkTextTemplate()
+
+Checks every expression in a template against a type environment, without rendering. `validate()` runs it on inline layers and `validateLayers()` on file layers.
+
+```ts
+function checkTextTemplate(template: string, env: TypeEnv): TemplateDiagnostic[]
+```
+
+Each diagnostic has a `code`, a `message`, the `expression`, and its `position` (`line` and `column`).
 
 ## Automatic Formatting
 
@@ -152,7 +169,7 @@ const form = p.form({
     phone: { type: 'phone' }
   },
   layers: {
-    text: { kind: 'inline', mimeType: 'text/plain', text: '{{price}} {{percentage}} {{phone}}' }
+    text: { kind: 'inline', mimeType: 'text/plain', text: '{{fields.price}} {{fields.percentage}} {{fields.phone}}' }
   }
 })
 
@@ -187,7 +204,7 @@ const renderer = textRenderer({
 
 ## Template Bindings
 
-Use bindings to map template placeholders to different field names:
+Use bindings to give a field a short name in a layer. Each binding key becomes a name the template can read:
 
 ```ts
 const form = p.form({
@@ -208,20 +225,19 @@ const form = p.form({
 })
 ```
 
-## Signature and Initials Helpers
+## Signature and Initials Directives
 
-The text renderer includes helpers for rendering signature and initials markers in templates.
+Signing directives place signature and initials marks. They are template directives rather than expression functions, and their arguments are expressions.
 
 ### Template Syntax
 
 ```text
-{{signature "locationId"}}  - Renders a signature placeholder or captured status
-{{initials "locationId"}}   - Renders an initials placeholder or captured status
+{{signature(parties.landlord, "final-sig")}}  - A signature placeholder, or the captured mark
+{{initials(parties.landlord, "page-init")}}   - An initials placeholder, or the captured mark
+{{signature("final-sig")}}                    - Inside a party or signatories loop: the current row signs
 ```
 
-The `locationId` identifies where in the document the signature appears (e.g., "final-sig", "page-3-init"). The helpers automatically infer the party role, party ID, and signer ID from the template context.
-
-**Important**: These helpers must be used inside a party or signatories loop to provide context.
+`signatureDate`, `capacity`, and `printedName` take the same arguments. The location (for example "final-sig" or "page-3-init") identifies where in the document the mark appears. The party role, party ID, and signer ID come from the party given first, or from the loop row.
 
 ### Example with Signatures
 
@@ -242,15 +258,15 @@ const form = p.form({
 
         <h2>Tenants</h2>
         {{#each parties.tenant}}
-        <p>Name: {{name}}</p>
-        <p>Signature: {{signature "final-sig"}}</p>
-        <p>Initials: {{initials "page-init"}}</p>
+        <p>Name: {{item.name}}</p>
+        <p>Signature: {{{signature("final-sig")}}}</p>
+        <p>Initials: {{{initials("page-init")}}}</p>
         {{/each}}
 
         <h2>Landlord</h2>
         {{#each parties.landlord.signatories}}
-        <p>{{signer.person.name}}, {{capacity}}</p>
-        <p>Signature: {{signature "final-sig"}}</p>
+        <p>{{item.signer.person.name}}, {{item.capacity}}</p>
+        <p>Signature: {{{signature("final-sig")}}}</p>
         {{/each}}
       `
     }

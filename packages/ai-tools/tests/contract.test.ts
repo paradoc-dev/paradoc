@@ -27,7 +27,7 @@ const formArtifact = {
 	},
 	annexes: { identity: { title: 'Identity document' } },
 	layers: {
-		text: { kind: 'inline' as const, mimeType: 'text/plain', text: '{{name}} / {{parties.tenant.name}} / {{city}}' },
+		text: { kind: 'inline' as const, mimeType: 'text/plain', text: '{{fields.name}} / {{parties.tenant.name}} / {{fields.city}}' },
 	},
 	defaultLayer: 'text',
 }

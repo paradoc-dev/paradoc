@@ -94,6 +94,15 @@ export type ContextRowVisibility = (
   context: EvaluationContext,
 ) => boolean
 
+/**
+ * Where a context carries the signing state the party predicates read
+ * (`partyCount`, `allSigned`, ...); a symbol, so it never shows as a root.
+ */
+export const PARTY_ENTRIES: unique symbol = Symbol('partyEntries')
+
+/** Where a context carries the witnesses the witness predicates read. */
+export const WITNESS_ENTRIES: unique symbol = Symbol('witnessEntries')
+
 /** Where a form context carries its row visibility; a symbol so no defs key can shadow it. */
 export const ROW_VISIBILITY: unique symbol = Symbol('rowVisibility')
 
@@ -113,10 +122,9 @@ export const ROW_ORIGINS: unique symbol = Symbol('rowOrigins')
  *     rent: { amount: 1000, currency: 'USD' },
  *   },
  *   parties: {
- *     buyer: [{ type: 'person', data: {...}, signed: false }],
- *     seller: [{ type: 'person', data: {...}, signed: true }],
+ *     buyer: { id: 'buyer-0', name: 'Jane Doe' },       // one party
+ *     tenant: [{ id: 'tenant-0', name: 'Ann' }, ...], // a role allowing several
  *   },
- *   witnesses: [{ type: 'person', data: {...}, signed: true }],
  *   isAdult: true, // defs key
  * }
  * ```
@@ -124,10 +132,12 @@ export const ROW_ORIGINS: unique symbol = Symbol('rowOrigins')
 export interface EvaluationContext {
   /** Field values structured as { fieldId: value } */
   fields: NestedFieldValues
-  /** Party data indexed by role ID, always as arrays for consistency */
-  parties?: Record<string, PartyContextEntry[]>
-  /** Witness data as an array */
-  witnesses?: PartyContextEntry[]
+  /** Typed party values by role: one party, or a list for a role that allows several. */
+  parties?: Record<string, unknown>
+  /** Signing state by role, for the party predicates. */
+  [PARTY_ENTRIES]?: Record<string, PartyContextEntry[]>
+  /** Witness signing state, for the witness predicates. */
+  [WITNESS_ENTRIES]?: PartyContextEntry[]
   /** Fixed clock for temporal expressions. */
   asOf?: AsOf
   /** Deterministic host functions available to expression evaluation. */

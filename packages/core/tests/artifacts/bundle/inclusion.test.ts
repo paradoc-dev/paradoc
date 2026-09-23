@@ -162,7 +162,7 @@ describe('bundle inclusion', () => {
 			.version('1.0.0')
 			.title('Conditional form')
 			.fields({ answer: { type: 'text', label: 'Answer' } })
-			.inlineLayer('default', { mimeType: 'text/plain', text: '{{answer}}' })
+			.inlineLayer('default', { mimeType: 'text/plain', text: '{{fields.answer}}' })
 			.defaultLayer('default')
 			.build()
 		const filled = artifact.fill({ fields: { answer: 'retained' } })

@@ -433,7 +433,7 @@ describe('Formal Signing', () => {
 				.parties({ signer: { label: 'Signer', partyType: 'person', signature: { required: true } } })
 				.inlineLayer('markdown', {
 					mimeType: 'text/markdown',
-					text: '# Hello {{name}}',
+					text: '# Hello {{fields.name}}',
 					signatureBlocks: {
 						'signer-signature': {
 							type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer',
@@ -474,7 +474,7 @@ describe('Formal Signing', () => {
 				.parties({ signer: { label: 'Signer', partyType: 'person', signature: { required: true } } })
 				.inlineLayer('markdown', {
 					mimeType: 'text/markdown',
-					text: '# Built-in {{name}}',
+					text: '# Built-in {{fields.name}}',
 					signatureBlocks: {
 						signature: { type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer' },
 					},

@@ -8,11 +8,14 @@ import type {
 } from '@paradoc/types'
 import { renderText } from './render'
 import type { TextSignatureOptions } from './signatures'
+import type { TemplateExpressionOptions } from '../template/context'
 
 export interface TextRendererOptions {
   formatter?: Formatter
   progressive?: FormatterProgressivePolicy
   signatureOptions?: TextSignatureOptions
+  /** Configured functions templates can call when no artifact context is supplied. */
+  expressions?: Pick<TemplateExpressionOptions, 'functions' | 'signatures'>
 }
 
 type TextLayer = RendererLayer & { type: 'text'; content: string }
@@ -23,6 +26,11 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
     id: 'text',
     render(request: RenderRequest<TextLayer>) {
       const source = request.data as unknown as Record<string, unknown>
+      const expressions: TemplateExpressionOptions = {
+        ...options.expressions,
+        ...(request.ctx?.expressions as TemplateExpressionOptions | undefined),
+      }
+      const layer = request.template.key
       if (!('fields' in source)) {
         return renderText({
           template: request.template.content,
@@ -32,6 +40,8 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
           progressive: request.ctx?.progressive ?? options.progressive,
           bindings: request.bindings ?? request.template.bindings,
           signatureOptions: options.signatureOptions,
+          expressions,
+          layer,
         })
       }
 
@@ -59,6 +69,8 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
         progressive: request.ctx?.progressive ?? options.progressive,
         bindings: request.bindings ?? request.template.bindings,
         signatureOptions: options.signatureOptions,
+        expressions,
+        layer,
       })
     },
   }

@@ -20,7 +20,7 @@ layers:
   markdown:
     kind: inline
     mimeType: text/markdown
-    text: "Pet: {{petName}}"
+    text: "Pet: {{fields.petName}}"
     signatures:
       tenantSignature:
         party:

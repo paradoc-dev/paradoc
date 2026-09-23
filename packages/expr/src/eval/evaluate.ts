@@ -101,6 +101,8 @@ function evaluateNode(node: Expr, ctx: EvaluationContext): Value {
 			if (obj.kind === 'array' && idx.kind === 'number') {
 				return obj.value[idx.value.toNumber()] ?? NULL
 			}
+			// A key that is not an identifier, such as a hyphenated checklist item id.
+			if (obj.kind === 'object' && idx.kind === 'string') return obj.value.get(idx.value) ?? NULL
 			return NULL
 		}
 		case 'Unary':

@@ -9,6 +9,7 @@ import type { DocxSignatureOptions } from './docx/signatures'
 import type { PdfFont } from './pdf/drawing-fonts'
 import type { PdfSignatureOptions } from './pdf/signatures'
 import type { TextSignatureOptions } from './text/signatures'
+import type { TemplateExpressionOptions } from './template/context'
 
 export type { PdfFont } from './pdf/drawing-fonts'
 
@@ -21,6 +22,8 @@ export interface RenderLayerOptions {
   /** A font the PDF engine tries first, before the font a PDF layer declares. */
   pdfFont?: PdfFont
   docxSignatureOptions?: DocxSignatureOptions
+  /** Host-configured functions text and DOCX templates can call, with their signatures. */
+  expressions?: Pick<TemplateExpressionOptions, 'functions' | 'signatures'>
 }
 
 const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -71,6 +74,7 @@ export function renderLayer(options: RenderLayerOptions = {}): ParadocRenderer<R
           formatter: options.formatter,
           progressive: options.progressive,
           signatureOptions: options.textSignatureOptions,
+          expressions: options.expressions,
         }).render(request as never)
       }
 
@@ -90,6 +94,7 @@ export function renderLayer(options: RenderLayerOptions = {}): ParadocRenderer<R
         return docxRenderer({
           formatter: options.formatter,
           signatureOptions: options.docxSignatureOptions,
+          expressions: options.expressions,
         }).render(request as never)
       }
 

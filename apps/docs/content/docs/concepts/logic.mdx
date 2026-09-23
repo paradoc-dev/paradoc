@@ -35,6 +35,8 @@ const form = p.form()
 
 When `hasVehicle` is true, `vehicleMake` becomes visible and required. When false, it's hidden.
 
+The same language runs in every text, Markdown, HTML, and DOCX template: block conditions, loop sources, and placeholders are expressions, so `fields.hasVehicle` means the same in a template as it does here. See [Templates](#templates).
+
 ---
 
 ## Referencing Fields
@@ -50,6 +52,8 @@ visible: "fields.rent.amount > 2000"
 ```
 
 Validation rules (`rules`) are the one exception: there, field values are also available unprefixed (`creditScore` as well as `fields.creditScore`).
+
+Parties are addressed as `parties.<role>`: `parties.buyer.name`, `parties.seller.legalName`. A role that allows several parties is a list, so aggregates and row references apply to it, as in `count(parties.tenant) > 1`. A key that is not an identifier, such as a hyphenated checklist item, is read with brackets: `items["signed-contract"]`.
 
 ---
 
@@ -308,6 +312,29 @@ const form = p.form()
   })
   .build()
 ```
+
+---
+
+## Templates
+
+Layer templates use this language inside their block markers:
+
+```markdown
+{{#if fields.monthlyRent.amount > 2000}}A deposit of {{fields.monthlyRent.amount * 2}} applies.{{/if}}
+{{#each parties.tenant}}
+- {{index(item) + 1}}. {{item.name}}{{#unless last(item)}},{{/unless}}
+{{/each}}
+Total: {{sum(fields.lines.amount)}}
+```
+
+- A block condition must evaluate to a boolean. A loop source must be a list.
+- A placeholder accepts any expression. A path prints the value formatted for its type; a computed value is formatted by its result type.
+- Inside `{{#each}}`, `item` is the current row and `parent` the enclosing row. A DOCX `{{FOR line IN ...}}` loop names its row.
+- `index(row)`, `first(row)`, and `last(row)` give a row's position, and exist only inside a loop.
+- A template reads what field logic reads: `fields`, computed values by name, `parties`, and, in a checklist, `items`. It can call the functions the host has configured, and no others.
+- `validate()` checks template expressions in inline layers, and `validateLayers()` also reads file layers through a resolver. Errors name the layer, the line and column (or the DOCX paragraph), and the expression.
+
+See [Text layers](/guides/text-layers#template-syntax-reference) for the markers and the syntax they replace.
 
 ---
 

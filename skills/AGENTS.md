@@ -121,8 +121,8 @@ The skill itself enforces these — repeat them in any reference where they're d
 - Artifact name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` (kebab-case, no leading/trailing/consecutive hyphens)
 - Field/party/def/rule pattern: `^[a-z][a-zA-Z0-9_]*$` (camelCase preferred)
 - Field types: ALWAYS prefer the most specific type. NEVER `text` when a structured type fits
-- Paradoc templates: field values are spread at top level — use `{{fieldName}}`, NOT `{{fields.fieldName}}`
-- Signatures: ALWAYS use `{{signature "loc"}}` / `{{initials "loc"}}` / `{{signatureDate "loc"}}` helpers inside party blocks. NEVER manual underscore lines.
+- Paradoc templates: everything inside `{{ }}` is an artifact expression — use `{{fields.fieldName}}`; conditions must be boolean
+- Signatures: ALWAYS use the signing directives `{{signature(parties.role, "loc")}}` / `{{initials(...)}}` / `{{signatureDate(...)}}`. NEVER manual underscore lines.
 
 ## Validation
 

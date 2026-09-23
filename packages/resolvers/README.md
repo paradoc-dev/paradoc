@@ -103,7 +103,7 @@ import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const resolver = createMemoryResolver({
   contents: {
-    "/templates/form.md": "# {{title}}",
+    "/templates/form.md": "# {{fields.title}}",
     "/assets/logo.png": myLogoBytes,
   },
 });

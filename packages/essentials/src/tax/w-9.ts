@@ -331,7 +331,7 @@ const schema = {
       "mimeType": "text/markdown",
       "title": "Markdown rendering",
       "path": "w-9.md",
-      "checksum": "sha256:3dfff8c63fdf1b1498d51de2483bce66ded5bb81b333bf86cf154a96027359df"
+      "checksum": "sha256:665f4747d6f31a5bdaf2cb8cf0c7f46303900060c0b964f359627382cf75934a"
     },
     "pdf": {
       "kind": "file",
@@ -808,50 +808,50 @@ const __c_w_9_md: string = `# Form W-9 — Request for Taxpayer Identification N
 
 ## 2. Business name / disregarded-entity name (if different from above)
 
-**{{businessName}}**
+**{{fields.businessName}}**
 
 ## 3a. Federal tax classification
 
 Check the appropriate box for the U.S. federal tax classification of the entity/individual whose name is entered on line 1. Check only one of the following seven boxes.
 
-- [{{#if (eq taxClassification "individual_or_sole_proprietor")}}x{{else}} {{/if}}] Individual / sole proprietor
-- [{{#if (eq taxClassification "c_corporation")}}x{{else}} {{/if}}] C corporation
-- [{{#if (eq taxClassification "s_corporation")}}x{{else}} {{/if}}] S corporation
-- [{{#if (eq taxClassification "partnership")}}x{{else}} {{/if}}] Partnership
-- [{{#if (eq taxClassification "trust_or_estate")}}x{{else}} {{/if}}] Trust / estate
-- [{{#if (eq taxClassification "llc")}}x{{else}} {{/if}}] LLC — tax classification: **{{llcType}}** *(C = C corporation, S = S corporation, P = Partnership)*
-- [{{#if (eq taxClassification "other")}}x{{else}} {{/if}}] Other (see instructions): **{{otherDescription}}**
+- [{{#if fields.taxClassification == "individual_or_sole_proprietor"}}x{{else}} {{/if}}] Individual / sole proprietor
+- [{{#if fields.taxClassification == "c_corporation"}}x{{else}} {{/if}}] C corporation
+- [{{#if fields.taxClassification == "s_corporation"}}x{{else}} {{/if}}] S corporation
+- [{{#if fields.taxClassification == "partnership"}}x{{else}} {{/if}}] Partnership
+- [{{#if fields.taxClassification == "trust_or_estate"}}x{{else}} {{/if}}] Trust / estate
+- [{{#if fields.taxClassification == "llc"}}x{{else}} {{/if}}] LLC — tax classification: **{{fields.llcType}}** *(C = C corporation, S = S corporation, P = Partnership)*
+- [{{#if fields.taxClassification == "other"}}x{{else}} {{/if}}] Other (see instructions): **{{fields.otherDescription}}**
 
 ## 3b. Foreign partners, owners, or beneficiaries
 
-- [{{#if hasForeignPartners}}x{{else}} {{/if}}] If on line 3a you checked "Partnership" or "Trust/estate," or checked "LLC" and entered "P" as its tax classification, and you are providing this form to a partnership, trust, or estate in which you have an ownership interest, check this box if you have any foreign partners, owners, or beneficiaries.
+- [{{#if fields.hasForeignPartners}}x{{else}} {{/if}}] If on line 3a you checked "Partnership" or "Trust/estate," or checked "LLC" and entered "P" as its tax classification, and you are providing this form to a partnership, trust, or estate in which you have an ownership interest, check this box if you have any foreign partners, owners, or beneficiaries.
 
 ## 4. Exemptions
 
 *(Codes apply only to certain entities, not individuals; see instructions.)*
 
-- **Exempt payee code (if any):** {{exemptPayeeCode}}
-- **Exemption from FATCA reporting code (if any):** {{fatcaExemptionCode}}
+- **Exempt payee code (if any):** {{fields.exemptPayeeCode}}
+- **Exemption from FATCA reporting code (if any):** {{fields.fatcaExemptionCode}}
 
 *(FATCA codes apply to accounts maintained outside the United States.)*
 
 ## 5. Address (number, street, and apt. or suite no.)
 
-{{mailingAddress.line1}}{{#if mailingAddress.line2}}, {{mailingAddress.line2}}{{/if}}
+{{fields.mailingAddress.line1}}{{#if fields.mailingAddress.line2 != null}}, {{fields.mailingAddress.line2}}{{/if}}
 
 ## 6. City, state, and ZIP code
 
-{{mailingAddress.locality}}, {{mailingAddress.region}} {{mailingAddress.postalCode}}
+{{fields.mailingAddress.locality}}, {{fields.mailingAddress.region}} {{fields.mailingAddress.postalCode}}
 
 ## Requester's name and address (optional)
 
-{{requesterName}}
-{{#if requesterAddress.line1}}{{requesterAddress.line1}}{{/if}}
-{{#if requesterAddress.locality}}{{requesterAddress.locality}}, {{requesterAddress.region}} {{requesterAddress.postalCode}}{{/if}}
+{{fields.requesterName}}
+{{#if fields.requesterAddress.line1 != null}}{{fields.requesterAddress.line1}}{{/if}}
+{{#if fields.requesterAddress.locality != null}}{{fields.requesterAddress.locality}}, {{fields.requesterAddress.region}} {{fields.requesterAddress.postalCode}}{{/if}}
 
 ## 7. Account number(s) (optional)
 
-{{accountNumbers}}
+{{fields.accountNumbers}}
 
 ---
 
@@ -859,8 +859,8 @@ Check the appropriate box for the U.S. federal tax classification of the entity/
 
 Enter your TIN in the appropriate box. The TIN provided must match the name given on line 1 to avoid backup withholding. For individuals, this is generally your social security number (SSN). For other entities, it is your employer identification number (EIN).
 
-- **Social security number:** {{ssn}}
-- **Employer identification number:** {{ein}}
+- **Social security number:** {{fields.ssn}}
+- **Employer identification number:** {{fields.ein}}
 
 ---
 
@@ -875,17 +875,15 @@ Under penalties of perjury, I certify that:
 
 *Certification instructions: You must cross out item 2 above if you have been notified by the IRS that you are currently subject to backup withholding because you have failed to report all interest and dividends on your tax return.*
 
-{{#with parties.taxpayer}}
-**Signature of U.S. person:** {{signature "sb1"}}
+**Signature of U.S. person:** {{signature(parties.taxpayer, "sb1")}}
 
-**Date:** {{signatureDate "sb1"}}
-{{/with}}
+**Date:** {{signatureDate(parties.taxpayer, "sb1")}}
 
 ---
 
 ## Attachments
 
-{{#if treatyExemption}}
+{{#if fields.treatyExemption}}
 - [x] **Tax-treaty saving-clause statement** *(required — attached)*
 
   As a U.S. resident alien relying on a saving-clause exception in a tax treaty to claim an exemption from U.S. tax, I have attached a statement specifying:

@@ -1,6 +1,11 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import type { Form, Document, Checklist, Bundle } from '@paradoc/types'
+import type { Form, Document, Checklist, Bundle, Resolver } from '@paradoc/types'
 import { validateLogic, type LogicValidatableArtifact } from '@/logic'
+import {
+  validateFileTemplates,
+  validateInlineTemplates,
+  type TemplateArtifact,
+} from '@/logic/design-time/validation/validate-templates'
 import { parse } from '@/serialization/serialization'
 import {
   validateForm,
@@ -208,11 +213,55 @@ export function validate<T = unknown>(
     }
   }
 
+  // Step 3: Template expressions in inline layers (with logic validation)
+  if (logic && allIssues.length === 0 && hasTemplateLayers(artifact)) {
+    const templateIssues = validateInlineTemplates(artifact)
+    if (templateIssues.length > 0) {
+      if (!collectAllErrors) return { issues: templateIssues.slice(0, 1) }
+      allIssues.push(...templateIssues)
+    }
+  }
+
   if (allIssues.length > 0) {
     return { issues: allIssues }
   }
 
   return { value: artifact as T }
+}
+
+const TEMPLATE_KINDS = new Set(['form', 'document', 'checklist'])
+
+function hasTemplateLayers(artifact: unknown): artifact is TemplateArtifact {
+  return typeof artifact === 'object'
+    && artifact !== null
+    && TEMPLATE_KINDS.has(String((artifact as { kind?: unknown }).kind))
+}
+
+/** Options for {@link validateLayers}. */
+export interface ValidateLayersOptions extends ValidateOptions {
+  /** Reads file-backed layers, relative to the artifact. */
+  resolver: Resolver
+}
+
+/**
+ * Validate an artifact and the template expressions of its file-backed
+ * layers. `validate()` checks inline layers; this also reads each file-backed
+ * text and DOCX layer through the resolver and checks its templates.
+ *
+ * @example
+ * ```typescript
+ * const result = await validateLayers(form, { resolver: createFsResolver({ root: '.' }) })
+ * ```
+ */
+export async function validateLayers<T = unknown>(
+  artifact: unknown,
+  options: ValidateLayersOptions,
+): Promise<StandardSchemaV1.Result<T>> {
+  const { resolver, ...validateOptions } = options
+  const result = validate<T>(artifact, validateOptions)
+  if (result.issues || validateOptions.logic === false || !hasTemplateLayers(artifact)) return result
+  const issues = await validateFileTemplates(artifact, resolver)
+  return issues.length > 0 ? { issues } : result
 }
 
 export const parseArtifact = (

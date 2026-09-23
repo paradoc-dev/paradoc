@@ -82,6 +82,11 @@ class Checker {
 			case 'Member':
 				return this.inferMember(node)
 			case 'Index': {
+				const base = staticPath(node.object)
+				if (base !== null && node.index.kind === 'StringLiteral') {
+					// A key that is not an identifier reads a member: items["signed-contract"].
+					return this.inferRef(`${base}.${node.index.value}`, node.span)
+				}
 				const obj = this.infer(node.object)
 				const idx = this.infer(node.index)
 				if (!NUMERIC(idx)) this.error('type-mismatch', 'Array index must be a number', node.index.span)

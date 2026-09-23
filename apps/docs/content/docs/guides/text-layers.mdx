@@ -12,8 +12,10 @@ In this guide, we'll use Paradoc to create a residential lease agreement. The le
 **About Text Layers**
 
 Text layers use Paradoc templates to generate documents. You write placeholders
-like `{{monthlyRent}}`, and Paradoc fills them with your data. The same syntax
-supports Markdown, HTML, plain text, and DOCX files.
+like `{{fields.monthlyRent}}`, and Paradoc fills them with your data. Everything
+inside `{{ }}` is an [artifact expression](/concepts/logic), the same language
+as field conditions and computed values, so Markdown, HTML, plain text, and
+DOCX templates follow the same rules as the rest of the artifact.
 
 <Steps>
 <Step>
@@ -101,13 +103,13 @@ Create a Paradoc template at `layers/lease.md`:
 ```markdown
 # RESIDENTIAL LEASE AGREEMENT
 
-This Lease Agreement is entered into on **{{startDate}}** between:
+This Lease Agreement is entered into on **{{fields.startDate}}** between:
 
 **LANDLORD:** {{parties.landlord.name}}
 
 **TENANT(S):**
 {{#each parties.tenant}}
-- {{name}}
+- {{item.name}}
 {{/each}}
 
 ---
@@ -116,34 +118,34 @@ This Lease Agreement is entered into on **{{startDate}}** between:
 
 The Landlord agrees to rent to the Tenant the property located at:
 
-{{address}}
+{{fields.address}}
 
-**Property Type:** {{propertyType}}
-**Bedrooms:** {{bedrooms}}
+**Property Type:** {{fields.propertyType}}
+**Bedrooms:** {{fields.bedrooms}}
 
 ---
 
 ## 2. TERM
 
-The lease term shall be **{{leaseTerm}}**, starting on **{{startDate}}**.
+The lease term shall be **{{fields.leaseTerm}}**, starting on **{{fields.startDate}}**.
 
 ---
 
 ## 3. RENT
 
-The Tenant agrees to pay **{{monthlyRent}}** per month, due on the first of each month.
+The Tenant agrees to pay **{{fields.monthlyRent}}** per month, due on the first of each month.
 
 ---
 
 ## 4. RULES
 
-{{#if petsAllowed}}
+{{#if fields.petsAllowed}}
 Pets are **permitted** with prior written approval.
 {{else}}
 Pets are **not permitted** on the premises.
 {{/if}}
 
-{{#if smokingAllowed}}
+{{#if fields.smokingAllowed}}
 Smoking is **permitted** in designated areas only.
 {{else}}
 Smoking is **not permitted** on the premises.
@@ -163,7 +165,7 @@ Signature: ___________________________  Date: ____________
 **TENANT(S):**
 
 {{#each parties.tenant}}
-Name: {{name}}
+Name: {{item.name}}
 
 Signature: ___________________________  Date: ____________
 
@@ -171,10 +173,10 @@ Signature: ___________________________  Date: ____________
 ```
 
 Key syntax patterns:
-- `{{fieldName}}` — Output a field value
+- `{{fields.fieldName}}` — Output a field value, formatted for its type
 - `{{parties.role.property}}` — Access party data
-- `{{#each parties.tenant}}...{{/each}}` — Loop over multiple parties
-- `{{#if condition}}...{{else}}...{{/if}}` — Conditional content
+- `{{#each parties.tenant}}...{{/each}}` — Loop over a list; `item` is the current row
+- `{{#if condition}}...{{else}}...{{/if}}` — Conditional content; the condition is a boolean expression
 </Step>
 
 <Step>
@@ -303,13 +305,39 @@ DOCX layers because selection follows the layer's `mimeType`.
 
 ## Template Syntax Reference
 
+Everything inside a marker is an [artifact expression](/concepts/logic). Templates see the same values as field conditions: `fields`, computed values by name, `parties`, and, in a checklist, `items`.
+
 | Pattern | Example | Description |
 |---------|---------|-------------|
-| Field value | `{{fieldName}}` | Output a field value |
-| Nested value | `{{address.line1}}` | Access nested properties |
+| Field value | `{{fields.monthlyRent}}` | Output a field value, formatted for its type |
+| Nested value | `{{fields.address.line1}}` | Access nested properties |
 | Party data | `{{parties.landlord.name}}` | Access party information |
-| Loop | `{{#each parties.tenant}}...{{/each}}` | Iterate over arrays |
-| Conditional | `{{#if petsAllowed}}...{{/if}}` | Conditional content |
-| If/else | `{{#if x}}...{{else}}...{{/if}}` | Conditional with fallback |
-| Loop index | `{{@index}}` | Zero-based index in loops |
+| Computed value | `{{totalDue}}` | Output a `defs` value by name |
+| Expression | `{{fields.bedrooms * 2}}`, `{{sum(fields.lines.amount)}}` | Arithmetic, functions, and aggregates |
+| Fallback | `{{coalesce(fields.nickname, fields.name)}}` | The first value that is present |
+| Conditional | `{{#if fields.petsAllowed}}...{{/if}}` | The condition must be boolean |
+| If/else | `{{#if fields.bedrooms > 2}}...{{else}}...{{/if}}` | Conditional with fallback |
+| Unless | `{{#unless fields.petsAllowed}}...{{/unless}}` | Content when the condition is false |
+| Loop | `{{#each parties.tenant}}{{item.name}}{{/each}}` | Iterate over a list; `item` is the current row |
+| Enclosing row | `{{parent.name}}` | The outer row inside a nested loop |
+| Loop position | `{{index(item)}}`, `{{#if first(item)}}`, `{{#unless last(item)}}` | Zero-based position, first row, last row; only inside a loop |
+| Raw HTML | `{{{fields.notes}}}` | Output without HTML escaping |
+| Signing mark | `{{signature(parties.landlord, "landlord-sign")}}` | Place a signature; inside a party loop, `{{signature("tenant-sign")}}` |
 | Comment | `{{!-- comment --}}` | Not rendered in output |
+
+A condition such as `{{#if fields.notes != null}}` must be boolean: compare a text or number value rather than testing it directly.
+
+### Replaced syntax
+
+Templates used to have their own helper syntax. It is no longer accepted, and validation names the replacement:
+
+| Old | Now |
+|-----|-----|
+| `{{#if (eq a "x")}}`, `ne`, `gt`, `gte`, `lt`, `lte` | `{{#if a == "x"}}`, `!=`, `>`, `>=`, `<`, `<=` |
+| `(and a b)`, `(or a b)`, `(not a)` | `a and b`, `a or b`, `not a` |
+| `(contains list "x")` | `"x" in list` or `contains(list, "x")` |
+| `{{default value "n/a"}}` | `{{coalesce(value, "n/a")}}` |
+| `{{#with parties.landlord}}{{name}}{{/with}}` | `{{parties.landlord.name}}` |
+| `{{this}}`, `{{../name}}`, `{{@root.name}}` | `{{item}}`, `{{parent.name}}`, `{{fields.name}}` |
+| `{{@index}}`, `{{@first}}`, `{{@last}}` | `{{index(item)}}`, `{{first(item)}}`, `{{last(item)}}` |
+| `{{signature "loc"}}` inside `{{#with}}` | `{{signature(parties.role, "loc")}}` |

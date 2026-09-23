@@ -16,7 +16,7 @@ binds a party to a placement:
 ```ts
 .inlineLayer('agreement', {
   mimeType: 'text/markdown',
-  text: '... {{#with parties.client}}Sign: {{signature "client-sig"}}{{/with}} ...',
+  text: '... Sign: {{signature(parties.client, "client-sig")}} ...',
   signatures: {
     'client-sig': {
       party: { role: 'client' },

@@ -1,12 +1,12 @@
 # RESIDENTIAL LEASE AGREEMENT
 
-This Lease Agreement is entered into on **{{startDate}}** between:
+This Lease Agreement is entered into on **{{fields.startDate}}** between:
 
 **LANDLORD:** {{parties.landlord.name}}
 
 **TENANT(S):**
 {{#each parties.tenant}}
-- {{name}}
+- {{item.name}}
 {{/each}}
 
 ---
@@ -15,34 +15,34 @@ This Lease Agreement is entered into on **{{startDate}}** between:
 
 The Landlord agrees to rent to the Tenant the property located at:
 
-{{address}}
+{{fields.address}}
 
-**Property Type:** {{propertyType}}
-**Bedrooms:** {{bedrooms}}
+**Property Type:** {{fields.propertyType}}
+**Bedrooms:** {{fields.bedrooms}}
 
 ---
 
 ## 2. TERM
 
-The lease term shall be **{{leaseTerm}}**, starting on **{{startDate}}**.
+The lease term shall be **{{fields.leaseTerm}}**, starting on **{{fields.startDate}}**.
 
 ---
 
 ## 3. RENT
 
-The Tenant agrees to pay **{{monthlyRent}}** per month, due on the first of each month.
+The Tenant agrees to pay **{{fields.monthlyRent}}** per month, due on the first of each month.
 
 ---
 
 ## 4. RULES
 
-{{#if petsAllowed}}
+{{#if fields.petsAllowed}}
 Pets are **permitted** with prior written approval.
 {{else}}
 Pets are **not permitted** on the premises.
 {{/if}}
 
-{{#if smokingAllowed}}
+{{#if fields.smokingAllowed}}
 Smoking is **permitted** in designated areas only.
 {{else}}
 Smoking is **not permitted** on the premises.
@@ -62,7 +62,7 @@ Signature: ___________________________  Date: ____________
 **TENANT(S):**
 
 {{#each parties.tenant}}
-Name: {{name}}
+Name: {{item.name}}
 
 Signature: ___________________________  Date: ____________
 

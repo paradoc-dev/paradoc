@@ -137,7 +137,7 @@
       "kind": "file",
       "mimeType": "text/markdown",
       "path": "pet-addendum.md",
-      "checksum": "sha256:635ff729240963f5e152dd37ee440578e98fb7ecb3b24bee93a416c8d4e60ea9"
+      "checksum": "sha256:33b93b8d95bed9369c4b901f94e1d742f643ea92ce4b96dd0d9d4d21848220a3"
     }
   },
   "defaultLayer": "pdf"

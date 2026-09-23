@@ -61,7 +61,7 @@ describe('Sealing and Conversion Guide', () => {
         markdown: {
           kind: 'inline',
           mimeType: 'text/markdown',
-          text: '# Hello {{name}}',
+          text: '# Hello {{fields.name}}',
           signatureBlocks: {
             signature: { type: 'signature', page: 1, x: 50, y: 50, width: 120, height: 30, partyRole: 'signer' },
           },

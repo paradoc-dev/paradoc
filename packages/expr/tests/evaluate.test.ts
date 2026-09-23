@@ -166,3 +166,12 @@ describe('evaluateBoolean — gate semantics', () => {
 		expect(evaluateBoolean('1 / 0 > 0', ctx, false)).toBe(false)
 	})
 })
+
+describe('string keys', () => {
+	it('reads a member whose key is not an identifier', () => {
+		const keyed = createContext({ items: { 'signed-contract': true, plain: 'x' } })
+		expect(evaluateExpression('items["signed-contract"]', keyed)).toEqual({ success: true, value: Values.boolean(true) })
+		expect(evaluateExpression('items["missing"]', keyed)).toEqual({ success: true, value: Values.null })
+		expect(evaluateExpression('items.plain', keyed)).toEqual({ success: true, value: Values.string('x') })
+	})
+})

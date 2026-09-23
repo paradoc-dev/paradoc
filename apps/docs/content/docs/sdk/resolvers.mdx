@@ -53,7 +53,7 @@ import { createMemoryResolver } from '@paradoc/resolvers/memory'
 
 const resolver = createMemoryResolver({
   contents: {
-    '/templates/receipt.html': '<h1>Receipt for {{customer}}</h1>',
+    '/templates/receipt.html': '<h1>Receipt for {{fields.customer}}</h1>',
     '/templates/contract.docx': docxTemplateBytes,
     '/assets/logo.png': logoBytes,
   }
@@ -169,7 +169,7 @@ layers: {
   html: {
     kind: 'inline',
     mimeType: 'text/html',
-    text: '<h1>{{title}}</h1>'
+    text: '<h1>{{fields.title}}</h1>'
   }
 }
 

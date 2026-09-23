@@ -48,7 +48,7 @@ describe('FormInstance', () => {
       .fields({
         name: { type: 'text', label: 'Name', required: true },
       })
-      .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello, {{name}}!' })
+      .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello, {{fields.name}}!' })
       .defaultLayer('default')
       .build()
 

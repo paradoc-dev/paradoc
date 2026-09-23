@@ -404,7 +404,7 @@ const schema = {
       "mimeType": "text/markdown",
       "title": "Markdown Form",
       "path": "ach-change-form.md",
-      "checksum": "sha256:bc31d09635bbc1b551979ffb9cc66448c02f7199dc2b25b55ee79ded9637beb4"
+      "checksum": "sha256:56d3fcb8aa305125e74b013999ce8f24221ede48372c990977757f51ba5bdd13"
     }
   },
   "defaultLayer": "pdf"
@@ -503,66 +503,66 @@ const __c_ach_change_form_md: string = `# ACH Change Form
 ## Originator
 
 - **Name:** {{parties.originator.legalName}}
-- **Address:** {{originatorAddress.line1}}, {{originatorAddress.locality}}, {{originatorAddress.region}} {{originatorAddress.postalCode}}
-- **Phone:** {{originatorPhone}}
-- **Email:** {{originatorEmail}}
+- **Address:** {{fields.originatorAddress.line1}}, {{fields.originatorAddress.locality}}, {{fields.originatorAddress.region}} {{fields.originatorAddress.postalCode}}
+- **Phone:** {{fields.originatorPhone}}
+- **Email:** {{fields.originatorEmail}}
 
 ## Account Holder
 
 - **Name:** {{parties.accountHolder.name}}
 - **Type:**
-  - [{{#if (eq accountHolderType "individual")}}x{{else}} {{/if}}] Individual
-  - [{{#if (eq accountHolderType "organization")}}x{{else}} {{/if}}] Organization
-- **Address:** {{accountHolderAddress.line1}}, {{accountHolderAddress.locality}}, {{accountHolderAddress.region}} {{accountHolderAddress.postalCode}}
-- **Phone:** {{accountHolderPhone}}
-- **Email:** {{accountHolderEmail}}
+  - [{{#if fields.accountHolderType == "individual"}}x{{else}} {{/if}}] Individual
+  - [{{#if fields.accountHolderType == "organization"}}x{{else}} {{/if}}] Organization
+- **Address:** {{fields.accountHolderAddress.line1}}, {{fields.accountHolderAddress.locality}}, {{fields.accountHolderAddress.region}} {{fields.accountHolderAddress.postalCode}}
+- **Phone:** {{fields.accountHolderPhone}}
+- **Email:** {{fields.accountHolderEmail}}
 
 ## Existing arrangement
 
-- **Customer / employee / vendor ID:** {{customerOrEmployeeId}}
-- **Originator reference (contract / agreement / loan number):** {{originatorReference}}
-- **Last 4 digits of OLD account #:** {{oldAccountLast4}}
-- **Old bank name:** {{oldBankName}}
+- **Customer / employee / vendor ID:** {{fields.customerOrEmployeeId}}
+- **Originator reference (contract / agreement / loan number):** {{fields.originatorReference}}
+- **Last 4 digits of OLD account #:** {{fields.oldAccountLast4}}
+- **Old bank name:** {{fields.oldBankName}}
 
 ## Change type
 
-- [{{#if (eq changeType "update_account_info")}}x{{else}} {{/if}}] Update account info
-- [{{#if (eq changeType "change_amount")}}x{{else}} {{/if}}] Change amount
-- [{{#if (eq changeType "change_frequency")}}x{{else}} {{/if}}] Change frequency
-- [{{#if (eq changeType "add_secondary_account")}}x{{else}} {{/if}}] Add secondary account
-- [{{#if (eq changeType "other")}}x{{else}} {{/if}}] Other
+- [{{#if fields.changeType == "update_account_info"}}x{{else}} {{/if}}] Update account info
+- [{{#if fields.changeType == "change_amount"}}x{{else}} {{/if}}] Change amount
+- [{{#if fields.changeType == "change_frequency"}}x{{else}} {{/if}}] Change frequency
+- [{{#if fields.changeType == "add_secondary_account"}}x{{else}} {{/if}}] Add secondary account
+- [{{#if fields.changeType == "other"}}x{{else}} {{/if}}] Other
 
-{{#if (eq changeType "other")}}
-**Description of change:** {{changeOtherDescription}}
+{{#if fields.changeType == "other"}}
+**Description of change:** {{fields.changeOtherDescription}}
 {{/if}}
 
 ## New account information
 
 *Required when updating account information or adding a secondary account.*
 
-- **Bank:** {{newBankName}}
-- **Routing/ABA #:** {{newRoutingNumber}}
-- **Account #:** {{newAccountNumber}}
+- **Bank:** {{fields.newBankName}}
+- **Routing/ABA #:** {{fields.newRoutingNumber}}
+- **Account #:** {{fields.newAccountNumber}}
 - **Type:**
-  - [{{#if (eq newAccountType "checking")}}x{{else}} {{/if}}] Checking
-  - [{{#if (eq newAccountType "savings")}}x{{else}} {{/if}}] Savings
-- [{{#if voidedCheckAttached}}x{{else}} {{/if}}] Voided check or bank verification letter attached
+  - [{{#if fields.newAccountType == "checking"}}x{{else}} {{/if}}] Checking
+  - [{{#if fields.newAccountType == "savings"}}x{{else}} {{/if}}] Savings
+- [{{#if fields.voidedCheckAttached}}x{{else}} {{/if}}] Voided check or bank verification letter attached
 
 ## Amount / frequency change
 
-- **New deposit amount (USD):** {{newAmount.amount}} {{newAmount.currency}}
+- **New deposit amount (USD):** {{fields.newAmount.amount}} {{fields.newAmount.currency}}
 - **New frequency:**
-  - [{{#if (eq newFrequency "weekly")}}x{{else}} {{/if}}] Weekly
-  - [{{#if (eq newFrequency "biweekly")}}x{{else}} {{/if}}] Bi-weekly
-  - [{{#if (eq newFrequency "semimonthly")}}x{{else}} {{/if}}] Semi-monthly
-  - [{{#if (eq newFrequency "monthly")}}x{{else}} {{/if}}] Monthly
-  - [{{#if (eq newFrequency "quarterly")}}x{{else}} {{/if}}] Quarterly
-  - [{{#if (eq newFrequency "annual")}}x{{else}} {{/if}}] Annual
-  - [{{#if (eq newFrequency "other")}}x{{else}} {{/if}}] Other
+  - [{{#if fields.newFrequency == "weekly"}}x{{else}} {{/if}}] Weekly
+  - [{{#if fields.newFrequency == "biweekly"}}x{{else}} {{/if}}] Bi-weekly
+  - [{{#if fields.newFrequency == "semimonthly"}}x{{else}} {{/if}}] Semi-monthly
+  - [{{#if fields.newFrequency == "monthly"}}x{{else}} {{/if}}] Monthly
+  - [{{#if fields.newFrequency == "quarterly"}}x{{else}} {{/if}}] Quarterly
+  - [{{#if fields.newFrequency == "annual"}}x{{else}} {{/if}}] Annual
+  - [{{#if fields.newFrequency == "other"}}x{{else}} {{/if}}] Other
 
 ## Effective date
 
-- **Requested effective date:** {{effectiveDate}}
+- **Requested effective date:** {{fields.effectiveDate}}
 
 ## Terms
 
@@ -574,11 +574,9 @@ const __c_ach_change_form_md: string = `# ACH Change Form
 
 ## Signature
 
-{{#with parties.accountHolder}}
-**Signature:** {{signature "accountHolderSignature"}}
-**Date:** {{signatureDate "accountHolderSignature"}}
-**Printed name:** {{printedName "accountHolderPrintedName"}}
-{{/with}}
+**Signature:** {{signature(parties.accountHolder, "accountHolderSignature")}}
+**Date:** {{signatureDate(parties.accountHolder, "accountHolderSignature")}}
+**Printed name:** {{printedName(parties.accountHolder, "accountHolderPrintedName")}}
 `;
 
 const contents: Record<string, string | Uint8Array> = {

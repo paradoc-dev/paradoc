@@ -16,14 +16,14 @@ import type {
   ScalarExpressionType,
 } from '@paradoc/types'
 import { inferPartyType } from '@/primitives/party'
-import { ROW_VISIBILITY, type ContextRowVisibility, type EvaluationContext, type NestedFieldValues, type PartyContextEntry } from './types'
+import { PARTY_ENTRIES, ROW_VISIBILITY, WITNESS_ENTRIES, type ContextRowVisibility, type EvaluationContext, type NestedFieldValues, type PartyContextEntry } from './types'
 import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { topologicalSortDefsKeys } from '../../design-time/type-checking/build-type-environment'
 import { isRowVisible } from '../../shared/list-paths'
 import { defsDependencyExpressions } from '../../shared/defs-dependencies'
-import { evaluateBooleanExpression, evaluateExpressionValue, withRowReferences, fromExpressionValue, markEvaluationContextReusable, wrapExpressionValue } from './expression-evaluator'
+import { evaluateBooleanExpression, evaluateExpressionValue, withRowReferences, fromExpressionValue, markEvaluationContextReusable, toExpressionContext, wrapExpressionValue } from './expression-evaluator'
 import { Values, type Value } from '@paradoc/expr'
-import type { HostFunction, Registry } from '@paradoc/expr'
+import type { EvaluationContext as ExprEvaluationContext, HostFunction, Registry } from '@paradoc/expr'
 import { ExpressionEvaluationError } from './errors'
 
 /** Scalar expression types (value is a string expression) */
@@ -386,8 +386,9 @@ export function buildFormBaseContext(form: Form, data: FormDataPayload): Evaluat
   // Create base context with fields, parties, and witnesses
 	return {
 		fields,
-		parties,
-		witnesses,
+		parties: { ...(data.parties ?? {}) },
+		[PARTY_ENTRIES]: parties,
+		[WITNESS_ENTRIES]: witnesses,
 		...(data.context?.asOf && { asOf: data.context.asOf }),
 		...(data.expressionFunctions && { expressionFunctions: data.expressionFunctions }),
 		...(data.expressionRegistry && { expressionRegistry: data.expressionRegistry }),
@@ -408,4 +409,26 @@ export function buildFormContext(form: Form, data: FormDataPayload): EvaluationC
   }
 
   return context
+}
+
+/**
+ * The expression context a form's templates read: the context its field logic
+ * reads, with each party carrying the signing records its templates place
+ * marks for.
+ */
+export function buildTemplateExpressionContext(
+  form: Form,
+  data: FormDataPayload,
+  renderParties: Record<string, unknown>,
+): ExprEvaluationContext {
+  let context: EvaluationContext
+  try {
+    context = buildFormContext(form, data)
+  } catch {
+    // A draft whose computed values cannot evaluate yet still renders; its
+    // templates read those values as missing, as the runtime state does.
+    context = buildFormBaseContext(form, data)
+  }
+  context.parties = renderParties
+  return toExpressionContext(context)
 }

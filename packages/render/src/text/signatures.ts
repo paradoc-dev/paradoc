@@ -7,7 +7,7 @@ import type {
   SignaturePlaceholderValue,
   Signer,
 } from '@paradoc/types'
-import type { TemplateHelper } from './template'
+import type { SigningDirective } from './template'
 
 export interface TextSignatureOptions {
   format?: 'text' | 'html' | 'markdown'
@@ -138,11 +138,11 @@ function placeholderContext(
 }
 
 function invalid(name: string, args: unknown[]): string | undefined {
-  return typeof args[0] === 'string' ? undefined : `[Invalid ${name} helper: expected (locationId)]`
+  return typeof args[0] === 'string' ? undefined : `[Invalid ${name}: expected a location]`
 }
 
 function contextError(name: string): string {
-  return `[${name} helper error: could not determine context. Use inside party or signatories loop.]`
+  return `[${name} error: no party. Use it inside a party or signatories loop, or pass the party first.]`
 }
 
 function renderMark(
@@ -192,7 +192,7 @@ function renderMark(
     : resolveValue(placeholderOption, context, placeholderDefault)
 }
 
-function createMarkHelper(type: 'signature' | 'initials', options: TextSignatureOptions, signatureDefaults: SignatureDefaults): TemplateHelper {
+function createMarkDirective(type: 'signature' | 'initials', options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
     const problem = invalid(type, args)
     if (problem) return problem
@@ -204,7 +204,7 @@ function createMarkHelper(type: 'signature' | 'initials', options: TextSignature
   }
 }
 
-function createDateHelper(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): TemplateHelper {
+function createDateDirective(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
     const problem = invalid('signatureDate', args)
     if (problem) return problem
@@ -226,7 +226,7 @@ function createDateHelper(options: TextSignatureOptions, signatureDefaults: Sign
   }
 }
 
-function createCapacityTemplateHelper(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): TemplateHelper {
+function createCapacityDirective(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
     const problem = invalid('capacity', args)
     if (problem) return problem
@@ -243,7 +243,7 @@ function createCapacityTemplateHelper(options: TextSignatureOptions, signatureDe
   }
 }
 
-function createPrintedNameTemplateHelper(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): TemplateHelper {
+function createPrintedNameDirective(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
     const problem = invalid('printedName', args)
     if (problem) return problem
@@ -261,50 +261,20 @@ function createPrintedNameTemplateHelper(options: TextSignatureOptions, signatur
   }
 }
 
-export function createSignatureHelpers(
+export function createSignatureDirectives(
   options: TextSignatureOptions = {},
   signatureDefaults: SignatureDefaults = defaults,
-): Record<string, TemplateHelper> {
+): Record<string, SigningDirective> {
   return {
-    signature: createMarkHelper('signature', options, signatureDefaults),
-    initials: createMarkHelper('initials', options, signatureDefaults),
-    signatureDate: createDateHelper(options, signatureDefaults),
-    capacity: createCapacityTemplateHelper(options, signatureDefaults),
-    printedName: createPrintedNameTemplateHelper(options, signatureDefaults),
+    signature: createMarkDirective('signature', options, signatureDefaults),
+    initials: createMarkDirective('initials', options, signatureDefaults),
+    signatureDate: createDateDirective(options, signatureDefaults),
+    capacity: createCapacityDirective(options, signatureDefaults),
+    printedName: createPrintedNameDirective(options, signatureDefaults),
   }
 }
 
-export function createTextSignatureHelpers(options: TextSignatureOptions = {}): Record<string, TemplateHelper> {
-  return createSignatureHelpers(options)
-}
-
-type StandaloneHelper = (
-  this: Record<string, unknown>,
-  locationId: string,
-  options?: { data?: { root?: Record<string, unknown> } },
-) => unknown
-
-function createStandaloneHelper(name: string, options: TextSignatureOptions): StandaloneHelper {
-  const helper = createSignatureHelpers(options)[name]!
-  return function (this: Record<string, unknown>, locationId, handlebarsOptions) {
-    return helper(this, handlebarsOptions?.data?.root ?? this, [locationId])
-  }
-}
-
-export const createSignatureHelper = (options: TextSignatureOptions = {}) => createStandaloneHelper('signature', options)
-export const createInitialsHelper = (options: TextSignatureOptions = {}) => createStandaloneHelper('initials', options)
-export const createSignatureDateHelper = (options: TextSignatureOptions = {}) => createStandaloneHelper('signatureDate', options)
-export const createCapacityHelper = (options: TextSignatureOptions = {}) => createStandaloneHelper('capacity', options)
-export const createPrintedNameHelper = (options: TextSignatureOptions = {}) => createStandaloneHelper('printedName', options)
-
-interface HelperRegistry {
-  registerHelper(name: string, helper: StandaloneHelper): void
-}
-
-export function registerSignatureHelpers(registry: HelperRegistry, options: TextSignatureOptions = {}): void {
-  registry.registerHelper('signature', createSignatureHelper(options))
-  registry.registerHelper('initials', createInitialsHelper(options))
-  registry.registerHelper('signatureDate', createSignatureDateHelper(options))
-  registry.registerHelper('capacity', createCapacityHelper(options))
-  registry.registerHelper('printedName', createPrintedNameHelper(options))
+/** The signing directives a text, Markdown, or HTML template can write. */
+export function createTextSignatureDirectives(options: TextSignatureOptions = {}): Record<string, SigningDirective> {
+  return createSignatureDirectives(options)
 }

@@ -188,4 +188,39 @@ describe('executeValidateArtifact', () => {
       expect(result.artifact_kind).toBe('form')
     })
   })
+
+  describe('template expressions', () => {
+    const form = (layers: Record<string, unknown>) => ({
+      kind: 'form',
+      name: 'templated',
+      fields: { qty: { type: 'number', label: 'Quantity' } },
+      layers,
+    })
+
+    it('reports an inline template error with its layer and position', async () => {
+      const result = await executeValidateArtifact({
+        source: 'artifact' as const,
+        artifact: form({ md: { kind: 'inline', mimeType: 'text/markdown', text: '{{#if (gt fields.qty 1)}}x{{/if}}' } }),
+      })
+      expect(result.valid).toBe(false)
+      expect(result.issues).toEqual([expect.objectContaining({
+        message: expect.stringMatching(/^Template error at layer "md", line 1, column 7 .*> operator/),
+        path: ['layers', 'md'],
+      })])
+    })
+
+    it('reads file layers from the base URL and checks their templates', async () => {
+      const fetch = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/terms.md')
+        ? new Response('{{fields.qty}} {{fields.missing}}', { headers: { 'content-type': 'text/markdown' } })
+        : new Response('missing', { status: 404 }))
+      const result = await executeValidateArtifact({
+        source: 'artifact' as const,
+        base_url: 'https://registry.example.test/templated',
+        artifact: form({ md: { kind: 'file', mimeType: 'text/markdown', path: 'terms.md' } }),
+      }, { fetch })
+      expect(fetch).toHaveBeenCalled()
+      expect(result.valid).toBe(false)
+      expect(result.issues).toEqual([expect.objectContaining({ message: expect.stringContaining('Unknown reference: fields.missing') })])
+    })
+  })
 })

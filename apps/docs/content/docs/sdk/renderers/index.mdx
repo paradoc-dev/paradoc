@@ -30,7 +30,7 @@ const form = p.form({
     text: {
       kind: 'inline',
       mimeType: 'text/plain',
-      text: 'Invoice for {{customer}}\nTotal: {{total}}'
+      text: 'Invoice for {{fields.customer}}\nTotal: {{fields.total}}'
     }
   },
   defaultLayer: 'text'

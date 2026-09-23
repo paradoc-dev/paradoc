@@ -2,10 +2,10 @@
 
 ## Pet Information
 
-**Pet Name:** {{name}}
+**Pet Name:** {{fields.name}}
 
-**Species:** {{species}}
+**Species:** {{fields.species}}
 
-**Weight:** {{weight}} lbs
+**Weight:** {{fields.weight}} lbs
 
-**Has Vaccination:** {{hasVaccination}}
+**Has Vaccination:** {{fields.hasVaccination}}

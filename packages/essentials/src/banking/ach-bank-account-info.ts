@@ -478,7 +478,7 @@ const schema = {
       "mimeType": "text/markdown",
       "title": "Markdown Form",
       "path": "ach-bank-account-info.md",
-      "checksum": "sha256:b8605835c89ba7f3686d21babb6c697e858005072615d5b7faa3fcc0a4c7154c"
+      "checksum": "sha256:a8c3c8bb3c163c3525149665d7b511b1399fb35ef490ab9c9b5f1723151f42d3"
     }
   },
   "defaultLayer": "pdf"
@@ -570,68 +570,68 @@ const __c_ach_bank_account_info_md: string = `# ACH Bank Account Information
 
 ## Action
 
-- [{{#if (eq actionType "new")}}x{{else}} {{/if}}] New
-- [{{#if (eq actionType "change")}}x{{else}} {{/if}}] Change
-- [{{#if (eq actionType "cancel")}}x{{else}} {{/if}}] Cancel
+- [{{#if fields.actionType == "new"}}x{{else}} {{/if}}] New
+- [{{#if fields.actionType == "change"}}x{{else}} {{/if}}] Change
+- [{{#if fields.actionType == "cancel"}}x{{else}} {{/if}}] Cancel
 
 ## Requestor (Company)
 
-- **Name:** {{parties.requestor.legalName}}{{#if requestorDba}} (DBA {{requestorDba}}){{/if}}
-- **A/P contact:** {{requestorContactName}}
-- **A/P email:** {{requestorContactEmail}}
-- **Vendor / payee number:** {{requestorVendorNumber}}
+- **Name:** {{parties.requestor.legalName}}{{#if fields.requestorDba != null}} (DBA {{fields.requestorDba}}){{/if}}
+- **A/P contact:** {{fields.requestorContactName}}
+- **A/P email:** {{fields.requestorContactEmail}}
+- **Vendor / payee number:** {{fields.requestorVendorNumber}}
 
 ## Account Holder (Payee)
 
 - **Type:**
-  - [{{#if (eq accountHolderType "individual")}}x{{else}} {{/if}}] Individual
-  - [{{#if (eq accountHolderType "organization")}}x{{else}} {{/if}}] Organization
+  - [{{#if fields.accountHolderType == "individual"}}x{{else}} {{/if}}] Individual
+  - [{{#if fields.accountHolderType == "organization"}}x{{else}} {{/if}}] Organization
 
-{{#if (eq accountHolderType "individual")}}
+{{#if fields.accountHolderType == "individual"}}
 - **Name:** {{parties.accountHolder.name}}
-- **SSN:** {{individualSsn}}
-- **Address:** {{individualAddress.line1}}{{#if individualAddress.line2}}, {{individualAddress.line2}}{{/if}}, {{individualAddress.locality}}, {{individualAddress.region}} {{individualAddress.postalCode}}
-- **Phone:** {{individualPhone}}
-- **Email:** {{individualEmail}}
+- **SSN:** {{fields.individualSsn}}
+- **Address:** {{fields.individualAddress.line1}}{{#if fields.individualAddress.line2 != null}}, {{fields.individualAddress.line2}}{{/if}}, {{fields.individualAddress.locality}}, {{fields.individualAddress.region}} {{fields.individualAddress.postalCode}}
+- **Phone:** {{fields.individualPhone}}
+- **Email:** {{fields.individualEmail}}
 {{/if}}
 
-{{#if (eq accountHolderType "organization")}}
-- **Legal name:** {{parties.accountHolder.legalName}}{{#if orgDba}} (DBA {{orgDba}}){{/if}}
-- **TIN / EIN:** {{orgTin}}
+{{#if fields.accountHolderType == "organization"}}
+- **Legal name:** {{parties.accountHolder.legalName}}{{#if fields.orgDba != null}} (DBA {{fields.orgDba}}){{/if}}
+- **TIN / EIN:** {{fields.orgTin}}
 - **Entity type:**
-  - [{{#if (eq orgEntityType "sole_prop")}}x{{else}} {{/if}}] Sole proprietor
-  - [{{#if (eq orgEntityType "llc")}}x{{else}} {{/if}}] LLC
-  - [{{#if (eq orgEntityType "s_corp")}}x{{else}} {{/if}}] S corporation
-  - [{{#if (eq orgEntityType "c_corp")}}x{{else}} {{/if}}] C corporation
-  - [{{#if (eq orgEntityType "partnership")}}x{{else}} {{/if}}] Partnership
-  - [{{#if (eq orgEntityType "nonprofit")}}x{{else}} {{/if}}] Nonprofit
-  - [{{#if (eq orgEntityType "other")}}x{{else}} {{/if}}] Other
-- **Domicile state:** {{orgDomicileState}}
-- **Address:** {{orgAddress.line1}}{{#if orgAddress.line2}}, {{orgAddress.line2}}{{/if}}, {{orgAddress.locality}}, {{orgAddress.region}} {{orgAddress.postalCode}}
-- **Contact:** {{orgContactName}}{{#if orgContactTitle}}, {{orgContactTitle}}{{/if}}
-- **Contact email:** {{orgContactEmail}}
-- [{{#if notSubjectToBackupWithholding}}x{{else}} {{/if}}] Not subject to backup withholding (W-9 Part II attestation)
+  - [{{#if fields.orgEntityType == "sole_prop"}}x{{else}} {{/if}}] Sole proprietor
+  - [{{#if fields.orgEntityType == "llc"}}x{{else}} {{/if}}] LLC
+  - [{{#if fields.orgEntityType == "s_corp"}}x{{else}} {{/if}}] S corporation
+  - [{{#if fields.orgEntityType == "c_corp"}}x{{else}} {{/if}}] C corporation
+  - [{{#if fields.orgEntityType == "partnership"}}x{{else}} {{/if}}] Partnership
+  - [{{#if fields.orgEntityType == "nonprofit"}}x{{else}} {{/if}}] Nonprofit
+  - [{{#if fields.orgEntityType == "other"}}x{{else}} {{/if}}] Other
+- **Domicile state:** {{fields.orgDomicileState}}
+- **Address:** {{fields.orgAddress.line1}}{{#if fields.orgAddress.line2 != null}}, {{fields.orgAddress.line2}}{{/if}}, {{fields.orgAddress.locality}}, {{fields.orgAddress.region}} {{fields.orgAddress.postalCode}}
+- **Contact:** {{fields.orgContactName}}{{#if fields.orgContactTitle != null}}, {{fields.orgContactTitle}}{{/if}}
+- **Contact email:** {{fields.orgContactEmail}}
+- [{{#if fields.notSubjectToBackupWithholding}}x{{else}} {{/if}}] Not subject to backup withholding (W-9 Part II attestation)
 {{/if}}
 
 ## Bank Account
 
-- **Bank name:** {{bankName}}
-- **Routing / ABA #:** {{routingNumber}}
-- **Account #:** {{accountNumber}}
+- **Bank name:** {{fields.bankName}}
+- **Routing / ABA #:** {{fields.routingNumber}}
+- **Account #:** {{fields.accountNumber}}
 - **Type:**
-  - [{{#if (eq accountType "checking")}}x{{else}} {{/if}}] Checking
-  - [{{#if (eq accountType "savings")}}x{{else}} {{/if}}] Savings
-- **Name on account (if different):** {{nameOnAccount}}
-- [{{#if voidedCheckAttached}}x{{else}} {{/if}}] Voided check or bank letter attached
+  - [{{#if fields.accountType == "checking"}}x{{else}} {{/if}}] Checking
+  - [{{#if fields.accountType == "savings"}}x{{else}} {{/if}}] Savings
+- **Name on account (if different):** {{fields.nameOnAccount}}
+- [{{#if fields.voidedCheckAttached}}x{{else}} {{/if}}] Voided check or bank letter attached
 
-{{#if (eq actionType "change")}}
+{{#if fields.actionType == "change"}}
 ## Prior Bank Info (on file)
 
-- **Prior routing #:** {{priorRoutingNumber}}
-- **Prior account #:** {{priorAccountNumber}}
+- **Prior routing #:** {{fields.priorRoutingNumber}}
+- **Prior account #:** {{fields.priorAccountNumber}}
 - **Prior type:**
-  - [{{#if (eq priorAccountType "checking")}}x{{else}} {{/if}}] Checking
-  - [{{#if (eq priorAccountType "savings")}}x{{else}} {{/if}}] Savings
+  - [{{#if fields.priorAccountType == "checking"}}x{{else}} {{/if}}] Checking
+  - [{{#if fields.priorAccountType == "savings"}}x{{else}} {{/if}}] Savings
 {{/if}}
 
 ## Certification
@@ -643,14 +643,12 @@ const __c_ach_bank_account_info_md: string = `# ACH Bank Account Information
 
 ## Signature
 
-{{#with parties.accountHolder}}
-**Signature:** {{signature "accountHolderSignature"}}
-**Date:** {{signatureDate "accountHolderSignature"}}
-**Printed name:** {{printedName "accountHolderPrintedName"}}
-{{#if (eq ../accountHolderType "organization")}}
-**Title / capacity:** {{capacity "accountHolderCapacity"}}
+**Signature:** {{signature(parties.accountHolder, "accountHolderSignature")}}
+**Date:** {{signatureDate(parties.accountHolder, "accountHolderSignature")}}
+**Printed name:** {{printedName(parties.accountHolder, "accountHolderPrintedName")}}
+{{#if fields.accountHolderType == "organization"}}
+**Title / capacity:** {{capacity(parties.accountHolder, "accountHolderCapacity")}}
 {{/if}}
-{{/with}}
 `;
 
 const contents: Record<string, string | Uint8Array> = {

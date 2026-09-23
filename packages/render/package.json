@@ -87,6 +87,7 @@
     "@paradoc/types": "^0.5.0"
   },
   "dependencies": {
+    "@paradoc/expr": "workspace:^",
     "@paradoc/format": "workspace:^",
     "fflate": "^0.8.3"
   },

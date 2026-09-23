@@ -13,13 +13,10 @@ export type {
   FieldFormattingOptions,
   ProgressiveFormattingOptions,
 } from './text/field-formatter'
-export {
-  createCapacityHelper,
-  createInitialsHelper,
-  createPrintedNameHelper,
-  createSignatureDateHelper,
-  createSignatureHelper,
-  createTextSignatureHelpers,
-  registerSignatureHelpers,
-} from './text/signatures'
+export { createTextSignatureDirectives } from './text/signatures'
 export type { TextSignatureOptions } from './text/signatures'
+export { checkTextTemplate } from './template/check'
+export { TemplateError } from './template/errors'
+export type { TemplateDiagnostic, TemplatePosition } from './template/errors'
+export type { TemplateExpressionOptions } from './template/context'
+export type { SigningDirective } from './text/template'

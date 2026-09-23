@@ -27,8 +27,8 @@ describe('Rendering Concept', () => {
           .text(
             `
 # Invoice
-Customer: {{customer}}
-Total: {{total}}
+Customer: {{fields.customer}}
+Total: {{fields.total}}
     `,
           ),
         pdf: p.layer().file().mimeType('application/pdf').path('templates/invoice.pdf'),
@@ -93,7 +93,7 @@ Total: {{total}}
           .layer()
           .inline()
           .mimeType('text/markdown')
-          .text('Hello {{name}}'),
+          .text('Hello {{fields.name}}'),
       })
       .build()
 

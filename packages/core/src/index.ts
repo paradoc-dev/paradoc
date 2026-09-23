@@ -546,7 +546,9 @@ export type {
 // UTILITIES
 // ============================================================================
 
-export { validateArtifact as validate } from "./validation";
+export { validateArtifact as validate, validateLayers } from "./validation";
+export type { ValidateLayersOptions } from "./validation";
+export { buildTemplateTypeEnvironment } from "./logic/design-time/validation/validate-templates";
 export { parse } from "./serialization";
 
 // ============================================================================

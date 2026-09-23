@@ -16,13 +16,13 @@ This Pet Addendum ("Addendum") is entered into by and between the Landlord and T
 
 The Tenant is permitted to keep the following pet on the leased premises, subject to the terms and conditions set forth below.
 
-**Name of pet:** {{petName}}
+**Name of pet:** {{fields.petName}}
 
-**Species:** {{species}}
+**Species:** {{fields.species}}
 
-**Weight (lbs):** {{weight}}
+**Weight (lbs):** {{fields.weight}}
 
-**Vaccinated:** [{{#if isVaccinated}}x{{else}} {{/if}}] Pet is current on all required vaccinations
+**Vaccinated:** [{{#if fields.isVaccinated}}x{{else}} {{/if}}] Pet is current on all required vaccinations
 
 ---
 
@@ -36,20 +36,16 @@ The Tenant is permitted to keep the following pet on the leased premises, subjec
 
 4. The Landlord reserves the right to revoke this Addendum with 30 days written notice if the pet becomes a nuisance or causes damage to the property.
 
-5. {{#unless isVaccinated}}The Tenant acknowledges that the pet is not currently vaccinated and agrees to obtain all required vaccinations within 30 days of the effective date of this Addendum.{{/unless}}{{#if isVaccinated}}The Tenant agrees to maintain all required vaccinations for the duration of this Addendum.{{/if}}
+5. {{#unless fields.isVaccinated}}The Tenant acknowledges that the pet is not currently vaccinated and agrees to obtain all required vaccinations within 30 days of the effective date of this Addendum.{{/unless}}{{#if fields.isVaccinated}}The Tenant agrees to maintain all required vaccinations for the duration of this Addendum.{{/if}}
 
 ---
 
 ## Signatures
 
-{{#with parties.tenant}}
-Tenant signature: {{signature "tenant-sig"}}
+Tenant signature: {{signature(parties.tenant, "tenant-sig")}}
 
-Date: {{signatureDate "tenant-date"}}
-{{/with}}
+Date: {{signatureDate(parties.tenant, "tenant-date")}}
 
-{{#with parties.landlord}}
-Landlord signature: {{signature "landlord-sig"}}
+Landlord signature: {{signature(parties.landlord, "landlord-sig")}}
 
-Date: {{signatureDate "landlord-date"}}
-{{/with}}
+Date: {{signatureDate(parties.landlord, "landlord-date")}}

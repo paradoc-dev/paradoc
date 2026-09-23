@@ -454,7 +454,7 @@ const schema = {
       "title": "Markdown rendering",
       "description": "Linearized markdown view of the form. Every field and party reference appears at least once.",
       "path": "1099-misc.md",
-      "checksum": "sha256:e767ea924e2f41b64dbf6441d3b066e88a3afb8187bb614ae00175f2f3b0615c"
+      "checksum": "sha256:3fc50a7983a70452699453292a62fb19296d917c1426f98b2974e8f2c3b34eca"
     }
   },
   "defaultLayer": "pdfCopyA"
@@ -1169,64 +1169,64 @@ const __c_1099_misc_md: string = `# Form 1099-MISC — Miscellaneous Information
 **Revision:** April 2025
 **Issuer:** U.S. Department of the Treasury — Internal Revenue Service
 
-For calendar year **{{calendarYear}}**.
+For calendar year **{{fields.calendarYear}}**.
 
 ---
 
 ## Indicators
 
-- [{{#if void}}x{{else}} {{/if}}] **VOID** (filer-side; renders only on Copy A and Copy 1)
-- [{{#if corrected}}x{{else}} {{/if}}] **CORRECTED**
+- [{{#if fields.void}}x{{else}} {{/if}}] **VOID** (filer-side; renders only on Copy A and Copy 1)
+- [{{#if fields.corrected}}x{{else}} {{/if}}] **CORRECTED**
 
 ## Payer
 
 **Name:** {{parties.payer.name}}
 
 **Mailing address:**
-- {{payerAddress.line1}}
-- {{#if payerAddress.line2}}{{payerAddress.line2}}{{/if}}
-- {{payerAddress.locality}}, {{payerAddress.region}} {{payerAddress.postalCode}}
-- {{payerAddress.country}}
+- {{fields.payerAddress.line1}}
+- {{#if fields.payerAddress.line2 != null}}{{fields.payerAddress.line2}}{{/if}}
+- {{fields.payerAddress.locality}}, {{fields.payerAddress.region}} {{fields.payerAddress.postalCode}}
+- {{fields.payerAddress.country}}
 
-**Telephone:** {{payerPhone.number}}
+**Telephone:** {{fields.payerPhone.number}}
 
-**TIN:** {{payerTin}}
+**TIN:** {{fields.payerTin}}
 
 ## Recipient
 
 **Name:** {{parties.recipient.name}}
 
 **Mailing address:**
-- {{recipientAddress.line1}}
-- {{#if recipientAddress.line2}}{{recipientAddress.line2}}{{/if}}
-- {{recipientAddress.locality}}, {{recipientAddress.region}} {{recipientAddress.postalCode}}
-- {{recipientAddress.country}}
+- {{fields.recipientAddress.line1}}
+- {{#if fields.recipientAddress.line2 != null}}{{fields.recipientAddress.line2}}{{/if}}
+- {{fields.recipientAddress.locality}}, {{fields.recipientAddress.region}} {{fields.recipientAddress.postalCode}}
+- {{fields.recipientAddress.country}}
 
-**TIN:** {{recipientTin}}
+**TIN:** {{fields.recipientTin}}
 
-**Account number:** {{accountNumber}}
+**Account number:** {{fields.accountNumber}}
 
-- [{{#if secondTinNotice}}x{{else}} {{/if}}] **2nd TIN not.** (Copy A only — payer flags two prior incorrect-TIN notices)
+- [{{#if fields.secondTinNotice}}x{{else}} {{/if}}] **2nd TIN not.** (Copy A only — payer flags two prior incorrect-TIN notices)
 
 ## Income / withholding
 
 | Box | Item | Amount |
 |---:|---|---:|
-| 1 | Rents | {{rents}} |
-| 2 | Royalties | {{royalties}} |
-| 3 | Other income | {{otherIncome}} |
-| 4 | Federal income tax withheld | {{federalIncomeTaxWithheld}} |
-| 5 | Fishing boat proceeds | {{fishingBoatProceeds}} |
-| 6 | Medical and health care payments | {{medicalAndHealthCarePayments}} |
-| 7 | Direct sales of $5,000 or more of consumer products to recipient for resale | [{{#if directSales5kOrMore}}x{{else}} {{/if}}] |
-| 8 | Substitute payments in lieu of dividends or interest | {{substitutePayments}} |
-| 9 | Crop insurance proceeds | {{cropInsuranceProceeds}} |
-| 10 | Gross proceeds paid to an attorney | {{grossProceedsAttorney}} |
-| 11 | Fish purchased for resale | {{fishPurchasedForResale}} |
-| 12 | Section 409A deferrals | {{section409aDeferrals}} |
-| 13 | FATCA filing requirement | [{{#if fatcaFilingRequirement}}x{{else}} {{/if}}] |
+| 1 | Rents | {{fields.rents}} |
+| 2 | Royalties | {{fields.royalties}} |
+| 3 | Other income | {{fields.otherIncome}} |
+| 4 | Federal income tax withheld | {{fields.federalIncomeTaxWithheld}} |
+| 5 | Fishing boat proceeds | {{fields.fishingBoatProceeds}} |
+| 6 | Medical and health care payments | {{fields.medicalAndHealthCarePayments}} |
+| 7 | Direct sales of $5,000 or more of consumer products to recipient for resale | [{{#if fields.directSales5kOrMore}}x{{else}} {{/if}}] |
+| 8 | Substitute payments in lieu of dividends or interest | {{fields.substitutePayments}} |
+| 9 | Crop insurance proceeds | {{fields.cropInsuranceProceeds}} |
+| 10 | Gross proceeds paid to an attorney | {{fields.grossProceedsAttorney}} |
+| 11 | Fish purchased for resale | {{fields.fishPurchasedForResale}} |
+| 12 | Section 409A deferrals | {{fields.section409aDeferrals}} |
+| 13 | FATCA filing requirement | [{{#if fields.fatcaFilingRequirement}}x{{else}} {{/if}}] |
 | 14 | *(reserved for future use)* | — |
-| 15 | Nonqualified deferred compensation | {{nonqualifiedDeferredCompensation}} |
+| 15 | Nonqualified deferred compensation | {{fields.nonqualifiedDeferredCompensation}} |
 
 ## State tax information (boxes 16–18)
 
@@ -1234,8 +1234,8 @@ For calendar year **{{calendarYear}}**.
 
 | Row | 16 — State tax withheld | 17 — State / payer's state no. | 18 — State income |
 |---|---:|---|---:|
-| 1 | {{state1TaxWithheld}} | {{state1PayerStateNo}} | {{state1Income}} |
-| 2 | {{state2TaxWithheld}} | {{state2PayerStateNo}} | {{state2Income}} |
+| 1 | {{fields.state1TaxWithheld}} | {{fields.state1PayerStateNo}} | {{fields.state1Income}} |
+| 2 | {{fields.state2TaxWithheld}} | {{fields.state2PayerStateNo}} | {{fields.state2Income}} |
 
 ---
 

@@ -38,7 +38,7 @@ Embed template content in the artifact JSON.
     "kind": "inline",
     "mimeType": "text/markdown",
     "title": "Markdown Template",
-    "text": "# Lease Agreement\n\nTenant: {{tenantName}}\nRent: {{monthlyRent}}"
+    "text": "# Lease Agreement\n\nTenant: {{fields.tenantName}}\nRent: {{fields.monthlyRent}}"
   }
 }
 ```
@@ -87,7 +87,7 @@ For workflow contexts (creating artifacts from scratch, converting PDFs): ALWAYS
 
 ## Bindings
 
-Bindings map form field IDs (keys) to template placeholder names (values). Essential for PDF/DOCX where placeholder names differ from field IDs. Optional for text/markdown/HTML where you can use `{{fieldName}}` directly.
+Bindings map form field IDs (keys) to template placeholder names (values). Essential for PDF/DOCX where placeholder names differ from field IDs. Optional for text/markdown/HTML where you can use `{{fields.fieldName}}` directly.
 
 ```json
 "bindings": {
@@ -176,77 +176,101 @@ The value MUST match a key in `layers`.
 
 ## Paradoc Template Syntax
 
-Text-based templates (Markdown, HTML, plain text) use Paradoc's deterministic
-template syntax. It supports interpolation, escaping, conditionals, loops,
-context changes, and built-in helpers without executing arbitrary JavaScript.
-When rendering via `form.fill(data).render()`, **field values are spread at the
-top level** — NOT nested under `fields.*`:
+Text-based templates (Markdown, HTML, plain text) and DOCX templates keep their block markers, and EVERYTHING inside a marker is an artifact expression — the same language as `visible`, `required`, defs, and rules (see [logic.md](./logic.md)). Nothing runs arbitrary JavaScript.
+
+Roots are the same as field logic:
+
+- `fields.<id>` — field values (`{{fields.monthlyRent}}`, `{{fields.address.line1}}`)
+- a defs key by name — computed values (`{{totalDue}}`)
+- `parties.<role>` — typed party values (`{{parties.landlord.name}}`); a role with `max > 1` is a list
+- `items.<id>` — checklist item values (`{{items.reviewed}}`); hyphenated ids use brackets: `{{items["signed-contract"]}}`
+
+ALWAYS write `{{fields.tenantName}}`. A bare `{{tenantName}}` is an unknown reference and fails validation. There is no `schema.*` or `annexes.*` root; write the title as text.
 
 ```text
-# {{title}}
+# Residential Lease
 
-**Tenant:** {{tenantName}}
-**Monthly Rent:** {{monthlyRent}}
-**Start Date:** {{leaseStartDate}}
+**Tenant:** {{fields.tenantName}}
+**Monthly Rent:** {{fields.monthlyRent}}
+**Deposit:** {{fields.monthlyRent.amount * 2}}
+**Start Date:** {{fields.leaseStartDate}}
 ```
 
-NEVER use `{{fields.tenantName}}` or `{{tenantName.value}}` in text templates.
-
-Parties and annexes remain namespaced: `{{parties.landlord}}`, `{{annexes.photoId}}`. Schema metadata: `{{schema.title}}`, `{{schema.name}}`.
+A placeholder that is a path prints the value formatted for its type. A computed value is formatted by its result type. `{{{ }}}` prints without HTML escaping.
 
 ### Conditional sections
 
+A condition MUST be boolean. Compare text, numbers, and optional values; NEVER test them bare.
+
 ```text
-{{#if hasPets}}
+{{#if fields.hasPets}}
 ## Pet Information
-Number of pets: {{petCount}}
-Pet deposit: {{petDeposit}}
+Number of pets: {{fields.petCount}}
 {{/if}}
+
+{{#if fields.notes != null}}Notes: {{fields.notes}}{{/if}}
+{{#if fields.status == "active" and fields.balance.amount > 0}}...{{else}}...{{/if}}
+{{#unless fields.smokingAllowed}}No smoking.{{/unless}}
 ```
 
 ### Iteration
 
+A loop source MUST be a list. Inside `{{#each}}`, `item` is the current row and `parent` the enclosing row. `index(item)`, `first(item)`, and `last(item)` give the position and work only inside a loop.
+
 ```text
-Languages: {{#each languages}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+Languages: {{#each fields.languages}}{{item}}{{#unless last(item)}}, {{/unless}}{{/each}}
+{{#each fields.orders}}{{index(item) + 1}}. {{item.name}}: {{#each item.parts}}{{parent.name}}/{{item}} {{/each}}{{/each}}
+Total: {{sum(fields.orders.amount)}}
 ```
 
-### Signature helpers
+### Removed syntax (validation names the replacement)
 
-NEVER use manual underscore lines for signatures. Use the built-in helpers.
+| Removed | Write |
+|---------|-------|
+| `(eq a b)`, `ne`, `gt`, `gte`, `lt`, `lte` | `a == b`, `!=`, `>`, `>=`, `<`, `<=` |
+| `(and a b)`, `(or a b)`, `(not a)` | `a and b`, `a or b`, `not a` |
+| `(contains list x)` | `x in list` |
+| `{{default v "x"}}` | `{{coalesce(v, "x")}}` |
+| `{{#with X}}` | full paths, `X.member` |
+| `this`, `../`, `@root` | `item`, `parent`, a path from the root |
+| `@index`, `@first`, `@last` | `index(item)`, `first(item)`, `last(item)` |
+| DOCX `===`, `!==`, `{{$row.x}}` | `==`, `!=`, `{{row.x}}` |
 
-| Helper | Renders |
-|--------|---------|
-| `{{signature "locationId"}}` | Signature placeholder or captured image |
-| `{{initials "locationId"}}` | Initials placeholder or captured image |
-| `{{signatureDate "locationId"}}` | `[DATE]` or actual capture date |
+### Signature directives
 
-The `locationId` is a **document-location string** (where in the document, NOT which party). Use the SAME `locationId` for all parties at the same location — party differentiation is automatic from template context.
+NEVER use manual underscore lines for signatures. Use the signing directives. They place marks, and their arguments are expressions.
 
-**Context requirement:** signature helpers MUST be inside a party block — `{{#each parties.<role>}}` (multi-instance) or `{{#with parties.<role>}}` (single-instance).
+| Directive | Renders |
+|-----------|---------|
+| `{{signature(party, "locationId")}}` | Signature placeholder or captured image |
+| `{{initials(party, "locationId")}}` | Initials placeholder or captured image |
+| `{{signatureDate(party, "locationId")}}` | `[DATE]` or actual capture date |
+
+The `locationId` is a **document-location string** (where in the document, NOT which party). Use the SAME `locationId` for all parties at the same location — the party argument tells them apart.
+
+**Party:** pass it first — `{{signature(parties.tenant, "final-sig")}}`. Inside `{{#each parties.<role>}}` or `{{#each parties.<role>.signatories}}`, omit it: `{{signature("final-sig")}}` signs for the current row.
 
 #### Single-instance party
 
 ```text
-{{#with parties.tenant}}
-Tenant: {{name}}
-Signature: {{signature "final-sig"}}
-Date: {{signatureDate "final-sig"}}
-{{/with}}
+Tenant: {{parties.tenant.name}}
+Signature: {{signature(parties.tenant, "final-sig")}}
+Date: {{signatureDate(parties.tenant, "final-sig")}}
 
-{{#with parties.landlord}}
-Landlord: {{name}}
-Signature: {{signature "final-sig"}}
-Date: {{signatureDate "final-sig"}}
-{{/with}}
+Landlord: {{parties.landlord.name}}
+Signature: {{signature(parties.landlord, "final-sig")}}
+Date: {{signatureDate(parties.landlord, "final-sig")}}
 ```
+
+For an optional party, guard the block: `{{#if parties.spouse != null}}...{{/if}}`.
 
 #### Multi-instance party
 
 ```text
 {{#each parties.tenant}}
-Tenant: {{name}}
-Signature: {{signature "final-sig"}}
-Date: {{signatureDate "final-sig"}}
+Tenant: {{item.name}}
+Signature: {{signature("final-sig")}}
+Date: {{signatureDate("final-sig")}}
 {{/each}}
 ```
 
@@ -254,10 +278,10 @@ Date: {{signatureDate "final-sig"}}
 
 ```text
 {{#each parties.landlord.signatories}}
-{{signer.person.name}}, {{capacity}}
-Signature: {{signature "final-sig"}}
-Initials: {{initials "page-init"}}
-Date: {{signatureDate "final-sig"}}
+{{item.signer.person.name}}, {{item.capacity}}
+Signature: {{signature("final-sig")}}
+Initials: {{initials("page-init")}}
+Date: {{signatureDate("final-sig")}}
 {{/each}}
 ```
 
@@ -268,52 +292,44 @@ Tenant: _________________________ Date: _________
 Landlord: _________________________ Date: _________
 ```
 
-Always use the helpers inside a party block.
+Always use the directives.
 
 ## Common Template Patterns
 
 ### Markdown layer
 
 ```markdown
-# {{title}}
+# Residential Lease Application
 
-{{#if description}}
-{{description}}
-
-{{/if}}
 ---
 
 ## Personal Information
 
 | Field | Value |
 |-------|-------|
-| Name | {{firstName}} {{lastName}} |
-| Date of Birth | {{dateOfBirth}} |
+| Name | {{fields.firstName}} {{fields.lastName}} |
+| Date of Birth | {{fields.dateOfBirth}} |
 
-{{#if hasPets}}
+{{#if fields.hasPets}}
 ## Pet Information
 
 | Field | Value |
 |-------|-------|
-| Number of Pets | {{petCount}} |
-| Pet Deposit | {{petDeposit}} |
+| Number of Pets | {{fields.petCount}} |
+| Pet Deposit | {{fields.petDeposit}} |
 {{/if}}
 
 ---
 
 ## Signatures
 
-{{#with parties.tenant}}
-**Tenant:** {{name}}
-Signature: {{signature "final-sig"}}
-Date: {{signatureDate "final-sig"}}
-{{/with}}
+**Tenant:** {{parties.tenant.name}}
+Signature: {{signature(parties.tenant, "final-sig")}}
+Date: {{signatureDate(parties.tenant, "final-sig")}}
 
-{{#with parties.landlord}}
-**Landlord:** {{name}}
-Signature: {{signature "final-sig"}}
-Date: {{signatureDate "final-sig"}}
-{{/with}}
+**Landlord:** {{parties.landlord.name}}
+Signature: {{signature(parties.landlord, "final-sig")}}
+Date: {{signatureDate(parties.landlord, "final-sig")}}
 ```
 
 ### HTML layer
@@ -321,49 +337,64 @@ Date: {{signatureDate "final-sig"}}
 ```html
 <!DOCTYPE html>
 <html>
-<head><title>{{title}}</title></head>
+<head><title>Residential Lease Application</title></head>
 <body>
-  <h1>{{title}}</h1>
+  <h1>Residential Lease Application</h1>
   <table>
-    <tr><td>Name</td><td>{{firstName}} {{lastName}}</td></tr>
-    <tr><td>DOB</td><td>{{dateOfBirth}}</td></tr>
+    <tr><td>Name</td><td>{{fields.firstName}} {{fields.lastName}}</td></tr>
+    <tr><td>DOB</td><td>{{fields.dateOfBirth}}</td></tr>
   </table>
 
-  {{#with parties.tenant}}
   <div>
-    <p><strong>Tenant:</strong> {{name}}</p>
-    <p>Signature: {{signature "final-sig"}}</p>
-    <p>Date: {{signatureDate "final-sig"}}</p>
+    <p><strong>Tenant:</strong> {{parties.tenant.name}}</p>
+    <p>Signature: {{{signature(parties.tenant, "final-sig")}}}</p>
+    <p>Date: {{{signatureDate(parties.tenant, "final-sig")}}}</p>
   </div>
-  {{/with}}
 </body>
 </html>
 ```
 
+In HTML, write signing directives with `{{{ }}}` so their markup is not escaped.
+
 ### Plain text layer
 
 ```text
-{{title}}
+RESIDENTIAL LEASE APPLICATION
 ============================================================
 
 PERSONAL INFORMATION
 ------------------------------------------------------------
-Name:          {{firstName}} {{lastName}}
-Date of Birth: {{dateOfBirth}}
+Name:          {{fields.firstName}} {{fields.lastName}}
+Date of Birth: {{fields.dateOfBirth}}
 
-{{#with parties.tenant}}
-Tenant:    {{name}}
-Signature: {{signature "final-sig"}}
-Date:      {{signatureDate "final-sig"}}
-{{/with}}
+Tenant:    {{parties.tenant.name}}
+Signature: {{signature(parties.tenant, "final-sig")}}
+Date:      {{signatureDate(parties.tenant, "final-sig")}}
 ```
+
+### DOCX layer
+
+```text
+{{IF fields.hasPets}}
+Pet deposit: {{fields.petDeposit}}
+{{END-IF}}
+{{FOR line IN fields.lines}}
+{{index(line) + 1}}. {{line.description}} {{line.amount}}
+{{END-FOR line}}
+```
+
+A DOCX `FOR` names its row; a `FOR` paragraph inside a table row repeats the row.
+
+### Validation
+
+`validate()` (and `paradoc validate`, `validate_artifact`) checks every template expression in inline layers; file-backed text and DOCX layers are checked through a resolver by `validateLayers()`. Errors name the layer, line and column (or DOCX paragraph), and the expression.
 
 ## Layer Design Checklist
 
 1. Reference every required field in at least one layer
-2. Use `{{fieldName}}` syntax (not `{{fields.fieldName}}`)
+2. Use `{{fields.fieldName}}` paths, and boolean conditions (`{{#if fields.x != null}}`)
 3. Add conditional sections (`{{#if}}`) for fields with `visible` expressions
-4. Use signature helpers inside party loops — NEVER manual underscore lines
+4. Use signing directives — NEVER manual underscore lines
 5. Set `defaultLayer` on the artifact
 6. Include form title and description at the top
 7. Group fields into logical sections matching fieldsets

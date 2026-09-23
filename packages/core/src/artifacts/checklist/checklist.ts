@@ -6,6 +6,7 @@
  */
 
 import type { Checklist, ChecklistItem, Layer, Metadata, ParadocRenderer, RendererLayer, Form, ContentRef, Resolver } from '@paradoc/types'
+import { createContext } from '@paradoc/expr'
 import { buildRendererLayer } from '../shared/render-layer'
 import type { ArtifactInstanceOptions } from '../shared/render-layer'
 import {
@@ -594,34 +595,8 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 
 		const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
-		// Build checklist data for rendering
-		// Convert items to array format with values for template iteration
+		// A checklist template reads `items.<id>` from its expression context.
 		const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
-		const itemsWithValues = checklistItems.map((item) => ({
-			id: item.id,
-			title: item.title,
-			description: item.description,
-			value: validatedItems.get(item.id),
-		}))
-
-		const fullData = {
-			schema: {
-				name: checklistDef.name,
-				version: checklistDef.version,
-				title: checklistDef.title,
-				description: checklistDef.description,
-				code: checklistDef.code,
-				releaseDate: checklistDef.releaseDate,
-				metadata: checklistDef.metadata,
-			},
-			// Top-level title for template access
-			title: checklistDef.title,
-			description: checklistDef.description,
-			// Items array for {{#each items}}
-			items: itemsWithValues,
-			// Also include raw item values at top level for direct access
-			...getAllItems(),
-		}
 
 		// Create a minimal form-like object for the renderer
 		// Renderers mainly use template and data, form is just context
@@ -637,11 +612,13 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 		return await renderer.render({
 			template,
 			form: formContext,
-			data: { fields: fullData },
+			data: { fields: {} },
 			bindings,
-			ctx: options?.formatter || options?.progressive
-				? { formatter: options.formatter, progressive: options.progressive }
-				: undefined,
+			ctx: {
+				expressions: { context: createContext({ items: Object.fromEntries(checklistItems.map((item) => [item.id, validatedItems.get(item.id) ?? null])) }) },
+				...(options?.formatter && { formatter: options.formatter }),
+				...(options?.progressive && { progressive: options.progressive }),
+			},
 		})
 	}
 
@@ -1025,29 +1002,8 @@ function createChecklistInstance<C extends Checklist>(
 
 			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
-			// Build checklist data for rendering (no item values since not filled)
+			// A checklist template reads `items.<id>` from its expression context.
 			const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
-			const itemsWithoutValues = checklistItems.map((item) => ({
-				id: item.id,
-				title: item.title,
-				description: item.description,
-				value: undefined,
-			}))
-
-			const fullData = {
-				schema: {
-					name: checklistDef.name,
-					version: checklistDef.version,
-					title: checklistDef.title,
-					description: checklistDef.description,
-					code: checklistDef.code,
-					releaseDate: checklistDef.releaseDate,
-					metadata: checklistDef.metadata,
-				},
-				title: checklistDef.title,
-				description: checklistDef.description,
-				items: itemsWithoutValues,
-			}
 
 			const formContext = {
 				kind: 'form' as const,
@@ -1061,11 +1017,13 @@ function createChecklistInstance<C extends Checklist>(
 			return await renderer.render({
 				template,
 				form: formContext,
-				data: { fields: fullData },
+				data: { fields: {} },
 				bindings,
-				ctx: options?.formatter || options?.progressive
-					? { formatter: options.formatter, progressive: options.progressive }
-					: undefined,
+				ctx: {
+					expressions: { context: createContext({ items: Object.fromEntries(checklistItems.map((item) => [item.id, null])) }) },
+					...(options?.formatter && { formatter: options.formatter }),
+					...(options?.progressive && { progressive: options.progressive }),
+				},
 			})
 		},
 

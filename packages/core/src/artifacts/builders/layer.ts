@@ -133,7 +133,7 @@ export function fileLayer(): FileLayerBuilderType {
  * @example
  * ```ts
  * const textLayer = inlineLayer()
- *   .text('Hello {{name}}!')
+ *   .text('Hello {{fields.name}}!')
  *   .mimeType('text/plain')
  *   .title('Greeting')
  *   .build()

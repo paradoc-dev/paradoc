@@ -295,7 +295,7 @@ export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
  * Options for rendering a RuntimeChecklist.
  *
  * The renderer is optional - if not provided, returns raw layer content.
- * When a renderer is provided, it processes template variables like {{title}}, {{items}}, etc.
+ * When a renderer is provided, it evaluates the template's expressions, such as {{items.reviewed}}.
  *
  * @typeParam Output - The output type produced by the renderer
  *

@@ -63,7 +63,7 @@ describe('a resolver bound at construction', () => {
 
 	const resolver = createMemoryResolver({
 		contents: {
-			'bound.md': 'Name: {{name}}',
+			'bound.md': 'Name: {{fields.name}}',
 			'bound.pdf': MINIMAL_PDF,
 		},
 	})

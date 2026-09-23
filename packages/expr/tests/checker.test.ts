@@ -75,3 +75,13 @@ describe('checker — boolean gate context', () => {
 		expect(check('fields.rent.amount > 1000', env).diagnostics).toEqual([])
 	})
 })
+
+describe('string keys', () => {
+	it('types a member read by a string key, and reports an unknown one', () => {
+		const keyed = createTypeEnv({ items: T.object, 'items.signed-contract': T.boolean })
+		expect(check('items["signed-contract"]', keyed)).toEqual({ type: T.boolean, diagnostics: [] })
+		expect(check('items["nope"]', keyed).diagnostics).toEqual([
+			expect.objectContaining({ code: 'unknown-identifier', message: 'Unknown reference: items.nope' }),
+		])
+	})
+})

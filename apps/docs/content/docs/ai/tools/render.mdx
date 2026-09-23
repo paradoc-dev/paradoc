@@ -52,7 +52,7 @@ const result = await executeRender({
     title: "Note",
     fields: { name: { type: "text", label: "Name", required: true } },
     layers: {
-      markdown: { kind: "inline", mimeType: "text/markdown", text: "# Note for {{name}}" },
+      markdown: { kind: "inline", mimeType: "text/markdown", text: "# Note for {{fields.name}}" },
     },
     defaultLayer: "markdown",
   },

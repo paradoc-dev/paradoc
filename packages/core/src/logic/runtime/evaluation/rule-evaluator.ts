@@ -9,7 +9,7 @@
 
 import type { Form, ValidationRule, RulesSection, RuleSeverity } from '@paradoc/types'
 import { evaluateExpression } from './expression-evaluator'
-import { ROW_VISIBILITY, type EvaluationContext } from './types'
+import { PARTY_ENTRIES, ROW_VISIBILITY, WITNESS_ENTRIES, type EvaluationContext } from './types'
 
 // ============================================================================
 // Types
@@ -78,9 +78,12 @@ export function buildRuleContext(
     context[key] = value
   }
 
-  // Add parties and witnesses for party functions
+  // Parties as a typed root, and the signing state the party predicates read
   context.parties = fullContext.parties
-  context.witnesses = fullContext.witnesses
+  Object.assign(context, {
+    [PARTY_ENTRIES]: fullContext[PARTY_ENTRIES],
+    [WITNESS_ENTRIES]: fullContext[WITNESS_ENTRIES],
+  })
 
   // Also add the full fields context so rules can use either syntax:
   // - Flat: `ssn` (direct field name)

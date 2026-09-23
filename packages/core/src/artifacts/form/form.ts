@@ -92,6 +92,7 @@ import type {
 } from '@/inference'
 import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesValidationResult } from '@/logic'
 import { buildFormContext, evaluateFormDefs, evaluateFormRules } from '@/logic'
+import { buildTemplateExpressionContext } from '@/logic/runtime/evaluation/context-builder'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
 import { buildRendererLayer, selectLayerRenderer } from '../shared/render-layer'
 import type { ArtifactInstanceOptions } from '../shared/render-layer'
@@ -3024,6 +3025,17 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			// template that names `parties.landlord` still reads them: the text,
 			// PDF and DOCX renderers take them from either place, and one place
 			// is enough.
+			// Templates read the expression context field logic reads, with the
+			// parties carrying the signing records their marks are placed for.
+			const expressions = {
+				context: buildTemplateExpressionContext(formDef, {
+					fields: fieldValues,
+					parties: partyValues,
+					witnesses: witnesses.map((witness) => witness.party),
+					context,
+				}, augmentedParties),
+			}
+
 			return await renderer.render({
 				template,
 				form: formDef,
@@ -3032,7 +3044,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					...(Object.keys(augmentedParties).length > 0 && { parties: augmentedParties }),
 				},
 				bindings,
-				ctx: formatter || progressive ? { formatter, progressive } : undefined,
+				ctx: { expressions, ...(formatter && { formatter }), ...(progressive && { progressive }) },
 			}) as Output
 		},
 
@@ -3308,12 +3320,18 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				formData = { fields: (data ?? {}) as Record<string, unknown> }
 			}
 
+			const payload = formData as { fields: Record<string, unknown>; parties?: Record<string, Party | Party[]> }
+			const parties = payload.parties ?? (payload.fields.parties as Record<string, Party | Party[]> | undefined) ?? {}
+			const expressions = {
+				context: buildTemplateExpressionContext(formDef, { fields: payload.fields, parties }, parties),
+			}
+
 			return await renderer.render({
 				template,
 				form: formDef,
 				data: formData,
 				bindings,
-				ctx: formatter || progressive ? { formatter, progressive } : undefined,
+				ctx: { expressions, ...(formatter && { formatter }), ...(progressive && { progressive }) },
 			}) as Output
 		},
 

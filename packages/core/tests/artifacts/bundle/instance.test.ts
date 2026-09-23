@@ -122,7 +122,7 @@ describe('BundleInstance', () => {
       const formInstance = form()
         .name('greeting-form')
         .fields({ name: { type: 'text', required: true } })
-        .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello, {{name}}!' })
+        .inlineLayer('default', { mimeType: 'text/plain', text: 'Hello, {{fields.name}}!' })
         .defaultLayer('default')
         .build()
 
