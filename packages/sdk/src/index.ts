@@ -12,7 +12,7 @@ export * from '@paradoc/core'
 // @paradoc/render/text, @paradoc/render/pdf, and @paradoc/render/docx.
 export { renderLayer } from '@paradoc/render'
 export type { RenderLayerOptions } from '@paradoc/render'
-export { hostedSealAdapter } from './hosted-seal-adapter'
+export { HostedConversionError, hostedSealAdapter } from './hosted-seal-adapter'
 export type { HostedSealAdapterOptions } from './hosted-seal-adapter'
 
 // Placement: locate signature markers and anchor text in converted PDFs.
