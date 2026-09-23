@@ -1,5 +1,5 @@
 {
   "title": "Skill",
-  "pages": ["index"],
+  "pages": ["index", "compose-documents"],
   "defaultOpen": false
 }

@@ -1,11 +1,13 @@
 ---
 title: render
-description: Render an Paradoc artifact from a verified registry as text, PDF, or DOCX
+description: Render a Paradoc artifact from a verified registry as text, PDF, or DOCX
 ogTitle: render — Paradoc MCP
-ogDescription: Render an Paradoc artifact from a verified registry using the MCP server
+ogDescription: Render a Paradoc artifact from a verified registry using the MCP server
 ---
 
-Renders an Paradoc form artifact from a verified registry. Looks up the artifact by `registry_id` and `artifact_name`, fetches it from the registry, validates, fills with data, and renders via the appropriate renderer (text, PDF, DOCX). Returns a short download link by default, or content inline.
+Renders a Paradoc form artifact from a verified registry. Looks up the artifact by `registry_id` and `artifact_name`, fetches it from the registry, validates, fills with data, and renders via the appropriate renderer (text, PDF, DOCX). Returns a short download link by default, or content inline.
+
+Requires an [authenticated session](/mcp#authentication).
 
 <Callout type="info">
   Only form artifacts can be rendered. The registry must have `verified` status.

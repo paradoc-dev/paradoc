@@ -1,11 +1,13 @@
 ---
 title: fill
-description: Fill an Paradoc form or checklist with data, apply defaults, and validate
+description: Fill a Paradoc form or checklist with data and report whether it is complete
 ogTitle: fill — Paradoc MCP
-ogDescription: Fill an Paradoc form or checklist with data using the MCP server
+ogDescription: Fill a Paradoc form or checklist with data using the MCP server
 ---
 
 Creates a progressive draft from supplied data. Supplied values validate immediately while omitted required values remain open. The response reports `accepted` for the supplied patch and `complete` for full readiness. Pass the full artifact JSON and a data object. Call `get_artifact` first to inspect field and party definitions.
+
+The tool works only on the artifact you pass in and calls no registry or API. Like every tool on this server, it needs an [authenticated session](/mcp#authentication).
 
 <Callout type="info">
   Only forms and checklists support filling. Passing a document or bundle will return an error.
@@ -22,15 +24,16 @@ Creates a progressive draft from supplied data. Supplied values validate immedia
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `valid` | `boolean` | Whether the data passed validation |
+| `accepted` | `boolean` | Whether every supplied value was accepted |
+| `complete` | `boolean` | Whether the artifact is ready for its final transition (every required value present and valid) |
 | `artifactKind` | `string` | Detected kind: `form` or `checklist` |
-| `data` | `object` | The validated data with defaults applied (on success) |
-| `errors` | `array` | List of validation errors, each with `field` and `message` |
-| `error` | `string` | Error message if filling could not be performed |
+| `data` | `object` | The accepted values with defaults applied (when `accepted` is `true`) |
+| `errors` | `array` | Rejected values, each with `field` and `message` |
+| `error` | `string` | Error message if filling could not be performed (for example, the artifact is not a form or checklist) |
 
 ## Examples
 
-### Successful fill
+### Accepted patch
 
 ```json
 // Request
@@ -41,15 +44,16 @@ Creates a progressive draft from supplied data. Supplied values validate immedia
 
 // Response
 {
-  "valid": true,
+  "accepted": true,
+  "complete": false,
   "artifactKind": "form",
   "data": { "firstName": "Jane", "age": 30 }
 }
 ```
 
-The `data` field in the response contains the validated data with any default values applied by the artifact definition.
+The supplied values were accepted, but `complete` is `false` because other required fields are still open. The `data` field contains the accepted values with any defaults the artifact defines. The tool keeps no state between calls: to continue the draft, call it again with every value so far. `complete` turns `true` once every required value is present and valid.
 
-### Failed validation
+### Rejected value
 
 ```json
 // Request
@@ -60,7 +64,8 @@ The `data` field in the response contains the validated data with any default va
 
 // Response
 {
-  "valid": false,
+  "accepted": false,
+  "complete": false,
   "artifactKind": "form",
   "errors": [
     { "field": "age", "message": "Expected number, received string" }
@@ -68,4 +73,4 @@ The `data` field in the response contains the validated data with any default va
 }
 ```
 
-Each error includes the `field` name and a `message` describing the validation failure.
+Each error names the `field` and gives a `message` describing why the value was rejected.
