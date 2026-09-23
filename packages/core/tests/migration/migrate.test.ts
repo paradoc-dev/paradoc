@@ -91,6 +91,53 @@ describe('2026-08-10 to 2026-09-22', () => {
 		expect(error.message).toContain('fields.stay.default = "PT"')
 	})
 
+	test('drops the party key multiple, which never had an effect', () => {
+		const source = JSON.parse(fixture('lease-2026-08-10.json'))
+		source.parties.tenant.multiple = true
+		source.parties.tenant.max = 4
+		expect(validate(source).issues).toBeDefined()
+
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		const artifact = result.artifact as Json
+		expect(artifact.parties.tenant).toEqual({ label: 'Tenant', max: 4 })
+		expect(validate(artifact).issues).toBeUndefined()
+	})
+
+	test('moves a flat bbox definition to corners without loss', () => {
+		const source = JSON.parse(fixture('lease-2026-08-10.json'))
+		source.defs = {
+			box: { type: 'bbox', value: { north: '10', south: '5', east: '20', west: '15' } },
+		}
+
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		const artifact = result.artifact as Json
+		expect(artifact.defs.box.value).toEqual({
+			southWest: { lat: '5', lon: '15' },
+			northEast: { lat: '10', lon: '20' },
+		})
+		expect(validate(artifact).issues).toBeUndefined()
+	})
+
+	test('a flat bbox definition with another member cannot be converted and is named', () => {
+		const source = JSON.parse(fixture('lease-2026-08-10.json'))
+		source.defs = {
+			box: { type: 'bbox', value: { north: '10', south: '5', east: '20', west: '15', centre: '0' } },
+		}
+		const error = migrationError(() => migrateArtifact(source))
+		expect(error.code).toBe('unconvertible-value')
+		expect(error.message).toContain('defs.box.value.centre = "0"')
+	})
+
+	test('an unknown field key is not dropped: the result fails naming it', () => {
+		const source = JSON.parse(fixture('lease-2026-08-10.json'))
+		source.fields.petName.maxLenght = 20
+		const error = migrationError(() => migrateArtifact(source))
+		expect(error.code).toBe('invalid-result')
+		expect(error.message).toContain('maxLenght')
+	})
+
 	test('an inline React layer cannot be converted and is named', () => {
 		const source = JSON.parse(fixture('lease-2026-08-10.json'))
 		source.layers.markdown.mimeType = 'text/tsx'

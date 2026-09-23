@@ -61,6 +61,36 @@ function eachLayer(artifact: ArtifactObject, path: Path, visit: (layer: Record<s
 	}
 }
 
+/** The flat bbox definition keys and the corner member each one moves to. */
+const FLAT_BBOX_KEYS = {
+	north: ['northEast', 'lat'],
+	east: ['northEast', 'lon'],
+	south: ['southWest', 'lat'],
+	west: ['southWest', 'lon'],
+} as const
+
+/**
+ * Moves a bbox definition value from flat north/south/east/west expressions to
+ * the southWest/northEast corner shape that bbox fields use.
+ */
+function convertBboxDefinition(definition: Record<string, unknown>, path: Path): void {
+	const value = definition.value
+	if (!isObject(value) || !Object.keys(FLAT_BBOX_KEYS).some((key) => key in value)) return
+	const corners: Record<'southWest' | 'northEast', Record<string, unknown>> = { southWest: {}, northEast: {} }
+	for (const [key, member] of Object.entries(value)) {
+		const target = FLAT_BBOX_KEYS[key as keyof typeof FLAT_BBOX_KEYS]
+		if (!target) {
+			throw new UnconvertibleValueError(
+				[...path, 'value', key],
+				member,
+				'a bbox definition with north, south, east and west members cannot also carry other members',
+			)
+		}
+		corners[target[0]][target[1]] = member
+	}
+	definition.value = corners
+}
+
 /**
  * 2026-08-10 to 2026-09-22.
  *
@@ -70,13 +100,29 @@ function eachLayer(artifact: ArtifactObject, path: Path, visit: (layer: Record<s
  *   move one and names it instead.
  * - A duration must contain a date or time component; `P` or `PT` alone has
  *   no meaning to carry forward, so a default like that is named.
+ * - Field and party definitions reject unknown keys. A party's `multiple`
+ *   never had an effect (`min` and `max` say how many parties a role takes),
+ *   so it is dropped; any other unknown key fails validation by name.
+ * - A bbox definition moves from flat north/south/east/west expressions to
+ *   the southWest/northEast corners that bbox fields use.
  */
-const flowPlacementAndStrictDurations: MigrationStep = {
+const flowPlacementAndStrictDefinitions: MigrationStep = {
 	from: '2026-08-10',
 	to: '2026-09-22',
-	summary: "Renames signature placement 'auto' to 'flow'; rejects inline React layers and empty durations.",
+	summary:
+		"Renames signature placement 'auto' to 'flow'; rejects inline React layers and empty durations; drops party 'multiple'; moves bbox definitions to corners.",
 	apply(artifact) {
 		eachArtifact(artifact, [], (current, path) => {
+			if (isObject(current.parties)) {
+				for (const party of Object.values(current.parties)) {
+					if (isObject(party)) delete party.multiple
+				}
+			}
+			if (isObject(current.defs)) {
+				for (const [key, definition] of Object.entries(current.defs)) {
+					if (isObject(definition) && definition.type === 'bbox') convertBboxDefinition(definition, [...path, 'defs', key])
+				}
+			}
 			eachLayer(current, path, (layer, layerPath) => {
 				if (layer.kind === 'inline' && typeof layer.mimeType === 'string' && isReactLayerMimeType(layer.mimeType)) {
 					throw new UnconvertibleValueError(
@@ -125,5 +171,5 @@ export const MIGRATION_STEPS: readonly MigrationStep[] = [
 		summary: 'No breaking change: adds the layer signatures slot map.',
 		apply: (artifact) => artifact,
 	},
-	flowPlacementAndStrictDurations,
+	flowPlacementAndStrictDefinitions,
 ]

@@ -4,7 +4,7 @@ import { BaseFieldSchema } from './base-field';
 import { FormFieldSchema } from './field';
 import { getOrderedBoundsIssue } from './ordered-bounds';
 
-export const ListFieldSchema: z.ZodType<ListField> = BaseFieldSchema.extend({
+export const ListFieldObjectSchema = BaseFieldSchema.extend({
 	type: z.literal('list'),
 	item: z.lazy(() => FormFieldSchema),
 	minItems: z.number().int().min(0).describe('Minimum number of items').optional(),
@@ -19,3 +19,5 @@ export const ListFieldSchema: z.ZodType<ListField> = BaseFieldSchema.extend({
 	)
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 }).meta({ id: 'ListField' });
+
+export const ListFieldSchema: z.ZodType<ListField> = ListFieldObjectSchema;

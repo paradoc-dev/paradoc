@@ -27,7 +27,7 @@ import {
   withRowScopeTypes,
 } from '../type-checking'
 import { validateExpression, validateReservedDefinitionNames } from './shared'
-import { defsDependencyExpressions } from '../../shared/defs-dependencies'
+import { defsDependencyExpressions, definitionExpressionLeaves } from '../../shared/defs-dependencies'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -551,12 +551,16 @@ function typeCheckDefsExpressions(
 
     const propertyTypes = DEFINITION_PROPERTY_TYPES[expr.type]
     if (!propertyTypes) continue
-    const values = expr.value as unknown as Record<string, string | undefined>
     for (const [property, propertyType] of Object.entries(propertyTypes)) {
+      const propertyPath = property.split('.')
+      const value = propertyPath.reduce<unknown>(
+        (member, part) => (typeof member === 'object' && member !== null ? (member as Record<string, unknown>)[part] : undefined),
+        expr.value
+      )
       if (
         !typeCheckExpression(
-          values[property],
-          ['defs', key, 'value', property],
+          value,
+          ['defs', key, 'value', ...propertyPath],
           propertyType,
           typeEnv,
           issues,
@@ -683,21 +687,17 @@ function validateDefsExpression(
   }
 
   // Object type: value is an object with expression strings for each property
-  const valueObj = expr.value as unknown as Record<string, string | undefined>
-
-  for (const [propKey, propExpr] of Object.entries(valueObj)) {
-    if (propExpr !== undefined) {
-      if (
-        !validateExpression(
-          propExpr,
-          ['defs', key, 'value', propKey],
-          validVariables,
-          issues,
-          collectAllErrors
-        )
-      ) {
-        return false
-      }
+  for (const leaf of definitionExpressionLeaves(expr.value)) {
+    if (
+      !validateExpression(
+        leaf.expression,
+        ['defs', key, 'value', ...leaf.path],
+        validVariables,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
     }
   }
 
@@ -712,9 +712,7 @@ function getExpressionForKey(expr: Expression): string {
     return expr.value as string
   }
   // For object types, show the first property expression
-  const valueObj = expr.value as unknown as Record<string, string | undefined>
-  const firstExpr = Object.values(valueObj).find((v) => v !== undefined)
-  return firstExpr ?? '[object expression]'
+  return definitionExpressionLeaves(expr.value)[0]?.expression ?? '[object expression]'
 }
 
 /**

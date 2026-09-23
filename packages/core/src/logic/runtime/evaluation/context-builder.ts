@@ -219,19 +219,28 @@ function evaluateDefinitionPart(expression: string, context: EvaluationContext):
  * Evaluates a single defs expression.
  *
  * For scalar types, evaluates the single expression string. For object types,
- * evaluates each property expression and constructs the result object; a
- * property whose inputs are missing is null.
+ * evaluates each property expression, nested members included, and constructs
+ * the result object; a property whose inputs are missing is null.
  */
 function evaluateDefsExpression(expr: Expression, context: EvaluationContext): DefinitionOutcome {
 	if (isScalarExpressionType(expr.type)) {
 		return evaluateDefinitionPart(expr.value as string, context)
 	}
 
-	const valueObj = expr.value as unknown as Record<string, string | undefined>
+	return evaluateDefinitionMembers(expr.value as unknown as Record<string, unknown>, context)
+}
+
+/**
+ * Evaluates the members of an object definition value. A member that is itself
+ * an object, such as a bbox corner, becomes a nested object value.
+ */
+function evaluateDefinitionMembers(members: Record<string, unknown>, context: EvaluationContext): DefinitionOutcome {
 	const result: Array<[string, Value]> = []
-	for (const [propKey, propExpr] of Object.entries(valueObj)) {
-		if (propExpr === undefined) continue
-		const outcome = evaluateDefinitionPart(propExpr, context)
+	for (const [propKey, member] of Object.entries(members)) {
+		if (member === undefined) continue
+		const outcome = typeof member === 'string'
+			? evaluateDefinitionPart(member, context)
+			: evaluateDefinitionMembers(member as Record<string, unknown>, context)
 		if ('failure' in outcome) return outcome
 		result.push([propKey, outcome.value])
 	}

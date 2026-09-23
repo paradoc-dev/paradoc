@@ -581,39 +581,59 @@
           "value": {
             "type": "object",
             "properties": {
-              "north": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000,
-                "description": "Expression string to evaluate"
+              "southWest": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "lon": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lon"
+                ],
+                "additionalProperties": false,
+                "description": "Southwest (minimum) corner expressions"
               },
-              "south": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000,
-                "description": "Expression string to evaluate"
-              },
-              "east": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000,
-                "description": "Expression string to evaluate"
-              },
-              "west": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000,
-                "description": "Expression string to evaluate"
+              "northEast": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  },
+                  "lon": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Expression string to evaluate"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lon"
+                ],
+                "additionalProperties": false,
+                "description": "Northeast (maximum) corner expressions"
               }
             },
             "required": [
-              "north",
-              "south",
-              "east",
-              "west"
+              "southWest",
+              "northEast"
             ],
             "additionalProperties": false,
-            "description": "Bounding box with north, south, east, west boundary expressions"
+            "description": "Bounding box with southwest and northeast corner expressions"
           }
         },
         "required": [

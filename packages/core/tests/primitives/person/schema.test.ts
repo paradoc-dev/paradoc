@@ -74,14 +74,12 @@ describe('Person', () => {
 					expect(() => person(input)).toThrow();
 				});
 
-				test('strips additional properties', () => {
+				test('rejects an unknown key by name', () => {
 					const input = {
 						name: 'John Doe',
-						extra: 'field',
+						lastNam: 'Doe',
 					} as any;
-					const result = person(input);
-					expect(result).toEqual({ name: 'John Doe' });
-					expect(result).not.toHaveProperty('extra');
+					expect(() => person(input)).toThrow(/lastNam/);
 				});
 
 				test('throws error when input is null', () => {
@@ -108,10 +106,9 @@ describe('Person', () => {
 				expect(() => person.parse(input)).toThrow();
 			});
 
-			test('strips additional properties', () => {
+			test('rejects an unknown key by name', () => {
 				const input = { name: 'John Doe', extra: 'value' };
-				const result = person.parse(input);
-				expect(result).toEqual({ name: 'John Doe' });
+				expect(() => person.parse(input)).toThrow(/extra/);
 			});
 		});
 

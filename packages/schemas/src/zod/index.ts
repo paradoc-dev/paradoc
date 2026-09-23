@@ -57,11 +57,14 @@ export {
 	ISO_8601_DURATION_PATTERN,
 	ISO_8601_DURATION_REGEX,
 	IdentificationSchema,
+	CurrencyCodeSchema,
 	MoneySchema,
 	MetadataSchema,
 	OrganizationSchema,
 	PersonSchema,
 	PhoneSchema,
+	RuntimeOrganizationSchema,
+	RuntimePersonSchema,
 	SignatureSchema,
 } from './primitives';
 

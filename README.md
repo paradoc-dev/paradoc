@@ -75,7 +75,6 @@ const leaseAgreement = p
     tenant: p
       .party()
       .label("Tenant")
-      .multiple(true)
       .min(1)
       .max(4)
       .signature({ required: true }),
@@ -146,7 +145,7 @@ const advancedLease = p
     tenant: p
       .party()
       .label("Tenant")
-      .multiple(true)
+      .max(4)
       .signature({ required: true }),
   })
   .fields({

@@ -225,11 +225,9 @@ type RuntimeOrganization = Organization & { id: string }
  * Maps a single party definition to its runtime data type based on partyType.
  * Runtime parties always include an `id` field for signature tracking.
  *
- * Party data accepts both single and array forms because:
- * 1. Builder patterns don't preserve literal `multiple: true` - TypeScript sees `boolean`
- * 2. FormParty type has `multiple?: boolean` which makes runtime checking necessary
- *
- * The runtime fills in single or array based on the actual party definition.
+ * Party data accepts both single and array forms because a role's `max` is a
+ * plain `number` at the type level, so the count a role takes is only known at
+ * runtime.
  */
 type PartyToDataType<P extends FormParty> = P extends { partyType: 'person' }
   ? RuntimePerson | RuntimePerson[]
@@ -499,6 +497,9 @@ function compileField(field: FormField): JsonSchema {
       if ('max' in field && typeof field.max === 'number') {
         numberSchema.maximum = field.max
       }
+      if ('step' in field && typeof field.step === 'number') {
+        numberSchema.multipleOf = field.step
+      }
       if ('default' in field && field.default !== undefined) {
         numberSchema.default = field.default
       }
@@ -559,7 +560,13 @@ function compileField(field: FormField): JsonSchema {
             }
             return amountSchema
           })(),
-          currency: { type: 'string', minLength: 3, maxLength: 3, pattern: '^[A-Z]{3}$' },
+          currency: {
+            type: 'string',
+            minLength: 3,
+            maxLength: 3,
+            pattern: '^[A-Z]{3}$',
+            ...('currency' in field && typeof field.currency === 'string' && { const: field.currency }),
+          },
         },
         required: ['amount', 'currency'],
         additionalProperties: false,

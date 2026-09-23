@@ -30,7 +30,7 @@ export const OrganizationSchema = z.object({
 		.max(100)
 		.describe('Tax identification number')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Organization',
 	description: 'Organization with legal details and identification',
 });

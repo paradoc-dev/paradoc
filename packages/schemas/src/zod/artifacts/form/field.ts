@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import type { FieldsetField, FormField } from '@paradoc/types';
 import { BaseFieldSchema } from './base-field';
-import { ListFieldSchema } from './list';
+import { ListFieldObjectSchema } from './list';
 import { CoordinateSchema } from '../../primitives/coordinate';
 import { BboxSchema } from '../../primitives/bbox';
-import { MoneySchema } from '../../primitives/money';
+import { CurrencyCodeSchema, MoneySchema } from '../../primitives/money';
 import { AddressSchema } from '../../primitives/address';
 import { PhoneSchema } from '../../primitives/phone';
 import { DurationSchema } from '../../primitives/duration';
@@ -26,7 +26,7 @@ const EnumOptionSchema = z.object({
 		.max(200)
 		.describe('Human-readable label for the option in the artifact source language')
 		.optional(),
-});
+}).strict();
 
 const TextFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('text'),
@@ -58,6 +58,10 @@ const NumberFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('number'),
 	min: z.number().describe('Minimum value').optional(),
 	max: z.number().describe('Maximum value').optional(),
+	step: z.number()
+		.positive()
+		.describe('Allowed increment: a value must be a multiple of step (e.g., 0.01 for cents)')
+		.optional(),
 	default: z.number().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
@@ -78,6 +82,9 @@ const MoneyFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('money'),
 	min: z.number().describe('Minimum amount').optional(),
 	max: z.number().describe('Maximum amount').optional(),
+	currency: CurrencyCodeSchema
+		.describe('ISO 4217 alpha-3 currency code a value must use (e.g., USD). Omit to accept any currency')
+		.optional(),
 	default: MoneySchema.optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
@@ -271,8 +278,20 @@ const RatingFieldSchema = BaseFieldSchema.extend({
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
-// Define base field types (non-recursive)
-const BaseFieldSchemaTypes = z.discriminatedUnion('type', [
+// FieldsetFieldSchema - a field that contains nested fields (recursive)
+const FieldsetFieldObjectSchema = BaseFieldSchema.extend({
+	type: z.literal('fieldset'),
+	fields: z.lazy(() => z.record(
+		z.string().min(1).max(100).regex(/^[a-z][a-zA-Z0-9_]*$/).describe('Nested field identifier (camelCase, starts with lowercase letter)'),
+		FormFieldSchema,
+	)),
+}).meta({ id: 'FieldsetField' });
+
+export const FieldsetFieldSchema: z.ZodType<FieldsetField> = FieldsetFieldObjectSchema;
+
+// Complete field union, discriminated on `type`, so an unknown key is reported
+// against the one field shape its type names.
+export const FormFieldSchema: z.ZodType<FormField> = z.lazy(() => z.discriminatedUnion('type', [
 	TextFieldSchema,
 	BooleanFieldSchema,
 	NumberFieldSchema,
@@ -295,25 +314,8 @@ const BaseFieldSchemaTypes = z.discriminatedUnion('type', [
 	MultiselectFieldSchema,
 	PercentageFieldSchema,
 	RatingFieldSchema,
-]);
-
-// Type for base field
-export type BaseField = z.infer<typeof BaseFieldSchemaTypes>;
-
-// FieldsetFieldSchema - a field that contains nested fields (recursive)
-export const FieldsetFieldSchema: z.ZodType<FieldsetField> = BaseFieldSchema.extend({
-	type: z.literal('fieldset'),
-	fields: z.lazy(() => z.record(
-		z.string().min(1).max(100).regex(/^[a-z][a-zA-Z0-9_]*$/).describe('Nested field identifier (camelCase, starts with lowercase letter)'),
-		FormFieldSchema,
-	)),
-}).meta({ id: 'FieldsetField' });
-
-// Complete Field union including FieldsetFieldSchema
-export const FormFieldSchema: z.ZodType<FormField> = z.lazy(() => z.union([
-	BaseFieldSchemaTypes,
-	FieldsetFieldSchema,
-	ListFieldSchema,
+	FieldsetFieldObjectSchema,
+	ListFieldObjectSchema,
 ])).meta({
 	title: 'FormField',
 	description: 'Single input/data element, nested fieldset, or recursive list',

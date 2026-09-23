@@ -27,7 +27,7 @@ describe('Formal Signing', () => {
 			.parties({
 				landlord: {
 					label: 'Landlord',
-					types: ['person', 'organization'],
+					partyType: 'any',
 					signature: { required: true },
 				},
 				tenant: {

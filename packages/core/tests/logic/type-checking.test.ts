@@ -477,6 +477,47 @@ describe('Expression Type Checking', () => {
 			expect(env.resolve('fields.area.northEast.lon')?.kind).toBe('number')
 		})
 
+		const bboxDefForm = (visible: string): Form => ({
+			kind: 'form',
+			name: 'test-form',
+			fields: {
+				lat: { type: 'number' },
+				note: { type: 'text', visible },
+			},
+			defs: {
+				box: {
+					type: 'bbox',
+					value: {
+						southWest: { lat: 'fields.lat', lon: '0' },
+						northEast: { lat: 'fields.lat + 1', lon: '1' },
+					},
+				},
+			},
+		})
+
+		test('types bbox definition corners like bbox field corners', () => {
+			expect(validateFormDefs(bboxDefForm('box.southWest.lat < box.northEast.lat')).issues).toBeUndefined()
+
+			const env = buildFormTypeEnvironment(bboxDefForm('true'))
+			expect(env.resolve('box.southWest')?.kind).toBe('object')
+			expect(env.resolve('box.northEast.lon')?.kind).toBe('number')
+		})
+
+		test('rejects a flat bbox definition member', () => {
+			const result = validateFormDefs(bboxDefForm('box.north > 0'))
+			expect(result.issues?.map((issue) => issue.message)).toContainEqual(
+				expect.stringContaining('Unknown variable: "box.north"'),
+			)
+		})
+
+		test('type-checks each bbox definition corner expression at its path', () => {
+			const form = bboxDefForm('true')
+			const box = form.defs!.box as { value: { southWest: { lat: string } } }
+			box.value.southWest.lat = '"north"'
+			const result = validateFormDefs(form)
+			expect(result.issues?.map((issue) => issue.path)).toContainEqual(['defs', 'box', 'value', 'southWest', 'lat'])
+		})
+
 		test.each(['north', 'south', 'east', 'west'])('rejects the nonexistent bbox member %s', (member) => {
 			const result = validateFormDefs(bboxForm(`fields.area.${member} > 0`))
 			expect(result.issues?.map((issue) => issue.message)).toContainEqual(

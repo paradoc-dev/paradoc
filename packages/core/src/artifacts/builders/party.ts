@@ -35,11 +35,9 @@ export interface PartyBuilder<R extends CondExpr | undefined = undefined> {
 	description(value: string): PartyBuilder<R>;
 	/** Constrain what type of party can fill this role */
 	partyType(value: 'person' | 'organization' | 'any'): PartyBuilder<R>;
-	/** Allow multiple parties to fill this role */
-	multiple(value?: boolean): PartyBuilder<R>;
-	/** Set minimum number of parties required (when multiple=true) */
+	/** Set the minimum number of parties that fill this role (default 1) */
 	min(value: number): PartyBuilder<R>;
-	/** Set maximum number of parties allowed (when multiple=true) */
+	/** Set the maximum number of parties that can fill this role (default 1) */
 	max(value: number): PartyBuilder<R>;
 	/** Set whether this role is required */
 	required(): PartyBuilder<true>;
@@ -74,10 +72,6 @@ export function partyBuilder(): PartyBuilder {
 		},
 		partyType(value: 'person' | 'organization' | 'any') {
 			_def.partyType = value;
-			return self;
-		},
-		multiple(value = true) {
-			_def.multiple = value;
 			return self;
 		},
 		min(value: number) {

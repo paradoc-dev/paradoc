@@ -220,14 +220,10 @@ export interface CoordinateExpression extends BaseExpression {
  * Bbox expression value structure.
  */
 export interface BboxExpressionValue {
-  /** Expression for northern boundary latitude */
-  north: string;
-  /** Expression for southern boundary latitude */
-  south: string;
-  /** Expression for eastern boundary longitude */
-  east: string;
-  /** Expression for western boundary longitude */
-  west: string;
+  /** Expressions for the southwest (minimum) corner */
+  southWest: CoordinateExpressionValue;
+  /** Expressions for the northeast (maximum) corner */
+  northEast: CoordinateExpressionValue;
 }
 
 /**
@@ -236,7 +232,7 @@ export interface BboxExpressionValue {
  */
 export interface BboxExpression extends BaseExpression {
   type: 'bbox';
-  /** Object with expressions for bbox boundaries */
+  /** Object with expressions for the bbox corners */
   value: BboxExpressionValue;
 }
 

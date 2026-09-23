@@ -150,22 +150,22 @@ const PhoneExpressionSchema = BaseExpressionSchema.extend({
 	}).describe('Phone object with number and optional type/extension expressions'),
 });
 
+const CoordinateExpressionValueSchema = z.object({
+	lat: ExpressionString,
+	lon: ExpressionString,
+});
+
 const CoordinateExpressionSchema = BaseExpressionSchema.extend({
 	type: z.literal('coordinate'),
-	value: z.object({
-		lat: ExpressionString,
-		lon: ExpressionString,
-	}).describe('Coordinate object with latitude and longitude expressions'),
+	value: CoordinateExpressionValueSchema.describe('Coordinate object with latitude and longitude expressions'),
 });
 
 const BboxExpressionSchema = BaseExpressionSchema.extend({
 	type: z.literal('bbox'),
 	value: z.object({
-		north: ExpressionString,
-		south: ExpressionString,
-		east: ExpressionString,
-		west: ExpressionString,
-	}).describe('Bounding box with north, south, east, west boundary expressions'),
+		southWest: CoordinateExpressionValueSchema.describe('Southwest (minimum) corner expressions'),
+		northEast: CoordinateExpressionValueSchema.describe('Northeast (maximum) corner expressions'),
+	}).describe('Bounding box with southwest and northeast corner expressions'),
 });
 
 const PersonExpressionSchema = BaseExpressionSchema.extend({

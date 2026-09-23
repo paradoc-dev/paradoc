@@ -1424,880 +1424,531 @@
       "additionalProperties": false
     },
     "FormField": {
-      "anyOf": [
+      "oneOf": [
         {
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "text"
-                },
-                "minLength": {
-                  "type": "number",
-                  "description": "Minimum length"
-                },
-                "maxLength": {
-                  "type": "number",
-                  "description": "Maximum length"
-                },
-                "pattern": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 500,
-                  "description": "Regular expression pattern for validation"
-                },
-                "default": {
-                  "type": "string",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "boolean"
-                },
-                "default": {
-                  "type": "boolean",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "number"
-                },
-                "min": {
-                  "type": "number",
-                  "description": "Minimum value"
-                },
-                "max": {
-                  "type": "number",
-                  "description": "Maximum value"
-                },
-                "default": {
-                  "type": "number",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "required": {
+              "$ref": "#/$defs/CondExpr"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "coordinate"
-                },
-                "default": {
-                  "$ref": "#/$defs/Coordinate"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "bbox"
-                },
-                "default": {
-                  "$ref": "#/$defs/Bbox"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "type": {
+              "type": "string",
+              "const": "text"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "money"
-                },
-                "min": {
-                  "type": "number",
-                  "description": "Minimum amount"
-                },
-                "max": {
-                  "type": "number",
-                  "description": "Maximum amount"
-                },
-                "default": {
-                  "$ref": "#/$defs/Money"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "minLength": {
+              "type": "number",
+              "description": "Minimum length"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "address"
-                },
-                "default": {
-                  "$ref": "#/$defs/Address"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "maxLength": {
+              "type": "number",
+              "description": "Maximum length"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "phone"
-                },
-                "default": {
-                  "$ref": "#/$defs/Phone"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "pattern": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Regular expression pattern for validation"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "duration"
-                },
-                "default": {
-                  "$ref": "#/$defs/Duration"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "default": {
+              "type": "string",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "email"
-                },
-                "minLength": {
-                  "type": "number",
-                  "description": "Minimum length"
-                },
-                "maxLength": {
-                  "type": "number",
-                  "description": "Maximum length"
-                },
-                "default": {
-                  "type": "string",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "uuid"
-                },
-                "minLength": {
-                  "type": "number",
-                  "description": "Minimum length"
-                },
-                "maxLength": {
-                  "type": "number",
-                  "description": "Maximum length"
-                },
-                "pattern": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 500,
-                  "description": "Regular expression pattern for validation"
-                },
-                "default": {
-                  "type": "string",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "required": {
+              "$ref": "#/$defs/CondExpr"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "uri"
-                },
-                "minLength": {
-                  "type": "number",
-                  "description": "Minimum length"
-                },
-                "maxLength": {
-                  "type": "number",
-                  "description": "Maximum length"
-                },
-                "pattern": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 500,
-                  "description": "Regular expression pattern for validation"
-                },
-                "default": {
-                  "type": "string",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "enum"
-                },
-                "enum": {
-                  "minItems": 1,
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "value": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          }
-                        ],
-                        "description": "Internal option value"
-                      },
-                      "label": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 200,
-                        "description": "Human-readable label for the option in the artifact source language"
-                      }
-                    },
-                    "required": [
-                      "value"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "description": "Array of allowed options for the enum field"
-                },
-                "default": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    }
-                  ],
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type",
-                "enum"
-              ],
-              "additionalProperties": false
+            "type": {
+              "type": "string",
+              "const": "boolean"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "date"
-                },
-                "min": {
-                  "type": "string",
-                  "format": "date",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                  "description": "Minimum date (ISO 8601: YYYY-MM-DD)"
-                },
-                "max": {
-                  "type": "string",
-                  "format": "date",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                  "description": "Maximum date (ISO 8601: YYYY-MM-DD)"
-                },
-                "default": {
-                  "type": "string",
-                  "format": "date",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "default": {
+              "type": "boolean",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "datetime"
-                },
-                "min": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-                  "description": "Minimum datetime (ISO 8601)"
-                },
-                "max": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-                  "description": "Maximum datetime (ISO 8601)"
-                },
-                "default": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "time"
-                },
-                "min": {
-                  "type": "string",
-                  "description": "Minimum time (HH:MM:SS)"
-                },
-                "max": {
-                  "type": "string",
-                  "description": "Maximum time (HH:MM:SS)"
-                },
-                "default": {
-                  "type": "string",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "required": {
+              "$ref": "#/$defs/CondExpr"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "person"
-                },
-                "default": {
-                  "$ref": "#/$defs/Person"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "organization"
-                },
-                "default": {
-                  "$ref": "#/$defs/Organization"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "type": {
+              "type": "string",
+              "const": "number"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "identification"
-                },
-                "allowedTypes": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "Allowed ID types (e.g., passport, drivers_license)"
-                },
-                "default": {
-                  "$ref": "#/$defs/Identification"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+            "min": {
+              "type": "number",
+              "description": "Minimum value"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "multiselect"
-                },
-                "enum": {
-                  "minItems": 1,
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "value": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          }
-                        ],
-                        "description": "Internal option value"
-                      },
-                      "label": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 200,
-                        "description": "Human-readable label for the option in the artifact source language"
-                      }
-                    },
-                    "required": [
-                      "value"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "description": "Available options"
-                },
-                "min": {
-                  "type": "number",
-                  "description": "Minimum selections required"
-                },
-                "max": {
-                  "type": "number",
-                  "description": "Maximum selections allowed"
-                },
-                "default": {
-                  "type": "array",
-                  "items": {
+            "max": {
+              "type": "number",
+              "description": "Maximum value"
+            },
+            "step": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Allowed increment: a value must be a multiple of step (e.g., 0.01 for cents)"
+            },
+            "default": {
+              "type": "number",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "coordinate"
+            },
+            "default": {
+              "$ref": "#/$defs/Coordinate"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "bbox"
+            },
+            "default": {
+              "$ref": "#/$defs/Bbox"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "money"
+            },
+            "min": {
+              "type": "number",
+              "description": "Minimum amount"
+            },
+            "max": {
+              "type": "number",
+              "description": "Maximum amount"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3,
+              "pattern": "^[A-Z]{3}$",
+              "description": "ISO 4217 alpha-3 currency code a value must use (e.g., USD). Omit to accept any currency"
+            },
+            "default": {
+              "$ref": "#/$defs/Money"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "address"
+            },
+            "default": {
+              "$ref": "#/$defs/Address"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "phone"
+            },
+            "default": {
+              "$ref": "#/$defs/Phone"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "duration"
+            },
+            "default": {
+              "$ref": "#/$defs/Duration"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "email"
+            },
+            "minLength": {
+              "type": "number",
+              "description": "Minimum length"
+            },
+            "maxLength": {
+              "type": "number",
+              "description": "Maximum length"
+            },
+            "default": {
+              "type": "string",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "uuid"
+            },
+            "minLength": {
+              "type": "number",
+              "description": "Minimum length"
+            },
+            "maxLength": {
+              "type": "number",
+              "description": "Maximum length"
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Regular expression pattern for validation"
+            },
+            "default": {
+              "type": "string",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "uri"
+            },
+            "minLength": {
+              "type": "number",
+              "description": "Minimum length"
+            },
+            "maxLength": {
+              "type": "number",
+              "description": "Maximum length"
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "Regular expression pattern for validation"
+            },
+            "default": {
+              "type": "string",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "enum"
+            },
+            "enum": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
                     "anyOf": [
                       {
                         "type": "string"
@@ -2305,112 +1956,469 @@
                       {
                         "type": "number"
                       }
-                    ]
+                    ],
+                    "description": "Internal option value"
                   },
-                  "description": "Default selected values"
-                }
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the option in the artifact source language"
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
               },
-              "required": [
-                "type",
-                "enum"
-              ],
-              "additionalProperties": false
+              "description": "Array of allowed options for the enum field"
             },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
+            "default": {
+              "anyOf": [
+                {
+                  "type": "string"
                 },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "percentage"
-                },
-                "min": {
-                  "type": "number",
-                  "description": "Minimum value (default: 0)"
-                },
-                "max": {
-                  "type": "number",
-                  "description": "Maximum value (default: 100)"
-                },
-                "precision": {
-                  "type": "number",
-                  "description": "Decimal places (default: 2)"
-                },
-                "default": {
-                  "type": "number",
-                  "description": "Default value"
+                {
+                  "type": "number"
                 }
-              },
-              "required": [
-                "type"
               ],
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200,
-                  "description": "Display label for the field"
-                },
-                "description": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 1000,
-                  "description": "Description or help text for the field"
-                },
-                "required": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "visible": {
-                  "$ref": "#/$defs/CondExpr"
-                },
-                "type": {
-                  "type": "string",
-                  "const": "rating"
-                },
-                "min": {
-                  "type": "number",
-                  "description": "Minimum value (default: 1)"
-                },
-                "max": {
-                  "type": "number",
-                  "description": "Maximum value (default: 5)"
-                },
-                "step": {
-                  "type": "number",
-                  "description": "Increment step (e.g., 0.5 for half stars, default: 1)"
-                },
-                "default": {
-                  "type": "number",
-                  "description": "Default value"
-                }
-              },
-              "required": [
-                "type"
-              ],
-              "additionalProperties": false
+              "description": "Default value"
             }
-          ]
+          },
+          "required": [
+            "type",
+            "enum"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "date"
+            },
+            "min": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+              "description": "Minimum date (ISO 8601: YYYY-MM-DD)"
+            },
+            "max": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+              "description": "Maximum date (ISO 8601: YYYY-MM-DD)"
+            },
+            "default": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "datetime"
+            },
+            "min": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+              "description": "Minimum datetime (ISO 8601)"
+            },
+            "max": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+              "description": "Maximum datetime (ISO 8601)"
+            },
+            "default": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "time"
+            },
+            "min": {
+              "type": "string",
+              "description": "Minimum time (HH:MM:SS)"
+            },
+            "max": {
+              "type": "string",
+              "description": "Maximum time (HH:MM:SS)"
+            },
+            "default": {
+              "type": "string",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "person"
+            },
+            "default": {
+              "$ref": "#/$defs/Person"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "organization"
+            },
+            "default": {
+              "$ref": "#/$defs/Organization"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "identification"
+            },
+            "allowedTypes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Allowed ID types (e.g., passport, drivers_license)"
+            },
+            "default": {
+              "$ref": "#/$defs/Identification"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "multiselect"
+            },
+            "enum": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "description": "Internal option value"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Human-readable label for the option in the artifact source language"
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Available options"
+            },
+            "min": {
+              "type": "number",
+              "description": "Minimum selections required"
+            },
+            "max": {
+              "type": "number",
+              "description": "Maximum selections allowed"
+            },
+            "default": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "description": "Default selected values"
+            }
+          },
+          "required": [
+            "type",
+            "enum"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "percentage"
+            },
+            "min": {
+              "type": "number",
+              "description": "Minimum value (default: 0)"
+            },
+            "max": {
+              "type": "number",
+              "description": "Maximum value (default: 100)"
+            },
+            "precision": {
+              "type": "number",
+              "description": "Decimal places (default: 2)"
+            },
+            "default": {
+              "type": "number",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Display label for the field"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Description or help text for the field"
+            },
+            "required": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "visible": {
+              "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "rating"
+            },
+            "min": {
+              "type": "number",
+              "description": "Minimum value (default: 1)"
+            },
+            "max": {
+              "type": "number",
+              "description": "Maximum value (default: 5)"
+            },
+            "step": {
+              "type": "number",
+              "description": "Increment step (e.g., 0.5 for half stars, default: 1)"
+            },
+            "default": {
+              "type": "number",
+              "description": "Default value"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
         },
         {
           "$ref": "#/$defs/FieldsetField"
@@ -4433,39 +4441,59 @@
               "value": {
                 "type": "object",
                 "properties": {
-                  "north": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000,
-                    "description": "Expression string to evaluate"
+                  "southWest": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000,
+                        "description": "Expression string to evaluate"
+                      },
+                      "lon": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000,
+                        "description": "Expression string to evaluate"
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lon"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Southwest (minimum) corner expressions"
                   },
-                  "south": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000,
-                    "description": "Expression string to evaluate"
-                  },
-                  "east": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000,
-                    "description": "Expression string to evaluate"
-                  },
-                  "west": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000,
-                    "description": "Expression string to evaluate"
+                  "northEast": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000,
+                        "description": "Expression string to evaluate"
+                      },
+                      "lon": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000,
+                        "description": "Expression string to evaluate"
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lon"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Northeast (maximum) corner expressions"
                   }
                 },
                 "required": [
-                  "north",
-                  "south",
-                  "east",
-                  "west"
+                  "southWest",
+                  "northEast"
                 ],
                 "additionalProperties": false,
-                "description": "Bounding box with north, south, east, west boundary expressions"
+                "description": "Bounding box with southwest and northeast corner expressions"
               }
             },
             "required": [

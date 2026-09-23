@@ -18,6 +18,23 @@ const SCALAR_EXPRESSION_TYPES: ReadonlySet<string> = new Set([
 	'duration',
 ])
 
+/** One expression string of an object definition and its path inside the value. */
+export interface DefinitionExpressionLeaf {
+	readonly path: readonly string[]
+	readonly expression: string
+}
+
+/**
+ * Every expression string of an object definition value, depth first. Members
+ * nest when the value type does, such as a bbox's `southWest.lat`; an absent
+ * optional member is skipped.
+ */
+export function definitionExpressionLeaves(value: unknown, path: readonly string[] = []): DefinitionExpressionLeaf[] {
+	if (typeof value === 'string') return [{ path, expression: value }]
+	if (typeof value !== 'object' || value === null) return []
+	return Object.entries(value).flatMap(([key, member]) => definitionExpressionLeaves(member, [...path, key]))
+}
+
 /**
  * One parseable expression per definition key holding everything it depends
  * on. A scalar definition is its value; an object definition joins its
@@ -30,9 +47,7 @@ export function defsDependencyExpressions(defs: DefsSection, fields?: Form['fiel
 	for (const [key, expr] of Object.entries(defs)) {
 		const expressions = SCALAR_EXPRESSION_TYPES.has(expr.type)
 			? [expr.value as string]
-			: Object.values(expr.value as unknown as Record<string, string | undefined>).filter(
-					(value): value is string => value !== undefined,
-				)
+			: definitionExpressionLeaves(expr.value).map((leaf) => leaf.expression)
 		const rowConditions = fields ? expressions.flatMap((expression) => rowConditionsOfExpression(fields, expression)) : []
 		result[key] = [...expressions, ...rowConditions].map((expression) => `(${expression})`).join(' and ')
 	}

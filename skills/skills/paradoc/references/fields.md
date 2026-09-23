@@ -76,6 +76,8 @@ A `CondExpr` is a boolean literal OR an expression string. See [logic.md](./logi
 
 ### Type-specific properties
 
+A field accepts only the properties listed for its type plus the common ones. A misspelled or unknown key fails validation by name.
+
 #### text, email, uuid, uri
 
 | Property | Type | Description |
@@ -100,11 +102,13 @@ No type-specific properties.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `min` | number | Minimum value |
-| `max` | number | Maximum value |
+| `min` | number | Minimum value (money: minimum amount) |
+| `max` | number | Maximum value (money: maximum amount) |
+| `step` | number | number only: a value must be a multiple of it (e.g., 0.01 for cents) |
+| `currency` | string | money only: ISO 4217 code a value must use (e.g., `USD`); omit to accept any |
 
 ```json schema=fields
-"annualSalary": { "type": "money", "label": "Annual Salary", "required": true, "min": 0 }
+"annualSalary": { "type": "money", "label": "Annual Salary", "required": true, "min": 0, "currency": "USD" }
 ```
 
 #### percentage

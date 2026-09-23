@@ -17,7 +17,7 @@ const FormSignatureSchema = z.object({
 		.default(false)
 		.describe('Whether at least one witness must be a notary')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'FormSignature',
 	description: 'Design-time signature requirements for a party role',
 });
@@ -31,7 +31,7 @@ const FormPaymentSchema = z.object({
 		MoneySchema,
 		MoneyExpressionSchema,
 	]).describe('Amount owed: a fixed Money value, or a MoneyExpression resolved from filled data at request time'),
-}).meta({
+}).strict().meta({
 	title: 'FormPayment',
 	description: 'Design-time payment requirement for a party role',
 });
@@ -69,7 +69,7 @@ export const FormPartySchema = z.object({
 	required: CondExprSchema.optional(),
 	signature: FormSignatureSchema.optional(),
 	payment: FormPaymentSchema.optional(),
-}).superRefine((party, ctx) => {
+}).strict().superRefine((party, ctx) => {
 	const min = party.min ?? 1
 	const max = party.max ?? 1
 	if (min > max) {

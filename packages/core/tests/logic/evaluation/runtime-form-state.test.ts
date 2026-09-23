@@ -62,7 +62,7 @@ describe('RuntimeForm runtime state', () => {
         witnessGate: { type: 'text', visible: 'witnessCount() > 0' },
       },
       parties: {
-        buyer: { label: 'Buyer', types: ['person'], min: 0 },
+        buyer: { label: 'Buyer', partyType: 'person', min: 0 },
       },
     } as any)
 

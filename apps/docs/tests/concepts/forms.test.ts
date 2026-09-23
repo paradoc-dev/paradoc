@@ -59,7 +59,7 @@ describe('Forms Concept', () => {
       .name('lease')
       .parties({
         landlord: p.party().label('Landlord'),
-        tenant: p.party().label('Tenant').multiple(true).max(4),
+        tenant: p.party().label('Tenant').max(4),
       })
       .build()
 

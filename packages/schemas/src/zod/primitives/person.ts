@@ -30,7 +30,7 @@ export const PersonSchema = z.object({
 		.max(50)
 		.describe('Name suffix (e.g., Jr., Sr., III, Esq.)')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Person',
 	description: 'Person with name (required) and optional name components (title, first name, middle name, last name, suffix)',
 });

@@ -129,6 +129,8 @@ export interface NumberField extends BaseField {
   min?: number;
   /** Maximum allowed value. */
   max?: number;
+  /** Allowed increment: a value must be a multiple of `step` (for example 0.01 for cents). */
+  step?: number;
   /** Default value for the field. */
   default?: number;
 }
@@ -163,6 +165,8 @@ export interface MoneyField extends BaseField {
   min?: number;
   /** Maximum allowed amount. */
   max?: number;
+  /** ISO 4217 alpha-3 currency code a value must use (for example USD). Omit to accept any currency. */
+  currency?: string;
   /** Default value for the field. */
   default?: Money;
 }

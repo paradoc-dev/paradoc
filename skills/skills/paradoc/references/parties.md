@@ -165,7 +165,7 @@ const form = p.form()
   .name("lease")
   .parties({
     landlord: p.party().label("Landlord").signature({ required: true }),
-    tenant: p.party().label("Tenant").multiple(true).min(1).max(4).signature({ required: true }),
+    tenant: p.party().label("Tenant").min(1).max(4).signature({ required: true }),
   })
   .build();
 ```
@@ -177,8 +177,7 @@ const form = p.form()
 | `.label(string)` | Human-readable role name |
 | `.description(string)` | Role description |
 | `.partyType("person" \| "organization")` | Restrict to specific type |
-| `.multiple(bool)` | Allow multiple individuals in this role |
-| `.min(n)` / `.max(n)` | Min/max count |
+| `.min(n)` / `.max(n)` | How many parties fill this role (default 1 each) |
 | `.required(bool)` | Whether this role is required |
 | `.signature({ required })` | Signature requirements |
 | `.from(data)` | Create from existing party data |

@@ -18,7 +18,7 @@ import {
   unknownVariableMessage,
   validateReservedDefinitionNames,
 } from './shared'
-import { defsDependencyExpressions } from '../../shared/defs-dependencies'
+import { defsDependencyExpressions, definitionExpressionLeaves } from '../../shared/defs-dependencies'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -66,21 +66,17 @@ function validateDefsExpression(
   }
 
   // Object type: value is an object with expression strings for each property
-  const valueObj = expr.value as unknown as Record<string, string | undefined>
-
-  for (const [propKey, propExpr] of Object.entries(valueObj)) {
-    if (propExpr !== undefined) {
-      if (
-        !validateExpression(
-          propExpr,
-          ['defs', key, 'value', propKey],
-          validVariables,
-          issues,
-          collectAllErrors
-        )
-      ) {
-        return false
-      }
+  for (const leaf of definitionExpressionLeaves(expr.value)) {
+    if (
+      !validateExpression(
+        leaf.expression,
+        ['defs', key, 'value', ...leaf.path],
+        validVariables,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
     }
   }
 
@@ -95,9 +91,7 @@ function getExpressionForKey(expr: Expression): string {
   if (isScalarExpressionType(expr.type)) {
     return expr.value as string
   }
-  const valueObj = expr.value as unknown as Record<string, string | undefined>
-  const firstExpr = Object.values(valueObj).find((v) => v !== undefined)
-  return firstExpr ?? '[object expression]'
+  return definitionExpressionLeaves(expr.value)[0]?.expression ?? '[object expression]'
 }
 
 /**

@@ -617,7 +617,7 @@ describe('DraftForm', () => {
     test('protects nested parties, signers, and signatories from aliases', () => {
       const definition = form()
         .name('runtime-party-view-probe')
-        .parties({ tenant: { label: 'Tenant', types: ['person'] } })
+        .parties({ tenant: { label: 'Tenant', partyType: 'person' } })
         .build()
       const partyInput = { id: 'tenant-0', name: 'Original Tenant' }
       const signerInput = { person: { name: 'Original Signer' } }

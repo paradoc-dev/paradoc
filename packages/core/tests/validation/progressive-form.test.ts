@@ -31,7 +31,7 @@ function createPetAddendumLikeForm(options?: { allowAdditionalAnnexes?: boolean 
 		.parties({
 			landlord: party().label('Landlord').partyType('organization').required(true).build(),
 			tenant: party().label('Tenant').partyType('person').required(true).build(),
-			witness: party().label('Witness').partyType('person').multiple(true).min(1).max(2).build(),
+			witness: party().label('Witness').partyType('person').min(1).max(2).build(),
 		})
 		.annexes({
 			petPhoto: { title: 'Pet photo', required: true },
@@ -214,6 +214,23 @@ describe('progressive form validation', () => {
 			}
 		})
 
+		test('enforces a number step and a money currency at fill', () => {
+			const paymentForm = form().name('payment').fields({
+				amount: { type: 'number', min: 0, step: 0.01 },
+				fee: { type: 'money', currency: 'USD' },
+				anyFee: { type: 'money' },
+			}).build()
+
+			expect(validateFieldInput(paymentForm, { fieldPath: 'amount', value: 19.99 }).success).toBe(true)
+			expect(validateFieldInput(paymentForm, { fieldPath: 'amount', value: 19.999 }).success).toBe(false)
+			expect(validateFieldInput(paymentForm, { fieldPath: 'fee', value: { amount: 5, currency: 'USD' } }).success).toBe(true)
+			expect(validateFieldInput(paymentForm, { fieldPath: 'fee', value: { amount: 5, currency: 'EUR' } }).success).toBe(false)
+			expect(validateFieldInput(paymentForm, { fieldPath: 'anyFee', value: { amount: 5, currency: 'EUR' } }).success).toBe(true)
+			expect(paymentForm.safeFill({ fields: { amount: 1.5, fee: { amount: 5, currency: 'USD' } } } as never).success).toBe(true)
+			expect(paymentForm.safeFill({ fields: { amount: 1.505 } } as never).success).toBe(false)
+			expect(paymentForm.safeFill({ fields: { fee: { amount: 5, currency: 'GBP' } } } as never).success).toBe(false)
+		})
+
 		test('validates a bounded text field without constructing an invalid regex', () => {
 			const boundedForm = form().name('bounded-text').fields({
 				nickname: { type: 'text', minLength: 2, maxLength: 5 },
@@ -309,6 +326,20 @@ describe('progressive form validation', () => {
 			if (result.success) {
 				expect(result.value.party.id).toBe('tenant-0')
 				expect(result.value.party.name).toBe('John Smith')
+			}
+		})
+
+		test('rejects an unknown key in party data by name', () => {
+			const petForm = createPetAddendumLikeForm()
+			const result = validatePartyInput(petForm, {
+				roleId: 'tenant',
+				value: { name: 'John Smith', lastNam: 'Smith' },
+			})
+
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.errors[0]?.field).toBe('parties.tenant[0]')
+				expect(result.errors[0]?.message).toContain('lastNam')
 			}
 		})
 

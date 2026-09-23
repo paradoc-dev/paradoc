@@ -28,6 +28,8 @@ import {
 	OrganizationSchema,
 	PersonSchema,
 	PhoneSchema,
+	RuntimeOrganizationSchema,
+	RuntimePersonSchema,
 } from '@paradoc/schemas'
 import type { ZodSchema, ZodError } from 'zod'
 
@@ -110,6 +112,10 @@ export const validateMoney = createValidator(MoneySchema)
 export const validateOrganization = createValidator(OrganizationSchema)
 export const validatePerson = createValidator(PersonSchema)
 export const validatePhone = createValidator(PhoneSchema)
+
+// Party data: a Person or Organization with the `id` the fill assigns it
+export const validateRuntimeOrganization = createValidator(RuntimeOrganizationSchema)
+export const validateRuntimePerson = createValidator(RuntimePersonSchema)
 
 type Validator = ReturnType<typeof createValidator>
 

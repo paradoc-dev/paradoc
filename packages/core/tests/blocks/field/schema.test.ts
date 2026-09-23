@@ -466,15 +466,13 @@ describe('Field', () => {
 					expect(() => field(input)).toThrow();
 				});
 
-				test('preserves additional properties (Field schema allows them via anyOf)', () => {
+				test('rejects an unknown key by name', () => {
 					const input = {
 						type: 'text',
 						label: 'Name',
-						extra: 'preserved',
+						maxLenght: 20,
 					} as any;
-					const result = field(input);
-					expect(result.type).toBe('text');
-					expect(result.label).toBe('Name');
+					expect(() => field(input)).toThrow(/maxLenght/);
 				});
 			});
 		});

@@ -95,7 +95,7 @@ const createFormWithProgressiveParties = () =>
 		.name('progressive-parties')
 		.parties({
 			buyer: party().label('Buyer').partyType('person').min(0).build(),
-			witness: party().label('Witness').partyType('person').multiple(true).min(0).max(2).build(),
+			witness: party().label('Witness').partyType('person').min(0).max(2).build(),
 		})
 		.build()
 
@@ -158,7 +158,7 @@ const createFormWithPartyExpressions = () =>
 			partyProof: { title: 'Party proof', visible: 'partyCount("buyer") > 0' },
 		},
 		parties: {
-			buyer: { label: 'Buyer', types: ['person'], min: 0 },
+			buyer: { label: 'Buyer', partyType: 'person', min: 0 },
 		},
 		rules: {
 			buyerPresent: {

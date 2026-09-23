@@ -15,7 +15,7 @@ import type { FormParty, Party } from '@paradoc/types';
 import { inferPartyType, isPerson, isOrganization } from '@/primitives/party';
 import { evaluateBooleanExpression } from '@/logic/runtime/evaluation/expression-evaluator';
 import type { EvaluationContext } from '@/logic/runtime/evaluation/types';
-import { validatePerson, validateOrganization } from './validators';
+import { validateRuntimePerson, validateRuntimeOrganization } from './validators';
 
 /**
  * Result of party validation for a form role.
@@ -44,7 +44,8 @@ export interface ExtendedValidationResult {
  *
  * This function:
  * 1. Infers the party type from shape (Organization has org-specific keys, Person does not)
- * 2. Validates the data against the appropriate schema
+ * 2. Validates the data against the appropriate schema: a Person or
+ *    Organization with the party `id`, and no other keys
  * 3. Checks the inferred type against FormParty.partyType constraint
  *
  * @param data - The party data to validate
@@ -56,11 +57,11 @@ export interface ExtendedValidationResult {
  * const formParty = { id: 'buyer', label: 'Buyer', partyType: 'person' };
  *
  * // Valid - person data for person-only role
- * validatePartyForRole({ name: 'John' }, formParty);
+ * validatePartyForRole({ id: 'buyer-0', name: 'John' }, formParty);
  * // { success: true, inferredType: 'person' }
  *
  * // Invalid - organization data for person-only role
- * validatePartyForRole({ name: 'Acme Corp', legalName: 'Acme Corporation Inc.' }, formParty);
+ * validatePartyForRole({ id: 'buyer-0', name: 'Acme Corp', legalName: 'Acme Corporation Inc.' }, formParty);
  * // { success: false, error: "Party type 'organization' not allowed...", inferredType: 'organization' }
  * ```
  */
@@ -87,8 +88,8 @@ export function validatePartyForRole(
   // Infer type from shape: org-specific keys → organization, otherwise → person
   if (isOrganization(obj as unknown as Party)) {
     inferredType = 'organization';
-    if (!validateOrganization(obj)) {
-      const errors = (validateOrganization as unknown as { errors: Array<{ message?: string }> }).errors;
+    if (!validateRuntimeOrganization(obj)) {
+      const errors = (validateRuntimeOrganization as unknown as { errors: Array<{ message?: string }> }).errors;
       return {
         success: false,
         error: `Invalid organization data: ${errors?.[0]?.message || 'validation failed'}`,
@@ -97,8 +98,8 @@ export function validatePartyForRole(
     }
   } else {
     inferredType = 'person';
-    if (!validatePerson(obj)) {
-      const errors = (validatePerson as unknown as { errors: Array<{ message?: string }> }).errors;
+    if (!validateRuntimePerson(obj)) {
+      const errors = (validateRuntimePerson as unknown as { errors: Array<{ message?: string }> }).errors;
       return {
         success: false,
         error: `Invalid person data: ${errors?.[0]?.message || 'validation failed'}`,

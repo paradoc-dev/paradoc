@@ -11,19 +11,13 @@ const happyPathInputs = {
       "firstName": "Jordan",
       "middleName": "M",
       "lastName": "Rivera",
-      "name": "Jordan Rivera",
-      "signature": {
-        "signedAt": "2026-04-15T09:00:00Z"
-      }
+      "name": "Jordan Rivera"
     },
     "employer": {
       "id": "employer-0",
       "name": "Acme Manufacturing LLC",
       "legalName": "Acme Manufacturing LLC",
-      "entityType": "llc",
-      "signature": {
-        "signedAt": "2026-04-15T14:00:00Z"
-      }
+      "entityType": "llc"
     },
     "preparer": []
   },
@@ -73,19 +67,13 @@ const regressionVectors: Array<{
           "firstName": "Jordan",
           "middleName": "M",
           "lastName": "Rivera",
-          "name": "Jordan Rivera",
-          "signature": {
-            "signedAt": "2026-04-15T09:00:00Z"
-          }
+          "name": "Jordan Rivera"
         },
         "employer": {
           "id": "employer-0",
           "name": "Acme Manufacturing LLC",
           "legalName": "Acme Manufacturing LLC",
-          "entityType": "llc",
-          "signature": {
-            "signedAt": "2026-04-15T14:00:00Z"
-          }
+          "entityType": "llc"
         },
         "preparer": []
       },
@@ -200,19 +188,13 @@ const regressionVectors: Array<{
           "firstName": "Jordan",
           "middleName": "M",
           "lastName": "Rivera",
-          "name": "Jordan Rivera",
-          "signature": {
-            "signedAt": "2026-04-15T09:00:00Z"
-          }
+          "name": "Jordan Rivera"
         },
         "employer": {
           "id": "employer-0",
           "name": "Acme Manufacturing LLC",
           "legalName": "Acme Manufacturing LLC",
-          "entityType": "llc",
-          "signature": {
-            "signedAt": "2026-04-15T14:00:00Z"
-          }
+          "entityType": "llc"
         },
         "preparer": []
       },

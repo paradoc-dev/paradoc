@@ -225,6 +225,43 @@ describe('context-builder', () => {
       expect(defsValues.get('canDrive')).toBe(true)
     })
 
+    test('evaluates a bbox definition to the corner shape of a bbox field', () => {
+      const form: Form = {
+        kind: 'form',
+        name: 'bbox-defs',
+        fields: {
+          south: { type: 'number' },
+          west: { type: 'number' },
+          area: { type: 'bbox' },
+        },
+        defs: {
+          box: {
+            type: 'bbox',
+            value: {
+              southWest: { lat: 'fields.south', lon: 'fields.west' },
+              northEast: { lat: 'fields.south + 1', lon: 'fields.west + 1' },
+            },
+          },
+          insideArea: {
+            type: 'boolean',
+            value: 'box.southWest.lat >= fields.area.southWest.lat and box.northEast.lon <= fields.area.northEast.lon',
+          },
+        },
+      }
+      const data = {
+        fields: {
+          south: 10,
+          west: 20,
+          area: { southWest: { lat: 0, lon: 0 }, northEast: { lat: 50, lon: 50 } },
+        },
+      }
+
+      const defsValues = getDefsValues(form, data)
+
+      expect(defsValues.get('box')).toEqual({ southWest: { lat: 10, lon: 20 }, northEast: { lat: 11, lon: 21 } })
+      expect(defsValues.get('insideArea')).toBe(true)
+    })
+
     test('returns empty map for form without defs', () => {
       const form = createSimpleForm()
       const data = { fields: { age: 25 } }

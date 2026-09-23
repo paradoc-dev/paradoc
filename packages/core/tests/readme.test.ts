@@ -36,7 +36,6 @@ describe("@paradoc/core - README Examples", () => {
           tenant: p
             .party()
             .label("Tenant")
-            .multiple(true)
             .min(1)
             .max(4)
             .signature({ required: true }),
@@ -82,7 +81,7 @@ describe("@paradoc/core - README Examples", () => {
           tenant: p
             .party()
             .label("Tenant")
-            .multiple(true)
+            .max(4)
             .signature({ required: true }),
         })
         .fields({

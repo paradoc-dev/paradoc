@@ -204,7 +204,7 @@ For compound types, `value` is an object with expression strings per component.
 
 **phone** — `number` required; `type`, `extension` optional.
 **coordinate** — `lat`, `lon` required.
-**bbox** — `north`, `south`, `east`, `west` required.
+**bbox** — `southWest` and `northEast` required, each with `lat` and `lon`, the same corners as a bbox field (`box.southWest.lat`).
 **person** — `name` required; `title`, `firstName`, `middleName`, `lastName`, `suffix` optional.
 **organization** — `name` required; `legalName`, `domicile`, `entityType`, `entityId`, `taxId` optional.
 **identification** — `type`, `number` required; `issuer`, `issueDate`, `expiryDate` optional.

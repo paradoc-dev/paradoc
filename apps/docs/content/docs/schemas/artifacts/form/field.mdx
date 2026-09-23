@@ -65,7 +65,7 @@ All field types share these base properties:
 
 ## Field Types
 
-Each field type includes all [BaseField](#basefield) properties plus the type-specific properties listed below.
+Each field type includes all [BaseField](#basefield) properties plus the type-specific properties listed below. A field with any other key fails validation, and the error names the key.
 
 ### TextField
 
@@ -141,6 +141,12 @@ Numeric input field.
     name: 'max',
     type: 'number',
     description: 'Maximum allowed value',
+    isOptional: true,
+  },
+  {
+    name: 'step',
+    type: 'number',
+    description: 'Allowed increment: a value must be a multiple of step (for example 0.01 for cents)',
     isOptional: true,
   },
   {
@@ -421,6 +427,12 @@ Monetary amount input field.
     name: 'max',
     type: 'number',
     description: 'Maximum allowed amount',
+    isOptional: true,
+  },
+  {
+    name: 'currency',
+    type: 'string',
+    description: 'ISO 4217 alpha-3 code a value must use (for example USD). Omit to accept any currency',
     isOptional: true,
   },
   {

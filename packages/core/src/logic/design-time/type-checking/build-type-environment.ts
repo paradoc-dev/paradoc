@@ -77,7 +77,10 @@ const FIELD_TYPE_TO_EXPR: Record<string, ExprType> = {
   list: T.array(T.unknown),
 }
 
-/** Statically known properties exposed by object-valued definition expressions. */
+/**
+ * Statically known properties exposed by object-valued definition expressions.
+ * A nested member is keyed by its dotted path, such as `southWest.lat`.
+ */
 export const DEFINITION_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
   money: { amount: T.number, currency: T.string },
   address: {
@@ -90,7 +93,14 @@ export const DEFINITION_PROPERTY_TYPES: Record<string, Record<string, ExprType>>
   },
   phone: { number: T.string, type: T.string, extension: T.string },
   coordinate: { lat: T.number, lon: T.number },
-  bbox: { north: T.number, south: T.number, east: T.number, west: T.number },
+  bbox: {
+    southWest: T.object,
+    'southWest.lat': T.number,
+    'southWest.lon': T.number,
+    northEast: T.object,
+    'northEast.lat': T.number,
+    'northEast.lon': T.number,
+  },
   person: {
     name: T.string,
     firstName: T.string,
