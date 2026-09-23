@@ -4,7 +4,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Form } from "@paradoc/types";
 
-import { ArtifactProvider, PartyIndexOutOfRangeError, UnknownPartyRoleError, usePartyContact } from "../src";
+import {
+  ArtifactProvider,
+  PartialValuesProvider,
+  PartyIndexOutOfRangeError,
+  UnknownPartyRoleError,
+  usePartyContact,
+  type FormatOptions,
+} from "../src";
 
 const artifact = {
   name: "party-bindings",
@@ -89,6 +96,48 @@ describe("usePartyContact", () => {
     expect(() =>
       renderToStaticMarkup(<ArtifactProvider artifact={artifact} data={data}><UnknownRole /></ArtifactProvider>)
     ).toThrow(UnknownPartyRoleError);
+  });
+
+  describe("a party not answered yet", () => {
+    const unanswered = { fields: {}, parties: { buyer: data.parties.buyer } };
+
+    function renderUnanswered(format?: FormatOptions) {
+      return renderToStaticMarkup(
+        <ArtifactProvider artifact={artifact} data={unanswered} format={format}>
+          <Report role="witness" />
+        </ArtifactProvider>
+      );
+    }
+
+    it("prints the document's placeholder in partial mode", () => {
+      expect(renderUnanswered({ partial: true })).toContain("—|none|none|none");
+    });
+
+    it("prints the document's own blank, as a Field does", () => {
+      expect(renderUnanswered({ partial: true, blank: "(pending)" })).toContain("(pending)|none|none|none");
+    });
+
+    it("prints the progressive missing text when the document sets one", () => {
+      expect(
+        renderUnanswered({ partial: true, progressive: { missing: "[to come]", incomplete: "…" } })
+      ).toContain("[to come]|none|none|none");
+    });
+
+    it("prints the placeholder when partial mode is inherited from the caller", () => {
+      const html = renderToStaticMarkup(
+        <PartialValuesProvider partial>
+          <ArtifactProvider artifact={artifact} data={unanswered}>
+            <Report role="witness" />
+          </ArtifactProvider>
+        </PartialValuesProvider>
+      );
+      expect(html).toContain("—|none|none|none");
+    });
+
+    it("fails by name in a finished document", () => {
+      expect(() => renderUnanswered()).toThrow(PartyIndexOutOfRangeError);
+      expect(() => renderUnanswered({ partial: false })).toThrow('Party role "witness" has 0 parties filled; index 0 is out of range.');
+    });
   });
 
   it("fails an index past the filled parties by name", () => {

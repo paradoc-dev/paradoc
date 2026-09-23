@@ -419,6 +419,24 @@ export function useParty(role: string): readonly Party[] {
   }, same);
 }
 
+/**
+ * The placeholder a partial document prints for a value not answered yet, or
+ * `undefined` when the document is finished.
+ *
+ * It is the progressive policy's `missing` text, which defaults to the
+ * document's blank, so a hook printing something the formatter never sees (a
+ * party not filled yet, say) prints the same placeholder `Field` does.
+ */
+export function usePartialPlaceholder(): string | undefined {
+  return useSelection(
+    "partial-placeholder",
+    (snapshot) => snapshot.formatting.partial
+      ? snapshot.formatting.progressive?.missing ?? snapshot.formatting.blank
+      : undefined,
+    same
+  );
+}
+
 /** Reads the formatter registry for advanced copy-owned components. */
 export function useFormatter(): Formatter {
   return useSelection("formatter", (snapshot) => snapshot.formatting.formatter, same);

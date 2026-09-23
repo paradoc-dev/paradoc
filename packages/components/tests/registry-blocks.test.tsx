@@ -35,7 +35,7 @@ import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm, PURCHASE_ORDER_REACT_LAYER } from "../src/examples/purchase-order";
 import { VENDOR_PACKET_KEYS, vendorPacketBundle } from "../src/examples/vendor-packet";
 import { vendorPacketData, vendorPacketTaxpayerData } from "../src/examples/vendor-packet-data";
-import { planPages, type MeasuredKeep } from "@paradoc/react";
+import { PartyIndexOutOfRangeError, planPages, type MeasuredKeep } from "@paradoc/react";
 import { renderPdf } from "@paradoc/react-pdf";
 import { readPdf, type ReadPage } from "./pdf-reader";
 import { normalizeText, treeKeeps } from "./tree-keeps";
@@ -230,6 +230,37 @@ describe("the invoice block", () => {
     const overflow = renderToStaticMarkup(<InvoiceDocument data={overflowInvoiceData} />);
     expect(overflow).toContain("INV-2026-0432");
     expect(overflow).toContain("Release pipeline maintenance — September");
+  });
+
+  describe("with no customer party answered yet", () => {
+    const noCustomer = {
+      ...shortInvoiceData,
+      parties: Object.fromEntries(Object.entries(shortInvoiceData.parties).filter(([role]) => role !== "customer")),
+    };
+
+    it("prints the placeholder for the customer in a partial render", () => {
+      const html = renderToStaticMarkup(<InvoiceDocument data={noCustomer} format={{ partial: true }} />);
+      const customer = html.match(/<div[^>]*data-party-role="customer"[^>]*>(.*?)<\/div>/)?.[1];
+      expect(customer).toBeDefined();
+      expect(customer).toContain(">—</span>");
+      expect(customer).not.toContain("Harbor Freight Collective");
+      // The rest of the invoice still renders around it.
+      expect(html).toContain("Northgate Systems");
+      expect(html).toContain("INV-2026-0431");
+    });
+
+    it("prints the placeholder for the customer in a partial PDF", async () => {
+      const read = await readPdf((await renderPdf(<InvoiceDocument data={noCustomer} />, { partial: true })).bytes);
+      const text = read.map((page) => page.text).join(" ");
+      expect(text).toContain("INV-2026-0431");
+      // The role heading is uppercased by its class; the placeholder follows it.
+      expect(text).toContain("BILL TO—");
+      expect(text).not.toContain("Harbor Freight Collective");
+    }, 180_000);
+
+    it("fails a finished render by name", () => {
+      expect(() => renderToStaticMarkup(<InvoiceDocument data={noCustomer} />)).toThrow(PartyIndexOutOfRangeError);
+    });
   });
 
   it("renders the long sample to a PDF whose table crosses a page break", async () => {

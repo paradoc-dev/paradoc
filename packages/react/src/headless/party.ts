@@ -3,7 +3,7 @@ import type { Address, Formatter, Organization, Party, Phone } from "@paradoc/ty
 
 import { useUnresolvedPathCollector } from "../components/check-context";
 import { formatByType } from "../lib/format";
-import { useArtifact, useFormatter, useParty } from "./artifact";
+import { useArtifact, useFormatter, useParty, usePartialPlaceholder } from "./artifact";
 
 /**
  * A filled `Party` that also carries an affiliated organization, an address,
@@ -23,7 +23,8 @@ export type PartyWithContact = Party & {
 };
 
 /**
- * Raised when a role's filled parties do not reach `index`.
+ * Raised when a role's filled parties do not reach `index` in a finished
+ * document. A partial one prints its placeholder instead.
  *
  * `useParty` already fails an undeclared role by name; this fails the other
  * half of the same fault — a role the artifact does declare, asked for a
@@ -82,6 +83,7 @@ export function usePartyContact(role: string, index = 0): PartyContactBinding {
   const parties = useParty(role);
   const formatter = useFormatter();
   const collector = useUnresolvedPathCollector();
+  const partialPlaceholder = usePartialPlaceholder();
   const definition = artifact.parties?.[role];
   const roleLabel = definition?.label ?? role;
   const party = parties[index];
@@ -93,6 +95,10 @@ export function usePartyContact(role: string, index = 0): PartyContactBinding {
       if (Object.hasOwn(artifact.parties ?? {}, role)) collector.report(`party:${role}[${index}]`);
       return { role, index, roleLabel, nameText: "—" };
     }
+    // A partial document is still being filled, so a party not answered yet
+    // prints the document's placeholder, as an unanswered `Field` does. A
+    // finished document missing one is a fault and fails by name.
+    if (partialPlaceholder !== undefined) return { role, index, roleLabel, nameText: partialPlaceholder };
     throw new PartyIndexOutOfRangeError(role, index, parties.length);
   }
 
