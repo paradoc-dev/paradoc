@@ -345,3 +345,40 @@ describe("deriveView — canonical candidate ordering", () => {
 		expect(view.next?.fieldPath).toBe("/b");
 	});
 });
+
+describe("deriveView — locked prefill fields", () => {
+	const SYSTEM: Actor = { kind: "system", reason: "prefill" };
+
+	function prefilled(lockedPaths: string[]): FormSession {
+		return emptySession([
+			{
+				v: 1,
+				t: "PrefillApplied",
+				at: "t0",
+				by: SYSTEM,
+				values: { "/ssn": "123-45-6789", "/name": "Toby" },
+				sources: { "/ssn": "prefill", "/name": "prefill" },
+				lockedPaths,
+			},
+		]);
+	}
+	const rt = makeRuntime({ fields: ["/ssn", "/name", "/color"] });
+
+	it("marks a field locked by prefill and keeps its answered status", () => {
+		const view = deriveView(prefilled(["/ssn"]), rt);
+		const ssn = view.fieldIndex.find((f) => f.fieldPath === "/ssn");
+		expect(ssn).toMatchObject({ status: "answered", locked: true });
+	});
+
+	it("leaves prefilled-but-unlocked and unanswered fields unlocked", () => {
+		const view = deriveView(prefilled(["/ssn"]), rt);
+		const byPath = Object.fromEntries(view.fieldIndex.map((f) => [f.fieldPath, f]));
+		expect(byPath["/name"]).toMatchObject({ status: "answered", locked: false });
+		expect(byPath["/color"]).toMatchObject({ status: "pending", locked: false });
+	});
+
+	it("marks no field locked when the prefill locks nothing", () => {
+		const view = deriveView(prefilled([]), rt);
+		expect(view.fieldIndex.every((f) => f.locked === false)).toBe(true);
+	});
+});

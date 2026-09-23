@@ -69,6 +69,8 @@ export type FieldIndexEntry = {
 	fieldPath: string;
 	required: boolean;
 	status: "answered" | "deferred" | "skipped" | "pending" | "hidden";
+	/** True when prefill locked this field; `answer`, `revise`, and `clear` reject it with `field-locked`. */
+	locked: boolean;
 	type?: string;
 	valuePreview?: string;
 };
@@ -247,6 +249,7 @@ export function deriveView(
  *   - "deferred" / "skipped" — user opted out (and not answered)
  *   - "pending" — currently visible per fillState, awaiting input
  *   - "hidden" — defined but not visible right now (conditional predicate excludes)
+ * and a `locked` flag from the prefill's locked paths, independent of status.
  */
 function buildFieldIndex(
 	runtime: ArtifactRuntime,
@@ -277,6 +280,7 @@ function buildFieldIndex(
 			fieldPath: f.fieldPath,
 			required: f.required,
 			status,
+			locked: projected.lockedPaths.has(f.fieldPath),
 			...(f.type !== undefined ? { type: f.type } : {}),
 			...(valuePreview !== undefined ? { valuePreview } : {}),
 		};

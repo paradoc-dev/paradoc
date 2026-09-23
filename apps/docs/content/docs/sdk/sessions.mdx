@@ -74,7 +74,7 @@ A rejection carries no session. Keep the one you had: nothing about the fill cha
 
 Commands cover the full lifecycle: `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
 
-A field locked by prefill rejects `answer`, `revise`, and `clear` with `field-locked`; the reason names the field.
+A field locked by prefill rejects `answer`, `revise`, and `clear` with `field-locked`; the reason names the field. To show it as read-only before the user tries, read `locked` on the field's `fieldIndex` entry in the derived view.
 
 `options` takes `expectedEventCount`, which rejects with `stale-state` when another writer appended first, and `now`, a clock for deterministic tests.
 
@@ -93,7 +93,7 @@ view.nextParty        // the next party to ask about, or null
 view.progress         // ProgressSummary: answered vs. remaining
 ```
 
-A `SessionView` also carries `projected` (the replayed session), `pendingParties`, `fieldIndex` (status per field, in declaration order), and `partyIndex` (status per party role).
+A `SessionView` also carries `projected` (the replayed session), `pendingParties`, `fieldIndex` (status and `locked` flag per field, in declaration order), and `partyIndex` (status per party role).
 
 `phase` is one of `collecting-required`, `revisit-deferred`, `collecting-optional`, `unresolved`, `ready`, `rendered`, or `abandoned`. The engine reads visibility and required cascades straight from `@paradoc/core`, so they resolve the same way they do everywhere else.
 
