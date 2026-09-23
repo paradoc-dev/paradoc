@@ -266,3 +266,54 @@ export function acroFormPdf(fields: AcroFormFixtureField[], options: AcroFormFix
     ...(options.encrypted ? [{ id: encryptId, body: '<< /Filter /Standard /V 2 /R 3 /Length 128 /P -44 >>' }] : []),
   ].sort((left, right) => left.id - right.id), options.encrypted ? ` /Encrypt ${encryptId} 0 R` : '')
 }
+
+/** One marker line for {@link markerPdf}: a planted encoding followed by an underscore placeholder. */
+export interface FixtureMarker {
+  signerIndex: number
+  fieldType: number
+  /** Baseline y in points from the bottom edge. */
+  y: number
+}
+
+/**
+ * Build a one-page PDF whose text layer carries signature markers. Bytes
+ * 0x80-0x83 map through a ToUnicode CMap to the four marker glyphs, the way a
+ * converter embeds them, so extraction reads the page as it reads real output.
+ */
+export function markerPdf(markers: FixtureMarker[]): Uint8Array {
+  const digits = (signerIndex: number, fieldType: number): number[] => {
+    const result: number[] = []
+    let remaining = signerIndex
+    for (let index = 0; index < 6; index += 1) {
+      result.unshift(remaining % 4)
+      remaining = Math.floor(remaining / 4)
+    }
+    return [...result, Math.floor(fieldType / 4), fieldType % 4]
+  }
+  const hex = (byte: number) => byte.toString(16).padStart(2, '0')
+  const content = markers
+    .map(({ signerIndex, fieldType, y }) => {
+      const bytes = [...digits(signerIndex, fieldType).map((digit) => 0x80 + digit), ...Array(20).fill(0x5f)]
+      return `BT /F1 12 Tf 72 ${y} Td <${bytes.map(hex).join('')}> Tj ET`
+    })
+    .join('\n')
+  const cmap = [
+    '/CIDInit /ProcSet findresource begin 12 dict begin begincmap',
+    '1 begincodespacerange <00> <FF> endcodespacerange',
+    '4 beginbfchar <80> <2800> <81> <2801> <82> <2802> <83> <2804> endbfchar',
+    'endcmap CMapName currentdict /CMap defineresource pop end end',
+  ].join('\n')
+  const contentBytes = encoder.encode(content)
+  const cmapBytes = encoder.encode(cmap)
+  return assemblePdf([
+    { id: 1, body: '<< /Type /Catalog /Pages 2 0 R >>' },
+    { id: 2, body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
+    {
+      id: 3,
+      body: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    },
+    { id: 4, body: `<< /Length ${contentBytes.length} >>\nstream\n`, stream: contentBytes },
+    { id: 5, body: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 6 0 R >>' },
+    { id: 6, body: `<< /Length ${cmapBytes.length} >>\nstream\n`, stream: cmapBytes },
+  ])
+}

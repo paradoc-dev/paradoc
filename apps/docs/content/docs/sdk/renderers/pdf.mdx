@@ -248,8 +248,11 @@ encrypted, or cannot be read. Its `source` property is the zero-based index of
 that source.
 
 The same entry point exports the signature placement helpers the SDK
-re-exports: `locate`, `locator`, `LocateError`, `extractFieldsFromPdf`, and
-the marker `encode` and `decodeAll` functions.
+re-exports: `locate`, `locator`, `LocateError`, `extractFieldsFromPdf`,
+`UnknownMarkerError`, and the marker `encode` and `decodeAll` functions.
+`extractFieldsFromPdf` and `locate` throw `UnknownMarkerError`, naming the page,
+signer, and field type code, when a marker's field type is not signature or
+initials.
 
 ## Binding Syntax
 

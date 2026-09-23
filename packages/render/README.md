@@ -178,7 +178,8 @@ const hits = await locate(pdf, [
 `LocateError` naming every failed id, so a seal pipeline can never proceed on
 a silently incomplete signature map. Anchor text must be unique unless the
 query picks an `occurrence`. `extractFieldsFromPdf()` returns every marker in
-a document; `pageTextRuns()` exposes positioned text runs for verification and
+a document, and throws `UnknownMarkerError` naming each marker whose field type
+is not signature or initials; `pageTextRuns()` exposes positioned text runs for verification and
 layout tooling.
 
 ## DOCX templates

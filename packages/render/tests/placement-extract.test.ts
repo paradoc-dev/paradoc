@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { extractAllText, extractFieldsFromPdf, pdfContainsEncoding } from '../src/pdf/extract'
+import { FieldType } from '../src/pdf/encoding'
+import { UnknownMarkerError, extractAllText, extractFieldsFromPdf, pdfContainsEncoding } from '../src/pdf/extract'
+import { markerPdf } from './pdf-fixtures'
 import { extractFieldsWithPdfjs } from './pdfjs-reference'
 
 const fixture = (name: string): Uint8Array =>
@@ -55,6 +57,47 @@ describe('spike-puppeteer.pdf known fields', () => {
       { signerIndex: 1, fieldType: 'initials', page: 1 },
       { signerIndex: 5, fieldType: 'signature', page: 2 },
     ])
+  })
+})
+
+describe('marker field types', () => {
+  it('reads each known field type as itself', async () => {
+    const fields = await extractFieldsFromPdf(
+      markerPdf([
+        { signerIndex: 3, fieldType: FieldType.SIGNATURE, y: 700 },
+        { signerIndex: 3, fieldType: FieldType.INITIALS, y: 600 },
+      ]),
+    )
+    expect(fields.map(({ signerIndex, fieldType, page }) => ({ signerIndex, fieldType, page }))).toEqual([
+      { signerIndex: 3, fieldType: 'signature', page: 1 },
+      { signerIndex: 3, fieldType: 'initials', page: 1 },
+    ])
+  })
+
+  it('refuses a marker with an unknown field type, naming it', async () => {
+    // Field type 2 is reserved. Reading it as a signature would give the
+    // signer a signature box the document never asked for.
+    const pdf = markerPdf([{ signerIndex: 7, fieldType: 2, y: 700 }])
+    const error = await extractFieldsFromPdf(pdf).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(UnknownMarkerError)
+    expect((error as UnknownMarkerError).markers).toEqual([{ page: 1, signerIndex: 7, fieldType: 2 }])
+    expect((error as UnknownMarkerError).message).toMatch(/page 1 signer 7 field type 2/)
+  })
+
+  it('refuses a page that mixes known and unknown markers, naming every unknown one', async () => {
+    const pdf = markerPdf([
+      { signerIndex: 0, fieldType: FieldType.SIGNATURE, y: 700 },
+      { signerIndex: 0, fieldType: 5, y: 600 },
+      { signerIndex: 1, fieldType: FieldType.INITIALS, y: 500 },
+      { signerIndex: 1, fieldType: 15, y: 400 },
+    ])
+    const error = await extractFieldsFromPdf(pdf).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(UnknownMarkerError)
+    expect((error as UnknownMarkerError).markers).toEqual([
+      { page: 1, signerIndex: 0, fieldType: 5 },
+      { page: 1, signerIndex: 1, fieldType: 15 },
+    ])
+    expect((error as UnknownMarkerError).message).toMatch(/2 markers/)
   })
 })
 

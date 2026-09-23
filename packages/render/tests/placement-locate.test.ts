@@ -2,8 +2,9 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { FieldType } from '../src/pdf/encoding'
-import { extractFieldsFromPdf } from '../src/pdf/extract'
+import { UnknownMarkerError, extractFieldsFromPdf } from '../src/pdf/extract'
 import { LocateError, locate } from '../src/pdf/locate'
+import { markerPdf } from './pdf-fixtures'
 import { anchorPositionWithPdfjs } from './pdfjs-reference'
 
 const fixture = (name: string): Uint8Array =>
@@ -38,6 +39,24 @@ describe('locate: marker queries', () => {
         { id: 'ghost-b', kind: 'marker', signerIndex: 0, fieldType: FieldType.INITIALS },
       ]),
     ).rejects.toThrowError(/ghost-a.*ghost-b|2 of 3/s)
+  })
+})
+
+describe('locate: unknown marker field types', () => {
+  it('resolves a signature marker on a page with only known markers', async () => {
+    const pdf = markerPdf([{ signerIndex: 0, fieldType: FieldType.SIGNATURE, y: 700 }])
+    const hits = await locate(pdf, [{ id: 'client', kind: 'marker', signerIndex: 0, fieldType: FieldType.SIGNATURE }])
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.page).toBe(1)
+  })
+
+  it('refuses to seal when the only marker for a signature slot has an unknown type', async () => {
+    // Before, the unknown marker became a signature field and this query
+    // resolved to it, sealing a box the document never declared.
+    const pdf = markerPdf([{ signerIndex: 0, fieldType: 2, y: 700 }])
+    await expect(
+      locate(pdf, [{ id: 'client', kind: 'marker', signerIndex: 0, fieldType: FieldType.SIGNATURE }]),
+    ).rejects.toBeInstanceOf(UnknownMarkerError)
   })
 })
 

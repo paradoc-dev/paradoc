@@ -34,8 +34,9 @@ export {
 	extractAllText,
 	extractFieldsFromPdf,
 	pdfContainsEncoding,
+	UnknownMarkerError,
 } from './pdf/extract'
-export type { ExtractedField, PageTextRuns } from './pdf/extract'
+export type { ExtractedField, PageTextRuns, UnknownMarker } from './pdf/extract'
 export { pageTextRuns } from './pdf/extract'
 export type { TextRun } from './pdf/scanner'
 export { LocateError, locate, locator } from './pdf/locate'

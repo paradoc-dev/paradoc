@@ -23,6 +23,30 @@ export interface ExtractedField {
   pageHeight: number
 }
 
+/** A decoded marker whose field type code has no meaning to this reader. */
+export interface UnknownMarker {
+  /** 1-based page number. */
+  page: number
+  signerIndex: number
+  /** The raw field type code (0-15). */
+  fieldType: number
+}
+
+/**
+ * Thrown when a PDF carries markers whose field type is not signature or
+ * initials. Such a marker comes from a newer encoder or a damaged text layer;
+ * reading it as either known type could put a signer's mark in the wrong box.
+ */
+export class UnknownMarkerError extends Error {
+  constructor(readonly markers: UnknownMarker[]) {
+    const names = markers
+      .map((marker) => `page ${marker.page} signer ${marker.signerIndex} field type ${marker.fieldType}`)
+      .join(', ')
+    super(`PDF contains ${markers.length} marker${markers.length === 1 ? '' : 's'} with an unknown field type: ${names}`)
+    this.name = 'UnknownMarkerError'
+  }
+}
+
 interface Position {
   x: number
   y: number
@@ -77,11 +101,17 @@ function findEncodingPosition(runs: TextRun[], charPosition: number): Position |
   }
 }
 
-/** Extract signature/initials fields from a PDF produced by a converter. */
+/**
+ * Extract signature/initials fields from a PDF produced by a converter.
+ *
+ * @throws {UnknownMarkerError} naming every marker whose field type is not
+ * signature or initials.
+ */
 export async function extractFieldsFromPdf(pdf: Uint8Array): Promise<ExtractedField[]> {
   const model = await PdfModel.load(pdf)
   const pages = await loadPages(model)
   const fields: ExtractedField[] = []
+  const unknown: UnknownMarker[] = []
 
   for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
     const page = pages[pageIndex]!
@@ -95,13 +125,17 @@ export async function extractFieldsFromPdf(pdf: Uint8Array): Promise<ExtractedFi
       const position = findEncodingPosition(runs, encoding.position)
       if (!position) continue
       const name = fieldTypeToString(encoding.fieldType)
+      if (name === 'unknown') {
+        unknown.push({ page: pageIndex + 1, signerIndex: encoding.signerIndex, fieldType: encoding.fieldType })
+        continue
+      }
       const isInitials = name === 'initials'
       const width = isInitials ? Math.min(position.width, DEFAULT_INITIALS_DIMENSIONS.width) : position.width
       const height = isInitials ? Math.min(position.height * 0.8, DEFAULT_INITIALS_DIMENSIONS.height) : position.height
       const rawY = position.y - originY
       fields.push({
         signerIndex: encoding.signerIndex,
-        fieldType: name === 'unknown' ? 'signature' : name,
+        fieldType: name,
         page: pageIndex + 1,
         x: position.x - originX,
         y: pageHeight - rawY - height,
@@ -113,6 +147,7 @@ export async function extractFieldsFromPdf(pdf: Uint8Array): Promise<ExtractedFi
     }
   }
 
+  if (unknown.length > 0) throw new UnknownMarkerError(unknown)
   return fields
 }
 

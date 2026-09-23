@@ -126,12 +126,13 @@ export async function extractFieldsWithPdfjs(pdf: Uint8Array): Promise<Extracted
         const position = findEncodingPosition(items, encoding.position)
         if (!position) continue
         const name = fieldTypeToString(encoding.fieldType)
+        if (name === 'unknown') throw new Error(`Unknown marker field type ${encoding.fieldType} on page ${pageNumber}`)
         const isInitials = name === 'initials'
         const width = isInitials ? Math.min(position.width, DEFAULT_INITIALS_DIMENSIONS.width) : position.width
         const height = isInitials ? Math.min(position.height * 0.8, 40) : position.height
         fields.push({
           signerIndex: encoding.signerIndex,
-          fieldType: name === 'unknown' ? 'signature' : name,
+          fieldType: name,
           page: pageNumber,
           x: position.x,
           y: pageHeight - position.y - height,

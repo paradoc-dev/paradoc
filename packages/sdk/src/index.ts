@@ -28,8 +28,9 @@ export {
 	locator,
 	pdfContainsEncoding,
 	stripEncoding,
+	UnknownMarkerError,
 } from '@paradoc/render/pdf'
-export type { ExtractedField, LocateQuery } from '@paradoc/render/pdf'
+export type { ExtractedField, LocateQuery, UnknownMarker } from '@paradoc/render/pdf'
 
 import { renderLayer } from '@paradoc/render'
 import type { ParadocRenderer, RendererLayer } from '@paradoc/types'
