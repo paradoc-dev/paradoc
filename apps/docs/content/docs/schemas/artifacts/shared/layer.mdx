@@ -117,6 +117,12 @@ File-backed layer with external file reference. Used when content is stored in a
     isOptional: true,
   },
   {
+    name: 'font',
+    type: '{ path: string, checksum?: string }',
+    description: 'PDF layers only. A TrueType font (.ttf) for filled values and overlay text, read through the same resolver as `path`. See [PDF renderer fonts](/sdk/renderers/pdf#fonts)',
+    isOptional: true,
+  },
+  {
     name: 'bindings',
     type: 'Record<string, string>',
     description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',

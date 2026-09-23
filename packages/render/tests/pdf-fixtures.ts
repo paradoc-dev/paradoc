@@ -133,8 +133,18 @@ export interface FixtureField {
 
 const literal = (value: string) => `(${value.replace(/[\\()]/g, (char) => `\\${char}`)})`
 
+/** Form-wide settings for {@link acroFieldsPdf}. */
+export interface FixtureForm {
+  /** The AcroForm default appearance. */
+  da?: string
+  /** TrueType programs embedded in the form's default resources, keyed by resource name. */
+  fonts?: Record<string, Uint8Array>
+  /** Ask viewers to regenerate field appearances. */
+  needAppearances?: boolean
+}
+
 /** Build a one-page AcroForm PDF whose field appearance settings are controlled by the test. */
-export function acroFieldsPdf(fields: FixtureField[], formDa?: string): Uint8Array {
+export function acroFieldsPdf(fields: FixtureField[], form: FixtureForm = {}): Uint8Array {
   const fieldObjects = fields.map((field, index) => {
     const entries = [
       `/FT /${field.type ?? 'Tx'}`,
@@ -156,12 +166,27 @@ export function acroFieldsPdf(fields: FixtureField[], formDa?: string): Uint8Arr
   })
   const refs = fieldObjects.map(({ id }) => `${id} 0 R`).join(' ')
   const acroFormId = fieldObjects.length + 4
+  // Each form font is three objects: the simple TrueType font, its
+  // descriptor, and the embedded program.
+  const fontObjects: Array<{ id: number; body: string; name?: string; stream?: Uint8Array }> = Object.entries(form.fonts ?? {}).flatMap(([name, program], index) => {
+    const id = acroFormId + 1 + index * 3
+    return [
+      { id, name, body: `<< /Type /Font /Subtype /TrueType /BaseFont /${name} /FontDescriptor ${id + 1} 0 R /Encoding /WinAnsiEncoding >>` },
+      { id: id + 1, body: `<< /Type /FontDescriptor /FontName /${name} /Flags 32 /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 ${id + 2} 0 R >>` },
+      { id: id + 2, body: `<< /Length ${program.length} /Length1 ${program.length} >>\nstream\n`, stream: program },
+    ]
+  })
+  const resources = fontObjects.filter((object) => object.name).map((object) => `/${object.name} ${object.id} 0 R`).join(' ')
   return assemblePdf([
     { id: 1, body: `<< /Type /Catalog /Pages 2 0 R /AcroForm ${acroFormId} 0 R >>` },
     { id: 2, body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
     { id: 3, body: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> /Annots [${refs}] >>` },
     ...fieldObjects,
-    { id: acroFormId, body: `<< /Fields [${refs}]${formDa === undefined ? '' : ` /DA ${literal(formDa)}`} >>` },
+    {
+      id: acroFormId,
+      body: `<< /Fields [${refs}]${form.da === undefined ? '' : ` /DA ${literal(form.da)}`}${resources ? ` /DR << /Font << ${resources} >> >>` : ''}${form.needAppearances ? ' /NeedAppearances true' : ''} >>`,
+    },
+    ...fontObjects,
   ])
 }
 

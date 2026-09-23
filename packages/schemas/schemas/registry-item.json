@@ -195,6 +195,27 @@
           "type": "string",
           "format": "uri",
           "description": "URL to download the layer file from"
+        },
+        "font": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Relative path for the font file when installed"
+            },
+            "checksum": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "SHA-256 checksum for integrity verification"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "additionalProperties": false,
+          "description": "Font a PDF layer draws with, installed beside the layer file"
         }
       },
       "required": [

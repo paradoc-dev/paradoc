@@ -61,6 +61,20 @@ export interface RendererLayer {
    * For example: PDF AcroForm bindings (fieldName -> acroFieldName).
    */
   bindings?: Bindings;
+
+  /**
+   * The font the layer declares, read through the same resolver as its file.
+   * A PDF renderer draws filled values and overlay text with it.
+   */
+  font?: RendererLayerFont;
+}
+
+/** A layer's declared font, loaded. */
+export interface RendererLayerFont {
+  /** The font program's bytes. */
+  content: BinaryContent;
+  /** The path the layer declares it at; errors name the font by it. */
+  path: string;
 }
 
 /**

@@ -5,7 +5,7 @@
  * Replaces instanceof checks with duck typing via _isLayerBuilder property.
  */
 
-import type { InlineLayer, FileLayer, Layer } from '@paradoc/types';
+import type { InlineLayer, FileLayer, Layer, LayerFont } from '@paradoc/types';
 
 // ============================================================================
 // Layer Builder Marker
@@ -34,6 +34,8 @@ export interface FileLayerBuilderType {
 	title(value: string): FileLayerBuilderType;
 	description(value: string): FileLayerBuilderType;
 	checksum(value: string): FileLayerBuilderType;
+	/** Declare the font a PDF layer draws filled values and overlay text with. */
+	font(value: LayerFont): FileLayerBuilderType;
 	bindings(value: Record<string, string>): FileLayerBuilderType;
 	bindingsFrom(value: string): FileLayerBuilderType;
 	build(): FileLayer;
@@ -96,6 +98,10 @@ export function fileLayer(): FileLayerBuilderType {
 			_def.checksum = value;
 			return self;
 		},
+		font(value: LayerFont) {
+			_def.font = value;
+			return self;
+		},
 		bindings(value: Record<string, string>) {
 			_def.bindings = value;
 			return self;
@@ -110,6 +116,9 @@ export function fileLayer(): FileLayerBuilderType {
 			}
 			if (!_def.mimeType) {
 				throw new Error('FileLayer requires a mimeType. Use .mimeType() to set it.');
+			}
+			if (_def.font && _def.mimeType.toLowerCase() !== 'application/pdf') {
+				throw new Error('Only PDF layers (application/pdf) can declare a font.');
 			}
 			return _def as FileLayer;
 		},

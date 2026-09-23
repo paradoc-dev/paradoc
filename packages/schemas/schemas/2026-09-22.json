@@ -3396,6 +3396,29 @@
               "maxLength": 100,
               "pattern": "^sha256:[a-f0-9]{64}$",
               "description": "SHA-256 checksum for integrity verification"
+            },
+            "font": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "description": "Logical resolver path of a TrueType-outline font program (.ttf), resolved like the layer path"
+                },
+                "checksum": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^sha256:[a-f0-9]{64}$",
+                  "description": "SHA-256 checksum for integrity verification"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false,
+              "description": "Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form's own fonts"
             }
           },
           "required": [
@@ -3405,7 +3428,21 @@
           ],
           "additionalProperties": false
         }
-      ]
+      ],
+      "title": "Layer",
+      "description": "Layer specification — inline content or file reference",
+      "if": {
+        "required": [
+          "font"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mimeType": {
+            "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+          }
+        }
+      }
     },
     "Address": {
       "type": "object",

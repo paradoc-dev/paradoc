@@ -1,23 +1,47 @@
 import type { FontMetrics } from './standard-font'
 
-/** Why a value could not be drawn in its PDF form field. */
-export type PdfFieldFillReason = 'overflow' | 'comb-length'
+/** Why a value could not be drawn in its PDF form field or overlay. */
+export type PdfFieldFillReason = 'overflow' | 'comb-length' | 'missing-glyph' | 'unsupported-script'
 
-/** Thrown when a value cannot be drawn faithfully in a PDF form field, naming the field and the limit. */
+/** What a {@link PdfFieldFillError} reports beyond the field and the reason. */
+export interface PdfFieldFillDetail {
+  /** For `overflow`, the minimum font size in points; for `comb-length`, the number of comb boxes. */
+  limit?: number
+  /** For `missing-glyph`, the character no available font can draw. */
+  character?: string
+  /** For `unsupported-script`, the script that needs glyph shaping. */
+  script?: string
+}
+
+/**
+ * Thrown when a value cannot be drawn faithfully in a PDF form field or a text
+ * overlay, naming the field and why.
+ */
 export class PdfFieldFillError extends Error {
-  /** Fully qualified name of the PDF form field. */
+  /** Fully qualified name of the PDF form field, or the overlay that failed. */
   readonly field: string
   readonly reason: PdfFieldFillReason
-  /** The limit the value broke: the minimum font size in points, or the number of comb boxes. */
-  readonly limit: number
+  readonly limit?: number
+  readonly character?: string
+  readonly script?: string
 
-  constructor(field: string, reason: PdfFieldFillReason, limit: number, detail: string) {
-    super(`Cannot fill PDF field "${field}": ${detail}`)
+  constructor(field: string, reason: PdfFieldFillReason, detail: PdfFieldFillDetail, message: string) {
+    super(`Cannot fill PDF field "${field}": ${message}`)
     this.name = 'PdfFieldFillError'
     this.field = field
     this.reason = reason
-    this.limit = limit
+    if (detail.limit !== undefined) this.limit = detail.limit
+    if (detail.character !== undefined) this.character = detail.character
+    if (detail.script !== undefined) this.script = detail.script
   }
+}
+
+/** A font that can draw a value: its metrics, its resource name, and how to encode text for it. */
+export interface DrawingFont extends FontMetrics {
+  /** Name the font has in a content stream's `/Font` resources. */
+  readonly resourceName: string
+  /** The string operand, delimiters included, that shows `text` in this font. */
+  encode(text: string): string
 }
 
 /** Smallest size a value shrinks to before filling fails with an overflow error. */
@@ -30,8 +54,10 @@ const PADDING_Y = 1
 const LINE_SPACING = 1.15
 const SHRINK_STEP = 0.5
 
-/** The parts of a field's default appearance (`/DA`) that layout honors. */
+/** The parts of a field's default appearance (`/DA`) that filling honors. */
 export interface DefaultAppearance {
+  /** The font resource the field names, when it names one. */
+  fontName?: string
   /** Declared font size; 0 means automatic sizing. */
   size: number
   /** The color operator and its operands, such as `0 g` or `0 0 0.5 rg`. */
@@ -42,12 +68,15 @@ export interface DefaultAppearance {
 export function parseDefaultAppearance(value: string | undefined): DefaultAppearance {
   const tokens = (value ?? '').trim().split(/\s+/).filter(Boolean)
   let size = 0
+  let fontName: string | undefined
   let color = '0 g'
   const operands = { g: 1, rg: 3, k: 4 } as const
   tokens.forEach((token, index) => {
     if (token === 'Tf') {
       const declared = Number(tokens[index - 1])
       size = Number.isFinite(declared) && declared > 0 ? declared : 0
+      const name = tokens[index - 2]
+      if (name?.startsWith('/')) fontName = name.slice(1)
     } else if (token in operands) {
       const count = operands[token as keyof typeof operands]
       const values = tokens.slice(index - count, index)
@@ -56,7 +85,7 @@ export function parseDefaultAppearance(value: string | undefined): DefaultAppear
       }
     }
   })
-  return { size, color }
+  return { size, color, ...(fontName && { fontName }) }
 }
 
 /** Where and how a field draws its value. */
@@ -75,8 +104,8 @@ export interface FieldLayout {
 
 const format = (value: number) => String(Number(value.toFixed(3)))
 
-function show(fontName: string, size: number, x: number, y: number, text: string, encode: (text: string) => string): string {
-  return `/${fontName} ${format(size)} Tf\n1 0 0 1 ${format(x)} ${format(y)} Tm\n(${encode(text)}) Tj`
+function show(font: DrawingFont, size: number, x: number, y: number, text: string): string {
+  return `/${font.resourceName} ${format(size)} Tf\n1 0 0 1 ${format(x)} ${format(y)} Tm\n${font.encode(text)} Tj`
 }
 
 function alignedX(layout: FieldLayout, lineWidth: number): number {
@@ -95,7 +124,7 @@ function overflow(layout: FieldLayout, floor: number): never {
   throw new PdfFieldFillError(
     layout.field,
     'overflow',
-    floor,
+    { limit: floor },
     `the value does not fit at the minimum size of ${format(floor)} pt`,
   )
 }
@@ -146,19 +175,19 @@ function oneLineSize(layout: FieldLayout, font: FontMetrics, unitWidth: number, 
   return size
 }
 
-function singleLine(layout: FieldLayout, text: string, font: FontMetrics, fontName: string, encode: (text: string) => string): string {
+function singleLine(layout: FieldLayout, text: string, font: DrawingFont): string {
   const unitWidth = font.width(text) / 1000
   const size = oneLineSize(layout, font, unitWidth, layout.width - 2 * PADDING_X)
-  return show(fontName, size, alignedX(layout, unitWidth * size), centeredBaseline(layout, font, size), text, encode)
+  return show(font, size, alignedX(layout, unitWidth * size), centeredBaseline(layout, font, size), text)
 }
 
-function combed(layout: FieldLayout, boxes: number, text: string, font: FontMetrics, fontName: string, encode: (text: string) => string): string {
+function combed(layout: FieldLayout, boxes: number, text: string, font: DrawingFont): string {
   const characters = [...text]
   if (characters.length > boxes) {
     throw new PdfFieldFillError(
       layout.field,
       'comb-length',
-      boxes,
+      { limit: boxes },
       `the field has ${boxes} comb boxes, but the value has ${characters.length} characters`,
     )
   }
@@ -171,11 +200,11 @@ function combed(layout: FieldLayout, boxes: number, text: string, font: FontMetr
   return characters.map((character, index) => {
     const width = font.width(character) / 1000 * size
     const x = (first + index) * cell + (cell - width) / 2
-    return show(fontName, size, x, baseline, character, encode)
+    return show(font, size, x, baseline, character)
   }).join('\n')
 }
 
-function multiline(layout: FieldLayout, text: string, font: FontMetrics, fontName: string, encode: (text: string) => string): string {
+function multiline(layout: FieldLayout, text: string, font: DrawingFont): string {
   const floor = sizeFloor(layout)
   const available = layout.width - 2 * PADDING_X
   const fits = (size: number, lines: string[]) =>
@@ -191,12 +220,11 @@ function multiline(layout: FieldLayout, text: string, font: FontMetrics, fontNam
     if (!fits(size, lines)) continue
     const firstBaseline = layout.height - PADDING_Y - font.ascent / 1000 * size
     return lines.map((line, index) => show(
-      fontName,
+      font,
       size,
       alignedX(layout, font.width(line) / 1000 * size),
       firstBaseline - index * LINE_SPACING * size,
       line,
-      encode,
     )).join('\n')
   }
   return overflow(layout, floor)
@@ -211,13 +239,11 @@ function multiline(layout: FieldLayout, text: string, font: FontMetrics, fontNam
 export function layoutFieldText(
   layout: FieldLayout,
   text: string,
-  font: FontMetrics,
-  fontName: string,
-  encode: (text: string) => string,
+  font: DrawingFont,
 ): string {
   if (layout.comb !== undefined && layout.comb > 0 && !layout.multiline) {
-    return combed(layout, layout.comb, text, font, fontName, encode)
+    return combed(layout, layout.comb, text, font)
   }
-  if (layout.multiline) return multiline(layout, text, font, fontName, encode)
-  return singleLine(layout, text.replace(/\r\n|\r|\n/g, ' '), font, fontName, encode)
+  if (layout.multiline) return multiline(layout, text, font)
+  return singleLine(layout, text.replace(/\r\n|\r|\n/g, ' '), font)
 }

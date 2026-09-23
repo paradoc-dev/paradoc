@@ -95,6 +95,7 @@ function pdfRenderer(options?: PdfRendererOptions): ParadocRenderer<
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering (future feature).', isOptional: true },
+  { name: 'font', type: 'PdfFont', description: 'A font supplied at render time. It is tried first, before the font the layer declares. See [Fonts](#fonts).', isOptional: true },
 ]} />
 
 #### PdfSignatureOptions
@@ -131,13 +132,18 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
   { name: 'overlays', type: 'PdfOverlay[]', description: 'Text or image overlays drawn at page coordinates', isOptional: true },
+  { name: 'font', type: 'PdfFont', description: 'A font supplied at render time, tried first', isOptional: true },
+  { name: 'layerFont', type: 'PdfFont', description: "The font the artifact's PDF layer declares, tried after `font`", isOptional: true },
 ]} />
 
 A `PdfOverlay` is either text or an image placed at `page` (one-based), `x`,
 and `y` (PDF points from the bottom-left corner). A text overlay carries `text`
 or a `field` path to read from the data, plus optional `fontSize`, `width`,
-`height`, and `color`. An image overlay carries `image` bytes, `mediaType`
-(`'image/png'` or `'image/jpeg'`), `width`, `height`, and optional `fit`.
+`height`, and `color`. Overlay text follows the same font order and failure
+rules as field values, and a text overlay with a `width` fails with an
+`overflow` error when its text does not fit at 6 points. An image overlay
+carries `image` bytes, `mediaType` (`'image/png'` or `'image/jpeg'`), `width`,
+`height`, and optional `fit`.
 
 #### Returns
 
@@ -326,25 +332,66 @@ Filling draws each value the way the form's designer set up the field:
 - **Multiline:** text wraps within the field and keeps explicit line breaks.
 - **Choice:** a combo box shows the selected option's display text; a list box shows every selected value, one per line.
 
-A value that does not fit is reduced in size, down to `MIN_FONT_SIZE` (6 points). Below that, filling fails with `PdfFieldFillError` instead of clipping the value. The error names the field and the limit:
+A value that does not fit is reduced in size, down to `MIN_FONT_SIZE` (6 points). Below that, filling fails instead of clipping the value. Checkbox and radio fields are unchanged.
 
-| `reason` | When | `limit` |
-|---|---|---|
-| `overflow` | The value does not fit at the minimum size | The minimum size in points |
-| `comb-length` | The value has more characters than the comb field has boxes | The number of boxes |
+## Fonts
+
+For each text value, filling uses the first font that can draw every character of the value:
+
+1. a font supplied at render time;
+2. the font the artifact's PDF layer declares;
+3. the form's own embedded font for that field, when it has every glyph the value needs;
+4. standard Helvetica, for Latin-1 (WinAnsi) text only.
+
+Most official forms need no font configuration: their values are Latin-1 and fill in Helvetica. For names in Latin Extended, Greek, Cyrillic, or CJK scripts, declare a TrueType font (`.ttf`) on the PDF layer. The font is read through the same resolver as the layer's PDF, so it travels with the artifact:
+
+```json
+"pdf": {
+  "kind": "file",
+  "mimeType": "application/pdf",
+  "path": "w-9.pdf",
+  "font": { "path": "fonts/NotoSans-Regular.ttf" }
+}
+```
+
+A host application can supply a font at render time, for example a licensed corporate font. It wins over the layer's font:
 
 ```ts
-import { PdfFieldFillError, renderPdf } from '@paradoc/render/pdf'
+import { renderLayer } from '@paradoc/render'
+
+const output = await filled.render({
+  renderer: renderLayer({ pdfFont: { bytes: corporateFont, source: 'corporate.ttf' } }),
+})
+```
+
+`pdfRenderer({ font })` and `renderPdf({ font, layerFont })` take the same `PdfFont`: the font's `bytes` and a `source` that errors name it by. Every font used to draw is embedded in the output, so the PDF displays the same in any viewer. Only TrueType-outline fonts are supported; an OpenType font with CFF outlines, a font collection, or a WOFF file is refused.
+
+Filling draws one glyph per character, left to right. It does not shape text, so Arabic, Hebrew, Devanagari, Thai, and other scripts that need shaping or right-to-left ordering are refused, whatever font is available. Render documents in those scripts from a [React composition layer](/guides/react-layers).
+
+## Errors
+
+A value that cannot be drawn faithfully fails with `PdfFieldFillError`. It names the field (or the text overlay) and the reason:
+
+| `reason` | When | Detail |
+|---|---|---|
+| `overflow` | The value does not fit at the minimum size | `limit`: the minimum size in points |
+| `comb-length` | The value has more characters than the comb field has boxes | `limit`: the number of boxes |
+| `missing-glyph` | No available font can draw a character | `character`: the character. Declare a font that covers it. |
+| `unsupported-script` | The value is in a script that needs shaping | `script`: the script, such as `Arabic` |
+
+A supplied or declared font that cannot be used fails with `PdfFontError`, naming its `source` and the `problem`: `unreadable`, `unsupported-format`, or `not-embeddable` (its license forbids embedding). A declared font the resolver cannot find fails the same way a missing layer file does.
+
+```ts
+import { PdfFieldFillError, PdfFontError, renderPdf } from '@paradoc/render/pdf'
 
 try {
   await renderPdf({ template, data, bindings })
 } catch (error) {
-  if (error instanceof PdfFieldFillError) console.error(error.field, error.reason, error.limit)
+  if (error instanceof PdfFieldFillError) console.error(error.field, error.reason)
+  else if (error instanceof PdfFontError) console.error(error.source, error.problem)
   else throw error
 }
 ```
-
-Values are drawn in Helvetica. Checkbox and radio fields are unchanged.
 
 ## Related
 
@@ -375,4 +422,4 @@ const formatter = createFormatter({
 
 Formatting applies to indexed fields, computed values, parties, and field overlays. Invalid values and unknown binding sources reject with field diagnostics. Checkboxes and selection controls retain their raw value identity.
 
-The native engine uses a WinAnsi standard font. Text outside that font's character set, including Arabic and narrow no-break spaces, rejects explicitly. Use a renderer with suitable font and script support for those documents.
+Text outside Latin-1 needs a font that covers it; see [Fonts](#fonts). Without one, filling fails naming the field and the character.

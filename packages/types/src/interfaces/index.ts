@@ -5,6 +5,7 @@
 export type {
   BinaryContent,
   RendererLayer,
+  RendererLayerFont,
   RenderRequest,
   ParadocRendererContext,
   ParadocRenderer,

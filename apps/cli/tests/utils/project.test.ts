@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { findRepoRoot } from '../../src/utils/project.js'
+import { detectFileDependencies, findRepoRoot } from '../../src/utils/project.js'
 
 describe('findRepoRoot', () => {
   let tempDir: string
@@ -60,5 +60,24 @@ describe('findRepoRoot', () => {
 
   it('returns null when nothing above the start directory is a project', async () => {
     expect(await findRepoRoot(tempDir)).toBeNull()
+  })
+})
+
+describe('detectFileDependencies', () => {
+  const form = (pdf: Record<string, unknown>) => ({
+    kind: 'form',
+    name: 'w9',
+    version: '1.0.0',
+    title: 'W-9',
+    fields: {},
+    layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'w9.pdf', ...pdf } },
+  }) as unknown as Parameters<typeof detectFileDependencies>[0]
+
+  it('lists a PDF layer\'s declared font beside its file', () => {
+    expect(detectFileDependencies(form({ font: { path: 'fonts/noto.ttf' } }))).toEqual(['w9.pdf', 'fonts/noto.ttf'])
+  })
+
+  it('lists only the layer file when no font is declared', () => {
+    expect(detectFileDependencies(form({}))).toEqual(['w9.pdf'])
   })
 })

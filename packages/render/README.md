@@ -96,6 +96,16 @@ Past that, or with more characters than a comb field has boxes, the render throw
 `PdfFieldFillError` with the field name, the `reason` (`overflow` or
 `comb-length`), and the `limit`.
 
+Each value, and each overlay text, uses the first font that can draw all of it:
+`font` (supplied at render time), then `layerFont` (the font the artifact's PDF
+layer declares), then the form's own embedded font for the field, then Helvetica
+for Latin-1 text. Fonts are TrueType programs given as `{ bytes, source }`, and
+every font used is embedded. A character no font can draw fails with reason
+`missing-glyph`; scripts that need shaping, such as Arabic or Devanagari, fail
+with `unsupported-script` whatever font is available. A font that cannot be read,
+is not TrueType, or forbids embedding fails with `PdfFontError` naming its
+`source`.
+
 ## Reading filled forms back
 
 `extractPdfData()` reads a filled PDF's AcroForm fields back through a layer's

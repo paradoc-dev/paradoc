@@ -73,6 +73,8 @@ export interface RegistryInlineLayer extends RegistryLayerBase {
 export interface RegistryFileLayer extends RegistryLayerBase {
   kind: 'file'
   path: string
+  /** Font a PDF layer draws with; downloaded beside the layer file. */
+  font?: { path: string; checksum?: string }
 }
 
 /**

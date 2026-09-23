@@ -373,8 +373,10 @@ function serializeName(value: string): string {
 
 function serializeString(value: string): string {
   if ([...value].some((char) => char.charCodeAt(0) > 0xff)) {
+    // UTF-16BE code units, so a character outside the Basic Multilingual Plane
+    // keeps both halves of its surrogate pair.
     let hex = 'feff'
-    for (const char of value) hex += char.charCodeAt(0).toString(16).padStart(4, '0')
+    for (let index = 0; index < value.length; index++) hex += value.charCodeAt(index).toString(16).padStart(4, '0')
     return `<${hex}>`
   }
   return `(${value.replace(/([\\()])/g, '\\$1').replace(/\r/g, '\\r').replace(/\n/g, '\\n')})`

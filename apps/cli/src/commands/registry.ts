@@ -1016,10 +1016,10 @@ export function createRegistryCommand(): Command {
             }
 
             const artifact = validation.value as Record<string, unknown> & {
-              layers?: Record<string, { kind: string; path?: string; [key: string]: unknown }>
+              layers?: Record<string, { kind: string; path?: string; font?: { path: string; checksum?: string }; [key: string]: unknown }>
             }
 
-            // Process layers - compute checksums for file layers
+            // Process layers - compute checksums for file layers and their fonts
             if (artifact.layers) {
               for (const [_layerKey, layer] of Object.entries(artifact.layers)) {
                 if (layer.kind === 'file' && layer.path) {
@@ -1027,6 +1027,12 @@ export function createRegistryCommand(): Command {
                   if (await storage.exists(layerPath)) {
                     const hash = await computeHash(layerPath)
                     layer.checksum = `sha256:${hash}`
+                  }
+                  if (layer.font) {
+                    const fontPath = storage.joinPath(registryDir, layer.font.path)
+                    if (await storage.exists(fontPath)) {
+                      layer.font.checksum = `sha256:${await computeHash(fontPath)}`
+                    }
                   }
                 }
               }

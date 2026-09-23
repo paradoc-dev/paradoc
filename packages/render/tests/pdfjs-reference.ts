@@ -190,3 +190,49 @@ export async function textItemsWithPdfjs(pdf: Uint8Array): Promise<PdfjsTextItem
   }
   return items
 }
+
+/** A font pdf.js loaded to draw the document, as it reports it. */
+export interface PdfjsFont {
+  /** The font's name, from its BaseFont. */
+  name: string
+  /** True when the PDF does not embed the font program. */
+  missingFile: boolean
+}
+
+/** Every font pdf.js sets while drawing each page, flattened form XObjects included. */
+export async function fontsWithPdfjs(pdf: Uint8Array): Promise<PdfjsFont[]> {
+  const document = await pdfjs.getDocument({
+    data: pdf.slice(),
+    useSystemFonts: false,
+    disableFontFace: true,
+    isEvalSupported: false,
+    standardFontDataUrl: `${join(require.resolve('pdfjs-dist/package.json'), '../standard_fonts')}/`,
+  }).promise
+  const fonts = new Map<string, PdfjsFont>()
+  try {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
+      const page = await document.getPage(pageNumber)
+      const operators = await page.getOperatorList()
+      operators.fnArray.forEach((operator, index) => {
+        if (operator !== pdfjs.OPS.setFont) return
+        const loadedName = (operators.argsArray[index] as [string])[0]
+        const font = page.commonObjs.get(loadedName) as { name: string; missingFile: boolean }
+        fonts.set(font.name, { name: font.name, missingFile: font.missingFile })
+      })
+    }
+  } finally {
+    await document.destroy()
+  }
+  return [...fonts.values()]
+}
+
+/** Each form field's value as pdf.js reads it from the unflattened form. */
+export async function fieldValuesWithPdfjs(pdf: Uint8Array): Promise<Record<string, unknown>> {
+  const document = await pdfjs.getDocument({ data: pdf.slice(), isEvalSupported: false }).promise
+  try {
+    const fields = (await document.getFieldObjects()) ?? {}
+    return Object.fromEntries(Object.entries(fields).map(([name, [first]]) => [name, (first as { value?: unknown }).value]))
+  } finally {
+    await document.destroy()
+  }
+}

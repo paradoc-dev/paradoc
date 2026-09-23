@@ -5,18 +5,28 @@ import type {
   RendererLayer,
   RenderRequest,
 } from '@paradoc/types'
+import type { PdfFont } from './drawing-fonts'
 import { renderPdf } from './render'
 import type { PdfSignatureOptions } from './signatures'
 
 export interface PdfRendererOptions {
   formatter?: Formatter
   signatureOptions?: PdfSignatureOptions
+  /**
+   * A font supplied at render time, such as a licensed corporate font. It is
+   * tried before the font the layer declares.
+   */
+  font?: PdfFont
 }
 
 type PdfLayer = RendererLayer & { type: 'pdf'; content: Uint8Array }
 
 export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<PdfLayer, Uint8Array> {
   const formatter = options.formatter ?? defaultFormatter
+  const fonts = (template: PdfLayer) => ({
+    font: options.font,
+    layerFont: template.font && { bytes: template.font.content, source: template.font.path },
+  })
   return {
     id: 'pdf',
     render(request: RenderRequest<PdfLayer>) {
@@ -29,6 +39,7 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
           formatter: request.ctx?.formatter ?? formatter,
           bindings: request.bindings ?? request.template.bindings,
           signatureOptions: options.signatureOptions,
+          ...fonts(request.template),
         })
       }
 
@@ -55,6 +66,7 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
         formatter: request.ctx?.formatter ?? formatter,
         bindings: request.bindings ?? request.template.bindings,
         signatureOptions: options.signatureOptions,
+        ...fonts(request.template),
       })
     },
   }

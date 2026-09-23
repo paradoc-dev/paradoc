@@ -62,7 +62,8 @@ ParadocRegistry.add(FormPartySchema, { id: 'FormParty' });
 
 // Note: ContentRefSchema is NOT registered separately because ArtifactSchema already
 // includes it as a field. Registering it separately causes Zod v4 $ref bugs.
-ParadocRegistry.add(LayerSchema, { id: 'Layer' });
+// Keep the layer's own metadata: it carries the font rule's JSON Schema form.
+ParadocRegistry.add(LayerSchema, { ...LayerSchema.meta(), id: 'Layer' });
 
 ParadocRegistry.add(AddressSchema, { id: 'Address' });
 ParadocRegistry.add(AttachmentSchema, { id: 'Attachment' });

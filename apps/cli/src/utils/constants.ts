@@ -154,6 +154,12 @@ export const DEFAULT_ALLOWED_CONTENT_TYPES: readonly string[] = [
   'image/gif',
   'image/webp',
   'image/svg+xml',
+
+  // TrueType fonts a PDF layer declares
+  'font/ttf',
+  'font/sfnt',
+  'application/font-sfnt',
+  'application/x-font-ttf',
 ]
 
 /**

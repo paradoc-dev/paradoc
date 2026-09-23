@@ -158,6 +158,20 @@ export interface InlineLayer {
 }
 
 /**
+ * A font a PDF layer draws filled values and overlay text with.
+ *
+ * The font file is read through the same resolver as the layer's PDF, so it
+ * travels with the artifact the same way. It must be a TrueType-outline font
+ * program (.ttf).
+ */
+export interface LayerFont {
+  /** Logical path passed unchanged to the bound resolver, like the layer's own path. */
+  path: string;
+  /** Optional SHA-256 checksum for integrity verification. */
+  checksum?: string;
+}
+
+/**
  * File-backed layer with external file reference.
  * Used for layers where content is stored in a separate file.
  */
@@ -185,6 +199,11 @@ export interface FileLayer {
   description?: string;
   /** Optional SHA-256 checksum for integrity verification. */
   checksum?: string;
+  /**
+   * Font for filled values and overlay text. PDF layers only. It is tried
+   * after a font supplied at render time and before the form's own fonts.
+   */
+  font?: LayerFont;
   /** Optional field bindings for the layer (typically for PDF). */
   bindings?: Record<string, string>;
   /** Key of a sibling layer whose bindings this layer reuses. */

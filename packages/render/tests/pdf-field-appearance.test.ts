@@ -108,7 +108,7 @@ describe('size', () => {
   })
 
   it('uses the AcroForm default appearance when the field declares none', async () => {
-    const template = acroFieldsPdf([field({ name: 'plain', da: undefined })], '/Helv 7 Tf 0 g')
+    const template = acroFieldsPdf([field({ name: 'plain', da: undefined })], { da: '/Helv 7 Tf 0 g' })
     const [item] = await fillAndRead(template, { plain: 'Hi' })
     expect(item!.size).toBeCloseTo(7, 3)
   })

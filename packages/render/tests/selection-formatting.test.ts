@@ -105,9 +105,10 @@ describe('selection and rating values across the outputs', () => {
 	})
 
 	it('still refuses an Arabic run on the native PDF writer, rather than printing it wrong', async () => {
-		// The built-in PDF font is WinAnsi-only; right-to-left PDF output is the
-		// adapter's own capability, not something formatting can add.
-		await expect(pdfOutput(createFormatter({ locale: 'ar-SA' }))).rejects.toThrow(/required font and script support/)
+		// PDF form filling draws no shaped scripts, whatever font is available;
+		// right-to-left PDF output is the React composition path's capability,
+		// not something formatting can add.
+		await expect(pdfOutput(createFormatter({ locale: 'ar-SA' }))).rejects.toMatchObject({ reason: 'unsupported-script', script: 'Arabic' })
 	})
 
 	it('prints a rating with no declared scale as the plain number, and records why', () => {

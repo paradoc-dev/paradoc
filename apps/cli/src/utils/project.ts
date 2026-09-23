@@ -163,10 +163,11 @@ export function detectFileDependencies(artifact: Artifact): string[] {
   const deps: string[] = []
 
   // Helper to extract deps from layers
-  const extractLayerDeps = (layers: Record<string, { kind: string; path?: string }>) => {
+  const extractLayerDeps = (layers: Record<string, { kind: string; path?: string; font?: { path: string } }>) => {
     for (const layer of Object.values(layers)) {
       if (layer.kind === 'file' && layer.path) {
         deps.push(layer.path)
+        if (layer.font?.path) deps.push(layer.font.path)
       }
     }
   }

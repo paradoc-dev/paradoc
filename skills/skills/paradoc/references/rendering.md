@@ -93,7 +93,9 @@ const docx = await renderDocx({
 });
 ```
 
-`renderPdf()` draws each AcroForm value with the field's own size (or auto-size), alignment, color, comb, and multiline settings. A value that cannot fit at 6 points, or that has more characters than a comb field has boxes, throws `PdfFieldFillError` naming the field, the `reason` (`overflow` or `comb-length`), and the `limit`. See [pdf-bindings.md](./pdf-bindings.md).
+`renderPdf()` draws each AcroForm value with the field's own size (or auto-size), alignment, color, comb, and multiline settings. A value that cannot fit at 6 points, or that has more characters than a comb field has boxes, throws `PdfFieldFillError` naming the field, the `reason` (`overflow` or `comb-length`), and the `limit`.
+
+Fonts: each value uses the first font that draws all of it: `font` (render time), then `layerFont` (the layer's declared `font`), then the form's own embedded font, then Helvetica for Latin-1. Through an artifact, supply the render-time font with `renderLayer({ pdfFont: { bytes, source } })` or `pdfRenderer({ font })`; the layer's font is read by the bound resolver. Missing glyphs (`missing-glyph`) and scripts that need shaping (`unsupported-script`) fail with `PdfFieldFillError`; an unusable font fails with `PdfFontError`. See [pdf-bindings.md](./pdf-bindings.md).
 
 ### renderDocx() options
 

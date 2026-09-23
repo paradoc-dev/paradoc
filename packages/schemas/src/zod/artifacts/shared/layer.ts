@@ -263,6 +263,32 @@ const InlineLayerSchema = LayerBaseSchema.extend({
 	description: 'Inline layer with embedded content',
 }).strict();
 
+/** The rule a font on a layer other than a PDF breaks, stated once so every error reads the same. */
+export const LAYER_FONT_RULE = 'Only PDF layers (application/pdf) can declare a font';
+
+/** The PDF MIME type as a case-insensitive JSON Schema pattern. */
+const PDF_MIME_PATTERN = `^${caseInsensitiveAlternative('application/pdf')}$`;
+
+/**
+ * A font a PDF layer draws filled values and overlay text with, read through
+ * the same resolver as the layer's PDF.
+ */
+const LayerFontSchema = z.object({
+	path: z.string()
+		.min(1)
+		.max(1000)
+		.describe('Logical resolver path of a TrueType-outline font program (.ttf), resolved like the layer path'),
+	checksum: z.string()
+		.min(1)
+		.max(100)
+		.regex(/^sha256:[a-f0-9]{64}$/)
+		.describe('SHA-256 checksum for integrity verification')
+		.optional(),
+}).meta({
+	title: 'LayerFont',
+	description: 'Font a PDF layer draws filled values and overlay text with',
+}).strict();
+
 /**
  * File layer — references external content through a resolver-defined path.
  */
@@ -278,10 +304,16 @@ const FileLayerSchema = LayerBaseSchema.extend({
 		.regex(/^sha256:[a-f0-9]{64}$/)
 		.describe('SHA-256 checksum for integrity verification')
 		.optional(),
+	font: LayerFontSchema
+		.describe('Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form\'s own fonts')
+		.optional(),
 }).meta({
 	title: 'FileLayer',
 	description: 'File-backed layer with path reference',
-}).strict();
+}).strict().refine(
+	(layer) => layer.font === undefined || layer.mimeType.toLowerCase() === 'application/pdf',
+	{ error: LAYER_FONT_RULE, path: ['font'] },
+);
 
 /**
  * Union of all layer types.
@@ -292,4 +324,8 @@ export const LayerSchema = z.discriminatedUnion('kind', [
 ]).meta({
 	title: 'Layer',
 	description: 'Layer specification — inline content or file reference',
+	// The file layer's font refinement, stated to JSON Schema as well: a
+	// refinement alone would vanish from the published schema.
+	if: { required: ['font'] },
+	then: { properties: { mimeType: { pattern: PDF_MIME_PATTERN } } },
 });

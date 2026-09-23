@@ -65,7 +65,22 @@ Maps Paradoc field IDs (keys) to PDF AcroForm field names (values).
 
 ### How bound values are drawn
 
-Filling honors each PDF field's own settings: its declared font size (or automatic sizing when the size is 0), alignment, color, comb boxes (one character per box), and multiline wrapping. Choice lists show every selected value. A value that does not fit shrinks down to 6 points; past that, or with more characters than a comb field has boxes, rendering fails with `PdfFieldFillError` (`field`, `reason`: `overflow` or `comb-length`, `limit`). When you bind a split value to comb fields, make each part no longer than its field's box count. Text is drawn in Helvetica.
+Filling honors each PDF field's own settings: its declared font size (or automatic sizing when the size is 0), alignment, color, comb boxes (one character per box), and multiline wrapping. Choice lists show every selected value. A value that does not fit shrinks down to 6 points; past that, or with more characters than a comb field has boxes, rendering fails with `PdfFieldFillError` (`field`, `reason`: `overflow` or `comb-length`, `limit`). When you bind a split value to comb fields, make each part no longer than its field's box count.
+
+### Fonts
+
+Each value uses the first font that can draw all of it: a font supplied at render time, then the layer's declared `font`, then the form's own embedded font for the field, then Helvetica for Latin-1 text. Latin-1 forms need no font. If the data can hold names in Latin Extended, Greek, Cyrillic, or CJK scripts, declare a TrueType font (`.ttf`, TrueType outlines) on the PDF layer; the resolver reads it like the PDF and it is embedded in the output:
+
+```json
+"pdf": {
+  "kind": "file",
+  "mimeType": "application/pdf",
+  "path": "w-9.pdf",
+  "font": { "path": "fonts/NotoSans-Regular.ttf" }
+}
+```
+
+Only PDF layers can declare a font. A character no font can draw fails with `PdfFieldFillError` (`reason: 'missing-glyph'`, `character`). Scripts that need shaping (Arabic, Hebrew, Devanagari, Thai, and others) always fail (`reason: 'unsupported-script'`, `script`); use a React composition layer for those documents. An unreadable, unsupported, or non-embeddable font fails with `PdfFontError` naming its source.
 
 ### Finding PDF field names
 

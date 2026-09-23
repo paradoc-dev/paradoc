@@ -344,7 +344,9 @@ export function selectLayerRenderer<Output>(
  * Builds the `RendererLayer` a renderer receives for one layer.
  *
  * Text and binary layers carry their payload: an inline layer's text, or the
- * bytes a resolver reads for a file layer. A React layer carries none. Its path
+ * bytes a resolver reads for a file layer. A file layer that declares a font
+ * carries it too, read through the same resolver, so a missing font fails the
+ * way a missing layer file does. A React layer carries none. Its path
  * is a pointer to a composition module, which the renderer binds; core neither
  * reads nor executes it, so no resolver is needed and none is asked for.
  *
@@ -389,6 +391,10 @@ export async function buildRendererLayer(
 		throw new Error('Unknown layer spec kind')
 	}
 
+	const font = layerSpec.kind === 'file' && layerSpec.font && resolver
+		? { content: await resolver.read(layerSpec.font.path), path: layerSpec.font.path }
+		: undefined
+
 	return {
 		type: 'text',
 		content,
@@ -396,5 +402,6 @@ export async function buildRendererLayer(
 		key: layerKey,
 		...(layerSpec.kind === 'file' && { path: layerSpec.path }),
 		...(bindings && { bindings }),
+		...(font && { font }),
 	}
 }

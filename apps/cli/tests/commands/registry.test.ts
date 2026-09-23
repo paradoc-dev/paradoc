@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -494,6 +495,40 @@ describe('CLI Registry Command', () => {
       // Verify compiled file exists
       const files = await fs.readdir(outDir)
       expect(files.length).toBeGreaterThan(0)
+    })
+
+    it('should record checksums for a PDF layer and its declared font', async () => {
+      const outDir = path.join(tempDir, 'out')
+      await fs.writeFile(
+        path.join(tempDir, 'registry.json'),
+        JSON.stringify({ name: 'test-registry', items: [{ name: 'font-form', kind: 'form', version: '1.0.0' }] }),
+      )
+      await fs.writeFile(
+        path.join(tempDir, 'font-form.json'),
+        JSON.stringify({
+          kind: 'form',
+          name: 'font-form',
+          version: '1.0.0',
+          title: 'Font Form',
+          fields: { name: { type: 'text', label: 'Name' } },
+          layers: {
+            pdf: { kind: 'file', mimeType: 'application/pdf', path: 'form.pdf', font: { path: 'fonts/form.ttf' } },
+          },
+        }),
+      )
+      await fs.writeFile(path.join(tempDir, 'form.pdf'), 'pdf bytes')
+      await fs.mkdir(path.join(tempDir, 'fonts'))
+      await fs.writeFile(path.join(tempDir, 'fonts', 'form.ttf'), 'font bytes')
+
+      const result = await executeCliCommand(
+        ['registry', 'compile', '--registry', path.join(tempDir, 'registry.json'), '--output', outDir],
+      )
+      expect(result.exitCode).toBe(0)
+
+      const compiled = JSON.parse(await fs.readFile(path.join(outDir, 'font-form.json'), 'utf8'))
+      const digest = (text: string) => `sha256:${createHash('sha256').update(text).digest('hex')}`
+      expect(compiled.layers.pdf.checksum).toBe(digest('pdf bytes'))
+      expect(compiled.layers.pdf.font).toEqual({ path: 'fonts/form.ttf', checksum: digest('font bytes') })
     })
 
     it('should report errors for missing artifact files', async () => {

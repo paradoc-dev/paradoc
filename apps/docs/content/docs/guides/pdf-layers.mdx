@@ -243,6 +243,25 @@ Each value follows its field's own settings: font size, alignment, comb boxes, a
 wrapping. The SSN parts land one digit per box. A value too long for its field fails with
 `PdfFieldFillError`, naming the field, rather than being clipped. See
 [Field appearance](/sdk/renderers/pdf#field-appearance).
+
+Latin-1 values fill in Helvetica with no font configuration. To fill names in
+Latin Extended, Greek, Cyrillic, or CJK scripts, declare a TrueType font on the
+PDF layer. The bound resolver reads it beside the PDF, and it is embedded in the
+output:
+
+```ts
+pdf: {
+  kind: 'file',
+  mimeType: 'application/pdf',
+  path: 'w9.pdf',
+  font: { path: 'fonts/NotoSans-Regular.ttf' },
+  bindings: { /* ... */ },
+}
+```
+
+Scripts that need shaping, such as Arabic or Devanagari, are refused; render
+those documents from a [React composition layer](/guides/react-layers). See
+[Fonts](/sdk/renderers/pdf#fonts) for the full font order.
 </Step>
 
 <Step>

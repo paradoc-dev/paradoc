@@ -18,6 +18,7 @@ export type {
   Layer,
   InlineLayer,
   FileLayer,
+  LayerFont,
   ReactLayerMimeType,
   Bindings,
   CondExpr,

@@ -1,5 +1,6 @@
-import { winAnsiText } from './win-ansi'
 import { unzlibSync, zlibSync } from 'fflate'
+import type { PdfFontSet } from './drawing-fonts'
+import { MIN_FONT_SIZE, PdfFieldFillError, type DrawingFont } from './field-appearance'
 import { isDict, type PdfDict, type PdfObject, type PdfRef, PdfModel, type PdfValue } from './syntax'
 import { getPath } from '../path'
 import { documentPages, type PageRecord } from './page-tree'
@@ -15,7 +16,10 @@ interface PdfOverlayBase {
 
 export type PdfTextOverlay = PdfOverlayBase & {
   fontSize?: number
-  /** Fit text inside this width, shrinking no smaller than 6 points. */
+  /**
+   * Fit text inside this width, shrinking no smaller than 6 points. Text that
+   * still does not fit fails with an overflow error.
+   */
   width?: number
   /** Vertically center text inside this height. */
   height?: number
@@ -41,18 +45,6 @@ interface EmbeddedImage {
   ref: PdfRef
   width: number
   height: number
-}
-
-function standardFont(model: PdfModel): PdfRef {
-  return model.addObject({
-    kind: 'dict',
-    entries: new Map<string, PdfValue>([
-      ['Type', { kind: 'name', value: 'Font' }],
-      ['Subtype', { kind: 'name', value: 'Type1' }],
-      ['BaseFont', { kind: 'name', value: 'Helvetica' }],
-      ['Encoding', { kind: 'name', value: 'WinAnsiEncoding' }],
-    ]),
-  })
 }
 
 function cloneDict(dict: PdfDict | undefined): PdfDict {
@@ -95,25 +87,23 @@ function textValue(overlay: PdfTextOverlay, data: Record<string, unknown>): unkn
   return getPath(data, overlay.field)
 }
 
-function escapeText(value: unknown): string {
-  return winAnsiText(String(value ?? ''))
+/** The overlay as errors name it: its bound field, or its position. */
+function overlaySubject(overlay: PdfTextOverlay, index: number): string {
+  return 'field' in overlay && overlay.field ? overlay.field : `text overlay ${index + 1} (page ${overlay.page})`
 }
 
-function estimatedTextWidth(text: string, size: number): number {
-  let units = 0
-  for (const char of text) {
-    if (char === ' ') units += 0.28
-    else if (/[ilI.,'|!]/.test(char)) units += 0.28
-    else if (/[mwMW@%]/.test(char)) units += 0.85
-    else units += 0.56
-  }
-  return units * size
-}
-
-function fittedFontSize(text: string, overlay: PdfTextOverlay): number {
-  let size = Math.min(overlay.fontSize ?? 12, overlay.height ?? Number.POSITIVE_INFINITY)
+function fittedFontSize(text: string, overlay: PdfTextOverlay, font: DrawingFont, subject: string): number {
+  const declared = overlay.fontSize ?? 12
+  let size = Math.min(declared, overlay.height ?? Number.POSITIVE_INFINITY)
   const width = overlay.width
-  while (width !== undefined && size > 6 && estimatedTextWidth(text, size) > width) size -= 0.5
+  if (width === undefined) return size
+  const floor = Math.min(MIN_FONT_SIZE, size)
+  const unitWidth = font.width(text) / 1000
+  if (unitWidth * size <= width) return size
+  size = width / unitWidth
+  if (size < floor) {
+    throw new PdfFieldFillError(subject, 'overflow', { limit: floor }, `the text does not fit its ${width} pt width at the minimum size of ${floor} pt`)
+  }
   return size
 }
 
@@ -278,6 +268,7 @@ export function applyPdfOverlays(
   model: PdfModel,
   overlays: PdfOverlay[],
   data: Record<string, unknown>,
+  fonts: PdfFontSet,
 ): void {
   if (overlays.length === 0) return
   const pages = documentPages(model)
@@ -288,13 +279,11 @@ export function applyPdfOverlays(
     }
     grouped.set(overlay.page, [...(grouped.get(overlay.page) ?? []), overlay])
   }
-  const hasText = overlays.some((overlay) => !('image' in overlay))
-  const font = hasText ? standardFont(model) : undefined
   let imageIndex = 0
   for (const [pageNumber, items] of grouped) {
     const page = pages[pageNumber - 1]!
-    if (font && items.some((item) => !('image' in item))) addResource(model, page, 'Font', 'PdrF', font)
     const commands: string[] = []
+    const pageFonts = new Map<string, PdfRef>()
     for (const overlay of items) {
       if ('image' in overlay) {
         const embedded = overlay.mediaType === 'image/png'
@@ -310,13 +299,17 @@ export function applyPdfOverlays(
         commands.push(`q\n${width} 0 0 ${height} ${overlay.x} ${overlay.y} cm\n/${name} Do\nQ`)
         continue
       }
-      const text = String(textValue(overlay, data) ?? '')
-      const size = fittedFontSize(text, overlay)
+      const text = String(textValue(overlay, data) ?? '').replace(/\r\n|\r|\n/g, ' ')
+      const subject = overlaySubject(overlay, overlays.indexOf(overlay))
+      const font = fonts.select(subject, text)
+      pageFonts.set(font.resourceName, font.reference())
+      const size = fittedFontSize(text, overlay, font, subject)
       const x = overlay.x + (overlay.width === undefined ? 0 : 1)
       const y = overlay.y + (overlay.height === undefined ? 0 : Math.max(1, (overlay.height - size) / 2))
       const [red, green, blue] = (overlay.color ?? [0, 0, 0]).map(component)
-      commands.push(`BT\n/PdrF ${size} Tf\n${red} ${green} ${blue} rg\n${x} ${y} Td\n(${escapeText(text)}) Tj\nET`)
+      commands.push(`BT\n/${font.resourceName} ${size} Tf\n${red} ${green} ${blue} rg\n${x} ${y} Td\n${font.encode(text)} Tj\nET`)
     }
+    for (const [name, ref] of pageFonts) addResource(model, page, 'Font', name, ref)
     const stream = model.addObject({ kind: 'dict', entries: new Map() }, new TextEncoder().encode(`q\n${commands.join('\n')}\nQ`))
     appendContent(model, page.record, stream)
   }

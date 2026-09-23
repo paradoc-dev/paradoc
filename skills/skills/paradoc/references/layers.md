@@ -57,6 +57,7 @@ Reference an external template file.
 | `title` | No | string | Title |
 | `description` | No | string | Description |
 | `checksum` | No | string | `sha256:<64-hex>` |
+| `font` | No | object | PDF layers only: `{ path, checksum? }` of a TrueType font for filled values. See [pdf-bindings.md](./pdf-bindings.md#fonts) |
 | `bindings` | No | object | Field-to-template mapping |
 | `bindingsFrom` | No | string | Reuse another layer's bindings |
 | `signatureBlocks` | No | object | Positioned signature locations |

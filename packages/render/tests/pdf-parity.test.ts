@@ -274,6 +274,6 @@ describe('PDF artifact formatting', () => {
     await expect(renderPdf({ template: pagePdf([[300, 300]]), form, data, overlays: [{ page: 1, x: 1, y: 1, field: 'rows[0].amount.unknown' }] }))
       .rejects.toMatchObject({ status: 'invalid' })
     await expect(renderPdf({ template: pagePdf([[300, 300]]), data: {}, overlays: [{ page: 1, x: 1, y: 1, text: 'مرحبا' }] }))
-      .rejects.toThrow('required font and script support')
+      .rejects.toMatchObject({ name: 'PdfFieldFillError', reason: 'unsupported-script', script: 'Arabic' })
   })
 })

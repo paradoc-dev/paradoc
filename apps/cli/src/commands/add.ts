@@ -220,6 +220,37 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
 
           downloadedLayers[layerKey] = { content: layerBuffer, path: layer.path }
           spinner.succeed(`Downloaded: ${join(artifactsDir, artifactNamespace, layer.path)}`)
+
+          // A declared font travels with its layer, verified the same way.
+          if (layer.font) {
+            if (!layer.font.checksum) {
+              console.warn(kleur.yellow(`Skipping font for layer "${layerKey}": missing required checksum`))
+            } else {
+              const sanitizedFontPath = sanitizePath(namespaceDir, layer.font.path)
+              if (!sanitizedFontPath) {
+                console.warn(kleur.yellow(`Invalid font path (path traversal detected): ${layer.font.path}`))
+              } else {
+                spinner.start(`Downloading font for layer: ${layerKey}...`)
+                const fontBuffer = Buffer.from(await registryClient.fetchLayerBinary(
+                  registry,
+                  `${artifactDir}/${layer.font.path}`,
+                  allowedContentTypes
+                ))
+                const fontChecksum = verifyChecksum(fontBuffer, layer.font.checksum)
+                if (!fontChecksum.valid) {
+                  spinner.fail(`Checksum mismatch for the font of layer: ${layerKey}`)
+                  console.error(kleur.red(`  Expected: ${fontChecksum.expected}`))
+                  console.error(kleur.red(`  Actual:   ${fontChecksum.actual}`))
+                  console.error(kleur.gray('  The downloaded file may have been tampered with or corrupted'))
+                } else {
+                  await storage.mkdir(storage.dirname(sanitizedFontPath), true)
+                  await assertNotSymlink(sanitizedFontPath)
+                  await storage.writeFile(sanitizedFontPath, fontBuffer)
+                  spinner.succeed(`Downloaded: ${join(artifactsDir, artifactNamespace, layer.font.path)}`)
+                }
+              }
+            }
+          }
         } catch (error) {
           if (error instanceof SymlinkError) {
             spinner.fail(`Security error: layer path is a symlink`)

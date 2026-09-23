@@ -61,6 +61,14 @@ export const RegistryFileLayerSchema = RegistryLayerBaseSchema.extend({
 		.max(1000)
 		.describe('Relative path for the layer file when installed'),
 	url: z.url().describe('URL to download the layer file from'),
+	font: z.object({
+		path: z.string().min(1).max(1000).describe('Relative path for the font file when installed'),
+		checksum: z.string()
+			.regex(/^sha256:[a-f0-9]{64}$/)
+			.describe('SHA-256 checksum for integrity verification')
+			.optional(),
+	}).describe('Font a PDF layer draws with, installed beside the layer file')
+		.optional(),
 }).meta({
 	title: 'RegistryFileLayer',
 	description: 'File-backed layer with download URL',
