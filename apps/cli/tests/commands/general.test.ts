@@ -110,6 +110,44 @@ describe('CLI General Commands', () => {
       expect(output).toContain('Usage:')
       expect(output).toContain('paradoc')
     })
+
+    it('should print the same help for bare help as for --help', async () => {
+      const [viaCommand, viaFlag] = await Promise.all([
+        executeCliCommand(['help']),
+        executeCliCommand(['--help']),
+      ])
+
+      expect(viaCommand.exitCode).toBe(0)
+      expect(viaCommand.stderr).not.toContain('unknown command')
+      expect(viaCommand.stdout).toContain('Usage:')
+      expect(viaCommand.stdout).toBe(viaFlag.stdout)
+    })
+
+    it('should print the same help for help <command> as for <command> --help', async () => {
+      const [viaCommand, viaFlag] = await Promise.all([
+        executeCliCommand(['help', 'add']),
+        executeCliCommand(['add', '--help']),
+      ])
+
+      expect(viaCommand.exitCode).toBe(0)
+      expect(viaCommand.stderr).not.toContain('unknown command')
+      expect(viaCommand.stdout).toContain('Usage: paradoc add')
+      expect(viaCommand.stdout).toBe(viaFlag.stdout)
+    })
+
+    it('should print nested subcommand help for help <command> <subcommand>', async () => {
+      const result = await executeCliCommand(['help', 'registry', 'add'])
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('Usage: paradoc registry add')
+    })
+
+    it('should still reject an unknown command', async () => {
+      const result = await executeCliCommand(['bogus'])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain("unknown command 'bogus'")
+    })
   })
 
   describe('version command', () => {

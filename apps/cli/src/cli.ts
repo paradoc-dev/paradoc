@@ -21,7 +21,12 @@ program
 	.helpOption('-h, --help', 'Display help for command')
 	.option('--no-telemetry', 'Disable telemetry for this invocation')
 
-const args = process.argv.slice(2)
+// `paradoc help [command...]` is the same request as `paradoc [command...] --help`
+const rawArgs = process.argv.slice(2)
+const helpIndex = rawArgs.findIndex(a => !a.startsWith('-'))
+const args = rawArgs[helpIndex] === 'help'
+	? [...rawArgs.slice(0, helpIndex), ...rawArgs.slice(helpIndex + 1), '--help']
+	: rawArgs
 const firstPositional = args.find(a => !a.startsWith('-'))
 
 // Look up command by name or alias
@@ -33,8 +38,8 @@ if (entry) {
 	// Load only the requested command
 	const cmd = await entry.load()
 	program.addCommand(cmd)
-} else if (!firstPositional) {
-	// No command specified — build lightweight stubs for help display
+} else {
+	// No known command specified — build lightweight stubs for help display
 	const groupOrder = ['Registry', 'Artifacts', 'Project', 'Settings'] as const
 	const groupMap = new Map<string, Command[]>()
 
@@ -74,7 +79,7 @@ program.hook('preAction', () => {
 })
 
 // Parse arguments
-program.parse(process.argv)
+program.parse(args, { from: 'user' })
 
 // Print update notice (sync, reads cached result from checkForUpdate)
 printUpdateNotice()
