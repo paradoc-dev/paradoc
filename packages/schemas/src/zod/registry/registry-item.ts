@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { REGISTRY_VERSION_PATTERN } from './version';
 
 /**
  * Common fields shared by all layer types (registry version)
@@ -107,7 +108,7 @@ export const RegistryItemSchema = z.object({
 		.regex(/^[a-zA-Z0-9][a-zA-Z0-9-_]*$/)
 		.describe('Artifact name'),
 	version: z.string()
-		.regex(/^[0-9]+\.[0-9]+\.[0-9]+/)
+		.regex(REGISTRY_VERSION_PATTERN)
 		.describe('Semantic version'),
 	title: z.string()
 		.min(1)
