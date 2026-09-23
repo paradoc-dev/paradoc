@@ -28,7 +28,7 @@ paradoc migrate <path> [options]
 
 ## Description
 
-Each artifact file names the schema version it follows in `$schema`, such as `https://schema.paradoc.dev/2026-09-22.json`. For each file, `migrate` reads that version, applies every migration step from it to the current version in order, and rewrites the file in place with the current `$schema`.
+Each artifact file names the schema version it follows in `$schema`, such as `https://schema.paradoc.dev/__SCHEMA_VERSION__.json`. For each file, `migrate` reads that version, applies every migration step from it to the current version in order, and rewrites the file in place with the current `$schema`.
 
 - A JSON file stays JSON and keeps its indentation. A YAML file stays YAML and keeps its comments.
 - The migrated artifact must validate against the current version. If it does not, the file is left unchanged and the failure is reported.
@@ -50,17 +50,17 @@ paradoc migrate forms/
 Migrate a file that has no `$schema`:
 
 ```bash
-paradoc migrate lease.yaml --from 2026-08-10
+paradoc migrate lease.yaml --from __PREVIOUS_SCHEMA_VERSION__
 ```
 
 ## Output
 
 ```
-migrated  forms/lease.yaml  2026-08-10 → 2026-09-22
+migrated  forms/lease.yaml  __PREVIOUS_SCHEMA_VERSION__ → __SCHEMA_VERSION__
 current   forms/notice.json
 failed    forms/intake.json: Cannot convert fields.stay.default = "PT": a duration must contain at least one date or time component, such as P1D or PT30M
 
-1 migrated, 1 current, 1 failed  (schema version 2026-09-22)
+1 migrated, 1 current, 1 failed  (schema version __SCHEMA_VERSION__)
 ```
 
 The command exits with status 1 when any file fails.

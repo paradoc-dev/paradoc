@@ -7,11 +7,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { p } from '@paradoc/sdk'
 import { createFsResolver } from '@paradoc/resolvers/fs'
+import { fillSchemaVersion } from '@/lib/schema-version'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const fixturesRoot = path.resolve(__dirname, '../fixtures/templates')
-const page = readFileSync(path.resolve(__dirname, '../../content/docs/quickstart.mdx'), 'utf8')
+const page = fillSchemaVersion(
+  readFileSync(path.resolve(__dirname, '../../content/docs/quickstart.mdx'), 'utf8'),
+)
 
 /** The body of the page's one fenced block in `lang`, with the tab indent removed. */
 function pageBlock(lang: string): string {

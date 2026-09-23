@@ -13,13 +13,13 @@ The schemas are available as a bundle and as individual schemas.
 
 ## Schema versions
 
-Each version of the artifact schema is identified by a date. The current version is `2026-09-22`.
+Each version of the artifact schema is identified by a date. The current version is `__SCHEMA_VERSION__`.
 
 Every artifact file names the version it follows in `$schema`:
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
+  "$schema": "https://schema.paradoc.dev/__SCHEMA_VERSION__.json",
   "kind": "form",
   "name": "residential-lease"
 }
@@ -69,8 +69,8 @@ Every published version stays at its address.
 
 | Schema           | URL                                                 |
 | ---------------- | --------------------------------------------------- |
-| Versioned bundle | `https://schema.paradoc.dev/2026-09-22.json`      |
-| Individual items | `https://schema.paradoc.dev/2026-09-22/form.json`, `bundle.json`, `checklist.json`, `document.json` |
+| Versioned bundle | `https://schema.paradoc.dev/__SCHEMA_VERSION__.json`      |
+| Individual items | `https://schema.paradoc.dev/__SCHEMA_VERSION__/form.json`, `bundle.json`, `checklist.json`, `document.json` |
 | Latest bundle    | `https://schema.paradoc.dev/schema.json`, for editors. It names no version, so an artifact file uses a dated address. |
 
 ## Package dependency
@@ -106,9 +106,9 @@ Every published version stays at its address.
 import bundledSchema from '@paradoc/schemas/schema.json'
 import { SCHEMA_VERSION, PARADOC_SCHEMA_URL, readSchemaAddress } from '@paradoc/schemas'
 
-SCHEMA_VERSION // '2026-09-22'
-PARADOC_SCHEMA_URL // 'https://schema.paradoc.dev/2026-09-22.json'
-readSchemaAddress('https://schema.paradoc.dev/2026-08-10.json') // { kind: 'known', version: '2026-08-10' }
+SCHEMA_VERSION // '__SCHEMA_VERSION__'
+PARADOC_SCHEMA_URL // 'https://schema.paradoc.dev/__SCHEMA_VERSION__.json'
+readSchemaAddress('https://schema.paradoc.dev/__PREVIOUS_SCHEMA_VERSION__.json') // { kind: 'known', version: '__PREVIOUS_SCHEMA_VERSION__' }
 ```
 
 ## Schema Reference

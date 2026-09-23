@@ -3,6 +3,7 @@
  */
 import { describe, test, expect } from 'vitest'
 import { p } from '@paradoc/sdk'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 describe('Artifacts Concept', () => {
   // ============================================================================
@@ -45,7 +46,7 @@ describe('Artifacts Concept', () => {
 
   test('loads JSON artifact', () => {
     const json = {
-      $schema: 'https://schema.paradoc.dev/2026-09-22.json',
+      $schema: PARADOC_SCHEMA_URL,
       kind: 'form',
       name: 'residential-lease',
       version: '1.0.0',

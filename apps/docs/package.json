@@ -59,6 +59,7 @@
     "@paradoc/core": "workspace:*",
     "@paradoc/render": "workspace:*",
     "@paradoc/resolvers": "workspace:*",
+    "@paradoc/schemas": "workspace:*",
     "@paradoc/sdk": "workspace:*",
     "@paradoc/types": "workspace:*",
     "@types/mdx": "^2.0.13",

@@ -9,6 +9,7 @@ import {
   createGenerator,
   createFileSystemGeneratorCache,
 } from 'fumadocs-typescript';
+import { remarkSchemaVersion } from './src/lib/schema-version';
 
 const generator = createGenerator({
   // recommended: choose a directory for cache
@@ -30,7 +31,7 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: [[remarkAutoTypeTable, { generator }]],
+    remarkPlugins: [remarkSchemaVersion, [remarkAutoTypeTable, { generator }]],
   },
   plugins: [lastModified()],
 });
