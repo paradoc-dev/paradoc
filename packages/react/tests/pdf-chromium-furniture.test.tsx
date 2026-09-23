@@ -192,6 +192,30 @@ describe.skipIf(skipped)("page furniture on the Chromium adapter", () => {
     expect(header?.leftPx).toBeCloseTo(DEFAULT_PAGE_MARGIN_PX, 0);
   });
 
+  // A template fills any element classed date, title or url with text of its
+  // own, and pageNumber or totalPages with a counter, whether the band marked a
+  // counter there or not. A band that uses those names for its own reasons
+  // prints its own text, and only the slot it marked is filled.
+  it("prints a band's own text in an element classed as a template field", async () => {
+    const [page] = await chromiumPages(<div>Anchor</div>, {
+      furniture: {
+        header: (
+          <div>
+            <span className="title font-bold">Agreement</span>{" "}
+            <span className="date">Signed copy</span> <span className="url">Filed online</span>{" "}
+            <span className="pageNumber">Schedule</span> <span className="totalPages">Annex</span>
+          </div>
+        ),
+        footer: <PageNumber />,
+      },
+    });
+
+    for (const own of ["Agreement", "Signed copy", "Filed online", "Schedule", "Annex"]) {
+      expect(page!.text).toContain(own);
+    }
+    expect(page!.text).toContain("Page 1 of 1");
+  }, 60_000);
+
   // A template's root font size is Chromium's, not the document's, and it is a
   // fraction of it. A right-aligned run starts where its own width puts it, so a
   // band sized in `rem` that printed small would start further right than the

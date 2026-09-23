@@ -9,6 +9,12 @@
  * the class hooks the templates read, which is the same translation the takumi
  * path makes into its own hooks. Nothing in a component names an engine.
  *
+ * The templates also fill any element whose class names `date`, `title` or
+ * `url`, and they fill `pageNumber` and `totalPages` wherever those appear, not
+ * only on a marked slot. Those classes are taken off every element in a band
+ * before it is measured, so a band prints its own text on this engine as it
+ * does on the others, and the only elements filled are the counters it marked.
+ *
  * A template is a document of its own. It inherits no stylesheet from the page
  * it is printed on, so each band is sent with the page's whole stylesheet
  * inlined: the compiled Tailwind, the application CSS, and the document's faces
@@ -50,6 +56,19 @@ export const CHROMIUM_COUNTER_CLASS: Record<PageCounter, string> = {
   current: "pageNumber",
   total: "totalPages",
 };
+
+/**
+ * Every class Chromium's print templates fill with text of their own.
+ *
+ * A band keeps none of them, save the counter hooks a marked slot is given.
+ */
+export const CHROMIUM_TEMPLATE_CLASSES: readonly string[] = [
+  "date",
+  "title",
+  "url",
+  "pageNumber",
+  "totalPages",
+];
 
 /** Every declared slot, as the markup the printed page carries. */
 export interface FurnitureMarkup {
@@ -191,11 +210,14 @@ export interface PrepareBandsSettings {
   counterAttribute: string;
   /** The class each counter is hooked to. */
   counterClasses: Record<string, string>;
+  /** The classes a template fills, taken off every element before the hooks go on. */
+  templateClasses: readonly string[];
 }
 
 /**
- * Runs inside the page: lays every band out in the printed document, measures
- * it, hooks its counters, and inlines its images.
+ * Runs inside the page: lays every band out in the printed document, takes the
+ * classes a template fills off it, measures it, hooks its counters, and inlines
+ * its images.
  *
  * Measured here rather than in a template because this document carries the
  * faces, the images and the stylesheet the band will be drawn with, and a band
@@ -222,6 +244,11 @@ export async function prepareBandsInPage(
       `padding-right: ${settings.marginPx}px`,
     ].join("; ");
     host.innerHTML = band.html;
+    // Off before the measure, so the band measured is the band printed.
+    for (const element of [...host.querySelectorAll("[class]")]) {
+      element.classList.remove(...settings.templateClasses);
+      if (element.classList.length === 0) element.removeAttribute("class");
+    }
     document.body.append(host);
     for (const image of [...host.querySelectorAll("img")]) {
       const src = image.getAttribute("src") ?? "";

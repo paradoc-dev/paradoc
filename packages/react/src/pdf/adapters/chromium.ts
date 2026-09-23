@@ -59,6 +59,7 @@ import {
   assertBandsFit,
   bandTemplate,
   CHROMIUM_COUNTER_CLASS,
+  CHROMIUM_TEMPLATE_CLASSES,
   furnitureMarkup,
   prepareBandsInPage,
   measureStampInPage,
@@ -432,6 +433,7 @@ export const chromiumAdapter: PdfAdapter = {
         marginPx: input.geometry.marginPx,
         counterAttribute: PAGE_COUNTER_ATTRIBUTE,
         counterClasses: CHROMIUM_COUNTER_CLASS,
+        templateClasses: CHROMIUM_TEMPLATE_CLASSES,
       });
       if (prepared.missingImages.length > 0) {
         throw new UnsupportedPdfContentError([], prepared.missingImages);
