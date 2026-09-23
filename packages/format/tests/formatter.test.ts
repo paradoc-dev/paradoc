@@ -120,6 +120,19 @@ describe('@paradoc/format numeric contract', () => {
 		expect(amountOnly.formatNumber(12.5)).toBe('12.5')
 	})
 
+	it('keeps the currency fraction digits when amount-only output sets none', () => {
+		const amountOnly = createFormatter({ locale: 'en-US', money: { currencyDisplay: 'none' } })
+		expect(amountOnly.formatMoney({ amount: 12000, currency: 'USD' })).toBe('12,000.00')
+		expect(amountOnly.formatMoney({ amount: 12.5, currency: 'USD' })).toBe('12.50')
+		expect(amountOnly.formatMoney({ amount: 1500, currency: 'JPY' })).toBe('1,500')
+		expect(amountOnly.formatMoney({ amount: 1.2345, currency: 'KWD' })).toBe('1.235')
+		expect(createFormatter({ locale: 'de-DE', money: { currencyDisplay: 'none' } })
+			.formatMoney({ amount: 1500.5, currency: 'EUR' })).toBe('1.500,50')
+		// Digits the caller sets still win.
+		expect(amountOnly.formatMoney({ amount: 12.5, currency: 'USD' }, { maximumFractionDigits: 0 })).toBe('13')
+		expect(amountOnly.formatMoney({ amount: 12.5, currency: 'USD' }, { maximumSignificantDigits: 1 })).toBe('10')
+	})
+
 	it('reuses same-policy Intl instances while keeping cache size bounded', () => {
 		const formatter = createFormatter({ cacheSize: 2 })
 		formatter.formatNumber(1.25)

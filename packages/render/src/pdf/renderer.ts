@@ -23,9 +23,12 @@ type PdfLayer = RendererLayer & { type: 'pdf'; content: Uint8Array }
 
 export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<PdfLayer, Uint8Array> {
   const formatter = options.formatter ?? defaultFormatter
-  const fonts = (template: PdfLayer) => ({
+  // What the layer declares travels with its template: its font, and the
+  // presentation its template requires, applied over the caller's formatter.
+  const fromLayer = (template: PdfLayer) => ({
     font: options.font,
     layerFont: template.font && { bytes: template.font.content, source: template.font.path },
+    ...(template.format && { format: template.format }),
   })
   return {
     id: 'pdf',
@@ -39,7 +42,7 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
           formatter: request.ctx?.formatter ?? formatter,
           bindings: request.bindings ?? request.template.bindings,
           signatureOptions: options.signatureOptions,
-          ...fonts(request.template),
+          ...fromLayer(request.template),
         })
       }
 
@@ -66,7 +69,7 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
         formatter: request.ctx?.formatter ?? formatter,
         bindings: request.bindings ?? request.template.bindings,
         signatureOptions: options.signatureOptions,
-        ...fonts(request.template),
+        ...fromLayer(request.template),
       })
     },
   }

@@ -124,6 +124,7 @@ const schema = {
     },
     "nonemployeeCompensation": {
       "type": "money",
+      "currency": "USD",
       "label": "Box 1 — Nonemployee compensation",
       "description": "Total nonemployee compensation of $600 or more paid during the year — fees, commissions, prizes and awards for services, and other compensation for services performed by someone who is not an employee. Reported here since 2020; previously on 1099-MISC box 7.",
       "required": false,
@@ -138,6 +139,7 @@ const schema = {
     },
     "excessGoldenParachutePayments": {
       "type": "money",
+      "currency": "USD",
       "label": "Box 3 — Excess golden parachute payments",
       "description": "Excess golden parachute payments (parachute payments exceeding 3 times the disqualified individual's base amount, per Internal Revenue Code section 280G). Subject to a 20% excise tax on the recipient under section 4999.",
       "required": false,
@@ -145,6 +147,7 @@ const schema = {
     },
     "federalIncomeTaxWithheld": {
       "type": "money",
+      "currency": "USD",
       "label": "Box 4 — Federal income tax withheld",
       "description": "Total federal income tax withheld from the payments — typically backup withholding at 24% when the recipient failed to provide a valid TIN.",
       "required": false,
@@ -152,6 +155,7 @@ const schema = {
     },
     "state1TaxWithheld": {
       "type": "money",
+      "currency": "USD",
       "label": "Box 5 (row 1) — State tax withheld",
       "description": "State income tax withheld from the reportable payments (first state row).",
       "required": false,
@@ -167,6 +171,7 @@ const schema = {
     },
     "state1Income": {
       "type": "money",
+      "currency": "USD",
       "label": "Box 7 (row 1) — State income",
       "description": "Amount of reportable income allocable to the first state.",
       "required": false,
@@ -174,6 +179,7 @@ const schema = {
     },
     "state2TaxWithheld": {
       "type": "money",
+      "currency": "USD",
       "label": "Box 5 (row 2) — State tax withheld",
       "description": "State income tax withheld for a second state. 1099-NEC supports up to two state rows.",
       "required": false,
@@ -189,6 +195,7 @@ const schema = {
     },
     "state2Income": {
       "type": "money",
+      "currency": "USD",
       "label": "Box 7 (row 2) — State income",
       "description": "Amount of reportable income allocable to the second state.",
       "required": false,
@@ -211,6 +218,11 @@ const schema = {
       "description": "Red-ink scannable copy filed with the IRS. Includes 'VOID', 'CORRECTED', and '2nd TIN not.' indicators.",
       "path": "1099-nec-A.pdf",
       "checksum": "sha256:aea4125a956fb9d314eca5f89cd81b162417441c6d0a793cef998df551b0e54b",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].CopyA[0].PgHeader[0].CalendarYear[0].f1_1[0]": "calendarYear",
         "topmostSubform[0].CopyA[0].c1_1[0]": "void",
@@ -242,6 +254,11 @@ const schema = {
       "description": "Black-ink copy filed with the state tax department. Includes 'VOID' and 'CORRECTED' but no '2nd TIN not.' (IRS-only).",
       "path": "1099-nec-1.pdf",
       "checksum": "sha256:508a1c659bf97743973ba8584ca03c0cfd1d706c6125ecafc6ca3e395fcfb750",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].Copy1[0].PgHeader[0].CalendarYear[0].f2_1[0]": "calendarYear",
         "topmostSubform[0].Copy1[0].PgHeader[0].c2_1[0]": "void",
@@ -272,6 +289,11 @@ const schema = {
       "description": "Recipient's federal-records copy. 'CORRECTED (if checked)' only — no VOID and no '2nd TIN not.' (filer-side indicators).",
       "path": "1099-nec-B.pdf",
       "checksum": "sha256:1e35246c067af6fb998c7313c92a53bb547ae0e4e7ed680d9920e50077cfd86f",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].CopyB[0].PgHeader[0].CalendarYear[0].f2_1[0]": "calendarYear",
         "topmostSubform[0].CopyB[0].c2_1[0]": "corrected",
@@ -309,6 +331,11 @@ const schema = {
       "description": "Recipient's state-filing copy. Carries both VOID and CORRECTED at the top (differs from 1099-MISC's Copy 2, which omits VOID). No '2nd TIN not.' indicator (IRS-only).",
       "path": "1099-nec-2.pdf",
       "checksum": "sha256:a05f8a028cdc444b6466adb8c7342d10bc7a8bca74fec4654bb40ffabd02f111",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].Copy2[0].PgHeader[0].CalendarYear[0].f2_1[0]": "calendarYear",
         "topmostSubform[0].Copy2[0].c2_1[0]": "void",

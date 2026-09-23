@@ -559,10 +559,37 @@ function buildPercentageIntlOptions(options: Record<string, unknown>): Record<st
 	return percentageOptions
 }
 
+const DIGIT_OPTIONS = [
+	'minimumFractionDigits',
+	'maximumFractionDigits',
+	'minimumSignificantDigits',
+	'maximumSignificantDigits',
+] as const
+
+const currencyDigitCache = new Map<string, { minimumFractionDigits: number; maximumFractionDigits: number }>()
+
+/** The fraction digits a currency is written with, such as 2 for USD and 0 for JPY. */
+function currencyFractionDigits(currency: string): { minimumFractionDigits: number; maximumFractionDigits: number } {
+	const cached = currencyDigitCache.get(currency)
+	if (cached) return cached
+	const { minimumFractionDigits = 2, maximumFractionDigits = 2 } = new Intl.NumberFormat('en', {
+		style: 'currency',
+		currency,
+	}).resolvedOptions()
+	const digits = { minimumFractionDigits, maximumFractionDigits }
+	currencyDigitCache.set(currency, digits)
+	return digits
+}
+
 function buildMoneyIntlOptions(options: Record<string, unknown>, currency: string): Record<string, unknown> {
 	const currencyDisplay = (options.currencyDisplay as MoneyFormatOptions['currencyDisplay'] | undefined) ?? 'symbol'
 	const { currencyDisplay: _currencyDisplay, currencySign: _currencySign, ...numberOptions } = options
-	if (currencyDisplay === 'none') return { ...numberOptions }
+	if (currencyDisplay === 'none') {
+		// Dropping the symbol does not change the amount: it keeps the
+		// currency's own fraction digits unless the caller sets digits.
+		const setsDigits = DIGIT_OPTIONS.some((key) => numberOptions[key] !== undefined)
+		return setsDigits ? { ...numberOptions } : { ...currencyFractionDigits(currency), ...numberOptions }
+	}
 	return {
 		...numberOptions,
 		style: 'currency',

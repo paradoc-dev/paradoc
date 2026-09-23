@@ -78,6 +78,8 @@ export type {
   InlineLayer,
   FileLayer,
   LayerFont,
+  LayerFormat,
+  LayerMoneyFormat,
   ReactLayerMimeType,
   Bindings,
   // Document

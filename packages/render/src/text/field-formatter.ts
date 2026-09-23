@@ -10,6 +10,7 @@ import type {
 	FormAnnex,
 	DefsSection,
 	Bindings,
+	MoneyFormatOptions,
 } from '@paradoc/types'
 import { MISSING_RATING_SCALE, UNSUPPORTED_LIST_JOIN } from '@paradoc/format'
 import { pathSegments } from '../path'
@@ -25,6 +26,11 @@ export interface FieldFormattingOptions {
 	 * A PDF box writes the value, the code the form expects, such as "C" or "5".
 	 */
 	choices?: 'label' | 'value'
+	/**
+	 * Options for every money value, applied over the formatter's own policy.
+	 * A PDF layer that declares `format.money` passes it here.
+	 */
+	money?: MoneyFormatOptions
 }
 
 type RecordValue = Record<string, unknown>
@@ -277,7 +283,7 @@ function formatLeaf(
 
 	try {
 		switch (field.type) {
-			case 'money': return callFormatter(path, field.type, value, () => formatter.safeFormatMoney(recordInput(value, path, field.type)), options)
+			case 'money': return callFormatter(path, field.type, value, () => formatter.safeFormatMoney(recordInput(value, path, field.type), options?.money), options)
 			case 'address': return callFormatter(path, field.type, value, () => formatter.safeFormatAddress(recordInput(value, path, field.type)), options)
 			case 'phone': return callFormatter(path, field.type, value, () => formatter.safeFormatPhone(typeof value === 'string' ? value : recordInput(value, path, field.type)), options)
 			case 'person': return callFormatter(path, field.type, value, () => formatter.safeFormatPerson(recordInput(value, path, field.type)), options)
@@ -378,7 +384,7 @@ export function formatDefinitionValue(
 	if (isMissing(value)) return missingValue(value, path, type, options)
 	try {
 		switch (type) {
-			case 'money': return callFormatter(path, type, value, () => formatter.safeFormatMoney(recordInput(value, path, type)), options)
+			case 'money': return callFormatter(path, type, value, () => formatter.safeFormatMoney(recordInput(value, path, type), options?.money), options)
 			case 'address': return callFormatter(path, type, value, () => formatter.safeFormatAddress(recordInput(value, path, type)), options)
 			case 'phone': return callFormatter(path, type, value, () => formatter.safeFormatPhone(typeof value === 'string' ? value : recordInput(value, path, type)), options)
 			case 'person': return callFormatter(path, type, value, () => formatter.safeFormatPerson(recordInput(value, path, type)), options)

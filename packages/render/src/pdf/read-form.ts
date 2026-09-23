@@ -1,5 +1,5 @@
 import { defaultFormatter } from '@paradoc/format'
-import type { BinaryContent, EnumOption, Form, FormField, Formatter } from '@paradoc/types'
+import type { BinaryContent, EnumOption, Form, FormField, Formatter, LayerFormat } from '@paradoc/types'
 import { validateFieldBindings } from '../text/field-formatter'
 import { pathSegments } from '../path'
 import { acroFields, type AcroField } from './acroform'
@@ -83,6 +83,12 @@ export interface ExtractPdfDataOptions {
   bindings: Record<string, string>
   /** The formatter the PDF was filled with. Defaults to the default formatter. */
   formatter?: Formatter
+  /**
+   * The presentation the PDF layer declares, applied over `formatter` as it
+   * was when filling. With `money.currencyDisplay: 'none'`, an amount is read
+   * in the currency its field declares.
+   */
+  format?: LayerFormat
 }
 
 // ---------------------------------------------------------------------------
@@ -368,8 +374,12 @@ function parseMoney(raw: string, field: FormField, formatter: Formatter): Parsed
   const amountText = text.replace(/^[^\d(+\-\u2212]+|[^\d)]+$/g, '').replace(/^\((.*)\)$/, '-$1')
   const amount = parseNumber(amountText, formatter.locale)
   if (amount === undefined) return fail('The value is not an amount of money.')
+  // A field that declares its currency accepts no other, so only it is tried.
+  const declared = field.type === 'money' ? field.currency : undefined
   const preferred = field.type === 'money' && field.default?.currency ? [field.default.currency] : []
-  const candidates = [...preferred, ...currencies().filter((code) => !preferred.includes(code))]
+  const candidates = declared
+    ? [declared]
+    : [...preferred, ...currencies().filter((code) => !preferred.includes(code))]
   const matches = new Set<string>()
   for (const currency of candidates) {
     const result = formatter.safeFormatMoney({ amount, currency })
@@ -379,7 +389,7 @@ function parseMoney(raw: string, field: FormField, formatter: Formatter): Parsed
   if (matches.size === 1) return ok({ amount, currency: [...matches][0] })
   return fail(matches.size === 0
     ? 'The currency cannot be determined from the text; write the amount with its currency symbol, or bind the amount on its own.'
-    : 'The currency symbol matches more than one currency.')
+    : 'The text matches more than one currency; declare the field\'s currency, or write the amount with its currency symbol.')
 }
 
 const composite = new Set(['address', 'person', 'organization', 'identification', 'coordinate', 'bbox', 'list', 'fieldset'])
@@ -602,7 +612,8 @@ function placeValue(data: PdfExtractedData, path: string, value: unknown): void 
  * text that does not parse into the field's type is reported with its raw
  * value. Nothing is validated here; pass the data to the normal fill path.
  */
-export async function extractPdfData({ pdf, form, bindings, formatter = defaultFormatter }: ExtractPdfDataOptions): Promise<PdfExtraction> {
+export async function extractPdfData({ pdf, form, bindings, formatter: filledWith = defaultFormatter, format }: ExtractPdfDataOptions): Promise<PdfExtraction> {
+  const formatter = format?.money ? filledWith.compose({ money: format.money }) : filledWith
   const sources = Object.values(bindings).flatMap((binding) => binding.split(',').map((part) => normalizePath(part.split(':')[0]!)))
   validateFieldBindings(form, Object.fromEntries(sources.map((path, index) => [String(index), path])))
 
@@ -708,16 +719,17 @@ interface PdfLayerSpec {
   mimeType?: string
   bindings?: Record<string, string>
   bindingsFrom?: string
+  format?: LayerFormat
 }
 
 /**
  * Choose the PDF layer to read against: the named one, or the only PDF layer.
- * Returns its key and resolved bindings.
+ * Returns its key, resolved bindings, and declared format.
  */
 export function selectPdfExtractionLayer(
   layers: Record<string, PdfLayerSpec> | undefined,
   requested?: string,
-): { key: string; bindings: Record<string, string> } {
+): { key: string; bindings: Record<string, string>; format?: LayerFormat } {
   const all = layers ?? {}
   const pdfKeys = Object.keys(all).filter((key) => all[key]?.mimeType?.toLowerCase() === 'application/pdf')
   let key = requested
@@ -741,5 +753,6 @@ export function selectPdfExtractionLayer(
   if (!bindings || Object.keys(bindings).length === 0) {
     throw new PdfExtractionError('not_matching', `Layer "${key}" has no bindings, so no PDF field maps to the artifact.`)
   }
-  return { key, bindings }
+  // The format is the layer's own: a layer reusing another's bindings declares its own.
+  return { key, bindings, ...(layer.format && { format: layer.format }) }
 }

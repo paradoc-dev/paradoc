@@ -296,6 +296,11 @@ const schema = {
       "description": "Red-ink scannable copy filed with the IRS. Includes 'VOID', 'CORRECTED', and '2nd TIN not.' indicators.",
       "path": "1099-misc-A.pdf",
       "checksum": "sha256:720bf7c671c151a15ea3969caccc7ec6e0123cbd5ef67f6e3b5d050039fe57df",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].CopyA[0].CopyHeader[0].CalendarYear[0].f1_1[0]": "calendarYear",
         "topmostSubform[0].CopyA[0].CopyHeader[0].c1_1[0]": "void",
@@ -337,6 +342,11 @@ const schema = {
       "description": "Black-ink copy filed with the state tax department. Includes 'VOID' and 'CORRECTED' but no '2nd TIN not.' (IRS-only).",
       "path": "1099-misc-1.pdf",
       "checksum": "sha256:231a99e6ffe94f23f0e5ef23e687ff64d17fe375bb12e6179ee6731603354183",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].Copy1[0].CopyHeader[0].CalendarYear[0].f2_1[0]": "calendarYear",
         "topmostSubform[0].Copy1[0].CopyHeader[0].c2_1[0]": "void",
@@ -377,6 +387,11 @@ const schema = {
       "description": "Recipient's federal-records copy. 'CORRECTED (if checked)' only — no VOID and no '2nd TIN not.' (filer-side indicators).",
       "path": "1099-misc-B.pdf",
       "checksum": "sha256:cb712681de845c52272c00bb6adb03ed07b46772eb0d3d7805191f957fa067b1",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].CopyB[0].CopyHeader[0].CalendarYear[0].f2_1[0]": "calendarYear",
         "topmostSubform[0].CopyB[0].CopyHeader[0].c2_1[0]": "corrected",
@@ -416,6 +431,11 @@ const schema = {
       "description": "Recipient's state-filing copy. Same field set as Copy B.",
       "path": "1099-misc-2.pdf",
       "checksum": "sha256:8de8ebc6ea32b2d90a190db63f1f216db3fef60bc55d486ada9c26ddd51d0706",
+      "format": {
+        "money": {
+          "currencyDisplay": "none"
+        }
+      },
       "bindings": {
         "topmostSubform[0].Copy2[0].CopyHeader[0].CalendarYear[0].f2_1[0]": "calendarYear",
         "topmostSubform[0].Copy2[0].CopyHeader[0].c2_1[0]": "corrected",

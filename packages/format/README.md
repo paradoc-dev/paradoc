@@ -77,10 +77,12 @@ Locale, numbering-system, calendar, and timezone choices are independent. The de
 
 ```ts
 const amountOnly = formatter.compose({
-  money: { currencyDisplay: 'none', minimumFractionDigits: 2 },
+  money: { currencyDisplay: 'none' },
 })
 
 amountOnly.formatMoney({ amount: 1500.5, currency: 'USD' }) // '1.500,50'
 ```
+
+`currencyDisplay: 'none'` drops the symbol and keeps the currency's fraction digits (two for USD, none for JPY) unless you set digits.
 
 `compose` and `withOverrides` return independent formatter instances. Overrides can delegate to the previous implementation through the third callback argument, without recursively invoking themselves.

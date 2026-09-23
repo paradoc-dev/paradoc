@@ -172,6 +172,29 @@ export interface LayerFont {
 }
 
 /**
+ * How a PDF layer presents money values its template already frames.
+ *
+ * Only the currency display is declared here. Locale, digits, and every other
+ * choice stay with the formatter the caller renders with.
+ */
+export interface LayerMoneyFormat {
+  /**
+   * `none` prints the amount without a currency symbol or code, for a template
+   * that pre-prints the symbol beside each money box.
+   */
+  currencyDisplay: "none";
+}
+
+/**
+ * Presentation a PDF layer's template requires of filled values, applied over
+ * the formatter the caller renders with.
+ */
+export interface LayerFormat {
+  /** How money values are presented in this layer. */
+  money?: LayerMoneyFormat;
+}
+
+/**
  * File-backed layer with external file reference.
  * Used for layers where content is stored in a separate file.
  */
@@ -204,6 +227,12 @@ export interface FileLayer {
    * after a font supplied at render time and before the form's own fonts.
    */
   font?: LayerFont;
+  /**
+   * Presentation the layer's template requires of filled values. PDF layers
+   * only. It applies to this layer alone; a layer that reuses these bindings
+   * through `bindingsFrom` declares its own.
+   */
+  format?: LayerFormat;
   /** Optional field bindings for the layer (typically for PDF). */
   bindings?: Record<string, string>;
   /** Key of a sibling layer whose bindings this layer reuses. */

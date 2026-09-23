@@ -403,5 +403,6 @@ export async function buildRendererLayer(
 		...(layerSpec.kind === 'file' && { path: layerSpec.path }),
 		...(bindings && { bindings }),
 		...(font && { font }),
+		...(layerSpec.kind === 'file' && layerSpec.format && { format: layerSpec.format }),
 	}
 }

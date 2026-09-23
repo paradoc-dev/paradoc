@@ -302,4 +302,23 @@ describe("1099-misc", () => {
     if (!(output instanceof Uint8Array)) throw new Error("PDF renderer should return bytes");
     expect(new TextDecoder().decode(output.slice(0, 4))).toBe("%PDF");
   });
+
+  describe("money on layers whose template pre-prints the currency symbol", () => {
+    for (const layer of ["pdfCopyA","pdfCopy1","pdfCopyB","pdfCopy2"]) {
+      it(`${layer} prints each amount without a symbol through the default renderer`, async () => {
+        const result = f1099MISC.safeFill(happyPathInputs as any);
+        if (!result.success) throw new Error("passing vector should be accepted");
+        const output = await result.data.render({ layer });
+        if (!(output instanceof Uint8Array)) throw new Error("PDF renderer should return bytes");
+        const extraction = await f1099MISC.extract(output, { layer });
+        for (const path of ["rents","state1TaxWithheld","state1Income"]) {
+          const entry = extraction.report.entries.find((item) => item.path === path);
+          expect(entry?.status, path).toBe("recovered");
+          for (const source of entry?.sources ?? []) expect(source.value, path).toMatch(/^[\d.,]+$/);
+          expect((extraction.data.fields as Record<string, unknown>)[path], path)
+            .toEqual((happyPathInputs.fields as Record<string, unknown>)[path]);
+        }
+      });
+    }
+  });
 });

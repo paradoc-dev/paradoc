@@ -232,7 +232,7 @@ ALWAYS create a markdown inline layer alongside the PDF layer (or as the only la
 | Combined | `"locality,region,postalCode"` | `not_recoverable`; the raw text is in the report and the fields stay empty |
 | Whole structured value in one box | `"mailingAddress"` | `not_recoverable`; bind the parts instead |
 
-When a value must be readable back, bind each part to its own PDF field rather than combining them. A money value in one box needs its currency symbol to be read back; bind `amount` alone when the box holds a bare number.
+When a value must be readable back, bind each part to its own PDF field rather than combining them. A money value in one box needs its currency symbol to be read back, unless the layer declares `format: { money: { currencyDisplay: "none" } }` and the field declares its `currency`; otherwise bind `amount` alone when the box holds a bare number.
 
 ## See Also
 

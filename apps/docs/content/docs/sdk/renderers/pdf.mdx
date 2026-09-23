@@ -134,6 +134,7 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
   { name: 'overlays', type: 'PdfOverlay[]', description: 'Text or image overlays drawn at page coordinates', isOptional: true },
   { name: 'font', type: 'PdfFont', description: 'A font supplied at render time, tried first', isOptional: true },
   { name: 'layerFont', type: 'PdfFont', description: "The font the artifact's PDF layer declares, tried after `font`", isOptional: true },
+  { name: 'format', type: 'LayerFormat', description: "The presentation the artifact's PDF layer declares, applied over `formatter`. See [Artifact formatting](#artifact-formatting)", isOptional: true },
 ]} />
 
 A `PdfOverlay` is either text or an image placed at `page` (one-based), `x`,
@@ -199,6 +200,7 @@ async function extractPdfData(options: ExtractPdfDataOptions): Promise<PdfExtrac
   { name: 'form', type: 'Form', description: 'The artifact whose layer produced the PDF' },
   { name: 'bindings', type: 'Record<string, string>', description: 'The PDF layer bindings' },
   { name: 'formatter', type: 'Formatter', description: 'The formatter the PDF was filled with. Defaults to en-US.', isOptional: true },
+  { name: 'format', type: 'LayerFormat', description: "The PDF layer's declared format, applied over `formatter` as when filling. `selectPdfExtractionLayer` returns it with the bindings", isOptional: true },
 ]} />
 
 Returns `{ data, report }`. Failures throw `PdfExtractionError` with a `code`.
@@ -432,23 +434,20 @@ try {
 
 Pass `formatter` to the artifact's `render()`, `prepareSeal()`, or `seal()` call to use the same presentation on every pass. Direct `renderPdf()` and `pdfRenderer()` also accept a formatter. Artifact context overrides the renderer default.
 
-For money boxes beside a preprinted currency symbol, configure the render explicitly:
+When the template pre-prints the currency symbol beside each money box, as IRS 1099 forms do, the layer declares it:
 
-```ts
-import { createFormatter } from '@paradoc/format'
-
-const formatter = createFormatter({
-  locale: 'en-US',
-  overrides: {
-    money: (value, options, context) => context.delegate(value, {
-      ...options,
-      currencyDisplay: 'none',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }),
-  },
-})
+```json
+"pdfCopyA": {
+  "kind": "file",
+  "mimeType": "application/pdf",
+  "path": "1099-nec-A.pdf",
+  "format": { "money": { "currencyDisplay": "none" } }
+}
 ```
+
+Every render of that layer then prints `12,000.00` instead of `$12,000.00`, with no formatter to configure. The layer's format applies over the formatter the render uses, so its locale and digits still apply; only the symbol goes. The amount keeps its currency's fraction digits. Other layers of the artifact, such as its Markdown, keep the symbol, and a layer that reuses these bindings through `bindingsFrom` declares its own `format`.
+
+Only PDF layers take `format`, and `currencyDisplay: 'none'` is the only value. Declare the money field's `currency` too: [extraction](/sdk/artifacts/form#extracting-data-from-a-filled-pdf) reads an amount printed without a symbol in that currency.
 
 Formatting applies to indexed fields, computed values, parties, and field overlays. Invalid values and unknown binding sources reject with field diagnostics. Checkboxes and selection controls retain their raw value identity.
 

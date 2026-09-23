@@ -249,9 +249,8 @@ describe('PDF artifact formatting', () => {
   })
 
   it('renders amount-only beside a preprinted symbol and retains it after flattening', async () => {
-    const formatter = createFormatter({ locale: 'en-US', overrides: { money: (value, _options, context) => context.delegate(value, { currencyDisplay: 'none', minimumFractionDigits: 2, maximumFractionDigits: 2 }) } })
     const template = await renderPdf({ template: textFieldsPdf(['amount']), data: {}, overlays: [{ page: 1, x: 10, y: 20, text: '$' }] })
-    const filled = await renderPdf({ template, form, data, formatter, bindings: { amount: 'rows[0].amount' }, overlays: [{ page: 1, x: 30, y: 20, field: 'defs.total' }] })
+    const filled = await renderPdf({ template, form, data, format: { money: { currencyDisplay: 'none' } }, bindings: { amount: 'rows[0].amount' }, overlays: [{ page: 1, x: 30, y: 20, field: 'defs.total' }] })
     expect((await inspectAcroFormFields(filled))[0]?.value).toBe('1,234.50')
     const flattened = await flattenPdf(filled)
     expect(await inspectAcroFormFields(flattened)).toEqual([])
@@ -259,6 +258,32 @@ describe('PDF artifact formatting', () => {
     expect(source).toContain('($) Tj')
     expect(source).toContain('(1,234.50) Tj')
     expect(source).toContain('/PdrA0 Do')
+  })
+
+  it('applies the layer format over the caller formatter, in fields, computed values and overlays', async () => {
+    const template = textFieldsPdf(['amount', 'total'])
+    const bindings = { amount: 'rows[0].amount', total: 'defs.total' }
+    const { parties, defs, ...fields } = data
+    const values = async (bytes: Uint8Array) => Object.fromEntries((await inspectAcroFormFields(bytes)).map((field) => [field.name, field.value]))
+    const render = (format?: { money: { currencyDisplay: 'none' } }, formatter?: ReturnType<typeof createFormatter>) =>
+      pdfRenderer({ formatter }).render({ template: { type: 'pdf', content: template, bindings, ...(format && { format }) }, form,
+        data: { fields, parties, defs } } as never)
+    const amountOnly = { money: { currencyDisplay: 'none' as const } }
+
+    // The default formatter prints the symbol; the layer's format drops it.
+    expect(await values(await render())).toEqual({ amount: '€1,234.50', total: '€1,234.50' })
+    expect(await values(await render(amountOnly))).toEqual({ amount: '1,234.50', total: '1,234.50' })
+    // Locale and digits stay the caller's: only the symbol goes.
+    expect(await values(await render(amountOnly, createFormatter({ locale: 'de-DE' }))))
+      .toEqual({ amount: '1.234,50', total: '1.234,50' })
+    expect(await values(await render(amountOnly, createFormatter({ money: { maximumFractionDigits: 0 } }))))
+      .toEqual({ amount: '1,235', total: '1,235' })
+
+    const overlaid = await renderPdf({ template: pagePdf([[300, 300]]), form, data, format: amountOnly,
+      overlays: [{ page: 1, x: 30, y: 20, field: 'defs.total' }] })
+    const source = new TextDecoder('latin1').decode(overlaid)
+    expect(source).toContain('(1,234.50) Tj')
+    expect(source).not.toContain('\\200')
   })
 
   it('preserves false checkbox identity and indexed numeric enum selections', async () => {

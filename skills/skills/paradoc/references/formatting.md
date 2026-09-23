@@ -27,13 +27,12 @@ Compose an immutable formatter for specialized presentation:
 
 ```typescript
 const amountOnly = formatter.compose({
-  money: {
-    currencyDisplay: "none",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  },
+  money: { currencyDisplay: "none" },
 });
+// amountOnly.formatMoney({ amount: 12000, currency: "USD" }) === "12,000.00"
 ```
+
+`currencyDisplay: "none"` keeps the currency's fraction digits unless digits are set. For a PDF template that pre-prints the currency symbol, declare `format: { money: { currencyDisplay: "none" } }` on the layer instead; see [layers.md](./layers.md#format).
 
 Pass one formatter to the whole render:
 
@@ -46,4 +45,4 @@ const bytes = await filled.render({
 });
 ```
 
-DO NOT select formatting from artifact metadata. The caller MUST pass locale and custom presentation policy explicitly.
+DO NOT select formatting from artifact metadata. The caller MUST pass locale and custom presentation policy explicitly. The one presentation an artifact declares is a PDF layer's `format`, because it belongs to that layer's template.

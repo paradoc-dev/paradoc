@@ -123,6 +123,12 @@ File-backed layer with external file reference. Used when content is stored in a
     isOptional: true,
   },
   {
+    name: 'format',
+    type: "{ money?: { currencyDisplay: 'none' } }",
+    description: 'PDF layers only. The presentation the template requires of filled values. `none` prints money amounts without a symbol, for a template that pre-prints it. Applies to this layer alone. See [Artifact formatting](/sdk/renderers/pdf#artifact-formatting)',
+    isOptional: true,
+  },
+  {
     name: 'bindings',
     type: 'Record<string, string>',
     description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',

@@ -3554,8 +3554,8 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 		async extract(pdf: Uint8Array, extractOptions: ExtractOptions = {}): Promise<FormExtraction> {
 			assertValidArtifactDefinition(formDef)
-			const { key, bindings } = selectPdfExtractionLayer(formDef.layers, extractOptions.layer)
-			const result = await extractPdfData({ pdf, form: formDef, bindings, formatter: extractOptions.formatter })
+			const { key, bindings, format } = selectPdfExtractionLayer(formDef.layers, extractOptions.layer)
+			const result = await extractPdfData({ pdf, form: formDef, bindings, formatter: extractOptions.formatter, format })
 			return { layer: key, ...result }
 		},
 

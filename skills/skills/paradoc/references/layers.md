@@ -60,6 +60,7 @@ Reference an external template file.
 | `description` | No | string | Description |
 | `checksum` | No | string | `sha256:<64-hex>` |
 | `font` | No | object | PDF layers only: `{ path, checksum? }` of a TrueType font for filled values. See [pdf-bindings.md](./pdf-bindings.md#fonts) |
+| `format` | No | object | PDF layers only: `{ money: { currencyDisplay: "none" } }` when the template pre-prints the currency symbol beside each money box |
 | `bindings` | No | object | Field-to-template mapping |
 | `bindingsFrom` | No | string | Reuse another layer's bindings |
 | `signatureBlocks` | No | object | Positioned signature locations |
@@ -121,6 +122,23 @@ Use `bindingsFrom` to reuse another layer's bindings:
 ```
 
 PDF AcroForm bindings have additional rules — see [pdf-bindings.md](./pdf-bindings.md).
+
+## Format
+
+When a PDF template already prints the currency symbol beside each money box (IRS 1099 forms do), declare it on the layer. Every render of that layer then prints the amount alone, such as `12,000.00`, with any formatter; locale and digits stay the formatter's. Other layers of the same artifact keep the symbol.
+
+```json schema=layer
+{
+  "kind": "file",
+  "mimeType": "application/pdf",
+  "path": "1099-nec-A.pdf",
+  "format": { "money": { "currencyDisplay": "none" } }
+}
+```
+
+- ONLY PDF layers take `format`. `currencyDisplay: "none"` is the only value.
+- The format is the layer's own. A layer that reuses bindings through `bindingsFrom` declares its own `format`.
+- ALWAYS declare the money field's `currency`, so reading the PDF back (`form.extract`) knows the currency of an amount printed without a symbol.
 
 ## Signature Blocks
 
@@ -462,6 +480,7 @@ p.layer()
   .checksum("sha256:abc123...")
   .bindings({ formFieldId: "PDF_Field_Name" })
   .bindingsFrom("otherLayerKey")
+  .format({ money: { currencyDisplay: "none" } }) // PDF layers only
 ```
 
 ## See Also

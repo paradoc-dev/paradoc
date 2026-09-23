@@ -97,13 +97,13 @@ Formatters are immutable. `compose()` and `withOverrides()` return independent i
 
 ```ts
 const amountOnly = formatter.compose({
-  money: {
-    currencyDisplay: 'none',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  },
+  money: { currencyDisplay: 'none' },
 })
+
+amountOnly.formatMoney({ amount: 12000, currency: 'USD' }) // '12,000.00'
 ```
+
+`currencyDisplay: 'none'` drops the symbol and keeps the currency's fraction digits, unless you set digits yourself. For a PDF template that pre-prints the symbol, declare it on the layer instead; see [Artifact formatting](/sdk/renderers/pdf#artifact-formatting).
 
 An override receives a delegate for the previous implementation:
 

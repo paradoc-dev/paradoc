@@ -820,6 +820,27 @@
           ],
           "additionalProperties": false,
           "description": "Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form's own fonts"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "money": {
+              "type": "object",
+              "properties": {
+                "currencyDisplay": {
+                  "type": "string",
+                  "const": "none",
+                  "description": "`none` prints the amount without a currency symbol or code, for a template that pre-prints the symbol beside each money box"
+                }
+              },
+              "required": [
+                "currencyDisplay"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "Presentation the template requires of filled values; PDF layers only. It applies to this layer alone, not to a layer that reuses its bindings"
         }
       },
       "required": [
@@ -831,17 +852,35 @@
     }
   ],
   "description": "Layer specification — inline content or file reference",
-  "if": {
-    "required": [
-      "font"
-    ]
-  },
-  "then": {
-    "properties": {
-      "mimeType": {
-        "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "font"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mimeType": {
+            "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mimeType": {
+            "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+          }
+        }
       }
     }
-  },
+  ],
   "title": "Layer"
 }

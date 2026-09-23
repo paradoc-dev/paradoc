@@ -1,5 +1,5 @@
 import { defaultFormatter } from '@paradoc/format'
-import type { BinaryContent, Form, FormField, Formatter } from '@paradoc/types'
+import type { BinaryContent, Form, FormField, Formatter, LayerFormat } from '@paradoc/types'
 import { formatFieldData, validateFieldBindings, unwrapFormattedValue } from '../text/field-formatter'
 import { getPath, pathSegments } from '../path'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
@@ -25,6 +25,12 @@ export interface RenderPdfOptions {
   font?: PdfFont
   /** The font the artifact's PDF layer declares, tried after `font`. */
   layerFont?: PdfFont
+  /**
+   * The presentation the artifact's PDF layer declares, applied over
+   * `formatter`. `{ money: { currencyDisplay: 'none' } }` prints amounts
+   * without a symbol beside a template's pre-printed one.
+   */
+  format?: LayerFormat
 }
 
 function assign(field: AcroField | undefined, value: unknown, model: PdfModel, fonts: PdfFontSet): void {
@@ -105,9 +111,10 @@ export async function renderPdf({
   overlays = [],
   font,
   layerFont,
+  format,
 }: RenderPdfOptions): Promise<BinaryContent> {
   const preprocessed = form
-    ? formatFieldData(data, form, formatter, { choices: 'value' })
+    ? formatFieldData(data, form, formatter, { choices: 'value', ...(format?.money && { money: format.money }) })
     : data
   if (form) {
     const sources = Object.values(bindings ?? {}).flatMap((binding) =>

@@ -6,7 +6,7 @@
 
 import type { Form } from "../schemas/artifacts";
 import type { Formatter, FormatterProgressivePolicy } from "./formatter";
-import type { Bindings } from "../schemas/artifacts/shared";
+import type { Bindings, LayerFormat } from "../schemas/artifacts/shared";
 import type { FormData } from "../runtime";
 
 /**
@@ -67,6 +67,12 @@ export interface RendererLayer {
    * A PDF renderer draws filled values and overlay text with it.
    */
   font?: RendererLayerFont;
+
+  /**
+   * The presentation the layer declares for filled values. A PDF renderer
+   * applies it over the formatter it renders with.
+   */
+  format?: LayerFormat;
 }
 
 /** A layer's declared font, loaded. */

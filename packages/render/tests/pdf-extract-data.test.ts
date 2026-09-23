@@ -183,6 +183,35 @@ describe('extractPdfData', () => {
     expect(result.data.fields).not.toHaveProperty('amount')
   })
 
+  it('reads an amount the layer printed without a symbol in the currency its field declares', async () => {
+    const amountOnly = { money: { currencyDisplay: 'none' as const } }
+    const usd = { ...form, fields: { ...form.fields, amount: { type: 'money', label: 'Amount', currency: 'USD' } } } as unknown as Form
+    const pdf = await renderPdf({ template: acroFormPdf(layout), form: usd, data, bindings, format: amountOnly })
+    const result = await extractPdfData({ pdf, form: usd, bindings, format: amountOnly })
+
+    expect(entry(result, 'amount')).toMatchObject({ status: 'recovered', sources: [{ field: 'amount', value: '1,234.50' }] })
+    expect(result.data.fields).toMatchObject({ amount: { amount: 1234.5, currency: 'USD' } })
+  })
+
+  it('refuses an amount printed without a symbol when its field declares no currency', async () => {
+    const amountOnly = { money: { currencyDisplay: 'none' as const } }
+    const pdf = await renderPdf({ template: acroFormPdf(layout), form, data, bindings, format: amountOnly })
+    const result = await extractPdfData({ pdf, form, bindings, format: amountOnly })
+
+    expect(entry(result, 'amount')).toMatchObject({
+      status: 'unparseable',
+      reason: expect.stringContaining("declare the field's currency"),
+    })
+    expect(result.data.fields).not.toHaveProperty('amount')
+  })
+
+  it('reads only the currency a money field declares', async () => {
+    const eur = { ...form, fields: { ...form.fields, amount: { type: 'money', label: 'Amount', currency: 'EUR' } } } as unknown as Form
+    const result = await extractPdfData({ pdf: await filled(data), form: eur, bindings })
+
+    expect(entry(result, 'amount')).toMatchObject({ status: 'unparseable', sources: [{ field: 'amount', value: '$1,234.50' }] })
+  })
+
   it('reports a split identifier with a gap as unparseable rather than joining out of order', async () => {
     const pdf = acroFormPdf(layout.map((field): AcroFormFixtureField => {
       if (field.kind === 'text' && field.name === 'ssn_1') return { ...field, value: '123' }
@@ -279,6 +308,13 @@ describe('selectPdfExtractionLayer', () => {
     const layers = { copyA: pdfLayer({ a: 'b' }), copyB: pdfLayer({ c: 'd' }) }
     expect(() => selectPdfExtractionLayer(layers)).toThrow(expect.objectContaining({ code: 'layer_required', message: expect.stringContaining('copyA, copyB') }))
     expect(selectPdfExtractionLayer(layers, 'copyB')).toEqual({ key: 'copyB', bindings: { c: 'd' } })
+  })
+
+  it('returns the format the chosen layer declares, never one it reuses bindings from', () => {
+    const format = { money: { currencyDisplay: 'none' as const } }
+    const layers = { copyA: { ...pdfLayer({ a: 'b' }), format }, copyB: { mimeType: 'application/pdf', bindingsFrom: 'copyA' } }
+    expect(selectPdfExtractionLayer(layers, 'copyA')).toEqual({ key: 'copyA', bindings: { a: 'b' }, format })
+    expect(selectPdfExtractionLayer(layers, 'copyB')).toEqual({ key: 'copyB', bindings: { a: 'b' } })
   })
 
   it('follows bindingsFrom to the referenced layer', () => {

@@ -289,6 +289,32 @@ const LayerFontSchema = z.object({
 	description: 'Font a PDF layer draws filled values and overlay text with',
 }).strict();
 
+/** The rule a format on a layer other than a PDF breaks, stated once so every error reads the same. */
+export const LAYER_FORMAT_RULE = 'Only PDF layers (application/pdf) can declare a format';
+
+/**
+ * How a PDF layer presents money values its template already frames. Only the
+ * currency display is declared; every other choice stays with the formatter.
+ */
+const LayerMoneyFormatSchema = z.object({
+	currencyDisplay: z.literal('none')
+		.describe('`none` prints the amount without a currency symbol or code, for a template that pre-prints the symbol beside each money box'),
+}).meta({
+	title: 'LayerMoneyFormat',
+	description: 'How a PDF layer presents money values',
+}).strict();
+
+/**
+ * Presentation a PDF layer's template requires of filled values, applied over
+ * the formatter the caller renders with.
+ */
+const LayerFormatSchema = z.object({
+	money: LayerMoneyFormatSchema.optional(),
+}).meta({
+	title: 'LayerFormat',
+	description: 'Presentation a PDF layer\'s template requires of filled values, applied over the caller\'s formatter',
+}).strict();
+
 /**
  * File layer — references external content through a resolver-defined path.
  */
@@ -307,12 +333,18 @@ const FileLayerSchema = LayerBaseSchema.extend({
 	font: LayerFontSchema
 		.describe('Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form\'s own fonts')
 		.optional(),
+	format: LayerFormatSchema
+		.describe('Presentation the template requires of filled values; PDF layers only. It applies to this layer alone, not to a layer that reuses its bindings')
+		.optional(),
 }).meta({
 	title: 'FileLayer',
 	description: 'File-backed layer with path reference',
 }).strict().refine(
 	(layer) => layer.font === undefined || layer.mimeType.toLowerCase() === 'application/pdf',
 	{ error: LAYER_FONT_RULE, path: ['font'] },
+).refine(
+	(layer) => layer.format === undefined || layer.mimeType.toLowerCase() === 'application/pdf',
+	{ error: LAYER_FORMAT_RULE, path: ['format'] },
 );
 
 /**
@@ -324,8 +356,10 @@ export const LayerSchema = z.discriminatedUnion('kind', [
 ]).meta({
 	title: 'Layer',
 	description: 'Layer specification — inline content or file reference',
-	// The file layer's font refinement, stated to JSON Schema as well: a
-	// refinement alone would vanish from the published schema.
-	if: { required: ['font'] },
-	then: { properties: { mimeType: { pattern: PDF_MIME_PATTERN } } },
+	// The file layer's font and format refinements, stated to JSON Schema as
+	// well: a refinement alone would vanish from the published schema.
+	allOf: [
+		{ if: { required: ['font'] }, then: { properties: { mimeType: { pattern: PDF_MIME_PATTERN } } } },
+		{ if: { required: ['format'] }, then: { properties: { mimeType: { pattern: PDF_MIME_PATTERN } } } },
+	],
 });
