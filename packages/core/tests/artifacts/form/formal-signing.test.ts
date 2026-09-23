@@ -360,6 +360,71 @@ describe('Formal Signing', () => {
 	})
 
 	// ============================================================================
+	// setTargetLayer after seal
+	// ============================================================================
+
+	describe('setTargetLayer after seal', () => {
+		const createTwoLayerForm = () =>
+			form({
+				kind: 'form',
+				name: 'two-layer-lease',
+				version: '1.0.0',
+				title: 'Two-layer Lease',
+				fields: { rentAmount: { type: 'number', label: 'Rent Amount', required: true } },
+				parties: { landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } } },
+				layers: {
+					docx: {
+						kind: 'inline',
+						mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+						text: 'Layer A',
+					},
+					markdown: { kind: 'inline', mimeType: 'text/markdown', text: 'Layer B' },
+				},
+				defaultLayer: 'docx',
+			} as const)
+
+		const buildDraft = () =>
+			createTwoLayerForm()
+				.fill({
+					fields: { rentAmount: 1500 },
+					parties: { landlord: { id: 'landlord-0', name: 'John Landlord' } },
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+
+		test('refuses to retarget a sealed form, so no stale hash or map survives', async () => {
+			const sealed = await buildDraft().seal(createMockAdapter())
+			expect(sealed.canonicalPdfHash).toBe('sha256:abc123def456')
+
+			expect(() => sealed.setTargetLayer('markdown')).toThrow(
+				'Cannot setTargetLayer: form is sealed on layer "docx"',
+			)
+			expect(() => sealed.setTargetLayer('docx')).toThrow('Cannot setTargetLayer: form is sealed')
+			expect(sealed.targetLayer).toBe('docx')
+		})
+
+		test('refuses to retarget an executed form', async () => {
+			const sealed = await buildDraft().seal(createMockAdapter())
+			const executed = sealed.finalize()
+			// ExecutedForm's type omits setTargetLayer; JS callers still reach the runtime method.
+			const runtime = executed as unknown as { setTargetLayer(layer: string): unknown }
+			expect(() => runtime.setTargetLayer('markdown')).toThrow(
+				'Cannot setTargetLayer: form is in executed phase',
+			)
+		})
+
+		test('still retargets a draft and an unsealed signable form', () => {
+			const draft = buildDraft().setTargetLayer('markdown')
+			expect(draft.targetLayer).toBe('markdown')
+
+			const signable = buildDraft().prepareForSigning().setTargetLayer('markdown')
+			expect(signable.phase).toBe('signable')
+			expect(signable.targetLayer).toBe('markdown')
+			expect(signable.canonicalPdfHash).toBeUndefined()
+		})
+	})
+
+	// ============================================================================
 	// DraftForm.seal - Validation Errors
 	// ============================================================================
 

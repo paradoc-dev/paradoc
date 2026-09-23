@@ -1101,7 +1101,10 @@ export interface SignableForm<F extends Form> extends RuntimeFormBase<F> {
 	getAttestationsForParty<R extends PartyRoleKeys<F>>(roleId: R, partyId: string, signerId?: string): Attestation[]
 	addAttestation(attestation: Attestation): SignableForm<F>
 
-	// Layer Management (read-only in signable - can still set but returns same phase)
+	/**
+	 * Retarget an unsealed signable form. Throws once the form is sealed:
+	 * canonicalPdfHash and signatureMap cover the sealed layer only.
+	 */
 	setTargetLayer<K extends keyof F['layers'] & string>(layer: K): SignableForm<F>
 
 	// Phase Transition (signable → executed)
@@ -2171,6 +2174,18 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const layers = formDef.layers ?? {}
 			if (!(layer in layers)) {
 				throw new Error(`Layer "${layer}" not found in form. Available layers: ${Object.keys(layers).join(', ') || 'none'}`)
+			}
+			// The seal state describes the sealed layer's exact output. Retargeting
+			// would leave canonicalPdfHash and signatureMap describing a document
+			// render() no longer produces, so a sealed or executed form keeps its layer.
+			if (phase === 'executed') {
+				throw new Error(`Cannot setTargetLayer: form is in executed phase (the target layer is fixed once executed)`)
+			}
+			if (signatureMap !== undefined || canonicalPdfHash !== undefined) {
+				throw new Error(
+					`Cannot setTargetLayer: form is sealed on layer "${targetLayer}". ` +
+					'Its canonicalPdfHash and signatureMap cover that layer only; seal a draft on the other layer instead.',
+				)
 			}
 			return createRuntimeForm({
 				...config,
