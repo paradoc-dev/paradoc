@@ -125,8 +125,7 @@
     "legal": {
       "kind": "file",
       "mimeType": "text/markdown",
-      "path": "residential-lease-legal.md",
-      "url": "http://localhost:4567/files/residential-lease-legal.md"
+      "path": "residential-lease-legal.md"
     }
   },
   "defaultLayer": "default"

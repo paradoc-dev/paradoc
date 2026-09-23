@@ -18,16 +18,11 @@
  * where the `Signature` block for that party sits. Nothing else describes where
  * a signature goes.
  *
- * One limitation shapes the design. The expression language indexes lists and
- * reads their length, but it has no aggregate over a list, so a subtotal cannot be
- * expressed as a def. `subtotalAmount` is therefore a field the caller
- * materializes with `computeLineAmounts`, and the artifact computes tax and total
- * from it. See the package README.
- *
- * Tax and total are null until both the subtotal and the tax rate have values.
- * Arithmetic over a missing value is an evaluation error, and core refuses to
- * fill a form whose defs do not evaluate, so an unguarded def would block a
- * session before its first answer.
+ * The totals are the artifact's own. `subtotal` sums the line-item amounts
+ * with `sum(fields.lineItems.amount)`, and tax and total follow from it. Each is
+ * missing until the values it reads are answered, so a session can start
+ * before any row or rate exists. Each row's own `amount` is still multiplied
+ * out by the caller with `computeLineAmounts`.
  */
 
 import { p } from "@paradoc/core";
@@ -226,15 +221,6 @@ export const proposalSpec = {
         },
       },
     },
-    subtotalAmount: {
-      type: "number",
-      label: "Subtotal amount",
-      description:
-        "Sum of the line-item amounts. Materialized by the caller because the expression language has no list aggregate. Not shown as a field: the document surfaces it through the `subtotal` def, so the reader sees one serialized money value rather than a bare number.",
-      min: 0,
-      required: true,
-      visible: false,
-    },
     taxRatePercent: {
       type: "percentage",
       label: "Tax rate",
@@ -259,7 +245,7 @@ export const proposalSpec = {
       label: "Subtotal",
       description: "The line-item total before tax.",
       value: {
-        amount: "fields.subtotalAmount",
+        amount: "sum(fields.lineItems.amount).amount",
         currency: "fields.currency",
       },
     },
@@ -268,7 +254,7 @@ export const proposalSpec = {
       label: "Tax",
       description: "Sales tax on the subtotal at the quoted rate.",
       value: {
-        amount: "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "subtotal.amount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },
@@ -277,8 +263,7 @@ export const proposalSpec = {
       label: "Total",
       description: "Amount due if the customer accepts the proposal.",
       value: {
-        amount:
-          "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "subtotal.amount + tax.amount",
         currency: "fields.currency",
       },
     },

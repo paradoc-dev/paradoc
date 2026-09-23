@@ -7,6 +7,7 @@ import {
   type TemplateArtifact,
 } from '@/logic/design-time/validation/validate-templates'
 import { parse } from '@/serialization/serialization'
+import { validatePdfBindingFit, type LayerValidationIssue } from './pdf-fit'
 import {
   validateForm,
   validateDocument,
@@ -16,6 +17,7 @@ import {
 
 // Re-export ValidateOptions from centralized types.ts
 export type { ValidateOptions } from '@/types'
+export type { LayerValidationIssue } from './pdf-fit'
 
 // Import for internal use
 import type { ValidateOptions } from '@/types'
@@ -244,24 +246,42 @@ export interface ValidateLayersOptions extends ValidateOptions {
 }
 
 /**
- * Validate an artifact and the template expressions of its file-backed
- * layers. `validate()` checks inline layers; this also reads each file-backed
- * text and DOCX layer through the resolver and checks its templates.
+ * The result of {@link validateLayers}: a Standard Schema result, whose issues
+ * are the errors, and the warnings found alongside them. Warnings do not fail
+ * validation.
+ */
+export type ValidateLayersResult<T> = StandardSchemaV1.Result<T> & {
+  readonly warnings?: readonly LayerValidationIssue[]
+}
+
+/**
+ * Validate an artifact and its file-backed layers. `validate()` checks inline
+ * layers; this also reads each file-backed layer through the resolver:
+ * - the template expressions of each text and DOCX layer;
+ * - for a form, that every value a PDF layer binding accepts can fill its PDF
+ *   text field: it fits the box at the minimum font size, and has no more
+ *   characters than a comb field has boxes. A bound text field with nothing
+ *   bounding its length is a warning.
  *
  * @example
  * ```typescript
  * const result = await validateLayers(form, { resolver: createFsResolver({ root: '.' }) })
+ * for (const warning of result.warnings ?? []) console.warn(warning.message)
  * ```
  */
 export async function validateLayers<T = unknown>(
   artifact: unknown,
   options: ValidateLayersOptions,
-): Promise<StandardSchemaV1.Result<T>> {
+): Promise<ValidateLayersResult<T>> {
   const { resolver, ...validateOptions } = options
   const result = validate<T>(artifact, validateOptions)
-  if (result.issues || validateOptions.logic === false || !hasTemplateLayers(artifact)) return result
-  const issues = await validateFileTemplates(artifact, resolver)
-  return issues.length > 0 ? { issues } : result
+  if (result.issues || !hasTemplateLayers(artifact)) return result
+  const templateIssues = validateOptions.logic === false ? [] : await validateFileTemplates(artifact, resolver)
+  const fit = artifact.kind === 'form' ? await validatePdfBindingFit(artifact as unknown as Form, resolver) : []
+  const errors = [...templateIssues, ...fit.filter((issue) => issue.severity === 'error')]
+  const warnings = fit.filter((issue) => issue.severity === 'warning')
+  const outcome: StandardSchemaV1.Result<T> = errors.length > 0 ? { issues: errors } : result
+  return warnings.length > 0 ? { ...outcome, warnings } : outcome
 }
 
 export const parseArtifact = (

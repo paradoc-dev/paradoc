@@ -1,5 +1,6 @@
 import { isDict, isName, type PdfDict, type PdfModel } from './syntax'
 import { decodeStream } from './pages'
+import { byteString } from './text-string'
 
 /** One glyph decoded from a shown string. */
 export interface Glyph {
@@ -15,8 +16,6 @@ export interface FontDecoder {
   decode(bytes: number[]): Glyph[]
   twoByte: boolean
 }
-
-const decoder = new TextDecoder('latin1')
 
 /** Parse a ToUnicode CMap stream into a code → text map. */
 function parseToUnicode(cmap: string): Map<number, string> {
@@ -117,7 +116,7 @@ export async function buildFontDecoder(model: PdfModel, font: PdfDict): Promise<
   const toUnicodeRecord = model.record(font.entries.get('ToUnicode'))
   if (toUnicodeRecord?.stream && isDict(toUnicodeRecord.value)) {
     const bytes = await decodeStream(model, toUnicodeRecord.value, toUnicodeRecord.stream)
-    toUnicode = parseToUnicode(decoder.decode(bytes))
+    toUnicode = parseToUnicode(byteString(bytes))
   }
 
   const widthOf = twoByte ? cidWidths(model, font) : simpleWidths(model, font)

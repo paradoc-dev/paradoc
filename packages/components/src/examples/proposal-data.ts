@@ -114,7 +114,7 @@ function build(
   summary: string,
   terms: string
 ): ProposalData {
-  const { lineItems, subtotalAmount } = computeLineAmounts(items, CURRENCY);
+  const { lineItems } = computeLineAmounts(items, CURRENCY);
   return {
     fields: {
       proposalNumber,
@@ -145,7 +145,6 @@ function build(
       summary,
       currency: CURRENCY,
       lineItems,
-      subtotalAmount,
       taxRatePercent: TAX_RATE_PERCENT,
       terms,
     },

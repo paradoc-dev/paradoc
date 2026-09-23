@@ -16,6 +16,7 @@ import type { EvaluationContext } from './context'
 import { buildRegistry } from '../registry/registry'
 import type { ExprType } from '../types'
 import { validateDate, validateDateDuration, validateDatetime } from './temporal'
+import { missingReferences } from '../analyze/missing'
 
 const DEFAULT_REGISTRY = buildRegistry()
 
@@ -296,9 +297,28 @@ function evalCall(node: Extract<Expr, { kind: 'Call' }>, ctx: EvaluationContext)
 
 export type EvalResult =
 	| { readonly success: true; readonly value: Value }
-	| { readonly success: false; readonly error: string; readonly code?: EvalErrorCode; readonly span?: Expr['span']; readonly diagnostics?: readonly Diagnostic[] }
+	| {
+			readonly success: false
+			readonly error: string
+			readonly code?: EvalErrorCode
+			readonly span?: Expr['span']
+			readonly diagnostics?: readonly Diagnostic[]
+			/** With code `missing-input`: the referenced paths that have no value. */
+			readonly missing?: readonly string[]
+	  }
 
-/** Parse and evaluate a source expression, capturing errors as a result. */
+/** Failures that depend on input values, and so can be caused by an input with no value. */
+const VALUE_ERROR_CODES: ReadonlySet<EvalErrorCode> = new Set(['type-error', 'division-by-zero', 'currency-mismatch'])
+
+/**
+ * Parse and evaluate a source expression, capturing errors as a result.
+ *
+ * An expression that fails on its values while one of its references has no
+ * value is not a failure: it cannot be computed yet, and the result has code
+ * `missing-input` naming those references. The same failure with every input
+ * present keeps its own code. Null-safe expressions that handle a missing
+ * value themselves (`coalesce`, `?:`, `or`) evaluate as usual.
+ */
 export function evaluateExpression(source: string, ctx: EvaluationContext): EvalResult {
 	const { ast, errors } = parse(source)
 	if (!ast) {
@@ -307,7 +327,13 @@ export function evaluateExpression(source: string, ctx: EvaluationContext): Eval
 	try {
 		return { success: true, value: evaluate(ast, ctx) }
 	} catch (e) {
-		if (e instanceof EvaluationError) return { success: false, error: e.message, code: e.code, span: e.span }
+		if (e instanceof EvaluationError) {
+			const missing = VALUE_ERROR_CODES.has(e.code) ? missingReferences(ast, ctx) : []
+			if (missing.length > 0) {
+				return { success: false, error: `Missing input: ${missing.join(', ')}`, code: 'missing-input', missing }
+			}
+			return { success: false, error: e.message, code: e.code, span: e.span }
+		}
 		if (e instanceof RangeError) return { success: false, error: e.message, code: 'limit-exceeded' }
 		if (e instanceof SyntaxError || e instanceof TypeError) {
 			return { success: false, error: e.message, code: 'type-error' }

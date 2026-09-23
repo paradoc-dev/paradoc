@@ -110,7 +110,7 @@ describe('aggregates in computed values', () => {
 		const result = evaluateFormDefs(invoiceForm(), {
 			fields: { itemized: true, currency: 'USD', items: [{ amount: usd(1) }, { amount: { amount: 2, currency: 'EUR' } }] },
 		})
-		expect('issues' in result && result.issues?.[0]?.message).toMatch(/currency-mismatch: sum found more than one currency: EUR, USD/)
+		expect('value' in result && result.value.issues[0]?.message).toMatch(/currency-mismatch: sum found more than one currency: EUR, USD/)
 	})
 })
 

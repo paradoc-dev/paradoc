@@ -209,6 +209,17 @@ For compound types, `value` is an object with expression strings per component.
 **organization** — `name` required; `legalName`, `domicile`, `entityType`, `entityId`, `taxId` optional.
 **identification** — `type`, `number` required; `issuer`, `issueDate`, `expiryDate` optional.
 
+### Missing and failed values
+
+A def is **missing** (`null`) while an input it reads is unanswered, `null`, or another missing def. Missing is not an error, so defs need no `x == null ? null : ...` guards. Conditions over a missing value are false (the field waits on its inputs); rules over one are not met and fail with their own message.
+
+A def **fails** only when it errors with every input present (type mismatch, division by zero, mixed-currency sum). The failure is reported as a `defs.<key>` issue, the def reads as missing, the rest of the form still evaluates, and completion is blocked.
+
+```json schema=defs
+"subtotal": { "type": "money", "value": { "amount": "sum(fields.lineItems.amount).amount", "currency": "fields.currency" } },
+"tax": { "type": "money", "value": { "amount": "subtotal.amount * fields.taxRatePercent / 100", "currency": "fields.currency" } }
+```
+
 ## Rules Section
 
 The `rules` section defines form-level validation. Available on **forms** only. Each rule has a key (pattern `^[a-z][a-zA-Z0-9_]*$`).

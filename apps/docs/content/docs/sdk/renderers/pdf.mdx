@@ -337,6 +337,33 @@ Filling draws each value the way the form's designer set up the field:
 
 A value that does not fit is reduced in size, down to `MIN_FONT_SIZE` (6 points). Below that, filling fails instead of clipping the value. Checkbox and radio fields are unchanged.
 
+## Checking bindings before filling
+
+`validateLayers()`, `paradoc validate`, and the `validate_artifact` AI tool check each binding of a form's PDF layer to a text field before any data exists. The check builds values the bound field accepts and lays them out with the same code filling uses, in the font filling would choose: the layer's declared font, then the form's own font for the field, then Helvetica. A font supplied only at render time is not known to the check.
+
+A text, email, uuid, or uri field is checked at its length bound: `maxLength` characters, or the length its `pattern` bounds, whichever is shorter. A uuid field without a pattern takes its 36-character canonical form. Two values of that length are laid out:
+
+- **A typical value** is made of the repeated reference text `The quick brown fox jumps over the lazy dog ` (exported as `TYPICAL_TEXT`). It holds every lowercase letter, one capital, and word spaces at about the rate English prose has them. Its mean advance in Helvetica, 456 units per 1000, sits just above that of letter-frequency-weighted English text (441), so a box that holds it holds ordinary answers. A position the pattern constrains holds the allowed character nearest the allowed characters' mean width. If the typical value cannot fit at 6 points, it is an **error**.
+- **The widest value** holds the widest character each position allows: for an open position, the widest Latin letter or digit in the font (`W` in Helvetica). If only this value cannot fit, it is a **warning**: ordinary answers fill, and an answer made mostly of wide capitals does not.
+
+Other bindings are checked exactly, and a failure is an **error**:
+
+- **Comb fields:** a value longer than the field's boxes (`comb-length`).
+- **Split bindings** (`ssn:3`): the matching hyphen-separated part of the pattern. When the pattern does not fix where the hyphens fall, the part is bounded by the whole value's `maxLength`.
+- **Enum fields:** the widest option value, since a PDF text box writes the value. **Multiselect fields:** the widest `max` option values, or all of them, joined with `, `.
+- **Combined bindings:** each path's value, joined with `, `.
+
+A bound text field with nothing bounding its length is a **warning** (`unbounded`). `validateLayers()` returns warnings in `result.warnings`; they do not fail validation. Composite parts such as `address.line1`, party values, and computed values are not checked.
+
+The check is also exported on its own:
+
+```ts
+import { checkPdfBindingFit } from '@paradoc/render/pdf'
+
+const issues = await checkPdfBindingFit({ template: pdfBytes, form, bindings })
+// [{ field: 'amountSource', paths: ['fields.amountSource'], severity: 'error', reason: 'overflow', value: 'typical', limit: 6, length: 200, message: '...' }]
+```
+
 ## Fonts
 
 For each text value, filling uses the first font that can draw every character of the value:

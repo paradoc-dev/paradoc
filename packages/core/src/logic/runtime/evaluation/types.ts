@@ -50,9 +50,13 @@ export interface FormRuntimeState {
   annexes: Map<string, AnnexRuntimeState>
   /** Evaluated defs key values */
   defsValues: Map<string, unknown>
-  /** True only when every runtime expression needed for this snapshot resolved. */
+  /**
+   * True when every visibility and requiredness condition resolved. A condition
+   * whose inputs are missing resolves to false; a computed value that failed
+   * reads as missing and is reported in `issues` without unresolving the snapshot.
+   */
   resolved: boolean
-  /** Diagnostics retained when a fallback value was needed. */
+  /** Every expression failure: failed conditions and failed computed values. */
   issues: EvaluationIssue[]
 }
 

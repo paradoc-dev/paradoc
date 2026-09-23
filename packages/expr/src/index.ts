@@ -80,6 +80,7 @@ export type { Token, TokenType } from './parser/lexer'
 export { staticPath } from './ast/paths'
 export { extractReferences } from './analyze/references'
 export type { References } from './analyze/references'
+export { missingReferences } from './analyze/missing'
 
 // Decimal
 export { Decimal, DivisionByZeroError, MAX_DECIMAL_DIGITS, MAX_DECIMAL_SCALE } from './decimal/decimal'

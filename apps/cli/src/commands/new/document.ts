@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import kleur from "kleur";
-import { LocalFileSystem } from "../../utils/local-fs.js";
+import { resolve } from "node:path";
 import prompts from "prompts";
 import { generateSlug, generateFilename } from "../../utils/slugify.js";
 import { generateDocumentTemplate } from "../../utils/templates.js";
@@ -160,10 +160,6 @@ async function createDocumentImpl(
 		throw error;
 	}
 
-	// File writing
-	const storage = new LocalFileSystem();
-	const projectRoot = process.cwd();
-
 	// Generate template
 	const template = generateDocumentTemplate(artifactSlug, artifactTitle, {
 		description: artifactDescription,
@@ -173,7 +169,8 @@ async function createDocumentImpl(
 
 	// Write file using slug
 	const filename = generateFilename(artifactSlug, artifactFormat);
-	const filePath = storage.joinPath(projectRoot, outputDir, filename);
+	// Resolved, not joined, so an absolute --dir is used as given rather than nested under cwd.
+	const filePath = resolve(outputDir, filename);
 
 	await writeFile(filePath, template, { dryRun, format: artifactFormat });
 	if (!dryRun) {

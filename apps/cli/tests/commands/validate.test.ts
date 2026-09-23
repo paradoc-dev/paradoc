@@ -311,4 +311,68 @@ describe('CLI Validate Command', () => {
       expect(result.exitCode).toBe(0)
     })
   })
+
+  describe('PDF binding fit', () => {
+    /** A one-page PDF whose AcroForm holds one text field of the given size. */
+    const textFieldPdf = (name: string, width: number, height: number): string => {
+      const bodies = [
+        '<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> /Annots [4 0 R] >>',
+        `<< /FT /Tx /T (${name}) /Subtype /Widget /Rect [20 20 ${20 + width} ${20 + height}] /P 3 0 R >>`,
+        '<< /Fields [4 0 R] >>',
+      ]
+      let pdf = '%PDF-1.5\n'
+      const offsets: number[] = []
+      bodies.forEach((body, index) => {
+        offsets.push(pdf.length)
+        pdf += `${index + 1} 0 obj\n${body}\nendobj\n`
+      })
+      const xref = pdf.length
+      pdf += `xref\n0 ${bodies.length + 1}\n0000000000 65535 f \n`
+      pdf += offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')
+      return pdf + `trailer\n<< /Size ${bodies.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+    }
+
+    const write = async (field: Record<string, unknown>) => {
+      const formPath = path.join(tempDir, 'bound.json')
+      await fs.writeFile(path.join(tempDir, 'bound.pdf'), textFieldPdf('amountSource', 48, 12))
+      await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
+        kind: 'form',
+        name: 'bound',
+        fields: { amountSource: { label: 'Source', ...field } },
+        layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'bound.pdf', bindings: { amountSource: 'amountSource' } } },
+      }))
+      return formPath
+    }
+
+    it('fails when a bound value cannot fit its PDF box', async () => {
+      const result = await executeCliCommand(['validate', await write({ type: 'text', maxLength: 200 }), '--json'])
+      expect(result.exitCode).toBe(1)
+      const parsed = JSON.parse(result.stdout)
+      expect(parsed.errors).toEqual([expect.objectContaining({
+        message: expect.stringMatching(/^Layer "pdf", PDF field "amountSource" \(bound to fields\.amountSource\): .*maxLength 200/),
+        path: ['layers', 'pdf', 'bindings', 'amountSource'],
+      })])
+    })
+
+    it('passes a bound value that fits', async () => {
+      const result = await executeCliCommand(['validate', await write({ type: 'text', maxLength: 5 }), '--json'])
+      expect(result.exitCode).toBe(0)
+      expect(JSON.parse(result.stdout).errors).toEqual([])
+    })
+
+    it('warns, and still passes, when a bound text field has no length bound', async () => {
+      const formPath = await write({ type: 'text' })
+      const json = await executeCliCommand(['validate', formPath, '--json'])
+      expect(json.exitCode).toBe(0)
+      expect(JSON.parse(json.stdout).warnings).toContainEqual(expect.objectContaining({
+        message: expect.stringContaining('fields.amountSource has no maxLength or pattern'),
+      }))
+      const human = await executeCliCommand(['validate', formPath])
+      expect(human.exitCode).toBe(0)
+      expect(human.stdout).toContain('fields.amountSource has no maxLength or pattern')
+    })
+  })
 })

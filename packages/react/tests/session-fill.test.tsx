@@ -193,8 +193,19 @@ describe("a purchase order filled by a session", () => {
     expect(order).toContain("buyerContact");
     expect(order).toContain("party:buyer");
     expect(order).toContain("party:supplier");
-    // Derived, so a session never asks for it.
-    expect(order).not.toContain("subtotalAmount");
+  });
+
+  it("asks for the first answer while the totals it computes are still missing", () => {
+    // The totals read rows and a rate nobody has answered yet. They are missing,
+    // not failed, so the session still has something to ask.
+    const state = runtimeFor(purchaseOrderSpec).getFillState({}, {});
+    expect(state.resolved).toBe(true);
+    expect(state.diagnostics).toBeUndefined();
+    expect(state.openRequired.map((field) => field.fieldPath)).toContain("orderNumber");
+
+    const view = deriveView(emptySession(NAME), runtimeFor(purchaseOrderSpec));
+    expect(view.phase).not.toBe("unresolved");
+    expect(view.next).not.toBeNull();
   });
 
   it("computes the totals from the rows the session answered", async () => {

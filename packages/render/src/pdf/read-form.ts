@@ -4,6 +4,7 @@ import { validateFieldBindings } from '../text/field-formatter'
 import { pathSegments } from '../path'
 import { acroFields, type AcroField } from './acroform'
 import { isDict, isName, PdfModel, type PdfValue } from './syntax'
+import { byteString, decodeTextString } from './text-string'
 
 /** Why a PDF could not be read as the artifact's filled form. */
 export type PdfExtractionErrorCode =
@@ -88,8 +89,6 @@ export interface ExtractPdfDataOptions {
 // Reading the PDF
 // ---------------------------------------------------------------------------
 
-const latin1 = new TextDecoder('latin1')
-
 interface FieldState {
   field: AcroField
   /** Raw text for text and dropdown fields, the state name for buttons. */
@@ -122,22 +121,23 @@ function readField(model: PdfModel, field: AcroField): FieldState {
   const value = model.resolve(field.dict.entries.get('V'))
   if (field.type === 'dropdown') {
     const selected = (Array.isArray(value) ? value : [value])
-      .map((entry) => typeof entry === 'string' ? entry : undefined)
+      .map((entry) => typeof entry === 'string' ? decodeTextString(entry) : undefined)
       .filter((entry): entry is string => entry !== undefined && entry.trim() !== '')
     return { field, raw: selected.length > 0 ? selected.join(', ') : undefined, selected }
   }
-  const text = typeof value === 'string' && value.trim() !== '' ? value : undefined
+  const decoded = typeof value === 'string' ? decodeTextString(value) : undefined
+  const text = decoded !== undefined && decoded.trim() !== '' ? decoded : undefined
   return { field, raw: text }
 }
 
 function assertReadablePdf(bytes: Uint8Array): void {
-  const head = latin1.decode(bytes.subarray(0, 1024))
+  const head = byteString(bytes.subarray(0, 1024))
   if (!head.includes('%PDF-')) {
     throw new PdfExtractionError('malformed_pdf', 'The input is not a PDF: it has no %PDF- header.')
   }
   // A cut-off incremental update still holds the earlier revision's marker, so
   // the file must end at its last one.
-  const tail = latin1.decode(bytes.subarray(Math.max(0, bytes.length - 2048)))
+  const tail = byteString(bytes.subarray(Math.max(0, bytes.length - 2048)))
   const end = tail.lastIndexOf('%%EOF')
   if (end === -1 || !/^[\s\0]*$/.test(tail.slice(end + 5))) {
     throw new PdfExtractionError('malformed_pdf', 'The PDF is truncated: it does not end with an end-of-file marker.')
@@ -150,7 +150,7 @@ function isEncrypted(model: PdfModel, bytes: Uint8Array): boolean {
     const type = record.value.entries.get('Type')
     if (isName(type) && type.value === 'XRef' && record.value.entries.has('Encrypt')) return true
   }
-  return /trailer\s*<<(?:(?!startxref)[\s\S])*?\/Encrypt\b/.test(latin1.decode(bytes))
+  return /trailer\s*<<(?:(?!startxref)[\s\S])*?\/Encrypt\b/.test(byteString(bytes))
 }
 
 async function loadFormFields(bytes: BinaryContent): Promise<{ model: PdfModel; fields: AcroField[] }> {

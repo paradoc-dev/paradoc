@@ -37,7 +37,7 @@ describe('get_fill_state rule results', () => {
 		expect(FillStateOutputSchema.safeParse(state).success).toBe(true)
 	})
 
-	it('reports unresolved logic as tool errors, not as rule violations', async () => {
+	it('reports a condition that fails with its inputs present as a tool error, not a rule violation', async () => {
 		const unresolved = {
 			kind: 'form' as const,
 			name: 'unresolved-runtime',
@@ -48,12 +48,29 @@ describe('get_fill_state rule results', () => {
 			layers: { text: { kind: 'inline' as const, mimeType: 'text/plain', text: '{{fields.amount}}' } },
 			defaultLayer: 'text',
 		}
-		const state = await executeGetFillState({ source: 'artifact', artifact: unresolved })
+		const state = await executeGetFillState({ source: 'artifact', artifact: unresolved, data: { fields: { amount: 5 } } })
 
 		expect(state.rules).toEqual({ valid: false, errors: [], warnings: [] })
 		expect(state.errors?.length).toBeGreaterThan(0)
 		expect(state.errors?.every((error) => error.code === 'logic_unresolved')).toBe(true)
 		expect(state.candidates).toEqual([])
+		expect(FillStateOutputSchema.safeParse(state).success).toBe(true)
+	})
+
+	it('treats a condition whose input is unanswered as waiting, not as a tool error', async () => {
+		const waiting = {
+			kind: 'form' as const,
+			name: 'waiting-runtime',
+			fields: {
+				amount: { type: 'number' as const },
+				dependent: { type: 'text' as const, visible: 'fields.amount / 0 > 1', required: true },
+			},
+			layers: { text: { kind: 'inline' as const, mimeType: 'text/plain', text: '{{fields.amount}}' } },
+			defaultLayer: 'text',
+		}
+		const state = await executeGetFillState({ source: 'artifact', artifact: waiting })
+
+		expect(state.errors ?? []).toEqual([])
 		expect(FillStateOutputSchema.safeParse(state).success).toBe(true)
 	})
 

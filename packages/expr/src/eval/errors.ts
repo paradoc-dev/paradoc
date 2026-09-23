@@ -12,6 +12,8 @@ export type EvalErrorCode =
 	| 'arity'
 	| 'missing-clock'
 	| 'currency-mismatch'
+	/** An input the expression reads has no value yet; not a failure of the expression. */
+	| 'missing-input'
 
 export class EvaluationError extends Error {
 	constructor(

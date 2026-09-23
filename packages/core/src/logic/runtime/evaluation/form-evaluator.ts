@@ -3,8 +3,14 @@
  *
  * Produces a FormRuntimeState with the evaluated visible/required
  * states for all fields and annexes. Fallback booleans are retained for
- * inspection, but an expression failure marks the snapshot unresolved so
+ * inspection, but a condition failure marks the snapshot unresolved so
  * callers that authorize interaction can deny it safely.
+ *
+ * Missing is not failed. A computed value or condition whose inputs have no
+ * value yet is missing: the computed value is null and the condition is false
+ * until its inputs are answered. A computed value that fails with its inputs
+ * present is reported in `issues` and reads as missing, so it never hides the
+ * state of the fields and conditions around it.
  */
 
 import type { Form, FormField, FieldsetField, FormAnnex } from '@paradoc/types'
@@ -17,7 +23,7 @@ import type {
   EvaluationIssue,
   FormEvaluationResult,
 } from './types'
-import { buildFormContext, type FormDataPayload } from './context-builder'
+import { evaluateFormContext, type FormDataPayload } from './context-builder'
 import { evaluateExpression, markEvaluationContextReusable, withRowReferences } from './expression-evaluator'
 import { rowOriginOf, type RowFrame } from '../../shared/list-paths'
 
@@ -49,6 +55,8 @@ interface EvaluationState {
   annexes: Map<string, AnnexRuntimeState>
   defsValues: Map<string, unknown>
   issues: EvaluationIssue[]
+  /** Whether a visibility or requiredness condition failed. */
+  conditionFailed: boolean
   /** The form-level context every row context derives from. */
   formContext: EvaluationContext
 }
@@ -83,7 +91,10 @@ function evaluateCondition(
   if (typeof condition === 'boolean') return condition
 
   const result = evaluateExpression<boolean>(condition, context)
+  // A condition over inputs with no value yet is not yet met.
+  if (!result.success && result.code === 'missing-input') return false
   if (!result.success) {
+    state.conditionFailed = true
     state.issues.push({
       message: `Failed to resolve form expression: ${result.error ?? 'unknown error'}`,
       path,
@@ -333,7 +344,7 @@ export function evaluateFormDefs(
 	let releaseContext: (() => void) | undefined
   try {
     // Build evaluation context (includes evaluated defs keys)
-    const context = buildFormContext(form, data)
+    const { context, issues: definitionIssues } = evaluateFormContext(form, data)
 		releaseContext = markEvaluationContextReusable(context)
 
     // Initialize evaluation state
@@ -341,7 +352,8 @@ export function evaluateFormDefs(
       fields: new Map(),
       annexes: new Map(),
       defsValues: new Map(),
-      issues: [],
+      issues: [...definitionIssues],
+      conditionFailed: false,
       formContext: context,
     }
 
@@ -364,7 +376,7 @@ export function evaluateFormDefs(
       fields: state.fields,
       annexes: state.annexes,
       defsValues: state.defsValues,
-      resolved: state.issues.length === 0,
+      resolved: !state.conditionFailed,
       issues: state.issues,
     }
 

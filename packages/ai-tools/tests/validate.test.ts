@@ -224,4 +224,59 @@ describe('executeValidateArtifact', () => {
       expect(result.issues).toEqual([expect.objectContaining({ message: expect.stringContaining('Unknown reference: fields.missing') })])
     })
   })
+
+  describe('PDF binding fit', () => {
+    /** A one-page PDF whose AcroForm holds one 48 × 12 pt text field named `source`. */
+    const pdf = (): Uint8Array => {
+      const bodies = [
+        '<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> /Annots [4 0 R] >>',
+        '<< /FT /Tx /T (source) /Subtype /Widget /Rect [20 20 68 32] /P 3 0 R >>',
+        '<< /Fields [4 0 R] >>',
+      ]
+      let text = '%PDF-1.5\n'
+      const offsets: number[] = []
+      bodies.forEach((body, index) => {
+        offsets.push(text.length)
+        text += `${index + 1} 0 obj\n${body}\nendobj\n`
+      })
+      const xref = text.length
+      text += `xref\n0 ${bodies.length + 1}\n0000000000 65535 f \n`
+      text += offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')
+      text += `trailer\n<< /Size ${bodies.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+      return new TextEncoder().encode(text)
+    }
+
+    const validateWith = (field: Record<string, unknown>) => executeValidateArtifact({
+      source: 'artifact' as const,
+      base_url: 'https://registry.example.test/bound',
+      artifact: {
+        kind: 'form',
+        name: 'bound',
+        fields: { source: { label: 'Source', ...field } },
+        layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'form.pdf', bindings: { source: 'source' } } },
+      },
+    }, {
+      fetch: vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/form.pdf')
+        ? new Response(pdf(), { headers: { 'content-type': 'application/pdf' } })
+        : new Response('missing', { status: 404 })),
+    })
+
+    it('fails when a bound value cannot fit its PDF box', async () => {
+      const result = await validateWith({ type: 'text', maxLength: 200 })
+      expect(result.valid).toBe(false)
+      expect(result.issues).toEqual([expect.objectContaining({
+        message: expect.stringContaining('Layer "pdf", PDF field "source" (bound to fields.source)'),
+        path: ['layers', 'pdf', 'bindings', 'source'],
+      })])
+    })
+
+    it('stays valid and returns a warning for a bound text field with no length bound', async () => {
+      const result = await validateWith({ type: 'text' })
+      expect(result.valid).toBe(true)
+      expect(result.issues).toBeUndefined()
+      expect(result.warnings).toEqual([expect.objectContaining({ message: expect.stringContaining('fields.source has no maxLength or pattern') })])
+    })
+  })
 })

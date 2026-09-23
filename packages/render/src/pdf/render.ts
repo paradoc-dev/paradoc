@@ -42,7 +42,8 @@ function sourcePaths(bindings: Record<string, string>): string[][] {
   }))
 }
 
-function fieldDefinition(form: Form | undefined, path: string): FormField | undefined {
+/** The field definition a data path names, through fieldsets and list items. */
+export function fieldDefinition(form: Form | undefined, path: string): FormField | undefined {
   const [root, ...segments] = pathSegments(path)
   let field = root ? form?.fields?.[root] : undefined
   for (const segment of segments) {

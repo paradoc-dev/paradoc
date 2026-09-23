@@ -1,7 +1,8 @@
 import type { PdfFontSet } from './drawing-fonts'
-import { layoutFieldText, parseDefaultAppearance } from './field-appearance'
+import { layoutFieldText, parseDefaultAppearance, type DefaultAppearance, type FieldLayout } from './field-appearance'
 import { catalogRecord } from './page-tree'
 import { isDict, isName, isRef, type PdfDict, type PdfRef, PdfModel, type PdfValue } from './syntax'
+import { decodeTextString, encodeTextString } from './text-string'
 
 /** What kind of control an AcroForm field is, read from its `/FT` and `/Ff`. */
 export type PdfFieldType = 'text' | 'checkbox' | 'dropdown' | 'radio' | 'button' | 'signature' | 'unknown'
@@ -32,8 +33,14 @@ const COMBO = 1 << 17
 const MULTI_SELECT = 1 << 21
 const COMB = 1 << 24
 
-function stringValue(value: PdfValue | undefined): string | undefined {
+function nameValue(value: PdfValue | undefined): string | undefined {
   if (typeof value === 'string') return value
+  return isName(value) ? value.value : undefined
+}
+
+/** A text string entry (`/T`, `/V`, `/Opt`) as text; a name is taken as it stands. */
+function textValue(value: PdfValue | undefined): string | undefined {
+  if (typeof value === 'string') return decodeTextString(value)
   return isName(value) ? value.value : undefined
 }
 
@@ -97,9 +104,9 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
   const visit = (value: PdfValue, inherited: Inherited = {}) => {
     const dict = model.dict(value)
     if (!dict) return
-    const ownName = stringValue(dict.entries.get('T'))
+    const ownName = textValue(dict.entries.get('T'))
     const name = ownName ? inherited.name ? `${inherited.name}.${ownName}` : ownName : inherited.name
-    const typeName = stringValue(dict.entries.get('FT')) ?? inherited.fieldType
+    const typeName = nameValue(dict.entries.get('FT')) ?? inherited.fieldType
     const flags = typeof dict.entries.get('Ff') === 'number' ? dict.entries.get('Ff') as number : inherited.flags ?? 0
     const ownAppearance = model.resolve(dict.entries.get('DA'))
     const ownAlignment = model.resolve(dict.entries.get('Q'))
@@ -158,35 +165,53 @@ function updateWidgetState(model: PdfModel, widget: AcroWidget, state: string): 
   if (widget.ref) model.markUpdated(widget.ref)
 }
 
-interface DrawnValue {
-  text: string
+/** How a text field draws a value: wrapped over several lines, or one character per comb box. */
+export interface TextDrawing {
   multiline: boolean
   comb?: number
 }
 
-function textAppearance(model: PdfModel, fonts: PdfFontSet, field: AcroField, widget: AcroWidget, value: DrawnValue): void {
+interface DrawnValue extends TextDrawing {
+  text: string
+}
+
+/** How a text field draws the value it is given, from its flags and maximum length. */
+export function textFieldDrawing(field: AcroField): TextDrawing {
+  const multiline = (field.flags & MULTILINE) !== 0
+  const comb = (field.flags & COMB) !== 0 && !multiline && field.maxLength !== undefined && field.maxLength > 0
+    ? field.maxLength
+    : undefined
+  return comb === undefined ? { multiline } : { multiline, comb }
+}
+
+/**
+ * The box one widget draws a value in: its size, default appearance, and
+ * alignment, with the field's multiline and comb settings. Undefined when the
+ * widget has no usable rectangle, so nothing is drawn in it.
+ */
+export function widgetLayout(model: PdfModel, field: AcroField, widget: AcroWidget, drawing: TextDrawing): (FieldLayout & { appearance: DefaultAppearance }) | undefined {
   const rawRect = model.resolve(widget.dict.entries.get('Rect'))
-  if (!Array.isArray(rawRect) || rawRect.length !== 4 || !rawRect.every((item) => typeof item === 'number')) return
+  if (!Array.isArray(rawRect) || rawRect.length !== 4 || !rawRect.every((item) => typeof item === 'number')) return undefined
   const [x1, y1, x2, y2] = rawRect as number[]
-  const width = Math.max(1, Math.abs(x2! - x1!))
-  const height = Math.max(1, Math.abs(y2! - y1!))
   const widgetAppearance = model.resolve(widget.dict.entries.get('DA'))
   const widgetAlignment = model.resolve(widget.dict.entries.get('Q'))
-  const appearance = parseDefaultAppearance(typeof widgetAppearance === 'string' ? widgetAppearance : field.defaultAppearance)
+  return {
+    field: field.name,
+    width: Math.max(1, Math.abs(x2! - x1!)),
+    height: Math.max(1, Math.abs(y2! - y1!)),
+    appearance: parseDefaultAppearance(typeof widgetAppearance === 'string' ? widgetAppearance : field.defaultAppearance),
+    alignment: typeof widgetAlignment === 'number' ? widgetAlignment : field.alignment,
+    comb: drawing.comb,
+    multiline: drawing.multiline,
+  }
+}
+
+function textAppearance(model: PdfModel, fonts: PdfFontSet, field: AcroField, widget: AcroWidget, value: DrawnValue): void {
+  const layout = widgetLayout(model, field, widget, value)
+  if (!layout) return
+  const { width, height, appearance } = layout
   const font = fonts.select(field.name, value.text, appearance.fontName)
-  const text = layoutFieldText(
-    {
-      field: field.name,
-      width,
-      height,
-      appearance,
-      alignment: typeof widgetAlignment === 'number' ? widgetAlignment : field.alignment,
-      comb: value.comb,
-      multiline: value.multiline,
-    },
-    value.text,
-    font,
-  )
+  const text = layoutFieldText(layout, value.text, font)
   const stream = new TextEncoder().encode(
     `/Tx BMC\nq\n0 0 ${width} ${height} re W n\nBT\n${appearance.color}\n${text}\nET\nQ\nEMC`,
   )
@@ -221,10 +246,16 @@ function choiceOptions(model: PdfModel, field: AcroField): Array<{ value: string
   if (!Array.isArray(options)) return []
   return options.flatMap((option) => {
     const resolved = model.resolve(option)
-    if (typeof resolved === 'string') return [{ value: resolved, display: resolved }]
+    if (typeof resolved === 'string') {
+      const text = decodeTextString(resolved)
+      return [{ value: text, display: text }]
+    }
     if (Array.isArray(resolved)) {
       const [exported, display] = resolved.map((item) => model.resolve(item))
-      if (typeof exported === 'string') return [{ value: exported, display: typeof display === 'string' ? display : exported }]
+      if (typeof exported === 'string') {
+        const value = decodeTextString(exported)
+        return [{ value, display: typeof display === 'string' ? decodeTextString(display) : value }]
+      }
     }
     return []
   })
@@ -234,7 +265,8 @@ function setChoiceValue(model: PdfModel, fonts: PdfFontSet, field: AcroField, va
   const multiSelect = (field.flags & MULTI_SELECT) !== 0
   const selected = multiSelect && Array.isArray(value) ? value.map(String) : [String(value)]
   const options = choiceOptions(model, field)
-  field.dict.entries.set('V', multiSelect && selected.length !== 1 ? selected : selected[0] ?? '')
+  const stored = selected.map(encodeTextString)
+  field.dict.entries.set('V', multiSelect && stored.length !== 1 ? stored : stored[0] ?? '')
   const indices = selected.map((item) => options.findIndex((option) => option.value === item))
   if (indices.length > 0 && indices.every((index) => index >= 0)) {
     field.dict.entries.set('I', [...new Set(indices)].sort((left, right) => left - right))
@@ -249,12 +281,8 @@ function setChoiceValue(model: PdfModel, fonts: PdfFontSet, field: AcroField, va
 
 function setTextValue(model: PdfModel, fonts: PdfFontSet, field: AcroField, value: unknown): void {
   const text = String(value)
-  const multiline = (field.flags & MULTILINE) !== 0
-  const comb = (field.flags & COMB) !== 0 && !multiline && field.maxLength !== undefined && field.maxLength > 0
-    ? field.maxLength
-    : undefined
-  field.dict.entries.set('V', text)
-  field.widgets.forEach((widget) => textAppearance(model, fonts, field, widget, { text, multiline, comb }))
+  field.dict.entries.set('V', encodeTextString(text))
+  field.widgets.forEach((widget) => textAppearance(model, fonts, field, widget, { text, ...textFieldDrawing(field) }))
 }
 
 export function setAcroFieldValue(model: PdfModel, fonts: PdfFontSet, field: AcroField, value: unknown): void {

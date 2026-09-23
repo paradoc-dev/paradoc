@@ -140,7 +140,8 @@ describe('Expression evaluation', () => {
 				defs: { broken: { type: 'number', label: 'Broken', value: 'missing + 1' } },
 			}
 			const result = evaluateFormDefs(form, { fields: {} })
-			expect('issues' in result && result.issues?.[0]?.message).toContain('type-error')
+			expect('value' in result && result.value.issues[0]?.message).toContain('type-error')
+			expect('value' in result && result.value.defsValues.get('broken')).toBeNull()
 		})
 
 		test('carries configured capabilities into field gates', () => {

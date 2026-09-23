@@ -77,7 +77,7 @@ export interface ArabicLetterData extends DocumentData {
   parties: Record<string, RuntimeParty | RuntimeParty[]>;
 }
 
-const { lineItems, subtotalAmount } = computeLineAmounts(ITEMS, CURRENCY);
+const { lineItems } = computeLineAmounts(ITEMS, CURRENCY);
 
 /** The sample letter, measured to run onto a second page. */
 export const arabicLetterData: ArabicLetterData = {
@@ -114,7 +114,6 @@ export const arabicLetterData: ArabicLetterData = {
       "تاريخ اعتماد الطلب. وفي حال وجود أي ملاحظة على البنود أو الكميات، نرجو إشعارنا خلال خمسة أيام عمل.",
     currency: CURRENCY,
     items: lineItems,
-    subtotalAmount,
     taxRatePercent: TAX_RATE_PERCENT,
     closing: "وتفضلوا بقبول فائق الاحترام والتقدير.",
   },

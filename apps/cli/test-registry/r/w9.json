@@ -5,7 +5,6 @@
   "version": "1.0.0",
   "title": "Request for Taxpayer Identification Number and Certification",
   "description": "IRS Form W-9 - Request for Taxpayer Identification Number and Certification (Rev. October 2018)",
-  "tags": ["irs", "tax", "w9", "tin", "government"],
   "fields": {
     "name": {
       "type": "text",
@@ -79,7 +78,6 @@
       "title": "W-9 PDF Form",
       "description": "Official IRS W-9 form (Rev. October 2018)",
       "path": "w9.pdf",
-      "url": "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
       "bindings": {
         "topmostSubform[0].Page1[0].f1_01[0]": "name",
         "topmostSubform[0].Page1[0].f1_02[0]": "businessName",

@@ -71,7 +71,7 @@ const schema = {
       "type": "text",
       "label": "Payroll service provider (e.g. ADP, Paycom)",
       "description": "Name of the third-party payroll service handling ACH origination for the employer, if any. Helps the employee verify the actual originator that will appear on bank statements.",
-      "maxLength": 100,
+      "maxLength": 70,
       "required": false,
       "visible": true
     },
@@ -79,7 +79,7 @@ const schema = {
       "type": "text",
       "label": "Employee ID number",
       "description": "Employer-assigned employee identifier (badge number, HRIS ID). Helps payroll locate the right employee record quickly.",
-      "maxLength": 50,
+      "maxLength": 20,
       "required": false,
       "visible": true
     },
@@ -137,7 +137,7 @@ const schema = {
       "type": "text",
       "label": "Account 1 — Bank name",
       "description": "Name of the bank holding the primary deposit account (account 1).",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "fields.actionType != 'stop'",
       "visible": true
     },
@@ -233,7 +233,7 @@ const schema = {
       "type": "text",
       "label": "Account 2 — Bank name",
       "description": "Name of the bank holding the secondary deposit account.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "fields.account2Enabled and fields.actionType != 'stop'",
       "visible": "fields.account2Enabled"
     },
@@ -329,7 +329,7 @@ const schema = {
       "type": "text",
       "label": "Account 3 — Bank name",
       "description": "Name of the bank holding the third deposit account.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "fields.account3Enabled and fields.actionType != 'stop'",
       "visible": "fields.account3Enabled"
     },
@@ -425,7 +425,7 @@ const schema = {
       "type": "text",
       "label": "Account 4 — Bank name",
       "description": "Name of the bank holding the fourth deposit account.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "fields.account4Enabled and fields.actionType != 'stop'",
       "visible": "fields.account4Enabled"
     },

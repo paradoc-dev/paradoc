@@ -86,8 +86,6 @@ describe("both fillable parts were answered by a session", () => {
     expect(order.order).toContain("buyerContact");
     expect(order.order).toContain("party:buyer");
     expect(order.order).toContain("party:supplier");
-    // The two derived values are never asked for.
-    expect(order.order).not.toContain("subtotalAmount");
   });
 
   it("skipped the W-9's optional tail rather than inventing answers", () => {
@@ -105,7 +103,7 @@ describe("both fillable parts were answered by a session", () => {
     expect(taxpayer.payload.fields.ein).toBe("47-2938471");
   });
 
-  it("derives the two computed values from the answers rather than from the log", () => {
+  it("derives the row amounts from the answers rather than from the log", () => {
     const rows = order.payload.fields.lineItems as Record<string, unknown>[];
     expect(rows.every((row) => row.amount === undefined)).toBe(true);
 
@@ -113,7 +111,6 @@ describe("both fillable parts were answered by a session", () => {
     // projection must produce is the sample, and a sample that grows a row
     // should not need this test edited.
     const data = purchaseOrderDocumentData(order.payload);
-    expect(data.fields.subtotalAmount).toBe(purchaseOrderData.fields.subtotalAmount);
     expect(data.fields.lineItems).toEqual(purchaseOrderData.fields.lineItems);
   });
 });

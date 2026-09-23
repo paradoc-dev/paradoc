@@ -16,7 +16,7 @@ import type {
   ScalarExpressionType,
 } from '@paradoc/types'
 import { inferPartyType } from '@/primitives/party'
-import { PARTY_ENTRIES, ROW_VISIBILITY, WITNESS_ENTRIES, type ContextRowVisibility, type EvaluationContext, type NestedFieldValues, type PartyContextEntry } from './types'
+import { PARTY_ENTRIES, ROW_VISIBILITY, WITNESS_ENTRIES, type ContextRowVisibility, type EvaluationContext, type EvaluationIssue, type NestedFieldValues, type PartyContextEntry } from './types'
 import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { topologicalSortDefsKeys } from '../../design-time/type-checking/build-type-environment'
 import { isRowVisible } from '../../shared/list-paths'
@@ -24,7 +24,6 @@ import { defsDependencyExpressions } from '../../shared/defs-dependencies'
 import { evaluateBooleanExpression, evaluateExpressionValue, withRowReferences, fromExpressionValue, markEvaluationContextReusable, toExpressionContext, wrapExpressionValue } from './expression-evaluator'
 import { Values, type Value } from '@paradoc/expr'
 import type { EvaluationContext as ExprEvaluationContext, HostFunction, Registry } from '@paradoc/expr'
-import { ExpressionEvaluationError } from './errors'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -195,85 +194,106 @@ function buildWitnessesContext(
   )
 }
 
+/** A computed value that failed with every input it reads present. */
+interface DefinitionFailure {
+	readonly expression: string
+	readonly error: string
+}
+
+type DefinitionOutcome =
+	| { readonly value: Value }
+	| { readonly failure: DefinitionFailure }
+
+/**
+ * Evaluates one expression of a computed value. An input with no value makes
+ * the result missing (null), not a failure.
+ */
+function evaluateDefinitionPart(expression: string, context: EvaluationContext): DefinitionOutcome {
+	const evaluated = evaluateExpressionValue(expression, context)
+	if (evaluated.success) return { value: evaluated.value }
+	if (evaluated.code === 'missing-input') return { value: Values.null }
+	return { failure: { expression, error: evaluated.code ? `${evaluated.code}: ${evaluated.error}` : evaluated.error } }
+}
+
 /**
  * Evaluates a single defs expression.
  *
- * For scalar types, evaluates the single expression string.
- * For object types, evaluates each property expression and constructs the result object.
- *
- * @param expr - The expression to evaluate
- * @param context - The evaluation context
- * @returns The evaluated value
+ * For scalar types, evaluates the single expression string. For object types,
+ * evaluates each property expression and constructs the result object; a
+ * property whose inputs are missing is null.
  */
-function evaluateDefsExpression(
-  expr: Expression,
-  context: EvaluationContext
-): Value | undefined {
-  if (isScalarExpressionType(expr.type)) {
-    // Scalar type: value is a single expression string
-		const evaluated = evaluateExpressionValue(expr.value as string, context)
-		if (!evaluated.success) throw ExpressionEvaluationError.evaluationFailed(expr.value as string, new Error(`${evaluated.code}: ${evaluated.error}`))
-		return evaluated.value
-  }
+function evaluateDefsExpression(expr: Expression, context: EvaluationContext): DefinitionOutcome {
+	if (isScalarExpressionType(expr.type)) {
+		return evaluateDefinitionPart(expr.value as string, context)
+	}
 
-  // Object type: value is an object with expression strings for each property
-  const valueObj = expr.value as unknown as Record<string, string | undefined>
+	const valueObj = expr.value as unknown as Record<string, string | undefined>
 	const result: Array<[string, Value]> = []
-
-  for (const [propKey, propExpr] of Object.entries(valueObj)) {
-    if (propExpr !== undefined) {
-			const evaluated = evaluateExpressionValue(propExpr, context)
-			if (!evaluated.success) throw ExpressionEvaluationError.evaluationFailed(propExpr, new Error(`${evaluated.code}: ${evaluated.error}`))
-			result.push([propKey, evaluated.value])
-    }
-  }
-
-	return Values.object(result)
+	for (const [propKey, propExpr] of Object.entries(valueObj)) {
+		if (propExpr === undefined) continue
+		const outcome = evaluateDefinitionPart(propExpr, context)
+		if ('failure' in outcome) return outcome
+		result.push([propKey, outcome.value])
+	}
+	return { value: Values.object(result) }
 }
 
 /**
  * Evaluates defs keys in dependency order.
  *
- * Defs keys are evaluated in topological order so that if key A
- * depends on key B, B is evaluated first and available in the context.
+ * Defs keys are evaluated in topological order so that if key A depends on
+ * key B, B is evaluated first and available in the context. A key that fails
+ * is reported and reads as missing, so its dependents are missing too and
+ * every other key still evaluates.
  *
  * @param defs - Defs section from the form (key → Expression)
  * @param baseContext - Context with field values (defs keys will be added)
- * @returns Map of defs key → evaluated value
+ * @returns Each key's evaluated value, and the keys that failed
  */
 function evaluateDefsKeys(
-  defs: DefsSection | undefined,
-  fields: Form['fields'],
-  baseContext: EvaluationContext
-): Map<string, Value | undefined> {
-	const defsValues = new Map<string, Value | undefined>()
+	defs: DefsSection | undefined,
+	fields: Form['fields'],
+	baseContext: EvaluationContext
+): { values: Map<string, Value>; issues: EvaluationIssue[] } {
+	const values = new Map<string, Value>()
+	const issues: EvaluationIssue[] = []
 
-  if (!defs || Object.keys(defs).length === 0) {
-    return defsValues
-  }
+	if (!defs || Object.keys(defs).length === 0) {
+		return { values, issues }
+	}
 
-  // Extract expression strings for dependency sorting
-  const expressionsForSorting = defsDependencyExpressions(defs, fields)
+	// Extract expression strings for dependency sorting
+	const expressionsForSorting = defsDependencyExpressions(defs, fields)
 
-  // Sort defs keys in dependency order
-  const { sorted: sortedKeys } = topologicalSortDefsKeys(expressionsForSorting)
+	// Sort defs keys in dependency order
+	const { sorted: sortedKeys } = topologicalSortDefsKeys(expressionsForSorting)
 
-  // Build up context incrementally as we evaluate
-  const context: EvaluationContext = { ...baseContext }
+	// Build up context incrementally as we evaluate
+	const context: EvaluationContext = { ...baseContext }
 	markEvaluationContextReusable(context)
 
-  for (const key of sortedKeys) {
-    const expr = defs[key]
-    if (expr) {
-      // Evaluate the expression with current context (includes previously evaluated keys)
-      const value = evaluateDefsExpression(expr, context)
-      defsValues.set(key, value)
-      // Add to context for subsequent evaluations
-      ;(context as Record<string, unknown>)[key] = value === undefined ? undefined : wrapExpressionValue(value)
-    }
-  }
+	for (const key of sortedKeys) {
+		const expr = defs[key]
+		if (!expr) continue
+		const outcome = evaluateDefsExpression(expr, context)
+		let value: Value
+		if ('failure' in outcome) {
+			issues.push({
+				message: `Failed to evaluate computed value "${key}": ${outcome.failure.error}`,
+				path: ['defs', key],
+				expression: outcome.failure.expression,
+				originalError: outcome.failure.error,
+			})
+			value = Values.null
+		} else {
+			value = outcome.value
+		}
+		values.set(key, value)
+		// Add to context for subsequent evaluations
+		;(context as Record<string, unknown>)[key] = wrapExpressionValue(value)
+	}
 
-  return defsValues
+	return { values, issues }
 }
 
 /**
@@ -397,18 +417,27 @@ export function buildFormBaseContext(form: Form, data: FormDataPayload): Evaluat
 }
 
 export function buildFormContext(form: Form, data: FormDataPayload): EvaluationContext {
-  const baseContext = buildFormBaseContext(form, data)
+	return evaluateFormContext(form, data).context
+}
 
-  // Evaluate defs keys and add to context
-  const defsValues = evaluateDefsKeys(form.defs, form.fields, baseContext)
+/**
+ * Builds the evaluation context and reports the computed values that failed.
+ * A failed computed value reads as missing in the context, so everything else
+ * still evaluates against it.
+ */
+export function evaluateFormContext(
+	form: Form,
+	data: FormDataPayload,
+): { context: EvaluationContext; issues: EvaluationIssue[] } {
+	const context = buildFormBaseContext(form, data)
+	const { values, issues } = evaluateDefsKeys(form.defs, form.fields, context)
 
-  // Merge public defs values into the same complete context used by downstream gates.
-	const context = baseContext
-	for (const [key, value] of defsValues) {
-		;(context as Record<string, unknown>)[key] = value === undefined ? undefined : fromExpressionValue(value)
-  }
+	// Merge public defs values into the same complete context used by downstream gates.
+	for (const [key, value] of values) {
+		;(context as Record<string, unknown>)[key] = fromExpressionValue(value)
+	}
 
-  return context
+	return { context, issues }
 }
 
 /**
@@ -421,14 +450,8 @@ export function buildTemplateExpressionContext(
   data: FormDataPayload,
   renderParties: Record<string, unknown>,
 ): ExprEvaluationContext {
-  let context: EvaluationContext
-  try {
-    context = buildFormContext(form, data)
-  } catch {
-    // A draft whose computed values cannot evaluate yet still renders; its
-    // templates read those values as missing, as the runtime state does.
-    context = buildFormBaseContext(form, data)
-  }
+  // A computed value that is missing or failed reads as missing here too.
+  const context = buildFormContext(form, data)
   context.parties = renderParties
   return toExpressionContext(context)
 }

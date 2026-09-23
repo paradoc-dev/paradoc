@@ -69,7 +69,7 @@ const schema = {
       "type": "text",
       "label": "Other last names used (if any)",
       "description": "Any prior last names the employee has used (maiden name, prior-marriage name, etc.). Recorded so employer records or background checks can be cross-referenced; not used to determine work authorization.",
-      "maxLength": 200,
+      "maxLength": 50,
       "required": false,
       "visible": true
     },
@@ -190,7 +190,7 @@ const schema = {
       "type": "text",
       "label": "Foreign passport number and country of issuance",
       "description": "Foreign passport number plus the issuing country, captured as a single free-form string (e.g., 'A12345678, Brazil'). Required when workAuthDocumentType is 'foreign_passport'.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": "fields.workAuthDocumentType == 'foreign_passport'",
       "visible": "fields.workAuthDocumentType == 'foreign_passport'"
     },
@@ -222,7 +222,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 1 title",
       "description": "Title of the primary List A document examined (e.g., 'U.S. Passport', 'Permanent Resident Card'). Required when documentRoute is 'list_a'.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "isListA",
       "visible": "isListA"
     },
@@ -230,7 +230,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 1 issuing authority",
       "description": "Authority that issued the primary List A document (e.g., 'U.S. Department of State').",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "isListA",
       "visible": "isListA"
     },
@@ -238,7 +238,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 1 number",
       "description": "Identifying number printed on the primary List A document. Optional if the document does not bear a number.",
-      "maxLength": 50,
+      "maxLength": 45,
       "required": false,
       "visible": "isListA"
     },
@@ -253,7 +253,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 2 title (if any)",
       "description": "Title of a second List A document if a combination of List A documents was required (e.g., foreign passport with Form I-94). Optional.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": false,
       "visible": "isListA"
     },
@@ -261,7 +261,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 2 issuing authority",
       "description": "Authority that issued the second List A document.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": false,
       "visible": "isListA"
     },
@@ -269,7 +269,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 2 number",
       "description": "Identifying number printed on the second List A document.",
-      "maxLength": 50,
+      "maxLength": 45,
       "required": false,
       "visible": "isListA"
     },
@@ -284,7 +284,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 3 title (if any)",
       "description": "Title of a third List A document if the documentation combination required one (e.g., Form I-20 with a foreign passport). Optional.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": false,
       "visible": "isListA"
     },
@@ -292,7 +292,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 3 issuing authority",
       "description": "Authority that issued the third List A document.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": false,
       "visible": "isListA"
     },
@@ -300,7 +300,7 @@ const schema = {
       "type": "text",
       "label": "List A — Document 3 number",
       "description": "Identifying number printed on the third List A document.",
-      "maxLength": 50,
+      "maxLength": 45,
       "required": false,
       "visible": "isListA"
     },
@@ -315,7 +315,7 @@ const schema = {
       "type": "text",
       "label": "List B — Document title",
       "description": "Title of the List B document examined (identity only — e.g., 'Driver's License', 'State ID Card'). Required when documentRoute is 'list_b_and_c'.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "isListBandC",
       "visible": "isListBandC"
     },
@@ -323,7 +323,7 @@ const schema = {
       "type": "text",
       "label": "List B — Issuing authority",
       "description": "Authority that issued the List B document (typically a U.S. state or territory).",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "isListBandC",
       "visible": "isListBandC"
     },
@@ -331,7 +331,7 @@ const schema = {
       "type": "text",
       "label": "List B — Document number",
       "description": "Identifying number on the List B document.",
-      "maxLength": 50,
+      "maxLength": 45,
       "required": false,
       "visible": "isListBandC"
     },
@@ -346,7 +346,7 @@ const schema = {
       "type": "text",
       "label": "List C — Document title",
       "description": "Title of the List C document examined (work-authorization only — e.g., 'Social Security Account Number Card', 'Birth Certificate'). Required when documentRoute is 'list_b_and_c'.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "isListBandC",
       "visible": "isListBandC"
     },
@@ -354,7 +354,7 @@ const schema = {
       "type": "text",
       "label": "List C — Issuing authority",
       "description": "Authority that issued the List C document (e.g., 'Social Security Administration').",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "isListBandC",
       "visible": "isListBandC"
     },
@@ -362,7 +362,7 @@ const schema = {
       "type": "text",
       "label": "List C — Document number",
       "description": "Identifying number on the List C document.",
-      "maxLength": 50,
+      "maxLength": 45,
       "required": false,
       "visible": "isListBandC"
     },
@@ -399,7 +399,7 @@ const schema = {
       "type": "text",
       "label": "Last name, first name and title of employer or authorized representative",
       "description": "Full name and title of the employer's authorized representative who personally examined the employee's documents (e.g., 'Smith, Jane — HR Manager').",
-      "maxLength": 200,
+      "maxLength": 85,
       "required": true,
       "visible": true
     },
@@ -456,7 +456,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 1 — new last name (if applicable)",
       "description": "If the employee's last name changed since the original I-9, the updated last name. Optional.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -464,7 +464,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 1 — new first name (if applicable)",
       "description": "Updated first name if it changed since the original I-9. Optional.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -480,7 +480,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 1 — document title",
       "description": "Title of the document examined to re-verify the employee's continued work authorization (e.g., updated Employment Authorization Document).",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -503,7 +503,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 1 — name of employer or authorized representative",
       "description": "Full name (and title) of the employer representative who performed this reverification.",
-      "maxLength": 200,
+      "maxLength": 65,
       "required": false,
       "visible": true
     },
@@ -518,7 +518,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 1 — additional information",
       "description": "Free-form notes about this reverification.",
-      "maxLength": 1000,
+      "maxLength": 440,
       "required": false,
       "visible": true
     },
@@ -533,7 +533,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 2 — new last name (if applicable)",
       "description": "Updated last name if changed since the original I-9 or first reverification.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -541,7 +541,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 2 — new first name (if applicable)",
       "description": "Updated first name if applicable.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -557,7 +557,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 2 — document title",
       "description": "Title of the document examined for this second reverification.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -580,7 +580,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 2 — name of employer or authorized representative",
       "description": "Full name (and title) of the employer representative for this reverification.",
-      "maxLength": 200,
+      "maxLength": 65,
       "required": false,
       "visible": true
     },
@@ -595,7 +595,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 2 — additional information",
       "description": "Free-form notes about this reverification.",
-      "maxLength": 1000,
+      "maxLength": 440,
       "required": false,
       "visible": true
     },
@@ -610,7 +610,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 3 — new last name (if applicable)",
       "description": "Updated last name if changed.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -618,7 +618,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 3 — new first name (if applicable)",
       "description": "Updated first name if applicable.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -634,7 +634,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 3 — document title",
       "description": "Title of the document examined for this third reverification.",
-      "maxLength": 100,
+      "maxLength": 60,
       "required": false,
       "visible": true
     },
@@ -657,7 +657,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 3 — name of employer or authorized representative",
       "description": "Full name (and title) of the employer representative for this reverification.",
-      "maxLength": 200,
+      "maxLength": 65,
       "required": false,
       "visible": true
     },
@@ -672,7 +672,7 @@ const schema = {
       "type": "text",
       "label": "Reverification 3 — additional information",
       "description": "Free-form notes about this reverification.",
-      "maxLength": 1000,
+      "maxLength": 440,
       "required": false,
       "visible": true
     }

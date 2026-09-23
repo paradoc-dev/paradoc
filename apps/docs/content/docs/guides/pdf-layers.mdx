@@ -246,6 +246,11 @@ wrapping. The SSN parts land one digit per box. A value too long for its field f
 `PdfFieldFillError`, naming the field, rather than being clipped. See
 [Field appearance](/sdk/renderers/pdf#field-appearance).
 
+`paradoc validate` finds these failures before any data is filled. It lays out
+a typical value at each bound field's length limit, so give every bound text
+field a `maxLength` (or a `pattern`) that its box can hold. See
+[Checking bindings before filling](/sdk/renderers/pdf#checking-bindings-before-filling).
+
 Latin-1 values fill in Helvetica with no font configuration. To fill names in
 Latin Extended, Greek, Cyrillic, or CJK scripts, declare a TrueType font on the
 PDF layer. The bound resolver reads it beside the PDF, and it is embedded in the

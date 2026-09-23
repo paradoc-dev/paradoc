@@ -472,7 +472,9 @@ export function computeFillState(
 	const completionPercent = requiredTotal === 0 ? 100 : Math.round((requiredDone / requiredTotal) * 100)
 
 	// --- Rules ---
+	// A computed value that failed blocks completion like a failed rule does.
 	const ruleResult = evaluateFormRules(form, fieldValues, runtimeState.defsValues, context)
+	const evaluationErrors = runtimeState.issues.map((issue) => issue.message)
 
 	// --- Defs values ---
 	const defsValues: Record<string, unknown> = {}
@@ -514,8 +516,8 @@ export function computeFillState(
 		},
 		defsValues,
 		rules: {
-			valid: ruleResult.valid,
-			errors: ruleResult.errors.map(e => e.message ?? `Rule ${e.ruleId} failed`),
+			valid: ruleResult.valid && evaluationErrors.length === 0,
+			errors: [...evaluationErrors, ...ruleResult.errors.map(e => e.message ?? `Rule ${e.ruleId} failed`)],
 			warnings: ruleResult.warnings.map(w => w.message ?? `Rule ${w.ruleId} warning`),
 		},
 		openRequired,

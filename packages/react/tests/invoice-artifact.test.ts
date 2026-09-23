@@ -104,7 +104,8 @@ describe("the invoice artifact", () => {
   it("refuses to add a row billed in another currency", () => {
     const rows = [...shortRows, { ...shortRows[0]!, amount: { amount: 10, currency: "EUR" } }];
     const result = evaluateFormDefs(invoiceForm, { fields: { ...shortInvoiceData.fields, lineItems: rows } });
-    expect("issues" in result && result.issues?.[0]?.message).toMatch(/more than one currency: EUR, USD/);
+    expect("value" in result && result.value.issues[0]?.message).toMatch(/more than one currency: EUR, USD/);
+    expect("value" in result && result.value.defsValues.get("subtotal")).toBeNull();
   });
 
   it("brands itself with a mark of its own, carried as bytes", () => {

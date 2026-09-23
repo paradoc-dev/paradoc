@@ -100,7 +100,10 @@ export type FieldStatus = "hidden" | "optional" | "required";
 export type FillStateSnapshot = {
 	/** Whether the host successfully resolved visibility and requiredness. */
 	resolved: boolean;
-	/** Host diagnostics retained when a runtime snapshot is unresolved. */
+	/**
+	 * Host diagnostics: why a snapshot is unresolved, or a computed value that
+	 * failed while visibility and requiredness still resolved.
+	 */
 	diagnostics?: string[];
 	/** Required, unanswered, visible fields — in artifact declaration order. */
 	openRequired: Array<{ fieldPath: string; order: number; status: FieldStatus }>;

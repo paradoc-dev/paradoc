@@ -109,7 +109,7 @@ const schema = {
       "type": "text",
       "label": "Customer / employee / vendor ID (originator-assigned)",
       "description": "Identifier the originator already has on file for this account holder (customer ID for billers, employee ID for payroll, vendor number for A/P). Helps the originator locate the existing record quickly.",
-      "maxLength": 100,
+      "maxLength": 40,
       "required": false,
       "visible": true
     },
@@ -117,7 +117,7 @@ const schema = {
       "type": "text",
       "label": "Originator reference (contract / agreement / loan number)",
       "description": "Reference number for the underlying agreement that authorized the ACH arrangement (e.g., loan number, service contract, employment ID). Helps the originator scope the change to the correct authorization.",
-      "maxLength": 100,
+      "maxLength": 50,
       "required": false,
       "visible": true
     },
@@ -133,7 +133,7 @@ const schema = {
       "type": "text",
       "label": "Old bank name (for reconciliation)",
       "description": "Name of the bank holding the existing on-file account. Optional but helpful when the originator's records show only the routing number.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": false,
       "visible": true
     },
@@ -170,7 +170,7 @@ const schema = {
       "type": "text",
       "label": "Describe the requested change",
       "description": "Free-form description of the change when none of the named change types apply. Required only when changeType == 'other'.",
-      "maxLength": 500,
+      "maxLength": 160,
       "required": "fields.changeType == 'other'",
       "visible": "fields.changeType == 'other'"
     },
@@ -178,7 +178,7 @@ const schema = {
       "type": "text",
       "label": "New bank name",
       "description": "Name of the bank holding the new account. Required when the change introduces new account information (update or add-secondary).",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "fields.changeType == 'update_account_info' or fields.changeType == 'add_secondary_account'",
       "visible": "fields.changeType == 'update_account_info' or fields.changeType == 'add_secondary_account'"
     },

@@ -328,6 +328,19 @@ describe('CLI New Command', () => {
       const files = await fs.readdir(path.join(tempDir, subDir))
       expect(files.some((f) => f.endsWith('.json'))).toBe(true)
     })
+
+    it('should create form in an absolute --dir as given, not nested under the working directory', async () => {
+      const target = await fs.mkdtemp(path.join(os.tmpdir(), 'paradoc-new-dir-'))
+      try {
+        const result = await executeCliCommand(['new', 'form', 'abs-form', '--yes', '--dir', target], { cwd: tempDir })
+
+        expect(result.exitCode).toBe(0)
+        expect(await fs.readdir(target)).toContain('abs-form.json')
+        expect(await fs.readdir(tempDir)).toEqual([])
+      } finally {
+        await fs.rm(target, { recursive: true, force: true })
+      }
+    })
   })
 
   describe('new checklist (options)', () => {

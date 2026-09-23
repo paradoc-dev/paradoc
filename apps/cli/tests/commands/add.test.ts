@@ -192,7 +192,25 @@ describe('paradoc add', () => {
 describe('paradoc add (files the artifact references)', () => {
   // A registry of one artifact with a file layer and an instructions file. Each
   // test decides what the registry serves for those two files.
-  const layerBytes = Buffer.from('%PDF-1.4 layer bytes')
+  /** A one-page PDF with no form fields: the smallest file a PDF layer can hold. */
+  const onePagePdf = (): Buffer => {
+    const bodies = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> >>',
+    ]
+    let pdf = '%PDF-1.4\n'
+    const offsets: number[] = []
+    bodies.forEach((body, index) => {
+      offsets.push(pdf.length)
+      pdf += `${index + 1} 0 obj\n${body}\nendobj\n`
+    })
+    const xref = pdf.length
+    pdf += `xref\n0 ${bodies.length + 1}\n0000000000 65535 f \n`
+    pdf += offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')
+    return Buffer.from(pdf + `trailer\n<< /Size ${bodies.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`)
+  }
+  const layerBytes = onePagePdf()
   const instructionsBytes = Buffer.from('# Instructions\n')
   const sha256 = (content: Buffer): string => `sha256:${createHash('sha256').update(content).digest('hex')}`
 

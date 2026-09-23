@@ -2,6 +2,7 @@ import type { BinaryContent } from '@paradoc/types'
 import { classifyField, isChildField, type PdfFieldType } from './acroform'
 import { catalogRecord, documentPages } from './page-tree'
 import { isDict, isName, isRef, PdfModel, type PdfDict, type PdfValue } from './syntax'
+import { decodeTextString } from './text-string'
 
 export type { PdfFieldType } from './acroform'
 
@@ -45,6 +46,12 @@ function valueString(value: PdfValue | undefined): string | undefined {
   return isName(value) ? value.value : undefined
 }
 
+/** A text string entry (`/T`, `/V`) as text; a name is taken as it stands. */
+function textValue(value: PdfValue | undefined): string | undefined {
+  if (typeof value === 'string') return decodeTextString(value)
+  return isName(value) ? value.value : undefined
+}
+
 /** Inspect page count and dimensions without loading a full PDF toolkit. */
 export async function inspectPdf(template: BinaryContent): Promise<PdfInfo> {
   const model = await PdfModel.load(template)
@@ -85,7 +92,7 @@ export async function inspectAcroFormFields(
   const visit = (value: PdfValue, inherited: InheritedField = {}) => {
     const field = model.dict(value)
     if (!field) return
-    const ownName = valueString(field.entries.get('T'))
+    const ownName = textValue(field.entries.get('T'))
     const state: InheritedField = {
       name: ownName ? inherited.name ? `${inherited.name}.${ownName}` : ownName : inherited.name,
       fieldType: valueString(field.entries.get('FT')) ?? inherited.fieldType,
@@ -110,10 +117,10 @@ export async function inspectAcroFormFields(
     if (type === 'checkbox') fieldValue = valueString(rawValue) !== undefined && valueString(rawValue) !== 'Off'
     else if (type === 'dropdown') {
       const selected = Array.isArray(rawValue) ? rawValue : rawValue === undefined ? [] : [rawValue]
-      fieldValue = selected.map(valueString).filter((item): item is string => item !== undefined)
+      fieldValue = selected.map(textValue).filter((item): item is string => item !== undefined)
     }
-    else if (Array.isArray(rawValue)) fieldValue = rawValue.map(valueString).filter((item): item is string => item !== undefined)
-    else fieldValue = valueString(rawValue)
+    else if (Array.isArray(rawValue)) fieldValue = rawValue.map(textValue).filter((item): item is string => item !== undefined)
+    else fieldValue = textValue(rawValue)
 
     const widget = widgetFor(model, field)
     const rectangle = model.resolve(widget?.entries.get('Rect'))

@@ -214,6 +214,8 @@ export const ValidateArtifactOutputSchema = z.object({
 	valid: z.boolean(),
 	artifact_kind: z.enum(['form', 'document', 'bundle', 'checklist']).optional(),
 	issues: z.array(ValidationIssueSchema).optional(),
+	/** Findings that do not fail validation, such as a PDF-bound text field with no length bound. */
+	warnings: z.array(ValidationIssueSchema).optional(),
 	error: ToolErrorSchema.optional(),
 })
 

@@ -324,7 +324,7 @@ export class PdfFontSet {
    * @param formFont - The form font resource the field's appearance names.
    * @throws {PdfFieldFillError} for a script that needs shaping, or a character no font can draw.
    */
-  select(subject: string, text: string, formFont?: string): DrawingFont & { reference(): PdfRef } {
+  select(subject: string, text: string, formFont?: string): DrawingFont & Pick<CandidateFont, 'covers' | 'reference'> {
     for (const { script, pattern } of SHAPED_SCRIPTS) {
       if (pattern.test(text)) {
         throw new PdfFieldFillError(

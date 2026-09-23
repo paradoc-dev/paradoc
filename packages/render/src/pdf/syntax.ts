@@ -1,6 +1,13 @@
+import { byteString } from './text-string'
+
 export interface PdfName { kind: 'name'; value: string }
 export interface PdfRef { kind: 'ref'; object: number; generation: number }
 export interface PdfDict { kind: 'dict'; entries: Map<string, PdfValue> }
+/**
+ * A PDF object. A `string` is a byte string, one character per byte
+ * (U+0000 to U+00FF); text entries are decoded and encoded with
+ * `decodeTextString` and `encodeTextString` from `./text-string`.
+ */
 export type PdfValue = null | boolean | number | string | PdfName | PdfRef | PdfDict | PdfValue[]
 
 export interface PdfObject {
@@ -10,7 +17,6 @@ export interface PdfObject {
   stream?: Uint8Array
 }
 
-const decoder = new TextDecoder('latin1')
 
 export const isName = (value: PdfValue | undefined): value is PdfName =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value) && value.kind === 'name')
@@ -98,7 +104,7 @@ class Parser {
         } else if (/[0-7]/.test(escaped)) {
           let octal = escaped
           while (octal.length < 3 && /[0-7]/.test(this.source[this.position] ?? '')) octal += this.source[this.position++]
-          result += String.fromCharCode(Number.parseInt(octal, 8))
+          result += String.fromCharCode(Number.parseInt(octal, 8) & 0xff)
         } else result += escaped
       } else if (char === '(') {
         depth++
@@ -108,7 +114,7 @@ class Parser {
         if (depth > 0) result += char
       } else result += char
     }
-    return decodePdfString(result)
+    return result
   }
 
   private hexString(): string {
@@ -119,7 +125,7 @@ class Parser {
     if (hex.length % 2 === 1) hex += '0'
     const bytes = new Uint8Array(hex.length / 2)
     for (let index = 0; index < bytes.length; index++) bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16)
-    return decodePdfString(decoder.decode(bytes))
+    return byteString(bytes)
   }
 
   private numberOrRef(): number | PdfRef {
@@ -165,17 +171,6 @@ class Parser {
   }
 }
 
-function decodePdfString(value: string): string {
-  if (value.length >= 2 && value.charCodeAt(0) === 0xfe && value.charCodeAt(1) === 0xff) {
-    let result = ''
-    for (let index = 2; index + 1 < value.length; index += 2) {
-      result += String.fromCharCode((value.charCodeAt(index) << 8) | value.charCodeAt(index + 1))
-    }
-    return result
-  }
-  return value
-}
-
 async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
   if (typeof DecompressionStream === 'undefined') throw new Error('FlateDecode is unavailable in this runtime')
   const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'))
@@ -191,7 +186,7 @@ export class PdfModel {
   ) {}
 
   static async load(bytes: Uint8Array): Promise<PdfModel> {
-    const source = decoder.decode(bytes)
+    const source = byteString(bytes)
     const objects = new Map<number, PdfObject>()
     const indirectLengths: { object: number; start: number; length: PdfRef }[] = []
     const pattern = /(?:^|[\r\n])\s*(\d+)\s+(\d+)\s+obj\b/g
@@ -334,7 +329,7 @@ export class PdfModel {
       if (typeof count !== 'number' || typeof first !== 'number') continue
       const filter = record.value.entries.get('Filter')
       const inflated = isName(filter) && filter.value === 'FlateDecode' ? await inflate(record.stream) : record.stream
-      const content = decoder.decode(inflated)
+      const content = byteString(inflated)
       const header = content.slice(0, first).trim().split(/\s+/).map(Number)
       for (let index = 0; index < count; index++) {
         const object = header[index * 2]
@@ -361,7 +356,7 @@ export function encodeLatin1(value: string): Uint8Array {
 }
 
 function previousXref(bytes: Uint8Array): number | undefined {
-  const tail = decoder.decode(bytes.slice(Math.max(0, bytes.length - 2048)))
+  const tail = byteString(bytes.slice(Math.max(0, bytes.length - 2048)))
   const matches = [...tail.matchAll(/startxref\s+(\d+)/g)]
   const value = matches.at(-1)?.[1]
   return value ? Number(value) : undefined
@@ -372,13 +367,15 @@ function serializeName(value: string): string {
 }
 
 function serializeString(value: string): string {
-  if ([...value].some((char) => char.charCodeAt(0) > 0xff)) {
-    // UTF-16BE code units, so a character outside the Basic Multilingual Plane
-    // keeps both halves of its surrogate pair.
-    let hex = 'feff'
-    for (let index = 0; index < value.length; index++) hex += value.charCodeAt(index).toString(16).padStart(4, '0')
-    return `<${hex}>`
+  let hex = ''
+  let printable = true
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index)
+    if (code > 0xff) throw new Error(`PDF string holds U+${code.toString(16).toUpperCase().padStart(4, '0')}; encode text with encodeTextString before storing it`)
+    if (code < 0x20 ? code !== 0x09 && code !== 0x0a && code !== 0x0d : code > 0x7e) printable = false
+    hex += code.toString(16).padStart(2, '0')
   }
+  if (!printable) return `<${hex}>`
   return `(${value.replace(/([\\()])/g, '\\$1').replace(/\r/g, '\\r').replace(/\n/g, '\\n')})`
 }
 

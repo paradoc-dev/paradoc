@@ -39,6 +39,7 @@ function patterned(pattern: string, seed: number): string {
   const value = first
     .replace(/\\d\{(\d+)\}/g, (_, count: string) => Array.from({ length: Number(count) }, () => digit(index++)).join(''))
     .replace(/\[A-Za-z0-9\]\+/g, `A${seed}B`)
+    .replace(/\[A-Z\]\{(\d+)\}/g, (_, count: string) => Array.from({ length: Number(count) }, () => String.fromCharCode(65 + (seed + index++) % 26)).join(''))
     .replace(/-\?/g, '-')
   if (!new RegExp(pattern).test(value)) throw new Error(`No sample for pattern ${pattern}`)
   return value

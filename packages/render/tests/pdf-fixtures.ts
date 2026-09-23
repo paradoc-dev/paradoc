@@ -190,9 +190,21 @@ export function acroFieldsPdf(fields: FixtureField[], form: FixtureForm = {}): U
   ])
 }
 
+/**
+ * A PDF text string token, built independently of the package's encoder:
+ * a literal for printable ASCII, UTF-16BE with a byte order mark otherwise.
+ */
+function textToken(value: string): string {
+  if (/^[\x20-\x7e]*$/.test(value)) return literal(value)
+  let hex = 'FEFF'
+  for (let index = 0; index < value.length; index++) hex += value.charCodeAt(index).toString(16).padStart(4, '0')
+  return `<${hex}>`
+}
+
 /** One AcroForm field of a purpose-built fixture. */
 export type AcroFormFixtureField =
-  | { kind: 'text'; name: string; value?: string }
+  /** `valueBytes` writes the value's exact bytes as a hex string, in place of `value`. */
+  | { kind: 'text'; name: string; value?: string; valueBytes?: number[] }
   | { kind: 'checkbox'; name: string; onState?: string; checked?: boolean }
   | { kind: 'radio'; name: string; states: string[]; selected?: string }
   | { kind: 'choice'; name: string; options: string[]; value?: string }
@@ -222,15 +234,17 @@ export function acroFormPdf(fields: AcroFormFixtureField[], options: AcroFormFix
   for (const field of fields) {
     if (field.kind === 'text') {
       const id = next++
-      const value = field.value === undefined ? '' : ` /V (${field.value})`
-      objects.push({ id, body: `<< /FT /Tx /T (${field.name}) /Subtype /Widget /Rect ${rect()} /P 3 0 R${value} >>` })
+      const value = field.valueBytes
+        ? ` /V <${field.valueBytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')}>`
+        : field.value === undefined ? '' : ` /V ${textToken(field.value)}`
+      objects.push({ id, body: `<< /FT /Tx /T ${textToken(field.name)} /Subtype /Widget /Rect ${rect()} /P 3 0 R${value} >>` })
       roots.push(id)
       widgets.push(id)
     } else if (field.kind === 'checkbox') {
       const id = next++
       const on = field.onState ?? 'Yes'
       const state = field.checked ? on : 'Off'
-      objects.push({ id, body: `<< /FT /Btn /T (${field.name}) /Subtype /Widget /Rect ${rect()} /P 3 0 R /V /${state} /AS /${state} /AP << /N << /Off null /${on} null >> >> >>` })
+      objects.push({ id, body: `<< /FT /Btn /T ${textToken(field.name)} /Subtype /Widget /Rect ${rect()} /P 3 0 R /V /${state} /AS /${state} /AP << /N << /Off null /${on} null >> >> >>` })
       roots.push(id)
       widgets.push(id)
     } else if (field.kind === 'radio') {
@@ -242,13 +256,13 @@ export function acroFormPdf(fields: AcroFormFixtureField[], options: AcroFormFix
         widgets.push(id)
         return id
       })
-      objects.push({ id: parent, body: `<< /FT /Btn /Ff 49152 /T (${field.name}) /V /${field.selected ?? 'Off'} /Kids [${kids.map((kid) => `${kid} 0 R`).join(' ')}] >>` })
+      objects.push({ id: parent, body: `<< /FT /Btn /Ff 49152 /T ${textToken(field.name)} /V /${field.selected ?? 'Off'} /Kids [${kids.map((kid) => `${kid} 0 R`).join(' ')}] >>` })
       roots.push(parent)
     } else {
       const id = next++
-      const value = field.value === undefined ? '' : ` /V (${field.value})`
-      const opts = field.options.map((option) => `(${option})`).join(' ')
-      objects.push({ id, body: `<< /FT /Ch /Ff 131072 /T (${field.name}) /Subtype /Widget /Rect ${rect()} /P 3 0 R /Opt [${opts}]${value} >>` })
+      const value = field.value === undefined ? '' : ` /V ${textToken(field.value)}`
+      const opts = field.options.map(textToken).join(' ')
+      objects.push({ id, body: `<< /FT /Ch /Ff 131072 /T ${textToken(field.name)} /Subtype /Widget /Rect ${rect()} /P 3 0 R /Opt [${opts}]${value} >>` })
       roots.push(id)
       widgets.push(id)
     }

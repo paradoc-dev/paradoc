@@ -2,6 +2,7 @@ import { isDict, isName, type PdfDict, type PdfModel } from './syntax'
 import { containsEncoding } from './encoding'
 import { buildFontDecoder, type FontDecoder } from './fonts'
 import { decodeStream, type PdfPage } from './pages'
+import { byteString } from './text-string'
 
 /** One text-showing run, in content-stream order. */
 export interface TextRun {
@@ -67,11 +68,9 @@ type Token =
   | { kind: 'array'; items: Token[] }
   | { kind: 'operator'; value: string }
 
-const decoder = new TextDecoder('latin1')
-
 /** Tokenize a content stream. Dictionaries and inline images are skipped. */
 function tokenize(content: Uint8Array): Token[] {
-  const source = decoder.decode(content)
+  const source = byteString(content)
   const tokens: Token[] = []
   let position = 0
   const stack: Token[][] = [tokens]

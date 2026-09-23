@@ -641,7 +641,9 @@ function validateCompleteFormData(
 					path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
 				})),
 			}
-	if (!runtimeState.resolved) {
+	// Any expression failure blocks completion, including a failed computed
+	// value that leaves the presentation state resolved.
+	if (runtimeState.issues.length > 0) {
 		throw new FormValidationError(
 			runtimeState.issues.map((issue) => ({
 				field: 'form.logic',

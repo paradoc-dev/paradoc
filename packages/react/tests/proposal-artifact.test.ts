@@ -66,7 +66,8 @@ describe("the proposal artifact", () => {
     const total = result.value.defsValues.get("total") as { amount: number };
 
     expect(subtotal.currency).toBe("USD");
-    expect(subtotal.amount).toBe(shortProposalData.fields.subtotalAmount);
+    const rows = shortProposalData.fields.lineItems as { amount: { amount: number } }[];
+    expect(subtotal.amount).toBeCloseTo(rows.reduce((sum, row) => sum + row.amount.amount, 0), 6);
     expect(tax.amount).toBeCloseTo(subtotal.amount * 0.0825, 6);
     expect(total.amount).toBeCloseTo(subtotal.amount + tax.amount, 6);
   });
@@ -83,8 +84,8 @@ describe("the sample data holds the page budget", () => {
 });
 
 describe("line-item arithmetic", () => {
-  it("multiplies each row out and sums the rows", () => {
-    const { lineItems, subtotalAmount } = computeLineAmounts(
+  it("multiplies each row out", () => {
+    const { lineItems } = computeLineAmounts(
       [
         { description: "A", quantity: 3, unit: "day", unitPrice: { amount: 100.5, currency: "USD" } },
         { description: "B", quantity: 2, unit: "day", unitPrice: { amount: 50.25, currency: "USD" } },
@@ -93,6 +94,5 @@ describe("line-item arithmetic", () => {
     );
     expect(lineItems[0]!.amount).toEqual({ amount: 301.5, currency: "USD" });
     expect(lineItems[1]!.amount).toEqual({ amount: 100.5, currency: "USD" });
-    expect(subtotalAmount).toBe(402);
   });
 });

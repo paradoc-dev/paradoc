@@ -71,7 +71,7 @@ const schema = {
       "type": "text",
       "label": "Requestor DBA / 'doing business as' name",
       "description": "Optional trade or doing-business-as name used by the requestor if different from its legal name. Provided so the account holder can recognize the requesting entity.",
-      "maxLength": 200,
+      "maxLength": 80,
       "required": false,
       "visible": true
     },
@@ -79,7 +79,7 @@ const schema = {
       "type": "text",
       "label": "Requestor A/P contact name",
       "description": "Name of the accounts-payable representative at the requestor for follow-up questions about this submission. Optional but recommended for back-and-forth on data validation.",
-      "maxLength": 100,
+      "maxLength": 50,
       "required": false,
       "visible": true
     },
@@ -94,7 +94,7 @@ const schema = {
       "type": "text",
       "label": "Vendor / payee number assigned by Requestor",
       "description": "Internal vendor or payee identifier assigned by the requestor's A/P system; helps the requestor route the submission to the right vendor record.",
-      "maxLength": 50,
+      "maxLength": 15,
       "required": false,
       "visible": true
     },
@@ -148,7 +148,7 @@ const schema = {
       "type": "text",
       "label": "Organization DBA / disregarded-entity name",
       "description": "Trade or doing-business-as name of the organization if different from its legal name (which is captured on parties.accountHolder.legalName). Equivalent to W-9 line 2.",
-      "maxLength": 200,
+      "maxLength": 75,
       "required": false,
       "visible": "fields.accountHolderType == 'organization'"
     },
@@ -200,10 +200,11 @@ const schema = {
     "orgDomicileState": {
       "type": "text",
       "label": "Organization domicile state",
-      "description": "U.S. state in which the organization is legally formed or registered (two-letter code or full name). Used for state-tax classification and reporting jurisdiction.",
-      "maxLength": 50,
+      "description": "Two-letter USPS code of the U.S. state in which the organization is legally formed or registered (e.g. DE). Used for state-tax classification and reporting jurisdiction.",
+      "maxLength": 2,
       "required": false,
-      "visible": "fields.accountHolderType == 'organization'"
+      "visible": "fields.accountHolderType == 'organization'",
+      "pattern": "^[A-Z]{2}$"
     },
     "orgAddress": {
       "type": "address",
@@ -216,7 +217,7 @@ const schema = {
       "type": "text",
       "label": "Organization contact name",
       "description": "Name of the individual at the organization who should be contacted regarding this bank-account submission.",
-      "maxLength": 100,
+      "maxLength": 50,
       "required": false,
       "visible": "fields.accountHolderType == 'organization'"
     },
@@ -224,7 +225,7 @@ const schema = {
       "type": "text",
       "label": "Organization contact title",
       "description": "Job title of the organization contact (e.g., 'CFO', 'A/R Manager'); helps the requestor confirm the contact has authority to provide bank details.",
-      "maxLength": 100,
+      "maxLength": 30,
       "required": false,
       "visible": "fields.accountHolderType == 'organization'"
     },
@@ -246,7 +247,7 @@ const schema = {
       "type": "text",
       "label": "Bank name",
       "description": "Name of the financial institution holding the account (e.g., 'Chase Bank', 'Bank of America'). Helps the requestor verify routing-number validity against a known institution.",
-      "maxLength": 100,
+      "maxLength": 45,
       "required": "fields.actionType != 'cancel'",
       "visible": "fields.actionType != 'cancel'"
     },
@@ -289,7 +290,7 @@ const schema = {
       "type": "text",
       "label": "Name on bank account (if different from account holder)",
       "description": "The literal name printed on the bank account, if different from the account holder's legal name on this form. Helps the requestor avoid ACH rejects when the bank's name match is strict.",
-      "maxLength": 200,
+      "maxLength": 45,
       "required": false,
       "visible": "fields.actionType != 'cancel'"
     },

@@ -47,8 +47,7 @@ import {
   type PdfRef,
   type PdfValue,
 } from './syntax'
-
-const decoder = new TextDecoder('latin1')
+import { byteString } from './text-string'
 
 /** Thrown when a source cannot be merged, naming which one and why. */
 export class PdfMergeError extends Error {
@@ -72,7 +71,7 @@ export class PdfMergeError extends Error {
  * means nothing.
  */
 function isEncrypted(bytes: Uint8Array, model: PdfModel): boolean {
-  const source = decoder.decode(bytes)
+  const source = byteString(bytes)
   if (/trailer[\s\S]{0,4096}?\/Encrypt\b/.test(source)) return true
   for (const record of model.objects.values()) {
     if (!isDict(record.value)) continue

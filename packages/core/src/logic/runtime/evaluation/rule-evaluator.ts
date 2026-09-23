@@ -117,6 +117,12 @@ export function evaluateRule(
   // Evaluate the expression
   const result = evaluateExpression<unknown>(rule.expr, context as EvaluationContext)
 
+  // A rule over inputs with no value yet is not yet met, the same as a
+  // comparison against an unanswered field: it fails with its own message.
+  if (!result.success && result.code === 'missing-input') {
+    return { ruleId, passed: false, message: rule.message, severity }
+  }
+
   if (!result.success) {
     // Expression evaluation failed - treat as rule failure
     return {

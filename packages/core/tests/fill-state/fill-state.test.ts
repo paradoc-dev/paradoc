@@ -569,7 +569,7 @@ describe('fill-state', () => {
 			})
 		})
 
-		test('does not offer fields while a runtime expression is unresolved', () => {
+		test('does not offer fields while a condition fails with its inputs present', () => {
 			const conditional = form({
 				kind: 'form',
 				name: 'unresolved-runtime',
@@ -584,13 +584,94 @@ describe('fill-state', () => {
 					},
 				},
 			} as any)
-			const draft = conditional.fill()
+			const draft = conditional.fill({ fields: { amount: 5 } } as any)
 			const state = draft.getFillState()
 
 			expect(draft.runtimeState.resolved).toBe(false)
 			expect(state.openRequired).toEqual([])
 			expect(state.openOptional).toEqual([])
 			expect(state.candidates).toEqual([])
+		})
+
+		describe('computed values with missing or failing inputs', () => {
+			const priced = () => form({
+				kind: 'form',
+				name: 'priced',
+				version: '1.0.0',
+				title: 'Priced',
+				fields: {
+					quantity: { type: 'number', required: true },
+					divisor: { type: 'number', required: true },
+					note: { type: 'text', required: true },
+					bulk: { type: 'text', required: true, visible: 'doubled * 1 > 10' },
+				},
+				defs: {
+					total: { type: 'number', value: 'fields.quantity * 2' },
+					doubled: { type: 'number', value: 'total * 2' },
+					share: { type: 'number', value: 'fields.quantity / fields.divisor' },
+				},
+				rules: {
+					enough: { expr: 'doubled * 1 >= 4', message: 'Order at least one item' },
+				},
+			} as any)
+
+			test('a computed value with an unanswered input is missing, and so is its dependent', () => {
+				const draft = priced().fill()
+				const state = draft.getFillState()
+
+				expect(draft.runtimeState.resolved).toBe(true)
+				expect(draft.runtimeState.issues).toEqual([])
+				expect(state.defsValues).toMatchObject({ total: null, doubled: null, share: null })
+				expect(state.openRequired.map((item) => item.key)).toEqual(['quantity', 'divisor', 'note'])
+			})
+
+			test('a condition over a missing computed value is not yet met, and waits on its inputs', () => {
+				const state = priced().fill().getFillState()
+				const bulk = state.blocked.find((item) => item.key === 'bulk')
+
+				expect(bulk?.visible).toBe(false)
+				expect(bulk?.blockedBy).toEqual(['quantity'])
+			})
+
+			test('a rule over a missing computed value fails with its own message, not an expression error', () => {
+				const state = priced().fill().getFillState()
+
+				expect(state.rules.valid).toBe(false)
+				expect(state.rules.errors).toEqual(['Order at least one item'])
+			})
+
+			test('computes the values once their inputs are answered', () => {
+				const state = priced().fill({ fields: { quantity: 3, divisor: 2 } } as any).getFillState()
+
+				expect(state.defsValues).toMatchObject({ total: 6, doubled: 12, share: 1.5 })
+				expect(state.openRequired.map((item) => item.key)).toEqual(['note', 'bulk'])
+				expect(state.rules.errors).toEqual([])
+			})
+
+			test('a computed value that fails with its inputs present is reported without blanking the fill state', () => {
+				const draft = priced().fill({ fields: { quantity: 3, divisor: 0 } } as any)
+				const state = draft.getFillState()
+
+				expect(draft.runtimeState.resolved).toBe(true)
+				expect(draft.runtimeState.issues).toHaveLength(1)
+				expect(draft.runtimeState.issues[0]).toMatchObject({ path: ['defs', 'share'] })
+				expect(draft.runtimeState.issues[0]?.message).toContain('division-by-zero')
+				expect(state.defsValues).toMatchObject({ total: 6, doubled: 12, share: null })
+				expect(state.openRequired.map((item) => item.key)).toEqual(['note', 'bulk'])
+				expect(state.next).toEqual({ kind: 'field', key: 'note', required: true, order: 2 })
+				expect(state.rules.valid).toBe(false)
+				expect(state.rules.errors).toEqual([expect.stringContaining('division-by-zero')])
+			})
+
+			test('a failed computed value blocks completion with its diagnostic', () => {
+				const draft = priced().fill({ fields: { quantity: 3, divisor: 0, note: 'rush', bulk: 'yes' } } as any)
+				const validation = draft.validate()
+
+				expect(validation.valid).toBe(false)
+				expect(validation.errors).toEqual([
+					{ field: 'form.logic', message: expect.stringContaining('division-by-zero') },
+				])
+			})
 		})
 
 		test('reports all required as open when empty', () => {

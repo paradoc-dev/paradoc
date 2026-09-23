@@ -205,15 +205,6 @@ export const arabicLetterSpec = {
         },
       },
     },
-    subtotalAmount: {
-      type: "number",
-      label: "الإجمالي قبل الضريبة",
-      description:
-        "Sum of the item amounts. Materialized by the caller for the reason the proposal's is: the expression language has no aggregate over a list.",
-      min: 0,
-      required: true,
-      visible: false,
-    },
     taxRatePercent: {
       type: "percentage",
       label: "نسبة الضريبة",
@@ -238,7 +229,7 @@ export const arabicLetterSpec = {
       label: "الإجمالي قبل الضريبة",
       description: "The item total before tax.",
       value: {
-        amount: "fields.subtotalAmount",
+        amount: "sum(fields.items.amount).amount",
         currency: "fields.currency",
       },
     },
@@ -247,7 +238,7 @@ export const arabicLetterSpec = {
       label: "ضريبة القيمة المضافة",
       description: "Value-added tax on the subtotal at the quoted rate.",
       value: {
-        amount: "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "subtotal.amount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },
@@ -256,8 +247,7 @@ export const arabicLetterSpec = {
       label: "الإجمالي المستحق",
       description: "Amount due.",
       value: {
-        amount:
-          "fields.subtotalAmount == null or fields.taxRatePercent == null ? null : fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "subtotal.amount + tax.amount",
         currency: "fields.currency",
       },
     },

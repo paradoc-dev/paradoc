@@ -45,6 +45,8 @@ const result = await validateLayers(artifact, { resolver: createFsResolver({ roo
 // result.issues: 'Template error at layer "markdown", line 12, column 7 in {{fields.amount}}: ...'
 ```
 
+For a form, `validateLayers` also checks that values a PDF layer binding accepts can fill its PDF text field: a typical value at the field's `maxLength` or `pattern` length that is too wide for its box, an option value too wide for its box, or a value too long for its comb boxes is an error. A value that overflows only when made of the widest letters, and a bound text field with no length bound, are returned in `result.warnings`, which do not fail validation. See [Checking bindings before filling](/sdk/renderers/pdf#checking-bindings-before-filling).
+
 ### Schema versions
 
 An artifact built with the SDK is always the current [schema version](/schemas#schema-versions). `load()` and `safeLoad()` refuse file content written for another version with a `SchemaVersionError`, as the [loading rules](/schemas#loading-rules) describe. To bring an artifact written for an earlier version up to date, use `migrateArtifact` for a parsed object or `migrateArtifactSource` for file content. Both apply the migration steps in order, validate the result, and fail with `SchemaMigrationError` instead of guessing. The [`paradoc migrate`](/cli/commands/migrate) command uses them.

@@ -182,14 +182,19 @@ export function createValidateCommand(): Command {
               layerChecks.push(check)
             }
 
-            // Template expressions in file-backed text and DOCX layers
+            // Template expressions in file-backed text and DOCX layers, and
+            // whether bound values can fill a form's PDF text fields
             if (!options.checksumOnly) {
-              const templates = await validateLayers(parsed, { resolver: createFsResolver({ root: baseDir }) })
-              for (const issue of templates.issues ?? []) {
+              const checked = await validateLayers(parsed, { resolver: createFsResolver({ root: baseDir }) })
+              const found = [
+                ...(checked.issues ?? []).map((issue) => ({ issue, severity: 'error' as const })),
+                ...(checked.warnings ?? []).map((issue) => ({ issue, severity: 'warning' as const })),
+              ]
+              for (const { issue, severity } of found) {
                 const key = String(issue.path?.[1] ?? '')
                 const check = layerChecks.find((candidate) => candidate.key === key)
                 if (!check || check.fileExists === false) continue
-                check.issues.push({ message: issue.message, path: ['layers', key], severity: 'error' })
+                check.issues.push({ message: issue.message, path: issue.path?.map((segment) => String(segment)) ?? ['layers', key], severity })
               }
             }
           }
@@ -422,6 +427,14 @@ function printHumanResult(context: ResultContext): void {
         console.log(`      checksum: ${kleur.yellow('not set')}`)
       } else if (check.fileExists === false) {
         console.log(`      checksum: ${kleur.dim('skipped (file not found)')}`)
+      }
+
+      // Template and PDF binding issues; file and checksum issues have their own lines above
+      for (const issue of check.issues) {
+        const subject = issue.path?.[2]
+        if (subject === 'path' || subject === 'checksum') continue
+        const line = `      ${issue.severity === 'error' ? '✗' : '⚠'} ${issue.message}`
+        console.log(issue.severity === 'error' ? kleur.red(line) : kleur.yellow(line))
       }
     }
   }

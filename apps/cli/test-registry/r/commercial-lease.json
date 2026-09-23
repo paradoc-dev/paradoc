@@ -131,8 +131,7 @@
     "legal": {
       "kind": "file",
       "mimeType": "text/markdown",
-      "path": "commercial-lease-legal.md",
-      "url": "http://localhost:4567/files/commercial-lease-legal.md"
+      "path": "commercial-lease-legal.md"
     }
   },
   "defaultLayer": "default"

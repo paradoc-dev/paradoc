@@ -45,7 +45,7 @@ const schema = {
       "type": "text",
       "label": "Business name / DBA / disregarded-entity name",
       "description": "Line 2: the trade, doing-business-as, or disregarded-entity name if different from the legal name on line 1. Left blank when the taxpayer's legal name and operating name are identical.",
-      "maxLength": 200,
+      "maxLength": 180,
       "required": false,
       "visible": true
     },
@@ -270,7 +270,7 @@ const schema = {
       "type": "text",
       "label": "Account number(s)",
       "description": "Line 7: optional list of account numbers used by the requester to associate this W-9 with one or more accounts. Free-form to accommodate multiple numbers separated by commas or newlines.",
-      "maxLength": 200,
+      "maxLength": 180,
       "required": false,
       "visible": true
     },

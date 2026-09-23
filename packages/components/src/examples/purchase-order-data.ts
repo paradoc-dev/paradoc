@@ -85,7 +85,7 @@ export interface PurchaseOrderData extends DocumentData {
   parties: Record<string, RuntimeParty | RuntimeParty[]>;
 }
 
-const { lineItems, subtotalAmount } = computeLineAmounts(LINE_ITEMS, CURRENCY);
+const { lineItems } = computeLineAmounts(LINE_ITEMS, CURRENCY);
 
 /** The purchase order sample: office and IT hardware ordered for a new floor. */
 export const purchaseOrderData: PurchaseOrderData = {
@@ -124,7 +124,6 @@ export const purchaseOrderData: PurchaseOrderData = {
     },
     currency: CURRENCY,
     lineItems,
-    subtotalAmount,
     taxRatePercent: TAX_RATE_PERCENT,
     terms: "Payment is due 30 days from delivery. Goods remain the property of the supplier until paid in full.",
   },
@@ -149,12 +148,11 @@ export interface PurchaseOrderPayload {
 /**
  * The document data for a purchase order that is still being answered.
  *
- * Two of the artifact's fields are derived rather than answered, and neither
- * belongs in a session's log: `subtotalAmount`, because the expression language
- * has no aggregate over a list, and each row's `amount`, because it is the row
- * multiplied out. A session collects the rows and the currency; this computes
- * the rest, exactly as the sample above does, and it does so on every call so
- * the totals follow the rows as they land.
+ * Each row's `amount` is derived rather than answered, so it does not belong
+ * in a session's log: it is the row multiplied out. A session collects the rows
+ * and the currency; this computes the amounts, exactly as the sample above
+ * does, and it does so on every call so the artifact's totals follow the rows
+ * as they land.
  *
  * Everything else passes through untouched. A field nobody has answered yet is
  * simply absent, which is what the composition renders as blank.
@@ -164,13 +162,11 @@ export function purchaseOrderDocumentData(payload: PurchaseOrderPayload): Purcha
   const rows = fields.lineItems;
   const currency = fields.currency;
 
-  // Both, or neither: the amounts are money and money has a currency. Before
-  // the currency lands the rows print their own values and the totals print
-  // blank, which is the honest state of a document that cannot add up yet.
+  // The amounts are money and money has a currency. Before the currency lands
+  // the rows print their own values and the totals print blank, which is the
+  // honest state of a document that cannot add up yet.
   if (Array.isArray(rows) && typeof currency === "string" && currency.length > 0) {
-    const computed = computeLineAmounts(rows as LineItemInput[], currency);
-    fields.lineItems = computed.lineItems;
-    fields.subtotalAmount = computed.subtotalAmount;
+    fields.lineItems = computeLineAmounts(rows as LineItemInput[], currency).lineItems;
   }
 
   return {
@@ -187,15 +183,12 @@ export function purchaseOrderDocumentData(payload: PurchaseOrderPayload): Purcha
  *
  * A session records what it was told, so a script that answers a computed value
  * puts one in an event log that is supposed to hold only answers. This is
- * `purchaseOrderData` with the two derived values taken back out: each row's
- * `amount`, and `subtotalAmount`. Feed it to a fill and
- * `purchaseOrderDocumentData` puts them back.
+ * `purchaseOrderData` with each row's derived `amount` taken back out. Feed it
+ * to a fill and `purchaseOrderDocumentData` puts the amounts back.
  */
 export const purchaseOrderAnswers: PurchaseOrderPayload = {
   fields: Object.fromEntries(
-    Object.entries(purchaseOrderData.fields)
-      .filter(([path]) => path !== "subtotalAmount")
-      .map(([path, value]) =>
+    Object.entries(purchaseOrderData.fields).map(([path, value]) =>
         path === "lineItems" && Array.isArray(value)
           ? [
               path,

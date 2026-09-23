@@ -175,3 +175,48 @@ describe('string keys', () => {
 		expect(evaluateExpression('items.plain', keyed)).toEqual({ success: true, value: Values.string('x') })
 	})
 })
+
+describe('missing inputs', () => {
+	const failure = (src: string, data: Record<string, unknown>) => {
+		const r = evaluateExpression(src, createContext(data))
+		if (r.success) throw new Error(`expected ${src} to not evaluate`)
+		return r
+	}
+
+	it('reports an expression over an input with no value as missing, naming the input', () => {
+		const r = failure('fields.subtotal * 0.0825', { fields: { subtotal: null } })
+		expect(r.code).toBe('missing-input')
+		expect(r.missing).toEqual(['fields.subtotal'])
+	})
+
+	it('treats an absent member and a missing computed value as missing', () => {
+		expect(failure('fields.qty * fields.price', { fields: { price: 2 } }).missing).toEqual(['fields.qty'])
+		expect(failure('total + 1', { total: null, fields: {} }).missing).toEqual(['total'])
+	})
+
+	it('treats a list path as missing when any row lacks the value', () => {
+		const rows = [{ amount: 1 }, { amount: null }]
+		expect(failure('fields.items.amount * 2', { fields: { items: rows } }).code).toBe('missing-input')
+	})
+
+	it('keeps a failure with every input present as a failure', () => {
+		expect(failure('fields.subtotal * 2', { fields: { subtotal: 'ten' } }).code).toBe('type-error')
+		expect(failure('fields.a / fields.b', { fields: { a: 1, b: 0 } }).code).toBe('division-by-zero')
+		expect(failure('fields.items.amount * 2', { fields: { items: [{ amount: 1 }] } }).code).toBe('type-error')
+		const currencies = { fields: { items: [{ amount: { amount: 1, currency: 'USD' } }, { amount: { amount: 2, currency: 'EUR' } }] } }
+		expect(failure('sum(fields.items.amount)', currencies).code).toBe('currency-mismatch')
+	})
+
+	it('does not treat a name the context does not define as a missing input', () => {
+		expect(failure('undeclared + 1', { fields: {} }).code).toBe('type-error')
+	})
+
+	it('does not treat an authoring error as missing even when an input is missing', () => {
+		expect(failure('nope(fields.a)', { fields: { a: null } }).code).toBe('unknown-function')
+	})
+
+	it('evaluates an expression that handles the missing value itself', () => {
+		expect(run('coalesce(fields.qty, 0) * 2', { fields: { qty: null } })).toBe('0')
+		expect(run('fields.qty == null ? null : fields.qty * 2', { fields: { qty: null } })).toBeNull()
+	})
+})

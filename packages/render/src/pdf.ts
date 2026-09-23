@@ -53,3 +53,5 @@ export type {
 	PdfExtractionStatus,
 	PdfUnboundField,
 } from './pdf/read-form'
+export { checkPdfBindingFit, TYPICAL_TEXT } from './pdf/binding-fit'
+export type { CheckPdfBindingFitOptions, PdfBindingFitIssue, PdfBindingFitReason } from './pdf/binding-fit'
