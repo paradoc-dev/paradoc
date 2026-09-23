@@ -31,11 +31,11 @@ paradoc version <file> <bump-type>
 | `preminor` | Bump to next minor prerelease | 1.2.3 → 1.3.0-0 |
 | `prepatch` | Bump to next patch prerelease | 1.2.3 → 1.2.4-0 |
 | `prerelease` | Bump prerelease version | 1.2.3-0 → 1.2.3-1 |
-| `<version>` | Set specific version | 1.2.3 → 2.5.0 |
+| `<version>` | Set specific version | 1.2.3 → 2.5.0-rc.1 |
 
 ## Description
 
-The `version` command reads an artifact file, validates it, updates the version field according to semantic versioning rules, and writes the file back.
+The `version` command reads an artifact file, validates it, updates the version field according to semantic versioning rules, and writes the file back. Versions follow [SemVer 2.0.0](https://semver.org), so prerelease versions such as `2.0.0-rc.1` are valid artifact versions and can be published to a registry. An explicit version must be SemVer: `v2.0.0` is refused.
 
 ## Examples
 

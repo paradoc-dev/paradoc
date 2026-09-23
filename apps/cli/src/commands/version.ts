@@ -5,6 +5,7 @@ import { validate, toYAML } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { ensureRepo, fileExists } from '../utils/project.js'
 import { parseArtifactFile } from '../utils/artifact-file.js'
+import { isValidSemver } from '../utils/security.js'
 
 /**
  * Create the 'version' command
@@ -66,16 +67,11 @@ export function createVersionCommand(): Command {
           throw new Error('Artifact does not have a version field')
         }
 
-        // Validate current version is valid semver
-        if (!semver.valid(currentVersion)) {
-          throw new Error(`Invalid semver version: ${currentVersion}`)
-        }
-
         // Calculate new version
         let newVersion: string | null
 
-        // Check if bumpType is a specific version (e.g., "2.5.0")
-        if (semver.valid(bumpType)) {
+        // Check if bumpType is a specific version (e.g., "2.5.0" or "2.5.0-rc.1")
+        if (isValidSemver(bumpType)) {
           // User specified exact version
           newVersion = bumpType
         } else {

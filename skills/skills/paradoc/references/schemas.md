@@ -90,13 +90,13 @@ For more validation flags (`--silent`, `--json`, `--expect-kind`, `--schema-only
 
 ### Version
 
-- Pattern: `^[0-9]+\.[0-9]+\.[0-9]+$`
-- Semver `MAJOR.MINOR.PATCH`
+- SemVer 2.0.0: `MAJOR.MINOR.PATCH`, with optional prerelease (`-beta.1`) and build metadata (`+build.5`)
+- No leading zeros; `ARTIFACT_VERSION_PATTERN` in `@paradoc/schemas` is the rule
 - Max 200 chars
 
 | Valid | Invalid |
 |-------|---------|
-| `1.0.0`, `2.3.1`, `0.1.0` | `v1.0.0`, `1.0`, `1.0.0-beta` |
+| `1.0.0`, `2.3.1`, `0.1.0`, `1.0.0-beta`, `1.0.0-rc.1+build.5` | `v1.0.0`, `1.0`, `01.0.0`, `1.0.0-` |
 
 ### Field / layer / def / rule identifiers
 

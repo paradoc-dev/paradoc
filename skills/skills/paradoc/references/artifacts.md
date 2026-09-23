@@ -20,7 +20,7 @@ All four artifact types share these properties:
 | `name` | YES | string | Artifact identifier. Pattern: `^[A-Za-z0-9]([A-Za-z0-9]\|-[A-Za-z0-9])*$` |
 | `kind` | YES | enum | `"form"`, `"document"`, `"bundle"`, or `"checklist"` |
 | `$schema` | No | string | JSON Schema URI |
-| `version` | No | string | Semver: `^[0-9]+\.[0-9]+\.[0-9]+$` |
+| `version` | No | string | SemVer 2.0.0: `1.2.3`, `1.3.0-beta.1`, `1.0.0+build.5` |
 | `title` | No | string | Human-readable title (max 200 chars) |
 | `description` | No | string | Detailed description (max 2000 chars) |
 | `code` | No | string | Internal code (max 200 chars) |

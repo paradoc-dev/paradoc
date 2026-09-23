@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ARTIFACT_VERSION_PATTERN } from '../../primitives/version';
 import { ContentRefSchema } from './content-ref';
 
 export const ArtifactSchema = z.object({
@@ -13,8 +14,8 @@ export const ArtifactSchema = z.object({
 	version: z.string()
 		.min(1)
 		.max(200)
-		.regex(/^[0-9]+\.[0-9]+\.[0-9]+$/)
-		.describe('Artifact version (semantic versioning). Required for publishing to registry.')
+		.regex(ARTIFACT_VERSION_PATTERN)
+		.describe('Artifact version (SemVer 2.0.0, such as 1.2.3 or 1.3.0-beta.1). Required for publishing to registry.')
 		.optional(),
 	title: z.string()
 		.min(1)

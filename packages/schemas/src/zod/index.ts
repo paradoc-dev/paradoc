@@ -66,6 +66,7 @@ export {
 	RuntimeOrganizationSchema,
 	RuntimePersonSchema,
 	SignatureSchema,
+	ARTIFACT_VERSION_PATTERN,
 } from './primitives';
 
 // Expressions

@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { REGISTRY_VERSION_PATTERN } from './version';
+import { ARTIFACT_VERSION_PATTERN } from '../primitives/version';
 
 /**
  * Summary of a registry item (for the index)
@@ -24,7 +24,7 @@ export const RegistryItemSummarySchema = z.object({
 		z.literal('bundle'),
 	]).describe('Artifact kind'),
 	version: z.string()
-		.regex(REGISTRY_VERSION_PATTERN)
+		.regex(ARTIFACT_VERSION_PATTERN)
 		.describe('Semantic version'),
 	path: z.string()
 		.max(500)

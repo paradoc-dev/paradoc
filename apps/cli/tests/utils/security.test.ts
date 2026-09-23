@@ -273,6 +273,13 @@ describe('isValidSemver', () => {
     expect(isValidSemver('v1.0.0')).toBe(false)
     expect(isValidSemver('1.0.0.0')).toBe(false)
   })
+
+  it('rejects leading zeros, empty prerelease and trailing text', () => {
+    expect(isValidSemver('01.0.0')).toBe(false)
+    expect(isValidSemver('1.0.0-01')).toBe(false)
+    expect(isValidSemver('1.0.0-')).toBe(false)
+    expect(isValidSemver('1.0.0evil')).toBe(false)
+  })
 })
 
 describe('validateArtifactMetadata', () => {
@@ -509,7 +516,7 @@ describe('validateDownloadedArtifact', () => {
       }
       const result = validateDownloadedArtifact(artifact)
       expect(result.valid).toBe(true) // Non-critical
-      expect(result.warnings.some((w) => w.includes('not valid semver'))).toBe(true)
+      expect(result.warnings.some((w) => w.includes('not valid SemVer'))).toBe(true)
     })
 
     it('accepts valid semver version', () => {

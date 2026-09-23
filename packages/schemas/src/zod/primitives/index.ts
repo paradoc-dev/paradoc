@@ -11,3 +11,4 @@ export { PersonSchema } from './person';
 export { RuntimeOrganizationSchema, RuntimePersonSchema } from './runtime-party';
 export { PhoneSchema } from './phone';
 export { SignatureSchema } from './signature';
+export { ARTIFACT_VERSION_PATTERN } from './version';

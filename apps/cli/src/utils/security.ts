@@ -5,6 +5,7 @@
  * Uses local-fs for all filesystem operations.
  */
 
+import { ARTIFACT_VERSION_PATTERN } from '@paradoc/schemas'
 import { LocalFileSystem } from './local-fs.js'
 
 /**
@@ -89,16 +90,13 @@ export function sanitizeForDisplay(text: string): string {
 }
 
 /**
- * Validate a semantic version string
+ * Validate an artifact version against the shared SemVer 2.0.0 rule
  *
  * @param version - Version string to validate
- * @returns true if valid semver format, false otherwise
+ * @returns true if the version is valid SemVer, false otherwise
  */
 export function isValidSemver(version: string): boolean {
-  if (!version) return false
-  // Basic semver pattern: major.minor.patch with optional prerelease/metadata
-  const semverPattern = /^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$/
-  return semverPattern.test(version)
+  return ARTIFACT_VERSION_PATTERN.test(version)
 }
 
 /**
@@ -162,7 +160,7 @@ export function validateArtifactMetadata(metadata: {
   // Validate version
   if (metadata.version) {
     if (!isValidSemver(metadata.version)) {
-      errors.push(`Invalid version: "${metadata.version}". Must be valid semver (e.g., 1.0.0).`)
+      errors.push(`Invalid version: "${metadata.version}". Must be valid SemVer (e.g., 1.0.0 or 1.1.0-beta.1).`)
     }
     sanitized.version = metadata.version
   }
@@ -546,7 +544,7 @@ export function validateDownloadedArtifact(
     if (typeof artifact.version !== 'string') {
       errors.push("Field 'version' must be a string")
     } else if (!isValidSemver(artifact.version)) {
-      warnings.push(`Version "${artifact.version}" is not valid semver format (expected: X.Y.Z)`)
+      warnings.push(`Version "${artifact.version}" is not valid SemVer (e.g., 1.0.0 or 1.1.0-beta.1)`)
     }
   }
 
