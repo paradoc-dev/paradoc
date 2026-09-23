@@ -4,7 +4,6 @@ import type {
   BundleContentItem,
   CondExpr,
   Expression,
-  DefsSection,
   ScalarExpressionType,
 } from '@paradoc/types'
 import { parseExpression } from './expression-parser'
@@ -19,6 +18,7 @@ import {
   unknownVariableMessage,
   validateReservedDefinitionNames,
 } from './shared'
+import { defsDependencyExpressions } from '../../shared/defs-dependencies'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -87,24 +87,6 @@ function validateDefsExpression(
   return true
 }
 
-/**
- * Extracts expression strings from a DefsSection for dependency sorting.
- */
-function extractExpressionsForSorting(logic: DefsSection): Record<string, string> {
-  const result: Record<string, string> = {}
-
-  for (const [key, expr] of Object.entries(logic)) {
-    if (isScalarExpressionType(expr.type)) {
-      result[key] = expr.value as string
-    } else {
-      const valueObj = expr.value as unknown as Record<string, string | undefined>
-      const allExprs = Object.values(valueObj).filter((v): v is string => v !== undefined)
-      result[key] = allExprs.join(' ')
-    }
-  }
-
-  return result
-}
 
 /**
  * Gets the expression string for a defs key (for error reporting).
@@ -227,7 +209,7 @@ export function validateBundleDefs(
     }
 
     // Extract expressions for dependency sorting
-    const expressionsForSorting = extractExpressionsForSorting(bundle.defs)
+    const expressionsForSorting = defsDependencyExpressions(bundle.defs)
 
     // Check for circular dependencies in defs keys
     const { cyclicKeys } = topologicalSortDefsKeys(expressionsForSorting)

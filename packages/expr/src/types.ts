@@ -80,6 +80,7 @@ export type DiagnosticCode =
 	| 'non-deterministic' // random() and similar
 	| 'division-by-zero'
 	| 'limit-exceeded'
+	| 'invalid-aggregate' // a list path outside an aggregate, or an aggregate that does not read a list
 
 export interface Diagnostic {
 	readonly severity: Severity

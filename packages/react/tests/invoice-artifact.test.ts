@@ -8,7 +8,7 @@
  * different kind of document.
  */
 
-import { evaluateFormDefs } from "@paradoc/core";
+import { evaluateFormDefs, validateArtifact } from "@paradoc/core";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -51,21 +51,60 @@ describe("the invoice artifact", () => {
     expect(invoice.safeParseData(overflowInvoiceData as never).success).toBe(true);
   });
 
-  it("computes subtotal, tax and amount due from its own expressions", () => {
+  type Money = { amount: number; currency: string };
+  type Row = { taxable: boolean; amount: Money };
+
+  function totals(lineItems: Row[]) {
     const result = evaluateFormDefs(invoiceForm, {
-      fields: shortInvoiceData.fields,
+      fields: { ...shortInvoiceData.fields, lineItems },
       parties: shortInvoiceData.parties,
     });
     if (!("value" in result) || !result.value) throw new Error("the defs did not evaluate");
+    const defs = result.value.defsValues;
+    return {
+      issues: result.value.issues,
+      subtotal: defs.get("subtotal") as Money,
+      taxableSubtotal: defs.get("taxableSubtotal") as Money,
+      tax: defs.get("tax") as Money,
+      total: defs.get("total") as Money,
+    };
+  }
 
-    const subtotal = result.value.defsValues.get("subtotal") as { amount: number; currency: string };
-    const tax = result.value.defsValues.get("tax") as { amount: number };
-    const total = result.value.defsValues.get("total") as { amount: number };
+  const shortRows = shortInvoiceData.fields.lineItems as Row[];
 
-    expect(subtotal.currency).toBe("USD");
-    expect(subtotal.amount).toBe(shortInvoiceData.fields.subtotalAmount);
-    expect(tax.amount).toBeCloseTo(subtotal.amount * 0.0825, 6);
-    expect(total.amount).toBeCloseTo(subtotal.amount + tax.amount, 6);
+  it("passes authoring validation, aggregates included", () => {
+    expect(validateArtifact(invoiceForm)).toEqual({ value: invoiceForm });
+  });
+
+  it("derives its subtotal from the line items, with no hand-entered total", () => {
+    // 6 x 2200 + 11 x 2050 + 4 x 2050 + 3 x 1900 + 1 x 3400.
+    const { subtotal, tax, total } = totals(shortRows);
+    expect(subtotal).toEqual({ amount: 53050, currency: "USD" });
+    expect(tax.amount).toBeCloseTo(53050 * 0.0825, 6);
+    expect(total.amount).toBeCloseTo(53050 * 1.0825, 6);
+    expect(Object.keys(invoiceForm.fields ?? {})).not.toContain("subtotalAmount");
+  });
+
+  it("taxes only the rows marked taxable", () => {
+    // The subscription row, 3400, is not taxable.
+    const rows = shortRows.map((row, index) => (index === 4 ? { ...row, taxable: false } : row));
+    const { subtotal, taxableSubtotal, tax, total } = totals(rows);
+    expect(subtotal.amount).toBe(53050);
+    expect(taxableSubtotal).toEqual({ amount: 49650, currency: "USD" });
+    expect(tax.amount).toBeCloseTo(49650 * 0.0825, 6);
+    expect(total.amount).toBeCloseTo(53050 + 49650 * 0.0825, 6);
+  });
+
+  it("taxes nothing when no row is taxable", () => {
+    const { taxableSubtotal, tax } = totals(shortRows.map((row) => ({ ...row, taxable: false })));
+    expect(taxableSubtotal.amount).toBe(0);
+    expect(tax.amount).toBe(0);
+  });
+
+  it("refuses to add a row billed in another currency", () => {
+    const rows = [...shortRows, { ...shortRows[0]!, amount: { amount: 10, currency: "EUR" } }];
+    const result = evaluateFormDefs(invoiceForm, { fields: { ...shortInvoiceData.fields, lineItems: rows } });
+    expect("issues" in result && result.issues?.[0]?.message).toMatch(/more than one currency: EUR, USD/);
   });
 
   it("brands itself with a mark of its own, carried as bytes", () => {

@@ -13,13 +13,15 @@ import { T, type ExprType } from '../types'
 
 /**
  * How a function's return type is determined. Most are `fixed`; `commonOfArgs`
- * (coalesce) and `elementOf` (reserved for collection ops) depend on argument
- * types and are resolved by the checker.
+ * (coalesce), `elementOf` (reserved for collection ops), and `aggregate` (the
+ * list aggregates, typed from the aggregated path's element) depend on
+ * argument types and are resolved by the checker.
  */
 export type ReturnSpec =
 	| { readonly kind: 'fixed'; readonly type: ExprType }
 	| { readonly kind: 'commonOfArgs' }
 	| { readonly kind: 'elementOf'; readonly arg: number }
+	| { readonly kind: 'aggregate' }
 
 export interface ParamSpec {
 	readonly name: string
@@ -28,7 +30,7 @@ export interface ParamSpec {
 	readonly optional?: boolean
 }
 
-export type FnCategory = 'string' | 'number' | 'date' | 'collection' | 'domain' | 'logical'
+export type FnCategory = 'string' | 'number' | 'date' | 'collection' | 'aggregate' | 'domain' | 'logical'
 
 export interface FnSignature {
 	readonly name: string
@@ -44,14 +46,34 @@ export interface FnSignature {
 	readonly hostInjected?: boolean
 	/** All registered functions must be deterministic; non-determinism is rejected. */
 	readonly deterministic: boolean
+	/**
+	 * Evaluated over the rows of a list path with an optional same-list filter,
+	 * as in `sum(fields.items.amount, fields.items.taxable)`. `min` and `max`
+	 * aggregate only when their first argument is a path into a list; otherwise
+	 * they compare their arguments.
+	 */
+	readonly aggregate?: boolean
 }
 
 const fixed = (type: ExprType): ReturnSpec => ({ kind: 'fixed', type })
 
+/** A list aggregate: a path into a list plus an optional boolean filter over the same rows. */
+const aggregate = (name: string): FnSignature => ({
+	name,
+	category: 'aggregate',
+	params: [
+		{ name: 'values', type: T.unknown },
+		{ name: 'filter', type: T.boolean, optional: true },
+	],
+	returns: { kind: 'aggregate' },
+	aggregate: true,
+	deterministic: true,
+})
+
 /**
- * The default registry. List fields support indexing and `length`; higher-order
- * collection aggregates remain separate language work because they require
- * projection and predicate semantics.
+ * The default registry. List fields support indexing, `length`, and the fixed
+ * aggregate set (`sum`, `count`, `min`, `max`, `avg`, `any`, `all`). There are
+ * no lambdas, `map`, `filter`, or `reduce` constructs.
  */
 export const DEFAULT_SIGNATURES: readonly FnSignature[] = [
 	// --- string ---
@@ -183,6 +205,7 @@ export const DEFAULT_SIGNATURES: readonly FnSignature[] = [
 		params: [{ name: 'value', type: T.number }],
 		variadic: true,
 		returns: fixed(T.number),
+		aggregate: true,
 		deterministic: true,
 	},
 	{
@@ -191,8 +214,15 @@ export const DEFAULT_SIGNATURES: readonly FnSignature[] = [
 		params: [{ name: 'value', type: T.number }],
 		variadic: true,
 		returns: fixed(T.number),
+		aggregate: true,
 		deterministic: true,
 	},
+	// --- aggregates over list rows (min and max above also aggregate a list path) ---
+	aggregate('sum'),
+	aggregate('count'),
+	aggregate('avg'),
+	aggregate('any'),
+	aggregate('all'),
 	// --- date (host-injected as-of clock) ---
 	{
 		name: 'today',

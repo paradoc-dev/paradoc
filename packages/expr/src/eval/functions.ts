@@ -1,8 +1,10 @@
 /**
  * Built-in function implementations, keyed by the same names the registry
  * declares. The evaluator dispatches here; the party/witness domain functions
- * are NOT here (they are host-injected via the context). A conformance test
- * asserts these keys match the registry's non-domain functions exactly.
+ * are NOT here (they are host-injected via the context), and neither are the
+ * list aggregates, which read their first argument as a path (see
+ * `aggregate.ts`). `min` and `max` are here for their comparison form. A
+ * conformance test asserts these keys match the registry exactly.
  */
 
 import { Decimal, MAX_DECIMAL_SCALE } from '../decimal/decimal'
@@ -136,9 +138,12 @@ export const BUILTIN_IMPLS: Readonly<Record<string, Impl>> = {
 	addDays: (args) => Values.string(addDays(asString(arg(args, 0), 'addDays'), asNumber(arg(args, 1), 'addDays').toNumber())),
 }
 
+/** Compare the present arguments; null (absent) arguments are skipped, and none present is null. */
 function reduceNumbers(args: readonly Value[], fn: string, pick: (a: Decimal, b: Decimal) => Decimal): Value {
 	if (args.length === 0) throw new EvaluationError('arity', `${fn} requires at least one argument`)
-	let acc = asNumber(arg(args, 0), fn)
-	for (let i = 1; i < args.length; i++) acc = pick(acc, asNumber(arg(args, i), fn))
+	const present = args.filter((value) => value.kind !== 'null')
+	if (present.length === 0) return NULL
+	let acc = asNumber(present[0]!, fn)
+	for (let i = 1; i < present.length; i++) acc = pick(acc, asNumber(present[i]!, fn))
 	return Values.number(acc)
 }

@@ -16,10 +16,12 @@ import type {
   ScalarExpressionType,
 } from '@paradoc/types'
 import { inferPartyType } from '@/primitives/party'
-import type { EvaluationContext, NestedFieldValues, PartyContextEntry } from './types'
+import { ROW_VISIBILITY, type ContextRowVisibility, type EvaluationContext, type NestedFieldValues, type PartyContextEntry } from './types'
 import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { topologicalSortDefsKeys } from '../../design-time/type-checking/build-type-environment'
-import { evaluateExpressionValue, fromExpressionValue, markEvaluationContextReusable, wrapExpressionValue } from './expression-evaluator'
+import { isRowVisible } from '../../shared/list-paths'
+import { defsDependencyExpressions } from '../../shared/defs-dependencies'
+import { evaluateBooleanExpression, evaluateExpressionValue, withRowReferences, fromExpressionValue, markEvaluationContextReusable, wrapExpressionValue } from './expression-evaluator'
 import { Values, type Value } from '@paradoc/expr'
 import type { HostFunction, Registry } from '@paradoc/expr'
 import { ExpressionEvaluationError } from './errors'
@@ -230,34 +232,6 @@ function evaluateDefsExpression(
 }
 
 /**
- * Extracts expression strings from a DefsSection for dependency sorting.
- *
- * For scalar types, returns the value directly.
- * For object types, concatenates all property expressions.
- *
- * @param defs - The defs section
- * @returns Record of key → expression string(s) for sorting
- */
-function extractExpressionsForSorting(defs: DefsSection): Record<string, string> {
-  const result: Record<string, string> = {}
-
-  for (const [key, expr] of Object.entries(defs)) {
-    if (isScalarExpressionType(expr.type)) {
-      // Scalar: value is the expression string
-      result[key] = expr.value as string
-    } else {
-      // Object: concatenate all property expressions for dependency detection
-      // Use ' and ' as delimiter to create a valid parseable expression
-      const valueObj = expr.value as unknown as Record<string, string | undefined>
-      const allExprs = Object.values(valueObj).filter((v): v is string => v !== undefined)
-      result[key] = allExprs.join(' and ')
-    }
-  }
-
-  return result
-}
-
-/**
  * Evaluates defs keys in dependency order.
  *
  * Defs keys are evaluated in topological order so that if key A
@@ -269,6 +243,7 @@ function extractExpressionsForSorting(defs: DefsSection): Record<string, string>
  */
 function evaluateDefsKeys(
   defs: DefsSection | undefined,
+  fields: Form['fields'],
   baseContext: EvaluationContext
 ): Map<string, Value | undefined> {
 	const defsValues = new Map<string, Value | undefined>()
@@ -278,7 +253,7 @@ function evaluateDefsKeys(
   }
 
   // Extract expression strings for dependency sorting
-  const expressionsForSorting = extractExpressionsForSorting(defs)
+  const expressionsForSorting = defsDependencyExpressions(defs, fields)
 
   // Sort defs keys in dependency order
   const { sorted: sortedKeys } = topologicalSortDefsKeys(expressionsForSorting)
@@ -365,6 +340,41 @@ function evaluateDefsKeys(
  * // context.isAdult === true
  * ```
  */
+/**
+ * Row visibility for a form: a row is hidden when its list, a field above the
+ * list, or its item's `visible` condition is false. A condition that fails to
+ * evaluate keeps the row, the same default the form evaluator applies. A row
+ * whose visibility is being decided cannot take part in deciding it, so a
+ * condition that aggregates its own rows fails rather than recursing.
+ */
+function formRowVisibility(form: Form): ContextRowVisibility {
+  const deciding = new Set<string>()
+  return (listPath, indices, context) => {
+    const key = `${listPath}@${indices.join(',')}`
+    if (deciding.has(key)) throw new Error(`The visibility of ${listPath} rows depends on those rows`)
+    deciding.add(key)
+    try {
+      return isRowVisible(form.fields, listPath, indices, context, (condition, rows) =>
+        evaluateBooleanExpression(
+          condition,
+          rows
+            ? withRowReferences(context, {
+                item: rows.item.value,
+                itemOrigin: rows.item.origin,
+                hasParent: rows.parent !== undefined,
+                parent: rows.parent?.value,
+                parentOrigin: rows.parent?.origin,
+              })
+            : context,
+          true
+        )
+      )
+    } finally {
+      deciding.delete(key)
+    }
+  }
+}
+
 export function buildFormBaseContext(form: Form, data: FormDataPayload): EvaluationContext {
   // Build fields context structure
   const fields = buildFieldsContext(form.fields, data.fields)
@@ -381,6 +391,7 @@ export function buildFormBaseContext(form: Form, data: FormDataPayload): Evaluat
 		...(data.context?.asOf && { asOf: data.context.asOf }),
 		...(data.expressionFunctions && { expressionFunctions: data.expressionFunctions }),
 		...(data.expressionRegistry && { expressionRegistry: data.expressionRegistry }),
+		[ROW_VISIBILITY]: formRowVisibility(form),
 	}
 }
 
@@ -388,7 +399,7 @@ export function buildFormContext(form: Form, data: FormDataPayload): EvaluationC
   const baseContext = buildFormBaseContext(form, data)
 
   // Evaluate defs keys and add to context
-  const defsValues = evaluateDefsKeys(form.defs, baseContext)
+  const defsValues = evaluateDefsKeys(form.defs, form.fields, baseContext)
 
   // Merge public defs values into the same complete context used by downstream gates.
 	const context = baseContext

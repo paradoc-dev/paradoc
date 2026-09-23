@@ -22,6 +22,7 @@ import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { evaluateFormRules } from '@/logic/runtime/evaluation/rule-evaluator'
 import { evaluatePartyRequiredness } from '@/validation/party'
 import { buildFieldDependencyGraph, transitiveBlockers } from './dependency-graph'
+import { fillNodeOf } from '@/logic/shared/list-paths'
 
 /** A field/annex's effective status from its visibility and required flags. */
 function statusOf(visible: boolean, required: boolean): FillItemStatus {
@@ -70,7 +71,8 @@ function extractDependencies(expr: boolean | string | undefined): string[] {
 
 /**
  * Builds a dependency map: targetId → Set of field/def ids it depends on for visibility.
- * Only visibility expressions matter for "blocked" computation.
+ * Only visibility expressions matter for "blocked" computation. A reference into
+ * a list's rows depends on the list field.
  */
 export function buildDependencyMap(form: Form): Map<string, Set<string>> {
 	const deps = new Map<string, Set<string>>()
@@ -82,7 +84,7 @@ export function buildDependencyMap(form: Form): Map<string, Set<string>> {
 			const fullId = prefix ? `${prefix}.${fieldId}` : fieldId
 			const visibleDeps = extractDependencies(field.visible)
 			if (visibleDeps.length > 0) {
-				deps.set(fullId, new Set(visibleDeps))
+				deps.set(fullId, new Set(visibleDeps.map((dep) => fillNodeOf(form.fields, dep))))
 			}
 			if (field.type === 'fieldset') {
 				walkFields((field as FieldsetField).fields, fullId)
@@ -97,7 +99,7 @@ export function buildDependencyMap(form: Form): Map<string, Set<string>> {
 		for (const [annexId, annex] of Object.entries(form.annexes)) {
 			const visibleDeps = extractDependencies(annex.visible)
 			if (visibleDeps.length > 0) {
-				deps.set(annexId, new Set(visibleDeps))
+				deps.set(annexId, new Set(visibleDeps.map((dep) => fillNodeOf(form.fields, dep))))
 			}
 		}
 	}

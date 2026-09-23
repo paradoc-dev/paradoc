@@ -144,7 +144,7 @@ Numbers (decimal-aware):
 |----------|---------|
 | `round(value, digits?)` | number |
 | `floor(value)` / `ceil(value)` / `abs(value)` | number |
-| `min(a, b, …)` / `max(a, b, …)` | number |
+| `min(a, b, …)` / `max(a, b, …)` | number; absent (`null`) arguments are skipped, and all absent is `null` |
 
 Dates:
 
@@ -168,6 +168,77 @@ To replace the old `indexOf(...) >= 0` idiom, use `contains(...)`.
 
 ---
 
+## Aggregating Lists
+
+A list field holds rows. Seven functions compute one value from them:
+
+| Function | Values | Returns | No rows |
+|----------|--------|---------|---------|
+| `sum(path, filter?)` | number, percentage, money | the same type | `0` |
+| `count(path, filter?)` | any row | number | `0` |
+| `avg(path, filter?)` | number, percentage, money | the same type | `null` |
+| `min(path, filter?)` / `max(path, filter?)` | number, percentage, money, date, datetime, time | the same type | `null` |
+| `any(path, filter?)` | boolean | boolean | `false` |
+| `all(path, filter?)` | boolean | boolean | `true` |
+
+The first argument is a path into a list. `fields.lineItems.amount` reads the `amount` of every row, and `fields.lineItems` on its own is the rows, which is what `count` usually takes. The second argument is an optional filter: a boolean expression over the same rows, evaluated once per row, so `fields.lineItems.taxable` in the filter means that row's `taxable`.
+
+```ts
+const invoice = p.form()
+  .name("invoice")
+  .fields({
+    currency: { type: "text" },
+    lineItems: {
+      type: "list",
+      item: {
+        type: "fieldset",
+        fields: {
+          description: { type: "text" },
+          amount: { type: "money" },
+          taxable: { type: "boolean" },
+        },
+      },
+    },
+  })
+  .defs({
+    subtotal: {
+      type: "money",
+      value: { amount: "sum(fields.lineItems.amount).amount", currency: "fields.currency" },
+    },
+    taxableTotal: { type: "number", value: "sum(fields.lineItems.amount.amount, fields.lineItems.taxable)" },
+    rowCount: { type: "number", value: "count(fields.lineItems)" },
+    everyRowPriced: { type: "boolean", value: "count(fields.lineItems, fields.lineItems.amount.amount <= 0) == 0" },
+  })
+  .build()
+
+const draft = invoice.fill({
+  fields: {
+    currency: "USD",
+    lineItems: [
+      { description: "Design", amount: { amount: 1200, currency: "USD" }, taxable: true },
+      { description: "Hosting", amount: { amount: 99.5, currency: "USD" }, taxable: false },
+    ],
+  },
+})
+draft.getFillState().defsValues
+// { subtotal: { amount: 1299.5, currency: "USD" }, taxableTotal: 1200, rowCount: 2, everyRowPriced: true }
+```
+
+Aggregates work anywhere an expression does: in `defs`, in `visible` and `required`, and in validation `rules`.
+
+A path through nested lists collects values from every level: `sum(fields.orders.parts.cost)` totals every part of every order. A filter can test either level, and each test reads the row at its own depth: `sum(fields.orders.parts.cost, fields.orders.rush)` totals the parts of rush orders. Inside a list item, a [row reference](#row-references) aggregates the current row's own list: `required: "sum(item.parts.cost) > 1000"` on an order's field reads that order's parts only.
+
+The rules are fixed:
+
+- **Hidden rows never count.** A row is hidden when its list, a field above the list, or the list's `item` is not visible. Showing the row again brings it back on the next evaluation.
+- **Absent values are skipped.** `sum`, `avg`, `min`, and `max` ignore a `null` value; `count` still counts the row. `all` treats an absent boolean as not true.
+- **Money keeps its currency.** A sum of money is money in the same currency, with exact decimals. Values in more than one currency fail evaluation with an error naming the currencies found; nothing is converted. A money sum over no rows is the number `0`, since there is no currency to give it.
+- **`min` and `max` keep their other form.** Given anything other than a path into a list, they compare their arguments as before.
+
+The checker enforces the shape. An aggregate over the wrong type (`sum` of a text value), a filter that is not boolean, a path that is not a list, and a filter that reads a different list are authoring errors. So is a path into a list used outside an aggregate: `fields.lineItems.amount > 0` reads every row, so the checker asks for `sum(...)`, `any(...)`, or `count(...)` instead. There are no lambdas, and no `map`, `filter`, or `reduce`.
+
+---
+
 ## Types
 
 Field references carry their type into the expression, and the checker enforces it.
@@ -188,6 +259,7 @@ Because evaluation and checking share one type system, mistakes surface when the
 - unknown functions
 - type mismatches (comparing a string field to a number)
 - gates that don't evaluate to a boolean
+- misused list aggregates, and list values read outside one
 
 ```ts
 // Flagged at authoring time: "Unknown variable: fields.hasVehicle.value"

@@ -88,6 +88,33 @@ check('fields.age + fields.unknownField', env)
 
 For expressions used as gates (`visible`, `required`, `include`, rules), `checkBooleanGate` adds a `non-boolean-gate` error when the result isn't boolean. `T` is the type constructor (`T.number`, `T.string`, `T.array(T.string)`, etc.) and `createTypeEnv` builds a simple path-to-type environment; hosts build richer ones.
 
+## Aggregates
+
+`sum`, `count`, `min`, `max`, `avg`, `any`, and `all` read their first argument as a path into a list rather than as a value; the [Logic](/concepts/logic#aggregating-lists) page covers the language rules. Two things are the host's to supply.
+
+**Row visibility.** Pass `rowVisible` to `createContext` to keep hidden rows out. It receives the list's path and the row's position at every list level, and every row counts when it is absent. `@paradoc/core` supplies it from the artifact's `visible` conditions.
+
+```ts
+const ctx = createContext(
+  { fields: { items: [{ qty: 2 }, { qty: 5 }] } },
+  { rowVisible: (listPath, indices) => !(listPath === 'fields.items' && indices[0] === 1) },
+)
+evaluateExpression('sum(fields.items.qty)', ctx) // 2: the second row is hidden
+```
+
+**Row types.** A `TypeEnv` types a list as `T.array(...)` and registers each item member under the list's own path, typed per row. The checker then knows that `fields.items.qty` is a number read from every row: accepted inside an aggregate, reported with the `invalid-aggregate` code anywhere else.
+
+```ts
+const env = createTypeEnv({
+  'fields.items': T.array(T.object),
+  'fields.items.qty': T.number,
+})
+check('sum(fields.items.qty)', env).type    // { kind: 'number' }
+check('fields.items.qty > 1', env).diagnostics[0].code // 'invalid-aggregate'
+```
+
+A money sum over rows in more than one currency fails with the `currency-mismatch` evaluation code.
+
 ## Exact decimals
 
 `Decimal` is exact-decimal arithmetic backed by `bigint`. No floating point is used, so `19.95 * 3` is exactly `59.85` and money math doesn't accumulate rounding error. The constructor is private; build values with `Decimal.fromString` or `Decimal.fromInt`.

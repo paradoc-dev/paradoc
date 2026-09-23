@@ -1,16 +1,22 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_SIGNATURES, BUILTIN_IMPLS } from '../src/index'
+import { AGGREGATE_NAMES, DEFAULT_SIGNATURES, BUILTIN_IMPLS } from '../src/index'
 
 /**
  * The drift guard. The design-time registry and the runtime-callable set must
  * be identical, so a function can never type-check green and then throw at
- * runtime. Domain (party/witness) functions are host-injected, so they are the
- * only registry entries without a builtin implementation.
+ * runtime. Domain (party/witness) functions are host-injected and the list
+ * aggregates are evaluated over paths, so they are the registry entries
+ * without a builtin implementation.
  */
 describe('registry / implementation conformance', () => {
 	const implNames = new Set(Object.keys(BUILTIN_IMPLS))
-	const nonDomain = DEFAULT_SIGNATURES.filter((s) => s.category !== 'domain').map((s) => s.name)
+	const nonDomain = DEFAULT_SIGNATURES.filter((s) => s.category !== 'domain' && s.category !== 'aggregate').map((s) => s.name)
+
+	it('every registered aggregate is evaluated over list paths, and every path aggregate is registered', () => {
+		const registered = DEFAULT_SIGNATURES.filter((s) => s.aggregate).map((s) => s.name).sort()
+		expect(registered).toEqual([...AGGREGATE_NAMES].sort())
+	})
 	const domain = DEFAULT_SIGNATURES.filter((s) => s.category === 'domain').map((s) => s.name)
 
 	it('every non-domain registry function has a builtin implementation', () => {

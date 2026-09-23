@@ -49,5 +49,10 @@ Notes:
   Functions are not first-class values.
 - `[index]` addresses an array element. Reference analysis marks indexed paths
   as dynamic because their complete dependency cannot always be known statically.
-- Deliberately absent: `=` assignment, lambdas, `&&` / `||`, and any
-  non-deterministic builtin. These are reported as errors by the checker.
+- The aggregates `sum`, `count`, `min`, `max`, `avg`, `any`, and `all` are
+  ordinary calls whose first argument is read as a path into a list
+  (`sum(fields.items.amount)`) and whose optional second argument is a boolean
+  filter over the same rows. They need no grammar of their own.
+- Deliberately absent: `=` assignment, lambdas, `map` / `filter` / `reduce`,
+  `&&` / `||`, and any non-deterministic builtin. These are reported as errors
+  by the checker.

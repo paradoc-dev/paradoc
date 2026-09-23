@@ -27,6 +27,7 @@ import {
   withRowScopeTypes,
 } from '../type-checking'
 import { validateExpression, validateReservedDefinitionNames } from './shared'
+import { defsDependencyExpressions } from '../../shared/defs-dependencies'
 
 /** Scalar expression types (value is a string expression) */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -704,34 +705,6 @@ function validateDefsExpression(
 }
 
 /**
- * Extracts expression strings from a DefsSection for dependency sorting.
- *
- * For scalar types, returns the value directly.
- * For object types, concatenates all property expressions.
- *
- * @param logic - The defs section
- * @returns Record of key → expression string(s) for sorting
- */
-function extractExpressionsForSorting(logic: DefsSection): Record<string, string> {
-  const result: Record<string, string> = {}
-
-  for (const [key, expr] of Object.entries(logic)) {
-    if (isScalarExpressionType(expr.type)) {
-      // Scalar: value is the expression string
-      result[key] = expr.value as string
-    } else {
-      // Object: concatenate all property expressions for dependency detection
-      // Use ' and ' as delimiter to create a valid parseable expression
-      const valueObj = expr.value as unknown as Record<string, string | undefined>
-      const allExprs = Object.values(valueObj).filter((v): v is string => v !== undefined)
-      result[key] = allExprs.join(' and ')
-    }
-  }
-
-  return result
-}
-
-/**
  * Gets the expression string for a defs key (for error reporting).
  */
 function getExpressionForKey(expr: Expression): string {
@@ -827,7 +800,7 @@ export function validateFormDefs(
     }
 
     // Extract expressions for dependency sorting
-    const expressionsForSorting = extractExpressionsForSorting(form.defs)
+    const expressionsForSorting = defsDependencyExpressions(form.defs, form.fields)
 
     // Check for circular dependencies in defs keys
     const { cyclicKeys } = topologicalSortDefsKeys(expressionsForSorting)

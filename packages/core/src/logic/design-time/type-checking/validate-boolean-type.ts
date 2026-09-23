@@ -52,15 +52,16 @@ export function validateBooleanType(expression: string, environment: TypeEnv): T
 
   // A definite type problem (non-boolean result, or a type mismatch) is an
   // error. An unresolved reference or syntax issue cannot be verified, so it
-  // remains a warning; unknown functions and arity errors are definite authoring
-  // mistakes. Unknown variables are also reported by the separate
+  // remains a warning; unknown functions, arity errors, and misused list
+  // aggregates are definite authoring mistakes. Unknown variables are also reported by the separate
   // syntax/variable validation pass.
   const hard = diagnostics.find(
     (d) =>
       d.code === 'non-boolean-gate' ||
       d.code === 'type-mismatch' ||
       d.code === 'unknown-function' ||
-      d.code === 'arity'
+      d.code === 'arity' ||
+      d.code === 'invalid-aggregate'
   )
   if (hard) {
     return {

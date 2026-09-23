@@ -20,11 +20,11 @@
  * them. Their addresses and the customer's accounts contact are fields,
  * because the party schema does not carry either.
  *
- * The one limitation the other priced samples record applies here too. The
- * expression language indexes lists and reads their length, but it has no
- * aggregate over a list, so a subtotal cannot be expressed as a def.
- * `subtotalAmount` is a field the caller materializes with `computeLineAmounts`,
- * and the artifact computes tax and total from it. See the package README.
+ * The totals are the artifact's own. `subtotal` sums the line-item amounts and
+ * `taxableSubtotal` sums only the rows marked taxable, so tax applies to what is
+ * taxable and nothing else; a row in another currency fails the sum rather than
+ * being added in. Each row's own `amount` is still multiplied out by the caller
+ * with `computeLineAmounts`.
  *
  * Like the purchase order, this composition does not wrap itself in a `Bundle`:
  * it renders bare so a caller who puts it inside a packet supplies the bundle.
@@ -225,11 +225,18 @@ export const invoiceSpec = {
             required: true,
             visible: true,
           },
+          taxable: {
+            type: "boolean",
+            label: "Taxable",
+            description: "Whether sales tax applies to this row.",
+            required: true,
+            visible: true,
+          },
           amount: {
             type: "money",
             label: "Amount",
             description:
-              "The row multiplied out. Derived rather than answered, like `subtotalAmount` and for the same reason: a filler supplies the quantity and the unit price, and `computeLineAmounts` does the arithmetic.",
+              "The row multiplied out. Derived rather than answered: a filler supplies the quantity and the unit price, and `computeLineAmounts` does the arithmetic.",
             min: 0,
             required: false,
             visible: false,
@@ -237,19 +244,10 @@ export const invoiceSpec = {
         },
       },
     },
-    subtotalAmount: {
-      type: "number",
-      label: "Subtotal amount",
-      description:
-        "Sum of the line-item amounts. Materialized by the caller because the expression language has no list aggregate. Derived rather than answered, so it is invisible and not required: no session asks for it and nothing demands it of a filler.",
-      min: 0,
-      required: false,
-      visible: false,
-    },
     taxRatePercent: {
       type: "percentage",
       label: "Tax rate",
-      description: "Sales-tax rate applied to the subtotal, as a percentage.",
+      description: "Sales-tax rate applied to the taxable subtotal, as a percentage.",
       min: 0,
       max: 100,
       required: true,
@@ -278,16 +276,25 @@ export const invoiceSpec = {
       label: "Subtotal",
       description: "The line-item total before tax.",
       value: {
-        amount: "fields.subtotalAmount",
+        amount: "sum(fields.lineItems.amount).amount",
+        currency: "fields.currency",
+      },
+    },
+    taxableSubtotal: {
+      type: "money",
+      label: "Taxable subtotal",
+      description: "The total of the rows sales tax applies to.",
+      value: {
+        amount: "coalesce(sum(fields.lineItems.amount, fields.lineItems.taxable).amount, 0)",
         currency: "fields.currency",
       },
     },
     tax: {
       type: "money",
       label: "Tax",
-      description: "Sales tax on the subtotal at the quoted rate.",
+      description: "Sales tax on the taxable subtotal at the quoted rate.",
       value: {
-        amount: "fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "taxableSubtotal.amount * fields.taxRatePercent / 100",
         currency: "fields.currency",
       },
     },
@@ -296,7 +303,7 @@ export const invoiceSpec = {
       label: "Amount due",
       description: "What the customer owes.",
       value: {
-        amount: "fields.subtotalAmount + fields.subtotalAmount * fields.taxRatePercent / 100",
+        amount: "subtotal.amount + tax.amount",
         currency: "fields.currency",
       },
     },

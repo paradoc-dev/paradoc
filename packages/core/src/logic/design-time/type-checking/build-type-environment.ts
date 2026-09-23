@@ -24,6 +24,7 @@ import { check, createTypeEnv, T, type ExprType, type TypeEnv } from '@paradoc/e
 import { parseExpression } from '../validation/expression-parser'
 import { isInlineBundleArtifact, isFormArtifact, isBundleArtifact } from '../validation/shared'
 import { topologicalSort } from '../../shared/topological-sort'
+import { defsDependencyExpressions } from '../../shared/defs-dependencies'
 
 /** Scalar expression types (value is a string expression). */
 const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
@@ -194,6 +195,30 @@ function registerDefType(
   }
 }
 
+/**
+ * Registers the members of one field's value under `path`: complex-type
+ * properties and fieldset children. A list's item members are registered under
+ * the list's own path, typed per row, so `fields.items.amount` is the type of
+ * one row's amount; the checker only accepts such a path inside an aggregate.
+ */
+function registerMemberTypes(field: FormField, path: string, acc: Record<string, ExprType>): void {
+  const props = COMPLEX_PROPERTY_TYPES[field.type]
+  if (props) {
+    for (const [prop, propType] of Object.entries(props)) {
+      acc[`${path}.${prop}`] = propType
+    }
+  }
+
+  if (field.type === 'fieldset') {
+    const fieldset = field as FieldsetField
+    if (fieldset.fields) {
+      registerFieldTypes(fieldset.fields, path, acc)
+    }
+  } else if (field.type === 'list') {
+    registerMemberTypes(field.item, path, acc)
+  }
+}
+
 /** Registers field reference paths and their types into the accumulator. */
 function registerFieldTypes(
   fields: Record<string, FormField> | undefined,
@@ -205,20 +230,7 @@ function registerFieldTypes(
   for (const [fieldId, field] of Object.entries(fields)) {
     const fieldPath = `${prefix}.${fieldId}`
     acc[fieldPath] = fieldExprType(field)
-
-    const props = COMPLEX_PROPERTY_TYPES[field.type]
-    if (props) {
-      for (const [prop, propType] of Object.entries(props)) {
-        acc[`${fieldPath}.${prop}`] = propType
-      }
-    }
-
-    if (field.type === 'fieldset') {
-      const fieldset = field as FieldsetField
-      if (fieldset.fields) {
-        registerFieldTypes(fieldset.fields, fieldPath, acc)
-      }
-    }
+    registerMemberTypes(field, fieldPath, acc)
   }
 }
 
@@ -287,24 +299,6 @@ export function withRowScopeTypes(env: TypeEnv, scope: ListRowScope): TypeEnv {
 // Topological sort of defs keys (circular-dependency detection)
 // ============================================================================
 
-function getExpressionString(expr: Expression): string {
-  if (isScalarExpressionType(expr.type)) {
-    return expr.value as string
-  }
-  const valueObj = expr.value as unknown as Record<string, string | undefined>
-  return Object.values(valueObj)
-    .filter((v): v is string => v !== undefined)
-    .join(' and ')
-}
-
-function extractExpressionsForSorting(logic: DefsSection): Record<string, string> {
-  const result: Record<string, string> = {}
-  for (const [key, expr] of Object.entries(logic)) {
-    result[key] = getExpressionString(expr)
-  }
-  return result
-}
-
 /**
  * Result of topological sorting defs keys.
  */
@@ -362,7 +356,7 @@ function inferDefsInto(
   acc: Record<string, ExprType>,
   keyPrefix: string
 ): void {
-  const { sorted } = topologicalSortDefsKeys(extractExpressionsForSorting(defs))
+  const { sorted } = topologicalSortDefsKeys(defsDependencyExpressions(defs))
   for (const key of sorted) {
     const expr = defs[key]
     if (!expr) continue

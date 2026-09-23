@@ -10,6 +10,7 @@ import { parse } from '../parser/parser'
 import type { Diagnostic } from '../types'
 import { EvaluationError, type EvalErrorCode } from './errors'
 import { BUILTIN_IMPLS } from './functions'
+import { evaluateAggregate, isAggregateName, resolveScopedMember } from './aggregate'
 import { NULL, Values, truthy, valueEquals, valueToString, type Value } from './values'
 import type { EvaluationContext } from './context'
 import { buildRegistry } from '../registry/registry'
@@ -50,6 +51,7 @@ function typeOfValue(value: Value): ExprType {
 function resolvedReturnType(sig: ReturnType<NonNullable<EvaluationContext['registry']>['get']>, args: readonly Value[]): ExprType | undefined {
 	if (!sig) return undefined
 	if (sig.returns.kind === 'fixed') return sig.returns.type
+	if (sig.returns.kind === 'aggregate') return undefined
 	if (sig.returns.kind === 'elementOf') {
 		const value = args[sig.returns.arg]
 		return value?.kind === 'array' && value.value[0] ? typeOfValue(value.value[0]) : undefined
@@ -87,6 +89,8 @@ function evaluateNode(node: Expr, ctx: EvaluationContext): Value {
 		case 'Identifier':
 			return ctx.lookup(node.name) ?? NULL
 		case 'Member': {
+			const scoped = resolveScopedMember(node, ctx)
+			if (scoped) return scoped
 			const obj = evaluate(node.object, ctx)
 			if (obj.kind === 'object') return obj.value.get(node.property) ?? NULL
 			return NULL // null-safe: missing/non-object parent yields null
@@ -238,6 +242,12 @@ function evalCall(node: Extract<Expr, { kind: 'Call' }>, ctx: EvaluationContext)
 		throw new EvaluationError('arity', `${node.callee} expects ${maximum === Infinity ? `at least ${required}` : required === maximum ? String(required) : `${required} to ${maximum}`} argument(s), got ${node.args.length}`)
 	}
 	const explicitlyOverridden = Boolean(ctx.registry && sig !== DEFAULT_REGISTRY.get(node.callee))
+	if (sig.aggregate && isAggregateName(node.callee) && !explicitlyOverridden) {
+		const aggregated = evaluateAggregate(node.callee, node, ctx, evaluate)
+		if (aggregated) return aggregated
+		// `min`/`max` over plain arguments compare them, skipping nulls.
+		return BUILTIN_IMPLS[node.callee]!(node.args.map((a) => evaluate(a, ctx)), ctx)
+	}
 	if (node.callee === 'coalesce' && !explicitlyOverridden) {
 		for (const arg of node.args) {
 			const value = evaluate(arg, ctx)

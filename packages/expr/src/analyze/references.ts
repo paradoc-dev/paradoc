@@ -11,6 +11,7 @@
  */
 
 import type { Expr } from '../ast/nodes'
+import { staticPath } from '../ast/paths'
 
 export interface References {
 	/** Dotted paths rooted at an identifier, sorted and de-duplicated. */
@@ -19,15 +20,6 @@ export interface References {
 	readonly fullyStatic: boolean
 }
 
-/** The dotted path of an identifier-rooted member chain, or null if not static. */
-function staticPath(node: Expr): string | null {
-	if (node.kind === 'Identifier') return node.name
-	if (node.kind === 'Member') {
-		const base = staticPath(node.object)
-		return base === null ? null : `${base}.${node.property}`
-	}
-	return null
-}
 
 export function extractReferences(ast: Expr): References {
 	const paths = new Set<string>()

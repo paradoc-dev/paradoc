@@ -53,26 +53,33 @@ export function collectFieldPaths(
 
     // All fields are directly accessible at runtime
     paths.add(fieldPath)
-
-    // Add nested property paths for complex types
-    const nestedProps = COMPLEX_TYPE_PROPERTIES[field.type]
-    if (nestedProps) {
-      for (const prop of nestedProps) {
-        paths.add(`${fieldPath}.${prop}`)
-      }
-    }
-
-    // Recurse into fieldsets
-    if (field.type === 'fieldset') {
-      const fieldset = field as FieldsetField
-      if (fieldset.fields) {
-        const nestedPaths = collectFieldPaths(fieldset.fields, fieldPath)
-        nestedPaths.forEach((p) => paths.add(p))
-      }
-    }
+    collectMemberPaths(field, fieldPath, paths)
   }
 
   return paths
+}
+
+/**
+ * Adds the member paths of one field's value: complex-type properties,
+ * fieldset children, and a list item's members under the list's own path
+ * (`fields.items.amount`), which aggregates read across the rows.
+ */
+function collectMemberPaths(field: FormField, fieldPath: string, paths: Set<string>): void {
+  const nestedProps = COMPLEX_TYPE_PROPERTIES[field.type]
+  if (nestedProps) {
+    for (const prop of nestedProps) {
+      paths.add(`${fieldPath}.${prop}`)
+    }
+  }
+
+  if (field.type === 'fieldset') {
+    const fieldset = field as FieldsetField
+    if (fieldset.fields) {
+      collectFieldPaths(fieldset.fields, fieldPath).forEach((p) => paths.add(p))
+    }
+  } else if (field.type === 'list') {
+    collectMemberPaths(field.item, fieldPath, paths)
+  }
 }
 
 /**

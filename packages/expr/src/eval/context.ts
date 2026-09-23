@@ -18,6 +18,14 @@ export interface AsOf {
 
 export type HostFunction = (args: readonly Value[]) => Value
 
+/**
+ * Whether one row of a list takes part in aggregation. `listPath` is the
+ * list's static path (`fields.items`, `fields.items.parts`) and `indices` the
+ * row's position at every list level from the root (`[2, 0]` is the first part
+ * of the third item). Rows the host reports hidden never contribute.
+ */
+export type RowVisibility = (listPath: string, indices: readonly number[]) => boolean
+
 export interface EvaluationContext {
 	/** Resolve a top-level identifier (e.g. `fields`, a defs key) or undefined. */
 	lookup(name: string): Value | undefined
@@ -26,12 +34,15 @@ export interface EvaluationContext {
 	readonly hostFunctions?: Readonly<Record<string, HostFunction>>
 	/** Function signatures used by this evaluation, shared with the checker. */
 	readonly registry?: Registry
+	/** Row visibility for aggregates; every row is included when absent. */
+	readonly rowVisible?: RowVisibility
 }
 
 export interface ContextOptions {
 	readonly asOf?: AsOf
 	readonly hostFunctions?: Readonly<Record<string, HostFunction>>
 	readonly registry?: Registry
+	readonly rowVisible?: RowVisibility
 }
 
 /** Build a context from a plain host data object (e.g. `{ fields, ...defs }`). */
@@ -43,5 +54,6 @@ export function createContext(data: Record<string, unknown>, opts: ContextOption
 		asOf: opts.asOf,
 		hostFunctions: opts.hostFunctions,
 		registry: opts.registry,
+		rowVisible: opts.rowVisible,
 	}
 }

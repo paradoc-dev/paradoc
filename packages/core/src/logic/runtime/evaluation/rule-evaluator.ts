@@ -9,7 +9,7 @@
 
 import type { Form, ValidationRule, RulesSection, RuleSeverity } from '@paradoc/types'
 import { evaluateExpression } from './expression-evaluator'
-import type { EvaluationContext } from './types'
+import { ROW_VISIBILITY, type EvaluationContext } from './types'
 
 // ============================================================================
 // Types
@@ -87,7 +87,9 @@ export function buildRuleContext(
   // - Qualified: `fields.ssn` (with fields prefix)
   context.fields = fullContext.fields
 
-  return context
+  // Aggregates in rules skip the same hidden rows as everywhere else.
+  const rowVisibility = fullContext[ROW_VISIBILITY]
+  return rowVisibility ? Object.assign(context, { [ROW_VISIBILITY]: rowVisibility }) : context
 }
 
 // ============================================================================

@@ -108,7 +108,7 @@ function build(
   invoiceNumber: string,
   notes: string
 ): InvoiceData {
-  const { lineItems, subtotalAmount } = computeLineAmounts(items, CURRENCY);
+  const { lineItems } = computeLineAmounts(items, CURRENCY);
   return {
     fields: {
       invoiceNumber,
@@ -133,8 +133,7 @@ function build(
       customerContact: { name: "Marisol Vega", firstName: "Marisol", lastName: "Vega", title: "Ms." },
       purchaseOrderNumber: "PO-2026-0512",
       currency: CURRENCY,
-      lineItems,
-      subtotalAmount,
+      lineItems: lineItems.map((item) => ({ ...item, taxable: true })),
       taxRatePercent: TAX_RATE_PERCENT,
       paymentTerms:
         "Payment is due 30 days from the issue date, by transfer to the account on file. Late amounts carry interest at 1.5 percent a month.",

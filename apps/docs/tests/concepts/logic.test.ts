@@ -2,7 +2,7 @@
  * Tests for code snippets in concepts/logic.mdx
  */
 import { describe, test, expect } from 'vitest'
-import { p } from '@paradoc/sdk'
+import { p, validate } from '@paradoc/sdk'
 
 /** Find an item's runtime state in a draft's fill state, across all buckets. */
 function fieldState(draft: { getFillState: () => ReturnType<DraftFillState> }, key: string) {
@@ -102,6 +102,80 @@ describe('Logic Concept', () => {
 
       const filled2 = form.fill({ fields: { age: 21, drivingLicense: 'A-12345', parentConsent: false } })
       expect(filled2.getField('age')).toBe(21)
+    })
+  })
+
+  // ============================================================================
+  // Aggregating Lists
+  // ============================================================================
+
+  describe('aggregating lists', () => {
+    const invoice = p
+      .form()
+      .name('invoice')
+      .fields({
+        currency: { type: 'text' },
+        lineItems: {
+          type: 'list',
+          item: {
+            type: 'fieldset',
+            fields: {
+              description: { type: 'text' },
+              amount: { type: 'money' },
+              taxable: { type: 'boolean' },
+            },
+          },
+        },
+      })
+      .defs({
+        subtotal: {
+          type: 'money',
+          value: { amount: 'sum(fields.lineItems.amount).amount', currency: 'fields.currency' },
+        },
+        taxableTotal: { type: 'number', value: 'sum(fields.lineItems.amount.amount, fields.lineItems.taxable)' },
+        rowCount: { type: 'number', value: 'count(fields.lineItems)' },
+        everyRowPriced: { type: 'boolean', value: 'count(fields.lineItems, fields.lineItems.amount.amount <= 0) == 0' },
+      })
+      .build()
+
+    const rows = [
+      { description: 'Design', amount: { amount: 1200, currency: 'USD' }, taxable: true },
+      { description: 'Hosting', amount: { amount: 99.5, currency: 'USD' }, taxable: false },
+    ]
+
+    test('evaluates the documented totals', () => {
+      const draft = invoice.fill({ fields: { currency: 'USD', lineItems: rows } } as never)
+      expect(draft.getFillState().defsValues).toEqual({
+        subtotal: { amount: 1299.5, currency: 'USD' },
+        taxableTotal: 1200,
+        rowCount: 2,
+        everyRowPriced: true,
+      })
+    })
+
+    test('flags an unpriced row and returns the empty results for no rows', () => {
+      const unpriced = invoice.fill({
+        fields: { currency: 'USD', lineItems: [{ ...rows[0], amount: { amount: 0, currency: 'USD' } }] },
+      } as never)
+      expect(unpriced.getFillState().defsValues.everyRowPriced).toBe(false)
+
+      const empty = invoice.fill({ fields: { currency: 'USD', lineItems: [] } } as never)
+      expect(empty.getFillState().defsValues).toMatchObject({ taxableTotal: 0, rowCount: 0, everyRowPriced: true })
+    })
+
+    test('rejects a list value read outside an aggregate at authoring time', () => {
+      const form = p
+        .form()
+        .name('invoice')
+        .fields({
+          lineItems: { type: 'list', item: { type: 'fieldset', fields: { amount: { type: 'number' } } } },
+          note: { type: 'text', visible: 'fields.lineItems.amount > 0' },
+        })
+        .build()
+      const result = validate(form.toJSON())
+      const messages = 'issues' in result && result.issues ? result.issues.map((issue) => issue.message) : []
+      expect(messages.join('\n')).toMatch(/reads a value from every row of fields.lineItems/)
+      expect(validate(invoice.toJSON())).not.toHaveProperty('issues')
     })
   })
 

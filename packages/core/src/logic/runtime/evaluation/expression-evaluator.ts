@@ -22,7 +22,8 @@ import {
 	type Value,
 	type EvalResult,
 } from '@paradoc/expr'
-import type { EvaluationContext, ExpressionResult, EvaluationOptions, PartyContextEntry } from './types'
+import { ROW_ORIGINS, ROW_VISIBILITY, type EvaluationContext, type ExpressionResult, type EvaluationOptions, type PartyContextEntry } from './types'
+import { resolveRowListPath, type RowOrigin } from '../../shared/list-paths'
 import { ExpressionEvaluationError } from './errors'
 
 // ============================================================================
@@ -115,6 +116,10 @@ export interface RowReferences {
 	readonly hasParent: boolean
 	/** The enclosing row of a nested list. */
 	readonly parent?: unknown
+	/** Where the current row sits, so aggregates over its own lists skip hidden rows. */
+	readonly itemOrigin?: RowOrigin
+	/** Where the enclosing row sits. */
+	readonly parentOrigin?: RowOrigin
 }
 
 /**
@@ -123,7 +128,11 @@ export interface RowReferences {
  * are shared, so evaluating every row does not reconvert the whole form.
  */
 export function withRowReferences(context: EvaluationContext, rows: RowReferences): EvaluationContext {
-	const scoped: EvaluationContext = { ...context, item: rows.item }
+	const scoped: EvaluationContext = {
+		...context,
+		item: rows.item,
+		[ROW_ORIGINS]: { item: rows.itemOrigin, parent: rows.hasParent ? rows.parentOrigin : undefined },
+	}
 	if (rows.hasParent) scoped.parent = rows.parent
 	if (reusableEvaluationContext in context) {
 		Object.defineProperty(scoped, reusableEvaluationContext, { value: true, configurable: true })
@@ -150,6 +159,7 @@ function buildExprContext(context: EvaluationContext): ExprContext {
 		...context.expressionFunctions,
 	}
 	const record = context as Record<string, unknown>
+	const rowVisibility = context[ROW_VISIBILITY]
 	const canReuse = reusableEvaluationContext in context
 	let converted = canReuse ? convertedContexts.get(context) : undefined
 	if (!converted) {
@@ -176,6 +186,11 @@ function buildExprContext(context: EvaluationContext): ExprContext {
 		hostFunctions,
 		asOf: context.asOf,
 		registry: context.expressionRegistry,
+		rowVisible: rowVisibility && ((listPath, indices) => {
+			// `item.parts` is a list inside the bound row; find it from the form root.
+			const resolvedRow = resolveRowListPath(listPath, indices, context[ROW_ORIGINS])
+			return rowVisibility(resolvedRow.listPath, resolvedRow.indices, context)
+		}),
 	}
 }
 

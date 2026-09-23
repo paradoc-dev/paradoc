@@ -11,6 +11,7 @@ export type EvalErrorCode =
 	| 'host-error'
 	| 'arity'
 	| 'missing-clock'
+	| 'currency-mismatch'
 
 export class EvaluationError extends Error {
 	constructor(

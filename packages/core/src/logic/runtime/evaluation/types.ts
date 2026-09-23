@@ -10,6 +10,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { AsOf } from '@paradoc/expr'
 import type { HostFunction, Registry } from '@paradoc/expr'
 import type { EvalErrorCode, Span } from '@paradoc/expr'
+import type { RowOrigin } from '../../shared/list-paths'
 
 /**
  * Runtime state of a single field after expression evaluation.
@@ -84,6 +85,22 @@ export interface PartyContextEntry {
 }
 
 /**
+ * Decides whether one list row takes part in aggregation, evaluating the row's
+ * `visible` conditions against the context that is evaluating the aggregate.
+ */
+export type ContextRowVisibility = (
+  listPath: string,
+  indices: readonly number[],
+  context: EvaluationContext,
+) => boolean
+
+/** Where a form context carries its row visibility; a symbol so no defs key can shadow it. */
+export const ROW_VISIBILITY: unique symbol = Symbol('rowVisibility')
+
+/** Where a row context records which rows `item` and `parent` are, so their lists' hidden rows can be found. */
+export const ROW_ORIGINS: unique symbol = Symbol('rowOrigins')
+
+/**
  * Context object passed to expression evaluation.
  * This is the shape the @paradoc/expr context adapter receives.
  *
@@ -117,6 +134,10 @@ export interface EvaluationContext {
   expressionFunctions?: Readonly<Record<string, HostFunction>>
   /** Signatures shared with the evaluator for configured functions and overrides. */
   expressionRegistry?: Registry
+  /** Hides a form's hidden list rows from aggregates; every row counts when absent. */
+  [ROW_VISIBILITY]?: ContextRowVisibility
+  /** The positions of the rows bound as `item` and `parent`. */
+  [ROW_ORIGINS]?: { readonly item?: RowOrigin; readonly parent?: RowOrigin }
   /** Resolved defs key values (dynamic keys) */
   [defsKey: string]: unknown
 }

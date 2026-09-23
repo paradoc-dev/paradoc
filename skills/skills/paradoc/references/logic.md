@@ -1,13 +1,13 @@
 ---
 name: logic
-description: CondExpr syntax, defs, and rules — expression context, operators, available functions, design heuristics
+description: CondExpr syntax, defs, and rules — expression context, operators, available functions, list aggregates, design heuristics
 metadata:
-  tags: logic, expressions, condexpr, defs, rules, validation, severity
+  tags: logic, expressions, condexpr, defs, rules, validation, severity, aggregates, lists
 ---
 
 # Logic
 
-**Contents:** [CondExpr](#conditional-expressions-condexpr) · [Operators](#expression-operators) · [Context summary](#expression-context-summary) · [Functions](#available-functions) · [Defs](#defs-section) · [Rules](#rules-section) · [Design heuristics](#design-heuristics)
+**Contents:** [CondExpr](#conditional-expressions-condexpr) · [Operators](#expression-operators) · [Context summary](#expression-context-summary) · [Functions](#available-functions) · [List aggregates](#list-aggregates) · [Defs](#defs-section) · [Rules](#rules-section) · [Design heuristics](#design-heuristics)
 
 Paradoc artifacts support three kinds of logic:
 
@@ -98,6 +98,35 @@ Party functions take a `roleId` (party role key as string). Witness functions ta
 "visible": "partyCount('buyer') > 1"
 "required": "!allSigned('seller')"
 ```
+
+## List Aggregates
+
+Seven functions compute one value from the rows of a `list` field. Each takes a path into the list and an optional boolean filter over the same rows.
+
+| Function | Values | No rows |
+|----------|--------|---------|
+| `sum(path, filter?)` | number, percentage, money | `0` |
+| `count(path, filter?)` | any row | `0` |
+| `avg(path, filter?)` | number, percentage, money | `null` |
+| `min(path, filter?)` / `max(path, filter?)` | number, percentage, money, date, datetime, time | `null` |
+| `any(path, filter?)` | boolean | `false` |
+| `all(path, filter?)` | boolean | `true` |
+
+```json
+"subtotal": { "type": "money", "value": { "amount": "sum(fields.lineItems.amount).amount", "currency": "fields.currency" } },
+"taxableTotal": { "type": "number", "value": "sum(fields.lineItems.amount.amount, fields.lineItems.taxable)" },
+"hasOther": { "type": "boolean", "value": "count(fields.lineItems, fields.lineItems.kind == 'other') > 0" }
+```
+
+- `fields.lineItems.amount` reads every row's `amount`; `fields.lineItems` alone is the rows (for `count`).
+- In the filter, `fields.lineItems.taxable` is the current row's value. A filter on a different list is an authoring error.
+- Nested lists flatten: `sum(fields.orders.parts.cost)` totals every part of every order; a filter may test either level.
+- Inside a list item, `sum(item.parts.cost)` aggregates the current row's own nested list.
+- Hidden rows (list, a field above it, or `item` not visible) never count. `null` values are skipped by `sum`/`avg`/`min`/`max`; `count` still counts the row.
+- Money keeps its currency. Mixed currencies fail evaluation, naming the currencies. An empty money sum is the number `0`.
+- A list path outside an aggregate (`fields.lineItems.amount > 0`) is an authoring error. There are no lambdas, `map`, `filter`, or `reduce`.
+- `min`/`max` with non-list arguments still compare their arguments, skipping `null` ones.
+- NEVER add a hand-entered total field that the artifact can compute with `sum`.
 
 ## Defs Section
 
@@ -237,7 +266,8 @@ Defs are referenced by their key name:
 | "Show field X only when field Y is true/selected" | `visible` expression on X |
 | "Require field X only when field Y has a value" | `required` expression on X |
 | "The same condition is used in 3+ places" | A `defs` entry to avoid repetition |
-| "Total must equal sum of parts" | A `defs` entry for the computed total |
+| "Total must equal sum of parts" | A `defs` entry computing the total with `sum(...)` |
+| "Every row must have a positive quantity" | A `rules` entry: `count(fields.items, fields.items.qty <= 0) == 0` |
 | "End date must be after start date" | A `rules` entry |
 | "Deposit cannot exceed 2x rent" | A `rules` entry |
 | "Show warning when ratio exceeds threshold" | A `rules` entry with `severity: "warning"` |

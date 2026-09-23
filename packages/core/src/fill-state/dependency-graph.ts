@@ -7,6 +7,9 @@
  * hidden container's prerequisites flow down). Defs are included as non-fillable
  * nodes so transitivity flows `field -> def -> the def's fields`.
  *
+ * A reference into a list's rows (`fields.items.amount`, read by an aggregate)
+ * is an edge to the list field itself, since rows are not graph nodes.
+ *
  * `required` contributes NO edges — it never blocks. The graph is topologically
  * sorted (forgiving: cycles never throw; cyclic nodes are reported and treated
  * as eligible rather than deadlocked).
@@ -15,6 +18,7 @@
 import type { Form, FormField, FieldsetField, Expression } from '@paradoc/types'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 import { topologicalSort } from '@/logic/shared/topological-sort'
+import { fillNodeOf } from '@/logic/shared/list-paths'
 
 /** Party/witness functions are not field dependencies. */
 const KNOWN_FUNCTIONS = new Set([
@@ -69,6 +73,7 @@ export function buildFieldDependencyGraph(form: Form): FieldDependencyGraph {
 	const dependsOn = new Map<string, Set<string>>()
 	const fillable = new Set<string>()
 
+	const node = (id: string): string => fillNodeOf(form.fields, id)
 	const ensure = (id: string): Set<string> => {
 		let set = dependsOn.get(id)
 		if (!set) {
@@ -92,7 +97,7 @@ export function buildFieldDependencyGraph(form: Form): FieldDependencyGraph {
 		for (const [fieldId, field] of Object.entries(fields)) {
 			const fullId = parentId ? `${parentId}.${fieldId}` : fieldId
 			const deps = ensure(fullId)
-			for (const d of referencedIds(field.visible)) deps.add(d)
+			for (const d of referencedIds(field.visible)) deps.add(node(d))
 			if (parentId) deps.add(parentId)
 			fillable.add(fullId)
 			if (field.type === 'fieldset') walk((field as FieldsetField).fields, fullId)
@@ -104,7 +109,7 @@ export function buildFieldDependencyGraph(form: Form): FieldDependencyGraph {
 	if (form.defs) {
 		for (const [key, expr] of Object.entries(form.defs)) {
 			const deps = ensure(key)
-			for (const d of defExpressionRefs(expr)) deps.add(d)
+			for (const d of defExpressionRefs(expr)) deps.add(node(d))
 		}
 	}
 
@@ -112,7 +117,7 @@ export function buildFieldDependencyGraph(form: Form): FieldDependencyGraph {
 	if (form.annexes) {
 		for (const [annexId, annex] of Object.entries(form.annexes)) {
 			const deps = ensure(annexId)
-			for (const d of referencedIds(annex.visible)) deps.add(d)
+			for (const d of referencedIds(annex.visible)) deps.add(node(d))
 			fillable.add(annexId)
 		}
 	}

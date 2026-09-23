@@ -55,8 +55,11 @@ describe('function registry', () => {
 		}
 	})
 
-	it('does not ship the deferred collection aggregates', () => {
-		for (const name of ['any', 'all', 'none', 'sum', 'join', 'filter', 'map']) {
+	it('ships the fixed aggregate set and no lambdas or collection transforms', () => {
+		for (const name of ['sum', 'count', 'min', 'max', 'avg', 'any', 'all']) {
+			expect(registry.get(name)?.aggregate).toBe(true)
+		}
+		for (const name of ['none', 'join', 'filter', 'map', 'reduce']) {
 			expect(registry.has(name)).toBe(false)
 		}
 	})

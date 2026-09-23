@@ -77,6 +77,7 @@ export { tokenize, LexError } from './parser/lexer'
 export type { Token, TokenType } from './parser/lexer'
 
 // Static analysis
+export { staticPath } from './ast/paths'
 export { extractReferences } from './analyze/references'
 export type { References } from './analyze/references'
 
@@ -96,6 +97,8 @@ export {
 	EvaluationError,
 	createContext,
 	BUILTIN_IMPLS,
+	AGGREGATE_NAMES,
+	isAggregateName,
 	evaluate,
 	evaluateExpression,
 	evaluateBoolean,
@@ -106,8 +109,10 @@ export type {
 	AsOf,
 	HostFunction,
 	ContextOptions,
+	RowVisibility,
 	Impl,
 	EvalResult,
+	AggregateName,
 } from './eval/index'
 
 // Checker

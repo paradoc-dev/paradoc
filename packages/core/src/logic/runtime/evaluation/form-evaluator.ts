@@ -19,6 +19,7 @@ import type {
 } from './types'
 import { buildFormContext, type FormDataPayload } from './context-builder'
 import { evaluateExpression, markEvaluationContextReusable, withRowReferences } from './expression-evaluator'
+import { rowOriginOf, type RowFrame } from '../../shared/list-paths'
 
 /**
  * Default values for expression evaluation failures.
@@ -59,13 +60,15 @@ interface EvaluationState {
  */
 function rowContext(
   state: EvaluationState,
-  row: unknown,
-  enclosingRow: { value: unknown } | undefined,
+  row: RowFrame,
+  enclosingRow: RowFrame | undefined,
 ): EvaluationContext {
   return withRowReferences(state.formContext, {
-    item: row,
+    item: row.value,
+    itemOrigin: row.origin,
     hasParent: enclosingRow !== undefined,
     parent: enclosingRow?.value,
+    parentOrigin: enclosingRow?.origin,
   })
 }
 
@@ -99,7 +102,7 @@ function evaluateRepeatedItem(
   context: EvaluationContext,
   state: EvaluationState,
   parentVisible: boolean,
-  row: { value: unknown },
+  row: RowFrame,
 ): void {
   const visible = parentVisible && evaluateCondition(
     field.visible,
@@ -134,17 +137,18 @@ function evaluateRows(
   listId: string,
   state: EvaluationState,
   listVisible: boolean,
-  enclosingRow: { value: unknown } | undefined,
+  enclosingRow: RowFrame | undefined,
 ): void {
   rows.forEach((value, index) => {
+    const row: RowFrame = { value, origin: rowOriginOf(listId, index) }
     evaluateRepeatedItem(
       itemField,
       value,
       `${listId}[${index}]`,
-      rowContext(state, value, enclosingRow),
+      rowContext(state, row, enclosingRow),
       state,
       listVisible,
-      { value },
+      row,
     )
   })
 }
@@ -174,7 +178,7 @@ function evaluateFields(
   state: EvaluationState,
   prefix: string = '',
   parentVisible: boolean = true,
-  row?: { value: unknown },
+  row?: RowFrame,
 ): void {
   if (!fields) return
 
