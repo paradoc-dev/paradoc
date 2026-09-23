@@ -4,6 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -130,6 +131,7 @@ describe('CLI Artifact Commands', () => {
       // Create a form artifact outside a repo
       const formPath = path.join(tempDir, 'form.json')
       await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form',
         name: 'test-form',
         title: 'Test Form',
@@ -153,6 +155,7 @@ describe('CLI Artifact Commands', () => {
       await fs.writeFile(
         formPath,
         JSON.stringify({
+          $schema: PARADOC_SCHEMA_URL,
           kind: 'form',
           name: 'test-form',
           title: 'Test Form',
@@ -172,6 +175,7 @@ describe('CLI Artifact Commands', () => {
 
       const formPath = path.join(tempDir, 'form.json')
       await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form', name: 'test-form', title: 'Test', version: '1.2.3', fields: {},
       }))
 
@@ -186,6 +190,7 @@ describe('CLI Artifact Commands', () => {
 
       const formPath = path.join(tempDir, 'form.json')
       await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form', name: 'test-form', title: 'Test', version: '1.2.3', fields: {},
       }))
 
@@ -200,6 +205,7 @@ describe('CLI Artifact Commands', () => {
 
       const formPath = path.join(tempDir, 'form.json')
       await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form', name: 'test-form', title: 'Test', version: '1.0.0', fields: {},
       }))
 
@@ -214,6 +220,7 @@ describe('CLI Artifact Commands', () => {
 
       const formPath = path.join(tempDir, 'form.json')
       await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form', name: 'test-form', title: 'Test', version: '1.0.0', fields: {},
       }))
 
@@ -228,6 +235,7 @@ describe('CLI Artifact Commands', () => {
 
       const formPath = path.join(tempDir, 'form.json')
       await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form', name: 'test-form', title: 'Test', version: '1.0.0', fields: {},
       }))
 
@@ -242,6 +250,7 @@ describe('CLI Artifact Commands', () => {
 
       const formPath = path.join(tempDir, 'form.yaml')
       await fs.writeFile(formPath, [
+        `$schema: ${PARADOC_SCHEMA_URL}`,
         'kind: form',
         'name: test-form',
         'title: Test',

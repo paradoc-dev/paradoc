@@ -1,7 +1,6 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import {
-  parse,
   validate as validateArtifact,
   validateLayers,
   type Artifact,
@@ -12,6 +11,7 @@ import { createFsResolver } from '@paradoc/resolvers/fs'
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { verifyHashFromFile } from '../utils/hash.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 interface ValidateOptions {
   json?: boolean
@@ -77,7 +77,7 @@ export function createValidateCommand(): Command {
 
         const resolvedTarget = await resolveArtifactTarget(artifactTarget)
         const { raw, baseDir, fromStdin } = await readTextInput(resolvedTarget)
-        const parsed = parse(raw)
+        const parsed = parseArtifactFile(raw)
 
         const result = validateArtifact(parsed)
         const hasValue = 'value' in result

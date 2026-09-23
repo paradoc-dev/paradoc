@@ -1,13 +1,14 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { parse, validate, toYAML, isForm, createSafeRegex, type Form, type FormField } from '@paradoc/core'
+import { validate, toYAML, isForm, createSafeRegex, type Form, type FormField } from '@paradoc/core'
 import { LocalFileSystem } from '../../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
 import { parseDataInput, normalizeFormData } from '../../utils/data-input.js'
 import { makeInstanceTemplate } from '../../utils/instance-template.js'
 import { validateInstanceData, type InstanceData } from '../../utils/validate-data.js'
+import { parseArtifactFile } from '../../utils/artifact-file.js'
 
 interface FillOptions {
   out: string
@@ -254,7 +255,7 @@ export function createFillCommand(): Command {
         // Read form file
         const resolvedTarget = await resolveArtifactTarget(fileTarget)
         const { raw, sourcePath: _sourcePath } = await readTextInput(resolvedTarget)
-        const parsed = parse(raw)
+        const parsed = parseArtifactFile(raw)
 
         // Validate artifact
         const validation = validate(parsed)

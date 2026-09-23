@@ -1,3 +1,4 @@
+$schema: https://schema.paradoc.dev/2026-09-22.json
 kind: document
 version: 1.0.0
 name: pet-care-guide

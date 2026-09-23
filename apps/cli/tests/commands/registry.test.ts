@@ -5,6 +5,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -297,6 +298,7 @@ describe('CLI Registry Command', () => {
       await fs.writeFile(
         path.join(realTempDir, 'my-form.json'),
         JSON.stringify({
+          $schema: PARADOC_SCHEMA_URL,
           kind: 'form',
           name: 'my-form',
           version: '1.0.0',
@@ -326,6 +328,7 @@ describe('CLI Registry Command', () => {
       await fs.writeFile(
         path.join(tempDir, 'my-form.json'),
         JSON.stringify({
+          $schema: PARADOC_SCHEMA_URL,
           kind: 'form',
           name: 'my-form',
           version: '1.0.0',
@@ -359,6 +362,7 @@ describe('CLI Registry Command', () => {
       await fs.writeFile(
         path.join(tempDir, 'outside.json'),
         JSON.stringify({
+          $schema: PARADOC_SCHEMA_URL,
           kind: 'form',
           name: 'outside',
           version: '1.0.0',
@@ -441,6 +445,7 @@ describe('CLI Registry Command', () => {
       await fs.writeFile(
         path.join(tempDir, 'my-form.json'),
         JSON.stringify({
+          $schema: PARADOC_SCHEMA_URL,
           kind: 'form',
           name: 'my-form',
           version: '1.0.0',
@@ -476,6 +481,7 @@ describe('CLI Registry Command', () => {
       await fs.writeFile(
         path.join(tempDir, 'my-form.json'),
         JSON.stringify({
+          $schema: PARADOC_SCHEMA_URL,
           kind: 'form',
           name: 'my-form',
           version: '1.0.0',
@@ -506,6 +512,7 @@ describe('CLI Registry Command', () => {
       await fs.writeFile(
         path.join(tempDir, 'font-form.json'),
         JSON.stringify({
+          $schema: PARADOC_SCHEMA_URL,
           kind: 'form',
           name: 'font-form',
           version: '1.0.0',

@@ -1,5 +1,7 @@
 import type { Form, Document, Bundle, Checklist } from '@paradoc/types'
 import { parse } from './serialization'
+import { LoadError } from './load-error'
+import { assertCurrentSchemaVersion } from './schema-version'
 import { form, type FormInstance } from '@/artifacts/form'
 import { document, type DocumentInstance } from '@/artifacts/document'
 import { bundle, type BundleInstance } from '@/artifacts/bundle'
@@ -38,15 +40,9 @@ export class BundleResolverError extends Error {
   }
 }
 
-/**
- * Error thrown when loading an artifact fails
- */
-export class LoadError extends Error {
-  constructor(message: string, public readonly cause?: Error) {
-    super(message)
-    this.name = 'LoadError'
-  }
-}
+export { LoadError }
+
+const ARTIFACT_KINDS = new Set(['form', 'document', 'bundle', 'checklist'])
 
 // ============================================================================
 // Type guards for runtime discrimination
@@ -95,6 +91,7 @@ export function isChecklistInstance(instance: AnyArtifactInstance): instance is 
  * @param content - YAML or JSON string containing the artifact definition
  * @returns An artifact instance (FormInstance, DocumentInstance, BundleInstance, or ChecklistInstance)
  * @throws LoadError if parsing fails or the artifact kind is unknown
+ * @throws SchemaVersionError if `$schema` is missing or does not name the current schema version
  *
  * @example
  * ```typescript
@@ -128,7 +125,7 @@ export function load(content: string, options?: ArtifactInstanceOptions): AnyArt
     )
   }
 
-  return loadFromObject(parsed, options)
+  return loadArtifactObject(parsed, options, { required: true })
 }
 
 /**
@@ -142,6 +139,8 @@ export function load(content: string, options?: ArtifactInstanceOptions): AnyArt
  * @param obj - A parsed object containing the artifact definition
  * @returns An artifact instance (FormInstance, DocumentInstance, etc.)
  * @throws LoadError if the object is invalid or the artifact kind is unknown
+ * @throws SchemaVersionError if the object declares a `$schema` that is not the current schema version.
+ *   An object without `$schema` is accepted as one built in memory with the SDK.
  *
  * @example
  * ```typescript
@@ -167,6 +166,19 @@ export function loadFromObject<T extends { kind: 'bundle' }>(obj: T): BundleInst
 export function loadFromObject<T extends { kind: 'checklist' }>(obj: T, options?: ArtifactInstanceOptions): ChecklistInstance<Checklist>;
 export function loadFromObject(obj: unknown, options?: ArtifactInstanceOptions): AnyArtifactInstance;
 export function loadFromObject(obj: unknown, options?: ArtifactInstanceOptions): AnyArtifactInstance {
+  return loadArtifactObject(obj, options, { required: false })
+}
+
+/**
+ * Load a parsed artifact. `required` applies the rule for artifact files:
+ * `$schema` must be present. Either way a `$schema` that is present must name
+ * the current schema version; loading never migrates.
+ */
+function loadArtifactObject(
+  obj: unknown,
+  options: ArtifactInstanceOptions | undefined,
+  version: { required: boolean },
+): AnyArtifactInstance {
   if (!obj || typeof obj !== 'object') {
     throw new LoadError('Invalid artifact: expected an object')
   }
@@ -182,6 +194,11 @@ export function loadFromObject(obj: unknown, options?: ArtifactInstanceOptions):
   // take no options at all; this is the untyped path, where the kind is only
   // known once the object has been read.
   if (kind === 'bundle' && options?.resolver) throw new BundleResolverError()
+
+  if (!ARTIFACT_KINDS.has(kind)) throw new LoadError(`Unknown artifact kind: "${kind}"`)
+
+  // Outside the try as well: a version error is its own answer, not a failed load.
+  assertCurrentSchemaVersion(obj, version)
 
   try {
     switch (kind) {

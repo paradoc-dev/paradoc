@@ -19,7 +19,7 @@ import type { DocumentData } from "../src/components/document-context";
 import type { ReactLayerComponent } from "../src/pdf/layer";
 
 const spec = {
-  $schema: "https://schema.paradoc.dev/schema.json",
+  $schema: "https://schema.paradoc.dev/2026-09-22.json",
   kind: "form",
   name: "check-fixture",
   version: "1.0.0",
@@ -55,7 +55,7 @@ const fixtureForm: Form = p.form(spec).toJSON() as Form;
 const fixtureData: DocumentData = { fields: { name: "Ada Lovelace" }, parties: {} };
 
 const totalsSpec = {
-  $schema: "https://schema.paradoc.dev/schema.json",
+  $schema: "https://schema.paradoc.dev/2026-09-22.json",
   kind: "form",
   name: "check-totals-fixture",
   version: "1.0.0",

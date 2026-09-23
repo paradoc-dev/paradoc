@@ -302,5 +302,7 @@ Load it back with `p.load()`:
 ```ts
 const loaded = p.load(jsonString) // works with JSON or YAML
 ```
+
+`load()` requires the `$schema` that `toJSON()` and `toYAML()` write. A file written for an earlier [schema version](/schemas#loading-rules) fails to load until [`paradoc migrate`](/cli/commands/migrate) upgrades it.
 </Step>
 </Steps>

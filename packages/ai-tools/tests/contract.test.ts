@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 import {
 	createToolExecutionContext,
 	buildArtifactItemUrl,
@@ -44,6 +45,7 @@ const checklistArtifact = {
 }
 
 const documentArtifact = {
+	$schema: PARADOC_SCHEMA_URL,
 	kind: 'document' as const,
 	name: 'notice',
 	layers: { text: { kind: 'inline' as const, mimeType: 'text/plain', text: 'A notice document.' } },

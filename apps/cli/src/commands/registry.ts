@@ -10,6 +10,7 @@ import { registryClient, RegistryFetchError } from '../utils/registry-client.js'
 import { parseArtifactRef, resolveRegistry } from '../utils/registry.js'
 import { findRepoRoot } from '../utils/project.js'
 import { trackRegistryAdd } from '../utils/telemetry.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 type ConfigTarget = 'global' | 'project'
 
@@ -665,7 +666,7 @@ export function createRegistryCommand(): Command {
     .action(async (artifactPath: string, options: { registry: string; yes?: boolean }) => {
       try {
         const { LocalFileSystem } = await import('../utils/local-fs.js')
-        const { parse, validate } = await import('@paradoc/core')
+        const { validate } = await import('@paradoc/core')
         const storage = new LocalFileSystem()
 
         // Read registry.json
@@ -701,7 +702,7 @@ export function createRegistryCommand(): Command {
         }
 
         const artifactContent = await storage.readFile(fullArtifactPath)
-        const parsed = parse(artifactContent)
+        const parsed = parseArtifactFile(artifactContent)
         const validation = validate(parsed)
 
         if (validation.issues) {
@@ -933,7 +934,7 @@ export function createRegistryCommand(): Command {
 
       try {
         const { LocalFileSystem } = await import('../utils/local-fs.js')
-        const { parse, validate } = await import('@paradoc/core')
+        const { validate } = await import('@paradoc/core')
         const { computeHash } = await import('../utils/hash.js')
         const storage = new LocalFileSystem()
 
@@ -1002,7 +1003,7 @@ export function createRegistryCommand(): Command {
 
             // Read and validate
             const content = await storage.readFile(artifactPath)
-            const parsed = parse(content)
+            const parsed = parseArtifactFile(content)
             const validation = validate(parsed)
 
             if (validation.issues) {

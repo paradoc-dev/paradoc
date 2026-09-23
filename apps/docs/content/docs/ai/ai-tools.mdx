@@ -58,6 +58,8 @@ Each tool has an execute function. They take the tool's snake_case input and an 
 
 The execute functions do not throw for tool failures. They return a result with an `error` object (`code`, `message`, and optional `path` and `retryable`).
 
+An artifact read from a URL or a registry must carry the current dated `$schema`. An inline artifact may omit it, but one it declares must be current. Otherwise the error code is `missing-version`, `outdated-version`, or `unknown-version`, and the message names the current version and `paradoc migrate`. See [loading rules](/schemas#loading-rules).
+
 The execute functions do not parse their input with the Zod schema; the adapters leave that to the framework, which validates model calls first. When you call them directly, pass the snake_case field names shown on each tool page.
 
 ```typescript

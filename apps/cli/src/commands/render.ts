@@ -1,7 +1,6 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import {
-  parse,
   validate,
   renderLayer,
   resolveLayerKey,
@@ -17,6 +16,7 @@ import { createFsResolver } from '@paradoc/resolvers/fs'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { parseDataInput, normalizeFormData } from '../utils/data-input.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 type OutputFormat = 'json' | 'pretty'
 
@@ -46,7 +46,7 @@ export function createRenderCommand(): Command {
         const format = normalizeFormatOption(options.format ?? 'pretty')
         const resolvedTarget = await resolveArtifactTarget(artifactTarget)
         const { raw, sourcePath, baseDir } = await readTextInput(resolvedTarget)
-        const parsed = parse(raw)
+        const parsed = parseArtifactFile(raw)
 
         const validation = validate(parsed)
         if (validation.issues) {

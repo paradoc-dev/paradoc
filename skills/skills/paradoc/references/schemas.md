@@ -23,6 +23,21 @@ The current schema version is `2026-09-22`. Every artifact file names the versio
 - The SDK writes the current address on `toJSON()` and `toYAML()`.
 - A new dated version exists only for a breaking change, and ships with a migration step from the previous version.
 
+### Loading rules
+
+Every loading surface (SDK `load()`, every CLI command that reads an artifact file, the AI tools, `paradoc add`) applies the same rules to an artifact file:
+
+| `$schema` | Result |
+|-----------|--------|
+| Current dated address | Loads |
+| Earlier dated address | `outdated-version` error |
+| Missing | `missing-version` error |
+| Unpublished date, undated `schema.json`, or other address | `unknown-version` error |
+
+Each error names what it found, the current version, and `paradoc migrate`. Loading never migrates. An object passed to `loadFromObject()` or an inline AI-tool `artifact` may omit `$schema`; one it declares must be current.
+
+When you see one of these errors, run `paradoc migrate` on the file. NEVER work around it by deleting `$schema`.
+
 ### Migrating an older artifact
 
 When a file names an earlier version, migrate it. NEVER edit `$schema` by hand: the migration steps change the values the new version reads differently.
@@ -31,7 +46,7 @@ When a file names an earlier version, migrate it. NEVER edit `$schema` by hand: 
 npx paradoc migrate my-form.yaml --dry-run   # print the diff, write nothing
 npx paradoc migrate my-form.yaml             # rewrite in place, keeps JSON or YAML
 npx paradoc migrate forms/                   # every artifact file in a directory
-npx paradoc migrate my-form.json --from 2026-08-10   # file with no $schema
+npx paradoc migrate my-form.json --from 2026-08-10   # $schema missing or names no published version
 ```
 
 A value a step cannot convert safely is named, and that file is left unchanged. Fix the value by hand, then run `migrate` again. See [cli.md](./cli.md#migrating-schema-versions).

@@ -1,10 +1,11 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import { parse, validate as validateArtifact, isForm, type Form } from '@paradoc/core'
+import { validate as validateArtifact, isForm, type Form } from '@paradoc/core'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
 import { parseDataInput, normalizeFormData } from '../../utils/data-input.js'
 import { validateInstanceData, type InstanceData } from '../../utils/validate-data.js'
+import { parseArtifactFile } from '../../utils/artifact-file.js'
 
 interface ValidateDataOptions {
   json?: boolean
@@ -33,7 +34,7 @@ export function createValidateCommand(): Command {
         // Read form file
         const resolvedFormTarget = await resolveArtifactTarget(formTarget)
         const { raw: formRaw } = await readTextInput(resolvedFormTarget)
-        const formParsed = parse(formRaw)
+        const formParsed = parseArtifactFile(formRaw)
 
         // Validate form artifact
         const formValidation = validateArtifact(formParsed)

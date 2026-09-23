@@ -44,3 +44,10 @@ export {
 export type {
   AnyArtifactInstance,
 } from './load'
+
+// ============================================================================
+// Schema version - the rule every loading surface applies
+// ============================================================================
+
+export { SchemaVersionError, assertCurrentSchemaVersion } from './schema-version'
+export type { SchemaVersionErrorCode } from './schema-version'

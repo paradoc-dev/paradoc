@@ -3,13 +3,13 @@ import kleur from 'kleur'
 import YAML from 'yaml'
 import ora, { type Ora } from 'ora'
 import prompts from 'prompts'
-import { jsonToDts, jsonToTsModule } from '@paradoc/core'
+import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import type { AddOptions, OutputFormat, ArtifactKind, ResolvedRegistry, RegistryItemSummary } from '../types.js'
 import { parseArtifactArg, resolveRegistry, createRegistryFromUrl, buildArtifactItemUrl, parseNamespaceOnly } from '../utils/registry.js'
 import { addComponents, COMPONENT_ITEMS, COMPONENT_NAMESPACE, isComponentName } from './add-component.js'
-import { registryClient, RegistryFetchError, type RegistryItem } from '../utils/registry-client.js'
+import { registryClient, RegistryFetchError } from '../utils/registry-client.js'
 import { lockFileManager } from '../utils/lock.js'
 import { configManager } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
@@ -75,6 +75,15 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     )
   }
 
+  // A registry serves artifact files, so the schema version rule for files applies.
+  try {
+    assertCurrentSchemaVersion(registryItem, { required: true })
+  } catch (error) {
+    console.error(kleur.red(error instanceof Error ? error.message : String(error)))
+    console.error(kleur.gray(`The registry serves ${artifactFull} for another schema version; its maintainer can upgrade it with paradoc migrate.`))
+    process.exit(1)
+  }
+
   // Validate artifact structure
   const validation = validateDownloadedArtifact(registryItem as unknown as Record<string, unknown>, artifactName)
 
@@ -107,8 +116,8 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   const namespaceDir = storage.joinPath(artifactsDir, artifactNamespace)
   await storage.mkdir(namespaceDir, true)
 
-  // Prepare artifact content (remove registry-specific fields)
-  const artifactContent = prepareArtifactForInstall(registryItem)
+  // The installed file keeps the registry artifact's dated $schema.
+  const artifactContent: Record<string, unknown> = { ...registryItem }
   const artifactKind = registryItem.kind as ArtifactKind
 
   // Determine primary file extension based on format
@@ -580,19 +589,6 @@ export function createAddCommand(): Command {
     })
 
   return add
-}
-
-/**
- * Prepare artifact content for installation
- * Removes registry-specific fields ($schema)
- */
-function prepareArtifactForInstall(registryItem: RegistryItem): Record<string, unknown> {
-  const { $schema: _schema, ...rest } = registryItem
-
-  // Build result with artifact fields
-  const result: Record<string, unknown> = { ...rest }
-
-  return result
 }
 
 /**

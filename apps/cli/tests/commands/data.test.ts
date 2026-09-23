@@ -4,6 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -402,6 +403,7 @@ describe('CLI Data Commands', () => {
   })
   describe('data extract', () => {
     const extractForm = {
+      $schema: PARADOC_SCHEMA_URL,
       kind: 'form',
       name: 'pet-addendum',
       version: '1.0.0',

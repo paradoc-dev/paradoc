@@ -24,7 +24,7 @@ paradoc migrate <path> [options]
 | Option | Description |
 |--------|-------------|
 | `--dry-run` | Print the diff for each file and change nothing |
-| `--from <version>` | Schema version of files that declare none |
+| `--from <version>` | Schema version of files whose `$schema` names no published version |
 
 ## Description
 
@@ -33,10 +33,10 @@ Each artifact file names the schema version it follows in `$schema`, such as `ht
 - A JSON file stays JSON and keeps its indentation. A YAML file stays YAML and keeps its comments.
 - The migrated artifact must validate against the current version. If it does not, the file is left unchanged and the failure is reported.
 - A step that cannot convert a value safely names the value, and the file is left unchanged.
-- A file with no `$schema`, or with the undated `schema.json` address, needs `--from` to name its version.
+- A file whose `$schema` names no published version (missing, the undated `schema.json`, an unpublished date, or another address) needs `--from` to name its version.
 - In a directory, `migrate` reads every `.json`, `.yaml`, and `.yml` file outside `node_modules` and `dist`. Files that are not artifacts, such as `package.json`, are skipped. A file that cannot be parsed is reported, and the run continues.
 
-Nothing else changes an artifact file's version: loading never migrates.
+Nothing else changes an artifact file's version: loading never migrates. Every other command that reads an artifact file, such as `validate` or `render`, refuses one that is not the current version and names this command.
 
 ## Examples
 

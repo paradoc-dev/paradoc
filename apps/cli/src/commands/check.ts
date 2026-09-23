@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import { dirname, extname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { isForm, parse, reactLayersOf, validate, type Form } from '@paradoc/core'
+import { isForm, reactLayersOf, validate, type Form } from '@paradoc/core'
 import type { checkComposition, CompositionCheckResult } from '@paradoc/react/check'
 import type * as Discovery from '@paradoc/react/discovery'
 import type { bindComponent } from '@paradoc/react/pdf'
@@ -15,6 +15,7 @@ import { normalizeFormData, parseDataInput } from '../utils/data-input.js'
 import { findRepoRoot } from '../utils/project.js'
 import { rendererManager } from '../utils/renderer-manager.js'
 import { ensureTsLoader } from '../utils/ts-loader.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 type AdapterName = 'takumi' | 'chromium'
 
@@ -251,7 +252,7 @@ function validatedLayer(resolved: ResolvedLayer): ResolvedLayer {
 
 /** Parses and validates an artifact, requiring a form that declares at least one React layer. */
 function parseFormArtifact(raw: string, label: string): Form {
-  const parsed = parse(raw)
+  const parsed = parseArtifactFile(raw)
   const validation = validate(parsed)
   if (validation.issues) {
     const issues = validation.issues

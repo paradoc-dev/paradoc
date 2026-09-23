@@ -4,6 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -245,6 +246,7 @@ describe('CLI Validate Command', () => {
       // Create an artifact with a file layer pointing to nonexistent file
       const artifactPath = path.join(tempDir, 'bad-layers.json')
       await fs.writeFile(artifactPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form',
         name: 'bad-layers',
         version: '1.0.0',
@@ -288,6 +290,7 @@ describe('CLI Validate Command', () => {
       const formPath = path.join(tempDir, 'templated.json')
       await fs.writeFile(path.join(tempDir, 'terms.md'), template)
       await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form',
         name: 'templated',
         fields: { qty: { type: 'number', label: 'Quantity' } },

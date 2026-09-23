@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -128,7 +129,7 @@ describe('paradoc generate', () => {
 
     it('shows error for invalid output format', async () => {
       const jsonFile = join(tempDir, 'test.json')
-      await fs.writeFile(jsonFile, JSON.stringify({ kind: 'form', name: 'test', version: '1.0.0', title: 'Test' }))
+      await fs.writeFile(jsonFile, JSON.stringify({ $schema: PARADOC_SCHEMA_URL, kind: 'form', name: 'test', version: '1.0.0', title: 'Test' }))
 
       const result = await executeCliCommand(['generate', jsonFile, '--output', 'invalid'])
       expect(result.exitCode).not.toBe(0)
@@ -140,6 +141,7 @@ describe('paradoc generate', () => {
     it('generates .d.ts file for JSON artifact', async () => {
       const jsonFile = join(tempDir, 'my-form.json')
       await fs.writeFile(jsonFile, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form',
         name: 'my-form',
         version: '1.0.0',
@@ -165,6 +167,7 @@ describe('paradoc generate', () => {
     it('generates JSON + .d.ts from YAML artifact', async () => {
       const yamlFile = join(tempDir, 'my-doc.yaml')
       await fs.writeFile(yamlFile, `
+$schema: ${PARADOC_SCHEMA_URL}
 kind: document
 name: my-doc
 version: 1.0.0
@@ -188,6 +191,7 @@ title: My Document
     it('uses typed as default output format', async () => {
       const jsonFile = join(tempDir, 'default-format.json')
       await fs.writeFile(jsonFile, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'checklist',
         name: 'default-format',
         version: '1.0.0',
@@ -209,6 +213,7 @@ title: My Document
     it('generates TypeScript module from JSON artifact', async () => {
       const jsonFile = join(tempDir, 'my-bundle.json')
       await fs.writeFile(jsonFile, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'bundle',
         name: 'my-bundle',
         version: '1.0.0',
@@ -234,6 +239,7 @@ title: My Document
     it('generates TypeScript module from YAML artifact', async () => {
       const yamlFile = join(tempDir, 'yaml-form.yaml')
       await fs.writeFile(yamlFile, `
+$schema: ${PARADOC_SCHEMA_URL}
 kind: form
 name: yaml-form
 version: 1.0.0
@@ -263,6 +269,7 @@ fields:
     it('converts kebab-case names to camelCase exports', async () => {
       const jsonFile = join(tempDir, 'my-complex-form-name.json')
       await fs.writeFile(jsonFile, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form',
         name: 'my-complex-form-name',
         version: '1.0.0',
@@ -281,7 +288,7 @@ fields:
   describe('all artifact kinds', () => {
     it('generates types for form artifact', async () => {
       const file = join(tempDir, 'form.json')
-      await fs.writeFile(file, JSON.stringify({ kind: 'form', name: 'f', version: '1.0.0', title: 'F' }))
+      await fs.writeFile(file, JSON.stringify({ $schema: PARADOC_SCHEMA_URL, kind: 'form', name: 'f', version: '1.0.0', title: 'F' }))
 
       const result = await executeCliCommand(['generate', file, '--output', 'ts'])
       expect(result.exitCode).toBe(0)
@@ -293,7 +300,7 @@ fields:
 
     it('generates types for document artifact', async () => {
       const file = join(tempDir, 'doc.json')
-      await fs.writeFile(file, JSON.stringify({ kind: 'document', name: 'd', version: '1.0.0', title: 'D' }))
+      await fs.writeFile(file, JSON.stringify({ $schema: PARADOC_SCHEMA_URL, kind: 'document', name: 'd', version: '1.0.0', title: 'D' }))
 
       const result = await executeCliCommand(['generate', file, '--output', 'ts'])
       expect(result.exitCode).toBe(0)
@@ -305,7 +312,7 @@ fields:
 
     it('generates types for checklist artifact', async () => {
       const file = join(tempDir, 'checklist.json')
-      await fs.writeFile(file, JSON.stringify({ kind: 'checklist', name: 'c', version: '1.0.0', title: 'C', items: [] }))
+      await fs.writeFile(file, JSON.stringify({ $schema: PARADOC_SCHEMA_URL, kind: 'checklist', name: 'c', version: '1.0.0', title: 'C', items: [] }))
 
       const result = await executeCliCommand(['generate', file, '--output', 'ts'])
       expect(result.exitCode).toBe(0)
@@ -317,7 +324,7 @@ fields:
 
     it('generates types for bundle artifact', async () => {
       const file = join(tempDir, 'bundle.json')
-      await fs.writeFile(file, JSON.stringify({ kind: 'bundle', name: 'b', version: '1.0.0', title: 'B', contents: [] }))
+      await fs.writeFile(file, JSON.stringify({ $schema: PARADOC_SCHEMA_URL, kind: 'bundle', name: 'b', version: '1.0.0', title: 'B', contents: [] }))
 
       const result = await executeCliCommand(['generate', file, '--output', 'ts'])
       expect(result.exitCode).toBe(0)
@@ -331,7 +338,7 @@ fields:
   describe('usage hint output', () => {
     it('shows typed import hint for typed output', async () => {
       const file = join(tempDir, 'hint-test.json')
-      await fs.writeFile(file, JSON.stringify({ kind: 'form', name: 'hint-test', version: '1.0.0', title: 'T' }))
+      await fs.writeFile(file, JSON.stringify({ $schema: PARADOC_SCHEMA_URL, kind: 'form', name: 'hint-test', version: '1.0.0', title: 'T' }))
 
       const result = await executeCliCommand(['generate', file, '--output', 'typed'])
       expect(result.exitCode).toBe(0)
@@ -341,7 +348,7 @@ fields:
 
     it('shows ts import hint for ts output', async () => {
       const file = join(tempDir, 'ts-hint.json')
-      await fs.writeFile(file, JSON.stringify({ kind: 'form', name: 'ts-hint', version: '1.0.0', title: 'T' }))
+      await fs.writeFile(file, JSON.stringify({ $schema: PARADOC_SCHEMA_URL, kind: 'form', name: 'ts-hint', version: '1.0.0', title: 'T' }))
 
       const result = await executeCliCommand(['generate', file, '--output', 'ts'])
       expect(result.exitCode).toBe(0)

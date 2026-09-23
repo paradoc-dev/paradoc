@@ -1,10 +1,15 @@
 {
-  "$schema": "https://schema.paradoc.dev/schema.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "kind": "form",
   "name": "purchase-order",
   "version": "1.0.0",
   "title": "Purchase Order",
-  "fields": { "orderNumber": { "type": "text", "label": "Order number" } },
+  "fields": {
+    "orderNumber": {
+      "type": "text",
+      "label": "Order number"
+    }
+  },
   "defaultLayer": "composition",
   "layers": {
     "composition": {

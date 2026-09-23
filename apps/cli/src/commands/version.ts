@@ -1,9 +1,10 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import semver from 'semver'
-import { parse, validate, toYAML } from '@paradoc/core'
+import { validate, toYAML } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { ensureRepo, fileExists } from '../utils/project.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 /**
  * Create the 'version' command
@@ -44,7 +45,7 @@ export function createVersionCommand(): Command {
           throw new Error(`Unsupported file type: ${ext}`)
         }
 
-        const artifact = parse(content) as Record<string, unknown>
+        const artifact = parseArtifactFile(content) as Record<string, unknown>
 
         // Validate artifact
         const result = validate(artifact)

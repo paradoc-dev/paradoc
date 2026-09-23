@@ -1,10 +1,11 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import { parse, validate, toYAML, isForm, type Form } from '@paradoc/core'
+import { validate, toYAML, isForm, type Form } from '@paradoc/core'
 import { LocalFileSystem } from '../../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
 import { makeInstanceTemplate } from '../../utils/instance-template.js'
+import { parseArtifactFile } from '../../utils/artifact-file.js'
 
 interface TemplateOptions {
   out?: string
@@ -68,7 +69,7 @@ export function createTemplateCommand(): Command {
         // Read file
         const resolvedTarget = await resolveArtifactTarget(fileTarget)
         const { raw } = await readTextInput(resolvedTarget)
-        const parsed = parse(raw)
+        const parsed = parseArtifactFile(raw)
 
         // Validate artifact
         const validation = validate(parsed)

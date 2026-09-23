@@ -40,7 +40,7 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
 
-import { parse, reactLayersOf, validate } from "@paradoc/core";
+import { assertCurrentSchemaVersion, parse, reactLayersOf, validate } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 /** The directory name a composition has to live under. */
@@ -419,10 +419,17 @@ export const UNPAIRED_MESSAGE =
  * The paired artifact, once it has been validated.
  *
  * Pairing reads an artifact loosely so an unrelated JSON file cannot fail the
- * run. One that is actually going to be rendered is held to the schema, and a
- * failure is a problem on the composition rather than a crash.
+ * run. One that is actually going to be rendered is held to the current schema
+ * version and the schema, and a failure is a problem on the composition rather
+ * than a crash.
  */
 function validated(paired: CompositionArtifact, problems: string[]): CompositionArtifact {
+  try {
+    assertCurrentSchemaVersion(paired.artifact, { required: true });
+  } catch (error) {
+    problems.push(`The artifact ${paired.relative}: ${error instanceof Error ? error.message : String(error)}`);
+    return paired;
+  }
   const result = validate(paired.artifact);
   if (result.issues) {
     const issues = result.issues

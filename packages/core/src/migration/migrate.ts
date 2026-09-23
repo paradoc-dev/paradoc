@@ -13,8 +13,8 @@ import { MIGRATION_STEPS, type ArtifactObject, type MigrationStep } from './step
 
 export interface MigrateOptions {
 	/**
-	 * The version to migrate from when the artifact declares none: no `$schema`,
-	 * or an undated Paradoc address such as `schema.json`.
+	 * The version to migrate from when `$schema` names no published version:
+	 * it is missing, undated (`schema.json`), unpublished, or not a Paradoc address.
 	 */
 	from?: SchemaVersion
 	/** The ordered steps to apply. Defaults to `MIGRATION_STEPS`. */
@@ -47,32 +47,34 @@ function sourceVersion(artifact: ArtifactObject, from: SchemaVersion | undefined
 			`The artifact has no $schema. Name its version with paradoc migrate --from <version>; the current version is ${SCHEMA_VERSION}.`,
 		)
 	}
-	if (typeof address !== 'string') {
-		throw new SchemaMigrationError('unknown-version', `$schema must be a schema address, found ${JSON.stringify(address)}.`)
+	const read = typeof address === 'string' ? readSchemaAddress(address) : ({ kind: 'foreign' } as const)
+	if (read.kind === 'known') {
+		if (from && from !== read.version) {
+			throw new SchemaMigrationError(
+				'version-conflict',
+				`$schema declares ${read.version}, but ${from} was named as the source version.`,
+			)
+		}
+		return { version: read.version, declared: true }
 	}
-	const read = readSchemaAddress(address)
+	// Any other address names no published version, so the caller must.
+	if (from) return { version: from, declared: false }
 	switch (read.kind) {
-		case 'known':
-			if (from && from !== read.version) {
-				throw new SchemaMigrationError(
-					'version-conflict',
-					`$schema declares ${read.version}, but ${from} was named as the source version.`,
-				)
-			}
-			return { version: read.version, declared: true }
 		case 'undated':
-			if (from) return { version: from, declared: false }
 			throw new SchemaMigrationError(
 				'missing-version',
-				`$schema ${address} names no schema version. Name its version with paradoc migrate --from <version>; the current version is ${SCHEMA_VERSION}.`,
+				`$schema ${String(address)} names no schema version. Name its version with paradoc migrate --from <version>; the current version is ${SCHEMA_VERSION}.`,
 			)
 		case 'unknown-version':
 			throw new SchemaMigrationError(
 				'unknown-version',
-				`$schema names schema version ${read.version}, which does not exist. Known versions: ${SCHEMA_VERSIONS.join(', ')}.`,
+				`$schema names schema version ${read.version}, which does not exist. Known versions: ${SCHEMA_VERSIONS.join(', ')}; name the right one with paradoc migrate --from <version>.`,
 			)
 		case 'foreign':
-			throw new SchemaMigrationError('unknown-version', `$schema ${address} is not a Paradoc schema address.`)
+			throw new SchemaMigrationError(
+				'unknown-version',
+				`$schema ${JSON.stringify(address)} is not a Paradoc schema address. Name its version with paradoc migrate --from <version>.`,
+			)
 	}
 }
 

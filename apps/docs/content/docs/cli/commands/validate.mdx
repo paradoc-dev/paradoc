@@ -34,7 +34,7 @@ The scope flags (`--schema-only`, `--layers-only`, `--checksum-only`) are mutual
 
 ## Description
 
-The `validate` command parses an artifact file and runs up to three validation phases:
+The `validate` command parses an artifact file and runs up to three validation phases. First, the file's `$schema` must name the current [schema version](/schemas#loading-rules); a file written for another version fails and names [`paradoc migrate`](/cli/commands/migrate), as every command that reads an artifact file does.
 
 1. **Schema** — checks the artifact structure against the Paradoc schema, its logic expressions, and the template expressions of inline layers
 2. **Layers** — for file-backed layers, checks file existence and verifies checksums, and checks the template expressions of text and DOCX layers

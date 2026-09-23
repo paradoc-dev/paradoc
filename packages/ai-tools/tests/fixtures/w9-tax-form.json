@@ -1,19 +1,56 @@
 {
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "kind": "form",
   "name": "w9-tax-form",
   "fields": {
-    "name": { "type": "text", "label": "Name", "required": true },
-    "businessName": { "type": "text", "label": "Business Name" },
+    "name": {
+      "type": "text",
+      "label": "Name",
+      "required": true
+    },
+    "businessName": {
+      "type": "text",
+      "label": "Business Name"
+    },
     "taxClassification": {
       "type": "enum",
       "label": "Tax Classification",
-      "enum": [{ "value": "individual" }, { "value": "c_corp" }, { "value": "s_corp" }, { "value": "partnership" }, { "value": "llc" }],
+      "enum": [
+        {
+          "value": "individual"
+        },
+        {
+          "value": "c_corp"
+        },
+        {
+          "value": "s_corp"
+        },
+        {
+          "value": "partnership"
+        },
+        {
+          "value": "llc"
+        }
+      ],
       "required": true
     },
-    "llcTaxCode": { "type": "text", "label": "LLC Tax Code" },
-    "address": { "type": "address", "label": "Address", "required": true },
-    "ssn": { "type": "text", "label": "SSN" },
-    "ein": { "type": "text", "label": "EIN" }
+    "llcTaxCode": {
+      "type": "text",
+      "label": "LLC Tax Code"
+    },
+    "address": {
+      "type": "address",
+      "label": "Address",
+      "required": true
+    },
+    "ssn": {
+      "type": "text",
+      "label": "SSN"
+    },
+    "ein": {
+      "type": "text",
+      "label": "EIN"
+    }
   },
   "defaultLayer": "pdf",
   "layers": {

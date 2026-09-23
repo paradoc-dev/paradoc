@@ -34,7 +34,24 @@ function registryBaseFromIndexUrl(indexUrl: string): string {
 	return new URL('.', indexUrl).toString().replace(/\/$/, '')
 }
 
+/**
+ * Resolve the artifact a tool works on, under the rules every loading surface
+ * applies. An artifact read from a URL or a registry is a file, so its
+ * `$schema` must name the current schema version. An inline artifact is an
+ * object, as with `loadFromObject`: it may omit `$schema`, but one it declares
+ * must be current. Loading never migrates; the error points to `paradoc migrate`.
+ */
 export async function resolveSource(
+	input: SourceInput | Record<string, unknown>,
+	config?: ParadocToolsConfig,
+): Promise<ResolvedSource> {
+	const resolved = await resolveUncheckedSource(input, config)
+	const { assertCurrentSchemaVersion } = await import('@paradoc/core')
+	assertCurrentSchemaVersion(resolved.artifact, { required: resolved.artifact_url !== undefined })
+	return resolved
+}
+
+async function resolveUncheckedSource(
 	input: SourceInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<ResolvedSource> {

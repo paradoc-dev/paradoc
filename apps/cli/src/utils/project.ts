@@ -1,7 +1,8 @@
 import { LocalFileSystem } from './local-fs.js'
 
-import { parse, validate } from '@paradoc/core'
+import { validate } from '@paradoc/core'
 import type { Artifact } from '@paradoc/core'
+import { parseArtifactFile } from './artifact-file.js'
 
 // --------------------------------------------
 // Project Utilities
@@ -123,7 +124,7 @@ export async function parseAndValidateArtifact(filePath: string): Promise<Artifa
   const content = await storage.readFile(filePath)
 
   // Parse the content (auto-detects JSON/YAML)
-  const parsed = parse(content)
+  const parsed = parseArtifactFile(content)
 
   // Validate the artifact
   const result = validate(parsed)

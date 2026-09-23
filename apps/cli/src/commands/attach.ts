@@ -1,13 +1,14 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { parse, validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
+import { validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { computeHash } from '../utils/hash.js'
 import { getMimeType, isKnownMimeType } from '../utils/mime.js'
 import { sanitizePath } from '../utils/security.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 type AttachTarget = 'layer' | 'instructions' | 'agent-instructions'
 
@@ -47,7 +48,7 @@ export function createAttachCommand(): Command {
           process.exit(1)
         }
 
-        const parsed = parse(raw)
+        const parsed = parseArtifactFile(raw)
 
         // Validate the artifact
         const validation = validate(parsed)

@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import YAML from 'yaml'
-import { jsonToDts, jsonToTsModule } from '@paradoc/core'
+import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import type { ArtifactKind } from '../types.js'
@@ -69,6 +69,13 @@ export function createGenerateCommand(): Command {
         if (!validKinds.includes(artifact.kind)) {
           console.error(kleur.red(`Invalid artifact kind: ${artifact.kind}`))
           console.error(kleur.gray(`Expected one of: ${validKinds.join(', ')}`))
+          process.exit(1)
+        }
+
+        try {
+          assertCurrentSchemaVersion(artifact, { required: true })
+        } catch (error) {
+          console.error(kleur.red(error instanceof Error ? error.message : String(error)))
           process.exit(1)
         }
 

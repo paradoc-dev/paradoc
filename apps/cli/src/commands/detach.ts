@@ -1,10 +1,11 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { parse, validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
+import { validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 interface DetachOptions {
   yes?: boolean
@@ -32,7 +33,7 @@ export function createDetachCommand(): Command {
           process.exit(1)
         }
 
-        const parsed = parse(raw)
+        const parsed = parseArtifactFile(raw)
 
         // Validate the artifact
         const validation = validate(parsed)

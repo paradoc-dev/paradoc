@@ -47,7 +47,7 @@ const result = await validateLayers(artifact, { resolver: createFsResolver({ roo
 
 ### Schema versions
 
-An artifact built with the SDK is always the current [schema version](/schemas#schema-versions). To bring an artifact written for an earlier version up to date, use `migrateArtifact` for a parsed object or `migrateArtifactSource` for file content. Both apply the migration steps in order, validate the result, and fail with `SchemaMigrationError` instead of guessing. The [`paradoc migrate`](/cli/commands/migrate) command uses them.
+An artifact built with the SDK is always the current [schema version](/schemas#schema-versions). `load()` and `safeLoad()` refuse file content written for another version with a `SchemaVersionError`, as the [loading rules](/schemas#loading-rules) describe. To bring an artifact written for an earlier version up to date, use `migrateArtifact` for a parsed object or `migrateArtifactSource` for file content. Both apply the migration steps in order, validate the result, and fail with `SchemaMigrationError` instead of guessing. The [`paradoc migrate`](/cli/commands/migrate) command uses them.
 
 ```ts
 import { migrateArtifactSource } from '@paradoc/sdk'

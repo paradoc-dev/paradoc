@@ -63,6 +63,8 @@ export async function executeGetArtifact(
 		const requestedArtifactUrl = buildArtifactItemUrl(resolvedRegistryUrl, index.artifactsPath, normalized.artifact_name, indexItem.path)
 		const resolvedItem = await fetchRegistryItemResponse(resolvedRegistryUrl, index.artifactsPath, normalized.artifact_name, indexItem.path, config?.fetch, config)
 		const artifact = resolvedItem.artifact
+		const { assertCurrentSchemaVersion } = await import('@paradoc/core')
+		assertCurrentSchemaVersion(artifact, { required: true })
 		const artifactUrl = resolvedItem.response.url || requestedArtifactUrl
 		const output: GetArtifactOutput = {
 			artifact,

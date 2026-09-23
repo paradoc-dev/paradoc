@@ -6,6 +6,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { createFsResolver } from '@paradoc/resolvers/fs'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -246,6 +247,7 @@ describe('CLI render command', () => {
     async function writeArtifact(layerPath: string): Promise<string> {
       const artifactPath = path.join(artifactDir, 'artifact.json')
       await fs.writeFile(artifactPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'document',
         name: 'resolver-test',
         version: '1.0.0',

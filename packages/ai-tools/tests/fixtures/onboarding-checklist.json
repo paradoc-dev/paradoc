@@ -1,11 +1,30 @@
 {
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "kind": "checklist",
   "name": "employee-onboarding",
   "version": "1.0.0",
   "title": "Employee Onboarding Checklist",
   "items": [
-    { "id": "signed-contract", "title": "Signed Employment Contract", "status": { "kind": "boolean" } },
-    { "id": "received-equipment", "title": "Received Equipment", "status": { "kind": "boolean" } },
-    { "id": "completed-training", "title": "Completed Training", "status": { "kind": "boolean" } }
+    {
+      "id": "signed-contract",
+      "title": "Signed Employment Contract",
+      "status": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "id": "received-equipment",
+      "title": "Received Equipment",
+      "status": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "id": "completed-training",
+      "title": "Completed Training",
+      "status": {
+        "kind": "boolean"
+      }
+    }
   ]
 }

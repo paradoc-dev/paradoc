@@ -29,6 +29,33 @@ Artifacts serialized with the SDK (`toJSON()` and `toYAML()`) always carry the c
 
 A new dated version is created only for a breaking change: a change that some existing valid artifact no longer satisfies. An additive change keeps the current version. Each new version ships with a migration step from the version before it, and [`paradoc migrate`](/cli/commands/migrate) applies those steps to bring an older artifact file up to date. Nothing changes an artifact file's version without that command.
 
+### Loading rules
+
+Every loading surface applies the same rules: the SDK, the CLI, the AI tools, and registry consumers such as `paradoc add`. An artifact file, read from JSON or YAML, must carry `$schema`:
+
+| `$schema` | Result |
+| --------- | ------ |
+| The current version | Loads and validates as usual. |
+| An earlier version | Fails with an outdated-version error. |
+| Missing | Fails with a missing-version error. |
+| An unpublished date, the undated `schema.json`, or a non-Paradoc address | Fails with an unknown-version error. |
+
+Each error names what it found and the current version, and points to `paradoc migrate`. Loading never migrates.
+
+In the SDK, `load()` and `safeLoad()` read file content and apply these rules; the error is a `SchemaVersionError` with a `code` of `missing-version`, `outdated-version`, or `unknown-version`. `loadFromObject()` takes an object that may have been built in memory, so it accepts one without `$schema`; a `$schema` it does carry must still be current.
+
+```ts
+import { load, SchemaVersionError } from '@paradoc/sdk'
+
+try {
+  load(fileContents)
+} catch (error) {
+  if (error instanceof SchemaVersionError) console.error(error.code, error.message)
+}
+```
+
+### Version history
+
 | Version | Changes |
 | ------- | ------- |
 | `2026-09-22` | Signature placement `'auto'` is renamed `'flow'`. An inline layer cannot hold a React composition (`text/tsx`, `text/jsx`). A duration needs at least one date or time component. |

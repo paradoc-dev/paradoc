@@ -1,8 +1,9 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import { form as formApi, isForm, parse, validate, type Form, type FormExtraction } from '@paradoc/core'
+import { form as formApi, isForm, validate, type Form, type FormExtraction } from '@paradoc/core'
 import { LocalFileSystem } from '../../utils/local-fs.js'
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
+import { parseArtifactFile } from '../../utils/artifact-file.js'
 
 interface ExtractOptions {
   layer?: string
@@ -21,7 +22,7 @@ function errorOf(error: unknown): { code: string; message: string } {
 
 async function loadForm(target: string): Promise<Form> {
   const { raw } = await readTextInput(await resolveArtifactTarget(target))
-  const validation = validate(parse(raw))
+  const validation = validate(parseArtifactFile(raw))
   if (validation.issues) {
     const detail = validation.issues
       .map((issue) => `  - ${issue.path?.length ? issue.path.map(String).join('.') : 'root'}: ${issue.message}`)

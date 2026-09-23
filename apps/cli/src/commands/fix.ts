@@ -1,11 +1,12 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { parse, validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
+import { validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { computeHash, verifyHashFromFile } from '../utils/hash.js'
+import { parseArtifactFile } from '../utils/artifact-file.js'
 
 interface FixOptions {
   dryRun?: boolean
@@ -32,7 +33,7 @@ export function createFixCommand(): Command {
       try {
         const resolvedTarget = await resolveArtifactTarget(artifactTarget)
         const { raw, baseDir, sourcePath } = await readTextInput(resolvedTarget)
-        const parsed = parse(raw)
+        const parsed = parseArtifactFile(raw)
 
         // Validate the artifact first
         const validation = validate(parsed)

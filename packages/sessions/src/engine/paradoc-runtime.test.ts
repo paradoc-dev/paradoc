@@ -4,7 +4,7 @@ import { createParadocRuntime } from "./paradoc-runtime";
 describe("createParadocRuntime", () => {
 	it("keeps a core expression failure unresolved instead of offering fallback state", () => {
 		const runtime = createParadocRuntime({
-			$schema: "https://schema.paradoc.dev/schema.json",
+			$schema: "https://schema.paradoc.dev/2026-09-22.json",
 			kind: "form",
 			name: "runtime-failure",
 			version: "1.0.0",

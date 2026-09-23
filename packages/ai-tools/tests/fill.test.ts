@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 import { executeFill } from '../src/tools/fill'
 
 describe('executeFill', () => {
@@ -176,6 +177,7 @@ describe('executeFill', () => {
   describe('URL source', () => {
     it('fetches and fills artifact from URL', async () => {
       const artifact = {
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form',
         name: 'url-form',
         fields: { x: { type: 'text', label: 'X' } },
@@ -218,6 +220,7 @@ describe('executeFill', () => {
     it('fetches and fills artifact from registry', async () => {
       const registryIndex = { items: [{ name: 'my-form' }] }
       const artifact = {
+        $schema: PARADOC_SCHEMA_URL,
         kind: 'form',
         name: 'my-form',
         fields: { x: { type: 'text', label: 'X' } },

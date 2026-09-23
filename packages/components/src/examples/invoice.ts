@@ -91,7 +91,7 @@ export const invoiceTokens: DocumentTokensInput = {
 
 /** The invoice form, exactly as authored. Kept beside the instance for evaluators that take a raw `Form`. */
 export const invoiceSpec = {
-  $schema: "https://schema.paradoc.dev/schema.json",
+  $schema: "https://schema.paradoc.dev/2026-09-22.json",
   kind: "form",
   name: "invoice",
   version: "1.0.0",

@@ -284,10 +284,12 @@ paradoc migrate <file-or-directory> [--dry-run] [--from <version>]
 
 paradoc migrate forms/ --dry-run            # print each file's diff, write nothing
 paradoc migrate forms/                      # rewrite in place; JSON stays JSON, YAML keeps comments
-paradoc migrate lease.json --from 2026-08-10  # file with no $schema, or the undated schema.json
+paradoc migrate lease.json --from 2026-08-10  # $schema missing, undated, or names no published version
 ```
 
 Each file is reported as `migrated`, `current`, or `failed`, and the command exits 1 when any file fails. A failed file is never written: a value a step cannot convert is named, and a result that does not validate is reported. In a directory, files that are not artifacts are skipped. ALWAYS review `--dry-run` output before migrating, then validate.
+
+Every other command that reads an artifact file (`validate`, `render`, `check`, `data`, `fix`, `attach`, `detach`, `version`, `generate`, `add`) refuses a file that is not the current version and names `paradoc migrate`.
 
 ### Attaching / detaching layers
 

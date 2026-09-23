@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
+import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 import { executeGetArtifact } from '../src/tools/get-artifact'
 
 describe('executeGetArtifact instruction resolution', () => {
   it('returns inline instructions and inline agent instructions', async () => {
     const artifact = {
+      $schema: PARADOC_SCHEMA_URL,
       kind: 'form',
       name: 'pet-addendum',
       instructions: {
@@ -38,6 +40,7 @@ describe('executeGetArtifact instruction resolution', () => {
 
   it('fetches file-backed instructions and agent instructions', async () => {
     const artifact = {
+      $schema: PARADOC_SCHEMA_URL,
       kind: 'form',
       name: 'pet-addendum',
       instructions: {
@@ -85,6 +88,7 @@ describe('executeGetArtifact instruction resolution', () => {
 
   it('returns an error when referenced instruction file cannot be fetched', async () => {
     const artifact = {
+      $schema: PARADOC_SCHEMA_URL,
       kind: 'form',
       name: 'pet-addendum',
       instructions: {

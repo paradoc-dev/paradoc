@@ -141,6 +141,11 @@ describe('reading the source version', () => {
 		const error = migrationError(() => migrateArtifact({ ...current, $schema: address }))
 		expect(error.code).toBe('unknown-version')
 		expect(error.message).toContain(named)
+		expect(migrateArtifact({ ...current, $schema: address }, { from: '2026-08-10' })).toMatchObject({
+			status: 'migrated',
+			from: '2026-08-10',
+			artifact: { $schema: PARADOC_SCHEMA_URL },
+		})
 	})
 
 	test('input that is not an artifact fails', () => {
