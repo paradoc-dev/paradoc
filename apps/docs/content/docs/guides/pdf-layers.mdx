@@ -103,7 +103,7 @@ Install the SDK, unified renderer, and filesystem resolver.
 Before creating bindings, discover the AcroForm field names in your PDF template using `inspectAcroFormFields`.
 
 ```ts
-import { inspectAcroFormFields } from '@paradoc/sdk'
+import { inspectAcroFormFields } from '@paradoc/render/pdf'
 import { readFileSync } from 'node:fs'
 
 const template = readFileSync('layers/w9.pdf')

@@ -1,0 +1,217 @@
+---
+title: Packets
+description: Assemble several documents into one PDF and seal it for signing
+ogTitle: Seal a document packet
+ogDescription: Merge forms and supplied PDFs into one signable packet with sealBundle
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+A packet is a bundle a signer receives and signs as one document. `sealBundle()` seals each part that has signature slots, renders the others, flattens and merges every part's pages in bundle order, and returns one PDF with one signature map on packet pages.
+
+This guide builds a client onboarding packet from three parts: the service agreement from [React Layers](/guides/react-layers), a statement of work the same client signs, and a certificate of insurance the client uploads as a PDF.
+
+<Steps>
+<Step>
+## Prepare the parts
+
+Every part must reach PDF. A form with a React layer does, through the renderer you register, and so does a PDF layer. A part with signature slots on a Markdown or HTML layer seals through a `SealAdapter`, as a single form does. A part without slots is rendered as is, so its layer must produce PDF.
+
+Start from the agreement in the [React Layers](/guides/react-layers) guide. The statement of work follows the same pattern:
+
+```ts title="documents/statement-of-work.ts"
+import { p } from '@paradoc/core'
+
+export const statementOfWork = p
+  .form()
+  .name('statement-of-work')
+  .version('1.0.0')
+  .title('Statement of Work')
+  .fields({
+    deliverables: { type: 'text', label: 'Deliverables', required: true },
+  })
+  .parties({
+    client: { label: 'Client', partyType: 'person', signature: { required: true } },
+  })
+  .fileLayer('composition', {
+    mimeType: 'text/tsx',
+    path: 'statement-of-work-document.tsx',
+    signatures: {
+      'client-signature': { party: { role: 'client' }, type: 'signature', placement: 'flow' },
+    },
+  })
+  .defaultLayer('composition')
+  .build()
+```
+
+```tsx title="documents/statement-of-work-document.tsx"
+import type { ReactLayerComponentProps } from '@paradoc/react-pdf'
+import { Document } from '@/components/paradoc/document'
+import { Field } from '@/components/paradoc/field'
+import { Signature } from '@/components/paradoc/signature'
+
+export default function StatementOfWorkDocument({ artifact, data }: ReactLayerComponentProps) {
+  return (
+    <Document artifact={artifact} data={data}>
+      <Field path="deliverables" />
+      <Signature party="client" />
+    </Document>
+  )
+}
+```
+</Step>
+
+<Step>
+## Declare the bundle
+
+The bundle names the parts and their order. Each content key is how the rest of the packet refers to that part.
+
+```ts title="documents/onboarding.ts"
+import { p } from '@paradoc/core'
+import { agreement } from './agreement'
+import { statementOfWork } from './statement-of-work'
+
+export const onboarding = p.bundle({
+  name: 'client-onboarding',
+  version: '1.0.0',
+  title: 'Client Onboarding',
+  contents: [
+    { type: 'inline', key: 'agreement', artifact: agreement.toJSON() },
+    { type: 'inline', key: 'sow', artifact: statementOfWork.toJSON() },
+    {
+      type: 'inline',
+      key: 'insurance',
+      artifact: {
+        kind: 'document',
+        name: 'certificate-of-insurance',
+        version: '1.0.0',
+        title: 'Certificate of Insurance',
+        defaultLayer: 'pdf',
+        layers: {
+          pdf: { kind: 'file', mimeType: 'application/pdf', path: 'certificate-of-insurance.pdf' },
+        },
+      },
+    },
+  ],
+})
+```
+
+The certificate is declared as a document with one PDF layer, so the bundle says what it is. The packet does not read that path; you hand it the bytes in the next step.
+</Step>
+
+<Step>
+## Fill the forms
+
+Fill each form and bind a signer to the client. Each form binds signer ids in its own namespace, so both can call the signer `client-signer`.
+
+```ts title="seal-packet.ts"
+import { agreement } from './documents/agreement'
+import { statementOfWork } from './documents/statement-of-work'
+
+const client = { id: 'client-0', name: 'Ada Lovelace' }
+
+const agreementDraft = agreement
+  .fill({
+    fields: { service: 'Website redesign', fee: { amount: 4800, currency: 'USD' } },
+    parties: { client },
+  })
+  .addSigner('client-signer', { person: { name: client.name } })
+  .addSignatory('client', 'client-0', { signerId: 'client-signer' })
+
+const sowDraft = statementOfWork
+  .fill({
+    fields: { deliverables: 'Design system, five page templates, launch support' },
+    parties: { client },
+  })
+  .addSigner('client-signer', { person: { name: client.name } })
+  .addSignatory('client', 'client-0', { signerId: 'client-signer' })
+```
+</Step>
+
+<Step>
+## Seal the packet
+
+Pass one entry per content key in `contents`. A form entry is the filled draft. A supplied file is a bytes entry: `{ kind: 'bytes', content, mimeType, filename? }`. One `renderers` registry serves every part, so it binds both compositions.
+
+```ts title="seal-packet.ts"
+import { readFile, writeFile } from 'node:fs/promises'
+import { sealBundle, type BundleSealOptions } from '@paradoc/core'
+import { reactLayerRenderers } from '@paradoc/react-pdf'
+import AgreementDocument from './documents/agreement-document'
+import { onboarding } from './documents/onboarding'
+import StatementOfWorkDocument from './documents/statement-of-work-document'
+
+const options: BundleSealOptions = {
+  renderers: reactLayerRenderers({
+    components: {
+      'agreement-document.tsx': AgreementDocument,
+      'statement-of-work-document.tsx': StatementOfWorkDocument,
+    },
+  }),
+  contents: {
+    agreement: agreementDraft,
+    sow: sowDraft,
+    insurance: {
+      kind: 'bytes',
+      content: new Uint8Array(await readFile('certificate-of-insurance.pdf')),
+      mimeType: 'application/pdf',
+      filename: 'certificate-of-insurance.pdf',
+    },
+  },
+  signers: {
+    'agreement/client-signer': 'client',
+    'sow/client-signer': 'client',
+  },
+}
+
+const packet = await sealBundle(onboarding, options)
+await writeFile('client-onboarding.pdf', packet.pdf)
+```
+
+`signers` says which part signers are the same person. The packet scopes every part signer as `<part>/<signerId>`, because two parts that both say `client-signer` are not proof that one person signs both. Without the mapping, this packet would have two signers, `agreement/client-signer` and `sow/client-signer`. A key that names no part signer is an error, so a typo cannot leave two signers where you meant one.
+</Step>
+
+<Step>
+## Read the result
+
+```ts
+packet.canonicalPdfHash // 'sha256:...' of packet.pdf, what the signer signs
+packet.packetHash       // 'sha256:...' over the merged PDF and every part
+packet.signers          // [{ id: 'client', index: 0, parts: ['agreement/client-signer', 'sow/client-signer'] }]
+packet.signatureMap     // 'agreement/client-signature' on page 1, 'sow/client-signature' on page 2
+packet.parts            // agreement (sealed), sow (sealed), insurance (annex), with page ranges
+packet.warnings         // anything reported without failing
+```
+
+Slot ids in `signatureMap` are prefixed with the part key, and `page` is a packet page. Each field also keeps `part`, `slot`, `partPage`, and `partSignerId`, so you can trace it back to the form that declared it.
+
+A signing ceremony binds to `canonicalPdfHash`, the hash of the document the signer sees. `packetHash` is the packet's record. It also covers a part that could not be merged, such as an uploaded image, which the packet carries as an attachment (`attached: true`) and names in `warnings`.
+</Step>
+
+<Step>
+## Handle failures
+
+`sealBundle()` throws `BundleSealError` when the packet cannot be built: a content key has no entry, an entry is not the artifact the bundle declares, a bytes entry's content does not match its `mimeType`, a part fails to render or seal, or no part reaches a PDF. `problems` lists every issue, and `part` names the content key when the failure belongs to one.
+
+```ts
+import { BundleSealError } from '@paradoc/core'
+
+try {
+  await sealBundle(onboarding, options)
+} catch (error) {
+  if (error instanceof BundleSealError) {
+    console.error(error.part, error.problems)
+  }
+  throw error
+}
+```
+
+A part whose renderer produces something other than PDF throws `SealConfigError`. A part PDF the merge cannot read throws `PdfMergeError`.
+</Step>
+</Steps>
+
+## Next steps
+
+- [Sealing a packet](/sdk/artifacts/bundle#sealing-a-packet): every `sealBundle` option and result field.
+- [Bundles](/guides/bundles): declare, prepare, and render bundles without sealing.
+- [Part](/components/part) and the [vendor packet](/components/blocks/vendor-packet) block: preview a packet in the browser.

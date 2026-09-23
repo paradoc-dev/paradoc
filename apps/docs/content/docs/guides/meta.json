@@ -8,8 +8,10 @@
     "hosted-sealing-and-conversion",
     "checklists",
     "bundles",
+    "packets",
     "text-layers",
-    "pdf-layers"
+    "pdf-layers",
+    "react-layers"
   ],
   "defaultOpen": false,
   "icon": "Compass"

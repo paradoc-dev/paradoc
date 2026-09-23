@@ -1,0 +1,174 @@
+---
+title: React Layers
+description: Declare a React composition as a form layer, render it to PDF, and seal it
+ogTitle: React layers
+ogDescription: Render and seal a Paradoc form through a React composition
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+A React layer makes a React component the document for a form. The artifact names the component's file, the component reads the form's fields and parties, and `render()` and `seal()` produce a PDF from it. This guide builds a one-page service agreement that a client signs.
+
+<Steps>
+<Step>
+## Install the packages
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/core @paradoc/react @paradoc/react-pdf react react-dom
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/core @paradoc/react @paradoc/react-pdf react react-dom
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/core @paradoc/react @paradoc/react-pdf react react-dom
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/core @paradoc/react @paradoc/react-pdf react react-dom
+    ```
+  </Tab>
+</Tabs>
+
+The composition uses three installed components: `Document`, `Field`, and `Signature`. Register the `@paradoc` namespace once, as [Installation](/components/installation) shows, then add them:
+
+```bash
+npx shadcn@4 add @paradoc/document @paradoc/field @paradoc/signature
+```
+
+They land in `components/paradoc/`, and from then on they are your source to edit.
+</Step>
+
+<Step>
+## Declare the layer
+
+A React layer is a file layer with MIME type `text/tsx` (or `text/jsx`). Its `path` names the composition module, relative to the artifact file.
+
+```ts title="documents/agreement.ts"
+import { p } from '@paradoc/core'
+
+export const agreement = p
+  .form()
+  .name('service-agreement')
+  .version('1.0.0')
+  .title('Service Agreement')
+  .fields({
+    service: { type: 'text', label: 'Service', required: true },
+    fee: { type: 'money', label: 'Fee', required: true },
+  })
+  .parties({
+    client: { label: 'Client', partyType: 'person', signature: { required: true } },
+  })
+  .fileLayer('composition', {
+    mimeType: 'text/tsx',
+    path: 'agreement-document.tsx',
+    signatures: {
+      'client-signature': { party: { role: 'client' }, type: 'signature', placement: 'flow' },
+    },
+  })
+  .defaultLayer('composition')
+  .build()
+```
+
+The layer must be a file layer. An inline layer with a React MIME type fails validation, because there is no module for it to name.
+
+The `signatures` map makes the layer a seal target. A `flow` slot sits wherever the composition draws that party's `Signature` block, so nothing else has to describe where the signature goes.
+</Step>
+
+<Step>
+## Write the composition
+
+The module's default export is the component. It receives the form as `artifact` and the filled values as `data`.
+
+```tsx title="documents/agreement-document.tsx"
+import type { ReactLayerComponentProps } from '@paradoc/react-pdf'
+import { Document } from '@/components/paradoc/document'
+import { Field } from '@/components/paradoc/field'
+import { Signature } from '@/components/paradoc/signature'
+
+export default function AgreementDocument({ artifact, data }: ReactLayerComponentProps) {
+  return (
+    <Document artifact={artifact} data={data}>
+      <Field path="service" />
+      <Field path="fee" />
+      <Signature party="client" />
+    </Document>
+  )
+}
+```
+
+`Field` prints the label and the formatted value from the artifact. `Signature` prints the client's name and the signing rule the seal measures the field from.
+</Step>
+
+<Step>
+## Render the PDF
+
+Core does not render React itself. Pass `reactLayerRenderers()` in `renderers`, which registers one renderer for both `text/tsx` and `text/jsx`. The `components` map binds the layer's path to the component you imported.
+
+```ts title="render.ts"
+import { writeFile } from 'node:fs/promises'
+import { reactLayerRenderers } from '@paradoc/react-pdf'
+import { agreement } from './documents/agreement'
+import AgreementDocument from './documents/agreement-document'
+
+const renderers = reactLayerRenderers({
+  components: { 'agreement-document.tsx': AgreementDocument },
+})
+
+const draft = agreement.fill({
+  fields: {
+    service: 'Website redesign',
+    fee: { amount: 4800, currency: 'USD' },
+  },
+  parties: {
+    client: { id: 'client-0', name: 'Ada Lovelace' },
+  },
+})
+
+const pdf = await draft.render<Uint8Array>({ layer: 'composition', renderers })
+await writeFile('agreement.pdf', pdf)
+```
+
+Without a renderer registered for the layer's MIME type, `render()` throws `UnregisteredLayerRendererError`. A path that neither `components` nor an import can bind throws `UnboundReactLayerError`.
+
+Binding through `components` works in a bundled application, where the module is already imported. In a Node process that can load `.tsx`, you can leave out `components` and set `baseDir` to the artifact file's directory; the renderer then imports the path and takes its default export. It refuses an absolute path or one that leaves `baseDir`, because importing a module runs it.
+</Step>
+
+<Step>
+## Seal it
+
+Bind a signer to the client, then seal with the same `renderers`. The React renderer writes the PDF itself, so the seal needs no `SealAdapter`.
+
+```ts
+const signable = await draft
+  .addSigner('client-signer', { person: { name: 'Ada Lovelace' } })
+  .addSignatory('client', 'client-0', { signerId: 'client-signer' })
+  .seal({ renderers })
+
+signable.canonicalPdfBytes // the flattened PDF a signer signs
+signable.canonicalPdfHash  // 'sha256:...'
+signable.signatureMap      // the client's signature field, in PDF coordinates
+```
+
+The seal renders twice. On the first pass the renderer hands each `Signature` block an invisible marker, and core locates the markers in the PDF to place the fields. The second pass is the clean document that is hashed. See [Sealing](/guides/sealing-and-conversion) for slots, placements, and `prepareSeal()`.
+</Step>
+
+<Step>
+## Preview while you edit
+
+[`paradoc dev`](/cli/commands/dev) previews compositions in the browser, and [`paradoc check`](/cli/commands/check) checks them against their artifacts. Both look for a composition under a `compositions/` directory and read artifacts from `.yaml`, `.yml`, or `.json` files. To use them, save the form as JSON (`agreement.toJSON()`) beside the composition and keep the layer's `path` pointing at it. The full conventions are in [Discovery](/sdk/react#discovery).
+</Step>
+</Steps>
+
+## Next steps
+
+- [Packets](/guides/packets): seal this agreement with other documents as one signable PDF.
+- [React](/sdk/react) and [React PDF](/sdk/react-pdf): the hooks, tokens, `renderPdf`, and renderer options.
+- [Renderer registry](/sdk/renderers#renderer-registry) and [React layers](/concepts/rendering#react-layers): how `renderers` is consulted.
+- [Components](/components): every installed component, and complete blocks such as the [purchase order](/components/blocks/purchase-order).
