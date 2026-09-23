@@ -24,11 +24,21 @@ paradoc diff <file1> <file2> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--name-only` | Show only if files differ (no content diff) |
+| `--name-only` | Print the paths of the two files when they differ, and nothing when they are identical (no content diff) |
 
 ## Description
 
 The `diff` command compares two artifact files and displays the differences in unified diff format. It attempts to parse both files as artifacts to show artifact names in the output.
+
+## Exit status
+
+Like POSIX `diff`, the exit status tells scripts and agents whether the files differ, without reading the output:
+
+| Status | Meaning |
+|--------|---------|
+| `0` | The files are identical |
+| `1` | The files differ |
+| `2` | An error occurred, such as a missing file |
 
 ## Examples
 
@@ -38,10 +48,15 @@ Compare two files:
 paradoc diff form-v1.yaml form-v2.yaml
 ```
 
-Check if files differ:
+Check if files differ in a script:
 
 ```bash
-paradoc diff form-v1.yaml form-v2.yaml --name-only
+paradoc diff form-v1.yaml form-v2.yaml --name-only > /dev/null
+case $? in
+  0) echo "unchanged" ;;
+  1) echo "form changed" ;;
+  *) echo "diff failed" ;;
+esac
 ```
 
 ## Output
@@ -69,10 +84,11 @@ When files are identical:
 Files are identical
 ```
 
-With `--name-only`:
+With `--name-only`, when files differ:
 
 ```
-Files differ
+form-v1.yaml
+form-v2.yaml
 ```
 
 ## See also

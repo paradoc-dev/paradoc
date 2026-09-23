@@ -9,9 +9,15 @@ import {
   fileExists,
 } from '../utils/project.js'
 
+/** Exit statuses follow the POSIX `diff` convention. */
+const EXIT_IDENTICAL = 0
+const EXIT_DIFFERENT = 1
+const EXIT_ERROR = 2
+
 /**
  * Create the 'diff' command
- * Shows differences between artifact files
+ * Shows differences between artifact files.
+ * Exits 0 when the files are identical, 1 when they differ, 2 on error.
  *
  * TODO: Implement registry-based diff (compare local vs registry version)
  */
@@ -22,7 +28,11 @@ export function createDiffCommand(): Command {
     .argument('<file1>', 'First artifact file to compare')
     .argument('<file2>', 'Second artifact file to compare')
     .description('Show differences between two artifact files')
-    .option('--name-only', 'Show only if files differ (no content)')
+    .option('--name-only', 'Print the paths of the files when they differ (no content)')
+    .addHelpText('after', '\nExit status: 0 if the files are identical, 1 if they differ, 2 on error.')
+    .exitOverride((err) => {
+      process.exit(err.exitCode === 0 ? EXIT_IDENTICAL : EXIT_ERROR)
+    })
     .action(async (file1: string, file2: string, options) => {
       try {
         // Find repo root or use current directory
@@ -36,11 +46,13 @@ export function createDiffCommand(): Command {
         // Check files exist
         if (!(await fileExists(path1))) {
           console.error(kleur.red(`File not found: ${file1}`))
-          process.exit(1)
+          process.exitCode = EXIT_ERROR
+          return
         }
         if (!(await fileExists(path2))) {
           console.error(kleur.red(`File not found: ${file2}`))
-          process.exit(1)
+          process.exitCode = EXIT_ERROR
+          return
         }
 
         // Read file contents
@@ -49,13 +61,16 @@ export function createDiffCommand(): Command {
 
         // Check if files are identical
         if (content1 === content2) {
-          console.log(kleur.gray('Files are identical'))
-          process.exit(0)
+          if (!options.nameOnly) console.log(kleur.gray('Files are identical'))
+          process.exitCode = EXIT_IDENTICAL
+          return
         }
 
         if (options.nameOnly) {
-          console.log('Files differ')
-          process.exit(0)
+          console.log(file1)
+          console.log(file2)
+          process.exitCode = EXIT_DIFFERENT
+          return
         }
 
         // Try to parse as artifacts for richer comparison
@@ -101,10 +116,11 @@ export function createDiffCommand(): Command {
             console.log(line)
           }
         }
+        process.exitCode = EXIT_DIFFERENT
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(kleur.red(`Error: ${message}`))
-        process.exit(1)
+        process.exitCode = EXIT_ERROR
       }
     })
 

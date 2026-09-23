@@ -64,32 +64,55 @@ describe('CLI diff command', () => {
     expect(result.stdout).toContain('differences')
   })
 
-  it('should report identical files', async () => {
+  it('should document the exit status in help', async () => {
+    const result = await executeCliCommand(['diff', '--help'])
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Exit status: 0 if the files are identical, 1 if they differ, 2 on error.')
+  })
+
+  it('should report identical files and exit 0', async () => {
     const result = await executeCliCommand(['diff', fixture1, fixture1])
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('identical')
   })
 
-  it('should show diff between two different files', async () => {
+  it('should show diff between two different files and exit 1', async () => {
     const result = await executeCliCommand(['diff', fixture1, fixture2])
 
-    expect(result.exitCode).toBe(0)
+    expect(result.exitCode).toBe(1)
     expect(result.stdout).toContain('---')
     expect(result.stdout).toContain('+++')
+    expect(result.stderr).toBe('')
   })
 
-  it('should support --name-only', async () => {
+  it('should print both file paths with --name-only when files differ and exit 1', async () => {
     const result = await executeCliCommand(['diff', fixture1, fixture2, '--name-only'])
 
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('Files differ')
+    expect(result.exitCode).toBe(1)
+    expect(result.stdout.trim().split('\n')).toEqual([fixture1, fixture2])
+    expect(result.stdout).not.toContain('Files differ')
   })
 
-  it('should fail for non-existent file', async () => {
+  it('should print nothing with --name-only when files are identical and exit 0', async () => {
+    const result = await executeCliCommand(['diff', fixture1, fixture1, '--name-only'])
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
+  })
+
+  it('should exit 2 for a non-existent file', async () => {
     const result = await executeCliCommand(['diff', fixture1, '/tmp/nonexistent.yaml'])
 
-    expect(result.exitCode).toBe(1)
+    expect(result.exitCode).toBe(2)
     expect(result.stderr).toContain('File not found')
+  })
+
+  it('should exit 2 when a file argument is missing', async () => {
+    const result = await executeCliCommand(['diff', fixture1])
+
+    expect(result.exitCode).toBe(2)
+    expect(result.stderr).toContain("missing required argument 'file2'")
   })
 })

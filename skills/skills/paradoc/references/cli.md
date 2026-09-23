@@ -361,8 +361,10 @@ paradoc fix my-form.json --dry-run    # Preview
 
 ```bash
 paradoc diff form-v1.json form-v2.json
-paradoc diff form-v1.json form-v2.json --name-only
+paradoc diff form-v1.json form-v2.json --name-only   # Print both paths if they differ
 ```
+
+Exit status: `0` identical, `1` differ, `2` error.
 
 ### Applying patches
 
