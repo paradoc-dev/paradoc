@@ -6,20 +6,7 @@
  */
 
 import { z } from 'zod';
-
-/**
- * Per-registry cache configuration
- */
-export const ManifestRegistryCacheConfigSchema = z.object({
-	ttl: z.number()
-		.int()
-		.min(0)
-		.describe('Cache TTL in seconds. 0 disables caching for this registry.')
-		.optional(),
-}).meta({
-	title: 'ManifestRegistryCacheConfig',
-	description: 'Per-registry cache configuration',
-});
+import { ArtifactOutputFormatSchema, RegistryEntrySchema } from './registry/registry-entry';
 
 /**
  * Project-level cache configuration
@@ -34,53 +21,6 @@ export const ManifestCacheConfigSchema = z.object({
 }).meta({
 	title: 'ManifestCacheConfig',
 	description: 'Project-level cache configuration for registry data',
-});
-
-/**
- * Registry entry with authentication options
- */
-export const ManifestRegistryEntryObjectSchema = z.object({
-	url: z.url().describe('Registry base URL'),
-	headers: z.record(z.string(), z.string())
-		.describe('HTTP headers for authentication (supports ${ENV_VAR} expansion)')
-		.optional(),
-	params: z.record(z.string(), z.string())
-		.describe('Query parameters to include in requests')
-		.optional(),
-	cache: ManifestRegistryCacheConfigSchema
-		.describe('Per-registry cache settings')
-		.optional(),
-}).meta({
-	title: 'ManifestRegistryEntryObject',
-	description: 'Registry configuration with authentication options',
-});
-
-/**
- * Registry entry - either a simple URL string or an object with auth
- */
-export const ManifestRegistryEntrySchema = z.union([
-	z.url().describe('Simple registry URL'),
-	ManifestRegistryEntryObjectSchema,
-]).meta({
-	title: 'ManifestRegistryEntry',
-	description: 'Registry configuration - URL string or object with authentication',
-});
-
-/**
- * Output format for installed artifacts
- * - 'json': Raw JSON file only
- * - 'yaml': Raw YAML file only
- * - 'typed': JSON file with TypeScript declaration file (.d.ts) for type safety
- * - 'ts': TypeScript module with ready-to-use typed export
- */
-export const ArtifactOutputFormatSchema = z.union([
-	z.literal('json'),
-	z.literal('yaml'),
-	z.literal('typed'),
-	z.literal('ts'),
-]).meta({
-	title: 'ArtifactOutputFormat',
-	description: 'Output format for installed artifacts',
 });
 
 /**
@@ -127,7 +67,7 @@ export const ManifestSchema = z.object({
 		.describe('Project visibility'),
 	registries: z.record(
 		z.string().regex(/^@[a-zA-Z0-9][a-zA-Z0-9-_]*$/).describe('Registry namespace (must start with @)'),
-		ManifestRegistryEntrySchema,
+		RegistryEntrySchema,
 	).describe('Custom registries for this project (overrides global config)')
 		.optional(),
 	artifacts: ManifestArtifactConfigSchema.optional(),
@@ -156,56 +96,8 @@ export const ManifestSchemaRegistry = z.registry<{
 ManifestSchemaRegistry.add(ManifestSchema, { id: 'Manifest' });
 
 /**
- * Per-registry cache configuration type
+ * TypeScript types
  */
-export interface ManifestRegistryCacheConfig {
-	/** Cache TTL in seconds. 0 disables caching. */
-	ttl?: number;
-}
-
-/**
- * Project-level cache configuration type
- */
-export interface ManifestCacheConfig {
-	/** Default cache TTL in seconds. 0 disables caching. Default: 3600 */
-	ttl?: number;
-}
-
-/**
- * Manifest registry entry type
- */
-export type ManifestRegistryEntry =
-	| string
-	| {
-			url: string;
-			headers?: Record<string, string>;
-			params?: Record<string, string>;
-			cache?: ManifestRegistryCacheConfig;
-		};
-
-/**
- * Artifact output format type
- */
-export type ArtifactOutputFormat = 'json' | 'yaml' | 'typed' | 'ts';
-
-/**
- * Manifest artifact configuration type
- */
-export interface ManifestArtifactConfig {
-	dir?: string;
-	output?: ArtifactOutputFormat;
-}
-
-/**
- * TypeScript interface for Manifest (for better DX)
- */
-export interface Manifest {
-	$schema?: string;
-	name: string;
-	title: string;
-	description?: string;
-	visibility: 'public' | 'private';
-	registries?: Record<string, ManifestRegistryEntry>;
-	artifacts?: ManifestArtifactConfig;
-	cache?: ManifestCacheConfig;
-}
+export type ManifestCacheConfig = z.infer<typeof ManifestCacheConfigSchema>;
+export type ManifestArtifactConfig = z.infer<typeof ManifestArtifactConfigSchema>;
+export type Manifest = z.infer<typeof ManifestSchema>;

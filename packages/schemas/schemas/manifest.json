@@ -95,7 +95,7 @@
                   }
                 },
                 "additionalProperties": false,
-                "title": "ManifestRegistryCacheConfig",
+                "title": "RegistryCacheConfig",
                 "description": "Per-registry cache settings"
               }
             },
@@ -103,11 +103,11 @@
               "url"
             ],
             "additionalProperties": false,
-            "title": "ManifestRegistryEntryObject",
+            "title": "RegistryEntryObject",
             "description": "Registry configuration with authentication options"
           }
         ],
-        "title": "ManifestRegistryEntry",
+        "title": "RegistryEntry",
         "description": "Registry configuration - URL string or object with authentication"
       },
       "description": "Custom registries for this project (overrides global config)"

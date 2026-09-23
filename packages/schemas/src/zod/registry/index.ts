@@ -8,6 +8,7 @@
  * - Registry items (r/{name}.json)
  */
 
+export * from './registry-entry';
 export * from './global-config';
 export * from './lock';
 export * from './registry-index';

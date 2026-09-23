@@ -92,7 +92,8 @@ export {
 export {
 	GlobalConfigSchema,
 	GlobalDefaultsSchema,
-	GlobalArtifactOutputFormatSchema,
+	ArtifactOutputFormatSchema,
+	RegistryCacheConfigSchema,
 	RegistryEntrySchema,
 	RegistryEntryObjectSchema,
 	LockFileSchema,
@@ -109,7 +110,8 @@ export {
 export type {
 	GlobalConfig,
 	GlobalDefaults,
-	GlobalArtifactOutputFormat,
+	ArtifactOutputFormat,
+	RegistryCacheConfig,
 	RegistryEntry,
 	RegistryEntryObject,
 	LockFile,
@@ -124,5 +126,5 @@ export type {
 } from './registry';
 
 // Manifest
-export { ManifestSchema, ArtifactOutputFormatSchema } from './manifest';
-export type { Manifest, ManifestRegistryEntry, ManifestArtifactConfig, ArtifactOutputFormat } from './manifest';
+export { ManifestSchema } from './manifest';
+export type { Manifest, ManifestArtifactConfig } from './manifest';

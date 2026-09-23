@@ -138,7 +138,7 @@
               "const": "ts"
             }
           ],
-          "title": "GlobalArtifactOutputFormat"
+          "title": "ArtifactOutputFormat"
         },
         "artifactsDir": {
           "default": "artifacts",

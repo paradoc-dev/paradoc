@@ -23,6 +23,9 @@ import {
 import {
 	RegistryEntryObjectSchema,
 	RegistryEntrySchema,
+} from './registry-entry';
+
+import {
 	GlobalDefaultsSchema,
 	GlobalConfigSchema,
 } from './global-config';
