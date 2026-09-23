@@ -35,16 +35,35 @@ validating, rendering, and sealing Paradoc artifacts.
 
 
 
-## Package Overview
+## What the SDK includes
 
-The SDK exposes:
+`@paradoc/sdk` re-exports four packages, so one import covers the common path:
 
 | Package | Description |
 |---------|-------------|
-| `@paradoc/core` | Builders, instances, and lifecycle types for all artifact types |
-| `@paradoc/format` | Locale-aware value presentation for rendering |
-| `@paradoc/sessions` | Stateful form sessions |
-| `@paradoc/render` | The MIME-selected `renderLayer()` entry point |
+| [`@paradoc/core`](/sdk/artifacts) | Builders, instances, lifecycle types, bundle assembly, and sealing for every artifact type |
+| [`@paradoc/format`](/sdk/formatting) | Locale-aware presentation of artifact values |
+| [`@paradoc/sessions`](/sdk/sessions) | Event-sourced form-completion sessions |
+| [`@paradoc/render`](/sdk/renderers) | The MIME-selected `renderLayer()` entry point, plus the PDF placement helpers `locate`, `locator`, and `extractFieldsFromPdf` |
 
-Install `@paradoc/render` directly when importing its format-specific subpaths
-or keeping rendering as an explicit application dependency.
+The SDK also exports `hostedSealAdapter`, which converts non-PDF layers through the hosted converter when you seal. See [Hosted sealing and conversion](/guides/hosted-sealing-and-conversion).
+
+Install `@paradoc/render` directly when you import its format subpaths
+(`@paradoc/render/text`, `/pdf`, `/docx`) or want rendering as an explicit
+dependency.
+
+## Related packages
+
+These packages are not part of `@paradoc/sdk`. Install each one on its own.
+
+| Package | Description |
+|---------|-------------|
+| [`@paradoc/resolvers`](/sdk/resolvers) | Read file-backed layers from the filesystem (`/fs`) or memory (`/memory`) |
+| [`@paradoc/expr`](/sdk/expr) | The expression language behind artifact logic |
+| [`@paradoc/react`](/sdk/react) | React bindings, pagination, and the runtime for React layers |
+| [`@paradoc/react-pdf`](/sdk/react-pdf) | PDF rendering and composition checks for `@paradoc/react` |
+| [`@paradoc/essentials`](/sdk/essentials) | Ready-to-use artifacts for common business forms |
+| [`@paradoc/ai-tools`](/ai/ai-tools) | Framework-neutral AI tool definitions |
+| [`@paradoc/ai-sdk`](/ai/ai-sdk) | Adapter for the Vercel AI SDK |
+| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | Adapter for TanStack AI |
+| [`@paradoc/mastra`](/ai/mastra) | Adapter for Mastra |

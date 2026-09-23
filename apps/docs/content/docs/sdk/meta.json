@@ -10,7 +10,8 @@
     "sessions",
     "expr",
     "react",
-    "react-pdf"
+    "react-pdf",
+    "essentials"
   ],
   "defaultOpen": false
 }

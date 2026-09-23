@@ -1,0 +1,132 @@
+---
+title: Essentials
+description: Ready-to-use artifacts for common business forms
+---
+
+`@paradoc/essentials` ships finished artifacts for common business forms: IRS tax forms, the USCIS I-9, and ACH authorizations. Each one is a form instance with its spec and layers bundled in, so you fill, render, and seal it without loading files or configuring a resolver.
+
+## Installation
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']} groupId="package-manager" persist>
+  <Tab value="npm">
+    ```bash
+    npm install @paradoc/essentials
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @paradoc/essentials
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @paradoc/essentials
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @paradoc/essentials
+    ```
+  </Tab>
+</Tabs>
+
+## Included artifacts
+
+| Subpath | Export | Form |
+|---------|--------|------|
+| `/tax` | `w9` | IRS W-9, Request for Taxpayer Identification Number and Certification |
+| `/tax` | `f1099NEC` | IRS 1099-NEC, Nonemployee Compensation |
+| `/tax` | `f1099MISC` | IRS 1099-MISC, Miscellaneous Information |
+| `/tax` | `f4506T` | IRS 4506-T, Request for Transcript of Tax Return |
+| `/employment` | `i9` | USCIS I-9, Employment Eligibility Verification |
+| `/banking` | `achBankAccountInfo` | ACH bank account information |
+| `/banking` | `achChangeForm` | ACH change form |
+| `/banking` | `achCreditAuthorization` | ACH credit authorization |
+| `/banking` | `achDebitAuthorization` | ACH debit authorization |
+| `/banking` | `achDirectDeposit` | ACH direct deposit authorization |
+
+Import from a subpath or from the package root:
+
+```ts
+import { w9 } from '@paradoc/essentials/tax'
+import { i9 } from '@paradoc/essentials/employment'
+import { achDirectDeposit } from '@paradoc/essentials/banking'
+
+// or
+import { w9, i9, achDirectDeposit } from '@paradoc/essentials'
+```
+
+## Fill and render
+
+Each export is a `FormInstance`, so it has the full [form API](/sdk/artifacts/form). Every artifact has a `markdown` layer and one or more PDF layers built from the official form.
+
+```ts
+import { w9 } from '@paradoc/essentials/tax'
+
+const draft = w9.fill({
+  parties: {
+    taxpayer: {
+      id: 'taxpayer-0',
+      name: 'Jane Q. Public',
+      firstName: 'Jane',
+      lastName: 'Public',
+    },
+  },
+  fields: {
+    taxClassification: 'individual_or_sole_proprietor',
+    ssn: '123-45-6789',
+    mailingAddress: {
+      line1: '1 Main St',
+      locality: 'Springfield',
+      region: 'IL',
+      postalCode: '62704',
+      country: 'US',
+    },
+  },
+})
+
+const markdown = await draft.render({ layer: 'markdown' })
+const pdf = await draft.render({ layer: 'pdf' })
+```
+
+The PDF template is read through a resolver bound when the package built the instance, so `render` and `seal` need none.
+
+## Seal
+
+A PDF layer seals locally, with no adapter. The W-9 PDF layer declares two signature slots:
+
+```ts
+const signable = await draft
+  .addSigner('jane', { person: { name: 'Jane Q. Public' } })
+  .addSignatory('taxpayer', 'taxpayer-0', { signerId: 'jane' })
+  .seal()
+
+signable.signatureMap      // where each signature goes
+signable.canonicalPdfHash  // 'sha256:...'
+```
+
+## Validate input
+
+Check data without filling a form:
+
+```ts
+const result = w9.safeParseData(input)
+if (result.success) {
+  // result.data is typed to the W-9
+}
+```
+
+## Read the spec
+
+Each export also carries `spec`, the raw artifact definition it was built from:
+
+```ts
+w9.spec.name     // 'w-9'
+w9.spec.version  // '1.0.0'
+```
+
+## Related
+
+- [form](/sdk/artifacts/form) - The form API every essential exposes
+- [Sessions](/sdk/sessions) - Collect answers for an essential across turns
+- [Bundles](/sdk/artifacts/bundle) - Combine several forms into one packet

@@ -187,7 +187,7 @@ Returns a `FormInstance` with the following properties and methods:
   { name: 'validateAnnexesPatch', type: '(annexes: unknown) => ProgressiveValidationResult<Record<string, unknown>>', description: 'Validate a partial annexes patch', isMethod: true },
   { name: 'fill', type: '(seed?: ProgressiveFormPayload, options?: FillOptions) => DraftForm', description: 'Create a draft from empty, partial, or complete data; supplied values validate immediately', isMethod: true },
   { name: 'safeFill', type: '(seed?: ProgressiveFormPayload, options?: FillOptions) => SafeFillResult', description: 'Safely create a draft; success means the supplied patch was accepted', isMethod: true },
-  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render using a renderer', isMethod: true },
+  { name: 'render', type: '(options?: RenderOptions) => Promise<Output>', description: 'Render a layer, with `data` if supplied. See [Render options](#render-options)', isMethod: true },
   { name: 'clone', type: '() => FormInstance', description: 'Deep clone the instance', isMethod: true },
   { name: 'validate', type: '(options?: ValidateOptions) => StandardSchemaV1.Result', description: 'Validate the form definition', isMethod: true },
   { name: 'isValid', type: '(options?: ValidateOptions) => boolean', description: 'Check if form is valid', isMethod: true },
@@ -433,8 +433,9 @@ Created by `form.fill()`. Mutable data and signer configuration.
   { name: 'getNextFillTarget', type: '(options?: FillTargetOptions) => FillTarget | null', description: 'Get the next recommended fill target, or null if all required are done', isMethod: true },
   { name: 'getAvailableFillTargets', type: '(options?: FillTargetOptions) => FillTarget[]', description: 'Get all available fill targets in declaration order', isMethod: true },
   { name: 'prepareForSigning', type: '() => SignableForm', description: 'Transition to signable phase', isMethod: true },
-  { name: 'seal', type: '(adapter: Sealer) => Promise<SignableForm>', description: 'Seal for formal e-signing', isMethod: true },
-  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render with embedded data', isMethod: true },
+  { name: 'seal', type: '(options?: SealOptions | Sealer) => Promise<SignableForm>', description: 'Render, place signature fields, flatten, and hash the target layer for formal e-signing. See [Seal options](#seal-options)', isMethod: true },
+  { name: 'prepareSeal', type: '(options?: SealOptions) => Promise<SealPreparation>', description: 'Resolve the signature map and the converted PDF it describes, without flattening, hashing, or changing phase. Requires a layer with `signatures`', isMethod: true },
+  { name: 'render', type: '(options?: RuntimeFormRenderOptions) => Promise<Output>', description: 'Render with embedded data', isMethod: true },
   { name: 'toJSON', type: '() => DraftFormJSON', description: 'Serialize to JSON', isMethod: true },
   { name: 'toYAML', type: '() => string', description: 'Serialize to YAML', isMethod: true },
 ]} />
@@ -470,9 +471,62 @@ Created by `signable.finalize()`. Fully frozen, ready for archival.
   { name: 'getCaptures', type: '() => SignatureCapture[]', description: 'Get all captures', isMethod: true },
   { name: 'getWitnesses', type: '() => WitnessParty[]', description: 'Get all witnesses', isMethod: true },
   { name: 'getAttestations', type: '() => Attestation[]', description: 'Get all attestations', isMethod: true },
-  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render the executed form', isMethod: true },
+  { name: 'render', type: '(options?: RuntimeFormRenderOptions) => Promise<Output>', description: 'Render the executed form', isMethod: true },
   { name: 'toJSON', type: '() => ExecutedFormJSON', description: 'Serialize to JSON', isMethod: true },
 ]} />
+
+## Render options
+
+`form.render()` takes `RenderOptions`. A filled form's `render()` takes `RuntimeFormRenderOptions`, which is the same without `data`, because the form already holds it.
+
+<PropertiesTable properties={[
+  { name: 'layer', type: 'string', description: 'Layer key to render. Defaults to the target layer, then defaultLayer, then the first layer', isOptional: true },
+  { name: 'renderer', type: 'ParadocRenderer', description: 'Override the renderer for this call. Supported MIME types use the built-in renderer by default', isOptional: true },
+  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, consulted when no `renderer` is given and before the built-in engines. This is how a React layer (`text/tsx`, `text/jsx`) renders', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Formatter used for every value in this render', isOptional: true },
+  { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values in a preview', isOptional: true },
+  { name: 'bindings', type: 'Record<string, string>', description: 'Bindings merged over the layer\'s own', isOptional: true },
+  { name: 'data', type: 'Record<string, unknown>', description: 'Values to render with. `RenderOptions` only', isOptional: true },
+]} />
+
+```ts
+import { reactLayerRenderers } from '@paradoc/react/pdf'
+
+const pdf = await draft.render({
+  layer: 'composition',
+  renderers: reactLayerRenderers({ components: { 'purchase-order.tsx': PurchaseOrder } }),
+})
+```
+
+## Seal options
+
+`seal()` renders the target layer, resolves its signature fields, flattens the PDF, and records its hash. A PDF layer seals locally. Any other layer needs an `adapter` that converts it to PDF, unless a renderer registered in `renderers` writes the PDF itself, as the React renderer does.
+
+<PropertiesTable properties={[
+  { name: 'adapter', type: 'SealAdapter', description: 'Converts a non-PDF layer to PDF. Not needed for PDF layers or for a layer whose registered renderer writes PDF', isOptional: true },
+  { name: 'locate', type: 'SealLocator', description: 'Resolves anchor positions against the converted PDF when the adapter returns no signature map', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Formatter used on every sealing render pass', isOptional: true },
+  { name: 'renderer', type: 'ParadocRenderer', description: 'Renderer override for the sealed layer. Refused with flow placement, because only core can write the flow markers', isOptional: true },
+  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, the same registry `render` takes', isOptional: true },
+]} />
+
+The seal picks its renderer in this order:
+
+1. A renderer registered for a React layer's MIME type. It receives the flow markers and writes the PDF, so it needs no `adapter`.
+2. Core's text renderer, whenever the layer places a slot in flow. Passing `renderer` alongside flow placement throws `SealConfigError`.
+3. Otherwise `renderer`, then the `renderers` entry for the layer's MIME type, then the built-in renderer.
+
+You can pass a `Sealer` instead of options: an object whose `seal(request)` returns the signature map and PDF hash itself, so core skips its own render and placement.
+
+```ts
+const signable = await draft
+  .addSigner('jane', { person: { name: 'Jane Doe' } })
+  .addSignatory('tenant', 'tenant-0', { signerId: 'jane' })
+  .seal()
+
+signable.signatureMap      // signature field coordinates
+signable.canonicalPdfHash  // 'sha256:...'
+```
 
 ## Related
 

@@ -262,6 +262,43 @@ supplied directly:
 `outputs`, a `Record<string, { content, mimeType, filename }>` keyed by
 content key.
 
+## Sealing a packet
+
+`sealBundle(bundle, options)` turns a bundle into one signable PDF packet. It seals each part that declares signature slots, renders the rest, flattens and merges every part's pages in bundle order, and returns one signature map in packet page space.
+
+```ts
+import { sealBundle } from '@paradoc/core'
+
+const packet = await sealBundle(bundle, {
+  contents: {
+    lease: filledLease,
+    addendum: filledAddendum,
+    insuranceCert: { kind: 'bytes', content: certBytes, mimeType: 'application/pdf' },
+  },
+  signers: {
+    // The same person signs both parts.
+    'lease/tenant-signer': 'jane',
+    'addendum/tenant-signer': 'jane',
+  },
+})
+
+packet.pdf               // the merged packet
+packet.canonicalPdfHash  // 'sha256:...' — what a signer signs
+packet.signatureMap      // every slot, on packet pages
+```
+
+<PropertiesTable properties={[
+  { name: 'contents', type: 'Record<string, AssemblyContentEntry>', description: 'One entry per bundle content key, as for assemble()' },
+  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, used by every part\'s render and seal', isOptional: true },
+  { name: 'adapter', type: 'SealAdapter', description: 'Converter for a part whose layer is neither PDF nor drawn by a registered renderer', isOptional: true },
+  { name: 'locate', type: 'SealLocator', description: 'Locator for anchor placements', isOptional: true },
+  { name: 'signers', type: 'Record<string, string>', description: 'Maps `<part>/<signerId>` to a packet signer id. Without an entry, each part signer is its own packet signer', isOptional: true },
+]} />
+
+The result, a `SealedBundle`, carries `pdf`, `canonicalPdfHash`, `packetHash` (a digest over the merged PDF's hash and every part's), `signers`, `signatureMap`, and `parts`. Each part reports its `kind` (`'sealed'`, `'rendered'`, or `'annex'`), its page range in the packet, and its own digest.
+
+Part signer ids are scoped as `<part>/<signerId>`, because two parts that both say `signer-1` are not evidence that one person signs both. Map them with `signers` when they are. A failure throws `BundleSealError`, whose `problems` lists every issue and `part` names the content key when there is one.
+
 ## Lifecycle Types
 
 Bundles follow a three-phase lifecycle similar to forms (since bundles can contain forms that require signatures):

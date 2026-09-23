@@ -34,6 +34,54 @@ formatter.formatDate('2026-09-07') // '07.09.2026'
 
 Money always carries its currency. Percentages use percentage points, so `8.25` formats as `8.25%`. Address country is independent of document locale.
 
+## Selection values
+
+Booleans, single choices, multiple choices, and ratings go through the same formatter. Each call takes the options the field declares.
+
+```ts
+import { createFormatter } from '@paradoc/format'
+
+const formatter = createFormatter({ locale: 'en-US' })
+const options = [
+  { value: 'plumbing', label: 'Plumbing' },
+  { value: 'roofing', label: 'Roofing' },
+]
+
+formatter.formatBoolean(true)                                   // 'Yes'
+formatter.formatBoolean(true, { trueLabel: 'Agreed' })          // 'Agreed'
+formatter.formatEnum('plumbing', { options })                   // 'Plumbing'
+formatter.formatMultiselect(['plumbing', 'roofing'], { options }) // 'Plumbing and Roofing'
+formatter.formatRating(4, { max: 5 })                           // '4 of 5'
+formatter.formatRating(4, { display: 'value' })                 // '4'
+```
+
+| Kind | Options |
+|------|---------|
+| `boolean` | `trueLabel`, `falseLabel` replace the locale's words |
+| `enum` | `options` (the declared `{ value, label }` list), `unknownOption` |
+| `multiselect` | the `enum` options, plus `listType` (`'conjunction'`, `'disjunction'`, `'unit'`; default `'conjunction'`) and `listStyle` (`'long'`, `'short'`, `'narrow'`; default `'long'`) |
+| `rating` | `max` (the top of the scale), `display` (`'scale'` or `'value'`; default `'scale'`) |
+
+`UnknownOptionPolicy` decides what happens to a value no option declares: `'error'` (the default) refuses it, and `'value'` prints the raw value.
+
+A multiselect joins its labels with the locale's own list conjunction, so `['plumbing', 'roofing']` prints as "Plumbing and Roofing" in `en-US` and "Plumbing und Roofing" in `de-DE`. Ratings print with their scale in the locale's words: "4 of 5", "4 von 5".
+
+The standalone functions `formatBoolean`, `formatEnum`, `formatMultiselect`, and `formatRating` use the default `en-US` formatter. Each has a `safeFormat*` pair, and `formatValue('rating', 4, { max: 5 })` dispatches by kind.
+
+Two `unsupported` outcomes have exported codes, so you can key a fallback off them:
+
+- `MISSING_RATING_SCALE`: the rating declares no `max`, so it has no scale to print.
+- `UNSUPPORTED_LIST_JOIN`: the runtime has no list conjunction for the locale.
+
+```ts
+import { MISSING_RATING_SCALE } from '@paradoc/format'
+
+const result = formatter.safeFormatRating(4)
+if (!result.success && result.issues[0]?.code === MISSING_RATING_SCALE) {
+  // print the plain number instead
+}
+```
+
 ## Safe results
 
 Strict methods return text or throw `FormatError`. Safe methods distinguish missing, incomplete, invalid, unsupported, and unexpected failures:
@@ -67,6 +115,20 @@ const compact = formatter.withOverrides({
   },
 })
 ```
+
+## In-progress documents
+
+By default a value that has not been supplied renders blank. To mark it in a preview, pass a `progressive` policy to `render()`. `missing` sets the text for an absent value (default: an em dash) and `incomplete` the text for a composite value that is only partly supplied (default: an ellipsis). For a layer `{{name}} / {{total}}` with only `name` filled:
+
+```ts
+const preview = await draft.render({ progressive: {} })
+// 'Ada / —'
+
+const marked = await draft.render({ progressive: { missing: '___' } })
+// 'Ada / ___'
+```
+
+React compositions use the `partial` option instead; see [@paradoc/react](/sdk/react).
 
 ## Use one formatter for an artifact
 

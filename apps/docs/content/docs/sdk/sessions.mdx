@@ -14,34 +14,51 @@ npm install @paradoc/sessions
 Or use via the SDK:
 
 ```ts
-import { execute, deriveView, createParadocRuntime } from '@paradoc/sdk'
+import { execute, deriveView, createParadocRuntime, sessionPayload } from '@paradoc/sdk'
 ```
 
 ## Core flow
 
-There are three moving parts: a **runtime** that knows the artifact, a **session** that holds the event log, and the **command/view** pair that mutates and reads it.
+There are three moving parts: a **runtime** that knows the artifact, a **session** that holds the event log, and the **command/view** pair that changes and reads it.
 
 ### 1. Build a runtime
 
-`createParadocRuntime` wraps a Paradoc artifact in an `ArtifactRuntime`: the read-only interface the engine uses to look up fields, validate values, and compute fill-state. It's built from `@paradoc/core` and recomputed cheaply on every command.
+`createParadocRuntime` wraps an artifact definition in an `ArtifactRuntime`: the read-only interface the engine uses to look up fields, validate values, and compute fill-state. It's built from `@paradoc/core` and recomputed cheaply on every command.
 
 ```ts
 import { createParadocRuntime } from '@paradoc/sessions'
 
-const runtime = createParadocRuntime(artifact)
+const runtime = createParadocRuntime(definition) // the artifact as a plain object
 ```
 
-### 2. Apply commands
+### 2. Start a session
 
-A `Command` is the only way to mutate a session. Tools submit commands; `execute` decides which events (if any) to append. It never mutates in place; it returns a new `FormSession` plus the events it emitted.
+A `FormSession` is a plain object. Its `events` array is the only state it holds.
+
+```ts
+import type { FormSession } from '@paradoc/sessions'
+
+let session: FormSession = {
+  formSessionId: 'session-1',
+  chatId: 'chat-1',
+  artifactRef: { name: 'intake' },
+  events: [],
+  createdAt: new Date().toISOString(),
+}
+```
+
+### 3. Apply commands
+
+A `Command` is the only way to change a session. `execute(session, runtime, command, actor, options?)` decides which events to append. It never mutates in place; it returns a new `FormSession` plus the events it emitted. The `actor` records who issued the command: `{ kind: 'user' }`, `{ kind: 'agent', model }`, or `{ kind: 'system', reason }`.
 
 ```ts
 import { execute } from '@paradoc/sessions'
 
 const result = execute(
-  { kind: 'answer', fieldPath: 'age', value: 25, source: 'user' },
   session,
   runtime,
+  { kind: 'answer', fieldPath: 'age', value: 25, source: 'user' },
+  { kind: 'user' },
 )
 
 if (result.ok) {
@@ -53,11 +70,15 @@ if (result.ok) {
 }
 ```
 
+A rejection carries no session. Keep the one you had: nothing about the fill changed.
+
 Commands cover the full lifecycle: `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
 
-### 3. Derive the view
+`options` takes `expectedEventCount`, which rejects with `stale-state` when another writer appended first, and `now`, a clock for deterministic tests.
 
-State lives only in the event log. To read it, call `deriveView`, which replays the events into a `SessionView`: the current target field, phase, progress, and the derived `FillStateSnapshot` of what's open.
+### 4. Derive the view
+
+State lives only in the event log. To read it, call `deriveView`, which replays the events into a `SessionView`.
 
 ```ts
 import { deriveView } from '@paradoc/sessions'
@@ -65,19 +86,46 @@ import { deriveView } from '@paradoc/sessions'
 const view = deriveView(session, runtime)
 
 view.phase            // where the session is in its lifecycle
-view.target           // the field to ask about next, if any
+view.next             // the next field to ask about, or null
+view.nextParty        // the next party to ask about, or null
 view.progress         // ProgressSummary: answered vs. remaining
 ```
 
-The fill-state buckets unanswered fields by status: `openRequired` (required, visible, unanswered), `openOptional`, and `openRequiredParties`. The engine reads these straight from `@paradoc/core`, so visibility and required cascades resolve the same way they do everywhere else.
+A `SessionView` also carries `projected` (the replayed session), `pendingParties`, `fieldIndex` (status per field, in declaration order), and `partyIndex` (status per party role).
+
+`phase` is one of `collecting-required`, `revisit-deferred`, `collecting-optional`, `unresolved`, `ready`, `rendered`, or `abandoned`. The engine reads visibility and required cascades straight from `@paradoc/core`, so they resolve the same way they do everywhere else.
+
+## Fill, render, and seal from a session
+
+`sessionPayload` turns a projected session into the artifact's own shape: nested `fields` and `parties` by role. Pass it to `fill`, then render or seal the draft like any other. It is valid part-way through a fill: a field nobody has answered is absent.
+
+```ts
+import { p, deriveView, sessionPayload } from '@paradoc/sdk'
+
+const form = p.form(definition)
+
+const view = deriveView(session, runtime)
+const { fields, parties } = sessionPayload(view.projected)
+const draft = form.fill({ fields, parties })
+
+// Preview while the session is still collecting.
+const preview = await draft.render({ progressive: { missing: '—' } })
+
+// Seal once the session is ready and signers are configured.
+if (view.phase === 'ready') {
+  const signable = await draft.seal()
+}
+```
+
+A PDF layer seals locally. Other layer types need a seal adapter; see [DraftForm](/sdk/artifacts/form#draftform) for `SealOptions`.
 
 ## Storage-agnostic persistence
 
 The engine holds no database. A `FormSession` is a plain object whose `events` array is the single source of truth; `execute` hands you back a new one to persist however you want. To rebuild state from any store, replay the log with `deriveView`. The package ships adapters for this seam, including `createSpineStateAdapter` for backing a session on an append-only event spine.
 
 ```ts
-// Persist the new event log after each command.
-await store.save(session.formSessionId, result.session.events)
+// Persist the new event log after each accepted command.
+if (result.ok) await store.save(session.formSessionId, result.session.events)
 
 // Rehydrate later from stored events.
 const session = { ...rest, events: await store.load(id) }

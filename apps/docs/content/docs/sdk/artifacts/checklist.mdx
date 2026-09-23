@@ -119,7 +119,7 @@ Returns a `ChecklistInstance` with the following properties and methods:
   { name: 'validateItemsPatch', type: '(items: unknown) => ProgressiveValidationResult<Record<string, boolean | string>>', description: 'Validate a partial checklist items patch', isMethod: true },
   { name: 'fill', type: '(seed?: ProgressiveChecklistPayload, options?: ChecklistFillOptions) => DraftChecklist', description: 'Create a progressive draft; supplied values validate immediately and defaults are applied', isMethod: true },
   { name: 'safeFill', type: '(seed?: ProgressiveChecklistPayload, options?: ChecklistFillOptions) => SafeChecklistFillResult', description: 'Safely create a progressive draft; success means the supplied patch was accepted', isMethod: true },
-  { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render checklist content', isMethod: true },
+  { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render checklist content. See [Render options](#render-options)', isMethod: true },
 ]} />
 
 ### Builder Pattern
@@ -274,7 +274,7 @@ const output = await completed.render({ renderer: renderLayer() })
 
 ### DraftChecklist
 
-Created by `checklist.fill()` or `checklist.fill()`. Progressive drafts may be incomplete; `fill()` and `complete()` require every declared item. An explicit `false` answer counts as present. Use `clear('items.<id>')` to remove an answer and `reset('items.<id>')` to restore its declared default.
+Created by `checklist.fill()`. Progressive drafts may be incomplete; `fill()` and `complete()` require every declared item. An explicit `false` answer counts as present. Use `clear('items.<id>')` to remove an answer and `reset('items.<id>')` to restore its declared default.
 
 <PropertiesTable properties={[
   { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
@@ -312,6 +312,18 @@ Created by `draft.complete()`. Fully frozen.
   { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render the checklist', isMethod: true },
   { name: 'toJSON', type: '() => RuntimeChecklistJSON', description: 'Serialize to JSON', isMethod: true },
   { name: 'clone', type: '() => CompletedChecklist', description: 'Create exact copy', isMethod: true },
+]} />
+
+## Render options
+
+`render()` takes `RuntimeChecklistRenderOptions`. Without a renderer it returns the layer's raw content.
+
+<PropertiesTable properties={[
+  { name: 'layer', type: 'string', description: 'Layer key to render. Defaults to the target layer', isOptional: true },
+  { name: 'renderer', type: 'ParadocRenderer', description: 'Renderer that processes the layer template, such as `renderLayer()`', isOptional: true },
+  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, consulted after `renderer` and before falling back to raw content', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Formatter used for values in this render', isOptional: true },
+  { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values', isOptional: true },
 ]} />
 
 ## Related

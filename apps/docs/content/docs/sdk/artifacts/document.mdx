@@ -98,7 +98,8 @@ Returns a `DocumentInstance` with the following properties and methods:
   { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML', isMethod: true },
   { name: 'clone', type: '() => DocumentInstance', description: 'Deep clone the instance', isMethod: true },
   { name: 'prepare', type: '(targetLayer?: string) => DraftDocument', description: 'Create a runtime document in draft phase', isMethod: true },
-  { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render document content', isMethod: true },
+  { name: 'prepare', type: '(targetLayer?: string) => DraftDocument', description: 'Create a draft for a layer (defaults to defaultLayer)', isMethod: true },
+  { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render document content. See [Render options](#render-options)', isMethod: true },
 ]} />
 
 ### Builder Pattern
@@ -157,20 +158,20 @@ const final = draft.finalize()
 
 // final.finalizedAt === ISO timestamp
 // Render
-const output = await final.render({ renderer: renderLayer() })
+const output = await final.render()
 ```
 
 ### DraftDocument
 
-Created by `doc.resolve()`. Contains resolved layer content.
+Created by `doc.prepare()`.
 
 <PropertiesTable properties={[
   { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
   { name: 'document', type: 'Document', description: 'The underlying document definition' },
-  { name: 'resolvedContent', type: 'string | Uint8Array', description: 'Resolved layer content' },
   { name: 'targetLayer', type: 'string', description: 'Target layer key' },
+  { name: 'setTargetLayer', type: '(layer: string) => DraftDocument', description: 'Change the target layer', isMethod: true },
   { name: 'finalize', type: '() => FinalDocument', description: 'Transition to final phase', isMethod: true },
-  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render the document', isMethod: true },
+  { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render the document', isMethod: true },
   { name: 'toJSON', type: '() => DraftDocumentJSON', description: 'Serialize to JSON', isMethod: true },
 ]} />
 
@@ -181,8 +182,19 @@ Created by `draft.finalize()`. Fully frozen.
 <PropertiesTable properties={[
   { name: 'phase', type: "'final'", description: 'Phase discriminator' },
   { name: 'finalizedAt', type: 'string', description: 'ISO timestamp of finalization' },
-  { name: 'render', type: '(options: RenderOptions) => Promise<Output>', description: 'Render the document', isMethod: true },
+  { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render the document', isMethod: true },
   { name: 'toJSON', type: '() => FinalDocumentJSON', description: 'Serialize to JSON', isMethod: true },
+]} />
+
+## Render options
+
+`render()` takes `ArtifactLayerRenderOptions`. A text, PDF, or DOCX layer renders through the built-in engines; a layer whose MIME type has an entry in `renderers` renders through that entry instead.
+
+<PropertiesTable properties={[
+  { name: 'layer', type: 'string', description: 'Layer key to render. Defaults to the target layer, then defaultLayer', isOptional: true },
+  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type. This is how a React layer (`text/tsx`, `text/jsx`) renders', isOptional: true },
+  { name: 'formatter', type: 'Formatter', description: 'Formatter used for values in this render', isOptional: true },
+  { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values', isOptional: true },
 ]} />
 
 ## Related

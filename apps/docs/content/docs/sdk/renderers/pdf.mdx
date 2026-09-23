@@ -125,12 +125,19 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
 
 <PropertiesTable properties={[
   { name: 'template', type: 'Uint8Array', description: 'PDF template file as binary data' },
-  { name: 'form', type: 'Form', description: 'Form schema for field type detection' },
+  { name: 'form', type: 'Form', description: 'Form schema for field type detection', isOptional: true },
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate form fields' },
   { name: 'bindings', type: 'Record<string, string>', description: 'Mapping from PDF field names to form field expressions', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
+  { name: 'overlays', type: 'PdfOverlay[]', description: 'Text or image overlays drawn at page coordinates', isOptional: true },
 ]} />
+
+A `PdfOverlay` is either text or an image placed at `page` (one-based), `x`,
+and `y` (PDF points from the bottom-left corner). A text overlay carries `text`
+or a `field` path to read from the data, plus optional `fontSize`, `width`,
+`height`, and `color`. An image overlay carries `image` bytes, `mediaType`
+(`'image/png'` or `'image/jpeg'`), `width`, `height`, and optional `fit`.
 
 #### Returns
 
@@ -168,6 +175,9 @@ async function inspectAcroFormFields(
   { name: 'type', type: '"text" | "checkbox" | "dropdown" | "radio" | "button" | "signature" | "unknown"', description: 'Field type' },
   { name: 'value', type: 'string | boolean | string[]', description: 'Current field value', isOptional: true },
   { name: 'required', type: 'boolean', description: 'Whether field is marked required', isOptional: true },
+  { name: 'page', type: 'number', description: 'One-based page the field widget is on', isOptional: true },
+  { name: 'rect', type: '[number, number, number, number]', description: 'Widget rectangle in PDF points', isOptional: true },
+  { name: 'maxLen', type: 'number | null', description: 'Maximum text length, when the field declares one', isOptional: true },
 ]} />
 
 ## Inspecting PDF Fields
@@ -188,6 +198,35 @@ console.log(fields)
 //   { name: 'dropdown1', type: 'dropdown', value: ['Option A'] }
 // ]
 ```
+
+## PDF utilities
+
+`@paradoc/render/pdf` exports dependency-light helpers for working with PDF
+bytes directly.
+
+| Function | Description |
+|----------|-------------|
+| `inspectPdf(pdf)` | Returns `{ pageCount, pages }`, with each page's one-based number, `width`, and `height` in PDF points |
+| `flattenPdf(pdf)` | Burns AcroForm field appearances into the pages and removes the interactive controls. A PDF with no AcroForm returns unchanged |
+| `selectPdfPages(pdf, pages)` | Returns a PDF with the given one-based pages, in source order. Pages must be unique positive integers that exist |
+| `mergePdfs(pdfs)` | Concatenates PDFs into one, keeping every page in order. A single source returns unchanged |
+
+```ts
+import { flattenPdf, inspectPdf, mergePdfs, selectPdfPages } from '@paradoc/render/pdf'
+
+const { pageCount } = await inspectPdf(filled)
+const flat = await flattenPdf(filled)
+const firstTwo = await selectPdfPages(flat, [1, 2])
+const packet = await mergePdfs([firstTwo, coverLetter])
+```
+
+`mergePdfs` throws `PdfMergeError` when a source has no catalog or pages, is
+encrypted, or cannot be read. Its `source` property is the zero-based index of
+that source.
+
+The same entry point exports the signature placement helpers the SDK
+re-exports: `locate`, `locator`, `LocateError`, `extractFieldsFromPdf`, and
+the marker `encode` and `decodeAll` functions.
 
 ## Binding Syntax
 

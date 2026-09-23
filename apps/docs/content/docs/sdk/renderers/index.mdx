@@ -59,6 +59,29 @@ The same optional override is available to `.seal({ renderer: myRenderer })`.
 Paradoc still applies its built-in PDF flattening and canonical hashing after
 the custom renderer or conversion adapter returns.
 
+## Renderer registry
+
+`render()`, `seal()`, `assemble()`, and `sealBundle()` also take `renderers`,
+a `RendererRegistry` keyed by layer MIME type. Core consults it when no
+`renderer` override is given and before its built-in engines. This is how a
+format core does not ship reaches the render call.
+
+React layers (`text/tsx` and `text/jsx`) render this way. The renderer lives in
+`@paradoc/react/pdf`, and `reactLayerRenderers` builds the entries for both MIME
+types:
+
+```ts
+import { reactLayerRenderers } from '@paradoc/react/pdf'
+
+const pdf = await filled.render({
+  layer: 'composition',
+  renderers: reactLayerRenderers({ components: { 'purchase-order.tsx': PurchaseOrder } }),
+})
+```
+
+The React renderer writes the PDF itself, so sealing a React layer needs no
+seal adapter. See [@paradoc/react](/sdk/react) for the component side.
+
 ## Format Entry Points
 
 `renderLayer()` is the default application entry point. Import a format subpath
@@ -69,6 +92,10 @@ when you need its low-level functions or format-specific configuration.
 | [Text](/sdk/renderers/text) | Deterministic text templating for HTML, Markdown, plain text |
 | [PDF](/sdk/renderers/pdf) | Fill PDF forms with AcroForm field support |
 | [DOCX](/sdk/renderers/docx) | Generate Word documents from templates |
+
+`@paradoc/render/pdf` also exports PDF utilities: `inspectPdf`,
+`flattenPdf`, `selectPdfPages`, `mergePdfs`, and the placement helpers. See
+[PDF utilities](/sdk/renderers/pdf#pdf-utilities).
 
 ## renderLayer()
 
@@ -81,6 +108,7 @@ function renderLayer(options?: RenderLayerOptions): ParadocRenderer<
 
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Presentation formatter shared by every supported format.', isOptional: true },
+  { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values in a preview.', isOptional: true },
   { name: 'textSignatureOptions', type: 'TextSignatureOptions', description: 'Signature rendering options for text layers.', isOptional: true },
   { name: 'pdfSignatureOptions', type: 'PdfSignatureOptions', description: 'Signature rendering options for PDF layers.', isOptional: true },
   { name: 'docxSignatureOptions', type: 'DocxSignatureOptions', description: 'Signature rendering options for DOCX layers.', isOptional: true },
@@ -127,9 +155,11 @@ The request object passed to the `render` method:
 The resolved template content:
 
 <PropertiesTable properties={[
-  { name: 'type', type: '"text" | "docx" | "pdf" | string', description: 'Logical template type' },
-  { name: 'content', type: 'string | Uint8Array', description: 'Template payload (text or binary)' },
+  { name: 'type', type: '"text" | "docx" | "pdf" | "react" | string', description: 'Logical template type' },
+  { name: 'content', type: 'string | Uint8Array', description: 'Template payload (text or binary). Absent for a layer that only names its content, such as a React composition', isOptional: true },
   { name: 'mimeType', type: 'string', description: 'Media type (e.g., "text/html", "application/pdf")', isOptional: true },
+  { name: 'key', type: 'string', description: 'The layer key in the artifact', isOptional: true },
+  { name: 'path', type: 'string', description: 'The path a file layer declares', isOptional: true },
   { name: 'bindings', type: 'Bindings', description: 'Template-specific field mappings', isOptional: true },
 ]} />
 
@@ -140,6 +170,8 @@ Optional context for customizing renderer behavior:
 <PropertiesTable properties={[
   { name: 'logger', type: '{ debug?, info?, warn?, error? }', description: 'Logger instance for debugging', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter selected for the entire artifact render', isOptional: true },
+  { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values', isOptional: true },
+  { name: 'signing', type: 'SigningMarkerRequest', description: 'Set only on the seal pass that must carry flow signature markers', isOptional: true },
 ]} />
 
 ## Building Custom Renderers
