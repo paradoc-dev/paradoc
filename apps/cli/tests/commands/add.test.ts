@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, inject } from 'vitest'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
@@ -386,7 +386,7 @@ describe('paradoc add (files the artifact references)', () => {
 })
 
 describe('paradoc add (registry integration)', () => {
-  const TEST_REGISTRY_URL = 'http://localhost:4567'
+  const TEST_REGISTRY_URL = inject('testRegistryUrl')
   let tempDir: string
 
   beforeEach(async () => {

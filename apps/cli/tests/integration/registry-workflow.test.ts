@@ -5,7 +5,7 @@
  * (tests/setup/test-registry-server.ts).
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, inject } from 'vitest'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const TEST_REGISTRY_URL = 'http://localhost:4567'
+const TEST_REGISTRY_URL = inject('testRegistryUrl')
 const CLI_PATH = path.resolve(__dirname, '../../src/index.ts')
 
 /**
