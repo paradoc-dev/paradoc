@@ -156,7 +156,7 @@ interface PageFurniture {
 }
 ```
 
-Bands are drawn inside the margin, so furniture never changes the page plan. A header or footer taller than its margin, or a stamp taller than the sheet, throws `PageFurnitureOverflowError`, naming the slot. A stamp with a word wider than the sheet throws `PageStampTooWideError`. An engine that cannot draw a declared slot throws `UnsupportedFurnitureError`, and content it cannot draw in a slot throws `UnsupportedFurnitureContentError`.
+Bands are drawn inside the margin, so furniture never changes the page plan. A header or footer taller than its margin, or a stamp taller than the sheet, throws `PageFurnitureOverflowError`, naming the slot. A stamp with a word or a `whitespace-nowrap` line wider than the sheet throws `PageStampTooWideError`. An engine that cannot draw a declared slot throws `UnsupportedFurnitureError`, and content it cannot draw in a slot throws `UnsupportedFurnitureContentError`.
 
 `usePageNumber` prints the current page inside furniture. The installed [`PageNumber`](/components/page-number) component uses it and marks its slots with `PAGE_COUNTER_ATTRIBUTE` so the PDF engine fills the counters itself. Usage with `Pages` is on the [Pages](/components/pages) component page.
 

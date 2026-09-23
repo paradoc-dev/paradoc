@@ -32,8 +32,8 @@
  * the height of the paper, because a band clips what overflows it.
  *
  * The stamp is measured too, as it lays out at the sheet's width, and a stamp
- * taller than the sheet, or with a word wider than it, is refused by name: it
- * would be cut off at the paper's edge on every page.
+ * taller than the sheet, or with a word or a line held together wider than it,
+ * is refused by name: it would be cut off at the paper's edge on every page.
  */
 
 import type { Node } from "@takumi-rs/helpers";
@@ -159,6 +159,20 @@ function stampRow(content: Node, geometry: PdfPageGeometry): BandNode {
 }
 
 /**
+ * The same tree with every line free to wrap and every word free to break.
+ *
+ * Set on each node rather than inherited from the row, because a stamp that
+ * holds its line together sets that on its own text, and a class there would
+ * win over anything the row passes down. Only a line or a word wider than the
+ * row breaks, so the copy grows taller than the stamp only when one is.
+ */
+function breakAnywhere(node: Node): Node {
+  const broken = { ...node, style: { ...node.style, textWrapMode: "wrap", overflowWrap: "anywhere" } } as Node;
+  if (broken.type !== "container" || broken.children === undefined) return broken;
+  return { ...broken, children: broken.children.map(breakAnywhere) };
+}
+
+/**
  * The whole-sheet layer a stamp is drawn on.
  *
  * `top` pulls the layer back up by the inset the band itself sits at, so the
@@ -264,12 +278,7 @@ export async function measureFurnitureBands(
   if (translated.stamp !== undefined) {
     const row = stampRow(translated.stamp, geometry);
     assertFurnitureStampFits(
-      {
-        heightPx: await measure(row),
-        // Inherited by the text, so a word wider than the sheet breaks and
-        // the row grows; nothing else in the stamp moves.
-        brokenHeightPx: await measure({ ...row, style: { ...row.style, overflowWrap: "anywhere" } }),
-      },
+      { heightPx: await measure(row), brokenHeightPx: await measure(breakAnywhere(row)) },
       geometry
     );
     bands.header = {

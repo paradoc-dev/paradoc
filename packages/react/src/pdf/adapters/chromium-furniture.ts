@@ -29,8 +29,8 @@
  * whole sheet and set behind the content. It takes no room in the flow, so the
  * page plan and the page count are what they are without it. It is measured as
  * it lays out at the sheet's width, and a stamp taller than the sheet, or with
- * a word wider than it, is refused by name rather than cut off at the paper's
- * edge on every page.
+ * a word or a line held together wider than it, is refused by name rather
+ * than cut off at the paper's edge on every page.
  *
  * Every band is measured in the printed document before the print, with the
  * document's own faces and images, and a band taller than the margin is refused
@@ -137,14 +137,15 @@ export function stampLayer(markup: string, geometry: PdfPageGeometry): string {
 
 /**
  * Runs inside the page: the stamp laid out at the sheet's width, as it is and
- * with every word allowed to break.
+ * with every line allowed to wrap and every word to break.
  *
  * The layer is fixed to the height of the sheet, so it is copied with its
  * height left to its content and read there. A layout box, not a painted one:
  * a rotation inside the stamp does not change it, which is the same box the
- * default engine measures. Letting words break grows the copy only when a word
- * is wider than the sheet. It is one self-contained function because
- * `page.evaluate` sends its source to the browser.
+ * default engine measures. Letting lines wrap and words break grows the copy
+ * only when a line held together, or a word, is wider than the sheet. It is
+ * one self-contained function because `page.evaluate` sends its source to the
+ * browser.
  */
 export function measureStampInPage(attribute: string): StampMeasure {
   const layer = document.querySelector(`[${attribute}]`);
@@ -160,7 +161,13 @@ export function measureStampInPage(attribute: string): StampMeasure {
   probe.style.visibility = "hidden";
   document.body.append(probe);
   const heightPx = probe.getBoundingClientRect().height;
-  probe.style.overflowWrap = "anywhere";
+  // On every element rather than inherited from the layer, because a stamp
+  // that holds its line together sets that on its own text, and its class
+  // would win over anything the layer passes down.
+  for (const element of [probe, ...probe.querySelectorAll<HTMLElement>("*")]) {
+    element.style.setProperty("text-wrap-mode", "wrap", "important");
+    element.style.setProperty("overflow-wrap", "anywhere", "important");
+  }
   const brokenHeightPx = probe.getBoundingClientRect().height;
   probe.remove();
   return { heightPx, brokenHeightPx };

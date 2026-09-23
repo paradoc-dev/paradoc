@@ -207,8 +207,8 @@ async function resolveAdapter(name: PdfAdapterName | PdfAdapter): Promise<PdfAda
  * @throws {PageFurnitureOverflowError} when a header or footer band is taller
  * than the margin it is drawn in, naming the slot, the height and the margin,
  * or when the stamp is taller than the sheet, naming the sheet's height.
- * @throws {PageStampTooWideError} when the stamp has a word wider than the
- * sheet, naming the sheet's width.
+ * @throws {PageStampTooWideError} when the stamp has a word or a line held
+ * together wider than the sheet, naming the sheet's width.
  * @throws {UnsupportedFurnitureError} when the chosen engine does not draw a
  * furniture slot the render declares, naming the adapter and the slot.
  */

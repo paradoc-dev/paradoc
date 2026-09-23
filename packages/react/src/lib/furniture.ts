@@ -250,10 +250,11 @@ export class PageFurnitureOverflowError extends Error {
 }
 
 /**
- * A stamp with a word wider than the sheet it is drawn across.
+ * A stamp with a word, or a line held together, wider than the sheet it is
+ * drawn across.
  *
- * A word does not wrap, so it lays out on one line wider than the paper and is
- * cut off at both edges on every page, however short the stamp is. The height
+ * Neither wraps, so it lays out on one line wider than the paper and is cut
+ * off at both edges on every page, however short the stamp is. The height
  * check cannot see it, so it is refused on its own, naming the sheet's width.
  */
 export class PageStampTooWideError extends Error {
@@ -264,9 +265,10 @@ export class PageStampTooWideError extends Error {
 
   constructor(sheetWidthPx: number) {
     super(
-      `The page furniture's stamp has a word wider than this document's ${sheetWidthPx} px sheet. ` +
-        "A word does not wrap, so it would be cut off at both edges of the paper on every page: " +
-        "set the stamp smaller or break the word."
+      "The page furniture's stamp has a word or a line held together wider than " +
+        `this document's ${sheetWidthPx} px sheet. ` +
+        "Neither wraps, so it would be cut off at both edges of the paper on every page: " +
+        "set the stamp smaller, break the word or let the line wrap."
     );
     this.name = "PageStampTooWideError";
     this.sheetWidthPx = sheetWidthPx;
@@ -292,8 +294,9 @@ export interface StampMeasure {
   /** The height it lays out to, in CSS pixels. */
   heightPx: number;
   /**
-   * The height it lays out to when any word may break. Taller than
-   * `heightPx` only when a word did not fit the sheet's width.
+   * The height it lays out to when every line may wrap and any word may
+   * break. Taller than `heightPx` only when a line held together, or a word,
+   * did not fit the sheet's width.
    */
   brokenHeightPx: number;
 }
@@ -303,12 +306,14 @@ export interface StampMeasure {
  *
  * The stamp is measured as it lays out at the sheet's width, before any
  * rotation, which is the box both engines and the preview centre on the
- * sheet. Text that wraps grows taller, and a word that cannot wrap is found by
- * letting it break and seeing the stamp grow. A rotation can still carry a box
+ * sheet. Text that wraps grows taller, and a word or a line held together
+ * that is wider than the sheet is found by letting it wrap and break and
+ * seeing the stamp grow. A rotation can still carry a box
  * that fits past the sheet's corners; that is not measured.
  *
  * @throws {PageFurnitureOverflowError} naming the stamp, its height and the sheet's.
- * @throws {PageStampTooWideError} when a word is wider than the sheet.
+ * @throws {PageStampTooWideError} when a word or a line held together is wider
+ * than the sheet.
  */
 export function assertFurnitureStampFits(
   measured: StampMeasure,

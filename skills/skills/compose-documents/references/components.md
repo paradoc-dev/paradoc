@@ -505,9 +505,9 @@ Rules:
   content, and takes no room in the margin. A stamp taller than the sheet (for
   example text so large it wraps many times) fails with
   `PageFurnitureOverflowError` naming the `stamp` slot and the sheet's height,
-  and a stamp with a word wider than the sheet fails with
-  `PageStampTooWideError`. Both are measured before any rotation, so keep a
-  rotated stamp well inside the sheet.
+  and a stamp with a word or a `whitespace-nowrap` line wider than the sheet
+  fails with `PageStampTooWideError`. Both are measured before any rotation,
+  so keep a rotated stamp well inside the sheet.
 - A draft watermark is a light, large stamp turned with `-rotate-45`, which is
   in the verified vocabulary (see [safe-classes.md](./safe-classes.md)):
 

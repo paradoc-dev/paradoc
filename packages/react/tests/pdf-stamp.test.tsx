@@ -8,8 +8,8 @@
  * read off the text matrix the engine wrote. It is centred on the sheet, with
  * a running head beside it or without one. And the document paginates exactly
  * as it does bare. A stamp taller than the sheet it is drawn across, or with a
- * word wider than it, is refused by name on both, rather than cut off at the
- * paper's edge on every page.
+ * word or a line held together wider than it, is refused by name on both,
+ * rather than cut off at the paper's edge on every page.
  *
  * The Chromium half needs a Chrome, like `pdf-chromium-furniture.test.tsx`,
  * and opts out the same way.
@@ -189,5 +189,33 @@ describe.each(adapters)("a DRAFT watermark on %s", (adapter) => {
     expect(tooWide.slot).toBe("stamp");
     expect(tooWide.sheetWidthPx).toBe(PAGE_SIZES.letter.widthPx);
     expect(tooWide.message).toContain(`${PAGE_SIZES.letter.widthPx} px sheet`);
+  }, 60_000);
+
+  it("refuses a stamp held to one line wider than the sheet, naming the sheet's width", async () => {
+    // Every word fits, but the line is held together and runs past both edges.
+    const wide = (
+      <span className="whitespace-nowrap text-9xl text-neutral-200">DRAFT CONFIDENTIAL DO NOT DISTRIBUTE</span>
+    );
+    const error = await renderPdf(<ProposalDocument data={overflowProposalData} />, {
+      adapter,
+      images: [logo],
+      furniture: { stamp: wide },
+    }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(PageStampTooWideError);
+    expect((error as PageStampTooWideError).sheetWidthPx).toBe(PAGE_SIZES.letter.widthPx);
+  }, 60_000);
+
+  it("draws a stamp held to one line that fits the sheet", async () => {
+    const fits = <span className="whitespace-nowrap text-6xl text-neutral-200">{`${STAMP} COPY`}</span>;
+    const { bytes } = await renderPdf(<ProposalDocument data={overflowProposalData} />, {
+      adapter,
+      images: [logo],
+      furniture: { stamp: fits },
+    });
+    const pages = await readPdf(bytes);
+    expect(pages).toHaveLength(bare.length);
+    for (const [index, page] of pages.entries()) {
+      expect(page.text).toBe(`${STAMP} COPY${bare[index]!.text}`);
+    }
   }, 60_000);
 });
