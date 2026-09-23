@@ -97,9 +97,9 @@ describe('runtime artifact clock context', () => {
 
 		const bundleDefinition = bundle()
 			.name('clock-bundle')
-			.inline('clock-form', createClockForm())
+			.inline('clock-checklist', definition)
 			.build()
-		const runtimeBundle = bundleDefinition.prepare({ 'clock-form': draft })
-		expect(runtimeBundle.toJSON().contents['clock-form']?.context).toEqual(draft.context)
+		const runtimeBundle = bundleDefinition.prepare({ 'clock-checklist': draft })
+		expect(runtimeBundle.toJSON().contents['clock-checklist']?.context).toEqual(draft.context)
 	})
 })

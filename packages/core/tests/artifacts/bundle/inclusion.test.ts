@@ -254,7 +254,7 @@ describe('bundle inclusion', () => {
 			source: source.fill({ fields: { enabled: true } }),
 		})
 		const signable = draft.prepareForSigning()
-		const invalidated = signable.updateContent('source', source.fill())
+		const invalidated = signable.updateContent('source', source.fill().prepareForSigning())
 
 		expect(() => invalidated.finalize()).toThrow(/unresolved/)
 	})

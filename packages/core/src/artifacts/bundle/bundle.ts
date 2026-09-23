@@ -456,6 +456,38 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		}
 	}
 
+	const bundleItemsByKey = new Map(bundleDef.contents.map((c) => [c.key, c]))
+
+	/**
+	 * Reject an instance whose kind does not match the content declared or
+	 * already held under `key`, or whose phase does not match what this
+	 * bundle's phase requires for that kind.
+	 */
+	const validateContentInstance = (operation: string, key: string, instance: RuntimeInstance): void => {
+		const kind = instanceKind(instance)
+		if (!kind) {
+			throw new Error(
+				`Cannot ${operation}: content "${key}" is not a form, checklist, document, or bundle instance`
+			)
+		}
+
+		const item = bundleItemsByKey.get(key)
+		const existing = contentValues[key]
+		const expectedKind =
+			item?.type === 'inline' ? item.artifact.kind : existing ? instanceKind(existing) : undefined
+		if (expectedKind && kind !== expectedKind) {
+			throw new Error(`Cannot ${operation}: content "${key}" must be a ${expectedKind} instance, got a ${kind}`)
+		}
+
+		const requiredPhase = requiredContentPhase(phase, kind)
+		if (requiredPhase && instance.phase !== requiredPhase) {
+			throw new Error(
+				`Cannot ${operation}: content "${key}" is a ${kind} in ${instance.phase} phase, ` +
+					`but a ${phase} bundle requires ${requiredPhase} phase`
+			)
+		}
+	}
+
 	const runtime = {
 		phase,
 		bundle: bundleDef,
@@ -515,6 +547,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		setContent(key: string, instance: RuntimeInstance): RuntimeBundle<B> {
 			ensureDraft('setContent')
 			validateContentKey(key)
+			validateContentInstance('setContent', key, instance)
 
 			return createRuntimeBundle({
 				...config,
@@ -544,9 +577,9 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		updateContents(contents: RuntimeBundleContents): RuntimeBundle<B> {
 			ensureDraft('updateContents')
 
-			// Validate all keys
-			for (const key of Object.keys(contents)) {
+			for (const [key, instance] of Object.entries(contents)) {
 				validateContentKey(key)
+				validateContentInstance('updateContents', key, instance)
 			}
 
 			return createRuntimeBundle({
@@ -561,6 +594,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 
 		updateContent(key: string, instance: RuntimeInstance): RuntimeBundle<B> {
 			ensureNotExecuted('updateContent')
+			validateContentKey(key)
 
 			if (!(key in contentValues)) {
 				throw new Error(
@@ -568,6 +602,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 						`Available keys: ${Object.keys(contentValues).join(', ')}`
 				)
 			}
+			validateContentInstance('updateContent', key, instance)
 
 			return createRuntimeBundle({
 				...config,
@@ -686,6 +721,39 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 	return runtime as unknown as RuntimeBundle<B>
 }
 
+type ContentKind = 'form' | 'checklist' | 'document' | 'bundle'
+
+/**
+ * Identify which artifact kind a runtime instance holds.
+ */
+function instanceKind(instance: RuntimeInstance): ContentKind | undefined {
+	if ('form' in instance) return 'form'
+	if ('checklist' in instance) return 'checklist'
+	if ('document' in instance) return 'document'
+	if ('bundle' in instance) return 'bundle'
+	return undefined
+}
+
+/**
+ * The content phase a bundle phase requires for each kind. Executed bundles
+ * are read-only, so they require nothing here.
+ */
+function requiredContentPhase(bundlePhase: RuntimeBundleConfig<Bundle>['phase'], kind: ContentKind): string | undefined {
+	if (bundlePhase === 'draft') return 'draft'
+	if (bundlePhase === 'signable') {
+		return { form: 'signable', checklist: 'completed', document: 'final', bundle: 'signable' }[kind]
+	}
+	return undefined
+}
+
+/**
+ * Describe an instance by kind and phase for a transition error.
+ */
+function describeInstance(instance: RuntimeInstance): string {
+	const kind = instanceKind(instance)
+	return kind ? `a ${kind} in ${instance.phase} phase` : 'an unrecognized instance'
+}
+
 /**
  * Clone all contents by calling clone() on each instance.
  */
@@ -721,7 +789,7 @@ function transitionToSignable(instance: RuntimeInstance): RuntimeInstance {
 		return (instance as DraftBundle<Bundle>).prepareForSigning()
 	}
 
-	throw new Error('Unknown instance type for phase transition')
+	throw new Error(`Cannot prepare for signing: expected draft-phase content, got ${describeInstance(instance)}`)
 }
 
 /**
@@ -748,7 +816,7 @@ function transitionToExecuted(instance: RuntimeInstance): RuntimeInstance {
 		return (instance as SignableBundle<Bundle>).finalize()
 	}
 
-	throw new Error('Unknown instance type for phase transition')
+	throw new Error(`Cannot finalize: expected signable-phase content, got ${describeInstance(instance)}`)
 }
 
 /**
@@ -854,22 +922,13 @@ function createBundleInstance<B extends Bundle>(bundleDef: B): BundleInstance<B>
 
 		prepare(contents: RuntimeBundleContents = {}): DraftBundle<B> {
 			assertValidArtifactDefinition(bundleDef)
-			// Validate all content keys exist in bundle
-			const bundleContentKeys = new Set(bundleDef.contents.map((c) => c.key))
-			for (const key of Object.keys(contents)) {
-				if (!bundleContentKeys.has(key)) {
-					throw new Error(
-						`Content key "${key}" not found in bundle. ` +
-							`Available keys: ${Array.from(bundleContentKeys).join(', ')}`
-					)
-				}
-			}
-
-			return createRuntimeBundle({
+			const empty = createRuntimeBundle({
 				bundle: snapshotArtifactDefinition(bundleDef),
-				contents,
+				contents: {},
 				phase: 'draft',
 			}) as DraftBundle<B>
+			// Contents pass the same key, kind, and phase checks as updateContents.
+			return empty.updateContents(contents)
 		},
 
 		clone(): BundleInstance<B> {
