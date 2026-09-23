@@ -71,15 +71,29 @@ for (const item of state.blocked) {
 
 ### Checking rules
 
+Each failed rule comes back as a `RuleValidationResult`, the same object `draft.validateRules()` returns, so you can tell which rule failed:
+
 ```ts
 const state = draft.getFillState()
 
-if (!state.rules.valid) {
-  for (const error of state.rules.errors) {
-    console.log(`Rule violation: ${error}`)
-  }
+for (const error of state.rules.errors) {
+  console.log(`${error.ruleId}: ${error.message}`)
 }
+// e.g. "depositWithinLimit: Pet deposit cannot exceed $500"
 ```
+
+### Checking logic issues
+
+An expression that fails to evaluate, such as a computed value that divides by zero, is not a rule result. It is reported in `issues`, and it blocks completion:
+
+```ts
+for (const issue of state.issues) {
+  console.log(`${issue.path.join('.')}: ${issue.message}`)
+}
+// e.g. "defs.share: Division by zero"
+```
+
+When a visibility or requiredness condition fails, the form's logic cannot be resolved. The rules are not run, `rules.valid` is `false` with no errors, and `issues` says why.
 
 ## API
 
@@ -91,7 +105,8 @@ Returned by `draft.getFillState()`.
   { name: 'phase', type: "'draft' | 'signable' | 'executed'", description: 'Current form phase' },
   { name: 'summary', type: 'FillStateSummary', description: 'Progress summary with counts and completion percentage' },
   { name: 'defsValues', type: 'Record<string, unknown>', description: 'Current evaluated defs values' },
-  { name: 'rules', type: '{ valid: boolean; errors: string[]; warnings: string[] }', description: 'Rules evaluation result' },
+  { name: 'rules', type: '{ valid: boolean; errors: RuleValidationResult[]; warnings: RuleValidationResult[] }', description: 'Failed rules by severity. `valid` is true when every error rule passed, and false when the rules could not be run' },
+  { name: 'issues', type: 'EvaluationIssue[]', description: 'Logic expressions that failed to evaluate. Any issue blocks completion' },
   { name: 'openRequired', type: 'FillItemState[]', description: 'Visible, unfilled, required items' },
   { name: 'openOptional', type: 'FillItemState[]', description: 'Visible, unfilled, optional items' },
   { name: 'blocked', type: 'FillItemState[]', description: 'Not visible — waiting on dependencies to be filled' },
@@ -107,6 +122,26 @@ Returned by `draft.getFillState()`.
   { name: 'requiredDone', type: 'number', description: 'Number of required items already filled' },
   { name: 'requiredRemaining', type: 'number', description: 'Number of required items still needed' },
   { name: 'completionPercent', type: 'number', description: 'Completion percentage (0–100)' },
+]} />
+
+### RuleValidationResult
+
+One rule's result. `rules.errors` and `rules.warnings` hold only failed rules.
+
+<PropertiesTable properties={[
+  { name: 'ruleId', type: 'string', description: "Key of the rule in the artifact's rules section" },
+  { name: 'passed', type: 'boolean', description: 'Whether the rule passed' },
+  { name: 'message', type: 'string | undefined', description: "The rule's message, present when the rule failed" },
+  { name: 'severity', type: "'error' | 'warning'", description: 'Errors make `valid` false; warnings do not' },
+]} />
+
+### EvaluationIssue
+
+<PropertiesTable properties={[
+  { name: 'message', type: 'string', description: 'What failed' },
+  { name: 'path', type: '(string | number)[]', description: "Where the failed expression sits, such as ['defs', 'share']" },
+  { name: 'expression', type: 'string | undefined', description: 'The expression that failed' },
+  { name: 'originalError', type: 'string | undefined', description: 'The underlying error message' },
 ]} />
 
 ### FillTarget

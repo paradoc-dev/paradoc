@@ -27,6 +27,7 @@ export type {
   AnnexRuntimeState,
   RuleValidationResult,
   FormRulesValidationResult,
+  EvaluationIssue,
   EvaluationContext,
   ResolvedPayment,
   FormDataPayload,

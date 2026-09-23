@@ -5,6 +5,9 @@
  * AI agents and step-by-step UIs build forms turn-by-turn.
  */
 
+import type { EvaluationIssue } from '@/logic/runtime/evaluation/types'
+import type { RuleValidationResult } from '@/logic/runtime/evaluation/rule-evaluator'
+
 /** Options for form fill operations. */
 export interface FillOptions {
 	/** Fixed context captured by the new runtime instance. */
@@ -82,12 +85,20 @@ export interface FillState {
 	}
 	/** Evaluated defs values */
 	defsValues: Record<string, unknown>
-	/** Rules evaluation result */
+	/**
+	 * Rule results, the same objects `validateRules()` returns. `valid` is true when
+	 * every error-severity rule passed. It is false when the form's logic could not
+	 * be resolved, because the rules were not run; `issues` then says why.
+	 */
 	rules: {
 		valid: boolean
-		errors: string[]
-		warnings: string[]
+		/** Failed rules with severity `error` */
+		errors: RuleValidationResult[]
+		/** Failed rules with severity `warning` */
+		warnings: RuleValidationResult[]
 	}
+	/** Logic evaluation failures: failed conditions and failed computed values. */
+	issues: EvaluationIssue[]
 	/** Visible, unfilled, required items */
 	openRequired: FillItemState[]
 	/** Visible, unfilled, optional items */

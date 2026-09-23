@@ -162,10 +162,14 @@ const updateResult = draft.safeUpdate({ fields: { /* ... */ } });
 ### Fill state inspection
 
 ```typescript
-const state = draft.getFillState();           // { filled, total, percentage }
+const state = draft.getFillState();           // { summary, openRequired, blocked, candidates, next, rules, issues, ... }
 const next = draft.getNextFillTarget();        // FillTarget | null
 const targets = draft.getAvailableFillTargets(); // FillTarget[]
 ```
+
+- `state.summary`: `requiredTotal`, `requiredDone`, `requiredRemaining`, `completionPercent`.
+- `state.rules`: `{ valid, errors, warnings }`; each entry is a `RuleValidationResult` (`ruleId`, `passed`, `message`, `severity`), the same object `validateRules()` returns.
+- `state.issues`: logic expressions that failed to evaluate (`message`, `path`). Any issue blocks completion; when the logic cannot be resolved, the rules are not run and `rules.valid` is `false`.
 
 Essential for AI agent workflows where forms are filled incrementally.
 

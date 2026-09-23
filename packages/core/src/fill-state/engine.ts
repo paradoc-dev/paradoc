@@ -14,7 +14,7 @@ import type {
 	FillItemStatus,
 	FillState,
 } from './types'
-import type { FormRuntimeState } from '@/logic/runtime/evaluation/types'
+import type { EvaluationIssue, FormRuntimeState } from '@/logic/runtime/evaluation/types'
 import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 import { buildFormBaseContext } from '@/logic/runtime/evaluation/context-builder'
@@ -220,6 +220,11 @@ function getUnfilledIds(
 	return unfilled
 }
 
+/** A detached copy of an evaluation issue, so fill state never aliases runtime state. */
+function cloneIssue(issue: EvaluationIssue): EvaluationIssue {
+	return { ...issue, path: [...issue.path] }
+}
+
 /**
  * Computes the FillState for a draft form.
  */
@@ -234,7 +239,6 @@ export function computeFillState(
 	contextValue?: RuntimeContext,
 ): FillState {
 	if (!runtimeState.resolved) {
-		const diagnostics = runtimeState.issues.map((issue) => issue.message)
 		const defsValues: Record<string, unknown> = {}
 		for (const [key, value] of runtimeState.defsValues) defsValues[key] = value
 		return {
@@ -246,7 +250,8 @@ export function computeFillState(
 				completionPercent: 0,
 			},
 			defsValues,
-			rules: { valid: false, errors: diagnostics, warnings: [] },
+			rules: { valid: false, errors: [], warnings: [] },
+			issues: runtimeState.issues.map(cloneIssue),
 			openRequired: [],
 			openOptional: [],
 			blocked: [],
@@ -472,9 +477,8 @@ export function computeFillState(
 	const completionPercent = requiredTotal === 0 ? 100 : Math.round((requiredDone / requiredTotal) * 100)
 
 	// --- Rules ---
-	// A computed value that failed blocks completion like a failed rule does.
+	// A computed value that failed is a logic issue, reported in `issues`, not a rule result.
 	const ruleResult = evaluateFormRules(form, fieldValues, runtimeState.defsValues, context)
-	const evaluationErrors = runtimeState.issues.map((issue) => issue.message)
 
 	// --- Defs values ---
 	const defsValues: Record<string, unknown> = {}
@@ -516,10 +520,11 @@ export function computeFillState(
 		},
 		defsValues,
 		rules: {
-			valid: ruleResult.valid && evaluationErrors.length === 0,
-			errors: [...evaluationErrors, ...ruleResult.errors.map(e => e.message ?? `Rule ${e.ruleId} failed`)],
-			warnings: ruleResult.warnings.map(w => w.message ?? `Rule ${w.ruleId} warning`),
+			valid: ruleResult.valid,
+			errors: ruleResult.errors,
+			warnings: ruleResult.warnings,
 		},
+		issues: runtimeState.issues.map(cloneIssue),
 		openRequired,
 		openOptional,
 		blocked,

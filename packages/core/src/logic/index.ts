@@ -43,6 +43,7 @@ export {
   type AnnexRuntimeState,
   type RuleValidationResult,
   type FormRulesValidationResult,
+  type EvaluationIssue,
   type EvaluationContext,
   type ResolvedPayment,
   type FormDataPayload,

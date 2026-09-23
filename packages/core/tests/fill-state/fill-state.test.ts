@@ -591,6 +591,44 @@ describe('fill-state', () => {
 			expect(state.openRequired).toEqual([])
 			expect(state.openOptional).toEqual([])
 			expect(state.candidates).toEqual([])
+			// The rules were not run: the diagnostics sit in issues, not in rule errors.
+			expect(state.rules).toEqual({ valid: false, errors: [], warnings: [] })
+			expect(state.issues.length).toBeGreaterThan(0)
+			expect(state.issues[0]).toMatchObject({ path: expect.any(Array) })
+			expect(state.issues[0]?.message).toContain('Division by zero')
+		})
+
+		test('returns each failed rule with its id, message, and severity', () => {
+			const ruled = form({
+				kind: 'form',
+				name: 'loan-request',
+				version: '1.0.0',
+				title: 'Loan request',
+				fields: {
+					amount: { type: 'number', required: true },
+					term: { type: 'number' },
+				},
+				rules: {
+					amountPositive: { expr: 'amount > 0', message: 'Amount must be positive' },
+					termReasonable: { expr: 'term <= 360', message: 'Term is unusually long', severity: 'warning' },
+				},
+			} as any)
+
+			const failing = ruled.fill({ fields: { amount: -5, term: 480 } } as any)
+			const state = failing.getFillState()
+			expect(state.rules).toEqual({
+				valid: false,
+				errors: [{ ruleId: 'amountPositive', passed: false, message: 'Amount must be positive', severity: 'error' }],
+				warnings: [{ ruleId: 'termReasonable', passed: false, message: 'Term is unusually long', severity: 'warning' }],
+			})
+			expect(state.issues).toEqual([])
+			// One shape for one result: fill state matches validateRules().
+			const direct = failing.validateRules()
+			expect(state.rules.errors).toEqual(direct.errors)
+			expect(state.rules.warnings).toEqual(direct.warnings)
+
+			const passing = ruled.fill({ fields: { amount: 1000, term: 36 } } as any).getFillState()
+			expect(passing.rules).toEqual({ valid: true, errors: [], warnings: [] })
 		})
 
 		describe('computed values with missing or failing inputs', () => {
@@ -637,7 +675,10 @@ describe('fill-state', () => {
 				const state = priced().fill().getFillState()
 
 				expect(state.rules.valid).toBe(false)
-				expect(state.rules.errors).toEqual(['Order at least one item'])
+				expect(state.rules.errors).toEqual([
+					{ ruleId: 'enough', passed: false, message: 'Order at least one item', severity: 'error' },
+				])
+				expect(state.issues).toEqual([])
 			})
 
 			test('computes the values once their inputs are answered', () => {
@@ -659,8 +700,11 @@ describe('fill-state', () => {
 				expect(state.defsValues).toMatchObject({ total: 6, doubled: 12, share: null })
 				expect(state.openRequired.map((item) => item.key)).toEqual(['note', 'bulk'])
 				expect(state.next).toEqual({ kind: 'field', key: 'note', required: true, order: 2 })
-				expect(state.rules.valid).toBe(false)
-				expect(state.rules.errors).toEqual([expect.stringContaining('division-by-zero')])
+				// The failed computed value is a logic issue, not a rule result.
+				expect(state.rules).toEqual({ valid: true, errors: [], warnings: [] })
+				expect(state.issues).toHaveLength(1)
+				expect(state.issues[0]).toMatchObject({ path: ['defs', 'share'] })
+				expect(state.issues[0]?.message).toContain('division-by-zero')
 			})
 
 			test('a failed computed value blocks completion with its diagnostic', () => {
@@ -809,6 +853,7 @@ describe('fill-state', () => {
 			expect(state.rules.valid).toBe(true)
 			expect(state.rules.errors).toEqual([])
 			expect(state.rules.warnings).toEqual([])
+			expect(state.issues).toEqual([])
 		})
 
 		test('forwards parties to field, annex, and rule evaluation', () => {
