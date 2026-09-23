@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://schema.paradoc.dev/2026-08-10.json
+$schema: https://schema.paradoc.dev/2026-08-10.json
+kind: form
+name: pet-addendum
+version: 1.0.0
+title: Pet Addendum
+parties:
+  tenant:
+    label: Tenant
+fields:
+  # The animal the addendum covers
+  petName:
+    type: text
+    label: Pet name
+  stay:
+    type: duration
+    label: Length of stay
+    default: P1M
+layers:
+  markdown:
+    kind: inline
+    mimeType: text/markdown
+    text: "Pet: {{petName}}"
+    signatures:
+      tenantSignature:
+        party:
+          role: tenant
+        type: signature
+        placement: auto # marker injected at render

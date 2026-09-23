@@ -1226,7 +1226,7 @@
               "description": "Unique identifier for this content item, used to reference it in defs expressions"
             },
             "include": {
-              "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/CondExpr"
+              "$ref": "#/$defs/CondExpr"
             },
             "artifact": {
               "description": "Inline artifact definition (document, form, checklist, or nested bundle)",
@@ -2608,7 +2608,10 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 100,
-              "description": "MIME type of the layer content (e.g., text/markdown, application/pdf)"
+              "description": "MIME type of the layer content (e.g., text/markdown). Never a React composition type",
+              "not": {
+                "pattern": "^(?:[tT][eE][xX][tT]/[tT][sS][xX]|[tT][eE][xX][tT]/[jJ][sS][xX])$"
+              }
             },
             "title": {
               "type": "string",
@@ -2875,8 +2878,8 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "const": "auto",
-                        "description": "Marker-based: injected at render, located after conversion"
+                        "const": "flow",
+                        "description": "In-flow: the field sits where the template content places it; located after conversion via an injected marker"
                       },
                       {
                         "type": "object",
@@ -2968,7 +2971,7 @@
                         "additionalProperties": false
                       }
                     ],
-                    "description": "Placement: 'auto', absolute coordinates, or a text anchor"
+                    "description": "Placement: 'flow', absolute coordinates, or a text anchor"
                   }
                 },
                 "required": [
@@ -3272,8 +3275,8 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "const": "auto",
-                        "description": "Marker-based: injected at render, located after conversion"
+                        "const": "flow",
+                        "description": "In-flow: the field sits where the template content places it; located after conversion via an injected marker"
                       },
                       {
                         "type": "object",
@@ -3365,7 +3368,7 @@
                         "additionalProperties": false
                       }
                     ],
-                    "description": "Placement: 'auto', absolute coordinates, or a text anchor"
+                    "description": "Placement: 'flow', absolute coordinates, or a text anchor"
                   }
                 },
                 "required": [

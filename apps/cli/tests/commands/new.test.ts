@@ -4,6 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -128,7 +129,10 @@ describe('CLI New Command', () => {
       expect(result.exitCode).toBe(0)
 
       const files = await fs.readdir(tempDir)
-      expect(files.some((f) => f.includes('yaml-form') && f.endsWith('.yaml'))).toBe(true)
+      const yamlFile = files.find((f) => f.includes('yaml-form') && f.endsWith('.yaml'))
+      expect(yamlFile).toBeDefined()
+      const content = await fs.readFile(path.join(tempDir, yamlFile!), 'utf-8')
+      expect(content).toContain(`\n$schema: ${PARADOC_SCHEMA_URL}\n`)
     })
 
     it('should support dry-run mode', async () => {
@@ -244,6 +248,8 @@ describe('CLI New Command', () => {
       const content = await fs.readFile(path.join(tempDir, jsonFile), 'utf-8')
       const artifact = JSON.parse(content)
       expect(artifact.title).toBe('My Custom Title')
+      expect(Object.keys(artifact)[0]).toBe('$schema')
+      expect(artifact.$schema).toBe(PARADOC_SCHEMA_URL)
     })
 
     it('should create form with --description', async () => {

@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 import { document, runtimeDocumentFromJSON, UnboundResolverError } from '@/artifacts'
 
 /**
@@ -109,7 +110,7 @@ describe('closure-based Document', () => {
 			test('includes $schema by default', () => {
 				const instance = createMinimalDocument()
 				const json = instance.toJSON() as { $schema: string }
-				expect(json.$schema).toBe('https://schema.paradoc.dev/schema.json')
+				expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
 			})
 		})
 

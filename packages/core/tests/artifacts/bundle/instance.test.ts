@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 import { bundle, document, form } from '@/artifacts'
 import { load } from '@/serialization'
 
@@ -189,7 +190,7 @@ describe('BundleInstance', () => {
     test('includes $schema by default', () => {
       const instance = createMinimalBundle()
       const json = instance.toJSON() as { $schema: string }
-      expect(json.$schema).toBe('https://schema.paradoc.dev/schema.json')
+      expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
     })
 
     test('is JSON.stringify compatible', () => {

@@ -2,7 +2,7 @@
 name: cli
 description: paradoc CLI surface — project init, registries, authoring, validation, rendering, data, all commands
 metadata:
-  tags: cli, paradoc, init, add, new, validate, render, registry, data, commands
+  tags: cli, paradoc, init, add, new, validate, migrate, render, registry, data, commands
 ---
 
 # Paradoc CLI (`paradoc`)
@@ -274,6 +274,20 @@ paradoc version my-form.json premajor     # 1.0.0 -> 2.0.0-0
 paradoc version my-form.json prerelease   # 1.0.1-0 -> 1.0.1-1
 paradoc version my-form.json 2.5.0        # exact version
 ```
+
+### Migrating schema versions
+
+`paradoc version` bumps the artifact's own version. `paradoc migrate` is different: it moves a file to the current **schema** version (`2026-09-22`), named by the dated `$schema` address.
+
+```bash
+paradoc migrate <file-or-directory> [--dry-run] [--from <version>]
+
+paradoc migrate forms/ --dry-run            # print each file's diff, write nothing
+paradoc migrate forms/                      # rewrite in place; JSON stays JSON, YAML keeps comments
+paradoc migrate lease.json --from 2026-08-10  # file with no $schema, or the undated schema.json
+```
+
+Each file is reported as `migrated`, `current`, or `failed`, and the command exits 1 when any file fails. A failed file is never written: a value a step cannot convert is named, and a result that does not validate is reported. In a directory, files that are not artifacts are skipped. ALWAYS review `--dry-run` output before migrating, then validate.
 
 ### Attaching / detaching layers
 

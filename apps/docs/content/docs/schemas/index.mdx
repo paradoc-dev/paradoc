@@ -11,13 +11,40 @@ Paradoc is built on JSON Schema standard [Draft 2020-12](https://json-schema.org
 
 The schemas are available as a bundle and as individual schemas.
 
+## Schema versions
+
+Each version of the artifact schema is identified by a date. The current version is `2026-09-22`.
+
+Every artifact file names the version it follows in `$schema`:
+
+```json
+{
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
+  "kind": "form",
+  "name": "residential-lease"
+}
+```
+
+Artifacts serialized with the SDK (`toJSON()` and `toYAML()`) always carry the current version's address. An artifact built with the SDK is always the current version.
+
+A new dated version is created only for a breaking change: a change that some existing valid artifact no longer satisfies. An additive change keeps the current version. Each new version ships with a migration step from the version before it, and [`paradoc migrate`](/cli/commands/migrate) applies those steps to bring an older artifact file up to date. Nothing changes an artifact file's version without that command.
+
+| Version | Changes |
+| ------- | ------- |
+| `2026-09-22` | Signature placement `'auto'` is renamed `'flow'`. An inline layer cannot hold a React composition (`text/tsx`, `text/jsx`). A duration needs at least one date or time component. |
+| `2026-08-10` | Adds the layer `signatures` slot map. |
+| `2026-08-06` | Adds list fields. |
+| `2026-01-01` | First published version. |
+
 ## Hosted server
+
+Every published version stays at its address.
 
 | Schema           | URL                                                 |
 | ---------------- | --------------------------------------------------- |
-| Latest bundle    | `https://schema.paradoc.dev/schema.json`          |
-| Versioned bundle | `https://schema.paradoc.dev/2026-08-06.json`      |
-| Individual items | `https://schema.paradoc.dev/2026-08-06/form.json`, `bundle.json`, `checklist.json`, `document.json` |
+| Versioned bundle | `https://schema.paradoc.dev/2026-09-22.json`      |
+| Individual items | `https://schema.paradoc.dev/2026-09-22/form.json`, `bundle.json`, `checklist.json`, `document.json` |
+| Latest bundle    | `https://schema.paradoc.dev/schema.json`, for editors. It names no version, so an artifact file uses a dated address. |
 
 ## Package dependency
 
@@ -50,6 +77,11 @@ The schemas are available as a bundle and as individual schemas.
 
 ```typescript
 import bundledSchema from '@paradoc/schemas/schema.json'
+import { SCHEMA_VERSION, PARADOC_SCHEMA_URL, readSchemaAddress } from '@paradoc/schemas'
+
+SCHEMA_VERSION // '2026-09-22'
+PARADOC_SCHEMA_URL // 'https://schema.paradoc.dev/2026-09-22.json'
+readSchemaAddress('https://schema.paradoc.dev/2026-08-10.json') // { kind: 'known', version: '2026-08-10' }
 ```
 
 ## Schema Reference

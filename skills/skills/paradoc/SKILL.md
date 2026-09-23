@@ -25,7 +25,7 @@ This skill covers every Paradoc surface and workflow. Use the dispatch tables be
 
 These apply across every surface and workflow:
 
-- **Schema version:** `2026-08-06`. `$schema` URIs follow the form `https://schema.paradoc.dev/2026-08-06/<form|document|bundle|checklist>.json`.
+- **Schema version:** `2026-09-22`. Every artifact file sets `$schema` to `https://schema.paradoc.dev/2026-09-22.json`. A file that names an earlier version is migrated with `npx paradoc migrate <file>`, NEVER by editing `$schema`.
 - **Validation:** ALWAYS run `npx paradoc validate <file>` when working with files directly. The `npx` form ensures availability without requiring a global install. Validate after every change. NEVER skip.
 - **Artifact name pattern:** `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` — kebab-case preferred, no leading/trailing/consecutive hyphens.
 - **Field/party/def/rule identifier pattern:** `^[a-z][a-zA-Z0-9_]*$` — camelCase, max 100 chars (50 for party roles).

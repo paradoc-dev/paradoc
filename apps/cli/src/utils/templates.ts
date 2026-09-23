@@ -1,4 +1,5 @@
 import slugify from 'slugify'
+import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 
 export interface ProjectTemplate {
   name: string
@@ -23,6 +24,8 @@ export interface ManifestTemplate {
 }
 
 export interface ArtifactTemplate {
+  /** The current dated schema address */
+  $schema: string
   kind: string
   name: string
   title: string
@@ -108,6 +111,7 @@ export function generateBundleTemplate(
   } = {}
 ): ArtifactTemplate {
   return {
+    $schema: PARADOC_SCHEMA_URL,
     kind: 'bundle',
     name: slug,
     title,
@@ -133,6 +137,7 @@ export function generateDocumentTemplate(
   } = {}
 ): ArtifactTemplate {
   return {
+    $schema: PARADOC_SCHEMA_URL,
     kind: 'document',
     name: slug,
     title,
@@ -158,6 +163,7 @@ export function generateFormTemplate(
   } = {}
 ): ArtifactTemplate {
   return {
+    $schema: PARADOC_SCHEMA_URL,
     kind: 'form',
     name: slug,
     title,
@@ -182,6 +188,7 @@ export function generateChecklistTemplate(
   } = {}
 ): ArtifactTemplate {
   return {
+    $schema: PARADOC_SCHEMA_URL,
     kind: 'checklist',
     name: slug,
     title,

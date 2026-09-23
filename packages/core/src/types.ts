@@ -134,7 +134,7 @@ export interface SerializationOptions {
   yamlIndent?: number
   /** Sort object keys alphabetically */
   sortKeys?: boolean
-  /** Include $schema reference for IDE validation (default: true) */
+  /** Include the current dated `$schema` address (default: true) */
   includeSchema?: boolean
 }
 

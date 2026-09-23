@@ -90,6 +90,7 @@ paradoc view @acme/residential-lease
 | `paradoc new bundle <name>` | Create a new bundle |
 | `paradoc validate <artifact>` | Validate an artifact |
 | `paradoc fix <artifact>` | Fix artifact metadata |
+| `paradoc migrate <path>` | Migrate artifact files to the current schema version |
 | `paradoc check <composition-or-artifact>` | Check a React composition against its artifact, without rendering a PDF |
 
 ### Project commands

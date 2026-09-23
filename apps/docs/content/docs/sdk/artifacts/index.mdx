@@ -29,9 +29,23 @@ All artifact builders share common functionality:
 
 - `.validate()` - Validate the schema definition
 - `.isValid()` - Check if schema is valid
-- `.toJSON()` - Serialize to JSON
-- `.toYAML()` - Serialize to YAML
+- `.toJSON()` - Serialize to JSON, with the current dated `$schema`
+- `.toYAML()` - Serialize to YAML, with the current dated `$schema`
 - `.clone()` - Deep clone the instance
+
+### Schema versions
+
+An artifact built with the SDK is always the current [schema version](/schemas#schema-versions). To bring an artifact written for an earlier version up to date, use `migrateArtifact` for a parsed object or `migrateArtifactSource` for file content. Both apply the migration steps in order, validate the result, and fail with `SchemaMigrationError` instead of guessing. The [`paradoc migrate`](/cli/commands/migrate) command uses them.
+
+```ts
+import { migrateArtifactSource } from '@paradoc/sdk'
+
+const result = migrateArtifactSource(yamlText, { format: 'yaml' })
+if (result.status === 'migrated') {
+  console.log(`${result.from} → ${result.to}`)
+  // result.content is the rewritten YAML, comments kept
+}
+```
 
 ### Instance Properties
 

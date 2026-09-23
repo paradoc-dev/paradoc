@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest'
+import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 import { form, FormValidationError } from '@/artifacts'
 import { load } from '@/serialization'
 import type { Form } from '@paradoc/types'
@@ -272,7 +273,7 @@ describe('FormInstance', () => {
     test('includes $schema by default', () => {
       const instance = createMinimalForm()
       const json = instance.toJSON() as { $schema: string }
-      expect(json.$schema).toBe('https://schema.paradoc.dev/schema.json')
+      expect(json.$schema).toBe(PARADOC_SCHEMA_URL)
     })
 
     test('is JSON.stringify compatible', () => {

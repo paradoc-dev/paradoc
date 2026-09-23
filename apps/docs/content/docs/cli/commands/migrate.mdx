@@ -1,0 +1,71 @@
+---
+title: migrate
+description: Migrate artifact files to the current schema version
+ogTitle: paradoc migrate
+ogDescription: Rewrite Paradoc artifact files to the current dated schema version
+---
+
+Rewrites artifact files written for an earlier [schema version](/schemas#schema-versions) so they follow the current one.
+
+## Usage
+
+```bash
+paradoc migrate <path> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `path` | An artifact file, or a directory of artifact files |
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Print the diff for each file and change nothing |
+| `--from <version>` | Schema version of files that declare none |
+
+## Description
+
+Each artifact file names the schema version it follows in `$schema`, such as `https://schema.paradoc.dev/2026-09-22.json`. For each file, `migrate` reads that version, applies every migration step from it to the current version in order, and rewrites the file in place with the current `$schema`.
+
+- A JSON file stays JSON and keeps its indentation. A YAML file stays YAML and keeps its comments.
+- The migrated artifact must validate against the current version. If it does not, the file is left unchanged and the failure is reported.
+- A step that cannot convert a value safely names the value, and the file is left unchanged.
+- A file with no `$schema`, or with the undated `schema.json` address, needs `--from` to name its version.
+- In a directory, `migrate` reads every `.json`, `.yaml`, and `.yml` file outside `node_modules` and `dist`. Files that are not artifacts, such as `package.json`, are skipped. A file that cannot be parsed is reported, and the run continues.
+
+Nothing else changes an artifact file's version: loading never migrates.
+
+## Examples
+
+Review the changes for a directory, then apply them:
+
+```bash
+paradoc migrate forms/ --dry-run
+paradoc migrate forms/
+```
+
+Migrate a file that has no `$schema`:
+
+```bash
+paradoc migrate lease.yaml --from 2026-08-10
+```
+
+## Output
+
+```
+migrated  forms/lease.yaml  2026-08-10 → 2026-09-22
+current   forms/notice.json
+failed    forms/intake.json: Cannot convert fields.stay.default = "PT": a duration must contain at least one date or time component, such as P1D or PT30M
+
+1 migrated, 1 current, 1 failed  (schema version 2026-09-22)
+```
+
+The command exits with status 1 when any file fails.
+
+## See also
+
+- [Schemas](/schemas) - Schema versions and their addresses
+- [validate](/cli/commands/validate) - Validate an artifact against the current schema

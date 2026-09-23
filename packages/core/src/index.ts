@@ -355,7 +355,21 @@ export * from "./serialization";
 // CONSTANTS
 // ============================================================================
 
-export { PARADOC_SCHEMA_URL } from "@paradoc/schemas";
+export {
+  PARADOC_SCHEMA_URL,
+  SCHEMA_VERSION,
+  SCHEMA_VERSIONS,
+  schemaVersionUrl,
+  isSchemaVersion,
+  readSchemaAddress,
+} from "@paradoc/schemas";
+export type { SchemaVersion, SchemaAddress } from "@paradoc/schemas";
+
+// ============================================================================
+// SCHEMA MIGRATION
+// ============================================================================
+
+export * from "./migration";
 
 // ============================================================================
 // FILL STATE (Progressive Filling)

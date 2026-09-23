@@ -116,7 +116,7 @@ Keep references **one level deep** from `SKILL.md` (per the spec). NEVER nest su
 
 The skill itself enforces these — repeat them in any reference where they're directly relevant, and ALWAYS surface them to the user when applicable:
 
-- Schema version `2026-08-06`. `$schema` URIs: `https://schema.paradoc.dev/2026-08-06/<form|document|bundle|checklist>.json`
+- Schema version `2026-09-22`. `$schema`: `https://schema.paradoc.dev/2026-09-22.json` for every artifact kind; migrate older files with `npx paradoc migrate`
 - Validate with `npx paradoc validate <file>` when working with files directly
 - Artifact name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` (kebab-case, no leading/trailing/consecutive hyphens)
 - Field/party/def/rule pattern: `^[a-z][a-zA-Z0-9_]*$` (camelCase preferred)

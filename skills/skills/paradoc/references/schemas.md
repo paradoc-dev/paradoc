@@ -13,14 +13,28 @@ For TypeScript SDK usage, see [sdk.md](./sdk.md). For CLI workflow, see [cli.md]
 
 ## Schema Version
 
-All artifacts use schema version `2026-08-06`. Set `$schema` to declare the artifact type:
+The current schema version is `2026-09-22`. Every artifact file names the version it follows in `$schema`, with the dated address of that version. The address is the same for every artifact kind:
 
-| Artifact | `$schema` URI |
-|----------|---------------|
-| Form | `https://schema.paradoc.dev/2026-08-06/form.json` |
-| Document | `https://schema.paradoc.dev/2026-08-06/document.json` |
-| Bundle | `https://schema.paradoc.dev/2026-08-06/bundle.json` |
-| Checklist | `https://schema.paradoc.dev/2026-08-06/checklist.json` |
+```json
+{ "$schema": "https://schema.paradoc.dev/2026-09-22.json", "kind": "form", "name": "intake" }
+```
+
+- ALWAYS write the current dated address. NEVER use the undated `https://schema.paradoc.dev/schema.json`: it names no version.
+- The SDK writes the current address on `toJSON()` and `toYAML()`.
+- A new dated version exists only for a breaking change, and ships with a migration step from the previous version.
+
+### Migrating an older artifact
+
+When a file names an earlier version, migrate it. NEVER edit `$schema` by hand: the migration steps change the values the new version reads differently.
+
+```bash
+npx paradoc migrate my-form.yaml --dry-run   # print the diff, write nothing
+npx paradoc migrate my-form.yaml             # rewrite in place, keeps JSON or YAML
+npx paradoc migrate forms/                   # every artifact file in a directory
+npx paradoc migrate my-form.json --from 2026-08-10   # file with no $schema
+```
+
+A value a step cannot convert safely is named, and that file is left unchanged. Fix the value by hand, then run `migrate` again. See [cli.md](./cli.md#migrating-schema-versions).
 
 ## Validation Command
 

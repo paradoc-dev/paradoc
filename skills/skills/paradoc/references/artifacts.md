@@ -29,14 +29,7 @@ All four artifact types share these properties:
 | `instructions` | No | ContentRef | Domain/compliance reference content |
 | `agentInstructions` | No | ContentRef | LLM/agent prompts for presentation |
 
-Schema URIs (current schema version `2026-08-06`):
-
-| Artifact | `$schema` URI |
-|----------|---------------|
-| Form | `https://schema.paradoc.dev/2026-08-06/form.json` |
-| Document | `https://schema.paradoc.dev/2026-08-06/document.json` |
-| Bundle | `https://schema.paradoc.dev/2026-08-06/bundle.json` |
-| Checklist | `https://schema.paradoc.dev/2026-08-06/checklist.json` |
+Schema URI (current schema version `2026-09-22`, the same for every kind): `https://schema.paradoc.dev/2026-09-22.json`. To bring an older file up to date, run `npx paradoc migrate <file>` (see [schemas.md](./schemas.md#migrating-an-older-artifact)).
 
 ## Form
 
@@ -61,7 +54,7 @@ Interactive data collection with fields, parties, signatures, layers, and logic.
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-08-06/form.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "my-form",
   "kind": "form"
 }
@@ -71,7 +64,7 @@ Interactive data collection with fields, parties, signatures, layers, and logic.
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-08-06/form.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "rental-application",
   "kind": "form",
   "version": "1.0.0",
@@ -107,7 +100,7 @@ Static content with data placeholders — no fields, no parties.
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-08-06/document.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "privacy-policy",
   "kind": "document",
   "version": "2.1.0",
@@ -158,7 +151,7 @@ Each content item is one of three types:
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-08-06/bundle.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "loan-package",
   "kind": "bundle",
   "version": "1.0.0",
@@ -197,7 +190,7 @@ Each item:
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-08-06/checklist.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "closing-checklist",
   "kind": "checklist",
   "items": [

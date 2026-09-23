@@ -1,5 +1,16 @@
 // Config
-export { SCHEMA_VERSION, SCHEMA_BASE, SCHEMA_ROOT_ID, SCHEMA_VERSIONED_ID, schemaId } from './config';
+export {
+	SCHEMA_VERSIONS,
+	SCHEMA_VERSION,
+	SCHEMA_BASE,
+	SCHEMA_ROOT_ID,
+	SCHEMA_VERSIONED_ID,
+	schemaId,
+	schemaVersionUrl,
+	isSchemaVersion,
+	readSchemaAddress,
+} from './config';
+export type { SchemaVersion, SchemaAddress } from './config';
 
 // Module and Registry
 export { ParadocSchema, ParadocRegistry } from './module';

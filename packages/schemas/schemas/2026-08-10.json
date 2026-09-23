@@ -1225,25 +1225,8 @@
               "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
               "description": "Unique identifier for this content item, used to reference it in defs expressions"
             },
-            "include": {
-              "$ref": "#/$defs/CondExpr"
-            },
             "artifact": {
-              "description": "Inline artifact definition (document, form, checklist, or nested bundle)",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Document"
-                },
-                {
-                  "$ref": "#/$defs/Form"
-                },
-                {
-                  "$ref": "#/$defs/Checklist"
-                },
-                {
-                  "$ref": "#/$defs/Bundle"
-                }
-              ]
+              "description": "Inline artifact definition (document, form, checklist, or nested bundle)"
             }
           },
           "required": [
@@ -2599,6 +2582,49 @@
       ],
       "additionalProperties": false
     },
+    "FormFieldset": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Title or heading for the fieldset"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Description or summary of the fieldset"
+        },
+        "fields": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "description": "Field identifier (camelCase, starts with lowercase letter)"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/FormField"
+          }
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether fieldset is required"
+        },
+        "order": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Display order (lower numbers appear first)"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "additionalProperties": false
+    },
     "Layer": {
       "oneOf": [
         {
@@ -3385,7 +3411,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 1000,
-              "description": "Logical resolver path; the CLI resolves file-backed artifacts from their directory and stdin artifacts from cwd"
+              "description": "Absolute path from repo root to the layer file"
             },
             "checksum": {
               "type": "string",
@@ -3522,7 +3548,7 @@
     },
     "Duration": {
       "type": "string",
-      "pattern": "^P(?=\\d|T\\d)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(?:T(?=\\d)(\\d+H)?(\\d+M)?(\\d+(?:\\.\\d+)?S)?)?$"
+      "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$"
     },
     "Identification": {
       "type": "object",
@@ -3569,7 +3595,7 @@
       "properties": {
         "amount": {
           "type": "number",
-          "description": "Monetary amount expressed in decimal form (e.g., 99.99 for USD). Negative values allowed for debts/credits"
+          "description": "Monetary amount in the smallest currency unit (e.g., cents for USD) or as a decimal (e.g., 99.99 for USD). Negative values allowed for debts/credits"
         },
         "currency": {
           "type": "string",

@@ -21,6 +21,7 @@
     "init",
     "inspect",
     "list",
+    "migrate",
     "new",
     "registry",
     "render",

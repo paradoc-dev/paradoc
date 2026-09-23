@@ -67,13 +67,13 @@ export interface ArtifactMethods<T extends Artifact> {
 
 	/**
 	 * Serialize to JSON object.
-	 * Optionally includes $schema property for IDE validation.
+	 * Includes the current dated `$schema` unless `includeSchema` is false.
 	 */
 	toJSON(options?: SerializationOptions): T | (T & { $schema: string })
 
 	/**
 	 * Serialize to YAML string.
-	 * Optionally includes schema comment.
+	 * Includes the current dated `$schema` unless `includeSchema` is false.
 	 */
 	toYAML(options?: SerializationOptions): string
 }
@@ -107,6 +107,18 @@ export function assertValidArtifactDefinition<T extends Artifact>(data: T): void
  */
 export function snapshotArtifactDefinition<T extends Artifact>(data: T): T {
 	return deepClone(data)
+}
+
+/**
+ * The artifact as it is written to a file.
+ *
+ * An instance always holds a current-version definition, so it serializes
+ * with the current dated `$schema` first, whatever address it was read with.
+ */
+function serializableArtifact<T extends Artifact>(data: T, includeSchema: boolean): T | (T & { $schema: string }) {
+	const { $schema: _read, ...definition } = data as T & { $schema?: string }
+	if (includeSchema) return { $schema: PARADOC_SCHEMA_URL, ...definition } as T & { $schema: string }
+	return definition as T
 }
 
 /**
@@ -156,15 +168,11 @@ export function withArtifactMethods<T extends Artifact>(data: T): ArtifactMethod
 
 		// Serialization
 		toJSON(options: SerializationOptions = {}): T | (T & { $schema: string }) {
-			const { includeSchema = true } = options
-			if (includeSchema) {
-				return { $schema: PARADOC_SCHEMA_URL, ...data } as T & { $schema: string }
-			}
-			return data
+			return serializableArtifact(data, options.includeSchema ?? true)
 		},
 
 		toYAML(options: SerializationOptions = {}): string {
-			return toYAML(data, options)
+			return toYAML(serializableArtifact(data, options.includeSchema ?? true), options)
 		},
 	}
 }

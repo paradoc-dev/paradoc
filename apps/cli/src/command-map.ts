@@ -46,6 +46,8 @@ export const commandEntries: CommandEntry[] = [
 		load: () => import('./commands/hash.js').then(m => m.createHashCommand()) },
 	{ name: 'data', description: 'Data operations for Paradoc artifacts', group: 'Artifacts',
 		load: () => import('./commands/data/index.js').then(m => m.createDataCommand()) },
+	{ name: 'migrate', description: 'Migrate artifact files to the current schema version', group: 'Artifacts',
+		load: () => import('./commands/migrate.js').then(m => m.createMigrateCommand()) },
 	{ name: 'diff', description: 'Show differences between two artifact files', group: 'Artifacts',
 		load: () => import('./commands/diff.js').then(m => m.createDiffCommand()) },
 
