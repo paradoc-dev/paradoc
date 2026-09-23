@@ -16,9 +16,9 @@ ContentRef is used by two optional fields on [ArtifactBase](/schemas/artifacts) 
 | `instructions` | Domain or compliance reference content (e.g., IRS instructions, regulatory guidance) |
 | `agentInstructions` | LLM/agent prompts for field ordering, grouping, tone, and presentation guidance |
 
-# ContentRef Types
+## ContentRef Types
 
-## InlineContentRef
+### InlineContentRef
 
 Inline content with embedded text. Use when the content is short enough to live directly in the artifact definition.
 
@@ -35,7 +35,7 @@ Inline content with embedded text. Use when the content is short enough to live 
   },
 ]} />
 
-## FileContentRef
+### FileContentRef
 
 File-backed content reference. Use when the content is large or maintained separately (e.g., a Markdown document alongside the artifact file).
 
@@ -75,7 +75,7 @@ File-backed content reference. Use when the content is large or maintained separ
   },
 ]} />
 
-# Checksums
+## Checksums
 
 The `checksum` field is optional in the schema but recommended for file-backed content references. When present, the CLI verifies integrity during [`validate`](/cli/commands/validate) and [`add`](/cli/commands/add).
 
@@ -83,7 +83,7 @@ The `checksum` field is optional in the schema but recommended for file-backed c
 - Use [`paradoc fix`](/cli/commands/fix) to compute or update checksums automatically
 - The CLI refuses to download file-backed content references from a registry without a checksum
 
-# Examples
+## Examples
 
 ```yaml tab="YAML"
 # Inline instructions (short text)
@@ -125,7 +125,7 @@ agentInstructions:
 }
 ```
 
-# CLI Support
+## CLI Support
 
 | Command | Behavior |
 |---------|----------|
@@ -136,7 +136,7 @@ agentInstructions:
 | [`attach`](/cli/commands/attach) | Attaches a file as instructions or agent instructions (`--as instructions`) |
 | [`detach`](/cli/commands/detach) | Removes a content reference from an artifact |
 
-# Related
+## Related
 
 - [Artifact Base Properties](/schemas/artifacts) - Base fields shared by all artifact kinds
 - [Layer](/schemas/artifacts/shared/layer) - Rendering output specification (similar file/inline pattern)

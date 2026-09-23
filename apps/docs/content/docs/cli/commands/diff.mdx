@@ -7,30 +7,30 @@ ogDescription: Show differences between artifact files
 
 Shows differences between two artifact files.
 
-# Usage
+## Usage
 
 ```bash
 paradoc diff <file1> <file2> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `file1` | First artifact file to compare |
 | `file2` | Second artifact file to compare |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `--name-only` | Show only if files differ (no content diff) |
 
-# Description
+## Description
 
 The `diff` command compares two artifact files and displays the differences in unified diff format. It attempts to parse both files as artifacts to show artifact names in the output.
 
-# Examples
+## Examples
 
 Compare two files:
 
@@ -44,7 +44,7 @@ Check if files differ:
 paradoc diff form-v1.yaml form-v2.yaml --name-only
 ```
 
-# Output
+## Output
 
 When files differ:
 
@@ -75,7 +75,7 @@ With `--name-only`:
 Files differ
 ```
 
-# See also
+## See also
 
 - [apply](/cli/commands/apply) - Apply a patch file
 - [show](/cli/commands/show) - Display artifact content

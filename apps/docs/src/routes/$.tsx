@@ -133,7 +133,7 @@ import {
 const clientLoader = browserCollections.docs.createClientLoader({
   component({ toc, frontmatter, default: MDX, lastModified }) {
     return (
-      <DocsPage toc={toc}>
+      <DocsPage toc={toc} className="pt-3 md:pt-5 xl:pt-7">
         <DocsTitle>
           <div className="flex justify-between gap-4">
             <span className="tracking-tight">{frontmatter.title}</span>

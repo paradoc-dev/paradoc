@@ -7,30 +7,30 @@ ogDescription: Compute SHA256 checksums for use in Paradoc layer definitions
 
 Compute a SHA256 checksum of a file, formatted for use in layer definitions.
 
-# Usage
+## Usage
 
 ```bash
 paradoc hash <file> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `file` | File to compute hash for, or `-` for stdin |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `--json` | Output as JSON |
 | `-a, --algorithm <algorithm>` | Hash algorithm (default: `sha256`) |
 
-# Description
+## Description
 
 Computes the SHA256 checksum of a file and outputs it in the `sha256:<hex>` format used by Paradoc layer definitions. This is useful when manually adding file-backed layers to artifacts.
 
-# Examples
+## Examples
 
 Hash a PDF file:
 
@@ -65,7 +65,7 @@ Hash from stdin:
 cat file.pdf | paradoc hash -
 ```
 
-# See also
+## See also
 
 - [fix](/cli/commands/fix) - Auto-compute checksums for all layers in an artifact
 - [attach](/cli/commands/attach) - Attach files to artifacts as layers

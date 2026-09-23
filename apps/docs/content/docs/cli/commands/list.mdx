@@ -7,25 +7,25 @@ ogDescription: View all artifacts installed in your Paradoc project
 
 Lists all artifacts installed in the current project.
 
-# Usage
+## Usage
 
 ```bash
 paradoc list [options]
 paradoc ls [options]
 ```
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `--json` | Output as JSON |
 | `--kind <kind>` | Filter by artifact kind: `form`, `document`, `checklist`, `bundle` |
 
-# Description
+## Description
 
 The `list` command reads the project's lock file and displays all installed artifacts, grouped by namespace. It shows the artifact name, version, and number of downloaded layers.
 
-# Examples
+## Examples
 
 List all installed artifacts:
 
@@ -45,7 +45,7 @@ Output as JSON:
 paradoc list --json
 ```
 
-# Output
+## Output
 
 ```
 Installed artifacts (3):
@@ -65,7 +65,7 @@ No artifacts installed.
 Run 'paradoc add @namespace/artifact-name' to install one.
 ```
 
-# JSON output
+## JSON output
 
 ```json
 [
@@ -80,7 +80,7 @@ Run 'paradoc add @namespace/artifact-name' to install one.
 ]
 ```
 
-# See also
+## See also
 
 - [add](/cli/commands/add) - Install an artifact
 - [show](/cli/commands/show) - View artifact details

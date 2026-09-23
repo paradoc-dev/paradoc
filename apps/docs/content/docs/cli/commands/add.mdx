@@ -8,19 +8,19 @@ ogDescription: Install artifacts from Paradoc registries, and document component
 Adds an artifact from a registry into your project, or a document component from
 the [Paradoc component registry](/components).
 
-# Usage
+## Usage
 
 ```bash
 paradoc add <artifact> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Artifact reference (`@namespace/name`), namespace (`@namespace`), direct URL, or a document component name (`field`) |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -32,7 +32,7 @@ paradoc add <artifact> [options]
 | `--registry <url>` | Component registry URL template for `@paradoc` (must contain `{name}`) |
 | `--dry-run` | For a component, print the install command instead of running it |
 
-# Description
+## Description
 
 The `add` command fetches an artifact from a configured registry and saves it to your project's artifacts directory. The artifact is validated before being saved, and a lock file entry is created to track the installation.
 
@@ -42,7 +42,7 @@ By default, only the artifact definition is downloaded. Use `--layers` to also d
 
 When called with just a namespace (`@namespace`), the command enters browse mode and lets you interactively select artifacts to install.
 
-## Document components
+### Document components
 
 A bare name is a document component rather than an artifact: an artifact
 reference always carries a namespace or is a URL, so the two cannot be confused.
@@ -72,7 +72,7 @@ is no `components.json`. A `@paradoc` namespace already pointing at a different
 registry is left alone and reported, so a project running its own mirror is not
 silently repointed.
 
-# Examples
+## Examples
 
 Add an artifact:
 
@@ -128,7 +128,7 @@ Add a document component:
 paradoc add field
 ```
 
-# Output
+## Output
 
 ```
 ✓ Registry: https://registry.acme.com
@@ -145,7 +145,7 @@ Content:
   → artifacts/@acme/instructions.md
 ```
 
-# See also
+## See also
 
 - [search](/cli/commands/search) - Find artifacts in registries
 - [list](/cli/commands/list) - List installed artifacts

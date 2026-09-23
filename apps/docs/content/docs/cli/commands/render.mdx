@@ -7,19 +7,19 @@ ogDescription: Generate output from Paradoc artifact layers
 
 Renders an artifact layer to a file or stdout.
 
-# Usage
+## Usage
 
 ```bash
 paradoc render <artifact> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Artifact file (JSON/YAML) or `-` for stdin |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -30,7 +30,7 @@ paradoc render <artifact> [options]
 | `--layer <key>` | Layer key to use (defaults to artifact.defaultLayer) |
 | `--dry-run` | Validate and resolve layer without rendering |
 
-# Description
+## Description
 
 The `render` command reads an artifact and resolves the requested layer. With
 `--data`, it selects the text, PDF, or DOCX implementation automatically from
@@ -39,7 +39,7 @@ layer content. File-backed layers resolve relative to the artifact file.
 For artifacts read from stdin, file-backed layers resolve from the current
 working directory.
 
-# Examples
+## Examples
 
 Render default layer to stdout:
 
@@ -71,7 +71,7 @@ Dry run (validate only):
 paradoc render my-form.yaml --dry-run
 ```
 
-# Output
+## Output
 
 When rendering to file:
 
@@ -94,7 +94,7 @@ Dry run summary:
   Source:     lease-agreement.yaml
 ```
 
-# See also
+## See also
 
 - [show](/cli/commands/show) - Display artifact content
 - [inspect](/cli/commands/inspect) - Inspect PDF form fields

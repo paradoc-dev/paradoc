@@ -8,19 +8,19 @@ description: An ordered or unordered list whose markers are text, so both output
 the default PDF engine draws no list markers of its own. That is what makes
 the preview and the PDF show the same characters.
 
-# Preview
+## Preview
 
 <ComponentPreview name="list" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="list" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="list" />
 
-# Composition
+## Composition
 
 Items are data, not children: `items` is an array of `{ text, items? }`, and
 an item's own `items` are a nested level. `text` takes anything React can
@@ -65,23 +65,23 @@ from, and two lists sharing one would claim the same ids and fail the page
 plan. `className` replaces the top level's column layout; a nested level keeps
 its own indent.
 
-# Variants
+## Variants
 
-## Unordered
+### Unordered
 
 `marker="bullet"` marks every item with the same character and numbers
 nothing.
 
 <ComponentVariant name="list" variant="unordered" />
 
-## Nested
+### Nested
 
 An item's own `items` are a level of their own, marked with `nestedMarker` and
 prefixed with the parent's marker.
 
 <ComponentVariant name="list" variant="nested" />
 
-## Roman
+### Roman
 
 `marker="roman"` marks the items `i.`, `ii.`, `iii.`, the way a recitals block
 is numbered.

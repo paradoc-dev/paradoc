@@ -5,9 +5,9 @@ description: Build and validate bounding boxes
 
 Build and validate geographic bounding boxes. The Bbox primitive defines a rectangular area using southwest and northeast corner coordinates.
 
-# Examples
+## Examples
 
-## Creating bounding boxes
+### Creating bounding boxes
 
 ```ts
 // Object pattern
@@ -37,7 +37,7 @@ const expanded = p.bbox()
   .build()
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -52,7 +52,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -74,9 +74,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.bbox(input: Bbox): Bbox
@@ -91,7 +91,7 @@ const area = p.bbox({
 })
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a Bbox value incrementally:
 
@@ -107,21 +107,21 @@ Chain methods to build a Bbox value incrementally:
   returns={{ intermediate: 'BboxBuilder', terminal: 'Bbox' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Bbox', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Bbox>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   { name: 'southWest', type: 'Coordinate', description: 'Southwest corner of the bounding box.' },
   { name: 'northEast', type: 'Coordinate', description: 'Northeast corner of the bounding box.' },
 ]} />
 
-# Validation
+## Validation
 
 The Bbox primitive validates:
 
@@ -144,7 +144,7 @@ p.bbox({
 // Error: Invalid Bbox: southWest latitude must be between -90 and 90
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Coordinate](/sdk/primitives/coordinate) - Coordinate primitive used by Bbox

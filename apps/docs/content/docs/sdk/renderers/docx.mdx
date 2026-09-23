@@ -7,7 +7,7 @@ Render forms to DOCX (Word) documents with Paradoc's dependency-light Open XML
 implementation. It supports placeholders, conditionals, loops, custom
 delimiters, split Word runs, and automatic field formatting.
 
-# Example
+## Example
 
 ```ts
 import { p } from '@paradoc/core'
@@ -52,7 +52,7 @@ const output = await filled.render({
 fs.writeFileSync('contract-filled.docx', output)
 ```
 
-# Import
+## Import
 
 From the unified package's DOCX entry point:
 
@@ -60,9 +60,9 @@ From the unified package's DOCX entry point:
 import { docxRenderer } from '@paradoc/render/docx'
 ```
 
-# API
+## API
 
-## docxRenderer()
+### docxRenderer()
 
 Factory function that creates a configured DOCX renderer instance.
 
@@ -73,27 +73,27 @@ function docxRenderer(options?: DocxRendererOptions): ParadocRenderer<
 >
 ```
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'options', type: 'DocxRendererOptions', description: 'Configuration options', isOptional: true },
 ]} />
 
-### DocxRendererOptions
+#### DocxRendererOptions
 
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
 ]} />
 
-### DocxSignatureOptions
+#### DocxSignatureOptions
 
 <PropertiesTable properties={[
   { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
   { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns an `ParadocRenderer` object with:
 
@@ -102,7 +102,7 @@ Returns an `ParadocRenderer` object with:
   { name: 'render', type: '(request: RenderRequest) => Promise<Uint8Array>', description: 'Async render function that returns the filled document', isMethod: true },
 ]} />
 
-## renderDocx()
+### renderDocx()
 
 Low-level function for direct DOCX rendering without the full renderer interface.
 
@@ -110,7 +110,7 @@ Low-level function for direct DOCX rendering without the full renderer interface
 async function renderDocx(options: RenderDocxOptions): Promise<Uint8Array>
 ```
 
-### RenderDocxOptions
+#### RenderDocxOptions
 
 <PropertiesTable properties={[
   { name: 'template', type: 'Uint8Array', description: 'DOCX template file as binary data' },
@@ -122,18 +122,18 @@ async function renderDocx(options: RenderDocxOptions): Promise<Uint8Array>
   { name: 'options', type: 'DocxRenderOptions', description: 'DOCX-specific rendering options', isOptional: true },
 ]} />
 
-### DocxRenderOptions
+#### DocxRenderOptions
 
 <PropertiesTable properties={[
   { name: 'cmdDelimiter', type: '[string, string]', description: 'Custom command delimiter. Defaults to ["{{", "}}"]', isOptional: true },
   { name: 'processLineBreaks', type: 'boolean', description: 'Convert newlines to line breaks. Defaults to true.', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns a `Promise<Uint8Array>` containing the rendered DOCX document.
 
-# Template Syntax
+## Template Syntax
 
 DOCX templates use Paradoc's deterministic placeholder and block syntax:
 
@@ -148,7 +148,7 @@ Discount Applied: {{discountPercent}}
 {{/if}}
 ```
 
-## Supported Features
+### Supported Features
 
 | Syntax | Description |
 |--------|-------------|
@@ -157,7 +157,7 @@ Discount Applied: {{discountPercent}}
 | `{{#each items}}...{{/each}}` | Loop over arrays |
 | `{{#unless condition}}...{{/unless}}` | Negative conditionals |
 
-# Automatic Formatting
+## Automatic Formatting
 
 When a form schema is provided, field values are automatically formatted:
 
@@ -167,7 +167,7 @@ When a form schema is provided, field values are automatically formatted:
 // Phone fields formatted as "(555) 123-4567"
 ```
 
-# Custom Formatters
+## Custom Formatters
 
 Use a formatter for different locales:
 
@@ -186,7 +186,7 @@ const output = await renderDocx({
 
 Formatting failures reject the render with the field path and status. Invalid values and template errors never produce a silently unfinished document. An artifact-level `formatter` passed to `render()` overrides the renderer default.
 
-# Template Bindings
+## Template Bindings
 
 Map template placeholders to different field names. As with any file-backed
 layer, bind a resolver when the form is constructed:
@@ -214,7 +214,7 @@ const form = p.form({
 }, { resolver })
 ```
 
-# Related
+## Related
 
 - [Renderers](/sdk/renderers) - Renderer interface overview
 - [Formatting](/sdk/formatting) - Value formatting

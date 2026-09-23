@@ -5,9 +5,9 @@ description: Validate rating values
 
 Validate rating values. The Rating primitive ensures numeric values represent valid ratings with optional step alignment and range constraints.
 
-# Examples
+## Examples
 
-## Creating ratings
+### Creating ratings
 
 ```ts
 // Direct validation (defaults: min=1, max=5, step=1)
@@ -22,7 +22,7 @@ if (p.rating.isValid(4)) {
 }
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -44,7 +44,7 @@ const rating = p.rating.parse(userInput, {
 })
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -63,9 +63,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Direct Call
+### Direct Call
 
 ```ts
 p.rating(input: number): number
@@ -77,7 +77,7 @@ Pass a number for validation. Returns the validated number or throws on error.
 const rating = p.rating(4)
 ```
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown, options?: RatingOptions', returns: 'number', description: 'Parse unknown input (throws on error)' },
@@ -85,7 +85,7 @@ const rating = p.rating(4)
   { name: 'isValid', params: 'input: number', returns: 'boolean', description: 'Check if a number is a valid rating' },
 ]} />
 
-## RatingOptions
+### RatingOptions
 
 | Option | Type | Description |
 |--------|------|-------------|
@@ -93,7 +93,7 @@ const rating = p.rating(4)
 | `max` | `number?` | Maximum allowed value |
 | `step` | `number?` | Step increment (e.g., 0.5 for half-star ratings) |
 
-# Step Alignment
+## Step Alignment
 
 When a `step` is specified, ratings must align to the step value:
 
@@ -111,7 +111,7 @@ p.rating.parse(4.3, { step: 0.5 })  // Throws: not aligned
 p.rating.parse(4.7, { step: 0.1 })  // Valid: 4.7
 ```
 
-# Common Rating Scales
+## Common Rating Scales
 
 | Scale | Range | Step | Example |
 |-------|-------|------|---------|
@@ -120,7 +120,7 @@ p.rating.parse(4.7, { step: 0.1 })  // Valid: 4.7
 | Percentage | 0-100 | 1 | Satisfaction scores |
 | NPS | 0-10 | 1 | Net Promoter Score |
 
-# Validation
+## Validation
 
 The Rating primitive validates:
 
@@ -152,7 +152,7 @@ p.rating.parse(6, { min: 1, max: 5 })
 // Error: 6 is outside the valid range (1-5)
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Percentage](/sdk/primitives/percentage) - Percentage values

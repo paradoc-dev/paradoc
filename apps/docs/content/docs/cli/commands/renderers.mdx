@@ -8,13 +8,13 @@ ogDescription: Manage the Paradoc CLI renderer package
 Manages the unified renderer package used by the `render` and `inspect`
 commands.
 
-# Usage
+## Usage
 
 ```bash
 paradoc renderers <command>
 ```
 
-# Overview
+## Overview
 
 `@paradoc/render` is not bundled with the CLI. It is installed on demand the
 first time you run `render` or `inspect`, then cached in
@@ -26,7 +26,7 @@ Available package:
 |---------|----------|--------------------|
 | `@paradoc/render` | Text, Markdown, HTML, PDF, DOCX, and `inspect` | `fflate` |
 
-# Subcommands
+## Subcommands
 
 | Command | Description |
 |---------|-------------|
@@ -37,7 +37,7 @@ Available package:
 
 ---
 
-# renderers status
+## renderers status
 
 Show installation status of all renderers.
 
@@ -45,20 +45,20 @@ Show installation status of all renderers.
 paradoc renderers status [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
 | `--json` | Output as JSON |
 
-## Output
+### Output
 
 The status table contains one row for `@paradoc/render`, including its installed
 version, the version expected by the CLI, status, and installed size.
 
 ---
 
-# renderers install
+## renderers install
 
 Install a renderer, or all renderers if no name is given.
 
@@ -66,13 +66,13 @@ Install a renderer, or all renderers if no name is given.
 paradoc renderers install [name]
 ```
 
-## Arguments
+### Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `name` | `render`, `text`, `pdf`, or `docx` (all resolve to the unified package) |
 
-## Examples
+### Examples
 
 Install the renderer:
 
@@ -88,7 +88,7 @@ paradoc renderers install pdf
 
 ---
 
-# renderers remove
+## renderers remove
 
 Remove a renderer, or all renderers if no name is given.
 
@@ -96,7 +96,7 @@ Remove a renderer, or all renderers if no name is given.
 paradoc renderers remove [name]
 ```
 
-## Arguments
+### Arguments
 
 | Argument | Description |
 |----------|-------------|
@@ -104,7 +104,7 @@ paradoc renderers remove [name]
 
 ---
 
-# renderers update
+## renderers update
 
 Reinstall all renderers to match the versions pinned by the current CLI release.
 
@@ -114,7 +114,7 @@ paradoc renderers update
 
 This is useful after upgrading the CLI to ensure renderer versions stay in sync.
 
-# See also
+## See also
 
 - [render](/cli/commands/render) - Render artifact layers
 - [inspect](/cli/commands/inspect) - Inspect PDF form fields

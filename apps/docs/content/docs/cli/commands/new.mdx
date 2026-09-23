@@ -7,13 +7,13 @@ ogDescription: Scaffold new forms, documents, checklists, and bundles
 
 Creates new Paradoc artifacts with interactive prompts or command-line options.
 
-# Usage
+## Usage
 
 ```bash
 paradoc new <type> <name> [options]
 ```
 
-# Subcommands
+## Subcommands
 
 | Command | Description |
 |---------|-------------|
@@ -24,7 +24,7 @@ paradoc new <type> <name> [options]
 
 ---
 
-# new form
+## new form
 
 Create a new form artifact.
 
@@ -32,7 +32,7 @@ Create a new form artifact.
 paradoc new form <name> [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
@@ -47,7 +47,7 @@ paradoc new form <name> [options]
 | `--dry-run` | Preview without creating files |
 | `--format <format>` | Output format: `json` or `yaml` (default: json) |
 
-## Examples
+### Examples
 
 Interactive form creation:
 
@@ -68,7 +68,7 @@ paradoc new form lease-agreement \
 
 ---
 
-# new document
+## new document
 
 Create a new document artifact.
 
@@ -76,7 +76,7 @@ Create a new document artifact.
 paradoc new document <name> [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
@@ -87,7 +87,7 @@ paradoc new document <name> [options]
 
 ---
 
-# new checklist
+## new checklist
 
 Create a new checklist artifact.
 
@@ -95,7 +95,7 @@ Create a new checklist artifact.
 paradoc new checklist <name> [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
@@ -106,7 +106,7 @@ paradoc new checklist <name> [options]
 
 ---
 
-# new bundle
+## new bundle
 
 Create a new bundle artifact.
 
@@ -114,7 +114,7 @@ Create a new bundle artifact.
 paradoc new bundle <name> [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
@@ -123,7 +123,7 @@ paradoc new bundle <name> [options]
 | `--format <format>` | Output format: `json` or `yaml` |
 | `--dry-run` | Preview without creating files |
 
-# See also
+## See also
 
 - [validate](/cli/commands/validate) - Validate created artifacts
 - [fix](/cli/commands/fix) - Fix artifact issues

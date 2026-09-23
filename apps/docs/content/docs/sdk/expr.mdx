@@ -7,7 +7,7 @@ description: Parse, evaluate, and type-check Paradoc expressions
 
 The package gives you three things: a `parse` that turns source into a typed AST, an `evaluate` that runs an expression against data, and a `check` that type-checks an expression against an artifact's field types at authoring time. It also ships `Decimal` for exact decimal arithmetic, so money and percentage math never drift.
 
-# Installation
+## Installation
 
 ```bash
 npm install @paradoc/expr
@@ -24,7 +24,7 @@ import { expr } from '@paradoc/sdk'
 expr.check(/* ... */)
 ```
 
-# Parsing
+## Parsing
 
 `parse` returns `{ ast, errors }`. The AST is `null` when the source has syntax errors; the errors carry positioned diagnostics.
 
@@ -35,7 +35,7 @@ const { ast, errors } = parse('fields.age >= 18')
 // ast is the typed expression tree; errors is empty
 ```
 
-# Evaluating
+## Evaluating
 
 `evaluateExpression` parses and runs a source string against a context built with `createContext`. It returns a result, never throws on a bad expression. Values are tagged (`{ kind, value }`); use `valueToString` or the `Values` helpers to read them.
 
@@ -57,7 +57,7 @@ If you already have an AST, `evaluate(ast, ctx)` runs it directly.
 
 `coalesce` stops at the first non-null argument. Dates use canonical `YYYY-MM-DD` values, datetimes representing instants require `Z` or an explicit offset, and calendar month/year addition clamps to the last valid day. Diagnostic offsets count UTF-16 code units.
 
-# Checking
+## Checking
 
 `check` is the authoring-time type checker. Its value is validate-as-you-type: as an author edits a `visible` or computed expression, `check` confirms every reference resolves and every operator and function is well-typed, surfacing positioned diagnostics before the form ever runs. This is what an editor lints with.
 
@@ -88,7 +88,7 @@ check('fields.age + fields.unknownField', env)
 
 For expressions used as gates (`visible`, `required`, `include`, rules), `checkBooleanGate` adds a `non-boolean-gate` error when the result isn't boolean. `T` is the type constructor (`T.number`, `T.string`, `T.array(T.string)`, etc.) and `createTypeEnv` builds a simple path-to-type environment; hosts build richer ones.
 
-# Exact decimals
+## Exact decimals
 
 `Decimal` is exact-decimal arithmetic backed by `bigint`. No floating point is used, so `19.95 * 3` is exactly `59.85` and money math doesn't accumulate rounding error. The constructor is private; build values with `Decimal.fromString` or `Decimal.fromInt`.
 
@@ -104,7 +104,7 @@ Decimal.fromString('19.95').mul(Decimal.fromInt(3)).toString()
 
 `Decimal` carries the usual operators (`add`, `sub`, `mul`, `div`, `mod`, `cmp`, `round`, and friends) and is the runtime representation of every `number` in the language.
 
-# Related
+## Related
 
 - [Logic](/concepts/logic) - The expression language: operators, functions, addressing
 - [Sessions](/sdk/sessions) - The session engine whose gates this powers

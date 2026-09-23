@@ -7,13 +7,13 @@ ogDescription: Fetch an Paradoc registry index to discover available artifacts
 
 Fetches `registry.json` from a registry URL and returns the list of available artifacts.
 
-# Parameters
+## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `registryUrl` | `string` | Yes | Registry base URL (e.g. `https://public.paradoc.dev`) |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -22,7 +22,7 @@ Fetches `registry.json` from a registry URL and returns the list of available ar
 | `items` | `array` | List of artifacts, each with `name` and optional `path` |
 | `error` | `string` | Error message if the fetch failed |
 
-# Direct usage
+## Direct usage
 
 ```typescript
 import { executeGetRegistry } from "@paradoc/ai-tools"
@@ -39,7 +39,7 @@ const result = await executeGetRegistry({
 // }
 ```
 
-# Example response
+## Example response
 
 ```json
 {

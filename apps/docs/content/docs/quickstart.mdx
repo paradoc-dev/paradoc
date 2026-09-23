@@ -13,7 +13,7 @@ Let's build a simple purchase agreement to grasp the basics of Paradoc. We'll de
 <Steps>
 
 <Step>
-### Install the Packages
+## Install the Packages
 
 Let's make a new project and install the SDK and filesystem resolver. The SDK includes the default renderer.
 
@@ -51,7 +51,7 @@ Let's make a new project and install the SDK and filesystem resolver. The SDK in
 
 
 <Step>
-### Define the Form
+## Define the Form
 
 Let's define a simple purchase agreement with 2 parties and 3 fields. It will have a single layer that is a Markdown file.
 
@@ -90,7 +90,7 @@ const purchaseAgreement = p
 In this Quickstart, we're using the fluent builder pattern to define the form. You can also use the object pattern if you prefer.
 
 <Step>
-### Create the Layer
+## Create the Layer
 
 Next, let's create the layer. Paradoc's deterministic template syntax maps the
 form parties and fields into the layer.
@@ -107,7 +107,7 @@ Paradoc is agonstic to the rendering engine and file format you choose. You can 
 </Step>
 
 <Step>
-### Populate
+## Populate
 
 Let's populate the form with data by using the `.fill()` method.
 
@@ -127,7 +127,7 @@ const draft = purchaseAgreement.fill({
 </Step>
 
 <Step>
-### Validate
+## Validate
 
 Next, let's check that the data is valid by using the `.isValid()` method.
 
@@ -141,7 +141,7 @@ if (draft.isValid()) {
 </Step>
 
 <Step>
-### Render
+## Render
 
 Let's render the purchase agreement with the data using the `.render()` method. The resolver we bound when building the form travels with `draft`, so we don't pass it again.
 
@@ -157,7 +157,7 @@ console.log(output)
 </Step>
 
 <Step>
-### Save Artifact
+## Save Artifact
 
 If we want to save our form for future use, we can either save it as a typescript file, or we can serialize it to JSON/YAML for future loading.
 

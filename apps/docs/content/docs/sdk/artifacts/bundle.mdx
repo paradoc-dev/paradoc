@@ -5,9 +5,9 @@ description: Create Bundle artifacts to group multiple artifacts together
 
 Create Bundle artifacts to group multiple documents, forms, and checklists into a single distributable package. Bundles support conditional includes and can reference content inline, by file path, or by registry slug.
 
-# Examples
+## Examples
 
-## Creating a bundle
+### Creating a bundle
 
 ```ts
 // Object pattern
@@ -35,7 +35,7 @@ const bundle = p.bundle()
   .build()
 ```
 
-## Loading from external data
+### Loading from external data
 
 ```ts
 // Parse and validate unknown input (throws on error)
@@ -48,7 +48,7 @@ if (result.success) {
 }
 ```
 
-## Assembling a bundle
+### Assembling a bundle
 
 `assemble()` renders a set of filled content entries into their target
 layers and returns the output for each. A content entry is either a filled
@@ -75,15 +75,15 @@ for (const [key, output] of Object.entries(assembled.outputs)) {
 }
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.bundle(input: BundleInput): BundleInstance
 ```
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
@@ -100,7 +100,7 @@ p.bundle(input: BundleInput): BundleInstance
   { name: 'contents', type: 'BundleContentItem[]', description: 'Ordered list of bundle content items' },
 ]} />
 
-### Returns
+#### Returns
 
 Returns a `BundleInstance` with the following properties and methods:
 
@@ -127,7 +127,7 @@ Returns a `BundleInstance` with the following properties and methods:
   { name: 'prepare', type: '(contents?: RuntimeBundleContents) => DraftBundle', description: 'Create runtime bundle in draft phase', isMethod: true },
 ]} />
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a bundle incrementally:
 
@@ -157,7 +157,7 @@ Chain methods to build a bundle incrementally:
   returns={{ intermediate: 'BundleBuilder', terminal: 'BundleInstance' }}
 />
 
-## Static Methods
+### Static Methods
 
 Parse bundles from unknown data sources:
 
@@ -166,11 +166,11 @@ Parse bundles from unknown data sources:
   { name: 'safeFrom', params: 'input: unknown', returns: 'Result<BundleInstance>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Bundle Content Types
+## Bundle Content Types
 
 Bundles can contain content from three sources:
 
-## Adding content
+### Adding content
 
 Use builder methods to add content:
 
@@ -185,9 +185,9 @@ Use builder methods to add content:
 .inline('disclosure', p.document({...}))
 ```
 
-## Content Item Types
+### Content Item Types
 
-### InlineBundleItem
+#### InlineBundleItem
 
 Embed an artifact directly in the bundle:
 
@@ -197,7 +197,7 @@ Embed an artifact directly in the bundle:
   { name: 'artifact', type: 'Document | Form | Checklist | Bundle', description: 'The embedded artifact' },
 ]} />
 
-### PathBundleItem
+#### PathBundleItem
 
 Reference an artifact by file path:
 
@@ -208,7 +208,7 @@ Reference an artifact by file path:
   { name: 'include', type: 'CondExpr', description: 'Conditional expression for including this item', isOptional: true },
 ]} />
 
-### RegistryBundleItem
+#### RegistryBundleItem
 
 Reference a published artifact by slug:
 
@@ -219,7 +219,7 @@ Reference a published artifact by slug:
   { name: 'include', type: 'CondExpr', description: 'Conditional expression for including this item', isOptional: true },
 ]} />
 
-## Conditional Includes
+### Conditional Includes
 
 Path and registry items support conditional inclusion using defs:
 
@@ -238,7 +238,7 @@ const bundle = p.bundle()
   .build()
 ```
 
-# Assembly Options
+## Assembly Options
 
 The `assemble()` method accepts `BundleAssemblyOptions`. `contents` is
 required: there is no default set of contents, and no `resolver` option —
@@ -262,7 +262,7 @@ supplied directly:
 `outputs`, a `Record<string, { content, mimeType, filename }>` keyed by
 content key.
 
-# Lifecycle Types
+## Lifecycle Types
 
 Bundles follow a three-phase lifecycle similar to forms (since bundles can contain forms that require signatures):
 
@@ -294,7 +294,7 @@ const executed = updated.finalize()
 // executed.executedAt === ISO timestamp
 ```
 
-## DraftBundle
+### DraftBundle
 
 Created by `bundle.prepare()`. Contains runtime instances of all artifacts.
 
@@ -315,7 +315,7 @@ Created by `bundle.prepare()`. Contains runtime instances of all artifacts.
   { name: 'clone', type: '() => DraftBundle', description: 'Create exact copy', isMethod: true },
 ]} />
 
-## SignableBundle
+### SignableBundle
 
 Created by `draft.prepareForSigning()`. Contains signable instances.
 
@@ -334,7 +334,7 @@ Created by `draft.prepareForSigning()`. Contains signable instances.
   { name: 'clone', type: '() => SignableBundle', description: 'Create exact copy', isMethod: true },
 ]} />
 
-## ExecutedBundle
+### ExecutedBundle
 
 Created by `signable.finalize()`. Fully frozen.
 
@@ -351,7 +351,7 @@ Created by `signable.finalize()`. Fully frozen.
   { name: 'clone', type: '() => ExecutedBundle', description: 'Create exact copy', isMethod: true },
 ]} />
 
-# Related
+## Related
 
 - [Bundle Schema](/schemas/artifacts/bundle)
 - [Document](/sdk/artifacts/document)

@@ -11,7 +11,7 @@ Party data format is determined by the `max` property:
 
 ID convention: `{role}-{index}` (e.g., "tenant-0", "landlord-1")
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   {
@@ -57,7 +57,7 @@ ID convention: `{role}-{index}` (e.g., "tenant-0", "landlord-1")
   },
 ]} />
 
-## FormSignature
+### FormSignature
 
 Signature requirements for a party role. Specifies whether a signature is required and optional witness/notarization requirements.
 
@@ -82,9 +82,9 @@ Signature requirements for a party role. Specifies whether a signature is requir
   },
 ]} />
 
-# Examples
+## Examples
 
-## Single Party (Default)
+### Single Party (Default)
 
 When `max` is 1 (or omitted), the party data is a single object:
 
@@ -126,7 +126,7 @@ Runtime data for single party:
 }
 ```
 
-## Multiple Parties
+### Multiple Parties
 
 When `max > 1`, the party data must be an array:
 
@@ -174,6 +174,6 @@ Runtime data for multiple parties:
 }
 ```
 
-# Related
+## Related
 
 - [Form](/schemas/artifacts/form) - Form artifact overview

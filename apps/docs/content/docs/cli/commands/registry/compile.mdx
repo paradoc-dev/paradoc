@@ -7,13 +7,13 @@ ogDescription: Validate and compile Paradoc registry artifacts for deployment
 
 Compile a registry by validating all artifacts, computing checksums, and generating output files for deployment.
 
-# Usage
+## Usage
 
 ```bash
 paradoc registry compile [options]
 ```
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -21,11 +21,11 @@ paradoc registry compile [options]
 | `-o, --output <path>` | Output directory for compiled registry items |
 | `--dry-run` | Show what would be compiled without writing files |
 
-# Description
+## Description
 
 Reads the `registry.json` catalog, finds each artifact file (`.json`, `.yaml`, `.yml`), validates it against the Paradoc schema, computes SHA256 checksums for file-backed layers, and writes the compiled artifacts to the output directory (defaults to the `artifactsPath` defined in `registry.json`).
 
-# Examples
+## Examples
 
 Compile with defaults:
 
@@ -45,7 +45,7 @@ Preview without writing:
 paradoc registry compile --dry-run
 ```
 
-# Output
+## Output
 
 ```
 Compiling registry: Acme Forms
@@ -58,7 +58,7 @@ Output: /path/to/registry/r
 Compiled 3 artifact(s) successfully
 ```
 
-# See also
+## See also
 
 - [registry catalog](/cli/commands/registry/catalog) - Manage catalog items
 - [registry make](/cli/commands/registry/make) - Create a registry

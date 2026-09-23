@@ -9,9 +9,9 @@ A Layer defines how an artifact can be rendered into a specific format. Layers e
 type Layer = InlineLayer | FileLayer
 ```
 
-# Layer Types
+## Layer Types
 
-## InlineLayer
+### InlineLayer
 
 Inline layer with embedded text content. Used when content is stored directly in the artifact definition.
 
@@ -57,7 +57,7 @@ Inline layer with embedded text content. Used when content is stored directly in
   },
 ]} />
 
-## FileLayer
+### FileLayer
 
 File-backed layer with external file reference. Used when content is stored in a separate file.
 
@@ -109,7 +109,7 @@ File-backed layer with external file reference. Used when content is stored in a
   },
 ]} />
 
-# SignatureSlot
+## SignatureSlot
 
 A signature slot declares one signing field on a layer. Each slot binds a party
 to a placement; the seal pipeline resolves every slot to concrete PDF
@@ -159,7 +159,7 @@ type SignatureSlotPlacement =
 The legacy `signatureBlocks` and `anchorBlocks` layer fields remain readable
 during their deprecation window; new artifacts should declare `signatures`.
 
-# Examples
+## Examples
 
 ```yaml tab="YAML"
 layers:
@@ -207,7 +207,7 @@ layers:
 }
 ```
 
-# Related
+## Related
 
 - [Document](/schemas/artifacts/document) - Static content artifact
 - [Form](/schemas/artifacts/form) - Interactive form artifact

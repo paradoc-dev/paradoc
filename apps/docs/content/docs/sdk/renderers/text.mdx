@@ -8,7 +8,7 @@ template syntax. It supports interpolation, nested paths, conditionals, loops,
 context blocks, and helpers without executing arbitrary JavaScript. Field
 values are automatically formatted from their schema types.
 
-# Example
+## Example
 
 ```ts
 import { p } from '@paradoc/core'
@@ -56,7 +56,7 @@ const output = await filled.render({
 // <p>Date: March 15, 2024</p>
 ```
 
-# Import
+## Import
 
 From the unified package's text entry point:
 
@@ -64,9 +64,9 @@ From the unified package's text entry point:
 import { textRenderer } from '@paradoc/render/text'
 ```
 
-# API
+## API
 
-## textRenderer()
+### textRenderer()
 
 Factory function that creates a configured text renderer instance.
 
@@ -77,20 +77,20 @@ function textRenderer(options?: TextRendererOptions): ParadocRenderer<
 >
 ```
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'options', type: 'TextRendererOptions', description: 'Configuration options', isOptional: true },
 ]} />
 
-### TextRendererOptions
+#### TextRendererOptions
 
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for every declared artifact value.', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
 ]} />
 
-### TextSignatureOptions
+#### TextSignatureOptions
 
 <PropertiesTable properties={[
   { name: 'format', type: "'text' | 'html' | 'markdown'", description: 'Output format for signatures. Defaults to "text".', isOptional: true },
@@ -100,7 +100,7 @@ function textRenderer(options?: TextRendererOptions): ParadocRenderer<
   { name: 'cssClass', type: 'string', description: 'CSS class for signature images (html format only).', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns an `ParadocRenderer` object with:
 
@@ -109,7 +109,7 @@ Returns an `ParadocRenderer` object with:
   { name: 'render', type: '(request: RenderRequest) => string', description: 'Render function that returns the populated template string', isMethod: true },
 ]} />
 
-## renderText()
+### renderText()
 
 Low-level function for direct template rendering without the full renderer interface.
 
@@ -124,7 +124,7 @@ function renderText(options: {
 }): string
 ```
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'template', type: 'string', description: 'Paradoc template string' },
@@ -135,11 +135,11 @@ function renderText(options: {
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns the rendered template as a `string`.
 
-# Automatic Formatting
+## Automatic Formatting
 
 When a form schema is provided, field values are automatically serialized based on their types:
 
@@ -170,7 +170,7 @@ const output = await filled.render({
 // output: "$99.99 15% (415) 555-1234"
 ```
 
-# Custom Serializers
+## Custom Serializers
 
 Pass a formatter for a precise locale or formatting policy:
 
@@ -185,7 +185,7 @@ const renderer = textRenderer({
 // Money formatted as "99,99 €" instead of "$99.99"
 ```
 
-# Template Bindings
+## Template Bindings
 
 Use bindings to map template placeholders to different field names:
 
@@ -208,11 +208,11 @@ const form = p.form({
 })
 ```
 
-# Signature and Initials Helpers
+## Signature and Initials Helpers
 
 The text renderer includes helpers for rendering signature and initials markers in templates.
 
-## Template Syntax
+### Template Syntax
 
 ```text
 {{signature "locationId"}}  - Renders a signature placeholder or captured status
@@ -223,7 +223,7 @@ The `locationId` identifies where in the document the signature appears (e.g., "
 
 **Important**: These helpers must be used inside a party or signatories loop to provide context.
 
-## Example with Signatures
+### Example with Signatures
 
 ```ts
 const form = p.form({
@@ -263,7 +263,7 @@ const output = await form.fill(data).render({
 })
 ```
 
-## Output Formats
+### Output Formats
 
 | Format | Unsigned | Signed (with image) |
 |--------|----------|---------------------|
@@ -271,7 +271,7 @@ const output = await form.fill(data).render({
 | `html` | `<span class="signature-placeholder">...</span>` | `<img src="data:..." alt="Signature" class="signature-image" />` |
 | `markdown` | `_[SIGNATURE REQUIRED]_` | `![Signature](data:...)` |
 
-# Related
+## Related
 
 - [Renderers](/sdk/renderers) - Renderer interface overview
 - [Formatting](/sdk/formatting) - Value formatting

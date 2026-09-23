@@ -8,7 +8,7 @@ filled form for signing by producing one canonical, flattened PDF, its SHA-256
 hash, and the signature-field map. Conversion may happen anywhere; placement
 and hashing always run locally, so both are verifiable.
 
-# Declare signature slots
+## Declare signature slots
 
 A layer declares its signing fields once, in a `signatures` map. Each slot
 binds a party to a placement:
@@ -54,7 +54,7 @@ Misconfiguration fails **before** any rendering or conversion with a
 required-signature party no slot places, or a required slot without a
 signatory.
 
-# Seal a PDF layer locally
+## Seal a PDF layer locally
 
 PDF layers need no adapter or network call. Paradoc renders the layer,
 resolves placements, flattens, and hashes the exact canonical bytes. The
@@ -70,7 +70,7 @@ signable.canonicalPdfHash  // sha256:...
 signable.signatureMap      // provider-neutral PDF coordinates
 ```
 
-# Seal markdown, HTML, or DOCX
+## Seal markdown, HTML, or DOCX
 
 Non-PDF layers need a **converter**: a `SealAdapter` that turns the rendered
 document into PDF bytes and nothing else. Placement is not the converter's
@@ -106,7 +106,7 @@ placeholder in the converted PDF, then a clean render becomes the canonical
 document. If the marker's width shifts a line wrap between passes, sealing
 fails loud rather than misplacing a field.
 
-# Inspect before sealing
+## Inspect before sealing
 
 `prepareSeal()` resolves the signature map without flattening, hashing, or
 leaving the draft phase — useful for envelope flows that need coordinates
@@ -123,14 +123,14 @@ prep.warnings      // e.g. slots skipped for unfilled party indexes
 const signable = await draft.seal({ adapter })  // same map, canonicalized
 ```
 
-# Legacy blocks
+## Legacy blocks
 
 Layers using `signatureBlocks` (absolute) and `anchorBlocks` (text anchors)
 continue to seal unchanged during the deprecation window. New artifacts
 should declare `signatures`; the legacy fields will be removed in a future
 major release.
 
-# Which operation to use
+## Which operation to use
 
 | Goal | Operation |
 |------|-----------|

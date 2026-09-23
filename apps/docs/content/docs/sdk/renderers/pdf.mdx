@@ -7,7 +7,7 @@ Fill PDF forms with Paradoc's dependency-light PDF implementation. It supports
 AcroForm text fields, checkboxes, dropdowns, and radio buttons with automatic
 field formatting, plus coordinate-based text and image overlays.
 
-# Example
+## Example
 
 ```ts
 import { p } from '@paradoc/core'
@@ -63,7 +63,7 @@ const output = await filled.render({
 fs.writeFileSync('w9-filled.pdf', output)
 ```
 
-# Import
+## Import
 
 From the unified package's PDF entry point:
 
@@ -71,9 +71,9 @@ From the unified package's PDF entry point:
 import { pdfRenderer } from '@paradoc/render/pdf'
 ```
 
-# API
+## API
 
-## pdfRenderer()
+### pdfRenderer()
 
 Factory function that creates a configured PDF renderer instance.
 
@@ -84,27 +84,27 @@ function pdfRenderer(options?: PdfRendererOptions): ParadocRenderer<
 >
 ```
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'options', type: 'PdfRendererOptions', description: 'Configuration options', isOptional: true },
 ]} />
 
-### PdfRendererOptions
+#### PdfRendererOptions
 
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering (future feature).', isOptional: true },
 ]} />
 
-### PdfSignatureOptions
+#### PdfSignatureOptions
 
 <PropertiesTable properties={[
   { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
   { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns an `ParadocRenderer` object with:
 
@@ -113,7 +113,7 @@ Returns an `ParadocRenderer` object with:
   { name: 'render', type: '(request: RenderRequest) => Promise<Uint8Array>', description: 'Async render function that returns the filled PDF', isMethod: true },
 ]} />
 
-## renderPdf()
+### renderPdf()
 
 Low-level function for direct PDF rendering without the full renderer interface.
 
@@ -121,7 +121,7 @@ Low-level function for direct PDF rendering without the full renderer interface.
 async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
 ```
 
-### RenderPdfOptions
+#### RenderPdfOptions
 
 <PropertiesTable properties={[
   { name: 'template', type: 'Uint8Array', description: 'PDF template file as binary data' },
@@ -132,11 +132,11 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
   { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns a `Promise<Uint8Array>` containing the filled PDF document.
 
-## inspectAcroFormFields()
+### inspectAcroFormFields()
 
 Utility function to inspect AcroForm fields in a PDF template.
 
@@ -147,21 +147,21 @@ async function inspectAcroFormFields(
 ): Promise<PdfFieldInfo[]>
 ```
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'template', type: 'Uint8Array', description: 'PDF template file as binary data' },
   { name: 'options', type: 'InspectOptions', description: 'Inspection options', isOptional: true },
 ]} />
 
-### InspectOptions
+#### InspectOptions
 
 <PropertiesTable properties={[
   { name: 'includeButton', type: 'boolean', description: 'Include button fields in results. Defaults to false.', isOptional: true },
   { name: 'includeSignature', type: 'boolean', description: 'Include signature fields in results. Defaults to false.', isOptional: true },
 ]} />
 
-### PdfFieldInfo
+#### PdfFieldInfo
 
 <PropertiesTable properties={[
   { name: 'name', type: 'string', description: 'AcroForm field name' },
@@ -170,7 +170,7 @@ async function inspectAcroFormFields(
   { name: 'required', type: 'boolean', description: 'Whether field is marked required', isOptional: true },
 ]} />
 
-# Inspecting PDF Fields
+## Inspecting PDF Fields
 
 Use `inspectAcroFormFields()` to discover field names in a PDF template:
 
@@ -189,11 +189,11 @@ console.log(fields)
 // ]
 ```
 
-# Binding Syntax
+## Binding Syntax
 
 PDF bindings map AcroForm field names to form field names with special syntax for complex cases:
 
-## Simple Binding
+### Simple Binding
 
 ```ts
 bindings: {
@@ -201,7 +201,7 @@ bindings: {
 }
 ```
 
-## Enum Checkboxes
+### Enum Checkboxes
 
 For PDF checkboxes that represent enum values, use `:value` syntax:
 
@@ -213,7 +213,7 @@ bindings: {
 }
 ```
 
-## Split Fields
+### Split Fields
 
 For fields split across multiple PDF inputs (like SSN), use `:partNumber` syntax:
 
@@ -225,7 +225,7 @@ bindings: {
 }
 ```
 
-## Combined Fields
+### Combined Fields
 
 Combine multiple form fields into one PDF field:
 
@@ -235,7 +235,7 @@ bindings: {
 }
 ```
 
-## Nested Paths
+### Nested Paths
 
 Access nested data using dot notation:
 
@@ -245,7 +245,7 @@ bindings: {
 }
 ```
 
-# Automatic Serialization
+## Automatic Serialization
 
 Field values are automatically serialized based on their schema types:
 
@@ -255,12 +255,12 @@ Field values are automatically serialized based on their schema types:
 // Phone fields formatted as "(555) 123-4567"
 ```
 
-# Related
+## Related
 
 - [Renderers](/sdk/renderers) - Renderer interface overview
 - [Formatting](/sdk/formatting) - Value formatting
 
-# Artifact formatting
+## Artifact formatting
 
 Pass `formatter` to the artifact's `render()`, `prepareSeal()`, or `seal()` call to use the same presentation on every pass. Direct `renderPdf()` and `pdfRenderer()` also accept a formatter. Artifact context overrides the renderer default.
 

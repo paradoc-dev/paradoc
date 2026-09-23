@@ -11,7 +11,7 @@ Renders a form artifact to PDF, markdown, or DOCX. Validates, fills with data, a
   Only form artifacts can be rendered.
 </Callout>
 
-# Input modes
+## Input modes
 
 The render tool accepts three input modes via a discriminated union on the `source` field:
 
@@ -28,7 +28,7 @@ All modes share these fields:
 | `data` | `Record<string, unknown>` | Yes | Data to fill before rendering |
 | `layer` | `string` | No | Layer key to render. Falls back to `defaultLayer`, then first layer |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -41,9 +41,9 @@ All modes share these fields:
 | `errors` | `array` | List of fill errors, each with `field` and `message` |
 | `validationIssues` | `array` | List of schema validation issues, each with `message` and optional `path` |
 
-# Direct usage
+## Direct usage
 
-## From artifact JSON
+### From artifact JSON
 
 ```typescript
 import { executeRender } from "@paradoc/ai-tools"
@@ -58,7 +58,7 @@ const result = await executeRender({
 
 All execute functions (`executeRender`, `executeValidateArtifact`, `executeFill`, `executeGetRegistry`, `executeGetArtifact`) accept an optional second `config` parameter for custom fetch or proxy text renderer settings. See the [configuration reference](/ai#configuration).
 
-## From URL
+### From URL
 
 ```typescript
 const result = await executeRender({
@@ -72,7 +72,7 @@ const result = await executeRender({
 })
 ```
 
-## From registry
+### From registry
 
 ```typescript
 const result = await executeRender({
@@ -91,9 +91,9 @@ const result = await executeRender({
 // result.encoding === "base64", result.mimeType === "application/pdf"
 ```
 
-# Example responses
+## Example responses
 
-## Successful text render
+### Successful text render
 
 ```json
 {
@@ -105,7 +105,7 @@ const result = await executeRender({
 }
 ```
 
-## Successful PDF render
+### Successful PDF render
 
 ```json
 {
@@ -117,7 +117,7 @@ const result = await executeRender({
 }
 ```
 
-## Fill validation failure
+### Fill validation failure
 
 ```json
 {

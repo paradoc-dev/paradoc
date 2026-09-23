@@ -20,13 +20,13 @@ text is, and how far apart its blocks sit.
 </Document>
 ```
 
-# Preview
+## Preview
 
 The token left unset, which is `regular`: today's document, byte for byte.
 
 <ComponentPreview name="typography" />
 
-# The two knobs
+## The two knobs
 
 `typography` has two fields, each `compact`, `regular`, or `roomy`, and either may
 be set alone.
@@ -45,7 +45,7 @@ keeps the preview and the PDF the same document at every level. The ends of the
 scale are the floor and the ceiling: a label already at `text-xs` stays there when
 the document goes compact.
 
-# Where it goes
+## Where it goes
 
 `typography` is root-only, like `pageSize` and `marginPx`. Declare it on the
 outermost `Document` or `Bundle`; a `Document` nested inside a `Bundle` that
@@ -53,7 +53,7 @@ sets it fails naming the token, because a packet is one sequence of pages laid
 out one way. A render may override it for one tenant through `renderPdf`'s own
 `tokens`, the same last layer every root token allows.
 
-# When a class wins
+## When a class wins
 
 A class written directly on an element wins over the token for that element. A
 composer who passes the root its own `className` pins the root. Inside an
@@ -75,9 +75,9 @@ Both helpers, `scaleTextClasses` and `flowGapClasses`, are exported from
 `@paradoc/react`, and `useDocumentTokens().typography` is the resolved rhythm
 for anything below the root.
 
-# Variants
+## Variants
 
-## Compact
+### Compact
 
 `scale: "compact"`. Values, table cells, and the totals step down one size
 with tighter leading. Labels, section headings, and table headers are already
@@ -85,19 +85,19 @@ at the smallest verified size and stay there.
 
 <ComponentVariant name="typography" variant="compact" />
 
-## Roomy
+### Roomy
 
 `scale: "roomy"`. Every role steps up one size with looser leading.
 
 <ComponentVariant name="typography" variant="roomy" />
 
-## Flow compact
+### Flow compact
 
 `flow: "compact"`. The gap between the root's blocks closes; no text moves.
 
 <ComponentVariant name="typography" variant="flow-compact" />
 
-## Flow roomy
+### Flow roomy
 
 `flow: "roomy"`. The gap between the root's blocks opens; no text moves.
 

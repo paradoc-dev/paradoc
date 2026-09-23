@@ -5,7 +5,7 @@ description: Signers, signature capture, witnesses, and attestations
 
 The signing flow in Paradoc separates the concepts of **who can sign** (Signers) from **who they sign for** (Parties). This enables scenarios where one person signs for multiple parties, or an authorized representative signs on behalf of an organization.
 
-# Signing Flow Overview
+## Signing Flow Overview
 
 ```typescript
 // 1. Fill form with party data
@@ -61,7 +61,7 @@ const witnessed = signed
 const executed = witnessed.finalize()
 ```
 
-# Signer
+## Signer
 
 A `Signer` represents a person who can sign documents, along with their adopted signature and initials.
 
@@ -82,7 +82,7 @@ interface Signer {
   { name: 'adopted.initials', type: 'AdoptedSignature', description: 'The adopted initials image', isOptional: true },
 ]} />
 
-## AdoptedSignature
+### AdoptedSignature
 
 An `AdoptedSignature` is a reusable signature or initials image that a signer has approved.
 
@@ -98,7 +98,7 @@ interface AdoptedSignature {
   { name: 'method', type: "'drawn' | 'typed' | 'uploaded' | 'certificate'", description: 'Method used to create this signature' },
 ]} />
 
-# PartySignatory
+## PartySignatory
 
 A `PartySignatory` links a signer to a party, specifying who signs for whom.
 
@@ -114,7 +114,7 @@ interface PartySignatory {
   { name: 'capacity', type: 'string', description: 'Capacity in which they sign (CEO, Managing Member, Attorney-in-fact, etc.)', isOptional: true },
 ]} />
 
-## Example: One Signer, Multiple Parties
+### Example: One Signer, Multiple Parties
 
 ```typescript
 // Jane signs for herself as tenant AND as authorized representative for guarantor
@@ -129,7 +129,7 @@ const draft = form.fill({
   .addSignatory('guarantor', 'guarantor-0', { signerId: 'jane', capacity: 'Trustee' })
 ```
 
-# SignatureCapture
+## SignatureCapture
 
 A `SignatureCapture` records when and where a signature was placed in the document.
 
@@ -157,7 +157,7 @@ interface SignatureCapture {
   { name: 'method', type: "'drawn' | 'typed' | 'uploaded' | 'certificate'", description: 'Override method', isOptional: true },
 ]} />
 
-## Capturing Signatures
+### Capturing Signatures
 
 ```typescript
 const signable = draft.prepareForSigning()
@@ -175,7 +175,7 @@ const signed = signable.captureSignature('tenant', 'tenant-0', 'jane', 'page-1-s
 const initialed = signed.captureInitials('tenant', 'tenant-0', 'jane', 'page-1-init')
 ```
 
-# WitnessParty
+## WitnessParty
 
 A `WitnessParty` represents a witness who can attest to signatures.
 
@@ -193,7 +193,7 @@ interface WitnessParty {
   { name: 'notary', type: 'boolean', description: 'Whether this witness is a notary public', isOptional: true },
 ]} />
 
-## Adding Witnesses
+### Adding Witnesses
 
 ```typescript
 const signable = draft.prepareForSigning()
@@ -212,7 +212,7 @@ const withNotary = withWitness.addWitness({
 })
 ```
 
-# Attestation
+## Attestation
 
 An `Attestation` records a witness's attestation to one or more party signatures.
 
@@ -232,7 +232,7 @@ interface AttestationTarget {
 }
 ```
 
-## Attestation Properties
+### Attestation Properties
 
 <PropertiesTable properties={[
   { name: 'witnessId', type: 'string', description: 'Reference to a pre-declared witness by ID', isOptional: true },
@@ -241,7 +241,7 @@ interface AttestationTarget {
   { name: 'attestsTo', type: 'AttestationTarget[]', description: 'The party signatures this attestation witnesses' },
 ]} />
 
-## AttestationTarget Properties
+### AttestationTarget Properties
 
 <PropertiesTable properties={[
   { name: 'roleId', type: 'string', description: 'The role ID of the party being witnessed' },
@@ -250,7 +250,7 @@ interface AttestationTarget {
   { name: 'locationId', type: 'string', description: 'The specific capture location being witnessed', isOptional: true },
 ]} />
 
-## Adding Attestations
+### Adding Attestations
 
 ```typescript
 // Using a pre-declared witness
@@ -275,7 +275,7 @@ const attested = signable.addAttestation({
 })
 ```
 
-# Signature Status
+## Signature Status
 
 Check signature progress using status methods on `SignableForm`:
 
@@ -289,7 +289,7 @@ const overall = signable.getOverallSignatureStatus()
 // { complete: false, roles: { tenant: {...}, landlord: {...} } }
 ```
 
-# Related
+## Related
 
 - [party](/sdk/artifacts/form/party) - Party role definitions
 - [form](/sdk/artifacts/form) - Form lifecycle and methods

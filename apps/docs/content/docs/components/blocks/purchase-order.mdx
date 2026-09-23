@@ -9,15 +9,15 @@ data is deliberately long — 32 rows, several times what one page holds — so
 installing it shows the table continuing across more than one break, header
 repeated, rather than a document that happens to spill once.
 
-# Preview
+## Preview
 
 <ComponentPreview name="purchase-order" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="purchase-order" />
 
-# Usage
+## Usage
 
 A block has no single call site — it is a whole document — so this shows
 the composition and its sample data exactly as installing `purchase-order`
@@ -25,7 +25,7 @@ gives them to you, both real and currently shipping.
 
 <BlockUsage name="purchase-order" />
 
-# Composition
+## Composition
 
 The purchase order composes [`Document`](/components/document),
 [`Section`](/components/section), [`Text`](/components/text),
@@ -54,7 +54,7 @@ decide. This page's Preview wraps it in `Pages` exactly the way a standalone
 consumer's own page would, which is also why installing `purchase-order`
 brings `pages` along even though none of the block's own files import it.
 
-# Variants
+## Variants
 
 A block's Variants section shows an existing alternate sample-data scenario,
 never a new prop configuration. Purchase order has exactly one sample-data
@@ -62,7 +62,7 @@ export today, `purchaseOrderData` — the same 32-row order already rendered
 above in Preview. There is no second scenario to show, so rather than invent
 one, this variant documents that and renders the same real data again.
 
-## Standard order
+### Standard order
 
 The block's one real sample scenario, shown again for its own subheading.
 

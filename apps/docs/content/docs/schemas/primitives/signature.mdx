@@ -5,7 +5,7 @@ description: Captured signature data
 
 A Signature is a structured primitive that represents the data captured when a party signs a [Form](/schemas/artifacts/form), including the signature image/data, timestamp, capture method, and optional metadata.
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   {
@@ -39,7 +39,7 @@ A Signature is a structured primitive that represents the data captured when a p
   },
 ]} />
 
-## Signature Methods
+### Signature Methods
 
 | Method | Description |
 | ------ | ----------- |
@@ -48,14 +48,14 @@ A Signature is a structured primitive that represents the data captured when a p
 | `uploaded` | Signature image uploaded from file |
 | `certificate` | Digital certificate-based signature |
 
-## Signature Types
+### Signature Types
 
 | Type | Description |
 | ---- | ----------- |
 | `signature` | Full signature (default) |
 | `initials` | Initials only |
 
-# Examples
+## Examples
 
 ```yaml tab="YAML"
 image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
@@ -78,7 +78,7 @@ metadata:
 }
 ```
 
-# Related
+## Related
 
 - [FormSignature](/schemas/artifacts/form/party) - Design-time signature requirements (in FormParty)
 - [FormParty](/schemas/artifacts/form/party) - Party role definitions

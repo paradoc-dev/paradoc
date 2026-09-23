@@ -9,9 +9,9 @@ Party data format is determined by `max`:
 - `max = 1` (default): single party object with required `id`
 - `max > 1`: array of party objects, each with required `id`
 
-# Examples
+## Examples
 
-## Creating parties
+### Creating parties
 
 ```ts
 // Single signer with signature requirement
@@ -58,7 +58,7 @@ const affiant = party()
   .build()
 ```
 
-## Adding parties to forms
+### Adding parties to forms
 
 ```ts
 // Object pattern
@@ -93,9 +93,9 @@ const form = p.form()
   .build()
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 Create party definitions directly as objects:
 
@@ -115,7 +115,7 @@ const partyDef: FormParty = {
 }
 ```
 
-### FormParty Properties
+#### FormParty Properties
 
 <PropertiesTable properties={[
   { name: 'label', type: 'string', description: 'Human-readable role name' },
@@ -127,7 +127,7 @@ const partyDef: FormParty = {
   { name: 'signature', type: 'FormSignature', description: 'Signature requirements', isOptional: true },
 ]} />
 
-### FormSignature Properties
+#### FormSignature Properties
 
 <PropertiesTable properties={[
   { name: 'required', type: 'boolean', description: 'Whether signature is required for this role', isOptional: true },
@@ -135,7 +135,7 @@ const partyDef: FormParty = {
   { name: 'notarized', type: 'boolean', description: 'Whether at least one witness must be a notary', isOptional: true },
 ]} />
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a party incrementally:
 
@@ -156,14 +156,14 @@ Chain methods to build a party incrementally:
   returns={{ intermediate: 'PartyBuilder', terminal: 'FormParty' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'FormParty', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<FormParty>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Party Types
+## Party Types
 
 | Type | Description |
 |------|-------------|
@@ -171,7 +171,7 @@ Chain methods to build a party incrementally:
 | `organization` | Company, business, or legal entity |
 | `any` | Either person or organization (default) |
 
-# Signature Requirements
+## Signature Requirements
 
 Use the `signature` property to specify requirements for this party's signature:
 
@@ -201,7 +201,7 @@ party()
   .build()
 ```
 
-# Multiple Parties
+## Multiple Parties
 
 Allow multiple parties to fill a single role by setting `max > 1`:
 
@@ -231,7 +231,7 @@ const filled = form.fill({
 })
 ```
 
-# Conditional Parties
+## Conditional Parties
 
 Use defs for conditional party requirements:
 
@@ -251,11 +251,11 @@ const form = p.form()
   .build()
 ```
 
-# Runtime Party Types
+## Runtime Party Types
 
 At runtime, parties are represented using the `Party` and `RuntimeParty` types.
 
-## Party
+### Party
 
 The base `Party` type is a union of `Person` or `Organization`:
 
@@ -267,7 +267,7 @@ Party type is inferred from shape:
 - **Person**: Has `name` property (a natural person)
 - **Organization**: Has `name` property plus `legalName`, `entityType`, etc.
 
-## RuntimeParty
+### RuntimeParty
 
 `RuntimeParty` extends `Party` with a required `id` field for tracking in the execution context:
 
@@ -320,7 +320,7 @@ const filled = form.fill({
 })
 ```
 
-# Related
+## Related
 
 - [form](/sdk/artifacts/form) - Parent form artifact
 - [person](/sdk/primitives/person) - Person primitive for filling party roles

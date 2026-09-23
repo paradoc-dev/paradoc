@@ -7,19 +7,19 @@ description: An SVG QR code that links a printed or previewed document to a URL,
 takes a URL directly and draws it as a scannable SVG, sharp at any output
 scale in both the browser preview and PDF rendering.
 
-# Preview
+## Preview
 
 <ComponentPreview name="qr-code" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="qr-code" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="qr-code" />
 
-# Composition
+## Composition
 
 `QRCode` needs no `Document` above it and binds to nothing in the artifact —
 its only input is the `url` prop, which a caller builds from whatever the
@@ -35,21 +35,21 @@ way any other markup would.
 An empty `url` throws `EmptyQRCodeUrlError` instead of drawing a code with
 nothing encoded in it.
 
-# Variants
+## Variants
 
-## Custom colors
+### Custom colors
 
 `color` and `backgroundColor` replace the default black-on-white modules.
 
 <ComponentVariant name="qr-code" variant="custom-colors" />
 
-## Larger size
+### Larger size
 
 `size` replaces the default 128px modules.
 
 <ComponentVariant name="qr-code" variant="larger-size" />
 
-## Custom label
+### Custom label
 
 `label` overrides the default `QR code for <url>` accessible name.
 

@@ -3,11 +3,11 @@ title: Artifact Builders
 description: Builder functions for top-level Paradoc artifacts
 ---
 
-# Artifact Builders
+## Artifact Builders
 
 Artifact builders create top-level schema types that can be validated, serialized, and rendered independently.
 
-# Available Builders
+## Available Builders
 
 | Builder | Description | Badge |
 |---------|-------------|-------|
@@ -16,16 +16,16 @@ Artifact builders create top-level schema types that can be validated, serialize
 | [checklist](/sdk/artifacts/checklist) | Task lists and verification items | Design-time |
 | [bundle](/sdk/artifacts/bundle) | Collection of multiple artifacts | Design-time |
 
-# Common Features
+## Common Features
 
 All artifact builders share common functionality:
 
-## Static Methods
+### Static Methods
 
 - `.from(input)` - Parse unknown input, throws on error
 - `.safeFrom(input)` - Parse unknown input, returns result object
 
-## Instance Methods
+### Instance Methods
 
 - `.validate()` - Validate the schema definition
 - `.isValid()` - Check if schema is valid
@@ -33,7 +33,7 @@ All artifact builders share common functionality:
 - `.toYAML()` - Serialize to YAML
 - `.clone()` - Deep clone the instance
 
-## Instance Properties
+### Instance Properties
 
 - `_data` - Raw artifact data
 - `kind` - Artifact type discriminator

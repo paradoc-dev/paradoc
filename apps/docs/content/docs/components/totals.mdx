@@ -8,19 +8,19 @@ artifact declares as a computed field with its own expression, and
 `@paradoc/core` evaluates it. `Totals` only reads the def's label and its
 serializer-formatted amount, the same way a `Field` reads a plain one.
 
-# Preview
+## Preview
 
 <ComponentPreview name="totals" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="totals" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="totals" />
 
-# Composition
+## Composition
 
 `Totals` needs the same `Document` context every other component here does,
 and each row's `def` names a computed field the artifact declares —
@@ -41,21 +41,21 @@ section's own heading.
 The rows' sizes, and the emphasized total's, follow the document's
 [typography](/components/typography) token.
 
-# Variants
+## Variants
 
-## Single row
+### Single row
 
 One emphasized def, for a document with nothing to subtotal separately.
 
 <ComponentVariant name="totals" variant="single-row" />
 
-## With tax rate
+### With tax rate
 
 `ratePath` prints the rate field beside the tax row's own label.
 
 <ComponentVariant name="totals" variant="with-tax-rate" />
 
-## Custom label
+### Custom label
 
 `label` overrides the total def's own label.
 

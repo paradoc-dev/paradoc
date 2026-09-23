@@ -7,7 +7,7 @@ A Bundle is a recursive container for content artifacts. Bundles group together 
 
 Examples include a loan application packet, new hire paperwork, or compliance submission.
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   {
@@ -87,7 +87,7 @@ Examples include a loan application packet, new hire paperwork, or compliance su
   },
 ]} />
 
-## BundleContentItem
+### BundleContentItem
 
 Bundle contents can be inline artifacts, path references, or registry references.
 
@@ -165,7 +165,7 @@ type BundleContentItem = InlineBundleItem | PathBundleItem | RegistryBundleItem
   },
 ]} />
 
-# Examples
+## Examples
 
 ```yaml tab="YAML"
 kind: bundle
@@ -236,7 +236,7 @@ contents:
 }
 ```
 
-# Related
+## Related
 
 - [Form](/schemas/artifacts/form) - Interactive form artifact
 - [Document](/schemas/artifacts/document) - Static document artifact

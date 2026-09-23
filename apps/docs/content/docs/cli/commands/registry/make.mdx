@@ -7,19 +7,19 @@ ogDescription: Initialize a new Paradoc artifact registry
 
 Create a new `registry.json` file for hosting your own artifact registry.
 
-# Usage
+## Usage
 
 ```bash
 paradoc registry make [directory] [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `directory` | Directory to create registry in (default: current directory) |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -31,11 +31,11 @@ paradoc registry make [directory] [options]
 | `--no-directory` | Do not list this registry in the Paradoc Hub |
 | `-y, --yes` | Skip confirmation prompts |
 
-# Description
+## Description
 
 Creates a `registry.json` file that defines a new artifact registry. This is the first step in hosting your own Paradoc registry. The command prompts for a name and description interactively, or you can pass them via options.
 
-# Examples
+## Examples
 
 Create a registry interactively:
 
@@ -53,7 +53,7 @@ paradoc registry make ./my-registry \
   -y
 ```
 
-# Next steps
+## Next steps
 
 After creating a registry:
 
@@ -61,7 +61,7 @@ After creating a registry:
 2. Compile the registry with `paradoc registry compile`
 3. Deploy the output directory to your hosting provider
 
-# See also
+## See also
 
 - [registry catalog](/cli/commands/registry/catalog) - Manage catalog items
 - [registry compile](/cli/commands/registry/compile) - Compile registry artifacts

@@ -7,14 +7,14 @@ ogDescription: Get the full Paradoc artifact JSON and metadata using the MCP ser
 
 Get the full Paradoc artifact JSON and metadata. Fetches the artifact from its verified registry. Use `registry_id` and `artifact_name` from `list_artifacts` or `search`.
 
-# Parameters
+## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `registry_id` | `string` | Yes | Registry ID |
 | `artifact_name` | `string` | Yes | Artifact name |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -28,7 +28,7 @@ Get the full Paradoc artifact JSON and metadata. Fetches the artifact from its v
 | `metadata.stats` | `object` | Install stats: `installsTotal`, `installs24h`, `installs7d` |
 | `error` | `string` | Error message if the artifact was not found or registry is not verified |
 
-# Example
+## Example
 
 ```json
 // Request

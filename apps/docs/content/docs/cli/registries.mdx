@@ -7,9 +7,9 @@ ogDescription: Learn how to use artifact registries and host your own
 
 A registry is a hosted collection of Paradoc artifacts. Registries can be public or private. The CLI uses them to discover, install, and manage artifacts in your projects.
 
-# Using registries
+## Using registries
 
-## Adding a registry
+### Adding a registry
 
 Add a registry to your project by editing `paradoc.json`:
 
@@ -49,7 +49,7 @@ For registries that require authentication, use the extended format:
 | `allowInsecure` | Allow HTTP URLs (for local development only) |
 | `cache.ttl` | Per-registry cache TTL override in seconds |
 
-## Searching for artifacts
+### Searching for artifacts
 
 Use [`paradoc search`](/cli/commands/search) to query a registry:
 
@@ -61,7 +61,7 @@ paradoc search --registry @acme "tax"
 
 The query matches against artifact names, titles, and descriptions. Filter by `--kind` or `--tags` to narrow results.
 
-## Installing artifacts
+### Installing artifacts
 
 Use [`paradoc add`](/cli/commands/add) to install an artifact. The CLI resolves the namespace to a registry, downloads the definition, writes it to your artifacts directory, and updates the lock file:
 
@@ -75,7 +75,7 @@ Download layers alongside the definition:
 paradoc add @acme/residential-lease --layers all
 ```
 
-## Viewing artifact details
+### Viewing artifact details
 
 View metadata for an installed artifact:
 
@@ -83,7 +83,7 @@ View metadata for an installed artifact:
 paradoc registry view @acme/residential-lease
 ```
 
-## Direct URL installs
+### Direct URL installs
 
 Install from a URL directly, bypassing namespace resolution:
 
@@ -91,7 +91,7 @@ Install from a URL directly, bypassing namespace resolution:
 paradoc add https://example.com/artifacts/my-form.yaml
 ```
 
-## Private registries
+### Private registries
 
 For private registries, configure authentication headers with environment variable tokens:
 
@@ -126,7 +126,7 @@ For local development servers running over HTTP, set `allowInsecure`:
 }
 ```
 
-## Managing registries
+### Managing registries
 
 List all configured registries (project and global):
 
@@ -144,9 +144,9 @@ See the [`registry`](/cli/commands/registry) command reference for all subcomman
 
 ---
 
-# Creating registries
+## Creating registries
 
-## Registry structure
+### Registry structure
 
 A registry is a directory containing a `registry.json` index file and individual artifact files:
 
@@ -162,7 +162,7 @@ my-registry/
         └── w9.pdf
 ```
 
-## Registry index
+### Registry index
 
 The `registry.json` file lists all available artifacts:
 
@@ -186,7 +186,7 @@ The `registry.json` file lists all available artifacts:
 }
 ```
 
-### Index fields
+#### Index fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -196,7 +196,7 @@ The `registry.json` file lists all available artifacts:
 | `description` | string | No | Registry description |
 | `artifacts` | array | Yes | List of artifact entries |
 
-### Artifact entry fields
+#### Artifact entry fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -208,7 +208,7 @@ The `registry.json` file lists all available artifacts:
 | `tags` | array | No | Searchable tags |
 | `path` | string | Yes | Path to artifact file (relative to registry root) |
 
-## Workflow
+### Workflow
 
 The CLI provides commands to scaffold and manage a registry:
 
@@ -224,7 +224,7 @@ paradoc registry catalog add residential-lease ./artifacts/residential-lease/art
 paradoc registry compile
 ```
 
-## Hosting
+### Hosting
 
 A registry is just static files served over HTTPS. Any hosting provider or web server works:
 
@@ -252,7 +252,7 @@ Then configure the local registry with `allowInsecure`:
 }
 ```
 
-## Example: GitHub Pages
+### Example: GitHub Pages
 
 1. Create a repository with your registry structure (`registry.json` + `artifacts/`)
 2. Enable GitHub Pages in repository settings (serve from the root or `docs/` folder)
@@ -268,7 +268,7 @@ Then configure the local registry with `allowInsecure`:
 
 The CLI fetches `https://myorg.github.io/paradoc-registry/registry.json` to discover available artifacts.
 
-## Best practices
+### Best practices
 
 1. **Version your artifacts** — use semantic versioning for all artifacts
 2. **Add descriptive tags** — help users discover artifacts through search

@@ -1,5 +1,5 @@
 /* Fonts */
-@import "@fontsource/geist-sans";
+@import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
 /*
@@ -10,6 +10,7 @@
  */
 @import "@paradoc/components/styles.css";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 /*
  * @paradoc/components lives outside this app's own src/ tree, so Tailwind's
@@ -29,33 +30,39 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.99 0.003 75);
-  --foreground: oklch(0.3194 0.008 75);
-  --card: oklch(0.999 0.003 75);
-  --card-foreground: oklch(0.3345 0.015 75);
-  --popover: oklch(0.999 0.003 75);
-  --popover-foreground: oklch(0.2671 0.015 75);
-  --primary: oklch(0.5 0.17 40);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.97 0.003 75);
-  --secondary-foreground: oklch(0.3345 0.015 75);
-  --muted: oklch(0.97 0.003 75);
-  --muted-foreground: oklch(0.55 0.008 75);
-  --accent: oklch(0.98 0.0045 75);
-  --accent-foreground: oklch(0.2671 0.015 75);
-  --destructive: oklch(0.1908 0.002 106.5859);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.147 0.004 49.25);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.147 0.004 49.25);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.147 0.004 49.25);
+  --primary: oklch(0.216 0.006 56.043);
+  --primary-foreground: oklch(0.985 0.001 106.423);
+  --secondary: oklch(0.97 0.001 106.424);
+  --secondary-foreground: oklch(0.216 0.006 56.043);
+  --muted: oklch(0.97 0.001 106.424);
+  --muted-foreground: oklch(0.553 0.013 58.071);
+  --accent: oklch(0.97 0.001 106.424);
+  --accent-foreground: oklch(0.216 0.006 56.043);
+  --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9067 0.006 75);
-  --input: oklch(0.8 0.003 75);
-  --ring: oklch(0.86 0.01 75);
-  --sidebar: oklch(0.98 0.0045 75);
-  --sidebar-primary: oklch(0.4838 0.0635 38.4004);
-  --sidebar-primary-foreground: oklch(0.9881 0 0);
-  --sidebar-accent: oklch(0.9654 0.004 75);
-  --sidebar-accent-foreground: oklch(0.325 0.008 75);
-  --sidebar-border: oklch(0.9067 0.006 75);
-  --sidebar-ring: oklch(0.8522 0.01 75);
-  --radius: 0.5rem;
+  --border: oklch(0.923 0.003 48.717);
+  --input: oklch(0.923 0.003 48.717);
+  --ring: oklch(0.709 0.01 56.259);
+  --chart-1: oklch(0.869 0.005 56.366);
+  --chart-2: oklch(0.553 0.013 58.071);
+  --chart-3: oklch(0.444 0.011 73.639);
+  --chart-4: oklch(0.374 0.01 67.558);
+  --chart-5: oklch(0.268 0.007 34.298);
+  --radius: 0.625rem;
+  --sidebar: transparent;
+  --sidebar-foreground: oklch(0.147 0.004 49.25);
+  --sidebar-primary: oklch(0.216 0.006 56.043);
+  --sidebar-primary-foreground: oklch(0.985 0.001 106.423);
+  --sidebar-accent: oklch(0.97 0.001 106.424);
+  --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
+  --sidebar-border: oklch(0.923 0.003 48.717);
+  --sidebar-ring: oklch(0.709 0.01 56.259);
   --shadow-x: 0;
   --shadow-y: 1px;
   --shadow-blur: 1.5px;
@@ -76,54 +83,41 @@
   --shadow-2xl: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-  /* Fumadocs overrides — mirror base shadcn tokens so all surfaces stay in sync */
-  --color-fd-background: var(--background);
-  --color-fd-foreground: var(--foreground);
-  --color-fd-card: var(--card);
-  --color-fd-card-foreground: var(--card-foreground);
-  --color-fd-border: var(--border);
-  --color-fd-muted: var(--muted);
-  --color-fd-muted-foreground: var(--muted-foreground);
-  --color-fd-secondary: var(--secondary);
-  --color-fd-secondary-foreground: var(--secondary-foreground);
-  --color-fd-accent: var(--accent);
-  --color-fd-accent-foreground: var(--accent-foreground);
 }
 
 .dark {
-  --background: oklch(0.21 0.004 42);
-  --foreground: oklch(0.91 0.003 42);
-  --card: oklch(0.27 0.004 42);
-  --card-foreground: oklch(0.89 0.003 42);
-  --popover: oklch(0.3 0.004 42);
-  --popover-foreground: oklch(0.93 0.003 42);
-  --primary: oklch(0.6 0.13 45);
-  --primary-foreground: oklch(0.9702 0 0);
-  --secondary: oklch(0.24 0.004 42);
-  --secondary-foreground: oklch(0.81 0.003 42);
-  --muted: oklch(0.24 0.004 42);
-  --muted-foreground: oklch(0.75 0.005 42);
-  --accent: oklch(0.31 0.004 42);
-  --accent-foreground: oklch(0.96 0.003 42);
-  --destructive: oklch(0.6368 0.197 25.3313);
+  --background: oklch(0.147 0.004 49.25);
+  --foreground: oklch(0.985 0.001 106.423);
+  --card: oklch(0.216 0.006 56.043);
+  --card-foreground: oklch(0.985 0.001 106.423);
+  --popover: oklch(0.216 0.006 56.043);
+  --popover-foreground: oklch(0.985 0.001 106.423);
+  --primary: oklch(0.923 0.003 48.717);
+  --primary-foreground: oklch(0.216 0.006 56.043);
+  --secondary: oklch(0.268 0.007 34.298);
+  --secondary-foreground: oklch(0.985 0.001 106.423);
+  --muted: oklch(0.268 0.007 34.298);
+  --muted-foreground: oklch(0.709 0.01 56.259);
+  --accent: oklch(0.268 0.007 34.298);
+  --accent-foreground: oklch(0.985 0.001 106.423);
+  --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.32 0.004 42);
-  --input: oklch(0.33 0.004 42);
-  --ring: oklch(0.44 0.004 42);
-  --chart-1: oklch(0.5583 0.1212 42.9956);
-  --chart-2: oklch(0.6898 0.1502 290.4107);
-  --chart-3: oklch(0.213 0.0074 50);
-  --chart-4: oklch(0.3074 0.049 289.323);
-  --chart-5: oklch(0.5608 0.1281 42.0584);
-  --sidebar: oklch(0.24 0.004 42);
-  --sidebar-foreground: oklch(0.783 0.003 42);
-  --sidebar-primary: oklch(0.365 0.004 42);
-  --sidebar-primary-foreground: oklch(0.9881 0 0);
-  --sidebar-accent: oklch(0.27 0.004 42);
-  --sidebar-accent-foreground: oklch(0.8074 0.003 42);
-  --sidebar-border: oklch(0.29 0.004 42);
-  --sidebar-ring: oklch(0.77 0.004 42);
-  --radius: 0.5rem;
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.553 0.013 58.071);
+  --chart-1: oklch(0.869 0.005 56.366);
+  --chart-2: oklch(0.553 0.013 58.071);
+  --chart-3: oklch(0.444 0.011 73.639);
+  --chart-4: oklch(0.374 0.01 67.558);
+  --chart-5: oklch(0.268 0.007 34.298);
+  --sidebar: transparent;
+  --sidebar-foreground: oklch(0.985 0.001 106.423);
+  --sidebar-primary: oklch(0.923 0.003 48.717);
+  --sidebar-primary-foreground: oklch(0.216 0.006 56.043);
+  --sidebar-accent: oklch(0.268 0.007 34.298);
+  --sidebar-accent-foreground: oklch(0.985 0.001 106.423);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.553 0.013 58.071);
   --shadow-x: 0;
   --shadow-y: 1px;
   --shadow-blur: 1.5px;
@@ -142,22 +136,11 @@
   --shadow-xl:
     0 1px 1.5px 0px hsl(0 0% 0% / 0), 0 8px 10px -1px hsl(0 0% 0% / 0);
   --shadow-2xl: 0 1px 1.5px 0px hsl(0 0% 0% / 0);
-  /* Fumadocs overrides — mirror base shadcn tokens so all surfaces stay in sync */
-  --color-fd-background: var(--background);
-  --color-fd-foreground: var(--foreground);
-  --color-fd-card: var(--card);
-  --color-fd-card-foreground: var(--card-foreground);
-  --color-fd-border: var(--border);
-  --color-fd-muted: var(--muted);
-  --color-fd-muted-foreground: var(--muted-foreground);
-  --color-fd-secondary: var(--secondary);
-  --color-fd-secondary-foreground: var(--secondary-foreground);
-  --color-fd-accent: var(--accent);
-  --color-fd-accent-foreground: var(--accent-foreground);
 }
 
 @theme inline {
-  --font-sans: "Geist Sans Variable", sans-serif;
+  --color-page: color-mix(in oklab, var(--muted) 50%, var(--background));
+  --font-sans: "Geist Variable", sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -203,7 +186,9 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply font-sans bg-background text-foreground antialiased;
+    /* From md up the page is the muted surface and the content pane sits on it
+       in bg-background; on phones there is no sidebar, so it stays one surface. */
+    @apply font-sans bg-background text-foreground antialiased md:bg-page;
   }
   html {
     @apply font-sans;
@@ -222,5 +207,16 @@
 
   h3 {
     @apply text-lg font-semibold;
+  }
+}
+
+/*
+ * The content pane's top inset matches its side inset, so the page title sits
+ * as far below the pane's top edge as it sits from the left. The table of
+ * contents starts on the title's line.
+ */
+@media (min-width: 80rem) {
+  #nd-toc {
+    padding-top: 2.25rem;
   }
 }

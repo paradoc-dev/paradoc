@@ -7,7 +7,7 @@ ogDescription: Validate an Paradoc artifact against the schema and logic rules
 
 Validates an Paradoc artifact (form, document, bundle, or checklist) against the Paradoc schema and optionally checks logic expressions.
 
-# Input modes
+## Input modes
 
 The validateArtifact tool accepts three input modes via a discriminated union on the `source` field:
 
@@ -24,7 +24,7 @@ All modes share these fields:
 | `options.schema` | `boolean` | No | Validate schema structure (default: `true`) |
 | `options.logic` | `boolean` | No | Validate logic expressions (default: `true`) |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -33,9 +33,9 @@ All modes share these fields:
 | `issues` | `array` | List of validation issues, each with `message` and optional `path` |
 | `error` | `string` | Error message if validation could not be performed |
 
-# Direct usage
+## Direct usage
 
-## From artifact JSON
+### From artifact JSON
 
 ```typescript
 import { executeValidateArtifact } from "@paradoc/ai-tools"
@@ -55,7 +55,7 @@ const result = await executeValidateArtifact({
 
 The `executeValidateArtifact` function accepts an optional second `config` parameter for custom fetch settings. See the [configuration reference](/ai#configuration).
 
-## From URL
+### From URL
 
 ```typescript
 const result = await executeValidateArtifact({
@@ -64,7 +64,7 @@ const result = await executeValidateArtifact({
 })
 ```
 
-## From registry
+### From registry
 
 ```typescript
 const result = await executeValidateArtifact({
@@ -74,9 +74,9 @@ const result = await executeValidateArtifact({
 })
 ```
 
-# Example responses
+## Example responses
 
-## Valid artifact
+### Valid artifact
 
 ```json
 {
@@ -85,7 +85,7 @@ const result = await executeValidateArtifact({
 }
 ```
 
-## Invalid artifact
+### Invalid artifact
 
 ```json
 {
@@ -100,7 +100,7 @@ const result = await executeValidateArtifact({
 }
 ```
 
-# Disabling checks
+## Disabling checks
 
 Pass `options` to disable schema or logic validation independently:
 
@@ -112,6 +112,6 @@ await executeValidateArtifact({
 })
 ```
 
-# Logic checking
+## Logic checking
 
 With `options.logic` on, every `visible` / `required` / `def` / `rule` expression is checked by the typed `@paradoc/expr` checker. Each issue names the offending expression and its path, catching unknown references (fields are addressed as `fields.<id>`, with no `.value`), unknown functions, type mismatches, and gates that don't return a boolean. The checker shares its type system with runtime evaluation, so a passing artifact won't behave differently when filled.

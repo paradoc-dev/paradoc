@@ -7,13 +7,13 @@ ogDescription: Get details for a specific Paradoc registry using the MCP server
 
 Get details for a specific Paradoc registry including its artifacts (up to 500) and install stats. Each artifact includes `registry_id` and `artifact_name` for chaining into `get_artifact` or `render`.
 
-# Parameters
+## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `registry_id` | `string` | Yes | Registry ID |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -33,7 +33,7 @@ Get details for a specific Paradoc registry including its artifacts (up to 500) 
 | `artifacts[].installsTotal` | `integer` | Total installs |
 | `error` | `string` | Error message if the registry was not found |
 
-# Example
+## Example
 
 ```json
 // Request

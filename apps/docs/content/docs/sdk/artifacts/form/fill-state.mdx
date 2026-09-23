@@ -5,9 +5,9 @@ description: Track form completion progress with FillState
 
 Query the fill state of a DraftForm to determine what's been filled, what's still needed, and what to ask next. FillState evaluates conditional visibility, required expressions, and dependency chains to give an accurate picture of form progress.
 
-# Examples
+## Examples
 
-## Basic usage
+### Basic usage
 
 ```ts
 const draft = form.fill({
@@ -21,7 +21,7 @@ state.summary.requiredRemaining  // e.g. 3
 state.next                       // { kind: 'party', key: 'tenant', required: true, order: 0 }
 ```
 
-## Progressive fill loop
+### Progressive fill loop
 
 ```ts
 let draft = form.fill()
@@ -46,7 +46,7 @@ while (true) {
 if (!draft.isValid()) throw new Error('Complete the remaining required values')
 ```
 
-## Including optional targets
+### Including optional targets
 
 By default, `candidates` only includes required targets. Pass `includeOptional: true` to include optional fields:
 
@@ -56,7 +56,7 @@ const state = draft.getFillState({ includeOptional: true })
 // Required targets are listed first (requiredFirst defaults to true)
 ```
 
-## Checking blocked items
+### Checking blocked items
 
 Items with conditional visibility that depends on unfilled fields appear in `blocked`:
 
@@ -69,7 +69,7 @@ for (const item of state.blocked) {
 // e.g. "spouseName is hidden, waiting on: maritalStatus"
 ```
 
-## Checking rules
+### Checking rules
 
 ```ts
 const state = draft.getFillState()
@@ -81,9 +81,9 @@ if (!state.rules.valid) {
 }
 ```
 
-# API
+## API
 
-## FillState
+### FillState
 
 Returned by `draft.getFillState()`.
 
@@ -100,7 +100,7 @@ Returned by `draft.getFillState()`.
   { name: 'next', type: 'FillTarget | null', description: 'First candidate — convenience shorthand for candidates[0]' },
 ]} />
 
-## FillStateSummary
+### FillStateSummary
 
 <PropertiesTable properties={[
   { name: 'requiredTotal', type: 'number', description: 'Total number of required items (visible and blocked)' },
@@ -109,7 +109,7 @@ Returned by `draft.getFillState()`.
   { name: 'completionPercent', type: 'number', description: 'Completion percentage (0–100)' },
 ]} />
 
-## FillTarget
+### FillTarget
 
 A candidate target that can be filled next.
 
@@ -120,7 +120,7 @@ A candidate target that can be filled next.
   { name: 'order', type: 'number', description: 'Declaration order in schema' },
 ]} />
 
-## FillItemState
+### FillItemState
 
 Extended fill target with runtime state. Used in `openRequired`, `openOptional`, `blocked`, and `done` arrays.
 
@@ -135,13 +135,13 @@ Extended fill target with runtime state. Used in `openRequired`, `openOptional`,
   { name: 'blockedBy', type: 'string[]', description: 'Transitive unfilled prerequisites gating this item\'s visibility (the full chain, not just the direct dependency)' },
 ]} />
 
-## FillTargetKind
+### FillTargetKind
 
 ```ts
 type FillTargetKind = 'field' | 'party' | 'annex'
 ```
 
-## FillTargetOptions
+### FillTargetOptions
 
 Options for `getFillState`, `getNextFillTarget`, and `getAvailableFillTargets`.
 
@@ -150,7 +150,7 @@ Options for `getFillState`, `getNextFillTarget`, and `getAvailableFillTargets`.
   { name: 'includeOptional', type: 'boolean', description: 'Include optional targets in candidates. Default: false', isOptional: true },
 ]} />
 
-## FillOptions
+### FillOptions
 
 Options for `fill` and `safeFill` on FormInstance.
 
@@ -158,13 +158,13 @@ Options for `fill` and `safeFill` on FormInstance.
   { name: 'context', type: 'RuntimeContextOptions', description: 'Fixed context captured by the new draft runtime', isOptional: true },
 ]} />
 
-## UpdateOptions
+### UpdateOptions
 
 Options for `update` and `safeUpdate` on DraftForm.
 
 `update()` always validates supplied values. It has no validation-mode options.
 
-## SafeFillResult
+### SafeFillResult
 
 Returned by `safeFill` and `safeUpdate`.
 
@@ -174,7 +174,7 @@ type SafeFillResult<F extends Form> =
   | { success: false; error: Error }
 ```
 
-# How visibility and blocking work
+## How visibility and blocking work
 
 FillState evaluates conditional `visible` and `required` expressions on fields, parties, and annexes using the current data. Items are categorized as:
 
@@ -187,7 +187,7 @@ Each item also carries a `status` ordinal (`hidden < optional < required`) that 
 
 The `candidates` array contains all open (visible, unfilled) targets in dependency (DAG) order: prerequisites come before the items they gate, and declaration order breaks ties within a rank. When `requiredFirst` is true (the default), required targets appear before optional ones. `next` is the first candidate, so following `next` repeatedly walks the form in an order where nothing is asked before what it depends on.
 
-# Related
+## Related
 
 - [form](/sdk/artifacts/form) - Form builder and lifecycle
 - [field](/sdk/artifacts/form/field) - Field definitions

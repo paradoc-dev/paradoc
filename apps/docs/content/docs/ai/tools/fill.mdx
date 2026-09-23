@@ -11,7 +11,7 @@ Creates a progressive form or checklist draft, applies defaults, and validates s
   Only forms and checklists support filling. Passing a document or bundle returns an error.
 </Callout>
 
-# Input modes
+## Input modes
 
 The fill tool accepts three input modes via a discriminated union on the `source` field:
 
@@ -27,7 +27,7 @@ All modes share these fields:
 |-----------|------|----------|-------------|
 | `data` | `Record<string, unknown>` | Yes | Data to fill. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -37,9 +37,9 @@ All modes share these fields:
 | `errors` | `array` | List of validation errors, each with `field` and `message` |
 | `error` | `string` | Error message if filling could not be performed |
 
-# Direct usage
+## Direct usage
 
-## From artifact JSON
+### From artifact JSON
 
 ```typescript
 import { executeFill } from "@paradoc/ai-tools"
@@ -63,7 +63,7 @@ const result = await executeFill({
 
 The `executeFill` function accepts an optional second `config` parameter for custom fetch settings. See the [configuration reference](/ai#configuration).
 
-## From URL
+### From URL
 
 ```typescript
 const result = await executeFill({
@@ -76,7 +76,7 @@ const result = await executeFill({
 })
 ```
 
-## From registry
+### From registry
 
 ```typescript
 const result = await executeFill({
@@ -93,9 +93,9 @@ const result = await executeFill({
 })
 ```
 
-# Example responses
+## Example responses
 
-## Successful fill
+### Successful fill
 
 ```json
 {
@@ -105,7 +105,7 @@ const result = await executeFill({
 }
 ```
 
-## Failed validation
+### Failed validation
 
 ```json
 {

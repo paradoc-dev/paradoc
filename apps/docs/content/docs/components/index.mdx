@@ -21,7 +21,7 @@ See [Installation](/components/installation) for setup, once per project, and
 [Typography](/components/typography) for the token that sets a document's type
 scale and block spacing.
 
-# The items
+## The items
 
 | Item | What it is |
 |------|------------|
@@ -53,7 +53,7 @@ alternate configurations. `document-styles` and `priced-line-items` link
 straight to their registry JSON — they're supporting presets, not
 components with their own page.
 
-# The blocks
+## The blocks
 
 A block is a whole document rather than one component: an artifact, a
 composition that binds it, and sample data to see it with.
@@ -104,7 +104,7 @@ PDFs as props.
 
 The index of all of them is [`/r/registry.json`](https://docs.paradoc.dev/r/registry.json).
 
-# For agents
+## For agents
 
 `/r/registry.json` is machine-readable: `name`, `type`, `title`,
 `description`, `dependencies`, and the files each item installs, with no page
@@ -125,7 +125,7 @@ packages this page's content plus the component props, the pagination rule,
 and the verified Tailwind class subset for an agent authoring a composition
 end to end.
 
-# Using them
+## Using them
 
 ```tsx
 import { Document } from "@/components/paradoc/document";
@@ -151,7 +151,7 @@ export function Proposal({ artifact, data }) {
 artifact and the text comes from the serializer the field's type names. The same
 tree renders to PDF through `@paradoc/react-pdf`.
 
-# How the registry is built
+## How the registry is built
 
 The items are generated from the component sources by `pnpm registry:build` in
 the private `@paradoc/components` workspace, never written by hand. The generator rewrites every import so

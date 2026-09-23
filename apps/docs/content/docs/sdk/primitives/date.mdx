@@ -5,9 +5,9 @@ description: Validate date strings
 
 Validate date strings in ISO 8601 format (YYYY-MM-DD). The Date primitive ensures dates are properly formatted and represent valid calendar dates.
 
-# Examples
+## Examples
 
-## Creating dates
+### Creating dates
 
 ```ts
 // Direct validation
@@ -22,7 +22,7 @@ if (p.date.isValid('2024-02-29')) {
 }
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -37,7 +37,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -56,9 +56,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Direct Call
+### Direct Call
 
 ```ts
 p.date(input: string): string
@@ -70,7 +70,7 @@ Pass a date string for validation. Returns the validated string or throws on err
 const date = p.date('2024-01-15')
 ```
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'string', description: 'Parse unknown input (throws on error)' },
@@ -78,7 +78,7 @@ const date = p.date('2024-01-15')
   { name: 'isValid', params: 'input: string', returns: 'boolean', description: 'Check if a string is a valid date' },
 ]} />
 
-# Format
+## Format
 
 The Date primitive expects and returns strings in ISO 8601 date format:
 
@@ -92,7 +92,7 @@ YYYY-MM-DD
 | `MM` | Two-digit month | 01-12 |
 | `DD` | Two-digit day | 01-31 |
 
-# Validation
+## Validation
 
 The Date primitive validates:
 
@@ -123,7 +123,7 @@ p.date('not-a-date')
 // Error: Invalid Date: must be in YYYY-MM-DD format
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Datetime](/sdk/primitives/datetime) - Date with time component

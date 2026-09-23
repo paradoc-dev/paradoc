@@ -11,7 +11,7 @@ Renders an Paradoc form artifact from a verified registry. Looks up the artifact
   Only form artifacts can be rendered. The registry must have `verified` status.
 </Callout>
 
-# Parameters
+## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -21,7 +21,7 @@ Renders an Paradoc form artifact from a verified registry. Looks up the artifact
 | `layer` | `string` | No | Layer key to render. Falls back to `defaultLayer`, then first layer |
 | `outputMode` | `"url"` \| `"inline"` | No | `"url"` (default) returns a short download link with 7-day TTL. `"inline"` returns content directly — best for text/markdown. |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -37,9 +37,9 @@ Renders an Paradoc form artifact from a verified registry. Looks up the artifact
 | `errors` | `array` | List of fill errors, each with `field` and `message` |
 | `validationIssues` | `array` | List of schema validation issues, each with `message` and optional `path` |
 
-# Examples
+## Examples
 
-## Inline rendering
+### Inline rendering
 
 ```json
 // Request
@@ -61,7 +61,7 @@ Renders an Paradoc form artifact from a verified registry. Looks up the artifact
 }
 ```
 
-## URL output mode
+### URL output mode
 
 For binary formats like PDF, use `outputMode: "url"` (or omit it — `"url"` is the default) to get a download link:
 

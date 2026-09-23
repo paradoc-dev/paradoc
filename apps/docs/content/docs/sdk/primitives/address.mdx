@@ -5,9 +5,9 @@ description: Build and validate postal addresses
 
 Build and validate postal addresses with structured components. The Address primitive provides a standardized structure for capturing location information.
 
-# Examples
+## Examples
 
-## Creating addresses
+### Creating addresses
 
 ```ts
 // Object pattern
@@ -36,7 +36,7 @@ const updated = p.address()
   .build()
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -51,7 +51,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -74,9 +74,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.address(input: Address): Address
@@ -94,7 +94,7 @@ const addr = p.address({
 })
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build an Address value incrementally:
 
@@ -113,14 +113,14 @@ Chain methods to build an Address value incrementally:
   returns={{ intermediate: 'AddressBuilder', terminal: 'Address' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Address', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Address>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   { name: 'line1', type: 'string', description: 'Primary street address line.' },
@@ -131,7 +131,7 @@ Chain methods to build an Address value incrementally:
   { name: 'country', type: 'string', description: 'Country code (ISO 3166-1 alpha-2 recommended).' },
 ]} />
 
-# Validation
+## Validation
 
 The Address primitive validates:
 
@@ -167,7 +167,7 @@ p.address({ line1: '123 Main St' })
 // Error: Invalid Address: locality is required
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Address Field](/sdk/artifacts/form/field#address) - Address field type

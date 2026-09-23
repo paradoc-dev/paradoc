@@ -9,19 +9,19 @@ a section that runs well past one page is never treated as a single thing
 that has to stay together; the keeps inside it are what the page plan
 actually moves.
 
-# Preview
+## Preview
 
 <ComponentPreview name="section" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="section" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="section" />
 
-# Composition
+## Composition
 
 A `Section` needs a [`Document`](/components/document) above it for the
 same reason a `Field` does: it reads, from context only `Document`'s tree
@@ -47,24 +47,24 @@ The heading's size follows the document's [typography](/components/typography)
 token, and it is already at the smallest verified size, so `compact` leaves it
 where it is.
 
-# Variants
+## Variants
 
 `Section` takes an optional `title` and a `className` that replaces its
 default column layout.
 
-## Titled
+### Titled
 
 The default: a `title` renders a heading above the section's children.
 
 <ComponentVariant name="section" variant="titled" />
 
-## Untitled
+### Untitled
 
 Omitting `title` renders no heading at all — just the children.
 
 <ComponentVariant name="section" variant="untitled" />
 
-## Row layout
+### Row layout
 
 A custom `className` replaces the default column layout with a row.
 

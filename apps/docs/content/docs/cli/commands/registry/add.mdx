@@ -7,20 +7,20 @@ ogDescription: Configure a new Paradoc artifact registry
 
 Add or update a registry configuration.
 
-# Usage
+## Usage
 
 ```bash
 paradoc registry add <namespace> <url> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `namespace` | Registry namespace (e.g., `@acme`) |
 | `url` | Registry base URL |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -28,11 +28,11 @@ paradoc registry add <namespace> <url> [options]
 | `--global` | Save to global config (~/.paradoc/config.json) |
 | `--project` | Save to project config (paradoc.json) |
 
-# Description
+## Description
 
 Adds a registry to your configuration. If neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
 
-# Examples
+## Examples
 
 Add a public registry:
 
@@ -53,7 +53,7 @@ Add to global config:
 paradoc registry add @company https://registry.company.com --global
 ```
 
-# See also
+## See also
 
 - [registry remove](/cli/commands/registry/remove) - Remove a registry
 - [registry list](/cli/commands/registry/list) - List configured registries

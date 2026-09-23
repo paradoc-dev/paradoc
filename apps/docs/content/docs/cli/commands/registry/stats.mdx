@@ -7,30 +7,30 @@ ogDescription: View statistics and telemetry data for an Paradoc registry
 
 Show registry statistics and telemetry data.
 
-# Usage
+## Usage
 
 ```bash
 paradoc registry stats [namespace] [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `namespace` | Registry namespace (optional; uses local registry.json if not specified) |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `-r, --registry <path>` | Path to local registry.json (default: `./registry.json`) |
 | `--json` | Output as JSON |
 
-# Description
+## Description
 
 Displays statistics for a local registry, including artifact counts by kind and telemetry/directory settings.
 
-# Output
+## Output
 
 ```
 Acme Forms
@@ -46,7 +46,7 @@ Telemetry: enabled
 Directory listing: enabled
 ```
 
-# See also
+## See also
 
 - [registry info](/cli/commands/registry/info) - Show remote registry information
 - [registry compile](/cli/commands/registry/compile) - Compile registry artifacts

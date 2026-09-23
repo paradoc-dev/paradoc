@@ -9,7 +9,7 @@ Resolvers provide a unified interface for loading file-based content (templates,
 The `@paradoc/resolvers` package provides focused filesystem and memory resolvers. Install it separately from the SDK and import the adapter for your environment.
 </Callout>
 
-# Resolver Interface
+## Resolver Interface
 
 All resolvers implement this simple interface:
 
@@ -21,7 +21,7 @@ interface Resolver {
 
 A resolver is bound once, when an artifact is constructed — `p.form(schema, { resolver })`, a builder's `.build({ resolver })`, or `p.load(content, { resolver })`. Every instance you derive from it afterward — every `fill`, every mutator, every render call — carries that same resolver, so you never pass it again.
 
-# ArtifactInstanceOptions
+## ArtifactInstanceOptions
 
 The options object every construction entry point accepts:
 
@@ -43,7 +43,7 @@ Render a file-backed layer with no resolver bound, and Paradoc throws
 `UnboundResolverError`, naming the layer, the path it wanted, and where to
 bind one.
 
-# Memory Resolver (Browser-Compatible)
+## Memory Resolver (Browser-Compatible)
 
 The `createMemoryResolver` function is exported from `@paradoc/resolvers/memory` and works in any environment, including browsers.
 
@@ -69,19 +69,19 @@ const filled = form.fill({
 const output = await filled.render()
 ```
 
-## createMemoryResolver
+### createMemoryResolver
 
 ```ts
 function createMemoryResolver(options: MemoryResolverOptions): Resolver
 ```
 
-### MemoryResolverOptions
+#### MemoryResolverOptions
 
 <PropertiesTable properties={[
   { name: 'contents', type: 'Record<string, Uint8Array | string>', description: 'Map of paths to content. Strings are UTF-8 encoded automatically.' },
 ]} />
 
-# Filesystem Resolver (Node.js Only)
+## Filesystem Resolver (Node.js Only)
 
 <Callout type="warn">
 The filesystem resolver requires Node.js and is in a separate package. Install with `npm install @paradoc/resolvers`.
@@ -98,19 +98,19 @@ const resolver = createFsResolver({
 const bytes = await resolver.read('/templates/form.docx')
 ```
 
-## Installation
+### Installation
 
 ```bash
 npm install @paradoc/resolvers
 ```
 
-## createFsResolver
+### createFsResolver
 
 ```ts
 function createFsResolver(options: FsResolverOptions): Resolver
 ```
 
-### FsResolverOptions
+#### FsResolverOptions
 
 <PropertiesTable properties={[
   { name: 'root', type: 'string', description: 'Absolute or current-working-directory-relative path to the root directory. Relative roots are anchored when the resolver is created.' },
@@ -120,7 +120,7 @@ function createFsResolver(options: FsResolverOptions): Resolver
 The filesystem resolver validates that paths and symlinks stay within the root directory. Policy failures expose `ERR_RESOLVER_OUTSIDE_ROOT` or `ERR_RESOLVER_INVALID_PATH`; missing files retain native Node.js error codes.
 </Callout>
 
-# Usage with File-Based Layers
+## Usage with File-Based Layers
 
 Resolvers are needed when forms define file-based layers:
 
@@ -158,7 +158,7 @@ Render a file layer with no resolver bound and Paradoc throws
 `UnboundResolverError`, naming the layer, the path it wanted, and where to
 bind one.
 
-# Inline vs File Layers
+## Inline vs File Layers
 
 - **Inline layers** (`kind: 'inline'`) embed content directly in the form definition. No resolver needed.
 - **File layers** (`kind: 'file'`) reference external files by path. A resolver must be bound when the artifact is constructed.
@@ -183,7 +183,7 @@ layers: {
 }
 ```
 
-# Custom Resolvers
+## Custom Resolvers
 
 Implement the `Resolver` interface for custom storage backends:
 
@@ -215,7 +215,7 @@ function createS3Resolver(bucket: string, s3Client: S3Client): Resolver {
 }
 ```
 
-# Related
+## Related
 
 - [Renderers](/sdk/renderers) - How renderers use resolvers
 - [Form Layers](/sdk/artifacts/form) - Layer configuration

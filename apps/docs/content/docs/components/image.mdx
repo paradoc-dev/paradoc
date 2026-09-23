@@ -7,19 +7,19 @@ description: A picture at a declared size, from its own bytes or from a source, 
 and the picture travels inside the tree; give it `src` and the render loads it
 from there.
 
-# Preview
+## Preview
 
 <ComponentPreview name="image" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="image" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="image" />
 
-# Composition
+## Composition
 
 **Bytes win over a source.** `bytes` are sniffed for their encoding —
 PNG, JPEG, GIF, WebP or SVG — and embedded as a `data:` URI, so neither the
@@ -44,15 +44,15 @@ and `keepId` is the id the page plan tracks it by. It must be unique in the
 document: an image names no path and no party, so unlike `Field` or `Signature`
 there is nothing to derive one from.
 
-# Variants
+## Variants
 
-## From a source
+### From a source
 
 `src` names where the picture is loaded from instead of carrying it as bytes.
 
 <ComponentVariant name="image" variant="source" />
 
-## Attachment field
+### Attachment field
 
 An attachment is not a field value: the artifact declares annex slots and the
 filled data carries one `Attachment` per slot. `Field` with `as="image"` draws
@@ -67,7 +67,7 @@ on the day a real photograph arrives.
 
 <ComponentVariant name="image" variant="attachment-field" />
 
-## Attachment that is not a picture
+### Attachment that is not a picture
 
 The same `Field` prints the attachment's file name when its MIME type is not
 an image, and `paradoc check` reports the mismatch as `image:<path>`. Nothing

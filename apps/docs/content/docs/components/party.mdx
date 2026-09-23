@@ -10,19 +10,19 @@ address, and its contact line, each through the same shared formatter a
 find, so a party carrying only a name prints only a name — nothing prints
 blank.
 
-# Preview
+## Preview
 
 <ComponentPreview name="party" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="party" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="party" />
 
-# Composition
+## Composition
 
 `Party` needs the same `Document` context every other component here does:
 `role` names a role the artifact declares, and `index` selects which one for
@@ -47,16 +47,16 @@ for one before rendering `Party`.
 Every size in the block — the role heading and every line beneath it —
 follows the document's [typography](/components/typography) token.
 
-# Variants
+## Variants
 
-## Inline
+### Inline
 
 `variant="inline"` joins the same values into one run, for a sentence,
 instead of stacking them as a block.
 
 <ComponentVariant name="party" variant="inline" />
 
-## Multiple parties
+### Multiple parties
 
 A role a document may fill more than once — `witness` here admits two —
 selects which party this block prints with `index`.

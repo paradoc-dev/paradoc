@@ -5,9 +5,9 @@ description: Build and validate organization information
 
 Build and validate organization information. The Organization primitive captures business entity details including legal names, registration numbers, and jurisdiction.
 
-# Examples
+## Examples
 
-## Creating organizations
+### Creating organizations
 
 ```ts
 // Object pattern
@@ -32,7 +32,7 @@ const updated = p.organization()
   .build()
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -47,7 +47,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -68,9 +68,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.organization(input: Organization): Organization
@@ -82,7 +82,7 @@ Pass an Organization object for validation. Returns the validated Organization o
 const org = p.organization({ name: 'Global Enterprises' })
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build an Organization value incrementally:
 
@@ -101,14 +101,14 @@ Chain methods to build an Organization value incrementally:
   returns={{ intermediate: 'OrganizationBuilder', terminal: 'Organization' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Organization', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Organization>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   { name: 'name', type: 'string', description: 'Organization display name.' },
@@ -119,7 +119,7 @@ Chain methods to build an Organization value incrementally:
   { name: 'taxId', type: 'string?', description: 'Tax identification number (EIN, VAT, etc.).' },
 ]} />
 
-# Common Entity Types
+## Common Entity Types
 
 | Type | Description |
 |------|-------------|
@@ -132,7 +132,7 @@ Chain methods to build an Organization value incrementally:
 | `nonprofit` | Non-profit Organization |
 | `trust` | Trust Entity |
 
-# Validation
+## Validation
 
 The Organization primitive validates:
 
@@ -157,7 +157,7 @@ p.organization({ name: '' })
 // Error: Invalid Organization: name cannot be empty
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Person](/sdk/primitives/person) - Individual person information

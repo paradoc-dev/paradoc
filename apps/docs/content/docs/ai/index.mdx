@@ -7,7 +7,7 @@ ogDescription: npm packages for adding Paradoc validateArtifact, fill, render, a
 
 The Paradoc AI packages let you add Paradoc tools to your own AI applications. Unlike the [MCP server](/mcp), which is a hosted service, these are npm packages you install and run in your own stack.
 
-# Packages
+## Packages
 
 | Package | Description | Install |
 |---------|-------------|---------|
@@ -17,7 +17,7 @@ The Paradoc AI packages let you add Paradoc tools to your own AI applications. U
 
 Install the adapter for your framework. Both adapters depend on `@paradoc/ai-tools` internally.
 
-# Tools
+## Tools
 
 All adapters expose the same five tools:
 
@@ -31,7 +31,7 @@ All adapters expose the same five tools:
 
 \* `validateArtifact`, `fill`, and `render` all fetch in URL and registry modes. In artifact mode, only `render` may fetch (file-backed layers use `baseUrl` to resolve templates).
 
-# Quick start
+## Quick start
 
 <Tabs items={['Vercel AI SDK', 'TanStack AI']} groupId="ai-framework" persist>
   <Tab value="Vercel AI SDK">
@@ -68,7 +68,7 @@ All adapters expose the same five tools:
   </Tab>
 </Tabs>
 
-# Composing with other tools
+## Composing with other tools
 
 `paradocTools()` returns a plain object. Spread it alongside your own tools:
 
@@ -98,7 +98,7 @@ const result = await generateText({
 })
 ```
 
-# Configuration
+## Configuration
 
 All adapters accept the same `ParadocToolsConfig`:
 
@@ -114,12 +114,12 @@ paradocTools({
 | `defaultRegistryUrl` | `string` | Default registry URL for getRegistry and getArtifact |
 | `fetch` | `typeof fetch` | Custom fetch for auth headers or test mocks |
 
-# Runtime compatibility
+## Runtime compatibility
 
 Text, PDF, and DOCX layers render locally in browsers, edge runtimes, and
 Node.js. Rendering does not require a proxy or runtime-specific configuration.
 
-# Differences from MCP server
+## Differences from MCP server
 
 | | MCP server | AI packages |
 |---|---|---|

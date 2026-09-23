@@ -9,19 +9,19 @@ attachments. It carries no pagination of its own; grouping documents under
 one bundle is what lets a shared set of tenant tokens, like `accentColor`,
 reach every one of them at once.
 
-# Preview
+## Preview
 
 <ComponentPreview name="bundle" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="bundle" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="bundle" />
 
-# Composition
+## Composition
 
 A `Bundle` isn't required around a single [`Document`](/components/document) —
 a lone `Document` is its own root — but a composition of more than one
@@ -46,25 +46,25 @@ The gap between the bundle's documents follows the
 [typography](/components/typography) token's `flow`; a `className` you pass
 replaces it and wins.
 
-# Variants
+## Variants
 
 `Bundle` takes an optional `id`, `tokens`, and a `className` that replaces
 its default column layout.
 
-## Single document
+### Single document
 
 The common shape: a `Bundle` around exactly one `Document`.
 
 <ComponentVariant name="bundle" variant="single-document" />
 
-## Row layout
+### Row layout
 
 A custom `className` lays the bundle's documents out in a row instead of a
 column.
 
 <ComponentVariant name="bundle" variant="row" />
 
-## Branded tokens
+### Branded tokens
 
 `tokens` cascades to every document nested inside — here, a titled section's
 heading picks up the accent color.

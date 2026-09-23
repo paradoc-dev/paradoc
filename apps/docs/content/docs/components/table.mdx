@@ -12,19 +12,19 @@ evaluates rows from the artifact's own definitions and stays with the
 table's last row; and a column's `render` can replace one cell's plain text
 with markup of its own, without changing how the row paginates.
 
-# Preview
+## Preview
 
 <ComponentPreview name="table" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="table" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="table" />
 
-# Composition
+## Composition
 
 A `Table` needs the same [`Document`](/components/document) context every
 other component here does, and its `path` names a list field in the
@@ -49,31 +49,31 @@ that — the Preview above renders one directly inside `Document`.
 The header's size follows the document's [typography](/components/typography)
 token; the cells inherit the root's.
 
-# Variants
+## Variants
 
 `Table`'s columns each take a `field`, an optional `header` override, a
 `width`, and an `align`.
 
-## Compact
+### Compact
 
 A two-column subset of the same `lineItems` table.
 
 <ComponentVariant name="table" variant="compact" />
 
-## Left-aligned
+### Left-aligned
 
 Every column left-aligned, instead of the default's right-aligned numeric
 ones.
 
 <ComponentVariant name="table" variant="left-aligned" />
 
-## Custom headers
+### Custom headers
 
 `header` overrides the artifact's own field labels.
 
 <ComponentVariant name="table" variant="custom-headers" />
 
-## Continued
+### Continued
 
 `continuedLabel` shows on the repeated header once the table's rows carry it
 past a page break, and only there — the table's own, first header never
@@ -83,7 +83,7 @@ which is exactly where the label has nothing to show.
 
 <ComponentVariant name="table" variant="continued" />
 
-## Footer
+### Footer
 
 `footer` takes rows shaped like [`Totals`](/components/totals)'s: a `def`,
 an optional `label`, and `emphasis`. Each is evaluated from the artifact's
@@ -93,7 +93,7 @@ page with it, so the totals never print without a row above them.
 
 <ComponentVariant name="table" variant="footer" />
 
-## Cell renderer
+### Cell renderer
 
 A column's `render` receives the cell's already-formatted text and the row
 it belongs to, and returns the markup to print instead. The row underneath

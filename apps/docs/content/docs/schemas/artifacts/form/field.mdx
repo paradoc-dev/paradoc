@@ -32,7 +32,7 @@ type FormField =
   | FieldsetField
 ```
 
-# BaseField
+## BaseField
 
 All field types share these base properties:
 
@@ -63,11 +63,11 @@ All field types share these base properties:
   },
 ]} />
 
-# Field Types
+## Field Types
 
 Each field type includes all [BaseField](#basefield) properties plus the type-specific properties listed below.
 
-## TextField
+### TextField
 
 Text input field for string values.
 
@@ -103,7 +103,7 @@ Text input field for string values.
   },
 ]} />
 
-## BooleanField
+### BooleanField
 
 Boolean checkbox/toggle field.
 
@@ -121,7 +121,7 @@ Boolean checkbox/toggle field.
   },
 ]} />
 
-## NumberField
+### NumberField
 
 Numeric input field.
 
@@ -151,7 +151,7 @@ Numeric input field.
   },
 ]} />
 
-## EnumField
+### EnumField
 
 Single-select dropdown field.
 
@@ -174,7 +174,7 @@ Single-select dropdown field.
   },
 ]} />
 
-## MultiselectField
+### MultiselectField
 
 Multi-select field allowing multiple selections.
 
@@ -209,7 +209,7 @@ Multi-select field allowing multiple selections.
   },
 ]} />
 
-## DateField
+### DateField
 
 Date input field (ISO 8601 format: YYYY-MM-DD).
 
@@ -239,7 +239,7 @@ Date input field (ISO 8601 format: YYYY-MM-DD).
   },
 ]} />
 
-## DatetimeField
+### DatetimeField
 
 Datetime input field (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ).
 
@@ -269,7 +269,7 @@ Datetime input field (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ).
   },
 ]} />
 
-## TimeField
+### TimeField
 
 Time input field (HH:MM:SS format).
 
@@ -299,7 +299,7 @@ Time input field (HH:MM:SS format).
   },
 ]} />
 
-## EmailField
+### EmailField
 
 Email address input field.
 
@@ -329,7 +329,7 @@ Email address input field.
   },
 ]} />
 
-## UriField
+### UriField
 
 URI/URL input field.
 
@@ -365,7 +365,7 @@ URI/URL input field.
   },
 ]} />
 
-## UuidField
+### UuidField
 
 UUID input field.
 
@@ -401,7 +401,7 @@ UUID input field.
   },
 ]} />
 
-## MoneyField
+### MoneyField
 
 Monetary amount input field.
 
@@ -431,7 +431,7 @@ Monetary amount input field.
   },
 ]} />
 
-## PercentageField
+### PercentageField
 
 Percentage input field (0-100 by default).
 
@@ -467,7 +467,7 @@ Percentage input field (0-100 by default).
   },
 ]} />
 
-## RatingField
+### RatingField
 
 Rating input field (1-5 by default).
 
@@ -503,7 +503,7 @@ Rating input field (1-5 by default).
   },
 ]} />
 
-## AddressField
+### AddressField
 
 Postal address input field.
 
@@ -521,7 +521,7 @@ Postal address input field.
   },
 ]} />
 
-## PhoneField
+### PhoneField
 
 Phone number input field.
 
@@ -539,7 +539,7 @@ Phone number input field.
   },
 ]} />
 
-## CoordinateField
+### CoordinateField
 
 Geographic coordinate (latitude/longitude) input field.
 
@@ -557,7 +557,7 @@ Geographic coordinate (latitude/longitude) input field.
   },
 ]} />
 
-## BboxField
+### BboxField
 
 Geographic bounding box input field.
 
@@ -575,7 +575,7 @@ Geographic bounding box input field.
   },
 ]} />
 
-## DurationField
+### DurationField
 
 Duration input field (ISO 8601 format).
 
@@ -593,7 +593,7 @@ Duration input field (ISO 8601 format).
   },
 ]} />
 
-## PersonField
+### PersonField
 
 Person information input field.
 
@@ -611,7 +611,7 @@ Person information input field.
   },
 ]} />
 
-## OrganizationField
+### OrganizationField
 
 Organization information input field.
 
@@ -629,7 +629,7 @@ Organization information input field.
   },
 ]} />
 
-## IdentificationField
+### IdentificationField
 
 Identification document input field.
 
@@ -653,7 +653,7 @@ Identification document input field.
   },
 ]} />
 
-## FieldsetField
+### FieldsetField
 
 Nested fieldset containing other fields.
 
@@ -670,7 +670,7 @@ Nested fieldset containing other fields.
   },
 ]} />
 
-# Examples
+## Examples
 
 ```yaml tab="YAML"
 fields:
@@ -788,7 +788,7 @@ fields:
 }
 ```
 
-# Visibility cascade
+## Visibility cascade
 
 `visible` and `required` compose into one effective status (`hidden < optional < required`), and that status cascades through fieldsets:
 
@@ -798,7 +798,7 @@ fields:
 
 So you author two conditions (`visible`, `required`), and the engine resolves them into a single status per field, with hidden winning over everything below it.
 
-# Related
+## Related
 
 - [Form](/schemas/artifacts/form) - Form artifact overview
 - [Logic](/concepts/logic) - The expression language for `visible` / `required`

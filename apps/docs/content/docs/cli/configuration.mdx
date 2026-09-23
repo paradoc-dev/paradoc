@@ -7,7 +7,7 @@ ogDescription: Learn how to configure global settings, project overrides, enviro
 
 The CLI reads settings from two places: a **global config** for user-wide preferences, and the **project manifest** for project-specific overrides. This page explains the configuration system, including environment variables, renderer plugins, cache, and proxy support.
 
-# Global configuration
+## Global configuration
 
 The global config lives at `~/.paradoc/config.json`. It applies to all projects unless overridden.
 
@@ -32,7 +32,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 }
 ```
 
-## Fields
+### Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -44,7 +44,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 | `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory |
 | `security.allowedContentTypes` | array | — | Permitted content types for layer downloads |
 
-# Project overrides
+## Project overrides
 
 The `paradoc.json` manifest can override global settings on a per-project basis. These fields take precedence over the global config:
 
@@ -56,7 +56,7 @@ The `paradoc.json` manifest can override global settings on a per-project basis.
 
 See the [project manifest](/cli/projects#the-project-manifest) reference for full details.
 
-# Precedence
+## Precedence
 
 When resolving a setting, the CLI checks in this order:
 
@@ -67,7 +67,7 @@ When resolving a setting, the CLI checks in this order:
 
 For registries, a project-level namespace mapping always wins over the same namespace in the global config.
 
-# Global flags
+## Global flags
 
 These flags can be passed to any command:
 
@@ -81,7 +81,7 @@ These flags can be passed to any command:
 paradoc --no-telemetry add @paradoc/w9
 ```
 
-# The configure wizard
+## The configure wizard
 
 The [`paradoc configure`](/cli/commands/configure) command walks you through each setting interactively and saves results to the global config:
 
@@ -91,7 +91,7 @@ paradoc configure
 
 The wizard covers output format, artifacts directory, cache TTL, and default registry. Press Enter at any prompt to keep the current value.
 
-# Environment variables
+## Environment variables
 
 Registry URLs and headers support `${VAR_NAME}` expansion:
 
@@ -110,7 +110,7 @@ Registry URLs and headers support `${VAR_NAME}` expansion:
 
 The CLI will error if a referenced environment variable is not set. This works in both the global config and the project manifest.
 
-# Renderer plugins
+## Renderer plugins
 
 The renderer is not bundled with the CLI to keep the base install small. The
 first time you run [`render`](/cli/commands/render) or
@@ -131,7 +131,7 @@ paradoc renderers install   # Install all renderers
 paradoc renderers update    # Update to match CLI version
 ```
 
-# Cache
+## Cache
 
 Registry data is cached locally at `~/.paradoc/cache/` to speed up repeated operations. The default TTL is 1 hour (3600 seconds).
 
@@ -168,7 +168,7 @@ paradoc cache clear         # Clear all cached data
 paradoc cache invalidate @acme  # Invalidate a specific registry
 ```
 
-# Proxy support
+## Proxy support
 
 The CLI respects standard proxy environment variables for outbound HTTP requests:
 
@@ -180,7 +180,7 @@ export HTTPS_PROXY=http://proxy.example.com:8080
 paradoc search --query "lease"
 ```
 
-# Telemetry
+## Telemetry
 
 The CLI collects anonymous usage data (commands run, artifact kinds installed) to help improve the tool. No personal information or artifact content is collected.
 

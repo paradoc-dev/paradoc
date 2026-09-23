@@ -7,38 +7,38 @@ ogDescription: Remove a configured Paradoc registry
 
 Remove a registry configuration.
 
-# Usage
+## Usage
 
 ```bash
 paradoc registry remove <namespace> [options]
 paradoc registry rm <namespace> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `namespace` | Registry namespace to remove |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `--global` | Remove from global config |
 | `--project` | Remove from project config |
 
-# Description
+## Description
 
 Removes a registry from your configuration. If neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
 
-# Examples
+## Examples
 
 ```bash
 paradoc registry remove @acme
 paradoc registry rm @acme --global
 ```
 
-# See also
+## See also
 
 - [registry add](/cli/commands/registry/add) - Add a registry
 - [registry list](/cli/commands/registry/list) - List configured registries

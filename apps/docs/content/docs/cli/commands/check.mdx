@@ -9,19 +9,19 @@ Checks a `@paradoc/react` composition against the form artifact whose React
 layer it renders — the same tree walk the default PDF path runs — and
 reports every fault without producing PDF bytes.
 
-# Usage
+## Usage
 
 ```bash
 paradoc check <target> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `target` | The composition file (`.tsx`/`.jsx`), or the artifact file that declares its React layer |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -29,7 +29,7 @@ paradoc check <target> [options]
 | `--data <pathOrJson>` | Sample data: a file path or inline JSON, overriding any discovered sample |
 | `--adapter <name>` | Adapter whose class vocabulary to check against: `takumi` (default) or `chromium` |
 
-# Description
+## Description
 
 `paradoc check` resolves `target` to one artifact and one React layer, binds the
 layer's module to a component, and walks the rendered tree the way the
@@ -61,7 +61,7 @@ The command exits non-zero when it finds any fault. A composition using
 no data anywhere in it is not treated as a fault, only a value that carries
 real data a serializer still rejects is.
 
-# Examples
+## Examples
 
 Check a composition by its own file:
 
@@ -81,7 +81,7 @@ Check against the Chromium adapter's rules instead of the default:
 paradoc check ./compositions/purchase-order.tsx --adapter chromium
 ```
 
-# See also
+## See also
 
 - [`add`](/cli/commands/add) — install document components from the
   [Paradoc component registry](/components)

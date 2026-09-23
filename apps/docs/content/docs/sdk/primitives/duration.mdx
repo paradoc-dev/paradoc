@@ -5,9 +5,9 @@ description: Build and validate ISO 8601 durations
 
 Build and validate time durations in ISO 8601 format. The Duration primitive represents spans of time like "1 year, 6 months" or "2 hours, 30 minutes".
 
-# Examples
+## Examples
 
-## Creating durations
+### Creating durations
 
 ```ts
 // Direct validation
@@ -15,7 +15,7 @@ const period = p.duration('P1Y6M')  // 1 year, 6 months
 const hours = p.duration('PT2H30M') // 2 hours, 30 minutes
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -30,7 +30,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -47,9 +47,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Direct Call
+### Direct Call
 
 ```ts
 p.duration(input: Duration): Duration
@@ -61,14 +61,14 @@ Pass a duration string for validation. Returns the validated string or throws on
 const period = p.duration('P6M')  // 6 months
 ```
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Duration', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Duration>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Format
+## Format
 
 The Duration primitive uses ISO 8601 duration format:
 
@@ -87,7 +87,7 @@ P[n]Y[n]M[n]DT[n]H[n]M[n]S
 | `[n]M` | Minutes | 30M |
 | `[n]S` | Seconds | 45S |
 
-# Common Examples
+## Common Examples
 
 | Duration | Meaning |
 |----------|---------|
@@ -100,7 +100,7 @@ P[n]Y[n]M[n]DT[n]H[n]M[n]S
 | `PT2H30M` | 2 hours, 30 minutes |
 | `P1DT12H` | 1 day, 12 hours |
 
-# Validation
+## Validation
 
 The Duration primitive validates:
 
@@ -132,7 +132,7 @@ p.duration('PT1Y')
 // Error: Invalid Duration: years cannot follow T designator
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Date](/sdk/primitives/date) - Date values

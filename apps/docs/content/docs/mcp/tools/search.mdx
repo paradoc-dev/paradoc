@@ -7,7 +7,7 @@ ogDescription: Search Paradoc artifacts and registries by keyword using the MCP 
 
 Search Paradoc artifacts and registries by keyword. Returns matching artifacts and registries ranked by popularity.
 
-# Parameters
+## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -15,7 +15,7 @@ Search Paradoc artifacts and registries by keyword. Returns matching artifacts a
 | `kind` | `"form"` \| `"checklist"` \| `"document"` \| `"bundle"` | No | Filter artifacts by kind |
 | `limit` | `integer` (1--50) | No | Max results to return (default: `20`) |
 
-# Response
+## Response
 
 The response contains a mixed `results` array with two types of entries: artifacts and registries.
 
@@ -48,7 +48,7 @@ Each registry result:
 | `registry.displayName` | `string` | Display name |
 | `registry.description` | `string` | Registry description |
 
-# Example
+## Example
 
 ```json
 // Request

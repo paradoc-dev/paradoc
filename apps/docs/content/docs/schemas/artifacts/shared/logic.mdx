@@ -8,7 +8,7 @@ Defs and Rules enable conditional behavior and validation in forms and bundles.
 - **Defs** define typed computed values that can be referenced in field/annex conditions (`visible`, `required`)
 - **Rules** define form-level validation constraints evaluated at fill time
 
-# DefsSection
+## DefsSection
 
 A mapping of named typed expressions keyed by camelCase identifier.
 
@@ -33,7 +33,7 @@ Each entry specifies a `type` and `value`. For scalar types the value is a strin
   },
 ]} />
 
-# RulesSection
+## RulesSection
 
 A mapping of form-level validation rules keyed by camelCase identifier. Rules are evaluated at fill time.
 
@@ -55,7 +55,7 @@ A mapping of form-level validation rules keyed by camelCase identifier. Rules ar
   },
 ]} />
 
-# CondExpr
+## CondExpr
 
 A conditional expression used in `include`, `required`, and `visible` fields.
 
@@ -72,7 +72,7 @@ When a string is provided, it can reference:
 
 Validation rules (`rules`) may also reference field values unprefixed (e.g. `creditScore`). See [Logic](/concepts/logic) for the full expression language.
 
-# Examples
+## Examples
 
 ```yaml tab="YAML"
 kind: form
@@ -196,7 +196,7 @@ fields:
 }
 ```
 
-# Related
+## Related
 
 - [Form](/schemas/artifacts/form) - Interactive form artifact
 - [Bundle](/schemas/artifacts/bundle) - Container artifact with conditional inclusion

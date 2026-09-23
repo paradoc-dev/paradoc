@@ -7,25 +7,25 @@ ogDescription: Inspect installed artifact metadata and content
 
 Shows detailed information about an installed artifact.
 
-# Usage
+## Usage
 
 ```bash
 paradoc registry view <artifact> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Artifact reference in `@namespace/name` format |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `--json` | Output as JSON |
 
-# Description
+## Description
 
 Displays comprehensive information about an installed artifact, including:
 
@@ -35,7 +35,7 @@ Displays comprehensive information about an installed artifact, including:
 - File path and source URL
 - Downloaded and available layers
 
-# Examples
+## Examples
 
 View an artifact:
 
@@ -49,7 +49,7 @@ Output as JSON:
 paradoc registry view @acme/residential-lease --json
 ```
 
-# Output
+## Output
 
 ```
 @acme/residential-lease
@@ -71,7 +71,7 @@ Layers:
 Available layers (not installed): html
 ```
 
-# Error handling
+## Error handling
 
 If the artifact is not installed:
 
@@ -80,7 +80,7 @@ Artifact not installed: @acme/residential-lease
 Run 'paradoc add @acme/residential-lease' to install it.
 ```
 
-# See also
+## See also
 
 - [list](/cli/commands/list) - List all installed artifacts
 - [add](/cli/commands/add) - Install an artifact

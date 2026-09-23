@@ -8,19 +8,19 @@ ogDescription: A live preview of every composition in a Paradoc project, with a 
 Serves every React composition in the project, paginated on screen with its
 sample data, beside the PDF the same tree renders to.
 
-# Usage
+## Usage
 
 ```bash
 paradoc dev [dir] [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `dir` | Project directory. Defaults to the working directory |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -30,12 +30,12 @@ paradoc dev [dir] [options]
 | `--list` | Print the compositions and what each is bound to, then exit |
 | `--json` | With `--list`, print JSON |
 
-# The conventions
+## The conventions
 
 Three things are found by convention. `paradoc dev --list` prints what it found, so
 a project can check its own layout without starting anything.
 
-## Compositions
+### Compositions
 
 A composition is a `.tsx` or `.jsx` file under a `compositions/` directory,
 anywhere in the project. Modules named `*.sample.*`, `*.test.*`, `*.spec.*` and
@@ -51,7 +51,7 @@ compositions/
   purchase-order.sample.ts    its sample data
 ```
 
-## The artifact
+### The artifact
 
 An artifact declares its composition as a file layer whose MIME type is
 `text/tsx` or `text/jsx`, and the layer's path is relative to the artifact file
@@ -72,7 +72,7 @@ falls back to an artifact file of the same name beside it —
 written before its layer entry exists. Anything else is reported in the preview
 rather than guessed.
 
-## Sample data
+### Sample data
 
 Either a sibling `<name>.sample.ts` (or `.tsx`, `.js`, `.mjs`, `.jsx`) whose
 default export is the data, or a `sample` export from the composition module
@@ -90,7 +90,7 @@ All three rules live in `@paradoc/react/discovery` and are read by
 `paradoc check` as well, so a composition that previews is a
 composition that checks.
 
-# The preview
+## The preview
 
 The document is on the left, paginated in the browser at the page geometry
 `@paradoc/react` fixes, and the PDF is on the right, rendered in Node from the
@@ -113,7 +113,7 @@ When the preview's page plan names a keep the tree no longer carries, the render
 drops that hint and the proof pane says which one, because the PDF then breaks
 where the preview did not.
 
-# What it serves
+## What it serves
 
 `paradoc dev` writes nothing to disk. The page is four modules generated in memory
 and addressed as files of the project root:
@@ -132,7 +132,7 @@ headlessly. It takes `{ "id": "<composition id>", "plan": { "breaks": [],
 the check fails. `X-Paradoc-Unknown-Breaks` and `X-Paradoc-Unknown-Repeats` name
 any hint the render could not honour.
 
-# What the project must supply
+## What the project must supply
 
 The preview compiles the project's own compositions against the project's own
 React, so it uses the project's toolchain. `paradoc` does not carry a bundler:
@@ -151,7 +151,7 @@ The project's own `vite.config` is not read: `paradoc dev` serves one page it
 generates itself, so a composition should import packages and its own neighbours
 and nothing else.
 
-# Examples
+## Examples
 
 Preview the project in the working directory:
 

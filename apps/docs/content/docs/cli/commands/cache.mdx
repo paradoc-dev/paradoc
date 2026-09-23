@@ -7,13 +7,13 @@ ogDescription: Manage the Paradoc CLI registry cache
 
 Manages the registry data cache used to speed up registry operations.
 
-# Usage
+## Usage
 
 ```bash
 paradoc cache <command> [options]
 ```
 
-# Subcommands
+## Subcommands
 
 | Command | Description |
 |---------|-------------|
@@ -25,7 +25,7 @@ paradoc cache <command> [options]
 
 ---
 
-# cache clear
+## cache clear
 
 Clear all cached registry data.
 
@@ -33,7 +33,7 @@ Clear all cached registry data.
 paradoc cache clear
 ```
 
-## Output
+### Output
 
 ```
 ✓ Cleared 12 cached entries
@@ -41,7 +41,7 @@ paradoc cache clear
 
 ---
 
-# cache stats
+## cache stats
 
 Show cache statistics.
 
@@ -50,13 +50,13 @@ paradoc cache stats [options]
 paradoc cache info [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
 | `--json` | Output as JSON |
 
-## Output
+### Output
 
 ```
 Cache Statistics
@@ -70,7 +70,7 @@ Total size: 45.2 KB
 
 ---
 
-# cache invalidate
+## cache invalidate
 
 Invalidate cache for a specific registry.
 
@@ -78,13 +78,13 @@ Invalidate cache for a specific registry.
 paradoc cache invalidate <namespace>
 ```
 
-## Arguments
+### Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `namespace` | Registry namespace to invalidate (e.g., `@acme`) |
 
-## Example
+### Example
 
 ```bash
 paradoc cache invalidate @acme
@@ -92,7 +92,7 @@ paradoc cache invalidate @acme
 
 ---
 
-# cache config
+## cache config
 
 Show current cache configuration.
 
@@ -100,13 +100,13 @@ Show current cache configuration.
 paradoc cache config [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
 | `--json` | Output as JSON |
 
-## Output
+### Output
 
 ```
 Cache Configuration
@@ -122,7 +122,7 @@ Project config:
 
 ---
 
-# cache reset
+## cache reset
 
 Reset cache configuration to defaults.
 
@@ -130,13 +130,13 @@ Reset cache configuration to defaults.
 paradoc cache reset [options]
 ```
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
 | `--clear` | Also clear all cached data |
 
-## Output
+### Output
 
 ```
 ✓ Cache configuration reset to defaults
@@ -146,7 +146,7 @@ Default settings:
   Directory: ~/.paradoc/cache
 ```
 
-# See also
+## See also
 
 - [configure](/cli/commands/configure) - Interactive configuration wizard
 - [reset](/cli/commands/reset) - Reset CLI to factory defaults

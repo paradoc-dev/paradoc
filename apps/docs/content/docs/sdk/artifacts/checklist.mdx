@@ -5,9 +5,9 @@ description: Create Checklist artifacts for task lists and verification
 
 Create Checklist artifacts for tracking tasks, requirements, or verification items. Each item can have a boolean (done/not done) or enumerated status type.
 
-# Examples
+## Examples
 
-## Creating a checklist
+### Creating a checklist
 
 ```ts
 // Object pattern
@@ -46,7 +46,7 @@ const checklist = p.checklist()
   .build()
 ```
 
-## Loading from external data
+### Loading from external data
 
 ```ts
 // Parse and validate unknown input (throws on error)
@@ -59,9 +59,9 @@ if (result.success) {
 }
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.checklist(input: ChecklistInput, options?: ArtifactInstanceOptions): ChecklistInstance
@@ -73,7 +73,7 @@ from the checklist — every `fill`, mutator, and `clone` — carries it;
 `render()` itself takes no resolver. See
 [ArtifactInstanceOptions](/sdk/resolvers#artifactinstanceoptions).
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
@@ -91,7 +91,7 @@ from the checklist — every `fill`, mutator, and `clone` — carries it;
   { name: 'defaultLayer', type: 'string', description: 'Key of the default layer to use when none specified', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns a `ChecklistInstance` with the following properties and methods:
 
@@ -122,7 +122,7 @@ Returns a `ChecklistInstance` with the following properties and methods:
   { name: 'render', type: '(options?: RuntimeChecklistRenderOptions) => Promise<Output>', description: 'Render checklist content', isMethod: true },
 ]} />
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a checklist incrementally:
 
@@ -153,7 +153,7 @@ Chain methods to build a checklist incrementally:
   returns={{ intermediate: 'ChecklistBuilder', terminal: 'ChecklistInstance' }}
 />
 
-## Static Methods
+### Static Methods
 
 Parse checklists from unknown data sources. Both accept an
 [`ArtifactInstanceOptions`](/sdk/resolvers#artifactinstanceoptions) to bind a
@@ -164,11 +164,11 @@ resolver for any file-backed layer:
   { name: 'safeFrom', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'Result<ChecklistInstance>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Progressive Item Validation
+## Progressive Item Validation
 
 Use progressive validators when collecting checklist answers interactively (for example in chat flows).
 
-## Return shape
+### Return shape
 
 ```ts
 type ProgressiveValidationResult<T> =
@@ -176,7 +176,7 @@ type ProgressiveValidationResult<T> =
   | { success: false; value: null; errors: ValidationError[] }
 ```
 
-## Validate a single item answer
+### Validate a single item answer
 
 ```ts
 const status = checklist.validateItemInput({
@@ -185,7 +185,7 @@ const status = checklist.validateItemInput({
 })
 ```
 
-## Validate a partial patch
+### Validate a partial patch
 
 ```ts
 const patch = checklist.validateItemsPatch({
@@ -196,9 +196,9 @@ const patch = checklist.validateItemsPatch({
 
 Unknown item IDs and invalid enum/boolean values return structured `ValidationError[]`.
 
-# Checklist Item Types
+## Checklist Item Types
 
-## ChecklistItem
+### ChecklistItem
 
 Each item in a checklist has the following properties:
 
@@ -209,11 +209,11 @@ Each item in a checklist has the following properties:
   { name: 'status', type: 'StatusSpec', description: 'Status specification (boolean or enum)', isOptional: true },
 ]} />
 
-## Status Types
+### Status Types
 
 Checklist items can have either boolean or enumerated status tracking:
 
-### BooleanStatusSpec
+#### BooleanStatusSpec
 
 Simple done/not-done tracking:
 
@@ -222,7 +222,7 @@ Simple done/not-done tracking:
   { name: 'default', type: 'boolean', description: 'Default status value', isOptional: true },
 ]} />
 
-### EnumStatusSpec
+#### EnumStatusSpec
 
 Multiple status states (e.g., excellent/good/fair/poor):
 
@@ -232,7 +232,7 @@ Multiple status states (e.g., excellent/good/fair/poor):
   { name: 'default', type: 'string', description: 'Default status value', isOptional: true },
 ]} />
 
-### EnumStatusOption
+#### EnumStatusOption
 
 Each option in an enum status:
 
@@ -242,7 +242,7 @@ Each option in an enum status:
   { name: 'description', type: 'string', description: 'Additional description of this status', isOptional: true },
 ]} />
 
-# Lifecycle Types
+## Lifecycle Types
 
 Checklists follow a two-phase lifecycle:
 
@@ -272,7 +272,7 @@ const completed = reset.complete()
 const output = await completed.render({ renderer: renderLayer() })
 ```
 
-## DraftChecklist
+### DraftChecklist
 
 Created by `checklist.fill()` or `checklist.fill()`. Progressive drafts may be incomplete; `fill()` and `complete()` require every declared item. An explicit `false` answer counts as present. Use `clear('items.<id>')` to remove an answer and `reset('items.<id>')` to restore its declared default.
 
@@ -298,7 +298,7 @@ Created by `checklist.fill()` or `checklist.fill()`. Progressive drafts may be i
   { name: 'clone', type: '() => DraftChecklist', description: 'Create exact copy', isMethod: true },
 ]} />
 
-## CompletedChecklist
+### CompletedChecklist
 
 Created by `draft.complete()`. Fully frozen.
 
@@ -314,7 +314,7 @@ Created by `draft.complete()`. Fully frozen.
   { name: 'clone', type: '() => CompletedChecklist', description: 'Create exact copy', isMethod: true },
 ]} />
 
-# Related
+## Related
 
 - [Checklist Schema](/schemas/artifacts/checklist)
 - [Renderers](/sdk/renderers)

@@ -9,19 +9,19 @@ page there, the same way it already opens one for a keep that overflows. The
 preview and the PDF read the same plan, so both start the next page in the
 same place.
 
-# Preview
+## Preview
 
 <ComponentPreview name="page-break" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="page-break" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="page-break" />
 
-# Composition
+## Composition
 
 `PageBreak` needs a [`Document`](/components/document) above it like any
 other keep, and a [`Pages`](/components/pages) preview above that for the
@@ -42,11 +42,11 @@ An orphaned table header — one the plan would otherwise carry forward alone
 to keep it off the foot of a page — still carries forward first: the break
 opens the page either way, so the header is never stranded.
 
-# Variants
+## Variants
 
 `PageBreak` takes `keepId` and an optional `table`.
 
-## Before a section
+### Before a section
 
 Placed directly ahead of a [`Section`](/components/section), the break
 starts that section on a fresh page even though it would otherwise fit
@@ -54,7 +54,7 @@ under the section before it.
 
 <ComponentVariant name="page-break" variant="before-a-section" />
 
-## Inside a table's rows
+### Inside a table's rows
 
 Placed between two rows of a hand-built table and given the same `table` id
 the rows carry, the break still lets the table's header repeat above the

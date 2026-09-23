@@ -10,19 +10,19 @@ expects to see. The packet's own numbering — where each part's pages land in
 the whole — comes from the seal, not from the screen, so `Part` shows a page
 range only while it has one to show.
 
-# Preview
+## Preview
 
 <ComponentPreview name="part" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="part" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="part" />
 
-# Composition
+## Composition
 
 `Part` always sits inside a `Bundle`, which groups the packet's documents in
 one scroll and supplies the branding tokens every part reads. A part's own
@@ -48,27 +48,27 @@ The header's size follows the rhythm of the document it frames: the `Bundle`'s
 token when there is one, otherwise the `Document` below, read through
 `useDocumentTokensAround`. See [Typography](/components/typography).
 
-# Variants
+## Variants
 
 `Part`'s page range comes entirely from `firstPage`, `pageCount`,
 `placedFor`, and `packetHash` — the sealed placement, not a prop a caller
 chooses directly.
 
-## Unplaced
+### Unplaced
 
 No `firstPage` or `pageCount`: the state before the packet has ever been
 sealed.
 
 <ComponentVariant name="part" variant="unplaced" />
 
-## Placed
+### Placed
 
 `firstPage` and `pageCount` match the packet on screen, so the header names
 the packet pages this part occupies.
 
 <ComponentVariant name="part" variant="placed" />
 
-## Pending
+### Pending
 
 `placedFor` no longer matches `packetHash`: a session's edit repaginated the
 composition and the packet has not been resealed yet, so the stale page

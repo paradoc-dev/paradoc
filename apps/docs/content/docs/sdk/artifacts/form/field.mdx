@@ -5,9 +5,9 @@ description: Define form fields for data capture
 
 Define form fields for capturing user input. Paradoc supports 21 field types covering text, numeric, temporal, entity, spatial, and selection inputs.
 
-# Examples
+## Examples
 
-## Creating fields
+### Creating fields
 
 ```ts
 // Text field with validation
@@ -35,7 +35,7 @@ const addressField = field.fieldset()
   .build()
 ```
 
-## Adding fields to forms
+### Adding fields to forms
 
 ```ts
 // Object pattern
@@ -57,9 +57,9 @@ const form = p.form()
   .build()
 ```
 
-# Field Types
+## Field Types
 
-## Text-based
+### Text-based
 
 | Type | Description | Builder |
 |------|-------------|---------|
@@ -68,7 +68,7 @@ const form = p.form()
 | `uuid` | UUID string | `field.uuid()` |
 | `uri` | URL/URI | `field.uri()` |
 
-## Numeric
+### Numeric
 
 | Type | Description | Builder |
 |------|-------------|---------|
@@ -77,20 +77,20 @@ const form = p.form()
 | `rating` | Rating scale (1-5 default) | `field.rating()` |
 | `money` | Monetary amount | `field.money()` |
 
-## Boolean
+### Boolean
 
 | Type | Description | Builder |
 |------|-------------|---------|
 | `boolean` | Checkbox/toggle | `field.boolean()` |
 
-## Selection
+### Selection
 
 | Type | Description | Builder |
 |------|-------------|---------|
 | `enum` | Single-select dropdown | `field.enum()` |
 | `multiselect` | Multi-select | `field.multiselect()` |
 
-## Temporal
+### Temporal
 
 | Type | Description | Builder |
 |------|-------------|---------|
@@ -99,7 +99,7 @@ const form = p.form()
 | `time` | Time only | `field.time()` |
 | `duration` | ISO 8601 duration | `field.duration()` |
 
-## Entity
+### Entity
 
 | Type | Description | Builder |
 |------|-------------|---------|
@@ -107,7 +107,7 @@ const form = p.form()
 | `organization` | Organization info | `field.organization()` |
 | `identification` | ID document | `field.identification()` |
 
-## Spatial
+### Spatial
 
 | Type | Description | Builder |
 |------|-------------|---------|
@@ -116,16 +116,16 @@ const form = p.form()
 | `address` | Postal address | `field.address()` |
 | `phone` | Phone number | `field.phone()` |
 
-## Container
+### Container
 
 | Type | Description | Builder |
 |------|-------------|---------|
 | `fieldset` | Nested fields | `field.fieldset()` |
 | `list` | Ordered repeated fields | `field.list()` |
 
-# API
+## API
 
-## Field Builder
+### Field Builder
 
 The `field` function creates field builders:
 
@@ -137,7 +137,7 @@ field.number()              // Returns NumberFieldBuilder
 // ... etc for each field type
 ```
 
-## Common Builder Methods
+### Common Builder Methods
 
 All field builders share these methods:
 
@@ -153,9 +153,9 @@ All field builders share these methods:
   returns={{ intermediate: 'FieldBuilder', terminal: 'FormField' }}
 />
 
-## Type-Specific Methods
+### Type-Specific Methods
 
-### Text / Email / UUID / URI
+#### Text / Email / UUID / URI
 
 <PropertiesTable properties={[
   { name: 'minLength', type: '(value: number) => this', description: 'Minimum character length' },
@@ -164,7 +164,7 @@ All field builders share these methods:
   { name: 'default', type: '(value: string) => this', description: 'Default value' },
 ]} />
 
-### Number
+#### Number
 
 <PropertiesTable properties={[
   { name: 'min', type: '(value: number) => this', description: 'Minimum allowed value' },
@@ -172,7 +172,7 @@ All field builders share these methods:
   { name: 'default', type: '(value: number) => this', description: 'Default value' },
 ]} />
 
-### Money
+#### Money
 
 <PropertiesTable properties={[
   { name: 'min', type: '(value: number) => this', description: 'Minimum amount' },
@@ -180,20 +180,20 @@ All field builders share these methods:
   { name: 'default', type: '(value: Money) => this', description: 'Default value ({ amount, currency })' },
 ]} />
 
-### Boolean
+#### Boolean
 
 <PropertiesTable properties={[
   { name: 'default', type: '(value: boolean) => this', description: 'Default value' },
 ]} />
 
-### Enum
+#### Enum
 
 <PropertiesTable properties={[
   { name: 'options', type: '(values: EnumOption[]) => this', description: 'Available options' },
   { name: 'default', type: '(value: string | number) => this', description: 'Default selection' },
 ]} />
 
-### Multiselect
+#### Multiselect
 
 <PropertiesTable properties={[
   { name: 'options', type: '(values: EnumOption[]) => this', description: 'Available options' },
@@ -202,7 +202,7 @@ All field builders share these methods:
   { name: 'default', type: '(value: EnumOptionValue[]) => this', description: 'Default selections' },
 ]} />
 
-### Date / Datetime / Time
+#### Date / Datetime / Time
 
 <PropertiesTable properties={[
   { name: 'min', type: '(value: string) => this', description: 'Minimum date/time (ISO format)' },
@@ -210,7 +210,7 @@ All field builders share these methods:
   { name: 'default', type: '(value: string) => this', description: 'Default value (ISO format)' },
 ]} />
 
-### Percentage
+#### Percentage
 
 <PropertiesTable properties={[
   { name: 'min', type: '(value: number) => this', description: 'Minimum percentage' },
@@ -219,7 +219,7 @@ All field builders share these methods:
   { name: 'default', type: '(value: number) => this', description: 'Default value' },
 ]} />
 
-### Rating
+#### Rating
 
 <PropertiesTable properties={[
   { name: 'min', type: '(value: number) => this', description: 'Minimum rating' },
@@ -228,28 +228,28 @@ All field builders share these methods:
   { name: 'default', type: '(value: number) => this', description: 'Default value' },
 ]} />
 
-### Identification
+#### Identification
 
 <PropertiesTable properties={[
   { name: 'allowedTypes', type: '(...types: string[]) => this', description: 'Allowed ID document types' },
   { name: 'default', type: '(value: Identification) => this', description: 'Default value' },
 ]} />
 
-### Fieldset
+#### Fieldset
 
 <PropertiesTable properties={[
   { name: 'field', type: '(id: string, field: FormField | FieldBuilder) => this', description: 'Add one nested field' },
   { name: 'fields', type: '(fields: Record<string, FormField | FieldBuilder>) => this', description: 'Set nested field definitions' },
 ]} />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'FormField', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<FormField>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Common Properties
+## Common Properties
 
 All fields share these base properties:
 
@@ -263,7 +263,7 @@ All fields share these base properties:
   { name: 'attrs', type: 'Record<string, string | number | boolean>', description: 'Custom metadata attributes', isOptional: true },
 ]} />
 
-# Conditional Logic
+## Conditional Logic
 
 The `required`, `visible`, and `disabled` properties can be expressions that reference defs keys or field values (`fields.<id>`):
 
@@ -282,7 +282,7 @@ const form = p.form()
 
 `visible` and `required` compose into one effective status that cascades through fieldsets: a hidden fieldset hides its whole subtree, and a field is only required when it is also visible. A parent's `required` does not force its children. See [Logic](/concepts/logic) for the expression language.
 
-# Related
+## Related
 
 - [form](/sdk/artifacts/form) - Parent form artifact
 - [Field Schema](/schemas/artifacts/form/field)

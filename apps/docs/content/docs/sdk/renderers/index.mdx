@@ -5,7 +5,7 @@ description: Render artifacts to different output formats
 
 Renderers transform Paradoc artifacts into output formats like text, PDF, and DOCX. Each renderer implements the `ParadocRenderer` interface, making it easy to build custom renderers for your specific needs.
 
-# Installation
+## Installation
 
 `@paradoc/core` uses the unified renderer automatically. Install it directly
 when building custom integrations or using format-specific functions:
@@ -14,7 +14,7 @@ when building custom integrations or using format-specific functions:
 npm install @paradoc/render
 ```
 
-# Usage
+## Usage
 
 ```ts
 import { p } from '@paradoc/core'
@@ -59,7 +59,7 @@ The same optional override is available to `.seal({ renderer: myRenderer })`.
 Paradoc still applies its built-in PDF flattening and canonical hashing after
 the custom renderer or conversion adapter returns.
 
-# Format Entry Points
+## Format Entry Points
 
 `renderLayer()` is the default application entry point. Import a format subpath
 when you need its low-level functions or format-specific configuration.
@@ -70,7 +70,7 @@ when you need its low-level functions or format-specific configuration.
 | [PDF](/sdk/renderers/pdf) | Fill PDF forms with AcroForm field support |
 | [DOCX](/sdk/renderers/docx) | Generate Word documents from templates |
 
-# renderLayer()
+## renderLayer()
 
 ```ts
 function renderLayer(options?: RenderLayerOptions): ParadocRenderer<
@@ -86,7 +86,7 @@ function renderLayer(options?: RenderLayerOptions): ParadocRenderer<
   { name: 'docxSignatureOptions', type: 'DocxSignatureOptions', description: 'Signature rendering options for DOCX layers.', isOptional: true },
 ]} />
 
-# Renderer Interface
+## Renderer Interface
 
 All renderers implement the `ParadocRenderer` interface. Use this to build custom renderers:
 
@@ -103,14 +103,14 @@ const myRenderer: ParadocRenderer<RendererLayer, string> = {
 }
 ```
 
-## ParadocRenderer
+### ParadocRenderer
 
 <PropertiesTable properties={[
   { name: 'id', type: 'string', description: 'Unique identifier for this renderer (e.g., "text", "pdf", "docx")' },
   { name: 'render', type: '(request: RenderRequest) => Output | Promise<Output>', description: 'Execute the rendering operation', isMethod: true },
 ]} />
 
-## RenderRequest
+### RenderRequest
 
 The request object passed to the `render` method:
 
@@ -122,7 +122,7 @@ The request object passed to the `render` method:
   { name: 'ctx', type: 'ParadocRendererContext', description: 'Optional context with formatter, progressive policy, and logger', isOptional: true },
 ]} />
 
-## RendererLayer
+### RendererLayer
 
 The resolved template content:
 
@@ -133,7 +133,7 @@ The resolved template content:
   { name: 'bindings', type: 'Bindings', description: 'Template-specific field mappings', isOptional: true },
 ]} />
 
-## ParadocRendererContext
+### ParadocRendererContext
 
 Optional context for customizing renderer behavior:
 
@@ -142,7 +142,7 @@ Optional context for customizing renderer behavior:
   { name: 'formatter', type: 'Formatter', description: 'Formatter selected for the entire artifact render', isOptional: true },
 ]} />
 
-# Building Custom Renderers
+## Building Custom Renderers
 
 To create a custom renderer:
 
@@ -176,7 +176,7 @@ export function csvRenderer(): ParadocRenderer<
 }
 ```
 
-# Related
+## Related
 
 - [Formatting](/sdk/formatting) - Value formatting for renderers
 - [Form Layers](/sdk/artifacts/form) - Template layer configuration

@@ -7,13 +7,13 @@ ogDescription: Add and remove artifacts from an Paradoc registry catalog
 
 Manage which artifacts are listed in a registry catalog.
 
-# Usage
+## Usage
 
 ```bash
 paradoc registry catalog <command> [options]
 ```
 
-# Subcommands
+## Subcommands
 
 | Command | Description |
 |---------|-------------|
@@ -22,7 +22,7 @@ paradoc registry catalog <command> [options]
 
 ---
 
-# catalog add
+## catalog add
 
 Add an artifact to the registry catalog.
 
@@ -30,24 +30,24 @@ Add an artifact to the registry catalog.
 paradoc registry catalog add <artifact> [options]
 ```
 
-## Arguments
+### Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Path to artifact file (JSON/YAML) |
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
 | `-r, --registry <path>` | Path to registry.json (default: `./registry.json`) |
 | `-y, --yes` | Skip confirmation prompts |
 
-## Description
+### Description
 
 Reads and validates the artifact file, then adds it to the `items` array in `registry.json`. If an artifact with the same name already exists, you will be prompted to update it.
 
-## Examples
+### Examples
 
 ```bash
 paradoc registry catalog add ./artifacts/w9-form.json
@@ -56,7 +56,7 @@ paradoc registry catalog add ./lease.yaml -r ./my-registry/registry.json
 
 ---
 
-# catalog remove
+## catalog remove
 
 Remove an artifact from the registry catalog.
 
@@ -65,27 +65,27 @@ paradoc registry catalog remove <name> [options]
 paradoc registry catalog rm <name> [options]
 ```
 
-## Arguments
+### Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `name` | Artifact name to remove |
 
-## Options
+### Options
 
 | Option | Description |
 |--------|-------------|
 | `-r, --registry <path>` | Path to registry.json (default: `./registry.json`) |
 | `-y, --yes` | Skip confirmation prompts |
 
-## Examples
+### Examples
 
 ```bash
 paradoc registry catalog remove w9-form
 paradoc registry catalog rm old-template -y
 ```
 
-# See also
+## See also
 
 - [registry make](/cli/commands/registry/make) - Create a registry
 - [registry compile](/cli/commands/registry/compile) - Compile registry artifacts

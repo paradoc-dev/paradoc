@@ -5,9 +5,9 @@ description: Validate time strings
 
 Validate time strings in ISO 8601 format (HH:mm:ss). The Time primitive ensures times are properly formatted and represent valid clock times.
 
-# Examples
+## Examples
 
-## Creating times
+### Creating times
 
 ```ts
 // Direct validation
@@ -25,7 +25,7 @@ if (p.time.isValid('23:59:59')) {
 }
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -40,7 +40,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -59,9 +59,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Direct Call
+### Direct Call
 
 ```ts
 p.time(input: string): string
@@ -73,7 +73,7 @@ Pass a time string for validation. Returns the validated string or throws on err
 const time = p.time('14:30:00')
 ```
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'string', description: 'Parse unknown input (throws on error)' },
@@ -82,7 +82,7 @@ const time = p.time('14:30:00')
   { name: 'now', params: '', returns: 'string', description: 'Get current time as ISO string' },
 ]} />
 
-# Format
+## Format
 
 The Time primitive expects and returns strings in ISO 8601 time format:
 
@@ -98,7 +98,7 @@ HH:mm:ss.sss
 | `ss` | Seconds | 00-59 |
 | `.sss` | Milliseconds (optional) | 000-999 |
 
-# Common Times
+## Common Times
 
 | Time | Description |
 |------|-------------|
@@ -109,7 +109,7 @@ HH:mm:ss.sss
 | `18:00:00` | 6:00 PM |
 | `23:59:59` | End of day |
 
-# Validation
+## Validation
 
 The Time primitive validates:
 
@@ -142,7 +142,7 @@ p.time('not-a-time')
 // Error: Invalid Time: must be in HH:mm:ss format
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Date](/sdk/primitives/date) - Date only

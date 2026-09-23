@@ -5,9 +5,9 @@ description: Create Form artifacts with fields, parties, and signing flows
 
 Create Form artifacts for interactive forms with fields, signing parties, and document annexes.
 
-# Examples
+## Examples
 
-## Creating a form
+### Creating a form
 
 ```ts
 // Object pattern
@@ -51,7 +51,7 @@ const form = p.form()
   .build()
 ```
 
-## Adding instructions
+### Adding instructions
 
 ```ts
 // Inline instructions
@@ -70,7 +70,7 @@ const form = p.form()
   .build()
 ```
 
-## Loading from external data
+### Loading from external data
 
 ```ts
 // Parse and validate unknown input (throws on error)
@@ -83,7 +83,7 @@ if (result.success) {
 }
 ```
 
-## Form Lifecycle
+### Form Lifecycle
 
 Forms follow a three-phase lifecycle: Draft → Signable → Executed.
 
@@ -118,9 +118,9 @@ const executed = signed.finalize()
 const output = await executed.render()
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.form(input: FormInput, options?: ArtifactInstanceOptions): FormInstance
@@ -131,7 +131,7 @@ declares. It's bound once here, at construction, and every instance derived
 from the form — every `fill`, mutator, and `clone` — carries it; `render()`
 itself takes no resolver. See [ArtifactInstanceOptions](/sdk/resolvers#artifactinstanceoptions).
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
@@ -154,7 +154,7 @@ itself takes no resolver. See [ArtifactInstanceOptions](/sdk/resolvers#artifacti
   { name: 'parties', type: 'Record<string, FormParty>', description: 'Party role definitions', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns a `FormInstance` with the following properties and methods:
 
@@ -195,7 +195,7 @@ Returns a `FormInstance` with the following properties and methods:
   { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML', isMethod: true },
 ]} />
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a form incrementally:
 
@@ -231,7 +231,7 @@ Chain methods to build a form incrementally:
   returns={{ intermediate: 'FormBuilder', terminal: 'FormInstance' }}
 />
 
-## Static Methods
+### Static Methods
 
 Parse forms from unknown data sources. Both accept an
 [`ArtifactInstanceOptions`](/sdk/resolvers#artifactinstanceoptions) to bind a
@@ -242,7 +242,7 @@ resolver for any file-backed layer:
   { name: 'safeFrom', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'Result<FormInstance>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Data Validation
+## Data Validation
 
 FormInstance provides Zod-style methods for validating data:
 
@@ -259,11 +259,11 @@ if (result.success) {
 }
 ```
 
-# Progressive Validation
+## Progressive Validation
 
 Use progressive validators to validate one user answer at a time before calling `fill()`.
 
-## Return shape
+### Return shape
 
 All progressive validators return:
 
@@ -273,7 +273,7 @@ type ProgressiveValidationResult<T> =
   | { success: false; value: null; errors: ValidationError[] }
 ```
 
-## Field input validation
+### Field input validation
 
 ```ts
 const species = form.validateFieldInput({
@@ -292,7 +292,7 @@ const partialFields = form.validateFieldsPatch({
 })
 ```
 
-## Party input validation
+### Party input validation
 
 ```ts
 const tenantResult = form.validatePartyInput({
@@ -315,7 +315,7 @@ const partiesPatch = form.validatePartiesPatch({
 
 `validatePartyInput` normalizes runtime IDs using `{roleId}-{index}` (for example `tenant-0`).
 
-## Annex input validation
+### Annex input validation
 
 ```ts
 const annexResult = form.validateAnnexInput({
@@ -330,11 +330,11 @@ const annexPatch = form.validateAnnexesPatch({
 
 When `allowAdditionalAnnexes` is `false`, unknown annex keys are rejected.
 
-# Incremental Filling
+## Incremental Filling
 
 Use `fill` to create a DraftForm from partial (or empty) data, then progressively fill it with `update`. This is the recommended pattern for AI agents and step-by-step UIs that collect data one field at a time.
 
-## Creating a draft from partial data
+### Creating a draft from partial data
 
 ```ts
 // Start with empty data
@@ -353,7 +353,7 @@ if (result.success) {
 }
 ```
 
-## Updating a draft progressively
+### Updating a draft progressively
 
 ```ts
 // Merge additional data into the draft
@@ -368,7 +368,7 @@ if (result.success) {
 }
 ```
 
-## Querying fill state
+### Querying fill state
 
 `getFillState()` returns a snapshot of progress, including what's open, what's blocked behind conditional visibility, and what to ask next. See [Fill State](/sdk/artifacts/form/fill-state) for full type reference.
 
@@ -391,11 +391,11 @@ const next = draft.getNextFillTarget()
 const all = draft.getAvailableFillTargets()
 ```
 
-## Acceptance and readiness
+### Acceptance and readiness
 
 `fill()` and `update()` validate every supplied value. Omitted required values remain open so a caller can build a draft across turns. `safeFill()` succeeds when that supplied patch is accepted. Use `draft.isValid()` or `draft.validate()` to assess full readiness, including rules. Rendering a draft is allowed; signing, sealing, and final bundle operations require readiness.
 
-# Lifecycle Types
+## Lifecycle Types
 
 The `fill()` method returns a `DraftForm` that follows the form lifecycle:
 
@@ -405,7 +405,7 @@ The `fill()` method returns a `DraftForm` that follows the form lifecycle:
 | `SignableForm` | Signable | Frozen | Capture signatures |
 | `ExecutedForm` | Executed | Frozen | Frozen (complete) |
 
-## DraftForm
+### DraftForm
 
 Created by `form.fill()`. Mutable data and signer configuration.
 
@@ -439,7 +439,7 @@ Created by `form.fill()`. Mutable data and signer configuration.
   { name: 'toYAML', type: '() => string', description: 'Serialize to YAML', isMethod: true },
 ]} />
 
-## SignableForm
+### SignableForm
 
 Created by `draft.prepareForSigning()` or `draft.seal()`. Frozen data, signature capture allowed.
 
@@ -460,7 +460,7 @@ Created by `draft.prepareForSigning()` or `draft.seal()`. Frozen data, signature
   { name: 'finalize', type: '() => ExecutedForm', description: 'Transition to executed phase', isMethod: true },
 ]} />
 
-## ExecutedForm
+### ExecutedForm
 
 Created by `signable.finalize()`. Fully frozen, ready for archival.
 
@@ -474,7 +474,7 @@ Created by `signable.finalize()`. Fully frozen, ready for archival.
   { name: 'toJSON', type: '() => ExecutedFormJSON', description: 'Serialize to JSON', isMethod: true },
 ]} />
 
-# Related
+## Related
 
 - [field](/sdk/artifacts/form/field) - Field definitions
 - [annex](/sdk/artifacts/form/annex) - Annex slot definitions

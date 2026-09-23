@@ -7,19 +7,19 @@ ogDescription: Analyze PDF form fields to configure bindings
 
 Inspects PDF form fields to aid in bindings configuration.
 
-# Usage
+## Usage
 
 ```bash
 paradoc inspect <pdf> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `pdf` | PDF template file (path or `-` for stdin) |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -30,11 +30,11 @@ paradoc inspect <pdf> [options]
 | `--include-signatures` | Include signature fields in the output |
 | `--out <file>` | Write inspection result to JSON file |
 
-# Description
+## Description
 
 The `inspect` command extracts and displays all AcroForm fields from a PDF file. This helps you understand the PDF's field structure when configuring form bindings.
 
-# Examples
+## Examples
 
 Inspect a PDF:
 
@@ -66,7 +66,7 @@ Save to file:
 paradoc inspect form-template.pdf --out fields.json
 ```
 
-# Output
+## Output
 
 Table format:
 
@@ -96,7 +96,7 @@ Summary format:
 }
 ```
 
-# See also
+## See also
 
 - [render](/cli/commands/render) - Render artifact layers
 - [attach](/cli/commands/attach) - Attach PDF files to artifacts

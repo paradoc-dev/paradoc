@@ -5,9 +5,9 @@ description: Build and validate identification documents
 
 Build and validate identification document information. The Identification primitive captures ID document details like passports, driver's licenses, and national IDs.
 
-# Examples
+## Examples
 
-## Creating identifications
+### Creating identifications
 
 ```ts
 // Object pattern
@@ -33,7 +33,7 @@ const renewed = p.identification()
   .build()
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -48,7 +48,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -71,9 +71,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.identification(input: Identification): Identification
@@ -88,7 +88,7 @@ const id = p.identification({
 })
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build an Identification value incrementally:
 
@@ -106,14 +106,14 @@ Chain methods to build an Identification value incrementally:
   returns={{ intermediate: 'IdentificationBuilder', terminal: 'Identification' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Identification', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Identification>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   { name: 'type', type: 'string', description: 'Type of identification document.' },
@@ -123,7 +123,7 @@ Chain methods to build an Identification value incrementally:
   { name: 'expiryDate', type: 'string?', description: 'Expiration date in YYYY-MM-DD format.' },
 ]} />
 
-# Common ID Types
+## Common ID Types
 
 | Type | Description |
 |------|-------------|
@@ -135,7 +135,7 @@ Chain methods to build an Identification value incrementally:
 | `voter_id` | Voter registration card |
 | `military_id` | Military identification |
 
-# Validation
+## Validation
 
 The Identification primitive validates:
 
@@ -161,7 +161,7 @@ p.identification({ type: '', number: 'AB123456' })
 // Error: Invalid Identification: type cannot be empty
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Person](/sdk/primitives/person) - Person information

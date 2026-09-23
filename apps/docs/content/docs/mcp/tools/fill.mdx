@@ -11,14 +11,14 @@ Creates a progressive draft from supplied data. Supplied values validate immedia
   Only forms and checklists support filling. Passing a document or bundle will return an error.
 </Callout>
 
-# Parameters
+## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `artifact` | `object` | Yes | The Paradoc artifact (form or checklist) definition |
 | `data` | `object` | Yes | Data to fill. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -28,9 +28,9 @@ Creates a progressive draft from supplied data. Supplied values validate immedia
 | `errors` | `array` | List of validation errors, each with `field` and `message` |
 | `error` | `string` | Error message if filling could not be performed |
 
-# Examples
+## Examples
 
-## Successful fill
+### Successful fill
 
 ```json
 // Request
@@ -49,7 +49,7 @@ Creates a progressive draft from supplied data. Supplied values validate immedia
 
 The `data` field in the response contains the validated data with any default values applied by the artifact definition.
 
-## Failed validation
+### Failed validation
 
 ```json
 // Request

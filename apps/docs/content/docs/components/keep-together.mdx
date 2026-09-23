@@ -9,19 +9,19 @@ is already one, a titled `Section`'s heading is another, and each of a
 decides the element it renders as, and any other prop, `className` included,
 passes straight through to that element.
 
-# Preview
+## Preview
 
 <ComponentPreview name="keep-together" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="keep-together" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="keep-together" />
 
-# Composition
+## Composition
 
 `Keep Together` renders fine with no [`Document`](/components/document)
 above it — unpaginated, every keep just renders — but the id it carries only
@@ -41,26 +41,26 @@ its rows continue onto — carries `data-keep-repeat`, so it's never confused
 with the keep's one real place in the flow. A plain `Keep Together` never has
 to know whether it's being repeated; only `Table` produces repeats today.
 
-# Variants
+## Variants
 
 `Keep Together` takes a required `keepId`, an optional `as` (default `"div"`),
 and any other prop, which is spread onto the rendered element.
 
-## Default element
+### Default element
 
 With `as` omitted, `Keep Together` renders a `div` — here, grouping a couple
 of fields so they are never separated across a page break.
 
 <ComponentVariant name="keep-together" variant="default-element" />
 
-## Custom element
+### Custom element
 
 `as` renders a different element — here, a `header` laying its two fields
 out in a row.
 
 <ComponentVariant name="keep-together" variant="custom-element" />
 
-## Passthrough attributes
+### Passthrough attributes
 
 Any prop beyond `keepId`, `as`, and `children` is spread onto the rendered
 element, here an `aria-label`.

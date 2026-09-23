@@ -7,19 +7,19 @@ ogDescription: Discover Paradoc artifacts across registries
 
 Searches for artifacts in a registry.
 
-# Usage
+## Usage
 
 ```bash
 paradoc search [query] [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `query` | Search query (matches name, title, or description) |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -28,11 +28,11 @@ paradoc search [query] [options]
 | `--tags <tags>` | Filter by tags (comma-separated) |
 | `--json` | Output as JSON |
 
-# Description
+## Description
 
 The `search` command queries a registry's index to find matching artifacts. You can filter results by kind, tags, or a text query that matches against artifact names, titles, and descriptions.
 
-# Examples
+## Examples
 
 Search all artifacts:
 
@@ -70,7 +70,7 @@ Output as JSON:
 paradoc search --json
 ```
 
-# Output
+## Output
 
 ```
 Found 3 artifacts:
@@ -92,7 +92,7 @@ Found 3 artifacts:
 Run 'paradoc add @acme/<name>' to install an artifact.
 ```
 
-# See also
+## See also
 
 - [add](/cli/commands/add) - Install an artifact
 - [registry](/cli/commands/registry) - Manage registry configurations

@@ -5,9 +5,9 @@ description: Define supplementary document slots
 
 Define annex slots for supplementary documents that can be attached to a form. Annexes are predefined placeholders for supporting documents like IDs, contracts, or receipts.
 
-# Examples
+## Examples
 
-## Creating annexes
+### Creating annexes
 
 ```ts
 // Required document
@@ -32,7 +32,7 @@ const parentConsent = annex()
   .build()
 ```
 
-## Adding annexes to forms
+### Adding annexes to forms
 
 ```ts
 // Object pattern
@@ -54,9 +54,9 @@ const form = p.form()
   .build()
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 Create annex definitions directly as objects:
 
@@ -70,7 +70,7 @@ const annexDef: FormAnnex = {
 }
 ```
 
-### Properties
+#### Properties
 
 <PropertiesTable properties={[
   { name: 'title', type: 'string', description: 'Display title for the annex slot', isOptional: true },
@@ -80,7 +80,7 @@ const annexDef: FormAnnex = {
   { name: 'order', type: 'number', description: 'Display order for rendering', isOptional: true },
 ]} />
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build an annex incrementally:
 
@@ -98,14 +98,14 @@ Chain methods to build an annex incrementally:
   returns={{ intermediate: 'FormAnnexBuilder', terminal: 'FormAnnex' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'FormAnnex', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<FormAnnex>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Conditional Annexes
+## Conditional Annexes
 
 Use defs for conditional requirements:
 
@@ -128,7 +128,7 @@ const form = p.form()
   .build()
 ```
 
-# Ad-hoc Annexes
+## Ad-hoc Annexes
 
 Set `allowAdditionalAnnexes: true` on the form to permit additional attachments beyond predefined slots:
 
@@ -142,7 +142,7 @@ const form = p.form({
 })
 ```
 
-# Related
+## Related
 
 - [form](/sdk/artifacts/form) - Parent form artifact
 - [Annex Schema](/schemas/artifacts/form/annex)

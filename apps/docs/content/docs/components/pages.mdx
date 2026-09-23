@@ -9,19 +9,19 @@ again, once per page, showing on each only the keeps the plan assigned to
 it. Everything underneath — every `Field`, `Section`, and `Table` — is
 unaware it might be rendering more than once.
 
-# Preview
+## Preview
 
 <ComponentPreview name="pages" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="pages" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="pages" />
 
-# Composition
+## Composition
 
 `Pages` wraps a [`Document`](/components/document), or a
 [`Bundle`](/components/bundle) of several, and draws each page it produces
@@ -42,7 +42,7 @@ Unlike [`Paper`](/components/paper) alone, which draws one sheet and lets
 content run past its bottom, `Pages` is what keeps a document's rendered
 pages matching what a reader would expect from a printed or exported copy.
 
-## Page furniture
+### Page furniture
 
 `furniture` is what every sheet carries outside the flow: a `header` band, a
 `footer` band, and a `stamp` drawn across the whole sheet behind the content.
@@ -86,11 +86,11 @@ number in the stamp, and refuses one by name. An engine that does not draw a
 slot fails naming the engine and the slot rather than writing a document whose
 every page is missing its header.
 
-# Variants
+## Variants
 
 `Pages` takes an optional `className`, `onPaginate`, and `furniture`.
 
-## Multi-page overflow
+### Multi-page overflow
 
 A longer proposal's line items run past three pages, so `Pages` lays the
 same one tree out across several sheets and repeats the table's header on
@@ -98,7 +98,7 @@ every page it continues onto.
 
 <ComponentVariant name="pages" variant="multi-page" />
 
-## Page furniture
+### Page furniture
 
 `furniture` gives every sheet a running head, a numbered foot, and a stamp
 behind the content, all drawn inside the margin, so the page count is the one
@@ -106,7 +106,7 @@ the same document has without them.
 
 <ComponentVariant name="pages" variant="page-furniture" />
 
-## Draft watermark
+### Draft watermark
 
 A `stamp` of large, light text turned with `-rotate-45` says DRAFT across
 every sheet, rising from the bottom left. Rotation is in the verified class
@@ -115,14 +115,14 @@ preview does.
 
 <ComponentVariant name="pages" variant="draft-watermark" />
 
-## Custom frame
+### Custom frame
 
 A custom `className` replaces the default scroll frame's background and
 padding.
 
 <ComponentVariant name="pages" variant="custom-frame" />
 
-## Page count
+### Page count
 
 `onPaginate` reports the measured plan; here it's used to show the resulting
 page count beside the preview.

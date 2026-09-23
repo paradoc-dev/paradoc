@@ -5,9 +5,9 @@ description: Build and validate monetary amounts
 
 Build and validate monetary amounts with currency. The Money primitive pairs a numeric amount with an ISO 4217 currency code.
 
-# Examples
+## Examples
 
-## Creating money values
+### Creating money values
 
 ```ts
 // Object pattern
@@ -26,7 +26,7 @@ const discounted = p.money()
   .build()
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -41,7 +41,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 // As a field default
@@ -64,9 +64,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.money(input: Money): Money
@@ -78,7 +78,7 @@ Pass a Money object for validation. Returns the validated Money or throws on err
 const price = p.money({ amount: 150.00, currency: 'EUR' })
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a Money value incrementally:
 
@@ -93,21 +93,21 @@ Chain methods to build a Money value incrementally:
   returns={{ intermediate: 'MoneyBuilder', terminal: 'Money' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Money', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Money>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   { name: 'amount', type: 'number', description: 'Amount expressed in decimal form. Supports negative values for credits/refunds.' },
   { name: 'currency', type: 'string', description: 'ISO 4217 alpha-3 currency code (e.g., USD, EUR, GBP, JPY).' },
 ]} />
 
-# Validation
+## Validation
 
 The Money primitive validates:
 
@@ -132,7 +132,7 @@ p.money({ amount: 100 })
 // Error: Invalid Money: currency is required
 ```
 
-# Common Currency Codes
+## Common Currency Codes
 
 | Code | Currency |
 |------|----------|
@@ -149,7 +149,7 @@ p.money({ amount: 100 })
 
 See [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) for the complete list.
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Money Field](/sdk/artifacts/form/field#money) - Money field type

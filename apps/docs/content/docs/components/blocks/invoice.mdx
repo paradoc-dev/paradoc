@@ -10,15 +10,15 @@ mark and accent come from the document's own tokens rather than a prop a
 caller fills in, so a tenant who passes their own token set replaces both at
 once.
 
-# Preview
+## Preview
 
 <ComponentPreview name="invoice" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="invoice" />
 
-# Usage
+## Usage
 
 A block has no single call site — it is a whole document — so this shows
 the composition and its sample data exactly as installing `invoice` gives
@@ -26,7 +26,7 @@ them to you, both real and currently shipping.
 
 <BlockUsage name="invoice" />
 
-# Composition
+## Composition
 
 The invoice composes [`Document`](/components/document),
 [`Section`](/components/section), [`Text`](/components/text),
@@ -57,13 +57,13 @@ or packet a caller supplies. This page's Preview wraps it in `Pages` exactly
 the way a consumer's own page would, which is also why installing `invoice`
 brings `pages` along even though none of the block's own files import it.
 
-# Variants
+## Variants
 
 Two samples exist today, both real and currently shipping — a block's
 Variants section shows an existing alternate sample-data scenario, never a
 new prop configuration.
 
-## Overflow
+### Overflow
 
 The 48-row sample: the line-item table runs past two page breaks, and the
 page plan copies the table's header onto every page it continues onto.

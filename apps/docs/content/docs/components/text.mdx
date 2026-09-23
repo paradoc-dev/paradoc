@@ -9,19 +9,19 @@ and leading from the document's [typography](/components/typography) token, so
 a heading you install moves with the fields around it instead of staying where
 its author left it.
 
-# Preview
+## Preview
 
 <ComponentPreview name="text" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="text" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="text" />
 
-# Composition
+## Composition
 
 There are four roles, and they are the whole vocabulary: `heading` for a
 title, `body` for a paragraph, `caption` for a note beside or beneath
@@ -44,29 +44,29 @@ Passing `className` replaces the role's own classes outright. That is the
 opt-out: one paragraph pinned to a size you chose, while the rest of the
 document still follows the token.
 
-# Variants
+## Variants
 
-## Heading
+### Heading
 
 `role="heading"` is the largest role. It renders as an `h2` unless `as` says
 otherwise.
 
 <ComponentVariant name="text" variant="heading" />
 
-## Caption
+### Caption
 
 `role="caption"` is the note beside or beneath something, set smaller and
 italic.
 
 <ComponentVariant name="text" variant="caption" />
 
-## Small
+### Small
 
 `role="small"` is the fine print a document closes with.
 
 <ComponentVariant name="text" variant="small" />
 
-## Custom element
+### Custom element
 
 `as` renders a role as a different element without changing its size or
 leading — a heading as an `h1` where the document's own outline calls for one.

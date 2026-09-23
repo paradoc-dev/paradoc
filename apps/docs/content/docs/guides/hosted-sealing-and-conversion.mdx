@@ -6,7 +6,7 @@ description: Use the Paradoc Platform API to seal and convert documents
 Paradoc provides hosted sealing and document conversion for applications that
 do not run their own conversion infrastructure.
 
-# Hosted seal adapter
+## Hosted seal adapter
 
 The SDK adapter converts a rendered HTML, Markdown, or DOCX layer to PDF before
 the framework flattens and hashes the canonical output. If the target layer is
@@ -29,7 +29,7 @@ const signable = await form
 
 The adapter calls `POST /v1/execution/convert` and requires an API key.
 
-# Seal endpoint
+## Seal endpoint
 
 `POST /v1/execution/seal` fills an artifact and returns its canonical PDF,
 signature map, and integrity hash. It does not create an e-sign envelope or send
@@ -46,7 +46,7 @@ anything to a signer.
 The response contains `valid`, `document`, `signature_map`, and
 `canonical_pdf_hash`. Sealing is metered once per successful call.
 
-# Convert endpoint
+## Convert endpoint
 
 `POST /v1/execution/convert` accepts base64-encoded document bytes:
 
@@ -68,7 +68,7 @@ Send the API key in the `x-api-key` header. The response document contains
 | PDF | PDF, HTML, Markdown, DOCX |
 | Markdown | PDF, Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV |
 
-## Page selection
+### Page selection
 
 `pages` is a flat, one-based expression such as `"1"`, `"2-4"`, or
 `"1,3-5"`. Its meaning follows the MIME pair:

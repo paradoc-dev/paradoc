@@ -5,9 +5,9 @@ description: Build and validate geographic coordinates
 
 Build and validate geographic coordinates. The Coordinate primitive represents a point on Earth using latitude and longitude values.
 
-# Examples
+## Examples
 
-## Creating coordinates
+### Creating coordinates
 
 ```ts
 // Object pattern
@@ -31,7 +31,7 @@ const nearby = p.coordinate()
   .build()
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -46,7 +46,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -63,9 +63,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.coordinate(input: Coordinate): Coordinate
@@ -77,7 +77,7 @@ Pass a Coordinate object for validation. Returns the validated Coordinate or thr
 const location = p.coordinate({ lat: 48.8566, lon: 2.3522 })
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a Coordinate value incrementally:
 
@@ -93,21 +93,21 @@ Chain methods to build a Coordinate value incrementally:
   returns={{ intermediate: 'CoordinateBuilder', terminal: 'Coordinate' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Coordinate', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Coordinate>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   { name: 'lat', type: 'number', description: 'Latitude in decimal degrees (-90 to 90). Positive is north, negative is south.' },
   { name: 'lon', type: 'number', description: 'Longitude in decimal degrees (-180 to 180). Positive is east, negative is west.' },
 ]} />
 
-# Validation
+## Validation
 
 The Coordinate primitive validates:
 
@@ -134,7 +134,7 @@ p.coordinate({ lat: NaN, lon: 0 })
 // Error: Invalid Coordinate: lat must be a valid number
 ```
 
-# Common Coordinates
+## Common Coordinates
 
 | Location | Latitude | Longitude |
 |----------|----------|-----------|
@@ -144,7 +144,7 @@ p.coordinate({ lat: NaN, lon: 0 })
 | Sydney | -33.8688 | 151.2093 |
 | Paris | 48.8566 | 2.3522 |
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Bbox](/sdk/primitives/bbox) - Bounding box using coordinates

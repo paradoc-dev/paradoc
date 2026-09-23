@@ -5,9 +5,9 @@ description: Validate percentage values
 
 Validate percentage values. The Percentage primitive ensures numeric values represent valid percentages with optional range constraints.
 
-# Examples
+## Examples
 
-## Creating percentages
+### Creating percentages
 
 ```ts
 // Direct validation
@@ -28,7 +28,7 @@ if (p.percentage.isValid(50)) {
 }
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -46,7 +46,7 @@ if (result.success) {
 const pct = p.percentage.parse(userInput, { min: 0, max: 100 })
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -65,9 +65,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Direct Call
+### Direct Call
 
 ```ts
 p.percentage(input: number): number
@@ -79,7 +79,7 @@ Pass a number for validation. Returns the validated number or throws on error.
 const pct = p.percentage(75.5)
 ```
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown, options?: PercentageOptions', returns: 'number', description: 'Parse unknown input (throws on error)' },
@@ -89,7 +89,7 @@ const pct = p.percentage(75.5)
   { name: 'toDecimal', params: 'percentage: number', returns: 'number', description: 'Convert percentage to decimal (50 → 0.5)' },
 ]} />
 
-## PercentageOptions
+### PercentageOptions
 
 | Option | Type | Description |
 |--------|------|-------------|
@@ -97,7 +97,7 @@ const pct = p.percentage(75.5)
 | `max` | `number?` | Maximum allowed value |
 | `precision` | `number?` | Decimal places to round to (default: 2) |
 
-# Conversion Helpers
+## Conversion Helpers
 
 ```ts
 // Decimal to percentage
@@ -111,7 +111,7 @@ p.percentage.toDecimal(12.5)     // → 0.125
 p.percentage.toDecimal(150)      // → 1.5
 ```
 
-# Validation
+## Validation
 
 The Percentage primitive validates:
 
@@ -138,7 +138,7 @@ p.percentage(Infinity)
 // Error: Invalid Percentage: value cannot be Infinity
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Rating](/sdk/primitives/rating) - Similar numeric validation

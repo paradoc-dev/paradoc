@@ -7,27 +7,27 @@ ogDescription: Remove a layer or content reference from an Paradoc artifact
 
 Detach (remove) a layer or content reference from an artifact.
 
-# Usage
+## Usage
 
 ```bash
 paradoc detach <artifact> [target] [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Artifact file (JSON/YAML) to detach from |
 | `target` | Layer name, `instructions`, or `agent-instructions` (optional, will prompt if not provided) |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `-y, --yes` | Skip confirmation prompt |
 | `--dry-run` | Show what would be changed without modifying the file |
 
-# Description
+## Description
 
 Removes a layer definition or content reference from an artifact file. The target can be a layer name, `instructions`, or `agent-instructions`.
 
@@ -35,7 +35,7 @@ If no target is provided, you will be prompted to select from all available laye
 
 The artifact file is rewritten in its original format (JSON or YAML) after removal. If the last layer is removed, the `layers` object is removed from the artifact entirely.
 
-# Examples
+## Examples
 
 Detach a specific layer:
 
@@ -73,7 +73,7 @@ Skip confirmation:
 paradoc detach my-form.yaml instructions -y
 ```
 
-# Output
+## Output
 
 When detaching a layer:
 
@@ -99,7 +99,7 @@ Content reference to remove:
 Detached content reference "instructions" from: my-form.yaml
 ```
 
-# See also
+## See also
 
 - [attach](/cli/commands/attach) - Attach files to artifacts
 - [show](/cli/commands/show) - Display artifact content

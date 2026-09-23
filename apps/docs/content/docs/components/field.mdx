@@ -8,19 +8,19 @@ the artifact and prints something a person can read. It carries no layout of
 its own beyond its label, and it is always a `KeepTogether`, so a page break
 never separates a label from the value underneath it.
 
-# Preview
+## Preview
 
 <ComponentPreview name="field" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="field" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="field" />
 
-# Composition
+## Composition
 
 `Field` always sits inside a [`Document`](/components/document): it reads the
 current artifact and its data through context that only `Document` provides,
@@ -61,7 +61,7 @@ to draw it. An attachment whose MIME type is not a picture prints its file
 name instead, and `paradoc check` reports the mismatch. See
 [`Image`](/components/image).
 
-# Variants
+## Variants
 
 Beyond `path` and `className`, `Field` takes `label`, which can be omitted
 (uses the artifact's own label), set to `false` (no label), or overridden with
@@ -71,26 +71,26 @@ paragraph; and `rule`, which draws a fill line where a value is missing.
 belong to the attachment form above, and are shown on
 [`Image`](/components/image).
 
-## Default label
+### Default label
 
 With no `label` prop, the heading comes from the artifact's own field
 definition.
 
 <ComponentVariant name="field" variant="default-label" />
 
-## No label
+### No label
 
 `label={false}` renders the value alone, with no heading above it.
 
 <ComponentVariant name="field" variant="no-label" />
 
-## Custom label
+### Custom label
 
 A string `label` overrides the artifact's own.
 
 <ComponentVariant name="field" variant="custom-label" />
 
-## Paragraphs
+### Paragraphs
 
 `paragraphs` splits the value at its blank lines and gives each paragraph its
 own keep, `field:<path>:<index>`, so long prose breaks between paragraphs at a
@@ -100,7 +100,7 @@ oversize: a pagination unit is never split inside itself.
 
 <ComponentVariant name="field" variant="paragraphs" />
 
-## Fill line
+### Fill line
 
 `rule` draws an underscore run where the artifact has no value, instead of the
 document's blank placeholder — a document printed for somebody to write on

@@ -5,9 +5,9 @@ description: Build and validate person information
 
 Build and validate person information. The Person primitive captures individual name components and personal details.
 
-# Examples
+## Examples
 
-## Creating persons
+### Creating persons
 
 ```ts
 // Object pattern
@@ -32,7 +32,7 @@ const updated = p.person()
   .build()
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -47,7 +47,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -68,9 +68,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.person(input: Person): Person
@@ -82,7 +82,7 @@ Pass a Person object for validation. Returns the validated Person or throws on e
 const person = p.person({ name: 'Jane Doe' })
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a Person value incrementally:
 
@@ -101,14 +101,14 @@ Chain methods to build a Person value incrementally:
   returns={{ intermediate: 'PersonBuilder', terminal: 'Person' }}
 />
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'Person', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<Person>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Properties
+## Properties
 
 <PropertiesTable properties={[
   { name: 'name', type: 'string', description: 'Complete display name.' },
@@ -119,7 +119,7 @@ Chain methods to build a Person value incrementally:
   { name: 'suffix', type: 'string?', description: 'Name suffix (Jr., Sr., III, PhD, Esq.).' },
 ]} />
 
-# Common Titles
+## Common Titles
 
 | Title | Usage |
 |-------|-------|
@@ -132,7 +132,7 @@ Chain methods to build a Person value incrementally:
 | `Rev.` | Religious leader |
 | `Hon.` | Judge or official |
 
-# Common Suffixes
+## Common Suffixes
 
 | Suffix | Meaning |
 |--------|---------|
@@ -144,7 +144,7 @@ Chain methods to build a Person value incrementally:
 | `Esq.` | Esquire (attorney) |
 | `CPA` | Certified Public Accountant |
 
-# Validation
+## Validation
 
 The Person primitive validates:
 
@@ -171,7 +171,7 @@ p.person({ name: '' })
 // Error: Invalid Person: name cannot be empty
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Organization](/sdk/primitives/organization) - Organization information

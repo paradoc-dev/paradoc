@@ -7,7 +7,7 @@ ogDescription: Learn about Paradoc project setup, the manifest, lock file, and o
 
 A project is a directory managed by the CLI. It contains a manifest that describes the project, a state directory that tracks installed artifacts, and the artifact files themselves. Initialize one with [`paradoc init`](/cli/commands/init).
 
-# Initializing a project
+## Initializing a project
 
 ```bash
 paradoc init
@@ -21,7 +21,7 @@ paradoc init --yes --name "My Project" --visibility private
 
 See the [`init`](/cli/commands/init) command reference for all options.
 
-# The project manifest
+## The project manifest
 
 The `paradoc.json` file in the project root defines your project:
 
@@ -48,7 +48,7 @@ The `paradoc.json` file in the project root defines your project:
 }
 ```
 
-## Fields
+### Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -62,7 +62,7 @@ The `paradoc.json` file in the project root defines your project:
 | `security` | object | No | Security restrictions |
 | `cache` | object | No | Cache configuration overrides |
 
-## Artifacts
+### Artifacts
 
 Controls where artifacts are stored and in what format.
 
@@ -71,23 +71,23 @@ Controls where artifacts are stored and in what format.
 | `artifacts.dir` | `"artifacts"` | Directory for downloaded artifacts (relative to project root) |
 | `artifacts.format` | `"yaml"` | Default output format (see [Output formats](#output-formats)) |
 
-## Registries
+### Registries
 
 Maps namespaces to registry URLs. See [Registries](/cli/registries) for details.
 
-## Security
+### Security
 
 | Field | Description |
 |-------|-------------|
 | `security.allowedContentTypes` | Content types permitted when downloading layers |
 
-## Cache
+### Cache
 
 | Field | Default | Description |
 |-------|---------|-------------|
 | `cache.ttl` | `3600` | Time in seconds before cached registry data expires |
 
-# Directory structure
+## Directory structure
 
 After initialization and installing an artifact, your project looks like this:
 
@@ -106,7 +106,7 @@ my-project/
         └── residential-lease.yaml
 ```
 
-# The `.paradoc/` directory
+## The `.paradoc/` directory
 
 The `.paradoc/` directory stores internal CLI state. You should not edit these files directly — the CLI manages them.
 
@@ -119,13 +119,13 @@ The `.paradoc/` directory stores internal CLI state. You should not edit these f
 | `commits/` | Commit history for artifact changes |
 | `objects/` | Content-addressable object store |
 
-# The lock file
+## The lock file
 
 `.paradoc/lock.json` pins the exact version and checksum of every installed artifact. This ensures that running `paradoc add` on a different machine produces the same result.
 
 Commit the lock file to version control. The CLI updates it automatically when you add, remove, or update artifacts.
 
-# Output formats
+## Output formats
 
 The CLI supports four output formats for artifact files. Set the default in `artifacts.format` in the manifest, or override per command with `--format`.
 

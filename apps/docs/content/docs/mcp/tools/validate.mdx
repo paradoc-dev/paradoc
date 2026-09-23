@@ -7,7 +7,7 @@ ogDescription: Validate an Paradoc artifact against the schema and logic rules u
 
 Validates an Paradoc artifact (form, document, bundle, or checklist) against the Paradoc schema and optionally checks logic expressions.
 
-# Parameters
+## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -15,7 +15,7 @@ Validates an Paradoc artifact (form, document, bundle, or checklist) against the
 | `options.schema` | `boolean` | No | Validate schema structure (default: `true`) |
 | `options.logic` | `boolean` | No | Validate logic expressions (default: `true`) |
 
-# Response
+## Response
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -24,7 +24,7 @@ Validates an Paradoc artifact (form, document, bundle, or checklist) against the
 | `issues` | `array` | List of validation issues, each with `message` and optional `path` |
 | `error` | `string` | Error message if validation could not be performed (returned instead of `detectedKind` and `issues`) |
 
-# Example
+## Example
 
 ```json
 // Request
@@ -59,7 +59,7 @@ When validation fails, the response includes the list of issues:
 }
 ```
 
-# Disabling checks
+## Disabling checks
 
 You can disable schema or logic validation independently using the `options` parameter:
 
@@ -75,7 +75,7 @@ You can disable schema or logic validation independently using the `options` par
 
 This is useful when you want to validate only the structure without checking logic expressions, or vice versa.
 
-# Logic checking
+## Logic checking
 
 When `options.logic` is on, every `visible` / `required` / `def` / `rule` expression is run through the typed `@paradoc/expr` checker. Each issue names the offending expression and its path in the artifact, and the checker catches:
 

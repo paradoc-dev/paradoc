@@ -7,7 +7,7 @@ ogDescription: Integrate Paradoc tools into Vercel AI SDK applications with @par
 
 `@paradoc/ai-sdk` wraps `@paradoc/ai-tools` with Vercel AI SDK's `tool()` function. Works with `generateText`, `streamText`, and any AI SDK-compatible model.
 
-# Installation
+## Installation
 
 ```bash
 npm install @paradoc/ai-sdk ai zod
@@ -15,7 +15,7 @@ npm install @paradoc/ai-sdk ai zod
 
 Peer dependencies: `ai` ^6.0.0 and `zod` ^4.0.0.
 
-# Usage
+## Usage
 
 ```typescript
 import { paradocTools } from "@paradoc/ai-sdk"
@@ -31,7 +31,7 @@ const result = await generateText({
 })
 ```
 
-# Streaming
+## Streaming
 
 ```typescript
 import { streamText } from "ai"
@@ -47,7 +47,7 @@ for await (const part of result.textStream) {
 }
 ```
 
-# Composing with other tools
+## Composing with other tools
 
 Spread alongside your own tools:
 
@@ -76,7 +76,7 @@ Or pick individual tools:
 const { validateArtifact, render } = paradocTools()
 ```
 
-# Configuration
+## Configuration
 
 ```typescript
 paradocTools({
@@ -87,9 +87,9 @@ paradocTools({
 
 See the [configuration reference](/ai#configuration) for details on each option.
 
-# API
+## API
 
-## `paradocTools(config?)`
+### `paradocTools(config?)`
 
 Returns an object with five tools:
 
@@ -101,7 +101,7 @@ Returns an object with five tools:
 | `getRegistry` | Fetches registry.json from a URL, returns available artifacts |
 | `getArtifact` | Fetches artifact JSON from a registry by name |
 
-## Re-exports
+### Re-exports
 
 The package also re-exports all output types from `@paradoc/ai-tools`:
 

@@ -8,19 +8,19 @@ name, and scales it to fit whatever frame it's given. It does not paginate:
 content taller than one page just makes that one sheet taller, which is
 exactly what [`Pages`](/components/pages) exists to prevent.
 
-# Preview
+## Preview
 
 <ComponentPreview name="paper" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="paper" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="paper" />
 
-# Composition
+## Composition
 
 `Paper` reads its geometry — page size, margin — from the same document
 tokens a [`Document`](/components/document) or [`Bundle`](/components/bundle)
@@ -37,7 +37,7 @@ is for showing however many a document's content actually needs.
 for a caller that needs the same fit-to-frame behavior without the sheet
 markup itself.
 
-## Page furniture
+### Page furniture
 
 `furniture` is what the sheet carries outside the flow: a `header` band, a
 `footer` band, and a `stamp` behind the content — the same object
@@ -55,25 +55,25 @@ margin fails by name rather than printing over the first line.
 One sheet is page 1 of 1, so a [`PageNumber`](/components/page-number) drawn
 here says so.
 
-# Variants
+## Variants
 
 `Paper` takes an optional `className` for its outer frame, `furniture`, and
 `children`.
 
-## Minimal content
+### Minimal content
 
 `Paper` draws whatever it is given, with no `Section` or layout required
 around it.
 
 <ComponentVariant name="paper" variant="minimal-content" />
 
-## Custom frame
+### Custom frame
 
 A custom `className` replaces the default frame's background and padding.
 
 <ComponentVariant name="paper" variant="custom-frame" />
 
-## Overflowing content
+### Overflowing content
 
 `Paper` never paginates, so content taller than one page — a longer
 proposal's line items — simply grows the one sheet past its normal height

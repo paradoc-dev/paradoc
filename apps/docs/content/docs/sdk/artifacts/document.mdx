@@ -5,9 +5,9 @@ description: Create Document artifacts for static content
 
 Create Document artifacts for disclosures, pamphlets, or any static content that can be rendered to different formats via layers.
 
-# Examples
+## Examples
 
-## Creating a document
+### Creating a document
 
 ```ts
 // Object pattern
@@ -31,7 +31,7 @@ const doc = p.document()
   .build()
 ```
 
-## Loading from external data
+### Loading from external data
 
 ```ts
 // Parse and validate unknown input (throws on error)
@@ -44,9 +44,9 @@ if (result.success) {
 }
 ```
 
-# API
+## API
 
-## Object Pattern
+### Object Pattern
 
 ```ts
 p.document(input: DocumentInput, options?: ArtifactInstanceOptions): DocumentInstance
@@ -57,7 +57,7 @@ declares. It's bound once here, at construction, and every instance derived
 from the document — every mutator and `clone` — carries it; `render()` itself
 takes no resolver. See [ArtifactInstanceOptions](/sdk/resolvers#artifactinstanceoptions).
 
-### Parameters
+#### Parameters
 
 <PropertiesTable properties={[
   { name: 'name', type: 'string', description: 'Unique identifier; must follow slug constraints' },
@@ -74,7 +74,7 @@ takes no resolver. See [ArtifactInstanceOptions](/sdk/resolvers#artifactinstance
   { name: 'defaultLayer', type: 'string', description: 'Key of the default layer to use when none specified', isOptional: true },
 ]} />
 
-### Returns
+#### Returns
 
 Returns a `DocumentInstance` with the following properties and methods:
 
@@ -101,7 +101,7 @@ Returns a `DocumentInstance` with the following properties and methods:
   { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render document content', isMethod: true },
 ]} />
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to build a document incrementally:
 
@@ -128,7 +128,7 @@ Chain methods to build a document incrementally:
   returns={{ intermediate: 'DocumentBuilder', terminal: 'DocumentInstance' }}
 />
 
-## Static Methods
+### Static Methods
 
 Parse documents from unknown data sources. Both accept an
 [`ArtifactInstanceOptions`](/sdk/resolvers#artifactinstanceoptions) to bind a
@@ -139,7 +139,7 @@ resolver for any file-backed layer:
   { name: 'safeFrom', params: 'input: unknown, options?: ArtifactInstanceOptions', returns: 'Result<DocumentInstance>', description: 'Parse unknown input (returns result object)' },
 ]} />
 
-# Lifecycle Types
+## Lifecycle Types
 
 Documents follow a two-phase lifecycle:
 
@@ -160,7 +160,7 @@ const final = draft.finalize()
 const output = await final.render({ renderer: renderLayer() })
 ```
 
-## DraftDocument
+### DraftDocument
 
 Created by `doc.resolve()`. Contains resolved layer content.
 
@@ -174,7 +174,7 @@ Created by `doc.resolve()`. Contains resolved layer content.
   { name: 'toJSON', type: '() => DraftDocumentJSON', description: 'Serialize to JSON', isMethod: true },
 ]} />
 
-## FinalDocument
+### FinalDocument
 
 Created by `draft.finalize()`. Fully frozen.
 
@@ -185,7 +185,7 @@ Created by `draft.finalize()`. Fully frozen.
   { name: 'toJSON', type: '() => FinalDocumentJSON', description: 'Serialize to JSON', isMethod: true },
 ]} />
 
-# Related
+## Related
 
 - [Document Schema](/schemas/artifacts/document)
 - [Renderers](/sdk/renderers)

@@ -7,19 +7,19 @@ ogDescription: Apply patch files to modify artifacts
 
 Applies a unified diff patch to the working directory.
 
-# Usage
+## Usage
 
 ```bash
 paradoc apply <patch-file> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `patch-file` | Patch file to apply |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -27,13 +27,13 @@ paradoc apply <patch-file> [options]
 | `--reverse` | Apply the patch in reverse |
 | `--dry-run` | Show what would change without modifying files |
 
-# Description
+## Description
 
 The `apply` command reads a unified diff patch file and applies the changes to the working directory. It supports creating new files, modifying existing files, and deleting files based on the patch content.
 
 After applying, modified artifacts are automatically validated.
 
-# Examples
+## Examples
 
 Apply a patch:
 
@@ -59,7 +59,7 @@ Reverse a patch:
 paradoc apply changes.patch --reverse
 ```
 
-# Output
+## Output
 
 Successful application:
 
@@ -96,7 +96,7 @@ Checking patches...
 Some patches cannot be applied (conflicts detected)
 ```
 
-# See also
+## See also
 
 - [diff](/cli/commands/diff) - Generate diffs between files
 - [validate](/cli/commands/validate) - Validate artifacts

@@ -7,26 +7,26 @@ ogDescription: View artifact metadata, fields, and structure
 
 Shows details about an artifact file.
 
-# Usage
+## Usage
 
 ```bash
 paradoc show <artifact> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Path to artifact file |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `--raw` | Show raw file content without parsing |
 | `--deps` | Show file dependencies |
 
-# Description
+## Description
 
 The `show` command parses an artifact file and displays its structure in a human-readable format. It shows metadata, content references (`instructions`, `agentInstructions`), fields (for forms), items (for checklists), contents (for bundles), and layers.
 
@@ -34,7 +34,7 @@ Content references are displayed after the description. Inline references show a
 
 The `--deps` flag lists all file dependencies, including file-backed layer paths and content reference paths, with a check mark indicating whether each file exists.
 
-# Examples
+## Examples
 
 Show artifact details:
 
@@ -54,7 +54,7 @@ Show with file dependencies:
 paradoc show my-form.yaml --deps
 ```
 
-# Output
+## Output
 
 For a form artifact:
 
@@ -108,7 +108,7 @@ File dependencies:
 File: my-form.yaml
 ```
 
-# See also
+## See also
 
 - [validate](/cli/commands/validate) - Check artifact validity
 - [render](/cli/commands/render) - Render artifact layers

@@ -1,4 +1,5 @@
-import { defineDocs, defineConfig, frontmatterSchema } from "fumadocs-mdx/config";
+import { defineDocs, defineConfig } from "fumadocs-mdx/config";
+import { pageSchema } from "fumadocs-core/source/schema";
 import lastModified from "fumadocs-mdx/plugins/last-modified";
 import { z } from "zod";
 
@@ -17,7 +18,7 @@ const generator = createGenerator({
 export const docs = defineDocs({
   dir: "content/docs",
   docs: {
-    schema: frontmatterSchema.extend({
+    schema: pageSchema.extend({
       ogTitle: z.string().optional(),
       ogDescription: z.string().optional(),
     }),

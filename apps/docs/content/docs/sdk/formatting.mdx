@@ -5,7 +5,7 @@ description: Locale-aware presentation of artifact values
 
 `@paradoc/format` presents structured Paradoc values as localized text. Stored values remain unchanged. The same formatter can be passed to text, PDF, DOCX, and React renderers.
 
-# Installation
+## Installation
 
 ```bash
 npm install @paradoc/format
@@ -17,7 +17,7 @@ The SDK also exports the formatter API:
 import { createFormatter } from '@paradoc/sdk'
 ```
 
-# Create a formatter
+## Create a formatter
 
 Use a precise locale. The initial documented locales are `en-US`, `en-GB`, `de-DE`, `fr-FR`, and `ar-SA`.
 
@@ -34,7 +34,7 @@ formatter.formatDate('2026-09-07') // '07.09.2026'
 
 Money always carries its currency. Percentages use percentage points, so `8.25` formats as `8.25%`. Address country is independent of document locale.
 
-# Safe results
+## Safe results
 
 Strict methods return text or throw `FormatError`. Safe methods distinguish missing, incomplete, invalid, unsupported, and unexpected failures:
 
@@ -43,7 +43,7 @@ const result = formatter.safeFormatMoney({ amount: 10 })
 // { success: false, status: 'incomplete', issues: [...] }
 ```
 
-# Compose policy and overrides
+## Compose policy and overrides
 
 Formatters are immutable. `compose()` and `withOverrides()` return independent instances.
 
@@ -68,7 +68,7 @@ const compact = formatter.withOverrides({
 })
 ```
 
-# Use one formatter for an artifact
+## Use one formatter for an artifact
 
 ```ts
 import { createFormatter, p, renderLayer } from '@paradoc/sdk'
@@ -82,7 +82,7 @@ const output = await p.form(formDefinition).fill(data).render({
 
 Renderer configuration is explicit. Artifact metadata does not select a locale or formatter profile.
 
-# Related
+## Related
 
 - [Renderers](/sdk/renderers)
 - [Primitives](/sdk/primitives)

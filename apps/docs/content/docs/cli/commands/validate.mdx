@@ -7,19 +7,19 @@ ogDescription: Check Paradoc artifacts for schema compliance and errors
 
 Validates an Paradoc artifact against the core schema.
 
-# Usage
+## Usage
 
 ```bash
 paradoc validate <artifact> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Artifact file (JSON/YAML) or `-` for stdin |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -32,7 +32,7 @@ paradoc validate <artifact> [options]
 
 The scope flags (`--schema-only`, `--layers-only`, `--checksum-only`) are mutually exclusive.
 
-# Description
+## Description
 
 The `validate` command parses an artifact file and runs up to three validation phases:
 
@@ -44,7 +44,7 @@ Content reference validation runs automatically for any artifact kind that has `
 
 The command exits with code `0` if valid (warnings are allowed), `1` if any errors are found.
 
-# Examples
+## Examples
 
 Validate an artifact:
 
@@ -82,7 +82,7 @@ Silent mode (for scripts):
 paradoc validate my-form.yaml --silent && echo "Valid"
 ```
 
-# Output
+## Output
 
 When valid:
 
@@ -118,7 +118,7 @@ When invalid:
 ✗ Validation failed
 ```
 
-# JSON output
+## JSON output
 
 The JSON output includes `layers` and `contentRefs` arrays when present:
 
@@ -162,7 +162,7 @@ The JSON output includes `layers` and `contentRefs` arrays when present:
 }
 ```
 
-# See also
+## See also
 
 - [fix](/cli/commands/fix) - Auto-fix common issues
 - [new](/cli/commands/new) - Create new artifacts

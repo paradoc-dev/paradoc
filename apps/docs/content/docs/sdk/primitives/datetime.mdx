@@ -5,9 +5,9 @@ description: Validate datetime strings
 
 Validate datetime strings in ISO 8601 format. The Datetime primitive ensures timestamps are properly formatted with date, time, and timezone information.
 
-# Examples
+## Examples
 
-## Creating datetimes
+### Creating datetimes
 
 ```ts
 // Direct validation
@@ -28,7 +28,7 @@ if (p.datetime.isValid('2024-01-15T10:30:00Z')) {
 }
 ```
 
-## Parsing external data
+### Parsing external data
 
 ```ts
 // Parse unknown input (throws on error)
@@ -43,7 +43,7 @@ if (result.success) {
 }
 ```
 
-## Using with forms
+### Using with forms
 
 ```ts
 const form = p.form({
@@ -60,9 +60,9 @@ const filled = form.fill({
 })
 ```
 
-# API
+## API
 
-## Direct Call
+### Direct Call
 
 ```ts
 p.datetime(input: string): string
@@ -74,7 +74,7 @@ Pass a datetime string for validation. Returns the validated string or throws on
 const dt = p.datetime('2024-01-15T10:30:00Z')
 ```
 
-## Static Methods
+### Static Methods
 
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown', returns: 'string', description: 'Parse unknown input (throws on error)' },
@@ -84,7 +84,7 @@ const dt = p.datetime('2024-01-15T10:30:00Z')
   { name: 'now', params: '', returns: 'string', description: 'Get current datetime as ISO string' },
 ]} />
 
-# Format
+## Format
 
 The Datetime primitive expects and returns strings in ISO 8601 datetime format:
 
@@ -103,7 +103,7 @@ YYYY-MM-DDTHH:mm:ss±HH:mm
 | `Z` | UTC timezone | Z |
 | `±HH:mm` | Timezone offset | +05:30 |
 
-# Validation
+## Validation
 
 The Datetime primitive validates:
 
@@ -133,7 +133,7 @@ p.datetime('not-a-datetime')
 // Error: Invalid Datetime: invalid format
 ```
 
-# Related
+## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Date](/sdk/primitives/date) - Date only

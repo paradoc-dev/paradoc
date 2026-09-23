@@ -16,14 +16,12 @@ import {
   useFolderDepth,
   useSidebar,
 } from "fumadocs-ui/components/sidebar/base";
-import {
-  ScrollArea,
-  ScrollViewport,
-} from "fumadocs-ui/components/ui/scroll-area";
 import { useTreeContext, useTreePath } from "fumadocs-ui/contexts/tree";
-import type { DocsSlots } from "fumadocs-ui/layouts/notebook";
+import { useNotebookLayout, type DocsSlots } from "fumadocs-ui/layouts/notebook";
+import { LinkItem } from "fumadocs-ui/layouts/shared";
+import { ScrollArea } from "@base-ui/react/scroll-area";
 import { X } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { DocsAreaTabs } from "@/components/docs-header";
 
@@ -58,26 +56,56 @@ export const noSidebar: DocsSlots["sidebar"] = {
   useSidebar,
 };
 
-const INDENT_PX = 8;
+// Every row shares one inline inset so a group label, a link, and the active
+// pill all start on the same text edge; nesting adds to it.
+const ROW_INSET_PX = 8;
+const INDENT_PX = 12;
 
 const rowBase =
-  "flex h-8 w-full items-center gap-1.5 text-start text-sm [&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-fd-muted-foreground";
+  "my-0.5 flex h-[30px] items-center gap-1.5 rounded-lg pe-2 text-start text-[0.8rem] font-medium [&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-fd-muted-foreground";
 const linkRow = cn(
   rowBase,
-  "text-fd-muted-foreground transition-colors hover:text-fd-foreground data-[active=true]:font-medium data-[active=true]:text-fd-foreground",
+  "text-fd-foreground transition-colors hover:bg-fd-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-fd-ring data-[active=true]:bg-fd-foreground/5",
 );
-const labelRow = cn(rowBase, "font-medium text-fd-foreground");
+const labelRow = cn(rowBase, "w-full font-medium text-fd-foreground");
+// A page's hover and active pill hug its label; a folder trigger keeps the
+// full width so its chevron lines up on the right edge.
+const pageRow = cn(linkRow, "w-fit max-w-full");
+const folderRow = cn(linkRow, "w-full");
 
+// A top-level folder is a group heading, not a disclosure, so its pages sit on
+// the same edge as the heading. Indentation starts only inside a folder that
+// collapses under a chevron: one step per collapsible level.
 function indent(depth: number): CSSProperties {
-  return { paddingInlineStart: `${INDENT_PX * depth}px` };
+  const level = Math.max(depth - 1, 0);
+  return { paddingInlineStart: `${ROW_INSET_PX + INDENT_PX * level}px` };
 }
+
+// A group heading: smaller and quieter than the pages under it, with more room
+// above than below so it reads as the head of the group that follows.
+const groupLabel =
+  "mb-1 flex h-7 items-center truncate text-xs font-medium text-fd-muted-foreground";
 
 function DocsSidebar(props: ComponentProps<"aside">) {
   const { root } = useTreeContext();
-  const tree = <TreeNodes nodes={root.children} />;
+  // One flex column, so the 1px margin on every row separates neighbours the
+  // same everywhere: hover and active pills never touch.
+  const tree = (
+    <div className="flex flex-col">
+      <TreeNodes nodes={root.children} />
+    </div>
+  );
 
   return (
     <>
+      {/* The content pane: the page background behind the article and the
+          table of contents, from the header row down, with a rounded corner
+          where it meets the header and the sidebar. It is a grid sibling
+          placed before the article, so the article and TOC paint over it. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none [grid-column:3/-1] [grid-row:2/-1] rounded-tl-xl bg-fd-background max-md:hidden"
+      />
       <SidebarContent>
         {({ ref }) => (
           <div
@@ -93,7 +121,8 @@ function DocsSidebar(props: ComponentProps<"aside">) {
                 props.className,
               )}
             >
-              <Viewport>{tree}</Viewport>
+              <SidebarScroll>{tree}</SidebarScroll>
+              <SidebarLinks />
             </aside>
           </div>
         )}
@@ -107,10 +136,10 @@ function DocsSidebar(props: ComponentProps<"aside">) {
         )}
       >
         <div className="flex h-14 shrink-0 items-center border-b px-4">
-          <DocsAreaTabs className="flex h-full items-center gap-5" />
+          <DocsAreaTabs className="flex h-full min-w-0 items-center gap-1 overflow-x-auto" />
           <SidebarTrigger
             className={cn(
-              buttonVariants({ size: "icon-sm", color: "ghost" }),
+              buttonVariants({ size: "icon-sm", variant: "ghost" }),
               "ms-auto text-fd-muted-foreground",
             )}
             aria-label="Close sidebar"
@@ -118,19 +147,60 @@ function DocsSidebar(props: ComponentProps<"aside">) {
             <X />
           </SidebarTrigger>
         </div>
-        <Viewport>{tree}</Viewport>
+        <SidebarScroll>{tree}</SidebarScroll>
+        <SidebarLinks />
       </SidebarDrawerContent>
     </>
   );
 }
 
-function Viewport({ children }: { children: ReactNode }) {
+/**
+ * The sidebar's scroll area. The edges fade only while there is more to scroll
+ * that way (shadcn `scroll-fade`, driven by the scroll position), so a list that
+ * fits shows crisp edges and a long one hints at what is above or below.
+ * No scrollbar is drawn: the fade is the only scroll affordance.
+ */
+function SidebarScroll({ children }: { children: ReactNode }) {
   return (
-    <ScrollArea className="min-h-0 flex-1">
-      <ScrollViewport className="p-4 overscroll-contain mask-[linear-gradient(to_bottom,transparent,white_12px,white_calc(100%-12px),transparent)] *:flex! *:flex-col!">
+    <ScrollArea.Root className="min-h-0 flex-1">
+      <ScrollArea.Viewport className="scroll-fade-y scroll-fade-8 size-full overscroll-contain p-4">
         {children}
-      </ScrollViewport>
-    </ScrollArea>
+      </ScrollArea.Viewport>
+    </ScrollArea.Root>
+  );
+}
+
+/**
+ * The site links (X, GitHub) at the foot of the sidebar, so the header keeps
+ * only navigation, search, and the theme toggle. Only icon links have a home
+ * here, and `on: "nav"` keeps every link out of the sidebar tree, so any other
+ * kind would vanish silently: it fails instead.
+ */
+function SidebarLinks() {
+  const { navItems } = useNotebookLayout();
+  const unsupported = navItems.find((item) => item.type !== "icon");
+  if (unsupported) {
+    throw new Error(`The sidebar footer renders icon links only; got a "${unsupported.type}" link`);
+  }
+  const iconLinks = navItems.filter((item) => item.type === "icon");
+  if (iconLinks.length === 0) return null;
+
+  return (
+    <div className="flex shrink-0 items-center gap-1 px-4 py-3">
+      {iconLinks.map((item) => (
+        <LinkItem
+          key={item.url}
+          item={item}
+          aria-label={item.label}
+          className={cn(
+            buttonVariants({ size: "icon-sm", variant: "ghost" }),
+            "text-fd-muted-foreground hover:text-fd-foreground",
+          )}
+        >
+          {item.icon}
+        </LinkItem>
+      ))}
+    </div>
   );
 }
 
@@ -153,7 +223,8 @@ function TreeNode({ node }: { node: PageTree.Node }) {
   if (node.type === "separator") {
     return (
       <p
-        className="mt-4 flex h-8 items-center truncate text-xs font-medium uppercase tracking-wider text-fd-muted-foreground first:mt-0"
+        data-sidebar-separator=""
+        className={cn(groupLabel, "mt-7 first:mt-1")}
         style={indent(depth)}
       >
         {node.name}
@@ -172,7 +243,7 @@ function TreeNode({ node }: { node: PageTree.Node }) {
       external={node.external}
       active={active}
       aria-current={active ? "page" : undefined}
-      className={linkRow}
+      className={pageRow}
       style={indent(depth)}
     >
       <span className="truncate">{node.name}</span>
@@ -202,7 +273,7 @@ function TreeFolder({
       collapsible={collapsible}
       active={path.includes(node)}
       defaultOpen={node.defaultOpen}
-      className={cn(depth === 0 && "mt-2")}
+      className={cn(depth === 0 && "mt-7 first:mt-1 [[data-sidebar-separator]+&]:mt-1")}
     >
       {node.index ? (
         <SidebarFolderLink
@@ -210,14 +281,14 @@ function TreeFolder({
           external={node.index.external}
           active={indexActive}
           aria-current={indexActive ? "page" : undefined}
-          className={linkRow}
+          className={pageRow}
           style={indent(depth)}
         >
           <span className="truncate">{node.name}</span>
         </SidebarFolderLink>
       ) : (
         <SidebarFolderTrigger
-          className={collapsible ? linkRow : labelRow}
+          className={collapsible ? folderRow : depth === 0 ? groupLabel : labelRow}
           style={indent(depth)}
         >
           <span className="truncate">{node.name}</span>

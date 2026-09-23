@@ -7,19 +7,19 @@ ogDescription: Create a new Paradoc project with the CLI
 
 Initializes a new Paradoc project in the current or specified directory.
 
-# Usage
+## Usage
 
 ```bash
 paradoc init [directory] [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `directory` | Directory to initialize (defaults to current directory) |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
@@ -30,7 +30,7 @@ paradoc init [directory] [options]
 | `--nested` | Allow creating nested project inside existing project |
 | `--dry-run` | Preview without creating files |
 
-# Description
+## Description
 
 The `init` command creates a new Paradoc project with the following structure:
 
@@ -51,7 +51,7 @@ In interactive mode, you'll be prompted for:
 - Visibility (public or private)
 - Directory name
 
-# Examples
+## Examples
 
 Interactive initialization:
 
@@ -77,7 +77,7 @@ Preview what would be created:
 paradoc init --dry-run --yes --name "Test Project"
 ```
 
-# See also
+## See also
 
 - [Projects](/cli/projects) - Project structure and manifest
 - [add](/cli/commands/add) - Add artifacts to your project

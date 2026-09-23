@@ -7,26 +7,26 @@ ogDescription: Automatically repair artifact metadata like file checksums
 
 Fixes artifact metadata, such as computing and updating file checksums in layers and content references.
 
-# Usage
+## Usage
 
 ```bash
 paradoc fix <artifact> [options]
 ```
 
-# Arguments
+## Arguments
 
 | Argument | Description |
 |----------|-------------|
 | `artifact` | Artifact file (JSON/YAML) to fix |
 
-# Options
+## Options
 
 | Option | Description |
 |--------|-------------|
 | `-y, --yes` | Accept all changes without prompting |
 | `--dry-run` | Show what would be changed without modifying the file |
 
-# Description
+## Description
 
 The `fix` command analyzes an artifact's file-backed layers and content references (`instructions`, `agentInstructions`) and:
 
@@ -37,7 +37,7 @@ The `fix` command analyzes an artifact's file-backed layers and content referenc
 
 This is useful after attaching new files to an artifact, when file contents have changed, or after manually adding `instructions` or `agentInstructions` content references.
 
-# Examples
+## Examples
 
 Fix an artifact interactively:
 
@@ -57,7 +57,7 @@ Preview changes without modifying:
 paradoc fix my-form.yaml --dry-run
 ```
 
-# Output
+## Output
 
 ```
 Changes detected:
@@ -75,7 +75,7 @@ Will change:
 ✓ Fixed artifact written to: my-form.yaml
 ```
 
-# What it fixes
+## What it fixes
 
 | Issue | Description |
 |-------|-------------|
@@ -85,7 +85,7 @@ Will change:
 | Missing content ref checksum | Computes and adds SHA-256 checksum for file-backed `instructions` or `agentInstructions` |
 | Invalid content ref checksum | Recomputes checksum when content reference files have changed |
 
-# See also
+## See also
 
 - [validate](/cli/commands/validate) - Check artifact validity
 - [attach](/cli/commands/attach) - Attach files to artifacts

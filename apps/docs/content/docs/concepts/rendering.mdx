@@ -11,7 +11,7 @@ A single artifact can have multiple layers—Markdown for AI agents, PDF for pri
 
 ---
 
-# What Layers Are
+## What Layers Are
 
 A layer is a **view** of an artifact. It combines a template with the artifact's data to produce output.
 
@@ -38,7 +38,7 @@ Total: {{total}}
 
 ---
 
-# Inline vs File Layers
+## Inline vs File Layers
 
 **Inline layers** define the template directly in the artifact—good for simple templates or keeping everything in one place.
 
@@ -46,7 +46,7 @@ Total: {{total}}
 
 ---
 
-# Templates and Bindings
+## Templates and Bindings
 
 Text-based layers (Markdown, HTML, plain text) use Paradoc's deterministic
 template syntax. Field values are inserted with `{{fieldName}}`; conditionals,
@@ -66,7 +66,7 @@ pdf: p.layer()
 
 ---
 
-# Resolution
+## Resolution
 
 When layers reference external files, **resolvers** tell Paradoc how to load them. This makes Paradoc environment-agnostic—the same artifact works in Node, browsers, or custom environments.
 
@@ -89,7 +89,7 @@ See [Resolvers](/sdk/resolvers) for available resolvers and how to write custom 
 
 ---
 
-# Formatting
+## Formatting
 
 When rendering, field values are converted to strings. A `money` value becomes `"$1,500.00"`, a `date` becomes `"March 15, 2024"`.
 
@@ -105,7 +105,7 @@ See [Formatting](/sdk/formatting) for details on formatting and localization.
 
 ---
 
-# Renderers
+## Renderers
 
 Paradoc selects the built-in implementation from the layer's MIME type. The
 same API renders Markdown, HTML, plain text, PDF, or DOCX, so applications do

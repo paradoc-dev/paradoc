@@ -9,19 +9,19 @@ preview that is the page plan, so each sheet prints its own number. On the PDF
 path the engine repeats the footer on every page and fills the same two
 numbers itself.
 
-# Preview
+## Preview
 
 <ComponentPreview name="page-number" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="page-number" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="page-number" />
 
-# Composition
+## Composition
 
 It belongs in a page-furniture slot: the `furniture` prop of
 [`Pages`](/components/pages) or [`Paper`](/components/paper). Hand the same
@@ -47,16 +47,16 @@ It carries no pagination unit of its own: furniture is not part of the flow,
 so it is never planned onto a page and never a
 [`Keep Together`](/components/keep-together).
 
-# Variants
+## Variants
 
-## Number only
+### Number only
 
 `total` drops the page count, so the foot reads "Page 2" rather than
 "Page 2 of 4".
 
 <ComponentVariant name="page-number" variant="number-only" />
 
-## Custom wording
+### Custom wording
 
 `label` and `separator` replace the default "Page" and "of", so the same two
 numbers read "Sheet 2 / 4".

@@ -9,7 +9,7 @@ Primitives are structured data types used throughout Paradoc for representing co
 - **Builder pattern**: Chain methods for incremental construction
 - **Static methods**: `parse()` and `safeParse()` for validation
 
-# Available Primitives
+## Available Primitives
 
 | Primitive | Description |
 |-----------|-------------|
@@ -28,9 +28,9 @@ Primitives are structured data types used throughout Paradoc for representing co
 | [rating](/sdk/primitives/rating) | Rating value |
 | [time](/sdk/primitives/time) | Time only |
 
-# Usage Patterns
+## Usage Patterns
 
-## Object Pattern
+### Object Pattern
 
 Pass a plain object for immediate validation:
 
@@ -45,7 +45,7 @@ const invalid = money({ amount: 'not a number', currency: 'USD' })
 // Error: Invalid Money: amount must be a number
 ```
 
-## Builder Pattern
+### Builder Pattern
 
 Chain methods to construct incrementally:
 
@@ -58,7 +58,7 @@ const price = money()
   .build()
 ```
 
-## Static Methods
+### Static Methods
 
 Parse unknown data from external sources:
 
@@ -77,7 +77,7 @@ if (result.success) {
 }
 ```
 
-# Using with Forms
+## Using with Forms
 
 Primitives are commonly used when filling form data:
 
@@ -106,7 +106,7 @@ const filled = form.fill({
 })
 ```
 
-# Related
+## Related
 
 - [Form Fields](/sdk/artifacts/form/field) - Field types that use primitives
 - [Primitive Schemas](/schemas/primitives) - JSON Schema definitions

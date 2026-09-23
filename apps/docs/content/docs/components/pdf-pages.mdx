@@ -9,19 +9,19 @@ document a vendor uploaded. A PDF already has its own pages at its own
 paper size, so `PdfPages` paints exactly those pages rather than planning new
 ones, and keeps that paper size even inside a packet branded to another.
 
-# Preview
+## Preview
 
 <ComponentPreview name="pdf-pages" />
 
-# Installation
+## Installation
 
 <ComponentInstallation name="pdf-pages" />
 
-# Usage
+## Usage
 
 <ComponentUsage name="pdf-pages" />
 
-# Composition
+## Composition
 
 `PdfPages` usually sits inside a [`Part`](/components/part) of kind `"form"`
 or `"annex"`, alongside the header that names the part and, once the packet
@@ -43,22 +43,22 @@ exactly that.
 The attachment card's and the painting note's sizes follow the document's
 [typography](/components/typography) token.
 
-# Variants
+## Variants
 
-## Standalone
+### Standalone
 
 `PdfPages` on its own, with no `Part` around it.
 
 <ComponentVariant name="pdf-pages" variant="standalone" />
 
-## Attachment fallback
+### Attachment fallback
 
 Content pdf.js cannot open renders as the named `Attachment` card instead of
 pages.
 
 <ComponentVariant name="pdf-pages" variant="attachment" />
 
-## Custom frame
+### Custom frame
 
 A `className` replaces the default gray frame around the painted pages.
 

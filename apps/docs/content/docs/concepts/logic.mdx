@@ -11,7 +11,7 @@ Logic is defined at design time but evaluated at runtime, when the form is fille
 
 ---
 
-# Where Logic Applies
+## Where Logic Applies
 
 Logic expressions can control:
 - **`visible`** — whether a field or annex appears
@@ -37,7 +37,7 @@ When `hasVehicle` is true, `vehicleMake` becomes visible and required. When fals
 
 ---
 
-# Referencing Fields
+## Referencing Fields
 
 A field's value is addressed as `fields.<id>`, for example `fields.hasVehicle` or `fields.age`. The reference resolves to the field's value directly; there is no `.value` suffix. Composite fields expose their parts with a further segment, e.g. `fields.rent.amount` and `fields.rent.currency` for a `money` field.
 
@@ -53,7 +53,7 @@ Validation rules (`rules`) are the one exception: there, field values are also a
 
 ---
 
-# Operators
+## Operators
 
 ```ts
 // Comparison: ==, !=, >, >=, <, <=
@@ -81,7 +81,7 @@ visible: "fields.tier == 'gold' ? fields.optedIn : false"
 
 ---
 
-# Functions
+## Functions
 
 Strings:
 
@@ -127,7 +127,7 @@ To replace the old `indexOf(...) >= 0` idiom, use `contains(...)`.
 
 ---
 
-# Types
+## Types
 
 Field references carry their type into the expression, and the checker enforces it.
 
@@ -138,7 +138,7 @@ Field references carry their type into the expression, and the checker enforces 
 
 ---
 
-# Authoring-Time Checking
+## Authoring-Time Checking
 
 Because evaluation and checking share one type system, mistakes surface when the artifact is authored, not when a user fills it. Building or validating a form runs the checker over every expression, which catches:
 
@@ -154,7 +154,7 @@ visible: "fields.hasVehicle.value"
 
 ---
 
-# Named Expressions
+## Named Expressions
 
 When the same logic appears in multiple places, define it once in the `defs` section and reference it by name:
 
@@ -176,7 +176,7 @@ A def's `value` is an expression over the same `fields.<id>` references. Named e
 
 ---
 
-# Logic in Annexes
+## Logic in Annexes
 
 Annexes support the same logic properties as fields:
 
@@ -197,7 +197,7 @@ const form = p.form()
 
 ---
 
-# Design Time vs Runtime
+## Design Time vs Runtime
 
 Logic expressions are **defined** at design time but **evaluated** at runtime. The form definition doesn't change—the same logic produces different results based on the data:
 
