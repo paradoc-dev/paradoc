@@ -1,154 +1,139 @@
 ---
 name: schemas
-description: Raw JSON/YAML artifact manipulation surface — schema URIs, top-level structure, validation rules, common errors, npx paradoc-cli validate
+description: The raw JSON/YAML surface. File shape, the $schema version and loading rules, migration, identifier patterns, and the validator's real error messages with their fixes.
 metadata:
-  tags: schemas, json, yaml, validation, schema-uri, identifiers, naming, errors
+  tags: schemas, json, yaml, $schema, schema-version, migrate, loading, identifiers, naming, validation, errors
 ---
 
-# Raw JSON/YAML Surface
+# JSON and YAML artifacts
 
-Use this surface when creating, editing, or validating artifact files (`form`, `document`, `bundle`, `checklist`) directly as JSON or YAML — without TypeScript or the SDK.
+**Contents:** [File shape](#file-shape) · [Schema version](#schema-version) · [Identifier patterns](#identifier-patterns) · [Error messages](#error-messages)
 
-For TypeScript SDK usage, see [sdk.md](./sdk.md). For CLI workflow, see [cli.md](./cli.md).
+Use this surface to write or edit artifact files by hand. For the keys of each kind, load [artifacts.md](./artifacts.md); for field shapes, [fields.md](./fields.md). Check every edit with [`paradoc validate`](./cli.md#validate); a form with a layer is finished when the [round trip](./cli.md#round-trip) passes.
 
-## Schema Version
+## File shape
 
-The current schema version is `2026-09-22`. Every artifact file names the version it follows in `$schema`, with the dated address of that version. The address is the same for every artifact kind:
+Every file starts with `$schema`, `kind` and `name`:
 
 ```json schema=artifact
-{ "$schema": "https://schema.paradoc.dev/2026-09-22.json", "kind": "form", "name": "intake" }
+{
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
+  "kind": "form",
+  "name": "pet-registration",
+  "version": "1.0.0",
+  "title": "Pet Registration",
+  "fields": {
+    "petName": { "type": "text", "label": "Pet name", "required": true },
+    "species": { "type": "enum", "label": "Species", "enum": [{ "value": "dog" }, { "value": "cat" }] }
+  }
+}
 ```
 
-- ALWAYS write the current dated address. NEVER use the undated `https://schema.paradoc.dev/schema.json`: it names no version.
-- The SDK writes the current address on `toJSON()` and `toYAML()`.
-- A new dated version exists only for a breaking change, and ships with a migration step from the previous version.
+The same file in YAML. `.yaml` and `.yml` both load. The comment line gives editors completion against the schema:
+
+```yaml
+# yaml-language-server: $schema=https://schema.paradoc.dev/2026-09-22.json
+$schema: https://schema.paradoc.dev/2026-09-22.json
+kind: form
+name: pet-registration
+version: 1.0.0
+title: Pet Registration
+fields:
+  petName: { type: text, label: Pet name, required: true }
+  species:
+    type: enum
+    label: Species
+    enum: [{ value: dog }, { value: cat }]
+```
+
+Every object in the schema is strict, so an unknown key is an error. Name the file after `name` (`pet-registration.yaml`).
+
+## Schema version
+
+The current schema version is `2026-09-22`. Write `$schema` as its dated address, the same for every kind:
+
+```text
+https://schema.paradoc.dev/2026-09-22.json
+```
+
+A dated per-kind address such as `https://schema.paradoc.dev/2026-09-22/form.json` names the same version. The SDK writes the dated address on `toJSON()` and `toYAML()`. Each new dated version ships with a migration step.
 
 ### Loading rules
 
-Every loading surface (SDK `load()`, every CLI command that reads an artifact file, the AI tools, `paradoc add`) applies the same rules to an artifact file:
+These surfaces refuse an artifact whose `$schema` is not current: `load()` and `loadFromObject()` in the SDK, every CLI command that reads an artifact file, `@paradoc/ai-tools`, and `paradoc add`.
 
-| `$schema` | Result |
-|-----------|--------|
-| Current dated address | Loads |
-| Earlier dated address | `outdated-version` error |
-| Missing | `missing-version` error |
-| Unpublished date, undated `schema.json`, or other address | `unknown-version` error |
+<!-- dep:C2 -->
+`p.form()` and each kind's `.from()` apply the same rules.
 
-Each error names what it found, the current version, and `paradoc migrate`. Loading never migrates. An object passed to `loadFromObject()` or an inline AI-tool `artifact` may omit `$schema`; one it declares must be current.
+| `$schema` | Error code | Message starts with |
+|-----------|------------|---------------------|
+| Current dated address | none | loads |
+| Earlier dated address | `outdated-version` | `The artifact was written for schema version <v>; ...` |
+| Missing | `missing-version` | `The artifact has no $schema; ...` |
+| Undated (`schema.json`) | `missing-version` | `$schema ... names no schema version; ...` |
+| Unpublished date, or not a Paradoc address | `unknown-version` | `$schema names schema version <v>, which does not exist` or `... is not a Paradoc schema address` |
 
-When you see one of these errors, run `paradoc migrate` on the file. NEVER work around it by deleting `$schema`.
+The SDK throws `SchemaVersionError` with that `code`. Run [migrate](#migrate) to upgrade; loading does not. An object passed to `loadFromObject()`, or an inline `artifact` given to the AI tools, may leave out `$schema`; one it declares must be current. SDK `validate()` checks structure and logic only, not the version.
 
-### Migrating an older artifact
+### Migrate
 
-When a file names an earlier version, migrate it. NEVER edit `$schema` by hand: the migration steps change the values the new version reads differently.
-
-```bash
-npx paradoc-cli migrate my-form.yaml --dry-run   # print the diff, write nothing
-npx paradoc-cli migrate my-form.yaml             # rewrite in place, keeps JSON or YAML
-npx paradoc-cli migrate forms/                   # every artifact file in a directory
-npx paradoc-cli migrate my-form.json --from 2026-08-10   # $schema missing or names no published version
-```
-
-A value a step cannot convert safely is named, and that file is left unchanged. Fix the value by hand, then run `migrate` again. See [cli.md](./cli.md#migrating-schema-versions).
-
-## Validation Command
-
-ALWAYS run validation after every mutation:
+Upgrade `$schema` with `migrate`, which also converts the values the new version reads differently. A hand edit of `$schema` skips those steps.
 
 ```bash
-npx paradoc-cli validate <file>
+paradoc migrate pet-registration.yaml --dry-run      # print the diff, then run without --dry-run
 ```
 
-Use `npx paradoc-cli` when working directly with files — it ensures the CLI is available without a global install.
+Flags, statuses and exit codes: [cli.md § migrate](./cli.md#migrate). In code: [sdk.md § Load and migrate](./sdk.md#load-and-migrate).
 
-```bash
-# Single file
-npx paradoc-cli validate my-form.json
+## Identifier patterns
 
-# YAML
-npx paradoc-cli validate my-form.yaml
+| Identifier | Pattern | Max |
+|------------|---------|-----|
+| Artifact `name`, metadata keys | `^[A-Za-z0-9]([A-Za-z0-9]\|-[A-Za-z0-9])*$` | 128 (metadata keys 100) |
+| Keys of `fields` (nested too), `layers`, `annexes`, `defs`, `rules` | `^[a-z][a-zA-Z0-9_]*$` | 100 |
+| Party role keys | `^[a-z][a-zA-Z0-9_]*$` | 50 |
+| Bundle content `key` | `^[a-zA-Z][a-zA-Z0-9_-]*$` | 100 |
+| Checklist item `id` | any non-empty string, unique | 128 |
+| `version` | SemVer 2.0.0, no leading `v` | 200 |
+| `checksum` | `^sha256:[a-f0-9]{64}$` | none |
 
-# Multiple files
-npx paradoc-cli validate form.json document.json bundle.json
-```
+| Kind | Valid | Invalid |
+|------|-------|---------|
+| Artifact name | `pet-registration`, `W9`, `form-1040` | `-form`, `my--form`, `form-`, `my_form` |
+| Field, def, rule | `firstName`, `monthly_rent`, `hasPets` | `FirstName`, `first-name`, `1stField` |
+| Version | `1.0.0`, `1.0.0-rc.1+build.5` | `v1.0.0`, `1.0`, `01.0.0` |
 
-For more validation flags (`--silent`, `--json`, `--expect-kind`, `--schema-only`, etc.), see [cli.md](./cli.md#validation).
+Write kebab-case artifact names and camelCase keys inside an artifact.
 
-## Identifier and Naming Patterns
+## Error messages
 
-### Artifact name
+The validator prints `<path>: <message>`. Match on the message:
 
-- Pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`
-- MUST start with a letter or digit
-- May contain letters, digits, single hyphens
-- NEVER consecutive hyphens, leading hyphens, or trailing hyphens
-- Max 128 chars
-
-| Valid | Invalid |
-|-------|---------|
-| `my-form`, `W9`, `Form1040`, `rental-application-2024` | `-form`, `my--form`, `form-`, `my_form`, `my form` |
-
-### Version
-
-- SemVer 2.0.0: `MAJOR.MINOR.PATCH`, with optional prerelease (`-beta.1`) and build metadata (`+build.5`)
-- No leading zeros; `ARTIFACT_VERSION_PATTERN` in `@paradoc/schemas` is the rule
-- Max 200 chars
-
-| Valid | Invalid |
-|-------|---------|
-| `1.0.0`, `2.3.1`, `0.1.0`, `1.0.0-beta`, `1.0.0-rc.1+build.5` | `v1.0.0`, `1.0`, `01.0.0`, `1.0.0-` |
-
-### Field / layer / def / rule identifiers
-
-- Pattern: `^[a-z][a-zA-Z0-9_]*$`
-- MUST start with a lowercase letter
-- May contain letters, digits, underscores
-- camelCase preferred
-- Max 100 chars (50 for party roles)
-
-| Valid | Invalid |
-|-------|---------|
-| `firstName`, `monthly_rent`, `hasPets` | `FirstName`, `1stField`, `-name`, `first-name` |
-
-### Metadata keys
-
-- Pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` (same as artifact name)
-
-## Common Validation Errors
-
-### `name` is required
-
-Every artifact MUST have a `name` property. Add it.
-
-### `kind` is required
-
-Every artifact MUST have a `kind` of `"form"`, `"document"`, `"bundle"`, or `"checklist"`.
-
-### Invalid field identifier
-
-Field keys MUST match `^[a-z][a-zA-Z0-9_]*$`. Common mistakes:
-
-```json
-"FirstName"     // wrong: uppercase
-"first-name"    // wrong: hyphens
-"1stField"      // wrong: starts with digit
-```
-
-Fix to camelCase: `firstName`, `firstField`.
-
-### Missing `type` on field
-
-Every field, including a fieldset or list, MUST have `type`:
-
-```json
-"missingType": { "label": "Some Field" }   // wrong
-```
-
-Fix: add `"type": "<fieldType>"`. See [fields.md](./fields.md) for the type list.
+| Message | Cause | Fix |
+|---------|-------|-----|
+| `root: Artifact must be an object with a "kind" property` | No `kind` | Add `kind`: `form`, `document`, `checklist` or `bundle` |
+| `kind: Invalid artifact kind: <x>. Must be one of: ...` | Unknown kind | Use one of the four kinds |
+| `name: Invalid input: expected string, received undefined` | No `name` | Add `name` |
+| `name: Invalid string: must match pattern ...` | Bad artifact name | Use kebab-case ([patterns](#identifier-patterns)) |
+| `version: Invalid string: must match pattern ...` | Not SemVer | Write `1.0.0` |
+| `fields.<key>: Invalid key in record` | Bad key | Write camelCase, starting with a lowercase letter |
+| `fields.<id>.type: Invalid discriminator value. Expected 'text' \| ...` | `type` missing or unknown | See [Unknown field type](#unknown-field-type) |
+| `fields.<id>: Unrecognized key: "<key>"` | A key the type does not have | Remove it, or check the spelling in [fields.md](./fields.md) |
+| `fields.<id>.enum: Invalid input: expected array, received undefined` | `enum` or `multiselect` without options | Add `"enum": [{ "value": "a" }]` |
+| `parties.<role>.label: Invalid input: expected string, received undefined` | Party without `label` | Add `label` ([parties.md](./parties.md)) |
+| `rules: Invalid input: expected record, received array` | `rules` written as an array | Key each rule by id: `"rules": { "<id>": { ... } }` |
+| `contents: Invalid input: expected array, received undefined` | Bundle without `contents` | Add `contents` (may be `[]`) |
+| `contents.<n>.type: Invalid discriminator value. Expected 'inline' \| 'path' \| 'registry'` | Bundle item without `type` | See [artifacts.md](./artifacts.md) |
+| `items: Invalid input: expected array, received undefined` | Checklist without `items` | Add `items` (may be `[]`) |
+| `items.<n>.title: Invalid input: expected string, received undefined` | Checklist item without `title` | Add `title` |
+| `layers.<key>.checksum: Invalid string: must match pattern ...` | Hand-written checksum | Run `paradoc fix <file> -y` |
+| `<path>: Unknown variable: "<ref>"` | An expression names something that does not exist | See [Expression references](#expression-references) |
+| `<path>: Syntax error: Use 'and'; '&&' is not supported.` | JavaScript operators | Write `and`, `or`, `not` ([logic.md](./logic.md)) |
+| `<path>: Cannot verify expression returns boolean: ...` | Follows an error above, or a gate that is not boolean | Fix the first error; make the gate a comparison |
 
 ### Unknown field type
 
-Common mismatches:
+The message lists every valid type. Common mix-ups:
 
 | Wrong | Right |
 |-------|-------|
@@ -157,71 +142,13 @@ Common mismatches:
 | `"type": "currency"` | `"type": "money"` |
 | `"type": "select"` | `"type": "enum"` |
 | `"type": "checkbox"` | `"type": "boolean"` |
+| `"type": "array"` | `"type": "list"` |
+| `"type": "object"` | `"type": "fieldset"` |
 
-`number` and `datetime` are valid types. Do not change them to clear this error. Pick `money`, `percentage`, or `date` only when the data needs that more specific type. The full list is in [fields.md](./fields.md).
+`number`, `datetime` and `list` are valid types. When the message names one of them, look for the bad `type` on another field. The full list is in [fields.md § Field Type Reference](./fields.md#field-type-reference).
 
-### Missing `enum` on enum / multiselect
+### Expression references
 
-`enum` and `multiselect` MUST have an `enum` array:
-
-```json
-"status": { "type": "enum", "label": "Status" }   // wrong
-```
-
-Fix: `"enum": [{ "value": "active" }, { "value": "inactive" }]`.
-
-### Missing `contents` on bundle
-
-Bundles MUST have `contents` (array, may be empty):
-
-```json schema=artifact
-{ "name": "my-bundle", "kind": "bundle", "contents": [] }
-```
-
-### Missing `items` on checklist
-
-Checklists MUST have `items` (array, may be empty).
-
-### Missing `label` on party
-
-Every party role MUST have `label`.
-
-### Invalid `$schema` URI
-
-`$schema` MUST be one of the four URIs above.
-
-### Additional properties not allowed
-
-Schema uses `additionalProperties: false`. Any unknown property errors. Check for typos.
-
-### Invalid checksum format
-
-Checksums MUST match `^sha256:[a-f0-9]{64}$` — `sha256:` prefix + exactly 64 lowercase hex chars.
-
-### Schema valid but artifact behaves unexpectedly
-
-Common causes:
-
-- Expressions in `visible`/`required`/`rules` reference field IDs that don't exist
-- Wrong context format (`marital-status` instead of `fields.marital-status` in field-level expressions)
-
-See [logic.md](./logic.md) for expression context rules.
-
-## Workflow
-
-1. Make changes to the artifact JSON / YAML
-2. `npx paradoc-cli validate <file>`
-3. If errors, fix and repeat
-4. NEVER skip validation
-
-## See Also
-
-- [artifacts.md](./artifacts.md) — top-level structure of each artifact type
-- [fields.md](./fields.md) — field types and identifier rules
-- [parties.md](./parties.md) — party role configuration
-- [logic.md](./logic.md) — defs, rules, CondExpr context
-- [layers.md](./layers.md) — layer schema
-- [annexes.md](./annexes.md) — annex schema
-- [instructions.md](./instructions.md) — ContentRef
-- [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings
-- [cli.md](./cli.md) — `paradoc validate` and `paradoc fix` flags
+- `visible`, `required` and other field-level expressions name fields as `fields.<id>`. A bare `<id>` fails with `Unknown variable: "<id>"`.
+- A `rules` expression accepts both `<id>` and `fields.<id>`.
+- For the names each other site can read, load [logic.md § Where expressions go](./logic.md#where-expressions-go).

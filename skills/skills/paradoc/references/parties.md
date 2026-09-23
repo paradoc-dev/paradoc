@@ -1,257 +1,257 @@
 ---
 name: parties
-description: Party roles, signature requirements, and signers — JSON shape, SDK builders, witness/notary handling, conditional parties
+description: Party roles on a form. Role properties, required and optional roles, signature and payment requirements, and the exact party fill value.
 metadata:
-  tags: parties, signatures, signers, roles, witnesses, notary, partyType
+  tags: parties, roles, partyType, min, max, payment, witnesses, notary, party data
 ---
 
 # Parties
 
-**Contents:** [Identifier rules](#party-role-identifier-rules) · [FormParty properties](#formparty-properties) · [Signature object](#signature-object) · [Common patterns](#common-patterns) · [Signature lifecycle](#signature-lifecycle-sdk)
+**Contents:** [Role properties](#role-properties) · [Required and optional roles](#required-and-optional-roles) · [Signature requirements](#signature-requirements) · [Payment](#payment) · [Patterns](#patterns) · [Party fill values](#party-fill-values) · [SDK](#sdk)
 
-Parties represent roles in a form (landlord, tenant, buyer, seller). Each role can have one or more signers. Parties are **form-only** — documents, bundles, and checklists do NOT have parties.
+A party role names who takes part in a form: `landlord`, `tenant`, `buyer`. Each role is filled with one or more people or organizations. Only forms have parties. Role keys are camelCase, up to 50 characters ([schemas.md § Identifier patterns](./schemas.md#identifier-patterns)). When the task signs or seals (signers, signatories, slots, captures), load [sealing.md](./sealing.md).
 
-## Party Role Identifier Rules
+## Role properties
 
-- Pattern: `^[a-z][a-zA-Z0-9_]*$`
-- camelCase: `buyer`, `seller`, `landlord`, `buyerRepresentative`
-- Max length: 50 characters
+| Property | Type | Default | Constraint |
+|----------|------|---------|------------|
+| `label` | string | none | Required. 1-100 characters. |
+| `description` | string | none | Up to 500 characters |
+| `partyType` | `"person"`, `"organization"`, `"any"` | `"any"` | Which kind of party may fill the role |
+| `min` | number ≥ 0 | `1` | Fewest parties |
+| `max` | number ≥ 1 | `1` | Most parties. Must be at least `min`. |
+| `required` | CondExpr | none | `true`, `false`, or a boolean expression |
+| `signature` | object | none | See [Signature requirements](#signature-requirements) |
+| `payment` | object | none | See [Payment](#payment) |
 
-## FormParty Properties
+## Required and optional roles
 
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `label` | YES | string | Display name for this role (max 100 chars) |
-| `description` | No | string | Description (max 500 chars) |
-| `partyType` | No | string | `"person"`, `"organization"`, or `"any"` (default `"any"`) |
-| `min` | No | number | Minimum parties required (default `1`, min `0`) |
-| `max` | No | number | Maximum parties allowed (default `1`, min `1`) |
-| `required` | No | CondExpr | Whether this role is required |
-| `signature` | No | object | Signature requirements |
+`min` defaults to `1`, so a role is required unless you say otherwise. `prepareForSigning()` fails with `Role "guarantor" requires at least 1 party(ies)` when a required role is empty.
 
-## Signature Object
+| Intent | Write |
+|--------|-------|
+| Required, one party | nothing extra (or `"required": true`) |
+| Optional | `"min": 0` or `"required": false` |
+| Required only when a condition holds | `"required": "fields.creditScore < 650"` |
+| One to four parties | `"min": 1, "max": 4` |
+
+A conditional `required` must type-check as boolean ([logic.md § Conditions are boolean](./logic.md#conditions-are-boolean)). When it is false, the role is optional.
+
+## Signature requirements
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `required` | boolean | `false` | Whether signature is required |
-| `witnesses` | number | `0` | Number of witnesses required |
-| `notarized` | boolean | `false` | Whether at least one witness must be a notary |
+| `required` | boolean | `false` | The role must sign |
+| `witnesses` | number ≥ 0 | `0` | Witnesses required for this role's signature |
+| `notarized` | boolean | `false` | At least one witness must be a notary |
 
-## Common Patterns
+Put witnesses on the role they witness. A form's general witness block belongs to the last party that signs. Put `notarized: true` on the role whose signature the notary block certifies. To add witnesses and attestations at runtime, load [sealing.md § Witnesses and attestations](./sealing.md#witnesses-and-attestations).
 
-### Two-party agreement (landlord/tenant, buyer/seller)
+## Payment
+
+`payment` declares an amount a role owes.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `required` | boolean | `false` | Payment is required |
+| `amount` | Money or MoneyExpression | none | Required. A fixed amount, or one computed from filled data. |
+
+A fixed amount is Money: `{ "amount": 100, "currency": "USD" }`. A computed amount is a MoneyExpression: `{ "type": "money", "value": { "amount": "<number expression>", "currency": "<string expression>" } }`. Both component strings are expressions, so a literal currency is quoted: `"'USD'"`, and a money field is read as `fields.fee.amount` ([logic.md § Money](./logic.md#money)).
 
 ```json schema=form
+"fields": {
+  "units": { "type": "number", "label": "Units", "min": 1 }
+},
 "parties": {
-  "tenant": {
-    "label": "Tenant",
+  "applicant": {
+    "label": "Applicant",
     "partyType": "person",
-    "min": 1, "max": 4,
-    "required": true,
+    "payment": {
+      "required": true,
+      "amount": { "type": "money", "value": { "amount": "fields.units * 25", "currency": "'USD'" } }
+    }
+  },
+  "sponsor": {
+    "label": "Sponsor",
+    "min": 0,
+    "payment": { "amount": { "amount": 100, "currency": "USD" } }
+  }
+}
+```
+
+Resolve the amount with `resolvePartyPayment(form, payment, data)` from `@paradoc/sdk`. It returns `{ required, amount: { amount, currency } }` and throws when an input is missing:
+
+```typescript
+import { p, resolvePartyPayment } from "@paradoc/sdk";
+
+const form = p.form({
+  name: "app-fee",
+  fields: { units: { type: "number", min: 1 } },
+  parties: {
+    applicant: {
+      label: "Applicant",
+      payment: { required: true, amount: { type: "money", value: { amount: "fields.units * 25", currency: "'USD'" } } },
+    },
+  },
+});
+
+const due = resolvePartyPayment(form, form.parties.applicant.payment, { fields: { units: 3 } });
+// { required: true, amount: { amount: 75, currency: "USD" } }
+```
+
+## Patterns
+
+Two-party agreement:
+
+```json schema=parties
+"landlord": {
+  "label": "Landlord",
+  "partyType": "any",
+  "signature": { "required": true }
+},
+"tenant": {
+  "label": "Tenant",
+  "partyType": "person",
+  "min": 1,
+  "max": 4,
+  "signature": { "required": true }
+}
+```
+
+Conditional guarantor, notarized seller, and an optional co-applicant:
+
+```json schema=form
+"fields": {
+  "creditScore": { "type": "number", "label": "Credit score" }
+},
+"parties": {
+  "guarantor": {
+    "label": "Guarantor",
+    "partyType": "person",
+    "required": "fields.creditScore < 650",
     "signature": { "required": true }
   },
-  "landlord": {
-    "label": "Landlord",
-    "partyType": "any",
-    "required": true,
+  "seller": {
+    "label": "Seller",
+    "signature": { "required": true, "witnesses": 1, "notarized": true }
+  },
+  "coApplicant": {
+    "label": "Co-applicant",
+    "partyType": "person",
+    "min": 0,
     "signature": { "required": true }
   }
 }
 ```
 
-### Single signer with witness
+### Role names by domain
 
-```json schema=parties
-"applicant": {
-  "label": "Applicant",
-  "partyType": "person",
-  "required": true,
-  "signature": { "required": true, "witnesses": 1 }
-}
-```
-
-### Conditional party
-
-```json schema=parties
-"guarantor": {
-  "label": "Guarantor",
-  "partyType": "person",
-  "required": "fields.creditScore < 650",
-  "signature": { "required": true }
-}
-```
-
-### Notarized signature
-
-```json schema=parties
-"seller": {
-  "label": "Seller",
-  "partyType": "any",
-  "required": true,
-  "signature": { "required": true, "witnesses": 1, "notarized": true }
-}
-```
-
-### Multi-party role (multiple tenants)
-
-Set `max > 1`. In layers, use `partyIndex` (0-based) to target individual parties — see [layers.md](./layers.md).
-
-```json schema=parties
-"tenant": {
-  "label": "Tenant",
-  "partyType": "person",
-  "min": 1, "max": 4,
-  "signature": { "required": true }
-}
-```
-
-## Witnesses
-
-Do NOT create a separate party role for witnesses. Set `witnesses` count on the party that requires witnessing.
-
-If the PDF/form has a general witness block not tied to a specific party, attach it to the most relevant party (typically the last signing party).
-
-## Notary
-
-If the notary block is attached to a specific party's signature, set `notarized: true` on that party. If standalone, set on the primary party role.
-
-## Common Role Names by Domain
-
-| Domain | Common Roles |
-|--------|-------------|
-| Real estate lease | `tenant`, `landlord`, `guarantor`, `propertyManager` |
-| Purchase agreement | `buyer`, `seller`, `buyerAgent`, `sellerAgent`, `escrowOfficer` |
-| Loan application | `borrower`, `coBorrower`, `lender`, `loanOfficer` |
+| Domain | Roles |
+|--------|-------|
+| Lease | `tenant`, `landlord`, `guarantor`, `propertyManager` |
+| Purchase | `buyer`, `seller`, `buyerAgent`, `sellerAgent`, `escrowOfficer` |
+| Loan | `borrower`, `coBorrower`, `lender`, `loanOfficer` |
 | Employment | `applicant`, `hiringManager`, `hrRepresentative` |
 | Healthcare | `patient`, `guardian`, `physician` |
-| Tax forms | `taxpayer`, `preparer`, `paidPreparer` |
-| Legal/contracts | `partyA`, `partyB`, `notary` |
+| Tax | `taxpayer`, `preparer` |
+| Contract | `partyA`, `partyB` |
 
-### partyType selection
+### partyType
 
-| Indicator | `partyType` |
-|-----------|-------------|
-| "Print Name" only (no company fields) | `person` |
-| "Company Name" or "Organization" | `organization` |
-| Could be either individual or business | `any` (default) |
+| Source form shows | `partyType` |
+|-------------------|-------------|
+| A person's name only | `person` |
+| Company name, entity type, or EIN | `organization` |
+| Either an individual or a business | `any` |
 
-### min/max selection
+### min and max
 
-| Scenario | `min` | `max` |
-|----------|-------|-------|
-| Single required signer | `1` | `1` |
-| Optional signer | `0` | `1` |
-| "Tenant(s)" — one or more | `1` | `4` (estimate from context) |
-| "Buyer 1" + "Buyer 2" blocks | `1` | `2` |
-| Co-applicants | `0` | `2` |
+| Source form shows | `min` | `max` |
+|-------------------|-------|-------|
+| One required signer | `1` | `1` |
+| An optional signer | `0` | `1` |
+| "Tenant(s)", one or more | `1` | an estimate, such as `4` |
+| "Buyer 1" and "Buyer 2" blocks | `1` | `2` |
+| Up to two co-applicants | `0` | `2` |
 
-## SDK Builders
+To bind one party of a multi-party role into a PDF, load [pdf.md § Binding values](./pdf.md#binding-values).
+
+## Party fill values
+
+Put party data under `parties.<role>` in the payload.
+
+<!-- dep:C3 -->
+A role key at the top level of the payload is rejected.
+
+| Role `max` | Value |
+|------------|-------|
+| `1` (default) | One object. An array fails with `Party value must be an object.` |
+| `> 1` | An array, even for one party. An object fails with `Role "tenant" expects an array of parties (max=4).` |
+
+Each party is a person or an organization. The type is inferred from its keys:
+
+| Kind | Keys | Inferred when |
+|------|------|---------------|
+| Person | `name` (required), `title`, `firstName`, `middleName`, `lastName`, `suffix` | No organization key is present |
+| Organization | `name` (required), `legalName`, `domicile`, `entityType`, `entityId`, `taxId` | At least one of `legalName`, `domicile`, `entityType`, `entityId`, `taxId` is present |
+
+So an `organization` role filled with `{ "name": "Acme" }` alone is read as a person and fails with `Party type 'person' not allowed for this role. Expected 'organization'`. Give it one organization key, such as `legalName`. A party takes only these keys; put its email, phone or address in fields.
+
+`id` is optional on input. Core assigns `<role>-<index>` (`tenant-0`, `tenant-1`) and refuses an `id` that does not match the party's position.
+
+```jsonc
+// Payload for fill() or update()
+{
+  "fields": { "creditScore": 720 },
+  "parties": {
+    "landlord": { "name": "Acme Rentals", "legalName": "Acme Rentals LLC" },
+    "tenant": [{ "name": "Jo Park" }, { "name": "Al Park" }]
+  }
+}
+```
+
+Change parties on a draft with `update()`. A role in the patch replaces that role's parties; roles not in the patch stay as they are. For the rest of the draft lifecycle, load [filling.md](./filling.md).
 
 ```typescript
-import { p } from "@paradoc/core";
+// lease: the form built in the SDK section below
+let draft = lease.fill({ parties: { tenant: [{ name: "Jo Park" }] } });
+draft = draft.update({ parties: { landlord: { name: "Acme Rentals", legalName: "Acme Rentals LLC" } } });
 
-// Object pattern (preferred)
-const form = p.form({
-  name: "lease",
-  parties: {
-    landlord: { label: "Landlord", required: true, signature: { required: true } },
-    tenant: { label: "Tenant", min: 1, max: 4, signature: { required: true } },
-  },
-  fields: { /* ... */ },
-});
+draft.getParty("landlord"); // { name: "Acme Rentals", legalName: "Acme Rentals LLC", id: "landlord-0" }
+draft.getParties("tenant"); // [{ name: "Jo Park", id: "tenant-0" }]
+```
 
-// Builder pattern
-const form = p.form()
+Expressions and templates read parties as `parties.<role>` and through the party functions ([logic.md § Party and witness functions](./logic.md#party-and-witness-functions)).
+
+## SDK
+
+`p.form({ ... })` takes plain role objects. The builder chain takes `p.party()` builders or plain objects.
+
+```typescript
+import { p } from "@paradoc/sdk";
+
+const lease = p
+  .form()
   .name("lease")
   .parties({
     landlord: p.party().label("Landlord").signature({ required: true }),
-    tenant: p.party().label("Tenant").min(1).max(4).signature({ required: true }),
+    tenant: p.party().label("Tenant").partyType("person").min(1).max(4).signature({ required: true }),
+    guarantor: p.party().label("Guarantor").required("fields.creditScore < 650"),
   })
+  .fields({ creditScore: { type: "number" } })
   .build();
 ```
 
-### Party builder methods
+| Method | Sets |
+|--------|------|
+| `.label(text)` | `label` |
+| `.description(text)` | `description` |
+| `.partyType("person" \| "organization" \| "any")` | `partyType` |
+| `.min(n)`, `.max(n)` | `min`, `max` |
+| `.required(cond = true)` | `required` |
+| `.signature({ required?, witnesses?, notarized? })` | `signature` |
+| `.from(role)` | Every property of an existing role, including `payment` |
+| `.build()` | Validates and returns the role |
 
-| Method | Description |
-|--------|-------------|
-| `.label(string)` | Human-readable role name |
-| `.description(string)` | Role description |
-| `.partyType("person" \| "organization")` | Restrict to specific type |
-| `.min(n)` / `.max(n)` | How many parties fill this role (default 1 each) |
-| `.required(bool)` | Whether this role is required |
-| `.signature({ required })` | Signature requirements |
-| `.from(data)` | Create from existing party data |
+Declare `payment` in a plain role object, or seed the builder with `.from({ label, payment })`; the builder has no `payment` method.
 
-## Party Data (runtime)
-
-Party data is shape-inferred — no explicit discriminator field. Each party's `id` is `<role>-<index>` (`tenant-0`, `tenant-1`). The form assigns it; a supplied `id` that does not match the party's position is refused.
-
-```typescript
-// Person — default when no organization-specific fields present
-{ name: "Jane Smith", firstName: "Jane", lastName: "Smith" }
-
-// Organization — detected by legalName, taxId, entityType, etc.
-{ name: "Acme Corp", legalName: "Acme Corporation LLC", taxId: "12-3456789" }
-```
-
-Party values are ALWAYS arrays at fill time, even for single-party roles:
-
-```typescript
-form.fill({
-  fields: { /* ... */ },
-  parties: {
-    landlord: [{ id: "landlord-0", name: "Jane Smith" }],
-    tenant: [
-      { id: "tenant-0", name: "John Doe" },
-      { id: "tenant-1", name: "Alice Doe" },
-    ],
-  },
-});
-```
-
-## Signature Lifecycle (SDK)
-
-```typescript
-// 1. Fill the form (draft phase)
-const draft = form.fill(data);
-
-// 2. Manage signers
-draft.addSigner("s1", { person: { name: "Jane Smith" } });
-
-// 3. Transition to signable
-const signable = draft.prepareForSigning();
-
-// 4. Capture signatures (positional: role, partyId, signerId, locationId).
-// Each capture returns a new form; a slot takes one capture.
-const signed = signable.captureSignature("landlord", "landlord-0", "s1", "sig-loc-1");
-
-// 5. Status check
-const status = signed.getOverallSignatureStatus();
-
-// 6. Finalize. On a sealed form, every required signatureMap slot needs a capture.
-const executed = signed.finalize();
-```
-
-Phase transitions are one-way: `draft → signable → executed`. NEVER attempt to go backwards.
-
-## Available Functions in Expressions
-
-Party functions can be referenced in CondExpr (see [logic.md](./logic.md)):
-
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `partyCount(roleId)` | number | Count of parties in role |
-| `partyType(roleId)` | string | `"person"` or `"organization"` |
-| `allSigned(roleId)` | boolean | All parties signed |
-| `signedCount(roleId)` | number | Count of signed parties |
-| `anySigned(roleId)` | boolean | Any party signed |
-| `witnessCount()` | number | Total witnesses |
-| `allWitnessesSigned()` | boolean | All witnesses signed |
-| `anyWitnessSigned()` | boolean | Any witness signed |
-
-## See Also
-
-- [layers.md](./layers.md) — signature blocks reference party roles
-- [logic.md](./logic.md) — CondExpr and party functions
-- [pdf-bindings.md](./pdf-bindings.md) — placing signature blocks in PDF layers
-- [sdk.md](./sdk.md) — full signature lifecycle

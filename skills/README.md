@@ -1,82 +1,65 @@
 # Paradoc Skills
 
-Official collection of agent skills for [Paradoc](https://paradoc.dev) — the documents-as-code framework.
+Agent skills for [Paradoc](https://paradoc.dev), the documents-as-code framework. A skill is a package of instructions and references that teaches an AI coding agent how to use Paradoc's APIs, CLI and file formats.
 
-Skills are packaged instructions that extend AI coding agents with deep knowledge of Paradoc's APIs, patterns, and tooling.
+## Available skills
 
-## Available Skills
+| Skill | Use it for |
+|---|---|
+| [paradoc](skills/paradoc/) | Authoring, filling, validating, rendering and sealing artifacts with the TypeScript SDK, the `paradoc` CLI, raw JSON/YAML, the AI agent tools, or the hosted MCP server. Includes a staged workflow for creating a form or converting a PDF form. |
+| [paradoc-react](skills/paradoc-react/) | Composing, checking, previewing, rendering and sealing documents written in React with `@paradoc/react` and `@paradoc/react-pdf`. |
 
-| Skill | Trigger | What it covers |
-|---|---|---|
-| [paradoc](skills/paradoc/) | Any Paradoc work | All surfaces (TypeScript SDK, `paradoc` CLI, raw JSON/YAML, `mcp.paradoc.dev`) and end-to-end workflows (create new form from requirements, convert PDF to artifact) |
-| [compose-documents](skills/compose-documents/) | Authoring or checking a `.tsx`/`.jsx` composition with `@paradoc/react` | The component vocabulary, the pagination rule, the safe Tailwind class subset, tenant branding tokens, binding a composition to a form artifact's React layer, and `paradoc check`/`paradoc add` |
-
-`paradoc` is a single skill with topic-organized references. Surface refs (`sdk`, `cli`, `schemas`, `mcp`) describe how to express things on each surface; topic refs (`fields`, `parties`, `annexes`, `logic`, `layers`, `rendering`, `formatting`, `instructions`, `pdf-bindings`, `artifacts`) describe the underlying concepts and are loaded as needed; workflow refs (`workflow-create-form`, `workflow-convert-pdf`) orchestrate stages by linking to topic refs.
-
-`compose-documents` is a second, narrower skill for the `@paradoc/react` composition surface specifically — install it on its own when the only Paradoc surface in play is composing documents in React.
+Install `paradoc-react` on its own when composing documents in React is the only Paradoc work in play. Install both when you also author the artifacts.
 
 ## Installation
 
 ### Claude Code
 
 ```bash
-npx skills add https://github.com/paradoc-dev/skills --skill paradoc
-npx skills add https://github.com/paradoc-dev/skills --skill compose-documents
+npx skills add https://github.com/paradoc-dev/paradoc --skill paradoc
+npx skills add https://github.com/paradoc-dev/paradoc --skill paradoc-react
 ```
 
-Or manually copy:
+Or copy them by hand:
 
 ```bash
-git clone https://github.com/paradoc-dev/skills.git
-cp -r skills/skills/paradoc ~/.claude/skills/
-cp -r skills/skills/compose-documents ~/.claude/skills/
+git clone https://github.com/paradoc-dev/paradoc.git
+cp -r paradoc/skills/skills/paradoc ~/.claude/skills/
+cp -r paradoc/skills/skills/paradoc-react ~/.claude/skills/
 ```
 
-### claude.ai
+### Claude.ai
 
-Add the skill to project knowledge or paste the `SKILL.md` contents into the conversation.
+Upload `SKILL.md` and the relevant files from `references/` to your project knowledge.
+
+### Other agents
+
+The skills follow the [Agent Skills specification](https://agentskills.io/specification.md). Point your agent's skill loader at each skill's `SKILL.md`.
 
 ## Structure
 
-```
+```text
 skills/
   paradoc/
-    SKILL.md          # Manifest and dispatch table
-    metadata.json     # Version and metadata
+    SKILL.md            # Manifest: rules, package map, dispatch
+    metadata.json
     references/
-      # Surface refs — how to express things on each surface
-      sdk.md          # TypeScript SDK
-      cli.md          # paradoc CLI
-      schemas.md      # Raw JSON/YAML
-      mcp.md          # mcp.paradoc.dev MCP service
-      # Topic refs — canonical concept knowledge
-      artifacts.md
-      fields.md
-      parties.md
-      annexes.md
-      logic.md
-      layers.md
-      rendering.md
-      formatting.md
-      instructions.md
-      pdf-bindings.md
-      # Workflow refs — staged pipelines
-      workflow-create-form.md
-      workflow-convert-pdf.md
-  compose-documents/
-    SKILL.md          # Manifest and dispatch table
-    metadata.json      # Version and metadata
+      sdk.md cli.md schemas.md ai-tools.md mcp.md          # Surfaces
+      artifacts.md fields.md parties.md annexes.md logic.md  # Topics
+      layers.md templates.md pdf.md rendering.md formatting.md
+      instructions.md filling.md sealing.md essentials.md
+      workflow-author-form.md                               # Workflow
+  paradoc-react/
+    SKILL.md            # Manifest: the compose-to-seal lifecycle
+    metadata.json
     references/
-      components.md       # The component vocabulary and props
-      pagination.md        # The keep-together rule
-      safe-classes.md      # The verified Tailwind subset and branding tokens
-      artifact-binding.md  # The React layer, binding, and the seal
-      cli.md                # paradoc check / paradoc add
+      components.md pagination.md safe-classes.md
+      custom-components.md render-and-seal.md cli.md
 ```
 
 ## Contributing
 
-Each reference is a standalone markdown file with YAML frontmatter. See any existing reference file for the format, and see [AGENTS.md](AGENTS.md) for repository conventions.
+See [AGENTS.md](AGENTS.md) for the conventions and the tests that tie the skills to the code.
 
 ## License
 

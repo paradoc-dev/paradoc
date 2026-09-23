@@ -15,7 +15,7 @@
 			// pass instead of re-running the comparison.
 			"inputs": [
 				"$TURBO_DEFAULT$",
-				"$TURBO_ROOT$/paradoc/skills/skills/compose-documents/references/safe-classes.md"
+				"$TURBO_ROOT$/paradoc/skills/skills/paradoc-react/references/safe-classes.md"
 			]
 		}
 	}

@@ -1,66 +1,60 @@
 ---
 name: artifacts
-description: The four Paradoc artifact types (form, document, bundle, checklist) — top-level structure, required properties, JSON and SDK shapes
+description: The four artifact kinds (form, document, checklist, bundle). Shared base properties, each kind's top-level shape, and the bundle include condition and what it reads.
 metadata:
-  tags: artifacts, form, document, bundle, checklist, structure, top-level
+  tags: artifacts, form, document, checklist, bundle, base, identifiers, include, language
 ---
 
-# Artifact Types
+# Artifacts
 
-**Contents:** [Shared base](#shared-base-properties) · [Form](#form) · [Document](#document) · [Bundle](#bundle) · [Checklist](#checklist) · [SDK shapes](#sdk-shapes)
+**Contents:** [Kinds](#kinds) · [Shared base](#shared-base) · [Form](#form) · [Document](#document) · [Checklist](#checklist) · [Bundle](#bundle)
 
-Paradoc has four artifact kinds discriminated by the `kind` property: `form`, `document`, `bundle`, `checklist`.
+An **artifact** is the unit of work: one JSON or YAML file (or one SDK instance) with a `kind`. For the runtime calls and phases of each kind, load [sdk.md](./sdk.md).
 
-## Shared Base Properties
+## Kinds
 
-All four artifact types share these properties:
+| `kind` | Use it for | Required keys |
+|--------|-----------|---------------|
+| `form` | Data collection with fields, parties, signatures and logic | `name`, `kind` |
+| `document` | Static content rendered through layers, with no fields or parties | `name`, `kind` |
+| `checklist` | Ordered items, each with a boolean or enum status | `name`, `kind`, `items` |
+| `bundle` | An ordered package of other artifacts | `name`, `kind`, `contents` |
 
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `name` | YES | string | Artifact identifier. Pattern: `^[A-Za-z0-9]([A-Za-z0-9]\|-[A-Za-z0-9])*$` |
-| `kind` | YES | enum | `"form"`, `"document"`, `"bundle"`, or `"checklist"` |
-| `$schema` | No | string | JSON Schema URI |
-| `version` | No | string | SemVer 2.0.0: `1.2.3`, `1.3.0-beta.1`, `1.0.0+build.5` |
-| `title` | No | string | Human-readable title (max 200 chars) |
-| `description` | No | string | Detailed description (max 2000 chars) |
-| `code` | No | string | Internal code (max 200 chars) |
-| `releaseDate` | No | string | ISO date: `YYYY-MM-DD` |
-| `metadata` | No | object | Key-value pairs (string/number/boolean/null) |
-| `instructions` | No | ContentRef | Domain/compliance reference content |
-| `agentInstructions` | No | ContentRef | LLM/agent prompts for presentation |
+Choose a form as soon as the content has one input or one signer; otherwise a document.
 
-Schema URI (current schema version `2026-09-22`, the same for every kind): `https://schema.paradoc.dev/2026-09-22.json`. To bring an older file up to date, run `npx paradoc-cli migrate <file>` (see [schemas.md](./schemas.md#migrating-an-older-artifact)).
+## Shared base
+
+Every kind accepts these keys.
+
+| Key | Type | Rule |
+|-----|------|------|
+| `$schema` | string | `https://schema.paradoc.dev/2026-09-22.json` for every kind ([schemas.md § Schema version](./schemas.md#schema-version)) |
+| `name` | string | Kebab-case, 1 to 128 characters ([schemas.md § Identifier patterns](./schemas.md#identifier-patterns)) |
+| `kind` | enum | `form`, `document`, `checklist`, `bundle` |
+| `version` | string | SemVer 2.0.0: `1.2.3`, `1.3.0-beta.1`, `1.0.0+build.5` |
+| `title` | string | 1 to 200 characters |
+| `description` | string | Up to 2000 characters |
+| `code` | string | Your internal code, 1 to 200 characters |
+| `language` | string | BCP 47 tag such as `en`, `en-US`, `fr-CA`. Default `en`. |
+| `releaseDate` | string | `YYYY-MM-DD` |
+| `metadata` | object | Kebab-case keys (up to 100 characters); values are string (up to 500), number, boolean or `null` |
+| `instructions` | ContentRef | Guidance for people ([instructions.md](./instructions.md)) |
+| `agentInstructions` | ContentRef | Guidance for AI agents ([instructions.md](./instructions.md)) |
+
+Bump `version` by SemVer: major for a removed or renamed field, a changed type, or optional becoming required; minor for a new optional field, layer or annex; patch for labels and template fixes.
 
 ## Form
 
-Interactive data collection with fields, parties, signatures, layers, and logic.
-
-**Required:** `name`, `kind`
-
-**Form-specific properties:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `fields` | object | Field definitions keyed by field ID — see [fields.md](./fields.md) |
-| `parties` | object | Party role definitions — see [parties.md](./parties.md) |
-| `layers` | object | Render layers — see [layers.md](./layers.md) |
-| `defaultLayer` | string | Key of the default layer |
-| `annexes` | object | Predefined annex slots — see [annexes.md](./annexes.md) |
-| `allowAdditionalAnnexes` | boolean | Allow ad-hoc annexes (default: `false`) |
-| `defs` | object | Computed values — see [logic.md](./logic.md) |
-| `rules` | object | Validation rules — see [logic.md](./logic.md) |
-
-### Minimal form (JSON)
-
-```json schema=artifact
-{
-  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
-  "name": "my-form",
-  "kind": "form"
-}
-```
-
-### Realistic form (JSON)
+| Key | Type | Topic |
+|-----|------|-------|
+| `fields` | object of field definitions | [fields.md](./fields.md) |
+| `parties` | object of party roles | [parties.md](./parties.md) |
+| `annexes` | object of file attachments | [annexes.md](./annexes.md) |
+| `allowAdditionalAnnexes` | boolean, default `false` | [annexes.md](./annexes.md) |
+| `defs` | computed values | [logic.md](./logic.md) |
+| `rules` | validation rules | [logic.md](./logic.md) |
+| `layers` | render layers | [layers.md](./layers.md) |
+| `defaultLayer` | layer key; the first declared layer when unset | [layers.md](./layers.md) |
 
 ```json schema=artifact
 {
@@ -69,34 +63,28 @@ Interactive data collection with fields, parties, signatures, layers, and logic.
   "kind": "form",
   "version": "1.0.0",
   "title": "Rental Application",
+  "language": "en-US",
   "fields": {
-    "applicantName": { "type": "text", "label": "Full Name", "required": true },
-    "monthlyIncome": { "type": "money", "label": "Monthly Income", "required": true }
+    "applicantName": { "type": "text", "label": "Full name", "required": true },
+    "monthlyIncome": { "type": "money", "label": "Monthly income", "required": true }
   },
   "parties": {
-    "applicant": {
-      "label": "Applicant",
-      "partyType": "person",
-      "signature": { "required": true }
+    "applicant": { "label": "Applicant", "partyType": "person", "signature": { "required": true } }
+  },
+  "layers": {
+    "markdown": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# Rental Application\n\nApplicant: {{fields.applicantName}}\n\nIncome: {{fields.monthlyIncome}}"
     }
-  }
+  },
+  "defaultLayer": "markdown"
 }
 ```
 
 ## Document
 
-Static content with data placeholders — no fields, no parties.
-
-**Required:** `name`, `kind`
-
-**Document-specific properties:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `layers` | object | Render layers |
-| `defaultLayer` | string | Key of the default layer |
-
-### Realistic document (JSON)
+A document takes `layers` and `defaultLayer` and nothing else beyond the base. Its templates have no fields to read.
 
 ```json schema=artifact
 {
@@ -109,84 +97,23 @@ Static content with data placeholders — no fields, no parties.
     "markdown": {
       "kind": "inline",
       "mimeType": "text/markdown",
-      "text": "# Privacy Policy\n\nEffective: 2026-01-01"
+      "text": "# Privacy Policy\n\nEffective 2026-01-01."
     }
   },
   "defaultLayer": "markdown"
 }
 ```
 
-When to choose document vs form:
-
-| Use document when... | Use form when... |
-|---------------------|-----------------|
-| Content is static / read-only | Has fillable fields |
-| No parties or signatures | Parties must sign |
-| Disclosures, regulations, reference | Agreements, applications, contracts |
-
-## Bundle
-
-Composes multiple artifacts (forms, documents, checklists, other bundles) into an ordered package.
-
-**Required:** `name`, `kind`, `contents`
-
-**Bundle-specific properties:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `contents` | array | Ordered list of content items (REQUIRED, may be empty) |
-| `defs` | object | Cross-artifact computed values |
-
-Each content item is one of three types:
-
-```json
-{ "type": "inline", "key": "mainForm", "artifact": { "name": "...", "kind": "form" } }
-{ "type": "path", "key": "schedule-a", "path": "artifacts/schedule-a.json" }
-{ "type": "registry", "key": "w9", "slug": "@irs/tax-forms/w9@1.0.0" }
-```
-
-`path` and `registry` items also support optional `include` (CondExpr) for conditional inclusion.
-
-### Realistic bundle (JSON)
-
-```json schema=artifact
-{
-  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
-  "name": "loan-package",
-  "kind": "bundle",
-  "version": "1.0.0",
-  "contents": [
-    { "type": "path", "key": "application", "path": "artifacts/loan-application.json" },
-    { "type": "path", "key": "disclosure", "path": "artifacts/truth-in-lending.json", "include": "fields.loanAmount > 10000" },
-    { "type": "registry", "key": "w9", "slug": "@irs/tax-forms/w9@1.0.0" }
-  ]
-}
-```
-
 ## Checklist
 
-Tracks status of ordered items.
+A checklist takes `items` (required, may be empty), `layers` and `defaultLayer`.
 
-**Required:** `name`, `kind`, `items`
-
-**Checklist-specific properties:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `items` | array | Array of checklist items (REQUIRED, may be empty) |
-| `layers` | object | Render layers |
-| `defaultLayer` | string | Key of the default layer |
-
-Each item:
-
-| Property | Required | Description |
-|----------|----------|-------------|
-| `id` | YES | Unique item identifier (max 128 chars) |
-| `title` | YES | Item title (max 500 chars) |
-| `description` | No | Detailed description (max 2000 chars) |
-| `status` | No | `{ "kind": "boolean" }` or `{ "kind": "enum", "options": [...] }` |
-
-### Realistic checklist (JSON)
+| Item key | Required | Rule |
+|----------|----------|------|
+| `id` | yes | Unique, up to 128 characters |
+| `title` | yes | Up to 500 characters |
+| `description` | no | Up to 2000 characters |
+| `status` | no | `{ "kind": "boolean", "default"? }` or `{ "kind": "enum", "options": [{ "value", "label" }], "default"? }` |
 
 ```json schema=artifact
 {
@@ -194,10 +121,10 @@ Each item:
   "name": "closing-checklist",
   "kind": "checklist",
   "items": [
-    { "id": "title-search", "title": "Title Search Complete", "status": { "kind": "boolean", "default": false } },
+    { "id": "title-search", "title": "Title search complete", "status": { "kind": "boolean", "default": false } },
     {
       "id": "appraisal",
-      "title": "Property Appraisal",
+      "title": "Property appraisal",
       "status": {
         "kind": "enum",
         "options": [
@@ -212,45 +139,63 @@ Each item:
 }
 ```
 
-## SDK shapes
+## Bundle
 
-For TypeScript SDK builders (`p.form()`, `p.document()`, `p.bundle()`, `p.checklist()`) and runtime lifecycle (`fill`, `prepareForSigning`, `finalize`, `assemble`), see [sdk.md](./sdk.md).
+A bundle takes `contents` (required, ordered, may be empty) and `defs`. Each content item has a `key`, a `type`, and an optional `include`.
 
-Quick reference for SDK creation patterns:
+| `type` | Source key | Points at |
+|--------|-----------|-----------|
+| `inline` | `artifact` | A full artifact object of any kind, including a nested bundle |
+| `path` | `path` | An artifact file, as a path from the repository root |
+| `registry` | `slug` | `@org/repo/resource` or `@org/repo/resource@version`, in a known namespace ([cli.md § Preconditions](./cli.md#preconditions)) |
 
-```typescript
-import { p } from "@paradoc/core";
+### Include conditions
 
-// Form
-const form = p.form({ name: "lease", version: "1.0.0", fields: { /* ... */ } });
+`include` is a boolean expression ([logic.md](./logic.md)) on any item type. The member is in the bundle when it is `true`, out when `false`, and `unresolved` while the data it reads is missing.
 
-// Document
-const doc = p.document({ name: "policy", version: "1.0.0", layers: { /* ... */ } });
+A bundle has no fields of its own, so `fields.x` is an unknown reference. An `include` or a bundle def reads members by content key:
 
-// Bundle
-const bundle = p.bundle({
-  name: "package",
-  contents: [
-    { type: "inline", key: "lease", artifact: form.toJSON({ includeSchema: false }) },
-  ],
-});
+| Reference | Value |
+|-----------|-------|
+| `forms.<key>.fields.<id>` | A field of a form member |
+| `forms.<key>.<def>` | A def of a form member, by its bare key |
+| `bundles.<key>.forms.<key>.fields.<id>` | A field of a form in a nested bundle |
+| `<def>` | A def in the bundle's own `defs` |
 
-// Checklist
-const checklist = p.checklist({
-  name: "closing",
-  items: [{ id: "task1", title: "First Task", status: { kind: "boolean" } }],
-});
+```json schema=artifact
+{
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
+  "name": "loan-package",
+  "kind": "bundle",
+  "version": "1.0.0",
+  "defs": {
+    "largeLoan": { "type": "boolean", "value": "forms.application.fields.loanAmount > 10000" }
+  },
+  "contents": [
+    {
+      "type": "inline",
+      "key": "application",
+      "artifact": {
+        "name": "loan-application",
+        "kind": "form",
+        "fields": { "loanAmount": { "type": "number", "label": "Loan amount", "required": true } }
+      }
+    },
+    {
+      "type": "inline",
+      "key": "truth-in-lending",
+      "include": "largeLoan",
+      "artifact": {
+        "name": "truth-in-lending",
+        "kind": "document",
+        "layers": { "markdown": { "kind": "inline", "mimeType": "text/markdown", "text": "# Truth in Lending" } }
+      }
+    },
+    { "type": "path", "key": "schedule-a", "path": "artifacts/schedule-a.json" }
+  ]
+}
 ```
 
-ALWAYS pass `{ includeSchema: false }` when inlining artifacts in bundles — schema duplication wastes space and breaks validation.
+Inline every member that an `include` or bundle def reads. `validate` resolves references into inline members only; a reference into a `path` or `registry` member fails with `Unknown variable: "forms.<key>..."`.
 
-## See Also
-
-- [fields.md](./fields.md) — field definitions for forms
-- [parties.md](./parties.md) — party roles and signatures
-- [layers.md](./layers.md) — render templates
-- [logic.md](./logic.md) — defs, rules, conditional expressions
-- [annexes.md](./annexes.md) — file attachments
-- [instructions.md](./instructions.md) — ContentRef
-- [sdk.md](./sdk.md) — TypeScript SDK lifecycle (fill, sign, render)
-- [schemas.md](./schemas.md) — `npx paradoc-cli validate` and shared rules
+An inline artifact may keep or drop its own `$schema`.

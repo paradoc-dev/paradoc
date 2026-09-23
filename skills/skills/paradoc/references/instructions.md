@@ -1,226 +1,128 @@
 ---
 name: instructions
-description: ContentRef for instructions and agentInstructions — inline vs file, when to use each, design heuristics
+description: instructions and agentInstructions - the ContentRef shape, what belongs in each, attaching files with checksums, and where each surface reads them
 metadata:
-  tags: instructions, agent-instructions, contentref, inline, file, compliance, guidance
+  tags: instructions, agentInstructions, contentref, attach, checksum, fix, get_artifact
 ---
 
-# Instructions (ContentRef)
+# Instructions
 
-All four artifact types support two instruction properties, both using the **ContentRef** type:
+**Contents:** [Two properties](#two-properties) · [ContentRef shape](#contentref-shape) · [Attach a file](#attach-a-file) · [What belongs where](#what-belongs-where) · [Where they are read](#where-they-are-read) · [SDK](#sdk)
 
-| Property | Purpose |
-|----------|---------|
-| `instructions` | Domain or compliance reference content (regulatory, filing rules, legal) — for human readers |
-| `agentInstructions` | LLM/agent prompts for field ordering, grouping, tone — for AI agents |
+## Two properties
 
-## ContentRef Types
+Every artifact kind (form, document, checklist, bundle) takes two optional instruction properties:
 
-A ContentRef is either **inline** or **file**.
+| Property | Reader | Holds |
+|----------|--------|-------|
+| `instructions` | People filling or reviewing the artifact | Official guidance: filing rules, definitions, legal notices |
+| `agentInstructions` | An AI agent presenting or filling the artifact | How to run the conversation: order, grouping, tone, sensitive fields |
 
-### Inline ContentRef
+Put per-field help in the field's `description`.
 
-Embeds content in the artifact JSON.
+## ContentRef shape
 
-**Required:** `kind`, `text`
+Each property is a ContentRef: inline text or a file reference.
 
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `kind` | YES | `"inline"` | Discriminator |
-| `text` | YES | string | Content text (max 1,000,000 chars) |
-
-```json schema=form
-"instructions": {
-  "kind": "inline",
-  "text": "Line 1: Enter your full legal name as it appears on your tax return.\nLine 2: Enter your SSN."
-}
-```
-
-### File ContentRef
-
-References an external content file.
-
-**Required:** `kind`, `path`, `mimeType`
-
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `kind` | YES | `"file"` | Discriminator |
-| `path` | YES | string | Path (max 1000 chars) |
-| `mimeType` | YES | string | MIME type (max 100 chars) |
-| `title` | No | string | Title (max 200) |
-| `description` | No | string | Description (max 2000) |
-| `checksum` | No | string | `sha256:<64-hex>` |
-
-```json schema=form
-"instructions": {
-  "kind": "file",
-  "path": "instructions/w9-instructions.md",
-  "mimeType": "text/markdown",
-  "title": "IRS W-9 Instructions",
-  "description": "Official IRS instructions for completing Form W-9"
-}
-```
-
-For workflow contexts (creating new artifacts, converting PDFs): ALWAYS use file ContentRef. Naming convention:
-
-| Property | File Path |
-|----------|-----------|
-| `instructions` | `instructions/<artifact-name>.instructions.md` (or `<name>-instructions.md`) |
-| `agentInstructions` | `instructions/<artifact-name>.agent.md` |
-
-When using file ContentRef, you MUST create the referenced file.
-
-## When to Use Each
-
-### Use `instructions` for
-
-- Official reference material (IRS instructions, regulatory text)
-- Compliance requirements and filing procedures
-- Domain term definitions, legal disclaimers
-- Jurisdiction-specific rules, penalty warnings
-- Regulatory citations (e.g., "26 CFR 1.1441-1")
-- Text the end user might need to read
-
-### Use `agentInstructions` for
-
-- LLM/agent prompts for how to present and fill the form
-- Field ordering and grouping preferences
-- Tone and formatting guidance
-- Conditional logic hints
-- Data format expectations
-- When to prompt for clarification vs. infer
-
-### Use both when
-
-Most forms benefit from both — `instructions` for the human-facing context, `agentInstructions` for AI behavior.
+| Property | Inline | File | Notes |
+|----------|--------|------|-------|
+| `kind` | `"inline"` | `"file"` | Discriminator |
+| `text` | required | none | Up to 1,000,000 characters |
+| `path` | none | required | Relative to the artifact file's directory |
+| `mimeType` | none | required | Usually `text/markdown` |
+| `checksum` | none | optional | `sha256:<64 hex>` |
+| `title`, `description` | none | optional | Up to 200 and 2000 characters |
 
 ```json schema=artifact
 {
+  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
   "name": "rental-application",
   "kind": "form",
   "instructions": {
     "kind": "file",
     "path": "instructions/rental-application.instructions.md",
-    "mimeType": "text/markdown"
+    "mimeType": "text/markdown",
+    "title": "Application rules"
   },
   "agentInstructions": {
-    "kind": "file",
-    "path": "instructions/rental-application.agent.md",
-    "mimeType": "text/markdown"
+    "kind": "inline",
+    "text": "Ask for parties.applicant first, then currentAddress and employer. Confirm monthlyIncome as a yearly amount."
   }
 }
 ```
 
-## What Belongs Where
+Use a file for anything longer than a paragraph. Name files `instructions/<artifact-name>.instructions.md` and `instructions/<artifact-name>.agent.md`.
 
-### `instructions` content
+## Attach a file
 
-| Include | Skip |
-|---------|------|
-| Filing deadlines and procedures | "For Office Use Only" instructions |
-| Regulatory citations | Page layout instructions |
-| Domain term definitions | Internal processing notes |
-| Legal disclaimers, penalty warnings | How to fill specific fields (use field `description`) |
-| Statutory requirements | AI behavior directives (use `agentInstructions`) |
+Write the file, then attach it. `paradoc attach` writes the ContentRef with the MIME type and checksum:
 
-### `agentInstructions` content
-
-Required content (every `agentInstructions`):
-
-1. **Form purpose** — one sentence
-2. **Field presentation order**
-3. **Grouping** into logical sections
-4. **Tone** (formal, professional, friendly)
-5. **Special handling** for sensitive fields
-
-Optional content:
-
-- Conditional logic hints
-- Data format guidance
-- Common mistakes
-- Cross-field relationships
-
-DO:
-- Reference field IDs by name
-- Describe logical flow, not flat lists
-- Note conditional sections
-
-DO NOT:
-- Repeat field labels (the agent reads them from the schema)
-- Include raw schema structure
-- Copy legal text (that goes in `instructions`)
-- Exceed ~2000 characters
-
-## Examples
-
-### Tax form — instructions file
-
-`instructions/w9.instructions.md`:
-
-```markdown
-This form is used to request your taxpayer identification number (TIN).
-Under penalties of perjury, you certify that:
-
-1. The TIN shown is your correct TIN.
-2. You are not subject to backup withholding.
-3. You are a U.S. citizen or other U.S. person.
-
-For more information, see IRS Publication 515.
+```bash
+paradoc attach rental-application.json instructions/rental-application.agent.md --as agent-instructions -y
+paradoc attach rental-application.json instructions/rental-application.instructions.md --as instructions -y
 ```
 
-### Tax form — agentInstructions file
+After you edit an attached file, its checksum no longer matches and `paradoc validate` fails with `Checksum mismatch`. Update every checksum (layers and ContentRefs) in one step:
 
-`instructions/w9.agent.md`:
-
-```markdown
-Present fields in this order:
-1. Name (as shown on income tax return)
-2. Business name (if different)
-3. Federal tax classification (guide user through options)
-4. Exemptions (only if user qualifies)
-5. Address
-6. TIN (SSN or EIN based on entity type)
-
-Use formal, professional tone. Mask all but last 4 digits when confirming.
+```bash
+paradoc fix rental-application.json -y
+paradoc validate rental-application.json
 ```
 
-### Rental application — agentInstructions
+<!-- dep:C7 -->
+`paradoc validate` reports a missing instruction file as an error and a missing checksum as a warning. The finish line is `paradoc validate` with no errors and no warnings.
+
+## What belongs where
+
+| `instructions` | `agentInstructions` |
+|----------------|---------------------|
+| Filing deadlines and procedures | Purpose of the form, in one sentence |
+| Regulatory citations, statutory requirements | The order to ask in, by field id |
+| Definitions of domain terms | Grouping into sections |
+| Legal disclaimers, penalty warnings | Tone |
+| Text the end user may need to read | Sensitive fields and how to confirm them |
+| | Conditional sections and when they apply |
+
+Write `agentInstructions` like this:
+
+- Name fields by id (`taxClassification`, `parties.taxpayer.name`). The agent reads labels from the schema.
+- Describe the flow and its branches.
+- Stay within a few hundred words.
 
 ```markdown
-Guide the applicant through these sections in order:
-1. Personal information (name, DOB, contact)
-2. Current address and rental history
-3. Employment and income
-4. References
-5. Authorization and consent
+Purpose: certify the taxpayer's TIN for a W-9.
 
-For income fields, ask for annual amounts and display with currency formatting.
-If self-employed, ask follow-up questions about business type. Be empathetic
-but thorough — explain why financial information is needed.
+1. Ask for parties.taxpayer.name, then businessName if it differs.
+2. Ask for taxClassification. If it is llc, ask for llcType. If it is other, ask for otherDescription.
+3. Ask for mailingAddress.
+4. Ask for ssn for an individual, else ein.
+5. Ask for exemptPayeeCode and fatcaExemptionCode only if the taxpayer says an exemption applies.
+
+Use a formal tone. When confirming ssn or ein, show only the last 4 digits.
 ```
 
-## SDK Patterns
+## Where they are read
+
+| Surface | What it returns |
+|---------|-----------------|
+| AI tools `get_artifact` (`@paradoc/ai-tools` and its adapters) | Both refs resolved to content as `instructions` and `agent_instructions`: `{ kind, content, encoding, mime_type?, path? }`. Text is `utf-8`, other types `base64`, up to 5 MiB. Turn each off with `include_instructions: false` or `include_agent_instructions: false`. See [ai-tools.md](./ai-tools.md) |
+| SDK instance | `form.instructions` and `form.agentInstructions` return the ContentRef, not the file content. Read a file ref yourself through the same resolver |
+| `paradoc validate`, `paradoc fix` | Check and update file refs and their checksums |
+
+## SDK
 
 ```typescript
-// Object pattern
-const form = p.form({
-  name: "w2-wage-statement",
-  instructions: { kind: "inline", text: "Complete all boxes..." },
-  agentInstructions: { kind: "file", path: "instructions/w2-agent.md", mimeType: "text/markdown" },
-  fields: { /* ... */ },
-});
+import { p } from "@paradoc/sdk";
 
-// Builder pattern
-const form = p.form()
+const w2 = p
+  .form()
   .name("w2-wage-statement")
-  .instructions({ kind: "inline", text: "Complete all boxes..." })
-  .agentInstructions({ kind: "file", path: "instructions/w2-agent.md", mimeType: "text/markdown" })
-  .fields({ /* ... */ })
+  .instructions({ kind: "file", path: "instructions/w2.instructions.md", mimeType: "text/markdown" })
+  .agentInstructions({ kind: "inline", text: "Ask for employerEin before wages." })
+  .fields({ employerEin: p.field.text().label("Employer EIN") })
   .build();
+
+w2.agentInstructions; // { kind: "inline", text: "Ask for employerEin before wages." }
 ```
 
-## See Also
-
-- [artifacts.md](./artifacts.md) — all artifacts support these properties
-- [fields.md](./fields.md) — field `description` for per-field help text
-- [layers.md](./layers.md) — template content (separate from instructions)
+In the object form, `instructions` and `agentInstructions` are top-level properties of the definition passed to `p.form({ ... })`.

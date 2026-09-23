@@ -1,0 +1,56 @@
+---
+title: paradoc-react
+description: The agent skill for composing, checking, previewing, rendering, and sealing React documents with @paradoc/react
+ogTitle: paradoc-react skill
+ogDescription: Teach an AI coding assistant to compose Paradoc documents in React, check them, and render and seal them as PDF
+---
+
+The `paradoc-react` skill teaches an AI coding assistant to write a document in React with `@paradoc/react`, check it, preview it, and render and seal it as PDF with `@paradoc/react-pdf`. A composition is a React component bound to a Paradoc form artifact through that artifact's React layer. The same tree is what a browser shows on screen and what the PDF engine renders.
+
+The skill covers the composition. For authoring the artifact itself (fields, parties, defs, logic), install the [`paradoc` skill](/skill) too.
+
+## When it activates
+
+The assistant loads the skill when it:
+
+- writes or edits a `.tsx`/`.jsx` composition bound to a Paradoc form artifact, or declares a React layer
+- renders, previews, or seals a React document (`renderPdf`, `reactLayerRenderers`, `paradoc dev`)
+- installs document components or blocks from the `@paradoc` registry (`paradoc add`)
+- runs `paradoc check` against a composition
+
+## The lifecycle it follows
+
+1. **Install** the components and blocks with `paradoc add`.
+2. **Compose** the document as the module's default export, with every value taken from the artifact.
+3. **Check** it with [`paradoc check`](/cli/commands/check) until it exits 0.
+4. **Preview** it with `paradoc dev`, or with `<Pages>` in your app.
+5. **Render** it to PDF with `renderPdf`.
+6. **Seal** the filled form with the React layer renderers.
+
+## References
+
+| Reference | What it covers |
+|---|---|
+| `components` | The component vocabulary and exact props |
+| `pagination` | Every page-planner rule: keeps, keep-with-next, header repeat, footers, breaks |
+| `safe-classes` | The Tailwind classes the PDF engine renders, common classes it refuses, and the branding tokens |
+| `custom-components` | Writing your own components: keeps, `data-*` attributes, headless hooks, `markDocumentRoot` |
+| `render-and-seal` | The React layer, binding, `renderPdf`, adapters, preview plans, and sealing |
+| `cli` | `paradoc check`, `paradoc dev`, `paradoc add`, and how they find a composition's artifact |
+
+See [Components](/components) for the component reference.
+
+## Installation
+
+```bash
+npx skills add https://github.com/paradoc-dev/paradoc --skill paradoc-react
+```
+
+To install manually:
+
+```bash
+git clone https://github.com/paradoc-dev/paradoc.git
+cp -r paradoc/skills/skills/paradoc-react ~/.claude/skills/
+```
+
+For Claude.ai and other agents, see [Installation](/skill#installation).

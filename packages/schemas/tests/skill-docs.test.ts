@@ -1,8 +1,8 @@
 /**
  * The paradoc skill (paradoc/skills/skills/paradoc) is written by hand. These
  * tests hold its mechanically checkable facts to the schemas: the field type
- * list, the signature block and slot type names, and every labeled JSON
- * example. Lists are parsed from the docs, so prose edits do not break them.
+ * list, the signature slot type names, and every labeled JSON example. Lists
+ * are parsed from the docs, so prose edits do not break them.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -14,7 +14,6 @@ import {
 	GlobalConfigSchema,
 	LayerSchema,
 	ParadocSchema,
-	SignatureBlockTypeSchema,
 	SignatureSlotTypeSchema,
 } from '../src/zod'
 
@@ -83,12 +82,10 @@ function typeRowValues(text: string): string[] {
 }
 
 const FIELD_TYPES = fieldTypes(FormFieldSchema)
-const BLOCK_TYPES = [...SignatureBlockTypeSchema.options].sort()
 const SLOT_TYPES = [...SignatureSlotTypeSchema.options].sort()
 
 describe('skill docs: field types', () => {
 	const fields = readSkill('references/fields.md')
-	const skill = readSkill('SKILL.md')
 
 	it('reads a non-trivial type list from the schema', () => {
 		expect(FIELD_TYPES).toContain('text')
@@ -127,19 +124,6 @@ describe('skill docs: field types', () => {
 		expect(recommended.length).toBeGreaterThan(0)
 		for (const type of recommended) expect(FIELD_TYPES).toContain(type)
 	})
-
-	it('maps each invalid type in SKILL.md to a valid one', () => {
-		const paragraph = section(skill, 'Common Issues (Cross-Surface)').split('**Validation: "unknown field type"**')[1]!.split('\n\n')[0]!
-		const pairs = [...paragraph.matchAll(/`([^`]+)`\s*→\s*`([^`]+)`/g)].map((match) => [match[1]!, match[2]!] as const)
-		expect(pairs.length).toBeGreaterThan(0)
-		for (const [invalid, valid] of pairs) {
-			expect(FIELD_TYPES, `${invalid} is a valid type`).not.toContain(invalid)
-			expect(FIELD_TYPES).toContain(valid)
-		}
-		const affirmed = paragraph.match(/((?:`[^`]+`(?:,\s*|\s+and\s+)?)+)\s+are valid types/)
-		expect(affirmed).not.toBeNull()
-		for (const type of codeTokens(affirmed![1]!)) expect(FIELD_TYPES).toContain(type)
-	})
 })
 
 describe('skill docs: unknown field type fixes in schemas.md', () => {
@@ -163,21 +147,11 @@ describe('skill docs: unknown field type fixes in schemas.md', () => {
 	})
 })
 
-describe('skill docs: signature type names', () => {
+describe('skill docs: signature slot types', () => {
 	const layers = readSkill('references/layers.md')
-	const pdfBindings = readSkill('references/pdf-bindings.md')
-
-	it('lists exactly the signature block types in layers.md', () => {
-		expect(typeRowValues(section(layers, 'Signature Blocks'))).toEqual(BLOCK_TYPES)
-	})
 
 	it('lists exactly the signature slot types in layers.md', () => {
 		expect(typeRowValues(section(layers, 'Signature slots'))).toEqual(SLOT_TYPES)
-	})
-
-	it('lists exactly the signature block types in pdf-bindings.md', () => {
-		const documented = tableRows(section(pdfBindings, 'Block types')).map((cells) => codeTokens(cells[0]!)[0]!)
-		expect([...documented].sort()).toEqual(BLOCK_TYPES)
 	})
 })
 
@@ -210,7 +184,7 @@ function jsonExamples(): JsonExample[] {
 	const files = ['SKILL.md', ...readdirSync(join(SKILL_DIR, 'references')).map((name) => `references/${name}`)]
 	return files.flatMap((file) => {
 		const markdown = readSkill(file)
-		return [...markdown.matchAll(/^```json([^\n]*)\n([\s\S]*?)^```/gm)].map((match) => ({
+		return [...markdown.matchAll(/^```json(?![a-z])([^\n]*)\n([\s\S]*?)^```/gm)].map((match) => ({
 			location: `${file}:${markdown.slice(0, match.index).split('\n').length}`,
 			label: match[1]!.match(/\bschema=(\S+)/)?.[1],
 			body: match[2]!,

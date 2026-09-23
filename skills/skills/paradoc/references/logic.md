@@ -1,111 +1,200 @@
 ---
 name: logic
-description: CondExpr syntax, defs, and rules — expression context, operators, available functions, list aggregates, design heuristics
+description: The Paradoc expression language. Where expressions go and what each site reads, grammar and precedence, every builtin function, list aggregates, row references, typing rules, missing and failed values, the as-of clock, limits, defs, rules, and the @paradoc/expr API.
 metadata:
-  tags: logic, expressions, condexpr, defs, rules, validation, severity, aggregates, lists
+  tags: logic, expressions, condexpr, defs, rules, functions, aggregates, lists, dates, clock, expr
 ---
 
 # Logic
 
-**Contents:** [CondExpr](#conditional-expressions-condexpr) · [Operators](#expression-operators) · [Context summary](#expression-context-summary) · [Functions](#available-functions) · [List aggregates](#list-aggregates) · [Defs](#defs-section) · [Rules](#rules-section) · [Design heuristics](#design-heuristics)
+**Contents:** [Sites](#where-expressions-go) · [Grammar](#grammar) · [Types](#types) · [Functions](#functions) · [List aggregates](#list-aggregates) · [Row references](#row-references-item-parent) · [Missing and failed values](#missing-and-failed-values) · [Dates and the clock](#dates-and-the-clock) · [Defs](#defs) · [Rules](#rules) · [Limits](#limits) · [Patterns](#patterns) · [SDK](#sdk) · [@paradoc/expr](#the-paradocexpr-api)
 
-Paradoc artifacts support three kinds of logic:
+One expression language drives every artifact: conditions, defs, rules, bundle `include`, party payment amounts, and the `{{ }}` markers in templates. `paradoc validate` (or `validate()` in code) type-checks every expression in an artifact and exits 0 only when every reference resolves and every type fits.
 
-| Kind | Where | Used for |
-|------|-------|----------|
-| **CondExpr** | `required`, `visible` on fields/parties/annexes | Conditional behavior |
-| **Defs** | Top-level `defs` (forms + bundles) | Reusable computed values |
-| **Rules** | Top-level `rules` (forms only) | Cross-field validation |
+## Where expressions go
 
-The same language runs inside every layer template (Markdown, HTML, text, DOCX): see [layers.md](./layers.md#paradoc-template-syntax).
+| Site | Property | Result must be | Reads |
+|------|----------|----------------|-------|
+| Field | `required`, `visible` | boolean | `fields.<id>`, defs by key, `parties.<role>`, party functions |
+| Field inside a list item | `required`, `visible` | boolean | the same, plus `item` and `parent` ([Row references](#row-references-item-parent)) |
+| Annex | `required`, `visible` | boolean | same as a field |
+| Party role | `required` | boolean | same as a field |
+| Party role | `payment.amount.value.amount` / `.currency` | number / string | same as a field ([parties.md § Payment](./parties.md#payment)) |
+| Def (form) | `value` | the def's declared `type` | `fields.<id>`, other defs by key, `parties.<role>` |
+| Rule | `expr` | boolean | everything a def reads, plus field ids as bare names |
+| Bundle item | `include` | boolean | `forms.<key>.fields.<id>`, `forms.<key>.<defKey>`, `bundles.<key>.forms.<key>.fields.<id>`, bundle defs ([artifacts.md § Include conditions](./artifacts.md#include-conditions)) |
+| Def (bundle) | `value` | the def's declared `type` | same as bundle `include` |
+| Template | `{{ … }}` | a value to print, or boolean in a condition | what field conditions read, `items.<id>` in a checklist, `item`/`parent` in a loop ([templates.md](./templates.md)) |
 
-## Conditional Expressions (CondExpr)
+A condition (CondExpr) is `true`, `false`, or an expression string.
 
-A CondExpr is either a boolean literal or an expression string:
+Reference rules:
 
-```json
-"required": true
-"required": "fields.hasPets == true"
-"visible": "fields.employmentStatus == 'employed'"
+- Read a field as `fields.<id>`, and a nested value by path: `fields.home.country`, `fields.rent.amount`. Rules also accept a bare field id; write `fields.<id>` in every site so one form reads the same everywhere.
+- Read a def by its bare key: `isAdult`. `defs.isAdult` is an unknown reference.
+- `parties.<role>` is one party, or a list when the role's `max` is above 1: `count(parties.tenant) > 1`, `parties.tenant[0].name`.
+
+## Grammar
+
+### Literals
+
+| Literal | Examples |
+|---------|----------|
+| Number | `42`, `0.075` (exact decimal) |
+| String | `'employed'`, `"it's"`, `'it\'s'` |
+| Boolean | `true`, `false` |
+| Null | `null` |
+| Array | `['CA', 'NY']`, `[]` |
+
+### Operators
+
+Tightest binding first. All binary operators are left-associative.
+
+| Precedence | Operators | Notes |
+|------------|-----------|-------|
+| 1 | `x.y`, `x[0]`, `x['key']`, `f(…)` | Member access is null-safe. Brackets index arrays or read a key that is not an identifier (`items['signed-contract']`). |
+| 2 | `not x`, `!x`, `-x` | `!` is an alias for `not`. |
+| 3 | `*`, `/`, `%` | Numbers only. |
+| 4 | `+`, `-` | `+` adds numbers, or concatenates when either side is a string (`'Hi ' + fields.name`). |
+| 5 | `in`, `not in` | Membership in an array, or substring in a string. |
+| 6 | `<`, `<=`, `>`, `>=` | Numbers, strings, or two values of the same temporal type. |
+| 7 | `==`, `!=` | Any values. |
+| 8 | `and` | Short-circuits. |
+| 9 | `or` | Short-circuits. |
+| 10 | `cond ? a : b` | Loosest. |
+
+Unary operators bind tighter than comparison. `not fields.a == 1` means `(not fields.a) == 1`. Write `fields.a != 1` or `not (fields.a == 1)`.
+
+### Rejected forms
+
+| Written | Error | Write instead |
+|---------|-------|---------------|
+| `a && b` | `Use 'and'; '&&' is not supported.` | `a and b` |
+| `a \|\| b` | `Use 'or' for logic and '+' to concatenate strings; '\|\|' is not supported.` | `a or b` |
+| `a = 1` | `Use '==' for equality; '=' (assignment) is not allowed.` | `a == 1` |
+| `indexOf(…)`, `age()`, any unlisted name | `Unknown function: <name>` | a function from [Functions](#functions) |
+
+Work over list rows with the [list aggregates](#list-aggregates) and their filters; there are no lambdas, `map`, `filter`, or `reduce`. The words `and or not in true false null` are reserved and never read as names.
+
+## Types
+
+Each field type has one expression type. Operators and functions check against it.
+
+| Field type | Expression type | Read it as |
+|------------|-----------------|------------|
+| `text`, `email`, `uuid`, `uri` | string | `fields.name` |
+| `number`, `percentage`, `rating` | number | `fields.qty` |
+| `boolean` | boolean | `fields.hasPets` |
+| `date`, `datetime`, `time` | date, datetime, time | `fields.startDate` |
+| `duration` | duration (ISO 8601, `P1Y2M`) | `addDuration(fields.start, fields.term)` |
+| `money` | money | `fields.rent.amount` (number), `fields.rent.currency` (string) |
+| `enum` | string (number when every option value is a number) | `fields.status == 'employed'` |
+| `multiselect` | array of option values | `'email' in fields.channels` |
+| `fieldset` | object | `fields.applicant.email` |
+| `list` | array of rows | `count(fields.items)`, `fields.items[0].qty` |
+| `address`, `phone`, `coordinate`, `bbox`, `person` | object | `fields.home.country`, `fields.area.southWest.lat` |
+
+Member names follow the value shapes in [fields.md](./fields.md).
+
+### Conditions are boolean
+
+A gate (`required`, `visible`, `include`, rule `expr`, aggregate filter) must type-check as boolean. `"visible": "fields.nickname"` on a text field fails with `A gate must be boolean, got string`. Write the test you mean:
+
+```text
+isNotEmpty(fields.nickname)
+fields.nickname != null
+fields.qty > 0
 ```
 
-## Expression Operators
+`and`, `or`, `not`, and the ternary test read their operands by truthiness: `null`, `false`, `0`, `''`, and `[]` are false; everything else is true. The gate's final result must still be boolean.
 
-| Operator | Description |
-|----------|-------------|
-| `==`, `!=` | Equality / inequality |
-| `>`, `>=`, `<`, `<=` | Comparison |
-| `and` | Logical AND (`&&` is rejected) |
-| `or` | Logical OR (`\|\|` is rejected) |
-| `not`, `!` | Logical NOT |
-| `in`, `not in` | Membership in a list |
-| `+`, `-`, `*`, `/`, `%` | Arithmetic |
+### Money
 
-## Expression Context Summary
+Arithmetic and ordering work on numbers, so read `.amount`:
 
-CRITICAL: the context for referencing fields/defs differs by location.
+| Written | Result |
+|---------|--------|
+| `fields.deposit <= fields.rent * 2` | `Operator '*' requires numbers, got money and number` |
+| `fields.deposit.amount <= fields.rent.amount * 2` | valid |
+| `fields.price + fields.tax` | `Cannot add money and money` |
+| `fields.price.amount + fields.tax.amount` | valid |
 
-| Context | Field access | Defs access |
-|---------|-------------|-------------|
-| Field `required` / `visible` | `fields.<id>` | Direct def key name |
-| List-item `required` / `visible` (the item and fields inside it) | `fields.<id>`, plus `item.<id>` for the current row and `parent.<id>` for the enclosing row of a nested list | Direct def key name |
-| Defs `value` | `fields.<id>` | Direct key name (previously evaluated defs) |
-| Rules `expr` | Direct field name (no prefix) | Direct key name |
-| Layer templates (`{{ }}`) | `fields.<id>`, plus `item`/`parent` inside `{{#each}}` | Direct def key name |
+`sum`, `avg`, `min`, and `max` over a list accept money directly and keep its currency. `==` compares whole values, so `fields.a == fields.b` on money compares amount and currency.
 
-Every context also reads `parties.<role>` (a list for a role with `max > 1`: `count(parties.tenant) > 1`). A checklist template reads `items.<id>`; a key that is not an identifier uses brackets, `items["signed-contract"]`.
+### Dates, datetimes, times
 
-Field-level expressions ALWAYS use `fields.<id>`. Rules expressions use bare names.
+- Compare two values of the same temporal type: `fields.endDate > fields.startDate`, `fields.startDate <= today()`, `fields.signedAt < now()`.
+- A string literal is not a date. `fields.startDate > '2020-01-01'` fails with `Cannot compare date and string`. Pass the literal to a date function, which validates it: `dateDiff('2020-01-01', fields.startDate) > 0`.
+- Date values are `YYYY-MM-DD`. Datetime values need `Z` or an offset. Times are `HH:MM` or `HH:MM:SS`.
 
-### Row references (`item`, `parent`)
+### Numbers
 
-Inside a list item, `item` is the current row. In a list nested in a list item, `parent` is the enclosing row. Use them for per-row conditions:
+Numbers are exact decimals: `0.1 + 0.2 == 0.3` is true. Division keeps up to 20 fractional places. Division by zero fails the expression ([Missing and failed values](#missing-and-failed-values)).
 
-```json schema=fields
-"lines": {
-  "type": "list",
-  "item": {
-    "type": "fieldset",
-    "fields": {
-      "kind": { "type": "enum", "enum": [{ "value": "travel" }, { "value": "other" }] },
-      "explanation": { "type": "text", "visible": "item.kind == 'other'", "required": "item.kind == 'other'" },
-      "parts": {
-        "type": "list",
-        "item": { "type": "fieldset", "fields": {
-          "cost": { "type": "number" },
-          "note": { "type": "text", "required": "parent.kind == 'other' and item.cost > 100" }
-        } }
-      }
-    }
-  }
-}
-```
+## Functions
 
-- A scalar item (a list of `number`) is `item` itself; composite values keep their parts (`item.amount`).
-- Only row conditions see rows. Defs, rules, annexes, parties, and the list field's own `visible`/`required` do not; `item` there fails validation, and so does `parent` outside a nested list.
-- `item` and `parent` are reserved: a def with either name fails validation.
+The complete builtin set (`DEFAULT_SIGNATURES` in `@paradoc/expr`). Any other name is `Unknown function`.
 
-## Available Functions
+### String and value functions
 
-Party functions take a `roleId` (party role key as string). Witness functions take no parameters.
+| Function | Returns | Behavior |
+|----------|---------|----------|
+| `contains(haystack, needle)` | boolean | Substring in a string, or element in an array. `false` when `haystack` is `null`. |
+| `startsWith(value, prefix)` | boolean | |
+| `endsWith(value, suffix)` | boolean | |
+| `trim(value)` | string | |
+| `lower(value)` | string | |
+| `upper(value)` | string | |
+| `matches(value, pattern)` | boolean | Regex test over a bounded subset: literals, classes `[A-Z]`, anchors `^ $`, `.`, escapes `\d`. Repetition `+ * ? {n}`, alternation `\|`, groups starting `(?`, and backreferences fail with `limit-exceeded`. `validate` does not catch them; the fill does. Pattern at most 512 chars, input at most 10,000. |
+| `isEmpty(value)` | boolean | `true` for `null`, `''`, or `[]`. |
+| `isNotEmpty(value)` | boolean | The negation of `isEmpty`. |
+| `length(value)` | number | Characters of a string, or elements of an array (list rows, multiselect choices). `0` for `null`. |
+| `coalesce(a, b, …)` | common type of the arguments | The first argument that is not `null`, left to right. |
 
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `partyCount(roleId)` | number | Count of parties in role |
-| `partyType(roleId)` | string | `"person"` or `"organization"` |
-| `allSigned(roleId)` | boolean | All parties signed |
-| `signedCount(roleId)` | number | Count of signed parties |
-| `anySigned(roleId)` | boolean | Any party signed |
-| `witnessCount()` | number | Total witnesses |
-| `allWitnessesSigned()` | boolean | All witnesses signed |
-| `anyWitnessSigned()` | boolean | Any witness signed |
+`startsWith`, `endsWith`, `trim`, `lower`, `upper`, and `matches` need a string. With an unanswered field they make the expression missing, not failed.
 
-```json
-"visible": "partyCount('buyer') > 1"
-"required": "!allSigned('seller')"
-```
+### Number functions
 
-## List Aggregates
+| Function | Returns | Behavior |
+|----------|---------|----------|
+| `round(value, digits?)` | number | Half away from zero. `digits` defaults to `0`. `round(2.345, 2)` is `2.35`. |
+| `floor(value)` | number | |
+| `ceil(value)` | number | |
+| `abs(value)` | number | |
+| `min(a, b, …)` | number | Smallest argument, skipping `null`. `null` when every argument is `null`. |
+| `max(a, b, …)` | number | Largest argument, skipping `null`. |
+
+Given a path into a list, `min` and `max` aggregate instead ([List aggregates](#list-aggregates)).
+
+### Date functions
+
+| Function | Returns | Behavior |
+|----------|---------|----------|
+| `today()` | date | The as-of date ([Dates and the clock](#dates-and-the-clock)). |
+| `now()` | datetime | The as-of instant. |
+| `yearsBetween(from, to)` | number | Whole calendar years from `from` to `to`. Age: `yearsBetween(fields.birthDate, today())`. |
+| `dateDiff(from, to, unit?)` | number | `to - from` in `'days'` (default), `'months'`, or `'years'`, truncated. Any other unit fails. |
+| `addDays(date, days)` | date | `days` may be negative. |
+| `addDuration(date, duration)` | date | Date components only (`P1Y2M3W4D`). Month and year steps clamp to the last valid day: `addDuration('2026-01-31', 'P1M')` is `2026-02-28`. |
+
+### Party and witness functions
+
+| Function | Returns | Behavior |
+|----------|---------|----------|
+| `partyCount(role)` | number | Parties filled in the role. |
+| `partyType(role)` | string | `'person'` or `'organization'`. `''` when the role has no party. |
+| `signedCount(role)` | number | Parties in the role that have signed. |
+| `allSigned(role)` | boolean | `false` when the role has no party. |
+| `anySigned(role)` | boolean | |
+| `witnessCount()` | number | |
+| `allWitnessesSigned()` | boolean | `false` when there are no witnesses. |
+| `anyWitnessSigned()` | boolean | |
+
+`role` is the role key as a string literal: `partyCount('tenant') > 1`.
+
+The aggregates `sum`, `count`, `avg`, `min`, `max`, `any` and `all` complete the set ([List aggregates](#list-aggregates)).
+
+## List aggregates
 
 Seven functions compute one value from the rows of a `list` field. Each takes a path into the list and an optional boolean filter over the same rows.
 
@@ -118,303 +207,317 @@ Seven functions compute one value from the rows of a `list` field. Each takes a 
 | `any(path, filter?)` | boolean | `false` |
 | `all(path, filter?)` | boolean | `true` |
 
-```json schema=defs
-"subtotal": { "type": "money", "value": { "amount": "sum(fields.lineItems.amount).amount", "currency": "fields.currency" } },
-"taxableTotal": { "type": "number", "value": "sum(fields.lineItems.amount.amount, fields.lineItems.taxable)" },
-"hasOther": { "type": "boolean", "value": "count(fields.lineItems, fields.lineItems.kind == 'other') > 0" }
+```json schema=form
+{
+  "fields": {
+    "currency": { "type": "text", "default": "USD" },
+    "lineItems": {
+      "type": "list",
+      "item": {
+        "type": "fieldset",
+        "fields": {
+          "kind": { "type": "enum", "enum": [{ "value": "goods" }, { "value": "other" }] },
+          "qty": { "type": "number" },
+          "amount": { "type": "money" },
+          "taxable": { "type": "boolean" }
+        }
+      }
+    }
+  },
+  "defs": {
+    "subtotal": { "type": "money", "value": { "amount": "sum(fields.lineItems.amount.amount)", "currency": "fields.currency" } },
+    "taxableTotal": { "type": "number", "value": "sum(fields.lineItems.amount.amount, fields.lineItems.taxable)" },
+    "hasOther": { "type": "boolean", "value": "count(fields.lineItems, fields.lineItems.kind == 'other') > 0" }
+  },
+  "rules": {
+    "positiveQty": { "expr": "count(fields.lineItems, fields.lineItems.qty <= 0) == 0", "message": "Every line needs a positive quantity" }
+  }
+}
 ```
 
-- `fields.lineItems.amount` reads every row's `amount`; `fields.lineItems` alone is the rows (for `count`).
-- In the filter, `fields.lineItems.taxable` is the current row's value. A filter on a different list is an authoring error.
-- Nested lists flatten: `sum(fields.orders.parts.cost)` totals every part of every order; a filter may test either level.
+- `fields.lineItems.amount` reads every row's `amount`. `fields.lineItems` alone is the rows (for `count`).
+- In the filter, `fields.lineItems.taxable` is the current row's value. A filter must test the same list.
+- For a money total, sum the amounts: `sum(fields.lineItems.amount.amount)` is `0` for an empty list. `sum(fields.lineItems.amount).amount` is `null` for an empty list, because an empty sum is the number `0`, which has no `.amount`.
+- Nested lists flatten: `sum(fields.orders.parts.cost)` totals every part of every order. A filter may test either level.
 - Inside a list item, `sum(item.parts.cost)` aggregates the current row's own nested list.
-- Hidden rows (list, a field above it, or `item` not visible) never count. `null` values are skipped by `sum`/`avg`/`min`/`max`; `count` still counts the row.
-- Money keeps its currency. Mixed currencies fail evaluation, naming the currencies. An empty money sum is the number `0`.
-- A list path outside an aggregate (`fields.lineItems.amount > 0`) is an authoring error. There are no lambdas, `map`, `filter`, or `reduce`.
-- `min`/`max` with non-list arguments still compare their arguments, skipping `null` ones.
-- NEVER add a hand-entered total field that the artifact can compute with `sum`.
+- Hidden rows (the list, a field above it, or the row itself not visible) never count. `sum`, `avg`, `min`, and `max` skip `null` values. `count` still counts the row.
+- Money keeps its currency. Mixed currencies fail the expression, naming the currencies.
+- A list path outside an aggregate (`fields.lineItems.qty > 0`) fails validation. Index one row with brackets: `fields.lineItems[0].qty`.
+- Compute a total of rows as a `sum` def, so it always agrees with its rows.
 
-## Defs Section
+## Row references (`item`, `parent`)
 
-The `defs` section defines typed computed values. Available on **forms** and **bundles**. Each def has a key (pattern `^[a-z][a-zA-Z0-9_]*$`) and a definition object.
-
-**Required per def:** `type`, `value`
-**Optional:** `label`, `description`
-
-### Simple types
-
-For simple types, `value` is an expression string.
-
-| Type | Evaluates to |
-|------|-------------|
-| `boolean` | `true` / `false` |
-| `string` | String value |
-| `number` | Numeric value |
-| `integer` | Integer value |
-| `percentage` | Percentage (0-100) |
-| `rating` | Rating value |
-| `date` | ISO date (`YYYY-MM-DD`) |
-| `time` | Time (`HH:MM:SS`) |
-| `datetime` | ISO datetime |
-| `duration` | ISO duration |
+Inside a list item, `item` is the current row. In a list nested in a list item, `parent` is the enclosing row. Use them for per-row conditions:
 
 ```json schema=form
-"defs": {
-  "isHighValue": {
-    "type": "boolean",
-    "value": "fields.loanAmount > 500000",
-    "label": "High Value Loan"
-  },
-  "totalIncome": {
-    "type": "number",
-    "value": "fields.salary + fields.bonusIncome + fields.otherIncome"
-  },
-  "debtRatio": {
-    "type": "percentage",
-    "value": "(fields.monthlyDebt / fields.monthlyIncome) * 100"
+{
+  "fields": {
+    "lines": {
+      "type": "list",
+      "item": {
+        "type": "fieldset",
+        "fields": {
+          "kind": { "type": "enum", "enum": [{ "value": "travel" }, { "value": "other" }] },
+          "explanation": { "type": "text", "visible": "item.kind == 'other'", "required": "item.kind == 'other'" },
+          "parts": {
+            "type": "list",
+            "item": {
+              "type": "fieldset",
+              "fields": {
+                "cost": { "type": "number" },
+                "note": { "type": "text", "required": "parent.kind == 'other' and item.cost > 100" }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 ```
 
-### Compound types
+- A scalar item (a list of `number`) is `item` itself: `"required": "item > 0"`. Composite items keep their parts: `item.amount.amount`.
+- Only conditions inside a list item see rows. Defs, rules, annexes, parties, and the list field's own `visible`/`required` do not. `item` there fails validation, and so does `parent` outside a nested list.
+- `item` and `parent` are reserved: a def with either name fails validation.
 
-For compound types, `value` is an object with expression strings per component.
+## Missing and failed values
 
-**money** — `amount`, `currency` required:
-```json schema=defs
-"totalCost": {
-  "type": "money",
-  "value": { "amount": "fields.price + fields.tax", "currency": "'USD'" }
-}
+A reference to a field with no answer reads as `null`. Member access through `null` is `null`. From there:
+
+| Expression over a missing value | Result |
+|---------------------------------|--------|
+| `fields.x == null` | `true` |
+| `fields.x != 'a'` | `true`, so a gate like `fields.status != 'employed'` holds before the field is answered |
+| `fields.x > 1`, `fields.x < 1` | `false` |
+| `isEmpty(fields.x)`, `coalesce(fields.x, 0)`, `length(fields.x)` | handle `null` themselves |
+| `fields.x * 2`, `upper(fields.x)`, a def over it | **missing** |
+
+A **missing** result is not an error. It means the expression cannot be computed yet:
+
+- A def is `null` while an input it reads is unanswered or another def is missing. Defs need no `x == null ? null : …` guards.
+- A condition over a missing value is false: the field waits on its inputs.
+- A rule over a missing value is not met and fails with its own `message`.
+
+A result **fails** only when the expression errors with every input present: a type mismatch, division by zero, a mixed-currency sum, a `matches` pattern outside the subset. Then:
+
+- A failed def reads as missing, and `getFillState().issues` has an entry with path `["defs", "<key>"]`. The rest of the form still evaluates, and completion is blocked.
+- A failed condition uses the property's default and adds an issue.
+- A failed rule fails with `Rule expression error: <error>`.
+
+## Dates and the clock
+
+`today()` and `now()` read the instance's retained clock, never the wall clock during evaluation. `fill()` captures the current instant once, and the instance keeps it through `update()` and `toJSON()`. Pass `asOf` to fix it for reproducible results and tests:
+
+```typescript
+import { p } from "@paradoc/sdk";
+
+const form = p.form({
+  $schema: "https://schema.paradoc.dev/2026-09-22.json",
+  name: "age-check",
+  kind: "form",
+  fields: { birthDate: { type: "date" } },
+  defs: { age: { type: "number", value: "yearsBetween(fields.birthDate, today())" } },
+});
+
+let draft = form.fill({ fields: { birthDate: "2000-06-15" } }, { context: { asOf: "2026-01-01T09:00:00Z" } });
+draft.getLogicValue("age"); // 25
+
+draft = draft.update({ fields: { birthDate: "1990-06-15" } });
+draft.getLogicValue("age"); // 35, same clock
 ```
 
-**address** — `line1`, `locality`, `region`, `postalCode`, `country` required; `line2` optional:
-```json schema=defs
-"computedAddress": {
-  "type": "address",
-  "value": {
-    "line1": "fields.street",
-    "locality": "fields.city",
-    "region": "fields.state",
-    "postalCode": "fields.zip",
-    "country": "'US'"
-  }
-}
-```
+- `asOf` is an ISO instant with `Z` or an offset. `"2026-01-01"` alone throws `Invalid context.asOf`.
+- `today()` is the UTC calendar date of that instant: `2026-01-01T02:00:00+05:00` gives `2025-12-31`.
 
-**phone** — `number` required; `type`, `extension` optional.
-**coordinate** — `lat`, `lon` required.
-**bbox** — `southWest` and `northEast` required, each with `lat` and `lon`, the same corners as a bbox field (`box.southWest.lat`).
-**person** — `name` required; `title`, `firstName`, `middleName`, `lastName`, `suffix` optional.
-**organization** — `name` required; `legalName`, `domicile`, `entityType`, `entityId`, `taxId` optional.
-**identification** — `type`, `number` required; `issuer`, `issueDate`, `expiryDate` optional.
+## Defs
 
-### Missing and failed values
+`defs` holds typed computed values, on forms and bundles. Each def has a key (`^[a-z][a-zA-Z0-9_]*$`), a `type`, a `value`, and optional `label` and `description`. Defs may reference each other in any key order. A cycle is reported as a warning (`Circular dependency detected`).
 
-A def is **missing** (`null`) while an input it reads is unanswered, `null`, or another missing def. Missing is not an error, so defs need no `x == null ? null : ...` guards. Conditions over a missing value are false (the field waits on its inputs); rules over one are not met and fail with their own message.
+For a scalar type, `value` is one expression string, checked against the declared type (`Expected expression type number, got boolean`):
 
-A def **fails** only when it errors with every input present (type mismatch, division by zero, mixed-currency sum). The failure is reported as a `defs.<key>` issue, the def reads as missing, the rest of the form still evaluates, and completion is blocked.
+| `type` | `value` evaluates to |
+|--------|----------------------|
+| `boolean` | boolean |
+| `string` | string |
+| `number`, `integer`, `percentage`, `rating` | number |
+| `date`, `datetime`, `time`, `duration` | that temporal type |
 
-```json schema=defs
-"subtotal": { "type": "money", "value": { "amount": "sum(fields.lineItems.amount).amount", "currency": "fields.currency" } },
-"tax": { "type": "money", "value": { "amount": "subtotal.amount * fields.taxRatePercent / 100", "currency": "fields.currency" } }
-```
+For a compound type, `value` is an object with one expression per component:
 
-## Rules Section
+| `type` | Components (required first) |
+|--------|-----------------------------|
+| `money` | `amount`, `currency` |
+| `address` | `line1`, `locality`, `region`, `postalCode`, `country`; `line2` |
+| `phone` | `number`; `type`, `extension` |
+| `coordinate` | `lat`, `lon` |
+| `bbox` | `southWest`, `northEast`, each with `lat` and `lon` |
+| `person` | `name`; `title`, `firstName`, `middleName`, `lastName`, `suffix` |
+| `organization` | `name`; `legalName`, `domicile`, `entityType`, `entityId`, `taxId` |
+| `identification` | `type`, `number`; `issuer`, `issueDate`, `expiryDate` |
 
-The `rules` section defines form-level validation. Available on **forms** only. Each rule has a key (pattern `^[a-z][a-zA-Z0-9_]*$`).
-
-**Required per rule:** `expr`, `message`
-
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `expr` | YES | string | Boolean expression — MUST evaluate `true` for the form to be valid |
-| `message` | YES | string | Error message (max 500 chars) |
-| `severity` | No | string | `"error"` (default, blocks) or `"warning"` (advisory) |
-
-### Expression context in rules
-
-In rules, field values are accessed **directly by name** (NO `fields.` prefix). Defs values are also accessible directly.
+A compound def exposes its components: `total.amount`, `mailing.country`.
 
 ```json schema=form
-"rules": {
-  "endAfterStart": {
-    "expr": "endDate > startDate",
-    "message": "End date must be after start date"
+{
+  "fields": {
+    "salary": { "type": "money" },
+    "bonus": { "type": "money" },
+    "monthlyDebt": { "type": "number" },
+    "loanAmount": { "type": "number" },
+    "applicantName": { "type": "text" }
   },
-  "rentWithinRange": {
-    "expr": "monthlyRent >= 500 && monthlyRent <= 10000",
-    "message": "Monthly rent must be between $500 and $10,000",
-    "severity": "error"
-  },
-  "depositWarning": {
-    "expr": "securityDeposit <= monthlyRent * 2",
-    "message": "Security deposit exceeds 2x monthly rent",
-    "severity": "warning"
+  "defs": {
+    "totalIncome": {
+      "type": "money",
+      "value": { "amount": "fields.salary.amount + coalesce(fields.bonus.amount, 0)", "currency": "fields.salary.currency" }
+    },
+    "debtRatio": { "type": "percentage", "value": "round(fields.monthlyDebt / (totalIncome.amount / 12) * 100, 1)" },
+    "isHighValue": { "type": "boolean", "value": "fields.loanAmount > 500000", "label": "High value loan" },
+    "greeting": { "type": "string", "value": "'Dear ' + fields.applicantName" }
   }
 }
 ```
 
-### Using defs in rules
+## Rules
 
-Defs are referenced by their key name:
+`rules` holds form-level checks, on forms only. Each rule key matches `^[a-z][a-zA-Z0-9_]*$`.
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `expr` | yes | Boolean expression. The rule passes when it is `true`. |
+| `message` | yes | Shown when the rule fails. 1-500 chars. |
+| `severity` | no | `"error"` (default) blocks validity. `"warning"` is advisory. |
 
 ```json schema=form
-"defs": {
-  "totalDebt": {
-    "type": "number",
-    "value": "fields.creditCardDebt + fields.studentLoans + fields.carPayment"
-  }
-},
-"rules": {
-  "debtToIncome": {
-    "expr": "totalDebt / monthlyIncome < 0.43",
-    "message": "Debt-to-income ratio must be below 43%"
+{
+  "fields": {
+    "startDate": { "type": "date" },
+    "endDate": { "type": "date" },
+    "monthlyRent": { "type": "money" },
+    "securityDeposit": { "type": "money" },
+    "employmentStatus": { "type": "enum", "enum": [{ "value": "employed" }, { "value": "other" }] },
+    "employerName": { "type": "text" }
+  },
+  "rules": {
+    "endAfterStart": { "expr": "fields.endDate > fields.startDate", "message": "End date must be after start date" },
+    "depositLimit": {
+      "expr": "fields.securityDeposit.amount <= fields.monthlyRent.amount * 2",
+      "message": "Deposit exceeds twice the monthly rent",
+      "severity": "warning"
+    },
+    "employerGiven": {
+      "expr": "fields.employmentStatus != 'employed' or isNotEmpty(fields.employerName)",
+      "message": "Employer name is required when employed"
+    }
   }
 }
 ```
 
-## Design Heuristics
+A rule over an unanswered field fails with its message until the field is filled ([Missing and failed values](#missing-and-failed-values)).
 
-### When to add each kind of logic
+## Limits
+
+| Limit | Value |
+|-------|-------|
+| Expression string in an artifact (condition, def value or component, rule `expr`) | 1-2000 chars |
+| Rule `message` | 1-500 chars |
+| Nesting of `(` and `[` | 256 levels |
+| `matches` pattern / input | 512 / 10,000 chars |
+| `round` digits | 0-1000 |
+
+Exceeding an evaluation limit gives code `limit-exceeded`.
+
+## Patterns
 
 | Signal | Add |
 |--------|-----|
-| "Show field X only when field Y is true/selected" | `visible` expression on X |
-| "Require field X only when field Y has a value" | `required` expression on X |
-| "The same condition is used in 3+ places" | A `defs` entry to avoid repetition |
-| "Total must equal sum of parts" | A `defs` entry computing the total with `sum(...)` |
-| "Every row must have a positive quantity" | A `rules` entry: `count(fields.items, fields.items.qty <= 0) == 0` |
-| "End date must be after start date" | A `rules` entry |
-| "Deposit cannot exceed 2x rent" | A `rules` entry |
-| "Show warning when ratio exceeds threshold" | A `rules` entry with `severity: "warning"` |
+| Show field X only when Y is set or selected | `visible` on X |
+| Require X only when Y has a value | `required` on X |
+| The same condition in three or more places | a boolean def, referenced by key |
+| A total of rows | a def with `sum(…)` |
+| Every row must satisfy a test | a rule with `count(list, <failing test>) == 0` |
+| A relation between fields (end after start, deposit limit) | a rule |
+| A soft threshold | a rule with `"severity": "warning"` |
 
-### Progressive disclosure pattern
+Progressive disclosure with a shared condition in a def:
 
-Most common conditional pattern — show fields based on a trigger:
-
-```json schema=fields
-"hasVehicle": { "type": "boolean", "label": "Do you own a vehicle?", "default": false },
-"vehicleMake": {
-  "type": "text",
-  "label": "Vehicle Make",
-  "visible": "fields.hasVehicle == true",
-  "required": "fields.hasVehicle == true"
-},
-"vehicleModel": {
-  "type": "text",
-  "label": "Vehicle Model",
-  "visible": "fields.hasVehicle == true",
-  "required": "fields.hasVehicle == true"
-}
-```
-
-### Extracting repeated conditions into defs
-
-Before (repeated):
-```json schema=fields
-"petCount": { "type": "number", "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" },
-"petBreed": { "type": "text", "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" },
-"petDeposit": { "type": "money", "visible": "fields.hasPets == true && fields.propertyAllowsPets == true" }
-```
-
-After (extracted):
 ```json schema=form
-"defs": {
-  "petsApplicable": {
-    "type": "boolean",
-    "value": "fields.hasPets == true && fields.propertyAllowsPets == true"
+{
+  "fields": {
+    "hasPets": { "type": "boolean", "label": "Do you have pets?", "default": false },
+    "propertyAllowsPets": { "type": "boolean" },
+    "petCount": { "type": "number", "visible": "petsApplicable", "required": "petsApplicable" },
+    "petBreed": { "type": "text", "visible": "petsApplicable" },
+    "petDeposit": { "type": "money", "visible": "petsApplicable" }
+  },
+  "defs": {
+    "petsApplicable": { "type": "boolean", "value": "fields.hasPets == true and fields.propertyAllowsPets == true" }
   }
 }
 ```
 
-Reference in fields: `"visible": "petsApplicable == true"` (NOT `fields.petsApplicable`).
+Naming: boolean defs start with `is` or `has` (`isHighRisk`). Computed values say what they hold (`totalIncome`). Rules say what they check (`endAfterStart`).
 
-### Naming conventions
+## SDK
 
-- Defs / rules pattern: `^[a-z][a-zA-Z0-9_]*$`, camelCase
-- Boolean defs: prefix with `is` or `has` (`isHighRisk`, `hasGuarantor`)
-- Computed values: descriptive name (`totalIncome`, `debtRatio`, `monthlyPayment`)
-- Rules: describe what is validated (`endAfterStart`, `depositLimit`)
-- NEVER use generic names (`rule1`, `check`, `validation`)
-
-### Ordering
-
-1. Define defs BEFORE rules that reference them
-2. Order defs from simple to complex (base values first, derived second)
-3. Order rules from most critical to least
-
-### Common rule patterns
-
-```json
-"endAfterStart": { "expr": "endDate > startDate", "message": "End date must be after start date" }
-"depositLimit": { "expr": "securityDeposit <= monthlyRent * 2", "message": "Deposit cannot exceed 2x rent" }
-"employerRequired": { "expr": "employmentStatus != 'employed' || employerName != ''", "message": "Employer name required when employed" }
-"debtToIncome": { "expr": "totalMonthlyDebt / monthlyIncome < 0.43", "message": "DTI must be below 43%" }
-"highDeposit": { "expr": "securityDeposit <= monthlyRent * 1.5", "message": "Deposit exceeds 1.5x rent", "severity": "warning" }
-```
-
-## SDK Patterns
-
-### Defs (TypeScript)
-
-The `.def(name, expr)` builder shorthand defaults to `type: "boolean"` and accepts a plain string. The object pattern requires the full `{ type, value }` form.
+In `p.form({ ... })`, `defs` and `rules` take the same objects as the JSON above. The builder adds a def with `.def(name, expression)`: a string makes a boolean def; pass `{ type, value }` for any other type.
 
 ```typescript
-// Builder shorthand
-const form = p.form()
+import { p, validateLogic } from "@paradoc/sdk";
+
+const term = p.form()
+  .name("term")
+  .fields({ leaseTermMonths: { type: "number" } })
   .def("isLongTerm", "fields.leaseTermMonths >= 12")
-  .def("isCommercial", "fields.propertyType == 'commercial'")
+  .def("termYears", { type: "number", value: "fields.leaseTermMonths / 12" })
   .build();
 
-// Object pattern (full form)
-const form = p.form({
-  defs: {
-    isLongTerm: { type: "boolean", value: "fields.leaseTermMonths >= 12" },
-    totalCost: { type: "money", value: { amount: "fields.price + fields.tax", currency: "'USD'" } },
-  },
-});
+const draft = term.fill({ fields: { leaseTermMonths: 18 } });
+draft.getLogicValue("isLongTerm"); // true
+
+validateLogic(term.toJSON()); // { value } or { issues: [{ message, path, expression?, severity? }] }
 ```
 
-### Rules (TypeScript)
+<!-- dep:C5 -->
+The builder's `.rules({ … })` takes the same object as `rules`.
 
-The form builder does NOT have a `.rules()` method. Rules MUST use object pattern:
+`validate()` runs the schema and then the logic; `validateLogic()` runs the logic only. A circular def is an issue with severity `"warning"`. Failed defs, conditions and rules on a draft are in `getFillState()` ([filling.md § Fill state](./filling.md#fill-state)).
+
+## The `@paradoc/expr` API
+
+Evaluate or check an expression outside an artifact with `@paradoc/expr`, also exported as the `expr` namespace of `@paradoc/sdk`.
 
 ```typescript
-const form = p.form({
-  rules: {
-    endAfterStart: { expr: "leaseEnd > leaseStart", message: "End must be after start", severity: "error" },
-    depositLimit: { expr: "securityDeposit.amount <= monthlyRent.amount * 2", message: "Deposit too high", severity: "warning" },
-  },
-});
+import { expr } from "@paradoc/sdk"; // or: import { … } from "@paradoc/expr"
+
+const ctx = expr.createContext(
+  { fields: { age: 25 } },
+  { asOf: { date: "2026-09-23", datetime: "2026-09-23T00:00:00Z" } },
+);
+
+expr.evaluateExpression("fields.age >= 18", ctx);
+// { success: true, value: { kind: "boolean", value: true } }
+
+expr.evaluateExpression("fields.missing * 2", ctx);
+// { success: false, code: "missing-input", missing: ["fields.missing"], error: "Missing input: fields.missing" }
+
+const env = expr.createTypeEnv({ "fields.age": expr.T.number });
+expr.check("fields.age + fields.x", env).diagnostics;
+// [{ severity: "error", code: "unknown-identifier", message: "Unknown reference: fields.x", span }]
+expr.checkBooleanGate("fields.age", env).diagnostics;
+// [{ code: "non-boolean-gate", message: "A gate must be boolean, got number", … }]
 ```
 
-### Runtime evaluation (SDK)
+| Export | Use |
+|--------|-----|
+| `evaluateExpression(source, ctx)` | Parse and evaluate. Never throws. Values are tagged `{ kind, value }`; numbers are `Decimal`. |
+| `createContext(data, { asOf?, hostFunctions?, registry? })` | Build a context from plain data. Without `asOf`, `today()`/`now()` fail with `missing-clock`. |
+| `check(source, env)` / `checkBooleanGate(source, env)` | Type-check against a `createTypeEnv({ path: T.<type> })` environment. |
+| `parse(source)` | `{ ast, errors }`. |
+| `extractReferences(ast)` / `missingReferences(ast, ctx)` | The paths an expression reads, and which have no value. |
+| `DEFAULT_SIGNATURES`, `buildRegistry(extra, { explicitOverrides })` | The builtin set, and a registry with host functions added. A host function must be deterministic, and its name may not collide with a builtin unless listed in `explicitOverrides`. |
+| `Decimal`, `MAX_EXPRESSION_LENGTH`, `MAX_EXPRESSION_DEPTH`, `MAX_DECIMAL_DIGITS`, `MAX_DECIMAL_SCALE` | Exact arithmetic and engine limits. |
 
-```typescript
-const draft = form.fill(data);
+Failure codes: `missing-input`, `type-error`, `division-by-zero`, `currency-mismatch`, `unknown-function`, `arity`, `missing-clock`, `missing-capability` (a party function with no party context), `limit-exceeded`, `host-error`.
 
-draft.isFieldVisible("petName");   // boolean
-draft.isFieldRequired("petName");  // boolean
-
-const results = draft.validateRules();
-// => FormRulesValidationResult { valid, errors, warnings, rules }
-
-const state = draft.runtimeState;
-```
-
-### Design-time validation
-
-```typescript
-import { validateLogic } from "@paradoc/core";
-
-const errors = validateLogic(form);
-// Catches: invalid field references, type mismatches, circular dependencies
-```
-
-## See Also
-
-- [fields.md](./fields.md) — `required` / `visible` CondExpr on fields
-- [parties.md](./parties.md) — `required` CondExpr; party functions
-- [artifacts.md](./artifacts.md) — which artifacts support defs and rules
-- [schemas.md](./schemas.md) — `npx paradoc-cli validate`
+Templates can also call host functions configured on the renderer: see [rendering.md](./rendering.md).

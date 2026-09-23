@@ -1,257 +1,186 @@
 ---
 name: rendering
-description: Rendering artifacts to text, PDF, DOCX — SDK render API, CLI render command, resolvers, bindings, custom serializers
+description: Render calls in the SDK and CLI - form.fill().render(), render options, renderLayer engine options, resolvers, direct engines, PDF utilities, render errors
 metadata:
-  tags: rendering, renderer, text, pdf, docx, markdown, html, resolvers, render
+  tags: rendering, render, renderLayer, renderers, resolver, createFsResolver, createMemoryResolver, renderText, renderPdf, renderDocx, paradoc render
 ---
 
 # Rendering
 
-**Contents:** [SDK rendering](#sdk-rendering) · [CLI rendering](#cli-rendering) · [Automatic field formatting](#automatic-field-formatting) · [Resolvers](#resolvers) · [PDF inspection](#inspecting-pdf-fields)
+**Contents:** [Install](#install) · [Render a form](#render-a-form) · [Render options](#render-options) · [renderLayer options](#renderlayer-options) · [Resolvers](#resolvers) · [Direct engines](#direct-engines) · [PDF utilities](#pdf-utilities) · [CLI](#cli) · [Errors](#errors)
 
-Paradoc renders artifacts to text (Markdown / HTML / plain text), PDF, and DOCX. ALWAYS validate before rendering. Forms without data produce empty output — ALWAYS fill / pass `--data`.
+This file covers render calls. To declare a layer, load [layers.md](./layers.md); to write a template, [templates.md](./templates.md); to seal a layer for signing, [sealing.md](./sealing.md); to read a filled PDF back, [pdf.md](./pdf.md#read-a-filled-pdf-back).
 
-## SDK Rendering
-
-### Installation
+## Install
 
 ```bash
-npm install @paradoc/render
+npm install @paradoc/sdk @paradoc/resolvers
 ```
 
-### Pattern 1: form.fill().render() (recommended)
+`@paradoc/sdk` includes the built-in engines and re-exports `renderLayer`. Add `@paradoc/render` only to import its subpaths directly (`@paradoc/render/pdf`, `/text`, `/docx`).
 
-A file-backed layer's bytes come from a resolver, and the resolver is bound
-once, when the form is constructed — `p.form(schema, { resolver })` or a
-builder's `.build({ resolver })`. Every instance derived from it — every
-`fill`, every mutator, every render call — carries that resolver, so render
-options never repeat it.
+## Render a form
+
+Bind a resolver when you construct the form, fill it, and render a layer. The built-in engines are the default, so the call needs no renderer.
 
 ```typescript
+import { readFile, writeFile } from "node:fs/promises";
 import { p } from "@paradoc/sdk";
-import { renderLayer } from "@paradoc/render";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 
-const resolver = createFsResolver({ root: process.cwd() });
-const form = p.form(schema, { resolver });
-const renderer = renderLayer();
+const schema = JSON.parse(await readFile("lease.json", "utf8"));
+const form = p.form(schema, { resolver: createFsResolver({ root: "." }) });
 
-// Text / Markdown / HTML
-const text = await form.fill(data).render({
-  renderer,
-  layer: "markdown",
+const draft = form.fill({
+  fields: { tenantName: "Ada Lovelace", monthlyRent: { amount: 1500, currency: "USD" } },
 });
 
-// PDF (returns Uint8Array)
-const pdf = await form.fill(data).render({
-  renderer,
-  layer: "pdf",
-});
-
-// DOCX (returns Uint8Array)
-const docx = await form.fill(data).render({
-  renderer,
-  layer: "docx",
-});
-
-import fs from "node:fs";
-fs.writeFileSync("output.pdf", pdf);
-fs.writeFileSync("output.docx", docx);
+const markdown = await draft.render(); // defaultLayer, or the first layer
+const pdf = await draft.render({ layer: "pdf" }); // Uint8Array
+await writeFile("lease.pdf", pdf);
 ```
 
-Render a file-backed layer with no resolver bound and Paradoc throws
-`UnboundResolverError`, naming the layer, the path it wanted, and where to
-bind one.
+- Text layers return a `string`. PDF, DOCX and React layers return a `Uint8Array`.
+- The resolver root is the artifact file's directory. Layer paths resolve inside it.
+- Every instance derived from the form (each `fill`, each `update`) carries the resolver. Bind it the same way with `p.load(content, { resolver })`, `p.document(def, { resolver })`, `p.checklist(def, { resolver })` or a builder's `.build({ resolver })`.
+- Inline layers need no resolver.
+- A draft renders before every required field is filled. `progressive` sets how missing values print.
 
-### Pattern 2: direct render functions
+Checklists and documents render raw layer content by default. See [layers.md](./layers.md#render-by-kind).
+
+## Render options
+
+`render()` on a form instance takes:
+
+| Option | Type | Effect |
+|--------|------|--------|
+| `layer` | `string` | Layer key. Default: `defaultLayer`, then the first layer |
+| `formatter` | `Formatter` | Locale and value styles for this render ([formatting.md](./formatting.md)) |
+| `progressive` | `{ missing?, incomplete? }` | Text for a missing value (default `—`) and an incomplete composite (default `…`) |
+| `renderers` | `Record<mimeType, renderer>` | Renderers keyed by MIME type, tried before the built-in engines. React layers need one |
+| `renderer` | `ParadocRenderer` | Replaces the engine for this call. Use `renderLayer({ ... })` to pass engine options |
+| `bindings` | `Record<string, string>` | PDF field name → Paradoc path, merged over the layer's own `bindings` |
 
 ```typescript
-import { renderText } from "@paradoc/render/text";
-import { renderPdf } from "@paradoc/render/pdf";
-import { renderDocx } from "@paradoc/render/docx";
-
-// Text — synchronous
-const text = renderText({
-  template: "# Lease\n\nRent: {{fields.monthlyRent}}",
-  data: { monthlyRent: { amount: 1500, currency: "USD" } },
-  form: leaseForm, // enables automatic field type detection
-});
-
-// PDF — async, requires template binary
-const pdf = await renderPdf({
-  template: new Uint8Array(fs.readFileSync("template.pdf")),
-  form,
-  data,
-  bindings: { "PDF_MonthlyRent": "monthlyRent" },
-});
-
-// DOCX — async
-const docx = await renderDocx({
-  template: new Uint8Array(fs.readFileSync("template.docx")),
-  data,
-  form,
-});
+const preview = await form.fill({ fields: { tenantName: "Ada" } }).render({ progressive: { missing: "____" } });
+// Rent: ____
 ```
 
-`renderPdf()` draws each AcroForm value with the field's own size (or auto-size), alignment, color, comb, and multiline settings. A value that cannot fit at 6 points, or that has more characters than a comb field has boxes, throws `PdfFieldFillError` naming the field, the `reason` (`overflow` or `comb-length`), and the `limit`.
+## renderLayer options
 
-Fonts: each value uses the first font that draws all of it: `font` (render time), then `layerFont` (the layer's declared `font`), then the form's own embedded font, then Helvetica for Latin-1. Through an artifact, supply the render-time font with `renderLayer({ pdfFont: { bytes, source } })` or `pdfRenderer({ font })`; the layer's font is read by the bound resolver. Missing glyphs (`missing-glyph`) and scripts that need shaping (`unsupported-script`) fail with `PdfFieldFillError`; an unusable font fails with `PdfFontError`. See [pdf-bindings.md](./pdf-bindings.md).
-
-### Template expressions
-
-Text and DOCX templates evaluate artifact expressions. `form.render()` supplies the artifact's own expression context, so templates read `fields`, defs, and `parties` exactly as field logic does. Rendering directly, pass `expressions: { functions, signatures }` to make host functions callable; a function without a signature cannot be called. A failed expression throws `TemplateError` with `layer`, `position` (line, column), and `expression`. Check templates without rendering through `validate()` (inline layers) and `validateLayers(artifact, { resolver })` (file layers).
-
-### renderDocx() options
-
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `template` | `Uint8Array` | Yes | DOCX template binary |
-| `data` | `Record<string, unknown>` | Yes | Field data |
-| `form` | `Form` | No | Enables automatic field type formatting |
-| `formatter` | `Formatter` | No | Artifact-wide presentation policy |
-| `bindings` | `Record<string, string>` | No | Field-to-template name mappings |
-| `signatureOptions` | `SignatureRenderOptions` | No | Signature rendering config |
-| `options` | `DocxRenderOptions` | No | `cmdDelimiter`, `failFast`, `processLineBreaks` |
-
-## CLI Rendering
-
-```bash
-# Render to stdout
-paradoc render my-form.json --data payload.json
-
-# Render to file
-paradoc render my-form.json --data payload.json --out output.pdf
-
-# Specify layer (format is selected from its MIME type)
-paradoc render my-form.json --data payload.json --layer markdown
-
-# With bindings (path or inline JSON)
-paradoc render my-form.json --data payload.json --bindings bindings.json
-
-# JSON summary output
-paradoc render my-form.json --data payload.json --format json
-
-# Validate and resolve only
-paradoc render my-form.json --data payload.json --dry-run
-```
-
-CLI bindings merge on top of layer-spec bindings (CLI wins).
-
-### Data payload
-
-```bash
-paradoc render form.json --data payload.json
-paradoc render form.json --data payload.yaml
-paradoc render form.json --data '{"fields":{"name":"Alice"}}'
-```
-
-### Renderer management
-
-The unified `@paradoc/render` package auto-installs on first use under
-`~/.paradoc/renderers/`.
-
-```bash
-paradoc renderers status
-paradoc renderers install
-paradoc renderers remove
-```
-
-## Automatic Field Formatting
-
-When a `form` schema is provided, renderers detect field types and format values automatically:
-
-- `money` → `$1,500.00`
-- `person` → `Jane Smith`
-- `address` → `123 Main St, Portland, OR, 97201, USA`
-- `phone` → formatted phone number
-
-Without a form schema, values render as-is (raw `.toString()`).
-
-For locale-aware presentation policy, see [formatting.md](./formatting.md).
-
-## Custom Formatting
+`renderLayer(options)` from `@paradoc/sdk` builds the MIME-selected engine with options the render call does not take directly. Pass it as `renderer`:
 
 ```typescript
-import { createFormatter } from "@paradoc/format";
+import { renderLayer } from "@paradoc/sdk";
 
-const formatter = createFormatter({ locale: "de-DE" });
-
-const output = await form.fill(data).render({
-  renderer: renderLayer({ formatter }),
-  layer: "markdown",
+const html = await draft.render({
+  layer: "html",
+  renderer: renderLayer({ textSignatureOptions: { format: "html" } }),
 });
 ```
 
-## Inspecting PDF Fields
+| Option | Applies to | Effect |
+|--------|-----------|--------|
+| `formatter`, `progressive` | all | As in [Render options](#render-options) |
+| `textSignatureOptions` | text | `format` (`"text"`, `"html"`, `"markdown"`), `placeholder` and `captured` text per directive (a string or a function of the context), `altText`, `cssClass` |
+| `docxSignatureOptions` | DOCX | `placeholder` and `captured` text per directive |
+| `pdfFont` | PDF | `{ bytes, source }`: a TrueType font tried before the layer's `font` ([pdf.md](./pdf.md)) |
+| `expressions` | text, DOCX | `{ functions, signatures }`: host functions templates can call. A function needs a signature ([logic.md](./logic.md)) |
 
-### SDK
-
-```typescript
-import { inspectAcroFormFields } from "@paradoc/render/pdf";
-
-const fields = await inspectAcroFormFields(template);
-// => [{ name: "PDF_MonthlyRent", type: "text", ... }, ...]
-```
-
-### CLI
-
-```bash
-paradoc inspect template.pdf
-paradoc inspect template.pdf --format json
-paradoc inspect template.pdf --filter "Landlord*"
-paradoc inspect template.pdf --summary
-paradoc inspect template.pdf --include-buttons --include-signatures
-paradoc inspect template.pdf --out fields.json
-```
-
-Use `paradoc inspect` to discover PDF AcroForm field names before configuring bindings.
-
-### Hashing files
-
-```bash
-paradoc hash template.pdf
-paradoc hash template.pdf --json
-paradoc hash template.pdf -a sha256
-```
-
-Computes a SHA-256 checksum for use in layer `checksum` properties.
+`placeholder` and `captured` take keys `signature`, `initials`, `signatureDate`, `capacity` and `printedName`. The default output of each directive is in [templates.md](./templates.md#directive-output).
 
 ## Resolvers
 
-Resolvers load layer files (templates, PDFs, DOCX) at render time. Required when layers use `kind: "file"`. NOT needed for `kind: "inline"`.
+A resolver reads the bytes of file layers, layer fonts and instruction files. Any object with `read(path): Promise<Uint8Array>` works.
 
-Bind a resolver once, where the artifact is constructed —
-`p.form(schema, { resolver })`, a builder's `.build({ resolver })`, or
-`p.load(content, { resolver })`. Every instance derived from it afterward
-carries the same resolver. There is no per-call resolver option anymore.
-
-### Filesystem resolver (Node.js)
-
-```typescript
-import { createFsResolver } from "@paradoc/resolvers/fs";
-
-const resolver = createFsResolver({ root: process.cwd() });
-```
-
-### Memory resolver (testing)
+| Resolver | Import | Rules |
+|----------|--------|-------|
+| Filesystem | `createFsResolver({ root })` from `@paradoc/resolvers/fs` | Reads under `root` only. `../`, backslashes and drive paths fail. A leading `/` is stripped |
+| Memory | `createMemoryResolver({ contents })` from `@paradoc/resolvers/memory` | Keys match the layer's `path` exactly. Browser-safe |
 
 ```typescript
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const resolver = createMemoryResolver({
   contents: {
-    "/templates/form.md": "# Lease\n\nRent: {{fields.monthlyRent}}",
-    "/templates/form.pdf": pdfBytes,
+    "templates/lease.md": "# Lease\n\nRent: {{fields.monthlyRent}}", // layer path: "templates/lease.md"
+    "templates/lease.pdf": pdfBytes, // layer path: "templates/lease.pdf"
   },
 });
 ```
 
-ALWAYS use `createMemoryResolver` in tests. NEVER read from the filesystem in unit tests.
+Write each memory key exactly as the layer's `path`: `"/templates/lease.md"` misses `templates/lease.md` with `Resolver content not found`. Use the memory resolver in unit tests, so they read no files.
 
-## See Also
+## Direct engines
 
-- [layers.md](./layers.md) — layer definitions, Paradoc template syntax, signing directives
-- [formatting.md](./formatting.md) — locale-aware formatters
-- [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings
-- [sdk.md](./sdk.md) — `form.fill().render()` pipeline
-- [cli.md](./cli.md) — `paradoc render`, `paradoc inspect`, `paradoc hash`
+Call an engine directly to render a template you hold outside an artifact. Data is a flat record of field values; pass `form` to format them by type.
+
+```typescript
+import { renderText } from "@paradoc/render/text";
+
+const text = renderText({
+  template: "# Lease\n\nRent: {{fields.monthlyRent}}",
+  data: { monthlyRent: { amount: 1500, currency: "USD" } },
+  form: schema,
+});
+// Rent: $1,500.00
+```
+
+| Function | Import | Options besides `template`, `data`, `form`, `formatter` |
+|----------|--------|--------------------------------------------------------|
+| `renderText` (sync, `string`) | `@paradoc/render/text` | `mimeType` (`text/html` escapes values), `progressive`, `signatureOptions: TextSignatureOptions`, `expressions`, `layer` |
+| `renderPdf` (async) | `@paradoc/render/pdf` | `bindings`, `font`, `layerFont`, `format`, `overlays` |
+| `renderDocx` (async) | `@paradoc/render/docx` | `signatureOptions: DocxSignatureOptions`, `options: { cmdDelimiter, processLineBreaks }`, `expressions`, `layer` |
+
+`renderPdf({ overlays })` draws text or images at `page`, `x`, `y` (PDF points from the bottom-left corner), for example on a flat PDF with no form fields. A text overlay takes `text` or a `field` path, plus optional `fontSize`, `width`, `height` and `color`.
+
+## PDF utilities
+
+All from `@paradoc/render/pdf`:
+
+| Task | Function |
+|------|----------|
+| List form fields | `inspectAcroFormFields(pdf)` |
+| Page count and sizes | `inspectPdf(pdf)` → `{ pages: [{ width, height }] }` |
+| Check that bound values fit their fields | `checkPdfBindingFit({ template, form, bindings })` |
+| Read a filled PDF back into data | `extractPdfData(...)`, or `form.extract(pdf)` ([pdf.md](./pdf.md)) |
+| Flatten form fields into page content | `flattenPdf(pdf)` |
+| Merge PDFs in order | `mergePdfs([a, b])` |
+| Keep some pages | `selectPdfPages(pdf, [1, 3])` (1-based) |
+| Find text or signing markers | `locate(pdf, queries)` |
+
+## CLI
+
+```bash
+paradoc render lease.json --data data.json                   # rendered layer to stdout
+paradoc render lease.json --data data.json --layer pdf --out lease.pdf
+paradoc render lease.json --data '{"fields":{"tenantName":"Ada"}}'
+paradoc render lease.json --dry-run                          # resolve the layer, render nothing
+```
+
+| Flag | Behavior |
+|------|----------|
+| `--data <pathOrJson>` | A payload `{ fields, parties?, annexes? }` from a JSON/YAML file, `-` (stdin) or inline JSON. Forms only: other kinds print a warning and render raw |
+| (no `--data`) | Prints the raw layer: the template text, or the PDF bytes unchanged |
+| `--layer <key>` | Layer to render. Default: `defaultLayer` |
+| `--out <file>` | Write to a file and print a summary. Without it, the content goes to stdout |
+| `--format json` | Prints the `--out` summary as JSON. It does not change the rendered content |
+| `--bindings <pathOrJson>` | PDF bindings merged over the layer's own |
+| `--dry-run` | Validate and resolve the layer only |
+
+The CLI resolves layer files from the artifact's directory. It renders text, PDF and DOCX layers. For React layers use the SDK with `renderers`, or `paradoc check` and `paradoc dev` (the `paradoc-react` skill).
+
+The engines install on first use under `~/.paradoc/renderers/`. Manage them with `paradoc renderers status`, `install [name]`, `remove [name]` and `update`. `name` is `render` (text, PDF, DOCX) or `react`.
+
+## Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `UnboundResolverError: Layer "x" is file-backed ... but no resolver is bound` | File layer, no resolver | Pass `{ resolver }` where you construct the artifact |
+| `Resolver path "../x" resolves outside the configured root` (`ERR_RESOLVER_OUTSIDE_ROOT`) | Path leaves the resolver root | Move the file under the artifact's directory |
+| `Resolver content not found: "x"` (`ERR_RESOLVER_NOT_FOUND`) | Memory key differs from the layer path | Use the layer's `path` string as the key |
+| `Layer "x" not found` | Wrong `layer` or `defaultLayer` | Use a key from `layers` |
+| `UnregisteredLayerRendererError` | React layer without a renderer | Pass `renderers` (the `paradoc-react` skill) |
+| `Unsupported render layer MIME type: x` | No engine for the MIME type | Use a type from [layers.md](./layers.md#mime-type-and-engine) |
+| `TemplateError` | An expression failed at render | Fix the expression at the reported layer, line and column ([templates.md](./templates.md)) |
+| `PdfFieldFillError` (`overflow`, `comb-length`, `missing-glyph`, `unsupported-script`) | A value does not fit or cannot be drawn | See [pdf.md](./pdf.md) |

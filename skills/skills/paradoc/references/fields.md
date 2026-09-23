@@ -1,221 +1,312 @@
 ---
 name: fields
-description: All 24 Paradoc field types — JSON shape, SDK builders, identifier rules, constraints, fieldsets, design heuristics
+description: The 24 Paradoc field types. Properties per type, the exact fill value per type, SDK builders, and how to choose a type.
 metadata:
-  tags: fields, types, identifier, constraints, fieldset, enum, money, address
+  tags: fields, types, fill values, constraints, fieldset, list, enum, money, phone, datetime, builders
 ---
 
 # Fields
 
-**Contents:** [Identifier rules](#field-identifier-rules) · [Common properties](#common-properties) · [Field type reference](#field-type-reference) · [Fieldsets](#fieldsets) · [Lists](#lists) · [Design heuristics](#design-heuristics)
+**Contents:** [Common properties](#common-properties) · [Field Type Reference](#field-type-reference) · [Type-specific properties](#type-specific-properties) · [Design heuristics](#design-heuristics) · [SDK](#sdk) · [Add a field](#add-a-field)
 
-Fields are the data-collection units of a form. Defined as a `fields` object — each key is a field identifier, each value is a field definition.
+A form's `fields` object maps each field id to a field definition. Field ids, nested ones included, are camelCase ([schemas.md § Identifier patterns](./schemas.md#identifier-patterns)). For `required` and `visible` expressions, load [logic.md](./logic.md).
 
-## Field Identifier Rules
+## Common properties
 
-- Pattern: `^[a-z][a-zA-Z0-9_]*$`
-- MUST start with a lowercase letter
-- May contain letters, digits, and underscores
-- camelCase convention: `firstName`, `monthlyRent`, `hasPets`
-- Max length: 100 characters
+Every field type takes these four, plus the properties its type lists below.
 
-**Valid:** `monthlyRent`, `lease_id`, `propertyAddress`
-**Invalid:** `MonthlyRent`, `123field`, `field-name`, `_private`
+| Property | Type | Constraint |
+|----------|------|------------|
+| `type` | string | Required. One of the types in the table below. |
+| `label` | string | 1-200 characters |
+| `description` | string | 1-1000 characters |
+| `required` | CondExpr | `true`, `false`, or a boolean expression string. Default: not required. |
+| `visible` | CondExpr | Same. A hidden field is never required. |
 
-## Common Properties
-
-All field types share:
-
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `type` | YES | string | One of the 24 field types below |
-| `label` | No | string | Display label (max 200 chars) |
-| `description` | No | string | Help text (max 1000 chars) |
-| `required` | No | CondExpr | `true`, `false`, or expression string |
-| `visible` | No | CondExpr | `true`, `false`, or expression string |
-| `default` | No | varies | Default value (type depends on field) |
-
-A `CondExpr` is a boolean literal OR an expression string. See [logic.md](./logic.md).
-
-```json
-"required": true
-"required": "fields.employmentStatus == 'employed'"
-"visible": "fields.hasPets == true"
-```
+`default` is not common. Each type that accepts one lists it, and `fieldset` and `list` accept none.
 
 ## Field Type Reference
 
-24 typed field definitions. ALWAYS use the most specific type — NEVER use `text` when a structured type fits.
+Paradoc has 24 field types. The fill value column is the exact JSON a payload carries under `fields.<id>`.
 
-| Type | Data Shape | Use For |
+| Type | Fill value | Use for |
 |------|-----------|---------|
-| `text` | `string` | Free-text, names, notes |
-| `boolean` | `boolean` | Yes/no, single checkbox |
-| `number` | `number` | Quantities, counts |
-| `money` | `{ amount, currency }` | Financial amounts |
-| `percentage` | `number` (0-100) | Rates, ratios |
-| `rating` | `number` | Scores, ratings |
-| `date` | `string` (YYYY-MM-DD) | Dates |
-| `datetime` | `string` (ISO 8601) | Timestamps |
-| `time` | `string` (HH:MM:SS) | Times |
-| `duration` | `string` (ISO 8601) | Time spans (P1Y, PT30M) |
-| `email` | `string` | Email addresses |
-| `phone` | `{ number, type?, extension? }` | Phone numbers |
-| `address` | `{ line1, locality, region, postalCode, country }` | Postal addresses |
-| `person` | `{ name, firstName?, lastName?, ... }` | People |
-| `organization` | `{ name, legalName?, taxId?, ... }` | Companies |
-| `identification` | `{ type, number, issuer?, ... }` | IDs, licenses, passports |
-| `uuid` | `string` | Unique identifiers |
-| `uri` | `string` | URLs, URIs |
-| `enum` | union of values | Single-select from list |
-| `multiselect` | `value[]` | Multi-select from list |
-| `coordinate` | `{ lat, lon }` | GPS coordinates |
-| `bbox` | `{ southWest, northEast }` | Geographic bounding boxes |
-| `fieldset` | nested fields | Grouped/nested fields |
-| `list` | `item[]` | Repeating entries (dependents, line items) |
+| `text` | string | Free text, names, notes |
+| `boolean` | `true` or `false` | Yes/no, one checkbox |
+| `number` | number | Counts, quantities |
+| `money` | `{ "amount": 1500.5, "currency": "USD" }` | Prices, fees, salaries |
+| `percentage` | number in percentage points (`8.25` is 8.25%) | Rates, ratios |
+| `rating` | number | Scores |
+| `date` | `"2026-01-31"` (`YYYY-MM-DD`) | Calendar dates |
+| `datetime` | `"2026-01-31T14:30:00Z"` (UTC, ends in `Z`) | Timestamps |
+| `time` | `"14:30:00"` (`HH:MM:SS`, 24-hour) | Times of day |
+| `duration` | `"P1Y"`, `"PT30M"` (ISO 8601) | Lease terms, warranties |
+| `email` | `"jane@example.com"` | Email addresses |
+| `phone` | `{ "number": "+14155552671", "type": "mobile" }` | Phone numbers |
+| `address` | `{ "line1", "line2"?, "locality", "region", "postalCode", "country" }` | Postal addresses |
+| `person` | `{ "name", "title"?, "firstName"?, "middleName"?, "lastName"?, "suffix"? }` | People |
+| `organization` | `{ "name", "legalName"?, "domicile"?, "entityType"?, "entityId"?, "taxId"? }` | Companies |
+| `identification` | `{ "type", "number", "issuer"?, "issueDate"?, "expiryDate"? }` | Passports, licenses, tax ids |
+| `uuid` | `"123e4567-e89b-12d3-a456-426614174000"` | Unique identifiers |
+| `uri` | `"https://example.com"` (absolute URL) | Links |
+| `enum` | one option `value`, same JSON type (`2`, not `"2"`) | Single choice |
+| `multiselect` | array of distinct option values | Multiple choice |
+| `coordinate` | `{ "lat": 40.71, "lon": -74.0 }` | GPS points |
+| `bbox` | `{ "southWest": { "lat", "lon" }, "northEast": { "lat", "lon" } }` | Geographic boxes |
+| `fieldset` | object keyed by the nested field ids | Grouped sub-fields |
+| `list` | array of `item` values | Repeating entries |
 
-### Type-specific properties
+Object values are strict too: `{ "number": "+14155552671", "ext": "12" }` fails with `Unknown field(s): ext`.
 
-A field accepts only the properties listed for its type plus the common ones. A misspelled or unknown key fails validation by name.
+## Type-specific properties
 
-#### text, email, uuid, uri
+Each section lists the properties a type adds to the common ones, its fill value rules, and one example. `min` must be at most `max`, `minLength` at most `maxLength`, and `minItems` at most `maxItems`. Validation reports `max must be greater than or equal to min`.
+
+#### text, uuid, uri
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `minLength` | number | Minimum length |
 | `maxLength` | number | Maximum length |
-| `pattern` | string | Regex (max 500 chars) — text/uuid/uri only |
+| `pattern` | string | Regular expression, 1-500 characters. A pattern open to catastrophic backtracking is refused. |
+| `default` | string | Default value |
+
+A `uuid` value must be a UUID. A `uri` value must be an absolute URL (`x.co` fails with `Invalid URL format`).
 
 ```json schema=fields
-"fullName": { "type": "text", "label": "Full Legal Name", "required": true, "minLength": 2, "maxLength": 100 }
+"fullName": { "type": "text", "label": "Full legal name", "required": true, "minLength": 2, "maxLength": 100 },
+"ssn": { "type": "text", "label": "SSN", "pattern": "^[0-9]{3}-?[0-9]{2}-?[0-9]{4}$" }
 ```
 
-#### boolean
-
-No type-specific properties.
-
-```json schema=fields
-"agreeToTerms": { "type": "boolean", "label": "I agree", "required": true, "default": false }
-```
-
-#### number, money
+#### email
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `min` | number | Minimum value (money: minimum amount) |
-| `max` | number | Maximum value (money: maximum amount) |
-| `step` | number | number only: a value must be a multiple of it (e.g., 0.01 for cents) |
-| `currency` | string | money only: ISO 4217 code a value must use (e.g., `USD`); omit to accept any |
+| `minLength` | number | Minimum length |
+| `maxLength` | number | Maximum length |
+| `default` | string | Default value |
+
+The type checks the address format itself, so email takes no `pattern`.
+
+#### boolean
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `default` | boolean | Default value |
 
 ```json schema=fields
-"annualSalary": { "type": "money", "label": "Annual Salary", "required": true, "min": 0, "currency": "USD" }
+"agreeToTerms": { "type": "boolean", "label": "I agree to the terms", "required": true, "default": false }
+```
+
+#### number
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `min` | number | Minimum value |
+| `max` | number | Maximum value |
+| `step` | number > 0 | A value must be a multiple of it. `0.01` allows cents; `1.234` then fails. |
+| `default` | number | Default value |
+
+#### money
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `min` | number | Minimum `amount` |
+| `max` | number | Maximum `amount` |
+| `currency` | string | ISO 4217 code (`^[A-Z]{3}$`) every value must use. Omit to accept any currency. |
+| `default` | `{ amount, currency }` | Default value |
+
+`amount` is a JSON number (`"10"` fails). With `currency: "USD"`, `{ "amount": 10, "currency": "EUR" }` fails with `expected USD`. Expressions read `fields.x.amount` ([logic.md § Money](./logic.md#money)).
+
+```json schema=fields
+"monthlyRent": { "type": "money", "label": "Monthly rent", "required": true, "min": 0, "currency": "USD" }
 ```
 
 #### percentage
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `min` | number | 0 | Minimum |
-| `max` | number | 100 | Maximum |
-| `precision` | number | 2 | Decimal places |
+| Property | Type | Description |
+|----------|------|-------------|
+| `min` | number | Minimum value |
+| `max` | number | Maximum value |
+| `precision` | number | Descriptive only. Fill and render do not use it. |
+| `default` | number | Default value |
+
+A percentage has no implied range: without bounds, `150` is accepted. Set `min: 0` and `max: 100` when the value is a share of a whole.
+
+```json schema=fields
+"interestRate": { "type": "percentage", "label": "Interest rate", "min": 0, "max": 100 }
+```
 
 #### rating
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `min` | number | 1 | Minimum |
-| `max` | number | 5 | Maximum |
-| `step` | number | 1 | Increment (e.g., 0.5 for half stars) |
+| Property | Type | Description |
+|----------|------|-------------|
+| `min` | number | Minimum value |
+| `max` | number | Maximum value. Also the scale the formatter prints ("4 of 5"). |
+| `step` | number | A value must be a multiple of it (`0.5` for half stars) |
+| `default` | number | Default value |
+
+A rating has no implied range. Set `min` and `max`; without `max` a rendered rating prints as a plain number.
+
+```json schema=fields
+"satisfaction": { "type": "rating", "label": "Satisfaction", "min": 1, "max": 5, "step": 1 }
+```
 
 #### date, datetime, time
 
-`min` and `max` are ISO strings appropriate to the type.
+| Property | Type | Description |
+|----------|------|-------------|
+| `min` | string | Earliest value, same format as the fill value |
+| `max` | string | Latest value, same format as the fill value |
+| `default` | string | Default value |
+
+| Type | Accepted | Refused |
+|------|----------|---------|
+| `date` | `2026-01-31` | `2026-1-31` |
+| `datetime` | `2026-01-31T14:30:00Z`, `2026-01-31T14:30:00.123Z` | `2026-01-31T14:30:00+02:00`, `2026-01-31T14:30:00` (`Invalid ISO datetime`) |
+| `time` | `14:30:00` | `14:30`, `14:30:00.5`, `24:00:00` |
+
+Convert a local datetime to UTC before you fill it.
 
 ```json schema=fields
-"dateOfBirth": { "type": "date", "label": "Date of Birth", "required": true, "max": "2008-01-01" }
+"dateOfBirth": { "type": "date", "label": "Date of birth", "required": true, "max": "2008-01-01" },
+"appointment": { "type": "datetime", "label": "Appointment", "min": "2026-01-01T00:00:00Z" }
 ```
 
-#### identification
+#### duration
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `allowedTypes` | string[] | e.g., `["passport", "drivers_license", "state_id"]` |
+| `default` | string | Default value |
 
-#### enum (single-select)
+The value is `P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S` with at least one component: `P1Y`, `P2W`, `P1DT12H`, `PT30M`. `P` alone fails.
 
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `enum` | YES | `{ value: string\|number; label?: string }[]` | Allowed options (min 1 item) |
+#### enum
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `enum` | `{ value: string \| number, label?: string }[]` | Required. At least one option. `label` is 1-200 characters. |
+| `default` | string or number | Must equal one option's `value` |
+
+Fill with the option's `value`, not its label. The JSON type must match: with `{ "value": 2 }`, `"2"` fails.
 
 ```json schema=fields
 "employmentStatus": {
   "type": "enum",
-  "label": "Employment Status",
+  "label": "Employment status",
+  "required": true,
   "enum": [
-    { "value": "employed" },
-    { "value": "self-employed" },
-    { "value": "unemployed" },
-    { "value": "retired" },
-    { "value": "student" }
-  ],
-  "required": true
+    { "value": "employed", "label": "Employed" },
+    { "value": "self_employed", "label": "Self-employed" },
+    { "value": "retired", "label": "Retired" }
+  ]
 }
 ```
 
 #### multiselect
 
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `enum` | YES | `{ value: string\|number; label?: string }[]` | Available options |
-| `min` | No | number | Minimum selections |
-| `max` | No | number | Maximum selections |
+| Property | Type | Description |
+|----------|------|-------------|
+| `enum` | `{ value, label? }[]` | Required. At least one option. |
+| `min` | number | Minimum number of selections |
+| `max` | number | Maximum number of selections |
+| `default` | `(string \| number)[]` | Default selections |
 
-#### duration, phone, address, person, organization, coordinate, bbox
-
-No type-specific properties — use the field as-is. Data shapes are listed in the table above.
-
-## Fieldsets
-
-A fieldset groups nested fields under a single key.
-
-**Required:** `type: "fieldset"`, `fields`
-
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `type` | YES | `"fieldset"` | Discriminator |
-| `fields` | YES | object | Nested field definitions (recursive) |
-| `label` | No | string | Group label |
-| `description` | No | string | Help text |
-| `required` | No | CondExpr | Whether the fieldset is required |
-| `visible` | No | CondExpr | Conditional visibility |
+Fill with an array of option values. Duplicates fail with `Array items must be unique`.
 
 ```json schema=fields
-"previousAddress": {
+"services": {
+  "type": "multiselect",
+  "label": "Services",
+  "min": 1,
+  "enum": [{ "value": "plumbing", "label": "Plumbing" }, { "value": "wiring", "label": "Wiring" }]
+}
+```
+
+#### phone
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `default` | phone object | Default value |
+
+`number` is E.164: `+`, country code, subscriber number, no spaces (`^\+[1-9]\d{1,14}$`). `"555-1234"` fails. `type` is optional and is one of `mobile`, `work`, `home`.
+
+#### address
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `default` | address object | Default value |
+
+`line1`, `locality`, `region`, `postalCode` and `country` are required; `line2` is optional. `country` is an ISO 3166-1 code (`US`, `GB`) or a country name. A `default` is checked against the schema: `postalCode` 3-20 characters of `A-Z`, digits, spaces and hyphens.
+
+```json schema=fields
+"propertyAddress": {
+  "type": "address",
+  "label": "Property address",
+  "default": { "line1": "10 Main St", "locality": "Springfield", "region": "IL", "postalCode": "62701", "country": "US" }
+}
+```
+
+#### person, organization
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `default` | person or organization object | Default value |
+
+`name` is required on both. A person also takes `title`, `firstName`, `middleName`, `lastName` and `suffix`. An organization also takes `legalName`, `domicile`, `entityType`, `entityId` and `taxId`. For the people who sign, use a party role instead; see [parties.md](./parties.md).
+
+#### identification
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `allowedTypes` | string[] | The values the fill value's `type` may take |
+| `default` | identification object | Default value |
+
+`type` and `number` are required. `issueDate` and `expiryDate` are `YYYY-MM-DD`. With `allowedTypes: ["passport"]`, `{ "type": "ssn", ... }` fails with `Must be one of: passport`.
+
+```json schema=fields
+"governmentId": { "type": "identification", "label": "Government ID", "allowedTypes": ["passport", "drivers_license"] }
+```
+
+#### coordinate, bbox
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `default` | coordinate or bbox object | Default value |
+
+`lat` is -90 to 90 and `lon` is -180 to 180, in decimal degrees. A bbox has `southWest` (minimum) and `northEast` (maximum) corners.
+
+#### fieldset
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `fields` | object | Required. Nested field definitions, any type, including `fieldset` and `list`. |
+
+The fill value is an object keyed by the declared nested ids. Group three or more closely related fields that render under one heading (a previous address, an emergency contact); keep one or two unrelated fields flat.
+
+```json schema=fields
+"emergencyContact": {
   "type": "fieldset",
-  "label": "Previous Address",
+  "label": "Emergency contact",
   "fields": {
-    "street": { "type": "text", "label": "Street", "required": true },
-    "city": { "type": "text", "label": "City", "required": true },
-    "yearsLived": { "type": "number", "label": "Years at Address", "min": 0 }
+    "name": { "type": "text", "label": "Name", "required": true },
+    "relationship": { "type": "text", "label": "Relationship" },
+    "phone": { "type": "phone", "label": "Phone", "required": true }
   }
 }
 ```
 
-**Use fieldsets when:** 3+ closely-related fields, repeated logical groupings (previous address, emergency contact), rendered output needs a section heading.
-**Skip fieldsets when:** 1-2 fields, unrelated fields, small flat form.
+Fill value: `{ "emergencyContact": { "name": "Ann Lee", "phone": { "number": "+14155552671" } } }`.
 
-## Lists
+#### list
 
-A list holds zero or more entries of one field shape.
+| Property | Type | Description |
+|----------|------|-------------|
+| `item` | field | Required. The definition of each entry, any type. |
+| `minItems` | integer ≥ 0 | Minimum entries |
+| `maxItems` | integer ≥ 0 | Maximum entries |
 
-**Required:** `type: "list"`, `item`
-
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `type` | YES | `"list"` | Discriminator |
-| `item` | YES | field | Field definition for each entry (any type, including `fieldset` or `list`) |
-| `minItems` | No | integer | Minimum entries (min 0) |
-| `maxItems` | No | integer | Maximum entries (min 0, at least `minItems`) |
+The fill value is an array of `item` values. To total or test rows in an expression, load [logic.md § List aggregates](./logic.md#list-aggregates).
 
 ```json schema=fields
 "dependents": {
@@ -226,86 +317,74 @@ A list holds zero or more entries of one field shape.
     "type": "fieldset",
     "fields": {
       "name": { "type": "text", "label": "Name", "required": true },
-      "dateOfBirth": { "type": "date", "label": "Date of Birth" }
+      "dateOfBirth": { "type": "date", "label": "Date of birth" }
     }
   }
 }
 ```
 
-## Design Heuristics
+Fill value: `{ "dependents": [{ "name": "Kim", "dateOfBirth": "2019-04-02" }] }`.
+
+## Design heuristics
 
 ### Type selection table
 
-ALWAYS use the most specific type.
-
-| Data Being Collected | MUST Use Type | NOT This |
-|---------------------|---------------|----------|
-| Dollar amounts, prices, fees, salaries | `money` | `number` or `text` |
-| Dates (birth date, start date, deadline) | `date` | `text` |
-| Date + time (appointments) | `datetime` | `text` |
-| Time only (business hours) | `time` | `text` |
-| Time periods (lease term, warranty) | `duration` | `text` |
-| Yes/no, true/false, single checkbox | `boolean` | `text` or `enum` |
-| Single selection from options | `enum` | `text` |
-| Multiple selections from options | `multiselect` | `text` |
-| Counts, quantities, whole numbers | `number` | `text` |
-| Percentages, rates | `percentage` | `number` |
-| Ratings, scores | `rating` | `number` |
+| Data | Use | Not |
+|------|-----|-----|
+| Prices, fees, rent, salaries | `money` | `number`, `text` |
+| Calendar dates | `date` | `text` |
+| Date and time of an event | `datetime` | `text` |
+| Time of day | `time` | `text` |
+| Periods (lease term, warranty) | `duration` | `text`, `number` |
+| Yes/no, one checkbox | `boolean` | `enum`, `text` |
+| One choice from a list | `enum` | `text` |
+| Several choices from a list | `multiselect` | `text` |
+| Counts, quantities | `number` | `text` |
+| Rates, ratios | `percentage` | `number` |
+| Scores | `rating` | `number` |
 | Email addresses | `email` | `text` |
 | Phone numbers | `phone` | `text` |
-| Postal addresses | `address` | `text` |
-| Person names/details | `person` | `text` |
-| Organization/company info | `organization` | `text` |
-| Government IDs (SSN, EIN, passport) | `identification` or `text`+`pattern` | `text` only |
-| URLs, website links | `uri` | `text` |
-| Unique identifiers, reference numbers | `uuid` | `text` |
-| GPS coordinates | `coordinate` | `text` |
-| Geographic boundaries | `bbox` | `text` |
-| Group of related sub-fields | `fieldset` | Multiple top-level fields |
-| Free-form text, names, descriptions | `text` | — |
+| Postal addresses | `address` | `text`, several `text` fields |
+| A person's name parts | `person` | `text` |
+| Company details | `organization` | `text` |
+| Passports, licenses, SSN, EIN | `identification` or `text`+`pattern` | bare `text` |
+| URLs | `uri` | `text` |
+| System identifiers | `uuid` | `text` |
+| GPS points | `coordinate` | `text` |
+| Geographic areas | `bbox` | `text` |
+| Related sub-fields under one heading | `fieldset` | several top-level fields |
+| Repeating rows (dependents, line items) | `list` | numbered fields (`child1`, `child2`) |
+| Free prose, notes, odd reference numbers | `text` | none |
 
-Use `text` ONLY when no other type fits: free-form names (`"John Doe"`), descriptions, notes, reference numbers with unusual formats.
+### Naming by domain
 
-### Naming patterns by domain
-
-| Domain | Example Field IDs |
-|--------|------------------|
-| Personal info | `firstName`, `lastName`, `dateOfBirth`, `email`, `phone` |
-| Address | `streetAddress`, `city`, `state`, `zipCode`, `country` |
-| Financial | `annualIncome`, `monthlyExpenses`, `creditScore`, `loanAmount` |
+| Domain | Example ids |
+|--------|-------------|
+| Personal | `firstName`, `lastName`, `dateOfBirth`, `email`, `phone` |
+| Financial | `annualIncome`, `monthlyExpenses`, `loanAmount` |
 | Employment | `employerName`, `jobTitle`, `startDate`, `annualSalary` |
 | Property | `propertyAddress`, `monthlyRent`, `securityDeposit`, `leaseStartDate` |
 | Medical | `primaryPhysician`, `allergies`, `medications`, `insuranceProvider` |
 
-Use specific names (`monthlyRent`, not `amount`). Use suffixes to disambiguate (`leaseStartDate` not `date`).
+Name the thing, not the kind: `monthlyRent`, not `amount`; `leaseStartDate`, not `date`.
 
-### Pattern constraints — common identifiers
+### Patterns for common identifiers
 
-| Field | Pattern |
-|-------|---------|
+| Identifier | Pattern |
+|------------|---------|
 | SSN | `^[0-9]{3}-?[0-9]{2}-?[0-9]{4}$` |
 | EIN | `^[0-9]{2}-?[0-9]{7}$` |
 | US ZIP | `^[0-9]{5}(-[0-9]{4})?$` |
 
-### Field ordering
+### Order and progressive disclosure
 
-Fields render in definition order. Suggested order:
-
-1. Identification (name, ID numbers)
-2. Contact (email, phone, address)
-3. Domain-specific (financial, property, medical)
-4. Conditional/optional fields
-5. Agreement/consent fields
-
-### Progressive disclosure
-
-Use `visible` expressions to keep the form simple:
+Fields render in definition order: identity, contact, domain data, conditional fields, consent. Gate a follow-up field on a boolean condition:
 
 ```json schema=fields
 "hasPets": { "type": "boolean", "label": "Do you have pets?", "default": false },
 "petCount": {
   "type": "number",
-  "label": "Number of Pets",
+  "label": "Number of pets",
   "visible": "fields.hasPets == true",
   "required": "fields.hasPets == true",
   "min": 1,
@@ -313,39 +392,54 @@ Use `visible` expressions to keep the form simple:
 }
 ```
 
-## SDK Builders
+## SDK
 
-For TypeScript SDK forms, fields can be defined with object literals (preferred) OR with `p.field.*()` builders. See [sdk.md](./sdk.md) for full SDK patterns.
+The builder chain takes field builders, plain objects, or a mix, and validates each field at `build()`. `p.form({ ... })` takes plain objects only ([sdk.md § Define an artifact](./sdk.md#define-an-artifact)).
 
 ```typescript
-// Object pattern (preferred)
-fields: {
-  name: { type: "text", label: "Full Name", required: true },
-  amount: { type: "money", label: "Amount", required: true },
-}
+import { p } from "@paradoc/sdk";
 
-// Builder pattern
-fields: {
-  name: p.field.text().label("Full Name").required().maxLength(100),
-  amount: p.field.money().label("Amount").required().min(0),
-  status: p.field.enum().options([{ value: "a" }, { value: "b" }]).label("Status").required(),
-}
+const builtForm = p
+  .form()
+  .name("intake")
+  .fields({
+    fullName: p.field.text().label("Full name").required().maxLength(100),
+    status: p.field.enum().options([{ value: "new" }, { value: "returning" }]),
+    deposit: { type: "money", currency: "USD" },
+  })
+  .build();
 ```
 
-NEVER mix object and builder patterns within a single artifact.
+### Field builder methods
 
-## Adding a Field — Step by Step (JSON)
+`p.field.<type>()` exists for all 24 types. Every builder has `.label()`, `.description()`, `.required(cond = true)`, `.visible(cond = true)` and `.build()`. Every type except `fieldset` and `list` has `.default(value)`. The type-specific methods mirror the properties above:
 
-1. Choose a camelCase identifier matching `^[a-z][a-zA-Z0-9_]*$`
-2. Add the field to the `fields` object
-3. Set `type` (REQUIRED for every field)
-4. Add `label`, `required`, `visible`, type-specific constraints
-5. Run `npx paradoc-cli validate <file>` (see [schemas.md](./schemas.md))
+<!-- dep:C6 -->
+| Builder | Methods |
+|---------|---------|
+| `text`, `uuid`, `uri` | `.minLength(n)`, `.maxLength(n)`, `.pattern(re)` |
+| `email` | `.minLength(n)`, `.maxLength(n)` |
+| `number` | `.min(n)`, `.max(n)`, `.step(n)` |
+| `money` | `.min(n)`, `.max(n)`, `.currency(code)` |
+| `percentage` | `.min(n)`, `.max(n)`, `.precision(n)` |
+| `rating` | `.min(n)`, `.max(n)`, `.step(n)` |
+| `date`, `datetime`, `time` | `.min(s)`, `.max(s)` |
+| `enum` | `.options([{ value, label? }])` |
+| `multiselect` | `.options([...])`, `.min(n)`, `.max(n)` |
+| `identification` | `.allowedTypes(...types)` |
+| `fieldset` | `.field(id, def)`, `.fields({ ... })` |
+| `list` | `.item(def)`, `.minItems(n)`, `.maxItems(n)` |
 
-## See Also
+## Add a field
 
-- [logic.md](./logic.md) — CondExpr syntax for `required` and `visible`
-- [formatting.md](./formatting.md) — locale-aware formatting at render time
-- [parties.md](./parties.md) — party roles
-- [annexes.md](./annexes.md) — file attachments
-- [sdk.md](./sdk.md) — type inference from form definitions
+1. Choose a camelCase id that names the thing: `monthlyRent`, not `amount`.
+2. Pick the type from the [type selection table](#type-selection-table).
+3. Add `label`, the type's constraints, and `required`/`visible` if needed.
+4. Run `npx paradoc-cli validate <file>`. The field is done when it exits 0 and reports no issues.
+5. Print a starting payload with `npx paradoc-cli data template <file> --json --out data.json`. Give every required field a value, put a real value in the new field, and run `npx paradoc-cli data validate <file> data.json`. It exits 0 when the payload is complete and each value has the right shape.
+
+## See also
+
+- [annexes.md](./annexes.md): when the form collects a file, not a value
+- [filling.md](./filling.md): when you fill or change a draft
+- [formatting.md](./formatting.md): when you control how values print

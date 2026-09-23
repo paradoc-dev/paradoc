@@ -1,77 +1,71 @@
 # AGENTS.md
 
-Guidance for AI agents working in this repository.
+Guidance for AI agents working in this tree.
 
-## Repository Overview
+## Overview
 
-The official agent skills for [Paradoc](https://paradoc.dev) — the documents-as-code framework.
+The official agent skills for [Paradoc](https://paradoc.dev), the documents-as-code framework. Users install them from `github.com/paradoc-dev/paradoc` with `npx skills add https://github.com/paradoc-dev/paradoc --skill <name>`.
 
-Two skills. `skills/paradoc/` is the general skill, with topic-organized references covering every Paradoc surface (TypeScript SDK, `paradoc` CLI, raw JSON/YAML schemas, `mcp.paradoc.dev` MCP service) and end-to-end workflows (creating new forms, converting PDFs). `skills/compose-documents/` is a narrower skill for one surface only — authoring and checking a `.tsx`/`.jsx` composition bound to a form artifact through `@paradoc/react` — for an agent that only needs that surface.
+Two skills:
 
-## Repository Structure
+- `skills/paradoc/`: authoring, filling, validating, rendering and sealing artifacts on every surface (TypeScript SDK, `paradoc` CLI, raw JSON/YAML, AI agent tools, hosted MCP), plus the authoring workflow.
+- `skills/paradoc-react/`: composing, checking, previewing, rendering and sealing documents written in React with `@paradoc/react` and `@paradoc/react-pdf`.
 
-```
+## Structure
+
+```text
 .
-├── AGENTS.md         # This file — the agent rulebook for this tree
+├── AGENTS.md         # This file
 ├── README.md         # User-facing overview
 └── skills/
     ├── paradoc/
     │   ├── SKILL.md
     │   ├── metadata.json
     │   └── references/
-    │       # Surface refs — how to express things on each surface
-    │       ├── sdk.md, cli.md, schemas.md, mcp.md
-    │       # Topic refs — canonical concept knowledge (surface-agnostic)
-    │       ├── artifacts.md, fields.md, parties.md, annexes.md,
-│       ├── logic.md, layers.md, rendering.md, formatting.md,
-    │       ├── instructions.md, pdf-bindings.md
-    │       # Workflow refs — staged interactive pipelines
-    │       └── workflow-create-form.md, workflow-convert-pdf.md
-    └── compose-documents/
+    │       # Surface refs
+    │       ├── sdk.md, cli.md, schemas.md, ai-tools.md, mcp.md
+    │       # Topic refs
+    │       ├── artifacts.md, fields.md, parties.md, annexes.md, logic.md,
+    │       ├── layers.md, templates.md, pdf.md, rendering.md, formatting.md,
+    │       ├── instructions.md, filling.md, sealing.md, essentials.md
+    │       # Workflow refs
+    │       └── workflow-author-form.md
+    └── paradoc-react/
         ├── SKILL.md
         ├── metadata.json
         └── references/
             ├── components.md, pagination.md, safe-classes.md,
-            └── artifact-binding.md, cli.md
+            └── custom-components.md, render-and-seal.md, cli.md
 ```
 
-## Three Reference Categories
+## Reference categories (`paradoc`)
 
-Applies to `paradoc`, which spans four surfaces and needs the split.
-`compose-documents` covers one surface (composing in React) and keeps a flat
-set of topic-only references with no surface/workflow split — do not force
-that skill's references into these three categories.
-
-When adding or editing references in `paradoc`, place them in the right category:
+`paradoc` spans five surfaces, so its references split three ways. `paradoc-react` covers one surface and keeps a flat set of topic references; do not force it into these categories.
 
 | Category | Purpose | Examples |
 |---|---|---|
-| **Surface** | How to express things on a specific surface (SDK / CLI / JSON / MCP). Thin "express it this way" guides that link to topic refs for shape details. | `sdk.md`, `cli.md`, `schemas.md`, `mcp.md` |
-| **Topic** | Canonical concept knowledge, surface-agnostic. The single source of truth per concept. Show JSON and SDK side-by-side where appropriate. | `fields.md`, `parties.md`, `logic.md` |
-| **Workflow** | Staged interactive pipelines that orchestrate other refs. Each stage links to topic refs rather than duplicating content. | `workflow-create-form.md`, `workflow-convert-pdf.md` |
+| **Surface** | How to do things on one surface. Thin guides that link to topic refs for shapes. | `sdk.md`, `cli.md`, `ai-tools.md` |
+| **Topic** | The single source of truth for one concept, surface-agnostic. Show JSON and SDK side by side where useful. | `fields.md`, `logic.md`, `sealing.md` |
+| **Workflow** | A staged pipeline that links to topic refs at each stage. Every stage ends on a command result. | `workflow-author-form.md` |
 
-**Principle:** topic refs are canonical. Surface refs and workflow refs link to topic refs — they NEVER re-document concepts that belong in a topic ref.
+Topic refs are canonical. Surface and workflow refs link to them and do not restate them.
 
-## Skill File Conventions
+## File conventions
 
-Skills follow the [Agent Skills specification](https://agentskills.io/specification.md). Read it before making structural changes.
+Skills follow the [Agent Skills specification](https://agentskills.io/specification.md).
 
 ### `SKILL.md` frontmatter
 
-Spec-compliant fields used in this repo:
-
 | Field | Required | Notes |
 |---|---|---|
-| `name` | YES | Must equal parent dir (`paradoc`, `compose-documents`). Lowercase + hyphens only, 1-64 chars. |
-| `description` | YES | Max 1024 chars. Describe what + when to use, with trigger phrases. |
-| `metadata` | No | Author, version (semver), tags. |
-| `allowed-tools` | No | Space-separated pre-approved tools (experimental Claude Code field). |
+| `name` | Yes | Equals the parent directory. Lowercase and hyphens, 1-64 chars. |
+| `description` | Yes | Max 1024 chars. Lead with what the skill does, then one trigger per distinct use. |
+| `metadata` | No | `author`, `version`, `tags`, `license`. |
+| `allowed-tools` | No | Space-separated pre-approved tools. |
 
-Keep `SKILL.md` under 500 lines. It loads in full on activation. Move detail to references.
+Keep `SKILL.md` short (about 150 lines). It loads in full on activation. Put depth in references, behind pointers that say when to load them.
 
 ### Reference frontmatter
-
-Each `references/*.md` file uses:
 
 ```yaml
 ---
@@ -82,62 +76,51 @@ metadata:
 ---
 ```
 
-References are loaded on demand (progressive disclosure), so size is less constrained than `SKILL.md` — but keep them focused on a single topic.
-
 ### Naming
 
-- Skill directory: one per skill, named for what it covers (`paradoc/`, `compose-documents/`), no shared prefix
-- `SKILL.md`: always uppercase, exact filename
-- Surface refs: single word — `sdk.md`, `cli.md`, `schemas.md`, `mcp.md`
-- Topic refs: single concept — `fields.md`, `parties.md`. Hyphens permitted for genuine compound concepts: `pdf-bindings.md`
-- Workflow refs: prefixed with `workflow-` — `workflow-create-form.md`, `workflow-convert-pdf.md`
-
-The `workflow-` prefix is load-bearing — it groups workflows alphabetically at the bottom of listings and makes their kind obvious without a subdirectory. Do not nest in `references/workflows/`.
+- Skill directory: `paradoc` for the general skill; every other skill takes the `paradoc-` prefix (`paradoc-react`), so its name says whose it is.
+- `SKILL.md`: uppercase, exact.
+- Surface refs: one word (`sdk.md`). Topic refs: one concept (`fields.md`); hyphens only for a real compound (`safe-classes.md`).
+- Workflow refs: `workflow-` prefix, flat in `references/`.
 
 ### Cross-references
 
-Use relative links from the file's own location: `[fields](./fields.md)` from a sibling reference, `[references/fields.md](./references/fields.md)` from `SKILL.md`.
+Use relative links: `[fields](./fields.md)` between references, `[references/fields.md](./references/fields.md)` from `SKILL.md`. References stay one level deep. Between skills, name the other skill in prose; do not link across skill folders.
 
-Keep references **one level deep** from `SKILL.md` (per the spec). NEVER nest sub-folders inside `references/`.
+## Writing style
 
-## Writing Style
+- Imperative: "Use the most specific type."
+- State the target behavior. Keep ALWAYS/NEVER for hard guardrails that are true.
+- Tables for reference data. Language-tagged code blocks.
+- One concept per section. Short paragraphs. No em dashes.
+- Cite real APIs only, with their real import paths.
+- Every example runs: artifacts validate, snippets reassign immutable returns and include their setup.
+- Files over 100 lines start with a `**Contents:**` line.
 
-- **Imperative / infinitive form.** "Use the most specific type." NOT "You should use..."
-- **Prescriptive language for rules:** ALWAYS, NEVER, MUST, SHOULD, FORBIDDEN, DO NOT.
-- **Tables for reference data** — type matrices, decision matrices, command flags.
-- **Code blocks with language tags** — `json`, `typescript`, `bash`, `text`.
-- **Bold key terms** sparingly. No emoji unless the user requests them.
-- **One concept per section.** Short paragraphs.
-- Cite real Paradoc APIs only — NEVER fabricate method names, package names, or schema URIs.
-- Show wrong + right examples for common pitfalls.
-- For files >100 lines, include a `**Contents:**` table-of-contents line at the top.
+## Global rules in `paradoc`
 
-## Global Rules in the Skill
+The skill states these in `SKILL.md`; repeat one in a reference only where it applies directly:
 
-The skill itself enforces these — repeat them in any reference where they're directly relevant, and ALWAYS surface them to the user when applicable:
-
-- Schema version `2026-09-22`. `$schema`: `https://schema.paradoc.dev/2026-09-22.json` for every artifact kind; migrate older files with `npx paradoc-cli migrate`
-- Validate with `npx paradoc-cli validate <file>` when working with files directly
-- Artifact name pattern: `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` (kebab-case, no leading/trailing/consecutive hyphens)
-- Field/party/def/rule pattern: `^[a-z][a-zA-Z0-9_]*$` (camelCase preferred)
-- Field types: ALWAYS prefer the most specific type. NEVER `text` when a structured type fits
-- Paradoc templates: everything inside `{{ }}` is an artifact expression — use `{{fields.fieldName}}`; conditions must be boolean
-- Signatures: ALWAYS use the signing directives `{{signature(parties.role, "loc")}}` / `{{initials(...)}}` / `{{signatureDate(...)}}`. NEVER manual underscore lines.
+- Schema version `2026-09-22`: `$schema` is `https://schema.paradoc.dev/2026-09-22.json` for every artifact kind. Migrate older files with `npx paradoc-cli migrate`.
+- Validate files with `npx paradoc-cli validate <file>`.
+- Artifact name pattern `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`. Field, party, def and rule ids `^[a-z][a-zA-Z0-9_]*$`.
+- Use the most specific field type.
+- Templates name values as `{{fields.fieldName}}`; conditions are boolean. Signatures use the signing directives, bound to `signatures` slots.
 
 ## Validation
 
-Validate the skill structure with the Agent Skills reference library:
-
 ```bash
-skills-ref validate ./skills/paradoc
-skills-ref validate ./skills/compose-documents
+uvx --from skills-ref agentskills validate ./skills/paradoc
+uvx --from skills-ref agentskills validate ./skills/paradoc-react
 ```
 
-`packages/schemas/tests/skill-docs.test.ts` checks the `paradoc` skill against the schemas: the field type lists, the signature block and slot types, and every JSON example. Label each JSON example that is valid JSON with the container it belongs to, for example ```` ```json schema=fields ````. The labels are `artifact`, `form`, `fields`, `parties`, `defs`, `layers`, `layer`, `cli-config`, and `registries`.
+Tests tie the skills to the code:
 
-## When Editing
+- `packages/schemas/tests/skill-docs.test.ts` checks `paradoc`: the field type lists, the signature slot types, and every JSON example. Label each JSON example that parses with its container, for example ```` ```json schema=fields ````. Labels: `artifact`, `form`, `fields`, `parties`, `defs`, `layers`, `layer`, `cli-config`, `registries`.
+- `packages/react/tests/pdf-class-vocabulary-docs.test.ts` checks the `## The verified families` table in `paradoc-react/references/safe-classes.md` against the PDF class vocabulary.
 
-1. Identify the right category (surface / topic / workflow). Resist re-documenting concepts in surface or workflow refs — link to the topic ref instead.
-2. If a topic ref grows past ~500 lines, consider splitting along sub-topic lines, but keep the new files in the flat `references/` directory.
-3. Update cross-references when renaming or moving files. Search the repo for the old name.
-4. Bump `metadata.version` (semver) in `SKILL.md` and `metadata.json` when shipping changes.
+## When editing
+
+1. Put the content in the right category, and link instead of restating.
+2. Update cross-references when renaming. Search the repo for the old name.
+3. Keep `metadata.version` in `SKILL.md` and `metadata.json` equal to the framework version the skill documents.

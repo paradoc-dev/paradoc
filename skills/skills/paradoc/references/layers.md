@@ -1,493 +1,264 @@
 ---
 name: layers
-description: Render templates (file and inline) — JSON shape, MIME types, bindings, signature blocks, Paradoc template syntax
+description: Layer shape (inline and file), MIME type to render engine, React layers, PDF bindings, signature slots, and defaultLayer
 metadata:
-  tags: layers, templates, file, inline, mimeType, bindings, signature-blocks, defaultLayer
+  tags: layers, layer, mimeType, file, inline, react, tsx, bindings, bindingsFrom, signatures, slots, defaultLayer, checksum
 ---
 
 # Layers
 
-**Contents:** [Layer kinds](#layer-kinds) · [MIME types](#common-mime-types) · [Bindings](#bindings) · [Signature blocks](#signature-blocks) · [Default layer](#default-layer) · [Template syntax](#paradoc-template-syntax)
+**Contents:** [Layer shape](#layer-shape) · [MIME type and engine](#mime-type-and-engine) · [React layers](#react-layers) · [Bindings](#bindings) · [Signature slots](#signature-slots) · [Default layer](#default-layer) · [Render by kind](#render-by-kind) · [SDK builders](#sdk-builders)
 
-Layers are render templates attached to forms, documents, and checklists. Defined in the `layers` object, keyed by layer ID (pattern `^[a-z][a-zA-Z0-9_]*$`).
+A layer is one rendering of an artifact: a Markdown page, a filled PDF, a Word file, or a React composition. Forms, documents and checklists declare layers in `layers`, keyed by a layer key (`^[a-z][a-zA-Z0-9_]*$`, such as `markdown`, `pdf`, `pdfCopyB`).
 
-Two kinds: **inline** (embed content in JSON) and **file** (external file).
+To write what goes inside a text or DOCX layer (markers, loops, signing directives), load [templates.md](./templates.md). To render a layer from code or the CLI, load [rendering.md](./rendering.md).
 
-## Layer Kinds
+## Layer shape
 
-### Inline layers
+A layer is `inline` (content in the artifact) or `file` (a path the resolver reads).
 
-Embed template content in the artifact JSON.
-
-**Required:** `kind`, `mimeType`, `text`
-
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `kind` | YES | `"inline"` | Discriminator |
-| `mimeType` | YES | string | MIME type |
-| `text` | YES | string | Template content (max 1,000,000 chars) |
-| `title` | No | string | Title (max 200) |
-| `description` | No | string | Description (max 2000) |
-| `bindings` | No | object | Field-to-template mapping |
-| `bindingsFrom` | No | string | Reuse another layer's bindings |
-| `signatureBlocks` | No | object | Positioned signature locations |
-| `anchorBlocks` | No | object | Signature locations found by document text |
-| `signatures` | No | object | Unified signature slots (supersede `signatureBlocks`/`anchorBlocks`) |
+| Property | Inline | File | Notes |
+|----------|--------|------|-------|
+| `kind` | `"inline"` | `"file"` | Discriminator |
+| `mimeType` | required | required | Selects the engine. See [MIME type and engine](#mime-type-and-engine) |
+| `text` | required | none | Template content, up to 1,000,000 characters |
+| `path` | none | required | Relative to the artifact file's directory, and inside it |
+| `checksum` | none | optional | `sha256:<64 hex>`. `paradoc fix -y` writes it |
+| `title`, `description` | optional | optional | Up to 200 and 2000 characters |
+| `bindings`, `bindingsFrom` | PDF only | PDF only | See [Bindings](#bindings) |
+| `signatures` | optional | optional | See [Signature slots](#signature-slots) |
+| `font`, `format` | none | PDF only | Font for filled values, money display. See [pdf.md](./pdf.md) |
 
 ```json schema=form
-"layers": {
-  "markdown": {
-    "kind": "inline",
-    "mimeType": "text/markdown",
-    "title": "Markdown Template",
-    "text": "# Lease Agreement\n\nTenant: {{fields.tenantName}}\nRent: {{fields.monthlyRent}}"
+{
+  "fields": {
+    "tenantName": { "type": "text", "label": "Tenant name" }
+  },
+  "layers": {
+    "markdown": {
+      "kind": "file",
+      "mimeType": "text/markdown",
+      "path": "templates/lease.md"
+    },
+    "summary": {
+      "kind": "inline",
+      "mimeType": "text/plain",
+      "text": "Lease for {{fields.tenantName}}"
+    }
   }
 }
 ```
 
-### File layers
+Use a file layer for anything longer than a few lines, so the template stays readable and `paradoc validate` checks its checksum. Add one with the CLI, which detects the MIME type and writes the checksum:
 
-Reference an external template file.
+```bash
+paradoc attach lease.json templates/lease.md --name markdown -y
+```
 
-**Required:** `kind`, `mimeType`, `path`
+A file `path` (and a PDF layer's font `path`) resolves against the artifact file's directory and must stay inside it. Keep templates and PDFs next to the artifact or in a subfolder such as `templates/`. A path that leaves the directory fails:
 
-| Property | Required | Type | Description |
-|----------|----------|------|-------------|
-| `kind` | YES | `"file"` | Discriminator |
-| `mimeType` | YES | string | MIME type |
-| `path` | YES | string | Path (relative to artifact, max 1000 chars) |
-| `title` | No | string | Title |
-| `description` | No | string | Description |
-| `checksum` | No | string | `sha256:<64-hex>` |
-| `font` | No | object | PDF layers only: `{ path, checksum? }` of a TrueType font for filled values. See [pdf-bindings.md](./pdf-bindings.md#fonts) |
-| `format` | No | object | PDF layers only: `{ money: { currencyDisplay: "none" } }` when the template pre-prints the currency symbol beside each money box |
-| `bindings` | No | object | Field-to-template mapping |
-| `bindingsFrom` | No | string | Reuse another layer's bindings |
-| `signatureBlocks` | No | object | Positioned signature locations |
-| `anchorBlocks` | No | object | Signature locations found by document text |
-| `signatures` | No | object | Unified signature slots (supersede `signatureBlocks`/`anchorBlocks`) |
+```text
+✗ Layer "pdf" PDF could not be read from "../w-9.pdf": Resolver path "../w-9.pdf" resolves outside the configured root
+```
 
-```json schema=form
-"layers": {
-  "pdf": {
+## MIME type and engine
+
+`mimeType` picks the engine. The comparison ignores case.
+
+| `mimeType` | Engine | Output | Kinds allowed |
+|------------|--------|--------|---------------|
+| `text/markdown`, `text/html`, `text/plain` | Text template engine | `string` | inline, file |
+| `application/pdf` | PDF AcroForm fill | `Uint8Array` | file |
+| `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | DOCX template engine | `Uint8Array` | file |
+| `text/tsx`, `text/jsx` | React renderer you register | `Uint8Array` (PDF) | file only |
+
+Any other MIME type fails at render with `Unsupported render layer MIME type`.
+
+## React layers
+
+A `text/tsx` or `text/jsx` layer names a React composition module. It is always a file layer: an inline one fails validation with `React layers must be file layers`. Core has no React engine, so a render needs a registered renderer, or it throws `UnregisteredLayerRendererError`:
+
+```json schema=layers
+{
+  "composition": {
     "kind": "file",
-    "mimeType": "application/pdf",
-    "path": "templates/lease-agreement.pdf",
-    "checksum": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    "mimeType": "text/tsx",
+    "path": "compositions/lease.tsx"
   }
 }
 ```
 
-For workflow contexts (creating artifacts from scratch, converting PDFs): ALWAYS prefer file layers over inline. Inline is acceptable for small embedded snippets but is harder to maintain.
+<!-- dep:R4 -->
+```typescript
+import { reactLayerRenderers } from "@paradoc/react-pdf";
 
-## Common MIME Types
+const pdf = await draft.render({ layer: "composition", renderers: reactLayerRenderers() });
+```
 
-| MIME Type | Use Case | Layer Key Convention |
-|-----------|----------|---------------------|
-| `text/markdown` | Markdown templates | `markdown` |
-| `text/html` | HTML templates | `html` |
-| `text/plain` | Plain text templates | `plainText` |
-| `application/pdf` | PDF form templates | `pdf` |
-| `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | DOCX templates | `docx` |
+A React layer takes no `bindings`, `font` or `format`, and needs no resolver. To compose, check or seal one, use the `paradoc-react` skill.
 
 ## Bindings
 
-Bindings map template placeholder or PDF field names (keys) to Paradoc data paths (values). Essential for PDF/DOCX where placeholder names differ from field IDs. Optional for text/markdown/HTML where you can use `{{fields.fieldName}}` directly.
+`bindings` belong to PDF layers only. Each key is a PDF field name, copied exactly from `paradoc inspect`. Each value is a Paradoc path. Text, Markdown, HTML and DOCX templates name values directly as `{{fields.x}}`.
+
+<!-- dep:C8 -->
+Validation rejects `bindings` or `bindingsFrom` on a layer that is not `application/pdf`.
 
 ```json schema=layer
-"bindings": {
-  "Tenant_Full_Name": "tenantName",
-  "Monthly_Rent_Amount": "monthlyRent",
-  "Lease_Start_Date": "startDate"
+{
+  "bindings": {
+    "topmostSubform[0].Page1[0].f1_01[0]": "parties.taxpayer.name",
+    "topmostSubform[0].Page1[0].f1_02[0]": "businessName"
+  }
 }
 ```
 
-Use `bindingsFrom` to reuse another layer's bindings:
+`bindingsFrom` reuses a sibling PDF layer's bindings, for example for the copies of one form (`pdfCopyA`, `pdfCopyB`):
 
-```json schema=form
-"layers": {
-  "markdown": {
-    "kind": "inline",
-    "mimeType": "text/markdown",
-    "text": "...",
-    "bindings": { "tenantName": "tenant_name", "rent": "monthly_rent" }
-  },
-  "pdf": {
+```json schema=layers
+{
+  "pdfCopyA": {
     "kind": "file",
     "mimeType": "application/pdf",
-    "path": "templates/lease.pdf",
-    "bindingsFrom": "markdown"
+    "path": "copy-a.pdf",
+    "bindings": { "f1_01": "payerName" }
+  },
+  "pdfCopyB": {
+    "kind": "file",
+    "mimeType": "application/pdf",
+    "path": "copy-b.pdf",
+    "bindingsFrom": "pdfCopyA"
   }
 }
 ```
 
-A layer's own `bindings` win over `bindingsFrom`. The reuse is one hop: the named layer's own `bindings`, never its `bindingsFrom`. The named layer must exist: rendering fails and `validateLayers()` reports an error when it does not.
+- A layer with its own `bindings` ignores `bindingsFrom` completely. There is no merge.
+- The reuse is one hop: it takes the named layer's own `bindings`, never that layer's `bindingsFrom`.
+- The named layer must exist, or `validateLayers()` and the render fail.
 
-PDF AcroForm bindings have additional rules — see [pdf-bindings.md](./pdf-bindings.md).
+To write binding values (`field:option`, `ssn:1`, `a,b,c`, list and party indices) or read a filled PDF back, load [pdf.md](./pdf.md).
 
-## Format
+## Signature slots
 
-When a PDF template already prints the currency symbol beside each money box (IRS 1099 forms do), declare it on the layer. Every render of that layer then prints the amount alone, such as `12,000.00`, with any formatter; locale and digits stay the formatter's. Other layers of the same artifact keep the symbol.
+`signatures` declares where each party signs on this layer, keyed by slot id. Seal and capture read these slots; to run them, load [sealing.md](./sealing.md).
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `party` | yes | `{ role, index? }`: a declared party role and its 0-based index (default 0) |
+| `type` | yes | `signature`, `initials`, `date_signed`, `capacity`, or `printed_name` |
+| `placement` | yes | `"flow"`, absolute `{ page, x, y, width, height }`, or anchor `{ anchor: { text, offsetX?, offsetY?, occurrence? }, width, height }` |
+| `required` | no | Default `true` |
+| `label` | no | Human-readable label, up to 200 characters |
+
+Placement units are points. `page` is 1-based, and `y` counts from the top edge of the page. To convert `paradoc inspect` boxes into slot coordinates, see [pdf.md § Signature slots on a PDF](./pdf.md#signature-slots-on-a-pdf).
+
+### Slot rules
+
+1. **The slot id is the directive's location string.** `{{signature(parties.tenant, "tenant-sig")}}` renders slot `tenant-sig`. Captures are checked against the same id.
+2. **One slot is one party and one type.** Give each party its own id (`tenant-sig`, `landlord-sig`). For a role with `max > 1`, declare one slot per index (`tenant-0-sig`, `tenant-1-sig`) and build the location in the loop, as shown in [templates.md](./templates.md#signing-directives).
+3. **`flow`** puts the mark where the template's directive renders. It takes `signature` and `initials` only, on text layers (Markdown, HTML, plain text) and React layers. Place PDF and DOCX slots, and every `date_signed`, `capacity` and `printed_name` slot, with absolute or anchor placement.
+4. **`party.role`** names a declared party role. A role with `signature.required: true` needs at least one slot on the layer you seal.
+5. **Declare slots up to the role's `max`.** The seal skips slots for unfilled indices.
+
+<!-- dep:C7 -->
+`validate()` reports an unknown role, a `flow` slot on a PDF layer, and a `flow` slot of another type. The other rules surface as `SealConfigError` when you seal ([sealing.md § Seal errors](./sealing.md#seal-errors)).
+
+A Markdown layer with in-flow signatures and an anchored date:
+
+```json schema=form
+{
+  "fields": {
+    "monthlyRent": { "type": "money", "label": "Monthly rent" }
+  },
+  "parties": {
+    "tenant": { "label": "Tenant", "partyType": "person", "signature": { "required": true } },
+    "landlord": { "label": "Landlord", "partyType": "person", "signature": { "required": true } }
+  },
+  "defaultLayer": "agreement",
+  "layers": {
+    "agreement": {
+      "kind": "inline",
+      "mimeType": "text/markdown",
+      "text": "# Lease\n\nRent: {{fields.monthlyRent}}\n\nTenant: {{signature(parties.tenant, \"tenant-sig\")}}\n\nTenant date signed:\n\nLandlord: {{signature(parties.landlord, \"landlord-sig\")}}",
+      "signatures": {
+        "tenant-sig": { "party": { "role": "tenant" }, "type": "signature", "placement": "flow" },
+        "tenant-date": {
+          "party": { "role": "tenant" },
+          "type": "date_signed",
+          "placement": { "anchor": { "text": "Tenant date signed:", "offsetX": 130 }, "width": 120, "height": 16 }
+        },
+        "landlord-sig": { "party": { "role": "landlord" }, "type": "signature", "placement": "flow" }
+      }
+    }
+  }
+}
+```
+
+A PDF layer places every slot by coordinates or anchor:
 
 ```json schema=layer
 {
-  "kind": "file",
-  "mimeType": "application/pdf",
-  "path": "1099-nec-A.pdf",
-  "format": { "money": { "currencyDisplay": "none" } }
-}
-```
-
-- ONLY PDF layers take `format`. `currencyDisplay: "none"` is the only value.
-- The format is the layer's own. A layer that reuses bindings through `bindingsFrom` declares its own `format`.
-- ALWAYS declare the money field's `currency`, so reading the PDF back (`form.extract`) knows the currency of an amount printed without a symbol.
-
-## Signature Blocks
-
-Signature blocks define positioned signature locations within a layer. Keyed by location ID.
-
-**Required per block:** `type`, `page`, `x`, `y`, `width`, `height`
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `type` | string | `"signature"`, `"initials"`, `"date"`, `"capacity"` (signer role or title), or `"printed_name"` |
-| `page` | integer | 1-based page number (min 1) |
-| `x` | number | X coord in points from left edge (min 0) |
-| `y` | number | Y coord in points from top edge (min 0) |
-| `width` | number | Width in points (min 1) |
-| `height` | number | Height in points (min 1) |
-| `partyRole` | string | Party role this block is bound to |
-| `partyIndex` | integer | 0-based index for multi-party roles (default 0) |
-| `label` | string | Human-readable label |
-| `required` | boolean | Required (default `true`) |
-
-```json schema=layer
-"signatureBlocks": {
-  "tenantSig": {
-    "type": "signature",
-    "page": 3, "x": 72, "y": 600, "width": 200, "height": 50,
-    "partyRole": "tenant", "partyIndex": 0,
-    "label": "Tenant Signature"
-  },
-  "tenantDate": {
-    "type": "date",
-    "page": 3, "x": 350, "y": 600, "width": 150, "height": 30,
-    "partyRole": "tenant", "partyIndex": 0,
-    "label": "Date Signed"
+  "signatures": {
+    "taxpayer-sig": {
+      "party": { "role": "taxpayer" },
+      "type": "signature",
+      "label": "Signature of U.S. person",
+      "placement": { "page": 1, "x": 175, "y": 586, "width": 195, "height": 14 }
+    },
+    "taxpayer-date": {
+      "party": { "role": "taxpayer" },
+      "type": "date_signed",
+      "placement": { "page": 1, "x": 410, "y": 586, "width": 80, "height": 14 }
+    }
   }
 }
 ```
 
-For PDF coordinate estimation, see [pdf-bindings.md](./pdf-bindings.md).
+## Default layer
 
-### Anchor blocks
+`defaultLayer` names the layer a render uses when the call names none. Without it, the render uses the first key in `layers`.
 
-`anchorBlocks` takes the same `type`, `width`, `height`, `partyRole`, `partyIndex`, `label`, and `required` as a signature block. In place of `page`/`x`/`y` it has `anchor: { text, offsetX, offsetY }`: the position is found from that text in the rendered document.
-
-### Signature slots
-
-`signatures` is the unified form. It supersedes `signatureBlocks` and `anchorBlocks`, which stay readable during their deprecation window. Keyed by slot ID.
-
-**Required per slot:** `party`, `type`, `placement`
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `party` | object | `{ role, index? }`: party role and 0-based index (default 0) |
-| `type` | string | `"signature"`, `"initials"`, `"date_signed"`, `"capacity"`, or `"printed_name"` |
-| `placement` | string or object | `"flow"` (where the template places it), `{ page, x, y, width, height }`, or `{ anchor: { text, offsetX?, offsetY?, occurrence? }, width, height }` |
-| `required` | boolean | Required (default `true`) |
-| `label` | string | Human-readable label |
-
-A slot's date type is `"date_signed"`. A signature or anchor block's date type is `"date"`. Do not mix them.
-
-```json schema=layer
-"signatures": {
-  "tenantSig": {
-    "party": { "role": "tenant" },
-    "type": "signature",
-    "placement": { "page": 3, "x": 72, "y": 600, "width": 200, "height": 50 }
-  },
-  "tenantDate": {
-    "party": { "role": "tenant" },
-    "type": "date_signed",
-    "placement": { "anchor": { "text": "Date:", "offsetX": 40 }, "width": 150, "height": 30 }
-  }
-}
-```
-
-## Default Layer
-
-Set `defaultLayer` on the artifact to specify which layer is used when none is requested:
-
-```json
+```json schema=form
 {
-  "name": "my-form",
-  "kind": "form",
   "defaultLayer": "markdown",
   "layers": {
-    "markdown": { /* ... */ },
-    "pdf": { /* ... */ }
+    "markdown": { "kind": "file", "mimeType": "text/markdown", "path": "templates/lease.md" },
+    "pdf": { "kind": "file", "mimeType": "application/pdf", "path": "templates/lease.pdf" }
   }
 }
 ```
 
-The value MUST match a key in `layers`.
+<!-- dep:C7 -->
+`validate()` reports a `defaultLayer` that names no layer. The render fails with `Layer "x" not found`.
 
-## Paradoc Template Syntax
+## Render by kind
 
-Text-based templates (Markdown, HTML, plain text) and DOCX templates keep their block markers, and EVERYTHING inside a marker is an artifact expression — the same language as `visible`, `required`, defs, and rules (see [logic.md](./logic.md)). Nothing runs arbitrary JavaScript.
+| Kind | What a render returns |
+|------|-----------------------|
+| form | The layer rendered by its engine, with the form's data |
+| checklist | The raw layer content. Pass `renderer: renderLayer()` or `renderers` to evaluate `{{items.x}}` |
+| document | The raw layer content. A document has no data, so its templates hold no `{{ }}` markers |
 
-Roots are the same as field logic:
+## SDK builders
 
-- `fields.<id>` — field values (`{{fields.monthlyRent}}`, `{{fields.address.line1}}`)
-- a defs key by name — computed values (`{{totalDue}}`)
-- `parties.<role>` — typed party values (`{{parties.landlord.name}}`); a role with `max > 1` is a list
-- `items.<id>` — checklist item values (`{{items.reviewed}}`); hyphenated ids use brackets: `{{items["signed-contract"]}}`
-
-ALWAYS write `{{fields.tenantName}}`. A bare `{{tenantName}}` is an unknown reference and fails validation. There is no `schema.*` or `annexes.*` root; write the title as text.
-
-```text
-# Residential Lease
-
-**Tenant:** {{fields.tenantName}}
-**Monthly Rent:** {{fields.monthlyRent}}
-**Deposit:** {{fields.monthlyRent.amount * 2}}
-**Start Date:** {{fields.leaseStartDate}}
-```
-
-A placeholder that is a path prints the value formatted for its type. A computed value is formatted by its result type. In a `text/html` layer, `{{ }}` escapes the value for HTML and `{{{ }}}` prints it without escaping; `text/plain` and `text/markdown` layers print values as written.
-
-### Conditional sections
-
-A condition MUST be boolean. Compare text, numbers, and optional values; NEVER test them bare.
-
-```text
-{{#if fields.hasPets}}
-## Pet Information
-Number of pets: {{fields.petCount}}
-{{/if}}
-
-{{#if fields.notes != null}}Notes: {{fields.notes}}{{/if}}
-{{#if fields.status == "active" and fields.balance.amount > 0}}...{{else}}...{{/if}}
-{{#unless fields.smokingAllowed}}No smoking.{{/unless}}
-```
-
-### Iteration
-
-A loop source MUST be a list. Inside `{{#each}}`, `item` is the current row and `parent` the enclosing row. `index(item)`, `first(item)`, and `last(item)` give the position and work only inside a loop.
-
-```text
-Languages: {{#each fields.languages}}{{item}}{{#unless last(item)}}, {{/unless}}{{/each}}
-{{#each fields.orders}}{{index(item) + 1}}. {{item.name}}: {{#each item.parts}}{{parent.name}}/{{item}} {{/each}}{{/each}}
-Total: {{sum(fields.orders.amount)}}
-```
-
-### Removed syntax (validation names the replacement)
-
-| Removed | Write |
-|---------|-------|
-| `(eq a b)`, `ne`, `gt`, `gte`, `lt`, `lte` | `a == b`, `!=`, `>`, `>=`, `<`, `<=` |
-| `(and a b)`, `(or a b)`, `(not a)` | `a and b`, `a or b`, `not a` |
-| `(contains list x)` | `x in list` |
-| `{{default v "x"}}` | `{{coalesce(v, "x")}}` |
-| `{{#with X}}` | full paths, `X.member` |
-| `this`, `../`, `@root` | `item`, `parent`, a path from the root |
-| `@index`, `@first`, `@last` | `index(item)`, `first(item)`, `last(item)` |
-| DOCX `===`, `!==`, `{{$row.x}}` | `==`, `!=`, `{{row.x}}` |
-
-### Signature directives
-
-NEVER use manual underscore lines for signatures. Use the signing directives. They place marks, and their arguments are expressions.
-
-| Directive | Renders |
-|-----------|---------|
-| `{{signature(party, "locationId")}}` | Signature placeholder or captured image |
-| `{{initials(party, "locationId")}}` | Initials placeholder or captured image |
-| `{{signatureDate(party, "locationId")}}` | `[DATE]` or actual capture date |
-
-The `locationId` is a **document-location string** (where in the document, NOT which party). Use the SAME `locationId` for all parties at the same location — the party argument tells them apart.
-
-**Party:** pass it first — `{{signature(parties.tenant, "final-sig")}}`. Inside `{{#each parties.<role>}}` or `{{#each parties.<role>.signatories}}`, omit it: `{{signature("final-sig")}}` signs for the current row.
-
-#### Single-instance party
-
-```text
-Tenant: {{parties.tenant.name}}
-Signature: {{signature(parties.tenant, "final-sig")}}
-Date: {{signatureDate(parties.tenant, "final-sig")}}
-
-Landlord: {{parties.landlord.name}}
-Signature: {{signature(parties.landlord, "final-sig")}}
-Date: {{signatureDate(parties.landlord, "final-sig")}}
-```
-
-For an optional party, guard the block: `{{#if parties.spouse != null}}...{{/if}}`.
-
-#### Multi-instance party
-
-```text
-{{#each parties.tenant}}
-Tenant: {{item.name}}
-Signature: {{signature("final-sig")}}
-Date: {{signatureDate("final-sig")}}
-{{/each}}
-```
-
-#### Multiple signatories per party
-
-```text
-{{#each parties.landlord.signatories}}
-{{item.signer.person.name}}, {{item.capacity}}
-Signature: {{signature("final-sig")}}
-Initials: {{initials("page-init")}}
-Date: {{signatureDate("final-sig")}}
-{{/each}}
-```
-
-#### Wrong — never do this
-
-```text
-Tenant: _________________________ Date: _________
-Landlord: _________________________ Date: _________
-```
-
-Always use the directives.
-
-## Common Template Patterns
-
-### Markdown layer
-
-```markdown
-# Residential Lease Application
-
----
-
-## Personal Information
-
-| Field | Value |
-|-------|-------|
-| Name | {{fields.firstName}} {{fields.lastName}} |
-| Date of Birth | {{fields.dateOfBirth}} |
-
-{{#if fields.hasPets}}
-## Pet Information
-
-| Field | Value |
-|-------|-------|
-| Number of Pets | {{fields.petCount}} |
-| Pet Deposit | {{fields.petDeposit}} |
-{{/if}}
-
----
-
-## Signatures
-
-**Tenant:** {{parties.tenant.name}}
-Signature: {{signature(parties.tenant, "final-sig")}}
-Date: {{signatureDate(parties.tenant, "final-sig")}}
-
-**Landlord:** {{parties.landlord.name}}
-Signature: {{signature(parties.landlord, "final-sig")}}
-Date: {{signatureDate(parties.landlord, "final-sig")}}
-```
-
-### HTML layer
-
-```html
-<!DOCTYPE html>
-<html>
-<head><title>Residential Lease Application</title></head>
-<body>
-  <h1>Residential Lease Application</h1>
-  <table>
-    <tr><td>Name</td><td>{{fields.firstName}} {{fields.lastName}}</td></tr>
-    <tr><td>DOB</td><td>{{fields.dateOfBirth}}</td></tr>
-  </table>
-
-  <div>
-    <p><strong>Tenant:</strong> {{parties.tenant.name}}</p>
-    <p>Signature: {{{signature(parties.tenant, "final-sig")}}}</p>
-    <p>Date: {{{signatureDate(parties.tenant, "final-sig")}}}</p>
-  </div>
-</body>
-</html>
-```
-
-In HTML, write signing directives with `{{{ }}}` so their markup is not escaped.
-
-### Plain text layer
-
-```text
-RESIDENTIAL LEASE APPLICATION
-============================================================
-
-PERSONAL INFORMATION
-------------------------------------------------------------
-Name:          {{fields.firstName}} {{fields.lastName}}
-Date of Birth: {{fields.dateOfBirth}}
-
-Tenant:    {{parties.tenant.name}}
-Signature: {{signature(parties.tenant, "final-sig")}}
-Date:      {{signatureDate(parties.tenant, "final-sig")}}
-```
-
-### DOCX layer
-
-```text
-{{IF fields.hasPets}}
-Pet deposit: {{fields.petDeposit}}
-{{END-IF}}
-{{FOR line IN fields.lines}}
-{{index(line) + 1}}. {{line.description}} {{line.amount}}
-{{END-FOR line}}
-```
-
-A DOCX `FOR` names its row; a `FOR` paragraph inside a table row repeats the row.
-
-### Validation
-
-`validate()` (and `paradoc validate`, `validate_artifact`) checks every template expression in inline layers; file-backed text and DOCX layers are checked through a resolver by `validateLayers()`. Errors name the layer, line and column (or DOCX paragraph), and the expression.
-
-## Layer Design Checklist
-
-1. Reference every required field in at least one layer
-2. Use `{{fields.fieldName}}` paths, and boolean conditions (`{{#if fields.x != null}}`)
-3. Add conditional sections (`{{#if}}`) for fields with `visible` expressions
-4. Use signing directives — NEVER manual underscore lines
-5. Set `defaultLayer` on the artifact
-6. Include form title and description at the top
-7. Group fields into logical sections matching fieldsets
-
-## SDK Builders
+Declare a layer with `signatures` as an object; the chained `p.layer()` builder has no method for them.
 
 ```typescript
-// Object pattern (preferred)
-layers: {
-  markdown: { kind: "file", path: "templates/lease.md", mimeType: "text/markdown" },
-  pdf: { kind: "file", path: "templates/lease.pdf", mimeType: "application/pdf" },
-}
+import { p } from "@paradoc/sdk";
 
-// Builder pattern
-.layers({
-  markdown: p.layer().file().path("templates/lease.md").mimeType("text/markdown"),
-  pdf: p.layer().file().path("templates/lease.pdf").mimeType("application/pdf"),
-})
-
-// Builder method chain
-p.layer()
-  .file()
-  .path("templates/form.pdf")
-  .mimeType("application/pdf")
-  .title("PDF Template")
-  .checksum("sha256:abc123...")
-  .bindings({ formFieldId: "PDF_Field_Name" })
-  .bindingsFrom("otherLayerKey")
-  .format({ money: { currencyDisplay: "none" } }) // PDF layers only
+const lease = p
+  .form()
+  .name("lease")
+  .fields({ tenantName: p.field.text().label("Tenant name") })
+  .fileLayer("markdown", { mimeType: "text/markdown", path: "templates/lease.md" })
+  .layer("pdf", {
+    kind: "file",
+    mimeType: "application/pdf",
+    path: "templates/lease.pdf",
+    bindings: { Tenant_Name: "tenantName" },
+  })
+  .defaultLayer("markdown")
+  .build();
 ```
 
-## See Also
-
-- [rendering.md](./rendering.md) — renderers, output formats, resolvers
-- [pdf-bindings.md](./pdf-bindings.md) — PDF AcroForm bindings, coordinate estimation
-- [parties.md](./parties.md) — party roles for signature blocks
-- [formatting.md](./formatting.md) — value formatting at render time
+`.inlineLayer(key, { mimeType, text, signatures? })` adds an inline layer. `.layers({ ... })` takes a record of objects or `p.layer()` chains. A chain reads `p.layer().file().path("templates/lease.pdf").mimeType("application/pdf").bindings({ Tenant_Name: "tenantName" })`, with `.title()`, `.description()`, `.checksum()`, `.font()`, `.format()` and `.bindingsFrom()`.

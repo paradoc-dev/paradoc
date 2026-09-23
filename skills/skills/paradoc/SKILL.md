@@ -1,109 +1,95 @@
 ---
 name: paradoc
 description: >
-  Paradoc — documents-as-code framework for type-safe artifacts (forms, documents,
-  bundles, checklists). Activate for work with the TypeScript SDK (@paradoc/*),
-  paradoc CLI, JSON/YAML artifacts, schema validation, or the remote MCP service.
-  Covers filling, validation, rendering, layers, fields, parties, signatures,
-  annexes, logic, bundles, form creation, and conversion of PDF forms into
-  Paradoc artifacts, including AcroForm bindings and signature blocks.
+  Paradoc artifacts (forms, documents, checklists, bundles): author, fill,
+  validate, render, and seal them with @paradoc/sdk, the paradoc CLI, JSON/YAML
+  files, @paradoc/ai-tools, or the mcp.paradoc.dev server. Use when creating a
+  form or converting a PDF form, binding PDF fields or reading a filled PDF,
+  writing defs, rules, conditions, or templates, filling a form step by step,
+  signing or sealing, giving an agent Paradoc tools, using a ready-made W-9,
+  1099, I-9, or ACH form, or migrating an artifact. For documents written in
+  React, use paradoc-react.
 metadata:
   author: paradoc
-  version: "0.3.1"
-  tags: paradoc, sdk, cli, schemas, mcp, forms, documents, bundles, checklists, rendering
+  version: "0.6.0"
+  tags: paradoc, sdk, cli, schemas, ai-tools, mcp, forms, pdf, signing, rendering
   license: MIT
-allowed-tools: "Bash(npx:*) Read Write Edit Glob Grep WebSearch"
+allowed-tools: "Bash(npx:*) Bash(node:*) Read Write Edit Glob Grep"
 ---
 
 # Paradoc
 
-Paradoc is a documents-as-code framework. You define structured **artifacts** (forms, documents, bundles, checklists), fill them with data, validate, and render them to PDF, DOCX, or text.
+Paradoc is a documents-as-code framework. An **artifact** (form, document, checklist or bundle) is a typed JSON/YAML definition. You fill a form to get a **draft**, validate it, render it to text, Markdown, HTML, DOCX or PDF, and seal it for signing.
 
-This skill covers every Paradoc surface and workflow. Use the dispatch tables below to load the right reference for the current task.
+## Global rules
 
-## Global Rules
+- **Schema version.** Every artifact sets `$schema` to `https://schema.paradoc.dev/2026-09-22.json`. Migrate an older file with `npx paradoc-cli migrate <file>`.
+- **Validate** each file after every change with `npx paradoc-cli validate <file>` (one file per call). Run the CLI as `npx paradoc-cli`; the npm package `paradoc` is unrelated.
+- **Identifiers.** Artifact names match `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`. Field, party, def and rule ids match `^[a-z][a-zA-Z0-9_]*$`. Details per key: [schemas.md § Identifier patterns](./references/schemas.md#identifier-patterns).
+- **Field types.** Use the most specific type: `money`, `date`, `email`, `phone`, `address` and so on, not `text`. See [fields.md § Type selection table](./references/fields.md#type-selection-table).
+- **Expressions.** Use `and`, `or`, `not`. Read fields as `fields.<id>` and defs by bare name. A condition must be boolean (`isNotEmpty(fields.x)`, not `fields.x`). Read money as `fields.price.amount` for arithmetic and comparison. See [logic.md](./references/logic.md).
+- **Templates** name values as `{{fields.x}}`. Place every signing mark with a directive such as `{{signature(parties.tenant, "tenant-sig")}}`. The location string is a slot id in the layer's `signatures`, one slot per party and type.
+<!-- dep:C8 -->
+- **PDF bindings** exist only on PDF layers. Keys are the PDF's field names (from `paradoc inspect`); values are bare Paradoc paths such as `petName` or `parties.tenant.name`.
+- **Drafts are immutable.** Every draft and signable method returns a new form; reassign it. <!-- dep:C1 --> `update()` is the one way to change a draft's field values.
+- **Finish line.** Authoring is done when the round trip passes: `data template` → `render --data` → `data extract` (see [cli.md § Round trip](./references/cli.md#round-trip)).
 
-These apply across every surface and workflow:
+## Packages
 
-- **Schema version:** `2026-09-22`. Every artifact file sets `$schema` to `https://schema.paradoc.dev/2026-09-22.json`. A file that names an earlier version is migrated with `npx paradoc-cli migrate <file>`, NEVER by editing `$schema`.
-- **Validation:** ALWAYS run `npx paradoc-cli validate <file>` when working with files directly. The `npx` form ensures availability without requiring a global install. Validate after every change. NEVER skip.
-- **Artifact name pattern:** `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$` — kebab-case preferred, no leading/trailing/consecutive hyphens.
-- **Field/party/def/rule identifier pattern:** `^[a-z][a-zA-Z0-9_]*$` — camelCase, max 100 chars (50 for party roles).
-- **Versioning:** semver `MAJOR.MINOR.PATCH`. Major for breaking changes, minor for new optional, patch for cosmetic.
-- **Field types:** ALWAYS use the most specific type — NEVER `text` when a structured type fits (`money`, `date`, `email`, `phone`, `address`, etc.).
-- **Paradoc templates:** everything inside `{{ }}` is an artifact expression — use `{{fields.fieldName}}`, `{{parties.tenant.name}}`, defs by name; conditions must be boolean; loops use `item`/`parent`. See [references/layers.md](./references/layers.md).
-- **Signatures in templates:** use the signing directives `{{signature(parties.role, "loc")}}`, `{{initials(...)}}`, `{{signatureDate(...)}}` (inside a party loop: `{{signature("loc")}}`). NEVER manual underscore lines.
+Install `@paradoc/sdk`: it re-exports `core`, `render`, `format` and `sessions`, and `expr` as a namespace. Add others only for their job.
 
-## Pick a Surface
+| Package | Use it for |
+|---------|-----------|
+| `@paradoc/sdk` | Define, load, fill, validate, render and seal artifacts; `hostedSealAdapter` |
+| `@paradoc/resolvers` | Load layer files: `@paradoc/resolvers/fs`, `@paradoc/resolvers/memory` (no root export) |
+| `@paradoc/essentials` | Finished forms: W-9, 1099, 4506-T, I-9, ACH ([essentials.md](./references/essentials.md)) |
+| `@paradoc/ai-tools` + `@paradoc/ai-sdk` / `mastra` / `tanstack-ai` | Paradoc tools for your own agent |
+| `paradoc-cli` | The `paradoc` command |
+| `@paradoc/react`, `@paradoc/react-pdf` | Documents written in React: use the `paradoc-react` skill |
 
-Load ONE surface ref based on how the user is working:
+More: [sdk.md § Packages](./references/sdk.md).
 
-- Writing or modifying TypeScript that imports from `@paradoc/*` → load [references/sdk.md](./references/sdk.md)
-- Using the `paradoc` CLI → load [references/cli.md](./references/cli.md)
-- Editing artifact JSON or YAML directly → load [references/schemas.md](./references/schemas.md)
-- Working through the remote MCP service at `mcp.paradoc.dev` → load [references/mcp.md](./references/mcp.md)
+## Pick a surface
 
-If multiple surfaces apply (e.g., SDK code that calls the CLI), load each as needed.
+Load the ref for how the user works. Load more than one when surfaces mix.
 
-## Working on a Topic
+| The user is... | Load |
+|----------------|------|
+| Writing TypeScript that imports `@paradoc/*` | [references/sdk.md](./references/sdk.md) |
+| Running `paradoc` commands | [references/cli.md](./references/cli.md) |
+| Editing artifact JSON or YAML by hand | [references/schemas.md](./references/schemas.md) |
+| Giving their own agent Paradoc tools (AI SDK, Mastra, TanStack AI) | [references/ai-tools.md](./references/ai-tools.md) |
+| Using the hosted MCP server at `mcp.paradoc.dev` | [references/mcp.md](./references/mcp.md) |
+| Writing a `.tsx`/`.jsx` document or a `text/tsx` layer | the `paradoc-react` skill |
 
-Topic refs are surface-agnostic — they describe the underlying concept and contain both JSON and SDK examples where appropriate. Load when working on that aspect:
+The AI tool packages and the MCP server are different tool sets with different names.
 
-| Topic | Load |
-|-------|------|
-| Top-level artifact shapes (form / document / bundle / checklist) | [references/artifacts.md](./references/artifacts.md) |
-| Fields — types, identifiers, constraints, fieldsets | [references/fields.md](./references/fields.md) |
-| Parties — roles, signatures, witnesses, notary | [references/parties.md](./references/parties.md) |
-| Annexes — file attachments | [references/annexes.md](./references/annexes.md) |
-| Logic — CondExpr, defs, rules | [references/logic.md](./references/logic.md) |
-| Layers — templates, MIME types, signature blocks, template syntax | [references/layers.md](./references/layers.md) |
-| PDF AcroForm bindings, signature block coordinates, reading filled PDFs back | [references/pdf-bindings.md](./references/pdf-bindings.md) |
-| Rendering — text, PDF, DOCX, resolvers | [references/rendering.md](./references/rendering.md) |
-| Formatting — locale-aware presentation of artifact values | [references/formatting.md](./references/formatting.md) |
-| Instructions / agentInstructions — ContentRef | [references/instructions.md](./references/instructions.md) |
+## Topics
 
-## Ready-Made Forms (`@paradoc/essentials`)
+Topic refs are the one source for each concept. Load the one the task touches.
 
-`@paradoc/essentials` ships finished form artifacts, with their markdown and PDF layers bundled. Install with `npm install @paradoc/essentials @paradoc/sdk`.
+| Task | Load |
+|------|------|
+| The four artifact kinds, base keys, bundle `include` | [references/artifacts.md](./references/artifacts.md) |
+| Field types, properties, the fill value for each type, field builders | [references/fields.md](./references/fields.md) |
+| Party roles, required roles, `payment`, party fill data | [references/parties.md](./references/parties.md) |
+| File attachments | [references/annexes.md](./references/annexes.md) |
+| Conditions, defs, rules, functions, dates, totals over rows | [references/logic.md](./references/logic.md) |
+| Declaring layers, MIME types, `signatures` slots, `defaultLayer` | [references/layers.md](./references/layers.md) |
+| Text, Markdown, HTML and DOCX templates, loops, signing directives | [references/templates.md](./references/templates.md) |
+| PDF field names and coordinates, bindings, fit, fonts, reading a filled PDF | [references/pdf.md](./references/pdf.md) |
+| Rendering in code or CLI, resolvers, PDF utilities | [references/rendering.md](./references/rendering.md) |
+| Locale-aware display of values | [references/formatting.md](./references/formatting.md) |
+| `instructions` and `agentInstructions` | [references/instructions.md](./references/instructions.md) |
+| Filling step by step, fill state, checking one answer, saving and resuming a draft, sessions | [references/filling.md](./references/filling.md) |
+| Signers, sealing, capture, signature map, witnesses, packets | [references/sealing.md](./references/sealing.md) |
 
-| Import path | Exports |
-|-------------|---------|
-| `@paradoc/essentials/tax` | `w9` (IRS W-9), `f1099NEC` (1099-NEC), `f1099MISC` (1099-MISC), `f4506T` (4506-T) |
-| `@paradoc/essentials/employment` | `i9` (USCIS I-9) |
-| `@paradoc/essentials/banking` | `achBankAccountInfo`, `achChangeForm`, `achCreditAuthorization`, `achDebitAuthorization`, `achDirectDeposit` (NACHA ACH forms) |
+## Workflow
 
-All exports are also available from `@paradoc/essentials`. Each export is a form: use it as-is, for example `await w9.fill(data).render({ layer: "pdf" })` or `w9.safeParseData(input)`.
+To create a form from requirements or convert a PDF form ("create a form for X", "convert this PDF", "PDF to form"), follow [references/workflow-author-form.md](./references/workflow-author-form.md). Pass each stage's check before starting the next.
 
-When the user needs one of these forms, ALWAYS use the essentials export. Do NOT author or convert it again. Author a new form only when the form is not in this list or the user needs a different version of it.
+When the user needs a W-9, 1099, 4506-T, I-9 or ACH form, use its `@paradoc/essentials` export instead of authoring one: load [references/essentials.md](./references/essentials.md).
 
-## Workflows
+## Errors
 
-End-to-end pipelines that orchestrate multiple topics. Load when the user requests one of these tasks:
-
-- Create a new form from requirements ("create a form for X", "build a form", "design a form") → follow [references/workflow-create-form.md](./references/workflow-create-form.md)
-- Convert a PDF form into a Paradoc artifact ("convert this PDF", "extract PDF fields", "PDF to form") → follow [references/workflow-convert-pdf.md](./references/workflow-convert-pdf.md)
-
-Workflows link to topic refs at each stage. Load topic refs as the workflow directs.
-
-## Common Issues (Cross-Surface)
-
-**Validation: "unknown field type"**
-Common mismatches: `string` → `text`, `integer` → `number`, `currency` → `money`, `select` → `enum`, `checkbox` → `boolean`. `number` and `datetime` are valid types. See [fields.md](./references/fields.md).
-
-**Render produces blank or empty output**
-Forms rendered without data produce empty output. ALWAYS pass data (CLI: `--data`, SDK: `form.fill(data).render(...)`). Validate the artifact first. Ensure layer MIME type matches the renderer.
-
-**Wrong import paths (SDK)**
-NEVER import from `@paradoc/core/dist/...` — only from package root. See [sdk.md](./references/sdk.md).
-
-**Mixing builder and object pattern (SDK)**
-Pick one per artifact. Object pattern uses plain objects for fields; builder uses `p.field.*()` chains. NEVER mix.
-
-**Missing layer / no rendering output**
-Renderer requires at least one layer. Set `defaultLayer` when multiple layers exist. See [layers.md](./references/layers.md).
-
-**Schema duplication when bundling (SDK)**
-ALWAYS pass `{ includeSchema: false }` to `toJSON()` when inlining artifacts in a bundle.
-
-**Expression context confusion**
-Field-level (`required`, `visible`) uses `fields.<id>`. Rules section uses bare field names. Defs in field-level expressions use direct def key names (NOT `fields.<defKey>`). See [logic.md](./references/logic.md).
+Look up an error message in the ref for the surface that raised it: [sdk.md § Errors](./references/sdk.md#errors) (SDK), [cli.md § Errors and fixes](./references/cli.md#errors-and-fixes) (CLI), [schemas.md § Error messages](./references/schemas.md#error-messages) (validator), [rendering.md § Errors](./references/rendering.md#errors) (render) and [sealing.md § Seal errors](./references/sealing.md#seal-errors) (seal). Expression errors are explained in [logic.md](./references/logic.md).

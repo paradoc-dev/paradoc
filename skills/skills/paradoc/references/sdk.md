@@ -1,402 +1,288 @@
 ---
 name: sdk
-description: TypeScript SDK surface — @paradoc/core, @paradoc/sdk, @paradoc/render — builder vs object pattern, fill lifecycle, type inference, runtime phases
+description: TypeScript SDK surface. Install and imports, the package map, defining artifacts (object and builder), loading and migrating files, documents, checklists and bundles at runtime, serialization, and type inference.
 metadata:
-  tags: sdk, typescript, builder, object-pattern, fill, safefill, lifecycle, type-inference, partialfill, signers
+  tags: sdk, typescript, install, imports, builder, object-pattern, load, migrate, bundle, checklist, document, type-inference
 ---
 
-# Paradoc SDK Surface
+# SDK surface
 
-TypeScript API for defining and operating on Paradoc artifacts. Use this surface when:
+**Contents:** [Install](#install) · [Define an artifact](#define-an-artifact) · [Load and migrate](#load-and-migrate) · [Check a definition](#check-a-definition) · [Form runtime](#form-runtime) · [Documents](#documents) · [Checklists](#checklists) · [Bundles](#bundles) · [Serialize](#serialize) · [Type inference](#type-inference) · [Errors](#errors)
 
-- Importing from `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`, `@paradoc/format`, `@paradoc/resolvers`
-- Defining artifacts in code (not editing JSON/YAML directly)
-- Filling, validating, signing, or rendering at runtime in a Node.js / Bun / browser app
+Use this surface to define, load, fill, render and seal artifacts from TypeScript. For the shape of what you define, load the topic ref: [artifacts.md](./artifacts.md) (kinds), [fields.md](./fields.md), [parties.md](./parties.md), [logic.md](./logic.md), [layers.md](./layers.md).
 
-For raw JSON/YAML editing, use the [schemas.md](./schemas.md) surface. For CLI usage, see [cli.md](./cli.md).
+## Install
 
-## Imports
-
-ALWAYS import from public entry points. NEVER from `@paradoc/core/dist/...` or other internal sub-paths.
-
-```typescript
-import { p, type InferFormPayload } from "@paradoc/core";
-import { createFsResolver } from "@paradoc/resolvers/fs";
-import { createFormatter } from "@paradoc/format";
+```bash
+npm install @paradoc/sdk
+npm install @paradoc/resolvers   # only when an artifact has file layers (PDF, DOCX, template files)
 ```
 
-## Two Creation Patterns
+```typescript
+import { p } from "@paradoc/sdk";
+import { createFsResolver } from "@paradoc/resolvers/fs";
+```
 
-All artifacts support **object pattern** (preferred) and **builder pattern**.
+`@paradoc/sdk` is the umbrella. It re-exports all of `@paradoc/core`, `@paradoc/format` and `@paradoc/sessions`, plus `renderLayer`, `hostedSealAdapter`, the placement helpers (`locate`, `locator`, `extractFieldsFromPdf`) and `expr` (the `@paradoc/expr` namespace). Import each package only from the paths in its `exports`:
 
-### Object pattern
+| Package | Import paths | Install it when |
+|---------|--------------|-----------------|
+| `@paradoc/sdk` | `@paradoc/sdk` | Always, for TypeScript work |
+| `@paradoc/resolvers` | `/fs`, `/memory` (no root export) | The artifact has file layers |
+| `@paradoc/render` | root, `/text`, `/text/field-formatter`, `/pdf`, `/docx` | You call `renderPdf`, `inspectPdf`, `mergePdfs` or a template check directly ([rendering.md](./rendering.md)) |
+| `@paradoc/essentials` | root, `/tax`, `/banking`, `/employment` | You fill a standard form |
+| `@paradoc/core`, `@paradoc/format`, `@paradoc/sessions`, `@paradoc/expr` | root | You must keep a bundle small; the SDK already re-exports them |
+
+## Define an artifact
+
+Use the **object pattern** by default. One `p.form({...})` call keeps literal types for [type inference](#type-inference).
 
 ```typescript
-const form = p.form({
+import { p } from "@paradoc/sdk";
+
+const lease = p.form({
   name: "residential-lease",
   version: "1.0.0",
-  title: "Residential Lease Agreement",
+  title: "Residential Lease",
   fields: {
-    propertyAddress: { type: "address", label: "Property Address", required: true },
-    monthlyRent: { type: "money", label: "Monthly Rent", required: true },
+    propertyAddress: { type: "address", label: "Property address", required: true },
+    monthlyRent: { type: "money", label: "Monthly rent", required: true },
+    hasPets: { type: "boolean", label: "Pets allowed", default: false },
+    petDeposit: { type: "money", label: "Pet deposit", visible: "fields.hasPets", required: "fields.hasPets" },
+  },
+  parties: {
+    tenant: { label: "Tenant", partyType: "person", signature: { required: true } },
+  },
+  rules: {
+    rentPositive: { expr: "fields.monthlyRent.amount > 0", message: "Rent must be positive" },
   },
 });
 ```
 
-### Builder pattern
+The **builder pattern** chains setters and ends with `.build()`. Its `.field()` and `.fields()` take plain objects, field builders, or a mix.
 
 ```typescript
-const form = p.form()
+const lease = p.form()
   .name("residential-lease")
-  .version("1.0.0")
-  .title("Residential Lease Agreement")
   .fields({
-    propertyAddress: { type: "address", label: "Property Address", required: true },
-    monthlyRent: { type: "money", label: "Monthly Rent", required: true },
+    monthlyRent: p.field.money().label("Monthly rent").required(),
+    notes: { type: "text", label: "Notes" },
   })
   .build();
 ```
 
-NEVER mix the two patterns within one artifact. Builder chains MUST end with `.build()`.
+| Constraint | Detail |
+|------------|--------|
+| Plain values in the object pattern | A field builder inside `p.form({...})` fails with `Invalid discriminator value`. Call `.build()` on it first, or use the builder pattern. |
+| Builder methods | `name`, `version`, `title`, `description`, `code`, `language`, `releaseDate`, `metadata`, `instructions`, `agentInstructions`, `defs`/`def`, `field`/`fields`, `layers`/`layer`/`inlineLayer`/`fileLayer`, `defaultLayer`, `annex`/`annexes`, `allowAdditionalAnnexes`, `party`/`parties`, `build` |
+| Other kinds | `p.document`, `p.checklist` and `p.bundle` take the same two patterns |
+| File layers | Pass the resolver at construction: `p.form(def, { resolver })`. `render()` takes no resolver. |
 
-When working in an existing project, match whichever pattern is already in use.
+<!-- dep:C5 -->
+The form builder has `.rules()`. Field builder methods are in [fields.md § Field builder methods](./fields.md#field-builder-methods).
 
-For artifact shapes (form / document / bundle / checklist), see [artifacts.md](./artifacts.md). Field-level patterns: [fields.md](./fields.md). Parties: [parties.md](./parties.md). Logic: [logic.md](./logic.md).
+<!-- dep:C2 -->
+`p.form()`, `p.form.from()` and the other kinds' entry points enforce the current `$schema` and throw `SchemaVersionError` on any other version.
 
-## Core Pipeline
+## Load and migrate
 
-```
-define artifact → fill(data) → validate → render(layer)
-```
-
-Forms add parties and signatures between validate and render.
-
-## Filling Forms
-
-Use `fill()` (throws on error) or `safeFill()` (returns result):
+Load an artifact file with `load` (text) or `loadFromObject` (a parsed object). Both return the instance for the artifact's `kind` and enforce the schema version.
 
 ```typescript
-// Throws FormValidationError on failure
-const draft = form.fill({
-  fields: {
-    propertyAddress: { line1: "123 Main St", locality: "Portland", region: "OR", postalCode: "97201", country: "USA" },
-    monthlyRent: { amount: 1500, currency: "USD" },
-  },
+import { readFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { load, isFormInstance } from "@paradoc/sdk";
+import { createFsResolver } from "@paradoc/resolvers/fs";
+
+const file = "forms/lease.json";
+const artifact = load(readFileSync(file, "utf8"), {
+  resolver: createFsResolver({ root: dirname(file) }), // file-layer paths are relative to the artifact file
 });
-
-// Returns discriminated result, NEVER throws
-const result = form.safeFill({ fields: { /* ... */ } });
-if (result.success) {
-  const draft = result.data;
-} else {
-  console.error(result.error); // FormValidationError
-}
+if (!isFormInstance(artifact)) throw new Error("expected a form");
 ```
 
-ALWAYS prefer `safeFill()` in production code where errors are expected.
+| Function | Input | `$schema` rule | Failure |
+|----------|-------|----------------|---------|
+| `load(text, { resolver })` | JSON or YAML text | Required, must be current | Throws `LoadError` or `SchemaVersionError` |
+| `loadFromObject(obj, { resolver })` | Parsed object | Optional; if present, must be current | Same |
+| `safeLoad`, `safeLoadFromObject` | Same | Same | Returns `{ success, data \| error }` |
+| `p.form.from(obj, { resolver })`, `p.form.safeFrom(...)` | Parsed form object | Must be current | Throws `Error("Invalid Form ...")` |
 
-### Validation pipeline
+A bundle takes no resolver (its members carry their own); passing one throws `BundleResolverError`. Narrow the result with `isFormInstance`, `isDocumentInstance`, `isChecklistInstance` or `isBundleInstance`. Use `createMemoryResolver({ contents: { "lease.pdf": bytes } })` from `@paradoc/resolvers/memory` in a browser or a test.
 
-When `fill()` / `safeFill()` runs:
-
-1. **Schema validation** — values match declared types
-2. **Constraint validation** — min/max, pattern, enum membership on supplied values
-3. **Default application** — missing optional fields get defaults
-4. **Draft state evaluation** — `visible` / `required` expressions and defs; omissions remain open
-
-### Validating without filling
+Migrate an older artifact before you load it. `migrateArtifact` returns a new object and validates it.
 
 ```typescript
-const parseResult = form.parseData(data);     // throws on failure
-const safeResult = form.safeParseData(data);  // returns result
+import { migrateArtifact } from "@paradoc/sdk";
+
+const oldArtifact = { $schema: "https://schema.paradoc.dev/2026-08-10.json", kind: "form", name: "lease" };
+const result = migrateArtifact(oldArtifact); // { from } names the version when $schema has none
+const current = result.artifact; // result.status is "current" or "migrated"
 ```
 
-### Validating the schema itself
+`migrateArtifactSource(text, { format?, from? })` does the same on JSON or YAML text and returns `{ status, content }` in the input's format. Both throw `SchemaMigrationError` with a `code` (`missing-version`, `unknown-version`, `version-conflict`, `no-migration-path`, `unconvertible-value`, `invalid-result`). The CLI equivalent is [`paradoc migrate`](./cli.md#migrate).
+
+## Check a definition
+
+`p.form({...})` checks structure only. Expressions (defs, rules, `visible`, `required`, template markers) are checked by `validate()` and again when you call `fill()`.
 
 ```typescript
-// Design-time (FormInstance) — returns StandardSchema result
-if (!form.isValid()) {
-  const result = form.validate();
-  if ("issues" in result) {
-    console.error(result.issues);
-  }
-}
+import { validate } from "@paradoc/sdk";
 
-// Runtime (DraftForm) — checks values, effective requiredness, and rules
-const result = draft.validate();
-if (result.errors.length > 0 || !result.rules.valid) {
-  console.error(result.errors, result.rules);
-}
+const report = lease.validate(); // StandardSchema result
+if ("issues" in report && report.issues) console.error(report.issues);
 
-// Rules-only checks are available when completion is still in progress.
-const rules = draft.validateRules();
+const fromObject = validate(someArtifactObject); // any kind, same result shape
 ```
 
-### Loading from unknown input
+`lease.isValid()` returns the same verdict as a boolean. `await validateLayers(artifactObject, { resolver })` also reads each file layer. The CLI `paradoc validate <file>` runs all of these.
+
+## Form runtime
+
+A form moves through these phases:
+
+| Phase | Type | Created by | Moves on with |
+|-------|------|-----------|---------------|
+| design | `FormInstance` | `p.form`, `load` | `fill()` |
+| draft | `DraftForm` | `fill()`, `update()` | `prepareForSigning()` or `seal()` |
+| signable | `SignableForm` | | `finalize()` |
+| executed | `ExecutedForm` | | terminal |
 
 ```typescript
-const form = p.form.from(unknownData);          // throws on invalid
-const result = p.form.safeFrom(unknownData);     // returns result
+let draft = lease.fill({ fields: { monthlyRent: { amount: 1500, currency: "USD" } } });
+draft = draft.update({ parties: { tenant: { name: "Ada Lovelace" } } });
+const { summary, next } = draft.getFillState(); // what is still open
 ```
 
-## Progressive Fill (AI / Multi-Turn)
+- Filling, `update()`, fill state, validators, persist and resume, sessions, and PDF extraction: [filling.md](./filling.md).
+- Signers, signatories, `seal()`, captures and `finalize()`: [sealing.md](./sealing.md).
+- Render options, renderers and resolvers: [rendering.md](./rendering.md).
 
-For incremental or AI-driven filling: `fill()` creates a draft with partial data, then `update()` adds more.
+## Documents
+
+A document has no fields or parties. Its phases are `draft → final`.
 
 ```typescript
-// Throws on invalid provided fields
-const draft = form.fill({
-  fields: { propertyAddress: { line1: "123 Main St", locality: "Portland", region: "OR", postalCode: "97201", country: "USA" } },
+const policy = p.document({
+  name: "privacy-policy",
+  layers: { markdown: { kind: "inline", mimeType: "text/markdown", text: "# Privacy Policy" } },
 });
-
-// Safe variant
-const result = form.safeFill({ fields: { /* ... */ } });
-
-// Update an existing draft (throws on error)
-const updated = draft.update({ fields: { monthlyRent: { amount: 1500, currency: "USD" } } });
-
-// Safe update
-const updateResult = draft.safeUpdate({ fields: { /* ... */ } });
-```
-
-### Fill state inspection
-
-```typescript
-const state = draft.getFillState();           // { summary, openRequired, blocked, candidates, next, rules, issues, ... }
-const next = draft.getNextFillTarget();        // FillTarget | null
-const targets = draft.getAvailableFillTargets(); // FillTarget[]
-```
-
-- `state.summary`: `requiredTotal`, `requiredDone`, `requiredRemaining`, `completionPercent`.
-- `state.rules`: `{ valid, errors, warnings }`; each entry is a `RuleValidationResult` (`ruleId`, `passed`, `message`, `severity`), the same object `validateRules()` returns.
-- `state.issues`: logic expressions that failed to evaluate (`message`, `path`). Any issue blocks completion; when the logic cannot be resolved, the rules are not run and `rules.valid` is `false`.
-
-Essential for AI agent workflows where forms are filled incrementally.
-
-### Extracting data from a filled PDF
-
-```typescript
-const { layer, data, report } = await form.extract(pdfBytes);        // the only PDF layer
-const copyB = await f1099NEC.extract(pdfBytes, { layer: "pdfCopyB" }); // several PDF layers
-const draft = form.safeFill(data);                                    // validation happens here
-```
-
-- Reads AcroForm field values back through the PDF layer's bindings. NEVER treat `data` as validated; pass it to `fill`/`safeFill`, then use `getFillState()` for what is missing.
-- `data` holds only exact reversals: direct, nested, enum checkbox, radio, dropdown, and split bindings. A combined binding (`"a,b,c"`) is reported `not_recoverable`, never split. An unchecked box reads as `empty`, not `false`.
-- `report.entries[]` is `{ path, status, sources: [{ field, value? }], reason? }` with status `recovered | empty | not_recoverable | unparseable`; `report.unbound[]` lists filled PDF fields no binding covers.
-- A partial structured value stays partial: `mailingAddress: { line1 }` from a W-9 fails `safeFill` naming the missing parts.
-- Failures throw `PdfExtractionError` with `code`: `no_form_fields` (flattened or scanned; use the hosted extraction service), `encrypted_pdf`, `not_matching`, `malformed_pdf`, `no_pdf_layer`, `layer_required`, `layer_not_found`, `not_pdf_layer`.
-- The CLI `paradoc data extract` and the AI tool `extract` return the same result.
-
-## Form Lifecycle Phases
-
-Forms progress through three immutable phases. Mutations return new objects. Phase transitions are one-way — NEVER go backwards.
-
-| Phase | Type | Transition |
-|-------|------|------------|
-| `draft` | `DraftForm<F>` | `prepareForSigning()` |
-| `signable` | `SignableForm<F>` | `finalize()` |
-| `executed` | `ExecutedForm<F>` | Terminal |
-
-```typescript
-const draft = form.fill(data);
-
-// Mutate fields in draft phase
-draft.setField("monthlyRent", { amount: 2000, currency: "USD" });
-draft.updateFields({ monthlyRent: { amount: 2000, currency: "USD" } });
-
-// Transition to signable
-const signable = draft.prepareForSigning();
-
-// Capture signatures (positional: role, partyId, signerId, locationId).
-// Each capture returns a new form; a slot takes one capture.
-const signed = signable.captureSignature("landlord", "landlord-0", "signer-1", "sig-loc-1");
-
-// Status check
-const status = signed.getOverallSignatureStatus();
-
-// Finalize. On a sealed form, every required signatureMap slot needs a capture.
-const executed = signed.finalize();
-```
-
-For party data shape, see [parties.md](./parties.md).
-
-## Document and Checklist Lifecycle
-
-Documents have two phases: `draft → final`.
-
-```typescript
-const disclosure = p.document({ /* ... */ });
-const draft = disclosure.prepare("pdf");
+const draft = policy.prepare();         // optional target layer key
+const text = await draft.render();
 const final = draft.finalize();
 ```
 
-Checklists have two phases: `draft → completed`.
+## Checklists
+
+Phases are `draft → completed`. `fill()` and `update()` take partial answers. `complete()` requires every item after defaults; an explicit `false` counts as an answer.
 
 ```typescript
-const checklist = p.checklist({ /* ... */ });
-const draft = checklist.fill({ task_1: true, review: "approved" });
-draft.setItem("task_1", true);
-const completed = draft.complete();
-```
-
-Use `fill()` and `update()` for incremental checklist answers. `fill()` and
-`complete()` require every declared item after applying declared defaults. An
-explicit `false` answer counts as present; `clear("items.<id>")` removes an
-answer and `reset("items.<id>")` restores its default.
-
-Bundles have three phases (like forms): `draft → signable → executed`. Set runtime instances on bundle contents:
-
-```typescript
-const draft = bundle.prepare();
-draft.setContent("lease", filledLeaseDraft); // must be a runtime instance
-const signable = draft.prepareForSigning();
-const executed = signable.finalize();
-```
-
-Assemble bundle outputs using each layer's MIME type. A bundle takes no
-resolver of its own: each content entry is an artifact instance that carries
-the resolver bound when it was constructed.
-
-```typescript
-const assembled = await bundle.assemble({
-  contents: { lease: filledLeaseDraft },
+const closing = p.checklist({
+  name: "closing",
+  items: [
+    { id: "titleSearch", title: "Title search", status: { kind: "boolean" } },
+    {
+      id: "appraisal",
+      title: "Appraisal",
+      status: {
+        kind: "enum",
+        options: [{ value: "pending", label: "Pending" }, { value: "done", label: "Done" }],
+        default: "pending",
+      },
+    },
+  ],
 });
+
+let draft = closing.fill();                        // no answers yet
+draft = draft.update({ titleSearch: true });
+const state = draft.getFillState();                // summary, next target
+const completed = draft.complete();                // throws "Missing required checklist item: items.<id>" if one is open
 ```
 
-Outputs are keyed by content key. A nested bundle (pass its draft as the
-entry) contributes every part under a folder-style key, such as
-`nested/docA` with the file `nested/docA.pdf`; `render()` names them the same
-way.
+`clear("items.<id>")` removes an answer and `reset("items.<id>")` restores its default. `closing.validateItemInput({ itemId, value })` and `validateItemsPatch(items)` check answers before you apply them.
 
-## Type Inference
+## Bundles
 
-Compile-time inference from form definitions:
+A bundle orders other artifacts. Its phases are `draft → signable → executed`. The bundle shape and its expression context are in [artifacts.md](./artifacts.md#bundle).
 
 ```typescript
-import { type InferFormPayload } from "@paradoc/core";
+const application = p.form({
+  name: "loan-application",
+  fields: { loanAmount: { type: "number", label: "Loan amount", required: true } },
+  layers: { markdown: { kind: "inline", mimeType: "text/markdown", text: "Amount: {{fields.loanAmount}}" } },
+});
+const disclosure = p.document({
+  name: "truth-in-lending",
+  layers: { markdown: { kind: "inline", mimeType: "text/markdown", text: "# Truth in Lending" } },
+});
 
-type LeaseData = InferFormPayload<typeof leaseForm>;
-// => {
-//   fields: {
-//     address: { line1: string, ... }       // required
-//     rent: { amount: number, currency: string }  // required
-//     startDate: string                    // required
-//     notes?: string                       // optional
-//   }
-// }
+const loanPackage = p.bundle()
+  .name("loan-package")
+  .inline("application", application) // takes an instance or a plain object
+  .inline("disclosure", disclosure, "forms.application.fields.loanAmount > 10000")
+  .build();
+
+let draft = loanPackage.prepare({
+  application: application.fill({ fields: { loanAmount: 20000 } }),
+  disclosure: disclosure.prepare(),
+});
+draft = draft.setContent("application", application.fill({ fields: { loanAmount: 5000 } }));
+
+const included = Object.keys(draft.getIncludedContents()); // ["application"]
+const { outputs } = await draft.render();                   // keyed by content key: { content, mimeType, filename }
+const executed = draft.prepareForSigning().finalize();
 ```
 
-Only `required: true` (literal boolean) makes a field required in the inferred type. Expression-based `required` produces an optional field — evaluated at runtime.
+- Each member is a runtime instance that carries its own resolver. The bundle binds none.
+- `bundle.assemble({ contents })` renders the included members from the design-time bundle. A nested bundle's parts get folder-style keys such as `nested/docA`.
+- `getInclusionState()` lists each member's decision: `included`, `excluded`, or `unresolved` with a reason.
+- A sealed packet (one PDF for all members) is `sealBundle`: see [sealing.md](./sealing.md).
 
-If type inference is not working, check:
+## Serialize
 
-1. Builder chain ended with `.build()`
-2. Object pattern uses a single `p.form({...})` call (no intermediate variables that widen the type)
-3. Imports are from `@paradoc/core` (not internal paths)
+| Call | On | Result |
+|------|----|--------|
+| `toJSON()` | Any instance | Plain object. Design-time instances include `$schema`; pass `{ includeSchema: false }` to omit it. |
+| `toYAML()` | Any instance | YAML text with a `yaml-language-server` schema line |
+| `clone()` | Any instance | An exact copy |
+| `compile(form)` | `FormInstance` | JSON Schema for the fill payload |
 
-### Field type → TypeScript
+Runtime `toJSON()` output resumes with `runtimeFormFromJSON` and its siblings: see [filling.md](./filling.md#persist-and-resume).
 
-| Field Type | TypeScript Type |
-|-----------|----------------|
+## Type inference
+
+```typescript
+import { type InferFormPayload, type ProgressiveFormPayload } from "@paradoc/sdk";
+
+type LeasePayload = InferFormPayload<typeof lease>;         // a complete submission
+type LeasePatch = ProgressiveFormPayload<typeof lease>;     // what fill() and update() accept
+```
+
+- Only a literal `required: true` makes a key required in `InferFormPayload`. An expression `required` gives an optional key.
+- In `InferFormPayload`, each party needs its `id` (`"<role>-<index>"`). `fill()` and `update()` assign ids, so a patch can leave them out.
+- Inference needs the literal definition. Define it in one `p.form({...})` call or end the builder chain with `.build()`.
+
+| Field type | TypeScript type |
+|------------|-----------------|
 | `text`, `email`, `uuid`, `uri` | `string` |
-| `boolean` | `boolean` |
-| `number`, `percentage`, `rating` | `number` |
 | `date`, `datetime`, `time`, `duration` | `string` |
-| `money` | `{ amount: number, currency: string }` |
-| `address` | `{ line1, line2?, locality, region, postalCode, country }` |
-| `phone` | `{ number, type?, extension? }` |
-| `person` | `{ name, title?, firstName?, ... }` |
-| `organization` | `{ name, legalName?, taxId?, ... }` |
-| `identification` | `{ type, number, issuer?, ... }` |
-| `coordinate` | `{ lat, lon }` |
-| `bbox` | `{ southWest, northEast }` |
-| `enum` | union of literal values |
-| `multiselect` | array of enum values |
-| `fieldset` | recursive mapped type |
+| `number`, `percentage`, `rating` | `number` |
+| `boolean` | `boolean` |
+| `enum` | union of the option `value`s |
+| `multiselect` | array of the option `value`s |
+| `money` | `{ amount, currency }` |
+| `address`, `phone`, `person`, `organization`, `identification`, `coordinate`, `bbox` | the composite object ([fields.md](./fields.md)) |
+| `fieldset` | nested object of its fields |
+| `list` | array of the item type |
 
-### Compiling to JSON Schema
+## Errors
 
-```typescript
-import { compile } from "@paradoc/core";
-
-const jsonSchema = compile(form);
-```
-
-## Serialization
-
-Design-time `FormInstance` supports options:
-
-```typescript
-const json = form.toJSON({ includeSchema: false });
-const yaml = form.toYAML();
-const clone = form.clone();
-```
-
-Runtime `DraftForm.toJSON()` takes no arguments:
-
-```typescript
-const json = draft.toJSON();
-```
-
-ALWAYS pass `{ includeSchema: false }` when embedding artifacts in bundles.
-
-## Versioning
-
-Use semver (`major.minor.patch`):
-
-| Bump | When |
-|------|------|
-| Major (2.0.0) | Removing/renaming fields, changing types, removing party roles, making optional → required |
-| Minor (1.1.0) | New optional fields, new layers, new annexes |
-| Patch (1.0.1) | Label changes, template corrections, typos |
-
-Use descriptive kebab-case names: `"residential-lease-agreement"`, NOT `"form1"` or `"My Form"`.
-
-## Rendering
-
-For full renderer API, see [rendering.md](./rendering.md). Quick example:
-
-```typescript
-const form = p.form(schema, { resolver: createFsResolver({ root: process.cwd() }) });
-
-const text = await form.fill(data).render({
-  layer: "markdown",
-});
-```
-
-The resolver is bound once, at construction — `render()` doesn't take one.
-
-## Common SDK Issues
-
-**Type inference not working on filled form**
-Cause: Builder chain missing `.build()`, or intermediate variables widening the type.
-Fix: End builder chains with `.build()`. For object pattern, define artifact in a single `p.form({...})` call.
-
-**Wrong import paths — module not found**
-Cause: Importing from internal sub-paths (e.g., `@paradoc/core/dist/fields`).
-Fix: ALWAYS import from package root: `@paradoc/core`, `@paradoc/sdk`, `@paradoc/render`.
-
-**Builder vs object pattern mixing**
-Cause: Passing a `p.field.money().label(...)` builder inside an object-pattern artifact, or vice versa.
-Fix: Pick one pattern per artifact. Object pattern uses plain objects; builder pattern uses `p.field.*()` chains.
-
-**Render produces blank output**
-Cause: Missing layer, or rendering a form before `fill()`.
-Fix: Ensure at least one layer is defined and has a supported MIME type. Call `fill()` before `render()`.
-
-**Schema duplication errors when bundling**
-Cause: Forgot `{ includeSchema: false }` when inlining artifacts in a bundle.
-Fix: ALWAYS pass `{ includeSchema: false }` to `toJSON()` when bundling.
-
-## See Also
-
-- [artifacts.md](./artifacts.md) — form / document / bundle / checklist shapes
-- [fields.md](./fields.md) — field types, builders, type inference
-- [parties.md](./parties.md) — party data, signature lifecycle
-- [logic.md](./logic.md) — defs, rules, runtime evaluation
-- [layers.md](./layers.md) — layer definitions and Paradoc template syntax
-- [rendering.md](./rendering.md) — render API, resolvers
-- [formatting.md](./formatting.md) — locale-aware formatters
-- [cli.md](./cli.md) — `paradoc` CLI surface
-- [schemas.md](./schemas.md) — raw JSON/YAML surface
+| Message or class | Cause | Fix |
+|------------------|-------|-----|
+| `SchemaVersionError: The artifact was written for schema version <v>` | Old `$schema` | `migrateArtifact` or `paradoc migrate` |
+| `SchemaVersionError: The artifact has no $schema` | `load()` on a file with no `$schema` | Add the current `$schema`, or migrate with `--from` |
+| `Invalid Form at fields.<id>.type: Invalid discriminator value` | Unknown field type, or a builder inside `p.form({...})` | Use a schema type; call `.build()` on nested builders |
+| `Invalid form definition: Unknown variable: "defs.<name>"` | Defs are referenced by bare name | Write `<name>`, not `defs.<name>` ([logic.md](./logic.md)) |
+| `UnboundResolverError: Layer "<key>" is file-backed ("<path>") but ...` | A file layer rendered with no resolver | Pass `{ resolver }` when you construct or load the artifact |
+| `BundleResolverError` | A resolver passed to a bundle | Bind resolvers on the members |
+| `ERR_PACKAGE_PATH_NOT_EXPORTED` for `@paradoc/resolvers` | The package has no root export | Import `@paradoc/resolvers/fs` or `/memory` |

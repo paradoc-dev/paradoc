@@ -1,154 +1,173 @@
 ---
 name: mcp
-description: Paradoc MCP service surface — mcp.paradoc.dev — authenticated remote tools for discovering, retrieving, validating, filling, and rendering artifacts, plus platform execution, e-signature, and payment tools
+description: The hosted Paradoc MCP server at https://mcp.paradoc.dev/mcp. Connect with OAuth or an x-api-key, the data payload shape, every tool with its arguments and limits, which tools are billed, and rate limits.
 metadata:
-  tags: mcp, model-context-protocol, mcp.paradoc.dev, registries, tools, remote
+  tags: mcp, model-context-protocol, mcp.paradoc.dev, hosted, registry, fill, render, seal, extract, e-signature, payments, oauth, api-key
 ---
 
-# Paradoc MCP Surface
+# Hosted MCP server
 
-The Paradoc MCP service at `mcp.paradoc.dev` (prod) and `mcp-dev.paradoc.dev` (dev) lets AI assistants (Claude, Cursor, etc.) discover registries and artifacts, retrieve full artifact definitions, validate, fill, and render without local packages. The same session also carries the platform's execution, e-signature, and payment tools. Every `/mcp` request needs a credential.
+**Contents:** [Connect](#connect) · [Payload shape](#payload-shape) · [Workflow](#workflow) · [Artifact tools](#artifact-tools) · [Registry tools](#registry-tools) · [Render](#render) · [Platform tools](#platform-tools) · [Limits](#limits)
 
-The service is implemented as a Cloudflare Worker (`platform/apps/mcp-service`) using Durable Objects with SQLite-backed MCP sessions.
+Use this surface when an MCP client (Claude Code, Claude Desktop, Cursor) is connected to Paradoc's hosted server. Nothing is installed. Every session acts for one Paradoc organization.
 
-Use this surface when:
+When the user builds an agent in code, load [ai-tools.md](./ai-tools.md) instead. Its tools have other names; [ai-tools.md § Differences from MCP](./ai-tools.md#differences-from-mcp) maps them.
 
-- The user is connected to `mcp.paradoc.dev` via an MCP-capable client
-- You want to discover or render artifacts from a registry without local installs
-- You need to fetch a published artifact's full JSON to inspect or work with
+## Connect
 
-For local TypeScript usage, see [sdk.md](./sdk.md). For CLI usage, see [cli.md](./cli.md).
+| Endpoint | URL |
+|----------|-----|
+| MCP (streamable HTTP) | `https://mcp.paradoc.dev/mcp` |
+| OAuth protected-resource metadata | `https://mcp.paradoc.dev/.well-known/oauth-protected-resource` |
+| Health | `https://mcp.paradoc.dev/health` |
 
-## Endpoints
+**OAuth (interactive clients).** Add the server by URL. The client runs sign-in on first connect. In Claude Code:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Service info |
-| `/health` | GET | Health check |
-| `/mcp` | ALL | MCP protocol endpoint (credential required) |
-| `/.well-known/oauth-protected-resource` | GET | OAuth protected-resource metadata |
-
-## Authentication
-
-Every `/mcp` request needs one of:
-
-- `Authorization: Bearer <token>`: an OAuth token from Paradoc's authorization server, scoped to an organization. A token with no organization counts as no credential.
-- `x-api-key: <key>`: a Paradoc API key, for headless clients.
-
-Without a valid credential the server returns `401` with `WWW-Authenticate: Bearer resource_metadata="https://mcp.paradoc.dev/.well-known/oauth-protected-resource"`, and no tools are registered. OAuth-capable clients read that metadata and start sign-in.
-
-## Custom Domains
-
-| Environment | Domain |
-|-------------|--------|
-| Dev | `mcp-dev.paradoc.dev` |
-| Prod | `mcp.paradoc.dev` |
-
-## Tools
-
-Artifact tools:
-
-| Tool | Description |
-|------|-------------|
-| `list_registries` | List registries sorted by popularity, with pagination |
-| `get_registry` | Get a registry and its artifacts (capped at 500) |
-| `list_artifacts` | List artifacts sorted by popularity, with pagination |
-| `search` | Search artifacts by keyword |
-| `get_artifact` | Retrieve the full artifact definition from a registry |
-| `validate` | Validate a custom artifact against schema and logic rules |
-| `fill` | Create a progressive draft; reports `accepted` for the supplied values and `complete` for readiness |
-| `render` | Render an artifact from a registry as text, PDF, or DOCX |
-
-Platform tools (act on the credential's organization, documented with the platform API):
-
-- Execution: `describe`, `extract`, `prefill`, `seal`, `extract_job_submit`, `extract_job_get`, `extract_job_list`
-- E-signature: `create_envelope`, `get_envelope`, `list_envelopes`, `download_envelope`, `void_envelope`, `remind_envelope`, `envelope_audit`
-- Payments: `create_payment`, `get_payment`, `list_payments`, `refund_payment`, `connect_start_onboarding`, `connect_get_status`
-
-## Use Cases and Arguments
-
-| UC | Description | Tool | Arguments |
-|----|-------------|------|-----------|
-| UC-01 | List registries by popularity | `list_registries` | `status` (enum, opt), `limit` (int, opt), `offset` (int, opt) |
-| UC-02 | Get a registry and its artifacts | `get_registry` | `registry_id` (string) |
-| UC-03 | List artifacts by popularity | `list_artifacts` | `kind` (enum, opt), `limit` (int, opt), `offset` (int, opt) |
-| UC-04 | Search artifacts | `search` | `query` (string), `kind` (enum, opt), `limit` (int, opt) |
-| UC-05 | Retrieve full artifact | `get_artifact` | `registry_id` (string), `artifact_name` (string) |
-| UC-06 | Validate a custom artifact | `validate` | `artifact` (object), `options` (object, opt) |
-| UC-07 | Fill artifact with data | `fill` | `artifact` (object), `data` (object) |
-| UC-08 | Render from registry | `render` | `registry_id` (string), `artifact_name` (string), `data` (object), `layer` (string, opt), `outputMode` (enum, opt) |
-
-## Tool Flow: Discovery → Render
-
-Every discovery tool returns `registry_id` and `artifact_name` so there are no dead ends.
-
-```
-ENTRY POINTS
-  list_registries   list_artifacts        search
-  (UC-01)           (UC-03)               (UC-04)
-       │                 │ registry_id        │ registry_id
-       │ registry_id     │ artifact_name      │ artifact_name
-       ▼                 │                    │
-  get_registry           │                    │
-  (UC-02)                │                    │
-       │ registry_id     │                    │
-       │ artifact_name   │                    │
-       ▼                 ▼                    ▼
-  ┌──────────────────────────────────────────────────┐
-  │              get_artifact (UC-05)                │
-  │      needs: registry_id + artifact_name          │
-  │      returns: full artifact JSON + metadata      │
-  └────────────────────────┬─────────────────────────┘
-                           │ artifact (full JSON)
-                ┌──────────┴───────────┐
-                ▼                      ▼
-            fill (UC-07)         validate (UC-06)
-            artifact + data      artifact + options
-                │
-                │ validated data
-                ▼
-  ┌──────────────────────────────┐
-  │          render (UC-08)      │
-  │  registry_id + artifact_name │
-  │  + data → rendered output    │
-  └──────────────────────────────┘
+```bash
+claude mcp add --transport http paradoc https://mcp.paradoc.dev/mcp
 ```
 
-### Typical happy path
+Then run `/mcp` and choose **Authenticate**. The token must be scoped to an organization.
 
-1. **Discover** (UC-01 / UC-03 / UC-04) — find what you're looking for
-2. **Inspect** (UC-05) — get the full artifact to understand fields and layers
-3. **Fill** (UC-07) — test data against the artifact
-4. **Render** (UC-08) — produce the final output
+**API key (headless clients).** Send the key in the `x-api-key` header, for example in `.mcp.json`:
 
-## Rate Limiting
+```jsonc
+// .mcp.json
+{
+  "mcpServers": {
+    "paradoc": {
+      "type": "http",
+      "url": "https://mcp.paradoc.dev/mcp",
+      "headers": { "x-api-key": "${PARADOC_API_KEY}" }
+    }
+  }
+}
+```
 
-POST requests to `/mcp` are rate-limited per IP via Cloudflare's Rate Limiting binding, before the credential check. Over the limit returns `429`.
+The server checks the key with the platform before it opens a session.
 
-| Environment | Limit | Window | ~Hourly |
-|-------------|-------|--------|---------|
-| Dev | 60 requests | 60s | ~3,600/hr |
-| Prod | 2 requests | 60s | ~120/hr |
+| Response | Meaning |
+|----------|---------|
+| `401` with `WWW-Authenticate: Bearer resource_metadata="…"` | No credential, a bad API key, or a token with no organization. OAuth clients start sign-in from this. |
+| `503` | The server could not check the key. Retry later. |
+| `429` | Rate limit. See [Limits](#limits). |
 
-GET requests (health, service info, SSE) and non-`/mcp` routes are not rate-limited.
+## Payload shape
 
-## Document Rendering
+`fill`, `render`, `seal`, `create_envelope` and `create_payment` take the same `data` object: `{ fields, parties, annexes }`. Value shapes: [fields.md § Field Type Reference](./fields.md#field-type-reference) and [parties.md § Party fill values](./parties.md#party-fill-values).
 
-The MCP service renders text, PDF, and DOCX layers locally with the MIME-driven `@paradoc/render` implementation.
+```jsonc
+// data for fill, render, seal, create_envelope
+{
+  "fields": {
+    "petName": "Rex",
+    "weight": 30
+  },
+  "parties": {
+    "tenant": { "name": "Jane Smith" }
+  }
+}
+```
 
-This is transparent to the MCP client — `render` works for all supported MIME types.
+For a checklist, `data` maps item ids to `true`, `false` or a string.
 
-## When to Use the MCP Surface
+## Workflow
 
-- Asked to find or use a published Paradoc artifact via an MCP-connected client
-- Need to render a registry artifact without installing renderers locally
-- Want to validate or fill a custom artifact server-side without local SDK setup
+1. Find the artifact: `search`, `list_artifacts`, or `list_registries` → `get_registry`. Each result carries `registry_id` and `artifact_name`.
+2. `get_artifact` with those two values. Read `fields`, `parties` and `layers`, and follow `agentInstructions` when present.
+3. `fill` with the artifact and your `data`. Repeat until `accepted` and `complete` are both `true`.
+4. `render` with `registry_id`, `artifact_name` and the same `data` you gave `fill`.
 
-When in a local Node.js project with `@paradoc/sdk` already installed, prefer the [sdk.md](./sdk.md) surface — it's faster and avoids network latency.
+For signing, call `seal` (the canonical PDF and signature map) or `create_envelope` (seal and send). For reading a filled document, call `describe` then `extract`.
 
-## See Also
+## Artifact tools
 
-- [sdk.md](./sdk.md) — local TypeScript surface
-- [cli.md](./cli.md) — local CLI surface
-- [schemas.md](./schemas.md) — raw JSON/YAML manipulation
-- [artifacts.md](./artifacts.md) — artifact shapes returned by `get_artifact`
+These two run on an artifact object you pass in. They make no outbound call.
+
+| Tool | Arguments | Returns |
+|------|-----------|---------|
+| `validate` | `artifact` (object), `options?: { schema?: boolean, logic?: boolean }` (both default `true`) | `{ valid, detectedKind?, issues?: [{ message, path? }] }` |
+| `fill` | `artifact` (form or checklist object), `data` | `{ accepted, complete, artifactKind, data?, errors?: [{ field, message }] }` |
+
+`accepted` is `true` when every supplied value is valid. `complete` is `true` when every required value is present. The `data` that `fill` returns is the flat field map, not a payload: keep your own `data` object and pass it to `render`.
+
+`fill` takes only the current `$schema`; migrate an older artifact first ([schemas.md § Loading rules](./schemas.md#loading-rules)).
+
+## Registry tools
+
+| Tool | Arguments | Returns |
+|------|-----------|---------|
+| `search` | `query` (min 2 characters), `kind?` (`form`, `document`, `checklist`, `bundle`), `limit?` (1-50, default 20) | Matching artifacts and registries |
+| `list_artifacts` | `kind?`, `limit?` (1-50, default 20), `offset?` | Artifacts ranked by all-time installs |
+| `list_registries` | `status?` (`verified` default, `pending`, `bad`, `all`), `limit?` (1-50, default 20), `offset?` | Registries with artifact counts and installs |
+| `get_registry` | `registry_id` | The registry and its artifacts |
+| `get_artifact` | `registry_id`, `artifact_name` | `{ artifact, metadata }`. File `instructions` and `agentInstructions` come back inline. Verified registries only. |
+
+## Render
+
+| Argument | Value |
+|----------|-------|
+| `registry_id`, `artifact_name` | From a registry tool. The registry must be verified. |
+| `data` | The payload you gave `fill`. |
+| `layer?` | Layer key. Defaults to `defaultLayer`, then the first layer. |
+| `outputMode?` | `"url"` (default): a short download link that expires in 7 days. `"inline"`: the content in the response, base64 for binary output. Use `"inline"` for text or markdown shown in chat. |
+
+Returns `{ success, renderId, artifactKind, mimeType, downloadUrl?, expiresAt?, content?, encoding?, errors?, validationIssues? }`.
+
+`render` renders forms from a verified registry, with text, markdown, HTML, PDF and DOCX layers. For an unpublished artifact, render locally with the SDK or CLI ([rendering.md](./rendering.md)). React (`text/tsx`) layers render with the `paradoc-react` skill.
+
+## Platform tools
+
+These act on the session's organization through the Paradoc platform API. The artifact argument is a source object, not a `registry_id`:
+
+```jsonc
+{ "source": "registry", "id": "@acme/forms/nda" }          // optional "@1.2.0" suffix, or "version"
+{ "source": "inline", "artifact": { "kind": "form", "…": "…" } }
+```
+
+A billed tool fails with an insufficient-balance error when the organization's balance is empty.
+
+### Execution
+
+| Tool | Arguments | Cost | Does |
+|------|-----------|------|------|
+| `describe` | `artifact` | Free | Fields, parties and annexes with types, plus a sample payload. Call it first. |
+| `extract` | `artifact`, `document: { contentBase64, mimeType }`, `options?: { confidenceThreshold?, validateExtracted? }` | Per page | Reads a filled PDF or image (PNG, JPEG, WebP; 10 MB max, no data-URI prefix). Returns values with confidence and page provenance. Works on scanned and flattened documents. |
+| `prefill` | `artifact`, `document`, `options?: { confidenceThreshold?, includeOptional?, requiredFirst? }` | Extract + fill | Extracts and commits readings above the threshold into a fill. Lower readings come back as suggestions. |
+| `seal` | `artifact`, `data`, `layer?` | Per call | Fills the form and returns the canonical PDF, the signature map and `canonical_pdf_hash`. Creates no envelope. See [sealing.md](./sealing.md). |
+| `extract_job_submit` | `artifact`, `document` (25 MB, 100 pages max), `options?` | Per page, on success | Starts async extraction and returns a job id. |
+| `extract_job_get` | `jobId` | Free | Job status, and the `extract` result when complete. |
+| `extract_job_list` | `limit?` (1-100), `offset?` | Free | The organization's jobs, newest first. |
+
+### E-signature
+
+| Tool | Arguments | Cost | Does |
+|------|-----------|------|------|
+| `create_envelope` | `artifact`, `data`, `signers: [{ email, name, routing_order? }]` (1-20), `title?`, `message?`, `external_id?` | Per call | Seals the artifact and sends signing invitations. Returns the envelope id and each signer's signing URL. |
+| `get_envelope` | `envelope_id` | Free | Status and per-signer state. |
+| `list_envelopes` | `status?` (`draft`, `pending`, `in_progress`, `completed`, `declined`, `voided`, `expired`), `limit?` (1-100), `offset?` | Free | Envelopes, newest first. |
+| `download_envelope` | `envelope_id` | Free | Links to the signed document and completion certificate, once completed. |
+| `void_envelope` | `envelope_id`, `reason` (1-500 characters) | Free | Voids an in-progress envelope and notifies signers. |
+| `remind_envelope` | `envelope_id` | Free | Emails every pending signer. |
+| `envelope_audit` | `envelope_id` | Free | Every lifecycle event with actor, timestamp and a tamper-evident hash. |
+
+### Payments
+
+| Tool | Arguments | Does |
+|------|-----------|------|
+| `connect_get_status` | none | Stripe Connect status. `ready` must be `true` before `create_payment`. |
+| `connect_start_onboarding` | `refresh_url`, `return_url` | Returns a hosted onboarding URL. |
+| `create_payment` | Either `amountCents` + `currency`, or `artifact` + `data` (the amount comes from the party `payment` in the form). Always `successUrl`, `cancelUrl`. Optional `description`, `externalId`. | Creates a hosted checkout. Returns `checkoutUrl`. |
+| `get_payment` | `paymentId` | One payment. |
+| `list_payments` | `status?` (`pending`, `succeeded`, `failed`, `partially_refunded`, `refunded`), `limit?` (1-100), `offset?` | Payments, newest first. |
+| `refund_payment` | `paymentId` | Refunds the remaining amount. |
+
+## Limits
+
+| Limit | Value |
+|-------|-------|
+| Rate limit, `mcp.paradoc.dev` | 2 `POST /mcp` requests per 60 seconds per client IP |
+| Rate limit, `mcp-dev.paradoc.dev` | 60 per 60 seconds |
+| `extract`, `prefill` document | 10 MB. Larger documents: `extract_job_submit` (25 MB, 100 pages). |
+
+The session handshake counts against the rate limit, so a new session plus two tool calls can reach the production limit. On `429`, wait 60 seconds before the next call. For many calls in a row, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally.

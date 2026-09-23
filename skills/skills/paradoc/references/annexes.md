@@ -1,112 +1,121 @@
 ---
 name: annexes
-description: File attachments associated with forms — annex slots, required attachments, additional annexes, fill data
+description: Annexes for file attachments on a form. Annex properties, additional annexes, the Attachment fill value, runtime state, and SDK builders.
 metadata:
   tags: annexes, attachments, files, forms
 ---
 
 # Annexes
 
-Annexes are file attachments associated with a **form** (photo IDs, proof of income, supporting documents). Like fields, parties, and layers, annexes are first-class form constituents.
+**Contents:** [Annex definitions](#annex-definitions) · [Additional annexes](#additional-annexes) · [Annex fill values](#annex-fill-values) · [Runtime state](#runtime-state) · [SDK](#sdk)
 
-Annexes apply to forms only. Documents, bundles, and checklists do NOT have annexes.
+An annex is a place on a form where a file is attached: a photo ID, proof of income, a vet record. Only forms have annexes.
 
-## JSON Shape
+## Annex definitions
 
-Annexes are defined as a top-level `annexes` object on a form. Each key is an annex identifier; each value is an annex definition.
+A form's `annexes` object maps each annex id to its definition. Annex ids are camelCase, like field ids ([schemas.md § Identifier patterns](./schemas.md#identifier-patterns)).
 
-```json
-{
-  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
-  "name": "lease-application",
-  "kind": "form",
-  "annexes": {
-    "photoId": { "title": "Photo ID", "required": true },
-    "proofOfIncome": { "title": "Proof of Income", "required": true },
-    "references": { "title": "References" }
-  },
-  "allowAdditionalAnnexes": true,
-  "fields": { /* ... */ }
+| Property | Type | Constraint |
+|----------|------|------------|
+| `title` | string | 1-200 characters |
+| `description` | string | 1-1000 characters. Say what document to attach. |
+| `required` | CondExpr | `true`, `false`, or a boolean expression. Default: not required. |
+| `visible` | CondExpr | Same. A hidden annex is never required. |
+| `order` | number ≥ 0 | Display order |
+
+```json schema=form
+"fields": {
+  "hasPets": { "type": "boolean", "label": "Do you have pets?", "default": false }
+},
+"annexes": {
+  "photoId": { "title": "Photo ID", "description": "Passport or driver's license", "required": true, "order": 0 },
+  "proofOfIncome": { "title": "Proof of income", "required": true, "order": 1 },
+  "petRecords": {
+    "title": "Vet records",
+    "visible": "fields.hasPets == true",
+    "required": "fields.hasPets == true",
+    "order": 2
+  }
 }
 ```
 
-## Annex Properties
+For `required` and `visible` expressions, load [logic.md](./logic.md).
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `title` | string | Human-readable name |
-| `description` | string | Detailed description |
-| `required` | CondExpr | Whether this annex is mandatory |
-| `visible` | CondExpr | Conditional visibility |
-| `order` | number | Display ordering |
+## Additional annexes
 
-## Additional Annexes
-
-Set `allowAdditionalAnnexes: true` on the form to accept attachments beyond the defined slots. Each additional value must still be an Attachment. Default is `false`: a payload with an undeclared annex key fails validation.
+`allowAdditionalAnnexes` (default `false`) lets a payload attach files under ids the form does not declare. With `false`, an undeclared id fails with `Unknown annex "<id>"`. Each additional value must still be an Attachment.
 
 ```json schema=form
+"annexes": {
+  "photoId": { "title": "Photo ID", "required": true }
+},
 "allowAdditionalAnnexes": true
 ```
 
-## SDK Builders
+## Annex fill values
+
+Each annex holds one Attachment:
+
+| Key | Type | Constraint |
+|-----|------|------------|
+| `name` | string | Required. File name, 1-255 characters. |
+| `mimeType` | string | Required. 1-100 characters, such as `application/pdf`. |
+| `checksum` | string | Optional. `sha256:` followed by 64 lowercase hex characters. |
+
+These are the only keys (`size` fails with `Unknown field(s): size`). The Attachment describes the file; the bytes travel separately.
+
+Attach with `fill()` and change with `update()`. In an `update()` patch, `undefined` leaves an annex as it is, and `null` is rejected.
 
 ```typescript
-import { p } from "@paradoc/core";
-
-// Object pattern (preferred)
-const form = p.form({
-  name: "lease-application",
-  version: "1.0.0",
+// form: the lease-application form built in the SDK section below
+let draft = form.fill({ fields: { hasPets: false } });
+draft = draft.update({
   annexes: {
-    photoId: { title: "Photo ID", required: true },
-    proofOfIncome: { title: "Proof of Income", required: true },
-    references: { title: "References" },
-  },
-  allowAdditionalAnnexes: true,
-  fields: { /* ... */ },
-});
-
-// Builder pattern
-const form = p.form()
-  .name("lease-application")
-  .annexes({
-    photoId: p.annex().title("Photo ID").required(true),
-    proofOfIncome: p.annex().title("Proof of Income").required(true),
-    references: p.annex().title("References"),
-  })
-  .allowAdditionalAnnexes(true)
-  .fields({ /* ... */ })
-  .build();
-```
-
-### Annex builder methods
-
-| Method | Description |
-|--------|-------------|
-| `.title(string)` | Human-readable name |
-| `.description(string)` | Description |
-| `.required(bool)` | Mandatory |
-| `.visible(CondExpr)` | Conditional visibility |
-| `.order(number)` | Display order |
-| `.from(data)` | Create from existing annex data |
-
-## Filling Annex Data
-
-```typescript
-const draft = form.fill({
-  fields: { /* ... */ },
-  annexes: {
-    photoId: { name: "id-front.pdf", mimeType: "application/pdf" },
+    photoId: { name: "passport.pdf", mimeType: "application/pdf" },
     proofOfIncome: { name: "paystub.pdf", mimeType: "application/pdf" },
   },
 });
 ```
 
-Each annex value is an Attachment: `{ name, mimeType, checksum? }` with no other keys (`checksum` is `sha256:<64 hex>`). Any other shape fails validation under `annexes.<annexId>`.
+`prepareForSigning()` fails with `Missing required annex: annexes.photoId` for each required, visible annex that is empty. For the rest of the draft lifecycle, load [filling.md](./filling.md).
 
-## See Also
+## Runtime state
 
-- [artifacts.md](./artifacts.md) — form structure
-- [fields.md](./fields.md) — field types
-- [parties.md](./parties.md) — party roles
-- [sdk.md](./sdk.md) — fill lifecycle
+| Call | Returns |
+|------|---------|
+| `draft.getAnnex(id)` | The Attachment, or `undefined` |
+| `draft.isAnnexVisible(id)` | `visible`, evaluated against the current data |
+| `draft.isAnnexRequired(id)` | `required`, evaluated. `false` when the annex is hidden. |
+| `draft.getAnnexState(id)` | `{ annexId, visible, required }` |
+
+Only a React composition reads an attachment, at `annexes.<id>` (the `paradoc-react` skill). In a text, HTML or DOCX template, `{{annexes.photoId}}` fails validation with `Unknown reference`.
+
+## SDK
+
+`p.form({ ... })` takes plain annex objects. The builder chain takes `p.annex()` builders or plain objects.
+
+```typescript
+import { p } from "@paradoc/sdk";
+
+const form = p
+  .form()
+  .name("lease-application")
+  .fields({ hasPets: { type: "boolean", default: false } })
+  .annexes({
+    photoId: p.annex().title("Photo ID").required(),
+    petRecords: p.annex().title("Vet records").visible("fields.hasPets == true").required("fields.hasPets == true"),
+    references: { title: "References", order: 2 },
+  })
+  .allowAdditionalAnnexes(true)
+  .build();
+```
+
+| Method | Sets |
+|--------|------|
+| `.title(text)` | `title` |
+| `.description(text)` | `description` |
+| `.required(cond = true)` | `required` |
+| `.visible(cond = true)` | `visible` |
+| `.order(n)` | `order` |
+| `.from(annex)` | Every property of an existing annex |
+| `.build()` | Validates and returns the annex |

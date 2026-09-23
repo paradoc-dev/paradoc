@@ -15,7 +15,7 @@ import { SUPPORTED_CLASS_FAMILIES } from "../src/pdf/tailwind";
 
 const SAFE_CLASSES_PATH = resolve(
   import.meta.dirname,
-  "../../../skills/skills/compose-documents/references/safe-classes.md"
+  "../../../skills/skills/paradoc-react/references/safe-classes.md"
 );
 
 /** Every family name in the "The verified families" table's first column. */
