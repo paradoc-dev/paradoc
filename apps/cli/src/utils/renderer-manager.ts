@@ -1,9 +1,9 @@
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { paradocHomePath } from './home.js'
 import ora from 'ora'
 
 const execFileAsync = promisify(execFile)
@@ -40,7 +40,6 @@ const RENDERER_PEER_VERSIONS: Record<string, Record<string, string>> =
         },
       }
 
-const RENDERERS_DIR = join(homedir(), '.paradoc', 'renderers')
 
 export interface RendererStatus {
   name: string
@@ -54,7 +53,7 @@ class RendererManager {
   private getRendererDir(pkg: string): string {
     const packageName = getPackageName(pkg)
     // @paradoc/render -> @paradoc+render
-    return join(RENDERERS_DIR, packageName.replace('/', '+'))
+    return join(paradocHomePath('renderers'), packageName.replace('/', '+'))
   }
 
   /** Ensure a renderer is installed and at the correct version. Returns its base dir. */
@@ -149,7 +148,7 @@ class RendererManager {
 
   /** Remove all installed renderers */
   async removeAll(): Promise<void> {
-    await fs.rm(RENDERERS_DIR, { recursive: true, force: true })
+    await fs.rm(paradocHomePath('renderers'), { recursive: true, force: true })
   }
 
   /** Get installation status of all renderers */

@@ -1,4 +1,3 @@
-import { homedir } from 'node:os'
 import { LocalFileSystem } from './local-fs.js'
 import { ManifestSchema, GlobalConfigSchema, type GlobalConfig, type Manifest } from '@paradoc/schemas'
 import { z } from 'zod'
@@ -10,7 +9,8 @@ import type {
   CacheConfig,
   RegistryCacheConfig,
 } from '../types.js'
-import { DEFAULT_CACHE_TTL, DEFAULT_CACHE_DIR } from './cache.js'
+import { DEFAULT_CACHE_TTL, defaultCacheDir } from './cache.js'
+import { userHomeDir } from './home.js'
 import {
   DEFAULT_ALLOWED_CONTENT_TYPES,
   isBlockedContentType,
@@ -125,7 +125,7 @@ export class ConfigManager {
   /**
    * @param homeDir - Directory that holds `.paradoc/config.json`. Defaults to the user's home.
    */
-  constructor(homeDir: string = homedir()) {
+  constructor(homeDir: string = userHomeDir()) {
     this.globalStorage = new LocalFileSystem(homeDir)
   }
 
@@ -528,7 +528,7 @@ export class ConfigManager {
    */
   async getCacheDirectory(): Promise<string> {
     const globalCache = await this.getGlobalCacheConfig()
-    return globalCache?.directory ?? DEFAULT_CACHE_DIR
+    return globalCache?.directory ?? defaultCacheDir()
   }
 
   /**

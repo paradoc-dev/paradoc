@@ -13,8 +13,10 @@ const __dirname = path.dirname(__filename)
 const fixturesDir = path.resolve(__dirname, '../fixtures')
 const execFileAsync = promisify(execFile)
 
+// Build with tsup directly: the test home is empty, so going through pnpm
+// would make corepack download pnpm into it first.
 beforeAll(async () => {
-  await execFileAsync('pnpm', ['run', 'build'], {
+  await execFileAsync('tsup', [], {
     cwd: path.resolve(__dirname, '../..'),
   })
 })

@@ -1,9 +1,9 @@
 import { Command } from 'commander'
-import { homedir } from 'node:os'
 import kleur from 'kleur'
 import ora from 'ora'
 import prompts from 'prompts'
 import { LocalFileSystem } from '../utils/local-fs.js'
+import { paradocHomePath, userHomeDir } from '../utils/home.js'
 
 import type { GlobalConfig } from '@paradoc/schemas'
 import { registryClient } from '../utils/registry-client.js'
@@ -13,10 +13,7 @@ import { rendererManager } from '../utils/renderer-manager.js'
 /**
  * Global storage for ~/.paradoc operations
  */
-const globalStorage = new LocalFileSystem(homedir())
-const GLOBAL_DIR = '.paradoc'
-const GLOBAL_CONFIG_PATH = globalStorage.joinPath(GLOBAL_DIR, 'config.json')
-const GLOBAL_CACHE_DIR = globalStorage.joinPath(GLOBAL_DIR, 'cache')
+const globalStorage = new LocalFileSystem(userHomeDir())
 
 /**
  * Format bytes to human-readable string
@@ -81,14 +78,14 @@ export function createResetCommand(): Command {
         let configExists = false
         let cacheSize = 0
 
-        configExists = await globalStorage.exists(GLOBAL_CONFIG_PATH)
+        configExists = await globalStorage.exists(paradocHomePath('config.json'))
 
         // Read the current config before anything is cleared, so a config the
         // CLI cannot read stops the reset with nothing changed.
         const currentConfig = await configManager.loadGlobalConfig()
 
         if (!options.keepCache) {
-          cacheSize = await getDirectorySize(GLOBAL_CACHE_DIR)
+          cacheSize = await getDirectorySize(paradocHomePath('cache'))
         }
 
         // Show what will be affected
@@ -135,7 +132,7 @@ export function createResetCommand(): Command {
         // Clear cache
         if (!options.keepCache) {
           spinner.start('Clearing cache...')
-          await registryClient.initCache({ directory: GLOBAL_CACHE_DIR })
+          await registryClient.initCache({ directory: paradocHomePath('cache') })
           const cacheResult = await registryClient.clearCache()
           if (cacheResult.deleted > 0) {
             spinner.succeed(`Cleared ${cacheResult.deleted} cached ${cacheResult.deleted === 1 ? 'entry' : 'entries'}`)

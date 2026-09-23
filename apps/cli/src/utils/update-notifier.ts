@@ -6,15 +6,12 @@
  * Gracefully handles the package not being on npm yet (silent no-op).
  */
 
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { promises as fs, readFileSync } from 'node:fs'
 import semver from 'semver'
 import kleur from 'kleur'
 import { VERSION } from '../constants.js'
+import { paradocHomePath } from './home.js'
 
-const CACHE_DIR = join(homedir(), '.paradoc')
-const CACHE_FILE = join(CACHE_DIR, 'update-check.json')
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 hours
 const FETCH_TIMEOUT_MS = 5_000
 /** The documented install. @paradoc/cli is an alternative that publishes the same version. */
@@ -36,7 +33,7 @@ function shouldSkipCheck(): boolean {
 
 async function readCache(): Promise<UpdateCache | null> {
 	try {
-		const content = await fs.readFile(CACHE_FILE, 'utf-8')
+		const content = await fs.readFile(paradocHomePath('update-check.json'), 'utf-8')
 		return JSON.parse(content) as UpdateCache
 	} catch {
 		return null
@@ -45,8 +42,8 @@ async function readCache(): Promise<UpdateCache | null> {
 
 async function writeCache(cache: UpdateCache): Promise<void> {
 	try {
-		await fs.mkdir(CACHE_DIR, { recursive: true })
-		await fs.writeFile(CACHE_FILE, JSON.stringify(cache))
+		await fs.mkdir(paradocHomePath(), { recursive: true })
+		await fs.writeFile(paradocHomePath('update-check.json'), JSON.stringify(cache))
 	} catch {
 		// Silently ignore write errors
 	}
@@ -102,7 +99,7 @@ export function printUpdateNotice(): void {
 	if (shouldSkipCheck()) return
 
 	try {
-		const content = readFileSync(CACHE_FILE, 'utf-8')
+		const content = readFileSync(paradocHomePath('update-check.json'), 'utf-8')
 		const cache = JSON.parse(content) as UpdateCache
 
 		if (cache.latestVersion && semver.gt(cache.latestVersion, VERSION)) {

@@ -5,10 +5,10 @@
  * Supports global, project, and per-registry cache settings.
  */
 
-import { homedir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { LocalFileSystem } from './local-fs.js'
+import { paradocHomePath, userHomeDir } from './home.js'
 
 /**
  * Cache entry stored on disk
@@ -54,24 +54,25 @@ export type CacheResult<T> =
 export const DEFAULT_CACHE_TTL = 3600
 
 /**
- * Default cache directory
+ * Default cache directory, `~/.paradoc/cache`
  */
-const homeDir = homedir()
-const defaultStorage = new LocalFileSystem(homeDir)
-export const DEFAULT_CACHE_DIR = defaultStorage.joinPath('.paradoc', 'cache')
+export function defaultCacheDir(): string {
+  return paradocHomePath('cache')
+}
 
 /**
  * Cache manager for registry data
  */
 class CacheManager {
-  private directory: string = DEFAULT_CACHE_DIR
+  private directory: string
   private defaultTtl: number = DEFAULT_CACHE_TTL
   private storage: LocalFileSystem
   private initialized = false
 
   constructor() {
     // Initialize storage with home directory as base
-    this.storage = new LocalFileSystem(homeDir)
+    this.directory = defaultCacheDir()
+    this.storage = new LocalFileSystem(userHomeDir())
   }
 
   /**
