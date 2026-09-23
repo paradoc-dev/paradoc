@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { Command } from 'commander'
 import kleur from 'kleur'
 import * as Diff from 'diff'
@@ -121,16 +122,18 @@ export function createApplyCommand(): Command {
         const { check = false, reverse = false, dryRun = false } = options
 
         try {
+          // Resolve the patch path against the caller's directory before moving to the repo root.
+          const patchPath = resolve(patchFile)
           const repoRoot = await ensureRepo()
           process.chdir(repoRoot)
 
           const storage = new LocalFileSystem(repoRoot)
 
-          if (!(await fileExists(patchFile))) {
+          if (!(await fileExists(patchPath))) {
             throw new Error(`Patch file not found: ${patchFile}`)
           }
 
-          const patchContent = await storage.readFile(patchFile)
+          const patchContent = await storage.readFile(patchPath)
           const parsedPatches = Diff.parsePatch(patchContent)
 
           if (!parsedPatches || parsedPatches.length === 0) {
@@ -196,77 +199,70 @@ export function createApplyCommand(): Command {
             process.exit(0)
           }
 
+          const conflicts = results.filter(({ result }) => result === false)
+          if (conflicts.length > 0) {
+            console.error(kleur.red(`Patch does not apply: ${conflicts.length} conflict(s) detected`))
+            for (const { target } of conflicts) {
+              console.error(kleur.red(`✗ ${target.filename}: patch does not apply (conflict detected)`))
+            }
+            console.log('')
+            console.log('No files were modified.')
+            console.log('')
+            console.log('Tips:')
+            console.log('  - Ensure working tree matches patch context')
+            console.log('  - Try applying on the version the patch was created from')
+            console.log('  - Resolve conflicts manually if needed')
+            process.exit(1)
+          }
+
           const applied: string[] = []
-          const failed: Array<{ filename: string; error: string }> = []
+          const written: Array<{ target: PatchTarget; existedBefore: boolean }> = []
 
-          for (const { target, result } of results) {
-            try {
-              if (result === false) {
-                throw new Error('Patch does not apply (conflict detected)')
-              }
+          try {
+            for (const { target, result } of results) {
+              if (result === false) continue
 
-              const fullPath = storage.getAbsolutePath(target.filename)
-
-              if (!target.isDeletion || reverse) {
-                const dirPath = storage.dirname(fullPath)
-                await storage.mkdir(dirPath, true)
-              }
-
+              const existedBefore = await fileExists(target.filename)
               const deletesFile = (target.isDeletion && !reverse) || (target.isNewFile && reverse)
 
               if (deletesFile) {
-                if (await fileExists(fullPath)) {
+                if (existedBefore) {
+                  written.push({ target, existedBefore })
                   await storage.deleteFile(target.filename)
                   console.log(kleur.green(`✓ Deleted ${target.filename}`))
                 }
               } else {
+                written.push({ target, existedBefore })
                 await storage.writeFile(target.filename, result)
                 console.log(kleur.green(`✓ Applied to ${target.filename}`))
               }
 
               applied.push(target.filename)
-            } catch (err: unknown) {
-              const message = err instanceof Error ? err.message : 'Unknown error'
-              failed.push({ filename: target.filename, error: message })
-              console.error(kleur.red(`✗ Failed to apply to ${target.filename}`))
-              console.error(kleur.red(`  ${message}`))
             }
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err)
+            for (const { target, existedBefore } of written.reverse()) {
+              if (existedBefore) {
+                await storage.writeFile(target.filename, target.oldContent)
+              } else if (await fileExists(target.filename)) {
+                await storage.deleteFile(target.filename)
+              }
+            }
+            throw new Error(`${message}. All changes from this patch were rolled back.`)
           }
 
           console.log('')
-
-          if (applied.length > 0) {
-            console.log(
-              kleur.green(
-                `Successfully applied ${applied.length} patch(es)${reverse ? ' (reversed)' : ''}`
-              )
+          console.log(
+            kleur.green(
+              `Successfully applied ${applied.length} patch(es)${reverse ? ' (reversed)' : ''}`
             )
-            console.log('')
-            console.log('Modified files:')
-            for (const filename of applied) {
-              console.log(`  ${filename}`)
-            }
-            console.log('')
-            console.log('Next steps:')
-            console.log('  paradoc status')
-            console.log('  paradoc diff')
-            console.log('  paradoc add <files>')
-            console.log('  paradoc commit -m "message"')
-            console.log('')
+          )
+          console.log('')
+          console.log('Modified files:')
+          for (const filename of applied) {
+            console.log(`  ${filename}`)
           }
-
-          if (failed.length > 0) {
-            console.log(kleur.red(`Failed to apply ${failed.length} patch(es):`))
-            for (const failure of failed) {
-              console.log(`  ${failure.filename}: ${failure.error}`)
-            }
-            console.log('')
-            console.log('Tips:')
-            console.log('  - Ensure working tree matches patch context')
-            console.log('  - Try applying on the commit the patch was created from')
-            console.log('  - Resolve conflicts manually if needed')
-            process.exit(1)
-          }
+          console.log('')
 
           if (applied.length > 0) {
             console.log('Validating modified artifacts...')

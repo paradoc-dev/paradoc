@@ -215,5 +215,112 @@ describe('CLI apply command', () => {
 
       expect(result.exitCode).toBe(1)
     })
+
+    const FILES = ['fileA.txt', 'fileB.txt', 'fileC.txt', 'fileD.txt', 'fileE.txt']
+    const ORIGINAL = 'alpha\nbeta\ngamma\n'
+
+    function multiFilePatch(files: string[]): string {
+      return files
+        .map((file) =>
+          [
+            `--- a/${file}`,
+            `+++ b/${file}`,
+            '@@ -1,3 +1,3 @@',
+            ' alpha',
+            '-beta',
+            `+beta-${file}-changed`,
+            ' gamma',
+          ].join('\n')
+        )
+        .join('\n') + '\n'
+    }
+
+    async function readAll(files: string[]): Promise<string[]> {
+      return Promise.all(files.map((file) => fs.readFile(path.join(tempDir, file), 'utf-8')))
+    }
+
+    it('should apply every file of a multi-file patch when all targets match', async () => {
+      for (const file of FILES) await fs.writeFile(path.join(tempDir, file), ORIGINAL)
+      const patchPath = path.join(tempDir, 'multi.patch')
+      await fs.writeFile(patchPath, multiFilePatch(FILES))
+
+      const result = await executeCliCommand(['apply', patchPath], { cwd: tempDir })
+
+      expect(result.exitCode).toBe(0)
+      const contents = await readAll(FILES)
+      FILES.forEach((file, i) => {
+        expect(contents[i]).toBe(`alpha\nbeta-${file}-changed\ngamma\n`)
+      })
+    })
+
+    it('should write nothing and report every conflict when any target conflicts', async () => {
+      for (const file of FILES) await fs.writeFile(path.join(tempDir, file), ORIGINAL)
+      await fs.writeFile(path.join(tempDir, 'fileB.txt'), 'alpha\nDIVERGED-beta\ngamma\n')
+      await fs.writeFile(path.join(tempDir, 'fileD.txt'), 'alpha\nDIVERGED-beta\ngamma\n')
+      const patchPath = path.join(tempDir, 'multi.patch')
+      await fs.writeFile(patchPath, multiFilePatch(FILES))
+
+      const result = await executeCliCommand(['apply', patchPath], { cwd: tempDir })
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('2 conflict(s)')
+      expect(result.stderr).toContain('fileB.txt')
+      expect(result.stderr).toContain('fileD.txt')
+      expect(result.stdout).toContain('No files were modified.')
+      expect(result.stdout).not.toContain('Applied to')
+      expect(await readAll(FILES)).toEqual([
+        ORIGINAL,
+        'alpha\nDIVERGED-beta\ngamma\n',
+        ORIGINAL,
+        'alpha\nDIVERGED-beta\ngamma\n',
+        ORIGINAL,
+      ])
+    })
+
+    it('should roll back files already written when a later write fails', async () => {
+      await fs.writeFile(path.join(tempDir, 'fileA.txt'), ORIGINAL)
+      // A regular file where the patch needs a directory makes the second write fail.
+      await fs.writeFile(path.join(tempDir, 'blocker'), 'not a directory\n')
+      const patch =
+        multiFilePatch(['fileA.txt']) +
+        ['--- /dev/null', '+++ b/blocker/new.txt', '@@ -0,0 +1 @@', '+created'].join('\n') +
+        '\n'
+      const patchPath = path.join(tempDir, 'rollback.patch')
+      await fs.writeFile(patchPath, patch)
+
+      const result = await executeCliCommand(['apply', patchPath], { cwd: tempDir })
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('rolled back')
+      expect(await fs.readFile(path.join(tempDir, 'fileA.txt'), 'utf-8')).toBe(ORIGINAL)
+      expect(await fs.readFile(path.join(tempDir, 'blocker'), 'utf-8')).toBe('not a directory\n')
+    })
+
+    it('should resolve a relative patch path against the invoking directory', async () => {
+      await fs.writeFile(path.join(tempDir, 'fileA.txt'), ORIGINAL)
+      const subdir = path.join(tempDir, 'subdir')
+      await fs.mkdir(subdir)
+      await fs.writeFile(path.join(subdir, 'my.patch'), multiFilePatch(['fileA.txt']))
+
+      const result = await executeCliCommand(['apply', 'my.patch'], { cwd: subdir })
+
+      expect(result.exitCode).toBe(0)
+      expect(await fs.readFile(path.join(tempDir, 'fileA.txt'), 'utf-8')).toBe(
+        'alpha\nbeta-fileA.txt-changed\ngamma\n'
+      )
+    })
+
+    it('should not resolve a relative patch path against the repo root', async () => {
+      await fs.writeFile(path.join(tempDir, 'fileA.txt'), ORIGINAL)
+      await fs.writeFile(path.join(tempDir, 'root.patch'), multiFilePatch(['fileA.txt']))
+      const subdir = path.join(tempDir, 'subdir')
+      await fs.mkdir(subdir)
+
+      const result = await executeCliCommand(['apply', 'root.patch'], { cwd: subdir })
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('Patch file not found: root.patch')
+      expect(await fs.readFile(path.join(tempDir, 'fileA.txt'), 'utf-8')).toBe(ORIGINAL)
+    })
   })
 })
