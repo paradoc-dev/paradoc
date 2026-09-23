@@ -192,12 +192,13 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * Read response body with size limit (for streaming responses without Content-Length)
+ * Read a response body, refusing it once it grows past maxSize
+ * (covers streaming responses without Content-Length)
  */
-async function readWithSizeLimit(response: Response, url: string, maxSize: number): Promise<string> {
+async function readBytesWithSizeLimit(response: Response, url: string, maxSize: number): Promise<Uint8Array<ArrayBuffer>> {
   const reader = response.body?.getReader()
   if (!reader) {
-    return response.text()
+    return new Uint8Array(await response.arrayBuffer())
   }
 
   const chunks: Uint8Array[] = []
@@ -227,17 +228,27 @@ async function readWithSizeLimit(response: Response, url: string, maxSize: numbe
     position += chunk.length
   }
 
-  return new TextDecoder().decode(allChunks)
+  return allChunks
 }
 
 /**
- * Fetch JSON from a URL with size limits and timeout
+ * Limits and checks applied to one registry request
  */
-async function fetchJson<T>(
-  url: string,
-  headers?: Record<string, string>,
-  maxSize: number = SECURITY_LIMITS.MAX_ARTIFACT_SIZE,
-): Promise<T> {
+interface FetchLimits {
+  /** Abort the request if response headers do not arrive within this time. */
+  timeoutMs: number
+  /** Largest body accepted, by Content-Length and by bytes read. */
+  maxSize: number
+  headers?: Record<string, string>
+  /** Returns an error message when the response Content-Type is not accepted. */
+  validateContentType: (contentType: string) => string | null
+}
+
+/**
+ * Fetch a URL and read its body as bytes, enforcing URL validation, timeout,
+ * status, content-type, and size limits
+ */
+async function fetchBytesWithLimits(url: string, limits: FetchLimits): Promise<Uint8Array<ArrayBuffer>> {
   // Validate URL before making request
   const warnings = assertValidUrl(url)
   if (warnings.length > 0) {
@@ -246,14 +257,11 @@ async function fetchJson<T>(
   }
 
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), NETWORK_TIMEOUTS.CONNECT_TIMEOUT)
+  const timeoutId = setTimeout(() => controller.abort(), limits.timeoutMs)
 
   try {
     const response = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-        ...headers,
-      },
+      headers: { ...limits.headers },
       signal: controller.signal,
     })
 
@@ -267,178 +275,56 @@ async function fetchJson<T>(
       )
     }
 
-    // Validate Content-Type for artifacts (must be JSON or YAML)
     const contentType = response.headers.get('content-type') ?? ''
-    const contentTypeError = validateArtifactContentType(contentType)
+    const contentTypeError = limits.validateContentType(contentType)
     if (contentTypeError) {
       throw new ContentTypeError(contentTypeError, url, contentType)
     }
 
     // Check Content-Length before downloading
-    checkContentLength(response, url, maxSize)
+    checkContentLength(response, url, limits.maxSize)
 
-    // Read with size limit (handles streaming responses)
-    const text = await readWithSizeLimit(response, url, maxSize)
-
-    return JSON.parse(text) as T
+    return await readBytesWithSizeLimit(response, url, limits.maxSize)
   } catch (error) {
     clearTimeout(timeoutId)
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new RequestTimeoutError(`Request timed out after ${NETWORK_TIMEOUTS.CONNECT_TIMEOUT}ms`, url)
+      throw new RequestTimeoutError(`Request timed out after ${limits.timeoutMs}ms`, url)
     }
     throw error
   }
 }
 
 /**
- * Read binary response body with size limit
+ * Fetch registry JSON (index or item); the body must be a JSON or YAML content type
  */
-async function readBinaryWithSizeLimit(response: Response, url: string, maxSize: number): Promise<ArrayBuffer> {
-  const reader = response.body?.getReader()
-  if (!reader) {
-    return response.arrayBuffer()
-  }
-
-  const chunks: Uint8Array[] = []
-  let totalSize = 0
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    totalSize += value.length
-    if (totalSize > maxSize) {
-      reader.cancel()
-      throw new FileSizeExceededError(
-        `Download size (>${formatBytes(totalSize)}) exceeds limit (${formatBytes(maxSize)})`,
-        url,
-        totalSize,
-        maxSize
-      )
-    }
-    chunks.push(value)
-  }
-
-  const allChunks = new Uint8Array(totalSize)
-  let position = 0
-  for (const chunk of chunks) {
-    allChunks.set(chunk, position)
-    position += chunk.length
-  }
-
-  return allChunks.buffer
-}
-
-/**
- * Fetch binary data from a URL with size limits, timeout, and content-type validation
- */
-async function fetchBinary(
+async function fetchJson<T>(
   url: string,
-  headers?: Record<string, string>,
-  maxSize: number = SECURITY_LIMITS.MAX_LAYER_SIZE,
-  allowedContentTypes: readonly string[] = DEFAULT_ALLOWED_CONTENT_TYPES,
-): Promise<ArrayBuffer> {
-  // Validate URL before making request
-  const warnings = assertValidUrl(url)
-  if (warnings.length > 0) {
-    warnings.forEach((w) => console.warn(`Warning: ${w}`))
-  }
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT)
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        ...headers,
-      },
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      throw new RegistryFetchError(
-        `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-        response.status,
-        url
-      )
-    }
-
-    // Validate Content-Type for layers
-    const contentType = response.headers.get('content-type') ?? ''
-    const contentTypeError = validateLayerContentType(contentType, allowedContentTypes)
-    if (contentTypeError) {
-      throw new ContentTypeError(contentTypeError, url, contentType)
-    }
-
-    // Check Content-Length before downloading
-    checkContentLength(response, url, maxSize)
-
-    return readBinaryWithSizeLimit(response, url, maxSize)
-  } catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new RequestTimeoutError(`Request timed out after ${NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT}ms`, url)
-    }
-    throw error
-  }
+  headers: Record<string, string> | undefined,
+  maxSize: number,
+): Promise<T> {
+  const bytes = await fetchBytesWithLimits(url, {
+    timeoutMs: NETWORK_TIMEOUTS.CONNECT_TIMEOUT,
+    maxSize,
+    headers: { Accept: 'application/json', ...headers },
+    validateContentType: validateArtifactContentType,
+  })
+  return JSON.parse(new TextDecoder().decode(bytes)) as T
 }
 
 /**
- * Fetch text content from a URL with size limits, timeout, and content-type validation
+ * Fetch layer bytes; the body must be one of the allowed layer content types
  */
-async function fetchText(
+async function fetchLayerBytes(
   url: string,
-  headers?: Record<string, string>,
-  maxSize: number = SECURITY_LIMITS.MAX_LAYER_SIZE,
-  allowedContentTypes: readonly string[] = DEFAULT_ALLOWED_CONTENT_TYPES,
-): Promise<string> {
-  // Validate URL before making request
-  const warnings = assertValidUrl(url)
-  if (warnings.length > 0) {
-    warnings.forEach((w) => console.warn(`Warning: ${w}`))
-  }
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT)
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        ...headers,
-      },
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      throw new RegistryFetchError(
-        `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-        response.status,
-        url
-      )
-    }
-
-    // Validate Content-Type for layers
-    const contentType = response.headers.get('content-type') ?? ''
-    const contentTypeError = validateLayerContentType(contentType, allowedContentTypes)
-    if (contentTypeError) {
-      throw new ContentTypeError(contentTypeError, url, contentType)
-    }
-
-    // Check Content-Length before downloading
-    checkContentLength(response, url, maxSize)
-
-    return readWithSizeLimit(response, url, maxSize)
-  } catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new RequestTimeoutError(`Request timed out after ${NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT}ms`, url)
-    }
-    throw error
-  }
+  headers: Record<string, string> | undefined,
+  allowedContentTypes: readonly string[],
+): Promise<Uint8Array<ArrayBuffer>> {
+  return fetchBytesWithLimits(url, {
+    timeoutMs: NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT,
+    maxSize: SECURITY_LIMITS.MAX_LAYER_SIZE,
+    headers,
+    validateContentType: (contentType) => validateLayerContentType(contentType, allowedContentTypes),
+  })
 }
 
 /**
@@ -609,12 +495,8 @@ export class RegistryClient {
   ): Promise<string> {
     // If it's already a full URL, use it directly
     const url = filePath.startsWith('https') || filePath.startsWith('http') ? filePath : buildLayerFileUrl(registry, filePath)
-    return fetchText(
-      url,
-      registry.headers,
-      SECURITY_LIMITS.MAX_LAYER_SIZE,
-      allowedContentTypes,
-    )
+    const bytes = await fetchLayerBytes(url, registry.headers, allowedContentTypes)
+    return new TextDecoder().decode(bytes)
   }
 
   /**
@@ -629,12 +511,8 @@ export class RegistryClient {
     allowedContentTypes: readonly string[] = DEFAULT_ALLOWED_CONTENT_TYPES
   ): Promise<ArrayBuffer> {
     const url = filePath.startsWith('https') || filePath.startsWith('http') ? filePath : buildLayerFileUrl(registry, filePath)
-    return fetchBinary(
-      url,
-      registry.headers,
-      SECURITY_LIMITS.MAX_LAYER_SIZE,
-      allowedContentTypes,
-    )
+    const bytes = await fetchLayerBytes(url, registry.headers, allowedContentTypes)
+    return bytes.buffer
   }
 
   /**
