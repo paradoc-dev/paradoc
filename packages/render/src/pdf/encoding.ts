@@ -68,7 +68,13 @@ export function decodeAll(text: string): DecodedEncodingWithPosition[] {
 
   for (let index = 0; index < text.length; index++) {
     const digit = ALPHABET.indexOf(text[index] as (typeof ALPHABET)[number])
-    if (digit === -1) continue
+    if (digit === -1) {
+      // A marker is ENCODING_LENGTH consecutive glyphs. Any other character
+      // abandons a partial run, so stray glyphs can never join across text.
+      found = []
+      start = -1
+      continue
+    }
     if (found.length === 0) start = index
     found.push(digit)
     if (found.length < ENCODING_LENGTH) continue

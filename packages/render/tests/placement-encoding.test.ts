@@ -38,6 +38,28 @@ describe('encoding', () => {
     expect(decoded[1]!.fieldType).toBe(1)
   })
 
+  it('decodes a clean run of consecutive marker glyphs', () => {
+    const text = `prose ${ALPHABET[0].repeat(7)}${ALPHABET[1]} prose`
+    expect(decodeAll(text)).toEqual([{ signerIndex: 0, fieldType: 1, position: 6 }])
+  })
+
+  it('ignores a partial run split by ordinary text', () => {
+    const text = `${ALPHABET[0].repeat(7)} unrelated prose between stray glyphs ${ALPHABET[1]}`
+    expect(decodeAll(text)).toEqual([])
+  })
+
+  it('ignores stray glyphs scattered through prose', () => {
+    const text = Array.from({ length: 8 }, (_, index) => `word ${ALPHABET[index % 4]}`).join(' ')
+    expect(decodeAll(text)).toEqual([])
+  })
+
+  it('decodes a whole marker that follows an abandoned partial run', () => {
+    const text = `${ALPHABET[2].repeat(5)} gap ${encode(9, FieldType.INITIALS)}____`
+    const decoded = decodeAll(text)
+    expect(decoded).toHaveLength(1)
+    expect(decoded[0]).toMatchObject({ signerIndex: 9, fieldType: FieldType.INITIALS, position: 10 })
+  })
+
   it('strips encodings without touching surrounding text', () => {
     const text = `sign: ${encode(3, 0)}____`
     expect(stripEncoding(text)).toBe('sign: ____')
