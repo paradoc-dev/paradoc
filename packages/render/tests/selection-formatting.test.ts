@@ -7,7 +7,8 @@ import { renderDocx } from '../src/docx'
 import { inspectAcroFormFields, renderPdf } from '../src/pdf'
 import { renderText } from '../src/text'
 import { formatFieldValue, formattedValueIssues } from '../src/text/field-formatter'
-import { compressedCheckboxPdf, textFieldsPdf } from './pdf-fixtures'
+import { compressedCheckboxPdf, pagePdf, textFieldsPdf } from './pdf-fixtures'
+import { textItemsWithPdfjs } from './pdfjs-reference'
 
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
@@ -34,7 +35,7 @@ const form = {
 
 const data = { enabled: true, choice: 'wiring', choices: ['plumbing', 'roofing'], score: 4, unscored: 3 }
 const names = ['enabled', 'choice', 'choices', 'score', 'unscored'] as const
-const template = names.map((name) => `{{${name}}}`).join('|')
+const template = names.map((name) => `{{fields.${name}}}`).join('|')
 
 function minimalDocx(document: string): Uint8Array {
 	return zipSync({
@@ -81,18 +82,36 @@ async function everyOutput(formatter: Formatter): Promise<Record<'text' | 'docx'
 }
 
 describe('selection and rating values across the outputs', () => {
-	it('prints the same boolean, enum, multiselect, and rating text in text, DOCX, and PDF', async () => {
+	it('prints the same boolean, enum, multiselect, and rating text in text and DOCX', async () => {
 		const outputs = await everyOutput(createFormatter())
 		expect(outputs.text).toEqual(['Yes', 'Wiring', 'Plumbing and Roofing', '4 of 5', '3'])
 		expect(outputs.docx).toEqual(outputs.text)
-		expect(outputs.pdf).toEqual(outputs.text)
+	})
+
+	it('draws choice values, not labels, as PDF overlay text', async () => {
+		const drawn = await renderPdf({
+			template: pagePdf([[300, 300]]),
+			form,
+			formatter: createFormatter(),
+			data,
+			overlays: [{ page: 1, x: 20, y: 20, field: 'choice' }, { page: 1, x: 20, y: 60, field: 'choices' }],
+		})
+		const text = (await textItemsWithPdfjs(drawn)).map((item) => item.text)
+		expect(text).toEqual(expect.arrayContaining(['wiring', 'plumbing, roofing']))
+		expect(text.join(' ')).not.toMatch(/Wiring|Plumbing/)
+	})
+
+	it('writes choice values, not labels, into PDF boxes', async () => {
+		// A PDF box takes the code the form expects; the label is for reading.
+		const outputs = await everyOutput(createFormatter())
+		expect(outputs.pdf).toEqual(['Yes', 'wiring', 'plumbing, roofing', '4 of 5', '3'])
 	})
 
 	it('follows the document locale in every output', async () => {
 		const german = await everyOutput(createFormatter({ locale: 'de-DE' }))
 		expect(german.text).toEqual(['Ja', 'Wiring', 'Plumbing und Roofing', '4 von 5', '3'])
 		expect(german.docx).toEqual(german.text)
-		expect(german.pdf).toEqual(german.text)
+		expect(german.pdf).toEqual(['Ja', 'wiring', 'plumbing, roofing', '4 von 5', '3'])
 
 		const arabic = createFormatter({ locale: 'ar-SA' })
 		const text = renderText({ form, formatter: arabic, template, data }).split('|')

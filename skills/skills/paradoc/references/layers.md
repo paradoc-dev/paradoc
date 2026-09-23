@@ -87,13 +87,13 @@ For workflow contexts (creating artifacts from scratch, converting PDFs): ALWAYS
 
 ## Bindings
 
-Bindings map form field IDs (keys) to template placeholder names (values). Essential for PDF/DOCX where placeholder names differ from field IDs. Optional for text/markdown/HTML where you can use `{{fields.fieldName}}` directly.
+Bindings map template placeholder or PDF field names (keys) to Paradoc data paths (values). Essential for PDF/DOCX where placeholder names differ from field IDs. Optional for text/markdown/HTML where you can use `{{fields.fieldName}}` directly.
 
 ```json
 "bindings": {
-  "tenantName": "Tenant_Full_Name",
-  "monthlyRent": "Monthly_Rent_Amount",
-  "startDate": "Lease_Start_Date"
+  "Tenant_Full_Name": "tenantName",
+  "Monthly_Rent_Amount": "monthlyRent",
+  "Lease_Start_Date": "startDate"
 }
 ```
 

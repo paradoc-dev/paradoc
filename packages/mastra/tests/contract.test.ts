@@ -14,8 +14,10 @@ import {
 	paradocTools,
 } from '../src'
 import { executeExtract, operationNames, toolDefinitions } from '@paradoc/ai-tools'
+import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 
 const documentArtifact = {
+	$schema: PARADOC_SCHEMA_URL,
 	kind: 'document' as const,
 	name: 'notice',
 	layers: {

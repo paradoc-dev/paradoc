@@ -106,7 +106,7 @@ export async function renderPdf({
   layerFont,
 }: RenderPdfOptions): Promise<BinaryContent> {
   const preprocessed = form
-    ? formatFieldData(data, form, formatter)
+    ? formatFieldData(data, form, formatter, { choices: 'value' })
     : data
   if (form) {
     const sources = Object.values(bindings ?? {}).flatMap((binding) =>

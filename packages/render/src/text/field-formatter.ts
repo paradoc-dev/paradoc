@@ -20,6 +20,11 @@ export type ProgressiveFormattingOptions = FormatterProgressivePolicy
 export interface FieldFormattingOptions {
 	/** Enable placeholders for missing/incomplete values for a progressive preview. */
 	progressive?: ProgressiveFormattingOptions
+	/**
+	 * What a choice prints: its option label (the default) or its option value.
+	 * A PDF box writes the value, the code the form expects, such as "C" or "5".
+	 */
+	choices?: 'label' | 'value'
 }
 
 type RecordValue = Record<string, unknown>
@@ -287,8 +292,15 @@ function formatLeaf(
 			case 'number': return callFormatter(path, field.type, value, () => formatter.safeFormatNumber(numberInput(value, path, field.type)), options)
 			case 'percentage': return callFormatter(path, field.type, value, () => formatter.safeFormatPercentage(numberInput(value, path, field.type)), options)
 			case 'boolean': return callFormatter(path, field.type, value, () => formatter.safeFormatBoolean(booleanInput(value, path, field.type)), options)
-			case 'enum': return callFormatter(path, field.type, value, () => formatter.safeFormatEnum(optionInput(value, path, field.type), { options: field.enum }), options)
-			case 'multiselect': return callFormatterWithFallback(
+			case 'enum': if (options?.choices === 'value') {
+				const choice = optionInput(value, path, field.type)
+				return new FormattedFieldValue(value, String(choice))
+			}
+				return callFormatter(path, field.type, value, () => formatter.safeFormatEnum(optionInput(value, path, field.type), { options: field.enum }), options)
+			case 'multiselect': if (options?.choices === 'value') {
+				return new FormattedFieldValue(value, optionListInput(value, path, field.type).map(String).join(', '))
+			}
+				return callFormatterWithFallback(
 				path,
 				field.type,
 				value,

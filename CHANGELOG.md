@@ -4,6 +4,12 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+### Fixed
+
+- `@paradoc/render`: an enum or multiselect bound to a PDF text box, or drawn by a PDF overlay, writes the option value (the code the form expects, such as `C`, `5`, or `A`), not its label. The W-9 LLC classification, exempt payee code, and FATCA code boxes fill again; since field appearances were honored, their labels overflowed the boxes. Text, Markdown, HTML, and DOCX layers still print labels. `formatFieldData` takes `choices: 'value'` for the same behavior.
+- `@paradoc/expr`: the checker keeps the numeric-index rule for arrays, so `list["key"]` reports a type mismatch instead of an unknown reference, matching evaluation. Bracket keys still read object members.
+- The `paradoc` skill's PDF bindings and layers references state the binding direction correctly: keys are template or PDF field names, values are Paradoc data paths.
+
 ### Added
 
 - One condition language in templates. Text, Markdown, HTML, and DOCX templates keep their block markers (`{{#if}}`, `{{#unless}}`, `{{else}}`, `{{#each}}`; `{{IF}}`, `{{ELSE}}`, `{{FOR row IN list}}`), and everything inside a marker is an artifact expression evaluated by `@paradoc/expr`, with the same types, functions, decimal precision, and aggregates as field logic. Templates read the artifact's own expression context: `fields`, computed values by name, `parties.<role>`, and, in a checklist, `items.<id>`. A condition must be boolean and a loop source a list; `{{#each}}` binds `item` and `parent`, a DOCX `FOR` binds its named row, and `index(row)`, `first(row)`, and `last(row)` give a row's position inside a loop. Placeholders print a path formatted for its type and a computed value by its result type, with HTML escaping unchanged. Signing directives take expression arguments: `{{signature(parties.client, "client-sign")}}`, or `{{signature("client-sign")}}` inside a party loop.

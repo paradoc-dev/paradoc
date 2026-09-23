@@ -43,25 +43,26 @@ PDF-specific layer details. For generic layer concepts (kinds, MIME types, signa
 
 ## Bindings Object
 
-Maps Paradoc field IDs (keys) to PDF AcroForm field names (values).
+Maps PDF AcroForm field names (keys) to Paradoc data paths (values).
 
 ```json
 "bindings": {
-  "fullName": "Text_FullName",
-  "ssn": "SSN_Field",
-  "filingStatus": "RadioGroup_Status",
-  "agreeToTerms": "Checkbox_Agree",
-  "mailingAddress": "Text_Address_Line1"
+  "Text_FullName": "fullName",
+  "SSN_Field": "ssn",
+  "RadioGroup_Status": "filingStatus",
+  "Checkbox_Agree": "agreeToTerms",
+  "Text_Address_Line1": "mailingAddress.line1"
 }
 ```
 
 ### Rules
 
-- Keys MUST be valid Paradoc field IDs from the `fields` object
-- Values MUST be the EXACT PDF AcroForm field names (case-sensitive)
-- Every field with a corresponding PDF field SHOULD have a binding
+- Keys MUST be the EXACT PDF AcroForm field names (case-sensitive)
+- Values MUST be valid Paradoc data paths: a field ID from the `fields` object, or `parties.<role>.<member>`
+- Every PDF field with a corresponding Paradoc value SHOULD have a binding
 - Fields without PDF counterparts (computed, derived) are omitted
-- Nested fieldset fields use dot notation: `"employment.employerName": "Employer_Name_Field"`
+- Nested fieldset fields use dot notation: `"Employer_Name_Field": "employment.employerName"`
+- An enum or multiselect bound to a text box writes the option **value**, the code the form expects (for example `C`, `5`, or `A`), never its label. Labels are for reading; give options the values the paper form asks for.
 
 ### How bound values are drawn
 

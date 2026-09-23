@@ -66,6 +66,7 @@
   },
   "devDependencies": {
     "@mastra/core": "1.64.0",
+    "@paradoc/core": "workspace:*",
     "@paradoc/eslint-config": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",

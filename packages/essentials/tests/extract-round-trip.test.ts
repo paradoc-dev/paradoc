@@ -27,10 +27,27 @@ function segments(path: string): string[] {
   return path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
 }
 
+/**
+ * A text value that satisfies the field's pattern. It covers the pattern shapes
+ * the essentials forms use; an unknown shape fails loudly instead of sampling
+ * an invalid value the form would never accept.
+ */
+function patterned(pattern: string, seed: number): string {
+  const first = pattern.replace(/^\^\(?/, '').replace(/\)?\$$/, '').split('|')[0]!
+  const digit = (index: number) => String((seed + index) % 10)
+  let index = 0
+  const value = first
+    .replace(/\\d\{(\d+)\}/g, (_, count: string) => Array.from({ length: Number(count) }, () => digit(index++)).join(''))
+    .replace(/\[A-Za-z0-9\]\+/g, `A${seed}B`)
+    .replace(/-\?/g, '-')
+  if (!new RegExp(pattern).test(value)) throw new Error(`No sample for pattern ${pattern}`)
+  return value
+}
+
 /** A value of the field's type that the fill path can write and extraction can read. */
 function sample(field: FormField, seed: number): unknown {
   switch (field.type) {
-    case 'text': return `Value ${seed}`
+    case 'text': return field.pattern ? patterned(field.pattern, seed) : `Value ${seed}`
     case 'email': return `person${seed}@example.com`
     case 'boolean': return true
     case 'number': return 1000 + seed
@@ -92,7 +109,7 @@ function plan(spec: Spec, bindings: Record<string, string>): Plan {
       if (!(root! in fields)) {
         const parts = splitParts.get(root!)
         seed += 1
-        fields[root!] = parts && field.type === 'text'
+        fields[root!] = parts && field.type === 'text' && !field.pattern
           ? Array.from({ length: parts }, (_, index) => `${seed}${index}`).join('-')
           : sample(field, seed)
       }
@@ -125,28 +142,9 @@ function valueIn(data: { fields: Record<string, unknown>; parties?: Record<strin
   return value
 }
 
-/**
- * Fill the form, dropping any sampled value the PDF field is too small to hold.
- * The official W-9's LLC box takes one letter, while the artifact prints the
- * option label, so that value cannot be filled at all; every other binding is
- * still exercised.
- */
-async function fill(form: EssentialsForm, layer: string, bindings: Record<string, string>, planned: Plan): Promise<Uint8Array> {
-  for (;;) {
-    try {
-      return await form.render({ layer, data: planned.data } as never) as Uint8Array
-    } catch (error) {
-      const field = (error as { field?: unknown }).field
-      const binding = typeof field === 'string' ? bindings[field] : undefined
-      if (!binding) throw error
-      for (const path of binding.split(',').map((part) => part.split(':')[0]!.trim())) {
-        const root = segments(path)[0]!
-        delete planned.data.fields[root]
-        for (const key of [...planned.exact.keys()]) if (segments(key)[0] === root) planned.exact.delete(key)
-        for (const key of [...planned.joined]) if (segments(key)[0] === root) planned.joined.delete(key)
-      }
-    }
-  }
+/** Fill the form with every sampled value; a value its PDF field cannot hold fails the test. */
+async function fill(form: EssentialsForm, layer: string, planned: Plan): Promise<Uint8Array> {
+  return await form.render({ layer, data: planned.data } as never) as Uint8Array
 }
 
 const pdfLayers = (form: EssentialsForm) =>
@@ -157,7 +155,7 @@ describe('extract from filled essentials forms', () => {
     for (const [layer, definition] of pdfLayers(form)) {
       it(`${name} (${layer}) returns every exactly reversible value it was filled with`, async () => {
         const planned = plan(form.spec as Spec, definition.bindings!)
-        const pdf = await fill(form, layer, definition.bindings!, planned)
+        const pdf = await fill(form, layer, planned)
         const { exact, joined } = planned
         const result = await form.extract(pdf, { layer })
         const byPath = new Map<string, PdfExtractionEntry>(result.report.entries.map((entry) => [entry.path, entry]))
