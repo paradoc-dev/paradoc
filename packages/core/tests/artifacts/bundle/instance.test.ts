@@ -471,5 +471,80 @@ describe('BundleInstance', () => {
       expect(inlineContent.artifact.kind).toBe('bundle')
       expect(inlineContent.artifact.name).toBe('inner')
     })
+
+    const textDocument = (name: string, text: string) =>
+      document()
+        .name(name)
+        .version('1.0.0')
+        .title(name)
+        .inlineLayer('default', { mimeType: 'text/plain', text })
+        .defaultLayer('default')
+        .build()
+
+    const decode = (content: Uint8Array | undefined) => new TextDecoder().decode(content)
+
+    const nestedFixture = () => {
+      const docA = textDocument('doc-a', 'Content A')
+      const docB = textDocument('doc-b', 'Content B')
+      const cover = textDocument('cover', 'Cover')
+      const inner = bundle().name('inner').inline('docA', docA).inline('docB', docB).build()
+      const outer = bundle().name('outer').inline('cover', cover).inline('nested', inner).build()
+      const innerDraft = inner.prepare({ docA: docA.prepare(), docB: docB.prepare() })
+      return { cover, inner, outer, innerDraft }
+    }
+
+    test('render keeps every part of a nested bundle under a folder-style key', async () => {
+      const { cover, outer, innerDraft } = nestedFixture()
+
+      const rendered = await outer.prepare({ cover: cover.prepare(), nested: innerDraft }).render()
+
+      expect(Object.keys(rendered.outputs)).toEqual(['cover', 'nested/docA', 'nested/docB'])
+      expect(decode(rendered.outputs['nested/docA']?.content)).toBe('Content A')
+      expect(decode(rendered.outputs['nested/docB']?.content)).toBe('Content B')
+      expect(rendered.outputs['nested/docA']?.filename).toBe('nested/docA.txt')
+      expect(rendered.outputs['nested/docB']?.filename).toBe('nested/docB.txt')
+      expect(rendered.outputs.cover?.filename).toBe('cover.txt')
+    })
+
+    test('assemble names nested parts exactly as render does', async () => {
+      const { cover, outer, innerDraft } = nestedFixture()
+      const coverDraft = cover.prepare()
+
+      const rendered = await outer.prepare({ cover: coverDraft, nested: innerDraft }).render()
+      const assembled = await outer.assemble({ contents: { cover: coverDraft, nested: innerDraft } })
+
+      expect(Object.keys(assembled.outputs)).toEqual(Object.keys(rendered.outputs))
+      for (const [key, output] of Object.entries(rendered.outputs)) {
+        expect(assembled.outputs[key]).toEqual(output)
+      }
+    })
+
+    test('two levels of nesting compose into a deeper folder', async () => {
+      const { inner, innerDraft } = nestedFixture()
+      const middle = bundle().name('middle').inline('inner', inner).build()
+      const top = bundle().name('top').inline('middle', middle).build()
+      const middleDraft = middle.prepare({ inner: innerDraft })
+
+      const rendered = await top.prepare({ middle: middleDraft }).render()
+      const assembled = await top.assemble({ contents: { middle: middleDraft } })
+
+      expect(Object.keys(rendered.outputs)).toEqual(['middle/inner/docA', 'middle/inner/docB'])
+      expect(rendered.outputs['middle/inner/docB']?.filename).toBe('middle/inner/docB.txt')
+      expect(decode(rendered.outputs['middle/inner/docB']?.content)).toBe('Content B')
+      expect(assembled.outputs).toEqual(rendered.outputs)
+    })
+
+    test('a nested bundle that renders no parts fails in render and assemble', async () => {
+      const empty = bundle().name('empty').build()
+      const outer = bundle().name('outer').inline('nested', empty).build()
+      const emptyDraft = empty.prepare()
+
+      await expect(outer.prepare({ nested: emptyDraft }).render()).rejects.toThrow(
+        'Nested bundle "nested" rendered no parts',
+      )
+      await expect(outer.assemble({ contents: { nested: emptyDraft } })).rejects.toThrow(
+        'Nested bundle "nested" rendered no parts',
+      )
+    })
   })
 })

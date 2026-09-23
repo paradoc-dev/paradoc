@@ -238,6 +238,7 @@ export type {
   RendererRegistry,
   AssemblyBytesEntry,
   AssemblyContentEntry,
+  BundleAssemblyEntry,
   BundleAssemblyOptions,
   AssembledBundleOutput,
   AssembledBundle,

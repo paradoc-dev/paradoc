@@ -246,21 +246,27 @@ each content entry is an artifact instance that carries the resolver bound
 when it was constructed.
 
 <PropertiesTable properties={[
-  { name: 'contents', type: 'Record<string, AssemblyContentEntry>', description: 'Content to assemble, keyed by bundle content key' },
+  { name: 'contents', type: 'Record<string, BundleAssemblyEntry>', description: 'Content to assemble, keyed by bundle content key' },
   { name: 'renderers', type: 'RendererRegistry', description: 'Custom renderers keyed by MIME type; layers with built-in support render automatically', isOptional: true },
 ]} />
 
-An `AssemblyContentEntry` is either a filled artifact instance or bytes
-supplied directly:
+A `BundleAssemblyEntry` is a filled artifact instance, bytes supplied
+directly, or a bundle nested in this one:
 
 <PropertiesTable properties={[
   { name: 'DraftForm | DraftChecklist | DraftDocument', type: 'artifact instance', description: 'Rendered through its target layer' },
   { name: '{ kind: \'bytes\', content, mimeType, filename? }', type: 'AssemblyBytesEntry', description: 'Content that already has its final bytes, like an annex the packet includes but Paradoc did not produce' },
+  { name: 'DraftBundle', type: 'nested bundle', description: 'Contributes every one of its parts, keyed as a folder under its content key' },
 ]} />
 
 `assemble()` returns an `AssembledBundle`: the original `bundle` plus
 `outputs`, a `Record<string, { content, mimeType, filename }>` keyed by
-content key.
+content key. A nested bundle's parts are keyed as a folder under the
+parent's content key: a bundle nested as `nested` with contents `docA` and
+`docB` gives `nested/docA` and `nested/docB`, with the files
+`nested/docA.pdf` and `nested/docB.pdf`. Content keys cannot contain `/`, so
+these names never collide with a sibling key. A runtime bundle's `render()`
+names its outputs the same way.
 
 ## Sealing a packet
 
@@ -288,7 +294,7 @@ packet.signatureMap      // every slot, on packet pages
 ```
 
 <PropertiesTable properties={[
-  { name: 'contents', type: 'Record<string, AssemblyContentEntry>', description: 'One entry per bundle content key, as for assemble()' },
+  { name: 'contents', type: 'Record<string, BundleAssemblyEntry>', description: 'One entry per bundle content key, as for assemble()' },
   { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, used by every part\'s render and seal', isOptional: true },
   { name: 'adapter', type: 'SealAdapter', description: 'Converter for a part whose layer is neither PDF nor drawn by a registered renderer', isOptional: true },
   { name: 'locate', type: 'SealLocator', description: 'Locator for anchor placements', isOptional: true },

@@ -35,3 +35,30 @@ const EXTENSION_BY_MIME: Readonly<Record<string, string>> = {
 export function getExtensionForMime(mimeType: string): string {
   return EXTENSION_BY_MIME[mimeType] ?? 'bin'
 }
+
+/**
+ * A nested bundle's parts, named as a folder under the parent's content key.
+ *
+ * Rendering a bundle inside a bundle yields every part of the inner bundle, so
+ * each keeps its own name under the key the parent gave the inner bundle:
+ * `nested/docA` with the file `nested/docA.pdf`. Content keys cannot contain
+ * `/`, so a nested name never collides with a sibling key. Deeper nesting
+ * composes: the inner bundle has already named its own nested parts.
+ *
+ * @throws when the nested bundle rendered no parts, since the parent declared
+ * content that produced nothing
+ */
+export function nestPartOutputs<T extends { filename: string }>(
+  parentKey: string,
+  outputs: Readonly<Record<string, T>>,
+): Record<string, T> {
+  const entries = Object.entries(outputs)
+  if (entries.length === 0) {
+    throw new Error(`Nested bundle "${parentKey}" rendered no parts`)
+  }
+  const nested: Record<string, T> = {}
+  for (const [innerKey, output] of entries) {
+    nested[`${parentKey}/${innerKey}`] = { ...output, filename: `${parentKey}/${output.filename}` }
+  }
+  return nested
+}

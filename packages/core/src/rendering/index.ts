@@ -7,6 +7,7 @@ export { producedMimeType } from './part-mime'
 export type {
   AssemblyBytesEntry,
   AssemblyContentEntry,
+  BundleAssemblyEntry,
   BundleAssemblyOptions,
   AssembledBundleOutput,
   AssembledBundle,

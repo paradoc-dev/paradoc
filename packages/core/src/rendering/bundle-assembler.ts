@@ -11,9 +11,10 @@ import type {
 import type { DraftForm } from '@/artifacts/form'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
+import type { DraftBundle } from '@/artifacts/bundle'
 import { renderLayer } from '@paradoc/render'
 import { findRegisteredRenderer, type RendererRegistry } from './renderer-registry'
-import { getExtensionForMime, producedMimeType } from './part-mime'
+import { getExtensionForMime, nestPartOutputs, producedMimeType } from './part-mime'
 import {
   assertBundleInclusionResolved,
   evaluateBundleInclusion,
@@ -56,9 +57,24 @@ export type AssemblyContentEntry =
   | DraftDocument<Document>
   | AssemblyBytesEntry
 
+/**
+ * Entry for a bundle content key when assembling a bundle.
+ *
+ * Any {@link AssemblyContentEntry}, or a draft bundle nested in this one. A
+ * nested bundle contributes every one of its parts, named as a folder under
+ * its content key (`nested/docA`, file `nested/docA.pdf`), exactly as
+ * `RuntimeBundle.render()` names them.
+ */
+export type BundleAssemblyEntry = AssemblyContentEntry | DraftBundle<Bundle>
+
 /** True when the entry carries its content rather than an artifact to render. */
-export function isAssemblyBytesEntry(entry: AssemblyContentEntry): entry is AssemblyBytesEntry {
+export function isAssemblyBytesEntry(entry: BundleAssemblyEntry): entry is AssemblyBytesEntry {
   return 'kind' in entry && entry.kind === 'bytes'
+}
+
+/** True when the entry is a bundle nested in the one being assembled. */
+function isNestedBundleEntry(entry: BundleAssemblyEntry): entry is DraftBundle<Bundle> {
+  return 'bundle' in entry && 'phase' in entry
 }
 
 /**
@@ -75,14 +91,14 @@ export interface BundleAssemblyOptions {
   renderers?: RendererRegistry
 
   /** Content entries keyed by bundle content key */
-  contents: Record<string, AssemblyContentEntry>
+  contents: Record<string, BundleAssemblyEntry>
 
   /**
    * Complete content map used to resolve inclusion while a caller renders one
    * part at a time. This is used by packet sealing; ordinary callers should
    * leave it unset so the supplied contents are the evaluation input.
    */
-  inclusionContents?: Record<string, AssemblyContentEntry>
+  inclusionContents?: Record<string, BundleAssemblyEntry>
 }
 
 /**
@@ -103,7 +119,10 @@ export interface AssembledBundleOutput {
 export interface AssembledBundle {
   /** The original bundle */
   bundle: Bundle
-  /** Rendered outputs keyed by content key */
+  /**
+   * Rendered outputs keyed by content key. A nested bundle's parts are keyed
+   * as a folder under its content key, such as `nested/docA`.
+   */
   outputs: Record<string, AssembledBundleOutput>
 }
 
@@ -197,6 +216,12 @@ export async function assembleBundle(
         mimeType: filled.mimeType,
         filename: filled.filename ?? `${key}.${getExtensionForMime(filled.mimeType)}`,
       }
+      continue
+    }
+
+    if (isNestedBundleEntry(filled)) {
+      const nested = await filled.render({ renderers })
+      Object.assign(outputs, nestPartOutputs(key, nested.outputs))
       continue
     }
 

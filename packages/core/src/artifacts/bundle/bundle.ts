@@ -40,7 +40,7 @@ import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RendererRegistry } from '@/rendering'
 import { findRegisteredRenderer } from '@/rendering/renderer-registry'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
-import { getExtensionForMime, producedMimeType } from '@/rendering/part-mime'
+import { getExtensionForMime, nestPartOutputs, producedMimeType } from '@/rendering/part-mime'
 import { renderLayer as createRenderer } from '@paradoc/render'
 
 // Import artifacts runtime types for content
@@ -645,8 +645,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 			const included = runtime.getIncludedContents()
 
 			for (const [key, instance] of Object.entries(included)) {
-				const output = await renderInstance(key, instance, { renderers, formatter, progressive })
-				outputs[key] = output
+				Object.assign(outputs, await renderInstance(key, instance, { renderers, formatter, progressive }))
 			}
 
 			return {
@@ -804,7 +803,10 @@ function transitionToExecuted(instance: RuntimeInstance): RuntimeInstance {
 }
 
 /**
- * Render a single runtime instance.
+ * Render a single runtime instance into the parts it contributes.
+ *
+ * A form, checklist or document is one part under its content key. A nested
+ * bundle contributes every one of its parts, named as a folder under its key.
  */
 async function renderInstance(
 	key: string,
@@ -814,20 +816,16 @@ async function renderInstance(
 		formatter?: Formatter
 		progressive?: FormatterProgressivePolicy
 	}
-): Promise<RuntimeBundleRenderedOutput> {
+): Promise<Record<string, RuntimeBundleRenderedOutput>> {
 	const { renderers, formatter, progressive } = options
 
-	const { layers, targetLayer } = getInstanceLayerInfo(instance)
-
-	// Handle nested bundles (no direct layer rendering)
+	// A nested bundle has no layer of its own: its parts are its contents.
 	if ('bundle' in instance && instance.phase !== undefined) {
 		const nestedResult = await (instance as RuntimeBundle<Bundle>).render({ renderers, formatter, progressive })
-		const firstKey = Object.keys(nestedResult.outputs)[0]
-		if (firstKey && nestedResult.outputs[firstKey]) {
-			return nestedResult.outputs[firstKey]!
-		}
-		throw new Error('Nested bundle has no contents')
+		return nestPartOutputs(key, nestedResult.outputs)
 	}
+
+	const { layers, targetLayer } = getInstanceLayerInfo(instance)
 
 	const layer = layers[targetLayer]
 	if (!layer) {
@@ -857,9 +855,11 @@ async function renderInstance(
 	// The part is named after what it is, not after the module that drew it.
 	const produced = producedMimeType(mimeType)
 	return {
-		content: binaryContent,
-		mimeType: produced,
-		filename: `${key}.${getExtensionForMime(produced)}`,
+		[key]: {
+			content: binaryContent,
+			mimeType: produced,
+			filename: `${key}.${getExtensionForMime(produced)}`,
+		},
 	}
 }
 

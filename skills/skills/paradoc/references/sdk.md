@@ -259,6 +259,11 @@ const assembled = await bundle.assemble({
 });
 ```
 
+Outputs are keyed by content key. A nested bundle (pass its draft as the
+entry) contributes every part under a folder-style key, such as
+`nested/docA` with the file `nested/docA.pdf`; `render()` names them the same
+way.
+
 ## Type Inference
 
 Compile-time inference from form definitions:
