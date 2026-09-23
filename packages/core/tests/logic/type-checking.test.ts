@@ -454,6 +454,35 @@ describe('Expression Type Checking', () => {
 			const result = validateFormDefs(form)
 			expect(result.issues).toBeUndefined()
 		})
+
+		const bboxForm = (visible: string): Form => ({
+			kind: 'form',
+			version: '1.0.0',
+			name: 'test-form',
+			title: 'Test Form',
+			fields: {
+				area: { type: 'bbox', label: 'Area' },
+				note: { type: 'text', label: 'Note', visible },
+			},
+		})
+
+		test('accepts bbox corner paths from the canonical Bbox shape, typed as numbers', () => {
+			const result = validateFormDefs(
+				bboxForm('fields.area.southWest.lat < fields.area.northEast.lat and fields.area.southWest.lon < fields.area.northEast.lon'),
+			)
+			expect(result.issues).toBeUndefined()
+
+			const env = buildFormTypeEnvironment(bboxForm('true'))
+			expect(env.resolve('fields.area.southWest')?.kind).toBe('object')
+			expect(env.resolve('fields.area.northEast.lon')?.kind).toBe('number')
+		})
+
+		test.each(['north', 'south', 'east', 'west'])('rejects the nonexistent bbox member %s', (member) => {
+			const result = validateFormDefs(bboxForm(`fields.area.${member} > 0`))
+			expect(result.issues?.map((issue) => issue.message)).toContainEqual(
+				expect.stringContaining(`Unknown variable: "fields.area.${member}"`),
+			)
+		})
 	})
 
 	describe('definition expression coverage', () => {

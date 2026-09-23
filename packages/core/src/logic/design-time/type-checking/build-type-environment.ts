@@ -129,7 +129,14 @@ const COMPLEX_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
   },
   phone: { number: T.string, type: T.string, extension: T.string },
   coordinate: { lat: T.number, lon: T.number },
-  bbox: { north: T.number, south: T.number, east: T.number, west: T.number },
+  bbox: {
+    southWest: T.object,
+    'southWest.lat': T.number,
+    'southWest.lon': T.number,
+    northEast: T.object,
+    'northEast.lat': T.number,
+    'northEast.lon': T.number,
+  },
   duration: {
     years: T.number,
     months: T.number,

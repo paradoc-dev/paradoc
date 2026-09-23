@@ -9,7 +9,7 @@ const COMPLEX_TYPE_PROPERTIES: Record<string, string[]> = {
   address: ['line1', 'line2', 'locality', 'region', 'postalCode', 'country'],
   phone: ['number', 'type', 'extension'],
   coordinate: ['lat', 'lon'],
-  bbox: ['north', 'south', 'east', 'west'],
+  bbox: ['southWest', 'southWest.lat', 'southWest.lon', 'northEast', 'northEast.lat', 'northEast.lon'],
   duration: ['years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds'],
   person: ['name', 'firstName', 'middleName', 'lastName', 'suffix', 'title'],
   organization: ['name', 'legalName', 'entityType', 'domicile'],
