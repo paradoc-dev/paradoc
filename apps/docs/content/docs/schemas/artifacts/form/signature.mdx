@@ -1,0 +1,107 @@
+---
+title: FormSignature
+description: Signature requirements for a party role
+---
+
+FormSignature states whether a party role must sign a form, and how many witnesses or a notary that signature needs. It is set on a [FormParty](/schemas/artifacts/form/party) through its `signature` property.
+
+Signing a form touches three schemas:
+
+| Schema | Where | What it holds |
+| ------ | ----- | ------------- |
+| FormSignature | `parties.<role>.signature` | Whether the role signs, and witness and notary rules |
+| [SignatureSlot](/schemas/artifacts/shared/layer#signatureslot) | `layers.<key>.signatures` | Where each signing field sits on a layer |
+| [Signature](/schemas/primitives/signature) | Runtime data | The captured signature: image, timestamp, and method |
+
+## Properties
+
+<PropertiesTable properties={[
+  {
+    name: 'required',
+    type: 'boolean',
+    description: 'Whether a signature is required for this role. Defaults to false',
+    isOptional: true,
+  },
+  {
+    name: 'witnesses',
+    type: 'number',
+    description: 'Number of witnesses required for this signature. Minimum 0, defaults to 0',
+    isOptional: true,
+  },
+  {
+    name: 'notarized',
+    type: 'boolean',
+    description: 'Whether at least one witness must be a notary. Defaults to false',
+    isOptional: true,
+  },
+]} />
+
+## Example
+
+A tenant must sign with one witness, and each signature has a slot on the PDF layer:
+
+```yaml tab="YAML"
+parties:
+  tenant:
+    label: Tenant
+    partyType: person
+    signature:
+      required: true
+      witnesses: 1
+
+layers:
+  pdf:
+    kind: file
+    mimeType: application/pdf
+    path: lease.pdf
+    signatures:
+      tenant-sign:
+        party:
+          role: tenant
+        type: signature
+        placement:
+          anchor:
+            text: Tenant signature
+            offsetY: 12
+          width: 180
+          height: 36
+```
+
+```json tab="JSON"
+{
+  "parties": {
+    "tenant": {
+      "label": "Tenant",
+      "partyType": "person",
+      "signature": {
+        "required": true,
+        "witnesses": 1
+      }
+    }
+  },
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "lease.pdf",
+      "signatures": {
+        "tenant-sign": {
+          "party": { "role": "tenant" },
+          "type": "signature",
+          "placement": {
+            "anchor": { "text": "Tenant signature", "offsetY": 12 },
+            "width": 180,
+            "height": 36
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## Related
+
+- [FormParty](/schemas/artifacts/form/party) - Party roles that carry a signature requirement
+- [Layer](/schemas/artifacts/shared/layer) - Signature slots on a layer
+- [Signature](/schemas/primitives/signature) - Captured signature data

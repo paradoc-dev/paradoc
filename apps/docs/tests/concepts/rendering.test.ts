@@ -3,6 +3,7 @@
  */
 import { describe, test, expect } from 'vitest'
 import { p } from '@paradoc/sdk'
+import { UnregisteredLayerRendererError } from '@paradoc/core'
 
 describe('Rendering Concept', () => {
   // ============================================================================
@@ -101,6 +102,41 @@ Total: {{total}}
       const markdown = await filled.render()
       expect(markdown).toContain('Hello')
       expect(markdown).toContain('World')
+    })
+  })
+
+  // ============================================================================
+  // React Layers
+  // ============================================================================
+
+  describe('react layers', () => {
+    const form = p
+      .form()
+      .name('invoice')
+      .fields({ customer: { type: 'text' } })
+      .layers({
+        composition: p.layer().file().mimeType('text/tsx').path('./invoice.tsx'),
+      })
+      .build()
+
+    test('accepts a React layer declared as a file layer', () => {
+      expect(form.layers!.composition.kind).toBe('file')
+      expect(form.layers!.composition.mimeType).toBe('text/tsx')
+    })
+
+    test.each(['text/tsx', 'text/jsx', 'TEXT/TSX'])('rejects an inline %s layer', (mimeType) => {
+      expect(() =>
+        p
+          .form()
+          .name('invoice')
+          .layers({ composition: p.layer().inline().mimeType(mimeType).text('<Invoice />') })
+          .build(),
+      ).toThrow(/React layers must be file layers/)
+    })
+
+    test('refuses to render a React layer without a registered renderer', async () => {
+      const filled = form.fill({ fields: { customer: 'Acme' } })
+      await expect(filled.render({ layer: 'composition' })).rejects.toThrow(UnregisteredLayerRendererError)
     })
   })
 })

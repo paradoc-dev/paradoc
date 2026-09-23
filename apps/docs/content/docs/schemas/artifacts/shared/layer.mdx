@@ -9,6 +9,21 @@ A Layer defines how an artifact can be rendered into a specific format. Layers e
 type Layer = InlineLayer | FileLayer
 ```
 
+## MIME types
+
+The layer's `mimeType` selects its renderer.
+
+| MIME type | Layer kind | Rendered by |
+| --------- | ---------- | ----------- |
+| `text/markdown`, `text/html`, `text/plain` | inline or file | Built-in text renderer |
+| `application/pdf` | file | Built-in PDF renderer, using `bindings` |
+| `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | file | Built-in DOCX renderer |
+| `text/tsx`, `text/jsx` | file only | A renderer you register, such as `reactLayerRenderers()` from `@paradoc/react/pdf` |
+
+Any other MIME type needs a renderer passed in the `renderers` option of `render()`, keyed by MIME type.
+
+A `text/tsx` or `text/jsx` layer names a React composition module by `path`, so it must be a file layer. An inline layer with either MIME type fails validation. The check ignores case, so `TEXT/TSX` is rejected too.
+
 ## Layer Types
 
 ### InlineLayer
@@ -24,7 +39,7 @@ Inline layer with embedded text content. Used when content is stored directly in
   {
     name: 'mimeType',
     type: 'string',
-    description: 'MIME type of the content (e.g., text/markdown, text/html)',
+    description: 'MIME type of the content (e.g., text/markdown, text/html). Never text/tsx or text/jsx',
   },
   {
     name: 'text',
@@ -50,6 +65,12 @@ Inline layer with embedded text content. Used when content is stored directly in
     isOptional: true,
   },
   {
+    name: 'bindingsFrom',
+    type: 'string',
+    description: 'Key of a sibling layer whose bindings this layer reuses',
+    isOptional: true,
+  },
+  {
     name: 'signatures',
     type: 'Record<string, SignatureSlot>',
     description: 'Unified signature slots keyed by slot id, each binding a party to a placement',
@@ -70,7 +91,7 @@ File-backed layer with external file reference. Used when content is stored in a
   {
     name: 'mimeType',
     type: 'string',
-    description: 'MIME type of the file (e.g., application/pdf)',
+    description: 'MIME type of the file (e.g., application/pdf, text/tsx)',
   },
   {
     name: 'path',
@@ -99,6 +120,12 @@ File-backed layer with external file reference. Used when content is stored in a
     name: 'bindings',
     type: 'Record<string, string>',
     description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',
+    isOptional: true,
+  },
+  {
+    name: 'bindingsFrom',
+    type: 'string',
+    description: 'Key of a sibling layer whose bindings this layer reuses',
     isOptional: true,
   },
   {
@@ -182,6 +209,13 @@ layers:
     bindings:
       client_name: clientName
       contract_date: contractDate
+
+  # File layer pointing at a React composition module
+  composition:
+    kind: file
+    mimeType: text/tsx
+    path: ./contract.tsx
+    title: React Version
 ```
 
 ```json tab="JSON"
@@ -202,6 +236,12 @@ layers:
         "client_name": "clientName",
         "contract_date": "contractDate"
       }
+    },
+    "composition": {
+      "kind": "file",
+      "mimeType": "text/tsx",
+      "path": "./contract.tsx",
+      "title": "React Version"
     }
   }
 }

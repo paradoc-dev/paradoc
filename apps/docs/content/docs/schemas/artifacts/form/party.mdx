@@ -55,30 +55,31 @@ ID convention: `{role}-{index}` (e.g., "tenant-0", "landlord-1")
     description: 'Signature requirements for this role',
     isOptional: true,
   },
+  {
+    name: 'payment',
+    type: 'FormPayment',
+    description: 'Payment requirement for this role',
+    isOptional: true,
+  },
 ]} />
 
-### FormSignature
+The `signature` property is a [FormSignature](/schemas/artifacts/form/signature).
 
-Signature requirements for a party role. Specifies whether a signature is required and optional witness/notarization requirements.
+### FormPayment
+
+Payment requirement for a party role.
 
 <PropertiesTable properties={[
   {
     name: 'required',
     type: 'boolean',
-    description: 'Whether signature is required. Defaults to false',
+    description: 'Whether payment is required for this role. Defaults to false',
     isOptional: true,
   },
   {
-    name: 'witnesses',
-    type: 'number',
-    description: 'Number of witnesses required for this signature',
-    isOptional: true,
-  },
-  {
-    name: 'notarized',
-    type: 'boolean',
-    description: 'Whether at least one witness must be a notary',
-    isOptional: true,
+    name: 'amount',
+    type: 'Money | MoneyExpression',
+    description: 'Amount owed: a fixed Money value, or a MoneyExpression resolved from filled data at request time',
   },
 ]} />
 
@@ -177,3 +178,4 @@ Runtime data for multiple parties:
 ## Related
 
 - [Form](/schemas/artifacts/form) - Form artifact overview
+- [FormSignature](/schemas/artifacts/form/signature) - Signature requirements for a role

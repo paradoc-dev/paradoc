@@ -44,6 +44,8 @@ Total: {{total}}
 
 **File layers** reference an external template file—good for complex templates or when designers maintain templates separately.
 
+A React layer (`text/tsx` or `text/jsx`) must be a file layer. Its `path` names the composition module, so an inline React layer fails validation.
+
 ---
 
 ## Templates and Bindings
@@ -119,3 +121,35 @@ const pdf = await filled.render({ layer: 'pdf' })
 Pass a custom renderer or configured `renderLayer()` through the optional
 `renderer` property. Format entry points remain available for low-level
 operations. See [Renderers](/sdk/renderers) for the full API.
+
+---
+
+## React Layers
+
+A React layer points at a React component in a `.tsx` or `.jsx` file. Core does
+not render React itself, so pass a renderer for the React MIME types in
+`renderers`. `reactLayerRenderers()` from `@paradoc/react/pdf` builds the
+entries for both `text/tsx` and `text/jsx`.
+
+```tsx
+import { reactLayerRenderers } from "@paradoc/react/pdf";
+import Invoice from "./invoice.tsx";
+
+const form = p.form()
+  .name("invoice")
+  .fields({ customer: { type: "text" } })
+  .layers({
+    composition: p.layer().file().mimeType("text/tsx").path("./invoice.tsx"),
+  })
+  .build()
+
+const pdf = await form.fill({ fields: { customer: "Acme" } }).render({
+  layer: "composition",
+  renderers: reactLayerRenderers({ components: { "./invoice.tsx": Invoice } }),
+})
+```
+
+`components` binds the layer's `path` to a component that is already imported,
+so a bundled application never loads the module at render time. Without a
+registered renderer, rendering a React layer throws
+`UnregisteredLayerRendererError`.

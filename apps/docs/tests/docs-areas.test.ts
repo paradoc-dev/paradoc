@@ -86,13 +86,12 @@ describe("the docs areas, from the content folders", () => {
     ]);
   });
 
-  test("Docs lists the guides and the Reference group, without the other areas", () => {
+  test("Docs lists the guides and the reference groups as equals, without the other areas", () => {
     expect(names(docs.tree.children)).toEqual([
       "Welcome",
       "Quickstart",
       "Concepts",
       "Guides",
-      "--- Reference ---",
       "Schemas",
       "SDK",
       "CLI",
