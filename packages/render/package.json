@@ -84,7 +84,7 @@
     "size-report": "pnpm --silent run build >/dev/null && node scripts/size-report.mjs"
   },
   "peerDependencies": {
-    "@paradoc/types": "^0.5.0"
+    "@paradoc/types": "workspace:^"
   },
   "dependencies": {
     "@paradoc/expr": "workspace:^",
