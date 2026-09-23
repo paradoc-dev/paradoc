@@ -239,6 +239,10 @@ writeFileSync('output/w9-filled.pdf', output)
 ```
 
 The output is a `Uint8Array` containing the filled PDF document with all AcroForm fields populated.
+Each value follows its field's own settings: font size, alignment, comb boxes, and multiline
+wrapping. The SSN parts land one digit per box. A value too long for its field fails with
+`PdfFieldFillError`, naming the field, rather than being clipped. See
+[Field appearance](/sdk/renderers/pdf#field-appearance).
 </Step>
 </Steps>
 

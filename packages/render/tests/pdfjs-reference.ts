@@ -147,3 +147,46 @@ export async function extractFieldsWithPdfjs(pdf: Uint8Array): Promise<Extracted
   }
   return fields
 }
+
+/** One drawn text run as pdf.js reads it, in page coordinates (bottom-left origin). */
+export interface PdfjsTextItem {
+  page: number
+  text: string
+  x: number
+  y: number
+  width: number
+  /** Font size: the text matrix's vertical scale. */
+  size: number
+}
+
+/** Every text run pdf.js reads from the page content, page by page. */
+export async function textItemsWithPdfjs(pdf: Uint8Array): Promise<PdfjsTextItem[]> {
+  const document = await pdfjs.getDocument({
+    data: pdf.slice(),
+    useSystemFonts: true,
+    disableFontFace: true,
+    isEvalSupported: false,
+  }).promise
+  const items: PdfjsTextItem[] = []
+  try {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
+      const page = await document.getPage(pageNumber)
+      const content = await page.getTextContent()
+      for (const item of content.items) {
+        if (!('str' in item) || item.str.trim() === '') continue
+        const textItem = item as unknown as Item
+        items.push({
+          page: pageNumber,
+          text: textItem.str,
+          x: textItem.transform[4] ?? 0,
+          y: textItem.transform[5] ?? 0,
+          width: textItem.width,
+          size: Math.abs(textItem.transform[3] ?? 0),
+        })
+      }
+    }
+  } finally {
+    await document.destroy()
+  }
+  return items
+}

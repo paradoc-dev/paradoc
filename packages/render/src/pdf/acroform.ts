@@ -1,3 +1,5 @@
+import { layoutFieldText, parseDefaultAppearance } from './field-appearance'
+import { helvetica } from './standard-font'
 import { winAnsiText } from './win-ansi'
 import { isDict, isName, isRef, type PdfDict, type PdfRef, PdfModel, type PdfValue } from './syntax'
 
@@ -15,7 +17,19 @@ export interface AcroField {
   type: AcroFieldType
   flags: number
   widgets: AcroWidget[]
+  /** Default appearance (`/DA`), inherited from ancestors or the AcroForm. */
+  defaultAppearance?: string
+  /** Quadding (`/Q`): 0 left, 1 centered, 2 right. */
+  alignment: number
+  /** Maximum length (`/MaxLen`), the box count of a comb field. */
+  maxLength?: number
 }
+
+/** Field flag bits (PDF 32000-1, tables 226, 228, and 230). */
+const MULTILINE = 1 << 12
+const COMBO = 1 << 17
+const MULTI_SELECT = 1 << 21
+const COMB = 1 << 24
 
 function stringValue(value: PdfValue | undefined): string | undefined {
   if (typeof value === 'string') return value
@@ -53,16 +67,36 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
   const roots = model.resolve(acroForm.entries.get('Fields'))
   const fields: AcroField[] = []
 
-  const visit = (
-    value: PdfValue,
-    inherited: { name?: string; fieldType?: string; flags?: number } = {},
-  ) => {
+  const formAppearance = model.resolve(acroForm.entries.get('DA'))
+  const formAlignment = model.resolve(acroForm.entries.get('Q'))
+
+  interface Inherited {
+    name?: string
+    fieldType?: string
+    flags?: number
+    defaultAppearance?: string
+    alignment?: number
+    maxLength?: number
+  }
+
+  const visit = (value: PdfValue, inherited: Inherited = {}) => {
     const dict = model.dict(value)
     if (!dict) return
     const ownName = stringValue(dict.entries.get('T'))
     const name = ownName ? inherited.name ? `${inherited.name}.${ownName}` : ownName : inherited.name
     const typeName = stringValue(dict.entries.get('FT')) ?? inherited.fieldType
     const flags = typeof dict.entries.get('Ff') === 'number' ? dict.entries.get('Ff') as number : inherited.flags ?? 0
+    const ownAppearance = model.resolve(dict.entries.get('DA'))
+    const ownAlignment = model.resolve(dict.entries.get('Q'))
+    const ownMaxLength = model.resolve(dict.entries.get('MaxLen'))
+    const settings: Inherited = {
+      name,
+      fieldType: typeName,
+      flags,
+      defaultAppearance: typeof ownAppearance === 'string' ? ownAppearance : inherited.defaultAppearance,
+      alignment: typeof ownAlignment === 'number' ? ownAlignment : inherited.alignment,
+      maxLength: typeof ownMaxLength === 'number' ? ownMaxLength : inherited.maxLength,
+    }
     const kids = model.resolve(dict.entries.get('Kids'))
     const isChildField = (child: PdfValue) => {
       const childDict = model.dict(child)
@@ -78,7 +112,7 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
       ? kids.filter(isChildField)
       : []
     if (childFields.length > 0) {
-      childFields.forEach((child) => visit(child, { name, fieldType: typeName, flags }))
+      childFields.forEach((child) => visit(child, settings))
       return
     }
     if (!name) return
@@ -90,6 +124,9 @@ export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: Pd
       type: fieldType(typeName, flags),
       flags,
       widgets: self ? [self] : widgets,
+      defaultAppearance: settings.defaultAppearance ?? (typeof formAppearance === 'string' ? formAppearance : undefined),
+      alignment: settings.alignment ?? (typeof formAlignment === 'number' ? formAlignment : 0),
+      maxLength: settings.maxLength,
     })
   }
 
@@ -131,22 +168,40 @@ function standardFont(model: PdfModel): PdfRef {
   return ref
 }
 
-function contentString(value: string): string {
-  return winAnsiText(value)
+interface DrawnValue {
+  text: string
+  multiline: boolean
+  comb?: number
 }
 
-function textAppearance(model: PdfModel, widget: AcroWidget, text: string): void {
+function textAppearance(model: PdfModel, field: AcroField, widget: AcroWidget, value: DrawnValue): void {
   const rawRect = model.resolve(widget.dict.entries.get('Rect'))
   if (!Array.isArray(rawRect) || rawRect.length !== 4 || !rawRect.every((item) => typeof item === 'number')) return
   const [x1, y1, x2, y2] = rawRect as number[]
-  const width = Math.max(1, x2! - x1!)
-  const height = Math.max(1, y2! - y1!)
-  const fontSize = Math.max(6, Math.min(12, height - 4))
-  const baseline = Math.max(2, (height - fontSize) / 2 + 1)
-  const stream = new TextEncoder().encode(
-    `q\n0 0 ${width} ${height} re W n\nBT\n/Helv ${fontSize} Tf\n0 g\n2 ${baseline} Td\n(${contentString(text)}) Tj\nET\nQ`,
+  const width = Math.max(1, Math.abs(x2! - x1!))
+  const height = Math.max(1, Math.abs(y2! - y1!))
+  const widgetAppearance = model.resolve(widget.dict.entries.get('DA'))
+  const widgetAlignment = model.resolve(widget.dict.entries.get('Q'))
+  const appearance = parseDefaultAppearance(typeof widgetAppearance === 'string' ? widgetAppearance : field.defaultAppearance)
+  const text = layoutFieldText(
+    {
+      field: field.name,
+      width,
+      height,
+      appearance,
+      alignment: typeof widgetAlignment === 'number' ? widgetAlignment : field.alignment,
+      comb: value.comb,
+      multiline: value.multiline,
+    },
+    value.text,
+    helvetica,
+    'Helv',
+    winAnsiText,
   )
-  const appearance = model.addObject({
+  const stream = new TextEncoder().encode(
+    `/Tx BMC\nq\n0 0 ${width} ${height} re W n\nBT\n${appearance.color}\n${text}\nET\nQ\nEMC`,
+  )
+  const appearanceRef = model.addObject({
     kind: 'dict',
     entries: new Map<string, PdfValue>([
       ['Type', { kind: 'name', value: 'XObject' }],
@@ -166,17 +221,57 @@ function textAppearance(model: PdfModel, widget: AcroWidget, text: string): void
   }, stream)
   widget.dict.entries.set('AP', {
     kind: 'dict',
-    entries: new Map<string, PdfValue>([['N', appearance]]),
+    entries: new Map<string, PdfValue>([['N', appearanceRef]]),
   })
   if (widget.ref) model.markUpdated(widget.ref)
 }
 
+/** Each option's export value and the text a viewer displays for it. */
+function choiceOptions(model: PdfModel, field: AcroField): Array<{ value: string; display: string }> {
+  const options = model.resolve(field.dict.entries.get('Opt'))
+  if (!Array.isArray(options)) return []
+  return options.flatMap((option) => {
+    const resolved = model.resolve(option)
+    if (typeof resolved === 'string') return [{ value: resolved, display: resolved }]
+    if (Array.isArray(resolved)) {
+      const [exported, display] = resolved.map((item) => model.resolve(item))
+      if (typeof exported === 'string') return [{ value: exported, display: typeof display === 'string' ? display : exported }]
+    }
+    return []
+  })
+}
+
+function setChoiceValue(model: PdfModel, field: AcroField, value: unknown): void {
+  const multiSelect = (field.flags & MULTI_SELECT) !== 0
+  const selected = multiSelect && Array.isArray(value) ? value.map(String) : [String(value)]
+  const options = choiceOptions(model, field)
+  field.dict.entries.set('V', multiSelect && selected.length !== 1 ? selected : selected[0] ?? '')
+  const indices = selected.map((item) => options.findIndex((option) => option.value === item))
+  if (indices.length > 0 && indices.every((index) => index >= 0)) {
+    field.dict.entries.set('I', [...new Set(indices)].sort((left, right) => left - right))
+  } else field.dict.entries.delete('I')
+  const shown = selected.map((item) => options.find((option) => option.value === item)?.display ?? item)
+  const listBox = (field.flags & COMBO) === 0
+  field.widgets.forEach((widget) => textAppearance(model, field, widget, {
+    text: listBox ? shown.join('\n') : shown.join(', '),
+    multiline: listBox,
+  }))
+}
+
+function setTextValue(model: PdfModel, field: AcroField, value: unknown): void {
+  const text = String(value)
+  const multiline = (field.flags & MULTILINE) !== 0
+  const comb = (field.flags & COMB) !== 0 && !multiline && field.maxLength !== undefined && field.maxLength > 0
+    ? field.maxLength
+    : undefined
+  field.dict.entries.set('V', text)
+  field.widgets.forEach((widget) => textAppearance(model, field, widget, { text, multiline, comb }))
+}
+
 export function setAcroFieldValue(model: PdfModel, field: AcroField, value: unknown): void {
-  if (field.type === 'text' || field.type === 'choice') {
-    const text = String(value)
-    field.dict.entries.set('V', text)
-    field.widgets.forEach((widget) => textAppearance(model, widget, text))
-  } else if (field.type === 'checkbox') {
+  if (field.type === 'text') setTextValue(model, field, value)
+  else if (field.type === 'choice') setChoiceValue(model, field, value)
+  else if (field.type === 'checkbox') {
     const checked = Boolean(value)
     const state = checked ? onState(model, field.widgets[0] ?? { dict: field.dict }) : 'Off'
     field.dict.entries.set('V', { kind: 'name', value: state })

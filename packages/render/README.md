@@ -89,6 +89,13 @@ const output = await renderPdf({
 non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA images; JPEG
 overlays are also supported.
 
+A filled field follows its own settings: declared font size or auto-size,
+alignment, color, comb boxes, and multiline wrapping; a list box shows every
+selected value. A value that does not fit shrinks to `MIN_FONT_SIZE` (6 points).
+Past that, or with more characters than a comb field has boxes, the render throws
+`PdfFieldFillError` with the field name, the `reason` (`overflow` or
+`comb-length`), and the `limit`.
+
 ## Merging PDFs
 
 `mergePdfs()` concatenates PDFs into one document, keeping every page in the

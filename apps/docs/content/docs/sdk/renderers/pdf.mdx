@@ -294,6 +294,37 @@ Field values are automatically serialized based on their schema types:
 // Phone fields formatted as "(555) 123-4567"
 ```
 
+## Field appearance
+
+Filling draws each value the way the form's designer set up the field:
+
+- **Size:** the font size in the field's default appearance, or automatic sizing when that size is zero.
+- **Alignment:** left, centered, or right, from the field's quadding.
+- **Color:** the color in the field's default appearance.
+- **Comb:** one character per box across the field's `MaxLen` boxes, so a TIN lands one digit per box.
+- **Multiline:** text wraps within the field and keeps explicit line breaks.
+- **Choice:** a combo box shows the selected option's display text; a list box shows every selected value, one per line.
+
+A value that does not fit is reduced in size, down to `MIN_FONT_SIZE` (6 points). Below that, filling fails with `PdfFieldFillError` instead of clipping the value. The error names the field and the limit:
+
+| `reason` | When | `limit` |
+|---|---|---|
+| `overflow` | The value does not fit at the minimum size | The minimum size in points |
+| `comb-length` | The value has more characters than the comb field has boxes | The number of boxes |
+
+```ts
+import { PdfFieldFillError, renderPdf } from '@paradoc/render/pdf'
+
+try {
+  await renderPdf({ template, data, bindings })
+} catch (error) {
+  if (error instanceof PdfFieldFillError) console.error(error.field, error.reason, error.limit)
+  else throw error
+}
+```
+
+Values are drawn in Helvetica. Checkbox and radio fields are unchanged.
+
 ## Related
 
 - [Renderers](/sdk/renderers) - Renderer interface overview

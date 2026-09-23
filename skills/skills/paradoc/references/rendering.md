@@ -93,6 +93,8 @@ const docx = await renderDocx({
 });
 ```
 
+`renderPdf()` draws each AcroForm value with the field's own size (or auto-size), alignment, color, comb, and multiline settings. A value that cannot fit at 6 points, or that has more characters than a comb field has boxes, throws `PdfFieldFillError` naming the field, the `reason` (`overflow` or `comb-length`), and the `limit`. See [pdf-bindings.md](./pdf-bindings.md).
+
 ### renderDocx() options
 
 | Property | Type | Required | Description |

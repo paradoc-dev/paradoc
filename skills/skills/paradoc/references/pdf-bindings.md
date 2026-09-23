@@ -63,6 +63,10 @@ Maps Paradoc field IDs (keys) to PDF AcroForm field names (values).
 - Fields without PDF counterparts (computed, derived) are omitted
 - Nested fieldset fields use dot notation: `"employment.employerName": "Employer_Name_Field"`
 
+### How bound values are drawn
+
+Filling honors each PDF field's own settings: its declared font size (or automatic sizing when the size is 0), alignment, color, comb boxes (one character per box), and multiline wrapping. Choice lists show every selected value. A value that does not fit shrinks down to 6 points; past that, or with more characters than a comb field has boxes, rendering fails with `PdfFieldFillError` (`field`, `reason`: `overflow` or `comb-length`, `limit`). When you bind a split value to comb fields, make each part no longer than its field's box count. Text is drawn in Helvetica.
+
 ### Finding PDF field names
 
 - AcroForm field names visible in the PDF structure

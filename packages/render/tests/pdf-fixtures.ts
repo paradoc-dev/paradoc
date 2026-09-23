@@ -116,3 +116,51 @@ export function textFieldsPdf(names: string[]): Uint8Array {
     { id: acroFormId, body: `<< /Fields [${fields}] >>` },
   ])
 }
+
+/** One widget-merged field for {@link acroFieldsPdf}. */
+export interface FixtureField {
+  name: string
+  /** Lower-left x, lower-left y, upper-right x, upper-right y. */
+  rect: [number, number, number, number]
+  type?: 'Tx' | 'Ch'
+  da?: string
+  q?: number
+  flags?: number
+  maxLen?: number
+  /** Choice options: plain strings, or [export value, display text] pairs. */
+  options?: Array<string | [string, string]>
+}
+
+const literal = (value: string) => `(${value.replace(/[\\()]/g, (char) => `\\${char}`)})`
+
+/** Build a one-page AcroForm PDF whose field appearance settings are controlled by the test. */
+export function acroFieldsPdf(fields: FixtureField[], formDa?: string): Uint8Array {
+  const fieldObjects = fields.map((field, index) => {
+    const entries = [
+      `/FT /${field.type ?? 'Tx'}`,
+      `/T ${literal(field.name)}`,
+      '/Subtype /Widget',
+      `/Rect [${field.rect.join(' ')}]`,
+      '/P 3 0 R',
+      field.da === undefined ? '' : `/DA ${literal(field.da)}`,
+      field.q === undefined ? '' : `/Q ${field.q}`,
+      field.flags === undefined ? '' : `/Ff ${field.flags}`,
+      field.maxLen === undefined ? '' : `/MaxLen ${field.maxLen}`,
+      field.options === undefined
+        ? ''
+        : `/Opt [${field.options.map((option) => Array.isArray(option)
+          ? `[${literal(option[0])} ${literal(option[1])}]`
+          : literal(option)).join(' ')}]`,
+    ].filter(Boolean)
+    return { id: index + 4, body: `<< ${entries.join(' ')} >>` }
+  })
+  const refs = fieldObjects.map(({ id }) => `${id} 0 R`).join(' ')
+  const acroFormId = fieldObjects.length + 4
+  return assemblePdf([
+    { id: 1, body: `<< /Type /Catalog /Pages 2 0 R /AcroForm ${acroFormId} 0 R >>` },
+    { id: 2, body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
+    { id: 3, body: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> /Annots [${refs}] >>` },
+    ...fieldObjects,
+    { id: acroFormId, body: `<< /Fields [${refs}]${formDa === undefined ? '' : ` /DA ${literal(formDa)}`} >>` },
+  ])
+}
