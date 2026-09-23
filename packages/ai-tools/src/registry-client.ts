@@ -393,7 +393,8 @@ export function bytesToBase64(bytes: Uint8Array): string {
 	if (typeof toBase64 === 'function') return toBase64.call(bytes)
 	if (typeof globalThis.btoa !== 'function') throw new Error('This runtime cannot encode binary tool output as base64')
 	let result = ''
-	const chunkSize = 0x8000
+	// A multiple of 3, so each chunk encodes to whole base64 quanta with no inner padding.
+	const chunkSize = 3 * 0x2000
 	for (let offset = 0; offset < bytes.length; offset += chunkSize) {
 		result += globalThis.btoa(String.fromCharCode(...bytes.subarray(offset, offset + chunkSize)))
 	}
