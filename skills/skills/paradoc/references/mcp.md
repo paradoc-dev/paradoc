@@ -155,8 +155,7 @@ A billed tool fails with an insufficient-balance error when the organization's b
 
 | Tool | Arguments | Does |
 |------|-----------|------|
-| `connect_get_status` | none | Stripe Connect status. `ready` must be `true` before `create_payment`. |
-| `connect_start_onboarding` | `refresh_url`, `return_url` | Returns a hosted onboarding URL. |
+| `connect_get_status` | none | Stripe Connect status. `ready` must be `true` before `create_payment`. Onboarding is done by a person on the Payments page of the Paradoc console. |
 | `create_payment` | Either `amount_cents` + `currency`, or `artifact` + `data` (the amount comes from the party `payment` in the form). Always `success_url`, `cancel_url`. Optional `description`, `external_id`. | Creates a hosted checkout. Returns `checkout_url`. |
 | `get_payment` | `payment_id` | One payment. |
 | `list_payments` | `status?` (`pending`, `succeeded`, `failed`, `partially_refunded`, `refunded`), `limit?` (1-100), `offset?` | Payments, newest first. |

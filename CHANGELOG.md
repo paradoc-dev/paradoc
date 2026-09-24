@@ -6,6 +6,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Fixed
 
+- Skills: the `paradoc` MCP reference no longer lists `connect_start_onboarding`. The MCP server no longer registers it, because the Platform API does not serve onboarding to API keys. A person completes Stripe onboarding on the Payments page of the Paradoc console.
 - `@paradoc/core`: an empty list for an optional multi-party role passes, as an absent role does. `validatePartiesForRole` and the compiled payload schema failed `[]` with `requires at least 1 party(ies)` for a role whose `required` is `false` or evaluates to false, so a fill the fill state reported complete did not validate. `min` applies to a list that names parties.
 - `@paradoc/core`: `validateFieldInput` rejects `__proto__` as an unknown field path. The schema lookup read inherited properties, so any value passed at that path.
 - `@paradoc/core`: `isForm`, `isDocument`, `isChecklist` and `isBundle`, and their validators, apply the schema version rule of every other artifact entry point: a `$schema` the artifact declares must be current.
