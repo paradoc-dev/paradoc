@@ -26,7 +26,6 @@ export {
   validateOrganization,
   validatePerson,
   validatePhone,
-  getValidatorErrors,
 } from './validators'
 export type { ValidatorError } from './validators'
 
