@@ -18,11 +18,11 @@ The layer's `mimeType` selects its renderer.
 | `text/markdown`, `text/html`, `text/plain` | inline or file | Built-in text renderer |
 | `application/pdf` | file | Built-in PDF renderer, using `bindings` |
 | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | file | Built-in DOCX renderer |
-| `text/tsx`, `text/jsx` | file only | A renderer you register, such as `reactLayerRenderers()` from `@paradoc/react-pdf` |
+| `text/tsx`, `text/jsx` | file only, forms only | A renderer you register, such as `reactLayerRenderers()` from `@paradoc/react-pdf` |
 
 Any other MIME type needs a renderer passed in the `renderers` option of `render()`, keyed by MIME type.
 
-A `text/tsx` or `text/jsx` layer names a React composition module by `path`, so it must be a file layer. An inline layer with either MIME type fails validation. The check ignores case, so `TEXT/TSX` is rejected too.
+A `text/tsx` or `text/jsx` layer names a React composition module by `path`, so it must be a file layer. An inline layer with either MIME type fails validation. The check ignores case, so `TEXT/TSX` is rejected too. Only a form can declare a React layer: a composition renders a form and its data, so a document or checklist with one fails validation.
 
 ## Layer Types
 

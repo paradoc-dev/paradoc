@@ -70,13 +70,13 @@ A file `path` (and a PDF layer's font `path`) resolves against the artifact file
 | `text/markdown`, `text/html`, `text/plain` | Text template engine | `string` | inline, file |
 | `application/pdf` | PDF AcroForm fill | `Uint8Array` | file |
 | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | DOCX template engine | `Uint8Array` | file |
-| `text/tsx`, `text/jsx` | React renderer you register | `Uint8Array` (PDF) | file only |
+| `text/tsx`, `text/jsx` | React renderer you register | `Uint8Array` (PDF) | file only, forms only |
 
 Any other MIME type fails at render with `Unsupported render layer MIME type`.
 
 ## React layers
 
-A `text/tsx` or `text/jsx` layer names a React composition module. It is always a file layer: an inline one fails validation with `React layers must be file layers`. Core has no React engine, so a render needs a registered renderer, or it throws `UnregisteredLayerRendererError`:
+A `text/tsx` or `text/jsx` layer names a React composition module. It is always a file layer: an inline one fails validation with `React layers must be file layers`. Only a form can declare one: a composition renders a form and its data, so a React layer on a document or checklist fails validation with `Only a form can declare a React layer`. Core has no React engine, so a render needs a registered renderer, or it throws `UnregisteredLayerRendererError`:
 
 ```json schema=layers
 {

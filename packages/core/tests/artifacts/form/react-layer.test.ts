@@ -8,6 +8,8 @@ import {
 	UnregisteredLayerRendererError,
 } from '@/rendering'
 import { buildRendererLayer, renderLayer } from '@/artifacts/shared/render-layer'
+import { validate } from '@/validation/artifact'
+import { REACT_LAYER_FORM_ONLY_RULE } from '@paradoc/schemas'
 import type { Form, ParadocRenderer, RendererLayer, RenderRequest } from '@paradoc/types'
 
 const COMPOSITION_PATH = 'src/compositions/purchase-order.tsx'
@@ -200,48 +202,31 @@ describe('React layers dispatch by MIME type', () => {
 		expect(reactLayersOf({ layers: undefined })).toEqual([])
 	})
 
-	test('a document renders its React layer through the registry, and fails without one', async () => {
-		const { renderer, seen } = recordingRenderer()
-		const brochure = document({
-			kind: 'document',
-			name: 'brochure',
-			version: '1.0.0',
-			title: 'Brochure',
-			defaultLayer: 'composition',
-			layers: {
-				composition: { kind: 'file', mimeType: 'text/tsx', path: COMPOSITION_PATH },
-			},
-		} as never)
-
-		await expect(brochure.render({ renderers: { 'text/tsx': renderer } })).resolves.toBe(
-			'rendered brochure',
-		)
-		expect(seen[0]?.path).toBe(COMPOSITION_PATH)
-		expect(seen[0]?.content).toBeUndefined()
-
-		await expect(brochure.render()).rejects.toThrow(UnregisteredLayerRendererError)
+	test('validation rejects a React layer on a document or checklist, naming the rule', () => {
+		const composition = { kind: 'file', mimeType: 'text/tsx', path: COMPOSITION_PATH }
+		const brochure = { kind: 'document', name: 'brochure', version: '1.0.0', title: 'Brochure', layers: { composition } }
+		const opening = {
+			kind: 'checklist', name: 'opening', version: '1.0.0', title: 'Opening',
+			items: [{ id: 'keys', title: 'Collect keys' }], layers: { composition },
+		}
+		for (const artifact of [brochure, opening]) {
+			const result = validate(artifact)
+			expect(result.issues).toEqual([
+				{ message: REACT_LAYER_FORM_ONLY_RULE, path: ['layers', 'composition', 'mimeType'] },
+			])
+		}
+		expect(() => document(brochure as never)).toThrow(/Only a form can declare a React layer/)
+		expect(() => checklist(opening as never)).toThrow(/Only a form can declare a React layer/)
+		// The same layer on a form is valid.
+		expect(validate(purchaseOrder().toJSON()).issues).toBeUndefined()
 	})
 
-	test('a checklist renders its React layer through the registry, and fails without one', async () => {
-		const { renderer } = recordingRenderer()
-		const opening = checklist({
-			kind: 'checklist',
-			name: 'opening',
-			version: '1.0.0',
-			title: 'Opening',
-			items: [{ id: 'keys', title: 'Collect keys' }],
-			defaultLayer: 'composition',
-			layers: {
-				composition: { kind: 'file', mimeType: 'text/tsx', path: COMPOSITION_PATH },
-			},
-		} as never)
-
-		await expect(opening.render({ renderers: { 'text/tsx': renderer } })).resolves.toBe(
-			'rendered opening',
-		)
-		// Without a renderer a checklist returns raw content, but a React layer
-		// has none, so it says so instead of returning the module's source.
-		await expect(opening.render()).rejects.toThrow(UnregisteredLayerRendererError)
+	test('validation leaves a document or checklist file layer of another MIME type alone', () => {
+		const layers = { page: { kind: 'file', mimeType: 'text/html', path: 'page.html' } }
+		expect(validate({ kind: 'document', name: 'd', version: '1.0.0', title: 'D', layers }).issues).toBeUndefined()
+		expect(
+			validate({ kind: 'checklist', name: 'c', version: '1.0.0', title: 'C', items: [{ id: 'a', title: 'A' }], layers }).issues,
+		).toBeUndefined()
 	})
 
 	test('an inline React layer built past validation fails, naming the rule', async () => {

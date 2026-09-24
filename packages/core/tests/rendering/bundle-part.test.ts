@@ -37,23 +37,26 @@ const doneChecklist = () =>
 		defaultLayer: 'md',
 	})
 
-const tsxDocument = () =>
+/** A MIME type core ships no renderer for, so only an injected one renders it. */
+const STUB_MIME = 'application/x-stub'
+
+const stubDocument = () =>
 	document({
 		kind: 'document',
 		name: 'doc',
 		version: '1.0.0',
 		title: 'Doc',
 		defaultLayer: 'c',
-		layers: { c: { kind: 'file', mimeType: 'text/tsx', path: 'doc.tsx' } },
+		layers: { c: { kind: 'inline', mimeType: STUB_MIME, text: 'stub' } },
 	})
 
-const tsxChecklist = () =>
+const stubChecklist = () =>
 	checklist({
 		name: 'tcl',
 		version: '1.0.0',
 		title: 'TCL',
 		items: [{ id: 'done', title: 'Done' }],
-		layers: { c: { kind: 'file', mimeType: 'text/tsx', path: 'cl.tsx' } },
+		layers: { c: { kind: 'inline', mimeType: STUB_MIME, text: 'stub' } },
 		defaultLayer: 'c',
 	})
 
@@ -99,37 +102,23 @@ describe('rendering a checklist part', () => {
 		expect(viaRuntime.outputs.cl!.filename).toBe(viaAssemble.outputs.cl!.filename)
 	})
 
-	test('a checklist React layer renders through the registry passed to the bundle', async () => {
-		const cl = tsxChecklist()
+	test('a checklist layer renders through the registry passed to the bundle', async () => {
+		const cl = stubChecklist()
 		const b = bundle().name('b').version('1.0.0').title('B').inline('tcl', cl).build()
-		const rendered = await b.prepare({ tcl: cl.fill({ done: true }) }).render({ renderers: { 'text/tsx': stub } })
+		const rendered = await b.prepare({ tcl: cl.fill({ done: true }) }).render({ renderers: { [STUB_MIME]: stub } })
 		expect(decode(rendered.outputs.tcl!.content)).toBe('STUB OUTPUT')
-	})
-
-	test('a checklist React layer with no registered renderer names the missing renderer', async () => {
-		const cl = tsxChecklist()
-		const b = bundle().name('b').version('1.0.0').title('B').inline('tcl', cl).build()
-		await expect(b.prepare({ tcl: cl.fill({ done: true }) }).render()).rejects.toBeInstanceOf(
-			UnregisteredLayerRendererError,
-		)
 	})
 })
 
 describe('rendering a document or form part (core-068)', () => {
 	test('a document renders through the registry in both bundle paths', async () => {
-		const renderers = { 'text/tsx': stub }
-		const assembled = await assembleBundle(inlineBundle('doc'), { renderers, contents: { doc: tsxDocument().prepare() } })
+		const renderers = { [STUB_MIME]: stub }
+		const assembled = await assembleBundle(inlineBundle('doc'), { renderers, contents: { doc: stubDocument().prepare() } })
 		expect(decode(assembled.outputs.doc!.content)).toBe('STUB OUTPUT')
 
-		const b = bundle().name('b').version('1.0.0').title('B').inline('doc', tsxDocument()).build()
-		const rendered = await b.prepare({ doc: tsxDocument().prepare() }).render({ renderers })
+		const b = bundle().name('b').version('1.0.0').title('B').inline('doc', stubDocument()).build()
+		const rendered = await b.prepare({ doc: stubDocument().prepare() }).render({ renderers })
 		expect(decode(rendered.outputs.doc!.content)).toBe('STUB OUTPUT')
-	})
-
-	test('a document React layer with no registered renderer names the missing renderer', async () => {
-		await expect(
-			assembleBundle(inlineBundle('doc'), { contents: { doc: tsxDocument().prepare() } }),
-		).rejects.toBeInstanceOf(UnregisteredLayerRendererError)
 	})
 
 	test('a form React layer with no registered renderer gets the error a direct render gives', async () => {

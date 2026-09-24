@@ -228,7 +228,23 @@
       "additionalProperties": {
         "$ref": "https://schema.paradoc.dev/2026-09-24.json#/$defs/Layer"
       },
-      "description": "Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
+      "description": "Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)",
+      "allOf": [
+        {
+          "additionalProperties": {
+            "not": {
+              "properties": {
+                "mimeType": {
+                  "pattern": "^(?:[tT][eE][xX][tT]/[tT][sS][xX]|[tT][eE][xX][tT]/[jJ][sS][xX])$"
+                }
+              },
+              "required": [
+                "mimeType"
+              ]
+            }
+          }
+        }
+      ]
     },
     "defaultLayer": {
       "type": "string",

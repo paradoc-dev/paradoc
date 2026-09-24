@@ -7,7 +7,11 @@ import {
   REACT_LAYER_MIME_PATTERN,
   REACT_LAYER_MIME_TYPES,
   REACT_LAYER_RULE,
+  REACT_LAYER_FORM_ONLY_RULE,
 } from "../src/zod/artifacts/shared/layer";
+import { ChecklistSchema } from "../src/zod/artifacts/checklist";
+import { DocumentSchema } from "../src/zod/artifacts/document";
+import { FormSchema } from "../src/zod/artifacts/form";
 
 describe("React layers by MIME type", () => {
   it("names both composition MIME types", () => {
@@ -81,5 +85,46 @@ describe("React layers by MIME type", () => {
       expect(new RegExp(REACT_LAYER_MIME_PATTERN).test(mimeType)).toBe(true);
     }
     expect(new RegExp(REACT_LAYER_MIME_PATTERN).test("text/markdown")).toBe(false);
+  });
+});
+
+describe("React layers belong to forms", () => {
+  const composition = { kind: "file", mimeType: "text/tsx", path: "composition.tsx" };
+  const base = { name: "x", version: "1.0.0", title: "X" };
+  const document = { ...base, kind: "document", layers: { composition } };
+  const checklist = { ...base, kind: "checklist", items: [{ id: "a", title: "A" }], layers: { composition } };
+
+  for (const [kind, schema, artifact] of [
+    ["document", DocumentSchema, document],
+    ["checklist", ChecklistSchema, checklist],
+  ] as const) {
+    it(`rejects a React layer on a ${kind}, at the layer's MIME type`, () => {
+      for (const mimeType of [...REACT_LAYER_MIME_TYPES, "TEXT/TSX"]) {
+        const result = schema.safeParse({ ...artifact, layers: { composition: { ...composition, mimeType } } });
+        expect(result.success).toBe(false);
+        if (result.success) return;
+        expect(result.error.issues).toEqual([
+          expect.objectContaining({ message: REACT_LAYER_FORM_ONLY_RULE, path: ["layers", "composition", "mimeType"] }),
+        ]);
+      }
+    });
+
+    it(`accepts a ${kind} file layer of another MIME type`, () => {
+      const layers = { page: { kind: "file", mimeType: "text/html", path: "page.html" } };
+      expect(schema.safeParse({ ...artifact, layers }).success).toBe(true);
+    });
+
+    it(`states the ${kind} rule in the published JSON Schema`, () => {
+      const json = z.toJSONSchema(schema, { target: "draft-2020-12", unrepresentable: "any" }) as unknown as {
+        properties: { layers: { allOf?: Array<{ additionalProperties: { not: { properties: { mimeType: { pattern: string } } } } }> } };
+      };
+      const pattern = json.properties.layers.allOf?.[0]?.additionalProperties.not.properties.mimeType.pattern;
+      expect(pattern).toBe(REACT_LAYER_MIME_PATTERN);
+    });
+  }
+
+  it("still accepts a React layer on a form", () => {
+    const form = { ...base, kind: "form", fields: { v: { type: "text", label: "V" } }, layers: { composition } };
+    expect(FormSchema.safeParse(form).success).toBe(true);
   });
 });

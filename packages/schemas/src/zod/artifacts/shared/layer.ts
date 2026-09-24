@@ -307,3 +307,28 @@ export const LayerSchema = z.discriminatedUnion('kind', [
 	// The file layer's font, format and bindings refinements.
 	allOf: pdfOnlyLayerKeysJsonSchema(PDF_ONLY_FILE_LAYER_KEYS),
 });
+
+/** The rule a React layer on a document or checklist breaks, stated once so every error reads the same. */
+export const REACT_LAYER_FORM_ONLY_RULE =
+	`Only a form can declare a React layer: a composition renders a form and its data, so a document or checklist layer cannot be ${REACT_LAYER_MIME_TYPES.join(' or ')}`;
+
+/**
+ * Apply the React layer's form-only rule to a document's or checklist's
+ * layers. The rule is stated to JSON Schema as well as at runtime, so a
+ * consumer validating against the published schema rejects the same layers.
+ */
+export function withoutReactLayers<T extends z.ZodType<Record<string, { mimeType: string }>>>(layers: T) {
+	return layers.superRefine((value, ctx) => {
+		for (const [key, layer] of Object.entries(value)) {
+			if (isReactLayerMimeType(layer.mimeType)) {
+				ctx.addIssue({ code: 'custom', path: [key, 'mimeType'], message: REACT_LAYER_FORM_ONLY_RULE });
+			}
+		}
+	}).meta({
+		allOf: [{
+			additionalProperties: {
+				not: { properties: { mimeType: { pattern: REACT_LAYER_MIME_PATTERN } }, required: ['mimeType'] },
+			},
+		}],
+	});
+}

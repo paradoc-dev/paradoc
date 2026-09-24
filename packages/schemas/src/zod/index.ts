@@ -59,6 +59,7 @@ export {
 	REACT_LAYER_MIME_PATTERN,
 	REACT_LAYER_MIME_TYPES,
 	REACT_LAYER_RULE,
+	REACT_LAYER_FORM_ONLY_RULE,
 } from './artifacts/shared/layer';
 
 // Primitives

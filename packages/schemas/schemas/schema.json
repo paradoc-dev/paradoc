@@ -653,7 +653,23 @@
           "additionalProperties": {
             "$ref": "#/$defs/Layer"
           },
-          "description": "Named layers for rendering this document into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
+          "description": "Named layers for rendering this document into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)",
+          "allOf": [
+            {
+              "additionalProperties": {
+                "not": {
+                  "properties": {
+                    "mimeType": {
+                      "pattern": "^(?:[tT][eE][xX][tT]/[tT][sS][xX]|[tT][eE][xX][tT]/[jJ][sS][xX])$"
+                    }
+                  },
+                  "required": [
+                    "mimeType"
+                  ]
+                }
+              }
+            }
+          ]
         },
         "defaultLayer": {
           "type": "string",
@@ -1127,7 +1143,23 @@
           "additionalProperties": {
             "$ref": "#/$defs/Layer"
           },
-          "description": "Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
+          "description": "Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)",
+          "allOf": [
+            {
+              "additionalProperties": {
+                "not": {
+                  "properties": {
+                    "mimeType": {
+                      "pattern": "^(?:[tT][eE][xX][tT]/[tT][sS][xX]|[tT][eE][xX][tT]/[jJ][sS][xX])$"
+                    }
+                  },
+                  "required": [
+                    "mimeType"
+                  ]
+                }
+              }
+            }
+          ]
         },
         "defaultLayer": {
           "type": "string",

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ArtifactSchema } from '../shared/base';
-import { LayerSchema } from '../shared/layer';
+import { LayerSchema, withoutReactLayers } from '../shared/layer';
 import { addDuplicateIdentityIssues } from '../shared/unique';
 import { ChecklistItemSchema } from './item';
 
@@ -19,14 +19,14 @@ export const ChecklistSchema = ArtifactSchema.extend({
 			);
 		})
 		.describe('Array of checklist items. Each item represents a task, step, or requirement.'),
-	layers: z.record(
+	layers: withoutReactLayers(z.record(
 		z.string()
 			.min(1)
 			.max(100)
 			.regex(/^[a-z][a-zA-Z0-9_]*$/)
 			.describe('Layer identifier (camelCase, starts with lowercase letter)'),
 		LayerSchema,
-	).describe('Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)')
+	).describe('Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)'))
 		.optional(),
 	defaultLayer: z.string()
 		.min(1)

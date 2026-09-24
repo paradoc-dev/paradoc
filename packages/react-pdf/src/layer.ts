@@ -137,8 +137,9 @@ export class UnboundReactLayerError extends Error {
  * Thrown when a React layer belongs to an artifact other than a form.
  *
  * A composition receives the `Form` it renders and that form's data. A
- * document or checklist has neither, so a React layer on one has nothing to
- * hand its composition.
+ * document or checklist has neither, so validation rejects a React layer on
+ * one. This still reaches a renderer that is called directly, or registered
+ * under a MIME type a document or checklist layer may declare.
  */
 export class UnsupportedReactLayerArtifactError extends Error {
   /** The kind of artifact the layer belongs to. */
