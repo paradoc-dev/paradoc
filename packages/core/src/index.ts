@@ -213,7 +213,7 @@ export { assembleBundle, isAssemblyBytesEntry, producedMimeType, sealBundle } fr
 export { BundleSealError } from "./rendering";
 
 // Reading filled PDF forms back into data
-export { PdfExtractionError } from "@paradoc/render/pdf";
+export { PdfEncryptedError, PdfExtractionError } from "@paradoc/render/pdf";
 export type {
   PdfExtractedData,
   PdfExtractionEntry,

@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { flattenPdf } from '../src/pdf/flatten'
 import { inspectAcroFormFields } from '../src/pdf/inspect'
+import { assemblePdf } from './pdf-fixtures'
 
 const fixtures = join(fileURLToPath(new URL('.', import.meta.url)), 'fixtures')
 
@@ -48,5 +49,32 @@ describe('flattenPdf', () => {
   it('returns a PDF with no AcroForm unchanged', async () => {
     const plain = await load('large-contract.pdf')
     expect(await flattenPdf(plain)).toEqual(new Uint8Array(plain))
+  })
+
+  describe('a widget a viewer does not show', () => {
+    const appearance = new TextEncoder().encode('BT /Helv 10 Tf 2 4 Td (SECRET) Tj ET')
+
+    function widgetPdf(flags?: number): Uint8Array {
+      const f = flags === undefined ? '' : ` /F ${flags}`
+      return assemblePdf([
+        { id: 1, body: '<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>' },
+        { id: 2, body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
+        { id: 3, body: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << >> /Annots [4 0 R] >>' },
+        { id: 4, body: `<< /FT /Tx /T (helper) /Subtype /Widget /Rect [20 20 120 40] /P 3 0 R /V (SECRET)${f} /AP << /N 6 0 R >> >>` },
+        { id: 5, body: '<< /Fields [4 0 R] >>' },
+        { id: 6, body: `<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length ${appearance.length} >>\nstream\n`, stream: appearance },
+      ])
+    }
+
+    it('is burned in when it is visible or only printable', async () => {
+      expect(appearanceNames(await flattenPdf(widgetPdf())).size).toBe(1)
+      expect(appearanceNames(await flattenPdf(widgetPdf(4))).size).toBe(1)
+    })
+
+    it.each([['Hidden', 2], ['NoView', 32], ['Hidden and Print', 6]])('is removed without being drawn when %s', async (_, flags) => {
+      const flat = await flattenPdf(widgetPdf(flags))
+      expect(appearanceNames(flat).size).toBe(0)
+      expect(await inspectAcroFormFields(flat)).toEqual([])
+    })
   })
 })

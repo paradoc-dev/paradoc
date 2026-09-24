@@ -3,9 +3,9 @@
  *
  * A PDF's pages hang off the catalog in a tree whose interior nodes carry
  * attributes their children inherit. Selecting pages and merging documents both
- * need the same three answers — which record is the catalog, which records are
- * pages in document order, and what each page inherits — so they are answered
- * once here rather than twice.
+ * need the same two answers — which records are pages in document order, and
+ * what each page inherits — so they are answered once here rather than twice.
+ * The catalog itself is `PdfModel.catalog()`, read from the trailer's `/Root`.
  */
 
 import { isDict, isName, isRef, type PdfDict, type PdfModel, type PdfObject, type PdfRef, type PdfValue } from './syntax'
@@ -21,15 +21,6 @@ export interface PageRecord {
   ref: PdfRef
   /** Inherited attributes, by key, as they stood at this page. */
   inherited: Map<string, PdfValue>
-}
-
-/** The document catalog. */
-export function catalogRecord(model: PdfModel): PdfObject | undefined {
-  return [...model.objects.values()].find((record) => {
-    if (!isDict(record.value)) return false
-    const type = record.value.entries.get('Type')
-    return isName(type) && type.value === 'Catalog'
-  })
 }
 
 /** Every page in document order, each carrying the attributes it inherits. */
@@ -70,13 +61,30 @@ export function pageRecords(model: PdfModel, catalog: PdfDict): PageRecord[] {
  * The convenience for readers that decorate pages rather than restructure them:
  * flattening a form and drawing an overlay both walk the same tree and both
  * treat a file they cannot read as a file with nothing to decorate. A reader
- * that builds a new document instead calls `catalogRecord` and `pageRecords`
+ * that builds a new document instead calls `model.catalog()` and `pageRecords`
  * itself, so a missing catalog fails rather than producing an empty document.
  */
 export function documentPages(model: PdfModel): PageRecord[] {
-  const catalog = catalogRecord(model)
+  const catalog = model.catalog()
   if (!catalog || !isDict(catalog.value)) return []
   return pageRecords(model, catalog.value)
+}
+
+/**
+ * The page dictionary as it stands once its inherited attributes are its own
+ * and it hangs in no tree, ready to be written into a new document.
+ */
+export function selfContainedPage(page: PageRecord): PdfDict {
+  if (!isDict(page.record.value)) throw new Error('PDF page object does not hold a dictionary')
+  const entries = new Map(page.record.value.entries)
+  for (const key of INHERITED_PAGE_KEYS) {
+    if (!entries.has(key)) {
+      const inherited = page.inherited.get(key)
+      if (inherited !== undefined) entries.set(key, inherited)
+    }
+  }
+  entries.delete('Parent')
+  return { kind: 'dict', entries }
 }
 
 /** A shallow copy of a dictionary, or an empty one when there is none. */

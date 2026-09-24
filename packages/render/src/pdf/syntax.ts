@@ -1,4 +1,5 @@
 import { byteString } from './text-string'
+import { appendPdfUpdate } from './writer'
 
 export interface PdfName { kind: 'name'; value: string }
 export interface PdfRef { kind: 'ref'; object: number; generation: number }
@@ -171,10 +172,81 @@ class Parser {
   }
 }
 
-async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
+/** Inflate a FlateDecode stream. */
+export async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
   if (typeof DecompressionStream === 'undefined') throw new Error('FlateDecode is unavailable in this runtime')
   const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'))
   return new Uint8Array(await new Response(stream).arrayBuffer())
+}
+
+/**
+ * Thrown by every entry point that parses or writes a PDF when the file is
+ * encrypted.
+ *
+ * An encrypted file stores its strings and streams enciphered under a key
+ * derived from the file itself. Field names read as ciphertext, values written
+ * in plaintext would not decrypt, and copied streams would be garbage, so an
+ * encrypted file is refused rather than read wrongly.
+ */
+export class PdfEncryptedError extends Error {
+  readonly code = 'encrypted_pdf' as const
+
+  constructor() {
+    super('The PDF is encrypted. Paradoc reads and writes unencrypted PDFs only; remove the encryption and try again.')
+    this.name = 'PdfEncryptedError'
+  }
+}
+
+/** Trailer keys that describe one cross-reference section rather than the document. */
+const SECTION_KEYS = ['Size', 'Prev', 'XRefStm', 'Type', 'Index', 'W', 'Length', 'Filter', 'DecodeParms'] as const
+
+const isXrefStream = (value: PdfValue | undefined): value is PdfDict => {
+  if (!isDict(value)) return false
+  const type = value.entries.get('Type')
+  return isName(type) && type.value === 'XRef'
+}
+
+/**
+ * Every classic `trailer` dictionary in the file, in file order. The keyword
+ * inside an object's body (a string, a content stream) is not a trailer.
+ */
+function trailerDictionaries(source: string, bodies: readonly [number, number][]): { offset: number; dict: PdfDict }[] {
+  const trailers: { offset: number; dict: PdfDict }[] = []
+  for (const match of source.matchAll(/trailer\s*<</g)) {
+    const at = match.index ?? 0
+    if (bodies.some(([start, end]) => at >= start && at < end)) continue
+    try {
+      const value = new Parser(source, at + 'trailer'.length).parse()
+      if (isDict(value)) trailers.push({ offset: at, dict: value })
+    } catch {
+      // "trailer" inside a stream's bytes is not a trailer.
+    }
+  }
+  return trailers
+}
+
+/**
+ * The newest trailer: the one the last `startxref` points at, either a classic
+ * table's trailer or a cross-reference stream's dictionary. A file whose last
+ * `startxref` is wrong falls back to its last trailer, as readers do.
+ */
+function newestTrailer(
+  source: string,
+  startxref: number | undefined,
+  trailers: readonly { offset: number; dict: PdfDict }[],
+  objects: ReadonlyMap<number, PdfObject>,
+): PdfDict | undefined {
+  if (startxref !== undefined) {
+    if (/^\s*xref\b/.test(source.slice(startxref, startxref + 16))) {
+      const trailer = trailers.find(({ offset }) => offset > startxref)
+      if (trailer) return trailer.dict
+    }
+    const header = /^\s*(\d+)\s+\d+\s+obj\b/.exec(source.slice(startxref, startxref + 32))
+    const stream = header ? objects.get(Number(header[1]))?.value : undefined
+    if (isXrefStream(stream)) return stream
+  }
+  if (trailers.length > 0) return trailers.at(-1)!.dict
+  return [...objects.values()].map(({ value }) => value).filter(isXrefStream).at(-1)
 }
 
 export class PdfModel {
@@ -183,12 +255,18 @@ export class PdfModel {
   private constructor(
     readonly bytes: Uint8Array,
     readonly objects: Map<number, PdfObject>,
+    /** The newest trailer, or an empty dictionary when the file has none. */
+    readonly trailer: PdfDict,
+    /** Offset of the newest cross-reference section. */
+    private readonly startxref: number | undefined,
   ) {}
 
   static async load(bytes: Uint8Array): Promise<PdfModel> {
     const source = byteString(bytes)
     const objects = new Map<number, PdfObject>()
     const indirectLengths: { object: number; start: number; length: PdfRef }[] = []
+    /** Where each object's body lies, so a keyword inside one is not read as file structure. */
+    const bodies: [number, number][] = []
     const pattern = /(?:^|[\r\n])\s*(\d+)\s+(\d+)\s+obj\b/g
     for (const match of source.matchAll(pattern)) {
       const object = Number(match[1])
@@ -216,6 +294,7 @@ export class PdfModel {
           }
         }
         objects.set(object, { object, generation, value, stream })
+        bodies.push([valueOffset, streamMatch ? after + streamMatch[0].length + (stream?.length ?? 0) : after])
       } catch {
         // Byte patterns inside compressed streams can resemble object headers.
       }
@@ -232,9 +311,40 @@ export class PdfModel {
       }
     }
 
-    const model = new PdfModel(bytes, objects)
+    // The check runs before object streams are expanded: an encrypted file's
+    // object streams are enciphered, and inflating them fails obscurely.
+    const trailers = trailerDictionaries(source, bodies)
+    if (
+      trailers.some(({ dict }) => dict.entries.has('Encrypt'))
+      || [...objects.values()].some(({ value }) => isXrefStream(value) && value.entries.has('Encrypt'))
+    ) {
+      throw new PdfEncryptedError()
+    }
+
+    const startxref = lastStartxref(source)
+    const trailer = newestTrailer(source, startxref, trailers, objects) ?? { kind: 'dict', entries: new Map() }
+    const model = new PdfModel(bytes, objects, trailer, startxref)
     await model.expandObjectStreams()
     return model
+  }
+
+  /**
+   * The document catalog: the object the newest trailer's `/Root` names. A file
+   * with no readable trailer falls back to the first object typed `Catalog`.
+   */
+  catalog(): PdfObject | undefined {
+    const root = this.trailer.entries.get('Root')
+    if (isRef(root)) {
+      const record = this.objects.get(root.object)
+      if (!record || !isDict(record.value)) return undefined
+      const type = record.value.entries.get('Type')
+      return type === undefined || (isName(type) && type.value === 'Catalog') ? record : undefined
+    }
+    return [...this.objects.values()].find((record) => {
+      if (!isDict(record.value)) return false
+      const type = record.value.entries.get('Type')
+      return isName(type) && type.value === 'Catalog'
+    })
   }
 
   resolve(value: PdfValue | undefined): PdfValue | undefined {
@@ -256,67 +366,30 @@ export class PdfModel {
   }
 
   addObject(value: PdfValue, stream?: Uint8Array): PdfRef {
-    const object = Math.max(0, ...this.objects.keys()) + 1
+    const object = nextObjectNumber(this.trailer, this.objects)
     this.objects.set(object, { object, generation: 0, value, stream })
     this.updated.add(object)
     return { kind: 'ref', object, generation: 0 }
   }
 
+  /**
+   * The file with every updated object appended as an incremental update. The
+   * update trailer repeats the newest trailer's document entries (`/Info`,
+   * `/ID`) and points `/Root` at the catalog.
+   */
   save(): Uint8Array {
     if (this.updated.size === 0) return this.bytes.slice()
-    const chunks: Uint8Array[] = [this.bytes, encodeLatin1(this.bytes.at(-1) === 0x0a ? '' : '\n')]
-    let offset = chunks.reduce((total, chunk) => total + chunk.length, 0)
-    const offsets = new Map<number, number>()
+    const catalog = this.catalog()
+    if (!catalog) throw new Error('PDF catalog not found')
     const records = [...this.updated]
       .map((object) => this.objects.get(object))
       .filter((record): record is PdfObject => record !== undefined)
-      .sort((a, b) => a.object - b.object)
-
-    for (const record of records) {
-      offsets.set(record.object, offset)
-      const header = encodeLatin1(`${record.object} ${record.generation} obj\n`)
-      chunks.push(header)
-      offset += header.length
-      if (record.stream) {
-        if (!isDict(record.value)) throw new Error(`PDF stream object ${record.object} must contain a dictionary`)
-        const entries = new Map(record.value.entries)
-        entries.set('Length', record.stream.length)
-        const dictionary = encodeLatin1(`${serializePdfValue({ kind: 'dict', entries })}\nstream\n`)
-        const footer = encodeLatin1('\nendstream\nendobj\n')
-        chunks.push(dictionary, record.stream, footer)
-        offset += dictionary.length + record.stream.length + footer.length
-      } else {
-        const body = encodeLatin1(`${serializePdfValue(record.value)}\nendobj\n`)
-        chunks.push(body)
-        offset += body.length
-      }
-    }
-
-    const xrefOffset = offset
-    let xref = 'xref\n'
-    for (const record of records) {
-      xref += `${record.object} 1\n${String(offsets.get(record.object)).padStart(10, '0')} ${String(record.generation).padStart(5, '0')} n \n`
-    }
-    const root = [...this.objects.values()].find((record) => {
-      if (!isDict(record.value)) return false
-      const type = record.value.entries.get('Type')
-      return isName(type) && type.value === 'Catalog'
-    })
-    if (!root) throw new Error('PDF catalog not found')
-    const previous = previousXref(this.bytes)
-    const size = Math.max(...this.objects.keys()) + 1
-    xref += `trailer\n<< /Size ${size} /Root ${root.object} ${root.generation} R${previous === undefined ? '' : ` /Prev ${previous}`} >>\n`
-    xref += `startxref\n${xrefOffset}\n%%EOF\n`
-    chunks.push(encodeLatin1(xref))
-
-    const length = chunks.reduce((total, chunk) => total + chunk.length, 0)
-    const output = new Uint8Array(length)
-    let cursor = 0
-    for (const chunk of chunks) {
-      output.set(chunk, cursor)
-      cursor += chunk.length
-    }
-    return output
+    const trailer = new Map(this.trailer.entries)
+    for (const key of SECTION_KEYS) trailer.delete(key)
+    trailer.set('Size', nextObjectNumber(this.trailer, this.objects))
+    trailer.set('Root', { kind: 'ref', object: catalog.object, generation: catalog.generation })
+    if (this.startxref !== undefined) trailer.set('Prev', this.startxref)
+    return appendPdfUpdate(this.bytes, records, trailer)
   }
 
   private async expandObjectStreams(): Promise<void> {
@@ -348,43 +421,17 @@ export class PdfModel {
   }
 }
 
-/** Latin-1 bytes for a PDF token or dictionary, which is how a PDF file is written. */
-export function encodeLatin1(value: string): Uint8Array {
-  const bytes = new Uint8Array(value.length)
-  for (let index = 0; index < value.length; index++) bytes[index] = value.charCodeAt(index) & 0xff
-  return bytes
+function lastStartxref(source: string): number | undefined {
+  const tail = source.slice(Math.max(0, source.length - 2048))
+  const value = [...tail.matchAll(/startxref\s+(\d+)/g)].at(-1)?.[1]
+  return value === undefined ? undefined : Number(value)
 }
 
-function previousXref(bytes: Uint8Array): number | undefined {
-  const tail = byteString(bytes.slice(Math.max(0, bytes.length - 2048)))
-  const matches = [...tail.matchAll(/startxref\s+(\d+)/g)]
-  const value = matches.at(-1)?.[1]
-  return value ? Number(value) : undefined
-}
-
-function serializeName(value: string): string {
-  return `/${value.replace(/[^!-'*-.0-;=?-Z\\^-z|~]/g, (char) => `#${char.charCodeAt(0).toString(16).padStart(2, '0')}`)}`
-}
-
-function serializeString(value: string): string {
-  let hex = ''
-  let printable = true
-  for (let index = 0; index < value.length; index++) {
-    const code = value.charCodeAt(index)
-    if (code > 0xff) throw new Error(`PDF string holds U+${code.toString(16).toUpperCase().padStart(4, '0')}; encode text with encodeTextString before storing it`)
-    if (code < 0x20 ? code !== 0x09 && code !== 0x0a && code !== 0x0d : code > 0x7e) printable = false
-    hex += code.toString(16).padStart(2, '0')
-  }
-  if (!printable) return `<${hex}>`
-  return `(${value.replace(/([\\()])/g, '\\$1').replace(/\r/g, '\\r').replace(/\n/g, '\\n')})`
-}
-
-export function serializePdfValue(value: PdfValue): string {
-  if (value === null) return 'null'
-  if (typeof value === 'boolean' || typeof value === 'number') return String(value)
-  if (typeof value === 'string') return serializeString(value)
-  if (Array.isArray(value)) return `[${value.map(serializePdfValue).join(' ')}]`
-  if (isName(value)) return serializeName(value.value)
-  if (isRef(value)) return `${value.object} ${value.generation} R`
-  return `<<${[...value.entries].map(([key, item]) => ` ${serializeName(key)} ${serializePdfValue(item)}`).join('')} >>`
+/**
+ * The first object number no section of the file has used: past every object
+ * read, and past the newest trailer's `/Size`, which also counts free entries.
+ */
+function nextObjectNumber(trailer: PdfDict, objects: ReadonlyMap<number, PdfObject>): number {
+  const size = trailer.entries.get('Size')
+  return Math.max(typeof size === 'number' ? size : 0, Math.max(0, ...objects.keys()) + 1)
 }

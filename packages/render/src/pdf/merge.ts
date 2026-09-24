@@ -34,20 +34,18 @@
  */
 
 import type { BinaryContent } from '@paradoc/types'
-import { catalogRecord, INHERITED_PAGE_KEYS, pageRecords } from './page-tree'
+import { pageRecords, selfContainedPage } from './page-tree'
 import {
-  encodeLatin1,
   isDict,
   isName,
-  isRef,
+  PdfEncryptedError,
   PdfModel,
-  serializePdfValue,
   type PdfDict,
   type PdfObject,
   type PdfRef,
   type PdfValue,
 } from './syntax'
-import { byteString } from './text-string'
+import { collectRefs, renumber, writePdf } from './writer'
 
 /** Thrown when a source cannot be merged, naming which one and why. */
 export class PdfMergeError extends Error {
@@ -62,167 +60,35 @@ export class PdfMergeError extends Error {
 }
 
 /**
- * True when the file declares an encryption dictionary.
- *
- * Encrypted streams are stored enciphered under a key derived from the file's
- * own identifier, so copying their bytes into another file would produce
- * garbage. The check reads the trailer and any cross-reference stream rather
- * than the whole file, because `/Encrypt` occurring inside a compressed stream
- * means nothing.
- */
-function isEncrypted(bytes: Uint8Array, model: PdfModel): boolean {
-  const source = byteString(bytes)
-  if (/trailer[\s\S]{0,4096}?\/Encrypt\b/.test(source)) return true
-  for (const record of model.objects.values()) {
-    if (!isDict(record.value)) continue
-    const type = record.value.entries.get('Type')
-    if (isName(type) && type.value === 'XRef' && record.value.entries.has('Encrypt')) return true
-  }
-  return false
-}
-
-/** The page dictionary as it stands once its inherited attributes are its own. */
-function selfContainedPage(page: { record: PdfObject; inherited: Map<string, PdfValue> }): PdfDict {
-  if (!isDict(page.record.value)) {
-    throw new Error('PDF page object does not hold a dictionary')
-  }
-  const entries = new Map(page.record.value.entries)
-  for (const key of INHERITED_PAGE_KEYS) {
-    if (!entries.has(key)) {
-      const inherited = page.inherited.get(key)
-      if (inherited !== undefined) entries.set(key, inherited)
-    }
-  }
-  // The tree this page hung in is not the tree it is going into.
-  entries.delete('Parent')
-  return { kind: 'dict', entries }
-}
-
-/** Every object number the value can reach, added to `seen`. */
-function collectRefs(model: PdfModel, value: PdfValue | undefined, seen: Set<number>): void {
-  if (value === null || value === undefined) return
-  if (Array.isArray(value)) {
-    for (const entry of value) collectRefs(model, entry, seen)
-    return
-  }
-  if (typeof value !== 'object') return
-  if (isRef(value)) {
-    if (seen.has(value.object)) return
-    seen.add(value.object)
-    const record = model.objects.get(value.object)
-    if (record) collectRefs(model, record.value, seen)
-    return
-  }
-  if (isDict(value)) {
-    for (const entry of value.entries.values()) collectRefs(model, entry, seen)
-  }
-}
-
-/** The same value with every reference renumbered through `mapping`. */
-function renumber(value: PdfValue, mapping: ReadonlyMap<number, number>): PdfValue {
-  if (value === null || typeof value !== 'object') return value
-  if (Array.isArray(value)) return value.map((entry) => renumber(entry, mapping))
-  if (isRef(value)) {
-    const target = mapping.get(value.object)
-    // A reference to an object the merge did not keep is a dangling one, and
-    // `null` is what a PDF reader is required to make of a missing object.
-    return target === undefined ? null : { kind: 'ref', object: target, generation: 0 }
-  }
-  if (isDict(value)) {
-    const entries = new Map<string, PdfValue>()
-    for (const [key, entry] of value.entries) entries.set(key, renumber(entry, mapping))
-    return { kind: 'dict', entries }
-  }
-  return value
-}
-
-/** One object as it will be written into the merged file. */
-interface MergedObject {
-  number: number
-  value: PdfValue
-  stream?: Uint8Array
-}
-
-/** Serialize the objects into a complete PDF file with a classic cross-reference table. */
-function writeDocument(objects: readonly MergedObject[], catalog: number): Uint8Array {
-  const chunks: Uint8Array[] = [encodeLatin1('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n')]
-  let offset = chunks[0]!.length
-  const offsets = new Map<number, number>()
-
-  for (const object of [...objects].sort((a, b) => a.number - b.number)) {
-    offsets.set(object.number, offset)
-    const header = encodeLatin1(`${object.number} 0 obj\n`)
-    chunks.push(header)
-    offset += header.length
-    if (object.stream) {
-      if (!isDict(object.value)) throw new Error(`PDF stream object ${object.number} must contain a dictionary`)
-      const entries = new Map(object.value.entries)
-      entries.set('Length', object.stream.length)
-      const dictionary = encodeLatin1(`${serializePdfValue({ kind: 'dict', entries })}\nstream\n`)
-      const footer = encodeLatin1('\nendstream\nendobj\n')
-      chunks.push(dictionary, object.stream, footer)
-      offset += dictionary.length + object.stream.length + footer.length
-    } else {
-      const body = encodeLatin1(`${serializePdfValue(object.value)}\nendobj\n`)
-      chunks.push(body)
-      offset += body.length
-    }
-  }
-
-  const size = objects.reduce((highest, object) => Math.max(highest, object.number), 0) + 1
-  let table = `xref\n0 ${size}\n0000000000 65535 f \n`
-  for (let number = 1; number < size; number++) {
-    const at = offsets.get(number)
-    table +=
-      at === undefined
-        ? '0000000000 65535 f \n'
-        : `${String(at).padStart(10, '0')} 00000 n \n`
-  }
-  table += `trailer\n<< /Size ${size} /Root ${catalog} 0 R >>\nstartxref\n${offset}\n%%EOF\n`
-  chunks.push(encodeLatin1(table))
-
-  const length = chunks.reduce((total, chunk) => total + chunk.length, 0)
-  const output = new Uint8Array(length)
-  let cursor = 0
-  for (const chunk of chunks) {
-    output.set(chunk, cursor)
-    cursor += chunk.length
-  }
-  return output
-}
-
-/**
  * Concatenate PDFs into one document, keeping every page in the order given.
  *
  * A single source is returned unchanged, so merging a one-part packet costs
  * nothing and produces the bytes the part already had.
  *
+ * @throws {PdfEncryptedError} when a source is encrypted.
  * @throws {PdfMergeError} naming the source, when it has no catalog, no pages,
- * is encrypted, or cannot be read at all.
+ * or cannot be read at all.
  */
 export async function mergePdfs(sources: readonly BinaryContent[]): Promise<Uint8Array> {
   if (sources.length === 0) throw new Error('At least one PDF is required to merge')
-  if (sources.length === 1) return new Uint8Array(sources[0]!)
+  if (sources.length === 1) {
+    // Returned as it is, but still read: an encrypted part is refused here as
+    // it is everywhere else.
+    await PdfModel.load(new Uint8Array(sources[0]!))
+    return new Uint8Array(sources[0]!)
+  }
 
   const CATALOG = 1
   const PAGE_TREE = 2
   const pageTree: PdfRef = { kind: 'ref', object: PAGE_TREE, generation: 0 }
   let next = 3
-  const objects: MergedObject[] = []
+  const objects: PdfObject[] = []
   const pageRefs: PdfRef[] = []
 
   for (const [index, source] of sources.entries()) {
     try {
-      const bytes = new Uint8Array(source)
-      const model = await PdfModel.load(bytes)
-      if (isEncrypted(bytes, model)) {
-        throw new PdfMergeError(
-          index,
-          'it is encrypted. An encrypted stream is enciphered against its own file, so its bytes cannot be ' +
-            'carried into another one. Decrypt it before assembling the packet.',
-        )
-      }
-      const catalog = catalogRecord(model)
+      const model = await PdfModel.load(new Uint8Array(source))
+      const catalog = model.catalog()
       if (!catalog || !isDict(catalog.value)) throw new PdfMergeError(index, 'it has no catalog')
       const pages = pageRecords(model, catalog.value)
       if (pages.length === 0) throw new PdfMergeError(index, 'it has no pages')
@@ -251,7 +117,7 @@ export async function mergePdfs(sources: readonly BinaryContent[]): Promise<Uint
         const number = mapping.get(page.ref.object)!
         const value = renumber(dictionaries[position]!, mapping) as PdfDict
         value.entries.set('Parent', pageTree)
-        objects.push({ number, value, stream: page.record.stream })
+        objects.push({ object: number, generation: 0, value, stream: page.record.stream })
         pageRefs.push({ kind: 'ref', object: number, generation: 0 })
       }
 
@@ -260,12 +126,14 @@ export async function mergePdfs(sources: readonly BinaryContent[]): Promise<Uint
         if (pageObjects.has(object)) continue
         const record = model.objects.get(object)
         if (!record) continue
-        objects.push({ number, value: renumber(record.value, mapping), stream: record.stream })
+        objects.push({ object: number, generation: 0, value: renumber(record.value, mapping), stream: record.stream })
       }
     } catch (error) {
       // Every failure names its source. A parser that throws about a byte
       // offset says nothing about which of five documents it was reading.
-      if (error instanceof PdfMergeError) throw error
+      // Encryption is the exception: every entry point refuses an encrypted
+      // file with the same error.
+      if (error instanceof PdfMergeError || error instanceof PdfEncryptedError) throw error
       throw new PdfMergeError(
         index,
         `reading it failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -274,7 +142,8 @@ export async function mergePdfs(sources: readonly BinaryContent[]): Promise<Uint
   }
 
   objects.push({
-    number: PAGE_TREE,
+    object: PAGE_TREE,
+    generation: 0,
     value: {
       kind: 'dict',
       entries: new Map<string, PdfValue>([
@@ -285,7 +154,8 @@ export async function mergePdfs(sources: readonly BinaryContent[]): Promise<Uint
     },
   })
   objects.push({
-    number: CATALOG,
+    object: CATALOG,
+    generation: 0,
     value: {
       kind: 'dict',
       entries: new Map<string, PdfValue>([
@@ -295,5 +165,5 @@ export async function mergePdfs(sources: readonly BinaryContent[]): Promise<Uint
     },
   })
 
-  return writeDocument(objects, CATALOG)
+  return writePdf(objects, new Map<string, PdfValue>([['Root', { kind: 'ref', object: CATALOG, generation: 0 }]]))
 }

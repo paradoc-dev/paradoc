@@ -10,7 +10,7 @@
 
 import type { Form } from '@paradoc/types'
 import { describe, expect, it } from 'vitest'
-import { extractPdfData, PdfExtractionError, renderPdf, selectPdfExtractionLayer } from '../src/pdf'
+import { extractPdfData, PdfEncryptedError, PdfExtractionError, renderPdf, selectPdfExtractionLayer } from '../src/pdf'
 import { acroFormPdf, pagePdf, type AcroFormFixtureField } from './pdf-fixtures'
 
 const form = {
@@ -268,8 +268,10 @@ describe('extractPdfData', () => {
       expect(error.message).toMatch(/hosted Paradoc extraction service/)
     })
 
-    it('refuses an encrypted PDF', async () => {
-      expect((await codeOf(acroFormPdf(layout, { encrypted: true }))).code).toBe('encrypted_pdf')
+    it('refuses an encrypted PDF with the shared encryption error', async () => {
+      const error = await extractPdfData({ pdf: acroFormPdf(layout, { encrypted: true }), form, bindings }).catch((caught: unknown) => caught)
+      expect(error).toBeInstanceOf(PdfEncryptedError)
+      expect((error as PdfEncryptedError).code).toBe('encrypted_pdf')
     })
 
     it('refuses a PDF whose fields match none of the bindings', async () => {

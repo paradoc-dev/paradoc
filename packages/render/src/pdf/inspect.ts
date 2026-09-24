@@ -1,6 +1,6 @@
 import type { BinaryContent } from '@paradoc/types'
 import { classifyField, isChildField, type PdfFieldType } from './acroform'
-import { catalogRecord, documentPages } from './page-tree'
+import { documentPages } from './page-tree'
 import { isDict, isName, isRef, PdfModel, type PdfDict, type PdfValue } from './syntax'
 import { decodeTextString } from './text-string'
 
@@ -82,7 +82,7 @@ export async function inspectAcroFormFields(
   options: InspectOptions = {},
 ): Promise<PdfFieldInfo[]> {
   const model = await PdfModel.load(template)
-  const root = catalogRecord(model)?.value
+  const root = model.catalog()?.value
   const acroForm = model.dict(isDict(root) ? root.entries.get('AcroForm') : undefined)
   const fields = model.resolve(acroForm?.entries.get('Fields'))
   if (!Array.isArray(fields)) return []

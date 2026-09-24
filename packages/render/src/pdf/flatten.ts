@@ -25,6 +25,16 @@ function appearanceRef(model: PdfModel, widget: AcroWidget): PdfRef | undefined 
   return isRef(candidate) && model.record(candidate)?.stream ? candidate : undefined
 }
 
+/** Annotation flags a viewer honours by drawing nothing: Hidden (bit 2) and NoView (bit 6). */
+const HIDDEN = 2
+const NO_VIEW = 32
+
+/** True when a viewer shows nothing for the widget, so flattening draws nothing for it either. */
+function hidden(model: PdfModel, widget: AcroWidget): boolean {
+  const flags = model.resolve(widget.dict.entries.get('F'))
+  return typeof flags === 'number' && (flags & (HIDDEN | NO_VIEW)) !== 0
+}
+
 function widgetPage(model: PdfModel, pages: PageRecord[], widget: AcroWidget): PageRecord | undefined {
   const page = widget.dict.entries.get('P')
   if (isRef(page)) return pages.find(({ record }) => record.object === page.object)
@@ -84,7 +94,8 @@ function placement(model: PdfModel, widget: AcroWidget, appearance: PdfRef): str
 
 /**
  * Burn AcroForm widget appearances into their pages and remove the interactive
- * form controls. PDFs without an AcroForm are returned unchanged.
+ * form controls. A widget a viewer does not show (Hidden or NoView) is removed
+ * without being drawn. PDFs without an AcroForm are returned unchanged.
  */
 export async function flattenPdf(template: BinaryContent): Promise<Uint8Array> {
   const model = await PdfModel.load(template)
@@ -104,7 +115,7 @@ export async function flattenPdf(template: BinaryContent): Promise<Uint8Array> {
     for (const widget of field.widgets) {
       const page = widgetPage(model, pages, widget)
       if (!page) continue
-      const appearance = appearanceRef(model, widget)
+      const appearance = hidden(model, widget) ? undefined : appearanceRef(model, widget)
       if (appearance) {
         const transform = placement(model, widget, appearance)
         if (transform) {

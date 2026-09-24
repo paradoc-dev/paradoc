@@ -1,6 +1,5 @@
 import type { PdfFontSet } from './drawing-fonts'
 import { layoutFieldText, parseDefaultAppearance, type DefaultAppearance, type FieldLayout } from './field-appearance'
-import { catalogRecord } from './page-tree'
 import { isDict, isName, isRef, type PdfDict, type PdfRef, PdfModel, type PdfValue } from './syntax'
 import { decodeTextString, encodeTextString } from './text-string'
 
@@ -81,7 +80,7 @@ export function isChildField(model: PdfModel, kid: PdfValue): boolean {
 }
 
 export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: PdfDict; acroRef?: PdfRef; catalogRef?: PdfRef } {
-  const catalog = catalogRecord(model)
+  const catalog = model.catalog()
   if (!catalog || !isDict(catalog.value)) throw new Error('PDF catalog not found')
   const acroValue = catalog.value.entries.get('AcroForm')
   const acroForm = model.dict(acroValue)

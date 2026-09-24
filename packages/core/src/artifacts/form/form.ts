@@ -862,6 +862,7 @@ export interface FormInstance<F extends Form> extends ArtifactMethods<F> {
 	/**
 	 * Read a filled PDF back into form data through a PDF layer's bindings.
 	 * Reads AcroForm field values only; the PDF is not modified.
+	 * @throws PdfEncryptedError when the PDF is encrypted
 	 * @throws PdfExtractionError when the PDF or the layer choice cannot be read
 	 */
 	extract(pdf: Uint8Array, options?: ExtractOptions): Promise<FormExtraction>

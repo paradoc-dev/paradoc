@@ -194,7 +194,7 @@ async function extractPdfData(options: ExtractPdfDataOptions): Promise<PdfExtrac
   { name: 'format', type: 'LayerFormat', description: "The PDF layer's declared format, applied over `formatter` as when filling. `selectPdfExtractionLayer` returns it with the bindings", isOptional: true },
 ]} />
 
-Returns `{ data, report }`. Failures throw `PdfExtractionError` with a `code`.
+Returns `{ data, report }`. Failures throw `PdfExtractionError` with a `code`. An encrypted PDF throws `PdfEncryptedError`.
 
 ## Inspecting PDF Fields
 
@@ -223,8 +223,8 @@ bytes directly.
 | Function | Description |
 |----------|-------------|
 | `inspectPdf(pdf)` | Returns `{ pageCount, pages }`, with each page's one-based number, `width`, and `height` in PDF points |
-| `flattenPdf(pdf)` | Burns AcroForm field appearances into the pages and removes the interactive controls. A PDF with no AcroForm returns unchanged |
-| `selectPdfPages(pdf, pages)` | Returns a PDF with the given one-based pages, in source order. Pages must be unique positive integers that exist |
+| `flattenPdf(pdf)` | Burns AcroForm field appearances into the pages and removes the interactive controls. A widget a viewer does not show (Hidden or NoView) is removed without being drawn. A PDF with no AcroForm returns unchanged |
+| `selectPdfPages(pdf, pages)` | Returns a new PDF with only the given one-based pages, in source order. Dropped pages, and form fields that sit only on them, are not in the file. Pages must be unique positive integers that exist |
 | `mergePdfs(pdfs)` | Concatenates PDFs into one, keeping every page in order. A single source returns unchanged |
 
 ```ts
@@ -236,9 +236,13 @@ const firstTwo = await selectPdfPages(flat, [1, 2])
 const packet = await mergePdfs([firstTwo, coverLetter])
 ```
 
-`mergePdfs` throws `PdfMergeError` when a source has no catalog or pages, is
-encrypted, or cannot be read. Its `source` property is the zero-based index of
-that source.
+`mergePdfs` throws `PdfMergeError` when a source has no catalog or pages, or
+cannot be read. Its `source` property is the zero-based index of that source.
+
+Every function that reads or writes a PDF, from `renderPdf` to `mergePdfs`,
+refuses an encrypted PDF with `PdfEncryptedError`, whose `code` is
+`encrypted_pdf`. An encrypted file stores its strings and streams enciphered,
+so a filled or copied value would be unreadable. Remove the encryption first.
 
 The same entry point exports the signature placement helpers the SDK
 re-exports: `locate`, `locator`, `LocateError`, `extractFieldsFromPdf`,

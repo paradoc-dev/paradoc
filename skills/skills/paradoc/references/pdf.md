@@ -259,13 +259,14 @@ A refused input throws `PdfExtractionError` with a `code`:
 | `code` | Cause |
 |--------|-------|
 | `malformed_pdf` | Not a readable PDF. |
-| `encrypted_pdf` | The PDF is encrypted. |
 | `no_form_fields` | The PDF has no fillable AcroForm fields (flat, flattened, or scanned). |
 | `not_matching` | No PDF field matches a binding key, or the layer has no bindings. |
 | `no_pdf_layer` | The artifact has no PDF layer. |
 | `layer_required` | Several PDF layers exist. Pass `layer`. |
 | `layer_not_found` | `layer` names no layer. |
 | `not_pdf_layer` | `layer` names a layer that is not a PDF. |
+
+An encrypted PDF throws `PdfEncryptedError` (`code` `encrypted_pdf`). Every `@paradoc/render/pdf` function that reads or writes a PDF refuses one the same way.
 
 ## Flat PDFs
 

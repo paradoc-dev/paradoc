@@ -4,13 +4,12 @@ import { validateFieldBindings } from '../text/field-formatter'
 import { resolveLayerBindings } from '../layer-bindings'
 import { pathSegments } from '../path'
 import { acroFields, type AcroField } from './acroform'
-import { isDict, isName, PdfModel, type PdfValue } from './syntax'
+import { isName, PdfEncryptedError, PdfModel, type PdfValue } from './syntax'
 import { byteString, decodeTextString } from './text-string'
 
 /** Why a PDF could not be read as the artifact's filled form. */
 export type PdfExtractionErrorCode =
   | 'malformed_pdf'
-  | 'encrypted_pdf'
   | 'no_form_fields'
   | 'not_matching'
   | 'no_pdf_layer'
@@ -151,25 +150,14 @@ function assertReadablePdf(bytes: Uint8Array): void {
   }
 }
 
-function isEncrypted(model: PdfModel, bytes: Uint8Array): boolean {
-  for (const record of model.objects.values()) {
-    if (!isDict(record.value)) continue
-    const type = record.value.entries.get('Type')
-    if (isName(type) && type.value === 'XRef' && record.value.entries.has('Encrypt')) return true
-  }
-  return /trailer\s*<<(?:(?!startxref)[\s\S])*?\/Encrypt\b/.test(byteString(bytes))
-}
-
 async function loadFormFields(bytes: BinaryContent): Promise<{ model: PdfModel; fields: AcroField[] }> {
   assertReadablePdf(bytes)
   let model: PdfModel
   try {
     model = await PdfModel.load(bytes)
   } catch (error) {
+    if (error instanceof PdfEncryptedError) throw error
     throw new PdfExtractionError('malformed_pdf', `The PDF could not be parsed: ${error instanceof Error ? error.message : String(error)}`)
-  }
-  if (isEncrypted(model, bytes)) {
-    throw new PdfExtractionError('encrypted_pdf', 'The PDF is encrypted, so its form field values cannot be read. Remove the encryption and try again.')
   }
   let fields: AcroField[]
   try {
@@ -612,6 +600,9 @@ function placeValue(data: PdfExtractedData, path: string, value: unknown): void 
  * radio maps. A joined binding's raw text is reported as not recoverable, and
  * text that does not parse into the field's type is reported with its raw
  * value. Nothing is validated here; pass the data to the normal fill path.
+ *
+ * @throws {PdfEncryptedError} when the PDF is encrypted.
+ * @throws {PdfExtractionError} when the PDF or the layer choice cannot be read.
  */
 export async function extractPdfData({ pdf, form, bindings, formatter: filledWith = defaultFormatter, format }: ExtractPdfDataOptions): Promise<PdfExtraction> {
   const formatter = format?.money ? filledWith.compose({ money: format.money }) : filledWith

@@ -154,8 +154,13 @@ any of them should say so rather than merge.
 
 A single source is returned unchanged. Every failure names its source:
 `PdfMergeError` carries the zero-based `source` index for a document with no
-catalog, no pages, an encryption dictionary, or bytes the parser cannot read at
-all.
+catalog, no pages, or bytes the parser cannot read at all.
+
+An encrypted source throws `PdfEncryptedError`, as it does from every function
+that reads or writes a PDF (`renderPdf`, `flattenPdf`, `selectPdfPages`,
+`inspectPdf`, `extractPdfData`, and the rest). One check, in the parser every
+entry point shares, decides: a trailer or cross-reference stream that declares
+`/Encrypt`.
 
 ## Signature placement
 

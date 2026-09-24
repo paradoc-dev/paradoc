@@ -323,6 +323,7 @@ function partFailure(key: string, action: string, error: unknown): BundleSealErr
  * @throws {SealConfigError} when a rendered part's renderer returns something
  * that is not a PDF, which no packet can hold.
  * @throws {PdfMergeError} when a part reached a PDF the merge cannot read.
+ * @throws {PdfEncryptedError} when a part is an encrypted PDF.
  */
 export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Promise<SealedBundle> {
   const { contents, renderers, adapter, locate } = options

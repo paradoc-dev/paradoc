@@ -1,5 +1,5 @@
-import { catalogRecord, pageRecords } from './page-tree'
-import { isDict, isName, isRef, type PdfDict, type PdfModel, type PdfValue } from './syntax'
+import { pageRecords } from './page-tree'
+import { inflate, isDict, isName, isRef, type PdfDict, type PdfModel, type PdfValue } from './syntax'
 
 export interface PdfPage {
   dict: PdfDict
@@ -7,14 +7,6 @@ export interface PdfPage {
   /** [x0, y0, x1, y1] in points. */
   mediaBox: [number, number, number, number]
   content: Uint8Array
-}
-
-async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
-  if (typeof DecompressionStream === 'undefined') {
-    throw new Error('FlateDecode is unavailable in this runtime')
-  }
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'))
-  return new Uint8Array(await new Response(stream).arrayBuffer())
 }
 
 /** Decode a stream object's bytes, applying its declared filters. */
@@ -53,7 +45,7 @@ function asNumberArray(model: PdfModel, value: PdfValue | undefined): number[] |
 
 /** Every page in document order, with its inherited resources and media box. */
 export async function loadPages(model: PdfModel): Promise<PdfPage[]> {
-  const catalog = catalogRecord(model)
+  const catalog = model.catalog()
   if (!catalog || !isDict(catalog.value)) throw new Error('PDF catalog not found')
   if (!model.dict(catalog.value.entries.get('Pages'))) throw new Error('PDF page tree not found')
 

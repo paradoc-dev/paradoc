@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { acroFields, classifyField, isChildField } from '../src/pdf/acroform'
-import { inspectAcroFormFields } from '../src/pdf/inspect'
+import { inspectAcroFormFields, inspectPdf } from '../src/pdf/inspect'
 import {
   addPageResource,
   appendPageContent,
-  catalogRecord,
   cloneDict,
   documentPages,
   pageRecords,
@@ -58,7 +57,7 @@ describe('pageRecords', () => {
       { id: 3, body: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] >>' },
       { id: 4, body: '<< /Type /Pages /Parent 2 0 R /Kids [2 0 R 3 0 R] /Count 1 >>' },
     ]))
-    const catalog = catalogRecord(model)
+    const catalog = model.catalog()
     if (!catalog || !isDict(catalog.value)) throw new Error('catalog missing')
     expect(pageRecords(model, catalog.value).map(({ ref }) => ref.object)).toEqual([3])
   })
@@ -68,8 +67,54 @@ describe('pageRecords', () => {
       { id: 1, body: '<< /Type /Pages /Kids [2 0 R] /Count 1 >>' },
       { id: 2, body: '<< /Type /Page /Parent 1 0 R >>' },
     ]))
-    expect(catalogRecord(model)).toBeUndefined()
+    expect(model.catalog()).toBeUndefined()
     expect(documentPages(model)).toEqual([])
+  })
+})
+
+describe('PdfModel.catalog', () => {
+  /** A one-page file plus an update that writes a two-page catalog under a new number. */
+  function withNewCatalog(): Uint8Array {
+    const base = assemblePdf([
+      { id: 1, body: '<< /Type /Catalog /Pages 2 0 R >>' },
+      { id: 2, body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
+      { id: 3, body: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>' },
+    ])
+    const text = new TextDecoder('latin1').decode(base)
+    const previous = Number(/startxref\s+(\d+)/.exec(text)![1])
+    const updates: [number, string][] = [
+      [10, '<< /Type /Catalog /Pages 11 0 R >>'],
+      [11, '<< /Type /Pages /Kids [12 0 R 13 0 R] /Count 2 >>'],
+      [12, '<< /Type /Page /Parent 11 0 R /MediaBox [0 0 200 200] >>'],
+      [13, '<< /Type /Page /Parent 11 0 R /MediaBox [0 0 200 200] >>'],
+    ]
+    let body = ''
+    let xref = 'xref\n0 2\n0000000000 65535 f \n0000000000 00001 f \n10 4\n'
+    for (const [id, dict] of updates) {
+      xref += `${String(base.length + body.length).padStart(10, '0')} 00000 n \n`
+      body += `${id} 0 obj\n${dict}\nendobj\n`
+    }
+    const tail = `${body}${xref}trailer\n<< /Size 14 /Root 10 0 R /Prev ${previous} >>\nstartxref\n${base.length + body.length}\n%%EOF\n`
+    return new Uint8Array([...base, ...new TextEncoder().encode(tail)])
+  }
+
+  it('is the object the newest trailer names as /Root, not the first one typed Catalog', async () => {
+    const model = await PdfModel.load(withNewCatalog())
+    expect(model.catalog()?.object).toBe(10)
+    expect(documentPages(model)).toHaveLength(2)
+    expect((await inspectPdf(withNewCatalog())).pageCount).toBe(2)
+  })
+
+  it('is what an incremental save names as /Root', async () => {
+    const model = await PdfModel.load(withNewCatalog())
+    model.markUpdated(model.catalog())
+    const saved = new TextDecoder('latin1').decode(model.save())
+    expect(saved.slice(saved.lastIndexOf('trailer'))).toContain('/Root 10 0 R')
+  })
+
+  it('is the first object typed Catalog in a file with no trailer', async () => {
+    const pdf = new TextEncoder().encode('%PDF-1.4\n5 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\n7 0 obj\n<< /Type /Catalog /Pages 5 0 R >>\nendobj\n%%EOF\n')
+    expect((await PdfModel.load(pdf)).catalog()?.object).toBe(7)
   })
 })
 
