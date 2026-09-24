@@ -6,6 +6,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Fixed
 
+- `@paradoc/core`: an annex whose `required` is an expression is no longer always required by the compiled payload schema, so `safeParseData` accepts a payload that leaves it out. Only `required: true` makes an annex required there; the runtime evaluates a conditional requirement, and `validate()` reports the annex missing while the condition holds.
 - `@paradoc/core`: a person party with no signatories signs for itself (`signerId` is its party id), as render already applied. Seal binds its slots to the party id, captures with that signer id are accepted without `addSigner`, and `getSignatureStatus` counts them. Seal used to fail with `has no signatory` and capture with `not found in registry`. An organization with no signatories still has no signer.
 - Skills: the `paradoc` MCP reference no longer lists `connect_start_onboarding`. The MCP server no longer registers it, because the Platform API does not serve onboarding to API keys. A person completes Stripe onboarding on the Payments page of the Paradoc console.
 - `@paradoc/sessions`: a party role with `max` above 1 keeps the session resolved. `answerParty` passes its `index` to core, so an index past `max`, or other than 0 on a single-party role, rejects with `invalid-value`, and an index that skips a position rejects with `party-index-out-of-order`. The payload sends such a role as an array even with one party. Before, answering one made core reject the payload, and every later command failed with `unresolved-state`.

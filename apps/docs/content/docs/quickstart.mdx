@@ -214,28 +214,19 @@ If we want to save our form for future use, we can either save it as a typescrip
         }
       },
       "defaultLayer": "markdown",
-      "allowAdditionalAnnexes": false,
       "parties": {
         "buyer": {
           "label": "Buyer",
           "partyType": "person",
-          "min": 1,
-          "max": 1,
           "signature": {
-            "required": true,
-            "witnesses": 0,
-            "notarized": false
+            "required": true
           }
         },
         "seller": {
           "label": "Seller",
           "partyType": "person",
-          "min": 1,
-          "max": 1,
           "signature": {
-            "required": true,
-            "witnesses": 0,
-            "notarized": false
+            "required": true
           }
         }
       }
@@ -270,26 +261,17 @@ If we want to save our form for future use, we can either save it as a typescrip
         kind: file
         path: purchase-agreement.md
     defaultLayer: markdown
-    allowAdditionalAnnexes: false
     parties:
       buyer:
         label: Buyer
         partyType: person
-        min: 1
-        max: 1
         signature:
           required: true
-          witnesses: 0
-          notarized: false
       seller:
         label: Seller
         partyType: person
-        min: 1
-        max: 1
         signature:
           required: true
-          witnesses: 0
-          notarized: false
     ```
   </Tab>
 </Tabs>

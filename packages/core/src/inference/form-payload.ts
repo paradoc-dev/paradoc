@@ -673,7 +673,7 @@ function compileAnnexes(annexes: Record<string, FormAnnex>, allowAdditional: boo
       ...(description !== undefined && { description }),
     }
 
-    if (annex.required) {
+    if (annex.required === true) {
       required.push(annexId)
     }
   }

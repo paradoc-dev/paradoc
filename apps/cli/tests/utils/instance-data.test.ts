@@ -39,10 +39,32 @@ describe('makeInstanceTemplate composite defaults', () => {
 
   it('produces a template whose shapes the core schema validator accepts', () => {
     const template = makeInstanceTemplate(form)
-    // The only core complaint is the empty phone placeholder, which must be filled in E.164.
+    // Core accepts every composite shape, and rejects only the empty-string
+    // placeholders, which fail their length and pattern rules until filled in.
     const errors = validateFormData(form, template as unknown as Record<string, unknown>).errors ?? []
-    expect(errors.map((error) => error.field)).toEqual(['fields.tel.number'])
-    expect(validateFormPayload(form, { fields: { ...template.fields, tel: { number: '+12154852665' } } })).toMatchObject({ success: true })
+    expect(errors.map((error) => error.field)).toEqual([
+      'fields.addr.line1',
+      'fields.addr.locality',
+      'fields.addr.region',
+      'fields.addr.postalCode',
+      'fields.addr.postalCode',
+      'fields.addr.country',
+      'fields.tel.number',
+      'fields.tel.number',
+      'fields.who.name',
+      'fields.org.name',
+      'fields.doc.type',
+      'fields.doc.number',
+    ])
+    const filled = {
+      ...template.fields,
+      addr: { line1: '1 Main St', locality: 'Springfield', region: 'IL', postalCode: '62701', country: 'US' },
+      tel: { number: '+12154852665' },
+      who: { name: 'Ada Lovelace' },
+      org: { name: 'Acme Inc.' },
+      doc: { type: 'passport', number: 'X1234567' },
+    }
+    expect(validateFormPayload(form, { fields: filled })).toMatchObject({ success: true })
   })
 })
 

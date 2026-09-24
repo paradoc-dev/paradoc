@@ -3,6 +3,7 @@ import type { Form } from '@paradoc/types'
 import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
 import { compile, type FieldToDataType } from '@/inference/form-payload'
 import { validateFormData } from '@/validation'
+import { form as formBuilder } from '@/artifacts'
 
 describe('form payload inference', () => {
 	test('infers recursive list item types', () => {
@@ -172,5 +173,47 @@ describe('form payload inference', () => {
 		for (const [label, fieldsValue] of invalid) {
 			expect(validateFormData(form, { fields: fieldsValue }).success, label).toBe(false)
 		}
+	})
+})
+
+describe('annex requiredness in the compiled payload schema', () => {
+	const proof = { name: 'proof.pdf', mimeType: 'application/pdf' }
+	const createForm = () =>
+		formBuilder()
+			.name('annex-requiredness')
+			.fields({ treaty: { type: 'boolean', label: 'Treaty' } })
+			.annexes({
+				always: { title: 'Always', required: true },
+				statement: { title: 'Statement', required: 'fields.treaty == true' },
+			})
+			.build()
+
+	test('only an annex with required: true is statically required', () => {
+		expect(compile(createForm()).properties?.annexes?.required).toEqual(['always'])
+	})
+
+	test('payload validation leaves a conditional annex to the runtime', () => {
+		const def = createForm()
+		expect(validateFormData(def, { fields: { treaty: false }, annexes: { always: proof } }).success).toBe(true)
+		expect(validateFormData(def, { fields: { treaty: true }, annexes: { always: proof } }).success).toBe(true)
+
+		const missingAlways = validateFormData(def, { fields: { treaty: false }, annexes: {} })
+		expect(missingAlways.success).toBe(false)
+		if (!missingAlways.success) {
+			expect(missingAlways.errors.map((error) => error.field)).toEqual(['annexes.always'])
+		}
+	})
+
+	test('runtime validation requires a conditional annex only while its condition holds', () => {
+		const def = createForm()
+		const fieldsOf = (errors: { field: string }[]) => errors.map((error) => error.field)
+
+		expect(fieldsOf(def.fill({ fields: { treaty: false }, annexes: { always: proof } }).validate().errors)).toEqual([])
+		expect(fieldsOf(def.fill({ fields: { treaty: true }, annexes: { always: proof } }).validate().errors)).toEqual([
+			'annexes.statement',
+		])
+		expect(
+			fieldsOf(def.fill({ fields: { treaty: true }, annexes: { always: proof, statement: proof } }).validate().errors),
+		).toEqual([])
 	})
 })

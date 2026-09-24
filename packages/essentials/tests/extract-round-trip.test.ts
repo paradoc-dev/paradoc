@@ -213,7 +213,7 @@ describe('extracted data through the normal fill path', () => {
 
 describe('layer selection on essentials forms', () => {
   it('requires a layer name on a form with several PDF copies', async () => {
-    const pdf = await f1099NEC.render({ layer: 'pdfCopyB', data: {} } as never) as Uint8Array
+    const pdf = await f1099NEC.render({ layer: 'pdfCopyB', data: { fields: {} } }) as Uint8Array
     const error = await f1099NEC.extract(pdf).catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(PdfExtractionError)
     expect(error).toMatchObject({ code: 'layer_required', message: expect.stringContaining('pdfCopyB') })
