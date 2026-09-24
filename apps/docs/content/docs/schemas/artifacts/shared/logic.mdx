@@ -14,7 +14,7 @@ A mapping of named typed expressions keyed by camelCase identifier.
 
 Each entry specifies a `type` and `value`. For scalar types the value is a string expression; for composite types (money, address, etc.) the value is an object with component expressions, in the same shape as the matching field value. A bbox value has `southWest` and `northEast` corners, each with `lat` and `lon` expressions.
 
-The keys `item` and `parent` are reserved for list row references and fail validation.
+The keys `fields` and `parties` are reserved for the context roots, and `item` and `parent` for list row references. A def with one of these keys fails validation.
 
 <PropertiesTable properties={[
   {

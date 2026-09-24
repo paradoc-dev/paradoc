@@ -31,4 +31,5 @@ export type {
   EvaluationContext,
   ResolvedPayment,
   FormDataPayload,
+  SigningState,
 } from './evaluation'

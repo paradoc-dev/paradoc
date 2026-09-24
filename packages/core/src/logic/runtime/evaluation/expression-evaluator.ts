@@ -1,19 +1,19 @@
 /**
  * Core expression evaluation, backed by @paradoc/expr.
  *
- * This module evaluates expressions at runtime with actual form data. It keeps
- * the existing function signatures (`evaluateExpression`,
- * `evaluateBooleanExpression`, `evaluateExpressionOrDefault`) so all callers are
- * unaffected; only the engine underneath changed (from expr-eval-fork to the
- * purpose-built @paradoc/expr).
+ * This module evaluates expressions at runtime with actual form data:
+ * `evaluateExpression` for a value, and `evaluateGate` for every boolean gate
+ * (visibility, requiredness, row visibility, rules).
  *
  * The 8 party/witness predicates are supplied as host-injected functions, and
- * bare references resolve against the context (a missing reference degrades to
- * null rather than throwing, so callers no longer need to pre-seed fields).
+ * bare references resolve against the context (a missing reference resolves to
+ * null, so callers need not pre-seed fields). A context value that cannot
+ * become an expression value, such as NaN, fails the evaluation that reads it.
  */
 
 import {
 	evaluateExpression as runExpression,
+	EvaluationError,
 	Values,
 	toValue,
 	truthy,
@@ -22,9 +22,8 @@ import {
 	type Value,
 	type EvalResult,
 } from '@paradoc/expr'
-import { PARTY_ENTRIES, ROW_ORIGINS, ROW_VISIBILITY, WITNESS_ENTRIES, type EvaluationContext, type ExpressionResult, type EvaluationOptions, type PartyContextEntry } from './types'
+import { EVALUATION_CLOCK, FUNCTION_REGISTRY, HOST_FUNCTIONS, PARTY_ENTRIES, ROW_ORIGINS, ROW_VISIBILITY, WITNESS_ENTRIES, type EvaluationContext, type ExpressionResult, type PartyContextEntry } from './types'
 import { resolveRowListPath, type RowOrigin } from '../../shared/list-paths'
-import { ExpressionEvaluationError } from './errors'
 
 // ============================================================================
 // Party-specific functions for expression evaluation
@@ -161,7 +160,7 @@ function buildExprContext(context: EvaluationContext): ExprContext {
 		witnessCount: () => Values.num(String(witnessCount(context))),
 		allWitnessesSigned: () => Values.boolean(allWitnessesSigned(context)),
 		anyWitnessSigned: () => Values.boolean(anyWitnessSigned(context)),
-		...context.expressionFunctions,
+		...context[HOST_FUNCTIONS],
 	}
 	const record = context as Record<string, unknown>
 	const rowVisibility = context[ROW_VISIBILITY]
@@ -183,14 +182,14 @@ function buildExprContext(context: EvaluationContext): ExprContext {
 				resolved.set(name, cached.value)
 				return cached.value
 			}
-			const value = toContextValue(source)
+			const value = toContextValue(source, name)
 			converted.set(name, { source, value })
 			resolved.set(name, value)
 			return value
 		},
 		hostFunctions,
-		asOf: context.asOf,
-		registry: context.expressionRegistry,
+		asOf: context[EVALUATION_CLOCK],
+		registry: context[FUNCTION_REGISTRY],
 		rowVisible: rowVisibility && ((listPath, indices) => {
 			// `item.parts` is a list inside the bound row; find it from the form root.
 			const resolvedRow = resolveRowListPath(listPath, indices, context[ROW_ORIGINS])
@@ -214,16 +213,22 @@ function isInternalExpressionValue(value: unknown): value is InternalExpressionV
 	return Boolean(value && typeof value === 'object' && internalExpressionValue in value)
 }
 
-function toContextValue(value: unknown): Value {
+/**
+ * Converts a context value to an expression value. A value with no expression
+ * form, such as NaN or Infinity, fails the evaluation that reads it with a
+ * `type-error` naming its path; it never reads as a missing value.
+ */
+function toContextValue(value: unknown, path: string): Value {
 	if (isInternalExpressionValue(value)) return value[internalExpressionValue]
-	if (Array.isArray(value)) return Values.array(value.map((item) => toContextValue(item)))
+	if (Array.isArray(value)) return Values.array(value.map((item, index) => toContextValue(item, `${path}[${index}]`)))
 	if (value && typeof value === 'object') {
-		return Values.object(Object.entries(value as Record<string, unknown>).map(([key, item]) => {
-			try { return [key, toContextValue(item)] as const }
-			catch { return [key, Values.null] as const }
-		}))
+		return Values.object(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, toContextValue(item, `${path}.${key}`)] as const))
 	}
-	return toValue(value)
+	try {
+		return toValue(value)
+	} catch (error) {
+		throw new EvaluationError('type-error', `${path} has no expression value: ${error instanceof Error ? error.message : String(error)}`)
+	}
 }
 
 export function fromExpressionValue(v: Value): unknown {
@@ -253,11 +258,10 @@ export function evaluateExpressionValue(expr: string, context: EvaluationContext
  *
  * @example
  * ```typescript
- * const context = {
+ * const context = buildFormContext(form, {
  *   fields: { age: 25 },
- *   parties: { buyer: [{ type: 'person', data: {...}, signed: true }] },
- *   isAdult: true,
- * }
+ *   parties: { buyer: { id: 'buyer-0', name: 'Ann Buyer' } },
+ * })
  *
  * evaluateExpression('fields.age >= 18', context)        // { success: true, value: true }
  * evaluateExpression('partyCount("buyer") > 0', context) // { success: true, value: true }
@@ -266,40 +270,35 @@ export function evaluateExpressionValue(expr: string, context: EvaluationContext
 export function evaluateExpression<T = unknown>(
 	expr: string,
 	context: EvaluationContext,
-	options?: EvaluationOptions
 ): ExpressionResult<T> {
 	const result = runExpression(expr, buildExprContext(context))
 	if (result.success) {
 		return { success: true, value: fromExpressionValue(result.value) as T }
 	}
-	if (options?.throwOnError) {
-		throw ExpressionEvaluationError.evaluationFailed(expr, new Error(result.error))
-	}
 	return { success: false, error: result.error, code: result.code, span: result.span }
 }
 
 /**
- * Evaluates a conditional expression (CondExpr), either a boolean literal or a
- * string expression, returning `defaultValue` when undefined or on failure.
+ * The outcome of a boolean gate: its truthiness, or that an input it reads has
+ * no value yet, or that it failed with its inputs present.
  */
-export function evaluateBooleanExpression(
-	condExpr: boolean | string | undefined,
-	context: EvaluationContext,
-	defaultValue: boolean,
-	options?: EvaluationOptions
-): boolean {
-	if (condExpr === undefined) {
-		return defaultValue
-	}
-	if (typeof condExpr === 'boolean') {
-		return condExpr
-	}
-	const result = runExpression(condExpr, buildExprContext(context))
-	if (!result.success) {
-		if (options?.throwOnError) throw ExpressionEvaluationError.evaluationFailed(condExpr, new Error(result.error))
-		return defaultValue
-	}
-	return truthy(result.value)
+export type GateOutcome =
+	| { readonly status: 'value'; readonly value: boolean }
+	| { readonly status: 'missing' }
+	| { readonly status: 'failed'; readonly error: string }
+
+/**
+ * Evaluates a boolean gate (a `visible`, `required`, or row condition, or a
+ * rule). A boolean literal is its own value; an expression's value is coerced
+ * with `truthy`, so an empty list or string is false. Each caller decides what
+ * a missing or failed gate means.
+ */
+export function evaluateGate(condition: boolean | string, context: EvaluationContext): GateOutcome {
+	if (typeof condition === 'boolean') return { status: 'value', value: condition }
+	const result = runExpression(condition, buildExprContext(context))
+	if (result.success) return { status: 'value', value: truthy(result.value) }
+	if (result.code === 'missing-input') return { status: 'missing' }
+	return { status: 'failed', error: result.error }
 }
 
 /**
@@ -309,8 +308,7 @@ export function evaluateExpressionOrDefault<T>(
 	expr: string,
 	context: EvaluationContext,
 	defaultValue: T,
-	options?: EvaluationOptions
 ): T {
-	const result = evaluateExpression<T>(expr, context, options)
+	const result = evaluateExpression<T>(expr, context)
 	return result.success ? (result.value as T) : defaultValue
 }

@@ -6,8 +6,13 @@ import type {
 	Expression,
 	Form,
 	Party,
+	Attestation,
+	SignatureCapture,
+	WitnessParty,
 } from '@paradoc/types'
 import { buildFormContext, evaluateExpression, type EvaluationContext } from '@/logic/runtime/evaluation'
+import { EVALUATION_CLOCK } from '@/logic/runtime/evaluation/types'
+import { signingStateOf } from '@/logic/runtime/evaluation/signing-state'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 import { topologicalSortDefsKeys } from '@/logic/design-time/type-checking/build-type-environment'
 import { isScalarExpressionType } from '@/logic/shared/expression-types'
@@ -54,7 +59,9 @@ export interface BundleRuntimeMember {
 	readonly fields?: Record<string, unknown>
 	readonly parties?: Record<string, unknown>
 	readonly annexes?: Record<string, unknown>
-	readonly witnesses?: readonly { party: unknown }[]
+	readonly witnesses?: readonly WitnessParty[]
+	readonly captures?: readonly SignatureCapture[]
+	readonly attestations?: readonly Attestation[]
 	readonly context?: RuntimeContext
 	readonly checklist?: Checklist
 	readonly items?: unknown
@@ -105,7 +112,6 @@ function expressionValue(expression: string, context: EvaluationContext):
 		'fields',
 		'parties',
 		'witnesses',
-		'asOf',
 		'forms',
 		'bundles',
 		'checklists',
@@ -121,7 +127,7 @@ function expressionValue(expression: string, context: EvaluationContext):
 			reason: `Unknown variable(s) in include expression "${expression}": ${unknownRoots.join(', ')}`,
 		}
 	}
-	if (/(?:^|[^\w])(today|now)\s*\(/.test(expression) && context.asOf === undefined) {
+	if (/(?:^|[^\w])(today|now)\s*\(/.test(expression) && context[EVALUATION_CLOCK] === undefined) {
 		return {
 			status: 'unresolved',
 			reason: `Include expression "${expression}" needs a fixed evaluation clock.`,
@@ -136,7 +142,7 @@ function expressionValue(expression: string, context: EvaluationContext):
 		}
 	}
 
-	const result = evaluateExpression(expression, context, { throwOnError: false })
+	const result = evaluateExpression(expression, context)
 	if (!result.success) {
 		return { status: 'error', reason: `Invalid include expression "${expression}": ${result.error ?? 'evaluation failed'}` }
 	}
@@ -148,7 +154,8 @@ function buildRuntimeContext(member: BundleRuntimeMember): EvaluationContext | u
 		return buildFormContext(member.form, {
 			fields: member.fields,
 			parties: member.parties as Record<string, Party | Party[]> | undefined,
-			witnesses: member.witnesses?.map((witness) => witness.party as Party),
+			witnesses: member.witnesses,
+			signing: signingStateOf(member.captures ?? [], member.attestations ?? []),
 			context: member.context,
 		})
 	}
@@ -161,7 +168,7 @@ function buildRuntimeContext(member: BundleRuntimeMember): EvaluationContext | u
 		return {
 			fields: {},
 			checklists: { items: member.items ?? {} },
-			...(member.context?.asOf && { asOf: member.context.asOf }),
+			...(member.context?.asOf && { [EVALUATION_CLOCK]: member.context.asOf }),
 		}
 	}
 
@@ -185,9 +192,10 @@ function buildBundleContext(
 		if (!member || 'kind' in member) continue
 		const childContext = buildRuntimeContext(member)
 		if (!childContext) continue
-		if (childContext.asOf) {
-			if (asOf === undefined) asOf = childContext.asOf
-			else if (asOf.datetime !== childContext.asOf.datetime) clockConflict = true
+		const childClock = childContext[EVALUATION_CLOCK]
+		if (childClock) {
+			if (asOf === undefined) asOf = childClock
+			else if (asOf.datetime !== childClock.datetime) clockConflict = true
 		}
 
 		if (member.form) forms[item.key] = childContext
@@ -202,7 +210,7 @@ function buildBundleContext(
 		bundles,
 		checklists,
 		documents,
-		...(asOf && !clockConflict && { asOf }),
+		...(asOf && !clockConflict && { [EVALUATION_CLOCK]: asOf }),
 	}
 
 	if (!bundle.defs || Object.keys(bundle.defs).length === 0) return { context, errors }

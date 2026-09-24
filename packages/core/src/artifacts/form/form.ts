@@ -87,6 +87,7 @@ import type {
 import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesValidationResult } from '@/logic'
 import { buildFormContext, evaluateFormDefs, evaluateFormRules } from '@/logic'
 import { buildTemplateExpressionContext } from '@/logic/runtime/evaluation/context-builder'
+import { signingStateOf } from '@/logic/runtime/evaluation/signing-state'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
 import { buildRendererLayer, renderBindings, selectLayerRenderer } from '../shared/render-layer'
 import type { ArtifactInstanceOptions } from '../shared/render-layer'
@@ -1516,7 +1517,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const result = evaluateFormDefs(formDef, {
 				fields: fieldValues,
 				parties: partyValues,
-				witnesses: witnesses.map((witness) => witness.party),
+				witnesses,
+				signing: signingStateOf(captures, attestations),
 				context,
 			})
 			if ('value' in result) {
@@ -1958,12 +1960,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		getFillState(options?: FillTargetOptions): FillState {
 			const state = getRuntimeState()
-			return computeFillState(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party), context)
+			return computeFillState(formDef, fieldValues, partyValues, annexValues, state, options, witnesses, context)
 		},
 
 		getNextFillTarget(options?: FillTargetOptions): FillTarget | null {
 			const state = getRuntimeState()
-			return getNextFillTarget(formDef, fieldValues, partyValues, annexValues, state, options, witnesses.map((witness) => witness.party), context)
+			return getNextFillTarget(formDef, fieldValues, partyValues, annexValues, state, options, witnesses, context)
 		},
 
 		getAvailableFillTargets(options?: FillTargetOptions): FillTarget[] {
@@ -1975,7 +1977,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				annexValues,
 				state,
 				options,
-				witnesses.map((witness) => witness.party),
+				witnesses,
 				context,
 			)
 		},
@@ -2283,7 +2285,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const evaluationContext = buildFormContext(formDef, {
 				fields: fieldValues,
 				parties: partyValues,
-				witnesses: witnesses.map((witness) => witness.party),
+				witnesses,
+				signing: signingStateOf(captures, attestations),
 				context,
 			})
 			return evaluateFormRules(formDef, fieldValues, state.defsValues, evaluationContext)
@@ -2850,7 +2853,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				context: buildTemplateExpressionContext(formDef, {
 					fields: fieldValues,
 					parties: partyValues,
-					witnesses: witnesses.map((witness) => witness.party),
+					witnesses,
+					signing: signingStateOf(captures, attestations),
 					context,
 				}, augmentedParties),
 			}
@@ -3138,7 +3142,11 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			const formData = renderPayload(data)
 			const parties = (formData.parties ?? {}) as Record<string, Party | Party[]>
 			const expressions = {
-				context: buildTemplateExpressionContext(formDef, { fields: formData.fields, parties }, parties),
+				context: buildTemplateExpressionContext(
+					formDef,
+					{ fields: formData.fields, parties, signing: signingStateOf(formData.captures ?? [], []) },
+					parties,
+				),
 			}
 
 			return await renderer.render({

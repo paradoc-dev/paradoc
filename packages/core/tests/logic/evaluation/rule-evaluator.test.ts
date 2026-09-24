@@ -153,7 +153,7 @@ describe('rule-evaluator', () => {
       }
 
       // LLC without code - fails
-      let context: Record<string, unknown> = { taxClass: 'llc', llcCode: null, fields: {} }
+      let context: EvaluationContext = { taxClass: 'llc', llcCode: null, fields: {} }
       let result = evaluateRule('llc-code', rule, context)
       expect(result.passed).toBe(false)
 

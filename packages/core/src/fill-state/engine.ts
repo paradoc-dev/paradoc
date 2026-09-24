@@ -6,7 +6,7 @@
  * B. Runtime state computation from form + current data
  */
 
-import type { Form, FormField, FieldsetField, Party } from '@paradoc/types'
+import type { Form, FormField, FieldsetField, Party, WitnessParty } from '@paradoc/types'
 import type {
 	FillTarget,
 	FillTargetOptions,
@@ -235,7 +235,7 @@ export function computeFillState(
 	annexValues: Record<string, unknown>,
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
-	witnessValues: Party[] = [],
+	witnessValues: readonly WitnessParty[] = [],
 	contextValue?: RuntimeContext,
 ): FillState {
 	if (!runtimeState.resolved) {
@@ -541,7 +541,7 @@ export function computeRuntimeState(
 	form: Form,
 	fieldValues: Record<string, unknown>,
 	partyValues: Record<string, Party | Party[]> = {},
-	witnesses: Party[] = [],
+	witnesses: readonly WitnessParty[] = [],
 	context?: RuntimeContext,
 ): FormRuntimeState {
 	const result = evaluateFormDefs(form, { fields: fieldValues, parties: partyValues, witnesses, context })
@@ -570,7 +570,7 @@ export function getAvailableFillTargets(
 	annexValues: Record<string, unknown>,
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
-	witnessValues: Party[] = [],
+	witnessValues: readonly WitnessParty[] = [],
 	context?: RuntimeContext,
 ): FillTarget[] {
 	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues, context)
@@ -587,7 +587,7 @@ export function getNextFillTarget(
 	annexValues: Record<string, unknown>,
 	runtimeState: FormRuntimeState,
 	options?: FillTargetOptions,
-	witnessValues: Party[] = [],
+	witnessValues: readonly WitnessParty[] = [],
 	context?: RuntimeContext,
 ): FillTarget | null {
 	const state = computeFillState(form, fieldValues, partyValues, annexValues, runtimeState, options, witnessValues, context)

@@ -14,7 +14,6 @@
  */
 
 import type { Form, FormField, FieldsetField, FormAnnex } from '@paradoc/types'
-import { toValue, truthy } from '@paradoc/expr'
 import type {
   FormRuntimeState,
   FieldRuntimeState,
@@ -24,7 +23,7 @@ import type {
   FormEvaluationResult,
 } from './types'
 import { evaluateFormContext, type FormDataPayload } from './context-builder'
-import { evaluateExpression, markEvaluationContextReusable, withRowReferences } from './expression-evaluator'
+import { evaluateGate, markEvaluationContextReusable, withRowReferences } from './expression-evaluator'
 import { rowOriginOf, type RowFrame } from '../../shared/list-paths'
 
 /**
@@ -38,14 +37,6 @@ const DEFAULTS = {
   visible: true,
   required: false,
 } as const
-
-/**
- * Options for form evaluation.
- */
-export interface FormEvaluationOptions {
-  /** Whether to throw on critical errors. Default: false */
-  throwOnError?: boolean
-}
 
 /**
  * Internal result type during evaluation.
@@ -90,20 +81,20 @@ function evaluateCondition(
   if (condition === undefined) return fallback
   if (typeof condition === 'boolean') return condition
 
-  const result = evaluateExpression<boolean>(condition, context)
+  const outcome = evaluateGate(condition, context)
   // A condition over inputs with no value yet is not yet met.
-  if (!result.success && result.code === 'missing-input') return false
-  if (!result.success) {
+  if (outcome.status === 'missing') return false
+  if (outcome.status === 'failed') {
     state.conditionFailed = true
     state.issues.push({
-      message: `Failed to resolve form expression: ${result.error ?? 'unknown error'}`,
+      message: `Failed to resolve form expression: ${outcome.error}`,
       path,
       expression: condition,
-      originalError: result.error,
+      originalError: outcome.error,
     })
     return fallback
   }
-  return truthy(toValue(result.value))
+  return outcome.value
 }
 
 function evaluateRepeatedItem(
@@ -299,7 +290,6 @@ function evaluateAnnexes(
  *
  * @param form - The Form artifact
  * @param data - The data payload with field values
- * @param options - Evaluation options
  * @returns FormEvaluationResult (StandardSchemaV1.Result format)
  *
  * @example
@@ -339,7 +329,6 @@ function evaluateAnnexes(
 export function evaluateFormDefs(
   form: Form,
   data: FormDataPayload,
-  options: FormEvaluationOptions = {}
 ): FormEvaluationResult {
 	let releaseContext: (() => void) | undefined
   try {
@@ -386,10 +375,6 @@ export function evaluateFormDefs(
   } catch (e) {
 		releaseContext?.()
     const error = e instanceof Error ? e : new Error(String(e))
-
-    if (options.throwOnError) {
-      throw error
-    }
 
     // Keep Standard Schema's failure result for context/definition errors.
     // RuntimeForm and the fill-state adapter copy these diagnostics into an

@@ -1,8 +1,9 @@
 /**
  * Runtime expression evaluation module (Internal).
  *
- * Most exports here are internal implementation details.
- * Public API exports only evaluateFormDefs() and runtime state types.
+ * `logic/index.ts` chooses the public surface: `evaluateFormDefs`,
+ * `evaluateRules`, `evaluateFormRules`, `resolvePartyPayment`,
+ * `buildFormContext`, and the runtime state types. The rest serves core.
  *
  * @example
  * ```typescript
@@ -25,21 +26,18 @@ export type {
   AnnexRuntimeState,
   FormRuntimeState,
   EvaluationContext,
-  EvaluationOptions,
   ExpressionResult,
   EvaluationIssue,
   FormEvaluationResult,
   PartyContextEntry,
 } from './types'
 
-// Errors
-export { ExpressionEvaluationError } from './errors'
-
 // Expression evaluation
 export {
   evaluateExpression,
-  evaluateBooleanExpression,
+  evaluateGate,
   evaluateExpressionOrDefault,
+  type GateOutcome,
 } from './expression-evaluator'
 
 // Context building
@@ -48,10 +46,12 @@ export {
   type FormDataPayload,
 } from './context-builder'
 
+// Signing state
+export { signingStateOf, type SigningState } from './signing-state'
+
 // Form evaluation
 export {
   evaluateFormDefs,
-  type FormEvaluationOptions,
 } from './form-evaluator'
 
 // Payment resolution

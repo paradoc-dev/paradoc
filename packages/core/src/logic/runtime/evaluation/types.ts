@@ -110,6 +110,15 @@ export const WITNESS_ENTRIES: unique symbol = Symbol('witnessEntries')
 /** Where a form context carries its row visibility; a symbol so no defs key can shadow it. */
 export const ROW_VISIBILITY: unique symbol = Symbol('rowVisibility')
 
+/** Where a context carries its fixed clock; a symbol so no defs key can shadow it. */
+export const EVALUATION_CLOCK: unique symbol = Symbol('evaluationClock')
+
+/** Where a context carries its configured host functions; a symbol so no defs key can shadow them. */
+export const HOST_FUNCTIONS: unique symbol = Symbol('hostFunctions')
+
+/** Where a context carries the signatures of its host functions; a symbol so no defs key can shadow them. */
+export const FUNCTION_REGISTRY: unique symbol = Symbol('functionRegistry')
+
 /** Where a row context records which rows `item` and `parent` are, so their lists' hidden rows can be found. */
 export const ROW_ORIGINS: unique symbol = Symbol('rowOrigins')
 
@@ -132,6 +141,9 @@ export const ROW_ORIGINS: unique symbol = Symbol('rowOrigins')
  *   isAdult: true, // defs key
  * }
  * ```
+ *
+ * Settings (clock, host functions, registry) and signing state sit under
+ * symbols, so a defs key can never replace them.
  */
 export interface EvaluationContext {
   /** Field values structured as { fieldId: value } */
@@ -143,25 +155,17 @@ export interface EvaluationContext {
   /** Witness signing state, for the witness predicates. */
   [WITNESS_ENTRIES]?: PartyContextEntry[]
   /** Fixed clock for temporal expressions. */
-  asOf?: AsOf
+  [EVALUATION_CLOCK]?: AsOf
   /** Deterministic host functions available to expression evaluation. */
-  expressionFunctions?: Readonly<Record<string, HostFunction>>
+  [HOST_FUNCTIONS]?: Readonly<Record<string, HostFunction>>
   /** Signatures shared with the evaluator for configured functions and overrides. */
-  expressionRegistry?: Registry
+  [FUNCTION_REGISTRY]?: Registry
   /** Hides a form's hidden list rows from aggregates; every row counts when absent. */
   [ROW_VISIBILITY]?: ContextRowVisibility
   /** The positions of the rows bound as `item` and `parent`. */
   [ROW_ORIGINS]?: { readonly item?: RowOrigin; readonly parent?: RowOrigin }
   /** Resolved defs key values (dynamic keys) */
   [defsKey: string]: unknown
-}
-
-/**
- * Options for expression evaluation.
- */
-export interface EvaluationOptions {
-  /** Whether to throw on evaluation errors. Default: false (returns default) */
-  throwOnError?: boolean
 }
 
 /**

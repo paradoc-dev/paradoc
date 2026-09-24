@@ -47,4 +47,5 @@ export {
   type EvaluationContext,
   type ResolvedPayment,
   type FormDataPayload,
+  type SigningState,
 } from './runtime'

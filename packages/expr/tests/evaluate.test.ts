@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildRegistry, createContext, evaluateExpression, evaluateBoolean, T, Values, type FnSignature, type Value } from '../src/index'
+import { buildRegistry, createContext, evaluateExpression, evaluateBoolean, EvaluationError, T, Values, type FnSignature, type Value } from '../src/index'
 import type { EvaluationContext } from '../src/index'
 
 function unwrap(v: Value): unknown {
@@ -264,6 +264,18 @@ describe('missing inputs', () => {
 		expect(failure('fields.items.amount * 2', { fields: { items: [{ amount: 1 }] } }).code).toBe('type-error')
 		const currencies = { fields: { items: [{ amount: { amount: 1, currency: 'USD' } }, { amount: { amount: 2, currency: 'EUR' } }] } }
 		expect(failure('sum(fields.items.amount)', currencies).code).toBe('currency-mismatch')
+	})
+
+	it('returns the failure of a lookup that throws instead of throwing it', () => {
+		const ctx: EvaluationContext = {
+			lookup: (name) => {
+				if (name === 'bad') throw new EvaluationError('type-error', 'bad cannot be read')
+				return undefined
+			},
+			hostFunctions: {},
+		}
+		expect(evaluateExpression('count(bad.rows)', ctx)).toMatchObject({ success: false, code: 'type-error', error: 'bad cannot be read' })
+		expect(evaluateExpression('bad * 2', ctx)).toMatchObject({ success: false, code: 'type-error' })
 	})
 
 	it('does not treat a name the context does not define as a missing input', () => {

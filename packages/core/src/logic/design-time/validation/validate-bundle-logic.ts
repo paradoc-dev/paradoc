@@ -22,7 +22,7 @@ import { defsDependencyExpressions } from '../../shared/defs-dependencies'
 
 /**
  * Collects valid variable paths from a bundle's inline Forms.
- * Format: forms.<key>.fields.<fieldId>.value
+ * Format: forms.<key>.fields.<fieldId>
  */
 function collectBundleFieldPaths(
   bundle: Bundle,

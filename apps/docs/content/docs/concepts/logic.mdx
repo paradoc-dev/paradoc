@@ -160,7 +160,7 @@ Dates:
 | `addDays(date, days)` | date | |
 | `addDuration(date, duration)` | date | |
 
-Party and witness predicates: `partyCount(role)`, `signedCount(role)`, `allSigned(role)`, `anySigned(role)`, `partyType(role)`, `witnessCount()`, `allWitnessesSigned()`, `anyWitnessSigned()`.
+Party and witness predicates: `partyCount(role)`, `signedCount(role)`, `allSigned(role)`, `anySigned(role)`, `partyType(role)`, `witnessCount()`, `allWitnessesSigned()`, `anyWitnessSigned()`. The signing predicates read the instance's signing records: a party has signed once its signature is captured, and a witness once it has attested. Before signing they report nobody signed.
 
 ```ts
 visible: "isNotEmpty(fields.notes)"
@@ -234,7 +234,7 @@ A path through nested lists collects values from every level: `sum(fields.orders
 
 The rules are fixed:
 
-- **Hidden rows never count.** A row is hidden when its list, a field above the list, or the list's `item` is not visible. Showing the row again brings it back on the next evaluation.
+- **Hidden rows never count.** A row is hidden when its list, a field above the list, or the list's `item` is not visible. An `item` condition that reads a missing input hides the row, as it does in the form state. Showing the row again brings it back on the next evaluation.
 - **Absent values are skipped.** `sum`, `avg`, `min`, and `max` ignore a `null` value; `count` still counts the row. `all` treats an absent boolean as not true.
 - **Money keeps its currency.** A sum of money is money in the same currency, with exact decimals. Values in more than one currency fail evaluation with an error naming the currencies found; nothing is converted. A money sum over no rows is the number `0`, since there is no currency to give it.
 - **`min` and `max` keep their other form.** Given anything other than a path into a list, they compare their arguments as before.

@@ -13,7 +13,7 @@
 
 import type { FormParty, Party } from '@paradoc/types';
 import { inferPartyType, isPerson, isOrganization } from '@/primitives/party';
-import { evaluateBooleanExpression } from '@/logic/runtime/evaluation/expression-evaluator';
+import { evaluateGate } from '@/logic/runtime/evaluation/expression-evaluator';
 import type { EvaluationContext } from '@/logic/runtime/evaluation/types';
 import { validateRuntimePerson, validateRuntimeOrganization } from './validators';
 
@@ -145,7 +145,9 @@ export function evaluatePartyRequiredness(
   context: EvaluationContext,
 ): boolean {
   if (typeof formParty.required === 'string') {
-    return evaluateBooleanExpression(formParty.required, context, false)
+    // A condition whose inputs are missing, or that fails, does not require the role.
+    const outcome = evaluateGate(formParty.required, context)
+    return outcome.status === 'value' && outcome.value
   }
   if (formParty.required !== undefined) {
     return formParty.required

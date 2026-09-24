@@ -4,12 +4,13 @@
  * Rules use @paradoc/expr expressions with a flat context where:
  * - Field values are directly accessible: `ssn` instead of `fields.ssn`
  * - Defs values are accessible by name: `isIndividual`
- * - Party functions are available: `partyCount("buyer")`
+ * - Everything else the form context carries is available: `fields.ssn`,
+ *   `today()`, configured host functions, and the party predicates
  */
 
 import type { Form, ValidationRule, RulesSection, RuleSeverity } from '@paradoc/types'
-import { evaluateExpression } from './expression-evaluator'
-import { PARTY_ENTRIES, ROW_VISIBILITY, WITNESS_ENTRIES, type EvaluationContext } from './types'
+import { evaluateGate } from './expression-evaluator'
+import type { EvaluationContext } from './types'
 
 // ============================================================================
 // Types
@@ -50,49 +51,24 @@ export interface FormRulesValidationResult {
 /**
  * Builds a flat context for rule evaluation.
  *
- * Unlike the full EvaluationContext which has nested `fields.fieldId`,
- * this creates a flat context where field values are directly accessible:
- * - Field values: `ssn`, `ein`, `taxClassification`
- * - Defs values: `isIndividual`, `formattedTIN`
- * - Party functions: `partyCount`, `allSigned`, etc.
+ * Rules read everything the form's other expressions read, since the context
+ * is the full form context: `fields`, `parties`, defs values, the clock, host
+ * functions and their registry, the signing state, and row visibility. On top
+ * of it, each field value is also readable by its bare id (`ssn` as well as
+ * `fields.ssn`); a context root or defs key of the same name wins.
  *
  * @param fieldValues - Field values from the form (flat Record<string, unknown>)
  * @param defsValues - Evaluated defs section values
- * @param fullContext - Full evaluation context (for party functions)
+ * @param fullContext - Full evaluation context of the form
  * @returns Flat context for rule expression evaluation
  */
 export function buildRuleContext(
   fieldValues: Record<string, unknown>,
   defsValues: Map<string, unknown>,
   fullContext: EvaluationContext
-): Record<string, unknown> {
-  const context: Record<string, unknown> = {}
-
-  // Add field values directly (flattened)
-  for (const [fieldId, value] of Object.entries(fieldValues)) {
-    context[fieldId] = value
-  }
-
-  // Add defs values
-  for (const [key, value] of defsValues) {
-    context[key] = value
-  }
-
-  // Parties as a typed root, and the signing state the party predicates read
-  context.parties = fullContext.parties
-  Object.assign(context, {
-    [PARTY_ENTRIES]: fullContext[PARTY_ENTRIES],
-    [WITNESS_ENTRIES]: fullContext[WITNESS_ENTRIES],
-  })
-
-  // Also add the full fields context so rules can use either syntax:
-  // - Flat: `ssn` (direct field name)
-  // - Qualified: `fields.ssn` (with fields prefix)
-  context.fields = fullContext.fields
-
-  // Aggregates in rules skip the same hidden rows as everywhere else.
-  const rowVisibility = fullContext[ROW_VISIBILITY]
-  return rowVisibility ? Object.assign(context, { [ROW_VISIBILITY]: rowVisibility }) : context
+): EvaluationContext {
+  // Object.assign copies the symbol-keyed settings and signing state too.
+  return Object.assign({}, fieldValues, fullContext, Object.fromEntries(defsValues))
 }
 
 // ============================================================================
@@ -110,31 +86,27 @@ export function buildRuleContext(
 export function evaluateRule(
   ruleId: string,
   rule: ValidationRule,
-  context: Record<string, unknown>
+  context: EvaluationContext
 ): RuleValidationResult {
   const severity = rule.severity ?? 'error'
-
-  // Evaluate the expression
-  const result = evaluateExpression<unknown>(rule.expr, context as EvaluationContext)
+  const outcome = evaluateGate(rule.expr, context)
 
   // A rule over inputs with no value yet is not yet met, the same as a
   // comparison against an unanswered field: it fails with its own message.
-  if (!result.success && result.code === 'missing-input') {
+  if (outcome.status === 'missing') {
     return { ruleId, passed: false, message: rule.message, severity }
   }
 
-  if (!result.success) {
-    // Expression evaluation failed - treat as rule failure
+  if (outcome.status === 'failed') {
     return {
       ruleId,
       passed: false,
-      message: `Rule expression error: ${result.error}`,
+      message: `Rule expression error: ${outcome.error}`,
       severity,
     }
   }
 
-  // Coerce result to boolean
-  const passed = Boolean(result.value)
+  const passed = outcome.value
 
   return {
     ruleId,
@@ -150,7 +122,7 @@ export function evaluateRule(
  * @param rules - Rules section from the form definition
  * @param fieldValues - Field values (flat Record<string, unknown>)
  * @param defsValues - Evaluated defs section values
- * @param fullContext - Full evaluation context (for party functions)
+ * @param fullContext - Full evaluation context of the form
  * @returns FormRulesValidationResult
  */
 export function evaluateRules(
@@ -191,11 +163,7 @@ export function evaluateRules(
 }
 
 /**
- * Evaluates rules for a form with convenience data extraction.
- *
- * Pre-populates all form-defined fields in the context so missing optional
- * fields resolve to `null` (falsy). @paradoc/expr already resolves unknown
- * references to null, so this is defensive but keeps the flat context explicit.
+ * Evaluates a form's rules. A field with no value reads as null.
  *
  * @param form - The form definition
  * @param fieldValues - Field values (flat Record<string, unknown>)
@@ -209,16 +177,5 @@ export function evaluateFormRules(
   defsValues: Map<string, unknown>,
   fullContext: EvaluationContext
 ): FormRulesValidationResult {
-  // Ensure all form-defined fields exist in the context.
-  // Missing fields get null (falsy) so rule expressions like "ssn or ein"
-  // evaluate correctly when only one is provided.
-  const allFieldValues: Record<string, unknown> = {}
-  if (form.fields) {
-    for (const fieldId of Object.keys(form.fields)) {
-      allFieldValues[fieldId] = null
-    }
-  }
-  Object.assign(allFieldValues, fieldValues)
-
-  return evaluateRules(form.rules, allFieldValues, defsValues, fullContext)
+  return evaluateRules(form.rules, fieldValues, defsValues, fullContext)
 }

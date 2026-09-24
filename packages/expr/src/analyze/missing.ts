@@ -18,11 +18,17 @@ import { extractReferences } from './references'
 /**
  * Whether a dotted path reaches no value, fanning out over every list it
  * passes through. A root the context does not know is not an input at all, so
- * it is never missing: reading it is an authoring error.
+ * it is never missing: reading it is an authoring error. Nor is a root whose
+ * lookup fails: reading it is a failure, not an absent value.
  */
 function isMissingPath(path: string, ctx: EvaluationContext): boolean {
 	const [root, ...members] = path.split('.')
-	const rootValue = ctx.lookup(root!)
+	let rootValue: Value | undefined
+	try {
+		rootValue = ctx.lookup(root!)
+	} catch {
+		return false
+	}
 	if (rootValue === undefined) return false
 	let values: Value[] = [rootValue]
 	for (const member of members) {

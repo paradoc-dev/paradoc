@@ -183,7 +183,7 @@ Given a path into a list, `min` and `max` aggregate instead ([List aggregates](#
 |----------|---------|----------|
 | `partyCount(role)` | number | Parties filled in the role. |
 | `partyType(role)` | string | `'person'` or `'organization'`. `''` when the role has no party. |
-| `signedCount(role)` | number | Parties in the role that have signed. |
+| `signedCount(role)` | number | Parties in the role whose signature is captured. |
 | `allSigned(role)` | boolean | `false` when the role has no party. |
 | `anySigned(role)` | boolean | |
 | `witnessCount()` | number | |
@@ -191,6 +191,8 @@ Given a path into a list, `min` and `max` aggregate instead ([List aggregates](#
 | `anyWitnessSigned()` | boolean | |
 
 `role` is the role key as a string literal: `partyCount('tenant') > 1`.
+
+The signing functions read the instance's signing records: a party has signed once its `signature` capture exists (initials alone do not count), and a witness once it has an attestation. Before signing they are `0` or `false`, so a rule over them blocks `prepareForSigning()` unless its `severity` is `"warning"`.
 
 The aggregates `sum`, `count`, `avg`, `min`, `max`, `any` and `all` complete the set ([List aggregates](#list-aggregates)).
 
@@ -240,7 +242,7 @@ Seven functions compute one value from the rows of a `list` field. Each takes a 
 - For a money total, sum the amounts: `sum(fields.lineItems.amount.amount)` is `0` for an empty list. `sum(fields.lineItems.amount).amount` is `null` for an empty list, because an empty sum is the number `0`, which has no `.amount`.
 - Nested lists flatten: `sum(fields.orders.parts.cost)` totals every part of every order. A filter may test either level.
 - Inside a list item, `sum(item.parts.cost)` aggregates the current row's own nested list.
-- Hidden rows (the list, a field above it, or the row itself not visible) never count. `sum`, `avg`, `min`, and `max` skip `null` values. `count` still counts the row.
+- Hidden rows (the list, a field above it, or the row itself not visible) never count. A row whose `visible` condition reads a missing input is hidden, as it is in the form state. `sum`, `avg`, `min`, and `max` skip `null` values. `count` still counts the row.
 - Money keeps its currency. Mixed currencies fail the expression, naming the currencies.
 - A list path outside an aggregate (`fields.lineItems.qty > 0`) fails validation. Index one row with brackets: `fields.lineItems[0].qty`.
 - Compute a total of rows as a `sum` def, so it always agrees with its rows.
@@ -278,7 +280,7 @@ Inside a list item, `item` is the current row. In a list nested in a list item, 
 
 - A scalar item (a list of `number`) is `item` itself: `"required": "item > 0"`. Composite items keep their parts: `item.amount.amount`.
 - Only conditions inside a list item see rows. Defs, rules, annexes, parties, and the list field's own `visible`/`required` do not. `item` there fails validation, and so does `parent` outside a nested list.
-- `item` and `parent` are reserved: a def with either name fails validation.
+- `item` and `parent` are reserved: a def with either name fails validation. So are `fields` and `parties` ([Defs](#defs)).
 
 ## Missing and failed values
 
@@ -303,6 +305,8 @@ A result **fails** when the operation that errors did not read a missing value: 
 - A failed def reads as missing, and `getFillState().issues` has an entry with path `["defs", "<key>"]`. The rest of the form still evaluates, and completion is blocked.
 - A failed condition uses the property's default and adds an issue.
 - A failed rule fails with `Rule expression error: <error>`.
+
+A value with no expression form, such as `NaN` or `Infinity` passed through the SDK, is not missing: every expression that reads its root fails with a `type-error` naming its path.
 
 ## Dates and the clock
 
@@ -331,7 +335,7 @@ draft.getLogicValue("age"); // 35, same clock
 
 ## Defs
 
-`defs` holds typed computed values, on forms and bundles. Each def has a key (`^[a-z][a-zA-Z0-9_]*$`), a `type`, a `value`, and optional `label` and `description`. Defs may reference each other in any key order. A cycle is reported as a warning (`Circular dependency detected`).
+`defs` holds typed computed values, on forms and bundles. Each def has a key (`^[a-z][a-zA-Z0-9_]*$`), a `type`, a `value`, and optional `label` and `description`. The keys `fields`, `parties`, `item`, and `parent` are reserved and fail validation. Defs may reference each other in any key order. A cycle is reported as a warning (`Circular dependency detected`).
 
 For a scalar type, `value` is one expression string, checked against the declared type (`Expected expression type number, got boolean`):
 

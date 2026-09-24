@@ -1,10 +1,10 @@
 import { describe, test, expect } from 'vitest'
 import {
   evaluateExpression,
-  evaluateBooleanExpression,
+  evaluateGate,
   evaluateExpressionOrDefault,
 } from '@/logic/runtime/evaluation/expression-evaluator'
-import type { EvaluationContext } from '@/logic/runtime/evaluation/types'
+import { FUNCTION_REGISTRY, HOST_FUNCTIONS, type EvaluationContext } from '@/logic/runtime/evaluation/types'
 import { Values, buildRegistry, T } from '@paradoc/expr'
 import { evaluateMultipleExpressions, isCondExpr } from '../helpers/evaluation-helpers'
 import { buildFormContext } from '@/logic/runtime/evaluation/context-builder'
@@ -56,21 +56,26 @@ describe('expression-evaluator', () => {
 		})
 		test('reflects in-place field mutations in caller-owned contexts', () => {
 			const context: EvaluationContext = { fields: { age: 25 } }
-			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(true)
+			expect(evaluateGate('fields.age >= 18', context)).toEqual({ status: 'value', value: true })
 			context.fields.age = 12
-			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(false)
+			expect(evaluateGate('fields.age >= 18', context)).toEqual({ status: 'value', value: false })
 		})
 		test('reflects mutations to an exported form context after an evaluation', () => {
 			const context = buildFormContext({
 				kind: 'form', name: 'mutable-context', fields: { age: { type: 'number' } },
 			}, { fields: { age: 25 } })
-			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(true)
+			expect(evaluateGate('fields.age >= 18', context)).toEqual({ status: 'value', value: true })
 			context.fields.age = 12
-			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(false)
+			expect(evaluateGate('fields.age >= 18', context)).toEqual({ status: 'value', value: false })
 		})
-		test('isolates an invalid unrelated field value', () => {
+		test('fails a read of a root that holds a value with no expression form', () => {
 			const context: EvaluationContext = { fields: { age: 25, broken: Number.NaN } }
-			expect(evaluateBooleanExpression('fields.age >= 18', context, false)).toBe(true)
+			expect(evaluateExpression('fields.age >= 18', context)).toMatchObject({
+				success: false,
+				code: 'type-error',
+				error: expect.stringContaining('fields.broken has no expression value'),
+			})
+			expect(evaluateExpression('1 + 1', context)).toEqual({ success: true, value: 2 })
 		})
 		test('treats artifact objects with kind fields as ordinary objects', () => {
 			const context: EvaluationContext = { fields: {}, status: { kind: 'string', value: 'draft' } }
@@ -80,8 +85,8 @@ describe('expression-evaluator', () => {
 		test('uses caller-configured deterministic functions', () => {
 			const context: EvaluationContext = {
 				fields: {},
-				expressionFunctions: { contractRate: () => Values.num('1.25') },
-				expressionRegistry: buildRegistry([{
+				[HOST_FUNCTIONS]: { contractRate: () => Values.num('1.25') },
+				[FUNCTION_REGISTRY]: buildRegistry([{
 					name: 'contractRate', category: 'domain', params: [],
 					returns: { kind: 'fixed', type: T.number }, deterministic: true, hostInjected: true,
 				}]),
@@ -243,113 +248,49 @@ describe('expression-evaluator', () => {
         expect(result.success).toBe(true)
         expect(result.value).toBe(null)
       })
-
-      test('throws with throwOnError option', () => {
-        const context = createSimpleContext()
-        expect(() => {
-          evaluateExpression('invalid syntax ((', context, { throwOnError: true })
-        }).toThrow()
-      })
     })
   })
 
   // ============================================================================
-  // evaluateBooleanExpression Tests
+  // evaluateGate Tests
   // ============================================================================
 
-	describe('evaluateBooleanExpression', () => {
+	describe('evaluateGate', () => {
 		test('uses expression truthiness for empty arrays', () => {
 			const context: EvaluationContext = { fields: { values: [] } }
-			expect(evaluateBooleanExpression('fields.values', context, true)).toBe(false)
+			expect(evaluateGate('fields.values', context)).toEqual({ status: 'value', value: false })
 		})
-    describe('boolean literals', () => {
-      test('returns true for true literal', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression(true, context, false)
-        expect(result).toBe(true)
-      })
 
-      test('returns false for false literal', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression(false, context, true)
-        expect(result).toBe(false)
-      })
-    })
+		test('returns a boolean literal as its value', () => {
+			const context = createSimpleContext()
+			expect(evaluateGate(true, context)).toEqual({ status: 'value', value: true })
+			expect(evaluateGate(false, context)).toEqual({ status: 'value', value: false })
+		})
 
-    describe('undefined handling', () => {
-      test('returns default for undefined', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression(undefined, context, true)
-        expect(result).toBe(true)
-      })
+		test('evaluates field, defs, and compound expressions', () => {
+			const context = createSimpleContext()
+			expect(evaluateGate('fields.age >= 18', context)).toEqual({ status: 'value', value: true })
+			expect(evaluateGate('isAdult', context)).toEqual({ status: 'value', value: true })
+			expect(evaluateGate('isAdult and fields.agreed', context)).toEqual({ status: 'value', value: true })
+		})
 
-      test('returns false default for undefined', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression(undefined, context, false)
-        expect(result).toBe(false)
-      })
-    })
+		test('coerces values with truthy', () => {
+			const context = createSimpleContext()
+			expect(evaluateGate('fields.name', context)).toEqual({ status: 'value', value: true })
+			expect(evaluateGate('fields.age', context)).toEqual({ status: 'value', value: true })
+			expect(evaluateGate('fields.count', { fields: { count: 0 } })).toEqual({ status: 'value', value: false })
+		})
 
-    describe('string expression evaluation', () => {
-      test('evaluates simple expression', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression('fields.age >= 18', context, false)
-        expect(result).toBe(true)
-      })
+		test('reports a gate whose input has no value as missing', () => {
+			expect(evaluateGate('fields.age * 2 > 1', { fields: {} })).toEqual({ status: 'missing' })
+		})
 
-      test('evaluates logic key reference', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression('isAdult', context, false)
-        expect(result).toBe(true)
-      })
-
-      test('evaluates complex expression', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression(
-          'isAdult and fields.agreed',
-          context,
-          false
-        )
-        expect(result).toBe(true)
-      })
-    })
-
-    describe('truthy coercion', () => {
-      test('coerces truthy string to true', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression('fields.name', context, false)
-        expect(result).toBe(true) // "John" is truthy
-      })
-
-      test('coerces truthy number to true', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression('fields.age', context, false)
-        expect(result).toBe(true) // 25 is truthy
-      })
-
-      test('coerces zero to false', () => {
-        const context: EvaluationContext = {
-          fields: { count: 0 },
-        }
-        const result = evaluateBooleanExpression('fields.count', context, true)
-        expect(result).toBe(false) // 0 is falsy
-      })
-    })
-
-    describe('error handling', () => {
-      test('returns default on evaluation error', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression('invalid syntax ((', context, true)
-        expect(result).toBe(true) // default value
-      })
-
-      test('returns false default on error', () => {
-        const context = createSimpleContext()
-        const result = evaluateBooleanExpression('invalid syntax ((', context, false)
-        expect(result).toBe(false) // default value
-      })
-    })
-  })
+		test('reports a gate that fails with its inputs present as failed', () => {
+			const context = createSimpleContext()
+			expect(evaluateGate('invalid syntax ((', context)).toMatchObject({ status: 'failed', error: expect.any(String) })
+			expect(evaluateGate('fields.age / 0 > 1', context)).toMatchObject({ status: 'failed' })
+		})
+	})
 
   // ============================================================================
   // evaluateExpressionOrDefault Tests

@@ -177,13 +177,19 @@ export function unknownVariableMessage(variable: string, validVariables: Readonl
   return `Unknown variable: "${variable}"`
 }
 
-/** Definition names reserved for list row references. */
-const RESERVED_DEFINITION_NAMES: ReadonlySet<string> = new Set(['item', 'parent'])
-
 /**
- * Rejects computed values named `item` or `parent`: those names refer to list
- * rows inside list-item expressions and cannot be redefined.
+ * Definition names reserved for context roots: `fields` and `parties`, and
+ * `item` and `parent` for list rows. A computed value with one of these names
+ * would replace the root it shadows.
  */
+const RESERVED_DEFINITION_NAMES: ReadonlyMap<string, string> = new Map([
+  ['fields', 'the form\'s field values'],
+  ['parties', 'the form\'s parties'],
+  ['item', 'list row references'],
+  ['parent', 'list row references'],
+])
+
+/** Rejects computed values named after a context root. */
 export function validateReservedDefinitionNames(
   defs: DefsSection | undefined,
   issues: LogicValidationIssue[],
@@ -191,9 +197,10 @@ export function validateReservedDefinitionNames(
 ): boolean {
   if (!defs) return true
   for (const key of Object.keys(defs)) {
-    if (!RESERVED_DEFINITION_NAMES.has(key)) continue
+    const reservedFor = RESERVED_DEFINITION_NAMES.get(key)
+    if (reservedFor === undefined) continue
     issues.push({
-      message: `Computed value name "${key}" is reserved for list row references; rename this definition`,
+      message: `Computed value name "${key}" is reserved for ${reservedFor}; rename this definition`,
       path: ['defs', key],
       severity: 'error',
     })
