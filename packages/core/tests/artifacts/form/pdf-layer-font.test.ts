@@ -35,8 +35,8 @@ const definition = (layerFont?: { path: string }) => ({
 			path: 'form.pdf',
 			bindings: { name: 'name' },
 			...(layerFont && { font: layerFont }),
-			signatureBlocks: {
-				signature: { type: 'signature' as const, page: 1, x: 50, y: 50, width: 120, height: 30, partyRole: 'signer' },
+			signatures: {
+				signature: { party: { role: 'signer' }, type: 'signature' as const, placement: { page: 1, x: 50, y: 50, width: 120, height: 30 } },
 			},
 		},
 	},

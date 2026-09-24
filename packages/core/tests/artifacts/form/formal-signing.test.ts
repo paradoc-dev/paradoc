@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, test, expect, vi } from 'vitest'
 import { form, runtimeFormFromJSON, SealConfigError } from '@/artifacts'
-import type { DraftForm, SignableForm } from '@/artifacts'
-import type { SealAdapter, Sealer, SigningField, Signer, SignatureBlock, AnchorBlock } from '@paradoc/types'
+import type { SealOptions, SignableForm } from '@/artifacts'
+import type { SealAdapter, SealAdapterRequest, SealLocator, SigningField, Signer, SignatureSlot } from '@paradoc/types'
+import { flattenPdf } from '@paradoc/render/pdf'
 import { fromYAML } from '@/serialization'
 
 /**
@@ -15,7 +18,19 @@ describe('Formal Signing', () => {
 	// Test Fixtures
 	// ============================================================================
 
-	const createFormWithSignature = (signatureBlocks?: Record<string, SignatureBlock>) =>
+	/** A real one-page PDF the mock converter returns. */
+	const fixturePdf = new Uint8Array(readFileSync(join(__dirname, 'fixtures', 'one-field-form.pdf')))
+
+	const sha256Of = async (bytes: Uint8Array): Promise<string> => {
+		const digest = await globalThis.crypto.subtle.digest('SHA-256', Uint8Array.from(bytes).buffer)
+		return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`
+	}
+
+	/** Core flattens the converted PDF, then hashes the flattened bytes. */
+	const flattenedFixture = async (): Promise<Uint8Array> => flattenPdf(fixturePdf)
+	const expectedHash = async (): Promise<string> => sha256Of(await flattenedFixture())
+
+	const createFormWithSignature = (signatures?: Record<string, SignatureSlot>) =>
 		form()
 			.name('lease-agreement')
 			.version('1.0.0')
@@ -27,7 +42,7 @@ describe('Formal Signing', () => {
 			.parties({
 				landlord: {
 					label: 'Landlord',
-					partyType: 'any',
+					partyType: 'person',
 					signature: { required: true },
 				},
 				tenant: {
@@ -38,12 +53,12 @@ describe('Formal Signing', () => {
 					signature: { required: true },
 				},
 			})
-			.inlineLayer('docx', {
-				mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			.inlineLayer('markdown', {
+				mimeType: 'text/markdown',
 				text: 'Lease template',
-				...(signatureBlocks && { signatureBlocks }),
+				...(signatures && { signatures }),
 			})
-			.defaultLayer('docx')
+			.defaultLayer('markdown')
 			.build()
 
 	const createFormWithoutSignature = () =>
@@ -61,56 +76,31 @@ describe('Formal Signing', () => {
 					// No signature required
 				},
 			})
-			.inlineLayer('docx', { mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', text: 'Simple template' })
-			.defaultLayer('docx')
+			.inlineLayer('markdown', { mimeType: 'text/markdown', text: 'Simple template' })
+			.defaultLayer('markdown')
 			.build()
 
-	const createMockAdapter = (overrides?: Partial<{
-		signatureMap: SigningField[]
-		canonicalPdfHash: string
-		canonicalPdfUrl: string
-	}>): Sealer => ({
-		async seal() {
+	const defaultSignatureMap = (): SigningField[] => [
+		{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 100, y: 500, width: 200, height: 50 },
+		{ id: 'sig-tenant-0', signerIndex: 1, signerId: 'tenant-signer', type: 'signature', page: 1, x: 100, y: 600, width: 200, height: 50 },
+		{ id: 'initials-tenant-0', signerIndex: 1, signerId: 'tenant-signer', type: 'initials', page: 2, x: 50, y: 700, width: 50, height: 30 },
+	]
+
+	/**
+	 * A converter that returns a real PDF plus its own signature map. On a
+	 * layer with no slots (undeclared-field mode) core keeps that map.
+	 */
+	const createMockAdapter = (overrides?: { signatureMap?: SigningField[]; pdf?: Uint8Array }): SealAdapter => ({
+		async convert() {
 			return {
-				signatureMap: overrides?.signatureMap ?? [
-					{
-						id: 'sig-landlord-0',
-						signerIndex: 0,
-						signerId: 'landlord-signer',
-						type: 'signature',
-						page: 1,
-						x: 100,
-						y: 500,
-						width: 200,
-						height: 50,
-					},
-					{
-						id: 'sig-tenant-0',
-						signerIndex: 1,
-						signerId: 'tenant-signer',
-						type: 'signature',
-						page: 1,
-						x: 100,
-						y: 600,
-						width: 200,
-						height: 50,
-					},
-					{
-						id: 'initials-tenant-0',
-						signerIndex: 1,
-						signerId: 'tenant-signer',
-						type: 'initials',
-						page: 2,
-						x: 50,
-						y: 700,
-						width: 50,
-						height: 30,
-					},
-				],
-				canonicalPdfHash: overrides?.canonicalPdfHash ?? 'sha256:abc123def456',
-				...(overrides?.canonicalPdfUrl && { canonicalPdfUrl: overrides.canonicalPdfUrl }),
+				pdf: overrides?.pdf ?? fixturePdf,
+				signatureMap: overrides?.signatureMap ?? defaultSignatureMap(),
 			}
 		},
+	})
+
+	const sealOptions = (overrides?: { signatureMap?: SigningField[]; pdf?: Uint8Array }): SealOptions => ({
+		adapter: createMockAdapter(overrides),
 	})
 
 	const createLandlordSigner = (): Signer => ({
@@ -164,12 +154,12 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 
 			expect(formal.isFormal).toBe(true)
 			expect(formal.signatureMap).toBeDefined()
 			expect(formal.signatureMap).toHaveLength(3)
-			expect(formal.canonicalPdfHash).toBe('sha256:abc123def456')
+			expect(formal.canonicalPdfHash).toBe(await expectedHash())
 		})
 	})
 
@@ -207,7 +197,7 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 
 			const landlordSigner = formal.getSignerForField('sig-landlord-0')
 			expect(landlordSigner).toBeDefined()
@@ -233,7 +223,7 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 
 			expect(formal.getSignerForField('nonexistent-field')).toBeUndefined()
 		})
@@ -273,7 +263,7 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 
 			const landlordFields = formal.getFieldsForSigner('landlord-signer')
 			expect(landlordFields).toHaveLength(1)
@@ -301,7 +291,7 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 
 			expect(formal.getFieldsForSigner('nonexistent-signer')).toEqual([])
 		})
@@ -327,13 +317,13 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 
 			expect(formal).toHaveProperty('phase', 'signable')
 			expect(formal.phase).toBe('signable')
 			expect(formal.isFormal).toBe(true)
 			expect(formal.signatureMap).toHaveLength(3)
-			expect(formal.canonicalPdfHash).toBe('sha256:abc123def456')
+			expect(formal.canonicalPdfHash).toBe(await expectedHash())
 
 			// Verify original form data is preserved
 			expect(formal.form.name).toBe('lease-agreement')
@@ -341,9 +331,8 @@ describe('Formal Signing', () => {
 			expect(formal.getParty('landlord')).toBeDefined()
 		})
 
-		test('includes canonicalPdfUrl when adapter provides it', async () => {
-			const formInstance = createFormWithSignature()
-			const draft = formInstance
+		test('canonicalizes the converted PDF: flattened bytes, hash of those bytes', async () => {
+			const draft = createFormWithSignature()
 				.fill({
 					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
 					parties: {
@@ -356,13 +345,34 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const adapter = createMockAdapter({
-				canonicalPdfUrl: 'https://storage.example.com/forms/abc123.pdf',
-			})
-			const formal = await draft.seal(adapter)
+			const formal = await draft.seal(sealOptions())
 
-			expect(formal.signatureMap).toBeDefined()
-			expect(formal.canonicalPdfHash).toBeDefined()
+			expect(formal.canonicalPdfBytes).toEqual(await flattenedFixture())
+			expect(formal.canonicalPdfHash).toBe(await sha256Of(formal.canonicalPdfBytes!))
+		})
+
+		test('a different converted PDF yields a different hash', async () => {
+			const draft = createFormWithSignature()
+				.fill({
+					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
+					parties: {
+						landlord: { id: 'landlord-0', name: 'John Landlord' },
+						tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
+					},
+				})
+				.addSigner('landlord-signer', createLandlordSigner())
+				.addSigner('tenant-signer', createTenantSigner())
+				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
+
+			const other = new Uint8Array(readFileSync(join(__dirname, 'fixtures', 'auto-clean.pdf')))
+			const [first, second] = await Promise.all([
+				draft.seal(sealOptions()),
+				draft.seal(sealOptions({ pdf: other })),
+			])
+
+			expect(second.canonicalPdfHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+			expect(second.canonicalPdfHash).not.toBe(first.canonicalPdfHash)
 		})
 	})
 
@@ -380,14 +390,10 @@ describe('Formal Signing', () => {
 				fields: { rentAmount: { type: 'number', label: 'Rent Amount', required: true } },
 				parties: { landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } } },
 				layers: {
-					docx: {
-						kind: 'inline',
-						mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-						text: 'Layer A',
-					},
+					text: { kind: 'inline', mimeType: 'text/plain', text: 'Layer A' },
 					markdown: { kind: 'inline', mimeType: 'text/markdown', text: 'Layer B' },
 				},
-				defaultLayer: 'docx',
+				defaultLayer: 'text',
 			} as const)
 
 		const buildDraft = () =>
@@ -400,18 +406,18 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 
 		test('refuses to retarget a sealed form, so no stale hash or map survives', async () => {
-			const sealed = await buildDraft().seal(createMockAdapter())
-			expect(sealed.canonicalPdfHash).toBe('sha256:abc123def456')
+			const sealed = await buildDraft().seal(sealOptions())
+			expect(sealed.canonicalPdfHash).toBe(await expectedHash())
 
 			expect(() => sealed.setTargetLayer('markdown')).toThrow(
-				'Cannot setTargetLayer: form is sealed on layer "docx"',
+				'Cannot setTargetLayer: form is sealed on layer "text"',
 			)
-			expect(() => sealed.setTargetLayer('docx')).toThrow('Cannot setTargetLayer: form is sealed')
-			expect(sealed.targetLayer).toBe('docx')
+			expect(() => sealed.setTargetLayer('text')).toThrow('Cannot setTargetLayer: form is sealed')
+			expect(sealed.targetLayer).toBe('text')
 		})
 
 		test('refuses to retarget an executed form', async () => {
-			const landlordOnly = createMockAdapter({
+			const landlordOnly = sealOptions({
 				signatureMap: [
 					{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 100, y: 500, width: 200, height: 50 },
 				],
@@ -465,9 +471,11 @@ describe('Formal Signing', () => {
 				.fileLayer('pdf', {
 					mimeType: 'application/pdf',
 					path: '/forms/pdf-form.pdf',
-					signatureBlocks: {
+					signatures: {
 						'signer-signature': {
-							type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer',
+							party: { role: 'signer' },
+							type: 'signature',
+							placement: { page: 1, x: 50, y: 200, width: 120, height: 30 },
 						},
 					},
 				})
@@ -484,9 +492,11 @@ describe('Formal Signing', () => {
 
 			const sealed = await draft.seal()
 
-			expect(sealed.canonicalPdfBytes).toEqual(pdf)
-			expect(sealed.canonicalPdfHash).toMatch(/^sha256:[a-f0-9]{64}$/)
-			expect(sealed.signatureMap).toHaveLength(1)
+			expect(sealed.canonicalPdfBytes).toEqual(await flattenPdf(pdf))
+			expect(sealed.canonicalPdfHash).toBe(await sha256Of(sealed.canonicalPdfBytes!))
+			expect(sealed.signatureMap).toEqual([
+				expect.objectContaining({ id: 'signer-signature', signerId: 'test-signer', page: 1, x: 50, y: 200, width: 120, height: 30 }),
+			])
 			expect(sealed.isFormal).toBe(true)
 		})
 
@@ -513,9 +523,11 @@ describe('Formal Signing', () => {
 				.inlineLayer('markdown', {
 					mimeType: 'text/markdown',
 					text: '# Hello {{fields.name}}',
-					signatureBlocks: {
+					signatures: {
 						'signer-signature': {
-							type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer',
+							party: { role: 'signer' },
+							type: 'signature',
+							placement: { page: 1, x: 50, y: 200, width: 120, height: 30 },
 						},
 					},
 				})
@@ -530,8 +542,8 @@ describe('Formal Signing', () => {
 
 			expect(receivedMimeType).toBe('text/markdown')
 			expect(receivedContent).toContain('# Hello Ada')
-			expect(sealed.canonicalPdfBytes).toEqual(pdf)
-			expect(sealed.canonicalPdfHash).toMatch(/^sha256:[a-f0-9]{64}$/)
+			expect(sealed.canonicalPdfBytes).toEqual(await flattenPdf(pdf))
+			expect(sealed.canonicalPdfHash).toBe(await sha256Of(sealed.canonicalPdfBytes!))
 		})
 
 		test('uses a custom renderer before passing a non-PDF layer to the conversion adapter', async () => {
@@ -554,8 +566,8 @@ describe('Formal Signing', () => {
 				.inlineLayer('markdown', {
 					mimeType: 'text/markdown',
 					text: '# Built-in {{fields.name}}',
-					signatureBlocks: {
-						signature: { type: 'signature', page: 1, x: 50, y: 200, width: 120, height: 30, partyRole: 'signer' },
+					signatures: {
+						signature: { party: { role: 'signer' }, type: 'signature', placement: { page: 1, x: 50, y: 200, width: 120, height: 30 } },
 					},
 				})
 				.defaultLayer('markdown')
@@ -572,7 +584,7 @@ describe('Formal Signing', () => {
 
 			expect(render).toHaveBeenCalledOnce()
 			expect(receivedContent).toBe('# Custom document')
-			expect(sealed.canonicalPdfBytes).toEqual(pdf)
+			expect(sealed.canonicalPdfBytes).toEqual(await flattenPdf(pdf))
 		})
 
 		test('throws error when no parties exist', async () => {
@@ -583,15 +595,15 @@ describe('Formal Signing', () => {
 				.fields({
 					name: { type: 'text', label: 'Name' },
 				})
-				.inlineLayer('docx', { mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', text: 'Template' })
-				.defaultLayer('docx')
+				.inlineLayer('markdown', { mimeType: 'text/markdown', text: 'Template' })
+				.defaultLayer('markdown')
 				.build()
 
 			const draft = formDef.fill({
 				fields: { name: 'Test' },
 			})
 
-			await expect(draft.seal(createMockAdapter())).rejects.toThrow(
+			await expect(draft.seal(sealOptions())).rejects.toThrow(
 				/form has no parties/
 			)
 		})
@@ -606,7 +618,7 @@ describe('Formal Signing', () => {
 				.addSigner('test-signer', { person: { name: 'Test Signer' } })
 				.addSignatory('applicant', 'applicant-0', { signerId: 'test-signer' })
 
-			await expect(draft.seal(createMockAdapter())).rejects.toThrow(
+			await expect(draft.seal(sealOptions())).rejects.toThrow(
 				/no party has a required signature/
 			)
 		})
@@ -622,7 +634,7 @@ describe('Formal Signing', () => {
 			})
 			// Note: No signers or signatories added
 
-			await expect(draft.seal(createMockAdapter())).rejects.toThrow(
+			await expect(draft.seal(sealOptions())).rejects.toThrow(
 				/no party has a required signature/
 			)
 		})
@@ -632,23 +644,23 @@ describe('Formal Signing', () => {
 	// Definition mode: required parties without signatories
 	// ============================================================================
 
-	describe('Definition mode seal with an unbound required party', () => {
-		const blocks = (tenantRequired?: boolean): Record<string, SignatureBlock> => ({
-			'sb-landlord': { type: 'signature', page: 1, x: 50, y: 100, width: 120, height: 30, partyRole: 'landlord' },
-			'sb-tenant': {
+	describe('Slot seal with an unbound required party', () => {
+		const slots = (tenantRequired?: boolean): Record<string, SignatureSlot> => ({
+			'sb-landlord': {
+				party: { role: 'landlord' },
 				type: 'signature',
-				page: 1,
-				x: 50,
-				y: 200,
-				width: 120,
-				height: 30,
-				partyRole: 'tenant',
+				placement: { page: 1, x: 50, y: 100, width: 120, height: 30 },
+			},
+			'sb-tenant': {
+				party: { role: 'tenant' },
+				type: 'signature',
+				placement: { page: 1, x: 50, y: 200, width: 120, height: 30 },
 				...(tenantRequired !== undefined && { required: tenantRequired }),
 			},
 		})
 
-		const landlordOnlyDraft = (signatureBlocks: Record<string, SignatureBlock>) =>
-			createFormWithSignature(signatureBlocks)
+		const landlordOnlyDraft = (signatures: Record<string, SignatureSlot>) =>
+			createFormWithSignature(signatures)
 				.fill({
 					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
 					parties: {
@@ -659,19 +671,20 @@ describe('Formal Signing', () => {
 				.addSigner('landlord-signer', createLandlordSigner())
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 
-		test('rejects and names the required party instead of dropping its block', async () => {
-			const adapter = { seal: vi.fn(createMockAdapter().seal) }
-			const sealing = landlordOnlyDraft(blocks()).seal(adapter)
+		test('rejects and names the required party instead of dropping its slot, before converting', async () => {
+			const adapter = createMockAdapter()
+			const convert = vi.spyOn(adapter, 'convert')
+			const sealing = landlordOnlyDraft(slots()).seal({ adapter })
 
 			await expect(sealing).rejects.toThrow(SealConfigError)
 			await expect(sealing).rejects.toThrow(
-				'Cannot seal: 1 required signature block without signatories: block "sb-tenant" (tenant[0]) has no signatory',
+				'Cannot seal: 1 required slot without signatories: slot "sb-tenant" (tenant[0]) has no signatory',
 			)
-			expect(adapter.seal).not.toHaveBeenCalled()
+			expect(convert).not.toHaveBeenCalled()
 		})
 
-		test('skips a block marked required: false for an unbound party', async () => {
-			const sealed = await landlordOnlyDraft(blocks(false)).seal(createMockAdapter())
+		test('skips a slot marked required: false for an unbound party', async () => {
+			const sealed = await landlordOnlyDraft(slots(false)).seal(sealOptions())
 			expect(sealed.signatureMap?.map((field) => field.id)).toEqual(['sb-landlord'])
 		})
 	})
@@ -696,12 +709,12 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 			const json = formal.toJSON() as any
 
 			expect(json.signatureMap).toBeDefined()
 			expect(json.signatureMap).toHaveLength(3)
-			expect(json.canonicalPdfHash).toBe('sha256:abc123def456')
+			expect(json.canonicalPdfHash).toBe(await expectedHash())
 		})
 
 		test('fromJSON restores formal signing fields', async () => {
@@ -719,7 +732,7 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 			const json = formal.toJSON()
 
 			// Restore from JSON
@@ -727,7 +740,7 @@ describe('Formal Signing', () => {
 
 			expect(restored.isFormal).toBe(true)
 			expect(restored.signatureMap).toHaveLength(3)
-			expect(restored.canonicalPdfHash).toBe('sha256:abc123def456')
+			expect(restored.canonicalPdfHash).toBe(await expectedHash())
 
 			// Verify helper methods work on restored form
 			expect(restored.getSignerForField('sig-landlord-0')?.person.name).toBe('John Landlord')
@@ -765,7 +778,7 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 			const yaml = formal.toYAML()
 
 			// Restore from YAML
@@ -774,7 +787,7 @@ describe('Formal Signing', () => {
 
 			expect(restored.isFormal).toBe(true)
 			expect(restored.signatureMap).toHaveLength(3)
-			expect(restored.canonicalPdfHash).toBe('sha256:abc123def456')
+			expect(restored.canonicalPdfHash).toBe(await expectedHash())
 		})
 
 		const sealedDraft = () =>
@@ -792,13 +805,13 @@ describe('Formal Signing', () => {
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
 		test('executed form JSON round-trip preserves signatureMap and canonicalPdfHash', async () => {
-			const executed = captureDefaultSlots(await sealedDraft().seal(createMockAdapter())).finalize()
+			const executed = captureDefaultSlots(await sealedDraft().seal(sealOptions())).finalize()
 			expect(executed.isFormal).toBe(true)
 
 			const json = executed.toJSON()
 			expect(json.phase).toBe('executed')
 			expect('signatureMap' in json && json.signatureMap).toEqual(executed.signatureMap)
-			expect('canonicalPdfHash' in json && json.canonicalPdfHash).toBe('sha256:abc123def456')
+			expect('canonicalPdfHash' in json && json.canonicalPdfHash).toBe(await expectedHash())
 
 			const restored = runtimeFormFromJSON(json)
 			expect(restored.phase).toBe('executed')
@@ -811,7 +824,7 @@ describe('Formal Signing', () => {
 		})
 
 		test('executed form YAML round-trip preserves signatureMap and canonicalPdfHash', async () => {
-			const executed = captureDefaultSlots(await sealedDraft().seal(createMockAdapter())).finalize()
+			const executed = captureDefaultSlots(await sealedDraft().seal(sealOptions())).finalize()
 
 			const restored = runtimeFormFromJSON(fromYAML(executed.toYAML()) as any)
 			expect(restored.phase).toBe('executed')
@@ -821,7 +834,7 @@ describe('Formal Signing', () => {
 		})
 
 		test('executed form JSON is a copy: mutating it leaves the form unchanged', async () => {
-			const executed = captureDefaultSlots(await sealedDraft().seal(createMockAdapter())).finalize()
+			const executed = captureDefaultSlots(await sealedDraft().seal(sealOptions())).finalize()
 			const json = executed.toJSON() as any
 			json.signatureMap[0].x = 999
 
@@ -844,36 +857,21 @@ describe('Formal Signing', () => {
 		})
 
 		test('canonicalPdfBytes are not serialized', async () => {
-			const bytes = new Uint8Array([1, 2, 3])
-			const adapter: Sealer = {
-				async seal() {
-					return { signatureMap: [], canonicalPdfHash: 'sha256:bytes', canonicalPdfBytes: bytes }
-				},
-			}
-			const executed = (await sealedDraft().seal(adapter)).finalize()
-			expect(executed.canonicalPdfBytes).toEqual(bytes)
+			const executed = (await sealedDraft().seal(sealOptions({ signatureMap: [] }))).finalize()
+			expect(executed.canonicalPdfBytes).toEqual(await flattenedFixture())
 
 			const json = executed.toJSON()
 			expect('canonicalPdfBytes' in json).toBe(false)
 			expect(runtimeFormFromJSON(json).canonicalPdfBytes).toBeUndefined()
 		})
 
-		const bytesAdapter = (bytes: Uint8Array): Sealer => {
-			const { seal } = createMockAdapter()
-			return {
-				async seal(...args) {
-					return { ...(await seal(...args)), canonicalPdfBytes: bytes }
-				},
-			}
-		}
-
 		const carriesBytes = (value: unknown): boolean =>
 			value instanceof Uint8Array ||
 			(typeof value === 'object' && value !== null && 'canonicalPdfBytes' in value)
 
 		test('clone and transitions share the sealed bytes instead of copying them', async () => {
-			const bytes = new Uint8Array(1024).fill(7)
-			const sealed = await sealedDraft().seal(bytesAdapter(bytes))
+			const sealed = await sealedDraft().seal(sealOptions())
+			const bytes = await flattenedFixture()
 
 			const spy = vi.spyOn(globalThis, 'structuredClone')
 			try {
@@ -887,21 +885,22 @@ describe('Formal Signing', () => {
 			}
 		})
 
-		test('a clone stays independent of the original and of the sealer bytes', async () => {
-			const bytes = new Uint8Array([1, 2, 3])
-			const sealed = await sealedDraft().seal(bytesAdapter(bytes))
-			bytes[0] = 99
-			expect(sealed.canonicalPdfBytes).toEqual(new Uint8Array([1, 2, 3]))
+		test('a clone stays independent of the original and of the converted PDF', async () => {
+			const converted = fixturePdf.slice()
+			const sealed = await sealedDraft().seal(sealOptions({ pdf: converted }))
+			const original = sealed.canonicalPdfBytes!.slice()
+			converted.fill(0)
+			expect(sealed.canonicalPdfBytes).toEqual(original)
 
 			const cloned = sealed.clone()
 			expect(cloned.canonicalPdfBytes).not.toBe(sealed.canonicalPdfBytes)
 
-			cloned.canonicalPdfBytes![1] = 42
+			cloned.canonicalPdfBytes![1] = (original[1]! + 1) % 256
 			const captured = cloned.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
 			expect(captured.captures).toHaveLength(1)
 			expect(sealed.captures).toHaveLength(0)
-			expect(sealed.canonicalPdfBytes).toEqual(new Uint8Array([1, 2, 3]))
-			expect(captured.canonicalPdfBytes).toEqual(new Uint8Array([1, 2, 3]))
+			expect(sealed.canonicalPdfBytes).toEqual(original)
+			expect(captured.canonicalPdfBytes).toEqual(original)
 		})
 	})
 
@@ -911,33 +910,28 @@ describe('Formal Signing', () => {
 
 	describe('Edge Cases', () => {
 		test('SigningField with anchor positioning', async () => {
-			const adapter: Sealer = {
-				async seal() {
-					return {
-						signatureMap: [
-							{
-								id: 'sig-anchor',
-								signerIndex: 0,
-								signerId: 'landlord-signer',
-								type: 'signature',
-								page: 1,
-								x: 0,
-								y: 0,
-								width: 200,
-								height: 50,
-								anchor: {
-									text: 'X_____________________',
-									offsetX: 10,
-									offsetY: -5,
-								},
-								required: true,
-								label: 'Landlord Signature',
-							},
-						],
-						canonicalPdfHash: 'sha256:xyz789',
-					}
-				},
-			}
+			const adapter = sealOptions({
+				signatureMap: [
+					{
+						id: 'sig-anchor',
+						signerIndex: 0,
+						signerId: 'landlord-signer',
+						type: 'signature',
+						page: 1,
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 50,
+						anchor: {
+							text: 'X_____________________',
+							offsetX: 10,
+							offsetY: -5,
+						},
+						required: true,
+						label: 'Landlord Signature',
+					},
+				],
+			})
 
 			const formInstance = createFormWithSignature()
 			const draft = formInstance
@@ -976,12 +970,12 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-			const formal = await draft.seal(createMockAdapter())
+			const formal = await draft.seal(sealOptions())
 			const cloned = formal.clone()
 
 			expect(cloned.isFormal).toBe(true)
 			expect(cloned.signatureMap).toHaveLength(3)
-			expect(cloned.canonicalPdfHash).toBe('sha256:abc123def456')
+			expect(cloned.canonicalPdfHash).toBe(await expectedHash())
 
 			// Verify it's a deep clone
 			expect(cloned.signatureMap).not.toBe(formal.signatureMap)
@@ -1098,7 +1092,7 @@ describe('Formal Signing', () => {
 
 		const sealWithAllTypes = () =>
 			buildDraft().seal(
-				createMockAdapter({
+				sealOptions({
 					signatureMap: [
 						{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 0, y: 0, width: 200, height: 50 },
 						{ id: 'cap-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'capacity', page: 1, x: 0, y: 60, width: 200, height: 20 },
@@ -1234,7 +1228,7 @@ describe('Formal Signing', () => {
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
 		test('refuses to finalize a formal form with no captures, listing every missing slot', async () => {
-			const formal = await buildDraft().seal(createMockAdapter())
+			const formal = await buildDraft().seal(sealOptions())
 			expect(() => formal.finalize()).toThrow(
 				'Cannot finalize: required signing slots have no capture: ' +
 					'"sig-landlord-0" (signature, signer "landlord-signer"), ' +
@@ -1244,7 +1238,7 @@ describe('Formal Signing', () => {
 		})
 
 		test('lists only the slots that are still missing', async () => {
-			const partial = (await buildDraft().seal(createMockAdapter()))
+			const partial = (await buildDraft().seal(sealOptions()))
 				.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
 				.captureSignature('tenant', 'tenant-0', 'tenant-signer', 'sig-tenant-0')
 			expect(() => partial.finalize()).toThrow(
@@ -1253,14 +1247,14 @@ describe('Formal Signing', () => {
 		})
 
 		test('finalizes a formal form once every required slot is captured', async () => {
-			const executed = captureDefaultSlots(await buildDraft().seal(createMockAdapter())).finalize()
+			const executed = captureDefaultSlots(await buildDraft().seal(sealOptions())).finalize()
 			expect(executed.phase).toBe('executed')
 			expect(executed.captures).toHaveLength(3)
 		})
 
 		test('skips slots marked required: false and date_signed slots', async () => {
 			const formal = await buildDraft().seal(
-				createMockAdapter({
+				sealOptions({
 					signatureMap: [
 						{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 0, y: 0, width: 200, height: 50 },
 						{ id: 'date-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'date_signed', page: 1, x: 0, y: 60, width: 100, height: 20 },
@@ -1276,62 +1270,39 @@ describe('Formal Signing', () => {
 		})
 
 		test('a formal form sealed with an empty signatureMap finalizes', async () => {
-			const formal = await buildDraft().seal(createMockAdapter({ signatureMap: [] }))
+			const formal = await buildDraft().seal(sealOptions({ signatureMap: [] }))
 			expect(formal.isFormal).toBe(true)
 			expect(formal.finalize().phase).toBe('executed')
 		})
 	})
 
 	// ============================================================================
-	// Sigblock → SigningField pass-through (v2-minimal)
+	// Slot → SigningField pass-through for every slot type
 	// ============================================================================
 
-	describe('Sigblock seal pass-through for new types', () => {
-		const sigBlocks: Record<string, SignatureBlock> = {
-			'sb-landlord-sig': {
-				type: 'signature',
-				page: 1,
-				x: 100,
-				y: 500,
-				width: 200,
-				height: 30,
-				partyRole: 'landlord',
-				label: 'Landlord signature',
-			},
-			'sb-landlord-cap': {
-				type: 'capacity',
-				page: 1,
-				x: 100,
-				y: 540,
-				width: 200,
-				height: 14,
-				partyRole: 'landlord',
-				label: 'Landlord capacity',
-			},
-			'sb-landlord-print': {
-				type: 'printed_name',
-				page: 1,
-				x: 100,
-				y: 560,
-				width: 200,
-				height: 14,
-				partyRole: 'landlord',
-				label: 'Landlord printed name',
-			},
-			'sb-landlord-date': {
-				type: 'date',
-				page: 1,
-				x: 320,
-				y: 500,
-				width: 100,
-				height: 14,
-				partyRole: 'landlord',
-				label: 'Date',
-			},
+	describe('Slot seal pass-through for every slot type', () => {
+		const slot = (
+			type: SignatureSlot['type'],
+			y: number,
+			label: string,
+			role: 'landlord' | 'tenant' = 'landlord',
+		): SignatureSlot => ({
+			party: { role },
+			type,
+			label,
+			placement: { page: 1, x: 100, y, width: 200, height: 14 },
+		})
+
+		const slots: Record<string, SignatureSlot> = {
+			'sb-landlord-sig': slot('signature', 500, 'Landlord signature'),
+			'sb-landlord-cap': slot('capacity', 540, 'Landlord capacity'),
+			'sb-landlord-print': slot('printed_name', 560, 'Landlord printed name'),
+			'sb-landlord-date': slot('date_signed', 580, 'Date'),
+			'sb-tenant-sig': slot('signature', 620, 'Tenant signature', 'tenant'),
 		}
 
 		const buildDraft = () =>
-			createFormWithSignature(sigBlocks)
+			createFormWithSignature(slots)
 				.fill({
 					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
 					parties: {
@@ -1344,70 +1315,41 @@ describe('Formal Signing', () => {
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer', capacity: 'President' })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-		test('seal generates SigningField with type capacity for capacity sigblocks', async () => {
-			const formal = await buildDraft().seal(createMockAdapter())
+		test('each slot becomes a SigningField with its type, label, and signer', async () => {
+			const formal = await buildDraft().seal(sealOptions())
 
-			const capacityField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-cap')
-			expect(capacityField).toBeDefined()
-			expect(capacityField?.type).toBe('capacity')
-			expect(capacityField?.signerId).toBe('landlord-signer')
-		})
-
-		test('seal generates SigningField with type printed_name for printed_name sigblocks', async () => {
-			const formal = await buildDraft().seal(createMockAdapter())
-
-			const printedField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-print')
-			expect(printedField).toBeDefined()
-			expect(printedField?.type).toBe('printed_name')
-			expect(printedField?.signerId).toBe('landlord-signer')
-		})
-
-		test('seal still translates date sigblocks to date_signed (regression)', async () => {
-			const formal = await buildDraft().seal(createMockAdapter())
-
-			const dateField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-date')
-			expect(dateField).toBeDefined()
-			expect(dateField?.type).toBe('date_signed')
-		})
-
-		test('seal preserves signature sigblocks alongside new types', async () => {
-			const formal = await buildDraft().seal(createMockAdapter())
-
-			const sigField = formal.signatureMap?.find((f) => f.id === 'sb-landlord-sig')
-			expect(sigField).toBeDefined()
-			expect(sigField?.type).toBe('signature')
-
-			// All four blocks should be in the signatureMap (definition mode uses core's generated map)
-			expect(formal.signatureMap).toHaveLength(4)
+			expect(formal.signatureMap?.map((field) => [field.id, field.type, field.label, field.signerId])).toEqual([
+				['sb-landlord-sig', 'signature', 'Landlord signature', 'landlord-signer'],
+				['sb-landlord-cap', 'capacity', 'Landlord capacity', 'landlord-signer'],
+				['sb-landlord-print', 'printed_name', 'Landlord printed name', 'landlord-signer'],
+				['sb-landlord-date', 'date_signed', 'Date', 'landlord-signer'],
+				['sb-tenant-sig', 'signature', 'Tenant signature', 'tenant-signer'],
+			])
 		})
 	})
 
 	// ============================================================================
-	// Anchor mode: SigningField placement from anchorBlocks
+	// Anchor placement: SigningField placement from anchor slots
 	// ============================================================================
 
-	describe('Anchor mode seal (anchorBlocks, no signatureBlocks)', () => {
-		const anchorBlocks: Record<string, AnchorBlock> = {
+	describe('Anchor placement seal', () => {
+		const anchorSlots: Record<string, SignatureSlot> = {
 			'anc-landlord-sig': {
+				party: { role: 'landlord' },
 				type: 'signature',
-				anchor: { text: 'LANDLORD SIGNATURE:', offsetX: 0, offsetY: 10 },
-				width: 200,
-				height: 40,
-				partyRole: 'landlord',
+				placement: { anchor: { text: 'LANDLORD SIGNATURE:', offsetX: 0, offsetY: 10 }, width: 200, height: 40 },
 				label: 'Landlord signature',
 				required: true,
 			},
 			'anc-tenant-sig': {
+				party: { role: 'tenant' },
 				type: 'signature',
-				anchor: { text: 'TENANT SIGNATURE:', offsetX: 0, offsetY: 10 },
-				width: 200,
-				height: 40,
-				partyRole: 'tenant',
+				placement: { anchor: { text: 'TENANT SIGNATURE:', offsetX: 0, offsetY: 10 }, width: 200, height: 40 },
 				label: 'Tenant signature',
 			},
 		}
 
-		const createFormWithAnchorBlocks = () =>
+		const createFormWithAnchorSlots = () =>
 			form()
 				.name('anchor-lease')
 				.version('1.0.0')
@@ -1427,40 +1369,42 @@ describe('Formal Signing', () => {
 						signature: { required: true },
 					},
 				})
-				.inlineLayer('docx', {
-					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+				.inlineLayer('markdown', {
+					mimeType: 'text/markdown',
 					text: 'LANDLORD SIGNATURE:\n\n\nTENANT SIGNATURE:\n\n',
-					anchorBlocks,
+					signatures: anchorSlots,
 				})
-				.defaultLayer('docx')
+				.defaultLayer('markdown')
 				.build()
 
-		// A mock adapter that simulates anchor-text resolution: it receives anchorFields
-		// with signer bindings and returns them with resolved coordinates.
-		const createAnchorAdapter = (): Sealer => ({
-			async seal(request) {
-				const fields = request.anchorFields ?? []
-				// Simulate resolution: map anchor text to page/x/y positions
-				const anchorPositions: Record<string, { page: number; x: number; y: number }> = {
-					'LANDLORD SIGNATURE:': { page: 1, x: 72, y: 300 },
-					'TENANT SIGNATURE:': { page: 1, x: 72, y: 400 },
-				}
-				const signatureMap: SigningField[] = fields.map((f) => ({
-					...f,
-					...(f.anchor && anchorPositions[f.anchor.text]
-						? {
-								page: anchorPositions[f.anchor.text]!.page,
-								x: anchorPositions[f.anchor.text]!.x + f.anchor.offsetX,
-								y: anchorPositions[f.anchor.text]!.y + f.anchor.offsetY,
-							}
-						: {}),
-				}))
-				return { signatureMap, canonicalPdfHash: 'sha256:anchor-test' }
-			},
-		})
+		/**
+		 * A converter that returns a real PDF, plus a locator stub that resolves
+		 * anchor text to fixed positions (the fixture PDF has no such text).
+		 */
+		const anchorPositions: Record<string, { page: number; x: number; y: number }> = {
+			'LANDLORD SIGNATURE:': { page: 1, x: 72, y: 300 },
+			'TENANT SIGNATURE:': { page: 1, x: 72, y: 400 },
+		}
+		const createAnchorOptions = () => {
+			const requests: SealAdapterRequest[] = []
+			const located: Uint8Array[] = []
+			const adapter: SealAdapter = {
+				async convert(request) {
+					requests.push(request)
+					return { pdf: fixturePdf }
+				},
+			}
+			const locate: SealLocator = {
+				async locate(pdf, queries) {
+					located.push(pdf)
+					return queries.map((query) => ({ id: query.id, ...anchorPositions[query.text]!, width: 0, height: 0 }))
+				},
+			}
+			return { options: { adapter, locate } satisfies SealOptions, requests, located }
+		}
 
-		const buildAnchorDraft = () =>
-			createFormWithAnchorBlocks()
+		const fillAnchorForm = () =>
+			createFormWithAnchorSlots()
 				.fill({
 					fields: { rentAmount: 1200 },
 					parties: {
@@ -1469,48 +1413,31 @@ describe('Formal Signing', () => {
 					},
 				})
 				.addSigner('landlord-signer', { person: { name: 'John Landlord' } })
-				.addSigner('tenant-signer', { person: { name: 'Jane Tenant' } })
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
+
+		const buildAnchorDraft = () =>
+			fillAnchorForm()
+				.addSigner('tenant-signer', { person: { name: 'Jane Tenant' } })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
 		test('rejects and names a required party with no signatory instead of dropping its anchor', async () => {
-			const adapter = { seal: vi.fn(createAnchorAdapter().seal) }
-			const sealing = createFormWithAnchorBlocks()
-				.fill({
-					fields: { rentAmount: 1200 },
-					parties: {
-						landlord: { id: 'landlord-0', name: 'John Landlord' },
-						tenant: { id: 'tenant-0', name: 'Jane Tenant' },
-					},
-				})
-				.addSigner('landlord-signer', { person: { name: 'John Landlord' } })
-				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
-				.seal(adapter)
+			const { options, requests } = createAnchorOptions()
+			const sealing = fillAnchorForm().seal(options)
 
 			await expect(sealing).rejects.toThrow(SealConfigError)
-			await expect(sealing).rejects.toThrow('block "anc-tenant-sig" (tenant[0]) has no signatory')
-			expect(adapter.seal).not.toHaveBeenCalled()
+			await expect(sealing).rejects.toThrow('slot "anc-tenant-sig" (tenant[0]) has no signatory')
+			expect(requests).toEqual([])
 		})
 
-		test('anchor mode passes anchorFields to adapter with correct signer bindings', async () => {
-			let capturedRequest: Parameters<Sealer['seal']>[0] | undefined
-			const spyAdapter: Sealer = {
-				async seal(req) {
-					capturedRequest = req
-					return {
-						signatureMap: req.anchorFields ?? [],
-						canonicalPdfHash: 'sha256:spy',
-					}
-				},
-			}
+		test('passes anchorFields to the adapter with correct signer bindings', async () => {
+			const { options, requests } = createAnchorOptions()
+			await buildAnchorDraft().seal(options)
 
-			await buildAnchorDraft().seal(spyAdapter)
+			expect(requests).toHaveLength(1)
+			const anchorFields = requests[0]!.anchorFields
+			expect(anchorFields).toHaveLength(2)
 
-			// Core must pass pre-built anchor fields with signer bindings resolved
-			expect(capturedRequest?.anchorFields).toBeDefined()
-			expect(capturedRequest?.anchorFields).toHaveLength(2)
-
-			const landlordField = capturedRequest?.anchorFields?.find((f) => f.id === 'anc-landlord-sig')
+			const landlordField = anchorFields?.find((f) => f.id === 'anc-landlord-sig')
 			expect(landlordField?.signerId).toBe('landlord-signer')
 			expect(landlordField?.type).toBe('signature')
 			expect(landlordField?.anchor?.text).toBe('LANDLORD SIGNATURE:')
@@ -1521,21 +1448,26 @@ describe('Formal Signing', () => {
 			expect(landlordField?.required).toBe(true)
 			expect(landlordField?.label).toBe('Landlord signature')
 
-			const tenantField = capturedRequest?.anchorFields?.find((f) => f.id === 'anc-tenant-sig')
+			const tenantField = anchorFields?.find((f) => f.id === 'anc-tenant-sig')
 			expect(tenantField?.signerId).toBe('tenant-signer')
 			expect(tenantField?.anchor?.text).toBe('TENANT SIGNATURE:')
 		})
 
-		test('anchor mode seal produces signatureMap with adapter-resolved positions', async () => {
-			const formal = await buildAnchorDraft().seal(createAnchorAdapter())
+		test('resolves anchors on the canonical PDF and applies the declared offsets', async () => {
+			const { options, located } = createAnchorOptions()
+			const formal = await buildAnchorDraft().seal(options)
 
-			// Adapter resolved anchor text to actual page/x/y positions
+			// The locator reads the same bytes the hash covers.
+			expect(located).toEqual([formal.canonicalPdfBytes])
+			expect(formal.canonicalPdfHash).toBe(await expectedHash())
 			expect(formal.signatureMap).toHaveLength(2)
 
 			const landlordField = formal.signatureMap?.find((f) => f.id === 'anc-landlord-sig')
 			expect(landlordField?.page).toBe(1)
-			expect(landlordField?.x).toBe(72)   // anchorPositions.x + offsetX (0)
-			expect(landlordField?.y).toBe(310)  // anchorPositions.y + offsetY (10)
+			expect(landlordField?.x).toBe(72)   // anchor x + offsetX (0)
+			expect(landlordField?.y).toBe(310)  // anchor y + offsetY (10)
+			expect(landlordField?.width).toBe(200)
+			expect(landlordField?.height).toBe(40)
 			expect(landlordField?.signerId).toBe('landlord-signer')
 			expect(landlordField?.anchor?.text).toBe('LANDLORD SIGNATURE:')
 
@@ -1546,127 +1478,37 @@ describe('Formal Signing', () => {
 			expect(tenantField?.signerId).toBe('tenant-signer')
 		})
 
-		test('anchor mode date block type maps to date_signed in anchor fields', async () => {
-			const dateAnchorBlocks: Record<string, AnchorBlock> = {
-				'anc-date': {
-					type: 'date',
-					anchor: { text: 'DATE:', offsetX: 50, offsetY: 0 },
-					width: 100,
-					height: 20,
-					partyRole: 'landlord',
+		test('fails loud when the locator leaves an anchor unresolved', async () => {
+			const { options } = createAnchorOptions()
+			const partial: SealLocator = {
+				async locate(pdf, queries) {
+					return (await options.locate.locate(pdf, queries)).filter((hit) => hit.id !== 'anc-tenant-sig')
 				},
 			}
-			const formWithDate = form()
-				.name('anchor-date-form')
-				.version('1.0.0')
-				.title('Date Anchor Form')
-				.fields({ name: { type: 'text', label: 'Name' } })
-				.parties({
-					landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
-				})
-				.inlineLayer('docx', {
-					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-					text: 'DATE:',
-					anchorBlocks: dateAnchorBlocks,
-				})
-				.defaultLayer('docx')
-				.build()
-
-			let capturedFields: SigningField[] | undefined
-			const spyAdapter: Sealer = {
-				async seal(req) {
-					capturedFields = req.anchorFields
-					return { signatureMap: req.anchorFields ?? [], canonicalPdfHash: 'sha256:date-test' }
-				},
-			}
-
-			await formWithDate
-				.fill({ fields: { name: 'Test' }, parties: { landlord: { id: 'landlord-0', name: 'Landlord' } } })
-				.addSigner('l-sig', { person: { name: 'Landlord' } })
-				.addSignatory('landlord', 'landlord-0', { signerId: 'l-sig' })
-				.seal(spyAdapter)
-
-			// date block must map to date_signed (mirrors definition mode behavior)
-			expect(capturedFields?.[0]?.type).toBe('date_signed')
-		})
-
-		test('a non-PDF layer requires an adapter', async () => {
-			const formDef = form()
-				.name('no-blocks-docx')
-				.version('1.0.0')
-				.title('No Blocks DOCX')
-				.fields({ name: { type: 'text', label: 'Name' } })
-				.parties({
-					signer: { label: 'Signer', partyType: 'person', signature: { required: true } },
-				})
-				.inlineLayer('docx', {
-					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-					text: 'DOCX content',
-				})
-				.defaultLayer('docx')
-				.build()
-
-			const draft = formDef
-				.fill({ fields: { name: 'Test' }, parties: { signer: { id: 'signer-0', name: 'Signer' } } })
-				.addSigner('s-sig', { person: { name: 'Signer' } })
-				.addSignatory('signer', 'signer-0', { signerId: 's-sig' })
-
-			await expect(draft.seal()).rejects.toThrow(
-				/Cannot seal .* without an adapter/,
+			await expect(buildAnchorDraft().seal({ ...options, locate: partial })).rejects.toThrow(
+				'Locator did not resolve anchor slot "anc-tenant-sig".',
 			)
 		})
+	})
 
-		test('signatureBlocks (definition mode) behavior is unchanged when both are present — signatureBlocks wins', async () => {
-			// When BOTH signatureBlocks and anchorBlocks exist, definition mode takes precedence
-			const sigBlock: SignatureBlock = {
-				type: 'signature',
-				page: 1,
-				x: 100,
-				y: 500,
-				width: 200,
-				height: 50,
-				partyRole: 'landlord',
-			}
-			const formWithBoth = form()
-				.name('both-blocks-form')
-				.version('1.0.0')
-				.title('Both Blocks Form')
-				.fields({ rentAmount: { type: 'number', label: 'Rent' } })
-				.parties({
-					landlord: { label: 'Landlord', partyType: 'person', signature: { required: true } },
-					tenant: { label: 'Tenant', partyType: 'person' },
-				})
-				.inlineLayer('docx', {
-					mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-					text: 'Template',
-					signatureBlocks: { 'sig-1': sigBlock },
-					anchorBlocks: { 'anc-1': anchorBlocks['anc-landlord-sig']! },
-				})
-				.defaultLayer('docx')
-				.build()
+	test('a non-PDF layer with no slots requires an adapter', async () => {
+		const formDef = form()
+			.name('no-slots-markdown')
+			.version('1.0.0')
+			.title('No Slots Markdown')
+			.fields({ name: { type: 'text', label: 'Name' } })
+			.parties({
+				signer: { label: 'Signer', partyType: 'person', signature: { required: true } },
+			})
+			.inlineLayer('markdown', { mimeType: 'text/markdown', text: 'Markdown content' })
+			.defaultLayer('markdown')
+			.build()
 
-			let capturedRequest: Parameters<Sealer['seal']>[0] | undefined
-			const spyAdapter: Sealer = {
-				async seal(req) {
-					capturedRequest = req
-					return { signatureMap: [], canonicalPdfHash: 'sha256:both' }
-				},
-			}
+		const draft = formDef
+			.fill({ fields: { name: 'Test' }, parties: { signer: { id: 'signer-0', name: 'Signer' } } })
+			.addSigner('s-sig', { person: { name: 'Signer' } })
+			.addSignatory('signer', 'signer-0', { signerId: 's-sig' })
 
-			await formWithBoth
-				.fill({
-					fields: { rentAmount: 1500 },
-					parties: {
-						landlord: { id: 'landlord-0', name: 'John Landlord' },
-						tenant: { id: 'tenant-0', name: 'Jane Tenant' },
-					},
-				})
-				.addSigner('landlord-signer', { person: { name: 'John Landlord' } })
-				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
-				.seal(spyAdapter)
-
-			// Definition mode: anchorFields must NOT be set; signatureBlocks drove placement
-			expect(capturedRequest?.anchorFields).toBeUndefined()
-		})
+		await expect(draft.seal()).rejects.toThrow(/Cannot seal .* without an adapter/)
 	})
 })

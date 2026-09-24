@@ -1,6 +1,12 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, test, expect } from 'vitest'
 import { form, runtimeFormFromJSON, FormValidationError } from '@/artifacts'
-import type { SealingRequest, Sealer } from '@paradoc/types'
+import type { SealAdapter, SealAdapterRequest, SigningField } from '@paradoc/types'
+
+const fixturePdf = new Uint8Array(
+	readFileSync(join(__dirname, '..', 'artifacts', 'form', 'fixtures', 'one-field-form.pdf')),
+)
 
 /**
  * Party mutation on a draft: every party a form holds carries the
@@ -42,20 +48,20 @@ describe('RuntimeForm party ids', () => {
 			])
 			expect(await draft.render()).toBe('Buyer Bea Buyer by Bea Signer')
 
-			let request: SealingRequest | undefined
-			const sealer: Sealer = {
-				async seal(sealingRequest) {
-					request = sealingRequest as SealingRequest
-					return {
-						signatureMap: [
-							{ id: 'buyer-sig', signerIndex: 0, signerId: 'bea', type: 'signature', page: 1, x: 0, y: 0, width: 10, height: 10 },
-						],
-						canonicalPdfHash: 'sha256:abc',
-					}
+			let request: SealAdapterRequest | undefined
+			const signatureMap: SigningField[] = [
+				{ id: 'buyer-sig', signerIndex: 0, signerId: 'bea', type: 'signature', page: 1, x: 0, y: 0, width: 10, height: 10 },
+			]
+			const adapter: SealAdapter = {
+				async convert(sealingRequest) {
+					request = sealingRequest as SealAdapterRequest
+					return { pdf: fixturePdf, signatureMap }
 				},
 			}
-			const sealed = await draft.seal(sealer)
+			const sealed = await draft.seal({ adapter })
 			expect(sealed.phase).toBe('signable')
+			expect(sealed.signatureMap).toEqual(signatureMap)
+			expect(request?.document.content).toBe('Buyer Bea Buyer by Bea Signer')
 			expect(request?.parties.buyer).toEqual({ name: 'Bea Buyer', id: 'buyer-0' })
 		})
 

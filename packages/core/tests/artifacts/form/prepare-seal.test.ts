@@ -147,11 +147,47 @@ describe('prepareSeal', () => {
 		expect(prep.warnings[0]).toMatch(/c1.*not filled/)
 	})
 
-	test('requires a slot-declaring layer', async () => {
-		const legacy = form()
-			.name('legacy')
+	test('resolves anchor slots through the locator and reports anchor provenance', async () => {
+		const contractPdf = fixture('large-contract.pdf')
+		const prep = await form()
+			.name('anchored')
 			.version('1.0.0')
-			.title('Legacy')
+			.title('Anchored')
+			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
+			.parties({ client: { label: 'Client', partyType: 'person', signature: { required: true } } })
+			.inlineLayer('md', {
+				mimeType: 'text/markdown',
+				text: 'Contract.\n\nWitnessed by: ____\n',
+				signatures: {
+					'anc-client': {
+						party: { role: 'client' },
+						type: 'signature',
+						placement: { anchor: { text: 'Witnessed by:', offsetX: 90, offsetY: 12 }, width: 200, height: 40 },
+					},
+				},
+			})
+			.defaultLayer('md')
+			.build()
+			.fill({ fields: { amount: 1 }, parties: { client: { id: 'client-0', name: 'C' } } })
+			.addSigner('s', { person: { name: 'C' } })
+			.addSignatory('client', 'client-0', { signerId: 's' })
+			.prepareSeal({ adapter: { convert: async () => ({ pdf: contractPdf }) } })
+
+		expect(prep.pdf).toBe(contractPdf)
+		expect(prep.signatureMap).toEqual([
+			expect.objectContaining({ id: 'anc-client', signerId: 's', width: 200, height: 40 }),
+		])
+		// 'Witnessed by:' sits past the first page of the fixture contract.
+		expect(prep.signatureMap[0]!.page).toBeGreaterThan(1)
+		expect(prep.signatureMap[0]!.x).toBeGreaterThan(90)
+		expect(prep.provenance).toEqual({ 'anc-client': 'anchor' })
+	})
+
+	test('requires a slot-declaring layer', async () => {
+		const unslotted = form()
+			.name('unslotted')
+			.version('1.0.0')
+			.title('Unslotted')
 			.fields({ amount: { type: 'number', label: 'Amount', required: true } })
 			.parties({ client: { label: 'Client', partyType: 'person' } })
 			.inlineLayer('md', { mimeType: 'text/markdown', text: 'Sign here.' })
@@ -159,6 +195,6 @@ describe('prepareSeal', () => {
 			.build()
 			.fill({ fields: { amount: 1 }, parties: { client: { id: 'client-0', name: 'C' } } })
 
-		await expect(legacy.prepareSeal({ adapter: converter })).rejects.toThrow(/signature slots/)
+		await expect(unslotted.prepareSeal({ adapter: converter })).rejects.toThrow(/signature slots/)
 	})
 })

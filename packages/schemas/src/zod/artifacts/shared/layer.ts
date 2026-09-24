@@ -1,105 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Type of signature block field.
- */
-export const SignatureBlockTypeSchema = z.enum(['signature', 'initials', 'date', 'capacity', 'printed_name'])
-	.describe('Type of signature block: signature/initials (glyph), date (signing date), capacity (signer role/title), or printed_name (typed-out name)');
-
-/**
- * Pre-defined signature block for layers.
- * Used when signature positions are known at design time.
- */
-export const SignatureBlockSchema = z.object({
-	type: SignatureBlockTypeSchema,
-	page: z.number()
-		.int()
-		.min(1)
-		.describe('1-based page number where this block appears'),
-	x: z.number()
-		.min(0)
-		.describe('X coordinate in points from left edge of page'),
-	y: z.number()
-		.min(0)
-		.describe('Y coordinate in points from top edge of page'),
-	width: z.number()
-		.min(1)
-		.describe('Width of the block in points'),
-	height: z.number()
-		.min(1)
-		.describe('Height of the block in points'),
-	partyRole: z.string()
-		.min(1)
-		.max(100)
-		.describe('Party role this block is bound to (e.g., "taxpayer", "tenant")')
-		.optional(),
-	partyIndex: z.number()
-		.int()
-		.min(0)
-		.describe('0-based index for multi-party roles. Defaults to 0 (first party)')
-		.optional(),
-	label: z.string()
-		.min(1)
-		.max(200)
-		.describe('Human-readable label for the block')
-		.optional(),
-	required: z.boolean()
-		.describe('Whether this block is required. Defaults to true')
-		.optional(),
-}).meta({
-	title: 'SignatureBlock',
-	description: 'Pre-defined signature block for layers with fixed signature positions',
-}).strict();
-
-/**
- * Anchor block for layers where signature position is derived from text in the document.
- * Used when exact coordinates are unknown at design time. The Sealer adapter locates
- * the anchor text in the rendered document and resolves the final position.
- */
-export const AnchorBlockSchema = z.object({
-	type: SignatureBlockTypeSchema,
-	anchor: z.object({
-		text: z.string()
-			.min(1)
-			.max(500)
-			.describe('Text string to search for in the rendered document'),
-		offsetX: z.number()
-			.describe('Horizontal offset in points from the left of the found text'),
-		offsetY: z.number()
-			.describe('Vertical offset in points from the top of the found text'),
-	}).describe('Text anchor identifying where to place this field in the document'),
-	width: z.number()
-		.min(1)
-		.describe('Width of the field in points'),
-	height: z.number()
-		.min(1)
-		.describe('Height of the field in points'),
-	partyRole: z.string()
-		.min(1)
-		.max(100)
-		.describe('Party role this block is bound to (e.g., "taxpayer", "tenant")')
-		.optional(),
-	partyIndex: z.number()
-		.int()
-		.min(0)
-		.describe('0-based index for multi-party roles. Defaults to 0 (first party)')
-		.optional(),
-	label: z.string()
-		.min(1)
-		.max(200)
-		.describe('Human-readable label for the block')
-		.optional(),
-	required: z.boolean()
-		.describe('Whether this block is required. Defaults to true')
-		.optional(),
-}).meta({
-	title: 'AnchorBlock',
-	description: 'Anchor-based signature block for layers where position is derived from text in the rendered document',
-}).strict();
-
-
-/**
- * Field type for a unified signature slot (mirrors SigningFieldType).
+ * Field type for a signature slot (mirrors SigningFieldType).
  */
 export const SignatureSlotTypeSchema = z.enum(['signature', 'initials', 'date_signed', 'capacity', 'printed_name'])
 	.describe('Type of signing field: signature/initials (glyph), date_signed, capacity (signer role/title), or printed_name');
@@ -124,8 +26,7 @@ const AnchorPlacementSchema = z.object({
 }).meta({ title: 'AnchorPlacement' }).strict();
 
 /**
- * Unified signature slot. Supersedes signatureBlocks/anchorBlocks, which
- * remain readable during the deprecation window.
+ * Signature slot: one signing field on a layer, keyed by slot id.
  */
 export const SignatureSlotSchema = z.object({
 	party: z.object({
@@ -142,7 +43,7 @@ export const SignatureSlotSchema = z.object({
 	]).describe("Placement: 'flow', absolute coordinates, or a text anchor"),
 }).meta({
 	title: 'SignatureSlot',
-	description: 'Unified signature slot binding a party to a placement on this layer',
+	description: 'Signature slot binding a party to a placement on this layer',
 }).strict();
 
 /**
@@ -214,20 +115,10 @@ const LayerBaseSchema = z.object({
 		.max(2000)
 		.describe('Description of what this layer represents')
 		.optional(),
-	signatureBlocks: z.record(
-		z.string().min(1).max(100).describe('Location ID for the signature block'),
-		SignatureBlockSchema,
-	).describe('Pre-defined signature blocks keyed by locationId (coordinate-based)')
-		.optional(),
-	anchorBlocks: z.record(
-		z.string().min(1).max(100).describe('Location ID for the anchor block'),
-		AnchorBlockSchema,
-	).describe('Anchor-based signature blocks keyed by locationId; position resolved from anchor text by the Sealer adapter')
-		.optional(),
 	signatures: z.record(
 		z.string().min(1).max(100).describe('Slot ID'),
 		SignatureSlotSchema,
-	).describe('Unified signature slots keyed by slot id. Supersedes signatureBlocks/anchorBlocks')
+	).describe('Signature slots keyed by slot id')
 		.optional(),
 });
 

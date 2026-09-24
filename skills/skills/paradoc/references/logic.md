@@ -312,7 +312,7 @@ A result **fails** when the operation that errors did not read a missing value: 
 import { p } from "@paradoc/sdk";
 
 const form = p.form({
-  $schema: "https://schema.paradoc.dev/2026-09-23.json",
+  $schema: "https://schema.paradoc.dev/2026-09-24.json",
   name: "age-check",
   kind: "form",
   fields: { birthDate: { type: "date" } },

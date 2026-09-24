@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test, expect } from 'vitest'
 import { form } from '@/artifacts'
-import type { AnchorBlock, SealAdapter, SealLocator } from '@paradoc/types'
+import type { SealAdapter, SealLocator, SignatureSlot } from '@paradoc/types'
 import { locator } from '@paradoc/render/pdf'
 
 /**
@@ -24,7 +24,7 @@ describe('Anchor mode seal with pure converters', () => {
 		convert: async () => ({ pdf: contractPdf }),
 	}
 
-	const buildDraft = (anchorBlocks: Record<string, AnchorBlock>) =>
+	const buildDraft = (signatures: Record<string, SignatureSlot>) =>
 		form()
 			.name('witnessed-contract')
 			.version('1.0.0')
@@ -36,7 +36,7 @@ describe('Anchor mode seal with pure converters', () => {
 			.inlineLayer('md', {
 				mimeType: 'text/markdown',
 				text: 'Contract body.\n\nWitnessed by: ________________\n',
-				anchorBlocks,
+				signatures,
 			})
 			.defaultLayer('md')
 			.build()
@@ -47,16 +47,16 @@ describe('Anchor mode seal with pure converters', () => {
 			.addSigner('witness-signer', { person: { name: 'Wanda Witness' } })
 			.addSignatory('witness', 'witness-0', { signerId: 'witness-signer' })
 
-	const witnessAnchor: Record<string, AnchorBlock> = {
+	const anchorSlot = (text: string, offsetX = 0, offsetY = 0): Record<string, SignatureSlot> => ({
 		'anc-witness': {
+			party: { role: 'witness' },
 			type: 'signature',
-			anchor: { text: 'Witnessed by:', offsetX: 90, offsetY: 12 },
-			width: 200,
-			height: 40,
-			partyRole: 'witness',
 			required: true,
+			placement: { anchor: { text, offsetX, offsetY }, width: 200, height: 40 },
 		},
-	}
+	})
+
+	const witnessAnchor = anchorSlot('Witnessed by:', 90, 12)
 
 	test('pure converter resolves anchors with zero configuration', async () => {
 		const sealed = await buildDraft(witnessAnchor).seal({ adapter: pureConverter })
@@ -86,9 +86,7 @@ describe('Anchor mode seal with pure converters', () => {
 	})
 
 	test('offsets shift the anchor position by exactly the declared amount', async () => {
-		const noOffset: Record<string, AnchorBlock> = {
-			'anc-witness': { ...witnessAnchor['anc-witness']!, anchor: { text: 'Witnessed by:', offsetX: 0, offsetY: 0 } },
-		}
+		const noOffset = anchorSlot('Witnessed by:')
 		const [shifted, plain] = await Promise.all([
 			buildDraft(witnessAnchor).seal({ adapter: pureConverter }),
 			buildDraft(noOffset).seal({ adapter: pureConverter }),
@@ -98,56 +96,39 @@ describe('Anchor mode seal with pure converters', () => {
 	})
 
 	test('ambiguous anchor text fails loud instead of guessing', async () => {
-		const ambiguous: Record<string, AnchorBlock> = {
-			'anc-approval': {
-				type: 'signature',
-				anchor: { text: 'Approved by manager', offsetX: 0, offsetY: 0 },
-				width: 200,
-				height: 40,
-				partyRole: 'witness',
-			},
-		}
+		const ambiguous = anchorSlot('Approved by manager')
 		// 'Approved by manager' appears three times in the fixture: guessing
 		// which one gets the signature box would silently misplace it.
 		await expect(buildDraft(ambiguous).seal({ adapter: pureConverter })).rejects.toThrow(/ambiguous/)
 	})
 
 	test('missing anchor text fails loud', async () => {
-		const missing: Record<string, AnchorBlock> = {
-			'anc-ghost': {
-				type: 'signature',
-				anchor: { text: 'Text that is not in the document', offsetX: 0, offsetY: 0 },
-				width: 200,
-				height: 40,
-				partyRole: 'witness',
-			},
-		}
+		const missing = anchorSlot('Text that is not in the document')
 		await expect(buildDraft(missing).seal({ adapter: pureConverter })).rejects.toThrow(/not found/)
 	})
 
-	test('adapter-resolved maps win over the locator', async () => {
-		// When an adapter resolves placements itself, core must not second-guess
-		// it; the locator is a fallback, not an override.
-		const resolvingAdapter: SealAdapter = {
+	test('a locate override replaces the built-in locator, and the converter map is ignored', async () => {
+		// Slot placement is core's: a converter's own map never overrides the
+		// declared slots, and a custom locator supplies the anchor positions.
+		const mappingAdapter: SealAdapter = {
 			convert: async (request) => ({
 				pdf: contractPdf,
-				signatureMap: (request.anchorFields ?? []).map((field) => ({
-					...field,
-					page: 7,
-					x: 111,
-					y: 222,
-				})),
+				signatureMap: (request.anchorFields ?? []).map((field) => ({ ...field, page: 9, x: 999, y: 999 })),
 			}),
 		}
-		const neverLocator: SealLocator = {
-			locate: async () => {
-				throw new Error('locator must not run when the adapter resolves placements')
-			},
+		const queried: string[] = []
+		const fixedLocator: SealLocator = {
+			locate: async (_pdf, queries) =>
+				queries.map((query) => {
+					queried.push(query.text)
+					return { id: query.id, page: 3, x: 10, y: 20, width: 0, height: 0 }
+				}),
 		}
-		const sealed = await buildDraft(witnessAnchor).seal({
-			adapter: resolvingAdapter,
-			locate: neverLocator,
-		})
-		expect(sealed.signatureMap![0]).toMatchObject({ page: 7, x: 111, y: 222 })
+		const sealed = await buildDraft(witnessAnchor).seal({ adapter: mappingAdapter, locate: fixedLocator })
+
+		expect(queried).toEqual(['Witnessed by:'])
+		expect(sealed.signatureMap).toEqual([
+			expect.objectContaining({ id: 'anc-witness', page: 3, x: 100, y: 32, width: 200, height: 40 }),
+		])
 	})
 })

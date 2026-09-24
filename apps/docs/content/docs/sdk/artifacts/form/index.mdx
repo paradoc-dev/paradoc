@@ -479,7 +479,7 @@ Created by `form.fill()`. Mutable data and signer configuration.
   { name: 'getNextFillTarget', type: '(options?: FillTargetOptions) => FillTarget | null', description: 'Get the next recommended fill target, or null if all required are done', isMethod: true },
   { name: 'getAvailableFillTargets', type: '(options?: FillTargetOptions) => FillTarget[]', description: 'Get all available fill targets in declaration order', isMethod: true },
   { name: 'prepareForSigning', type: '() => SignableForm', description: 'Transition to signable phase', isMethod: true },
-  { name: 'seal', type: '(options?: SealOptions | Sealer) => Promise<SignableForm>', description: 'Render, place signature fields, flatten, and hash the target layer for formal e-signing. See [Seal options](#seal-options)', isMethod: true },
+  { name: 'seal', type: '(options?: SealOptions) => Promise<SignableForm>', description: 'Render, place signature fields, flatten, and hash the target layer for formal e-signing. See [Seal options](#seal-options)', isMethod: true },
   { name: 'prepareSeal', type: '(options?: SealOptions) => Promise<SealPreparation>', description: 'Resolve the signature map and the converted PDF it describes, without flattening, hashing, or changing phase. Requires a layer with `signatures`', isMethod: true },
   { name: 'render', type: '(options?: RuntimeFormRenderOptions) => Promise<Output>', description: 'Render with embedded data', isMethod: true },
   { name: 'toJSON', type: '() => DraftFormJSON', description: 'Serialize to JSON', isMethod: true },
@@ -562,7 +562,7 @@ The seal picks its renderer in this order:
 2. Core's text renderer, whenever the layer places a slot in flow. Passing `renderer` alongside flow placement throws `SealConfigError`.
 3. Otherwise `renderer`, then the `renderers` entry for the layer's MIME type, then the built-in renderer.
 
-You can pass a `Sealer` instead of options: an object whose `seal(request)` returns the signature map and PDF hash itself, so core skips its own render and placement.
+An adapter only converts. It implements `convert(request)` and returns `{ pdf, signatureMap? }`. Core still renders, flattens, and computes the SHA-256 hash itself. On a layer with `signatures`, core places every field from its slots and ignores an adapter's `signatureMap`. On a layer with no slots, the adapter's `signatureMap` is the signature map.
 
 ```ts
 const signable = await draft

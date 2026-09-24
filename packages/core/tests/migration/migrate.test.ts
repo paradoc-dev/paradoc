@@ -60,7 +60,7 @@ describe('2026-08-10 to 2026-09-22', () => {
 		if (result.status !== 'migrated') throw new Error('expected a migration')
 		const artifact = result.artifact as Json
 
-		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-22', '2026-09-23'])
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-22', '2026-09-23', '2026-09-24'])
 		expect(artifact.$schema).toBe(PARADOC_SCHEMA_URL)
 		expect(artifact.layers.markdown.signatures.tenantSignature.placement).toBe('flow')
 		expect(validate(artifact).issues).toBeUndefined()
@@ -164,8 +164,8 @@ describe('2026-09-22 to 2026-09-23', () => {
 		})
 		const result = migrateArtifact(source)
 		if (result.status !== 'migrated') throw new Error('expected a migration')
-		expect(result).toMatchObject({ from: '2026-09-22', to: '2026-09-23' })
-		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-23'])
+		expect(result).toMatchObject({ from: '2026-09-22', to: SCHEMA_VERSION })
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-23', '2026-09-24'])
 		expect(result.artifact).toEqual({ ...source, $schema: PARADOC_SCHEMA_URL })
 		expect(validate(result.artifact).issues).toBeUndefined()
 	})
@@ -195,6 +195,115 @@ describe('2026-09-22 to 2026-09-23', () => {
 		const bundle = { $schema: schemaVersionUrl('2026-09-22'), kind: 'bundle', name: 'packet', contents: [{ type: 'inline', key: 'notice', artifact: form }] }
 		const error = migrationError(() => migrateArtifact(bundle))
 		expect(error.message).toContain('contents.0.artifact.layers.copy.bindings')
+	})
+})
+
+describe('2026-09-23 to 2026-09-24', () => {
+	const parties = {
+		taxpayer: { label: 'Taxpayer', partyType: 'person', signature: { required: true } },
+		spouse: { label: 'Spouse', partyType: 'person', max: 2 },
+	}
+	const form = (layer: Record<string, unknown>) => ({
+		$schema: schemaVersionUrl('2026-09-23'),
+		kind: 'form',
+		name: 'return',
+		fields: { name: { type: 'text', label: 'Name' } },
+		parties,
+		layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'return.pdf', ...layer } },
+	})
+
+	test('moves signatureBlocks and anchorBlocks into signatures, and the result validates', () => {
+		const source = form({
+			signatureBlocks: {
+				sig: { type: 'signature', page: 1, x: 72, y: 600, width: 180, height: 36, partyRole: 'taxpayer', label: 'Sign here', required: true },
+				date: { type: 'date', page: 1, x: 300, y: 600, width: 90, height: 36, partyRole: 'taxpayer' },
+			},
+			anchorBlocks: {
+				spouseSig: { type: 'initials', anchor: { text: 'Spouse initials', offsetX: 0, offsetY: 12 }, width: 60, height: 20, partyRole: 'spouse', partyIndex: 1, required: false },
+			},
+		})
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-24'])
+		const layer = (result.artifact as Json).layers.pdf
+		expect(layer.signatureBlocks).toBeUndefined()
+		expect(layer.anchorBlocks).toBeUndefined()
+		expect(layer.signatures).toEqual({
+			sig: { party: { role: 'taxpayer' }, type: 'signature', required: true, label: 'Sign here', placement: { page: 1, x: 72, y: 600, width: 180, height: 36 } },
+			date: { party: { role: 'taxpayer' }, type: 'date_signed', placement: { page: 1, x: 300, y: 600, width: 90, height: 36 } },
+			spouseSig: {
+				party: { role: 'spouse', index: 1 },
+				type: 'initials',
+				required: false,
+				placement: { anchor: { text: 'Spouse initials', offsetX: 0, offsetY: 12 }, width: 60, height: 20 },
+			},
+		})
+		expect(validate(result.artifact).issues).toBeUndefined()
+		// The input is never changed.
+		expect(source.layers.pdf).toHaveProperty('signatureBlocks')
+	})
+
+	test('keeps existing signatures beside the moved blocks', () => {
+		const existing = { party: { role: 'taxpayer' }, type: 'signature', placement: { page: 2, x: 72, y: 600, width: 180, height: 36 } }
+		const result = migrateArtifact(form({
+			signatures: { page2: existing },
+			signatureBlocks: { page1: { type: 'signature', page: 1, x: 72, y: 600, width: 180, height: 36, partyRole: 'taxpayer' } },
+		}))
+		const signatures = (result.artifact as Json).layers.pdf.signatures
+		expect(Object.keys(signatures)).toEqual(['page2', 'page1'])
+		expect(signatures.page2).toEqual(existing)
+	})
+
+	test('a block with no party role cannot be converted and is named', () => {
+		const error = migrationError(() => migrateArtifact(form({
+			signatureBlocks: { loose: { type: 'signature', page: 1, x: 72, y: 600, width: 180, height: 36 } },
+		})))
+		expect(error.code).toBe('unconvertible-value')
+		expect(error.message).toContain('layers.pdf.signatureBlocks.loose')
+		expect(error.message).toContain('partyRole')
+	})
+
+	test('a block id already used in signatures is named', () => {
+		const error = migrationError(() => migrateArtifact(form({
+			signatures: { sig: { party: { role: 'taxpayer' }, type: 'signature', placement: { page: 1, x: 1, y: 1, width: 10, height: 10 } } },
+			anchorBlocks: { sig: { type: 'signature', anchor: { text: 'Sign', offsetX: 0, offsetY: 0 }, width: 60, height: 20, partyRole: 'taxpayer' } },
+		})))
+		expect(error.code).toBe('unconvertible-value')
+		expect(error.message).toContain('layers.pdf.anchorBlocks.sig')
+		expect(error.message).toContain('already used by another slot')
+	})
+
+	test('the same id in signatureBlocks and anchorBlocks is named', () => {
+		const error = migrationError(() => migrateArtifact(form({
+			signatureBlocks: { sig: { type: 'signature', page: 1, x: 72, y: 600, width: 180, height: 36, partyRole: 'taxpayer' } },
+			anchorBlocks: { sig: { type: 'signature', anchor: { text: 'Sign', offsetX: 0, offsetY: 0 }, width: 60, height: 20, partyRole: 'taxpayer' } },
+		})))
+		expect(error.message).toContain('layers.pdf.anchorBlocks.sig')
+		expect(error.message).toContain('already used by another slot')
+	})
+
+	test.each([
+		['signatureBlocks', ['sig']],
+		['signatures', 'sig'],
+	])('%s that is not a map is named', (key, value) => {
+		const error = migrationError(() => migrateArtifact(form({
+			...(key === 'signatures' && { signatureBlocks: {} }),
+			[key]: value,
+		})))
+		expect(error.code).toBe('unconvertible-value')
+		expect(error.message).toContain(`layers.pdf.${key}`)
+		expect(error.message).toContain('must be a map')
+	})
+
+	test('moves blocks in an inline artifact of a bundle', () => {
+		const { $schema: _, ...inner } = form({
+			signatureBlocks: { sig: { type: 'signature', page: 1, x: 72, y: 600, width: 180, height: 36, partyRole: 'taxpayer' } },
+		})
+		const bundle = { $schema: schemaVersionUrl('2026-09-23'), kind: 'bundle', name: 'packet', contents: [{ type: 'inline', key: 'return', artifact: inner }] }
+		const result = migrateArtifact(bundle)
+		const layer = (result.artifact as Json).contents[0].artifact.layers.pdf
+		expect(layer.signatureBlocks).toBeUndefined()
+		expect(layer.signatures.sig.party).toEqual({ role: 'taxpayer' })
 	})
 })
 
@@ -274,6 +383,7 @@ describe('a step', () => {
 			'No breaking change: adds the layer signatures slot map.',
 			'Moves a legacy heading into title.',
 			'Allows bindings and bindingsFrom only on PDF file layers; names any other layer that declares them.',
+			'Moves layer signatureBlocks and anchorBlocks into signatures.',
 		])
 		expect(result.artifact).toEqual({ $schema: PARADOC_SCHEMA_URL, kind: 'document', name: 'notice', title: 'Notice' })
 		expect(validate(result.artifact).issues).toBeUndefined()

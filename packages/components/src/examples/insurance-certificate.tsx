@@ -28,7 +28,7 @@ import { Table } from "../components/table";
 
 /** The certificate form, exactly as authored. */
 export const insuranceCertificateSpec = {
-  $schema: "https://schema.paradoc.dev/2026-09-23.json",
+  $schema: "https://schema.paradoc.dev/2026-09-24.json",
   kind: "form",
   name: "certificate-of-insurance",
   version: "1.0.0",

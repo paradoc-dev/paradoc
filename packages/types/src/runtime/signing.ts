@@ -77,7 +77,8 @@ export interface SigningField {
 /**
  * SealingRequest
  *
- * Request payload sent to a Sealer to create the canonical PDF.
+ * Request core builds for a seal: the form, its values, and the target layer.
+ * A `SealAdapter` receives it, with the rendered document, as a `SealAdapterRequest`.
  * Contains all the form data and party information needed to render and analyze the document.
  *
  * @typeParam F - The form definition type
@@ -97,15 +98,11 @@ export interface SealingRequest<F extends Form = Form> {
 	targetLayer: string
 	/**
 	 * Signature fields placed by anchor text, still awaiting position resolution.
-	 * Present when at least one signature slot bound to a filled party uses
-	 * anchor placement: unified `signatures` slots with `placement.anchor`, or
-	 * legacy `anchorBlocks` (in `seal()`, only when the layer declares no
-	 * `signatureBlocks`). Absent when no such slot resolves.
+	 * Present when at least one `signatures` slot bound to a filled party uses
+	 * `placement.anchor`. Absent when no such slot resolves.
 	 * Each field carries its signer binding and anchor info; page/x/y are
 	 * placeholders. Core resolves positions by locating the anchor text in the
-	 * converted PDF (the `locate` option overrides the locator). Only the legacy
-	 * `anchorBlocks` path accepts positions from the adapter's signature map
-	 * instead, when it returns one field per anchor field.
+	 * converted PDF (the `locate` option overrides the locator).
 	 */
 	anchorFields?: SigningField[]
 }
@@ -113,7 +110,7 @@ export interface SealingRequest<F extends Form = Form> {
 /**
  * SealingResult
  *
- * Result from a Sealer after creating the canonical PDF.
+ * The canonical PDF a seal produces.
  * Contains the signature field coordinates and PDF hash for verification.
  */
 export interface SealingResult {
@@ -121,8 +118,6 @@ export interface SealingResult {
 	signatureMap: SigningField[]
 	/** SHA-256 hash of the canonical PDF for integrity verification. */
 	canonicalPdfHash: string
-	/** Optional URL to the stored canonical PDF. */
-	canonicalPdfUrl?: string
 	/** Optional bytes of the canonical PDF. */
 	canonicalPdfBytes?: Uint8Array
 }
@@ -182,57 +177,3 @@ export interface LocateHit {
 export interface SealLocator {
 	locate(pdf: Uint8Array, queries: AnchorLocateQuery[]): Promise<LocateHit[]>
 }
-
-// ============================================================================
-// Adapter Interface
-// ============================================================================
-
-/**
- * Sealer
- *
- * Interface for adapters that create canonical PDFs for e-signing.
- * Implementations handle:
- * - Rendering the form to PDF (for templates like markdown/docx)
- * - Extracting signature field coordinates
- * - Computing the canonical PDF hash
- * - Optionally storing the PDF
- *
- * @example
- * ```typescript
- * const adapter: Sealer = {
- *   async seal(request) {
- *     // 1. Render form to PDF using targetLayer
- *     // 2. Extract signature locations from PDF
- *     // 3. Compute SHA-256 hash
- *     // 4. Upload to storage (optional)
- *     return {
- *       signatureMap: [...],
- *       canonicalPdfHash: 'sha256:abc123...',
- *       canonicalPdfUrl: 'https://storage.example.com/forms/abc123.pdf'
- *     }
- *   }
- * }
- * ```
- */
-export interface Sealer {
-	/**
-	 * Create the canonical PDF and extract signature field positions.
-	 *
-	 * @param request - The request containing form data and configuration
-	 * @returns Promise resolving to signature field coordinates and PDF hash
-	 */
-	seal<F extends Form>(request: SealingRequest<F>): Promise<SealingResult>
-}
-
-// ============================================================================
-// Legacy Aliases (deprecated)
-// ============================================================================
-
-/** @deprecated Use SealingRequest instead */
-export type FormalSigningRequest<F extends Form = Form> = SealingRequest<F>
-
-/** @deprecated Use SealingResult instead */
-export type FormalSigningResponse = SealingResult
-
-/** @deprecated Use Sealer instead */
-export type FormalSigningAdapter = Sealer

@@ -14,8 +14,6 @@ import type {
 	FormAnnex,
 	FormParty,
 	Layer,
-	SignatureBlock,
-	AnchorBlock,
 	Metadata,
 	Party,
 	RuntimeParty,
@@ -26,11 +24,9 @@ import type {
 	Attestation,
 	AdoptedSignature,
 	SigningField,
-	SigningFieldType,
 	DraftFormJSON,
 	SignableFormJSON,
 	ExecutedFormJSON,
-	Sealer,
 	SealAdapter,
 	SealLocator,
 	SealingRequest,
@@ -48,7 +44,7 @@ import { renderLayer as createRenderer } from '@paradoc/render'
 import { flattenPdf, locate as locatePlacements } from '@paradoc/render/pdf'
 import { extractPdfData, selectPdfExtractionLayer } from '@paradoc/render/pdf'
 import type { PdfExtraction } from '@paradoc/render/pdf'
-import { SealConfigError, buildSlotPlan, compileLegacySignatureSlots, hasSignatureSlots } from './seal-slots'
+import { SealConfigError, buildSlotPlan, hasSignatureSlots } from './seal-slots'
 import type { PlacementProvenance, SealPreparation } from './seal-slots'
 import {
 	parseForm,
@@ -1072,12 +1068,12 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 
 	// Phase Transitions (draft → signable)
 	prepareForSigning(): SignableForm<F>
-	seal(options?: SealOptions | Sealer): Promise<SignableForm<F>>
+	seal(options?: SealOptions): Promise<SignableForm<F>>
 
 	/**
 	 * Resolve the signature map and the exact converted PDF it describes,
 	 * without flattening, hashing, or changing phase. Requires a layer that
-	 * declares unified signature slots (`signatures`).
+	 * declares signature slots (`signatures`).
 	 */
 	prepareSeal(options?: SealOptions): Promise<SealPreparation>
 
@@ -2395,13 +2391,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			const options = input
 			const layerSpec = formDef.layers?.[targetLayer]
 			if (!layerSpec) throw new Error(`Cannot prepare seal: target layer "${targetLayer}" was not found`)
-			const declaredSlots = hasSignatureSlots(layerSpec) ? layerSpec.signatures : undefined
-			const legacySlots = declaredSlots ? undefined : compileLegacySignatureSlots(layerSpec)
-			if (!declaredSlots && !legacySlots) {
-				throw new Error(
-					'prepareSeal requires a layer with signature slots (`signatures`) or legacy signatureBlocks/anchorBlocks.',
-				)
+			if (!hasSignatureSlots(layerSpec)) {
+				throw new Error('prepareSeal requires a layer with signature slots (`signatures`).')
 			}
+			const slots = layerSpec.signatures
 			// A layer whose registered renderer writes the PDF needs no converter:
 			// there is nothing left to convert.
 			const sealRenderer = selectSealRenderer(layerSpec, options.renderers)
@@ -2413,10 +2406,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			}
 			const plan = buildSlotPlan({
 				formDef,
-				slots: declaredSlots ?? legacySlots!,
+				slots,
 				partyValues,
 				signatoryValues,
-				legacy: !declaredSlots,
 			})
 			if (plan.flow.length > 0) {
 				const problems: string[] = []
@@ -2453,7 +2445,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				layerSpec,
 				flow: plan.flow.length > 0,
 				sealRenderer,
-				markers: signingMarkersFor(declaredSlots ?? legacySlots!, plan.flow),
+				markers: signingMarkersFor(slots, plan.flow),
 				textRenderer: (withMarkers) =>
 					createRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) }),
 				override: options.renderer,
@@ -2521,13 +2513,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			return { pdf, signatureMap: map, provenance, warnings: [...plan.skipped] }
 		},
 
-		async seal(input: SealOptions | Sealer = {}): Promise<RuntimeForm<F>> {
+		async seal(options: SealOptions = {}): Promise<RuntimeForm<F>> {
 			ensureDraft('seal')
 			const validation = runtime.validate()
 			if (validation.errors.length > 0) throw new FormValidationError(validation.errors)
 			if (!validation.rules.valid) throw new FormRuleViolationError(validation.rules)
-			const legacyAdapter = 'seal' in input ? input : undefined
-			const options = (legacyAdapter ? {} : input) as SealOptions
 			const layerSpec = formDef.layers?.[targetLayer]
 			if (!layerSpec) throw new Error(`Cannot seal: target layer "${targetLayer}" was not found`)
 
@@ -2580,7 +2570,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			}
 
 			const runSealer = async (request: SealingRequest<F>) => {
-				if (legacyAdapter) return legacyAdapter.seal(request)
 				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !sealRenderer) {
 					throw new Error(
 						`Cannot seal ${layerSpec.mimeType} without an adapter. ` +
@@ -2607,11 +2596,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				return finalizePdf(converted.pdf, converted.signatureMap)
 			}
 
-			// Unified slot mode: the layer declares `signatures`. One engine for
-			// every placement strategy; legacy signatureBlocks/anchorBlocks keep
-			// their original paths below during the deprecation window.
+			// Slot mode: the layer declares `signatures`. One engine for every
+			// placement strategy.
 			if (hasSignatureSlots(layerSpec)) {
-				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !legacyAdapter && !sealRenderer) {
+				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !sealRenderer) {
 					throw new SealConfigError(
 						`Cannot seal ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); PDF layers seal locally.`,
 						['missing converter'],
@@ -2712,263 +2700,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				})
 			}
 
-			// Legacy blocks fail loud like the slot engine: a block for a party
-			// whose signature is required cannot be dropped because the party has
-			// no signatory, or the sealed document would lack a required signature.
-			const missingRequiredSigners: string[] = []
-			const noteMissingSigner = (blockId: string, block: { required?: boolean }, role: string, index: number) => {
-				const party = (formDef.parties as Record<string, { signature?: { required?: boolean } }> | undefined)?.[role]
-				if (party?.signature?.required && block.required !== false) {
-					missingRequiredSigners.push(`block "${blockId}" (${role}[${index}]) has no signatory`)
-				}
-			}
-			const assertRequiredSignersBound = () => {
-				if (missingRequiredSigners.length === 0) return
-				throw new SealConfigError(
-					`Cannot seal: ${missingRequiredSigners.length} required signature block${missingRequiredSigners.length === 1 ? '' : 's'} without signatories: ${missingRequiredSigners.join('; ')}`,
-					missingRequiredSigners,
-				)
-			}
-
-			// Check if layer has pre-defined signatureBlocks
-			const hasDefinedBlocks = layerSpec?.signatureBlocks &&
-				Object.keys(layerSpec.signatureBlocks).length > 0
-
-			if (hasDefinedBlocks) {
-				// Definition mode: Build signatureMap from pre-defined blocks
-				const signatureBlocks = layerSpec!.signatureBlocks!
-				const signatureMap: SigningField[] = []
-				let signerIndex = 0
-
-				// Build a map of signerIds for each role/partyIndex combination
-				const signerMap = new Map<string, string>() // key: "role:index" -> signerId
-
-				for (const [roleId, roleSignatories] of Object.entries(signatoryValues)) {
-					const parties = partyValues[roleId]
-					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
-
-					for (let i = 0; i < partyArray.length; i++) {
-						const partyId = partyArray[i]!.id
-						const partySignatories = roleSignatories[partyId] ?? []
-						if (partySignatories.length > 0) {
-							// Use the first signatory's signerId for this party
-							signerMap.set(`${roleId}:${i}`, partySignatories[0]!.signerId)
-						}
-					}
-				}
-
-				// Convert each signature block to a SigningField
-				for (const [locationId, block] of Object.entries(signatureBlocks)) {
-					const partyRole = block.partyRole
-					const partyIndex = block.partyIndex ?? 0
-
-					// Skip blocks without a party role binding
-					if (!partyRole) continue
-
-					// Check if the party exists at this index
-					const parties = partyValues[partyRole]
-					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
-					if (partyIndex >= partyArray.length) {
-						// Party at this index doesn't exist, skip this block
-						continue
-					}
-
-					// Get the signer for this party
-					const signerId = signerMap.get(`${partyRole}:${partyIndex}`)
-					if (!signerId) {
-						noteMissingSigner(locationId, block, partyRole, partyIndex)
-						continue
-					}
-
-					// Map SignatureBlockType to SigningFieldType
-					const fieldType: SigningFieldType = block.type === 'date' ? 'date_signed' : block.type
-
-					const signingField: SigningField = {
-						id: locationId,
-						signerIndex: signerIndex++,
-						signerId,
-						type: fieldType,
-						page: block.page,
-						x: block.x,
-						y: block.y,
-						width: block.width,
-						height: block.height,
-						...(block.required !== undefined && { required: block.required }),
-						...(block.label && { label: block.label }),
-					}
-
-					signatureMap.push(signingField)
-				}
-
-				assertRequiredSignersBound()
-				if (signatureMap.length === 0) {
-					throw new Error(
-						'Cannot seal: no signature blocks could be mapped to signatories. ' +
-						'Ensure parties have signatories assigned.',
-					)
-				}
-
-				// Call adapter to compute canonical PDF hash
-				const request: SealingRequest<F> = {
-					form: formDef,
-					fields: fieldValues,
-					parties: partyValues,
-					signers: signerValues,
-					signatories: signatoryValues,
-					targetLayer,
-				}
-
-				const result = await runSealer(request)
-
-				return createRuntimeForm({
-					...config,
-					phase: 'signable',
-					captures: [],
-					witnesses: [],
-					attestations: [],
-					signatureMap,
-					canonicalPdfHash: result.canonicalPdfHash,
-					canonicalPdfBytes: result.canonicalPdfBytes,
-					executedAt: undefined,
-				})
-			}
-
-			// Anchor mode: Build signatureMap hints from anchor blocks, let adapter resolve positions
-			const hasAnchorBlocks = layerSpec?.anchorBlocks &&
-				Object.keys(layerSpec.anchorBlocks).length > 0
-
-			if (hasAnchorBlocks) {
-				if (!options.adapter && !legacyAdapter) {
-					throw new Error('Cannot seal anchor-based signature fields without an adapter that resolves their final PDF positions.')
-				}
-				const anchorBlocks = layerSpec!.anchorBlocks!
-				const anchorFields: SigningField[] = []
-				let anchorSignerIndex = 0
-
-				// Build signerMap (same logic as definition mode)
-				const anchorSignerMap = new Map<string, string>() // key: "role:index" -> signerId
-
-				for (const [roleId, roleSignatories] of Object.entries(signatoryValues)) {
-					const parties = partyValues[roleId]
-					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
-
-					for (let i = 0; i < partyArray.length; i++) {
-						const partyId = partyArray[i]!.id
-						const partySignatories = roleSignatories[partyId] ?? []
-						if (partySignatories.length > 0) {
-							anchorSignerMap.set(`${roleId}:${i}`, partySignatories[0]!.signerId)
-						}
-					}
-				}
-
-				// Build anchor-based SigningField hints (coordinates are placeholder zeros;
-				// the Sealer adapter is responsible for resolving actual positions from anchor text)
-				for (const [locationId, block] of Object.entries(anchorBlocks as Record<string, AnchorBlock>)) {
-					const partyRole = block.partyRole
-					const partyIndex = block.partyIndex ?? 0
-
-					// Skip blocks without a party role binding
-					if (!partyRole) continue
-
-					// Check if the party exists at this index
-					const parties = partyValues[partyRole]
-					const partyArray = Array.isArray(parties) ? parties : parties ? [parties] : []
-					if (partyIndex >= partyArray.length) continue
-
-					// Get the signer for this party
-					const signerId = anchorSignerMap.get(`${partyRole}:${partyIndex}`)
-					if (!signerId) {
-						noteMissingSigner(locationId, block, partyRole, partyIndex)
-						continue
-					}
-
-					// Map SignatureBlockType to SigningFieldType
-					const fieldType: SigningFieldType = block.type === 'date' ? 'date_signed' : block.type
-
-					const anchorField: SigningField = {
-						id: locationId,
-						signerIndex: anchorSignerIndex++,
-						signerId,
-						type: fieldType,
-						// Placeholder coordinates: adapter resolves these from anchor.text
-						page: 1,
-						x: 0,
-						y: 0,
-						width: block.width,
-						height: block.height,
-						anchor: block.anchor,
-						...(block.required !== undefined && { required: block.required }),
-						...(block.label && { label: block.label }),
-					}
-
-					anchorFields.push(anchorField)
-				}
-
-				assertRequiredSignersBound()
-				if (anchorFields.length === 0) {
-					throw new Error(
-						'Cannot seal: no anchor blocks could be mapped to signatories. ' +
-						'Ensure parties have signatories assigned.',
-					)
-				}
-
-				const anchorRequest: SealingRequest<F> = {
-					form: formDef,
-					fields: fieldValues,
-					parties: partyValues,
-					signers: signerValues,
-					signatories: signatoryValues,
-					targetLayer,
-					anchorFields,
-				}
-
-				const anchorResult = await runSealer(anchorRequest)
-				let anchorMap = anchorResult.signatureMap
-				const adapterResolved = anchorMap && anchorMap.length === anchorFields.length
-				// The built-in locator resolves anchors against the converted PDF, so
-				// pure byte converters work with zero configuration. Passing `locate`
-				// overrides it (custom tiers, hosted resolution).
-				const anchorLocator = options.locate ?? { locate: locatePlacements }
-				if (!adapterResolved) {
-					if (!anchorResult.canonicalPdfBytes) {
-						throw new Error('Cannot locate anchor positions: the seal result carries no canonical PDF bytes.')
-					}
-					const hits = await anchorLocator.locate(
-						anchorResult.canonicalPdfBytes,
-						anchorFields.map((field) => ({ id: field.id, kind: 'anchor' as const, text: field.anchor!.text })),
-					)
-					const hitsById = new Map(hits.map((hit) => [hit.id, hit]))
-					anchorMap = anchorFields.map((field) => {
-						const hit = hitsById.get(field.id)
-						if (!hit) throw new Error(`Locator did not resolve anchor field "${field.id}".`)
-						return {
-							...field,
-							page: hit.page,
-							x: hit.x + (field.anchor?.offsetX ?? 0),
-							y: hit.y + (field.anchor?.offsetY ?? 0),
-						}
-					})
-				}
-				if (!anchorMap || anchorMap.length !== anchorFields.length) {
-					throw new Error(
-						'Seal adapter did not resolve every anchor-based signature field to final PDF coordinates. ' +
-						'Pass a locate option to override the built-in locator when the adapter is a pure converter.',
-					)
-				}
-
-				return createRuntimeForm({
-					...config,
-					phase: 'signable',
-					captures: [],
-					witnesses: [],
-					attestations: [],
-					signatureMap: anchorMap,
-					canonicalPdfHash: anchorResult.canonicalPdfHash,
-					canonicalPdfBytes: anchorResult.canonicalPdfBytes,
-					executedAt: undefined,
-				})
-			}
-
 			// Undeclared-field mode: seal without a precomputed signature map
 			// Validation 1: Check layer is PDF-convertible
 			if (
@@ -2976,8 +2707,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				&& !PDF_CONVERTIBLE_LAYERS.includes(targetLayer as (typeof PDF_CONVERTIBLE_LAYERS)[number])
 			) {
 				throw new Error(
-					`Cannot seal: layer "${targetLayer}" has no signatureBlocks, no anchorBlocks, and is not PDF-convertible. ` +
-					`Add signatureBlocks or anchorBlocks to the layer, or use a supported layer: ${PDF_CONVERTIBLE_LAYERS.join(', ')}`,
+					`Cannot seal: layer "${targetLayer}" has no signature slots and is not PDF-convertible. ` +
+					`Add signatures to the layer, or use a supported layer: ${PDF_CONVERTIBLE_LAYERS.join(', ')}`,
 				)
 			}
 
@@ -3476,8 +3207,6 @@ export interface FormBuilderInterface<
 			text: string
 			title?: string
 			description?: string
-			signatureBlocks?: Record<string, SignatureBlock>
-			anchorBlocks?: Record<string, AnchorBlock>
 			signatures?: Record<string, SignatureSlot>
 		},
 	): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
@@ -3490,8 +3219,6 @@ export interface FormBuilderInterface<
 			description?: string
 			checksum?: string
 			bindings?: Record<string, string>
-			signatureBlocks?: Record<string, SignatureBlock>
-			anchorBlocks?: Record<string, AnchorBlock>
 			signatures?: Record<string, SignatureSlot>
 		},
 	): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>

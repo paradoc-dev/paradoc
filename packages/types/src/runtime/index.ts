@@ -650,9 +650,4 @@ export type {
 	AnchorLocateQuery,
 	LocateHit,
 	SealLocator,
-	Sealer,
-	// Legacy aliases (deprecated)
-	FormalSigningRequest,
-	FormalSigningResponse,
-	FormalSigningAdapter,
 } from './signing.js';

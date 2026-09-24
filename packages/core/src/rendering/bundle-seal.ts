@@ -47,7 +47,7 @@ import type {
   SigningField,
 } from '@paradoc/types'
 import type { DraftForm } from '@/artifacts/form'
-import { SealConfigError, hasSignatureSlots, compileLegacySignatureSlots } from '@/artifacts/form/seal-slots'
+import { SealConfigError, hasSignatureSlots } from '@/artifacts/form/seal-slots'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import {
@@ -227,15 +227,15 @@ function entryArtifact(entry: DraftEntry): { name?: string; version?: string } |
  * The layer a draft entry seals through, when it has slots to seal.
  *
  * Only a form carries a seal: a checklist and a document have no parties. A
- * form whose target layer declares no slots, in either the unified or the
- * legacy shape, is rendered and carried like any other part.
+ * form whose target layer declares no slots is rendered and carried like any
+ * other part.
  */
 function sealableForm(entry: DraftEntry): DraftForm<Form> | undefined {
   if (!('form' in entry)) return undefined
   const draft = entry as DraftForm<Form>
   const layer = draft.form.layers?.[draft.targetLayer]
   if (!layer) return undefined
-  return hasSignatureSlots(layer) || compileLegacySignatureSlots(layer) ? draft : undefined
+  return hasSignatureSlots(layer) ? draft : undefined
 }
 
 /**

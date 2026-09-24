@@ -117,7 +117,7 @@ describe('validate() layer references', () => {
     }])
   })
 
-  it('reports a legacy signature block for an undeclared party role', () => {
+  it.each(['signatureBlocks', 'anchorBlocks'])('rejects the removed %s layer key', (key) => {
     const form = artifact()
     const result = validate({
       ...form,
@@ -127,14 +127,11 @@ describe('validate() layer references', () => {
           kind: 'file',
           mimeType: 'application/pdf',
           path: 'legacy.pdf',
-          signatureBlocks: { sig: { type: 'signature', page: 1, x: 72, y: 600, width: 180, height: 36, partyRole: 'witness' } },
+          [key]: { sig: { type: 'signature', page: 1, x: 72, y: 600, width: 180, height: 36, partyRole: 'witness' } },
         },
       },
     })
-    expect(result.issues).toEqual([{
-      message: 'Layer "legacy", slot "sig": party role "witness" is not declared; declared roles: "client"',
-      path: ['layers', 'legacy', 'signatureBlocks', 'sig'],
-    }])
+    expect(result.issues).toEqual([{ message: `Unrecognized key: "${key}"`, path: ['layers', 'legacy'] }])
   })
 
   it('reports a party whose signature is required but has no slot on a layer', () => {

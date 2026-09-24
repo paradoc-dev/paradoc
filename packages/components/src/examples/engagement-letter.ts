@@ -54,7 +54,7 @@ export const ENGAGEMENT_LETTER_SIGNATURE_SLOTS = {
 
 /** The engagement letter, exactly as authored. Kept beside the instance for evaluators that take a raw `Form`. */
 export const engagementLetterSpec = {
-  $schema: "https://schema.paradoc.dev/2026-09-23.json",
+  $schema: "https://schema.paradoc.dev/2026-09-24.json",
   kind: "form",
   name: "engagement-letter",
   version: "1.0.0",

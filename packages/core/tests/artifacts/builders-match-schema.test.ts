@@ -99,12 +99,6 @@ const ARTIFACT_CONTRACT = {
 	methodKeys: { layer: 'layers', inlineLayer: 'layers', fileLayer: 'layers' },
 } satisfies BuilderContract
 
-/** Remove this exclusion when the schema drops signatureBlocks and anchorBlocks. */
-const DEPRECATED_SIGNATURE_BLOCKS = {
-	signatureBlocks: 'deprecated: readable during the deprecation window; set signatures() instead',
-	anchorBlocks: 'deprecated: readable during the deprecation window; set signatures() instead',
-}
-
 describe('builder drift check', () => {
 	describe('detects a one-sided key', () => {
 		test('passes when the builder and the schema offer the same keys', () => {
@@ -173,7 +167,6 @@ describe('builder drift check', () => {
 	] as const)('%s layer builder sets exactly the schema keys', (kind, create) => {
 		const drift = findBuilderDrift(methodsOf(create()), unionMembers(LayerSchema, 'kind').get(kind) ?? [], {
 			managedKeys: ['kind'],
-			unbuildableKeys: DEPRECATED_SIGNATURE_BLOCKS,
 		})
 		expect(drift).toEqual({ builderOnly: [], schemaOnly: [] })
 	})

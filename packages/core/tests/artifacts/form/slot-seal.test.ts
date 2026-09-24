@@ -5,12 +5,12 @@ import { form, SealConfigError } from '@/artifacts'
 import type { SealAdapter, SealAdapterRequest, SignatureSlot } from '@paradoc/types'
 
 /**
- * Unified signature-slot sealing: one `signatures` map per layer, one engine
+ * Signature-slot sealing: one `signatures` map per layer, one engine
  * for absolute, anchor, and (later) auto placements. These tests encode the
  * fail-loud contract: authoring mistakes throw before any conversion runs,
  * with every problem named.
  */
-describe('Unified signature slots', () => {
+describe('Signature slots', () => {
 	const contractPdf = new Uint8Array(
 		readFileSync(join(__dirname, 'fixtures', 'large-contract.pdf')),
 	)
@@ -155,7 +155,7 @@ describe('Unified signature slots', () => {
 			placement: { page: 1, x: 400, y: 700, width: 100, height: 20 },
 		}
 
-		test('seal() sends anchor-placed unified slots, with no legacy blocks on the layer', async () => {
+		test('seal() sends anchor-placed slots', async () => {
 			const { adapter, requests } = capturing()
 			await filled({ 'client-sig': anchorSlot, 'client-date': absoluteSlot }).seal({ adapter })
 

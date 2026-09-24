@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-23.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
   "kind": "form",
   "name": "pet-addendum",
   "version": "1.0.0",
@@ -78,52 +78,6 @@
       "description": "Fillable PDF form with acrofields",
       "path": "pet-addendum.pdf",
       "checksum": "sha256:78df9be52df40928e524c8eb24d8d0f881dd31607b88f0e234ba731bba391869",
-      "signatureBlocks": {
-        "sb1": {
-          "type": "signature",
-          "page": 1,
-          "x": 164,
-          "y": 130,
-          "width": 200,
-          "height": 18,
-          "partyRole": "tenant",
-          "partyIndex": 0,
-          "label": "Tenant signature"
-        },
-        "sb2": {
-          "type": "date",
-          "page": 1,
-          "x": 429,
-          "y": 130,
-          "width": 100,
-          "height": 18,
-          "partyRole": "tenant",
-          "partyIndex": 0,
-          "label": "Tenant date"
-        },
-        "sb3": {
-          "type": "signature",
-          "page": 1,
-          "x": 164,
-          "y": 98,
-          "width": 200,
-          "height": 18,
-          "partyRole": "landlord",
-          "partyIndex": 0,
-          "label": "Landlord signature"
-        },
-        "sb4": {
-          "type": "date",
-          "page": 1,
-          "x": 429,
-          "y": 98,
-          "width": 100,
-          "height": 18,
-          "partyRole": "landlord",
-          "partyIndex": 0,
-          "label": "Landlord date"
-        }
-      },
       "bindings": {
         "landlord_name": "parties.landlord.name",
         "tenant_name": "parties.tenant.name",
@@ -131,6 +85,68 @@
         "species": "species",
         "weight": "weight",
         "is_vaccinated": "isVaccinated"
+      },
+      "signatures": {
+        "sb1": {
+          "party": {
+            "role": "tenant",
+            "index": 0
+          },
+          "type": "signature",
+          "label": "Tenant signature",
+          "placement": {
+            "page": 1,
+            "x": 164,
+            "y": 130,
+            "width": 200,
+            "height": 18
+          }
+        },
+        "sb2": {
+          "party": {
+            "role": "tenant",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Tenant date",
+          "placement": {
+            "page": 1,
+            "x": 429,
+            "y": 130,
+            "width": 100,
+            "height": 18
+          }
+        },
+        "sb3": {
+          "party": {
+            "role": "landlord",
+            "index": 0
+          },
+          "type": "signature",
+          "label": "Landlord signature",
+          "placement": {
+            "page": 1,
+            "x": 164,
+            "y": 98,
+            "width": 200,
+            "height": 18
+          }
+        },
+        "sb4": {
+          "party": {
+            "role": "landlord",
+            "index": 0
+          },
+          "type": "date_signed",
+          "label": "Landlord date",
+          "placement": {
+            "page": 1,
+            "x": 429,
+            "y": 98,
+            "width": 100,
+            "height": 18
+          }
+        }
       }
     },
     "markdown": {

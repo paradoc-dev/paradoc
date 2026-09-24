@@ -1,0 +1,546 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.paradoc.dev/2026-09-24/layer.json",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "MIME type of the layer content (e.g., text/markdown). Never a React composition type",
+          "not": {
+            "pattern": "^(?:[tT][eE][xX][tT]/[tT][sS][xX]|[tT][eE][xX][tT]/[jJ][sS][xX])$"
+          }
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title for this layer"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Description of what this layer represents"
+        },
+        "signatures": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Slot ID"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "party": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Party role this slot binds to"
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0-based index for multi-party roles; defaults to 0"
+                  }
+                },
+                "required": [
+                  "role"
+                ],
+                "additionalProperties": false
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "signature",
+                  "initials",
+                  "date_signed",
+                  "capacity",
+                  "printed_name"
+                ],
+                "description": "Type of signing field: signature/initials (glyph), date_signed, capacity (signer role/title), or printed_name"
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether this slot must be signed. Defaults to true"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Human-readable label"
+              },
+              "placement": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "flow",
+                    "description": "In-flow: the field sits where the template content places it; located after conversion via an injected marker"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991,
+                        "description": "1-based page number"
+                      },
+                      "x": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "X in points from the left page edge"
+                      },
+                      "y": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Y in points from the top page edge"
+                      },
+                      "width": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Width in points"
+                      },
+                      "height": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Height in points"
+                      }
+                    },
+                    "required": [
+                      "page",
+                      "x",
+                      "y",
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "anchor": {
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500,
+                            "description": "Literal document text to find; must be unique unless occurrence is set"
+                          },
+                          "offsetX": {
+                            "type": "number",
+                            "description": "Horizontal offset in points from the left of the found text"
+                          },
+                          "offsetY": {
+                            "type": "number",
+                            "description": "Vertical offset in points from the top of the found text"
+                          },
+                          "occurrence": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991,
+                            "description": "1-based match index in reading order when the text repeats"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "width": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Width in points"
+                      },
+                      "height": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Height in points"
+                      }
+                    },
+                    "required": [
+                      "anchor",
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Placement: 'flow', absolute coordinates, or a text anchor"
+              }
+            },
+            "required": [
+              "party",
+              "type",
+              "placement"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Signature slots keyed by slot id"
+        },
+        "kind": {
+          "type": "string",
+          "const": "inline"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000000,
+          "description": "Layer content with interpolation placeholders (e.g., {{fields.fieldName}})"
+        }
+      },
+      "required": [
+        "mimeType",
+        "kind",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "MIME type of the layer content (e.g., text/markdown, application/pdf)"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Human-readable title for this layer"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Description of what this layer represents"
+        },
+        "signatures": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Slot ID"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "party": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Party role this slot binds to"
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "0-based index for multi-party roles; defaults to 0"
+                  }
+                },
+                "required": [
+                  "role"
+                ],
+                "additionalProperties": false
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "signature",
+                  "initials",
+                  "date_signed",
+                  "capacity",
+                  "printed_name"
+                ],
+                "description": "Type of signing field: signature/initials (glyph), date_signed, capacity (signer role/title), or printed_name"
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether this slot must be signed. Defaults to true"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Human-readable label"
+              },
+              "placement": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "flow",
+                    "description": "In-flow: the field sits where the template content places it; located after conversion via an injected marker"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991,
+                        "description": "1-based page number"
+                      },
+                      "x": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "X in points from the left page edge"
+                      },
+                      "y": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Y in points from the top page edge"
+                      },
+                      "width": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Width in points"
+                      },
+                      "height": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Height in points"
+                      }
+                    },
+                    "required": [
+                      "page",
+                      "x",
+                      "y",
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "anchor": {
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500,
+                            "description": "Literal document text to find; must be unique unless occurrence is set"
+                          },
+                          "offsetX": {
+                            "type": "number",
+                            "description": "Horizontal offset in points from the left of the found text"
+                          },
+                          "offsetY": {
+                            "type": "number",
+                            "description": "Vertical offset in points from the top of the found text"
+                          },
+                          "occurrence": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991,
+                            "description": "1-based match index in reading order when the text repeats"
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "width": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Width in points"
+                      },
+                      "height": {
+                        "type": "number",
+                        "minimum": 1,
+                        "description": "Height in points"
+                      }
+                    },
+                    "required": [
+                      "anchor",
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Placement: 'flow', absolute coordinates, or a text anchor"
+              }
+            },
+            "required": [
+              "party",
+              "type",
+              "placement"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Signature slots keyed by slot id"
+        },
+        "kind": {
+          "type": "string",
+          "const": "file"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Logical resolver path; the CLI resolves file-backed artifacts from their directory and stdin artifacts from cwd"
+        },
+        "checksum": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA-256 checksum for integrity verification"
+        },
+        "font": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "Logical resolver path of a TrueType-outline font program (.ttf), resolved like the layer path"
+            },
+            "checksum": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^sha256:[a-f0-9]{64}$",
+              "description": "SHA-256 checksum for integrity verification"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "additionalProperties": false,
+          "description": "Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form's own fonts"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "money": {
+              "type": "object",
+              "properties": {
+                "currencyDisplay": {
+                  "type": "string",
+                  "const": "none",
+                  "description": "`none` prints the amount without a currency symbol or code, for a template that pre-prints the symbol beside each money box"
+                }
+              },
+              "required": [
+                "currencyDisplay"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "Presentation the template requires of filled values; PDF layers only. It applies to this layer alone, not to a layer that reuses its bindings"
+        },
+        "bindings": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "AcroForm field name in the PDF template, fully qualified (e.g., topmostSubform[0].Page1[0].f1_01[0])"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Paradoc path whose value fills the field (e.g., fields.name, parties.buyer.name)"
+          },
+          "description": "PDF layers only. Maps each AcroForm field name (key) to the Paradoc path (value) that fills it"
+        },
+        "bindingsFrom": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "PDF layers only. Key of a sibling PDF layer whose bindings this layer reuses"
+        }
+      },
+      "required": [
+        "mimeType",
+        "kind",
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "FileLayer",
+      "description": "File-backed layer with path reference"
+    }
+  ],
+  "description": "Layer specification — inline content or file reference",
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "font"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mimeType": {
+            "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mimeType": {
+            "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "bindings"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mimeType": {
+            "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "bindingsFrom"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mimeType": {
+            "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+          }
+        }
+      }
+    }
+  ],
+  "title": "Layer"
+}

@@ -131,12 +131,11 @@ prep.warnings      // e.g. slots skipped for unfilled party indexes
 const signable = await draft.seal({ adapter })  // same map, canonicalized
 ```
 
-## Legacy blocks
+## Older artifacts
 
-Layers using `signatureBlocks` (absolute) and `anchorBlocks` (text anchors)
-continue to seal unchanged during the deprecation window. New artifacts
-should declare `signatures`; the legacy fields will be removed in a future
-major release.
+Before schema version `2026-09-24`, layers could declare slots in
+`signatureBlocks` and `anchorBlocks`. Those fields are removed. Run
+`paradoc migrate` to move each block into `signatures` under the same id.
 
 ## Which operation to use
 

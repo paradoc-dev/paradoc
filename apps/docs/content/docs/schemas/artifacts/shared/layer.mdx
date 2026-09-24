@@ -61,7 +61,7 @@ Inline layer with embedded text content. Used when content is stored directly in
   {
     name: 'signatures',
     type: 'Record<string, SignatureSlot>',
-    description: 'Unified signature slots keyed by slot id, each binding a party to a placement',
+    description: 'Signature slots keyed by slot id, each binding a party to a placement',
     isOptional: true,
   },
 ]} />
@@ -131,7 +131,7 @@ File-backed layer with external file reference. Used when content is stored in a
   {
     name: 'signatures',
     type: 'Record<string, SignatureSlot>',
-    description: 'Unified signature slots keyed by slot id, each binding a party to a placement',
+    description: 'Signature slots keyed by slot id, each binding a party to a placement',
     isOptional: true,
   },
 ]} />
@@ -199,8 +199,9 @@ type SignatureSlotPlacement =
     }
 ```
 
-The legacy `signatureBlocks` and `anchorBlocks` layer fields remain readable
-during their deprecation window; new artifacts should declare `signatures`.
+`signatures` is the only place a layer declares signing fields. To update an
+artifact written before schema version `2026-09-24` that uses
+`signatureBlocks` or `anchorBlocks`, run `paradoc migrate`.
 
 ## Examples
 

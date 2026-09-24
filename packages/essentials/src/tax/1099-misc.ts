@@ -5,7 +5,7 @@ import { p } from "@paradoc/core";
 import { createMemoryResolver } from "@paradoc/resolvers/memory";
 
 const schema = {
-  "$schema": "https://schema.paradoc.dev/2026-09-23.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
   "kind": "form",
   "name": "1099-misc",
   "version": "1.0.0",

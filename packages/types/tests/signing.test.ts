@@ -1,8 +1,7 @@
 /**
  * Shape tests for the sealing/e-signing adapter contract in
  * `src/runtime/signing.ts`: SigningField, SealingRequest/Result, and the
- * deprecated legacy aliases that must keep pointing at their replacements
- * until ticket:remove-legacy-signing-shapes removes them.
+ * SealAdapter contract.
  *
  * See tests/artifact-union.test.ts for the testing idiom.
  */
@@ -15,10 +14,7 @@ import type {
 	SealingResult,
 	SealAdapterRequest,
 	SealAdapterResult,
-	Sealer,
-	FormalSigningRequest,
-	FormalSigningResponse,
-	FormalSigningAdapter,
+	SealAdapter,
 } from '../src/runtime/signing'
 
 describe('SigningField', () => {
@@ -54,23 +50,15 @@ describe('SealAdapterRequest', () => {
 })
 
 describe('SealAdapterResult / SealingResult', () => {
-	it('an adapter returns raw pdf bytes; the sealer returns a hash and map', () => {
+	it('an adapter returns raw pdf bytes; a seal returns a hash and map', () => {
 		expectTypeOf<SealAdapterResult>().toHaveProperty('pdf').toEqualTypeOf<Uint8Array>()
 		expectTypeOf<SealingResult>().toHaveProperty('canonicalPdfHash').toEqualTypeOf<string>()
 		expectTypeOf<SealingResult>().toHaveProperty('signatureMap').toEqualTypeOf<SigningField[]>()
 	})
 })
 
-describe('Sealer', () => {
-	it('seals any form and resolves a SealingResult', () => {
-		expectTypeOf<Sealer['seal']>().returns.toEqualTypeOf<Promise<SealingResult>>()
-	})
-})
-
-describe('legacy aliases (deprecated)', () => {
-	it('still point at their replacements', () => {
-		expectTypeOf<FormalSigningRequest>().toEqualTypeOf<SealingRequest>()
-		expectTypeOf<FormalSigningResponse>().toEqualTypeOf<SealingResult>()
-		expectTypeOf<FormalSigningAdapter>().toEqualTypeOf<Sealer>()
+describe('SealAdapter', () => {
+	it('converts a rendered document and resolves a SealAdapterResult', () => {
+		expectTypeOf<SealAdapter['convert']>().returns.toEqualTypeOf<Promise<SealAdapterResult>>()
 	})
 })

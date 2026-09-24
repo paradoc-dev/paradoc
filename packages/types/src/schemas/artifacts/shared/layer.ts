@@ -3,80 +3,7 @@
  */
 
 /**
- * Type of signature block field.
- * - 'signature': Full signature capture (glyph)
- * - 'initials': Initials capture (glyph)
- * - 'date': Date field for signing date
- * - 'capacity': Signer's role/title (e.g., "President", "Trustee", "Attorney-in-fact")
- * - 'printed_name': Typed-out name accompanying the signature
- */
-export type SignatureBlockType = 'signature' | 'initials' | 'date' | 'capacity' | 'printed_name';
-
-/**
- * Pre-defined signature block for layers (typically PDF).
- * Used when signature positions are known at design time rather than
- * extracted from placeholder text at runtime.
- */
-export interface SignatureBlock {
-  /** Type of signature block. */
-  type: SignatureBlockType;
-  /** 1-based page number where this block appears. */
-  page: number;
-  /** X coordinate in points from left edge of page. */
-  x: number;
-  /** Y coordinate in points from top edge of page. */
-  y: number;
-  /** Width of the block in points. */
-  width: number;
-  /** Height of the block in points. */
-  height: number;
-  /** Party role this block is bound to (e.g., "taxpayer", "tenant"). */
-  partyRole?: string;
-  /** 0-based index for multi-party roles. Defaults to 0 (first party). */
-  partyIndex?: number;
-  /** Human-readable label for the block. */
-  label?: string;
-  /** Whether this block is required. Defaults to true. */
-  required?: boolean;
-}
-
-/**
- * Anchor block for layers where signature position is derived from text in the document.
- * Used when exact coordinates are unknown at design time. The Sealer adapter locates
- * the anchor text in the rendered document and resolves the final position.
- *
- * Coordinates use PDF standard: points from origin, where 1 point = 1/72 inch.
- */
-export interface AnchorBlock {
-  /** Type of signature field to place at the anchor location. */
-  type: SignatureBlockType;
-  /** Text anchor identifying where to place this field in the document. */
-  anchor: {
-    /** Text string to search for in the rendered document. */
-    text: string;
-    /** Horizontal offset in points from the left of the found text. */
-    offsetX: number;
-    /** Vertical offset in points from the top of the found text. */
-    offsetY: number;
-  };
-  /** Width of the field in points. */
-  width: number;
-  /** Height of the field in points. */
-  height: number;
-  /** Party role this block is bound to (e.g., "taxpayer", "tenant"). */
-  partyRole?: string;
-  /** 0-based index for multi-party roles. Defaults to 0 (first party). */
-  partyIndex?: number;
-  /** Human-readable label for the block. */
-  label?: string;
-  /** Whether this block is required. Defaults to true. */
-  required?: boolean;
-}
-
-
-/**
- * Field type for a unified signature slot. Mirrors SigningFieldType: unlike
- * the legacy SignatureBlockType, the signing date is 'date_signed'.
+ * Field type for a signature slot. Mirrors SigningFieldType.
  */
 export type SignatureSlotType = 'signature' | 'initials' | 'date_signed' | 'capacity' | 'printed_name';
 
@@ -99,9 +26,7 @@ export type SignatureSlotPlacement =
     };
 
 /**
- * Unified signature slot: one signing field on a layer, keyed by slot id.
- * Supersedes signatureBlocks/anchorBlocks, which remain readable during the
- * deprecation window.
+ * Signature slot: one signing field on a layer, keyed by slot id.
  */
 export interface SignatureSlot {
   /** Party this slot binds to. index is 0-based for multi-party roles (default 0). */
@@ -145,11 +70,7 @@ export interface InlineLayer {
   title?: string;
   /** Optional description of what this layer represents. */
   description?: string;
-  /** Pre-defined signature blocks keyed by locationId (coordinate-based). */
-  signatureBlocks?: Record<string, SignatureBlock>;
-  /** Anchor-based signature blocks keyed by locationId. Position is resolved from anchor text by the Sealer adapter. */
-  anchorBlocks?: Record<string, AnchorBlock>;
-  /** Unified signature slots keyed by slot id. Supersedes signatureBlocks/anchorBlocks. */
+  /** Signature slots keyed by slot id. */
   signatures?: Record<string, SignatureSlot>;
 }
 
@@ -236,11 +157,7 @@ export interface FileLayer {
   bindings?: Bindings;
   /** PDF layers only. Key of a sibling PDF layer whose bindings this layer reuses. */
   bindingsFrom?: string;
-  /** Pre-defined signature blocks keyed by locationId (coordinate-based). */
-  signatureBlocks?: Record<string, SignatureBlock>;
-  /** Anchor-based signature blocks keyed by locationId. Position is resolved from anchor text by the Sealer adapter. */
-  anchorBlocks?: Record<string, AnchorBlock>;
-  /** Unified signature slots keyed by slot id. Supersedes signatureBlocks/anchorBlocks. */
+  /** Signature slots keyed by slot id. */
   signatures?: Record<string, SignatureSlot>;
 }
 

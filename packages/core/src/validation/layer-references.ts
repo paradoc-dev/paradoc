@@ -9,7 +9,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { Layer } from '@paradoc/types'
 import { textTemplateSigningDirectives, type SigningDirectiveUse } from '@paradoc/render/text'
-import { compileLegacySignatureSlots, hasSignatureSlots } from '@/artifacts/form/seal-slots'
+import { hasSignatureSlots } from '@/artifacts/form/seal-slots'
 
 /** An artifact that may declare layers, a default layer, and parties. */
 interface LayeredArtifact {
@@ -30,12 +30,6 @@ const NO_FLOW_LAYERS: Record<string, string> = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
 }
 const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown', 'text/html'])
-
-/** Where a slot is declared: `signatures`, or a legacy block map. */
-function slotsKey(layer: Layer, declared: boolean, slotId: string): string {
-  if (declared) return 'signatures'
-  return Object.hasOwn(layer.signatureBlocks ?? {}, slotId) ? 'signatureBlocks' : 'anchorBlocks'
-}
 
 /**
  * Every 'flow' slot of a layer must be placed by a signing directive of its
@@ -85,13 +79,12 @@ export function validateLayerReferences(artifact: LayeredArtifact): StandardSche
   const parties = artifact.parties ?? {}
   const roles = Object.keys(parties)
   for (const [key, layer] of Object.entries(layers)) {
-    const declared = hasSignatureSlots(layer)
-    const slots = declared ? layer.signatures : compileLegacySignatureSlots(layer)
-    if (!slots) continue
+    if (!hasSignatureSlots(layer)) continue
+    const slots = layer.signatures
 
     for (const [slotId, slot] of Object.entries(slots)) {
       const at = `Layer "${key}", slot "${slotId}"`
-      const path = ['layers', key, slotsKey(layer, declared, slotId), slotId]
+      const path = ['layers', key, 'signatures', slotId]
       if (!Object.hasOwn(parties, slot.party.role)) {
         issues.push({ message: `${at}: party role "${slot.party.role}" is not declared; declared roles: ${listed(roles)}`, path })
       }
@@ -105,13 +98,10 @@ export function validateLayerReferences(artifact: LayeredArtifact): StandardSche
       }
     }
 
-    if (declared && layer.kind === 'inline' && TEXT_MIME_TYPES.has(layer.mimeType.toLowerCase())) {
+    if (layer.kind === 'inline' && TEXT_MIME_TYPES.has(layer.mimeType.toLowerCase())) {
       issues.push(...flowPlacementIssues(key, layer, textTemplateSigningDirectives(layer.text)))
     }
 
-    // Only declared slots enforce required signatures: seal() does not for
-    // slots compiled from signatureBlocks and anchorBlocks.
-    if (!declared) continue
     const placedRoles = new Set(Object.values(slots).map((slot) => slot.party.role))
     for (const [role, party] of Object.entries(parties)) {
       if (party.signature?.required && !placedRoles.has(role)) {

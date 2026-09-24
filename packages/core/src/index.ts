@@ -8,7 +8,6 @@ export {
   FormRuleViolationError,
   SealConfigError,
   buildSlotPlan,
-  compileLegacySignatureSlots,
   form,
   field,
   textField,
@@ -536,11 +535,6 @@ export type {
   AnchorLocateQuery,
   LocateHit,
   SealLocator,
-  Sealer,
-  // Legacy aliases (deprecated)
-  FormalSigningRequest,
-  FormalSigningResponse,
-  FormalSigningAdapter,
 } from "@paradoc/types";
 
 // ============================================================================

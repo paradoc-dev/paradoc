@@ -29,7 +29,7 @@ const LAYER = "composition";
 const SLOTS = { signature: "tenant-signature", initials: "tenant-initials" } as const;
 
 const spec = {
-  $schema: "https://schema.paradoc.dev/2026-09-23.json",
+  $schema: "https://schema.paradoc.dev/2026-09-24.json",
   kind: "form",
   name: "lease-rider",
   version: "1.0.0",

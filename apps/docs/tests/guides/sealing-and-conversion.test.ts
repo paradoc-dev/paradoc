@@ -21,8 +21,12 @@ describe('Sealing and Conversion Guide', () => {
             kind: 'file',
             mimeType: 'application/pdf',
             path: 'w9.pdf',
-            signatureBlocks: {
-              signature: { type: 'signature', page: 1, x: 50, y: 50, width: 120, height: 30, partyRole: 'signer' },
+            signatures: {
+              signature: {
+                party: { role: 'signer' },
+                type: 'signature',
+                placement: { page: 1, x: 50, y: 50, width: 120, height: 30 },
+              },
             },
           },
         },
@@ -62,8 +66,12 @@ describe('Sealing and Conversion Guide', () => {
           kind: 'inline',
           mimeType: 'text/markdown',
           text: '# Hello {{fields.name}}',
-          signatureBlocks: {
-            signature: { type: 'signature', page: 1, x: 50, y: 50, width: 120, height: 30, partyRole: 'signer' },
+          signatures: {
+            signature: {
+              party: { role: 'signer' },
+              type: 'signature',
+              placement: { page: 1, x: 50, y: 50, width: 120, height: 30 },
+            },
           },
         },
       },

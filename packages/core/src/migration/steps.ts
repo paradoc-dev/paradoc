@@ -180,6 +180,82 @@ const bindingsOnlyOnPdfLayers: MigrationStep = {
 	},
 }
 
+/** The block keys the 2026-09-24 step moves into `signatures`. */
+const SIGNATURE_BLOCK_KEYS = ['signatureBlocks', 'anchorBlocks'] as const
+
+/**
+ * Converts one legacy signature block into a signature slot. A block with no
+ * party role placed nothing when sealed, and a slot must name a party, so
+ * the block is named instead of dropped.
+ */
+function blockToSlot(block: unknown, key: (typeof SIGNATURE_BLOCK_KEYS)[number], path: Path): Record<string, unknown> {
+	if (!isObject(block) || typeof block.partyRole !== 'string') {
+		throw new UnconvertibleValueError(
+			path,
+			block,
+			'a signature block without a partyRole places no signature; give it a partyRole or remove it',
+		)
+	}
+	const placement =
+		key === 'signatureBlocks'
+			? { page: block.page, x: block.x, y: block.y, width: block.width, height: block.height }
+			: { anchor: block.anchor, width: block.width, height: block.height }
+	return {
+		party: { role: block.partyRole, ...(block.partyIndex !== undefined && { index: block.partyIndex }) },
+		type: block.type === 'date' ? 'date_signed' : block.type,
+		...(block.required !== undefined && { required: block.required }),
+		...(block.label !== undefined && { label: block.label }),
+		placement,
+	}
+}
+
+/**
+ * 2026-09-23 to 2026-09-24.
+ *
+ * - A layer's `signatureBlocks` and `anchorBlocks` are removed. Each block
+ *   moves into `signatures` under the same id: `partyRole` and `partyIndex`
+ *   become `party`, the block type `date` becomes `date_signed`, and the
+ *   coordinates or anchor become the slot's `placement`. A block with no
+ *   party role, or an id that another slot already uses, is named.
+ */
+const signatureBlocksToSlots: MigrationStep = {
+	from: '2026-09-23',
+	to: '2026-09-24',
+	summary: 'Moves layer signatureBlocks and anchorBlocks into signatures.',
+	apply(artifact) {
+		eachArtifact(artifact, [], (current, path) => {
+			eachLayer(current, path, (layer, layerPath) => {
+				if (SIGNATURE_BLOCK_KEYS.every((key) => layer[key] === undefined)) return
+				if (layer.signatures !== undefined && !isObject(layer.signatures)) {
+					throw new UnconvertibleValueError([...layerPath, 'signatures'], layer.signatures, 'signatures must be a map of slots keyed by id')
+				}
+				const slots: Record<string, unknown> = { ...layer.signatures }
+				for (const key of SIGNATURE_BLOCK_KEYS) {
+					const blocks = layer[key]
+					if (blocks === undefined) continue
+					if (!isObject(blocks)) {
+						throw new UnconvertibleValueError([...layerPath, key], blocks, `${key} must be a map of blocks keyed by id`)
+					}
+					for (const [id, block] of Object.entries(blocks)) {
+						const blockPath = [...layerPath, key, id]
+						if (Object.hasOwn(slots, id)) {
+							throw new UnconvertibleValueError(
+								blockPath,
+								block,
+								`the slot id "${id}" is already used by another slot on this layer; rename one of them`,
+							)
+						}
+						slots[id] = blockToSlot(block, key, blockPath)
+					}
+					delete layer[key]
+				}
+				if (Object.keys(slots).length > 0) layer.signatures = slots
+			})
+		})
+		return artifact
+	},
+}
+
 /**
  * Every migration step, in version order. Each step leads from one published
  * version to the next, so a chain exists from every version to the current one.
@@ -203,4 +279,5 @@ export const MIGRATION_STEPS: readonly MigrationStep[] = [
 	},
 	flowPlacementAndStrictDefinitions,
 	bindingsOnlyOnPdfLayers,
+	signatureBlocksToSlots,
 ]

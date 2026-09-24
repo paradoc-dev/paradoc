@@ -45,15 +45,11 @@ describe('a resolver bound at construction', () => {
 				kind: 'file' as const,
 				mimeType: 'application/pdf',
 				path: 'bound.pdf',
-				signatureBlocks: {
+				signatures: {
 					'signer-signature': {
+						party: { role: 'signer' },
 						type: 'signature' as const,
-						page: 1,
-						x: 50,
-						y: 200,
-						width: 120,
-						height: 30,
-						partyRole: 'signer',
+						placement: { page: 1, x: 50, y: 200, width: 120, height: 30 },
 					},
 				},
 			},
