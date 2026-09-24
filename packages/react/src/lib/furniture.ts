@@ -59,9 +59,10 @@ export const FURNITURE_SLOTS: readonly FurnitureSlot[] = ["header", "footer", "s
  * preview draws its bands at this inset, the default engine draws its own at
  * the same one, and the Chromium adapter places its print templates there, so
  * the sheets agree. The default engine exposes no inset to set, so the value is
- * calibrated by observation, and `tests/pdf-furniture.test.tsx` and
- * `tests/pdf-chromium-furniture.test.tsx` each solve the band's top edge back
- * out of two rendered pages set at different sizes and pin it to this number.
+ * calibrated by observation, and `@paradoc/react-pdf`'s
+ * `tests/pdf-furniture.test.tsx` and `tests/pdf-chromium-furniture.test.tsx`
+ * each solve the band's top edge back out of two rendered pages set at
+ * different sizes and pin it to this number.
  * An engine that moved its inset would fail there rather than drift the outputs
  * apart in silence.
  */

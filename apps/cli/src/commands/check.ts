@@ -4,10 +4,10 @@ import { dirname, extname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { assertCurrentSchemaVersion, isForm, reactLayersOf, validate, type Form } from '@paradoc/core'
-import type { checkComposition, CompositionCheckResult } from '@paradoc/react/check'
-import type * as Discovery from '@paradoc/react/discovery'
-import type { bindComponent } from '@paradoc/react/pdf'
 import type { DocumentData } from '@paradoc/react'
+import type * as Discovery from '@paradoc/react/discovery'
+import type { bindComponent } from '@paradoc/react-pdf'
+import type { checkComposition, CompositionCheckResult } from '@paradoc/react-pdf/check'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
@@ -36,18 +36,18 @@ interface ResolvedLayer {
 const REACT_EXTENSIONS = new Set(['.tsx', '.jsx'])
 
 /**
- * `@paradoc/react` carries a WebAssembly PDF layout engine, fonts, and React
+ * `@paradoc/react-pdf` carries a WebAssembly PDF layout engine, fonts, and React
  * itself — real weight that most `paradoc` installs never touch. It is installed
  * on first use into `~/.paradoc/renderers`, the same as `@paradoc/render`
  * (see `renderer-manager.ts`), rather than shipped with every install.
  */
 async function loadBindComponent(): Promise<typeof bindComponent> {
   try {
-    const mod = await rendererManager.loadModule('@paradoc/react/pdf')
+    const mod = await rendererManager.loadModule('@paradoc/react-pdf')
     return mod.bindComponent as typeof bindComponent
   } catch (error) {
     throw new Error(
-      `Could not install or load @paradoc/react, needed to bind the composition to its module: ` +
+      `Could not install or load @paradoc/react-pdf, needed to bind the composition to its module: ` +
         `${error instanceof Error ? error.message : String(error)}`
     )
   }
@@ -55,11 +55,11 @@ async function loadBindComponent(): Promise<typeof bindComponent> {
 
 async function loadCheckComposition(): Promise<typeof checkComposition> {
   try {
-    const mod = await rendererManager.loadModule('@paradoc/react/check')
+    const mod = await rendererManager.loadModule('@paradoc/react-pdf/check')
     return mod.checkComposition as typeof checkComposition
   } catch (error) {
     throw new Error(
-      `Could not install or load @paradoc/react, needed to check the composition: ` +
+      `Could not install or load @paradoc/react-pdf, needed to check the composition: ` +
         `${error instanceof Error ? error.message : String(error)}`
     )
   }

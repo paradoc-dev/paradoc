@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { spawn } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolveRendererName } from '../../src/commands/renderers'
-import { rendererManager } from '../../src/utils/renderer-manager'
+import { rendererManager, resolveInstalledEntry } from '../../src/utils/renderer-manager'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -69,8 +69,9 @@ async function executeCliCommand(
 describe('CLI renderers command', () => {
   it('keeps isolated renderer packages on the release version', () => {
     expect(rendererManager.getRendererPackages()).toEqual({
-      '@paradoc/render': '0.4.0',
-      '@paradoc/react': '0.4.0',
+      '@paradoc/render': '0.5.0',
+      '@paradoc/react': '0.5.0',
+      '@paradoc/react-pdf': '0.5.0',
     })
     expect(rendererManager.getRendererPeerDependencies()).toEqual({
       '@paradoc/render': {
@@ -81,11 +82,59 @@ describe('CLI renderers command', () => {
         react: '19.2.3',
         'react-dom': '19.2.3',
       },
+      '@paradoc/react-pdf': {
+        react: '19.2.3',
+        'react-dom': '19.2.3',
+      },
+    })
+  })
+
+  describe('resolveInstalledEntry', () => {
+    let dir = ''
+
+    beforeAll(async () => {
+      // Real, because resolution answers with the real path and macOS links /var.
+      dir = await realpath(await mkdtemp(path.join(tmpdir(), 'paradoc-renderer-dir-')))
+      const pkg = path.join(dir, 'node_modules', '@paradoc', 'react-pdf')
+      await mkdir(path.join(pkg, 'dist'), { recursive: true })
+      await writeFile(
+        path.join(pkg, 'package.json'),
+        JSON.stringify({
+          name: '@paradoc/react-pdf',
+          type: 'module',
+          exports: {
+            '.': { import: './dist/index.js', default: './dist/index.js' },
+            './check': { import: './dist/check.js', default: './dist/check.js' },
+          },
+        })
+      )
+      await writeFile(path.join(pkg, 'dist', 'index.js'), 'export {}\n')
+      await writeFile(path.join(pkg, 'dist', 'check.js'), 'export {}\n')
+    })
+
+    afterAll(async () => {
+      await rm(dir, { recursive: true, force: true })
+    })
+
+    it('reads the entry an installed package exports for the root and a subpath', () => {
+      const pkg = path.join(dir, 'node_modules', '@paradoc', 'react-pdf')
+      expect(resolveInstalledEntry(dir, '@paradoc/react-pdf')).toBe(path.join(pkg, 'dist', 'index.js'))
+      expect(resolveInstalledEntry(dir, '@paradoc/react-pdf/check')).toBe(path.join(pkg, 'dist', 'check.js'))
+    })
+
+    it('refuses a subpath the installed package does not export', () => {
+      expect(() => resolveInstalledEntry(dir, '@paradoc/react-pdf/chromium')).toThrow(/not defined by "exports"/)
+    })
+
+    // A nested entry is where guessing `dist/<subpath>.js` went wrong.
+    it('reaches a nested entry such as @paradoc/react/discovery', () => {
+      const cli = path.resolve(__dirname, '../..')
+      expect(resolveInstalledEntry(cli, '@paradoc/react/discovery')).toMatch(/dist[\\/]discovery[\\/]index\.js$/)
     })
   })
 
   describe('resolveRendererName', () => {
-    const packages = { '@paradoc/render': '0.4.0', '@paradoc/react': '0.4.0' }
+    const packages = { '@paradoc/render': '0.5.0', '@paradoc/react': '0.5.0', '@paradoc/react-pdf': '0.5.0' }
 
     it.each([
       ['render', '@paradoc/render'],
@@ -96,14 +145,17 @@ describe('CLI renderers command', () => {
       ['pdf', '@paradoc/render'],
       ['docx', '@paradoc/render'],
       ['@paradoc/render/pdf', '@paradoc/render'],
-      ['@paradoc/react/pdf', '@paradoc/react'],
+      ['react-pdf', '@paradoc/react-pdf'],
+      ['@paradoc/react-pdf', '@paradoc/react-pdf'],
+      ['@paradoc/react-pdf/check', '@paradoc/react-pdf'],
+      ['@paradoc/react/discovery', '@paradoc/react'],
     ])('resolves %s to %s', (name, expected) => {
       expect(resolveRendererName(name, packages)).toBe(expected)
     })
 
     it('rejects an unknown name and lists every name it accepts', () => {
       expect(() => resolveRendererName('nonexistent', packages)).toThrow(
-        'Unknown renderer "nonexistent". Available: render, react, text, pdf, docx',
+        'Unknown renderer "nonexistent". Available: render, react, react-pdf, text, pdf, docx',
       )
     })
 

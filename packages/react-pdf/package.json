@@ -6,14 +6,34 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
-    "./chromium": { "types": "./dist/chromium.d.ts", "import": "./dist/chromium.js", "default": "./dist/chromium.js" },
-    "./check": { "types": "./dist/check.d.ts", "import": "./dist/check.js", "default": "./dist/check.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./chromium": {
+      "types": "./dist/chromium.d.ts",
+      "import": "./dist/chromium.js",
+      "default": "./dist/chromium.js"
+    },
+    "./check": {
+      "types": "./dist/check.d.ts",
+      "import": "./dist/check.js",
+      "default": "./dist/check.js"
+    }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=18" },
-  "publishConfig": { "access": "public" },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/paradoc-dev/paradoc.git",
@@ -23,11 +43,17 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "prebuild": "pnpm run clean",
+    "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "test": "vitest run"
+    "check": "pnpm lint && pnpm check-types",
+    "test": "vitest run",
+    "test:parity": "vitest run --config vitest.parity.config.ts"
   },
   "dependencies": {
+    "@fontsource/noto-sans-symbols-2": "catalog:",
     "@paradoc/react": "workspace:^",
+    "@paradoc/render": "workspace:^",
+    "@paradoc/types": "workspace:^",
     "@takumi-rs/helpers": "catalog:",
     "takumi-pdf": "catalog:"
   },
@@ -38,15 +64,31 @@
     "tailwindcss": "catalog:"
   },
   "peerDependenciesMeta": {
-    "puppeteer": { "optional": true },
-    "tailwindcss": { "optional": true }
+    "puppeteer": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    }
   },
   "devDependencies": {
+    "@fontsource-variable/inter": "catalog:",
+    "@fontsource-variable/noto-sans-arabic": "catalog:",
+    "@fontsource-variable/source-serif-4": "catalog:",
+    "@paradoc/core": "workspace:^",
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/essentials": "workspace:^",
+    "@paradoc/format": "workspace:^",
+    "@paradoc/sessions": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "pdfjs-dist": "catalog:",
     "puppeteer": "catalog:",
     "react": "catalog:",
+    "react-dom": "catalog:",
     "tailwindcss": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",

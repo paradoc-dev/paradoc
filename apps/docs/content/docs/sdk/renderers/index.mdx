@@ -67,11 +67,11 @@ a `RendererRegistry` keyed by layer MIME type. Core consults it when no
 format core does not ship reaches the render call.
 
 React layers (`text/tsx` and `text/jsx`) render this way. The renderer lives in
-`@paradoc/react/pdf`, and `reactLayerRenderers` builds the entries for both MIME
+`@paradoc/react-pdf`, and `reactLayerRenderers` builds the entries for both MIME
 types:
 
 ```ts
-import { reactLayerRenderers } from '@paradoc/react/pdf'
+import { reactLayerRenderers } from '@paradoc/react-pdf'
 
 const pdf = await filled.render({
   layer: 'composition',

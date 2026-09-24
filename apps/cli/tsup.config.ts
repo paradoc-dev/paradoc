@@ -8,10 +8,11 @@ const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
 const rendererVersions = {
   '@paradoc/render': JSON.parse(readFileSync(resolve('../../packages/render/package.json'), 'utf-8')).version,
   '@paradoc/react': JSON.parse(readFileSync(resolve('../../packages/react/package.json'), 'utf-8')).version,
+  '@paradoc/react-pdf': JSON.parse(readFileSync(resolve('../../packages/react-pdf/package.json'), 'utf-8')).version,
 }
 // Peer versions per renderer, read from what the workspace actually resolves
-// (`react`/`react-dom` are ranges in @paradoc/react's own peerDependencies, so
-// the exact version installed alongside it is read from its node_modules).
+// (`react`/`react-dom` are ranges in the React packages' own peerDependencies,
+// so the exact version installed alongside each is read from its node_modules).
 const rendererPeerVersions = {
   '@paradoc/render': {
     '@paradoc/types': JSON.parse(readFileSync(resolve('../../packages/types/package.json'), 'utf-8')).version,
@@ -20,6 +21,10 @@ const rendererPeerVersions = {
   '@paradoc/react': {
     react: JSON.parse(readFileSync(resolve('../../packages/react/node_modules/react/package.json'), 'utf-8')).version,
     'react-dom': JSON.parse(readFileSync(resolve('../../packages/react/node_modules/react-dom/package.json'), 'utf-8')).version,
+  },
+  '@paradoc/react-pdf': {
+    react: JSON.parse(readFileSync(resolve('../../packages/react-pdf/node_modules/react/package.json'), 'utf-8')).version,
+    'react-dom': JSON.parse(readFileSync(resolve('../../packages/react-pdf/node_modules/react-dom/package.json'), 'utf-8')).version,
   },
 }
 

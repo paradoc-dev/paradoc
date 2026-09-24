@@ -9,7 +9,7 @@
  * engine's page is to actually paint the page and read its pixels back.
  *
  * This is the same technique `tests/parity/raster.ts` measures pages with in
- * `@paradoc/react`: a real Chrome tab paints the page into a `<canvas>`
+ * `@paradoc/react-pdf`: a real Chrome tab paints the page into a `<canvas>`
  * through pdf.js loaded as a blob module, so the same Skia that paints the
  * parity suite's pixels paints these. It is not a second rasterizer — no
  * `canvas` package, no shelled-out tool — it is that technique, pared down to

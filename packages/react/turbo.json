@@ -7,16 +7,7 @@
 			// examples' shipped assets are read through the export map from the
 			// built entry, and a stale `dist/` would let a resolution that only
 			// works in `src/` pass.
-			"dependsOn": ["^build", "build"],
-			// `tests/pdf-class-vocabulary-docs.test.ts` reads the skill's
-			// `safe-classes.md` from outside this package, and `$TURBO_DEFAULT$`
-			// only tracks files under the package's own directory. Without this,
-			// a commit that touches only the skill file would replay a cached
-			// pass instead of re-running the comparison.
-			"inputs": [
-				"$TURBO_DEFAULT$",
-				"$TURBO_ROOT$/paradoc/skills/skills/paradoc-react/references/safe-classes.md"
-			]
+			"dependsOn": ["^build", "build"]
 		}
 	}
 }

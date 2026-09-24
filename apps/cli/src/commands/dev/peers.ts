@@ -3,12 +3,12 @@
  *
  * The preview compiles the project's own compositions against the project's own
  * React and its own `@paradoc/react`, so the bundler that compiles them is the
- * project's too. All seven are optional peers of `@paradoc/cli`, resolved at the
+ * project's too. All eight are optional peers of `@paradoc/cli`, resolved at the
  * project, and a project missing one is told exactly what to install rather than
  * shown a resolution error from inside a dependency.
  *
  * **Why not the renderer manager.** `paradoc` installs a renderer on first use
- * (`utils/renderer-manager.ts`), and `paradoc check` installs `@paradoc/react` that
+ * (`utils/renderer-manager.ts`), and `paradoc check` installs `@paradoc/react-pdf` that
  * way, because a check needs one package and nothing else of the project. A
  * preview is the opposite case: it compiles the project's source, so the React
  * it renders with, the `@paradoc/react` the composition imports, and the Vite
@@ -18,10 +18,12 @@
  * with compositions in it is a React project with a bundler; asking for that is
  * asking for what it already has.
  *
- * **Where each one is resolved.** `react`, `react-dom` and `@paradoc/react` are
- * resolved at the project and nowhere else: a copy of them from `paradoc`'s own
- * installation would be a different React and a different component library from
- * the ones the page loads, which is the failure this is meant to prevent. The
+ * **Where each one is resolved.** `react`, `react-dom`, `@paradoc/react` and
+ * `@paradoc/react-pdf` are resolved at the project and nowhere else: a copy of
+ * them from `paradoc`'s own installation would be a different React and a
+ * different component library from the ones the page loads, which is the failure
+ * this is meant to prevent. The PDF route renders through the project's
+ * `@paradoc/react-pdf` so that it shares the project's `@paradoc/react`. The
  * bundler and its plugins have no such identity: they compile, they are not
  * compiled, so those fall back to `paradoc`'s own dependencies, which is what makes
  * the command work inside this repository, where the packages are linked rather
@@ -39,7 +41,7 @@ import type { InlineConfig, Plugin, ViteDevServer } from 'vite'
  * The packages whose identity has to be the project's, because the page loads
  * them. They are runtime dependencies of a project that composes documents.
  */
-export const DEV_RUNTIME_PEERS = ['@paradoc/react', 'react', 'react-dom'] as const
+export const DEV_RUNTIME_PEERS = ['@paradoc/react', '@paradoc/react-pdf', 'react', 'react-dom'] as const
 
 /**
  * The packages that only compile. `paradoc`'s own copies serve if the project has
@@ -151,7 +153,7 @@ function packageOf(specifier: string): string {
  * Every peer the project cannot supply, in the order they are listed.
  *
  * Separate from loading them so the command can ask before it reads the project:
- * a person with none of them installed should be told all seven at once, not
+ * a person with none of them installed should be told all eight at once, not
  * sent back for the next one each time they run it.
  */
 export function missingDevPeers(root: string): string[] {

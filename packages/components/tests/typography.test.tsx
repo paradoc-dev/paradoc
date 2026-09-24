@@ -1,5 +1,5 @@
 import { NestedPaperTokenError, TYPOGRAPHY_LEVELS } from "@paradoc/react";
-import { renderPdf } from "@paradoc/react/pdf";
+import { renderPdf } from "@paradoc/react-pdf";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 

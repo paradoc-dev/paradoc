@@ -1,5 +1,22 @@
 {
-  "extends": "@paradoc/typescript-config/base.json",
-  "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "noEmit": true },
-  "include": ["src"]
+  "extends": "@paradoc/typescript-config/react-library.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "baseUrl": ".",
+    // The sample documents the tests render import this package by name, and
+    // they must type-check against this source, not a build of it.
+    "paths": {
+      "@paradoc/react-pdf": ["./src/index.ts"],
+      "@paradoc/react-pdf/check": ["./src/check.ts"],
+      "@paradoc/react-pdf/chromium": ["./src/chromium.ts"]
+    }
+  },
+  "include": ["src", "tests", "vitest.config.ts", "vitest.parity.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }

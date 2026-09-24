@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
@@ -16,15 +17,18 @@ const RENDERER_VERSIONS: Record<string, string> =
   typeof __RENDERER_VERSIONS__ !== 'undefined'
     ? __RENDERER_VERSIONS__
     : {
-        '@paradoc/render': '0.4.0',
-        '@paradoc/react': '0.4.0',
+        '@paradoc/render': '0.5.0',
+        '@paradoc/react': '0.5.0',
+        '@paradoc/react-pdf': '0.5.0',
       }
 
 /**
  * Peer deps installed as regular deps in the isolated renderer directories,
  * keyed by the renderer package that needs them. Kept per-package rather than
- * one shared set: `@paradoc/react` needs `react` and `react-dom`, which a
- * text/DOCX/PDF-only install of `@paradoc/render` has no reason to carry.
+ * one shared set: `@paradoc/react` and `@paradoc/react-pdf` need `react` and
+ * `react-dom`, which a text/DOCX/PDF-only install of `@paradoc/render` has no
+ * reason to carry. `paradoc check` loads composition discovery from
+ * `@paradoc/react` and binds, checks and renders through `@paradoc/react-pdf`.
  */
 const RENDERER_PEER_VERSIONS: Record<string, Record<string, string>> =
   typeof __RENDERER_PEER_VERSIONS__ !== 'undefined'
@@ -35,6 +39,10 @@ const RENDERER_PEER_VERSIONS: Record<string, Record<string, string>> =
           '@paradoc/format': '0.5.0',
         },
         '@paradoc/react': {
+          react: '19.2.3',
+          'react-dom': '19.2.3',
+        },
+        '@paradoc/react-pdf': {
           react: '19.2.3',
           'react-dom': '19.2.3',
         },
@@ -85,11 +93,7 @@ class RendererManager {
     } catch {
       // Published CLI — install into isolated directory
       const dir = await this.ensureRenderer(pkg)
-      const packageName = getPackageName(pkg)
-      const subpath = getPackageSubpath(pkg)
-      const entry = subpath ? `${subpath}.js` : 'index.js'
-      const entryPath = join(dir, 'node_modules', packageName, 'dist', entry)
-      return await import(pathToFileURL(entryPath).href)
+      return await import(pathToFileURL(resolveInstalledEntry(dir, pkg)).href)
     }
   }
 
@@ -218,9 +222,16 @@ function getPackageName(specifier: string): string {
   return specifier.split('/')[0]!
 }
 
-function getPackageSubpath(specifier: string): string {
-  const packageName = getPackageName(specifier)
-  return specifier.slice(packageName.length).replace(/^\//, '')
+/**
+ * The file `specifier` names inside a renderer directory, read from the
+ * installed package's own `exports` map rather than guessed from its layout, so
+ * `@paradoc/react/discovery` and `@paradoc/react-pdf/check` each reach the file
+ * their package publishes.
+ *
+ * @throws when the package is not installed there or does not export the subpath.
+ */
+export function resolveInstalledEntry(dir: string, specifier: string): string {
+  return createRequire(join(dir, 'package.json')).resolve(specifier)
 }
 
 export const rendererManager = new RendererManager()

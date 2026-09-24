@@ -13,7 +13,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { checkElement } from "@paradoc/react/check";
+import { checkElement } from "@paradoc/react-pdf/check";
 import { MissingImageSizeError, UndecodableImageError } from "@paradoc/react";
 import { renderPdf } from "@paradoc/react-pdf";
 

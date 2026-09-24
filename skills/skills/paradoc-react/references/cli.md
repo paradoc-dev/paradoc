@@ -22,7 +22,7 @@ CLI is not installed.
 | `paradoc check <composition-or-artifact>` | Walks the tree a render walks and reports faults. Writes no PDF | Exit 0 |
 | `paradoc dev [dir]` | Serves every composition live with its sample data, beside the PDF from the same tree | The composition lists with no `!` problems |
 | `paradoc add <name...>` | Installs document components or blocks through the shadcn CLI | Files land in `components/paradoc/` |
-| `paradoc renderers install react` | Installs the package `paradoc check` needs, ahead of first use | `paradoc renderers status` shows it installed |
+| `paradoc renderers install react-pdf` | Installs the package `paradoc check` checks through, ahead of first use | `paradoc renderers status` shows it installed |
 
 ## Discovery
 
@@ -158,7 +158,7 @@ Install these in the project first:
 
 <!-- dep:R4 -->
 ```bash
-npm install @paradoc/react react react-dom
+npm install @paradoc/react @paradoc/react-pdf react react-dom
 npm install -D vite @vitejs/plugin-react @tailwindcss/vite tailwindcss
 ```
 

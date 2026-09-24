@@ -129,7 +129,7 @@ const RENDER_FORMATS = ['text', 'pdf', 'docx']
 
 /**
  * Resolve a renderer name to its package. Accepts the full package name, its
- * short name (`render`, `react`), one of its subpaths (`@paradoc/react/pdf`),
+ * short name (`render`, `react`, `react-pdf`), one of its subpaths (`@paradoc/react-pdf/check`),
  * or a format served by @paradoc/render (`text`, `pdf`, `docx`).
  */
 export function resolveRendererName(name: string, packages: Record<string, string>): string {

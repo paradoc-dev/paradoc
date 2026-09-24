@@ -69,9 +69,11 @@
     "yaml": "catalog:"
   },
   "devDependencies": {
+    "@paradoc/components": "workspace:*",
     "@paradoc/core": "workspace:*",
     "@paradoc/eslint-config": "workspace:*",
     "@paradoc/react": "workspace:*",
+    "@paradoc/react-pdf": "workspace:*",
     "@paradoc/render": "workspace:*",
     "@paradoc/schemas": "workspace:*",
     "@paradoc/types": "workspace:*",
@@ -92,11 +94,11 @@
     "typescript": "catalog:",
     "vite": "^7.1.7",
     "vitest": "catalog:",
-    "zod": "catalog:",
-    "@paradoc/components": "workspace:*"
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "@paradoc/react": "workspace:^",
+    "@paradoc/react-pdf": "workspace:^",
     "@tailwindcss/vite": "^4",
     "@vitejs/plugin-react": "^4 || ^5",
     "react": "^19",
@@ -106,6 +108,9 @@
   },
   "peerDependenciesMeta": {
     "@paradoc/react": {
+      "optional": true
+    },
+    "@paradoc/react-pdf": {
       "optional": true
     },
     "@tailwindcss/vite": {

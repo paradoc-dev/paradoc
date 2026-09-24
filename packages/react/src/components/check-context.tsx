@@ -18,7 +18,7 @@
  * instead of throwing and return something harmless enough to keep
  * rendering going: a blank placeholder field, or the empty party list
  * `party` already returns for an unknown role in every mode. Nothing outside
- * `@paradoc/react/check` ever supplies a collector, so ordinary rendering —
+ * `@paradoc/react-pdf/check` ever supplies a collector, so ordinary rendering —
  * and every other consumer of this package — is unchanged.
  */
 
@@ -37,7 +37,7 @@ export interface CheckModeProviderProps {
   children?: ReactNode;
 }
 
-/** Turns on check mode for the tree below. `@paradoc/react/check` supplies this. */
+/** Turns on check mode for the tree below. `@paradoc/react-pdf/check` supplies this. */
 export function CheckModeProvider({ collector, children }: CheckModeProviderProps) {
   return <CheckModeContext.Provider value={collector}>{children}</CheckModeContext.Provider>;
 }

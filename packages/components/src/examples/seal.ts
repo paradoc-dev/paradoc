@@ -16,13 +16,13 @@
  * signs for each organization party, and the image bytes the document needs.
  *
  * **One finding worth keeping in view**, recorded in the README with
- * `tests/seal-marker-font.test.tsx` as its evidence. Flow placement imposes an
- * undocumented font requirement. The marker is eight braille codepoints, and
- * takumi writes U+0000 for anything the embedded fonts do not cover, so with
- * Inter alone the marker reaches the PDF as nulls. The renderer embeds the
- * braille face on a marker pass, and checks the marker arrived, so the failure
- * now names the slot and the coverage rather than surfacing as an unlocatable
- * placement.
+ * `@paradoc/react-pdf`'s `tests/seal-marker-font.test.tsx` as its evidence.
+ * Flow placement imposes an undocumented font requirement. The marker is eight
+ * braille codepoints, and takumi writes U+0000 for anything the embedded fonts
+ * do not cover, so with Inter alone the marker reaches the PDF as nulls. The
+ * renderer embeds the braille face on a marker pass, and checks the marker
+ * arrived, so the failure now names the slot and the coverage rather than
+ * surfacing as an unlocatable placement.
  */
 
 import type { Person } from "@paradoc/types";

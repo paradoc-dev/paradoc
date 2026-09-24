@@ -12,21 +12,6 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./pdf": {
-      "types": "./dist/pdf/index.d.ts",
-      "import": "./dist/pdf/index.js",
-      "default": "./dist/pdf/index.js"
-    },
-    "./chromium": {
-      "types": "./dist/chromium.d.ts",
-      "import": "./dist/chromium.js",
-      "default": "./dist/chromium.js"
-    },
-    "./check": {
-      "types": "./dist/check/index.d.ts",
-      "import": "./dist/check/index.js",
-      "default": "./dist/check/index.js"
-    },
     "./discovery": {
       "types": "./dist/discovery/index.d.ts",
       "import": "./dist/discovery/index.js",
@@ -42,7 +27,6 @@
     "paradoc",
     "documents",
     "react",
-    "pdf",
     "composition",
     "pagination"
   ],
@@ -77,37 +61,19 @@
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:parity": "vitest run --config vitest.parity.config.ts"
+    "test:watch": "vitest"
   },
   "peerDependencies": {
-    "@takumi-rs/helpers": "catalog:",
     "pdfjs-dist": "catalog:",
-    "puppeteer": "catalog:",
     "react": "^19",
-    "react-dom": "^19",
-    "tailwindcss": "catalog:",
-    "takumi-pdf": "catalog:"
+    "react-dom": "^19"
   },
   "peerDependenciesMeta": {
-    "@takumi-rs/helpers": {
-      "optional": true
-    },
     "pdfjs-dist": {
-      "optional": true
-    },
-    "puppeteer": {
-      "optional": true
-    },
-    "tailwindcss": {
-      "optional": true
-    },
-    "takumi-pdf": {
       "optional": true
     }
   },
   "dependencies": {
-    "@fontsource/noto-sans-symbols-2": "catalog:",
     "@paradoc/core": "workspace:^",
     "@paradoc/render": "workspace:^",
     "@paradoc/types": "workspace:^",
@@ -115,25 +81,16 @@
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
-    "@paradoc/essentials": "workspace:^",
     "@paradoc/sessions": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@fontsource-variable/inter": "catalog:",
-    "@fontsource-variable/noto-sans-arabic": "catalog:",
-    "@fontsource-variable/source-serif-4": "catalog:",
-    "@fontsource/noto-sans-symbols-2": "catalog:",
-    "@takumi-rs/helpers": "catalog:",
     "eslint": "catalog:",
     "jsdom": "^25.0.1",
     "pdfjs-dist": "catalog:",
-    "puppeteer": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "tailwindcss": "catalog:",
-    "takumi-pdf": "catalog:",
     "tsup": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

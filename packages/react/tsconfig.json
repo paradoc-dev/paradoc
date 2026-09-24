@@ -12,8 +12,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@paradoc/react": ["./src/index.ts"],
-      "@paradoc/react/*": ["./src/*"],
-      "@paradoc/react-pdf": ["../react-pdf/src/index.ts"]
+      "@paradoc/react/discovery": ["./src/discovery/index.ts"]
     }
   },
   "include": [
@@ -22,7 +21,6 @@
     "tests",
     "types",
     "vitest.config.ts",
-    "vitest.parity.config.ts",
     "vitest.registry.config.ts"
   ],
   // The registry fixture is source for the scratch project the install suite

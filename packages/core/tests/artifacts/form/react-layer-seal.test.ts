@@ -15,7 +15,7 @@ import type { ParadocRenderer, RendererLayer, RenderRequest, SignatureSlot, Sign
  *
  * The PDFs are the same fixture pair the text flow path uses, so the placement,
  * drift check and canonicalization behave exactly as they do there. The
- * renderer stands in for `@paradoc/react/pdf`: it answers the marker pass with
+ * renderer stands in for `@paradoc/react-pdf`: it answers the marker pass with
  * the encoded fixture and every other pass with the clean one.
  */
 describe('sealing a React layer', () => {

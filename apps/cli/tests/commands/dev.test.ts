@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { clientModule, stylesheetModule } from '../../src/commands/dev/harness.js'
-import { MissingDevPeerError, missingDevPeers } from '../../src/commands/dev/peers.js'
+import { DEV_PEERS, MissingDevPeerError, missingDevPeers } from '../../src/commands/dev/peers.js'
 import { servableRoots } from '../../src/commands/dev/server.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -175,11 +175,20 @@ describe('the toolchain paradoc dev borrows', () => {
   // Resolution itself is not asserted from inside Vitest: it sets NODE_PATH to
   // pnpm's virtual store, which makes every package resolvable from any
   // directory, so a "this project has nothing" test would pass whatever the
-  // code did. What is asserted here is that resolution finds the seven where
+  // code did. What is asserted here is that resolution finds the eight where
   // they are installed, and everything about the error a project without them
   // is shown.
   it('finds every peer in a project that has them', () => {
     expect(missingDevPeers(path.resolve(__dirname, '../..'))).toEqual([])
+  })
+
+  it('asks the project for the PDF integration the preview renders through', () => {
+    expect(DEV_PEERS).toContain('@paradoc/react-pdf')
+    const error = new MissingDevPeerError(['@paradoc/react-pdf', 'vite'], scratch)
+
+    // A runtime dependency, like @paradoc/react: it is loaded, not only compiled.
+    expect(error.message).toContain('npm install @paradoc/react-pdf\n')
+    expect(error.message).toContain('npm install --save-dev vite\n')
   })
 
   it('splits runtime packages from development ones', () => {

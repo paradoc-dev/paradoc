@@ -49,6 +49,10 @@ React layer resolves to it; passing the artifact file reads its declared
 layer directly. If more than one artifact points at the composition, or the
 artifact declares more than one React layer, pass `--layer` to pick one.
 
+The check runs through `@paradoc/react-pdf/check`. The CLI installs
+`@paradoc/react-pdf` and `@paradoc/react` on first use (see
+[`renderers`](/cli/commands/renderers)).
+
 Whichever way the artifact is found, from the target, from a layer that
 points at the composition, or as a sibling of the same name, it must carry
 the current [schema version](/schemas#loading-rules) in `$schema`, as for

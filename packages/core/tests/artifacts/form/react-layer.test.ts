@@ -26,7 +26,7 @@ function purchaseOrder(mimeType = 'text/tsx') {
 	} as never)
 }
 
-/** A stand-in for `@paradoc/react/pdf`: it records the layer core handed it. */
+/** A stand-in for `@paradoc/react-pdf`: it records the layer core handed it. */
 function recordingRenderer() {
 	const seen: RendererLayer[] = []
 	const renderer: ParadocRenderer<RendererLayer, string> = {
@@ -123,6 +123,9 @@ describe('React layers dispatch by MIME type', () => {
 			/Layer "composition" has MIME type text\/tsx and no renderer is registered for it/,
 		)
 		await expect(definition.render({ data: {} })).rejects.toThrow(/`renderers` option/)
+		await expect(definition.render({ data: {} })).rejects.toThrow(
+			/`reactLayerRenderers\(\)` from @paradoc\/react-pdf builds the entries/,
+		)
 	})
 
 	test('a registered renderer is not consulted for a layer of another type', async () => {

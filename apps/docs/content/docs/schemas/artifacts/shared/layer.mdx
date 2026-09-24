@@ -18,7 +18,7 @@ The layer's `mimeType` selects its renderer.
 | `text/markdown`, `text/html`, `text/plain` | inline or file | Built-in text renderer |
 | `application/pdf` | file | Built-in PDF renderer, using `bindings` |
 | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | file | Built-in DOCX renderer |
-| `text/tsx`, `text/jsx` | file only | A renderer you register, such as `reactLayerRenderers()` from `@paradoc/react/pdf` |
+| `text/tsx`, `text/jsx` | file only | A renderer you register, such as `reactLayerRenderers()` from `@paradoc/react-pdf` |
 
 Any other MIME type needs a renderer passed in the `renderers` option of `render()`, keyed by MIME type.
 

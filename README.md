@@ -284,7 +284,8 @@ View package Changelogs for update.
 - [`@paradoc/format`](https://github.com/paradoc-dev/paradoc/blob/main/packages/format) - Locale-aware value presentation
 - [`@paradoc/resolvers`](https://github.com/paradoc-dev/paradoc/blob/main/packages/resolvers) - File and environment resolvers
 - [`@paradoc/render`](https://github.com/paradoc-dev/paradoc/blob/main/packages/render) - Unified PDF, DOCX, and text rendering
-- [`@paradoc/react`](https://github.com/paradoc-dev/paradoc/blob/main/packages/react) - Compose a document in React and render it to PDF
+- [`@paradoc/react`](https://github.com/paradoc-dev/paradoc/blob/main/packages/react) - Compose and preview a document in React
+- [`@paradoc/react-pdf`](https://github.com/paradoc-dev/paradoc/blob/main/packages/react-pdf) - Check, render and seal a React document as PDF
 
 ## Contributing
 

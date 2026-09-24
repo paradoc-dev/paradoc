@@ -117,7 +117,7 @@ uvx --from skills-ref agentskills validate ./skills/paradoc-react
 Tests tie the skills to the code:
 
 - `packages/schemas/tests/skill-docs.test.ts` checks `paradoc`: the field type lists, the signature slot types, and every JSON example. Label each JSON example that parses with its container, for example ```` ```json schema=fields ````. Labels: `artifact`, `form`, `fields`, `parties`, `defs`, `layers`, `layer`, `cli-config`, `registries`.
-- `packages/react/tests/pdf-class-vocabulary-docs.test.ts` checks the `## The verified families` table in `paradoc-react/references/safe-classes.md` against the PDF class vocabulary.
+- `packages/react-pdf/tests/pdf-class-vocabulary-docs.test.ts` checks the `## The verified families` table in `paradoc-react/references/safe-classes.md` against the PDF class vocabulary.
 
 ## When editing
 

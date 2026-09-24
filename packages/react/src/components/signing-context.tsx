@@ -6,7 +6,7 @@
  * marker in the first PDF and gives the box to the clean one. For a layer core
  * renders itself it writes the marker into the text. For a composition it
  * cannot, so it hands the markers to the layer's renderer instead, and
- * `@paradoc/react/pdf` puts them here.
+ * `@paradoc/react-pdf` puts them here.
  *
  * They travel by context rather than by prop because a composition is written
  * once and rendered in both passes. Threading a seal-only prop from the

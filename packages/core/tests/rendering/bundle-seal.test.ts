@@ -15,7 +15,7 @@ import { assembleBundle, BundleSealError, sealBundle } from '@/rendering'
  * index across the whole packet, and the hashes describe the packet rather than
  * any part of it.
  *
- * The renderer stands in for `@paradoc/react/pdf`, exactly as it does in
+ * The renderer stands in for `@paradoc/react-pdf`, exactly as it does in
  * `tests/artifacts/form/react-layer-seal.test.ts`, so nothing here needs React
  * and the fixtures are the same PDFs the flow path is measured on.
  */

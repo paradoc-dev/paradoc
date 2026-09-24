@@ -134,11 +134,11 @@ operations. See [Renderers](/sdk/renderers) for the full API.
 
 A React layer points at a React component in a `.tsx` or `.jsx` file. Core does
 not render React itself, so pass a renderer for the React MIME types in
-`renderers`. `reactLayerRenderers()` from `@paradoc/react/pdf` builds the
+`renderers`. `reactLayerRenderers()` from `@paradoc/react-pdf` builds the
 entries for both `text/tsx` and `text/jsx`.
 
 ```tsx
-import { reactLayerRenderers } from "@paradoc/react/pdf";
+import { reactLayerRenderers } from "@paradoc/react-pdf";
 import Invoice from "./invoice.tsx";
 
 const form = p.form()

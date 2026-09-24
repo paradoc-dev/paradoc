@@ -98,7 +98,7 @@ same tree with the preview's page breaks passed as hints. Editing a composition
 or its sample updates both; editing an artifact reloads the page.
 
 Before it renders, the PDF route runs the same check `paradoc check` runs
-(`checkElement` from `@paradoc/react/check`): every Tailwind class the engine
+(`checkElement` from `@paradoc/react-pdf/check`): every Tailwind class the engine
 cannot express, and every path the artifact does not declare. A composition with
 a finding shows it where the PDF would have been, and a document that throws
 while it draws shows the reason where the document would have been. A
@@ -138,14 +138,16 @@ The preview compiles the project's own compositions against the project's own
 React, so it uses the project's toolchain. `paradoc` does not carry a bundler:
 
 ```bash
-npm install @paradoc/react react react-dom
+npm install @paradoc/react @paradoc/react-pdf react react-dom
 npm install --save-dev vite @vitejs/plugin-react @tailwindcss/vite tailwindcss
 ```
 
-`@paradoc/react`, `react` and `react-dom` are resolved at your project and
-nowhere else, because the page loads them and a second copy would be a different
-React. A project missing any of the seven is told which, in the install commands
-of whichever package manager left a lockfile, before anything starts.
+`@paradoc/react`, `@paradoc/react-pdf`, `react` and `react-dom` are resolved at
+your project and nowhere else, because the page loads them and a second copy
+would be a different React. The PDF route renders through your
+`@paradoc/react-pdf`. A project missing any of the eight is told which, in the
+install commands of whichever package manager left a lockfile, before anything
+starts.
 
 The project's own `vite.config` is not read: `paradoc dev` serves one page it
 generates itself, so a composition should import packages and its own neighbours

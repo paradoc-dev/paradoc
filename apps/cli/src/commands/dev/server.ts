@@ -8,7 +8,7 @@
  * That is the lab's arrangement, generalized from one document to every
  * composition the project holds.
  *
- * The PDF route checks before it renders. `@paradoc/react/check` walks the tree
+ * The PDF route checks before it renders. `@paradoc/react-pdf/check` walks the tree
  * the way the PDF path does and names the classes the engine cannot express and
  * the paths the artifact does not declare; those come back as findings the page
  * shows where the PDF would have been. Only a tree with no findings is rendered.
@@ -24,7 +24,7 @@ import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { resolve } from 'node:path'
 
-import type { PageBreakPlan } from '@paradoc/react/pdf'
+import type { PageBreakPlan } from '@paradoc/react-pdf'
 import type { Plugin, ViteDevServer } from 'vite'
 
 import { loadDiscovery, type DiscoveredComposition } from './discovery.js'
@@ -346,7 +346,7 @@ async function renderRoute(
 		// React built. `missingImages` is not a verdict here: this command
 		// resolves image bytes itself, just below, so a composition that names an
 		// image the tool can supply is not broken for needing it.
-		const { checkElement } = (await server.ssrLoadModule('@paradoc/react/check')) as {
+		const { checkElement } = (await server.ssrLoadModule('@paradoc/react-pdf/check')) as {
 			checkElement: (element: unknown, options?: unknown) => Promise<CheckResult>
 		}
 		const check = await checkElement(element)
@@ -365,7 +365,7 @@ async function renderRoute(
 		]
 		if (faults.length > 0) return findings(response, faults)
 
-		const { renderPdf } = (await server.ssrLoadModule('@paradoc/react/pdf')) as {
+		const { renderPdf } = (await server.ssrLoadModule('@paradoc/react-pdf')) as {
 			renderPdf: (element: unknown, options?: unknown) => Promise<RenderResult>
 		}
 		const result = await renderPdf(element, {
@@ -389,7 +389,7 @@ async function renderRoute(
 	}
 }
 
-/** What `@paradoc/react/check` answers with. */
+/** What `@paradoc/react-pdf/check` answers with. */
 interface CheckResult {
 	unsupportedClasses: string[]
 	unresolvedPaths: string[]

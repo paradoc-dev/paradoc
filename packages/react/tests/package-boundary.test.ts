@@ -1,20 +1,45 @@
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, extname, resolve } from "node:path";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, extname, join, resolve } from "node:path";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import * as publicApi from "../src/index";
 
 const packageRoot = resolve(import.meta.dirname, "..");
-const heavyPackages = [
-  "@fontsource-variable/inter",
-  "@fontsource-variable/noto-sans-arabic",
-  "@fontsource-variable/source-serif-4",
-  "@fontsource/noto-sans-symbols-2",
-  "@takumi-rs/helpers",
-  "pdfjs-dist",
-  "puppeteer",
-  "tailwindcss",
-  "takumi-pdf",
-];
+
+interface Manifest {
+  exports?: Record<string, unknown>;
+  files?: string[];
+  dependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+  optionalDependencies?: Record<string, string>;
+}
+
+function manifest(): Manifest {
+  return JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as Manifest;
+}
+
+/** Takumi, Puppeteer or Chromium, Tailwind, and the font files only an engine embeds. */
+const ENGINE_SPECIFIER =
+  /^(?:takumi-pdf|@takumi-rs\/|puppeteer(?:-core)?(?:\/|$)|chromium(?:\/|$)|@sparticuz\/chromium|tailwindcss(?:\/|$)|@tailwindcss\/|@fontsource(?:-variable)?\/)/u;
+
+function isEngineSpecifier(specifier: string): boolean {
+  return ENGINE_SPECIFIER.test(specifier);
+}
+
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return [".ts", ".tsx"].includes(extname(path)) ? [path] : [];
+  });
+}
+
+/** Every module a file really imports, static or dynamic; comments and strings are not imports. */
+function importsOf(path: string): string[] {
+  return ts.preProcessFile(readFileSync(path, "utf8"), true, true).importedFiles.map((file) => file.fileName);
+}
 
 function localModule(from: string, specifier: string): string | undefined {
   if (!specifier.startsWith(".")) return undefined;
@@ -43,13 +68,10 @@ function rootSourceClosure(): Map<string, string> {
 
 describe("the headless package boundary", () => {
   it("publishes no styled components, examples, or stylesheet", () => {
-    const manifest = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as {
-      exports?: Record<string, unknown>;
-      files?: string[];
-    };
-    expect(manifest.exports).not.toHaveProperty("./examples");
-    expect(manifest.exports).not.toHaveProperty("./styles.css");
-    expect(manifest.files).toEqual(["dist", "README.md", "LICENSE"]);
+    const { exports, files } = manifest();
+    expect(exports).not.toHaveProperty("./examples");
+    expect(exports).not.toHaveProperty("./styles.css");
+    expect(files).toEqual(["dist", "README.md", "LICENSE"]);
     for (const name of [
       "Bundle",
       "Document",
@@ -69,20 +91,62 @@ describe("the headless package boundary", () => {
     }
   });
 
-  it("does not install rendering engines, browser tooling, or document font files", () => {
-    const manifest = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as {
-      dependencies?: Record<string, string>;
-      peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-    };
-    for (const name of heavyPackages) {
-      if (name === "@fontsource/noto-sans-symbols-2") {
-        expect(manifest.dependencies).toHaveProperty(name);
-        continue;
-      }
-      expect(manifest.dependencies).not.toHaveProperty(name);
-      if (name.startsWith("@fontsource")) expect(manifest.peerDependenciesMeta).not.toHaveProperty(name);
-      else expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true);
+  it("recognizes every engine package, and only those", () => {
+    for (const engine of [
+      "takumi-pdf",
+      "@takumi-rs/helpers",
+      "@takumi-rs/helpers/jsx",
+      "puppeteer",
+      "puppeteer-core",
+      "chromium",
+      "@sparticuz/chromium",
+      "tailwindcss",
+      "@tailwindcss/vite",
+      "@fontsource/noto-sans-symbols-2",
+      "@fontsource-variable/inter",
+    ]) {
+      expect(isEngineSpecifier(engine), engine).toBe(true);
     }
+    for (const allowed of ["pdfjs-dist", "react", "@paradoc/render", "puppeteer-extra-helpers", "tailwind-merge"]) {
+      expect(isEngineSpecifier(allowed), allowed).toBe(false);
+    }
+  });
+
+  it("finds a real import, static or dynamic, and ignores one in a comment", () => {
+    const dir = mkdtempSync(join(tmpdir(), "react-boundary-"));
+    try {
+      const file = join(dir, "probe.ts");
+      writeFileSync(
+        file,
+        '/** import { render } from "takumi-pdf"; */\nimport { a } from "tailwindcss";\nconst b = await import("puppeteer");\n'
+      );
+      expect(importsOf(file)).toEqual(["tailwindcss", "puppeteer"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("exports only the browser root and discovery", () => {
+    expect(Object.keys(manifest().exports ?? {})).toEqual([".", "./discovery"]);
+  });
+
+  it("declares no PDF engine, browser driver, CSS compiler, or engine font as a dependency or peer", () => {
+    const { dependencies, peerDependencies, peerDependenciesMeta, optionalDependencies } = manifest();
+    for (const declared of [dependencies, peerDependencies, peerDependenciesMeta, optionalDependencies]) {
+      expect(Object.keys(declared ?? {}).filter(isEngineSpecifier)).toEqual([]);
+    }
+    // The browser annex preview draws PDF pages with pdfjs, which stays an optional peer.
+    expect(peerDependenciesMeta?.["pdfjs-dist"]?.optional).toBe(true);
+    expect(dependencies).not.toHaveProperty("pdfjs-dist");
+  });
+
+  it("imports no PDF engine and no part of @paradoc/react-pdf from any source file", () => {
+    const offenders = sourceFiles(resolve(packageRoot, "src")).flatMap((path) =>
+      importsOf(path)
+        .filter((specifier) => isEngineSpecifier(specifier) || specifier.startsWith("@paradoc/react-pdf"))
+        .map((specifier) => `${path.slice(packageRoot.length + 1)} imports ${specifier}`)
+    );
+    expect(offenders).toEqual([]);
   });
 
   it("keeps the browser root outside Node and PDF implementation modules", () => {
