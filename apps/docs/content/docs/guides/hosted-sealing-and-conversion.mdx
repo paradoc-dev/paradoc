@@ -43,10 +43,24 @@ anything to a signer.
 ```json
 {
   "artifact": { "source": "registry", "id": "@acme/forms/nda" },
-  "data": { "fields": { "effectiveDate": "2026-08-05" } },
+  "data": {
+    "fields": { "effectiveDate": "2026-08-05" },
+    "parties": { "discloser": { "name": "Ada Lovelace" } }
+  },
+  "signers": { "signer-1": { "person": { "name": "Ada Lovelace" } } },
+  "signatories": {
+    "discloser": { "discloser-0": [{ "signer_id": "signer-1", "capacity": "CEO" }] }
+  },
   "layer": "pdf"
 }
 ```
+
+`data` holds the fill payload only: `fields`, `parties` and `annexes`. Who
+signs goes beside it. `signers` names each signer, and `signatories` binds
+signers to a party by role and party id (`<role>-<index>`). A signature slot
+maps to a signer only through its party's signatories. An unknown key, a role
+the artifact does not declare, or a `signer_id` that is not in `signers` is
+refused with a 400.
 
 The response contains `valid`, `document`, `signature_map`, and
 `canonical_pdf_hash`. Sealing is metered once per successful call.
