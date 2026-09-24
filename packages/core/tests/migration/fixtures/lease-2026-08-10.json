@@ -24,7 +24,7 @@
     "markdown": {
       "kind": "inline",
       "mimeType": "text/markdown",
-      "text": "Pet: {{fields.petName}}",
+      "text": "Pet: {{fields.petName}}\nTenant: {{signature(parties.tenant, \"tenantSignature\")}}",
       "signatures": {
         "tenantSignature": {
           "party": { "role": "tenant" },

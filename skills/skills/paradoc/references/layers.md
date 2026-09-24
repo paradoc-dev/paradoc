@@ -161,7 +161,7 @@ Placement units are points. `page` is 1-based, and `y` counts from the top edge 
 5. **Declare slots up to the role's `max`.** The seal skips slots for unfilled indices.
 
 <!-- dep:C7 -->
-`validate()` reports an unknown role, a `flow` slot on a PDF layer, and a `flow` slot of another type. The other rules surface as `SealConfigError` when you seal ([sealing.md § Seal errors](./sealing.md#seal-errors)).
+`validate()` reports an unknown role, a `flow` slot on a PDF or DOCX layer, a `flow` slot of another type, a role with `signature.required: true` and no slot on a layer that declares `signatures`, and a `flow` slot that no directive in an inline template places. `validateLayers()` and `paradoc validate` also check the directives of file templates. The rest surface as `SealConfigError` when you seal ([sealing.md § Seal errors](./sealing.md#seal-errors)).
 
 A Markdown layer with in-flow signatures and an anchored date:
 

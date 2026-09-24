@@ -54,6 +54,14 @@ Misconfiguration fails **before** any rendering or conversion with a
 required-signature party no slot places, or a required slot without a
 signatory.
 
+`validate()` and `paradoc validate` report the problems the definition alone
+shows, before any data exists: a slot for an undeclared role, a
+required-signature party with no slot on a layer that declares `signatures`,
+a `'flow'` slot on a PDF or DOCX layer or of a type other than `signature` or
+`initials`, and a `'flow'` slot that no `signature(...)` or `initials(...)`
+directive in the layer's template places. See
+[`paradoc validate`](/cli/commands/validate#layer-references).
+
 ## Seal a PDF layer locally
 
 PDF layers need no adapter or network call. Paradoc renders the layer,

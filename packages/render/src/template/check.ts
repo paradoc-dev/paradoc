@@ -276,3 +276,44 @@ function commandOf(paragraph: string, delimiters: [string, string]): string | un
   const inner = value.slice(delimiters[0].length, -delimiters[1].length).trim()
   return /^(?:FOR\s|IF\s|ELSE$|END-(?:FOR|IF))/.test(inner) ? inner : undefined
 }
+
+/** A signing directive a template writes, such as `signature(parties.tenant, "tenant-sign")`. */
+export interface SigningDirectiveUse {
+  /** The directive name: `signature`, `initials`, `signatureDate`, `capacity`, or `printedName`. */
+  directive: string
+  /** The location the directive places, when written as a string literal; undefined when computed. */
+  location?: string
+}
+
+function collectDirectives(nodes: readonly TemplateNode[], found: SigningDirectiveUse[]): void {
+  for (const node of nodes) {
+    if (node.type === 'text') continue
+    if (node.type === 'value') {
+      const ast = node.slot.ast
+      if (ast?.kind !== 'Call' || !SIGNING_DIRECTIVES.has(ast.callee) || ast.args.length === 0) continue
+      const location = ast.args.at(-1)!
+      found.push({ directive: ast.callee, ...(location.kind === 'StringLiteral' && { location: location.value }) })
+      continue
+    }
+    collectDirectives(node.children, found)
+    collectDirectives(node.inverse, found)
+  }
+}
+
+/**
+ * The signing directives a text, Markdown, or HTML template writes, including
+ * those inside blocks. Undefined when the template's markers do not parse, so
+ * which directives it writes is unknown.
+ */
+export function textTemplateSigningDirectives(template: string): SigningDirectiveUse[] | undefined {
+  let nodes: TemplateNode[]
+  try {
+    nodes = parseTemplate(template)
+  } catch (error) {
+    if (error instanceof TemplateError) return undefined
+    throw error
+  }
+  const found: SigningDirectiveUse[] = []
+  collectDirectives(nodes, found)
+  return found
+}

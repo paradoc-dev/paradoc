@@ -35,7 +35,7 @@ All artifact builders share common functionality:
 
 ### Validating templates
 
-`validate(artifact)` checks every template expression in inline text layers along with the schema and logic. For a form, it also checks that each PDF layer binding value is a known Paradoc path, so an inverted binding (a field name in the value position) is an error naming the key. Files are read through a resolver, so they are checked by `validateLayers`. A file-backed layer, `instructions`, or `agentInstructions` file that cannot be read is an error:
+`validate(artifact)` checks every template expression in inline text layers along with the schema and logic. For a form, it also checks that each PDF layer binding value is a known Paradoc path, so an inverted binding (a field name in the value position) is an error naming the key. It also reports each layer reference that render or seal would fail on, naming the layer, slot, or role: a `defaultLayer` that names no layer, a signature slot for an undeclared party role, a `'flow'` slot on a PDF or DOCX layer or of a type other than `signature` or `initials`, a party whose signature is required but has no slot on a layer that declares `signatures`, and a `'flow'` slot that no directive in an inline template places. `fill()` does not run these reference checks, so a draft still fills and renders, and `seal()` rejects the same problems for the layer it seals. Files are read through a resolver, so they are checked by `validateLayers`. A file-backed layer, `instructions`, or `agentInstructions` file that cannot be read is an error:
 
 ```ts
 import { validateLayers } from '@paradoc/sdk'
@@ -45,7 +45,7 @@ const result = await validateLayers(artifact, { resolver: createFsResolver({ roo
 // result.issues: 'Template error at layer "markdown", line 12, column 7 in {{fields.amount}}: ...'
 ```
 
-For a form, `validateLayers` also checks that each PDF layer binding key is an AcroForm field of the template, and that values a PDF layer binding accepts can fill its PDF text field: a typical value at the field's `maxLength` or `pattern` length that is too wide for its box, an option value too wide for its box, or a value too long for its comb boxes is an error. A value that overflows only when made of the widest letters, and a bound text field with no length bound, are returned in `result.warnings`, which do not fail validation. See [Checking bindings before filling](/sdk/renderers/pdf#checking-bindings-before-filling).
+`validateLayers` also checks that each file-backed text template places its `'flow'` slots. For a form, `validateLayers` also checks that each PDF layer binding key is an AcroForm field of the template, and that values a PDF layer binding accepts can fill its PDF text field: a typical value at the field's `maxLength` or `pattern` length that is too wide for its box, an option value too wide for its box, or a value too long for its comb boxes is an error. A value that overflows only when made of the widest letters, and a bound text field with no length bound, are returned in `result.warnings`, which do not fail validation. See [Checking bindings before filling](/sdk/renderers/pdf#checking-bindings-before-filling).
 
 ### Schema versions
 

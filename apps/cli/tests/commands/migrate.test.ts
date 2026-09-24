@@ -45,7 +45,7 @@ const signedForm = (schema: string | undefined) =>
         markdown: {
           kind: 'inline',
           mimeType: 'text/markdown',
-          text: 'Pet: {{fields.petName}}',
+          text: 'Pet: {{fields.petName}} Tenant: {{signature(parties.tenant, "tenant")}}',
           signatures: { tenant: { party: { role: 'tenant' }, type: 'signature', placement: 'auto' } },
         },
       },
@@ -65,7 +65,7 @@ layers:
   markdown:
     kind: inline
     mimeType: text/markdown
-    text: "Pet"
+    text: 'Pet {{signature(parties.tenant, "tenant")}}'
     signatures:
       tenant:
         party:

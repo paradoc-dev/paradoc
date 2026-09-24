@@ -11,7 +11,7 @@ import { unzipSync, zipSync } from 'fflate'
 import { buildRegistry, createContext, createTypeEnv, evaluateExpression, T, Values, type FnSignature } from '@paradoc/expr'
 import type { Form } from '@paradoc/types'
 import { describe, expect, it } from 'vitest'
-import { checkTextTemplate, renderText, TemplateError, textRenderer } from '../src/text'
+import { checkTextTemplate, renderText, TemplateError, textRenderer, textTemplateSigningDirectives } from '../src/text'
 import { checkDocxTemplate, renderDocx } from '../src/docx'
 
 const encoder = new TextEncoder()
@@ -289,5 +289,24 @@ describe('template diagnostics', () => {
 
   it('never interprets inserted data as template or expression syntax', () => {
     expect(renderText({ data: { note: '{{fields.secret}}' }, template: '{{{fields.note}}}' })).toBe('{{fields.secret}}')
+  })
+})
+
+describe('signing directives a template writes', () => {
+  it('lists literal and computed locations, inside blocks too, and skips other calls', () => {
+    const template = [
+      '{{#if fields.ok}}{{signature(parties.client, "client-sig")}}{{/if}}',
+      '{{#each parties.tenants}}{{initials("tenant-" + index(item))}}{{/each}}',
+      '{{signatureDate(parties.client, "client-sig")}} {{upper(fields.name)}} {{signature()}}',
+    ].join('\n')
+    expect(textTemplateSigningDirectives(template)).toEqual([
+      { directive: 'signature', location: 'client-sig' },
+      { directive: 'initials' },
+      { directive: 'signatureDate', location: 'client-sig' },
+    ])
+  })
+
+  it('returns undefined when the markers do not parse', () => {
+    expect(textTemplateSigningDirectives('{{#if fields.ok}}{{signature(parties.client, "a")}}')).toBeUndefined()
   })
 })

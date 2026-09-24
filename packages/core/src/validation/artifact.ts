@@ -11,6 +11,7 @@ import { findSchemaVersionError } from '@/serialization/schema-version'
 import { validatePdfLayers, type LayerValidationIssue } from './pdf-layers'
 import { validatePdfBindingPaths } from './pdf-bindings'
 import { validateFileReferences } from './file-references'
+import { validateLayerReferences } from './layer-references'
 import {
   validateForm,
   validateDocument,
@@ -154,7 +155,15 @@ function isLogicValidatable(kind: string): kind is LogicKind {
  * Validates an artifact's structure and logic expressions.
  * Returns Standard Schema compliant result.
  *
- * By default, validates both schema structure and logic expressions.
+ * By default, validates both schema structure and logic expressions. With
+ * schema validation, an artifact that passes those checks is also checked
+ * for what its layers refer to, as render and seal would find it:
+ * - `defaultLayer` names a layer;
+ * - each signature slot names a declared party role;
+ * - a 'flow' slot is not on a PDF or DOCX layer, has type signature or initials, and
+ *   is placed by a signing directive in an inline template;
+ * - each party whose signature is required has a slot on every layer that
+ *   declares `signatures`.
  * Use options to customize validation behavior.
  *
  * @param artifact - The artifact to validate (Form, Document, etc.)
@@ -183,6 +192,24 @@ function isLogicValidatable(kind: string): kind is LogicKind {
  * ```
  */
 export function validate<T = unknown>(
+  artifact: unknown,
+  options: ValidateOptions = {}
+): StandardSchemaV1.Result<T> {
+  const result = validateDefinition<T>(artifact, options)
+  if (result.issues || options.schema === false || !hasTemplateLayers(artifact)) return result
+  const referenceIssues = validateLayerReferences(artifact)
+  if (referenceIssues.length === 0) return result
+  return { issues: options.collectAllErrors === false ? referenceIssues.slice(0, 1) : referenceIssues }
+}
+
+/**
+ * The checks every runtime instance's definition must pass: schema
+ * structure, logic expressions, and inline template expressions.
+ * `validate()` adds the layer-reference checks, which seal (and render, for
+ * `defaultLayer`) enforce again for the layer they use, so a definition with
+ * such a problem still fills.
+ */
+export function validateDefinition<T = unknown>(
   artifact: unknown,
   options: ValidateOptions = {}
 ): StandardSchemaV1.Result<T> {
@@ -298,7 +325,8 @@ function readOnce(resolver: Resolver): Resolver {
  * cannot be read is an error:
  * - every file-backed layer except a React layer, whose path names a module;
  * - the `instructions` and `agentInstructions` files;
- * - the template expressions of each text and DOCX layer;
+ * - the template expressions of each text and DOCX layer, and that each text
+ *   template places its 'flow' signature slots;
  * - for a form, that every key of a PDF layer's bindings is an AcroForm field
  *   of its template, and that every value a binding accepts can fill its PDF
  *   text field: it fits the box at the minimum font size, and has no more

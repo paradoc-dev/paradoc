@@ -36,8 +36,8 @@ The scope flags (`--schema-only`, `--layers-only`, `--checksum-only`) are mutual
 
 The `validate` command parses an artifact file and runs up to three validation phases. First, the file's `$schema` must name the current [schema version](/schemas#loading-rules); a file written for another version fails and names [`paradoc migrate`](/cli/commands/migrate), as every command that reads an artifact file does.
 
-1. **Schema** — checks the artifact structure against the Paradoc schema, its logic expressions, the template expressions of inline layers, and that each PDF binding value is a known Paradoc path
-2. **Layers** — for file-backed layers, checks file existence and verifies checksums, checks the template expressions of text and DOCX layers, checks that each PDF binding key is an AcroForm field of the template, and checks that bound values can fill a form's PDF text fields
+1. **Schema** — checks the artifact structure against the Paradoc schema, its logic expressions, the template expressions of inline layers, that each PDF binding value is a known Paradoc path, and what the layers refer to (see [Layer references](#layer-references))
+2. **Layers** — for file-backed layers, checks file existence and verifies checksums, checks the template expressions of text and DOCX layers and that each text layer places its `'flow'` signature slots, checks that each PDF binding key is an AcroForm field of the template, and checks that bound values can fill a form's PDF text fields
 3. **Content references** — for file-backed `instructions` and `agentInstructions`, checks file existence and verifies checksums
 
 A layer file or content reference file that does not exist is an error.
@@ -49,6 +49,18 @@ A template error names the layer, the line and column (or, in a DOCX layer, the 
 A form's PDF layer `bindings` map AcroForm field names (keys) to Paradoc paths (values). A value that names no field, party, computed value, or annex of the form is an error naming the layer and the key; when the key is a field of the form, the error says the binding is inverted. A key that is not an AcroForm field in the template is an error that lists the template's fields.
 
 For a form's PDF layer, each binding to a text field is checked at the bound field's length limit. A typical value of that length that cannot fit the box at 6 points, an option value that cannot fit, or more characters than a comb field has boxes is an error naming the layer, the PDF field, the artifact path, and the limit. When only the widest value (all `W`) overflows, or a bound text field has no `maxLength` or `pattern`, it is a warning. See [Checking bindings before filling](/sdk/renderers/pdf#checking-bindings-before-filling).
+
+### Layer references
+
+Each of these is an error that names the layer, slot, or role at fault. Render or seal would fail on each one:
+
+- a `defaultLayer` that names no layer
+- a signature slot for a party role the artifact does not declare
+- a `'flow'` slot on a PDF or DOCX layer, or a `'flow'` slot whose type is not `signature` or `initials`
+- a party whose signature is required but has no slot on a layer that declares `signatures`
+- a `'flow'` slot that no `signature(...)` or `initials(...)` directive in the layer's template places. A directive whose location is computed counts for every slot of its type. React layers are not checked, since their template is code. The check assumes core's text renderer; a seal renderer you register for a text MIME type receives the markers itself.
+
+Problems that depend on how you seal, such as a missing converter or a renderer override, are reported by `seal()`.
 
 The command exits with code `0` if valid (warnings are allowed), `1` if any errors are found.
 

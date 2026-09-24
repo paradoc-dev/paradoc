@@ -316,6 +316,52 @@ describe('CLI Validate Command', () => {
     })
   })
 
+  describe('layer references', () => {
+    const write = async (defaultLayer: string, template: string) => {
+      const formPath = path.join(tempDir, 'signed.json')
+      await fs.writeFile(path.join(tempDir, 'terms.md'), template)
+      await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
+        kind: 'form',
+        name: 'signed',
+        parties: { client: { label: 'Client', partyType: 'person', signature: { required: true } } },
+        layers: {
+          md: {
+            kind: 'file',
+            mimeType: 'text/markdown',
+            path: 'terms.md',
+            signatures: { 'client-sig': { party: { role: 'client' }, type: 'signature', placement: 'flow' } },
+          },
+        },
+        defaultLayer,
+      }))
+      return formPath
+    }
+
+    it('fails on an unknown defaultLayer, naming it', async () => {
+      const result = await executeCliCommand(['validate', await write('pdf', '{{signature(parties.client, "client-sig")}}'), '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([{
+        message: 'defaultLayer "pdf" names no layer; declared layers: "md"',
+        path: ['defaultLayer'],
+      }])
+    })
+
+    it('fails on a flow slot the file template does not place, naming the layer and slot', async () => {
+      const result = await executeCliCommand(['validate', await write('md', 'No signature line.'), '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([{
+        message: 'Layer "md", slot "client-sig": no {{signature(..., "client-sig")}} in the template places this \'flow\' slot',
+        path: ['layers', 'md', 'signatures', 'client-sig'],
+      }])
+    })
+
+    it('passes when every slot is placed', async () => {
+      const result = await executeCliCommand(['validate', await write('md', '{{signature(parties.client, "client-sig")}}')])
+      expect(result.exitCode).toBe(0)
+    })
+  })
+
   describe('PDF binding fit', () => {
     /** A one-page PDF whose AcroForm holds one text field of the given size. */
     const textFieldPdf = (name: string, width: number, height: number): string => {

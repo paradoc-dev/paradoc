@@ -11,8 +11,9 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { Checklist, Form, Layer, Resolver } from '@paradoc/types'
 import { createTypeEnv, T, type ExprType, type TypeEnv } from '@paradoc/expr'
-import { checkTextTemplate, type TemplateDiagnostic } from '@paradoc/render/text'
+import { checkTextTemplate, textTemplateSigningDirectives, type TemplateDiagnostic } from '@paradoc/render/text'
 import { checkDocxTemplate } from '@paradoc/render/docx'
+import { flowPlacementIssues } from '@/validation/layer-references'
 import { buildFormTypeAcc, registerPartyTypes } from '../type-checking/build-type-environment'
 
 const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown', 'text/html'])
@@ -86,8 +87,9 @@ export function validateInlineTemplates(artifact: TemplateArtifact): StandardSch
 
 /**
  * Check the template expressions of every file-backed text and DOCX layer,
- * reading each through the resolver. A layer the resolver cannot read is
- * skipped: `validateLayers()` reports every unreadable file once.
+ * and that each text template places its 'flow' signature slots, reading
+ * each through the resolver. A layer the resolver cannot read is skipped:
+ * `validateLayers()` reports every unreadable file once.
  */
 export async function validateFileTemplates(artifact: TemplateArtifact, resolver: Resolver): Promise<StandardSchemaV1.Issue[]> {
   const layers = Object.entries(artifact.layers ?? {}).filter(([, layer]) =>
@@ -103,10 +105,13 @@ export async function validateFileTemplates(artifact: TemplateArtifact, resolver
     } catch {
       continue
     }
-    const diagnostics = isTextLayer(layer)
-      ? checkTextTemplate(new TextDecoder().decode(bytes), env)
-      : checkDocxTemplate(bytes, env)
-    issues.push(...diagnostics.map((diagnostic) => issueFor(key, diagnostic)))
+    if (isTextLayer(layer)) {
+      const text = new TextDecoder().decode(bytes)
+      issues.push(...checkTextTemplate(text, env).map((diagnostic) => issueFor(key, diagnostic)))
+      issues.push(...flowPlacementIssues(key, layer, textTemplateSigningDirectives(text)))
+    } else {
+      issues.push(...checkDocxTemplate(bytes, env).map((diagnostic) => issueFor(key, diagnostic)))
+    }
   }
   return issues
 }

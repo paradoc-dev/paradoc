@@ -156,6 +156,14 @@ function checkTextTemplate(template: string, env: TypeEnv): TemplateDiagnostic[]
 
 Each diagnostic has a `code`, a `message`, the `expression`, and its `position` (`line` and `column`).
 
+### textTemplateSigningDirectives()
+
+Lists the signing directives a template writes, including those inside blocks, without rendering. Each entry has the `directive` name and, when written as a string literal, its `location`. Returns `undefined` when the template's markers do not parse. `validate()` and `validateLayers()` use it to check that each `'flow'` signature slot is placed.
+
+```ts
+function textTemplateSigningDirectives(template: string): SigningDirectiveUse[] | undefined
+```
+
 ## Automatic Formatting
 
 When a form schema is provided, field values are automatically serialized based on their types:

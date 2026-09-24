@@ -7,7 +7,7 @@
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { Artifact, Metadata, ContentRef } from '@paradoc/types'
-import { validate as validateArtifact } from '@/validation/artifact'
+import { validate as validateArtifact, validateDefinition } from '@/validation/artifact'
 import { toYAML } from '@/serialization/serialization'
 import { assertCurrentSchemaVersion } from '@/serialization/schema-version'
 import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
@@ -89,7 +89,7 @@ export interface ArtifactMethods<T extends Artifact> {
  */
 export function assertValidArtifactDefinition<T extends Artifact>(data: T): void {
 	assertCurrentSchemaVersion(data, { required: false })
-	const result = validateArtifact<T>(data)
+	const result = validateDefinition<T>(data)
 	if ('issues' in result && result.issues) {
 		const details = result.issues
 			.map((issue) => {
