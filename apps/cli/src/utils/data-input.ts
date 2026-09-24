@@ -132,3 +132,13 @@ export function normalizeFormData(data: Record<string, unknown>): {
 	// Wrap data in fields
 	return { fields: data }
 }
+
+/**
+ * Wrap flat field data in `{ fields }`. A payload that already names a
+ * `fields`, `parties` or `annexes` section is passed on as written, so the
+ * SDK sees (and rejects) any other top-level key.
+ */
+export function toFormPayload(data: Record<string, unknown>): Record<string, unknown> {
+	const isPayload = 'fields' in data || 'parties' in data || 'annexes' in data
+	return isPayload ? data : { fields: data }
+}

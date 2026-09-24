@@ -3,8 +3,8 @@ import kleur from 'kleur'
 import { validate as validateArtifact, isForm, type Form } from '@paradoc/core'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
-import { parseDataInput, normalizeFormData } from '../../utils/data-input.js'
-import { validateInstanceData, type InstanceData } from '../../utils/validate-data.js'
+import { parseDataInput, toFormPayload } from '../../utils/data-input.js'
+import { printPayloadErrors, validateFormPayload } from '../../utils/validate-data.js'
 import { parseArtifactFile } from '../../utils/artifact-file.js'
 
 interface ValidateDataOptions {
@@ -71,14 +71,7 @@ export function createValidateCommand(): Command {
         // Parse data from file, stdin, or inline JSON
         const { data: rawData, source: dataSource } = await parseDataInput(dataTarget)
 
-        // Normalize to ensure { fields: {...} } structure
-        const normalizedData = normalizeFormData(rawData)
-        const instanceData: InstanceData = {
-          fields: normalizedData.fields,
-          annexes: normalizedData.annexes,
-        }
-
-        const result = validateInstanceData(form, instanceData)
+        const result = validateFormPayload(form, toFormPayload(rawData))
 
         // Build data source description for output
         const dataSourceDesc = dataSource === 'stdin' ? 'stdin' : dataSource === 'inline' ? 'inline JSON' : dataTarget
@@ -89,7 +82,9 @@ export function createValidateCommand(): Command {
             success: result.success,
             form: formTarget,
             dataSource: dataSourceDesc,
-            ...(result.success ? { data: result.data } : { errors: result.errors }),
+            ...(result.success
+              ? { data: result.data }
+              : { errors: result.errors, ...(result.ruleErrors.length > 0 && { ruleErrors: result.ruleErrors }) }),
           }
           console.log(JSON.stringify(output, null, 2))
         } else if (!options.silent) {
@@ -99,13 +94,7 @@ export function createValidateCommand(): Command {
             console.log(`  Data: ${dataSourceDesc}`)
           } else {
             console.error(kleur.red('Validation failed:'))
-            for (const error of result.errors) {
-              const location = error.field || 'root'
-              console.error(`  - ${location}: ${error.message}`)
-              if (error.value !== undefined) {
-                console.error(kleur.gray(`    Value: ${JSON.stringify(error.value)}`))
-              }
-            }
+            printPayloadErrors(result.errors, result.ruleErrors)
           }
         }
 

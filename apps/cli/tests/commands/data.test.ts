@@ -401,6 +401,140 @@ describe('CLI Data Commands', () => {
       expect(result.exitCode).toBe(1)
     })
   })
+  describe('data validate and data fill agree with the SDK', () => {
+    const leaseForm = {
+      $schema: PARADOC_SCHEMA_URL,
+      kind: 'form',
+      name: 'lease-probe',
+      version: '1.0.0',
+      title: 'Lease probe',
+      fields: {
+        hasPet: { type: 'boolean', label: 'Has pet' },
+        petName: { type: 'text', label: 'Pet name', required: 'fields.hasPet == true' },
+      },
+      parties: {
+        tenant: { label: 'Tenant', partyType: 'person', required: true },
+        guarantor: { label: 'Guarantor', partyType: 'person', min: 0, max: 1 },
+      },
+    }
+    const tenant = { id: 'tenant-0', name: 'Ada Lovelace' }
+
+    /** The errors `form.fill(data).validate()` reports for the payload. */
+    async function sdkErrors(payload: Record<string, unknown>): Promise<unknown[]> {
+      const { form, FormValidationError } = await import('@paradoc/core')
+      const filled = form.from(leaseForm as never).safeFill(payload as never)
+      if (!filled.success) {
+        if (!(filled.error instanceof FormValidationError)) throw filled.error
+        return filled.error.errors
+      }
+      return filled.data.validate().errors
+    }
+
+    async function writeForm(): Promise<string> {
+      const formPath = path.join(tempDir, 'lease.json')
+      await fs.writeFile(formPath, JSON.stringify(leaseForm))
+      return formPath
+    }
+
+    const invalid: Array<[string, Record<string, unknown>]> = [
+      ['a missing expression-required field', { fields: { hasPet: true }, parties: { tenant } }],
+      ['a missing required party', { fields: { hasPet: false } }],
+      [
+        'party data that breaks the role rules',
+        {
+          fields: { hasPet: false },
+          parties: { tenant, guarantor: [{ id: 'g-0', name: 'Grace' }, { id: 'g-1', name: 'Alan' }] },
+        },
+      ],
+      ['party data that is not a party', { fields: { hasPet: false }, parties: { tenant: { id: 'tenant-0' } } }],
+      ['a misspelled top-level key', { fields: { hasPet: false }, partys: { tenant } }],
+    ]
+
+    it.each(invalid)('data validate reports the SDK errors for %s', async (_name, payload) => {
+      const expected = await sdkErrors(payload)
+      expect(expected.length).toBeGreaterThan(0)
+
+      const result = await executeCliCommand(['data', 'validate', await writeForm(), JSON.stringify(payload), '--json'])
+
+      expect(result.exitCode).toBe(1)
+      const output = JSON.parse(result.stdout)
+      expect(output.success).toBe(false)
+      expect(output.errors).toEqual(expected)
+    })
+
+    it.each(invalid)('data fill rejects %s with the SDK errors and writes nothing', async (_name, payload) => {
+      const expected = (await sdkErrors(payload)) as Array<{ field: string; message: string }>
+      const outPath = path.join(tempDir, 'filled.json')
+
+      const result = await executeCliCommand(['data', 'fill', await writeForm(), '--out', outPath, '--data', JSON.stringify(payload)])
+
+      expect(result.exitCode).toBe(1)
+      for (const error of expected) expect(result.stderr).toContain(`${error.field}: ${error.message}`)
+      await expect(fs.access(outPath)).rejects.toThrow()
+    })
+
+    it('data validate accepts valid data with parties and returns the filled payload', async () => {
+      const payload = { fields: { hasPet: true, petName: 'Rex' }, parties: { tenant } }
+      expect(await sdkErrors(payload)).toEqual([])
+
+      const result = await executeCliCommand(['data', 'validate', await writeForm(), JSON.stringify(payload), '--json'])
+
+      expect(result.exitCode).toBe(0)
+      const output = JSON.parse(result.stdout)
+      expect(output.success).toBe(true)
+      expect(output.data.parties).toEqual({ tenant })
+      expect(output.data.fields).toEqual(payload.fields)
+    })
+
+    it('data validate accepts flat field data when nothing is required', async () => {
+      const formPath = path.join(fixturesDir, 'pet-addendum.yaml')
+      const flat = { name: 'Rex', species: 'dog', weight: 30, hasVaccination: true }
+
+      const result = await executeCliCommand(['data', 'validate', formPath, JSON.stringify(flat), '--json'])
+
+      expect(result.exitCode).toBe(0)
+      expect(JSON.parse(result.stdout).data.fields).toEqual(flat)
+    })
+
+    it('data validate and data fill fail a form rule the SDK fails, and pass it when it holds', async () => {
+      const ruleForm = {
+        ...leaseForm,
+        rules: { petNamed: { expr: 'hasPet == false or petName == "Rex"', severity: 'error', message: 'The pet must be Rex' } },
+      }
+      const formPath = path.join(tempDir, 'rule.json')
+      await fs.writeFile(formPath, JSON.stringify(ruleForm))
+      const payload = { fields: { hasPet: true, petName: 'Fido' }, parties: { tenant } }
+      const { form } = await import('@paradoc/core')
+      const sdk = form.from(ruleForm as never).fill(payload as never).validate()
+      expect(sdk.errors).toEqual([])
+      expect(sdk.rules.errors.length).toBe(1)
+
+      const validated = await executeCliCommand(['data', 'validate', formPath, JSON.stringify(payload), '--json'])
+      expect(validated.exitCode).toBe(1)
+      expect(JSON.parse(validated.stdout)).toMatchObject({ success: false, errors: [], ruleErrors: sdk.rules.errors })
+
+      const outPath = path.join(tempDir, 'rule-filled.json')
+      const filled = await executeCliCommand(['data', 'fill', formPath, '--out', outPath, '--data', JSON.stringify(payload)])
+      expect(filled.exitCode).toBe(1)
+      expect(filled.stderr).toContain('rules.petNamed: The pet must be Rex')
+
+      const holds = { ...payload, fields: { hasPet: true, petName: 'Rex' } }
+      const passed = await executeCliCommand(['data', 'validate', formPath, JSON.stringify(holds)])
+      expect(passed.exitCode).toBe(0)
+    })
+
+    it('data fill writes parties to its output', async () => {
+      const payload = { fields: { hasPet: false }, parties: { tenant } }
+      const outPath = path.join(tempDir, 'filled.json')
+
+      const result = await executeCliCommand(['data', 'fill', await writeForm(), '--out', outPath, '--data', JSON.stringify(payload)])
+
+      expect(result.exitCode).toBe(0)
+      const written = JSON.parse(await fs.readFile(outPath, 'utf-8'))
+      expect(written).toEqual({ fields: { hasPet: false }, parties: { tenant } })
+    })
+  })
+
   describe('data extract', () => {
     const extractForm = {
       $schema: PARADOC_SCHEMA_URL,

@@ -100,7 +100,7 @@ paradoc data fill <file> --out <file> [options]
 
 Without `--data`, the `fill` command walks you through each field in the form with interactive prompts. Field types are validated, and complex types (like addresses or money) can be entered as JSON.
 
-With `--data`, it runs without prompts: the payload is validated against the form and written to `--out`. The command exits with code 1 if validation fails.
+With `--data`, it runs without prompts. The payload is a `{ fields, parties, annexes }` object, or bare field values that are read as `fields`. It is validated as the SDK validates `form.fill(data).validate()`, and the filled payload, with field defaults and parties, is written to `--out`. The command exits with code 1 and writes nothing if validation fails.
 
 ### Examples
 
@@ -136,6 +136,8 @@ Fill Form: Residential Lease Agreement
 ## data validate
 
 Validate instance data against a form artifact. Exits with code 0 when the data is valid and 1 when it is not.
+
+The data is a `{ fields, parties, annexes }` payload, or bare field values that are read as `fields`. The command reports the same errors as the SDK's `form.fill(data).validate()`: expression-based `required`, party role rules, annex values, rule failures, and unknown top-level keys. With `--json`, a valid result carries the filled payload as `data`; an invalid one carries `errors`, and `ruleErrors` when a form rule fails.
 
 ```bash
 paradoc data validate <form-file> <data> [options]

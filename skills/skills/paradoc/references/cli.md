@@ -220,7 +220,7 @@ paradoc data fill lease-agreement.yaml --out filled.json                     # i
 paradoc data fill lease-agreement.yaml --data sample.json --out filled.json  # non-interactive: validate, then write
 ```
 
-`--out` is required in both modes. `--data` switches to non-interactive mode; it does not seed the prompts.
+`--out` is required in both modes. `--data` switches to non-interactive mode; it does not seed the prompts. With `--data`, validation is the same as `data validate`, and the output holds the filled `fields` (with defaults), `parties`, and `annexes`.
 
 ### render
 

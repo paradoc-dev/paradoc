@@ -5,9 +5,13 @@ import { validate, toYAML, isForm, createSafeRegex, type Form, type FormField } 
 import { LocalFileSystem } from '../../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
-import { parseDataInput, normalizeFormData } from '../../utils/data-input.js'
+import { parseDataInput, toFormPayload } from '../../utils/data-input.js'
 import { makeInstanceTemplate } from '../../utils/instance-template.js'
-import { validateInstanceData, type InstanceData } from '../../utils/validate-data.js'
+import {
+  printPayloadErrors,
+  validateFormPayload,
+  type FilledPayload,
+} from '../../utils/validate-data.js'
 import { parseArtifactFile } from '../../utils/artifact-file.js'
 
 interface FillOptions {
@@ -285,48 +289,28 @@ export function createFillCommand(): Command {
 
         const form = validation.value as Form
 
-        // Check if form has fields
-        if (!form.fields || Object.keys(form.fields).length === 0) {
+        // Interactive mode prompts for fields only; a form without fields has nothing to prompt for.
+        if (!options.data && (!form.fields || Object.keys(form.fields).length === 0)) {
           console.log(kleur.yellow('Form has no fields. Nothing to fill.'))
           process.exit(0)
           return
         }
 
-        let data: { fields: Record<string, unknown>; annexes?: Record<string, unknown> }
+        let data: FilledPayload
 
         // Non-interactive mode: use --data
         if (options.data) {
           const { data: rawData, source: dataSource } = await parseDataInput(options.data)
-          const normalizedData = normalizeFormData(rawData)
-
-          // Validate data against form
-          const instanceData: InstanceData = {
-            fields: normalizedData.fields,
-            annexes: normalizedData.annexes,
-          }
-          const validationResult = validateInstanceData(form, instanceData)
+          const validationResult = validateFormPayload(form, toFormPayload(rawData))
 
           if (!validationResult.success) {
             console.error(kleur.red('Data validation failed:'))
-            for (const error of validationResult.errors) {
-              const location = error.field || 'root'
-              console.error(`  - ${location}: ${error.message}`)
-              if (error.value !== undefined) {
-                console.error(kleur.gray(`    Value: ${JSON.stringify(error.value)}`))
-              }
-            }
+            printPayloadErrors(validationResult.errors, validationResult.ruleErrors)
             process.exit(1)
             return
           }
 
-          // An empty annex (null) is left out: a stored annex is always an Attachment.
-          const annexes = Object.fromEntries(
-            Object.entries(normalizedData.annexes ?? {}).filter(([, value]) => value !== undefined && value !== null),
-          )
-          data = {
-            fields: normalizedData.fields,
-            ...(Object.keys(annexes).length > 0 && { annexes }),
-          }
+          data = validationResult.data
 
           // Log source info for non-interactive mode
           const sourceDesc = dataSource === 'stdin' ? 'stdin' : dataSource === 'inline' ? 'inline JSON' : options.data
@@ -345,7 +329,7 @@ export function createFillCommand(): Command {
 
           // Prompt for each field
           const filledFields: Record<string, unknown> = {}
-          for (const [fieldId, field] of Object.entries(form.fields)) {
+          for (const [fieldId, field] of Object.entries(form.fields ?? {})) {
             const defaultValue = template.fields[fieldId]
             filledFields[fieldId] = await promptForField(fieldId, field, defaultValue)
           }

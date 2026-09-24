@@ -1,232 +1,63 @@
 /**
- * CLI utility for validating form data.
+ * Validate a form data payload the way the SDK does: `form.fill(data).validate()`.
  *
- * Scalar checks stay here so the CLI keeps treating null and '' as empty.
- * Composite values (coordinate, bbox, address, ...) are checked against the
- * compiled form schema through @paradoc/core, so their shapes cannot drift.
+ * `paradoc data validate` and `paradoc data fill` both use this, so the CLI
+ * accepts and rejects exactly what the SDK accepts and rejects.
  */
 
-import { validateAnnexInput, validateFieldInput, type Form, type FormField, type FormAnnex } from '@paradoc/core'
+import {
+  form as formApi,
+  FormValidationError,
+  type Form,
+  type FormValidationResult,
+  type ValidationError,
+} from '@paradoc/core'
 
-export interface ValidationError {
-  field: string
-  message: string
-  value?: unknown
-}
+type RuleValidationResult = FormValidationResult['rules']['errors'][number]
 
-export interface ValidationResult {
-  success: boolean
-  data?: Record<string, unknown>
-  errors: ValidationError[]
-}
-
-export interface InstanceData {
+/** The payload the SDK holds after a successful fill. */
+export interface FilledPayload {
   fields: Record<string, unknown>
+  parties?: Record<string, unknown>
   annexes?: Record<string, unknown>
 }
 
-/**
- * Validate field data against field definition
- */
-function validateFieldValue(form: Form, fieldId: string, field: FormField, value: unknown): ValidationError[] {
-  // Check required
-  const isRequired = field.required === true
-  const isEmpty = value === undefined || value === null || value === ''
+export type PayloadValidationResult =
+  | { success: true; data: FilledPayload }
+  | { success: false; errors: ValidationError[]; ruleErrors: RuleValidationResult[] }
 
-  if (isRequired && isEmpty) {
-    return [{
-      field: `fields.${fieldId}`,
-      message: `Field "${field.label || fieldId}" is required`,
-      value,
-    }]
-  }
-
-  // Skip further validation if empty and not required
-  if (isEmpty) {
-    return []
-  }
-
-  // Type-specific validation
-  switch (field.type) {
-    case 'text':
-    case 'email':
-    case 'uri':
-    case 'uuid':
-      if (typeof value !== 'string') {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `Expected string for "${field.label || fieldId}"`,
-          value,
-        }]
-      }
-      if ('minLength' in field && field.minLength !== undefined && value.length < field.minLength) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `"${field.label || fieldId}" must be at least ${field.minLength} characters`,
-          value,
-        }]
-      }
-      if ('maxLength' in field && field.maxLength !== undefined && value.length > field.maxLength) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `"${field.label || fieldId}" must be at most ${field.maxLength} characters`,
-          value,
-        }]
-      }
-      break
-
-    case 'number':
-    case 'percentage':
-    case 'rating':
-      if (typeof value !== 'number') {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `Expected number for "${field.label || fieldId}"`,
-          value,
-        }]
-      }
-      if ('min' in field && field.min !== undefined && value < field.min) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `"${field.label || fieldId}" must be at least ${field.min}`,
-          value,
-        }]
-      }
-      if ('max' in field && field.max !== undefined && value > field.max) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `"${field.label || fieldId}" must be at most ${field.max}`,
-          value,
-        }]
-      }
-      break
-
-    case 'boolean':
-      if (typeof value !== 'boolean') {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `Expected boolean for "${field.label || fieldId}"`,
-          value,
-        }]
-      }
-      break
-
-    case 'enum':
-      if (!field.enum.some((option) => option.value === value)) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `"${field.label || fieldId}" must be one of: ${field.enum.map((option) => option.label ?? String(option.value)).join(', ')}`,
-          value,
-        }]
-      }
-      break
-
-    case 'multiselect':
-      if (!Array.isArray(value)) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `Expected array for "${field.label || fieldId}"`,
-          value,
-        }]
-      }
-      for (const item of value) {
-        if (!field.enum.some((option) => option.value === item)) {
-          return [{
-            field: `fields.${fieldId}`,
-            message: `Invalid option in "${field.label || fieldId}": ${item}`,
-            value,
-          }]
-        }
-      }
-      break
-
-    // Composite types: check the shape against the compiled form schema
-    case 'coordinate':
-    case 'bbox':
-    case 'money':
-    case 'address':
-    case 'phone':
-    case 'person':
-    case 'organization':
-    case 'identification': {
-      if (typeof value !== 'object' || Array.isArray(value)) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `Expected object for "${field.label || fieldId}"`,
-          value,
-        }]
-      }
-      const result = validateFieldInput(form, { fieldPath: fieldId, value })
-      return result.success ? [] : result.errors.map((error) => ({ field: error.field, message: error.message }))
+/** Fill the form with the payload and validate it, as the SDK does. */
+export function validateFormPayload(formDef: Form, payload: Record<string, unknown>): PayloadValidationResult {
+  const filled = formApi.from(formDef).safeFill(payload as never)
+  if (!filled.success) {
+    if (filled.error instanceof FormValidationError) {
+      return { success: false, errors: filled.error.errors, ruleErrors: [] }
     }
-
-    case 'fieldset':
-      if (typeof value !== 'object' || value === null) {
-        return [{
-          field: `fields.${fieldId}`,
-          message: `Expected object for fieldset "${field.label || fieldId}"`,
-          value,
-        }]
-      }
-      // Recursively validate nested fields
-      if (field.fields) {
-        for (const [nestedId, nestedField] of Object.entries(field.fields)) {
-          const nestedValue = (value as Record<string, unknown>)[nestedId]
-          const errors = validateFieldValue(form, `${fieldId}.${nestedId}`, nestedField, nestedValue)
-          if (errors.length > 0) {
-            return errors
-          }
-        }
-      }
-      break
+    return { success: false, errors: [{ field: 'root', message: filled.error.message }], ruleErrors: [] }
   }
 
-  return []
-}
-
-/**
- * Validate instance data against a form definition.
- */
-export function validateInstanceData(form: Form, data: InstanceData): ValidationResult {
-  const errors: ValidationError[] = []
-
-  // Validate fields
-  if (form.fields) {
-    for (const [fieldId, field] of Object.entries(form.fields)) {
-      const value = data.fields[fieldId]
-      errors.push(...validateFieldValue(form, fieldId, field, value))
-    }
-  }
-
-  // Every supplied annex value must be an Attachment; null means empty.
-  for (const [annexId, annexValue] of Object.entries(data.annexes ?? {})) {
-    if (annexValue === undefined || annexValue === null) continue
-    const result = validateAnnexInput(form, { annexId, value: annexValue })
-    if (!result.success) errors.push(...result.errors)
-  }
-
-  // Validate annexes if form has required annexes
-  if (form.annexes) {
-    for (const [annexId, annex] of Object.entries(form.annexes) as [string, FormAnnex][]) {
-      const annexValue = data.annexes?.[annexId]
-      // Check if annex is required (boolean only, not expression)
-      const isRequired = annex.required === true
-      if (isRequired && (annexValue === undefined || annexValue === null)) {
-        errors.push({
-          field: `annexes.${annexId}`,
-          message: `Annex "${annex.title || annexId}" is required`,
-        })
-      }
-    }
-  }
-
-  if (errors.length > 0) {
-    return { success: false, errors }
+  const draft = filled.data
+  const result = draft.validate()
+  if (!result.valid) {
+    return { success: false, errors: result.errors, ruleErrors: result.rules.errors }
   }
 
   return {
     success: true,
-    data: data.fields,
-    errors: [],
+    data: {
+      fields: draft.fields,
+      ...(Object.keys(draft.parties).length > 0 && { parties: draft.parties }),
+      ...(Object.keys(draft.annexes).length > 0 && { annexes: draft.annexes }),
+    },
+  }
+}
+
+/** Print validation errors and failed rules, one per line. */
+export function printPayloadErrors(errors: ValidationError[], ruleErrors: RuleValidationResult[]): void {
+  for (const error of errors) {
+    console.error(`  - ${error.field || 'root'}: ${error.message}`)
+  }
+  for (const rule of ruleErrors) {
+    console.error(`  - rules.${rule.ruleId}: ${rule.message ?? 'Rule failed'}`)
   }
 }
