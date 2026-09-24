@@ -1,9 +1,6 @@
 /**
- * Fill-state engine — dependency extraction and state computation.
- *
- * Two responsibilities:
- * A. Static dependency extraction from form definition expressions
- * B. Runtime state computation from form + current data
+ * Fill-state engine — runtime state computation from a form and its current
+ * data. Static dependency extraction lives in `./dependency-graph`.
  */
 
 import type { Form, FormField, FieldsetField, Party, WitnessParty } from '@paradoc/types'
@@ -16,9 +13,7 @@ import type {
 } from './types'
 import type { EvaluationIssue, FormRuntimeState } from '@/logic/runtime/evaluation/types'
 import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
-import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 import { buildFormBaseContext } from '@/logic/runtime/evaluation/context-builder'
-import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { evaluateFormRules } from '@/logic/runtime/evaluation/rule-evaluator'
 import { evaluatePartyRequiredness } from '@/validation/party'
 import { buildFieldDependencyGraph, referencedIds, transitiveBlockers } from './dependency-graph'
@@ -54,86 +49,8 @@ function statusOf(visible: boolean, required: boolean): FillItemStatus {
 	return !visible ? 'hidden' : required ? 'required' : 'optional'
 }
 
-/** Known function names that should not be treated as field dependencies */
-const KNOWN_FUNCTIONS = new Set([
-	'partyCount',
-	'signedCount',
-	'allSigned',
-	'anySigned',
-	'partyType',
-	'witnessCount',
-	'allWitnessesSigned',
-	'anyWitnessSigned',
-])
-
 // ============================================================================
-// A. Dependency Extraction (static, from form definition)
-// ============================================================================
-
-/**
- * Extracts variables from a conditional expression (visible/required).
- * Filters out known functions and maps `fields.X` → `X`.
- */
-function extractDependencies(expr: boolean | string | undefined): string[] {
-	if (typeof expr !== 'string') return []
-
-	const result = parseExpression(expr)
-	if (!result.success) return []
-
-	const deps: string[] = []
-	for (const v of result.variables) {
-		if (KNOWN_FUNCTIONS.has(v)) continue
-		// Strip `fields.` prefix to get raw field id
-		if (v.startsWith('fields.')) {
-			deps.push(v.slice(7))
-		} else {
-			// Could be a defs key or bare field ref
-			deps.push(v)
-		}
-	}
-	return deps
-}
-
-/**
- * Builds a dependency map: targetId → Set of field/def ids it depends on for visibility.
- * Only visibility expressions matter for "blocked" computation. A reference into
- * a list's rows depends on the list field.
- */
-export function buildDependencyMap(form: Form): Map<string, Set<string>> {
-	const deps = new Map<string, Set<string>>()
-
-	// Walk fields (including nested fieldsets)
-	function walkFields(fields: Record<string, FormField> | undefined, prefix: string = '') {
-		if (!fields) return
-		for (const [fieldId, field] of Object.entries(fields)) {
-			const fullId = prefix ? `${prefix}.${fieldId}` : fieldId
-			const visibleDeps = extractDependencies(field.visible)
-			if (visibleDeps.length > 0) {
-				deps.set(fullId, new Set(visibleDeps.map((dep) => fillNodeOf(form.fields, dep))))
-			}
-			if (field.type === 'fieldset') {
-				walkFields((field as FieldsetField).fields, fullId)
-			}
-		}
-	}
-
-	walkFields(form.fields)
-
-	// Walk annexes
-	if (form.annexes) {
-		for (const [annexId, annex] of Object.entries(form.annexes)) {
-			const visibleDeps = extractDependencies(annex.visible)
-			if (visibleDeps.length > 0) {
-				deps.set(annexId, new Set(visibleDeps.map((dep) => fillNodeOf(form.fields, dep))))
-			}
-		}
-	}
-
-	return deps
-}
-
-// ============================================================================
-// B. State Computation (runtime, from form + current data)
+// State Computation (runtime, from form + current data)
 // ============================================================================
 
 /** Check if a value counts as "filled" */
@@ -531,32 +448,6 @@ export function computeFillState(
 		done,
 		candidates,
 		next: candidates[0] ?? null,
-	}
-}
-
-/**
- * Computes the RuntimeState from a form and data, with error fallback.
- */
-export function computeRuntimeState(
-	form: Form,
-	fieldValues: Record<string, unknown>,
-	partyValues: Record<string, Party | Party[]> = {},
-	witnesses: readonly WitnessParty[] = [],
-	context?: RuntimeContext,
-): FormRuntimeState {
-	const result = evaluateFormDefs(form, { fields: fieldValues, parties: partyValues, witnesses, context })
-	if ('value' in result) {
-		return result.value
-	}
-	return {
-		fields: new Map(),
-		annexes: new Map(),
-		defsValues: new Map(),
-		resolved: false,
-		issues: result.issues.map((issue) => ({
-			message: issue.message,
-			path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
-		})),
 	}
 }
 

@@ -83,9 +83,9 @@ describe('parseArtifact', () => {
     expect((error as Error).message).not.toContain('[object Object]')
   })
 
-  test('reports malformed serialized content clearly', () => {
+  test('reports malformed serialized content clearly, with the parser reason', () => {
     expect(() => parseArtifact('{ invalid json')).toThrow(
-      /Invalid artifact: Unable to detect format/,
+      /Invalid artifact: Unable to parse content as JSON or YAML: .+/,
     )
   })
 })

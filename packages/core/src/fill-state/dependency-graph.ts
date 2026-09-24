@@ -20,29 +20,16 @@ import { parseExpression } from '@/logic/design-time/validation/expression-parse
 import { topologicalSort } from '@/logic/shared/topological-sort'
 import { fillNodeOf } from '@/logic/shared/list-paths'
 
-/** Party/witness functions are not field dependencies. */
-const KNOWN_FUNCTIONS = new Set([
-	'partyCount',
-	'signedCount',
-	'allSigned',
-	'anySigned',
-	'partyType',
-	'witnessCount',
-	'allWitnessesSigned',
-	'anyWitnessSigned',
-])
-
-/** Field/def ids referenced by an expression (`fields.` stripped, functions dropped). */
+/**
+ * Field/def ids referenced by an expression (`fields.` stripped). `extractReferences`
+ * (`@paradoc/expr`) never visits a call's callee, so a function name can never
+ * appear in `result.variables` here.
+ */
 export function referencedIds(expr: boolean | string | undefined): string[] {
 	if (typeof expr !== 'string') return []
 	const result = parseExpression(expr)
 	if (!result.success) return []
-	const ids: string[] = []
-	for (const v of result.variables) {
-		if (KNOWN_FUNCTIONS.has(v)) continue
-		ids.push(v.startsWith('fields.') ? v.slice(7) : v)
-	}
-	return ids
+	return result.variables.map((v) => (v.startsWith('fields.') ? v.slice(7) : v))
 }
 
 function defExpressionRefs(expr: Expression): string[] {

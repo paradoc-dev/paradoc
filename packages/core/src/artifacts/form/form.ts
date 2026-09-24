@@ -1,8 +1,8 @@
 /**
  * Form Artifact - Closure-based implementation
  *
- * This replaces the class-based FormInstance, DraftForm, SignableForm, and ExecutedForm
- * with a single file using closures and composition.
+ * FormInstance, DraftForm, SignableForm, and ExecutedForm, in a single file
+ * using closures and composition.
  */
 
 import type {
@@ -103,7 +103,6 @@ import {
 } from './seal-renderer'
 import type {
 	FillOptions,
-	UpdateOptions,
 	FillTargetOptions,
 	FillTarget,
 	FillState,
@@ -1040,12 +1039,12 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	 * Merge a patch into current data and return a new DraftForm.
 	 * @throws FormValidationError if validation fails
 	 */
-	update(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): DraftForm<F>
+	update(patch: ProgressiveFormPayload<F>): DraftForm<F>
 
 	/**
 	 * Safely merge a patch, returning a result object instead of throwing.
 	 */
-	safeUpdate(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): SafeFillResult<F>
+	safeUpdate(patch: ProgressiveFormPayload<F>): SafeFillResult<F>
 
 	/**
 	 * Remove the stored value at a schema-qualified field or annex path.
@@ -2062,7 +2061,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		// Progressive Fill Methods (draft only)
 		// ============================================================================
 
-		update(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): DraftForm<F> {
+		update(patch: ProgressiveFormPayload<F>): DraftForm<F> {
 			ensureDraft('update')
 			assertKnownPayloadKeys(formDef, patch)
 
@@ -2102,10 +2101,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			return draft
 		},
 
-		safeUpdate(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): SafeFillResult<F> {
+		safeUpdate(patch: ProgressiveFormPayload<F>): SafeFillResult<F> {
 			ensureDraft('safeUpdate')
 			try {
-				const draft = runtime.update(patch, options)
+				const draft = runtime.update(patch)
 				return { success: true, data: draft }
 			} catch (err) {
 				return { success: false, error: err as Error }

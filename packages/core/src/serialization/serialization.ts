@@ -73,93 +73,45 @@ export function fromYAML<T = unknown>(content: string): T {
   }
 }
 
-/**
- * Check if string is valid YAML
- * @internal
- */
-function isYAML(content: string): boolean {
-  try {
-    parseYaml(content)
-    return true
-  } catch {
-    return false
-  }
-}
-
-// ============================================================================
-// JSON UTILITIES (Internal)
-// ============================================================================
-
-/**
- * Check if string is valid JSON
- * @internal
- */
-function isJSON(content: string): boolean {
-  try {
-    JSON.parse(content)
-    return true
-  } catch {
-    return false
-  }
-}
-
 // ============================================================================
 // FORMAT DETECTION & PARSING
 // ============================================================================
 
 /**
- * Detect whether string is JSON or YAML
- * @internal
- */
-function detectFormat(content: string): SerializationFormat | null {
-  const trimmed = content.trim()
-
-  // Empty content
-  if (!trimmed) {
-    return null
-  }
-
-  // Try JSON first (stricter format)
-  if (isJSON(trimmed)) {
-    return "json"
-  }
-
-  // Try YAML (more permissive)
-  if (isYAML(trimmed)) {
-    return "yaml"
-  }
-
-  return null
-}
-
-/**
- * Auto-detect format and parse string
+ * Auto-detect format and parse string.
+ *
+ * Tries JSON first (the stricter format), then falls back to YAML (a
+ * superset of JSON syntax) exactly once. If neither parses, the thrown
+ * `SerializationError` carries the YAML parser's own error - with its line
+ * and reason - as `cause` and in its message.
  *
  * @param content - String content to parse
  * @returns Parsed object
  * @throws {SerializationError} If content cannot be parsed as JSON or YAML
  */
 export function parse<T = unknown>(content: string): T {
-  const format = detectFormat(content)
-
-  if (format === "json") {
-    try {
-      return JSON.parse(content)
-    } catch (error) {
-      throw new SerializationError(
-        "Failed to parse JSON",
-        "json",
-        error as Error
-      )
-    }
+  if (!content.trim()) {
+    throw new SerializationError(
+      "Unable to parse content: content is empty",
+      "unknown"
+    )
   }
 
-  if (format === "yaml") {
-    return fromYAML<T>(content)
+  try {
+    return JSON.parse(content)
+  } catch {
+    // Not JSON - fall through to YAML, which accepts anything JSON.parse
+    // rejects that is still valid YAML (including plain JSON).
   }
 
-  throw new SerializationError(
-    "Unable to detect format - content is neither valid JSON nor YAML",
-    "unknown"
-  )
+  try {
+    return parseYaml(content) as T
+  } catch (error) {
+    const cause = error as Error
+    throw new SerializationError(
+      `Unable to parse content as JSON or YAML: ${cause.message}`,
+      "unknown",
+      cause
+    )
+  }
 }

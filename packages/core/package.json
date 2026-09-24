@@ -21,7 +21,6 @@
   ],
   "keywords": [
     "paradoc",
-    "paradoc",
     "forms",
     "schema",
     "validation",
@@ -29,7 +28,6 @@
     "documents-as-code",
     "artifacts",
     "pdf",
-    "typebox",
     "json-schema"
   ],
   "license": "MIT",
@@ -54,7 +52,6 @@
   },
   "scripts": {
     "build": "tsup",
-    "postbuild": "node scripts/fix-json-imports.mjs",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "prebuild": "pnpm run clean",
@@ -86,7 +83,6 @@
     "eslint": "catalog:",
     "fflate": "^0.8.3",
     "tsup": "catalog:",
-    "tsx": "^4.20.6",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

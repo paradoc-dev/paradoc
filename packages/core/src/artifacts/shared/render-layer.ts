@@ -62,9 +62,9 @@ export interface ArtifactLayerRenderOptions {
 }
 
 /**
- * Options for the free `renderLayer` / `resolveAndRenderLayer` primitives,
- * which read a bare layers record rather than an artifact instance and so are
- * handed the resolver directly.
+ * Options for the free `renderLayer` primitive, which reads a bare layers
+ * record rather than an artifact instance and so is handed the resolver
+ * directly.
  */
 export interface LayerRenderOptions extends ArtifactLayerRenderOptions {
 	/** Reads the bytes of a file-backed layer. */
@@ -279,27 +279,7 @@ async function readLayerContent(
 }
 
 /**
- * Convenience function that resolves the layer key and renders in one call.
- *
- * @param layers - The layers record from the artifact
- * @param targetLayer - Current target layer
- * @param defaultLayer - Default layer from artifact
- * @param options - Render options
- * @returns Promise resolving to layer content
- */
-export async function resolveAndRenderLayer(
-	layers: Record<string, Layer> | undefined,
-	targetLayer: string | undefined,
-	defaultLayer: string | undefined,
-	options?: LayerRenderOptions,
-	context?: LayerRenderContext,
-): Promise<string | Uint8Array> {
-	const key = resolveLayerKey(layers, targetLayer, defaultLayer, options)
-	return renderLayerAt(layers, key, 'layers', options, context)
-}
-
-/**
- * `resolveAndRenderLayer` for an artifact rendering its own layer.
+ * Resolves the layer key and renders it, for an artifact rendering its own layer.
  *
  * Not part of the package's public surface: it exists because a `Document`
  * resolves its layer through these primitives while carrying a resolver bound

@@ -6,6 +6,7 @@
  */
 
 import type {
+	CondExpr,
 	FormField,
 	FieldsetField,
 	TextField,
@@ -46,9 +47,6 @@ import type {
 
 import { parseFormField } from '@/validation/artifact-parsers';
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable';
-
-// Condition expression type (boolean or string expression)
-type CondExpr = boolean | string;
 
 type BuiltField<F extends FormField, R extends CondExpr | undefined> = R extends undefined
 	? F

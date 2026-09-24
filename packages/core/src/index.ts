@@ -54,14 +54,10 @@ export {
   runtimeBundleFromJSON,
   runtimeContentFromJSON,
   assertBundleInclusionResolved,
-  decisionForKey,
   evaluateBundleInclusion,
-  includedRuntimeContents,
   // Shared utilities
-  withArtifactMethods,
   renderLayer,
   resolveLayerKey,
-  resolveAndRenderLayer,
   UnboundResolverError,
   // Unified namespace
   p,
@@ -106,7 +102,6 @@ export type {
   ProgressiveChecklistPayload,
   ChecklistPath,
 	ChecklistFillOptions,
-  ChecklistUpdateOptions,
   ChecklistValidationResult,
   ChecklistFillTarget,
   ChecklistFillItemState,
@@ -126,12 +121,9 @@ export type {
   RuntimeBundleRenderOptions,
   RuntimeBundleRenderedOutput,
   RuntimeBundleRendered,
-  BundleBytesMember,
-  BundleEvaluationMember,
   BundleInclusionDecision,
   BundleInclusionState,
   BundleInclusionStatus,
-  BundleRuntimeMember,
   // Shared types
   ArtifactMethods,
   ArtifactInstanceOptions,
@@ -390,17 +382,8 @@ export * from "./migration";
 // FILL STATE (Progressive Filling)
 // ============================================================================
 
-export {
-  buildDependencyMap,
-  computeFillState,
-  computeRuntimeState,
-  getAvailableFillTargets,
-  getNextFillTarget,
-} from "./fill-state";
-
 export type {
 	FillOptions,
-  UpdateOptions,
   FillTargetOptions,
   FillTargetKind,
   FillTarget,

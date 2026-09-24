@@ -8,14 +8,11 @@
  * - Clean separation of types from implementations
  */
 
-import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type {
   Form,
   Document,
   Bundle,
   Checklist,
-  Artifact,
-  Metadata,
   ParadocRenderer,
   RendererLayer,
   Formatter,
@@ -126,82 +123,12 @@ export type SerializationFormat = 'json' | 'yaml'
  * Options for serializing artifacts to JSON or YAML.
  */
 export interface SerializationOptions {
-  /** Number of spaces for JSON indentation (default: 2) */
-  indent?: number
   /** YAML indentation (default: 2) */
   yamlIndent?: number
   /** Sort object keys alphabetically */
   sortKeys?: boolean
   /** Include the current dated `$schema` address (default: true) */
   includeSchema?: boolean
-}
-
-// ============================================================================
-// ARTIFACT INSTANCE INTERFACE
-// ============================================================================
-
-/**
- * Base interface for all artifact instances.
- * Defines the common API that all artifact wrapper classes implement.
- *
- * @typeParam T - The artifact type (Form, Document, Bundle, Checklist)
- */
-export interface IArtifactInstance<T extends Artifact> {
-  /** Artifact kind discriminator ('form', 'document', 'bundle', 'checklist'). */
-  readonly kind: T['kind']
-
-  /** Unique identifier/slug. */
-  readonly name: string
-
-  /** Semantic version string. */
-  readonly version: string | undefined
-
-  /** Human-friendly title. */
-  readonly title: string | undefined
-
-  /** Optional description. */
-  readonly description: string | undefined
-
-  /** Optional internal code. */
-  readonly code: string | undefined
-
-  /** Optional BCP 47-style source language. */
-  readonly language: string | undefined
-
-  /** Optional release date (ISO string). */
-  readonly releaseDate: string | undefined
-
-  /** Optional custom metadata. */
-  readonly metadata: Metadata | undefined
-
-  /**
-   * Validates the artifact schema definition.
-   * Returns a Standard Schema result with either `value` or `issues`.
-   */
-  validate(options?: ValidateOptions): StandardSchemaV1.Result<T>
-
-  /**
-   * Checks if the artifact schema definition is valid.
-   * Returns true if valid, false otherwise.
-   */
-  isValid(options?: ValidateOptions): boolean
-
-  /**
-   * Serialize to JSON object. Called by JSON.stringify().
-   * @param options - Serialization options (includeSchema defaults to true)
-   */
-  toJSON(options?: SerializationOptions): T
-
-  /**
-   * Serialize to YAML string.
-   * @param options - Serialization options (includeSchema defaults to true)
-   */
-  toYAML(options?: SerializationOptions): string
-
-  /**
-   * Create an exact copy of this instance.
-   */
-  clone(): IArtifactInstance<T>
 }
 
 // ============================================================================

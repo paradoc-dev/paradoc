@@ -4,11 +4,8 @@
  * Uses factory function and object literal instead of class.
  */
 
-import type { FormAnnex } from '@paradoc/types';
+import type { CondExpr, FormAnnex } from '@paradoc/types';
 import { parseFormAnnex } from '@/validation/artifact-parsers';
-
-// Condition expression type (boolean or string expression)
-type CondExpr = boolean | string;
 
 type BuiltAnnex<R extends CondExpr | undefined> = R extends undefined
 	? FormAnnex

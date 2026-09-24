@@ -1,8 +1,8 @@
 /**
  * Checklist Artifact - Closure-based implementation
  *
- * This replaces the class-based ChecklistInstance, DraftChecklist, and CompletedChecklist
- * with a single file using closures and composition.
+ * ChecklistInstance, DraftChecklist, and CompletedChecklist, in a single
+ * file using closures and composition.
  */
 
 import type { Checklist, ChecklistData, ChecklistItem, ChecklistPhase, Layer, Metadata, ContentRef, Resolver, RuntimeChecklistJSON } from '@paradoc/types'
@@ -14,6 +14,7 @@ import { parseChecklist, parseChecklistItem, parseLayer } from '@/validation/art
 import {
 	validateChecklistItemInput,
 	validateChecklistItemsPatch,
+	validateChecklistItemValue,
 	type ChecklistItemInputValidationInput,
 	type ProgressiveValidationResult,
 } from '@/validation'
@@ -93,8 +94,6 @@ export interface ChecklistFillOptions {
 	/** Fixed context captured by the new runtime instance. */
 	context?: RuntimeContextOptions
 }
-
-export interface ChecklistUpdateOptions {}
 
 /** Result returned by checklist validate(). */
 export interface ChecklistValidationResult {
@@ -290,19 +289,11 @@ export interface DraftChecklist<C extends Checklist> extends RuntimeChecklistBas
 		value: InferChecklistPayload<C>[K],
 	): DraftChecklist<C>
 
-	/**
-	 * Create a new RuntimeChecklist with multiple items updated.
-	 */
-	updateItems(updates: Partial<InferChecklistPayload<C>>): DraftChecklist<C>
-
 	/** Merge a progressive item patch into this draft. */
-	update(patch: ProgressiveChecklistPayload<C>, options?: ChecklistUpdateOptions): DraftChecklist<C>
+	update(patch: ProgressiveChecklistPayload<C>): DraftChecklist<C>
 
 	/** Safely merge a progressive item patch into this draft. */
-	safeUpdate(
-		patch: ProgressiveChecklistPayload<C>,
-		options?: ChecklistUpdateOptions,
-	): { success: true; data: DraftChecklist<C> } | { success: false; error: Error }
+	safeUpdate(patch: ProgressiveChecklistPayload<C>): { success: true; data: DraftChecklist<C> } | { success: false; error: Error }
 
 	/** Remove one declared item answer. */
 	clear(path: ChecklistPath<C>): DraftChecklist<C>
@@ -360,22 +351,9 @@ export type RuntimeChecklist<C extends Checklist> = DraftChecklist<C> | Complete
 // Item Validation Helper
 // ============================================================================
 
-function validateItemValue(itemId: string, value: unknown, itemDef: ChecklistItem): void {
-	const status = itemDef.status ?? { kind: 'boolean' as const }
-
-	if (status.kind === 'boolean') {
-		if (typeof value !== 'boolean') {
-			throw new Error(`Invalid value for item "${itemId}": expected boolean, got ${typeof value}`)
-		}
-	} else if (status.kind === 'enum') {
-		if (typeof value !== 'string') {
-			throw new Error(`Invalid value for item "${itemId}": expected string, got ${typeof value}`)
-		}
-		const validValues = status.options.map((o) => o.value)
-		if (!validValues.includes(value)) {
-			throw new Error(`Invalid value for item "${itemId}": "${value}" is not in [${validValues.join(', ')}]`)
-		}
-	}
+function assertValidItemValue(itemId: string, value: unknown, itemDef: ChecklistItem): void {
+	const result = validateChecklistItemValue(itemId, value, itemDef)
+	if (!result.success) throw checklistValidationError(result.errors)
 }
 
 function checklistValidationError(errors: ValidationError[]): Error {
@@ -416,7 +394,7 @@ interface RuntimeChecklistConfigDraft<C extends Checklist> {
 	context: RuntimeContext
 	/** Reads the bytes of file-backed layers. Bound at construction. */
 	resolver?: Resolver
-	/** Skip answer validation for an explicitly requested validate:none draft. */
+	/** Skip re-validating item values already known to be valid (used internally when deriving a draft from validated state). */
 	validateItems?: boolean
 	completedAt?: undefined
 }
@@ -472,7 +450,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			const validIds = Array.from(itemDefs.keys())
 			throw new Error(`Unknown item "${itemId}". Valid item IDs are: [${validIds.join(', ')}]`)
 		}
-		if (validateItems) validateItemValue(itemId, value, itemDef)
+		if (validateItems) assertValidItemValue(itemId, value, itemDef)
 		validatedItems.set(itemId, value)
 	}
 
@@ -510,14 +488,8 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 				})
 				continue
 			}
-			try {
-				validateItemValue(item.id, validatedItems.get(item.id), item)
-			} catch (error) {
-				errors.push({
-					field: `items.${item.id}`,
-					message: error instanceof Error ? error.message : String(error),
-				})
-			}
+			const result = validateChecklistItemValue(item.id, validatedItems.get(item.id), item)
+			if (!result.success) errors.push(...result.errors)
 		}
 		return { valid: errors.length === 0, errors }
 	}
@@ -605,7 +577,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 				if (!itemDef) {
 					throw new Error(`Unknown item "${itemId}". Valid item IDs are: [${Array.from(itemDefs.keys()).join(', ')}]`)
 				}
-				validateItemValue(itemId, value, itemDef)
+				assertValidItemValue(itemId, value, itemDef)
 				const newItems = { ...getAllItems(), [itemId]: value }
 				return createRuntimeChecklist({
 					checklist: checklistDef,
@@ -617,11 +589,7 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 				})
 			},
 
-			updateItems(updates: Partial<InferChecklistPayload<C>>): DraftChecklist<C> {
-				return draft.update(updates)
-			},
-
-			update(patch: ProgressiveChecklistPayload<C>, options?: ChecklistUpdateOptions): DraftChecklist<C> {
+			update(patch: ProgressiveChecklistPayload<C>): DraftChecklist<C> {
 				const patchRecord = (patch ?? {}) as Record<string, unknown>
 				const result = validateChecklistItemsPatch(checklistDef, patchRecord)
 				if (!result.success) throw checklistValidationError(result.errors)
@@ -639,10 +607,9 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 
 			safeUpdate(
 				patch: ProgressiveChecklistPayload<C>,
-				options?: ChecklistUpdateOptions,
 			): { success: true; data: DraftChecklist<C> } | { success: false; error: Error } {
 				try {
-					return { success: true, data: draft.update(patch, options) }
+					return { success: true, data: draft.update(patch) }
 				} catch (error) {
 					return { success: false, error: error as Error }
 				}

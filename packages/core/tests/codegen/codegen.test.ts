@@ -232,15 +232,7 @@ describe('codegen', () => {
 				expect(result).toContain('* DO NOT EDIT')
 			})
 
-			test('imports schema from JSON path when provided', () => {
-				const result = jsonToTsModule(
-					{ kind: 'form', name: 'w9' },
-					{ artifactKind: 'form', exportName: 'w9', jsonImportPath: './w9.json' }
-				)
-				expect(result).toContain("import schema from './w9.json';")
-			})
-
-			test('embeds schema inline when no JSON path provided', () => {
+			test('embeds schema inline', () => {
 				const schema = { kind: 'form', name: 'test' }
 				const result = jsonToTsModule(
 					schema,
@@ -367,33 +359,6 @@ describe('codegen', () => {
 		})
 
 		describe('complete output', () => {
-			test('generates complete TypeScript module for form with JSON import', () => {
-				const result = jsonToTsModule(
-					{
-						kind: 'form',
-						name: 'w9',
-						version: '1.0.0',
-						title: 'W-9 Form',
-						fields: {
-							taxpayerName: { type: 'text', label: 'Taxpayer Name' },
-						},
-					},
-					{
-						artifactKind: 'form',
-						exportName: 'w9',
-						jsonImportPath: './w9.json',
-					}
-				)
-
-				// Should have all expected parts
-				expect(result).toContain('Auto-generated TypeScript module')
-				expect(result).toContain("import schema from './w9.json';")
-				expect(result).toContain("import { p } from '@paradoc/sdk';")
-				expect(result).toContain('export const w9 = p.form(schema);')
-				expect(result).toContain('export type W9Form = typeof w9;')
-				expect(result).toContain('export type W9Payload = Parameters<typeof w9.fill>[0];')
-			})
-
 			test('generates complete TypeScript module for form with embedded schema', () => {
 				const schema = {
 					kind: 'form',
@@ -416,6 +381,38 @@ describe('codegen', () => {
 				// Should have exports
 				expect(result).toContain('export const simpleForm = p.form(schema);')
 				expect(result).toContain('export type SimpleFormForm = typeof simpleForm;')
+			})
+		})
+
+		// core-075: an artifact whose name starts with a digit (e.g. "1099-nec",
+		// camelCased to "1099Nec" by the CLI) must not produce an invalid identifier.
+		describe('identifier safety (core-075)', () => {
+			test('prefixes a digit-leading export name so the module parses', () => {
+				const result = jsonToTsModule(
+					{ kind: 'form', name: '1099-nec' },
+					{ artifactKind: 'form', exportName: '1099Nec' }
+				)
+				expect(result).toContain('export const _1099Nec = p.form(schema);')
+				expect(result).toContain('export type _1099NecForm = typeof _1099Nec;')
+				expect(result).not.toMatch(/export const 1099Nec/)
+			})
+
+			test('the generated module has no TypeScript syntax errors', async () => {
+				const ts = await import('typescript')
+				const result = jsonToTsModule(
+					{ kind: 'form', name: '1099-nec' },
+					{ artifactKind: 'form', exportName: '1099Nec' }
+				)
+				const { diagnostics } = ts.transpileModule(result, {
+					reportDiagnostics: true,
+					compilerOptions: { module: ts.ModuleKind.ESNext },
+				})
+				expect(diagnostics ?? []).toEqual([])
+			})
+
+			test('leaves a valid export name untouched', () => {
+				const result = jsonToTsModule({ kind: 'form', name: 'w9' }, { artifactKind: 'form', exportName: 'w9' })
+				expect(result).toContain('export const w9 = p.form(schema);')
 			})
 		})
 	})

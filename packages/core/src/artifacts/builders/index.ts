@@ -1,9 +1,8 @@
 /**
  * Closure-based builders for artifacts.
  *
- * This module provides all form-related builders using the closure/object pattern
- * instead of JavaScript classes. This makes artifacts completely independent
- * from the class-based artifacts/ implementation.
+ * This module provides all form-related builders using the closure/object
+ * pattern instead of JavaScript classes.
  */
 
 // Re-export all builders
@@ -85,5 +84,5 @@ export {
 	type AnnexBuilder,
 } from './annex';
 
-// Note: The complete `open` namespace is exported from artifacts/index.ts
+// Note: The complete `p` namespace is exported from artifacts/index.ts,
 // which includes form, document, checklist, and bundle in addition to these builders

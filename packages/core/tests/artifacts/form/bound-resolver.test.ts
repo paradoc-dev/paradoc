@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { form, p, renderLayer, UnboundResolverError } from '@/artifacts'
-import { BundleResolverError, loadFromObject } from '@/serialization'
+import { BundleResolverError, LoadError, load, safeLoad, loadFromObject } from '@/serialization'
 import { createMemoryResolver } from '@paradoc/resolvers/memory'
 
 /**
@@ -189,5 +189,21 @@ describe('a bundle offered a resolver', () => {
 
 	test('loads without one', () => {
 		expect(loadFromObject(bundleDefinition as unknown).kind).toBe('bundle')
+	})
+
+	// core-086: BundleResolverError extends LoadError, so safeLoad no longer
+	// re-wraps it and callers keep its specific type.
+	test('is itself a LoadError (core-086)', () => {
+		expect(() => load('kind: bundle\nname: x', { resolver })).toThrow(LoadError)
+		expect(() => load('kind: bundle\nname: x', { resolver })).toThrow(BundleResolverError)
+	})
+
+	test('safeLoad preserves the BundleResolverError type (core-086)', () => {
+		const result = safeLoad('kind: bundle\nname: x', { resolver })
+		expect(result.success).toBe(false)
+		if (!result.success) {
+			expect(result.error).toBeInstanceOf(BundleResolverError)
+			expect(result.error.name).toBe('BundleResolverError')
+		}
 	})
 })

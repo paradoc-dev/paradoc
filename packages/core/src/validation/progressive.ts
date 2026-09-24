@@ -261,7 +261,7 @@ function getChecklistItemDefinitions(checklist: Checklist): Map<string, Checklis
 	return map
 }
 
-function validateChecklistItemValue(
+export function validateChecklistItemValue(
 	itemId: string,
 	value: unknown,
 	itemDef: ChecklistItem,

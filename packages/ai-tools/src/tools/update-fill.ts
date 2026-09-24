@@ -11,7 +11,7 @@ function contextOptions(value: unknown): { context?: import('@paradoc/core').Run
 }
 
 type FormDraftLike = {
-	safeUpdate: (patch: never, options: object) => { success: true; data: FormDraftLike } | { success: false; error: Error }
+	safeUpdate: (patch: never) => { success: true; data: FormDraftLike } | { success: false; error: Error }
 	clear: (path: string) => FormDraftLike
 	reset: (path: string) => FormDraftLike
 	isValid: () => boolean
@@ -37,7 +37,7 @@ export async function executeUpdateFill(
 			if (!initial.success) return { accepted: false, complete: false, artifact_kind: 'form', errors: errorList(initial.error), error: errorFromUnknown(initial.error, 'validation_error') }
 			let draft = initial.data as unknown as FormDraftLike
 			if (normalized.patch !== undefined) {
-				const updated = draft.safeUpdate(asFormPayload(normalized.patch) as never, {})
+				const updated = draft.safeUpdate(asFormPayload(normalized.patch) as never)
 				if (!updated.success) return { accepted: false, complete: false, artifact_kind: 'form', errors: errorList(updated.error), error: errorFromUnknown(updated.error, 'validation_error') }
 				draft = updated.data
 			}
@@ -52,7 +52,7 @@ export async function executeUpdateFill(
 			if (!initial.success) return { accepted: false, complete: false, artifact_kind: 'checklist', errors: errorList(initial.error), error: errorFromUnknown(initial.error, 'validation_error') }
 			let draft = initial.data
 			if (normalized.patch !== undefined) {
-				const updated = draft.safeUpdate(asChecklistPayload(normalized.patch), {})
+				const updated = draft.safeUpdate(asChecklistPayload(normalized.patch))
 				if (!updated.success) return { accepted: false, complete: false, artifact_kind: 'checklist', errors: errorList(updated.error), error: errorFromUnknown(updated.error, 'validation_error') }
 				draft = updated.data
 			}

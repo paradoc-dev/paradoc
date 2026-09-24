@@ -1,19 +1,17 @@
 /**
- * Artifacts-2: Closure-based artifact implementations
+ * Artifacts: closure-based implementations of Paradoc's form, document,
+ * bundle, and checklist artifacts, built from factory functions and
+ * composition rather than class inheritance.
  *
- * This module provides closure-based implementations of Paradoc artifacts,
- * replacing the class-based implementations with factory functions and composition.
- *
- * Key benefits:
+ * Key characteristics:
  * - Reduced code duplication through shared render-layer and artifact-methods utilities
  * - Unified runtime objects (RuntimeDocument, RuntimeChecklist) instead of separate draft/final classes
  * - No class inheritance, just composition via withArtifactMethods()
  * - Smaller bundle size due to eliminated class overhead
- * - Complete independence from artifacts/ - no imports from class-based implementations
  */
 
 // Shared utilities
-export { withArtifactMethods, renderLayer, resolveLayerKey, resolveAndRenderLayer, UnboundResolverError } from './shared'
+export { renderLayer, resolveLayerKey, UnboundResolverError } from './shared'
 export type {
 	ArtifactMethods,
 	ArtifactInstanceOptions,
@@ -134,7 +132,6 @@ export type {
 	ProgressiveChecklistPayload,
 	ChecklistPath,
 	ChecklistFillOptions,
-	ChecklistUpdateOptions,
 	ChecklistValidationResult,
 	ChecklistFillTarget,
 	ChecklistFillItemState,
@@ -174,19 +171,11 @@ export type {
 
 // Bundle artifact
 export { bundle, runtimeBundleFromJSON, runtimeContentFromJSON } from './bundle'
-export {
-	assertBundleInclusionResolved,
-	decisionForKey,
-	evaluateBundleInclusion,
-	includedRuntimeContents,
-} from './bundle/inclusion'
+export { assertBundleInclusionResolved, evaluateBundleInclusion } from './bundle/inclusion'
 export type {
-	BundleBytesMember,
-	BundleEvaluationMember,
 	BundleInclusionDecision,
 	BundleInclusionState,
 	BundleInclusionStatus,
-	BundleRuntimeMember,
 } from './bundle/inclusion'
 export type {
 	BundleInstance,
@@ -281,32 +270,7 @@ export const p = {
 	party,
 
 	// Field builders for all supported field types
-	field: {
-		...field,
-		text: field.text,
-		boolean: field.boolean,
-		number: field.number,
-		coordinate: field.coordinate,
-		bbox: field.bbox,
-		money: field.money,
-		address: field.address,
-		phone: field.phone,
-		duration: field.duration,
-		email: field.email,
-		uuid: field.uuid,
-		uri: field.uri,
-		enum: field.enum,
-		date: field.date,
-		datetime: field.datetime,
-		time: field.time,
-		person: field.person,
-		organization: field.organization,
-		identification: field.identification,
-		multiselect: field.multiselect,
-		percentage: field.percentage,
-		rating: field.rating,
-		fieldset: field.fieldset,
-	},
+	field,
 
 	// Annex/attachment slot builder
 	annex,

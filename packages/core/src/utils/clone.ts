@@ -1,17 +1,15 @@
 /**
  * Deep Clone Utility
  *
- * Provides a consistent deep cloning function across the codebase.
- * Uses structuredClone when available (Node 17+, modern browsers),
- * falls back to JSON parse/stringify for older environments.
+ * Provides a consistent deep cloning function across the codebase, using the
+ * global `structuredClone` (available in every runtime this package supports:
+ * Node >=18, and every current browser).
  */
 
 /**
- * Creates a deep clone of a value.
- *
- * Uses `structuredClone` when available for better performance and
- * proper handling of more types (Date, RegExp, Map, Set, etc.).
- * Falls back to JSON serialization for older environments.
+ * Creates a deep clone of a value using `structuredClone`, which correctly
+ * handles Date, RegExp, Map, Set, typed arrays, and other structured-clonable
+ * types (unlike a JSON round-trip, which would lose or coerce them).
  *
  * @param value - The value to clone
  * @returns A deep clone of the value
@@ -23,21 +21,9 @@
  * cloned.address.city = 'LA'
  * // original.address.city is still 'NYC'
  * ```
- *
- * @remarks
- * The JSON fallback has limitations:
- * - Loses non-JSON types (Date becomes string, undefined is dropped)
- * - Fails on circular references
- * - Functions are not cloned
- *
- * For Paradoc's use cases (cloning form data, schema objects),
- * these limitations are acceptable as the data is JSON-compatible.
  */
 export function deepClone<T>(value: T): T {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(value)
-  }
-  return JSON.parse(JSON.stringify(value))
+  return structuredClone(value)
 }
 
 /**

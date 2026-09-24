@@ -1,8 +1,8 @@
 /**
  * Bundle Artifact - Closure-based implementation
  *
- * This replaces the class-based BundleInstance, DraftBundle, SignableBundle, and ExecutedBundle
- * with a single file using closures and composition.
+ * BundleInstance, DraftBundle, SignableBundle, and ExecutedBundle, in a
+ * single file using closures and composition.
  */
 
 import type {

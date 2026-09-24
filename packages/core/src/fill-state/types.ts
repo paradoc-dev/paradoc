@@ -16,12 +16,6 @@ export interface FillOptions {
 }
 
 /**
- * Options for update / safeUpdate on DraftForm.
- */
-export interface UpdateOptions {
-}
-
-/**
  * Options for getFillState / getAvailableFillTargets.
  */
 export interface FillTargetOptions {

@@ -150,17 +150,21 @@ export function rowConditionsOfExpression(fields: Fields, expression: string): s
 
 /**
  * The fill-state node a field id belongs to. List rows are not graph nodes, so
- * an id inside a list's item (`items.amount`) resolves to the list (`items`);
- * every other id is returned unchanged.
+ * an id inside a list's item (`items.amount`) resolves to the list (`items`).
+ * A reference into a composite field's members (`addr.region`) resolves to
+ * the composite field itself (`addr`), since only the field is a graph node.
+ * An id whose first segment is not a known field (a def, a party role, ...)
+ * is returned unchanged.
  */
 export function fillNodeOf(fields: Fields, id: string): string {
 	const segments = id.split('.')
 	let scope = fields
 	for (let i = 0; i < segments.length; i++) {
 		const field = scope?.[segments[i]!]
-		if (!field) return id
+		if (!field) return i === 0 ? id : segments.slice(0, i).join('.')
 		if (field.type === 'list') return segments.slice(0, i + 1).join('.')
-		scope = field.type === 'fieldset' ? field.fields : undefined
+		if (field.type !== 'fieldset') return segments.slice(0, i + 1).join('.')
+		scope = field.fields
 	}
 	return id
 }

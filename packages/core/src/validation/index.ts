@@ -82,6 +82,7 @@ export {
   validateAnnexesPatch,
   validateChecklistItemInput,
   validateChecklistItemsPatch,
+  validateChecklistItemValue,
 } from './progressive'
 export type {
   ProgressiveValidationResult,

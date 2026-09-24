@@ -104,7 +104,6 @@ export function createGenerateCommand(): Command {
           const tsContent = jsonToTsModule(artifact, {
             artifactKind,
             exportName: toCamelCase(baseFileName),
-            // No jsonImportPath - embed inline for type safety
           })
 
           await storage.writeFile(tsPath, tsContent)

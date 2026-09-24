@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
-import { checklist, runtimeChecklistFromJSON } from '@/artifacts'
+import { checklist, runtimeChecklistFromJSON, ChecklistValidationError } from '@/artifacts'
 
 /**
  * Tests for closure-based checklist implementation (closure-based).
@@ -335,13 +335,20 @@ describe('closure-based Checklist', () => {
 				expect(draft.getItem('item1' as any)).toBe(false) // original unchanged
 			})
 
+			test('rejects a value of the wrong type with ChecklistValidationError', () => {
+				const instance = createChecklistWithItems()
+				const draft = instance.fill({ item1: false, item2: false } as any)
+
+				expect(() => (draft.setItem as any)('item1', 'not-a-boolean')).toThrow(ChecklistValidationError)
+			})
+
 		})
 
-		describe('updateItems()', () => {
+		describe('update()', () => {
 			test('returns new runtime with multiple items updated', () => {
 				const instance = createChecklistWithItems()
 				const draft = instance.fill({ item1: false, item2: false } as any)
-				const updated = draft.updateItems({ item1: true, item2: true } as any)
+				const updated = draft.update({ item1: true, item2: true } as any)
 
 				expect(updated.getAllItems()).toEqual({ item1: true, item2: true })
 			})

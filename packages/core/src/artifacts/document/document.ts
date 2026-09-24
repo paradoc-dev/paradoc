@@ -1,8 +1,8 @@
 /**
  * Document Artifact - Closure-based implementation
  *
- * This replaces the class-based DocumentInstance, DraftDocument, and FinalDocument
- * with a single file using closures and composition.
+ * DocumentInstance, DraftDocument, and FinalDocument, in a single file using
+ * closures and composition.
  */
 
 import type {

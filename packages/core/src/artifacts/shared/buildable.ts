@@ -6,12 +6,6 @@
 
 export type Buildable<T> = T | { build(): T };
 
-export type BuildableRecord<T extends Record<string, unknown>> = {
-	[K in keyof T]: Buildable<T[K]>;
-};
-
-export type BuildableArray<T> = Array<Buildable<T>>;
-
 const hasBuildMethod = (value: unknown): value is { build: () => unknown } => {
 	if (
 		(value !== null && typeof value === 'object') ||

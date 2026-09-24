@@ -30,7 +30,7 @@ export type AnyArtifactInstance =
  * overloads of the loaders take no options at all; this catches the untyped
  * path, where the kind is only known once the object is parsed.
  */
-export class BundleResolverError extends Error {
+export class BundleResolverError extends LoadError {
   constructor() {
     super(
       'A bundle takes no resolver: its parts are artifact instances that each carry the ' +

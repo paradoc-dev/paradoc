@@ -4,11 +4,8 @@
  * Uses factory function and object literal instead of class.
  */
 
-import type { FormParty, FormPayment, FormSignature } from '@paradoc/types';
+import type { CondExpr, FormParty, FormPayment, FormSignature } from '@paradoc/types';
 import { parseFormParty } from '@/validation/artifact-parsers';
-
-// Condition expression type (boolean or string expression)
-type CondExpr = boolean | string;
 
 type BuiltParty<R extends CondExpr | undefined> = R extends undefined
 	? FormParty

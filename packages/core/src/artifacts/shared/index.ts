@@ -5,7 +5,7 @@
 export { withArtifactMethods } from './artifact-methods'
 export type { ArtifactMethods } from './artifact-methods'
 
-export { renderLayer, resolveLayerKey, resolveAndRenderLayer, UnboundResolverError } from './render-layer'
+export { renderLayer, resolveLayerKey, UnboundResolverError } from './render-layer'
 export type {
 	ArtifactInstanceOptions,
 	ArtifactLayerRenderOptions,
@@ -14,4 +14,4 @@ export type {
 } from './render-layer'
 
 export { resolveBuildable } from './buildable'
-export type { Buildable, BuildableRecord, BuildableArray } from './buildable'
+export type { Buildable } from './buildable'

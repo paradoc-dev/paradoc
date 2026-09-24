@@ -21,12 +21,6 @@ export interface JsonToTsModuleOptions {
 	 * @example 'w9' will generate `export const w9 = p.form(...)`
 	 */
 	exportName: string
-
-	/**
-	 * Optional path to the JSON file (for import statement)
-	 * If not provided, the schema will be embedded inline
-	 */
-	jsonImportPath?: string
 }
 
 /**
@@ -159,10 +153,9 @@ export function jsonToDts(value: unknown, moduleName?: string): string {
  * const tsModule = jsonToTsModule(w9Schema, {
  *   artifactKind: 'form',
  *   exportName: 'w9',
- *   jsonImportPath: './w9.json'
  * })
  * // Generates:
- * // import schema from './w9.json';
+ * // const schema = { ... } as const;
  * // import { p } from '@paradoc/sdk';
  * //
  * // export const w9 = p.form(schema);
@@ -170,8 +163,22 @@ export function jsonToDts(value: unknown, moduleName?: string): string {
  * // export type W9Payload = Parameters<typeof w9.fill>[0];
  * ```
  */
+const IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/
+
+/**
+ * Turn an arbitrary string into a valid TypeScript identifier, prefixing
+ * with `_` when it would otherwise start with a digit or contain characters
+ * an identifier cannot.
+ */
+function toValidIdentifier(name: string): string {
+	if (IDENTIFIER_RE.test(name)) return name
+	const sanitized = name.replace(/[^a-zA-Z0-9_$]/g, '_')
+	return /^[0-9]/.test(sanitized) ? `_${sanitized}` : sanitized
+}
+
 export function jsonToTsModule(value: unknown, options: JsonToTsModuleOptions): string {
-	const { artifactKind, exportName, jsonImportPath } = options
+	const { artifactKind } = options
+	const exportName = toValidIdentifier(options.exportName)
 
 	// Capitalize first letter for type names
 	const typeName = exportName.charAt(0).toUpperCase() + exportName.slice(1)
@@ -186,19 +193,14 @@ export function jsonToTsModule(value: unknown, options: JsonToTsModuleOptions): 
 	lines.push(' */')
 	lines.push('')
 
-	if (jsonImportPath) {
-		// Import from JSON file
-		lines.push(`import schema from '${jsonImportPath}';`)
-	} else {
-		// Embed the schema inline with `as const`
-		const schemaJson = JSON.stringify(value, null, 2)
-		// Indent the JSON for readability
-		const indentedJson = schemaJson
-			.split('\n')
-			.map((line, i) => (i === 0 ? line : '  ' + line))
-			.join('\n')
-		lines.push(`const schema = ${indentedJson} as const;`)
-	}
+	// Embed the schema inline with `as const`
+	const schemaJson = JSON.stringify(value, null, 2)
+	// Indent the JSON for readability
+	const indentedJson = schemaJson
+		.split('\n')
+		.map((line, i) => (i === 0 ? line : '  ' + line))
+		.join('\n')
+	lines.push(`const schema = ${indentedJson} as const;`)
 
 	lines.push(`import { p } from '@paradoc/sdk';`)
 	lines.push('')
