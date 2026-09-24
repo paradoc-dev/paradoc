@@ -17,7 +17,7 @@ describe('Form rendering', () => {
 	test('uses the built-in MIME renderer when no renderer is provided', async () => {
 		const definition = invoice()
 
-		await expect(definition.render({ data: { customer: 'Acme' } })).resolves.toBe('# Invoice for Acme')
+		await expect(definition.render({ data: { fields: { customer: 'Acme' } } })).resolves.toBe('# Invoice for Acme')
 		await expect(definition.fill({ fields: { customer: 'Acme' } }).render()).resolves.toBe('# Invoice for Acme')
 	})
 
@@ -48,7 +48,7 @@ describe('Form rendering', () => {
 			.defaultLayer('markdown')
 			.build()
 
-		await expect(definition.render({ data: { amount: { amount: 10, currency: 'USD' } }, formatter })).resolves.toBe('CUSTOM MONEY')
+		await expect(definition.render({ data: { fields: { amount: { amount: 10, currency: 'USD' } } }, formatter })).resolves.toBe('CUSTOM MONEY')
 		await expect(definition.fill({ fields: { amount: { amount: 10, currency: 'USD' } } }).render({ formatter })).resolves.toBe('CUSTOM MONEY')
 		expect(formatter.safeFormatMoney).toHaveBeenCalledTimes(2)
 	})

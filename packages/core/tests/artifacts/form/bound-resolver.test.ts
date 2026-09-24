@@ -100,7 +100,7 @@ describe('a resolver bound at construction', () => {
 	test('reaches the form instance render as well as the runtime one', async () => {
 		const output = await p
 			.form(definition, { resolver })
-			.render({ data: { name: 'Grace' }, layer: 'markdown' })
+			.render({ data: { fields: { name: 'Grace' } }, layer: 'markdown' })
 
 		expect(output).toContain('Grace')
 	})

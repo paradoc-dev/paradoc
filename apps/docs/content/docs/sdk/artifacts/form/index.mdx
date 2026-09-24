@@ -472,7 +472,7 @@ Created by `form.fill()`. Mutable data and signer configuration.
   { name: 'addParty', type: '(roleId: string, party: Party) => DraftForm', description: 'Append a party with the next `<role>-<index>` id', isMethod: true },
   { name: 'removeParty', type: '(roleId: string, index: number) => DraftForm', description: 'Remove a party; later parties take their new ids and keep their signatories', isMethod: true },
   { name: 'addSigner', type: '(signerId: string, signer: Signer) => DraftForm', description: 'Add signer to registry', isMethod: true },
-  { name: 'addSignatory', type: '(roleId, partyId, signatory) => DraftForm', description: 'Link signer to party', isMethod: true },
+  { name: 'addSignatory', type: '(roleId, partyId, signatory) => DraftForm', description: 'Link a registered signer to a filled party. Throws for an unknown party or a signer already linked to it', isMethod: true },
   { name: 'update', type: '(patch: Partial<Payload>, options?: UpdateOptions) => DraftForm', description: 'Merge a patch into current data and return a new DraftForm', isMethod: true },
   { name: 'safeUpdate', type: '(patch: Partial<Payload>, options?: UpdateOptions) => SafeFillResult', description: 'Safely merge a patch (returns result object)', isMethod: true },
   { name: 'getFillState', type: '(options?: FillTargetOptions) => FillState', description: 'Compute full fill state: open/blocked/done items, candidates, progress summary', isMethod: true },
@@ -532,7 +532,7 @@ Created by `signable.finalize()`. Fully frozen, ready for archival.
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for every value in this render', isOptional: true },
   { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values in a preview', isOptional: true },
   { name: 'bindings', type: 'Record<string, string>', description: 'PDF layers only: AcroForm field name to Paradoc path, merged over the layer\'s own bindings. Refused for any other layer', isOptional: true },
-  { name: 'data', type: 'Record<string, unknown>', description: 'Values to render with. `RenderOptions` only', isOptional: true },
+  { name: 'data', type: 'FormData', description: 'Values to render with: field values under `fields`, with `parties`, `annexes` and `defs` beside them. `RenderOptions` only', isOptional: true },
 ]} />
 
 ```ts

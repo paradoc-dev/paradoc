@@ -201,6 +201,8 @@ prep.pdf          // the converted PDF, before flattening
 | `'flow' placement needs a text-template layer` | Use absolute or anchor placement on PDF layers. |
 | `flow supports signature and initials` | Give `date_signed`, `capacity` and `printed_name` slots absolute or anchor placement. |
 | `'flow' placement is incompatible with a custom renderer override` | Drop `renderer`, or change the slot's placement. |
+| `declares no signature slots` | `prepareSeal()` needs a layer with `signatures`. Add slots, or call `seal()`. |
+| `form has no parties` / `no party has a required signature` | A layer with no slots seals only for a party whose signature is required and that has a signatory. |
 
 A slot for an unfilled party index (for example `tenant` index 2 when one tenant is filled) is skipped with a warning, not an error.
 

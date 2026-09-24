@@ -35,8 +35,8 @@ const definition = {
 	defaultLayer: 'pdf',
 }
 
-const data = { title: 'Lease', other: 'Addendum' }
-const filled = () => p.form(definition, { resolver }).fill({ fields: data })
+const data = { fields: { title: 'Lease', other: 'Addendum' } }
+const filled = () => p.form(definition, { resolver }).fill(data)
 const boxValue = async (bytes: unknown) => (await inspectAcroFormFields(bytes as Uint8Array))
 	.find((field) => field.name === 'name')?.value
 

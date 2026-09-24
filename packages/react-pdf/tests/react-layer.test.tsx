@@ -149,7 +149,7 @@ describe("rendering the sample through its React layer", () => {
       data: {
         fields: shortProposalData.fields,
         parties: shortProposalData.parties,
-      } as unknown as Record<string, unknown>,
+      },
       renderers: reactLayerRenderers({
         components: { [PROPOSAL_REACT_LAYER_PATH]: ProposalDocument },
         baseDir: NOWHERE,

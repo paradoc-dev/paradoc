@@ -72,7 +72,7 @@ describe('React layers dispatch by MIME type', () => {
 			const definition = purchaseOrder(mimeType)
 
 			await expect(
-				definition.render({ data: { vendor: 'Acme' }, renderers: { [mimeType]: renderer } }),
+				definition.render({ data: { fields: { vendor: 'Acme' } }, renderers: { [mimeType]: renderer } }),
 			).resolves.toBe('rendered purchase-order')
 			await expect(
 				definition
@@ -97,7 +97,7 @@ describe('React layers dispatch by MIME type', () => {
 		const { renderer } = recordingRenderer()
 		const definition = purchaseOrder('text/tsx')
 		await expect(
-			definition.render({ data: {}, renderers: { 'TEXT/TSX': renderer } }),
+			definition.render({ data: { fields: {} }, renderers: { 'TEXT/TSX': renderer } }),
 		).resolves.toBe('rendered purchase-order')
 	})
 
@@ -108,7 +108,7 @@ describe('React layers dispatch by MIME type', () => {
 
 		await expect(
 			purchaseOrder().render({
-				data: {},
+				data: { fields: {} },
 				renderer: override,
 				renderers: { 'text/tsx': registered },
 			}),
@@ -118,12 +118,12 @@ describe('React layers dispatch by MIME type', () => {
 
 	test('a React layer with nothing registered fails naming the layer, the type and the option', async () => {
 		const definition = purchaseOrder()
-		await expect(definition.render({ data: {} })).rejects.toThrow(UnregisteredLayerRendererError)
-		await expect(definition.render({ data: {} })).rejects.toThrow(
+		await expect(definition.render({ data: { fields: {} } })).rejects.toThrow(UnregisteredLayerRendererError)
+		await expect(definition.render({ data: { fields: {} } })).rejects.toThrow(
 			/Layer "composition" has MIME type text\/tsx and no renderer is registered for it/,
 		)
-		await expect(definition.render({ data: {} })).rejects.toThrow(/`renderers` option/)
-		await expect(definition.render({ data: {} })).rejects.toThrow(
+		await expect(definition.render({ data: { fields: {} } })).rejects.toThrow(/`renderers` option/)
+		await expect(definition.render({ data: { fields: {} } })).rejects.toThrow(
 			/`reactLayerRenderers\(\)` from @paradoc\/react-pdf builds the entries/,
 		)
 	})
@@ -138,7 +138,7 @@ describe('React layers dispatch by MIME type', () => {
 			.build()
 
 		await expect(
-			markdown.render({ data: { customer: 'Acme' }, renderers: { 'text/tsx': renderer } }),
+			markdown.render({ data: { fields: { customer: 'Acme' } }, renderers: { 'text/tsx': renderer } }),
 		).resolves.toBe('# Acme')
 		expect(seen).toHaveLength(0)
 	})
@@ -169,12 +169,12 @@ describe('React layers dispatch by MIME type', () => {
 
 		const { renderer, seen } = recordingRenderer()
 		const cased = purchaseOrder('Text/Jsx')
-		await expect(cased.render({ data: {}, renderers: { 'text/jsx': renderer } })).resolves.toBe(
+		await expect(cased.render({ data: { fields: {} }, renderers: { 'text/jsx': renderer } })).resolves.toBe(
 			'rendered purchase-order',
 		)
 		expect(seen[0]?.mimeType).toBe('Text/Jsx')
 
-		await expect(cased.render({ data: {} })).rejects.toThrow(UnregisteredLayerRendererError)
+		await expect(cased.render({ data: { fields: {} } })).rejects.toThrow(UnregisteredLayerRendererError)
 	})
 
 	test('reactLayersOf reports every React layer an artifact declares, in order', () => {

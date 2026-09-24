@@ -78,22 +78,31 @@ describe('the render request a filled form hands its renderer', () => {
 })
 
 describe('the render request a definition-level render hands its renderer', () => {
-	test('moves parties and annexes given with bare values beside fields', async () => {
-		const { renderer, seen } = recordingRenderer()
-		const parties = { applicant: { name: 'Ada Applicant' } }
-
-		await application.render({ renderer, data: { amount: 250, parties, annexes: { photo } } })
-
-		expect(seen).toEqual([{ fields: { amount: 250 }, parties, annexes: { photo } }])
-	})
-
 	test('passes a FormData payload through as it is', async () => {
 		const { renderer, seen } = recordingRenderer()
-		const data = { fields: { amount: 250 }, annexes: { photo } }
+		const parties = { applicant: { id: 'applicant-0', name: 'Ada Applicant' } }
+		const data = { fields: { amount: 250 }, parties, annexes: { photo } }
 
 		await application.render({ renderer, data })
 
 		expect(seen).toEqual([data])
+	})
+
+	test('hands over no values when no data is given', async () => {
+		const { renderer, seen } = recordingRenderer()
+
+		await application.render({ renderer })
+
+		expect(seen).toEqual([{ fields: {} }])
+	})
+
+	test('refuses bare field values rather than guessing which keys are fields', async () => {
+		const { renderer, seen } = recordingRenderer()
+
+		await expect(
+			application.render({ renderer, data: { amount: 250, parties: {} } as never }),
+		).rejects.toThrow(/render `data` must be FormData/)
+		expect(seen).toEqual([])
 	})
 })
 

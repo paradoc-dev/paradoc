@@ -589,6 +589,24 @@ function makeRuntimeOptionalForm(formDef: Form): Form {
 	}
 }
 
+/**
+ * The runtime state an evaluation produced, or, when it failed, an unresolved
+ * state that carries its issues and no values.
+ */
+function runtimeStateFrom(result: ReturnType<typeof evaluateFormDefs>): FormRuntimeState {
+	if ('value' in result) return result.value
+	return {
+		fields: new Map(),
+		annexes: new Map(),
+		defsValues: new Map(),
+		resolved: false,
+		issues: result.issues.map((issue) => ({
+			message: issue.message,
+			path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
+		})),
+	}
+}
+
 function createMissingValueError(kind: 'field' | 'annex', key: string): ValidationError {
 	const label = kind === 'field' ? 'field' : 'annex'
 	return {
@@ -658,18 +676,7 @@ function validateCompleteFormData(
 	const parties = validated.parties ?? data.parties
 	const annexes = validated.annexes ?? data.annexes
 	const runtimeResult = evaluateFormDefs(formDef, { fields, parties, context: options?.context })
-	const runtimeState = 'value' in runtimeResult
-		? runtimeResult.value
-		: {
-				fields: new Map(),
-				annexes: new Map(),
-				defsValues: new Map(),
-				resolved: false,
-				issues: runtimeResult.issues.map((issue) => ({
-					message: issue.message,
-					path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
-				})),
-			}
+	const runtimeState = runtimeStateFrom(runtimeResult)
 	// Any expression failure blocks completion, including a failed computed
 	// value that leaves the presentation state resolved.
 	if (runtimeState.issues.length > 0) {
@@ -953,7 +960,10 @@ interface RuntimeFormBase<F extends Form> {
 	validateRules(): FormRulesValidationResult
 
 	// Validation
-	/** Returns true if all error-severity rules pass. Always true if no rules defined. */
+	/**
+	 * Returns true when the form has no value or requiredness errors and every
+	 * error-severity rule passes. The same as `validate().valid`.
+	 */
 	isValid(): boolean
 	/** Returns comprehensive validation result including rule details. */
 	validate(): FormValidationResult
@@ -1014,6 +1024,11 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	removeSigner(signerId: string): DraftForm<F>
 
 	// Signatory Mutation
+	/**
+	 * Make a registered signer a signatory for a filled party. Throws when the
+	 * role, the party, or the signer does not exist, or when the signer already
+	 * signs for that party.
+	 */
 	addSignatory<R extends PartyRoleKeys<F>>(roleId: R, partyId: string, signatory: PartySignatory): DraftForm<F>
 
 	// Annex Mutation
@@ -1069,7 +1084,10 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	/**
 	 * Resolve the signature map and the exact converted PDF it describes,
 	 * without flattening, hashing, or changing phase. Requires a layer that
-	 * declares signature slots (`signatures`).
+	 * declares signature slots (`signatures`). `seal()` runs the same plan on
+	 * such a layer, so the two agree on every slot and every refusal.
+	 *
+	 * @throws {SealConfigError} for any configuration failure, before anything renders.
 	 */
 	prepareSeal(options?: SealOptions): Promise<SealPreparation>
 
@@ -1209,7 +1227,6 @@ export type RuntimeForm<F extends Form> = DraftForm<F> | SignableForm<F> | Execu
 // Constants
 // ============================================================================
 
-const PDF_CONVERTIBLE_LAYERS = ['docx', 'markdown', 'html', 'text'] as const
 
 /** A Map snapshot whose mutators cannot alter a runtime state's public view. */
 class RuntimeStateMap<K, V> extends Map<K, V> {
@@ -1279,6 +1296,20 @@ type RuntimeFormConfig<F extends Form> =
 	| RuntimeFormConfigSignable<F>
 	| RuntimeFormConfigExecuted<F>
 
+/** A sealed document: its flattened bytes and their hash. */
+interface CanonicalPdf {
+	canonicalPdfBytes: Uint8Array
+	canonicalPdfHash: string
+}
+
+/** Flattens a converted PDF into the canonical document and hashes it. */
+async function canonicalizePdf(pdf: Uint8Array): Promise<CanonicalPdf> {
+	const canonicalPdfBytes = await flattenPdf(pdf)
+	const digest = await globalThis.crypto.subtle.digest('SHA-256', Uint8Array.from(canonicalPdfBytes).buffer)
+	const canonicalPdfHash = `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`
+	return { canonicalPdfBytes, canonicalPdfHash }
+}
+
 /**
  * Sealed PDF byte buffers that a runtime owns. A sealed PDF is immutable, and
  * an owned buffer is never mutated or exposed (the public getter returns a
@@ -1297,20 +1328,20 @@ function ownCanonicalPdfBytes(bytes: Uint8Array): Uint8Array {
 /**
  * The `FormData` a definition-level render hands its renderer.
  *
- * `data` is either a `FormData` (it has a `fields` record) or bare field
- * values. Bare values may name `parties`, `annexes` and `defs` beside the
- * fields; they move beside `fields`, where a filled form's render puts them,
- * so every renderer reads them from one place.
+ * `data` is a `FormData`: field values under `fields`, with `parties`,
+ * `annexes` and `defs` beside them, the shape a filled form's render passes.
+ * Nothing is hoisted out of `fields`, so a field may take any id. A payload
+ * with no `fields` record is refused rather than guessed at.
  */
-function renderPayload(data: Record<string, unknown> | undefined): FormData {
-	if (data && typeof data.fields === 'object' && data.fields !== null) return data as unknown as FormData
-	const { parties, annexes, defs, ...fields } = data ?? {}
-	return {
-		fields,
-		...(parties !== undefined && { parties: parties as FormData['parties'] }),
-		...(annexes !== undefined && { annexes: annexes as FormData['annexes'] }),
-		...(defs !== undefined && { defs: defs as FormData['defs'] }),
+function renderPayload(data: FormData | undefined): FormData {
+	if (data === undefined) return { fields: {} }
+	const fields = (data as { fields?: unknown }).fields
+	if (typeof fields !== 'object' || fields === null || Array.isArray(fields)) {
+		throw new TypeError(
+			'render `data` must be FormData: field values under `fields`, with `parties`, `annexes` and `defs` beside them.',
+		)
 	}
+	return data
 }
 
 /**
@@ -1521,20 +1552,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				signing: signingStateOf(captures, attestations),
 				context,
 			})
-			if ('value' in result) {
-				_runtimeState = result.value
-			} else {
-				_runtimeState = {
-					fields: new Map(),
-					annexes: new Map(),
-					defsValues: new Map(),
-					resolved: false,
-					issues: result.issues.map((issue) => ({
-						message: issue.message,
-						path: issue.path ? [...issue.path].map((segment) => String(segment)) : [],
-					})),
-				}
-			}
+			_runtimeState = runtimeStateFrom(result)
 		}
 		return _runtimeState
 	}
@@ -1594,6 +1612,170 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			_role: roleId,
 			signatories: resolvedSignatories,
 		}
+	}
+
+	// ============================================================================
+	// Seal planning: the one pipeline behind prepareSeal and seal
+	// ============================================================================
+
+	/** The request a SealAdapter converts, for this form's current values. */
+	const sealingRequest = (anchorFields: SigningField[] = []): SealingRequest<F> => ({
+		form: formDef,
+		fields: fieldValues,
+		parties: partyValues,
+		signers: signerValues,
+		signatories: signatoryValues,
+		targetLayer,
+		...(anchorFields.length > 0 && { anchorFields }),
+	})
+
+	/** Runs one render of the target layer with the renderer the seal chose. */
+	const renderSealPass = (options: SealOptions) => (renderer: SealRenderer) =>
+		runtime.render<string | Uint8Array>({ renderer, layer: targetLayer, formatter: options.formatter })
+
+	/** Converts one rendered pass to PDF through the caller's adapter. */
+	const convertSealPass =
+		(options: SealOptions, request: SealingRequest<F>, layerSpec: Layer) =>
+		async (content: string | Uint8Array): Promise<Uint8Array> =>
+			(await options.adapter!.convert({ ...request, document: { content, mimeType: layerSpec.mimeType } })).pdf
+
+	/**
+	 * What both seal entry points check first: the form is complete and the
+	 * target layer exists.
+	 *
+	 * @throws {FormValidationError} when a value is missing or invalid.
+	 * @throws {FormRuleViolationError} when an error-severity rule fails.
+	 * @throws {SealConfigError} when the target layer is missing.
+	 */
+	const sealTarget = (options: SealOptions, verb: string): { layerSpec: Layer; sealRenderer: SealRenderer | undefined } => {
+		const validation = runtime.validate()
+		if (validation.errors.length > 0) throw new FormValidationError(validation.errors)
+		if (!validation.rules.valid) throw new FormRuleViolationError(validation.rules)
+		const layerSpec = formDef.layers?.[targetLayer]
+		if (!layerSpec) {
+			const problem = `target layer "${targetLayer}" was not found`
+			throw new SealConfigError(`Cannot ${verb}: ${problem}`, [problem])
+		}
+		return { layerSpec, sealRenderer: selectSealRenderer(layerSpec, options.renderers) }
+	}
+
+	/**
+	 * Refuses a layer that cannot reach a PDF. A PDF layer is one already; a
+	 * layer whose registered renderer writes the PDF needs nothing more; every
+	 * other layer needs an adapter to convert it. Runs after the checks that
+	 * name a more specific authoring problem.
+	 *
+	 * @throws {SealConfigError} naming the missing converter.
+	 */
+	const requireConverter = (
+		options: SealOptions,
+		layerSpec: Layer,
+		sealRenderer: SealRenderer | undefined,
+		verb: string,
+	): void => {
+		if (layerSpec.mimeType === 'application/pdf' || options.adapter || sealRenderer) return
+		throw new SealConfigError(
+			`Cannot ${verb} ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); ` +
+				'PDF layers seal locally, and a layer whose registered renderer writes the PDF needs none.',
+			['missing converter'],
+		)
+	}
+
+	/**
+	 * Plans a slot layer's signatures and renders the PDF they describe.
+	 *
+	 * `prepareSeal` returns this; `seal` flattens and hashes it. Because both
+	 * run it, they agree on every slot, every placement, and every refusal.
+	 *
+	 * @throws {SealConfigError} when a slot cannot be planned or placed.
+	 * @throws {LocateError} when a flow marker is not found.
+	 */
+	const planSlots = async (
+		options: SealOptions,
+		layerSpec: Layer & { signatures: Record<string, SignatureSlot> },
+		sealRenderer: SealRenderer | undefined,
+		verb: string,
+	): Promise<SealPreparation> => {
+		requireConverter(options, layerSpec, sealRenderer, verb)
+		const slots = layerSpec.signatures
+		const plan = buildSlotPlan({ formDef, slots, partyValues, signatoryValues })
+		if (plan.flow.length > 0) {
+			const problems: string[] = []
+			for (const field of plan.flow) {
+				if (field.type !== 'signature' && field.type !== 'initials') {
+					problems.push(`slot "${field.id}" has placement 'flow' with type "${field.type}"; flow supports signature and initials`)
+				}
+			}
+			if (layerSpec.mimeType === 'application/pdf') {
+				problems.push("'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement")
+			}
+			// An override is opaque: core cannot inject a marker into it. A
+			// registered renderer is not — it is handed the markers and draws
+			// them itself — so the incompatibility is the override's alone.
+			if (options.renderer && !sealRenderer) {
+				problems.push("'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering")
+			}
+			if (problems.length > 0) {
+				throw new SealConfigError(`Cannot ${verb}: ${problems.join('; ')}`, problems)
+			}
+		}
+
+		const pass = createSealPass({
+			layerSpec,
+			flow: plan.flow.length > 0,
+			sealRenderer,
+			markers: signingMarkersFor(slots, plan.flow),
+			textRenderer: (withMarkers) =>
+				createLayerRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) }),
+			override: options.renderer,
+			renderers: options.renderers,
+			render: renderSealPass(options),
+			convert: convertSealPass(options, sealingRequest(plan.anchors.map((entry) => entry.field)), layerSpec),
+		})
+
+		const provenance: Record<string, PlacementProvenance> = {}
+		const map: SigningField[] = [...plan.resolved]
+		for (const field of plan.resolved) provenance[field.id] = 'declared'
+		let pdf: Uint8Array
+
+		if (layerSpec.mimeType === 'application/pdf') {
+			const document = await pass.render(false)
+			if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
+			pdf = document
+		} else if (plan.flow.length > 0) {
+			// Flow placement renders twice; see resolveFlowPlacements.
+			const placements = await resolveFlowPlacements(pass, plan.flow)
+			for (const field of placements.flowResolved) {
+				map.push(field)
+				provenance[field.id] = 'marker'
+			}
+			pdf = placements.cleanPdf
+		} else {
+			pdf = await pass.pdf(false)
+		}
+
+		if (plan.anchors.length > 0) {
+			const slotLocator = options.locate ?? { locate: locatePlacements }
+			const hits = await slotLocator.locate(
+				pdf,
+				plan.anchors.map((entry) => ({
+					id: entry.field.id,
+					kind: 'anchor' as const,
+					text: entry.text,
+					...(entry.occurrence !== undefined && { occurrence: entry.occurrence }),
+				})),
+			)
+			const hitsById = new Map(hits.map((hit) => [hit.id, hit]))
+			for (const entry of plan.anchors) {
+				const hit = hitsById.get(entry.field.id)
+				if (!hit) throw new Error(`Locator did not resolve anchor slot "${entry.field.id}".`)
+				map.push({ ...entry.field, page: hit.page, x: hit.x + entry.offsetX, y: hit.y + entry.offsetY })
+				provenance[entry.field.id] = 'anchor'
+			}
+		}
+		map.sort((a, b) => a.signerIndex - b.signerIndex)
+
+		return { pdf, signatureMap: map, provenance, warnings: [...plan.skipped] }
 	}
 
 	// Note: This object is typed as a union to allow all methods to be defined.
@@ -1834,7 +2016,15 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			if (!signerValues[signatory.signerId]) {
 				throw new Error(`Signer with ID "${signatory.signerId}" not found in registry`)
 			}
+			if (!getPartiesInternal(roleId).some((party) => party.id === partyId)) {
+				throw new Error(`Cannot addSignatory: party "${partyId}" not found for role "${roleId}"`)
+			}
 			const currentSignatories = signatoryValues[roleId]?.[partyId] ?? []
+			if (currentSignatories.some((existing) => existing.signerId === signatory.signerId)) {
+				throw new Error(
+					`Cannot addSignatory: signer "${signatory.signerId}" is already a signatory for party "${partyId}" in role "${roleId}"`,
+				)
+			}
 			const newSignatories: Record<string, Record<string, PartySignatory[]>> = {
 				...signatoryValues,
 				[roleId]: {
@@ -2390,376 +2580,82 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			})
 		},
 
-		async prepareSeal(input: SealOptions = {}): Promise<SealPreparation> {
+		async prepareSeal(options: SealOptions = {}): Promise<SealPreparation> {
 			ensureDraft('prepareSeal')
-			const validation = runtime.validate()
-			if (validation.errors.length > 0) throw new FormValidationError(validation.errors)
-			if (!validation.rules.valid) throw new FormRuleViolationError(validation.rules)
-			const options = input
-			const layerSpec = formDef.layers?.[targetLayer]
-			if (!layerSpec) throw new Error(`Cannot prepare seal: target layer "${targetLayer}" was not found`)
-			if (!hasSignatureSlots(layerSpec)) {
-				throw new Error('prepareSeal requires a layer with signature slots (`signatures`).')
+			const target = sealTarget(options, 'prepare seal')
+			if (!hasSignatureSlots(target.layerSpec)) {
+				const problem = `layer "${targetLayer}" declares no signature slots (\`signatures\`)`
+				throw new SealConfigError(`Cannot prepare seal: ${problem}`, [problem])
 			}
-			const slots = layerSpec.signatures
-			// A layer whose registered renderer writes the PDF needs no converter:
-			// there is nothing left to convert.
-			const sealRenderer = selectSealRenderer(layerSpec, options.renderers)
-			if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !sealRenderer) {
-				throw new SealConfigError(
-					`Cannot prepare seal for ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); PDF layers prepare locally.`,
-					['missing converter'],
-				)
-			}
-			const plan = buildSlotPlan({
-				formDef,
-				slots,
-				partyValues,
-				signatoryValues,
-			})
-			if (plan.flow.length > 0) {
-				const problems: string[] = []
-				for (const field of plan.flow) {
-					if (field.type !== 'signature' && field.type !== 'initials') {
-						problems.push(`slot "${field.id}" has placement 'flow' with type "${field.type}"; flow supports signature and initials`)
-					}
-				}
-				if (layerSpec.mimeType === 'application/pdf') {
-					problems.push("'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement")
-				}
-				// An override is opaque: core cannot inject a marker into it. A
-				// registered renderer is not — it is handed the markers and draws
-				// them itself — so the incompatibility is the override's alone.
-				if (options.renderer && !sealRenderer) {
-					problems.push("'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering")
-				}
-				if (problems.length > 0) {
-					throw new SealConfigError(`Cannot prepare seal: ${problems.join('; ')}`, problems)
-				}
-			}
-
-			const prepareRequest: SealingRequest<F> = {
-				form: formDef,
-				fields: fieldValues,
-				parties: partyValues,
-				signers: signerValues,
-				signatories: signatoryValues,
-				targetLayer,
-				...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
-			}
-
-			const pass = createSealPass({
-				layerSpec,
-				flow: plan.flow.length > 0,
-				sealRenderer,
-				markers: signingMarkersFor(slots, plan.flow),
-				textRenderer: (withMarkers) =>
-					createLayerRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) }),
-				override: options.renderer,
-				renderers: options.renderers,
-				render: (renderer) =>
-					runtime.render<string | Uint8Array>({
-						renderer,
-						layer: targetLayer,
-						formatter: options.formatter,
-					}),
-				convert: async (content) =>
-					(
-						await options.adapter!.convert({
-							...prepareRequest,
-							document: { content, mimeType: layerSpec.mimeType },
-						})
-					).pdf,
-			})
-
-			const provenance: Record<string, PlacementProvenance> = {}
-			const map: SigningField[] = [...plan.resolved]
-			for (const field of plan.resolved) provenance[field.id] = 'declared'
-			const flowResolved: SigningField[] = []
-			let pdf: Uint8Array
-
-			if (layerSpec.mimeType === 'application/pdf') {
-				const document = await pass.render(false)
-				if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
-				pdf = document
-			} else {
-				if (plan.flow.length > 0) {
-					const placements = await resolveFlowPlacements(pass, plan.flow)
-					flowResolved.push(...placements.flowResolved)
-					pdf = placements.cleanPdf
-				} else {
-					pdf = await pass.pdf(false)
-				}
-			}
-
-			for (const field of flowResolved) {
-				map.push(field)
-				provenance[field.id] = 'marker'
-			}
-			if (plan.anchors.length > 0) {
-				const slotLocator = options.locate ?? { locate: locatePlacements }
-				const hits = await slotLocator.locate(
-					pdf,
-					plan.anchors.map((entry) => ({
-						id: entry.field.id,
-						kind: 'anchor' as const,
-						text: entry.text,
-						...(entry.occurrence !== undefined && { occurrence: entry.occurrence }),
-					})),
-				)
-				const hitsById = new Map(hits.map((hit) => [hit.id, hit]))
-				for (const entry of plan.anchors) {
-					const hit = hitsById.get(entry.field.id)
-					if (!hit) throw new Error(`Locator did not resolve anchor slot "${entry.field.id}".`)
-					map.push({ ...entry.field, page: hit.page, x: hit.x + entry.offsetX, y: hit.y + entry.offsetY })
-					provenance[entry.field.id] = 'anchor'
-				}
-			}
-			map.sort((a, b) => a.signerIndex - b.signerIndex)
-
-			return { pdf, signatureMap: map, provenance, warnings: [...plan.skipped] }
+			return await planSlots(options, target.layerSpec, target.sealRenderer, 'prepare seal')
 		},
 
 		async seal(options: SealOptions = {}): Promise<RuntimeForm<F>> {
 			ensureDraft('seal')
-			const validation = runtime.validate()
-			if (validation.errors.length > 0) throw new FormValidationError(validation.errors)
-			if (!validation.rules.valid) throw new FormRuleViolationError(validation.rules)
-			const layerSpec = formDef.layers?.[targetLayer]
-			if (!layerSpec) throw new Error(`Cannot seal: target layer "${targetLayer}" was not found`)
+			const { layerSpec, sealRenderer } = sealTarget(options, 'seal')
 
-			// A layer whose registered renderer writes the PDF is sealed through
-			// that renderer and needs no adapter. For every other layer the
-			// override and the registry apply in `render`'s own order, except on
-			// a flow pass, which only core's text renderer can produce.
-			const sealRenderer = selectSealRenderer(layerSpec, options.renderers)
-			/** One seal pass over the target layer. See `createSealPass`. */
-			const sealPassFor = (
-				request: SealingRequest<F>,
-				flow: readonly SigningField[],
-				slots: Record<string, SignatureSlot>,
-				textRenderer: (withMarkers: boolean) => SealRenderer,
-			) =>
-				createSealPass({
-					layerSpec,
-					flow: flow.length > 0,
-					sealRenderer,
-					markers: signingMarkersFor(slots, flow),
-					textRenderer,
-					override: options.renderer,
-					renderers: options.renderers,
-					render: (renderer) =>
-						runtime.render<string | Uint8Array>({
-							renderer,
-							layer: targetLayer,
-							formatter: options.formatter,
-						}),
-					convert: async (content) =>
-						(
-							await options.adapter!.convert({
-								...request,
-								document: { content, mimeType: layerSpec.mimeType },
-							})
-						).pdf,
-				})
-
-			const finalizePdf = async (
-				pdf: Uint8Array,
-				signatureMap: SigningField[] = [],
-			): Promise<import('@paradoc/types').SealingResult> => {
-				const canonicalPdfBytes = await flattenPdf(pdf)
-				const digest = await globalThis.crypto.subtle.digest(
-					'SHA-256',
-					Uint8Array.from(canonicalPdfBytes).buffer,
-				)
-				const canonicalPdfHash = `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`
-				return { signatureMap, canonicalPdfHash, canonicalPdfBytes }
-			}
-
-			const runSealer = async (request: SealingRequest<F>) => {
-				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !sealRenderer) {
-					throw new Error(
-						`Cannot seal ${layerSpec.mimeType} without an adapter. ` +
-						'PDF layers seal locally; other MIME types require a seal adapter, ' +
-						'unless a renderer registered for the type produces the PDF itself.',
-					)
-				}
-				// No flow slots on this path, so nothing needs core's marker
-				// injection: the override and the registry apply in render's order.
-				const pass = sealPassFor(request, [], {}, () => createLayerRenderer())
-				if (sealRenderer) return finalizePdf(await pass.pdf(false))
-				const document = await pass.render(false)
-				if (layerSpec.mimeType === 'application/pdf') {
-					if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
-					return finalizePdf(document)
-				}
-				if (!options.adapter) throw new Error('Seal adapter was not resolved.')
-				// The adapter's own signature map is kept here, which is why this
-				// converts itself rather than going through `pass.pdf`.
-				const converted = await options.adapter.convert({
-					...request,
-					document: { content: document, mimeType: layerSpec.mimeType },
-				})
-				return finalizePdf(converted.pdf, converted.signatureMap)
-			}
-
-			// Slot mode: the layer declares `signatures`. One engine for every
-			// placement strategy.
-			if (hasSignatureSlots(layerSpec)) {
-				if (layerSpec.mimeType !== 'application/pdf' && !options.adapter && !sealRenderer) {
-					throw new SealConfigError(
-						`Cannot seal ${layerSpec.mimeType} without a converter. Pass a SealAdapter (adapter option); PDF layers seal locally.`,
-						['missing converter'],
-					)
-				}
-				const plan = buildSlotPlan({
-					formDef,
-					slots: layerSpec.signatures,
-					partyValues,
-					signatoryValues,
-				})
-				if (plan.flow.length > 0) {
-					const problems: string[] = []
-					for (const field of plan.flow) {
-						if (field.type !== 'signature' && field.type !== 'initials') {
-							problems.push(`slot "${field.id}" has placement 'flow' with type "${field.type}"; flow supports signature and initials`)
-						}
-					}
-					if (layerSpec.mimeType === 'application/pdf') {
-						problems.push("'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement")
-					}
-					// See prepareSeal: an override is opaque to the marker
-					// injection, a registered renderer is handed the markers.
-					if (options.renderer && !sealRenderer) {
-						problems.push("'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering")
-					}
-					if (!options.adapter && !sealRenderer) {
-						problems.push("'flow' placement requires a SealAdapter (converter)")
-					}
-					if (problems.length > 0) {
-						throw new SealConfigError(`Cannot seal: ${problems.join('; ')}`, problems)
-					}
-				}
-
-				const slotRequest: SealingRequest<F> = {
-					form: formDef,
-					fields: fieldValues,
-					parties: partyValues,
-					signers: signerValues,
-					signatories: signatoryValues,
-					targetLayer,
-					...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
-				}
-				const slotTextOptionsRenderer = (withMarkers: boolean) =>
-					createLayerRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) })
-				const slotPass = sealPassFor(slotRequest, plan.flow, layerSpec.signatures, slotTextOptionsRenderer)
-
-				let slotResult: import('@paradoc/types').SealingResult
-				const flowResolved: SigningField[] = []
-				if (plan.flow.length > 0) {
-					// Flow placement renders twice; see resolveFlowPlacements.
-					const placements = await resolveFlowPlacements(slotPass, plan.flow)
-					flowResolved.push(...placements.flowResolved)
-					slotResult = await finalizePdf(placements.cleanPdf)
-				} else {
-					slotResult = await runSealer(slotRequest)
-				}
-
-				const slotMap = [...plan.resolved, ...flowResolved]
-				if (plan.anchors.length > 0) {
-					if (!slotResult.canonicalPdfBytes) {
-						throw new Error('Cannot locate anchor positions: the seal result carries no canonical PDF bytes.')
-					}
-					const slotLocator = options.locate ?? { locate: locatePlacements }
-					const hits = await slotLocator.locate(
-						slotResult.canonicalPdfBytes,
-						plan.anchors.map((entry) => ({
-							id: entry.field.id,
-							kind: 'anchor' as const,
-							text: entry.text,
-							...(entry.occurrence !== undefined && { occurrence: entry.occurrence }),
-						})),
-					)
-					const hitsById = new Map(hits.map((hit) => [hit.id, hit]))
-					for (const entry of plan.anchors) {
-						const hit = hitsById.get(entry.field.id)
-						if (!hit) throw new Error(`Locator did not resolve anchor slot "${entry.field.id}".`)
-						slotMap.push({
-							...entry.field,
-							page: hit.page,
-							x: hit.x + entry.offsetX,
-							y: hit.y + entry.offsetY,
-						})
-					}
-				}
-				slotMap.sort((a, b) => a.signerIndex - b.signerIndex)
-
-				return createRuntimeForm({
+			const sealed = (signatureMap: SigningField[], canonical: CanonicalPdf) =>
+				createRuntimeForm({
 					...config,
 					phase: 'signable',
 					captures: [],
 					witnesses: [],
 					attestations: [],
-					signatureMap: slotMap,
-					canonicalPdfHash: slotResult.canonicalPdfHash,
-					canonicalPdfBytes: slotResult.canonicalPdfBytes,
+					signatureMap,
+					canonicalPdfHash: canonical.canonicalPdfHash,
+					canonicalPdfBytes: canonical.canonicalPdfBytes,
 					executedAt: undefined,
 				})
+
+			// Slot mode: the layer declares `signatures`. The same plan
+			// `prepareSeal` returns, flattened and hashed.
+			if (hasSignatureSlots(layerSpec)) {
+				const preparation = await planSlots(options, layerSpec, sealRenderer, 'seal')
+				return sealed(preparation.signatureMap, await canonicalizePdf(preparation.pdf))
 			}
 
-			// Undeclared-field mode: seal without a precomputed signature map
-			// Validation 1: Check layer is PDF-convertible
-			if (
-				layerSpec.mimeType !== 'application/pdf'
-				&& !PDF_CONVERTIBLE_LAYERS.includes(targetLayer as (typeof PDF_CONVERTIBLE_LAYERS)[number])
-			) {
-				throw new Error(
-					`Cannot seal: layer "${targetLayer}" has no signature slots and is not PDF-convertible. ` +
-					`Add signatures to the layer, or use a supported layer: ${PDF_CONVERTIBLE_LAYERS.join(', ')}`,
-				)
-			}
-
-			// Validation 2: Check parties exist
+			// Undeclared-field mode: the layer places no slots, so the signature
+			// map is whatever the adapter reports for the converted document.
+			const problems: string[] = []
 			if (Object.keys(partyValues).length === 0) {
-				throw new Error('Cannot seal: form has no parties')
+				problems.push('form has no parties')
+			} else {
+				const hasRequiredSignature = Object.entries(formDef.parties ?? {}).some(([roleId, partyDef]) => {
+					if (!partyDef.signature?.required) return false
+					return Object.values(signatoryValues[roleId] ?? {}).some((signatories) => signatories.length > 0)
+				})
+				if (!hasRequiredSignature) {
+					problems.push('no party has a required signature. Ensure parties are assigned and have signatories configured')
+				}
 			}
+			if (problems.length > 0) throw new SealConfigError(`Cannot seal: ${problems.join('; ')}`, problems)
+			requireConverter(options, layerSpec, sealRenderer, 'seal')
 
-			// Validation 3: Check at least one required signature exists
-			const formParties = formDef.parties ?? {}
-			const hasRequiredSignature = Object.entries(formParties).some(([roleId, partyDef]) => {
-				if (!partyDef.signature?.required) return false
-				const roleSignatories = signatoryValues[roleId] ?? {}
-				return Object.values(roleSignatories).some((signatories) => signatories.length > 0)
+			const request = sealingRequest()
+			const pass = createSealPass({
+				layerSpec,
+				flow: false,
+				sealRenderer,
+				markers: [],
+				textRenderer: () => createLayerRenderer(),
+				override: options.renderer,
+				renderers: options.renderers,
+				render: renderSealPass(options),
+				convert: convertSealPass(options, request, layerSpec),
 			})
-
-			if (!hasRequiredSignature) {
-				throw new Error(
-					'Cannot seal: no party has a required signature. Ensure parties are assigned and have signatories configured.',
-				)
+			if (sealRenderer) return sealed([], await canonicalizePdf(await pass.pdf(false)))
+			const document = await pass.render(false)
+			if (layerSpec.mimeType === 'application/pdf') {
+				if (typeof document === 'string') throw new Error('PDF renderer returned text instead of binary content.')
+				return sealed([], await canonicalizePdf(document))
 			}
-
-			const request: SealingRequest<F> = {
-				form: formDef,
-				fields: fieldValues,
-				parties: partyValues,
-				signers: signerValues,
-				signatories: signatoryValues,
-				targetLayer,
-			}
-
-			const result = await runSealer(request)
-
-			return createRuntimeForm({
-				...config,
-				phase: 'signable',
-				captures: [],
-				witnesses: [],
-				attestations: [],
-				signatureMap: result.signatureMap,
-				canonicalPdfHash: result.canonicalPdfHash,
-				canonicalPdfBytes: result.canonicalPdfBytes,
-				executedAt: undefined,
+			// The adapter's own signature map is kept here, which is why this
+			// converts itself rather than going through `pass.pdf`.
+			const converted = await options.adapter!.convert({
+				...request,
+				document: { content: document, mimeType: layerSpec.mimeType },
 			})
+			return sealed(converted.signatureMap ?? [], await canonicalizePdf(converted.pdf))
 		},
 
 		finalize(): RuntimeForm<F> {
@@ -3114,10 +3010,11 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				renderers,
 				formatter,
 				progressive,
-				data = {},
+				data,
 				layer: layerKey,
 				bindings: optionsBindings,
 			} = options
+			const formData = renderPayload(data)
 
 			if (!formDef.layers) {
 				throw new Error('Form has no layers defined')
@@ -3139,7 +3036,6 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
-			const formData = renderPayload(data)
 			const parties = (formData.parties ?? {}) as Record<string, Party | Party[]>
 			const expressions = {
 				context: buildTemplateExpressionContext(

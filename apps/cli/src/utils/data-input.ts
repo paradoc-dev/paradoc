@@ -6,6 +6,7 @@
  */
 
 import { parse } from '@paradoc/core'
+import type { FormData } from '@paradoc/types'
 import { readTextInput } from './io.js'
 
 export interface DataInputResult {
@@ -87,50 +88,25 @@ export async function parseDataInput(value: string): Promise<DataInputResult> {
 }
 
 /**
- * Normalize data to ensure it has the expected { fields: {...} } structure.
- * If data already has a `fields` property, returns as-is.
- * Otherwise, wraps the data in { fields: data }.
+ * Normalize `--data` input to the `FormData` a render takes. Input that
+ * already has a `fields` record keeps its `fields`, `parties`, `annexes`,
+ * `defs`, `signers` and `signatories`; anything else is taken as bare field
+ * values and wrapped in `{ fields }`. The SDK validates the values themselves.
  *
  * @param data - Raw data object
- * @returns Normalized data with fields property
+ * @returns The render payload
  */
-export function normalizeFormData(data: Record<string, unknown>): {
-	fields: Record<string, unknown>
-	parties?: Record<string, unknown>
-	annexes?: Record<string, unknown>
-	signers?: Record<string, unknown>
-	signatories?: Record<string, unknown>
-} {
-	// Check if data already has the expected structure
-	if ('fields' in data && typeof data.fields === 'object' && data.fields !== null) {
-		const result: {
-			fields: Record<string, unknown>
-			parties?: Record<string, unknown>
-			annexes?: Record<string, unknown>
-			signers?: Record<string, unknown>
-			signatories?: Record<string, unknown>
-		} = {
-			fields: data.fields as Record<string, unknown>,
-		}
-
-		if (data.parties) {
-			result.parties = data.parties as Record<string, unknown>
-		}
-		if (data.annexes) {
-			result.annexes = data.annexes as Record<string, unknown>
-		}
-		if (data.signers) {
-			result.signers = data.signers as Record<string, unknown>
-		}
-		if (data.signatories) {
-			result.signatories = data.signatories as Record<string, unknown>
-		}
-
-		return result
+export function normalizeFormData(data: Record<string, unknown>): FormData {
+	if (!('fields' in data) || typeof data.fields !== 'object' || data.fields === null) {
+		return { fields: data }
 	}
-
-	// Wrap data in fields
-	return { fields: data }
+	const result: FormData = { fields: data.fields as FormData['fields'] }
+	if (data.parties) result.parties = data.parties as FormData['parties']
+	if (data.annexes) result.annexes = data.annexes as FormData['annexes']
+	if (data.defs) result.defs = data.defs as FormData['defs']
+	if (data.signers) result.signers = data.signers as FormData['signers']
+	if (data.signatories) result.signatories = data.signatories as FormData['signatories']
+	return result
 }
 
 /**

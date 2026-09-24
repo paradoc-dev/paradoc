@@ -112,4 +112,75 @@ describe("'flow' placement", () => {
 	test("'flow' without a converter is a config error", async () => {
 		await expect(draft().seal()).rejects.toThrowError(SealConfigError)
 	})
+
+	// prepareSeal and seal run one planner, so each refusal holds for both
+	// entry points. Every case fails before the converter is called.
+	describe.each(['seal', 'prepareSeal'] as const)("%s refuses a 'flow' configuration it cannot place", (entry) => {
+		const refusal = async (run: () => Promise<unknown>): Promise<SealConfigError> => {
+			const error = await run().then(
+				() => undefined,
+				(caught: unknown) => caught,
+			)
+			expect(error).toBeInstanceOf(SealConfigError)
+			return error as SealConfigError
+		}
+		const untouchedConverter = (): SealAdapter & { calls: number } => {
+			const adapter = {
+				calls: 0,
+				convert: async () => {
+					adapter.calls++
+					return { pdf: cleanPdf }
+				},
+			}
+			return adapter
+		}
+
+		test('a flow slot of a type flow cannot place', async () => {
+			const adapter = untouchedConverter()
+			const target = draft({
+				'client-date': { party: { role: 'client' }, type: 'date_signed', placement: 'flow' },
+				...FLOW_SLOTS,
+			})
+			const error = await refusal(() => target[entry]({ adapter }))
+			expect(error.problems).toEqual([
+				'slot "client-date" has placement \'flow\' with type "date_signed"; flow supports signature and initials',
+			])
+			expect(adapter.calls).toBe(0)
+		})
+
+		test('a flow slot beside a renderer override', async () => {
+			const adapter = untouchedConverter()
+			const override = { id: 'override', render: async () => 'rendered' }
+			const error = await refusal(() => draft()[entry]({ adapter, renderer: override }))
+			expect(error.problems).toEqual([
+				"'flow' placement is incompatible with a custom renderer override; core must inject markers during rendering",
+			])
+			expect(adapter.calls).toBe(0)
+		})
+
+		test('a flow slot with no converter', async () => {
+			const error = await refusal(() => draft()[entry]())
+			expect(error.problems).toEqual(['missing converter'])
+			expect(error.message).toMatch(/without a converter/)
+		})
+
+		test('a flow slot on a PDF layer', async () => {
+			const pdfDraft = form()
+				.name('pdf-flow')
+				.version('1.0.0')
+				.title('PDF Flow')
+				.fields({ amount: { type: 'number', label: 'Amount', required: true } })
+				.parties({ client: { label: 'Client', partyType: 'person', signature: { required: true } } })
+				.fileLayer('pdf', { mimeType: 'application/pdf', path: '/forms/contract.pdf', signatures: FLOW_SLOTS })
+				.defaultLayer('pdf')
+				.build({ resolver: { read: async () => cleanPdf } })
+				.fill({ fields: { amount: 10 }, parties: { client: { id: 'client-0', name: 'Cleo Client' } } })
+				.addSigner('client-signer', { person: { name: 'Cleo Client' } })
+				.addSignatory('client', 'client-0', { signerId: 'client-signer' })
+			const error = await refusal(() => pdfDraft[entry]())
+			expect(error.problems).toEqual([
+				"'flow' placement needs a text-template layer; PDF layers use absolute or anchor placement",
+			])
+		})
+	})
 })

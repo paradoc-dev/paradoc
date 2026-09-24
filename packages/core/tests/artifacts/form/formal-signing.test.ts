@@ -1453,12 +1453,13 @@ describe('Formal Signing', () => {
 			expect(tenantField?.anchor?.text).toBe('TENANT SIGNATURE:')
 		})
 
-		test('resolves anchors on the canonical PDF and applies the declared offsets', async () => {
+		test('resolves anchors on the converted PDF and applies the declared offsets', async () => {
 			const { options, located } = createAnchorOptions()
 			const formal = await buildAnchorDraft().seal(options)
 
-			// The locator reads the same bytes the hash covers.
-			expect(located).toEqual([formal.canonicalPdfBytes])
+			// The locator reads the converted PDF, as prepareSeal's does; the
+			// hash covers that PDF flattened.
+			expect(located).toEqual([fixturePdf])
 			expect(formal.canonicalPdfHash).toBe(await expectedHash())
 			expect(formal.signatureMap).toHaveLength(2)
 
@@ -1509,6 +1510,7 @@ describe('Formal Signing', () => {
 			.addSigner('s-sig', { person: { name: 'Signer' } })
 			.addSignatory('signer', 'signer-0', { signerId: 's-sig' })
 
-		await expect(draft.seal()).rejects.toThrow(/Cannot seal .* without an adapter/)
+		await expect(draft.seal()).rejects.toThrow(/Cannot seal text\/markdown without a converter/)
+		await expect(draft.seal()).rejects.toBeInstanceOf(SealConfigError)
 	})
 })

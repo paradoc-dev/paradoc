@@ -20,6 +20,7 @@ import type {
   RendererLayer,
   Formatter,
   FormatterProgressivePolicy,
+  FormData,
 } from '@paradoc/types'
 
 import type { RendererRegistry } from './rendering/renderer-registry'
@@ -215,7 +216,7 @@ export interface IArtifactInstance<T extends Artifact> {
  * @example
  * ```typescript
  * const output = await form.render({
- *   data: { name: 'John', age: 30 },
+ *   data: { fields: { name: 'John', age: 30 } },
  *   layer: 'markdown'
  * })
  * ```
@@ -237,8 +238,12 @@ export interface RenderOptions<Output = string | Uint8Array> {
    */
   renderers?: RendererRegistry
 
-  /** Field values to populate the layer with */
-  data?: Record<string, unknown>
+  /**
+   * The values to populate the layer with, in the shape a filled form's render
+   * hands its renderer: field values under `fields`, and `parties`, `annexes`
+   * and `defs` beside them. Omitted, the layer renders with no values.
+   */
+  data?: FormData
 
   /** Key of the layer to use. If not provided, uses defaultLayer or first available. */
   layer?: string
