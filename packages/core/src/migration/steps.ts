@@ -1,4 +1,4 @@
-import { ISO_8601_DURATION_REGEX, isReactLayerMimeType, type SchemaVersion } from '@paradoc/schemas'
+import { ISO_8601_DURATION_REGEX, isPdfMimeType, isReactLayerMimeType, type SchemaVersion } from '@paradoc/schemas'
 import { UnconvertibleValueError } from './errors'
 
 /** A parsed artifact as a plain JSON object. */
@@ -151,6 +151,36 @@ const flowPlacementAndStrictDefinitions: MigrationStep = {
 }
 
 /**
+ * 2026-09-22 to 2026-09-23.
+ *
+ * - Only PDF file layers take `bindings` and `bindingsFrom`: a binding maps an
+ *   AcroForm field name to a Paradoc path. A text, Markdown, HTML or DOCX
+ *   template names each value as `{{fields.x}}` instead. The step cannot
+ *   rewrite a template that used a binding alias, so it names the binding.
+ */
+const bindingsOnlyOnPdfLayers: MigrationStep = {
+	from: '2026-09-22',
+	to: '2026-09-23',
+	summary: 'Allows bindings and bindingsFrom only on PDF file layers; names any other layer that declares them.',
+	apply(artifact) {
+		eachArtifact(artifact, [], (current, path) => {
+			eachLayer(current, path, (layer, layerPath) => {
+				if (layer.kind === 'file' && typeof layer.mimeType === 'string' && isPdfMimeType(layer.mimeType)) return
+				for (const key of ['bindings', 'bindingsFrom'] as const) {
+					if (layer[key] === undefined) continue
+					throw new UnconvertibleValueError(
+						[...layerPath, key],
+						layer[key],
+						'only PDF file layers take bindings; name each value in the template as {{fields.fieldName}} and remove the binding',
+					)
+				}
+			})
+		})
+		return artifact
+	},
+}
+
+/**
  * Every migration step, in version order. Each step leads from one published
  * version to the next, so a chain exists from every version to the current one.
  *
@@ -172,4 +202,5 @@ export const MIGRATION_STEPS: readonly MigrationStep[] = [
 		apply: (artifact) => artifact,
 	},
 	flowPlacementAndStrictDefinitions,
+	bindingsOnlyOnPdfLayers,
 ]

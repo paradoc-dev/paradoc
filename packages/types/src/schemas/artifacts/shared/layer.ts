@@ -139,16 +139,12 @@ export interface InlineLayer {
    * be a {@link FileLayer}.
    */
   mimeType: string;
-  /** Layer content with interpolation placeholders. */
+  /** Layer content with interpolation placeholders, such as `{{fields.fieldName}}`. */
   text: string;
   /** Optional human-readable title for this layer. */
   title?: string;
   /** Optional description of what this layer represents. */
   description?: string;
-  /** Optional field bindings for the layer (typically for PDF). */
-  bindings?: Record<string, string>;
-  /** Key of a sibling layer whose bindings this layer reuses. */
-  bindingsFrom?: string;
   /** Pre-defined signature blocks keyed by locationId (coordinate-based). */
   signatureBlocks?: Record<string, SignatureBlock>;
   /** Anchor-based signature blocks keyed by locationId. Position is resolved from anchor text by the Sealer adapter. */
@@ -233,9 +229,12 @@ export interface FileLayer {
    * through `bindingsFrom` declares its own.
    */
   format?: LayerFormat;
-  /** Optional field bindings for the layer (typically for PDF). */
-  bindings?: Record<string, string>;
-  /** Key of a sibling layer whose bindings this layer reuses. */
+  /**
+   * PDF layers only. Maps each AcroForm field name in the template (key) to
+   * the Paradoc path that fills it (value), such as `fields.name`.
+   */
+  bindings?: Bindings;
+  /** PDF layers only. Key of a sibling PDF layer whose bindings this layer reuses. */
   bindingsFrom?: string;
   /** Pre-defined signature blocks keyed by locationId (coordinate-based). */
   signatureBlocks?: Record<string, SignatureBlock>;
@@ -252,7 +251,7 @@ export interface FileLayer {
 export type Layer = InlineLayer | FileLayer;
 
 /**
- * Mapping from form field names to layer target identifiers.
- * Used to bind form fields to PDF form fields or other layer targets.
+ * A PDF layer's bindings: each key is a fully qualified AcroForm field name in
+ * the template, and each value is the Paradoc path that fills it.
  */
 export type Bindings = Record<string, string>;

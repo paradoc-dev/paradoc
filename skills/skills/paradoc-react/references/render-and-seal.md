@@ -42,7 +42,7 @@ file. An inline layer with a React MIME type fails validation.
 
 ```json
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-23.json",
   "kind": "form",
   "name": "service-agreement",
   "version": "1.0.0",

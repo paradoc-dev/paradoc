@@ -210,28 +210,9 @@ const renderer = textRenderer({
 // Money formatted as "99,99 €" instead of "$99.99"
 ```
 
-## Template Bindings
+## Values in templates
 
-Use bindings to give a field a short name in a layer. Each binding key becomes a name the template can read:
-
-```ts
-const form = p.form({
-  name: 'contract',
-  fields: {
-    buyerFullName: { type: 'text' }
-  },
-  layers: {
-    text: {
-      kind: 'inline',
-      mimeType: 'text/plain',
-      text: 'Buyer: {{buyer_name}}',
-      bindings: {
-        buyer_name: 'buyerFullName'  // Maps {{buyer_name}} to buyerFullName field
-      }
-    }
-  }
-})
-```
+A template names each value by its path, such as `{{fields.buyerFullName}}`. A text layer takes no `bindings` or `bindingsFrom`, and validation rejects them there: bindings belong to [PDF layers](/sdk/renderers/pdf), where they map AcroForm field names to Paradoc paths.
 
 ## Signature and Initials Directives
 

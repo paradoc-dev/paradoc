@@ -8,11 +8,10 @@
  */
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { isPdfMimeType } from '@paradoc/schemas'
 import type { Form } from '@paradoc/types'
 import { bindingSources } from '@paradoc/render'
 import { ArtifactFieldFormatError, validateFieldBindings } from '@paradoc/render/text'
-
-const PDF_MIME_TYPE = 'application/pdf'
 
 function unknownSource(form: Form, bindingKey: string, value: string): string | undefined {
   for (const source of bindingSources(value)) {
@@ -35,7 +34,7 @@ function unknownSource(form: Form, bindingKey: string, value: string): string | 
 export function validatePdfBindingPaths(form: Form): StandardSchemaV1.Issue[] {
   const issues: StandardSchemaV1.Issue[] = []
   for (const [layerKey, layer] of Object.entries(form.layers ?? {})) {
-    if (layer.mimeType.toLowerCase() !== PDF_MIME_TYPE || !layer.bindings) continue
+    if (layer.kind !== 'file' || !isPdfMimeType(layer.mimeType) || !layer.bindings) continue
     for (const [bindingKey, value] of Object.entries(layer.bindings)) {
       const problem = unknownSource(form, bindingKey, value)
       if (!problem) continue

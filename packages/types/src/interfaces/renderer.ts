@@ -58,7 +58,7 @@ export interface RendererLayer {
 
   /**
    * Optional engine-specific metadata.
-   * For example: PDF AcroForm bindings (fieldName -> acroFieldName).
+   * For example: PDF AcroForm bindings (AcroForm field name -> Paradoc path).
    */
   bindings?: Bindings;
 

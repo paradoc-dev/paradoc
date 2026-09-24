@@ -214,16 +214,6 @@ const LayerBaseSchema = z.object({
 		.max(2000)
 		.describe('Description of what this layer represents')
 		.optional(),
-	bindings: z.record(
-		z.string().min(1).max(100).describe('Form field name (semantic identifier)'),
-		z.string().min(1).max(500).describe('Target identifier in the template'),
-	).describe('Mapping from form field names to template target identifiers')
-		.optional(),
-	bindingsFrom: z.string()
-		.min(1)
-		.max(128)
-		.describe('Key of a sibling layer whose bindings this layer reuses')
-		.optional(),
 	signatureBlocks: z.record(
 		z.string().min(1).max(100).describe('Location ID for the signature block'),
 		SignatureBlockSchema,
@@ -257,7 +247,7 @@ const InlineLayerSchema = LayerBaseSchema.extend({
 	text: z.string()
 		.min(1)
 		.max(1000000)
-		.describe('Layer content with interpolation placeholders (e.g., {{fieldName}})'),
+		.describe('Layer content with interpolation placeholders (e.g., {{fields.fieldName}})'),
 }).meta({
 	title: 'InlineLayer',
 	description: 'Inline layer with embedded content',
@@ -266,8 +256,42 @@ const InlineLayerSchema = LayerBaseSchema.extend({
 /** The rule a font on a layer other than a PDF breaks, stated once so every error reads the same. */
 export const LAYER_FONT_RULE = 'Only PDF layers (application/pdf) can declare a font';
 
+/** The rule bindings on a layer other than a PDF break, stated once so every error reads the same. */
+export const LAYER_BINDINGS_RULE = 'Only PDF layers (application/pdf) can declare bindings; other templates name values as {{fields.fieldName}}';
+
 /** The PDF MIME type as a case-insensitive JSON Schema pattern. */
 const PDF_MIME_PATTERN = `^${caseInsensitiveAlternative('application/pdf')}$`;
+
+/** Whether a layer's MIME type names a PDF, the only layer type that takes bindings. */
+export function isPdfMimeType(mimeType: string): boolean {
+	return mimeType.toLowerCase() === 'application/pdf';
+}
+
+/**
+ * A PDF layer's bindings: each key is a fully qualified AcroForm field name in
+ * the template, and each value is the Paradoc path that fills it.
+ */
+export const PdfBindingsSchema = z.record(
+	z.string().min(1).max(500).describe('AcroForm field name in the PDF template, fully qualified (e.g., topmostSubform[0].Page1[0].f1_01[0])'),
+	z.string().min(1).max(500).describe('Paradoc path whose value fills the field (e.g., fields.name, parties.buyer.name)'),
+).describe('PDF layers only. Maps each AcroForm field name (key) to the Paradoc path (value) that fills it');
+
+/** A PDF layer that reuses a sibling PDF layer's bindings. */
+export const PdfBindingsFromSchema = z.string()
+	.min(1)
+	.max(128)
+	.describe('PDF layers only. Key of a sibling PDF layer whose bindings this layer reuses');
+
+/**
+ * The PDF-only rules for the given layer keys, stated to JSON Schema as well
+ * as at runtime: a refinement alone would vanish from the published schema.
+ */
+export function pdfOnlyLayerKeysJsonSchema(keys: readonly string[]) {
+	return keys.map((key) => ({
+		if: { required: [key] },
+		then: { properties: { mimeType: { pattern: PDF_MIME_PATTERN } } },
+	}));
+}
 
 /**
  * A font a PDF layer draws filled values and overlay text with, read through
@@ -336,15 +360,23 @@ const FileLayerSchema = LayerBaseSchema.extend({
 	format: LayerFormatSchema
 		.describe('Presentation the template requires of filled values; PDF layers only. It applies to this layer alone, not to a layer that reuses its bindings')
 		.optional(),
+	bindings: PdfBindingsSchema.optional(),
+	bindingsFrom: PdfBindingsFromSchema.optional(),
 }).meta({
 	title: 'FileLayer',
 	description: 'File-backed layer with path reference',
 }).strict().refine(
-	(layer) => layer.font === undefined || layer.mimeType.toLowerCase() === 'application/pdf',
+	(layer) => layer.font === undefined || isPdfMimeType(layer.mimeType),
 	{ error: LAYER_FONT_RULE, path: ['font'] },
 ).refine(
-	(layer) => layer.format === undefined || layer.mimeType.toLowerCase() === 'application/pdf',
+	(layer) => layer.format === undefined || isPdfMimeType(layer.mimeType),
 	{ error: LAYER_FORMAT_RULE, path: ['format'] },
+).refine(
+	(layer) => layer.bindings === undefined || isPdfMimeType(layer.mimeType),
+	{ error: LAYER_BINDINGS_RULE, path: ['bindings'] },
+).refine(
+	(layer) => layer.bindingsFrom === undefined || isPdfMimeType(layer.mimeType),
+	{ error: LAYER_BINDINGS_RULE, path: ['bindingsFrom'] },
 );
 
 /**
@@ -356,10 +388,6 @@ export const LayerSchema = z.discriminatedUnion('kind', [
 ]).meta({
 	title: 'Layer',
 	description: 'Layer specification — inline content or file reference',
-	// The file layer's font and format refinements, stated to JSON Schema as
-	// well: a refinement alone would vanish from the published schema.
-	allOf: [
-		{ if: { required: ['font'] }, then: { properties: { mimeType: { pattern: PDF_MIME_PATTERN } } } },
-		{ if: { required: ['format'] }, then: { properties: { mimeType: { pattern: PDF_MIME_PATTERN } } } },
-	],
+	// The file layer's font, format and bindings refinements.
+	allOf: pdfOnlyLayerKeysJsonSchema(['font', 'format', 'bindings', 'bindingsFrom']),
 });

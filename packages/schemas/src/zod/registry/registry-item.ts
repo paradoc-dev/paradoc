@@ -10,6 +10,13 @@
 
 import { z } from 'zod';
 import { ARTIFACT_VERSION_PATTERN } from '../primitives/version';
+import {
+	isPdfMimeType,
+	LAYER_BINDINGS_RULE,
+	pdfOnlyLayerKeysJsonSchema,
+	PdfBindingsFromSchema,
+	PdfBindingsSchema,
+} from '../artifacts/shared/layer';
 
 /**
  * Common fields shared by all layer types (registry version)
@@ -33,9 +40,6 @@ const RegistryLayerBaseSchema = z.object({
 		.regex(/^sha256:[a-f0-9]{64}$/)
 		.describe('SHA-256 checksum for integrity verification')
 		.optional(),
-	bindings: z.record(z.string(), z.string())
-		.describe('Mapping from form field names to template identifiers')
-		.optional(),
 });
 
 /**
@@ -46,7 +50,11 @@ export const RegistryInlineLayerSchema = RegistryLayerBaseSchema.extend({
 	text: z.string()
 		.min(1)
 		.max(1000000)
-		.describe('Layer content with interpolation placeholders'),
+		.describe('Layer content with interpolation placeholders (e.g., {{fields.fieldName}})'),
+	// Registry layers strip undeclared keys, so the PDF-only keys are refused
+	// by name rather than dropped without an error.
+	bindings: z.never({ error: LAYER_BINDINGS_RULE }).optional(),
+	bindingsFrom: z.never({ error: LAYER_BINDINGS_RULE }).optional(),
 }).meta({
 	title: 'RegistryInlineLayer',
 	description: 'Inline layer with embedded content',
@@ -70,10 +78,18 @@ export const RegistryFileLayerSchema = RegistryLayerBaseSchema.extend({
 			.optional(),
 	}).describe('Font a PDF layer draws with, installed beside the layer file')
 		.optional(),
+	bindings: PdfBindingsSchema.optional(),
+	bindingsFrom: PdfBindingsFromSchema.optional(),
 }).meta({
 	title: 'RegistryFileLayer',
 	description: 'File-backed layer with download URL',
-});
+}).refine(
+	(layer) => layer.bindings === undefined || isPdfMimeType(layer.mimeType),
+	{ error: LAYER_BINDINGS_RULE, path: ['bindings'] },
+).refine(
+	(layer) => layer.bindingsFrom === undefined || isPdfMimeType(layer.mimeType),
+	{ error: LAYER_BINDINGS_RULE, path: ['bindingsFrom'] },
+);
 
 /**
  * Registry layer union
@@ -84,6 +100,8 @@ export const RegistryLayerSchema = z.discriminatedUnion('kind', [
 ]).meta({
 	title: 'RegistryLayer',
 	description: 'Layer in a registry item - inline or file with URL',
+	// The file layer's bindings refinements, stated to JSON Schema as well.
+	allOf: pdfOnlyLayerKeysJsonSchema(['bindings', 'bindingsFrom']),
 });
 
 /**

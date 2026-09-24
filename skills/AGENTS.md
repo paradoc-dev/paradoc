@@ -101,7 +101,7 @@ Use relative links: `[fields](./fields.md)` between references, `[references/fie
 
 The skill states these in `SKILL.md`; repeat one in a reference only where it applies directly:
 
-- Schema version `2026-09-22`: `$schema` is `https://schema.paradoc.dev/2026-09-22.json` for every artifact kind. Migrate older files with `npx paradoc-cli migrate`.
+- Schema version `2026-09-23`: `$schema` is `https://schema.paradoc.dev/2026-09-23.json` for every artifact kind. Migrate older files with `npx paradoc-cli migrate`.
 - Validate files with `npx paradoc-cli validate <file>`.
 - Artifact name pattern `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`. Field, party, def and rule ids `^[a-z][a-zA-Z0-9_]*$`.
 - Use the most specific field type.

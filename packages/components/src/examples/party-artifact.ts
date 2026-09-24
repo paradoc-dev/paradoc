@@ -13,7 +13,7 @@ import { p } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
 
 const partyDemoSpec = {
-  $schema: "https://schema.paradoc.dev/2026-09-22.json",
+  $schema: "https://schema.paradoc.dev/2026-09-23.json",
   kind: "form",
   name: "party-demo",
   version: "1.0.0",

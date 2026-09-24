@@ -17,7 +17,7 @@ Every file starts with `$schema`, `kind` and `name`:
 
 ```json schema=artifact
 {
-  "$schema": "https://schema.paradoc.dev/2026-09-22.json",
+  "$schema": "https://schema.paradoc.dev/2026-09-23.json",
   "kind": "form",
   "name": "pet-registration",
   "version": "1.0.0",
@@ -32,8 +32,8 @@ Every file starts with `$schema`, `kind` and `name`:
 The same file in YAML. `.yaml` and `.yml` both load. The comment line gives editors completion against the schema:
 
 ```yaml
-# yaml-language-server: $schema=https://schema.paradoc.dev/2026-09-22.json
-$schema: https://schema.paradoc.dev/2026-09-22.json
+# yaml-language-server: $schema=https://schema.paradoc.dev/2026-09-23.json
+$schema: https://schema.paradoc.dev/2026-09-23.json
 kind: form
 name: pet-registration
 version: 1.0.0
@@ -50,13 +50,13 @@ Every object in the schema is strict, so an unknown key is an error. Name the fi
 
 ## Schema version
 
-The current schema version is `2026-09-22`. Write `$schema` as its dated address, the same for every kind:
+The current schema version is `2026-09-23`. Write `$schema` as its dated address, the same for every kind:
 
 ```text
-https://schema.paradoc.dev/2026-09-22.json
+https://schema.paradoc.dev/2026-09-23.json
 ```
 
-A dated per-kind address such as `https://schema.paradoc.dev/2026-09-22/form.json` names the same version. The SDK writes the dated address on `toJSON()` and `toYAML()`. Each new dated version ships with a migration step.
+A dated per-kind address such as `https://schema.paradoc.dev/2026-09-23/form.json` names the same version. The SDK writes the dated address on `toJSON()` and `toYAML()`. Each new dated version ships with a migration step.
 
 ### Loading rules
 

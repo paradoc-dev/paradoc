@@ -44,7 +44,7 @@ Inline layer with embedded text content. Used when content is stored directly in
   {
     name: 'text',
     type: 'string',
-    description: 'Layer content with interpolation placeholders',
+    description: 'Layer content with interpolation placeholders, such as `{{fields.fieldName}}`',
   },
   {
     name: 'title',
@@ -56,18 +56,6 @@ Inline layer with embedded text content. Used when content is stored directly in
     name: 'description',
     type: 'string',
     description: 'Description of what this layer represents',
-    isOptional: true,
-  },
-  {
-    name: 'bindings',
-    type: 'Record<string, string>',
-    description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',
-    isOptional: true,
-  },
-  {
-    name: 'bindingsFrom',
-    type: 'string',
-    description: 'Key of a sibling layer whose bindings this layer reuses',
     isOptional: true,
   },
   {
@@ -131,13 +119,13 @@ File-backed layer with external file reference. Used when content is stored in a
   {
     name: 'bindings',
     type: 'Record<string, string>',
-    description: 'Field bindings mapping form field names to layer target identifiers (typically for PDF)',
+    description: 'PDF layers only. Maps each AcroForm field name in the template (key) to the Paradoc path that fills it (value). See [Bindings](#bindings)',
     isOptional: true,
   },
   {
     name: 'bindingsFrom',
     type: 'string',
-    description: 'Key of a sibling layer whose bindings this layer reuses',
+    description: 'PDF layers only. Key of a sibling PDF layer whose bindings this layer reuses',
     isOptional: true,
   },
   {
@@ -147,6 +135,22 @@ File-backed layer with external file reference. Used when content is stored in a
     isOptional: true,
   },
 ]} />
+
+## Bindings
+
+Only a PDF file layer takes `bindings` and `bindingsFrom`. Each key of `bindings` is a fully qualified AcroForm field name, as `paradoc inspect` prints it, and each value is the Paradoc path that fills it, such as `fields.name` or `parties.buyer.name`. A text, Markdown, HTML or DOCX template names each value directly as `{{fields.fieldName}}`. Validation rejects `bindings` or `bindingsFrom` on any other layer.
+
+```json
+{
+  "kind": "file",
+  "mimeType": "application/pdf",
+  "path": "w-9.pdf",
+  "bindings": {
+    "topmostSubform[0].Page1[0].f1_01[0]": "parties.taxpayer.name",
+    "topmostSubform[0].Page1[0].f1_02[0]": "fields.businessName"
+  }
+}
+```
 
 ## SignatureSlot
 

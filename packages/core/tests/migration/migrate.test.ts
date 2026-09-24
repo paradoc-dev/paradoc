@@ -60,7 +60,7 @@ describe('2026-08-10 to 2026-09-22', () => {
 		if (result.status !== 'migrated') throw new Error('expected a migration')
 		const artifact = result.artifact as Json
 
-		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-22'])
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-22', '2026-09-23'])
 		expect(artifact.$schema).toBe(PARADOC_SCHEMA_URL)
 		expect(artifact.layers.markdown.signatures.tenantSignature.placement).toBe('flow')
 		expect(validate(artifact).issues).toBeUndefined()
@@ -147,6 +147,57 @@ describe('2026-08-10 to 2026-09-22', () => {
 	})
 })
 
+describe('2026-09-22 to 2026-09-23', () => {
+	const notice = (layers: Record<string, unknown>) => ({
+		$schema: schemaVersionUrl('2026-09-22'),
+		kind: 'form',
+		name: 'notice',
+		fields: { name: { type: 'text', label: 'Name' } },
+		layers,
+	})
+	const pdf = { kind: 'file', mimeType: 'application/pdf', path: 'notice.pdf' }
+
+	test('keeps bindings on PDF layers, and the result validates', () => {
+		const source = notice({
+			copyA: { ...pdf, bindings: { 'topmostSubform[0].Page1[0].f1_01[0]': 'fields.name' } },
+			copyB: { ...pdf, path: 'notice-b.pdf', bindingsFrom: 'copyA' },
+		})
+		const result = migrateArtifact(source)
+		if (result.status !== 'migrated') throw new Error('expected a migration')
+		expect(result).toMatchObject({ from: '2026-09-22', to: '2026-09-23' })
+		expect(result.steps.map((step) => step.to)).toEqual(['2026-09-23'])
+		expect(result.artifact).toEqual({ ...source, $schema: PARADOC_SCHEMA_URL })
+		expect(validate(result.artifact).issues).toBeUndefined()
+	})
+
+	test.each([
+		['an inline markdown layer', { kind: 'inline', mimeType: 'text/markdown', text: 'Dear {{name}}' }],
+		['a DOCX file layer', { kind: 'file', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', path: 'n.docx' }],
+	])('bindings on %s cannot be converted and are named', (_label, layer) => {
+		const error = migrationError(() => migrateArtifact(notice({ copy: { ...layer, bindings: { name: 'fields.name' } } })))
+		expect(error.code).toBe('unconvertible-value')
+		expect(error.message).toContain('layers.copy.bindings = {"name":"fields.name"}')
+		expect(error.message).toContain('{{fields.fieldName}}')
+	})
+
+	test('bindingsFrom on a layer that is not a PDF cannot be converted and is named', () => {
+		const source = notice({
+			pdf: { ...pdf, bindings: { f1_01: 'fields.name' } },
+			copy: { kind: 'file', mimeType: 'text/html', path: 'n.html', bindingsFrom: 'pdf' },
+		})
+		const error = migrationError(() => migrateArtifact(source))
+		expect(error.code).toBe('unconvertible-value')
+		expect(error.message).toContain('layers.copy.bindingsFrom = "pdf"')
+	})
+
+	test('names bindings on a layer of an inline artifact in a bundle', () => {
+		const { $schema: _, ...form } = notice({ copy: { kind: 'inline', mimeType: 'text/markdown', text: 'x', bindings: { a: 'fields.name' } } })
+		const bundle = { $schema: schemaVersionUrl('2026-09-22'), kind: 'bundle', name: 'packet', contents: [{ type: 'inline', key: 'notice', artifact: form }] }
+		const error = migrationError(() => migrateArtifact(bundle))
+		expect(error.message).toContain('contents.0.artifact.layers.copy.bindings')
+	})
+})
+
 describe('reading the source version', () => {
 	test('a current artifact is left as it is', () => {
 		expect(migrateArtifact(current)).toEqual({ status: 'current', version: SCHEMA_VERSION, artifact: current })
@@ -222,6 +273,7 @@ describe('a step', () => {
 		expect(result.steps.map((step) => step.summary)).toEqual([
 			'No breaking change: adds the layer signatures slot map.',
 			'Moves a legacy heading into title.',
+			'Allows bindings and bindingsFrom only on PDF file layers; names any other layer that declares them.',
 		])
 		expect(result.artifact).toEqual({ $schema: PARADOC_SCHEMA_URL, kind: 'document', name: 'notice', title: 'Notice' })
 		expect(validate(result.artifact).issues).toBeUndefined()

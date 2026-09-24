@@ -59,7 +59,6 @@ interface RegistryLayerBase {
   title?: string
   description?: string
   checksum?: string
-  bindings?: Record<string, string>
 }
 
 /**
@@ -80,6 +79,10 @@ export interface RegistryFileLayer extends RegistryLayerBase {
   url?: string
   /** Font a PDF layer draws with; downloaded beside the layer file. */
   font?: { path: string; checksum?: string }
+  /** PDF layers only: AcroForm field name to Paradoc path. */
+  bindings?: Record<string, string>
+  /** PDF layers only: key of a sibling PDF layer whose bindings this layer reuses. */
+  bindingsFrom?: string
 }
 
 /**

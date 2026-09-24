@@ -2633,28 +2633,6 @@
               "maxLength": 2000,
               "description": "Description of what this layer represents"
             },
-            "bindings": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 100,
-                "description": "Form field name (semantic identifier)"
-              },
-              "additionalProperties": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 500,
-                "description": "Target identifier in the template"
-              },
-              "description": "Mapping from form field names to template target identifiers"
-            },
-            "bindingsFrom": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Key of a sibling layer whose bindings this layer reuses"
-            },
             "signatureBlocks": {
               "type": "object",
               "propertyNames": {
@@ -2999,7 +2977,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 1000000,
-              "description": "Layer content with interpolation placeholders (e.g., {{fieldName}})"
+              "description": "Layer content with interpolation placeholders (e.g., {{fields.fieldName}})"
             }
           },
           "required": [
@@ -3029,28 +3007,6 @@
               "minLength": 1,
               "maxLength": 2000,
               "description": "Description of what this layer represents"
-            },
-            "bindings": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 100,
-                "description": "Form field name (semantic identifier)"
-              },
-              "additionalProperties": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 500,
-                "description": "Target identifier in the template"
-              },
-              "description": "Mapping from form field names to template target identifiers"
-            },
-            "bindingsFrom": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Key of a sibling layer whose bindings this layer reuses"
             },
             "signatureBlocks": {
               "type": "object",
@@ -3448,6 +3404,28 @@
               },
               "additionalProperties": false,
               "description": "Presentation the template requires of filled values; PDF layers only. It applies to this layer alone, not to a layer that reuses its bindings"
+            },
+            "bindings": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "description": "AcroForm field name in the PDF template, fully qualified (e.g., topmostSubform[0].Page1[0].f1_01[0])"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "description": "Paradoc path whose value fills the field (e.g., fields.name, parties.buyer.name)"
+              },
+              "description": "PDF layers only. Maps each AcroForm field name (key) to the Paradoc path (value) that fills it"
+            },
+            "bindingsFrom": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "PDF layers only. Key of a sibling PDF layer whose bindings this layer reuses"
             }
           },
           "required": [
@@ -3479,6 +3457,34 @@
           "if": {
             "required": [
               "format"
+            ]
+          },
+          "then": {
+            "properties": {
+              "mimeType": {
+                "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "bindings"
+            ]
+          },
+          "then": {
+            "properties": {
+              "mimeType": {
+                "pattern": "^[aA][pP][pP][lL][iI][cC][aA][tT][iI][oO][nN]/[pP][dD][fF]$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "bindingsFrom"
             ]
           },
           "then": {

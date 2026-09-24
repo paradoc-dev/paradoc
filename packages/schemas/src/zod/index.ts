@@ -41,7 +41,9 @@ export { ArtifactSchema } from './artifacts/shared/base';
 export { ContentRefSchema } from './artifacts/shared/content-ref';
 export { LayerSchema, SignatureBlockSchema, SignatureBlockTypeSchema, AnchorBlockSchema, SignatureSlotSchema, SignatureSlotTypeSchema } from './artifacts/shared/layer';
 export {
+	isPdfMimeType,
 	isReactLayerMimeType,
+	LAYER_BINDINGS_RULE,
 	REACT_LAYER_MIME_PATTERN,
 	REACT_LAYER_MIME_TYPES,
 	REACT_LAYER_RULE,

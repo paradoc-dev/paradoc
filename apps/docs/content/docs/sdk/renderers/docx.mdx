@@ -205,33 +205,9 @@ const output = await renderDocx({
 
 Formatting failures reject the render with the field path and status. Invalid values and template errors never produce a silently unfinished document. An artifact-level `formatter` passed to `render()` overrides the renderer default.
 
-## Template Bindings
+## Values in templates
 
-Map template placeholders to different field names. As with any file-backed
-layer, bind a resolver when the form is constructed:
-
-```ts
-import { createFsResolver } from '@paradoc/resolvers/fs'
-
-const resolver = createFsResolver({ root: process.cwd() })
-
-const form = p.form({
-  name: 'contract',
-  fields: {
-    clientFullName: { type: 'text' }
-  },
-  layers: {
-    docx: {
-      kind: 'file',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      path: '/templates/contract.docx',
-      bindings: {
-        client_name: 'clientFullName'  // Maps {{client_name}} to clientFullName field
-      }
-    }
-  }
-}, { resolver })
-```
+A DOCX template names each value by its path, such as `{{fields.clientFullName}}`. A DOCX layer takes no `bindings` or `bindingsFrom`, and validation rejects them there: bindings belong to [PDF layers](/sdk/renderers/pdf), where they map AcroForm field names to Paradoc paths.
 
 ## Related
 

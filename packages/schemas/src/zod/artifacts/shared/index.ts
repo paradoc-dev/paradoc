@@ -1,7 +1,9 @@
 export { ArtifactSchema } from './base';
 export { ContentRefSchema } from './content-ref';
 export {
+	isPdfMimeType,
 	isReactLayerMimeType,
+	LAYER_BINDINGS_RULE,
 	LayerSchema,
 	REACT_LAYER_MIME_PATTERN,
 	REACT_LAYER_MIME_TYPES,

@@ -5,6 +5,7 @@
  * Replaces instanceof checks with duck typing via _isLayerBuilder property.
  */
 
+import { isPdfMimeType, LAYER_BINDINGS_RULE } from '@paradoc/schemas';
 import type { InlineLayer, FileLayer, Layer, LayerFont, LayerFormat, SignatureSlot } from '@paradoc/types';
 
 // ============================================================================
@@ -38,7 +39,9 @@ export interface FileLayerBuilderType {
 	font(value: LayerFont): FileLayerBuilderType;
 	/** Declare the presentation a PDF layer's template requires, such as money without a symbol. */
 	format(value: LayerFormat): FileLayerBuilderType;
+	/** Map each AcroForm field name in a PDF template to the Paradoc path that fills it. PDF layers only. */
 	bindings(value: Record<string, string>): FileLayerBuilderType;
+	/** Reuse the bindings of a sibling PDF layer. PDF layers only. */
 	bindingsFrom(value: string): FileLayerBuilderType;
 	/** Declare the signature slots on this layer, keyed by slot id. */
 	signatures(value: Record<string, SignatureSlot>): FileLayerBuilderType;
@@ -51,8 +54,6 @@ export interface InlineLayerBuilderType {
 	mimeType(value: string): InlineLayerBuilderType;
 	title(value: string): InlineLayerBuilderType;
 	description(value: string): InlineLayerBuilderType;
-	bindings(value: Record<string, string>): InlineLayerBuilderType;
-	bindingsFrom(value: string): InlineLayerBuilderType;
 	/** Declare the signature slots on this layer, keyed by slot id. */
 	signatures(value: Record<string, SignatureSlot>): InlineLayerBuilderType;
 	build(): InlineLayer;
@@ -131,11 +132,14 @@ export function fileLayer(): FileLayerBuilderType {
 			if (!_def.mimeType) {
 				throw new Error('FileLayer requires a mimeType. Use .mimeType() to set it.');
 			}
-			if (_def.font && _def.mimeType.toLowerCase() !== 'application/pdf') {
+			if (_def.font && !isPdfMimeType(_def.mimeType)) {
 				throw new Error('Only PDF layers (application/pdf) can declare a font.');
 			}
-			if (_def.format && _def.mimeType.toLowerCase() !== 'application/pdf') {
+			if (_def.format && !isPdfMimeType(_def.mimeType)) {
 				throw new Error('Only PDF layers (application/pdf) can declare a format.');
+			}
+			if ((_def.bindings || _def.bindingsFrom) && !isPdfMimeType(_def.mimeType)) {
+				throw new Error(`${LAYER_BINDINGS_RULE}.`);
 			}
 			return _def as FileLayer;
 		},
@@ -175,14 +179,6 @@ export function inlineLayer(): InlineLayerBuilderType {
 		},
 		description(value: string) {
 			_def.description = value;
-			return self;
-		},
-		bindings(value: Record<string, string>) {
-			_def.bindings = value;
-			return self;
-		},
-		bindingsFrom(value: string) {
-			_def.bindingsFrom = value;
 			return self;
 		},
 		signatures(value: Record<string, SignatureSlot>) {

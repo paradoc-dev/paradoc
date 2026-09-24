@@ -205,7 +205,7 @@ A sealed form serializes `signatureMap` and `canonicalPdfHash`, not `canonicalPd
 import { p, createParadocRuntime, execute, deriveView, sessionPayload, type FormSession } from "@paradoc/sdk";
 
 const definition = {
-  $schema: "https://schema.paradoc.dev/2026-09-22.json",
+  $schema: "https://schema.paradoc.dev/2026-09-23.json",
   kind: "form",
   name: "intake",
   fields: {

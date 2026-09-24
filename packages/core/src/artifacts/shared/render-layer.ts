@@ -15,7 +15,7 @@ import type {
 	RendererLayer,
 	Resolver,
 } from '@paradoc/types'
-import { renderLayer as createRenderer } from '@paradoc/render'
+import { renderLayer as createRenderer, resolveLayerBindings } from '@paradoc/render'
 import {
 	findRegisteredRenderer,
 	InlineReactLayerError,
@@ -224,14 +224,15 @@ async function renderLayerAt(
 					'context for it. Render the layer through the artifact that declares it.',
 			)
 		}
-		const template = await buildRendererLayer(layerKey, layerSpec, layerSpec.bindings, options?.resolver, site)
+		const bindings = resolveLayerBindings(layers, layerSpec)
+		const template = await buildRendererLayer(layerKey, layerSpec, bindings, options?.resolver, site)
 		const formatter = context.formatter ?? options?.formatter
 		const progressive = context.progressive ?? options?.progressive
 		return (await registered.render({
 			template,
 			form: context.form,
 			data: context.data,
-			bindings: layerSpec.bindings,
+			bindings,
 			ctx: formatter || progressive
 				? { formatter, progressive }
 				: undefined,

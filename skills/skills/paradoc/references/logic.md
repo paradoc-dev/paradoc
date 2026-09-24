@@ -312,7 +312,7 @@ A result **fails** only when the expression errors with every input present: a t
 import { p } from "@paradoc/sdk";
 
 const form = p.form({
-  $schema: "https://schema.paradoc.dev/2026-09-22.json",
+  $schema: "https://schema.paradoc.dev/2026-09-23.json",
   name: "age-check",
   kind: "form",
   fields: { birthDate: { type: "date" } },

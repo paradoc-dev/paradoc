@@ -2,20 +2,20 @@
  * Schema version identity.
  *
  * Each version of the artifact schema is identified by a date and published
- * at a dated address, such as `https://schema.paradoc.dev/2026-09-22.json`.
+ * at a dated address, such as `https://schema.paradoc.dev/2026-09-23.json`.
  * A new dated version is created only for a breaking change, and each one
  * ships with a migration step from the version before it. The current version
  * is the latest entry in `SCHEMA_VERSIONS`.
  */
 
 /** Every published schema version, oldest first. The last entry is current. */
-export const SCHEMA_VERSIONS = ['2026-01-01', '2026-08-06', '2026-08-10', '2026-09-22'] as const;
+export const SCHEMA_VERSIONS = ['2026-01-01', '2026-08-06', '2026-08-10', '2026-09-22', '2026-09-23'] as const;
 
 /** A published, dated schema version. */
 export type SchemaVersion = (typeof SCHEMA_VERSIONS)[number];
 
 /** The current schema version: the latest dated version. */
-export const SCHEMA_VERSION = '2026-09-22' as const satisfies SchemaVersion;
+export const SCHEMA_VERSION = '2026-09-23' as const satisfies SchemaVersion;
 
 export const SCHEMA_BASE = 'https://schema.paradoc.dev';
 

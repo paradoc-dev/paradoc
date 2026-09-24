@@ -52,7 +52,6 @@ describe('Layer', () => {
 					.title('Template')
 					.description('A markdown template')
 					.checksum('abc123')
-					.bindings({ name: 'field_name' })
 					.build();
 
 				expect(result).toEqual({
@@ -62,8 +61,26 @@ describe('Layer', () => {
 					title: 'Template',
 					description: 'A markdown template',
 					checksum: 'abc123',
-					bindings: { name: 'field_name' },
 				});
+			});
+
+			it('binds AcroForm field names to Paradoc paths on a PDF layer', () => {
+				const bound = layer()
+					.file()
+					.path('w-9.pdf')
+					.mimeType('application/pdf')
+					.bindings({ 'topmostSubform[0].Page1[0].f1_01[0]': 'fields.name' })
+					.build();
+				expect(bound.bindings).toEqual({ 'topmostSubform[0].Page1[0].f1_01[0]': 'fields.name' });
+
+				const reused = layer().file().path('w-9-b.pdf').mimeType('application/pdf').bindingsFrom('copyA').build();
+				expect(reused.bindingsFrom).toBe('copyA');
+			});
+
+			it('refuses bindings or bindingsFrom on a layer that is not a PDF', () => {
+				const markdown = () => layer().file().path('notice.md').mimeType('text/markdown');
+				expect(() => markdown().bindings({ name: 'fields.name' }).build()).toThrow('Only PDF layers (application/pdf) can declare bindings');
+				expect(() => markdown().bindingsFrom('copyA').build()).toThrow('Only PDF layers (application/pdf) can declare bindings');
 			});
 
 			it('throws when path is missing', () => {
@@ -115,7 +132,6 @@ describe('Layer', () => {
 					.mimeType('text/plain')
 					.title('Greeting')
 					.description('A greeting template')
-					.bindings({ name: 'user_name' })
 					.build();
 
 				expect(result).toEqual({
@@ -124,8 +140,13 @@ describe('Layer', () => {
 					mimeType: 'text/plain',
 					title: 'Greeting',
 					description: 'A greeting template',
-					bindings: { name: 'user_name' },
 				});
+			});
+
+			it('offers no bindings: an inline template names values as {{fields.x}}', () => {
+				const builder = layer().inline();
+				expect('bindings' in builder).toBe(false);
+				expect('bindingsFrom' in builder).toBe(false);
 			});
 
 			it('throws when text is missing', () => {

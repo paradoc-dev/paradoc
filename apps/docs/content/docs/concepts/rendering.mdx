@@ -56,7 +56,11 @@ templates. Everything inside a marker is an [artifact expression](/concepts/logi
 tests a boolean condition, and `{{#each parties.tenant}}` loops with `item` as
 the current row. See [Text layers](/guides/text-layers#template-syntax-reference).
 
-PDF layers work differently—they use **bindings** to map form fields to PDF form fields:
+PDF layers work differently. A PDF template has AcroForm fields rather than
+placeholders, so a PDF layer declares **bindings**: each key is an AcroForm
+field name in the template, and each value is the Paradoc path that fills it.
+Only PDF layers take `bindings` and `bindingsFrom`; validation rejects them on
+any other layer.
 
 ```ts
 pdf: p.layer()
@@ -64,7 +68,7 @@ pdf: p.layer()
   .mimeType("application/pdf")
   .path("templates/lease.pdf")
   .bindings({
-    "PDFFieldName": "formFieldName",
+    "topmostSubform[0].Page1[0].TenantName[0]": "fields.tenantName",
   })
 ```
 

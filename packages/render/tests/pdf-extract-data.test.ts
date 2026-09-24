@@ -317,9 +317,14 @@ describe('selectPdfExtractionLayer', () => {
     expect(selectPdfExtractionLayer(layers, 'copyB')).toEqual({ key: 'copyB', bindings: { a: 'b' } })
   })
 
-  it('follows bindingsFrom to the referenced layer', () => {
+  it('follows bindingsFrom to the referenced PDF layer', () => {
+    const layers = { source: pdfLayer({ a: 'b' }), pdf: { mimeType: 'application/pdf', bindingsFrom: 'source' } }
+    expect(selectPdfExtractionLayer(layers, 'pdf')).toEqual({ key: 'pdf', bindings: { a: 'b' } })
+  })
+
+  it('takes no bindings from a layer that is not a PDF', () => {
     const layers = { source: { mimeType: 'text/markdown', bindings: { a: 'b' } }, pdf: { mimeType: 'application/pdf', bindingsFrom: 'source' } }
-    expect(selectPdfExtractionLayer(layers)).toEqual({ key: 'pdf', bindings: { a: 'b' } })
+    expect(() => selectPdfExtractionLayer(layers)).toThrow(expect.objectContaining({ code: 'not_matching' }))
   })
 
   it('refuses a layer whose bindingsFrom names no layer, as a layer with no bindings', () => {
