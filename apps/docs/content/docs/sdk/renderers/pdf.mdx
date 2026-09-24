@@ -94,15 +94,7 @@ function pdfRenderer(options?: PdfRendererOptions): ParadocRenderer<
 
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
-  { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering (future feature).', isOptional: true },
   { name: 'font', type: 'PdfFont', description: 'A font supplied at render time. It is tried first, before the font the layer declares. See [Fonts](#fonts).', isOptional: true },
-]} />
-
-#### PdfSignatureOptions
-
-<PropertiesTable properties={[
-  { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
-  { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
 ]} />
 
 #### Returns
@@ -130,7 +122,6 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate form fields' },
   { name: 'bindings', type: 'Record<string, string>', description: 'Mapping from PDF field names to form field expressions', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
-  { name: 'signatureOptions', type: 'PdfSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
   { name: 'overlays', type: 'PdfOverlay[]', description: 'Text or image overlays drawn at page coordinates', isOptional: true },
   { name: 'font', type: 'PdfFont', description: 'A font supplied at render time, tried first', isOptional: true },
   { name: 'layerFont', type: 'PdfFont', description: "The font the artifact's PDF layer declares, tried after `font`", isOptional: true },

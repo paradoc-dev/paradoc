@@ -6,10 +6,7 @@ import { bindingDataPath, bindingSources } from '../layer-bindings'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
 import { PdfFontSet, type PdfFont } from './drawing-fonts'
 import { applyPdfOverlays, type PdfOverlay } from './overlay'
-import type { PdfSignatureOptions } from './signatures'
 import { PdfModel } from './syntax'
-
-export type { PdfSignatureOptions } from './signatures'
 
 export interface RenderPdfOptions {
   template: BinaryContent
@@ -17,7 +14,6 @@ export interface RenderPdfOptions {
   data: Record<string, unknown>
   bindings?: Record<string, string>
   formatter?: Formatter
-  signatureOptions?: PdfSignatureOptions
   overlays?: PdfOverlay[]
   /**
    * A font supplied at render time. It is tried first for every text value,

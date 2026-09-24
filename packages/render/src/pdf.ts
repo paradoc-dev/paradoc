@@ -9,10 +9,9 @@ export type { PdfFieldFillDetail, PdfFieldFillReason } from './pdf/field-appeara
 export { PdfFontError } from './pdf/drawing-fonts'
 export type { PdfFont } from './pdf/drawing-fonts'
 export type { FontProgramProblem as PdfFontProblem } from './pdf/truetype'
-export type { PdfSignatureOptions, RenderPdfOptions } from './pdf/render'
+export type { RenderPdfOptions } from './pdf/render'
 export { pdfRenderer } from './pdf/renderer'
 export type { PdfRendererOptions } from './pdf/renderer'
-export { resolvePdfSignatureOptions } from './pdf/signatures'
 export type { PdfImageOverlay, PdfOverlay, PdfTextOverlay } from './pdf/overlay'
 export {
 	ALPHABET,

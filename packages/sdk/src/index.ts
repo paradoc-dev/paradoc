@@ -32,37 +32,6 @@ export {
 } from '@paradoc/render/pdf'
 export type { ExtractedField, LocateQuery, UnknownMarker } from '@paradoc/render/pdf'
 
-import { renderLayer } from '@paradoc/render'
-import type { ParadocRenderer, RendererLayer } from '@paradoc/types'
-import type { TextRendererOptions } from '@paradoc/render/text'
-import type { PdfRendererOptions } from '@paradoc/render/pdf'
-import type { DocxRendererOptions } from '@paradoc/render/docx'
-
-/** @deprecated Prefer renderLayer() or @paradoc/render/text. */
-export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer<RendererLayer, string> {
-  return renderLayer({
-    formatter: options.formatter,
-    progressive: options.progressive,
-    textSignatureOptions: options.signatureOptions,
-  }) as ParadocRenderer<RendererLayer, string>
-}
-
-/** @deprecated Prefer renderLayer() or @paradoc/render/pdf. */
-export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<RendererLayer, Uint8Array> {
-  return renderLayer({ formatter: options.formatter, pdfSignatureOptions: options.signatureOptions }) as ParadocRenderer<RendererLayer, Uint8Array>
-}
-
-/** @deprecated Prefer renderLayer() or @paradoc/render/docx. */
-export function docxRenderer(options: DocxRendererOptions = {}): ParadocRenderer<RendererLayer, Uint8Array> {
-  return renderLayer({ formatter: options.formatter, docxSignatureOptions: options.signatureOptions }) as ParadocRenderer<RendererLayer, Uint8Array>
-}
-
-/** @deprecated Prefer inspectAcroFormFields from @paradoc/render/pdf. */
-export async function inspectAcroFormFields(...args: Parameters<typeof import('@paradoc/render/pdf').inspectAcroFormFields>) {
-  const { inspectAcroFormFields } = await import('@paradoc/render/pdf')
-  return inspectAcroFormFields(...args)
-}
-
 // Re-export the standalone presentation formatter for SDK consumers.
 export * from '@paradoc/format'
 

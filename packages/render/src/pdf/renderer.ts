@@ -7,11 +7,9 @@ import type {
 } from '@paradoc/types'
 import type { PdfFont } from './drawing-fonts'
 import { renderPdf } from './render'
-import type { PdfSignatureOptions } from './signatures'
 
 export interface PdfRendererOptions {
   formatter?: Formatter
-  signatureOptions?: PdfSignatureOptions
   /**
    * A font supplied at render time, such as a licensed corporate font. It is
    * tried before the font the layer declares.
@@ -41,7 +39,6 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
           form: request.form,
           formatter: request.ctx?.formatter ?? formatter,
           bindings: request.bindings ?? request.template.bindings,
-          signatureOptions: options.signatureOptions,
           ...fromLayer(request.template),
         })
       }
@@ -68,7 +65,6 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
         form: request.form,
         formatter: request.ctx?.formatter ?? formatter,
         bindings: request.bindings ?? request.template.bindings,
-        signatureOptions: options.signatureOptions,
         ...fromLayer(request.template),
       })
     },

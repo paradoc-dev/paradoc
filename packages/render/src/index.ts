@@ -7,7 +7,6 @@ import type {
 } from '@paradoc/types'
 import type { DocxSignatureOptions } from './docx/signatures'
 import type { PdfFont } from './pdf/drawing-fonts'
-import type { PdfSignatureOptions } from './pdf/signatures'
 import type { TextSignatureOptions } from './text/signatures'
 import type { TemplateExpressionOptions } from './template/context'
 
@@ -19,7 +18,6 @@ export interface RenderLayerOptions {
   formatter?: Formatter
   progressive?: FormatterProgressivePolicy
   textSignatureOptions?: TextSignatureOptions
-  pdfSignatureOptions?: PdfSignatureOptions
   /** A font the PDF engine tries first, before the font a PDF layer declares. */
   pdfFont?: PdfFont
   docxSignatureOptions?: DocxSignatureOptions
@@ -84,7 +82,6 @@ export function renderLayer(options: RenderLayerOptions = {}): ParadocRenderer<R
         const { pdfRenderer } = await import('./pdf')
         return pdfRenderer({
           formatter: options.formatter,
-          signatureOptions: options.pdfSignatureOptions,
           font: options.pdfFont,
         }).render(request as never)
       }
