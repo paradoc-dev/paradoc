@@ -34,17 +34,85 @@ export function resolveLayerBindings(
   return isPdfLayer(source) ? source.bindings : undefined
 }
 
+/** One path a PDF binding value reads. */
+export interface PdfBindingPart {
+  /** The path as the binding writes it, trimmed: `fields.name`, `ssn`. */
+  source: string
+  /** Where the path sits in fill data, which holds field values at the top level: `fields.name` is `name`. */
+  path: string
+  /** The text after `:`, trimmed: the option a checkbox tests, or the one-based part a split binding fills. */
+  qualifier?: string
+}
+
+/** A PDF binding value whose syntax no fill, extraction, or check can read. */
+export class PdfBindingSyntaxError extends Error {
+  readonly binding: string
+
+  constructor(binding: string, problem: string) {
+    super(`Binding ${JSON.stringify(binding)} ${problem}.`)
+    this.name = 'PdfBindingSyntaxError'
+    this.binding = binding
+  }
+}
+
 /**
- * The Paradoc paths a binding value reads: each comma-joined part, trimmed,
- * without its `:` qualifier. `'fields.first, fields.last'` reads two paths;
- * `'ssn:3'` reads `ssn`.
+ * Parse a PDF binding value into the paths it reads. Fill, extraction, the fit
+ * check, and validation all read bindings through this one parser.
+ *
+ * - `name` or `fields.name` reads one path.
+ * - `status:married` tests an option; `ssn:2` fills the second hyphen-separated
+ *   part. Space around the `:` is ignored.
+ * - `city, state, zip` joins several whole values with `, `. A part of a joined
+ *   binding takes no qualifier.
+ *
+ * @throws {PdfBindingSyntaxError} for an empty part or qualifier, or a
+ * qualifier inside a joined binding.
  */
-export function bindingSources(binding: string): string[] {
-  return binding.split(',').map((part) => {
-    const path = part.trim()
-    const qualifier = path.indexOf(':')
-    return qualifier === -1 ? path : path.slice(0, qualifier)
+export function parseBinding(binding: string): PdfBindingPart[] {
+  const parts = binding.split(',').map((text): PdfBindingPart => {
+    const separator = text.indexOf(':')
+    const source = (separator === -1 ? text : text.slice(0, separator)).trim()
+    if (!source) throw new PdfBindingSyntaxError(binding, 'has an empty path')
+    if (separator === -1) return { source, path: bindingDataPath(source) }
+    const qualifier = text.slice(separator + 1).trim()
+    if (!qualifier) throw new PdfBindingSyntaxError(binding, `has an empty qualifier after "${source}:"`)
+    return { source, path: bindingDataPath(source), qualifier }
   })
+  if (parts.length > 1 && parts.some((part) => part.qualifier !== undefined)) {
+    throw new PdfBindingSyntaxError(binding, 'qualifies a part of a joined binding; a joined binding reads whole values')
+  }
+  return parts
+}
+
+/** Each binding of a layer, keyed by the PDF field it fills, with the paths it reads. */
+export type ParsedPdfBindings = [pdfName: string, parts: PdfBindingPart[]][]
+
+/** Parse every binding of a layer. @throws {PdfBindingSyntaxError} as {@link parseBinding} does. */
+export function parseBindings(bindings: Record<string, string>): ParsedPdfBindings {
+  return Object.entries(bindings).map(([pdfName, binding]) => [pdfName, parseBinding(binding)])
+}
+
+/**
+ * The zero-based part a split qualifier names: `2` is `1`. Undefined when the
+ * qualifier is not a positive whole number, so it names an option instead.
+ */
+export function splitPartIndex(qualifier: string): number | undefined {
+  return /^[1-9]\d*$/.test(qualifier) ? Number(qualifier) - 1 : undefined
+}
+
+/** A PDF binding key that names no form field of the template. */
+export class PdfBindingKeyError extends Error {
+  /** The binding keys the template has no field for. */
+  readonly keys: string[]
+
+  constructor(keys: string[], templateFields: string[]) {
+    super(
+      `PDF bindings name form fields the template does not have: ${keys.map((key) => JSON.stringify(key)).join(', ')}. ` +
+        (templateFields.length > 0 ? `Template fields: ${templateFields.join(', ')}` : 'The template has no form fields'),
+    )
+    this.name = 'PdfBindingKeyError'
+    this.keys = keys
+  }
 }
 
 /** Where a binding path sits in fill data, which holds field values at the top level: `fields.x` is `x`. */

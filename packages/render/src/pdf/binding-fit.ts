@@ -36,6 +36,7 @@ import { acroFields, textFieldDrawing, widgetLayout, type AcroField } from './ac
 import { PdfFontSet, type PdfFont } from './drawing-fonts'
 import { layoutFieldText, MIN_FONT_SIZE, PdfFieldFillError, type FieldLayout } from './field-appearance'
 import { analyzePattern, REFERENCE_REPERTOIRE, type CharSet } from './pattern-bounds'
+import { parseBinding, splitPartIndex, type PdfBindingPart } from '../layer-bindings'
 import { fieldDefinition } from './render'
 import { PdfModel } from './syntax'
 
@@ -213,16 +214,14 @@ function choiceSource(path: string, field: FormField): SourceAnalysis {
 }
 
 /** What one binding path fills a text field with. */
-function analyzeSource(form: Form, binding: string): SourceAnalysis {
-  const qualifier = binding.indexOf(':')
-  const path = qualifier === -1 ? binding : binding.slice(0, qualifier)
+function analyzeSource(form: Form, { path, qualifier }: PdfBindingPart): SourceAnalysis {
   const field = fieldDefinition(form, path)
   if (!field) return { kind: 'other' }
-  if (qualifier !== -1) {
+  if (qualifier !== undefined) {
     // A qualifier on a boolean, choice, or list field tests a value, which fills a checkbox.
     if (!TEXT_TYPES.has(field.type)) return { kind: 'other' }
-    const part = Number.parseInt(binding.slice(qualifier + 1), 10) - 1
-    return Number.isNaN(part) || part < 0 ? { kind: 'other' } : textSource(path, field as FormField & { maxLength?: number }, part)
+    const part = splitPartIndex(qualifier)
+    return part === undefined ? { kind: 'other' } : textSource(path, field as FormField & { maxLength?: number }, part)
   }
   if (TEXT_TYPES.has(field.type)) return textSource(path, field as FormField & { maxLength?: number })
   return choiceSource(path, field)
@@ -230,8 +229,7 @@ function analyzeSource(form: Form, binding: string): SourceAnalysis {
 
 /** The sources a binding reads, or why it is not checked. */
 function analyzeBinding(form: Form, binding: string): SourceAnalysis[] | undefined {
-  const parts = binding.includes(',') ? binding.split(',').map((part) => part.trim().split(':')[0]!) : [binding.trim()]
-  const sources = parts.map((part) => analyzeSource(form, part))
+  const sources = parseBinding(binding).map((part) => analyzeSource(form, part))
   // A joined value is checked only when every part is known.
   if (sources.some((source) => source.kind === 'other')) return undefined
   return sources
@@ -276,6 +274,7 @@ function fitFailure(field: AcroField, binding: string, sources: BoundSource[], l
  * has nothing to check.
  *
  * @throws {PdfFontError} when the layer's font cannot be read.
+ * @throws {PdfBindingSyntaxError} when a binding cannot be parsed.
  */
 export async function checkPdfBindingFit({ template, form, bindings, layerFont }: CheckPdfBindingFitOptions): Promise<PdfBindingFitIssue[]> {
   const model = await PdfModel.load(template)

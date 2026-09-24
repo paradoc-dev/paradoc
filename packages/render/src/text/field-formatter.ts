@@ -13,6 +13,7 @@ import type {
 	MoneyFormatOptions,
 } from '@paradoc/types'
 import { MISSING_RATING_SCALE, UNSUPPORTED_LIST_JOIN } from '@paradoc/format'
+import { bindingDataPath } from '../layer-bindings'
 import { pathSegments } from '../path'
 
 /** Explicit policy for rendering a value that is missing or incomplete. */
@@ -534,16 +535,8 @@ export function formatFieldData(
 	return result
 }
 
-const metadataRoots = new Set([
-	'parties',
-	'defs',
-	'annexes',
-	'_signers',
-	'_captures',
-	'title',
-	'description',
-	'items',
-])
+/** Roots fill data carries beside field values when the request has them: see `flattenRenderData`. */
+const signingRoots = new Set(['_signers', '_captures'])
 
 function isIndex(segment: string): boolean {
 	return /^\d+$/.test(segment) && Number.isSafeInteger(Number(segment))
@@ -737,7 +730,7 @@ function partyPathNode(partyType: string | undefined): PathNode {
 }
 
 function validateBindingPath(form: Form, sourcePath: string, bindingKey: string): void {
-	const path = sourcePath.startsWith('fields.') ? sourcePath.slice('fields.'.length) : sourcePath
+	const path = bindingDataPath(sourcePath)
 	if (!validatePathSyntax(path)) throw formatIssue(`bindings.${bindingKey}`, 'path', 'unknown_path', `Malformed field path ${JSON.stringify(sourcePath)}.`)
 	const segments = pathSegments(path)
 	if (segments.length === 0) throw formatIssue(`bindings.${bindingKey}`, 'path', 'unknown_path', `Unknown field path ${JSON.stringify(sourcePath)}.`)
@@ -770,7 +763,7 @@ function validateBindingPath(form: Form, sourcePath: string, bindingKey: string)
 		validateDeclaredField(field, segments, 1, sourcePath)
 		return
 	}
-	if (metadataRoots.has(root)) return
+	if (signingRoots.has(root)) return
 	throw formatIssue(sourcePath, 'path', 'unknown_path', `Unknown field path ${JSON.stringify(sourcePath)}.`)
 }
 

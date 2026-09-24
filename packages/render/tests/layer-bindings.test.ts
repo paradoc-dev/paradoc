@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { resolveLayerBindings } from '../src/index'
+import { parseBinding, PdfBindingSyntaxError, resolveLayerBindings } from '../src/index'
+import { splitPartIndex } from '../src/layer-bindings'
 
 describe('resolveLayerBindings', () => {
   const pdf = 'application/pdf'
@@ -50,5 +51,49 @@ describe('resolveLayerBindings', () => {
 
   it('reuses only a PDF layer: a source that is not a PDF gives none', () => {
     expect(resolveLayerBindings(layers, layers.fromMarkdown)).toBeUndefined()
+  })
+})
+
+describe('parseBinding', () => {
+  it('reads one path, with or without the fields. prefix', () => {
+    expect(parseBinding('name')).toEqual([{ source: 'name', path: 'name' }])
+    expect(parseBinding(' fields.name ')).toEqual([{ source: 'fields.name', path: 'name' }])
+    expect(parseBinding('parties.buyer.name')).toEqual([{ source: 'parties.buyer.name', path: 'parties.buyer.name' }])
+  })
+
+  it('trims a qualifier and the path before it', () => {
+    expect(parseBinding('fields.status : married')).toEqual([{ source: 'fields.status', path: 'status', qualifier: 'married' }])
+    expect(parseBinding('ssn:2')).toEqual([{ source: 'ssn', path: 'ssn', qualifier: '2' }])
+  })
+
+  it('reads each part of a joined binding', () => {
+    expect(parseBinding('fields.city, state ,zip')).toEqual([
+      { source: 'fields.city', path: 'city' },
+      { source: 'state', path: 'state' },
+      { source: 'zip', path: 'zip' },
+    ])
+  })
+
+  it('refuses an empty path or qualifier, naming the binding', () => {
+    expect(() => parseBinding('')).toThrow(PdfBindingSyntaxError)
+    expect(() => parseBinding('city,,zip')).toThrow('Binding "city,,zip" has an empty path.')
+    expect(() => parseBinding(':married')).toThrow('has an empty path')
+    expect(() => parseBinding('status: ')).toThrow('Binding "status: " has an empty qualifier after "status:".')
+  })
+
+  it('refuses a qualifier inside a joined binding', () => {
+    expect(() => parseBinding('ssn:1, ssn:2')).toThrow('Binding "ssn:1, ssn:2" qualifies a part of a joined binding; a joined binding reads whole values.')
+    expect(() => parseBinding('city, status:married')).toThrow(PdfBindingSyntaxError)
+  })
+})
+
+describe('splitPartIndex', () => {
+  it('reads a positive whole number as a zero-based part', () => {
+    expect(splitPartIndex('1')).toBe(0)
+    expect(splitPartIndex('12')).toBe(11)
+  })
+
+  it('reads anything else as no part', () => {
+    for (const qualifier of ['0', '2x', '-1', '1.5', 'married', '01']) expect(splitPartIndex(qualifier)).toBeUndefined()
   })
 })

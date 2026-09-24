@@ -1,7 +1,7 @@
 import { defaultFormatter } from '@paradoc/format'
 import type { BinaryContent, EnumOption, Form, FormField, Formatter, LayerFormat } from '@paradoc/types'
 import { validateFieldBindings } from '../text/field-formatter'
-import { resolveLayerBindings } from '../layer-bindings'
+import { parseBindings, resolveLayerBindings, splitPartIndex } from '../layer-bindings'
 import { pathSegments } from '../path'
 import { acroFields, type AcroField } from './acroform'
 import { isName, PdfEncryptedError, PdfModel, type PdfValue } from './syntax'
@@ -193,11 +193,6 @@ const numericMembers: Record<string, ReadonlySet<string>> = {
   money: new Set(['amount']),
   coordinate: new Set(['latitude', 'longitude', 'lat', 'lon', 'lng']),
   bbox: new Set(['0', '1', '2', '3', 'minLatitude', 'minLongitude', 'maxLatitude', 'maxLongitude']),
-}
-
-function normalizePath(path: string): string {
-  const trimmed = path.trim()
-  return trimmed.startsWith('fields.') ? trimmed.slice('fields.'.length) : trimmed
 }
 
 function targetFor(form: Form, path: string): Target {
@@ -606,8 +601,9 @@ function placeValue(data: PdfExtractedData, path: string, value: unknown): void 
  */
 export async function extractPdfData({ pdf, form, bindings, formatter: filledWith = defaultFormatter, format }: ExtractPdfDataOptions): Promise<PdfExtraction> {
   const formatter = format?.money ? filledWith.compose({ money: format.money }) : filledWith
-  const sources = Object.values(bindings).flatMap((binding) => binding.split(',').map((part) => normalizePath(part.split(':')[0]!)))
-  validateFieldBindings(form, Object.fromEntries(sources.map((path, index) => [String(index), path])))
+  const parsed = parseBindings(bindings)
+  const sources = parsed.flatMap(([, parts]) => parts.map((part) => part.source))
+  validateFieldBindings(form, Object.fromEntries(sources.map((source, index) => [String(index), source])))
 
   const { model, fields } = await loadFormFields(pdf)
   const states = new Map(fields.map((field) => [field.name, readField(model, field)]))
@@ -630,12 +626,12 @@ export async function extractPdfData({ pdf, form, bindings, formatter: filledWit
     return entry
   }
 
-  for (const [pdfName, binding] of Object.entries(bindings)) {
+  for (const [pdfName, parts] of parsed) {
     const state = states.get(pdfName)
 
-    if (binding.includes(',')) {
-      for (const part of binding.split(',')) {
-        const entry = workFor(normalizePath(part))
+    if (parts.length > 1) {
+      for (const part of parts) {
+        const entry = workFor(part.path)
         entry.sources.push(source(state, pdfName))
         entry.readings.push(state?.raw === undefined
           ? { kind: 'empty' }
@@ -644,14 +640,12 @@ export async function extractPdfData({ pdf, form, bindings, formatter: filledWit
       continue
     }
 
-    const separator = binding.indexOf(':')
-    const path = normalizePath(separator === -1 ? binding : binding.slice(0, separator))
+    const { path, qualifier } = parts[0]!
     const entry = workFor(path)
     entry.sources.push(source(state, pdfName))
     const target = targetFor(form, path)
-    const qualifier = separator === -1 ? undefined : binding.slice(separator + 1).trim()
     const fieldType = target.kind === 'field' ? target.field.type : undefined
-    const isPart = qualifier !== undefined && fieldType !== 'boolean' && fieldType !== 'enum' && fieldType !== 'multiselect' && /^[1-9]\d*$/.test(qualifier)
+    const isPart = qualifier !== undefined && fieldType !== 'boolean' && fieldType !== 'enum' && fieldType !== 'multiselect' && splitPartIndex(qualifier) !== undefined
     if (!state) {
       // A part whose PDF field is missing still holds its place in the order.
       if (isPart) entry.parts.set(Number(qualifier), undefined)

@@ -94,6 +94,27 @@ describe('PDF binding values', () => {
     })])
   })
 
+  it('fails a binding it cannot parse, naming the key and the problem', () => {
+    const result = validate(pdfForm({ ...correctBindings, name: 'petName:1, petSpecies', weight: 'petWeight: ' }))
+    expect(result.issues).toEqual([
+      {
+        message: 'Layer "pdf", binding "name": Binding "petName:1, petSpecies" qualifies a part of a joined binding; a joined binding reads whole values.',
+        path: ['layers', 'pdf', 'bindings', 'name'],
+      },
+      {
+        message: 'Layer "pdf", binding "weight": Binding "petWeight: " has an empty qualifier after "petWeight:".',
+        path: ['layers', 'pdf', 'bindings', 'weight'],
+      },
+    ])
+  })
+
+  it('fails a binding to a root fill data never carries', () => {
+    const result = validate(pdfForm({ ...correctBindings, name: 'title' }))
+    expect(result.issues).toEqual([expect.objectContaining({
+      message: 'Layer "pdf", binding "name": "title" is not a known Paradoc path (Unknown field path "title").',
+    })])
+  })
+
   it('fails an unknown party role and an unknown computed value', () => {
     const result = validate(pdfForm({ name: 'parties.buyer.name', weight: 'defs.total' }))
     expect(result.issues?.map((issue) => issue.path)).toEqual([

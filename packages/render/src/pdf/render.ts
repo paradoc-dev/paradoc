@@ -2,7 +2,7 @@ import { defaultFormatter } from '@paradoc/format'
 import type { BinaryContent, Form, FormField, Formatter, LayerFormat } from '@paradoc/types'
 import { formatFieldData, validateFieldBindings, unwrapFormattedValue } from '../text/field-formatter'
 import { getPath, pathSegments } from '../path'
-import { bindingDataPath, bindingSources } from '../layer-bindings'
+import { parseBindings, PdfBindingKeyError, splitPartIndex, type ParsedPdfBindings } from '../layer-bindings'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
 import { PdfFontSet, type PdfFont } from './drawing-fonts'
 import { applyPdfOverlays, type PdfOverlay } from './overlay'
@@ -37,8 +37,8 @@ function assign(field: AcroField | undefined, value: unknown, model: PdfModel, f
     : value)
 }
 
-function sourcePaths(bindings: Record<string, string>): string[][] {
-  return Object.values(bindings).flatMap((binding) => bindingSources(binding).map((path) => pathSegments(bindingDataPath(path))))
+function sourcePaths(bindings: ParsedPdfBindings): string[][] {
+  return bindings.flatMap(([, parts]) => parts.map((part) => pathSegments(part.path)))
 }
 
 /** The field definition a data path names, through fieldsets and list items. */
@@ -62,9 +62,9 @@ function displayPath(segments: string[]): string {
 function assertListBindingCapacity(
   form: Form | undefined,
   data: Record<string, unknown>,
-  bindings: Record<string, string> | undefined,
+  bindings: ParsedPdfBindings,
 ): void {
-  if (!form?.fields || !bindings) return
+  if (!form?.fields || bindings.length === 0) return
   const paths = sourcePaths(bindings)
 
   const visit = (field: FormField, value: unknown, prefix: string[]): void => {
@@ -109,16 +109,16 @@ export async function renderPdf({
   const preprocessed = form
     ? formatFieldData(data, form, formatter, { choices: 'value', ...(format?.money && { money: format.money }) })
     : data
+  const parsed = parseBindings(bindings ?? {})
   if (form) {
-    const sources = Object.values(bindings ?? {}).flatMap(bindingSources)
+    const sources = parsed.flatMap(([, parts]) => parts.map((part) => part.source))
     sources.push(...overlays.flatMap((overlay) => 'field' in overlay && overlay.field ? [overlay.field] : []))
     validateFieldBindings(form, Object.fromEntries(sources.map((source, index) => [String(index), source])))
   }
-  assertListBindingCapacity(form, data, bindings)
+  assertListBindingCapacity(form, data, parsed)
   const model = await PdfModel.load(template)
   const fonts = PdfFontSet.create(model, { font, layerFont })
-  const shouldFill = Boolean(bindings && Object.keys(bindings).length > 0)
-    || Boolean(form?.fields && Object.keys(form.fields).length > 0)
+  const shouldFill = parsed.length > 0 || Boolean(form?.fields && Object.keys(form.fields).length > 0)
 
   if (shouldFill) {
     let acroFormData: ReturnType<typeof acroFields> | undefined
@@ -129,42 +129,45 @@ export async function renderPdf({
       if (!(error instanceof Error) || error.message !== 'PDF does not contain an AcroForm') throw error
     }
 
+    const byName = new Map((acroFormData?.fields ?? []).map((field) => [field.name, field]))
+    const unmatched = parsed.map(([pdfName]) => pdfName).filter((pdfName) => !byName.has(pdfName))
+    if (unmatched.length > 0) {
+      throw new PdfBindingKeyError(unmatched, [...byName.keys()])
+    }
+
     if (acroFormData) {
-      const { fields, acroForm, acroRef, catalogRef } = acroFormData
-      const byName = new Map(fields.map((field) => [field.name, field]))
+      const { acroForm, acroRef, catalogRef } = acroFormData
       await fonts.readFormFonts(model.dict(acroForm.entries.get('DR')))
       // Every filled value carries its own appearance, drawn in the font
       // chosen for it. A viewer told to regenerate appearances would redraw
       // them in the form's default font instead.
       acroForm.entries.delete('NeedAppearances')
       model.markUpdated(acroRef ?? catalogRef)
+      // Bindings given, even none, replace filling PDF fields by field id.
       if (bindings) {
-        for (const [pdfName, binding] of Object.entries(bindings)) {
+        for (const [pdfName, parts] of parsed) {
           const field = byName.get(pdfName)
-          if (!field) continue
-          if (binding.includes(',')) {
-            const combined = binding.split(',').map((path) => getPath(preprocessed, bindingDataPath(path))).filter((value) => value !== null && value !== undefined && String(value) !== '').join(', ')
+          if (parts.length > 1) {
+            const combined = parts.map((part) => getPath(preprocessed, part.path)).filter((value) => value !== null && value !== undefined && String(value) !== '').join(', ')
             if (combined) assign(field, combined, model, fonts)
             continue
           }
-          if (binding.includes(':')) {
-            const separator = binding.indexOf(':')
-            const fieldName = bindingDataPath(binding.slice(0, separator))
-            const qualifier = binding.slice(separator + 1)
-            const value = getPath(data, fieldName)
+          const { path, qualifier } = parts[0]!
+          if (qualifier !== undefined) {
+            const value = getPath(data, path)
             if (typeof value === 'boolean') assign(field, value, model, fonts)
             else if (Array.isArray(value)) assign(field, value.includes(qualifier), model, fonts)
-            else if (fieldDefinition(form, fieldName)?.type === 'enum') assign(field, String(value) === qualifier, model, fonts)
+            else if (fieldDefinition(form, path)?.type === 'enum') assign(field, String(value) === qualifier, model, fonts)
             else {
-              const index = Number.parseInt(qualifier, 10) - 1
-              if (!Number.isNaN(index) && value !== null && value !== undefined) {
+              const index = splitPartIndex(qualifier)
+              if (index !== undefined && value !== null && value !== undefined) {
                 const part = String(value).split('-')[index]
                 if (part) assign(field, part, model, fonts)
               }
             }
             continue
           }
-          assign(field, getPath(preprocessed, bindingDataPath(binding)), model, fonts)
+          assign(field, getPath(preprocessed, path), model, fonts)
         }
       } else if (form) {
         for (const [name, definition] of Object.entries(form.fields ?? {}) as [string, FormField][]) {

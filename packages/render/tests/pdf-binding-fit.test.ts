@@ -64,6 +64,18 @@ describe('checkPdfBindingFit', () => {
     expect(await fillFails(fields, form, { amountSource: 'amountSource' }, { amountSource: typical(200) })).toBe('overflow')
   })
 
+  it('checks a fields.-prefixed binding as the bare path, and a split part with space after its colon', async () => {
+    const fields = [box('amountSource', 48, 12)]
+    const form = formOf({ amountSource: { type: 'text', maxLength: 200 } })
+    expect(await check(fields, form, { amountSource: 'fields.amountSource' })).toEqual([expect.objectContaining({ paths: ['fields.amountSource'], reason: 'overflow', severity: 'error' })])
+    expect(await check(fields, form, { amountSource: 'fields.amountSource: 1' })).toEqual([expect.objectContaining({ reason: 'overflow', severity: 'error' })])
+  })
+
+  it('refuses a binding it cannot parse instead of skipping it', async () => {
+    const form = formOf({ first: { type: 'text', maxLength: 10 }, last: { type: 'text', maxLength: 10 } })
+    await expect(check([box('name', 200, 14)], form, { name: 'first:1, last' })).rejects.toThrow('qualifies a part of a joined binding')
+  })
+
   it('warns when a typical value fits but the widest value, all W, does not', async () => {
     // Ten typical characters fit a 40 pt box at 6 pt in Helvetica; ten of `W` do not.
     const fields = [box('code', 40, 12)]

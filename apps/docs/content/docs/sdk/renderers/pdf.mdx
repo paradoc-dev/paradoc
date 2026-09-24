@@ -130,7 +130,7 @@ async function renderPdf(options: RenderPdfOptions): Promise<Uint8Array>
 
 A `PdfOverlay` is either text or an image placed at `page` (one-based), `x`,
 and `y` (PDF points from the bottom-left corner). A text overlay carries `text`
-or a `field` path to read from the data, plus optional `fontSize`, `width`,
+or a `field` path to read from the data (with or without the `fields.` prefix), plus optional `fontSize`, `width`,
 `height`, and `color`. Overlay text follows the same font order and failure
 rules as field values, and a text overlay with a `width` fails with an
 `overflow` error when its text does not fit at 6 points. An image overlay
@@ -253,7 +253,9 @@ initials.
 
 ## Binding Syntax
 
-PDF bindings map AcroForm field names to form field names with special syntax for complex cases:
+PDF bindings map AcroForm field names to Paradoc paths, with special syntax for complex cases. A path may carry the `fields.` prefix (`fields.taxType` is `taxType`), and space around `:` and `,` is ignored. Filling, extraction, the fit check, and validation all parse a binding value this way, and all read a split part only from a whole number from 1.
+
+Every binding key must name a form field of the template. `renderPdf` fails with `PdfBindingKeyError`, naming each key the template does not have, instead of filling the rest. A binding value may name only paths the fill data carries: fields, `parties`, `defs`, `annexes`, and the signing roots `_signers` and `_captures`.
 
 ### Simple Binding
 
@@ -296,6 +298,8 @@ bindings: {
   'cityStateZip': 'city,state,zipCode'  // "San Francisco, CA, 94105"
 }
 ```
+
+A part of a combined binding takes no `:` qualifier. `'ssn:1, ssn:2'` fails with `PdfBindingSyntaxError`, as does an empty path or qualifier.
 
 ### Nested Paths
 

@@ -143,6 +143,26 @@ describe('extractPdfData', () => {
     expect(result.data.fields).not.toHaveProperty('lastName')
   })
 
+  it('reads bindings written with the fields. prefix and space around qualifiers as fill writes them', async () => {
+    const written: Record<string, string> = {
+      ...bindings,
+      names: 'fields.firstName, fields.lastName',
+      ssn_2: 'fields.ssn : 2',
+      status_married: 'fields.status: married',
+    }
+    const pdf = await renderPdf({ template: acroFormPdf(layout), form, data, bindings: written })
+    const result = await extractPdfData({ pdf, form, bindings: written })
+
+    expect(result.data.fields).toMatchObject({ ssn: '123-45-6789', status: 'married' })
+    expect(entry(result, 'firstName')).toMatchObject({ status: 'not_recoverable', sources: [{ field: 'names', value: 'Jane, Public' }] })
+    expect(result.report.entries.map((item) => item.path)).not.toContain('fields.firstName')
+  })
+
+  it('refuses a binding it cannot parse', async () => {
+    await expect(extractPdfData({ pdf: await filled(data), form, bindings: { ...bindings, names: 'firstName:1, lastName' } }))
+      .rejects.toThrow('qualifies a part of a joined binding')
+  })
+
   it('reports empty fields, unparseable text, and PDF fields no binding covers', async () => {
     const pdf = acroFormPdf(layout.map((field): AcroFormFixtureField => {
       if (field.kind !== 'text') return field

@@ -3,6 +3,7 @@ import type { PdfFontSet } from './drawing-fonts'
 import { MIN_FONT_SIZE, PdfFieldFillError, type DrawingFont } from './field-appearance'
 import { type PdfRef, PdfModel, type PdfValue } from './syntax'
 import { getPath } from '../path'
+import { bindingDataPath } from '../layer-bindings'
 import { addPageResource, appendPageContent, documentPages } from './page-tree'
 
 interface PdfOverlayBase {
@@ -49,7 +50,8 @@ interface EmbeddedImage {
 
 function textValue(overlay: PdfTextOverlay, data: Record<string, unknown>): unknown {
   if ('text' in overlay) return overlay.text
-  return getPath(data, overlay.field)
+  // An overlay field is a Paradoc path, read as a binding reads it: `fields.x` is `x`.
+  return getPath(data, bindingDataPath(overlay.field))
 }
 
 /** The overlay as errors name it: its bound field, or its position. */

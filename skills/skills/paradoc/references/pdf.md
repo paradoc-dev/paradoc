@@ -70,6 +70,13 @@ One table for filling and for reading back. "Extract" is the status [extraction]
 
 Prefer bindings that read back. Join values only when the PDF gives them one box, as the W-9 does for city, state, and ZIP.
 
+Fill, extraction, the fit check, and validation parse a binding value the same way:
+
+- A path may carry the `fields.` prefix: `"fields.businessName"` is `"businessName"`.
+- Space around `:` and `,` is ignored: `"status: married"` is `"status:married"`.
+- A joined part takes no qualifier. `"ssn:1, ssn:2"` fails validation.
+- Every binding key must name a field of the template. Filling fails, naming the key, when one does not.
+
 ## Example: W-9
 
 Trimmed from the `@paradoc/essentials` W-9 (`w9.spec`). The enum keeps three of its seven options. The PDF field names come from `paradoc inspect`.
