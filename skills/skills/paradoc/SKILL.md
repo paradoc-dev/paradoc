@@ -41,7 +41,7 @@ Install `@paradoc/sdk`: it re-exports `core`, `render`, `format` and `sessions`,
 | Package | Use it for |
 |---------|-----------|
 | `@paradoc/sdk` | Define, load, fill, validate, render and seal artifacts; `hostedSealAdapter` |
-| `@paradoc/resolvers` | Load layer files: `@paradoc/resolvers/fs`, `@paradoc/resolvers/memory` (no root export) |
+| `@paradoc/resolvers` | Load layer files: `@paradoc/resolvers/fs`, `@paradoc/resolvers/http`, `@paradoc/resolvers/memory` (no root export) |
 | `@paradoc/essentials` | Finished forms: W-9, 1099, 4506-T, I-9, ACH ([essentials.md](./references/essentials.md)) |
 | `@paradoc/ai-tools` + `@paradoc/ai-sdk` / `mastra` / `tanstack-ai` | Paradoc tools for your own agent |
 | `paradoc-cli` | The `paradoc` command |

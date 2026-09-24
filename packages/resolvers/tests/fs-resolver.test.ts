@@ -80,6 +80,21 @@ describe('createFsResolver', () => {
     },
   )
 
+  test.each([undefined, {}, { root: '' }, { root: 42 }])('rejects invalid options %j', (options) => {
+    expect(() => createFsResolver(options as never)).toThrow(
+      expect.objectContaining({ code: 'ERR_RESOLVER_INVALID_OPTIONS' }),
+    )
+  })
+
+  test('reads a root that was missing at the first read once it exists', async () => {
+    const late = join(sandbox, 'late')
+    const resolver = createFsResolver({ root: late })
+    await expect(resolver.read('x.txt')).rejects.toMatchObject({ code: 'ENOENT' })
+    await mkdir(late)
+    await writeFile(join(late, 'x.txt'), 'late')
+    await expectBytes(resolver.read('x.txt'), new TextEncoder().encode('late'))
+  })
+
   test('preserves native errors for missing files and directories', async () => {
     const resolver = createFsResolver({ root })
     await expect(resolver.read('missing')).rejects.toMatchObject({ code: 'ENOENT' })

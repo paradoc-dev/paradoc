@@ -17,4 +17,27 @@ describe('createMemoryResolver', () => {
     first[1] = 9
     await expect(resolver.read('binary')).resolves.toEqual(new Uint8Array([1, 2, 3]))
   })
+
+  test('copies Node Buffer input and returns plain Uint8Array copies', async () => {
+    const supplied = Buffer.from([1, 2, 3])
+    const resolver = createMemoryResolver({ contents: { binary: supplied } })
+    supplied[0] = 9
+    const first = await resolver.read('binary')
+    expect(Buffer.isBuffer(first)).toBe(false)
+    first[1] = 9
+    await expect(resolver.read('binary')).resolves.toEqual(new Uint8Array([1, 2, 3]))
+  })
+
+  test.each([
+    ['missing options', undefined],
+    ['missing contents', {}],
+    ['null contents', { contents: null }],
+    ['array contents', { contents: [] }],
+    ['ArrayBuffer value', { contents: { a: new ArrayBuffer(2) } }],
+    ['number value', { contents: { a: 1 } }],
+  ])('rejects %s with ERR_RESOLVER_INVALID_OPTIONS', (_label, options) => {
+    expect(() => createMemoryResolver(options as never)).toThrow(
+      expect.objectContaining({ code: 'ERR_RESOLVER_INVALID_OPTIONS' }),
+    )
+  })
 })

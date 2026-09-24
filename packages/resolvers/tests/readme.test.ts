@@ -7,11 +7,13 @@ const run = promisify(execFile)
 const packageRoot = fileURLToPath(new URL('..', import.meta.url))
 
 describe('@paradoc/resolvers public entrypoints', () => {
-  test('loads both emitted entrypoints through package exports', async () => {
+  test('loads every emitted entrypoint through package exports', async () => {
     const source = [
       'import { createFsResolver } from "@paradoc/resolvers/fs"',
+      'import { createHttpResolver } from "@paradoc/resolvers/http"',
       'import { createMemoryResolver } from "@paradoc/resolvers/memory"',
       'if (typeof createFsResolver !== "function") process.exit(1)',
+      'if (typeof createHttpResolver !== "function") process.exit(1)',
       'if (typeof createMemoryResolver !== "function") process.exit(1)',
     ].join(';')
 

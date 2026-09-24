@@ -129,7 +129,7 @@ These helpers fetch from a Paradoc registry with the same URL and size checks th
 | `fetchRegistryIndex`, `fetchRegistryIndexResponse` | Fetch and parse `registry.json` |
 | `fetchRegistryItem`, `fetchRegistryItemResponse` | Fetch one artifact from a registry |
 | `buildArtifactItemUrl` | Build an artifact URL from a registry URL and item |
-| `resolveRelativeUrl` | Resolve a layer or instruction path against a base URL |
+| `resolveRelativeUrl` | Resolve an instruction or item path against a base URL. Layer files are read with `@paradoc/resolvers/http` |
 | `bytesToBase64`, `bytesToText` | Encode fetched bytes |
 
 ## Schemas and types

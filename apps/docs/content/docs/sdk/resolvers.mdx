@@ -6,7 +6,7 @@ description: Load file-based layers and templates for rendering
 Resolvers provide a unified interface for loading file-based content (templates, assets) when rendering forms. They abstract away the underlying storage mechanism, whether in-memory, filesystem, or remote.
 
 <Callout type="warn">
-The `@paradoc/resolvers` package provides focused filesystem and memory resolvers. Install it separately from the SDK and import the adapter for your environment.
+The `@paradoc/resolvers` package provides filesystem, HTTP, and memory resolvers. Install it separately from the SDK with `npm install @paradoc/resolvers`, and import the entrypoint for your environment.
 </Callout>
 
 ## Resolver Interface
@@ -78,13 +78,15 @@ function createMemoryResolver(options: MemoryResolverOptions): Resolver
 #### MemoryResolverOptions
 
 <PropertiesTable properties={[
-  { name: 'contents', type: 'Record<string, Uint8Array | string>', description: 'Map of paths to content. Strings are UTF-8 encoded automatically.' },
+  { name: 'contents', type: 'Record<string, Uint8Array | string>', description: 'Map of paths to content. Keys match the read path exactly. Strings are UTF-8 encoded automatically.' },
 ]} />
+
+Binary content, including a Node.js `Buffer`, is copied when the resolver is created, and every read returns a new copy. A path with no entry rejects with `ERR_RESOLVER_NOT_FOUND`. Missing `contents`, or a value that is not a string or `Uint8Array`, throws `ERR_RESOLVER_INVALID_OPTIONS`.
 
 ## Filesystem Resolver (Node.js Only)
 
 <Callout type="warn">
-The filesystem resolver requires Node.js and is in a separate package. Install with `npm install @paradoc/resolvers`.
+The `@paradoc/resolvers/fs` entrypoint requires Node.js.
 </Callout>
 
 ```ts
@@ -96,12 +98,6 @@ const resolver = createFsResolver({
 
 // Reads files relative to the root directory
 const bytes = await resolver.read('/templates/form.docx')
-```
-
-### Installation
-
-```bash
-npm install @paradoc/resolvers
 ```
 
 ### createFsResolver
@@ -117,7 +113,39 @@ function createFsResolver(options: FsResolverOptions): Resolver
 ]} />
 
 <Callout type="info">
-The filesystem resolver validates that paths and symlinks stay within the root directory. Policy failures expose `ERR_RESOLVER_OUTSIDE_ROOT` or `ERR_RESOLVER_INVALID_PATH`; missing files retain native Node.js error codes.
+The filesystem resolver validates that paths and symlinks stay within the root directory. Policy failures expose `ERR_RESOLVER_OUTSIDE_ROOT` or `ERR_RESOLVER_INVALID_PATH`; missing files retain native Node.js error codes. An empty or non-string `root` throws `ERR_RESOLVER_INVALID_OPTIONS`. The root is checked on each read until it is found, so a root created after a failed read becomes readable.
+</Callout>
+
+## HTTP Resolver
+
+The `createHttpResolver` function is exported from `@paradoc/resolvers/http` and works in any environment with the Fetch API. It reads each path beneath a base URL.
+
+```ts
+import { createHttpResolver } from '@paradoc/resolvers/http'
+
+const resolver = createHttpResolver({
+  baseUrl: 'https://example.com/forms/w-9/'
+})
+
+// Fetches https://example.com/forms/w-9/templates/form.pdf
+const bytes = await resolver.read('/templates/form.pdf')
+```
+
+### createHttpResolver
+
+```ts
+function createHttpResolver(options: HttpResolverOptions): Resolver
+```
+
+#### HttpResolverOptions
+
+<PropertiesTable properties={[
+  { name: 'baseUrl', type: 'string', description: 'Absolute http or https URL of the root directory. Its query and fragment are ignored.' },
+  { name: 'fetch', type: '(url: string) => Promise<Response>', description: 'Optional. The fetch used for each read. Defaults to the global fetch. Supply one to add allowed hosts, timeouts, redirect handling, or body size limits.' },
+]} />
+
+<Callout type="info">
+Paths follow the filesystem resolver's rules: forward slashes only, and a single leading slash means the base URL, not the origin root. Each path segment is percent-encoded. A path that resolves outside the base URL rejects with `ERR_RESOLVER_OUTSIDE_ROOT`, and one that names the base URL itself with `ERR_RESOLVER_INVALID_PATH`, before any request. Redirects follow the fetch function's own policy. A 404 rejects with `ERR_RESOLVER_NOT_FOUND`, and any other failed status rejects with `ERR_RESOLVER_FETCH_FAILED`. An error thrown by a supplied `fetch` passes through unchanged.
 </Callout>
 
 ## Usage with File-Based Layers
@@ -189,20 +217,6 @@ Implement the `Resolver` interface for custom storage backends:
 
 ```ts
 import type { Resolver } from '@paradoc/types'
-
-// Example: HTTP resolver
-function createHttpResolver(baseUrl: string): Resolver {
-  return {
-    async read(path: string): Promise<Uint8Array> {
-      const response = await fetch(`${baseUrl}${path}`)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${path}`)
-      }
-      const buffer = await response.arrayBuffer()
-      return new Uint8Array(buffer)
-    }
-  }
-}
 
 // Example: S3 resolver
 function createS3Resolver(bucket: string, s3Client: S3Client): Resolver {

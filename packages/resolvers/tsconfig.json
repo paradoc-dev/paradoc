@@ -8,6 +8,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@paradoc/resolvers/fs": ["src/fs/index.ts"],
+      "@paradoc/resolvers/http": ["src/http/index.ts"],
       "@paradoc/resolvers/memory": ["src/memory/index.ts"]
     }
   },

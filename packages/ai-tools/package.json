@@ -67,6 +67,7 @@
   "dependencies": {
     "@paradoc/core": "workspace:*",
     "@paradoc/render": "workspace:*",
+    "@paradoc/resolvers": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

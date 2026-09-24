@@ -1,6 +1,7 @@
 import type { FormPayload, ToolError } from './contracts'
 import type { ParadocToolsConfig } from './config'
-import { bytesToBase64 } from './registry-client'
+import { createHttpResolver } from '@paradoc/resolvers/http'
+import { bytesToBase64, fetchPolicyFromConfig, MAX_LAYER_FILE_SIZE, safeFetch } from './registry-client'
 
 export type ArtifactKind = 'form' | 'document' | 'bundle' | 'checklist'
 
@@ -73,16 +74,14 @@ export function encodeOutput(bytes: Uint8Array | string): { content: string; enc
 	return { content: bytesToBase64(bytes), encoding: 'base64', byte_length: bytes.byteLength }
 }
 
+/** Resolve layer files beneath the artifact's base URL through the tools' fetch policy. */
 export function makeResolver(base_url: string | undefined, config?: ParadocToolsConfig) {
 	if (!base_url) return undefined
-	return {
-		async read(path: string): Promise<Uint8Array> {
-			const { safeFetch, MAX_LAYER_FILE_SIZE, fetchPolicyFromConfig, resolveRelativeUrl } = await import('./registry-client')
-			const url = resolveRelativeUrl(base_url, path, 'Layer path')
-			const response = await safeFetch(url, MAX_LAYER_FILE_SIZE, config?.fetch, fetchPolicyFromConfig(config))
-			return new Uint8Array(await response.arrayBuffer())
-		},
-	}
+	const policy = fetchPolicyFromConfig(config)
+	return createHttpResolver({
+		baseUrl: base_url,
+		fetch: (url) => safeFetch(url, MAX_LAYER_FILE_SIZE, config?.fetch, policy),
+	})
 }
 
 export function boundedPresentation(

@@ -96,6 +96,7 @@ A resolver reads the bytes of file layers, layer fonts and instruction files. An
 | Resolver | Import | Rules |
 |----------|--------|-------|
 | Filesystem | `createFsResolver({ root })` from `@paradoc/resolvers/fs` | Reads under `root` only. `../`, backslashes and drive paths fail. A leading `/` is stripped |
+| HTTP | `createHttpResolver({ baseUrl, fetch? })` from `@paradoc/resolvers/http` | Same path rules as the filesystem resolver, beneath `baseUrl`. Pass `fetch` to add host, timeout or size limits |
 | Memory | `createMemoryResolver({ contents })` from `@paradoc/resolvers/memory` | Keys match the layer's `path` exactly. Browser-safe |
 
 ```typescript
@@ -178,7 +179,8 @@ The engines install on first use under `~/.paradoc/renderers/`. Manage them with
 |-------|-------|-----|
 | `UnboundResolverError: Layer "x" is file-backed ... but no resolver is bound` | File layer, no resolver | Pass `{ resolver }` where you construct the artifact |
 | `Resolver path "../x" resolves outside the configured root` (`ERR_RESOLVER_OUTSIDE_ROOT`) | Path leaves the resolver root | Move the file under the artifact's directory |
-| `Resolver content not found: "x"` (`ERR_RESOLVER_NOT_FOUND`) | Memory key differs from the layer path | Use the layer's `path` string as the key |
+| `Resolver content not found: "x"` (`ERR_RESOLVER_NOT_FOUND`) | Memory key differs from the layer path, or the HTTP resolver got a 404 from its fetch | Use the layer's `path` string as the key, or publish the file under the base URL |
+| `ERR_RESOLVER_INVALID_OPTIONS` | A resolver was created with a bad `root`, `baseUrl` or `contents` | Pass the options in the table above |
 | `Layer "x" not found` | Wrong `layer` or `defaultLayer` | Use a key from `layers` |
 | `UnregisteredLayerRendererError` | React layer without a renderer | Pass `renderers` (the `paradoc-react` skill) |
 | `Unsupported render layer MIME type: x` | No engine for the MIME type | Use a type from [layers.md](./layers.md#mime-type-and-engine) |

@@ -6,6 +6,11 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Fixed
 
+- `@paradoc/resolvers`: the memory resolver copies a Node.js `Buffer` on input and on every read. It used `Buffer.prototype.slice`, which returns a view, so a caller's or consumer's change to the bytes changed the stored content.
+- `@paradoc/resolvers`: a filesystem resolver whose root was missing at the first read reads it once it exists. It cached the failed root lookup, so every later read failed with `ENOENT`.
+- `@paradoc/resolvers`: invalid options throw `ERR_RESOLVER_INVALID_OPTIONS`. `createMemoryResolver` threw a raw `TypeError` for missing `contents` and accepted an `ArrayBuffer` value, which `read()` then returned as a non-`Uint8Array`. An empty or non-string `root` for `createFsResolver` now throws this code in place of `ERR_RESOLVER_INVALID_PATH`.
+- `@paradoc/ai-tools` and the MCP `render` tool read file-backed layers with `@paradoc/resolvers/http`, so both follow the same path rules: a leading `/` means the artifact's base URL, and a path that leaves it is refused before any request. Each path segment is percent-encoded, so a literal `%` in a layer path is part of the file name. `@paradoc/ai-tools` rejected a leading `/`, and the MCP tool joined paths as strings, so `/w-9.pdf` fetched `base//w-9.pdf` and `../` reached outside the artifact.
+- Docs: the resolvers page no longer says the filesystem resolver is in a separate package.
 - `@paradoc/core` and `@paradoc/react-pdf`: a React layer render and both seal passes draw an image annex. Core put annexes inside `data.fields` of the render request and the React layer passed on only `fields` and `parties`, so a composition saw no `data.annexes` and `<Field as="image" path="annexes.<slot>">` drew its blank placeholder.
 - CLI: `paradoc migrate --help` says `--from` names the version of a file whose `$schema` is missing, undated (`schema.json`), an unpublished version, or not a Paradoc address. It used to name only a file with no `$schema`.
 - `@paradoc/core`: the `validateLogic` docstring example validates. It used `version: '1.0'` and a `logic` key; it now uses `version: '1.0.0'` and `defs`. The other logic docstrings use a SemVer version, and the `buildFormContext` example declares `parties` as a record.
@@ -66,6 +71,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Added
 
+- `@paradoc/resolvers/http`: `createHttpResolver({ baseUrl, fetch? })` reads files beneath a base URL in any runtime with `fetch`. It uses the filesystem resolver's path rules and rejects a path outside the base URL with `ERR_RESOLVER_OUTSIDE_ROOT` before any request. Redirects follow the fetch function's own policy. A 404 rejects with `ERR_RESOLVER_NOT_FOUND`, and another failed status with `ERR_RESOLVER_FETCH_FAILED`. Pass `fetch` to add transport policy.
 - `@paradoc/render`: `textTemplateSigningDirectives()` (from `@paradoc/render/text`) lists the signing directives a template writes, with each literal location.
 - `@paradoc/core`: the builders can set every key the schema accepts. The form builder has `.rules()`, the number field builder `.step()`, the money field builder `.currency()`, the party builder `.payment()`, and the file and inline layer builders `.signatures()`.
 - `@paradoc/render`: `resolveLayerBindings()` is the one rule for a layer's bindings: its own, or those of the layer its `bindingsFrom` names. Form and checklist rendering, PDF extraction, and PDF fit validation use it.

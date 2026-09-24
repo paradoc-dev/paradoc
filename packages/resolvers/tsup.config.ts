@@ -3,6 +3,7 @@ import { defineConfig } from 'tsup'
 export default defineConfig({
   entry: {
     fs: 'src/fs/index.ts',
+    http: 'src/http/index.ts',
     memory: 'src/memory/index.ts',
   },
   format: ['esm'],

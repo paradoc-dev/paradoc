@@ -12,6 +12,7 @@ export default defineConfig({
 	external: [
 		'@paradoc/core',
 		'@paradoc/render',
+		'@paradoc/resolvers',
 		'zod',
 	],
 })

@@ -5,7 +5,7 @@
  *  - In-memory map (@paradoc/resolvers/memory)
  *  - Local filesystem (@paradoc/resolvers/fs)
  *  - Object storage (S3/R2/etc.)
- *  - HTTP fetch
+ *  - HTTP fetch (@paradoc/resolvers/http)
  */
 export interface Resolver {
   /**

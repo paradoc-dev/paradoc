@@ -28,7 +28,7 @@ import { createFsResolver } from "@paradoc/resolvers/fs";
 | Package | Import paths | Install it when |
 |---------|--------------|-----------------|
 | `@paradoc/sdk` | `@paradoc/sdk` | Always, for TypeScript work |
-| `@paradoc/resolvers` | `/fs`, `/memory` (no root export) | The artifact has file layers |
+| `@paradoc/resolvers` | `/fs`, `/http`, `/memory` (no root export) | The artifact has file layers |
 | `@paradoc/render` | root, `/text`, `/text/field-formatter`, `/pdf`, `/docx` | You call `renderPdf`, `inspectPdf`, `mergePdfs` or a template check directly ([rendering.md](./rendering.md)) |
 | `@paradoc/essentials` | root, `/tax`, `/banking`, `/employment` | You fill a standard form |
 | `@paradoc/core`, `@paradoc/format`, `@paradoc/sessions`, `@paradoc/expr` | root | You must keep a bundle small; the SDK already re-exports them |
@@ -285,4 +285,4 @@ type LeasePatch = ProgressiveFormPayload<typeof lease>;     // what fill() and u
 | `Invalid form definition: Unknown variable: "defs.<name>"` | Defs are referenced by bare name | Write `<name>`, not `defs.<name>` ([logic.md](./logic.md)) |
 | `UnboundResolverError: Layer "<key>" is file-backed ("<path>") but ...` | A file layer rendered with no resolver | Pass `{ resolver }` when you construct or load the artifact |
 | `BundleResolverError` | A resolver passed to a bundle | Bind resolvers on the members |
-| `ERR_PACKAGE_PATH_NOT_EXPORTED` for `@paradoc/resolvers` | The package has no root export | Import `@paradoc/resolvers/fs` or `/memory` |
+| `ERR_PACKAGE_PATH_NOT_EXPORTED` for `@paradoc/resolvers` | The package has no root export | Import `@paradoc/resolvers/fs`, `/http` or `/memory` |
