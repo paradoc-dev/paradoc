@@ -17,23 +17,14 @@ export { pdfRenderer } from './pdf/renderer'
 export type { PdfRendererOptions } from './pdf/renderer'
 export type { PdfImageOverlay, PdfOverlay, PdfTextOverlay } from './pdf/overlay'
 export {
-	ALPHABET,
-	ENCODING_LENGTH,
 	FieldType,
-	MAX_FIELD_TYPE,
-	MAX_SIGNER_INDEX,
 	containsEncoding,
-	decode,
 	decodeAll,
 	encode,
-	fieldTypeToString,
 	stripEncoding,
 } from './pdf/encoding'
 export type { DecodedEncoding, DecodedEncodingWithPosition, FieldTypeValue } from './pdf/encoding'
 export {
-	DEFAULT_INITIALS_DIMENSIONS,
-	DEFAULT_SIGNATURE_DIMENSIONS,
-	extractAllText,
 	extractFieldsFromPdf,
 	pdfContainsEncoding,
 	UnknownMarkerError,

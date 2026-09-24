@@ -265,7 +265,6 @@ describe('DOCX templates name values only through fields', () => {
   })
 
   it.each([
-    ['flat', { name: 'Pixel' }],
     ['artifact', { fields: { name: 'Pixel' } }],
   ])('does not resolve a former alias from layer bindings (%s data)', async (_, data) => {
     const request = { kind: 'form', template: { type: 'docx', content: template, bindings: { pet: 'fields.name' } }, artifact: form, data }

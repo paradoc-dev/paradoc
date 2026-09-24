@@ -38,14 +38,13 @@ type RecordValue = Record<string, unknown>
 
 const rawValues = new WeakMap<FormattedFieldValue, unknown>()
 const renderedValues = new WeakMap<FormattedFieldValue, string>()
-const recordedIssues = new WeakMap<FormattedFieldValue, readonly FormatIssue[]>()
 
 /**
  * A template value that keeps its source value for logic/property access while
  * supplying the selected formatter's text for interpolation.
  */
 export class FormattedFieldValue {
-	constructor(value: unknown, text: string, issues?: readonly FormatIssue[]) {
+	constructor(value: unknown, text: string) {
 		if (value !== null && typeof value === 'object') {
 			for (const [key, member] of Object.entries(value)) {
 				if (key === 'toString' || key === '__proto__' || key === 'constructor' || key === 'prototype') continue
@@ -54,7 +53,6 @@ export class FormattedFieldValue {
 		}
 		rawValues.set(this, value)
 		renderedValues.set(this, text)
-		if (issues !== undefined && issues.length > 0) recordedIssues.set(this, issues)
 	}
 
 	get raw(): unknown {
@@ -68,15 +66,6 @@ export class FormattedFieldValue {
 
 export function unwrapFormattedValue(value: unknown): unknown {
 	return value instanceof FormattedFieldValue ? value.raw : value
-}
-
-/**
- * The outcome a formatted value fell back from, if it fell back at all. A
- * rating with no declared scale and a locale with no list conjunction still
- * print, and this is where the formatter's structured reason is kept.
- */
-export function formattedValueIssues(value: unknown): readonly FormatIssue[] {
-	return (value instanceof FormattedFieldValue ? recordedIssues.get(value) : undefined) ?? []
 }
 
 /** Raised when a declared artifact value cannot be presented. */
@@ -214,7 +203,7 @@ function callFormatterWithFallback(
 		if (!fellShort) return presentResult(result, value, path, fieldType, fallback.options)
 		const substitute = fallback.substitute()
 		if (!substitute.success) return presentResult(substitute, value, path, fieldType, fallback.options)
-		return new FormattedFieldValue(value, substitute.value, result.issues)
+		return new FormattedFieldValue(value, substitute.value)
 	})
 }
 
@@ -280,7 +269,6 @@ function formatLeaf(
 	options?: FieldFormattingOptions,
 ): unknown {
 	if (isMissing(value)) return missingValue(value, path, field.type, options)
-	if ((field.type as string) === 'string') return stringInput(value, path, 'string')
 
 	try {
 		switch (field.type) {

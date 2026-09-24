@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { renderDocx } from '../src/docx'
 import { inspectAcroFormFields, renderPdf } from '../src/pdf'
 import { renderText } from '../src/text'
-import { formatFieldValue, formattedValueIssues } from '../src/text/field-formatter'
+import { formatFieldValue } from '../src/text/field-formatter'
 import { compressedCheckboxPdf, pagePdf, textFieldsPdf } from './pdf-fixtures'
 import { textItemsWithPdfjs } from './pdfjs-reference'
 
@@ -130,15 +130,14 @@ describe('selection and rating values across the outputs', () => {
 		await expect(pdfOutput(createFormatter({ locale: 'ar-SA' }))).rejects.toMatchObject({ reason: 'unsupported-script', script: 'Arabic' })
 	})
 
-	it('prints a rating with no declared scale as the plain number, and records why', () => {
+	it('prints a rating with no declared scale as the plain number', () => {
 		const formatted = formatFieldValue(createFormatter(), form.fields!.unscored!, 3, 'fields.unscored')
 		expect(String(formatted)).toBe('3')
-		expect(formattedValueIssues(formatted)).toEqual([expect.objectContaining({ code: 'missing_scale' })])
-		// A rating that does declare a scale carries no fallback outcome.
-		expect(formattedValueIssues(formatFieldValue(createFormatter(), form.fields!.score!, 4, 'fields.score'))).toEqual([])
+		// A rating that does declare a scale prints against it.
+		expect(String(formatFieldValue(createFormatter(), form.fields!.score!, 4, 'fields.score'))).not.toBe('4')
 	})
 
-	it('falls back to a comma join when the runtime carries no list conjunction, and records why', () => {
+	it('falls back to a comma join when the runtime carries no list conjunction', () => {
 		const base = createFormatter()
 		const withoutLists: Formatter = Object.assign(Object.create(base) as Formatter, {
 			safeFormatMultiselect: (): FormatResult => ({
@@ -150,7 +149,6 @@ describe('selection and rating values across the outputs', () => {
 		})
 		const formatted = formatFieldValue(withoutLists, form.fields!.choices!, ['plumbing', 'roofing'], 'fields.choices')
 		expect(String(formatted)).toBe('Plumbing, Roofing')
-		expect(formattedValueIssues(formatted)).toEqual([expect.objectContaining({ code: 'unsupported_list' })])
 	})
 
 	it('refuses a value no option declares, and a malformed selection value', () => {

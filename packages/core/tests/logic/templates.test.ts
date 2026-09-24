@@ -127,7 +127,7 @@ describe('one condition language through an artifact', () => {
     const draft = artifact.fill({ parties: seed.parties } as never)
 
     expect(draft.isFieldVisible('memo')).toBe(true)
-    expect(await draft.render({ renderer: createLayerRenderer() })).toBe('Buyer Ada [SIGNATURE]\n1. Bo [SIGNATURE]\n2. Cy [SIGNATURE]\n')
+    expect(await draft.render({ renderer: createLayerRenderer() })).toBe('Buyer Ada _[SIGNATURE]_\n1. Bo _[SIGNATURE]_\n2. Cy _[SIGNATURE]_\n')
     expect(artifact.fill({ parties: { buyer: seed.parties.buyer } } as never).isFieldVisible('memo')).toBe(false)
   })
 

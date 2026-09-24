@@ -220,8 +220,7 @@ defaults, but a known capacity or name wins over `placeholder`.
 ## Benchmarking
 
 From a repository checkout, run `pnpm benchmark` from this package to record
-current text, PDF, and DOCX timings. The historical comparison captured before legacy
-package retirement lives in `benchmarks/legacy-baseline.json`. The benchmark is
+current text, PDF, and DOCX timings. The benchmark is
 intentionally separate from the unit-test gate, so timing variance does not
 make ordinary tests flaky. Set
 `PARADOC_BENCHMARK_ITERATIONS` to change the number of measured iterations.

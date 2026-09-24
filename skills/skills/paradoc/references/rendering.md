@@ -75,14 +75,14 @@ import { createLayerRenderer } from "@paradoc/sdk";
 
 const html = await draft.render({
   layer: "html",
-  renderer: createLayerRenderer({ textSignatureOptions: { format: "html" } }),
+  renderer: createLayerRenderer({ textSignatureOptions: { cssClass: "signature" } }),
 });
 ```
 
 | Option | Applies to | Effect |
 |--------|-----------|--------|
 | `formatter`, `progressive` | all | As in [Render options](#render-options) |
-| `textSignatureOptions` | text | `format` (`"text"`, `"html"`, `"markdown"`), `placeholder` and `captured` text per directive (a string or a function of the context), `altText`, `cssClass` |
+| `textSignatureOptions` | text | `format` (`"text"`, `"html"`, `"markdown"`; defaults from the layer's MIME type), `placeholder` and `captured` text per directive (a string or a function of the context), `altText`, `cssClass` |
 | `docxSignatureOptions` | DOCX | `placeholder` and `captured` text per directive |
 | `pdfFont` | PDF | `{ bytes, source }`: a TrueType font tried before the layer's `font` ([pdf.md](./pdf.md)) |
 | `expressions` | text, DOCX | `{ functions, signatures }`: host functions templates can call. A function needs a signature ([logic.md](./logic.md)) |

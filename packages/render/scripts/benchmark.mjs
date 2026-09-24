@@ -36,5 +36,4 @@ console.log(JSON.stringify({
     template: docx,
     data: { tenantName: 'Ada' },
   })),
-  historical_baseline: './benchmarks/legacy-baseline.json',
 }, null, 2))

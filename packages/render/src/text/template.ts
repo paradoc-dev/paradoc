@@ -5,6 +5,18 @@ import { parseTemplate, type ExpressionSlot, type TemplateNode } from '../templa
 import { fromValue, TemplateScope, type Frame } from '../template/scope'
 import { unwrapFormattedValue } from './field-formatter'
 
+/**
+ * Output already in the layer's markup, such as an HTML signing mark. A
+ * template prints it as is, inside `{{ }}` as well as `{{{ }}}`.
+ */
+export class Markup {
+  constructor(readonly value: string) {}
+
+  toString(): string {
+    return this.value
+  }
+}
+
 /** Places a signing mark for a party at a location: `signature`, `initials`, and the related directives. */
 export type SigningDirective = (party: unknown, root: Record<string, unknown>, args: unknown[]) => unknown
 
@@ -74,7 +86,7 @@ export function renderDirective(
   slot: ExpressionSlot,
   scope: TemplateScope,
   options: Pick<TemplateRenderOptions, 'directives' | 'root' | 'layer'>,
-): string {
+): string | Markup {
   const directive = options.directives?.[node.callee]
   if (!directive) return fail(slot, `${node.callee}() is not available in this layer.`, 'unknown-function', options.layer)
   if (node.args.length < 1 || node.args.length > 2) {
@@ -94,6 +106,7 @@ export function renderDirective(
     party = row.data === undefined ? fromValue(row.value) : unwrapFormattedValue(row.data)
   }
   const result = directive(party, options.root, [location.value])
+  if (result instanceof Markup) return result
   return result === null || result === undefined ? '' : String(result)
 }
 
@@ -111,7 +124,7 @@ export function renderTemplateNodes(nodes: readonly TemplateNode[], scope: Templ
       const text = expression.kind === 'Call' && SIGNING_DIRECTIVES.has(expression.callee)
         ? renderDirective(expression, node.slot, scope, options)
         : scope.present(expression, node.slot.source, node.slot.position)
-      result += node.escaped ? escape(text) : text
+      result += text instanceof Markup ? text.value : node.escaped ? escape(text) : text
       continue
     }
 

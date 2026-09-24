@@ -13,7 +13,6 @@ export type {
   FieldFormattingOptions,
   ProgressiveFormattingOptions,
 } from './text/field-formatter'
-export { createTextSignatureDirectives } from './text/signatures'
 export type { TextSignatureOptions } from './text/signatures'
 export { checkTextTemplate, textTemplateSigningDirectives } from './template/check'
 export type { SigningDirectiveUse } from './template/check'

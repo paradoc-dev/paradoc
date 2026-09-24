@@ -11,7 +11,6 @@ import type { Form } from '@paradoc/types'
 import { describe, expect, it } from 'vitest'
 import {
   checkPdfBindingFit,
-  extractAllText,
   extractFieldsFromPdf,
   extractPdfData,
   flattenPdf,
@@ -26,6 +25,7 @@ import {
   renderPdf,
   selectPdfPages,
 } from '../src/pdf'
+import { extractAllText } from '../src/pdf/extract'
 import { assemblePdf, pagePdf } from './pdf-fixtures'
 
 const encoder = new TextEncoder()

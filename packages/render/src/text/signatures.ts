@@ -7,9 +7,13 @@ import type {
   SignaturePlaceholderValue,
   Signer,
 } from '@paradoc/types'
-import { escapeHtml, type SigningDirective } from './template'
+import { escapeHtml, Markup, type SigningDirective } from './template'
 
 export interface TextSignatureOptions {
+  /**
+   * How signing marks print. Defaults from the layer's MIME type: `html` for
+   * `text/html`, `markdown` for `text/markdown`, else `text`.
+   */
   format?: 'text' | 'html' | 'markdown'
   placeholder?: {
     signature?: SignaturePlaceholderValue
@@ -76,6 +80,17 @@ function isRenderParty(value: Record<string, unknown>): value is Record<string, 
   return typeof value._role === 'string' && typeof value.id === 'string'
 }
 
+/** Keys only an Organization carries; a party with none of them is a Person. */
+const ORGANIZATION_KEYS = ['legalName', 'domicile', 'entityType', 'entityId', 'taxId']
+
+/**
+ * The signer for a party with no signatories: a Person signs for itself, as
+ * `signerId = partyId`; an Organization issues without a personal signature.
+ */
+function selfSignerId(party: RenderParty): string {
+  return ORGANIZATION_KEYS.some((key) => key in party) ? '' : party.id
+}
+
 function resolveContext(value: unknown): ResolvedContext | undefined {
   if (!value || typeof value !== 'object') return undefined
   const context = value as Record<string, unknown>
@@ -99,7 +114,7 @@ function resolveContext(value: unknown): ResolvedContext | undefined {
     return {
       role: context._role,
       partyId: context.id,
-      signerId: typeof signatory?.signerId === 'string' ? signatory.signerId : '',
+      signerId: typeof signatory?.signerId === 'string' ? signatory.signerId : selfSignerId(context),
       party: context,
       signer: signatory?.signer as Signer | undefined,
       capacity: signatory?.capacity as string | undefined,
@@ -162,10 +177,6 @@ function markdownDestination(value: string): string {
   return value.replace(/[\s()<>\\]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`)
 }
 
-function invalid(name: string, args: unknown[]): string | undefined {
-  return typeof args[0] === 'string' ? undefined : `[Invalid ${name}: expected a location]`
-}
-
 function contextError(name: string): string {
   return `[${name} error: no party. Use it inside a party or signatories loop, or pass the party first.]`
 }
@@ -176,7 +187,7 @@ function renderMark(
   context: SignaturePlaceholderContext,
   options: TextSignatureOptions,
   signatureDefaults: SignatureDefaults,
-): string {
+): string | Markup {
   const captured = capture !== undefined
   const capturedOption = type === 'signature' ? options.captured?.signature : options.captured?.initials
   const placeholderOption = type === 'signature' ? options.placeholder?.signature : options.placeholder?.initials
@@ -191,12 +202,12 @@ function renderMark(
     if (captured && image) {
       const alt = options.altText ?? (type === 'signature' ? 'Signature' : 'Initials')
       const cssClass = options.cssClass ?? `${type}-image`
-      return `<img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" class="${escapeHtml(cssClass)}" ${attributes} />`
+      return new Markup(`<img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" class="${escapeHtml(cssClass)}" ${attributes} />`)
     }
     const text = capturedContext
       ? resolveValue(capturedOption, capturedContext, capturedDefault)
       : resolveValue(placeholderOption, context, placeholderDefault)
-    return `<span class="${type}-${captured ? 'captured' : 'placeholder'}" ${attributes}>${text}</span>`
+    return new Markup(`<span class="${type}-${captured ? 'captured' : 'placeholder'}" ${attributes}>${text}</span>`)
   }
 
   if (options.format === 'markdown') {
@@ -219,8 +230,6 @@ function renderMark(
 
 function createMarkDirective(type: 'signature' | 'initials', options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
-    const problem = invalid(type, args)
-    if (problem) return problem
     const context = resolveContext(value)
     if (!context) return contextError(type === 'signature' ? 'Signature' : 'Initials')
     const locationId = args[0] as string
@@ -231,8 +240,6 @@ function createMarkDirective(type: 'signature' | 'initials', options: TextSignat
 
 function createDateDirective(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
-    const problem = invalid('signatureDate', args)
-    if (problem) return problem
     const context = resolveContext(value)
     if (!context) return contextError('SignatureDate')
     const locationId = args[0] as string
@@ -241,20 +248,18 @@ function createDateDirective(options: TextSignatureOptions, signatureDefaults: S
     if (!capture) {
       const text = resolveValue(options.placeholder?.signatureDate, placeholder, signatureDefaults.date)
       if (options.format !== 'html') return text
-      return `<span class="signature-date-placeholder" ${markAttributes(context, locationId)}>${text}</span>`
+      return new Markup(`<span class="signature-date-placeholder" ${markAttributes(context, locationId)}>${text}</span>`)
     }
     const captured = { ...placeholder, capture }
     const date = capture.timestamp ? capture.timestamp.slice(0, 10) : signatureDefaults.date
     const text = resolveValue(options.captured?.signatureDate, captured, date)
     if (options.format !== 'html' || options.captured?.signatureDate !== undefined) return text
-    return `<span class="signature-date" ${markAttributes(context, locationId)}>${text}</span>`
+    return new Markup(`<span class="signature-date" ${markAttributes(context, locationId)}>${escapeHtml(text)}</span>`)
   }
 }
 
 function createCapacityDirective(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
-    const problem = invalid('capacity', args)
-    if (problem) return problem
     const context = resolveContext(value)
     if (!context) return contextError('Capacity')
     const locationId = args[0] as string
@@ -270,8 +275,6 @@ function createCapacityDirective(options: TextSignatureOptions, signatureDefault
 
 function createPrintedNameDirective(options: TextSignatureOptions, signatureDefaults: SignatureDefaults): SigningDirective {
   return (value, root, args) => {
-    const problem = invalid('printedName', args)
-    if (problem) return problem
     const context = resolveContext(value)
     if (!context) return contextError('PrintedName')
     const locationId = args[0] as string
@@ -299,7 +302,16 @@ export function createSignatureDirectives(
   }
 }
 
-/** The signing directives a text, Markdown, or HTML template can write. */
-export function createTextSignatureDirectives(options: TextSignatureOptions = {}): Record<string, SigningDirective> {
-  return createSignatureDirectives(options)
+/** The signature format a text layer's MIME type implies. */
+function formatFor(mimeType: string | undefined): NonNullable<TextSignatureOptions['format']> {
+  const type = mimeType?.toLowerCase()
+  return type === 'text/html' ? 'html' : type === 'text/markdown' ? 'markdown' : 'text'
+}
+
+/**
+ * The signing directives a text, Markdown, or HTML template can write. The
+ * format follows the layer's MIME type unless the options name one.
+ */
+export function createTextSignatureDirectives(options: TextSignatureOptions = {}, mimeType?: string): Record<string, SigningDirective> {
+  return createSignatureDirectives({ ...options, format: options.format ?? formatFor(mimeType) })
 }

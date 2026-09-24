@@ -120,7 +120,7 @@ For an optional party, guard the block: `{{#if parties.guarantor != null}}…{{/
 
 What a directive prints depends on the engine and on whether a capture exists.
 
-| Directive | Text layer (default) | Text layer after capture | DOCX layer |
+| Directive | Plain text layer | Plain text layer after capture | DOCX layer |
 |-----------|----------------------|--------------------------|------------|
 | `signature` | `[SIGNATURE]` | `[Signed]` | underscores, `[Signed]` after capture |
 | `initials` | `[INITIALS]` | `[Initialed]` | underscores, `[Initialed]` after capture |
@@ -128,7 +128,7 @@ What a directive prints depends on the engine and on whether a capture exists.
 | `capacity` | the signatory's capacity, else `[CAPACITY]` | the captured text | the capacity, else underscores |
 | `printedName` | the signer's name, else `[PRINTED NAME]` | the captured text | the name, else underscores |
 
-The captured signature image appears only when the text layer renders with `textSignatureOptions.format` set to `"html"` (an `<img>` tag) or `"markdown"` (an image link). With `format: "html"`, the directive returns markup, so write it as `{{{signature(parties.tenant, "tenant-sig")}}}` to keep it unescaped. `placeholder` and `captured` in `textSignatureOptions` and `docxSignatureOptions` replace the default text; see [rendering.md](./rendering.md#createlayerrenderer-options).
+A `text/html` layer prints signing marks as HTML (a `<span>`, or an `<img>` tag for a captured image), and a `text/markdown` layer as Markdown (an image link for a captured image). `textSignatureOptions.format` overrides the layer's format. HTML marks print unescaped inside `{{ }}`. A person party with no signatories signs for itself: a capture with `signerId` equal to its party ID is its signature. `placeholder` and `captured` in `textSignatureOptions` and `docxSignatureOptions` replace the default text; see [rendering.md](./rendering.md#createlayerrenderer-options).
 
 ## DOCX commands
 

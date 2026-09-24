@@ -28,7 +28,9 @@ export function flattenRenderData(data: FormData): Record<string, unknown> {
  */
 export function requestRenderData(request: RenderRequest<RendererLayer>): { data: Record<string, unknown>; form?: Form } {
   if (request.kind !== 'form') return { data: {} }
-  const source = request.data as unknown as Record<string, unknown>
-  if (!('fields' in source)) return { data: source, form: request.artifact }
+  const fields: unknown = (request.data as Partial<FormData> | undefined)?.fields
+  if (fields === null || typeof fields !== 'object' || Array.isArray(fields)) {
+    throw new TypeError('A form render request needs FormData: its data must hold a `fields` record.')
+  }
   return { data: flattenRenderData(request.data), form: request.artifact }
 }

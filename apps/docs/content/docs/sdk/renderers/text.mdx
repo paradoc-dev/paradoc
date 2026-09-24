@@ -224,7 +224,7 @@ Signing directives place signature and initials marks. They are template directi
 {{signature("final-sig")}}                    - Inside a party or signatories loop: the current row signs
 ```
 
-`signatureDate`, `capacity`, and `printedName` take the same arguments. The location (for example "final-sig" or "page-3-init") identifies where in the document the mark appears. The party role, party ID, and signer ID come from the party given first, or from the loop row.
+`signatureDate`, `capacity`, and `printedName` take the same arguments. The location (for example "final-sig" or "page-3-init") identifies where in the document the mark appears. The party role, party ID, and signer ID come from the party given first, or from the loop row. A person with no signatories signs for itself: its signer ID is its party ID. An organization with no signatories has no signer.
 
 ### Example with Signatures
 
@@ -246,37 +246,35 @@ const form = p.form({
         <h2>Tenants</h2>
         {{#each parties.tenant}}
         <p>Name: {{item.name}}</p>
-        <p>Signature: {{{signature("final-sig")}}}</p>
-        <p>Initials: {{{initials("page-init")}}}</p>
+        <p>Signature: {{signature("final-sig")}}</p>
+        <p>Initials: {{initials("page-init")}}</p>
         {{/each}}
 
         <h2>Landlord</h2>
         {{#each parties.landlord.signatories}}
         <p>{{item.signer.person.name}}, {{item.capacity}}</p>
-        <p>Signature: {{{signature("final-sig")}}}</p>
+        <p>Signature: {{signature("final-sig")}}</p>
         {{/each}}
       `
     }
   }
 })
 
-// Render with signature options
-const output = await form.fill(data).render({
-  renderer: textRenderer({ signatureOptions: { format: 'html' } })
-})
+// An HTML layer prints HTML signing marks
+const output = await form.fill(data).render({ layer: 'html' })
 ```
 
 ### Output Formats
 
-`signature` and `initials` print by `signatureOptions.format`. The table shows `signature`; `initials` prints `[INITIALS]` and `[Initialed]` the same way.
+`signature` and `initials` print in the format the layer's MIME type implies: `html` for `text/html`, `markdown` for `text/markdown`, else `text`. `signatureOptions.format` overrides it. An HTML mark prints as is inside `{{ }}`; captured text that `capacity` and `printedName` print is escaped as usual. The table shows `signature`; `initials` prints `[INITIALS]` and `[Initialed]` the same way.
 
 | Format | Unsigned | Signed, no image | Signed, with image |
 |--------|----------|------------------|--------------------|
-| `text` (default) | `[SIGNATURE]` | `[Signed]` | `[Signed]` |
+| `text` | `[SIGNATURE]` | `[Signed]` | `[Signed]` |
 | `html` | `<span class="signature-placeholder" data-…>[SIGNATURE]</span>` | `<span class="signature-captured" data-…>[Signed]</span>` | `<img src="data:…" alt="Signature" class="signature-image" data-… />` |
 | `markdown` | `_[SIGNATURE]_` | `_[Signed]_` | `![Signature](data:…)` |
 
-`signatureDate` prints `[DATE]` before the signature at the same location is captured, and the capture's `YYYY-MM-DD` date after. With `format: 'html'` it is wrapped in a `signature-date-placeholder` or `signature-date` span, except a `captured.signatureDate` value, which prints as given.
+`signatureDate` prints `[DATE]` before the signature at the same location is captured, and the capture's `YYYY-MM-DD` date after. In the `html` format it is wrapped in a `signature-date-placeholder` or `signature-date` span, except a `captured.signatureDate` value, which prints as given.
 
 ### Capacity and Printed Name
 

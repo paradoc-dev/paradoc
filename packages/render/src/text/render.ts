@@ -42,7 +42,7 @@ export function renderText(options: RenderTextOptions): string {
     resolveData,
     root: data,
     formatter,
-    directives: createTextSignatureDirectives(options.signatureOptions),
+    directives: createTextSignatureDirectives(options.signatureOptions, options.mimeType),
     layer: options.layer,
     escape: escapeFor(options.mimeType),
   })
