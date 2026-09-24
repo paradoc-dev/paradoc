@@ -243,7 +243,10 @@ export interface RenderOptions<Output = string | Uint8Array> {
   /** Key of the layer to use. If not provided, uses defaultLayer or first available. */
   layer?: string
 
-  /** Renderer bindings to override/merge with layer-spec bindings */
+  /**
+   * PDF layers only: AcroForm field name -> Paradoc path, laid over the
+   * layer's own bindings. Refused for any other layer.
+   */
   bindings?: Record<string, string>
 }
 
@@ -284,7 +287,10 @@ export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
   /** Key of the layer to use. If not provided, uses defaultLayer or first available. */
   layer?: string
 
-  /** Renderer bindings to override/merge with layer-spec bindings */
+  /**
+   * PDF layers only: AcroForm field name -> Paradoc path, laid over the
+   * layer's own bindings. Refused for any other layer.
+   */
   bindings?: Record<string, string>
 }
 

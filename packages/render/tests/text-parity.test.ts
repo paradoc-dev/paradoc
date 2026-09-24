@@ -1,7 +1,7 @@
-import type { Form } from '@paradoc/types'
+import type { Form, RenderRequest } from '@paradoc/types'
 import { createFormatter } from '@paradoc/format'
-import { describe, expect, it } from 'vitest'
-import { ArtifactFieldFormatError, renderText, textRenderer } from '../src/text'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+import { renderText, textRenderer, type RenderTextOptions } from '../src/text'
 
 const cases: Array<{ name: string; template: string; data: Record<string, unknown>; expected: string }> = [
   { name: 'nested interpolation', template: 'Hello {{fields.person.name}}', data: { person: { name: 'Ada' } }, expected: 'Hello Ada' },
@@ -48,14 +48,6 @@ describe('text renderer behavior', () => {
 		expect(actual).toBe('## Labor\n- $100.00\n- $25.00\n## Parts\n- $50.00\n')
 	})
 
-	it('resolves bracket-indexed bindings for list items', () => {
-		expect(renderText({
-			template: '{{first}}/{{nested}}',
-			data: { matrix: [['a', 'b'], ['c']] },
-			bindings: { first: 'matrix[0][1]', nested: 'matrix[1][0]' },
-		})).toBe('b/c')
-	})
-
   it.each(cases)('$name', ({ template, data, expected }) => {
     expect(renderText({ template, data })).toBe(expected)
   })
@@ -82,15 +74,6 @@ describe('text renderer behavior', () => {
       data: { value: '<b>A & B</b>' },
       mimeType: 'text/html',
     })).toBe('<b>A & B</b> / <b>A & B</b>')
-  })
-
-  it('applies nested bindings with the same result', () => {
-    const options = {
-      template: '{{owner_name}} owns {{pet_name}}',
-      data: { owner: { name: 'Ada' }, pet: { name: 'Pixel' } },
-      bindings: { owner_name: 'owner.name', pet_name: 'pet.name' },
-    }
-    expect(renderText(options)).toBe('Ada owns Pixel')
   })
 
   const party = (captures: unknown[] = []) => ({
@@ -230,7 +213,6 @@ describe('text renderer behavior', () => {
       template: {
         type: 'text',
         content: '{{fields.name}}|{{parties.owner.name}}|{{term}}',
-        bindings: undefined,
       },
       data: {
         fields: {
@@ -303,7 +285,7 @@ describe('text renderer behavior', () => {
     })).toBe('INCOMPLETE/USD/MISSING')
   })
 
-  it('raises attributable errors for malformed values and unknown binding paths', () => {
+  it('raises attributable errors for malformed values', () => {
     const form = { fields: { amount: { type: 'money' } } } as unknown as Form
 
     expect(() => renderText({
@@ -311,44 +293,6 @@ describe('text renderer behavior', () => {
       template: '{{fields.amount}}',
       data: { amount: { amount: 'bad', currency: 'USD' } },
     })).toThrowError(expect.objectContaining({ path: 'fields.amount', status: 'invalid' }))
-
-    expect(() => renderText({
-      form,
-      template: '{{value}}',
-      bindings: { value: 'missing' },
-      data: { amount: { amount: 1, currency: 'USD' } },
-    })).toThrowError(ArtifactFieldFormatError)
-  })
-
-  it('validates primitive members, computed members, and party cardinality in bindings', () => {
-    const form = {
-      fields: { amount: { type: 'money' }, address: { type: 'address' } },
-      defs: { total: { type: 'money', value: {} } },
-      parties: {
-        owner: { label: 'Owner', partyType: 'person' },
-        tenants: { label: 'Tenants', partyType: 'person', max: 2 },
-      },
-      annexes: { proof: { label: 'Proof' } },
-    } as unknown as Form
-    const data = {
-      amount: { amount: 12, currency: 'USD' },
-      defs: { total: { amount: 12, currency: 'USD' } },
-      parties: { owner: { name: 'Ada' }, tenants: [{ name: 'Grace' }] },
-      annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' } },
-    }
-    for (const source of [
-      'amount.notAField', 'amount.amount.extra', 'defs.total.notAField',
-      'annexes.proof.notAField', 'parties.owner.notAField',
-      'parties.owner[0].name', 'parties.tenants.name',
-      'parties.tenants[2].name', 'parties.tenants[999999999999999999999].name',
-    ]) {
-      expect(() => renderText({ form, data, template: '{{value}}', bindings: { value: source } }))
-        .toThrowError(expect.objectContaining({ status: 'invalid' }))
-    }
-    expect(renderText({
-      form, data, template: '{{currency}}/{{tenant}}/{{optional}}',
-      bindings: { currency: 'amount.currency', tenant: 'parties.tenants[0].name', optional: 'parties.tenants[1].name' },
-    })).toBe('USD/Grace/')
   })
 
   it('qualifies nested formatter issues with the actual indexed field path', () => {
@@ -370,5 +314,31 @@ describe('text renderer behavior', () => {
       .toBe(`Sí/${new Intl.NumberFormat('es-ES').format(1234.5)}`)
     expect(renderText({ ...input, formatter: createFormatter({ locale: 'es-ES', fallbackLocale: 'fr-FR' }) }))
       .toBe(`Oui/${new Intl.NumberFormat('es-ES').format(1234.5)}`)
+  })
+})
+
+describe('text templates name values only through fields', () => {
+  const form = { fields: { name: { type: 'text' }, owner: { type: 'fieldset', fields: { name: { type: 'text' } } } } } as unknown as Form
+
+  it('renders {{fields.x}} paths, nested ones included', () => {
+    expect(renderText({ form, template: '{{fields.owner.name}} owns {{fields.name}}', data: { name: 'Pixel', owner: { name: 'Ada' } } }))
+      .toBe('Ada owns Pixel')
+  })
+
+  it('offers no bindings option on a text render or a render request', () => {
+    expectTypeOf<RenderTextOptions>().not.toHaveProperty('bindings')
+    expectTypeOf<RenderRequest>().not.toHaveProperty('bindings')
+  })
+
+  it.each([
+    ['flat', { name: 'Pixel' }],
+    ['artifact', { fields: { name: 'Pixel' } }],
+  ])('does not resolve a former alias from layer bindings (%s data)', async (_, data) => {
+    const request = {
+      template: { type: 'text', mimeType: 'text/markdown', content: '[{{pet}}] {{fields.name}}', bindings: { pet: 'fields.name' } },
+      form,
+      data,
+    }
+    expect(await textRenderer().render(request as never)).toBe('[] Pixel')
   })
 })

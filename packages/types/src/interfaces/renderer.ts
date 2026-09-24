@@ -57,8 +57,8 @@ export interface RendererLayer {
   path?: string;
 
   /**
-   * Optional engine-specific metadata.
-   * For example: PDF AcroForm bindings (AcroForm field name -> Paradoc path).
+   * A PDF layer's bindings: AcroForm field name -> Paradoc path. Other layers
+   * carry none; their templates name values as `{{fields.x}}`.
    */
   bindings?: Bindings;
 
@@ -90,7 +90,6 @@ export interface RenderRequest<Input extends RendererLayer = RendererLayer> {
   template: Input;
   form: Form;
   data: FormData;
-  bindings?: Bindings;
   ctx?: ParadocRendererContext;
 }
 
@@ -194,7 +193,7 @@ export interface ParadocRenderer<
 
   /**
    * Perform the actual rendering.
-   * @param request - The render request containing template, form, data, bindings, and optional context
+   * @param request - The render request containing template, form, data, and optional context
    */
   render(request: RenderRequest<Input>): Promise<Output> | Output;
 }

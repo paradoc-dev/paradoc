@@ -199,6 +199,15 @@ describe('CLI render command', () => {
       expect(content.subarray(0, signature.length).toString()).toBe(signature)
     })
 
+    it('should refuse --bindings for a layer that is not a PDF', async () => {
+      const data = JSON.stringify({ fields: { name: 'Milo', species: 'cat', weight: 5, hasVaccination: true } })
+
+      const result = await executeCliCommand(['render', fixture, '--data', data, '--bindings', '{"pet":"fields.name"}'])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('Layer "default" is not a PDF layer, so the bindings render option does not apply')
+    })
+
     it('should write output to file with --out', async () => {
       const outPath = path.join(tempDir, 'output.md')
 

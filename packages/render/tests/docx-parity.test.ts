@@ -3,8 +3,8 @@ import type { Form } from '@paradoc/types'
 import { renderText } from '../src/text'
 import { readFile } from 'node:fs/promises'
 import { unzipSync, zipSync } from 'fflate'
-import { describe, expect, it } from 'vitest'
-import { docxRenderer, renderDocx } from '../src/docx'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+import { docxRenderer, renderDocx, type RenderDocxOptions } from '../src/docx'
 
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
@@ -37,12 +37,11 @@ describe('DOCX renderer behavior', () => {
     const template = new Uint8Array(await readFile(new URL('./fixtures/pet-addendum.docx', import.meta.url)))
     const options = {
       template,
-      data: { petName: 'Pixel & Co', petSpecies: 'cat', petWeight: 12, isVaccinated: true },
-      bindings: { name: 'petName', species: 'petSpecies', weight: 'petWeight', hasVaccination: 'isVaccinated' },
+      data: { name: 'Pixel & Co', species: 'cat', weight: 12, hasVaccination: true },
     }
     const actual = await renderDocx(options)
     expect(visibleText(actual)).toContain('Pixel & Co')
-    expect(documentXml(actual)).not.toMatch(/\{\{(?:name|species|weight|hasVaccination)\}\}/)
+    expect(documentXml(actual)).not.toMatch(/\{\{/)
   })
 
   it('renders commands split across Word runs', async () => {
@@ -148,16 +147,12 @@ describe('DOCX renderer behavior', () => {
   it('matches the Paradoc renderer adapter data shape', async () => {
     const template = new Uint8Array(await readFile(new URL('./fixtures/pet-addendum.docx', import.meta.url)))
     const request = {
-      template: {
-        type: 'docx',
-        content: template,
-        bindings: { name: 'petName', species: 'petSpecies', weight: 'petWeight', hasVaccination: 'isVaccinated' },
-      },
-      data: { fields: { petName: 'Pixel', petSpecies: 'cat', petWeight: 12, isVaccinated: true } },
+      template: { type: 'docx', content: template },
+      data: { fields: { name: 'Pixel', species: 'cat', weight: 12, hasVaccination: true } },
     }
     const actual = await docxRenderer().render(request as never)
     expect(visibleText(actual)).toContain('Pixel')
-    expect(documentXml(actual)).not.toMatch(/\{\{(?:name|species|weight|hasVaccination)\}\}/)
+    expect(documentXml(actual)).not.toMatch(/\{\{/)
   })
 })
 
@@ -200,12 +195,10 @@ describe('DOCX artifact formatting', () => {
     expect(visibleText(actual)).toBe(expected)
   })
 
-  it('rejects invalid indexed values and unknown member bindings', async () => {
-    const template = templateFor(paragraph('{{value}}'))
+  it('rejects invalid indexed values', async () => {
+    const template = templateFor(paragraph('{{fields.rows}}'))
     await expect(renderDocx({ template, form, data: { ...data, rows: [{ amount: { amount: 'bad', currency: 'EUR' } }] } }))
       .rejects.toMatchObject({ path: 'fields.rows[0].amount', status: 'invalid' })
-    await expect(renderDocx({ template, form, data, bindings: { value: 'rows[0].amount.unknown' } }))
-      .rejects.toMatchObject({ status: 'invalid' })
   })
 
   it.each([false, true])('inserts formatter output once with split runs = %s', async (split) => {
@@ -222,5 +215,26 @@ describe('DOCX artifact formatting', () => {
   it('rejects malformed template controls instead of returning an unrendered file', async () => {
     await expect(renderDocx({ template: templateFor(paragraph('{{IF fields.enabled}}')), data }))
       .rejects.toThrow('Unclosed DOCX control command')
+  })
+})
+
+describe('DOCX templates name values only through fields', () => {
+  const form = { fields: { name: { type: 'text' } } } as unknown as Form
+  const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>[{{pet}}] {{fields.name}}</w:t></w:r></w:p></w:body></w:document>')
+
+  it('offers no bindings option on a DOCX render', () => {
+    expectTypeOf<RenderDocxOptions>().not.toHaveProperty('bindings')
+  })
+
+  it('renders {{fields.x}} paths', async () => {
+    expect(visibleText(await renderDocx({ template, form, data: { name: 'Pixel' } }))).toBe('[] Pixel')
+  })
+
+  it.each([
+    ['flat', { name: 'Pixel' }],
+    ['artifact', { fields: { name: 'Pixel' } }],
+  ])('does not resolve a former alias from layer bindings (%s data)', async (_, data) => {
+    const request = { template: { type: 'docx', content: template, bindings: { pet: 'fields.name' } }, form, data }
+    expect(visibleText(await docxRenderer().render(request as never))).toBe('[] Pixel')
   })
 })

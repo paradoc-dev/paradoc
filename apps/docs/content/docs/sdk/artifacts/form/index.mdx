@@ -531,7 +531,7 @@ Created by `signable.finalize()`. Fully frozen, ready for archival.
   { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, consulted when no `renderer` is given and before the built-in engines. This is how a React layer (`text/tsx`, `text/jsx`) renders', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for every value in this render', isOptional: true },
   { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values in a preview', isOptional: true },
-  { name: 'bindings', type: 'Record<string, string>', description: 'Bindings merged over the layer\'s own', isOptional: true },
+  { name: 'bindings', type: 'Record<string, string>', description: 'PDF layers only: AcroForm field name to Paradoc path, merged over the layer\'s own bindings. Refused for any other layer', isOptional: true },
   { name: 'data', type: 'Record<string, unknown>', description: 'Values to render with. `RenderOptions` only', isOptional: true },
 ]} />
 

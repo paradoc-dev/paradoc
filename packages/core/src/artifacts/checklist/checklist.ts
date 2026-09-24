@@ -623,7 +623,6 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 			template,
 			form: formContext,
 			data: { fields: {} },
-			bindings,
 			ctx: {
 				expressions: { context: createContext({ items: Object.fromEntries(checklistItems.map((item) => [item.id, validatedItems.get(item.id) ?? null])) }) },
 				...(options?.formatter && { formatter: options.formatter }),
@@ -1019,7 +1018,6 @@ function createChecklistInstance<C extends Checklist>(
 				template,
 				form: formContext,
 				data: { fields: {} },
-				bindings,
 				ctx: {
 					expressions: { context: createContext({ items: Object.fromEntries(checklistItems.map((item) => [item.id, null])) }) },
 					...(options?.formatter && { formatter: options.formatter }),
@@ -1077,7 +1075,6 @@ export interface ChecklistBuilderInterface<TItems extends ChecklistItem[] = []> 
 			text: string
 			title?: string
 			description?: string
-			bindings?: Record<string, string>
 		},
 	): ChecklistBuilderInterface<TItems>
 	fileLayer(
@@ -1264,7 +1261,6 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 				text: string
 				title?: string
 				description?: string
-				bindings?: Record<string, string>
 			},
 		) {
 			return builder.layer(key, { kind: 'inline', ...layer })

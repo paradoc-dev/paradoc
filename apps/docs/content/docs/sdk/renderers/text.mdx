@@ -122,7 +122,6 @@ function renderText(options: {
   data: Record<string, unknown>
   form?: Form
   formatter?: Formatter
-  bindings?: Bindings
   signatureOptions?: TextSignatureOptions
   expressions?: TemplateExpressionOptions
   layer?: string
@@ -136,7 +135,6 @@ function renderText(options: {
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
   { name: 'form', type: 'Form', description: 'Form schema for automatic field-aware formatting', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for declared artifact values.', isOptional: true },
-  { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
   { name: 'expressions', type: 'TemplateExpressionOptions', description: 'The expression context (`context`), or configured `functions` and their `signatures`. Artifact renders supply the artifact context.', isOptional: true },
   { name: 'layer', type: 'string', description: 'Layer key, named in template errors', isOptional: true },

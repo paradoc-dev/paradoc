@@ -226,7 +226,7 @@ paradoc render pet.yaml --data sample.json --dry-run --format json
 - `--layer` defaults to `defaultLayer`. The layer MIME type picks the renderer.
 - Pass `--data` to fill values. Without it the raw layer renders unfilled, with no warning.
 - `--format json` shapes only the success message after `--out` and the `--dry-run` summary.
-- `--bindings` merges over the layer's `bindings`; the CLI value wins.
+- `--bindings` merges over a PDF layer's `bindings`; the CLI value wins. Any other layer refuses it.
 - React (`text/tsx`) layers render through the `paradoc-react` skill.
 
 For render options and their SDK equivalents, load [rendering.md](./rendering.md).

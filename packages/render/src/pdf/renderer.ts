@@ -38,7 +38,7 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
           data: source,
           form: request.form,
           formatter: request.ctx?.formatter ?? formatter,
-          bindings: request.bindings ?? request.template.bindings,
+          bindings: request.template.bindings,
           ...fromLayer(request.template),
         })
       }
@@ -64,7 +64,7 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
         },
         form: request.form,
         formatter: request.ctx?.formatter ?? formatter,
-        bindings: request.bindings ?? request.template.bindings,
+        bindings: request.template.bindings,
         ...fromLayer(request.template),
       })
     },

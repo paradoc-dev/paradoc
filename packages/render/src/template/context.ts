@@ -10,14 +10,12 @@
 import {
   buildRegistry,
   createContext,
-  toValue,
   type EvaluationContext,
   type FnSignature,
   type HostFunction,
   type Registry,
-  type Value,
 } from '@paradoc/expr'
-import type { Bindings, Form } from '@paradoc/types'
+import type { Form } from '@paradoc/types'
 import { dataPath } from './scope'
 
 /** How a renderer is told what template expressions can read and call. */
@@ -41,10 +39,6 @@ const RESERVED_ROOTS = new Set([
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined
-}
-
-function sourceOf(binding: string): string {
-  return binding.startsWith('fields.') ? binding.slice('fields.'.length) : binding
 }
 
 /** Roots for a direct render, read from raw data the way core lays out a render. */
@@ -92,28 +86,20 @@ export interface TemplateData {
 /**
  * The expression context and render-data lookup for one render. `raw` holds
  * unformatted values; `prepared` holds the formatted values the renderer
- * prints. Text-layer bindings add their keys as names templates can read.
+ * prints.
  */
 export function templateData(
   raw: Record<string, unknown>,
   prepared: Record<string, unknown>,
   form: Form | undefined,
   expressions: TemplateExpressionOptions | undefined,
-  bindings?: Bindings,
 ): TemplateData {
-  const base = expressions?.context
+  const context = expressions?.context
     ? withConfiguredFunctions(expressions.context, expressions)
     : createContext(templateRoots(raw, form), {
         hostFunctions: expressions?.functions,
         registry: expressions?.signatures ? buildRegistry(expressions.signatures) : undefined,
       })
-  const aliases = new Map<string, Value>()
-  for (const [key, binding] of Object.entries(bindings ?? {})) {
-    aliases.set(key, toValue(dataPath(raw, sourceOf(binding).replace(/\[(\d+)\]/g, '.$1').split('.'))))
-  }
-  const context: EvaluationContext = aliases.size === 0
-    ? base
-    : { ...base, lookup: (name) => aliases.get(name) ?? base.lookup(name) }
   const defs = record(prepared.defs)
 
   return {
@@ -123,7 +109,6 @@ export function templateData(
       if (head === undefined) return undefined
       if (head === 'fields') return rest.length === 0 ? undefined : dataPath(prepared, rest)
       if (head === 'parties' || head === 'items') return dataPath(prepared[head], rest)
-      if (bindings && Object.prototype.hasOwnProperty.call(bindings, head)) return dataPath(prepared[head], rest)
       if (defs && Object.prototype.hasOwnProperty.call(defs, head)) return dataPath(defs[head], rest)
       return undefined
     },

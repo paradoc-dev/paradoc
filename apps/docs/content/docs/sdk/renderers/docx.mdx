@@ -119,7 +119,6 @@ async function renderDocx(options: RenderDocxOptions): Promise<Uint8Array>
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
   { name: 'form', type: 'Form', description: 'Form schema for automatic field type detection and formatting', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
-  { name: 'bindings', type: 'Bindings', description: 'Mapping from template placeholders to data keys', isOptional: true },
   { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
   { name: 'options', type: 'DocxRenderOptions', description: 'DOCX-specific rendering options', isOptional: true },
   { name: 'expressions', type: 'TemplateExpressionOptions', description: 'The expression context (`context`), or configured `functions` and their `signatures`. Artifact renders supply the artifact context.', isOptional: true },

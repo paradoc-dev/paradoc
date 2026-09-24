@@ -59,7 +59,7 @@ Checklists and documents render raw layer content by default. See [layers.md](./
 | `progressive` | `{ missing?, incomplete? }` | Text for a missing value (default `—`) and an incomplete composite (default `…`) |
 | `renderers` | `Record<mimeType, renderer>` | Renderers keyed by MIME type, tried before the built-in engines. React layers need one |
 | `renderer` | `ParadocRenderer` | Replaces the engine for this call. Use `renderLayer({ ... })` to pass engine options |
-| `bindings` | `Record<string, string>` | PDF field name → Paradoc path, merged over the layer's own `bindings` |
+| `bindings` | `Record<string, string>` | PDF layers only: PDF field name → Paradoc path, merged over the layer's own `bindings`. Any other layer refuses it |
 
 ```typescript
 const preview = await form.fill({ fields: { tenantName: "Ada" } }).render({ progressive: { missing: "____" } });

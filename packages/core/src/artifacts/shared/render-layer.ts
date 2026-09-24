@@ -15,6 +15,7 @@ import type {
 	RendererLayer,
 	Resolver,
 } from '@paradoc/types'
+import { isPdfMimeType } from '@paradoc/schemas'
 import { renderLayer as createRenderer, resolveLayerBindings } from '@paradoc/render'
 import {
 	findRegisteredRenderer,
@@ -232,7 +233,6 @@ async function renderLayerAt(
 			template,
 			form: context.form,
 			data: context.data,
-			bindings,
 			ctx: formatter || progressive
 				? { formatter, progressive }
 				: undefined,
@@ -339,6 +339,33 @@ export function selectLayerRenderer<Output>(
 	// The built-in engines render `string | Uint8Array`; the call site's Output
 	// is whatever the caller asked the renderer for. One cast, here.
 	return createRenderer() as ParadocRenderer<RendererLayer, Output>
+}
+
+/**
+ * The bindings a PDF layer renders with: its own (or those it reuses through
+ * `bindingsFrom`), with the caller's `bindings` render option laid over them.
+ *
+ * Bindings map AcroForm field names to Paradoc paths, so the option applies to
+ * PDF layers only. Any other layer's template names values as `{{fields.x}}`,
+ * and passing the option for one is refused rather than ignored.
+ *
+ * @throws {Error} when `override` is given for a layer that is not a PDF.
+ */
+export function renderBindings(
+	layers: Record<string, Layer>,
+	layerKey: string,
+	layerSpec: Layer,
+	override: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+	const bindings = resolveLayerBindings(layers, layerSpec)
+	if (!override) return bindings
+	if (!isPdfMimeType(layerSpec.mimeType)) {
+		throw new Error(
+			`Layer "${layerKey}" is not a PDF layer, so the bindings render option does not apply: bindings map ` +
+				'AcroForm field names to Paradoc paths. A text, HTML or DOCX template names a value as {{fields.x}}.',
+		)
+	}
+	return { ...bindings, ...override }
 }
 
 /**

@@ -1,8 +1,7 @@
 import { defaultFormatter } from '@paradoc/format'
-import type { Bindings, Form, Formatter } from '@paradoc/types'
+import type { Form, Formatter } from '@paradoc/types'
 import { unzipSync, zipSync } from 'fflate'
-import { applyBindings } from '../text/bindings'
-import { formatFieldData, validateFieldBindings } from '../text/field-formatter'
+import { formatFieldData } from '../text/field-formatter'
 import { loopFrames, loopRows, renderTemplateNodes, type SigningDirective, type TemplateRenderOptions } from '../text/template'
 import { templateData, type TemplateExpressionOptions } from '../template/context'
 import { TemplateError } from '../template/errors'
@@ -22,7 +21,6 @@ export interface RenderDocxOptions {
   data: Record<string, unknown>
   form?: Form
   formatter?: Formatter
-  bindings?: Bindings
   signatureOptions?: DocxSignatureOptions
   options?: DocxRenderOptions
   /** The expression context and configured functions templates read. */
@@ -264,20 +262,15 @@ export async function renderDocx({
   data,
   form,
   formatter = defaultFormatter,
-  bindings,
   signatureOptions,
   options = {},
   expressions,
   layer,
 }: RenderDocxOptions): Promise<Uint8Array> {
-  let prepared = form
+  const prepared = form
     ? formatFieldData(data, form, formatter)
     : data
-  if (bindings) {
-    if (form) validateFieldBindings(form, bindings)
-    prepared = applyBindings(prepared, bindings)
-  }
-  const { context, resolveData } = templateData(data, prepared, form, expressions, bindings)
+  const { context, resolveData } = templateData(data, prepared, form, expressions)
   const directives: Record<string, SigningDirective> = createDocxSignatureDirectives(signatureOptions)
   const templateOptions: TemplateRenderOptions = {
     context,

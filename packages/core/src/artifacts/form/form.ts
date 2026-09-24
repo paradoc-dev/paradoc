@@ -43,7 +43,7 @@ import type {
 	ParadocRenderer,
 	Formatter,
 } from '@paradoc/types'
-import { renderLayer as createRenderer, resolveLayerBindings } from '@paradoc/render'
+import { renderLayer as createRenderer } from '@paradoc/render'
 import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
 import { encode as encodeMarker } from '@paradoc/render/pdf'
 import { extractPdfData, selectPdfExtractionLayer } from '@paradoc/render/pdf'
@@ -95,7 +95,7 @@ import type { FormRuntimeState, FieldRuntimeState, AnnexRuntimeState, FormRulesV
 import { buildFormContext, evaluateFormDefs, evaluateFormRules } from '@/logic'
 import { buildTemplateExpressionContext } from '@/logic/runtime/evaluation/context-builder'
 import type { RuntimeFormRenderOptions, RenderOptions, RendererLayer } from '@/types'
-import { buildRendererLayer, selectLayerRenderer } from '../shared/render-layer'
+import { buildRendererLayer, renderBindings, selectLayerRenderer } from '../shared/render-layer'
 import type { ArtifactInstanceOptions } from '../shared/render-layer'
 import type { RendererRegistry } from '@/rendering/renderer-registry'
 import {
@@ -3169,12 +3169,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			const renderer = selectLayerRenderer<Output>(key, layerSpec, rendererOverride, renderers)
 
-			let bindings = resolveLayerBindings(formDef.layers, layerSpec)
-
-			// Merge caller-provided bindings (override layer-spec bindings)
-			if (optionsBindings) {
-				bindings = { ...bindings, ...optionsBindings }
-			}
+			const bindings = renderBindings(formDef.layers, key, layerSpec, optionsBindings)
 
 			const augmentedParties = augmentPartiesForRender()
 
@@ -3226,7 +3221,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					fields: fullData,
 					...(Object.keys(augmentedParties).length > 0 && { parties: augmentedParties }),
 				},
-				bindings,
 				ctx: { expressions, ...(formatter && { formatter }), ...(progressive && { progressive }) },
 			}) as Output
 		},
@@ -3498,12 +3492,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 			const renderer = selectLayerRenderer<Output>(key, layerSpec, rendererOverride, renderers)
 
-			let bindings = resolveLayerBindings(formDef.layers, layerSpec)
-
-			// Merge caller-provided bindings (override layer-spec bindings)
-			if (optionsBindings) {
-				bindings = { ...bindings, ...optionsBindings }
-			}
+			const bindings = renderBindings(formDef.layers, key, layerSpec, optionsBindings)
 
 			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
@@ -3525,7 +3514,6 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				template,
 				form: formDef,
 				data: formData,
-				bindings,
 				ctx: { expressions, ...(formatter && { formatter }), ...(progressive && { progressive }) },
 			}) as Output
 		},
@@ -3593,7 +3581,6 @@ export interface FormBuilderInterface<
 			text: string
 			title?: string
 			description?: string
-			bindings?: Record<string, string>
 			signatureBlocks?: Record<string, SignatureBlock>
 			anchorBlocks?: Record<string, AnchorBlock>
 			signatures?: Record<string, SignatureSlot>
@@ -3837,7 +3824,6 @@ function createFormBuilder<
 				text: string
 				title?: string
 				description?: string
-				bindings?: Record<string, string>
 			},
 		) {
 			return builder.layer(key, { kind: 'inline', ...layer })

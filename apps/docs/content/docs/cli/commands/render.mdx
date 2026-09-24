@@ -24,7 +24,7 @@ paradoc render <artifact> [options]
 | Option | Description |
 |--------|-------------|
 | `--data <pathOrJson>` | Data payload: file path (JSON/YAML), `-` for stdin, or inline JSON |
-| `--bindings <pathOrJson>` | Renderer bindings (path to JSON/YAML or inline JSON) |
+| `--bindings <pathOrJson>` | PDF layers only: AcroForm field name to Paradoc path, merged over the layer's own bindings (path to JSON/YAML or inline JSON) |
 | `--out <file>` | Write output to file (defaults to stdout) |
 | `--format <style>` | Summary format: `pretty` or `json` (default: pretty) |
 | `--layer <key>` | Layer key to use (defaults to artifact.defaultLayer) |
