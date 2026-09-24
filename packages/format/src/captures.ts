@@ -1,9 +1,9 @@
 import type { Attachment, Bbox, Coordinate, Identification, Signature } from '@paradoc/types'
 
-import { resolveMessage } from './messages'
+import { resolveMessage, type MessageContext } from './messages'
+import { isMissing, isRecord, issue, statusForIssues, type Validation } from './shared'
 import { validateDate, validateDatetime } from './temporal'
 import type {
-	AttachmentFormatOptions,
 	BboxFormatOptions,
 	CoordinateFormatOptions,
 	DateFormatOptions,
@@ -14,35 +14,15 @@ import type {
 	SignatureFormatOptions,
 } from './types'
 
-export type CaptureStatus = 'missing' | 'incomplete' | 'invalid'
-
-export interface CaptureValidationSuccess<T> {
-	ok: true
-	value: T
-}
-
-export interface CaptureValidationFailure {
-	ok: false
-	status: CaptureStatus
-	issues: readonly FormatIssue[]
-}
-
-export type CaptureValidation<T> = CaptureValidationSuccess<T> | CaptureValidationFailure
-
-export interface CaptureFormattingContext {
-	readonly locale: string
-	readonly messages: FormatterMessages
-	readonly fallbackLocale?: string
+/**
+ * What a capture formatter needs from the formatter that owns it. Each nested
+ * call formats with the options it is given and never inherits the nested
+ * kind's formatter-level options.
+ */
+export interface CaptureFormattingContext extends MessageContext {
 	readonly formatNumber: (value: number, options: NumberFormatOptions) => string
 	readonly formatCoordinate: (value: Coordinate, options: CoordinateFormatOptions) => string
 	readonly formatDate: (value: string, options: DateFormatOptions) => string
-}
-
-export class MissingCaptureMessageError extends Error {
-	constructor(readonly key: string, readonly locale: string) {
-		super(`No capture message ${JSON.stringify(key)} is available for locale ${JSON.stringify(locale)}.`)
-		this.name = 'MissingCaptureMessageError'
-	}
 }
 
 export const BUILT_IN_CAPTURE_MESSAGES: FormatterMessages = {
@@ -103,22 +83,6 @@ export const BUILT_IN_CAPTURE_MESSAGES: FormatterMessages = {
 	},
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isMissing(value: unknown): value is null | undefined {
-	return value === null || value === undefined
-}
-
-function captureIssue(kind: string, code: string, message: string, path?: string): FormatIssue {
-	return { kind, code, message, ...(path === undefined ? {} : { path }) }
-}
-
-function statusForIssues(issues: readonly FormatIssue[]): CaptureStatus {
-	return issues.some((item) => item.code.startsWith('invalid')) ? 'invalid' : 'incomplete'
-}
-
 function stringMember(
 	kind: string,
 	object: Record<string, unknown>,
@@ -128,11 +92,11 @@ function stringMember(
 ): string | undefined {
 	const value = object[key]
 	if (isMissing(value)) {
-		if (options.required) issues.push(captureIssue(kind, 'missing_member', `${key} is required.`, key))
+		if (options.required) issues.push(issue(kind, 'missing_member', `${key} is required.`, key))
 		return undefined
 	}
 	if (typeof value !== 'string' || value.trim().length === 0 || value.length > options.maxLength) {
-		issues.push(captureIssue(kind, 'invalid_member', `${key} must be a non-empty string of at most ${options.maxLength} characters.`, key))
+		issues.push(issue(kind, 'invalid_member', `${key} must be a non-empty string of at most ${options.maxLength} characters.`, key))
 		return undefined
 	}
 	return value
@@ -148,22 +112,22 @@ function numberMember(
 ): number | undefined {
 	const value = object[key]
 	if (isMissing(value)) {
-		issues.push(captureIssue(kind, 'missing_member', `${key} is required.`, key))
+		issues.push(issue(kind, 'missing_member', `${key} is required.`, key))
 		return undefined
 	}
 	if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
-		issues.push(captureIssue(kind, 'invalid_member', `${key} must be a finite number between ${minimum} and ${maximum}.`, key))
+		issues.push(issue(kind, 'invalid_member', `${key} must be a finite number between ${minimum} and ${maximum}.`, key))
 		return undefined
 	}
 	return value
 }
 
-export function validateCoordinate(value: unknown): CaptureValidation<Coordinate> {
+export function validateCoordinate(value: unknown): Validation<Coordinate> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [captureIssue('coordinate', 'missing_value', 'Coordinate value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('coordinate', 'missing_value', 'Coordinate value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [captureIssue('coordinate', 'invalid_object', 'Coordinate value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('coordinate', 'invalid_object', 'Coordinate value must be an object.')] }
 	}
 	const issues: FormatIssue[] = []
 	const lat = numberMember('coordinate', value, 'lat', issues, -90, 90)
@@ -180,26 +144,26 @@ function prefixIssues(prefix: string, issues: readonly FormatIssue[], kind: stri
 	}))
 }
 
-export function validateBbox(value: unknown): CaptureValidation<Bbox> {
+export function validateBbox(value: unknown): Validation<Bbox> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [captureIssue('bbox', 'missing_value', 'Bbox value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('bbox', 'missing_value', 'Bbox value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [captureIssue('bbox', 'invalid_object', 'Bbox value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('bbox', 'invalid_object', 'Bbox value must be an object.')] }
 	}
 
 	const issues: FormatIssue[] = []
 	let southWest: Coordinate | undefined
 	let northEast: Coordinate | undefined
 	if (isMissing(value.southWest)) {
-		issues.push(captureIssue('bbox', 'missing_member', 'southWest is required.', 'southWest'))
+		issues.push(issue('bbox', 'missing_member', 'southWest is required.', 'southWest'))
 	} else {
 		const validation = validateCoordinate(value.southWest)
 		if (validation.ok) southWest = validation.value
 		else issues.push(...prefixIssues('southWest', validation.issues, 'bbox'))
 	}
 	if (isMissing(value.northEast)) {
-		issues.push(captureIssue('bbox', 'missing_member', 'northEast is required.', 'northEast'))
+		issues.push(issue('bbox', 'missing_member', 'northEast is required.', 'northEast'))
 	} else {
 		const validation = validateCoordinate(value.northEast)
 		if (validation.ok) northEast = validation.value
@@ -208,10 +172,10 @@ export function validateBbox(value: unknown): CaptureValidation<Bbox> {
 
 	if (southWest !== undefined && northEast !== undefined) {
 		if (southWest.lat >= northEast.lat) {
-			issues.push(captureIssue('bbox', 'invalid_bounds', 'southWest latitude must be less than northEast latitude.', 'southWest.lat'))
+			issues.push(issue('bbox', 'invalid_bounds', 'southWest latitude must be less than northEast latitude.', 'southWest.lat'))
 		}
 		if (southWest.lon >= northEast.lon) {
-			issues.push(captureIssue('bbox', 'invalid_bounds', 'southWest longitude must be less than northEast longitude.', 'southWest.lon'))
+			issues.push(issue('bbox', 'invalid_bounds', 'southWest longitude must be less than northEast longitude.', 'southWest.lon'))
 		}
 	}
 	if (issues.length > 0) return { ok: false, status: statusForIssues(issues), issues }
@@ -224,18 +188,18 @@ const SIGNATURE_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\
 function validateIdentificationDate(value: unknown, key: 'issueDate' | 'expiryDate', issues: FormatIssue[]): string | undefined {
 	if (isMissing(value)) return undefined
 	if (typeof value !== 'string' || !DATE_ONLY_PATTERN.test(value) || !validateDate(value).ok) {
-		issues.push(captureIssue('identification', 'invalid_member', `${key} must be a valid ISO calendar date.`, key))
+		issues.push(issue('identification', 'invalid_member', `${key} must be a valid ISO calendar date.`, key))
 		return undefined
 	}
 	return value
 }
 
-export function validateIdentification(value: unknown): CaptureValidation<Identification> {
+export function validateIdentification(value: unknown): Validation<Identification> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [captureIssue('identification', 'missing_value', 'Identification value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('identification', 'missing_value', 'Identification value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [captureIssue('identification', 'invalid_object', 'Identification value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('identification', 'invalid_object', 'Identification value must be an object.')] }
 	}
 	const issues: FormatIssue[] = []
 	const type = stringMember('identification', value, 'type', issues, { required: true, maxLength: 50 })
@@ -256,19 +220,19 @@ export function validateIdentification(value: unknown): CaptureValidation<Identi
 	}
 }
 
-export function validateAttachment(value: unknown): CaptureValidation<Attachment> {
+export function validateAttachment(value: unknown): Validation<Attachment> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [captureIssue('attachment', 'missing_value', 'Attachment value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('attachment', 'missing_value', 'Attachment value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [captureIssue('attachment', 'invalid_object', 'Attachment value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('attachment', 'invalid_object', 'Attachment value must be an object.')] }
 	}
 	const issues: FormatIssue[] = []
 	const name = stringMember('attachment', value, 'name', issues, { required: true, maxLength: 255 })
 	const mimeType = stringMember('attachment', value, 'mimeType', issues, { required: true, maxLength: 100 })
 	const checksum = value.checksum
 	if (!isMissing(checksum) && (typeof checksum !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(checksum))) {
-		issues.push(captureIssue('attachment', 'invalid_member', 'checksum must be a lowercase SHA-256 digest.', 'checksum'))
+		issues.push(issue('attachment', 'invalid_member', 'checksum must be a lowercase SHA-256 digest.', 'checksum'))
 	}
 	if (issues.length > 0) return { ok: false, status: statusForIssues(issues), issues }
 	return {
@@ -284,20 +248,20 @@ export function validateAttachment(value: unknown): CaptureValidation<Attachment
 const SIGNATURE_METHODS = ['drawn', 'typed', 'uploaded', 'certificate'] as const
 const SIGNATURE_TYPES = ['signature', 'initials'] as const
 
-export function validateSignature(value: unknown): CaptureValidation<Signature> {
+export function validateSignature(value: unknown): Validation<Signature> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [captureIssue('signature', 'missing_value', 'Signature value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('signature', 'missing_value', 'Signature value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [captureIssue('signature', 'invalid_object', 'Signature value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('signature', 'invalid_object', 'Signature value must be an object.')] }
 	}
 	const issues: FormatIssue[] = []
 	const timestampValue = value.timestamp
 	let timestamp: string | undefined
 	if (isMissing(timestampValue)) {
-		issues.push(captureIssue('signature', 'missing_member', 'timestamp is required.', 'timestamp'))
+		issues.push(issue('signature', 'missing_member', 'timestamp is required.', 'timestamp'))
 	} else if (typeof timestampValue !== 'string' || timestampValue.length === 0 || !SIGNATURE_TIMESTAMP_PATTERN.test(timestampValue)) {
-		issues.push(captureIssue('signature', 'invalid_member', 'timestamp must be a UTC ISO datetime string using a T separator and Z offset.', 'timestamp'))
+		issues.push(issue('signature', 'invalid_member', 'timestamp must be a UTC ISO datetime string using a T separator and Z offset.', 'timestamp'))
 	} else {
 		const temporal = validateDatetime(timestampValue)
 		if (!temporal.ok) {
@@ -316,9 +280,9 @@ export function validateSignature(value: unknown): CaptureValidation<Signature> 
 	const methodValue = value.method
 	let method: Signature['method'] | undefined
 	if (isMissing(methodValue)) {
-		issues.push(captureIssue('signature', 'missing_member', 'method is required.', 'method'))
+		issues.push(issue('signature', 'missing_member', 'method is required.', 'method'))
 	} else if (typeof methodValue !== 'string' || !(SIGNATURE_METHODS as readonly string[]).includes(methodValue)) {
-		issues.push(captureIssue('signature', 'invalid_member', 'method must be drawn, typed, uploaded, or certificate.', 'method'))
+		issues.push(issue('signature', 'invalid_member', 'method must be drawn, typed, uploaded, or certificate.', 'method'))
 	} else {
 		method = methodValue as Signature['method']
 	}
@@ -327,7 +291,7 @@ export function validateSignature(value: unknown): CaptureValidation<Signature> 
 	let type: Signature['type'] = 'signature'
 	if (!isMissing(typeValue)) {
 		if (typeof typeValue !== 'string' || !(SIGNATURE_TYPES as readonly string[]).includes(typeValue)) {
-			issues.push(captureIssue('signature', 'invalid_member', 'type must be signature or initials.', 'type'))
+			issues.push(issue('signature', 'invalid_member', 'type must be signature or initials.', 'type'))
 		} else {
 			type = typeValue as Signature['type']
 		}
@@ -335,11 +299,11 @@ export function validateSignature(value: unknown): CaptureValidation<Signature> 
 
 	const image = value.image
 	if (!isMissing(image) && (typeof image !== 'string' || image.length === 0)) {
-		issues.push(captureIssue('signature', 'invalid_member', 'image must be a non-empty string.', 'image'))
+		issues.push(issue('signature', 'invalid_member', 'image must be a non-empty string.', 'image'))
 	}
 	const metadata = value.metadata
 	if (!isMissing(metadata) && !isRecord(metadata)) {
-		issues.push(captureIssue('signature', 'invalid_member', 'metadata must be an object.', 'metadata'))
+		issues.push(issue('signature', 'invalid_member', 'metadata must be an object.', 'metadata'))
 	}
 
 	if (issues.length > 0) return { ok: false, status: statusForIssues(issues), issues }
@@ -353,15 +317,6 @@ export function validateSignature(value: unknown): CaptureValidation<Signature> 
 			...(metadata === undefined ? {} : { metadata: metadata as Record<string, unknown> }),
 		},
 	}
-}
-
-export function resolveCaptureMessage(
-	messages: FormatterMessages,
-	locale: string,
-	key: string,
-	fallbackLocale?: string,
-): string {
-	return resolveMessage(messages, locale, key, fallbackLocale, (missingKey, missingLocale) => new MissingCaptureMessageError(missingKey, missingLocale))
 }
 
 function interpolate(message: string, value: string): string {
@@ -393,20 +348,16 @@ export function formatIdentificationValue(
 	if (value.issuer !== undefined) details.push(value.issuer)
 	if (value.issueDate !== undefined) {
 		const date = context.formatDate(value.issueDate, options)
-		details.push(interpolate(resolveCaptureMessage(context.messages, context.locale, 'identification.issueDate', context.fallbackLocale), date))
+		details.push(interpolate(resolveMessage(context, 'identification.issueDate'), date))
 	}
 	if (value.expiryDate !== undefined) {
 		const date = context.formatDate(value.expiryDate, options)
-		details.push(interpolate(resolveCaptureMessage(context.messages, context.locale, 'identification.expiryDate', context.fallbackLocale), date))
+		details.push(interpolate(resolveMessage(context, 'identification.expiryDate'), date))
 	}
 	return `${value.type}: ${value.number}${details.length === 0 ? '' : ` (${details.join(', ')})`}`
 }
 
-export function formatAttachmentValue(
-	value: Attachment,
-	_options: AttachmentFormatOptions,
-	_context: CaptureFormattingContext,
-): string {
+export function formatAttachmentValue(value: Attachment): string {
 	return `${value.name} (${value.mimeType})`
 }
 
@@ -415,9 +366,9 @@ export function formatSignatureValue(
 	options: SignatureFormatOptions,
 	context: CaptureFormattingContext,
 ): string {
-	const type = resolveCaptureMessage(context.messages, context.locale, `signature.type.${value.type ?? 'signature'}`, context.fallbackLocale)
-	const method = resolveCaptureMessage(context.messages, context.locale, `signature.method.${value.method}`, context.fallbackLocale)
-	const on = resolveCaptureMessage(context.messages, context.locale, 'signature.on', context.fallbackLocale)
+	const type = resolveMessage(context, `signature.type.${value.type ?? 'signature'}`)
+	const method = resolveMessage(context, `signature.method.${value.method}`)
+	const on = resolveMessage(context, 'signature.on')
 	const date = context.formatDate(value.timestamp, options)
 	return `${type} (${method}) ${on} ${date}`
 }

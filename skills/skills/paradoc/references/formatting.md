@@ -97,8 +97,8 @@ formatter.safeFormatMoney({ amount: 10 });
 | `formatted` | `true` | `value` holds the text |
 | `missing` | `false` | No value |
 | `incomplete` | `false` | A composite lacks a required member |
-| `invalid` | `false` | The value is wrong, such as `2026-13-01` or an enum value no option declares |
-| `unsupported` | `false` | The value is fine but cannot print this way, such as a rating with no `max` |
+| `invalid` | `false` | The value or an option is wrong, such as `2026-13-01`, an enum value no option declares, or `timeZone: "Nope/Zone"` (code `invalid_options`) |
+| `unsupported` | `false` | The input is fine but cannot print this way: a rating with no `max`, a missing package message, a locale the runtime lacks (`unsupported_locale`) |
 | `error` | `false` | An unexpected failure |
 
 A failed result carries `issues`: `{ code, message, path?, kind?, cause? }`.
@@ -171,3 +171,5 @@ tagged.formatMoney({ amount: 1, currency: "EUR" }); // "1,00 € (net)"
 ```
 
 `currencyDisplay: "none"` keeps the currency's fraction digits (two for USD, none for JPY) unless you set digits. An override calls `context.delegate` to reach the implementation it replaces.
+
+A kind that formats through another kind, such as a signature's date or a rating's number, passes only its own options: `number: { maximumFractionDigits: 0 }` does not round a rating. An override of the inner kind still applies.

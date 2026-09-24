@@ -215,8 +215,8 @@ describe('@paradoc/format selection values', () => {
 		expect(() => createFormatter({ enum: { unknownOption: 'guess' as never } })).toThrowError(/unknownOption/)
 		expect(() => createFormatter({ enum: { options: [{ label: 'No value' } as never] } })).toThrowError(/option/)
 		expect(createFormatter().safeFormatRating(4, { max: 'five' as never })).toMatchObject({
-			status: 'unsupported',
-			issues: [expect.objectContaining({ code: 'unsupported_configuration' })],
+			status: 'invalid',
+			issues: [expect.objectContaining({ code: 'invalid_options', kind: 'rating' })],
 		})
 	})
 
@@ -229,5 +229,28 @@ describe('@paradoc/format selection values', () => {
 		})
 		expect(createFormatter({ locale: 'ja-JP', messages: { 'ja-JP': { 'boolean.true': 'はい', 'boolean.false': 'いいえ' } } }).formatBoolean(true)).toBe('はい')
 		expect(createFormatter({ locale: 'ja-JP', fallbackLocale: 'en-US' }).formatBoolean(true)).toBe('Yes')
+	})
+})
+
+describe('@paradoc/format selection messages and nested options', () => {
+	it('reads the messages of a locale that shares the language when the region has none', () => {
+		const formatter = createFormatter({ locale: 'de-AT' })
+		expect(formatter.formatBoolean(true)).toBe('Ja')
+		expect(formatter.formatRating(4, { max: 5 })).toBe('4 von 5')
+	})
+
+	it('formats a rating number and multiselect labels with their own options alone', () => {
+		const formatter = createFormatter({
+			number: { maximumFractionDigits: 0 },
+			enum: { options: [{ value: 'a', label: 'Enum A' }] },
+		})
+		expect(formatter.formatRating(4.5, { max: 5 })).toBe('4.5 of 5')
+		expect(formatter.formatNumber(4.5)).toBe('5')
+		expect(formatter.formatMultiselect(['a'], { options: [{ value: 'a', label: 'Multi A' }] })).toBe('Multi A')
+		expect(formatter.safeFormatMultiselect(['a'])).toMatchObject({
+			status: 'invalid',
+			issues: [expect.objectContaining({ code: 'unknown_option' })],
+		})
+		expect(formatter.formatEnum('a')).toBe('Enum A')
 	})
 })

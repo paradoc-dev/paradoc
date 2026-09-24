@@ -1,31 +1,17 @@
 import type { Address, Organization, Person } from '@paradoc/types'
 
-import { findMessage } from './messages'
+import { resolveMessage, type MessageContext } from './messages'
+import { isMissing, isRecord, issue, statusForIssues, type Validation } from './shared'
 import type {
 	AddressFormatOptions,
 	AddressLayoutContext,
+	ContactFormatKind,
 	FormatIssue,
+	FormatOptionsByKind,
 	FormatterMessages,
-	OrganizationFormatOptions,
 	PartyFormatOptions,
-	PersonFormatOptions,
 	PhoneFormatOptions,
 } from './types'
-
-export type ContactStatus = 'missing' | 'incomplete' | 'invalid' | 'unsupported'
-
-export interface ContactValidationSuccess<T> {
-	ok: true
-	value: T
-}
-
-export interface ContactValidationFailure {
-	ok: false
-	status: Exclude<ContactStatus, 'unsupported'>
-	issues: readonly FormatIssue[]
-}
-
-export type ContactValidation<T> = ContactValidationSuccess<T> | ContactValidationFailure
 
 export interface NormalizedPhone {
 	readonly number: string
@@ -35,23 +21,6 @@ export interface NormalizedPhone {
 
 export interface NormalizedAddress extends Address {
 	readonly countryCode: string | undefined
-}
-
-export interface ContactMessageContext {
-	readonly locale: string
-	readonly messages: FormatterMessages
-}
-
-export class MissingContactMessageError extends Error {
-	readonly key: string
-	readonly locale: string
-
-	constructor(key: string, locale: string) {
-		super(`No formatter message ${JSON.stringify(key)} is available for locale ${JSON.stringify(locale)}.`)
-		this.name = 'MissingContactMessageError'
-		this.key = key
-		this.locale = locale
-	}
 }
 
 export class UnsupportedAddressLayoutError extends Error {
@@ -128,23 +97,6 @@ export const BUILT_IN_CONTACT_MESSAGES: FormatterMessages = {
 	},
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isMissing(value: unknown): value is null | undefined {
-	return value === null || value === undefined
-}
-
-function contactIssue(
-	kind: string,
-	code: string,
-	message: string,
-	path?: string,
-): FormatIssue {
-	return { code, message, kind, ...(path === undefined ? {} : { path }) }
-}
-
 function stringMember(
 	kind: string,
 	object: Record<string, unknown>,
@@ -154,19 +106,15 @@ function stringMember(
 ): string | undefined {
 	const value = object[key]
 	if (isMissing(value)) {
-		if (options.required) issues.push(contactIssue(kind, 'missing_member', `${key} is required.`, key))
+		if (options.required) issues.push(issue(kind, 'missing_member', `${key} is required.`, key))
 		return undefined
 	}
 	const minLength = options.minLength ?? 1
 	if (typeof value !== 'string' || value.trim().length < minLength || value.length > options.maxLength) {
-		issues.push(contactIssue(kind, 'invalid_member', `${key} must be a string of ${minLength} to ${options.maxLength} characters.`, key))
+		issues.push(issue(kind, 'invalid_member', `${key} must be a string of ${minLength} to ${options.maxLength} characters.`, key))
 		return undefined
 	}
 	return value
-}
-
-function statusForIssues(issues: readonly FormatIssue[]): ContactValidationFailure['status'] {
-	return issues.some((item) => item.code === 'invalid_member' || item.code === 'invalid_object') ? 'invalid' : 'incomplete'
 }
 
 export function normalizeCountry(value: string): string | undefined {
@@ -174,12 +122,12 @@ export function normalizeCountry(value: string): string | undefined {
 	return COUNTRY_ALIASES[normalized] ?? (/^[A-Z]{2}$/.test(normalized) ? normalized : undefined)
 }
 
-export function validateAddress(value: unknown): ContactValidation<NormalizedAddress> {
+export function validateAddress(value: unknown): Validation<NormalizedAddress> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [contactIssue('address', 'missing_value', 'Address value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('address', 'missing_value', 'Address value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [contactIssue('address', 'invalid_object', 'Address value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('address', 'invalid_object', 'Address value must be an object.')] }
 	}
 
 	const issues: FormatIssue[] = []
@@ -191,7 +139,7 @@ export function validateAddress(value: unknown): ContactValidation<NormalizedAdd
 	const country = stringMember('address', value, 'country', issues, { required: true, minLength: 2, maxLength: 100 })
 
 	if (postalCode !== undefined && !/^[A-Z0-9\s-]{3,20}$/.test(postalCode)) {
-		issues.push(contactIssue('address', 'invalid_member', 'postalCode must contain only uppercase letters, numbers, spaces, or hyphens.', 'postalCode'))
+		issues.push(issue('address', 'invalid_member', 'postalCode must contain only uppercase letters, numbers, spaces, or hyphens.', 'postalCode'))
 	}
 	if (issues.length > 0) {
 		return { ok: false, status: statusForIssues(issues), issues }
@@ -213,19 +161,19 @@ export function validateAddress(value: unknown): ContactValidation<NormalizedAdd
 
 function validatePhoneNumber(number: unknown, issues: FormatIssue[], path = 'number'): string | undefined {
 	if (isMissing(number)) {
-		issues.push(contactIssue('phone', 'missing_member', 'Phone number is required.', path))
+		issues.push(issue('phone', 'missing_member', 'Phone number is required.', path))
 		return undefined
 	}
 	if (typeof number !== 'string' || !/^\+[1-9]\d{1,14}$/.test(number) || number.length < 8) {
-		issues.push(contactIssue('phone', 'invalid_member', 'Phone number must use canonical E.164 syntax with at most 15 digits.', path))
+		issues.push(issue('phone', 'invalid_member', 'Phone number must use canonical E.164 syntax with at most 15 digits.', path))
 		return undefined
 	}
 	return number
 }
 
-export function validatePhone(value: unknown): ContactValidation<NormalizedPhone> {
+export function validatePhone(value: unknown): Validation<NormalizedPhone> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [contactIssue('phone', 'missing_value', 'Phone value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('phone', 'missing_value', 'Phone value is missing.')] }
 	}
 	if (typeof value === 'string') {
 		const issues: FormatIssue[] = []
@@ -235,7 +183,7 @@ export function validatePhone(value: unknown): ContactValidation<NormalizedPhone
 			: { ok: true, value: { number: number as string } }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [contactIssue('phone', 'invalid_object', 'Phone value must be an E.164 string or object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('phone', 'invalid_object', 'Phone value must be an E.164 string or object.')] }
 	}
 
 	const issues: FormatIssue[] = []
@@ -243,7 +191,7 @@ export function validatePhone(value: unknown): ContactValidation<NormalizedPhone
 	let type: string | undefined
 	if (!isMissing(value.type)) {
 		if (typeof value.type !== 'string' || value.type.trim().length === 0 || value.type.length > 50) {
-			issues.push(contactIssue('phone', 'invalid_member', 'Phone type must be a non-empty string of at most 50 characters.', 'type'))
+			issues.push(issue('phone', 'invalid_member', 'Phone type must be a non-empty string of at most 50 characters.', 'type'))
 		} else {
 			type = value.type
 		}
@@ -251,7 +199,7 @@ export function validatePhone(value: unknown): ContactValidation<NormalizedPhone
 	let extension: string | undefined
 	if (!isMissing(value.extension)) {
 		if (typeof value.extension !== 'string' || value.extension.length < 1 || value.extension.length > 20) {
-			issues.push(contactIssue('phone', 'invalid_member', 'Phone extension must be a non-empty string of at most 20 characters.', 'extension'))
+			issues.push(issue('phone', 'invalid_member', 'Phone extension must be a non-empty string of at most 20 characters.', 'extension'))
 		} else {
 			extension = value.extension
 		}
@@ -269,12 +217,12 @@ export function validatePhone(value: unknown): ContactValidation<NormalizedPhone
 
 type PersonValue = Person | Partial<Person> | Record<string, unknown>
 
-export function validatePerson(value: unknown): ContactValidation<PersonValue> {
+export function validatePerson(value: unknown): Validation<PersonValue> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [contactIssue('person', 'missing_value', 'Person value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('person', 'missing_value', 'Person value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [contactIssue('person', 'invalid_object', 'Person value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('person', 'invalid_object', 'Person value must be an object.')] }
 	}
 
 	const issues: FormatIssue[] = []
@@ -286,7 +234,7 @@ export function validatePerson(value: unknown): ContactValidation<PersonValue> {
 	const suffix = stringMember('person', value, 'suffix', issues, { maxLength: 50 })
 	const hasName = name !== undefined || [title, firstName, middleName, lastName, suffix].some((part) => part !== undefined)
 	if (!hasName && issues.length === 0) {
-		issues.push(contactIssue('person', 'missing_member', 'Person requires a name or at least one name component.'))
+		issues.push(issue('person', 'missing_member', 'Person requires a name or at least one name component.'))
 	}
 	if (issues.length > 0) return { ok: false, status: statusForIssues(issues), issues }
 	return { ok: true, value: value as PersonValue }
@@ -294,12 +242,12 @@ export function validatePerson(value: unknown): ContactValidation<PersonValue> {
 
 type OrganizationValue = Organization | Partial<Organization> | Record<string, unknown>
 
-export function validateOrganization(value: unknown): ContactValidation<OrganizationValue> {
+export function validateOrganization(value: unknown): Validation<OrganizationValue> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [contactIssue('organization', 'missing_value', 'Organization value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('organization', 'missing_value', 'Organization value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [contactIssue('organization', 'invalid_object', 'Organization value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('organization', 'invalid_object', 'Organization value must be an object.')] }
 	}
 
 	const issues: FormatIssue[] = []
@@ -317,26 +265,37 @@ export type PartyIdentity = 'person' | 'organization'
 
 export type PartyIdentityResolution = PartyIdentity | 'ambiguous' | undefined
 
+/** A party checked against the identity it resolves to. */
+export interface ValidatedParty {
+	readonly value: Record<string, unknown>
+	readonly identity: PartyIdentity
+}
+
+/**
+ * Infers a party's identity from the members it carries. A member whose value
+ * is `null` or `undefined` is not carried: form state often keeps a cleared
+ * member as `undefined`.
+ */
 export function inferPartyIdentity(value: Record<string, unknown>, options: PartyFormatOptions): PartyIdentityResolution {
 	if (options.partyType !== undefined) return options.partyType
-	const hasOrganizationIdentity = [...ORG_KEYS].some((key) => key in value)
-	const hasPersonIdentity = [...PERSON_KEYS].some((key) => key in value)
+	const hasOrganizationIdentity = [...ORG_KEYS].some((key) => !isMissing(value[key]))
+	const hasPersonIdentity = [...PERSON_KEYS].some((key) => !isMissing(value[key]))
 	if (hasOrganizationIdentity && hasPersonIdentity) return 'ambiguous'
 	if (hasOrganizationIdentity) return 'organization'
 	if (hasPersonIdentity) return 'person'
 	return undefined
 }
 
-export function validateParty(value: unknown, options: PartyFormatOptions): ContactValidation<Record<string, unknown>> {
+export function validateParty(value: unknown, options: PartyFormatOptions): Validation<ValidatedParty> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [contactIssue('party', 'missing_value', 'Party value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('party', 'missing_value', 'Party value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return { ok: false, status: 'invalid', issues: [contactIssue('party', 'invalid_object', 'Party value must be an object.')] }
+		return { ok: false, status: 'invalid', issues: [issue('party', 'invalid_object', 'Party value must be an object.')] }
 	}
 	const identity = inferPartyIdentity(value, options)
 	if (identity === undefined || identity === 'ambiguous') {
-		return { ok: false, status: 'invalid', issues: [contactIssue('party', 'ambiguous_identity', 'Party identity is ambiguous; supply a person or organization member or partyType option.')] }
+		return { ok: false, status: 'invalid', issues: [issue('party', 'ambiguous_identity', 'Party identity is ambiguous; supply a person or organization member or partyType option.')] }
 	}
 	const validation = identity === 'person' ? validatePerson(value) : validateOrganization(value)
 	if (!validation.ok) {
@@ -346,13 +305,7 @@ export function validateParty(value: unknown, options: PartyFormatOptions): Cont
 			issues: validation.issues.map((item) => ({ ...item, kind: 'party', path: item.path === undefined ? identity : `${identity}.${item.path}` })),
 		}
 	}
-	return { ok: true, value }
-}
-
-export function resolveContactMessage(context: ContactMessageContext, key: string): string {
-	const message = findMessage(context.messages, context.locale, key)
-	if (message !== undefined) return message
-	throw new MissingContactMessageError(key, context.locale)
+	return { ok: true, value: { value, identity } }
 }
 
 export function formatAddress(
@@ -388,9 +341,9 @@ const COUNTRY_LAYOUTS: Readonly<Record<string, (address: NormalizedAddress, cont
 	SA: (address) => countryAddress([address.line1, address.line2, `${address.postalCode} ${address.locality}`, address.region, address.country]),
 }
 
-export function formatPhone(phone: NormalizedPhone, options: PhoneFormatOptions, context: ContactMessageContext): string {
+export function formatPhone(phone: NormalizedPhone, options: PhoneFormatOptions, context: MessageContext): string {
 	if (phone.extension === undefined) return phone.number
-	const label = options.extensionLabel ?? resolveContactMessage(context, 'phone.extension')
+	const label = options.extensionLabel ?? resolveMessage(context, 'phone.extension')
 	return `${phone.number} ${label} ${phone.extension}`
 }
 
@@ -403,19 +356,15 @@ export function formatPerson(person: PersonValue): string {
 		.join(' ')
 }
 
-export function formatOrganization(organization: OrganizationValue, context: ContactMessageContext): string {
+export function formatOrganization(organization: OrganizationValue, context: MessageContext): string {
 	const value = organization as Record<string, unknown>
 	const details: string[] = []
-	if (typeof value.legalName === 'string' && value.legalName !== value.name) details.push(`${resolveContactMessage(context, 'organization.legalName')}: ${value.legalName}`)
-	if (typeof value.entityType === 'string') details.push(`${resolveContactMessage(context, 'organization.entityType')}: ${value.entityType}`)
-	if (typeof value.entityId === 'string') details.push(`${resolveContactMessage(context, 'organization.entityId')}: ${value.entityId}`)
-	if (typeof value.taxId === 'string') details.push(`${resolveContactMessage(context, 'organization.taxId')}: ${value.taxId}`)
-	if (typeof value.domicile === 'string') details.push(`${resolveContactMessage(context, 'organization.domicile')}: ${value.domicile}`)
+	if (typeof value.legalName === 'string' && value.legalName !== value.name) details.push(`${resolveMessage(context, 'organization.legalName')}: ${value.legalName}`)
+	if (typeof value.entityType === 'string') details.push(`${resolveMessage(context, 'organization.entityType')}: ${value.entityType}`)
+	if (typeof value.entityId === 'string') details.push(`${resolveMessage(context, 'organization.entityId')}: ${value.entityId}`)
+	if (typeof value.taxId === 'string') details.push(`${resolveMessage(context, 'organization.taxId')}: ${value.taxId}`)
+	if (typeof value.domicile === 'string') details.push(`${resolveMessage(context, 'organization.domicile')}: ${value.domicile}`)
 	return details.length === 0 ? String(value.name) : `${String(value.name)} (${details.join(', ')})`
-}
-
-export function isContactOptionRecord(value: unknown): value is Record<string, unknown> {
-	return isRecord(value)
 }
 
 export function validateAddressOptions(options: AddressFormatOptions): void {
@@ -444,14 +393,9 @@ export function validatePartyOptions(options: PartyFormatOptions): void {
 	}
 }
 
-export function validateContactOptions(
-	address: AddressFormatOptions,
-	phone: PhoneFormatOptions,
-	_person: PersonFormatOptions,
-	_organization: OrganizationFormatOptions,
-	_party: PartyFormatOptions,
-): void {
-	validateAddressOptions(address)
-	validatePhoneOptions(phone)
-	validatePartyOptions(_party)
+/** Rejects contact options a formatter cannot act on. Person and organization take none. */
+export function validateContactOptions<K extends ContactFormatKind>(kind: K, options: FormatOptionsByKind[K]): void {
+	if (kind === 'address') validateAddressOptions(options as AddressFormatOptions)
+	if (kind === 'phone') validatePhoneOptions(options as PhoneFormatOptions)
+	if (kind === 'party') validatePartyOptions(options as PartyFormatOptions)
 }

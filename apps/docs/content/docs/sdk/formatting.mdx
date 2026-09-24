@@ -91,6 +91,8 @@ const result = formatter.safeFormatMoney({ amount: 10 })
 // { success: false, status: 'incomplete', issues: [...] }
 ```
 
+A bad option is `invalid` with the code `invalid_options`, like a bad value: a malformed locale, an unknown timezone or calendar, or an Intl option out of range. `unsupported` means the input is right and the runtime or its resources fall short: a locale the runtime has no data for (`unsupported_locale`), a missing package message (`missing_message`), or a country with no address layout.
+
 ## Compose policy and overrides
 
 Formatters are immutable. `compose()` and `withOverrides()` return independent instances.

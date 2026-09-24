@@ -57,7 +57,7 @@ export {
 	safeFormatTime,
 } from './formatter'
 
-export { FormatConfigurationError, FormatError, isFormatError } from './errors'
+export { FormatConfigurationError, FormatError, UnsupportedLocaleError, isFormatError } from './errors'
 
 export { MISSING_RATING_SCALE, UNSUPPORTED_LIST_JOIN } from './selection'
 
@@ -106,6 +106,7 @@ export {
 	type FormatStatus,
 	type FormattedResult,
 	type Formatter,
+	type FormatterCacheBucket,
 	type FormatterCacheBucketStats,
 	type FormatterCacheStats,
 	type FormatterMessages,

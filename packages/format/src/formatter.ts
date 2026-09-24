@@ -1,35 +1,36 @@
 import { BoundedCache, DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, stableSerialize } from './cache'
 import {
 	BUILT_IN_CONTACT_MESSAGES,
-	MissingContactMessageError,
 	UnsupportedAddressLayoutError,
 	formatAddress as formatContactAddress,
 	formatOrganization as formatContactOrganization,
 	formatPerson as formatContactPerson,
 	formatPhone as formatContactPhone,
-	inferPartyIdentity,
 	validateAddress,
 	validateContactOptions,
 	validateOrganization,
 	validateParty,
 	validatePerson,
 	validatePhone,
-	type ContactValidation,
+	type NormalizedAddress,
+	type NormalizedPhone,
+	type ValidatedParty,
 } from './contacts'
 import {
 	BUILT_IN_TEMPORAL_MESSAGES,
-	MissingTemporalMessageError,
 	dateTimeDefaults,
 	formatDurationValue,
 	validateDate,
 	validateDatetime,
 	validateDuration,
 	validateTime,
-	type TemporalValidation,
+	type ParsedDateValue,
+	type ParsedDatetimeValue,
+	type ParsedDurationValue,
+	type ParsedTimeValue,
 } from './temporal'
 import {
 	BUILT_IN_CAPTURE_MESSAGES,
-	MissingCaptureMessageError,
 	formatAttachmentValue,
 	formatBboxValue,
 	formatCoordinateValue,
@@ -41,11 +42,9 @@ import {
 	validateIdentification,
 	validateSignature,
 	type CaptureFormattingContext,
-	type CaptureValidation,
 } from './captures'
 import {
 	BUILT_IN_SELECTION_MESSAGES,
-	MissingSelectionMessageError,
 	SelectionFormatError,
 	formatBooleanValue,
 	formatEnumValue,
@@ -57,125 +56,95 @@ import {
 	validateRating,
 	validateSelectionOptions,
 	type SelectionFormattingContext,
-	type SelectionValidation,
 } from './selection'
-import { FormatConfigurationError, FormatError } from './errors'
+import { MissingMessageError, type MessageContext } from './messages'
+import { FormatConfigurationError, FormatError, UnsupportedLocaleError } from './errors'
+import { isMissing, isRecord, issue, type Validation } from './shared'
 import {
 	FORMAT_KINDS,
-	type CaptureFormatImplementation,
-	type CaptureFormatImplementationContext,
-	type CaptureFormatKind,
-	type CaptureValueByKind,
+	FORMAT_KIND_FAMILIES,
+	isFormatKind,
 	type AddressFormatOptions,
-	type ContactFormatImplementation,
-	type ContactFormatImplementationContext,
-	type ContactFormatKind,
-	type ContactValueByKind,
+	type Attachment,
+	type Bbox,
+	type Coordinate,
 	type FormatCallOptions,
-	type FormatImplementation,
-	type FormatImplementationContext,
 	type FormatInputByKind,
 	type FormatIssue,
 	type FormatKind,
 	type FormatOptionsByKind,
 	type FormatResult,
+	type FormatStatus,
 	type Formatter,
+	type FormatterCacheBucket,
 	type FormatterCacheStats,
 	type FormatterMessages,
 	type FormatterOptions,
 	type FormatterOverrides,
+	type Identification,
 	type MoneyFormatOptions,
 	type NumericFormatKind,
-	type NumericValueByKind,
-	type NumberFormatOptions,
-	type PercentageFormatOptions,
-	type TemporalFormatImplementation,
-	type TemporalFormatImplementationContext,
-	type TemporalFormatKind,
-	type TemporalValueByKind,
-	type SelectionFormatImplementation,
-	type SelectionFormatImplementationContext,
 	type SelectionFormatKind,
 	type SelectionListStyle,
 	type SelectionListType,
-	type SelectionValueByKind,
+	type SelectionOptionValue,
+	type Signature,
 } from './types'
 
 const DEFAULT_LOCALE = 'en-US'
 const DEFAULT_TIME_ZONE = 'UTC'
 const DEFAULT_CALENDAR = 'gregory'
-const NUMERIC_KINDS: readonly NumericFormatKind[] = ['number', 'money', 'percentage']
-const CONTACT_KINDS: readonly ContactFormatKind[] = ['address', 'phone', 'person', 'organization', 'party']
-const TEMPORAL_KINDS: readonly TemporalFormatKind[] = ['date', 'datetime', 'time', 'duration']
-const CAPTURE_KINDS: readonly CaptureFormatKind[] = ['coordinate', 'bbox', 'identification', 'attachment', 'signature']
-const SELECTION_KINDS: readonly SelectionFormatKind[] = ['boolean', 'enum', 'multiselect', 'rating']
 
-type NumericImplementationMap = {
-	[K in NumericFormatKind]: FormatImplementation<K>
+/** Options as one chain step carries them, whatever the kind. */
+type CallOptions = Readonly<Record<string, unknown>>
+
+/** The context every override receives, whatever the kind. */
+interface ImplementationContext {
+	readonly kind: FormatKind
+	readonly locale: string
+	readonly options: CallOptions
+	readonly delegate: (value?: unknown, options?: CallOptions) => string
 }
 
-type NumericChainMap = {
-	[K in NumericFormatKind]: ChainEntry<K>
+/** An override as the chain stores it. `FormatterOverrides` types it per kind. */
+type Implementation = (value: unknown, options: CallOptions, context: ImplementationContext) => string
+
+interface Layer {
+	readonly kind: FormatKind
+	readonly implementation: Implementation
 }
 
-interface ChainEntry<K extends NumericFormatKind> {
-	readonly implementation: FormatImplementation<K>
-	readonly previous?: ChainEntry<K>
+/** One override in a kind's chain. A missing `previous` is the base implementation. */
+interface ChainEntry {
+	readonly implementation: Implementation
+	readonly previous?: ChainEntry
 }
 
-type ContactImplementationMap = {
-	[K in ContactFormatKind]: ContactFormatImplementation<K>
+/** The locale, numbering system, calendar, and timezone one call formats under. */
+interface CallPolicy {
+	readonly locale: string
+	readonly numberingSystem?: string
+	readonly calendar: string
+	readonly timeZone: string
 }
 
-type ContactChainMap = {
-	[K in ContactFormatKind]: ContactChainEntry<K>
+interface ResolvedCall {
+	readonly options: CallOptions
+	readonly policy: CallPolicy
 }
 
-interface ContactChainEntry<K extends ContactFormatKind> {
-	readonly implementation: ContactFormatImplementation<K>
-	readonly previous?: ContactChainEntry<K>
+/**
+ * A checked value. Overrides receive `value`, the input as the public types
+ * describe it; the base implementation formats `parsed`.
+ */
+interface CheckedValue {
+	readonly value: unknown
+	readonly parsed: unknown
 }
 
-type TemporalImplementationMap = {
-	[K in TemporalFormatKind]: TemporalFormatImplementation<K>
-}
+type KindOptions = { readonly [K in FormatKind]: FormatOptionsByKind[K] }
 
-type TemporalChainMap = {
-	[K in TemporalFormatKind]: TemporalChainEntry<K>
-}
-
-interface TemporalChainEntry<K extends TemporalFormatKind> {
-	readonly implementation: TemporalFormatImplementation<K>
-	readonly previous?: TemporalChainEntry<K>
-}
-
-type CaptureImplementationMap = {
-	[K in CaptureFormatKind]: CaptureFormatImplementation<K>
-}
-
-type CaptureChainMap = {
-	[K in CaptureFormatKind]: CaptureChainEntry<K>
-}
-
-interface CaptureChainEntry<K extends CaptureFormatKind> {
-	readonly implementation: CaptureFormatImplementation<K>
-	readonly previous?: CaptureChainEntry<K>
-}
-
-type SelectionImplementationMap = {
-	[K in SelectionFormatKind]: SelectionFormatImplementation<K>
-}
-
-type SelectionChainMap = {
-	[K in SelectionFormatKind]: SelectionChainEntry<K>
-}
-
-interface SelectionChainEntry<K extends SelectionFormatKind> {
-	readonly implementation: SelectionFormatImplementation<K>
-	readonly previous?: SelectionChainEntry<K>
-}
-
-interface FormatterConfig {
+interface FormatterConfig extends KindOptions {
 	readonly locale: string
 	readonly fallbackLocale?: string
 	readonly unsupportedLocale: 'error' | 'fallback'
@@ -183,112 +152,44 @@ interface FormatterConfig {
 	readonly calendar: string
 	readonly numberingSystem?: string
 	readonly cacheSize: number
-	readonly number: NumberFormatOptions
-	readonly money: MoneyFormatOptions
-	readonly percentage: PercentageFormatOptions
-	readonly address: AddressFormatOptions
-	readonly phone: FormatOptionsByKind['phone']
-	readonly person: FormatOptionsByKind['person']
-	readonly organization: FormatOptionsByKind['organization']
-	readonly party: FormatOptionsByKind['party']
-	readonly date: FormatOptionsByKind['date']
-	readonly datetime: FormatOptionsByKind['datetime']
-	readonly time: FormatOptionsByKind['time']
-	readonly duration: FormatOptionsByKind['duration']
-	readonly coordinate: FormatOptionsByKind['coordinate']
-	readonly bbox: FormatOptionsByKind['bbox']
-	readonly identification: FormatOptionsByKind['identification']
-	readonly attachment: FormatOptionsByKind['attachment']
-	readonly signature: FormatOptionsByKind['signature']
-	readonly boolean: FormatOptionsByKind['boolean']
-	readonly enum: FormatOptionsByKind['enum']
-	readonly multiselect: FormatOptionsByKind['multiselect']
-	readonly rating: FormatOptionsByKind['rating']
 	readonly messages: FormatterMessages
 }
 
-interface ValidationSuccess<T> {
-	ok: true
-	value: T
+interface CachedByBucket {
+	number: Intl.NumberFormat
+	money: Intl.NumberFormat
+	percentage: Intl.NumberFormat
+	date: Intl.DateTimeFormat
+	datetime: Intl.DateTimeFormat
+	time: Intl.DateTimeFormat
+	timeZone: Intl.DateTimeFormat
+	duration: Intl.NumberFormat
+	durationPlural: Intl.PluralRules
+	durationList: Intl.ListFormat
+	selectionList: Intl.ListFormat
 }
 
-interface ValidationFailure {
-	ok: false
-	status: 'missing' | 'incomplete' | 'invalid'
-	issues: readonly FormatIssue[]
-}
+type FormatterCaches = { readonly [B in FormatterCacheBucket]: BoundedCache<CachedByBucket[B]> }
 
-type Validation<T> = ValidationSuccess<T> | ValidationFailure
-
-interface ResolvedCall<K extends NumericFormatKind> {
-	readonly locale: string
-	readonly numberingSystem?: string
-	readonly options: FormatCallOptions<K>
-}
-
-interface ResolvedContactCall<K extends ContactFormatKind> {
-	readonly locale: string
-	readonly options: FormatCallOptions<K>
-}
-
-interface ResolvedTemporalCall<K extends TemporalFormatKind> {
-	readonly locale: string
-	readonly timeZone: string
-	readonly calendar: string
-	readonly numberingSystem?: string
-	readonly options: FormatCallOptions<K>
-}
-
-interface ResolvedSelectionCall<K extends SelectionFormatKind> {
-	readonly locale: string
-	readonly options: FormatCallOptions<K>
-}
-
-interface ResolvedCaptureCall<K extends CaptureFormatKind> {
-	readonly locale: string
-	readonly timeZone?: string
-	readonly calendar?: string
-	readonly numberingSystem?: string
-	readonly options: FormatCallOptions<K>
-}
-
-class FormatProblem extends Error {
-	constructor(
-		readonly status: 'missing' | 'incomplete' | 'invalid' | 'unsupported' | 'error',
-		readonly kind: FormatKind | string,
-		readonly issues: readonly FormatIssue[],
-	) {
-		super(issues[0]?.message ?? `Unable to format ${kind}`)
-		this.name = 'FormatProblem'
-	}
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isMissing(value: unknown): value is null | undefined {
-	return value === null || value === undefined
-}
-
-function issue(
-	kind: FormatKind | string,
-	code: string,
-	message: string,
-	path?: string,
-	cause?: unknown,
-): FormatIssue {
-	return { code, message, kind, ...(path === undefined ? {} : { path }), ...(cause === undefined ? {} : { cause }) }
-}
+const CACHE_BUCKETS: readonly FormatterCacheBucket[] = [
+	'number',
+	'money',
+	'percentage',
+	'date',
+	'datetime',
+	'time',
+	'timeZone',
+	'duration',
+	'durationPlural',
+	'durationList',
+	'selectionList',
+]
 
 function formatted(value: string): FormatResult {
 	return { success: true, status: 'formatted', value }
 }
 
-function failed(
-	status: Exclude<FormatProblem['status'], 'formatted'>,
-	issues: readonly FormatIssue[],
-): FormatResult {
+function failed(status: Exclude<FormatStatus, 'formatted'>, issues: readonly FormatIssue[]): FormatResult {
 	return { success: false, status, issues }
 }
 
@@ -359,9 +260,10 @@ function validateCalendar(calendar: string): void {
 	}
 }
 
-function validateTimeZone(timeZone: string, locale: string): void {
+/** Builds a formatter for a timezone, which is how a timezone name is checked. */
+function timeZoneFormat(timeZone: string, locale: string): Intl.DateTimeFormat {
 	try {
-		new Intl.DateTimeFormat(locale, { timeZone }).format()
+		return new Intl.DateTimeFormat(locale, { timeZone })
 	} catch (error) {
 		throw new FormatConfigurationError(`Unsupported timezone ${JSON.stringify(timeZone)}.`, { cause: error })
 	}
@@ -375,18 +277,14 @@ function resolveConfiguredLocale(
 	const locale = canonicalLocale(requested)
 	if (supportedLocale(locale)) return locale
 	if (policy !== 'fallback') {
-		throw new FormatConfigurationError(`Locale ${JSON.stringify(requested)} is not supported by this runtime.`)
+		throw new UnsupportedLocaleError(`Locale ${JSON.stringify(requested)} is not supported by this runtime.`)
 	}
 	if (fallbackLocale === undefined) {
-		throw new FormatConfigurationError(
+		throw new UnsupportedLocaleError(
 			`Locale ${JSON.stringify(requested)} is unsupported and no fallbackLocale was supplied.`,
 		)
 	}
-	const fallback = canonicalLocale(fallbackLocale)
-	if (!supportedLocale(fallback)) {
-		throw new FormatConfigurationError(`Fallback locale ${JSON.stringify(fallbackLocale)} is not supported by this runtime.`)
-	}
-	return fallback
+	return fallbackLocale
 }
 
 function resolveCacheSize(value: number | undefined): number {
@@ -397,14 +295,29 @@ function resolveCacheSize(value: number | undefined): number {
 	return cacheSize
 }
 
-function mergeOptions<K extends FormatKind>(
-	base: FormatOptionsByKind[K],
-	addition: FormatCallOptions<K> | undefined,
-): FormatCallOptions<K> {
-	return Object.freeze({ ...base, ...(addition ?? {}) }) as FormatCallOptions<K>
+/** The options Intl reads, without the policy members the formatter resolves itself. */
+function intlOptions(options: CallOptions): Record<string, unknown> {
+	const { locale: _locale, numberingSystem: _numberingSystem, timeZone: _timeZone, calendar: _calendar, ...intl } = options
+	return intl
+}
+
+/**
+ * Layers one kind's options over another's. Address `countryLayouts` merge by
+ * country, so a layout added later never drops the layouts already in place.
+ */
+function mergeKindOptions(kind: FormatKind, base: CallOptions, addition: CallOptions | undefined): CallOptions {
+	const merged: Record<string, unknown> = { ...base, ...(addition ?? {}) }
+	if (kind === 'address' && addition?.countryLayouts !== undefined) {
+		merged.countryLayouts = { ...((base.countryLayouts as object | undefined) ?? {}), ...(addition.countryLayouts as object) }
+	}
+	return Object.freeze(merged)
 }
 
 function mergeConfig(base: FormatterConfig, addition: FormatterOptions): FormatterOptions {
+	const kinds: Record<string, unknown> = {}
+	for (const kind of FORMAT_KINDS) {
+		kinds[kind] = mergeKindOptions(kind, base[kind] as CallOptions, addition[kind] as CallOptions | undefined)
+	}
 	return {
 		locale: addition.locale ?? base.locale,
 		fallbackLocale: addition.fallbackLocale ?? base.fallbackLocale,
@@ -413,63 +326,24 @@ function mergeConfig(base: FormatterConfig, addition: FormatterOptions): Formatt
 		calendar: addition.calendar ?? base.calendar,
 		numberingSystem: addition.numberingSystem ?? base.numberingSystem,
 		cacheSize: addition.cacheSize ?? base.cacheSize,
-		number: { ...base.number, ...(addition.number ?? {}) },
-		money: { ...base.money, ...(addition.money ?? {}) },
-		percentage: { ...base.percentage, ...(addition.percentage ?? {}) },
-		address: {
-			...base.address,
-			...(addition.address ?? {}),
-			countryLayouts: {
-				...(base.address.countryLayouts ?? {}),
-				...(addition.address?.countryLayouts ?? {}),
-			},
-		},
-		phone: { ...base.phone, ...(addition.phone ?? {}) },
-		person: { ...base.person, ...(addition.person ?? {}) },
-		organization: { ...base.organization, ...(addition.organization ?? {}) },
-		party: { ...base.party, ...(addition.party ?? {}) },
-		date: { ...base.date, ...(addition.date ?? {}) },
-		datetime: { ...base.datetime, ...(addition.datetime ?? {}) },
-		time: { ...base.time, ...(addition.time ?? {}) },
-		duration: { ...base.duration, ...(addition.duration ?? {}) },
-		coordinate: { ...base.coordinate, ...(addition.coordinate ?? {}) },
-		bbox: { ...base.bbox, ...(addition.bbox ?? {}) },
-		identification: { ...base.identification, ...(addition.identification ?? {}) },
-		attachment: { ...base.attachment, ...(addition.attachment ?? {}) },
-		signature: { ...base.signature, ...(addition.signature ?? {}) },
-		boolean: { ...base.boolean, ...(addition.boolean ?? {}) },
-		enum: { ...base.enum, ...(addition.enum ?? {}) },
-		multiselect: { ...base.multiselect, ...(addition.multiselect ?? {}) },
-		rating: { ...base.rating, ...(addition.rating ?? {}) },
+		...(kinds as KindOptions),
 		messages: mergeMessages(base.messages, addition.messages),
 	}
 }
 
 function validateNumber(value: unknown): Validation<number> {
 	if (isMissing(value)) {
-		return {
-			ok: false,
-			status: 'missing',
-			issues: [issue('number', 'missing_value', 'Number value is missing.')],
-		}
+		return { ok: false, status: 'missing', issues: [issue('number', 'missing_value', 'Number value is missing.')] }
 	}
 	if (typeof value !== 'number' || !Number.isFinite(value)) {
-		return {
-			ok: false,
-			status: 'invalid',
-			issues: [issue('number', 'invalid_number', 'Number value must be a finite number.')],
-		}
+		return { ok: false, status: 'invalid', issues: [issue('number', 'invalid_number', 'Number value must be a finite number.')] }
 	}
 	return { ok: true, value }
 }
 
 function validatePercentage(value: unknown): Validation<number> {
 	if (isMissing(value)) {
-		return {
-			ok: false,
-			status: 'missing',
-			issues: [issue('percentage', 'missing_value', 'Percentage value is missing.')],
-		}
+		return { ok: false, status: 'missing', issues: [issue('percentage', 'missing_value', 'Percentage value is missing.')] }
 	}
 	if (typeof value !== 'number' || !Number.isFinite(value)) {
 		return {
@@ -481,66 +355,79 @@ function validatePercentage(value: unknown): Validation<number> {
 	return { ok: true, value }
 }
 
-function validateMoney(value: unknown): Validation<{ amount: number; currency: string }> {
+interface MoneyValue {
+	readonly amount: number
+	readonly currency: string
+}
+
+function validateMoney(value: unknown): Validation<MoneyValue> {
 	if (isMissing(value)) {
-		return {
-			ok: false,
-			status: 'missing',
-			issues: [issue('money', 'missing_value', 'Money value is missing.')],
-		}
+		return { ok: false, status: 'missing', issues: [issue('money', 'missing_value', 'Money value is missing.')] }
 	}
 	if (!isRecord(value)) {
-		return {
-			ok: false,
-			status: 'invalid',
-			issues: [issue('money', 'invalid_object', 'Money value must be an object with amount and currency.')],
-		}
+		return { ok: false, status: 'invalid', issues: [issue('money', 'invalid_object', 'Money value must be an object with amount and currency.')] }
 	}
 
 	const amount = value.amount
 	const currency = value.currency
-	const amountMissing = isMissing(amount)
-	const currencyMissing = isMissing(currency)
 	const issues: FormatIssue[] = []
 
-	if (amountMissing) {
+	if (isMissing(amount)) {
 		issues.push(issue('money', 'missing_member', 'Money amount is required.', 'amount'))
 	} else if (typeof amount !== 'number' || !Number.isFinite(amount)) {
 		issues.push(issue('money', 'invalid_member', 'Money amount must be a finite number.', 'amount'))
 	}
 
-	if (currencyMissing) {
+	if (isMissing(currency)) {
 		issues.push(issue('money', 'missing_member', 'Money currency is required; no default currency is applied.', 'currency'))
 	} else if (typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency)) {
 		issues.push(issue('money', 'invalid_member', 'Money currency must be an uppercase ISO 4217 alpha-3 code.', 'currency'))
 	}
 
 	if (issues.length > 0) {
-		const hasInvalid = issues.some((item) => item.code === 'invalid_member')
-		const status = hasInvalid ? 'invalid' : 'incomplete'
+		const status = issues.some((item) => item.code === 'invalid_member') ? 'invalid' : 'incomplete'
 		return { ok: false, status, issues }
 	}
 
 	return { ok: true, value: { amount: amount as number, currency: currency as string } }
 }
 
-function validateNumericValue<K extends NumericFormatKind>(kind: K, value: unknown): Validation<NumericValueByKind[K]> {
-	if (kind === 'number') return validateNumber(value) as Validation<NumericValueByKind[K]>
-	if (kind === 'percentage') return validatePercentage(value) as Validation<NumericValueByKind[K]>
-	return validateMoney(value) as Validation<NumericValueByKind[K]>
+/** A value whose checked form is also what overrides receive. */
+function checked<T>(validation: Validation<T>): Validation<CheckedValue> {
+	return validation.ok ? { ok: true, value: { value: validation.value, parsed: validation.value } } : validation
 }
 
-function stripLocaleOptions<K extends NumericFormatKind>(options: FormatCallOptions<K>): {
-	readonly locale?: string
-	readonly numberingSystem?: string
-	readonly intl: Record<string, unknown>
-} {
-	const { locale, numberingSystem, ...intl } = options as FormatCallOptions<K> & Record<string, unknown>
-	return { locale, numberingSystem, intl }
+/** A value overrides receive as given, while the base implementation formats its parsed form. */
+function checkedInput<T>(input: unknown, validation: Validation<T>): Validation<CheckedValue> {
+	return validation.ok ? { ok: true, value: { value: input, parsed: validation.value } } : validation
 }
 
-function asIntlOptions(value: Record<string, unknown>): Intl.NumberFormatOptions {
-	return value as Intl.NumberFormatOptions
+/** Checks a value once, before any implementation in its kind's chain sees it. */
+const VALUE_CHECKS: { readonly [K in FormatKind]: (value: unknown, options: CallOptions) => Validation<CheckedValue> } = {
+	number: (value) => checked(validateNumber(value)),
+	money: (value) => checked(validateMoney(value)),
+	percentage: (value) => checked(validatePercentage(value)),
+	address: (value) => checked(validateAddress(value)),
+	phone: (value) => checked(validatePhone(value)),
+	person: (value) => checked(validatePerson(value)),
+	organization: (value) => checked(validateOrganization(value)),
+	party: (value, options) => {
+		const validation = validateParty(value, options as FormatOptionsByKind['party'])
+		return validation.ok ? { ok: true, value: { value: validation.value.value, parsed: validation.value } } : validation
+	},
+	date: (value) => checkedInput(value, validateDate(value)),
+	datetime: (value) => checkedInput(value, validateDatetime(value)),
+	time: (value) => checkedInput(value, validateTime(value)),
+	duration: (value) => checkedInput(value, validateDuration(value)),
+	coordinate: (value) => checked(validateCoordinate(value)),
+	bbox: (value) => checked(validateBbox(value)),
+	identification: (value) => checked(validateIdentification(value)),
+	attachment: (value) => checked(validateAttachment(value)),
+	signature: (value) => checked(validateSignature(value)),
+	boolean: (value) => checked(validateBoolean(value)),
+	enum: (value) => checked(validateEnumValue(value)),
+	multiselect: (value) => checked(validateMultiselectValue(value)),
+	rating: (value) => checked(validateRating(value)),
 }
 
 function buildPercentageIntlOptions(options: Record<string, unknown>): Record<string, unknown> {
@@ -583,7 +470,7 @@ function currencyFractionDigits(currency: string): { minimumFractionDigits: numb
 
 function buildMoneyIntlOptions(options: Record<string, unknown>, currency: string): Record<string, unknown> {
 	const currencyDisplay = (options.currencyDisplay as MoneyFormatOptions['currencyDisplay'] | undefined) ?? 'symbol'
-	const { currencyDisplay: _currencyDisplay, currencySign: _currencySign, ...numberOptions } = options
+	const { currencyDisplay: _currencyDisplay, currencySign, ...numberOptions } = options
 	if (currencyDisplay === 'none') {
 		// Dropping the symbol does not change the amount: it keeps the
 		// currency's own fraction digits unless the caller sets digits.
@@ -595,26 +482,20 @@ function buildMoneyIntlOptions(options: Record<string, unknown>, currency: strin
 		style: 'currency',
 		currency,
 		currencyDisplay,
-		...(_currencySign === undefined ? {} : { currencySign: _currencySign }),
+		...(currencySign === undefined ? {} : { currencySign }),
 	}
 }
 
-function validateIntlOptions(
-	kind: NumericFormatKind,
-	locale: string,
-	numberingSystem: string | undefined,
-	options: Record<string, unknown>,
-): void {
-	const intlOptions = kind === 'money'
-		? buildMoneyIntlOptions(options, 'USD')
-		: kind === 'percentage'
-			? buildPercentageIntlOptions(options)
-			: options
+function numericIntlOptions(kind: NumericFormatKind, options: Record<string, unknown>, currency: string): Record<string, unknown> {
+	if (kind === 'money') return buildMoneyIntlOptions(options, currency)
+	if (kind === 'percentage') return buildPercentageIntlOptions(options)
+	return options
+}
+
+/** Builds an Intl object, reporting a constructor failure as an option error. */
+function intlFor<T>(kind: FormatKind, locale: string, create: () => T): T {
 	try {
-		new Intl.NumberFormat(locale, {
-			...asIntlOptions(intlOptions),
-			...(numberingSystem === undefined ? {} : { numberingSystem }),
-		})
+		return create()
 	} catch (error) {
 		throw new FormatConfigurationError(
 			`Invalid ${kind} formatting options for locale ${JSON.stringify(locale)}: ${error instanceof Error ? error.message : 'unknown option error'}.`,
@@ -623,153 +504,54 @@ function validateIntlOptions(
 	}
 }
 
-function stripTemporalPolicyOptions(options: Record<string, unknown>): Record<string, unknown> {
-	const { locale: _locale, numberingSystem: _numberingSystem, timeZone: _timeZone, calendar: _calendar, ...intl } = options
-	return intl
+function createNumberFormat(kind: FormatKind, policy: CallPolicy, options: Record<string, unknown>): Intl.NumberFormat {
+	return intlFor(kind, policy.locale, () => new Intl.NumberFormat(policy.locale, {
+		...(options as Intl.NumberFormatOptions),
+		...(policy.numberingSystem === undefined ? {} : { numberingSystem: policy.numberingSystem }),
+	}))
 }
 
-function validateTemporalIntlOptions(
-	kind: 'date' | 'datetime' | 'time',
-	locale: string,
-	numberingSystem: string | undefined,
-	calendar: string,
+function createDateTimeFormat(
+	kind: FormatKind,
+	policy: CallPolicy,
 	timeZone: string,
-	options: Record<string, unknown>,
-): void {
+	options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+	return intlFor(kind, policy.locale, () => new Intl.DateTimeFormat(policy.locale, {
+		...options,
+		calendar: policy.calendar,
+		timeZone,
+		...(policy.numberingSystem === undefined ? {} : { numberingSystem: policy.numberingSystem }),
+	}))
+}
+
+/** Rejects an option the given check refuses, as a configuration error. */
+function guardOptions(kind: FormatKind, check: () => void): void {
 	try {
-		const intlOptions = dateTimeDefaults(kind, stripTemporalPolicyOptions(options) as never)
-		new Intl.DateTimeFormat(locale, {
-			...intlOptions,
-			calendar,
-			timeZone,
-			...(numberingSystem === undefined ? {} : { numberingSystem }),
-		})
+		check()
 	} catch (error) {
-		throw new FormatConfigurationError(
-			`Invalid ${kind} formatting options for locale ${JSON.stringify(locale)}: ${error instanceof Error ? error.message : 'unknown option error'}.`,
-			{ cause: error },
-		)
+		throw new FormatConfigurationError(error instanceof Error ? error.message : `Invalid ${kind} formatting options.`, { cause: error })
 	}
-}
-
-function validateDurationIntlOptions(
-	locale: string,
-	numberingSystem: string | undefined,
-	options: Record<string, unknown>,
-): void {
-	try {
-		new Intl.NumberFormat(locale, {
-			...options,
-			...(numberingSystem === undefined ? {} : { numberingSystem }),
-		})
-	} catch (error) {
-		throw new FormatConfigurationError(
-			`Invalid duration formatting options for locale ${JSON.stringify(locale)}: ${error instanceof Error ? error.message : 'unknown option error'}.`,
-			{ cause: error },
-		)
-	}
-}
-
-function optionError(kind: NumericFormatKind, error: unknown): FormatProblem {
-	return new FormatProblem(
-		'invalid',
-		kind,
-		[issue(kind, 'invalid_options', error instanceof Error ? error.message : 'Invalid formatting options.', undefined, error)],
-	)
-}
-
-function temporalOptionError(kind: TemporalFormatKind, error: unknown): FormatProblem {
-	return new FormatProblem(
-		'invalid',
-		kind,
-		[issue(kind, 'invalid_options', error instanceof Error ? error.message : 'Invalid temporal formatting options.', undefined, error)],
-	)
-}
-
-function isNumericKind(kind: FormatKind | string): kind is NumericFormatKind {
-	return NUMERIC_KINDS.includes(kind as NumericFormatKind)
-}
-
-function isContactKind(kind: FormatKind | string): kind is ContactFormatKind {
-	return CONTACT_KINDS.includes(kind as ContactFormatKind)
-}
-
-function isTemporalKind(kind: FormatKind | string): kind is TemporalFormatKind {
-	return TEMPORAL_KINDS.includes(kind as TemporalFormatKind)
-}
-
-function isCaptureKind(kind: FormatKind | string): kind is CaptureFormatKind {
-	return CAPTURE_KINDS.includes(kind as CaptureFormatKind)
-}
-
-function isSelectionKind(kind: FormatKind | string): kind is SelectionFormatKind {
-	return SELECTION_KINDS.includes(kind as SelectionFormatKind)
 }
 
 function createConfig(options: FormatterOptions): FormatterConfig {
 	const policy = options.unsupportedLocale ?? 'error'
-	const requestedLocale = options.locale ?? DEFAULT_LOCALE
 	const fallbackLocale = options.fallbackLocale === undefined
 		? undefined
 		: canonicalLocale(options.fallbackLocale)
-	const locale = resolveConfiguredLocale(requestedLocale, policy, fallbackLocale)
+	if (fallbackLocale !== undefined && !supportedLocale(fallbackLocale)) {
+		throw new UnsupportedLocaleError(`Fallback locale ${JSON.stringify(options.fallbackLocale)} is not supported by this runtime.`)
+	}
+	const locale = resolveConfiguredLocale(options.locale ?? DEFAULT_LOCALE, policy, fallbackLocale)
 	const timeZone = options.timeZone ?? DEFAULT_TIME_ZONE
 	const calendar = options.calendar ?? DEFAULT_CALENDAR
 
 	validateNumberingSystem(options.numberingSystem)
 	validateCalendar(calendar)
-	validateTimeZone(timeZone, locale)
-	if (fallbackLocale !== undefined && !supportedLocale(fallbackLocale)) {
-		throw new FormatConfigurationError(`Fallback locale ${JSON.stringify(fallbackLocale)} is not supported by this runtime.`)
-	}
-	if (policy === 'fallback' && options.fallbackLocale === undefined && !supportedLocale(canonicalLocale(requestedLocale))) {
-		throw new FormatConfigurationError('unsupportedLocale: fallback requires fallbackLocale.')
-	}
-	const numberOptions = options.number ?? {}
-	const moneyOptions = options.money ?? {}
-	const percentageOptions = options.percentage ?? {}
-	const addressOptions = options.address ?? {}
-	const phoneOptions = options.phone ?? {}
-	const personOptions = options.person ?? {}
-	const organizationOptions = options.organization ?? {}
-	const partyOptions = options.party ?? {}
-	const coordinateOptions = options.coordinate ?? {}
-	const bboxOptions = options.bbox ?? {}
-	const identificationOptions = options.identification ?? {}
-	const attachmentOptions = options.attachment ?? {}
-	const signatureOptions = options.signature ?? {}
-	const booleanOptions = options.boolean ?? {}
-	const enumOptions = options.enum ?? {}
-	const multiselectOptions = options.multiselect ?? {}
-	const ratingOptions = options.rating ?? {}
-	validateIntlOptions('number', locale, options.numberingSystem, numberOptions)
-	validateIntlOptions('money', locale, options.numberingSystem, moneyOptions as Record<string, unknown>)
-	validateIntlOptions('percentage', locale, options.numberingSystem, percentageOptions)
-	validateTemporalIntlOptions('date', locale, options.numberingSystem, calendar, timeZone, (options.date ?? {}) as Record<string, unknown>)
-	validateTemporalIntlOptions('datetime', locale, options.numberingSystem, calendar, timeZone, (options.datetime ?? {}) as Record<string, unknown>)
-	validateTemporalIntlOptions('time', locale, options.numberingSystem, calendar, timeZone, (options.time ?? {}) as Record<string, unknown>)
-	validateDurationIntlOptions(locale, options.numberingSystem, (options.duration ?? {}) as Record<string, unknown>)
-	validateIntlOptions('number', locale, options.numberingSystem, coordinateOptions as Record<string, unknown>)
-	validateIntlOptions('number', locale, options.numberingSystem, bboxOptions as Record<string, unknown>)
-	validateTemporalIntlOptions('date', locale, options.numberingSystem, calendar, timeZone, identificationOptions as Record<string, unknown>)
-	validateTemporalIntlOptions('date', locale, options.numberingSystem, calendar, timeZone, signatureOptions as Record<string, unknown>)
-	try {
-		validateContactOptions(addressOptions, phoneOptions, personOptions, organizationOptions, partyOptions)
-	} catch (error) {
-		throw new FormatConfigurationError(error instanceof Error ? error.message : 'Invalid contact formatting options.', { cause: error })
-	}
-	for (const [kind, selectionOptions] of [
-		['boolean', booleanOptions],
-		['enum', enumOptions],
-		['multiselect', multiselectOptions],
-		['rating', ratingOptions],
-	] as const) {
-		try {
-			validateSelectionOptions(kind, selectionOptions)
-		} catch (error) {
-			throw new FormatConfigurationError(error instanceof Error ? error.message : `Invalid ${kind} formatting options.`, { cause: error })
-		}
-	}
+	timeZoneFormat(timeZone, locale)
+
+	const kinds: Record<string, unknown> = {}
+	for (const kind of FORMAT_KINDS) kinds[kind] = cloneAndFreeze(options[kind] ?? {})
 
 	return {
 		locale,
@@ -779,27 +561,7 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 		calendar,
 		numberingSystem: options.numberingSystem,
 		cacheSize: resolveCacheSize(options.cacheSize),
-		number: cloneAndFreeze(options.number ?? {}),
-		money: cloneAndFreeze(options.money ?? {}),
-		percentage: cloneAndFreeze(options.percentage ?? {}),
-		address: cloneAndFreeze(addressOptions),
-		phone: cloneAndFreeze(phoneOptions),
-		person: cloneAndFreeze(personOptions),
-		organization: cloneAndFreeze(organizationOptions),
-		party: cloneAndFreeze(partyOptions),
-		date: cloneAndFreeze(options.date ?? {}),
-		datetime: cloneAndFreeze(options.datetime ?? {}),
-		time: cloneAndFreeze(options.time ?? {}),
-		duration: cloneAndFreeze(options.duration ?? {}),
-		coordinate: cloneAndFreeze(coordinateOptions),
-		bbox: cloneAndFreeze(bboxOptions),
-		identification: cloneAndFreeze(identificationOptions),
-		attachment: cloneAndFreeze(attachmentOptions),
-		signature: cloneAndFreeze(signatureOptions),
-		boolean: cloneAndFreeze(booleanOptions),
-		enum: cloneAndFreeze(enumOptions),
-		multiselect: cloneAndFreeze(multiselectOptions),
-		rating: cloneAndFreeze(ratingOptions),
+		...(kinds as KindOptions),
 		messages: mergeMessages(
 			mergeMessages(
 				mergeMessages(mergeMessages(BUILT_IN_CONTACT_MESSAGES, BUILT_IN_TEMPORAL_MESSAGES), BUILT_IN_CAPTURE_MESSAGES),
@@ -810,9 +572,23 @@ function createConfig(options: FormatterOptions): FormatterConfig {
 	}
 }
 
+function overrideLayers(overrides: FormatterOverrides | undefined): Layer[] {
+	if (overrides === undefined) return []
+	const layers: Layer[] = []
+	for (const kind of FORMAT_KINDS) {
+		const implementation: unknown = overrides[kind]
+		if (implementation === undefined) continue
+		if (typeof implementation !== 'function') {
+			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
+		}
+		layers.push({ kind, implementation: implementation as Implementation })
+	}
+	return layers
+}
+
 /**
- * Immutable formatter implementation shared by numeric and contact value
- * families. Later value-family slices extend the same typed chains.
+ * Immutable formatter shared by every value family. Each kind has one chain:
+ * overrides in the order they were added, ending in the base implementation.
  */
 class FormatterImpl implements Formatter {
 	readonly locale: string
@@ -823,41 +599,11 @@ class FormatterImpl implements Formatter {
 	readonly messages: FormatterMessages
 
 	private readonly config: FormatterConfig
-	private readonly numberCache: BoundedCache<Intl.NumberFormat>
-	private readonly moneyCache: BoundedCache<Intl.NumberFormat>
-	private readonly percentageCache: BoundedCache<Intl.NumberFormat>
-	private readonly dateCache: BoundedCache<Intl.DateTimeFormat>
-	private readonly datetimeCache: BoundedCache<Intl.DateTimeFormat>
-	private readonly timeCache: BoundedCache<Intl.DateTimeFormat>
-	private readonly timeZoneCache: BoundedCache<Intl.DateTimeFormat>
-	private readonly durationCache: BoundedCache<Intl.NumberFormat>
-	private readonly durationPluralCache: BoundedCache<Intl.PluralRules>
-	private readonly durationListCache: BoundedCache<Intl.ListFormat>
-	private readonly baseImplementations: NumericImplementationMap
-	private readonly chains: NumericChainMap
-	private readonly baseContactImplementations: ContactImplementationMap
-	private readonly contactChains: ContactChainMap
-	private readonly baseTemporalImplementations: TemporalImplementationMap
-	private readonly temporalChains: TemporalChainMap
-	private readonly baseCaptureImplementations: CaptureImplementationMap
-	private readonly captureChains: CaptureChainMap
-	private readonly baseSelectionImplementations: SelectionImplementationMap
-	private readonly selectionChains: SelectionChainMap
-	private readonly selectionListCache: BoundedCache<Intl.ListFormat>
-	private readonly numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[]
-	private readonly contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[]
-	private readonly temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[]
-	private readonly captureLayers: readonly { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[]
-	private readonly selectionLayers: readonly { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[]
+	private readonly caches: FormatterCaches
+	private readonly layers: readonly Layer[]
+	private readonly chains: Partial<Record<FormatKind, ChainEntry>>
 
-	constructor(
-		options: FormatterOptions = {},
-		numericLayers: readonly { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = [],
-		contactLayers: readonly { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = [],
-		temporalLayers: readonly { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = [],
-		captureLayers: readonly { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = [],
-		selectionLayers: readonly { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] = [],
-	) {
+	constructor(options: FormatterOptions = {}, layers: readonly Layer[] = []) {
 		this.config = createConfig(options)
 		this.locale = this.config.locale
 		this.fallbackLocale = this.config.fallbackLocale
@@ -865,1053 +611,248 @@ class FormatterImpl implements Formatter {
 		this.calendar = this.config.calendar
 		this.numberingSystem = this.config.numberingSystem
 		this.messages = this.config.messages
-		this.numberCache = new BoundedCache(this.config.cacheSize)
-		this.moneyCache = new BoundedCache(this.config.cacheSize)
-		this.percentageCache = new BoundedCache(this.config.cacheSize)
-		this.dateCache = new BoundedCache(this.config.cacheSize)
-		this.datetimeCache = new BoundedCache(this.config.cacheSize)
-		this.timeCache = new BoundedCache(this.config.cacheSize)
-		this.timeZoneCache = new BoundedCache(this.config.cacheSize)
-		this.durationCache = new BoundedCache(this.config.cacheSize)
-		this.durationPluralCache = new BoundedCache(this.config.cacheSize)
-		this.durationListCache = new BoundedCache(this.config.cacheSize)
-		this.selectionListCache = new BoundedCache(this.config.cacheSize)
-		this.baseImplementations = {
-			number: (value, options) => this.formatPlainNumber(value, options),
-			money: (value, options) => this.formatMoneyValue(value as { amount: number; currency: string }, options),
-			percentage: (value, options) => this.formatPercentageValue(value, options),
+		const caches: Record<string, BoundedCache<unknown>> = {}
+		for (const bucket of CACHE_BUCKETS) caches[bucket] = new BoundedCache(this.config.cacheSize)
+		this.caches = caches as FormatterCaches
+
+		// A nested call formats with exactly these options, so checking them
+		// here also checks every value family that formats through another.
+		for (const kind of FORMAT_KINDS) this.checkConfiguredOptions(kind)
+
+		this.layers = [...layers, ...overrideLayers(options.overrides)]
+		const chains: Partial<Record<FormatKind, ChainEntry>> = {}
+		for (const layer of this.layers) {
+			chains[layer.kind] = { implementation: layer.implementation, previous: chains[layer.kind] }
 		}
-		this.baseContactImplementations = {
-			address: (value, options, context) => this.formatAddressValue(value, options, context),
-			phone: (value, options, context) => this.formatPhoneValue(value, options, context),
-			person: (value) => this.formatPersonValue(value),
-			organization: (value, _options, context) => this.formatOrganizationValue(value, context),
-			party: (value, options, context) => this.formatPartyValue(value, options, context),
-		}
-		this.baseTemporalImplementations = {
-			date: (value, options) => this.formatDateValue(value, options),
-			datetime: (value, options) => this.formatDatetimeValue(value, options),
-			time: (value, options) => this.formatTimeValue(value, options),
-			duration: (value, options) => this.formatDurationValue(value, options),
-		}
-		this.baseCaptureImplementations = {
-			coordinate: (value, options, context) => this.formatCoordinateValue(value, options, context),
-			bbox: (value, options, context) => this.formatBboxValue(value, options, context),
-			identification: (value, options, context) => this.formatIdentificationValue(value, options, context),
-			attachment: (value, options, context) => this.formatAttachmentValue(value, options, context),
-			signature: (value, options, context) => this.formatSignatureValue(value, options, context),
-		}
-		this.baseSelectionImplementations = {
-			boolean: (value, options, context) => this.formatBooleanValue(value, options, context),
-			enum: (value, options) => formatEnumValue(value, options),
-			multiselect: (value, options, context) => this.formatMultiselectValue(value, options, context),
-			rating: (value, options, context) => this.formatRatingValue(value, options, context),
-		}
-		const optionLayers: { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = []
-		for (const kind of NUMERIC_KINDS) {
-			const implementation = options.overrides?.[kind] as FormatImplementation<NumericFormatKind> | undefined
-			if (implementation !== undefined) optionLayers.push({ kind, implementation })
-		}
-		this.numericLayers = [...numericLayers, ...optionLayers]
-		this.contactLayers = [...contactLayers, ...this.contactOptionLayers(options.overrides)]
-		this.temporalLayers = [...temporalLayers, ...this.temporalOptionLayers(options.overrides)]
-		this.captureLayers = [...captureLayers, ...this.captureOptionLayers(options.overrides)]
-		this.selectionLayers = [...selectionLayers, ...this.selectionOptionLayers(options.overrides)]
-		this.chains = {
-			number: { implementation: this.baseImplementations.number },
-			money: { implementation: this.baseImplementations.money },
-			percentage: { implementation: this.baseImplementations.percentage },
-		}
-		this.contactChains = {
-			address: { implementation: this.baseContactImplementations.address },
-			phone: { implementation: this.baseContactImplementations.phone },
-			person: { implementation: this.baseContactImplementations.person },
-			organization: { implementation: this.baseContactImplementations.organization },
-			party: { implementation: this.baseContactImplementations.party },
-		}
-		this.temporalChains = {
-			date: { implementation: this.baseTemporalImplementations.date },
-			datetime: { implementation: this.baseTemporalImplementations.datetime },
-			time: { implementation: this.baseTemporalImplementations.time },
-			duration: { implementation: this.baseTemporalImplementations.duration },
-		}
-		this.captureChains = {
-			coordinate: { implementation: this.baseCaptureImplementations.coordinate },
-			bbox: { implementation: this.baseCaptureImplementations.bbox },
-			identification: { implementation: this.baseCaptureImplementations.identification },
-			attachment: { implementation: this.baseCaptureImplementations.attachment },
-			signature: { implementation: this.baseCaptureImplementations.signature },
-		}
-		this.selectionChains = {
-			boolean: { implementation: this.baseSelectionImplementations.boolean },
-			enum: { implementation: this.baseSelectionImplementations.enum },
-			multiselect: { implementation: this.baseSelectionImplementations.multiselect },
-			rating: { implementation: this.baseSelectionImplementations.rating },
-		}
-		for (const layer of this.numericLayers) this.addLayer(layer.kind, layer.implementation)
-		for (const layer of this.contactLayers) this.addContactLayer(layer.kind, layer.implementation)
-		for (const layer of this.temporalLayers) this.addTemporalLayer(layer.kind, layer.implementation)
-		for (const layer of this.captureLayers) this.addCaptureLayer(layer.kind, layer.implementation)
-		for (const layer of this.selectionLayers) this.addSelectionLayer(layer.kind, layer.implementation)
+		this.chains = chains
 	}
 
-	private contactOptionLayers(overrides: FormatterOverrides | undefined): { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] {
-		if (overrides === undefined) return []
-		const layers: { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = []
-		for (const kind of CONTACT_KINDS) {
-			const implementation = overrides[kind] as ContactFormatImplementation<ContactFormatKind> | undefined
-			if (implementation !== undefined) layers.push({ kind, implementation })
-		}
-		return layers
-	}
-
-	private temporalOptionLayers(overrides: FormatterOverrides | undefined): { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] {
-		if (overrides === undefined) return []
-		const layers: { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = []
-		for (const kind of TEMPORAL_KINDS) {
-			const implementation = overrides[kind] as TemporalFormatImplementation<TemporalFormatKind> | undefined
-			if (implementation !== undefined) layers.push({ kind, implementation })
-		}
-		return layers
-	}
-
-	private captureOptionLayers(overrides: FormatterOverrides | undefined): { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] {
-		if (overrides === undefined) return []
-		const layers: { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = []
-		for (const kind of CAPTURE_KINDS) {
-			const implementation = overrides[kind] as CaptureFormatImplementation<CaptureFormatKind> | undefined
-			if (implementation !== undefined) layers.push({ kind, implementation })
-		}
-		return layers
-	}
-
-	private selectionOptionLayers(overrides: FormatterOverrides | undefined): { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] {
-		if (overrides === undefined) return []
-		const layers: { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] = []
-		for (const kind of SELECTION_KINDS) {
-			const implementation = overrides[kind] as SelectionFormatImplementation<SelectionFormatKind> | undefined
-			if (implementation !== undefined) layers.push({ kind, implementation })
-		}
-		return layers
-	}
-
-	private addLayer(kind: NumericFormatKind, implementation: FormatImplementation<NumericFormatKind>): void {
-		if (typeof implementation !== 'function') {
-			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
-		}
-		const previous = this.chains[kind] as unknown as ChainEntry<NumericFormatKind>
-		;(this.chains as Record<NumericFormatKind, ChainEntry<NumericFormatKind>>)[kind] = {
-			implementation,
-			previous,
+	private checkConfiguredOptions(kind: FormatKind): void {
+		const { options, policy } = this.resolve(kind, this.config[kind] as CallOptions, false)
+		const intl = intlOptions(options)
+		if (kind === 'number' || kind === 'money' || kind === 'percentage') {
+			createNumberFormat(kind, policy, numericIntlOptions(kind, intl, 'USD'))
+		} else if (kind === 'date' || kind === 'datetime' || kind === 'time') {
+			createDateTimeFormat(kind, policy, policy.timeZone, dateTimeDefaults(kind, intl as never))
+		} else if (kind === 'duration') {
+			createNumberFormat(kind, policy, intl)
 		}
 	}
 
-	private addContactLayer(kind: ContactFormatKind, implementation: ContactFormatImplementation<ContactFormatKind>): void {
-		if (typeof implementation !== 'function') {
-			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
-		}
-		const previous = this.contactChains[kind] as unknown as ContactChainEntry<ContactFormatKind>
-		;(this.contactChains as Record<ContactFormatKind, ContactChainEntry<ContactFormatKind>>)[kind] = {
-			implementation,
-			previous,
-		}
-	}
-
-	private addTemporalLayer(kind: TemporalFormatKind, implementation: TemporalFormatImplementation<TemporalFormatKind>): void {
-		if (typeof implementation !== 'function') {
-			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
-		}
-		const previous = this.temporalChains[kind] as unknown as TemporalChainEntry<TemporalFormatKind>
-		;(this.temporalChains as Record<TemporalFormatKind, TemporalChainEntry<TemporalFormatKind>>)[kind] = {
-			implementation,
-			previous,
-		}
-	}
-
-	private addCaptureLayer(kind: CaptureFormatKind, implementation: CaptureFormatImplementation<CaptureFormatKind>): void {
-		if (typeof implementation !== 'function') {
-			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
-		}
-		const previous = this.captureChains[kind] as unknown as CaptureChainEntry<CaptureFormatKind>
-		;(this.captureChains as Record<CaptureFormatKind, CaptureChainEntry<CaptureFormatKind>>)[kind] = {
-			implementation,
-			previous,
-		}
-	}
-
-	private addSelectionLayer(kind: SelectionFormatKind, implementation: SelectionFormatImplementation<SelectionFormatKind>): void {
-		if (typeof implementation !== 'function') {
-			throw new FormatConfigurationError(`Override for ${kind} must be a function.`)
-		}
-		const previous = this.selectionChains[kind] as unknown as SelectionChainEntry<SelectionFormatKind>
-		;(this.selectionChains as Record<SelectionFormatKind, SelectionChainEntry<SelectionFormatKind>>)[kind] = {
-			implementation,
-			previous,
-		}
-	}
-
-	private resolveCall<K extends NumericFormatKind>(
-		kind: K,
-		options: FormatCallOptions<K> | undefined,
-	): ResolvedCall<K> {
-		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
-		const { locale: requestedLocale, numberingSystem } = stripLocaleOptions(merged)
+	/**
+	 * Resolves the options and policy of one call. A top-level call inherits the
+	 * kind's formatter-level options. A nested call and a delegation do not: they
+	 * carry options that were already resolved, so they never pick up a sibling
+	 * kind's formatter-level options.
+	 */
+	private resolve(kind: FormatKind, options: CallOptions | undefined, inherit: boolean): ResolvedCall {
+		const merged = inherit ? mergeKindOptions(kind, this.config[kind] as CallOptions, options) : Object.freeze({ ...(options ?? {}) })
 		const locale = resolveConfiguredLocale(
-			requestedLocale ?? this.locale,
+			(merged.locale as string | undefined) ?? this.locale,
 			this.config.unsupportedLocale,
 			this.config.fallbackLocale,
 		)
-		const selectedNumberingSystem = numberingSystem ?? this.numberingSystem
-		validateNumberingSystem(selectedNumberingSystem)
-		return { locale, numberingSystem: selectedNumberingSystem, options: merged }
+		const policy: CallPolicy = {
+			locale,
+			numberingSystem: (merged.numberingSystem as string | undefined) ?? this.numberingSystem,
+			calendar: (merged.calendar as string | undefined) ?? this.calendar,
+			timeZone: (merged.timeZone as string | undefined) ?? this.timeZone,
+		}
+		this.checkOptions(kind, merged, policy)
+		return { options: merged, policy }
 	}
 
-	private resolveContactCall<K extends ContactFormatKind>(
-		kind: K,
-		options: FormatCallOptions<K> | undefined,
-	): ResolvedContactCall<K> {
-		let merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
-		const addressCallOptions = options as FormatCallOptions<'address'> | undefined
-		if (kind === 'address' && addressCallOptions?.countryLayouts !== undefined) {
-			merged = Object.freeze({
-				...merged,
-				countryLayouts: {
-					...(this.config.address.countryLayouts ?? {}),
-					...addressCallOptions.countryLayouts,
-				},
-			}) as FormatCallOptions<K>
-		}
-		const { locale: requestedLocale } = merged as FormatCallOptions<K> & { locale?: string }
-		const locale = resolveConfiguredLocale(
-			requestedLocale ?? this.locale,
-			this.config.unsupportedLocale,
-			this.config.fallbackLocale,
-		)
-		try {
-			if (kind === 'address') validateContactOptions(merged as FormatCallOptions<'address'>, {}, {}, {}, {})
-			if (kind === 'phone') validateContactOptions({}, merged as FormatCallOptions<'phone'>, {}, {}, {})
-			if (kind === 'party') validateContactOptions({}, {}, {}, {}, merged as FormatCallOptions<'party'>)
-		} catch (error) {
-			throw new FormatConfigurationError(error instanceof Error ? error.message : `Invalid ${kind} formatting options.`, { cause: error })
-		}
-		return { locale, options: merged }
-	}
-
-	private resolveTemporalCall<K extends TemporalFormatKind>(
-		kind: K,
-		options: FormatCallOptions<K> | undefined,
-	): ResolvedTemporalCall<K> {
-		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
-		const raw = merged as FormatCallOptions<K> & {
-			locale?: string
-			numberingSystem?: string
-			timeZone?: string
-			calendar?: string
-		}
-		const locale = resolveConfiguredLocale(
-			raw.locale ?? this.locale,
-			this.config.unsupportedLocale,
-			this.config.fallbackLocale,
-			)
-			const numberingSystem = raw.numberingSystem ?? this.numberingSystem
-		const calendar = raw.calendar ?? this.calendar
-		const timeZone = raw.timeZone ?? this.timeZone
-		validateNumberingSystem(numberingSystem)
-		validateCalendar(calendar)
-		this.validateTimeZone(timeZone, locale)
-		return { locale, numberingSystem, calendar, timeZone, options: merged }
-	}
-
-	private resolveCaptureCall<K extends CaptureFormatKind>(
-		kind: K,
-		options: FormatCallOptions<K> | undefined,
-	): ResolvedCaptureCall<K> {
-		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
-		const raw = merged as FormatCallOptions<K> & {
-			locale?: string
-			numberingSystem?: string
-			timeZone?: string
-			calendar?: string
-		}
-		const locale = resolveConfiguredLocale(
-			raw.locale ?? this.locale,
-			this.config.unsupportedLocale,
-			this.config.fallbackLocale,
-		)
-		const numberingSystem = raw.numberingSystem ?? this.numberingSystem
-		validateNumberingSystem(numberingSystem)
-		const { locale: _locale, numberingSystem: _numberingSystem, timeZone: _timeZone, calendar: _calendar, ...intl } = raw
-		if (kind === 'coordinate' || kind === 'bbox') {
-			validateIntlOptions('number', locale, numberingSystem, intl as Record<string, unknown>)
-			return { locale, numberingSystem, options: merged }
-		}
-		const calendar = raw.calendar ?? this.calendar
-		const timeZone = raw.timeZone ?? this.timeZone
-		validateCalendar(calendar)
-		this.validateTimeZone(timeZone, locale)
-		validateTemporalIntlOptions('date', locale, numberingSystem, calendar, timeZone, intl as Record<string, unknown>)
-		return { locale, numberingSystem, calendar, timeZone, options: merged }
-	}
-
-	private resolveSelectionCall<K extends SelectionFormatKind>(
-		kind: K,
-		options: FormatCallOptions<K> | undefined,
-	): ResolvedSelectionCall<K> {
-		const merged = mergeOptions(this.config[kind] as FormatOptionsByKind[K], options)
-		const raw = merged as FormatCallOptions<K> & { locale?: string; numberingSystem?: string }
-		const locale = resolveConfiguredLocale(
-			raw.locale ?? this.locale,
-			this.config.unsupportedLocale,
-			this.config.fallbackLocale,
-		)
-		validateNumberingSystem(raw.numberingSystem ?? this.numberingSystem)
-		try {
-			validateSelectionOptions(kind, merged)
-		} catch (error) {
-			throw new FormatConfigurationError(error instanceof Error ? error.message : `Invalid ${kind} formatting options.`, { cause: error })
-		}
-		return { locale, options: merged }
-	}
-
-	private validateTimeZone(timeZone: string, locale: string): void {
-		const key = this.cacheKey(locale, undefined, { timeZone })
-		if (this.timeZoneCache.get(key) !== undefined) return
-		try {
-			const validator = new Intl.DateTimeFormat(locale, { timeZone })
-			this.timeZoneCache.set(key, validator)
-		} catch (error) {
-			throw new FormatConfigurationError(`Unsupported timezone ${JSON.stringify(timeZone)}.`, { cause: error })
+	/** Rejects call options a kind cannot act on, before any value reaches it. */
+	private checkOptions(kind: FormatKind, options: CallOptions, policy: CallPolicy): void {
+		validateNumberingSystem(policy.numberingSystem)
+		const family = FORMAT_KIND_FAMILIES[kind]
+		if (family === 'temporal') {
+			this.checkCalendarAndTimeZone(policy)
+		} else if (kind === 'coordinate' || kind === 'bbox') {
+			createNumberFormat(kind, policy, intlOptions(options))
+		} else if (kind === 'identification' || kind === 'signature') {
+			this.checkCalendarAndTimeZone(policy)
+			createDateTimeFormat(kind, policy, policy.timeZone, dateTimeDefaults('date', intlOptions(options) as never))
+		} else if (family === 'contact') {
+			guardOptions(kind, () => validateContactOptions(kind as 'address', options as FormatOptionsByKind['address']))
+		} else if (family === 'selection') {
+			guardOptions(kind, () => validateSelectionOptions(kind as SelectionFormatKind, options as FormatOptionsByKind['boolean']))
 		}
 	}
 
-	private stripTemporalOptions<K extends TemporalFormatKind>(options: FormatCallOptions<K>): Record<string, unknown> {
-		const { locale: _locale, numberingSystem: _numberingSystem, timeZone: _timeZone, calendar: _calendar, ...intl } = options as FormatCallOptions<K> & Record<string, unknown>
-		return intl
+	private checkCalendarAndTimeZone(policy: CallPolicy): void {
+		validateCalendar(policy.calendar)
+		this.cached('timeZone', { locale: policy.locale, timeZone: policy.timeZone }, () => timeZoneFormat(policy.timeZone, policy.locale))
 	}
 
-	private cacheKey(locale: string, numberingSystem: string | undefined, options: Record<string, unknown>): string {
-		return stableSerialize({ locale, numberingSystem, options })
-	}
-
-	private getNumberFormat(
-		cache: BoundedCache<Intl.NumberFormat>,
-		locale: string,
-		numberingSystem: string | undefined,
-		options: Record<string, unknown>,
-	): Intl.NumberFormat {
-		const key = this.cacheKey(locale, numberingSystem, options)
-		const existing = cache.get(key)
+	private cached<B extends FormatterCacheBucket>(bucket: B, key: Record<string, unknown>, create: () => CachedByBucket[B]): CachedByBucket[B] {
+		const cache = this.caches[bucket] as BoundedCache<CachedByBucket[B]>
+		const serialized = stableSerialize(key)
+		const existing = cache.get(serialized)
 		if (existing !== undefined) return existing
-
-		const formatter = new Intl.NumberFormat(locale, {
-			...asIntlOptions(options),
-			...(numberingSystem === undefined ? {} : { numberingSystem }),
-		})
-		cache.set(key, formatter)
-		return formatter
+		const created = create()
+		cache.set(serialized, created)
+		return created
 	}
 
-	private getDateTimeFormat(
-		cache: BoundedCache<Intl.DateTimeFormat>,
-		locale: string,
-		numberingSystem: string | undefined,
-		calendar: string,
+	private numberFormat(bucket: 'number' | 'money' | 'percentage' | 'duration', kind: FormatKind, policy: CallPolicy, options: Record<string, unknown>): Intl.NumberFormat {
+		return this.cached(
+			bucket,
+			{ locale: policy.locale, numberingSystem: policy.numberingSystem, options },
+			() => createNumberFormat(kind, policy, options),
+		)
+	}
+
+	private dateTimeFormat(
+		bucket: 'date' | 'datetime' | 'time',
+		kind: FormatKind,
+		policy: CallPolicy,
 		timeZone: string,
 		options: Intl.DateTimeFormatOptions,
 	): Intl.DateTimeFormat {
-		const key = this.cacheKey(locale, numberingSystem, { calendar, timeZone, ...options })
-		const existing = cache.get(key)
-		if (existing !== undefined) return existing
-		const formatter = new Intl.DateTimeFormat(locale, {
-			...options,
-			calendar,
-			timeZone,
-			...(numberingSystem === undefined ? {} : { numberingSystem }),
-		})
-		cache.set(key, formatter)
-		return formatter
-	}
-
-	private getDurationNumberFormat(
-		locale: string,
-		numberingSystem: string | undefined,
-		options: FormatOptionsByKind['duration'],
-	): Intl.NumberFormat {
-		const key = this.cacheKey(locale, numberingSystem, options)
-		const existing = this.durationCache.get(key)
-		if (existing !== undefined) return existing
-		const formatter = new Intl.NumberFormat(locale, {
-			...options,
-			...(numberingSystem === undefined ? {} : { numberingSystem }),
-		})
-		this.durationCache.set(key, formatter)
-		return formatter
-	}
-
-	private getDurationPluralRules(locale: string, options: object): Intl.PluralRules {
-		const key = this.cacheKey(locale, undefined, options as Record<string, unknown>)
-		const existing = this.durationPluralCache.get(key)
-		if (existing !== undefined) return existing
-		const pluralRules = new Intl.PluralRules(locale, options as Intl.PluralRulesOptions)
-		this.durationPluralCache.set(key, pluralRules)
-		return pluralRules
-	}
-
-	private getDurationListFormat(locale: string): Intl.ListFormat {
-		const key = this.cacheKey(locale, undefined, { style: 'long', type: 'unit' })
-		const existing = this.durationListCache.get(key)
-		if (existing !== undefined) return existing
-		const listFormat = new Intl.ListFormat(locale, { style: 'long', type: 'unit' })
-		this.durationListCache.set(key, listFormat)
-		return listFormat
-	}
-
-	private getSelectionListFormat(locale: string, type: SelectionListType, style: SelectionListStyle): Intl.ListFormat | undefined {
-		if (typeof Intl.ListFormat !== 'function' || Intl.ListFormat.supportedLocalesOf([locale]).length === 0) return undefined
-		const key = this.cacheKey(locale, undefined, { type, style })
-		const existing = this.selectionListCache.get(key)
-		if (existing !== undefined) return existing
-		const listFormat = new Intl.ListFormat(locale, { type, style })
-		this.selectionListCache.set(key, listFormat)
-		return listFormat
-	}
-
-	private selectionFormattingContext(locale: string, numberingSystem: string | undefined): SelectionFormattingContext {
-		return {
-			locale,
-			messages: this.messages,
-			fallbackLocale: this.config.fallbackLocale,
-			formatNumber: (value, options) => {
-				const resolved = this.resolveCall('number', { ...options, locale, ...(numberingSystem === undefined ? {} : { numberingSystem }) } as FormatCallOptions<'number'>)
-				const output = this.invoke(this.chains.number, 'number', value, resolved.options, resolved.locale)
-				if (typeof output !== 'string') throw new Error('A nested number formatter implementation must return a string.')
-				return output
-			},
-			formatEnum: (value, enumOptions) => {
-				const resolved = this.resolveSelectionCall('enum', { ...enumOptions, locale } as FormatCallOptions<'enum'>)
-				const output = this.invokeSelection(this.selectionChains.enum, 'enum', value, resolved.options, resolved.locale)
-				if (typeof output !== 'string') throw new Error('A nested enum formatter implementation must return a string.')
-				return output
-			},
-			listFormat: (type, style) => this.getSelectionListFormat(locale, type, style),
-		}
-	}
-
-	private selectionContextFor<K extends SelectionFormatKind>(
-		context: SelectionFormatImplementationContext<K>,
-	): SelectionFormattingContext {
-		const { numberingSystem } = context.options as FormatCallOptions<K> & { numberingSystem?: string }
-		return this.selectionFormattingContext(context.locale, numberingSystem ?? this.numberingSystem)
-	}
-
-	private formatBooleanValue(
-		value: SelectionValueByKind['boolean'],
-		options: FormatCallOptions<'boolean'>,
-		context: SelectionFormatImplementationContext<'boolean'>,
-	): string {
-		return formatBooleanValue(value, options, this.selectionContextFor(context))
-	}
-
-	private formatMultiselectValue(
-		value: SelectionValueByKind['multiselect'],
-		options: FormatCallOptions<'multiselect'>,
-		context: SelectionFormatImplementationContext<'multiselect'>,
-	): string {
-		return formatMultiselectValue(value, options, this.selectionContextFor(context))
-	}
-
-	private formatRatingValue(
-		value: SelectionValueByKind['rating'],
-		options: FormatCallOptions<'rating'>,
-		context: SelectionFormatImplementationContext<'rating'>,
-	): string {
-		return formatRatingValue(value, options, this.selectionContextFor(context))
-	}
-
-	private formatPlainNumber(value: number, options: FormatCallOptions<'number'>): string {
-		const resolved = this.resolveCall('number', options)
-		const { intl } = stripLocaleOptions(resolved.options)
-		try {
-			return this.getNumberFormat(this.numberCache, resolved.locale, resolved.numberingSystem, intl).format(value)
-		} catch (error) {
-			throw optionError('number', error)
-		}
-	}
-
-	private formatMoneyValue(value: { amount: number; currency: string }, options: FormatCallOptions<'money'>): string {
-		const resolved = this.resolveCall('money', options)
-		const { intl } = stripLocaleOptions(resolved.options)
-		const intlOptions = buildMoneyIntlOptions(intl, value.currency)
-		try {
-			return this.getNumberFormat(this.moneyCache, resolved.locale, resolved.numberingSystem, intlOptions).format(
-			value.amount,
-			)
-		} catch (error) {
-			throw optionError('money', error)
-		}
-	}
-
-	private formatPercentageValue(value: number, options: FormatCallOptions<'percentage'>): string {
-		const resolved = this.resolveCall('percentage', options)
-		const { intl } = stripLocaleOptions(resolved.options)
-		try {
-			const percentageOptions = buildPercentageIntlOptions(intl)
-			const formatter = this.getNumberFormat(this.percentageCache, resolved.locale, resolved.numberingSystem, {
-				...percentageOptions,
-			})
-			return formatter.format(value / 100)
-		} catch (error) {
-			throw optionError('percentage', error)
-		}
-	}
-
-	private formatDateValue(value: TemporalValueByKind['date'], options: FormatCallOptions<'date'>): string {
-		const validation = validateDate(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'date', validation.issues)
-		const resolved = this.resolveTemporalCall('date', options)
-		const intlOptions = dateTimeDefaults('date', this.stripTemporalOptions(resolved.options) as never)
-		const timeZone = validation.value.mode === 'instant' ? resolved.timeZone : 'UTC'
-		try {
-			return this.getDateTimeFormat(this.dateCache, resolved.locale, resolved.numberingSystem, resolved.calendar, timeZone, intlOptions).format(validation.value.date)
-		} catch (error) {
-			throw temporalOptionError('date', error)
-		}
-	}
-
-	private formatDatetimeValue(value: TemporalValueByKind['datetime'], options: FormatCallOptions<'datetime'>): string {
-		const validation = validateDatetime(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'datetime', validation.issues)
-		const resolved = this.resolveTemporalCall('datetime', options)
-		const intlOptions = dateTimeDefaults('datetime', this.stripTemporalOptions(resolved.options) as never)
-		const timeZone = validation.value.mode === 'instant' ? resolved.timeZone : 'UTC'
-		try {
-			return this.getDateTimeFormat(this.datetimeCache, resolved.locale, resolved.numberingSystem, resolved.calendar, timeZone, intlOptions).format(validation.value.date)
-		} catch (error) {
-			throw temporalOptionError('datetime', error)
-		}
-	}
-
-	private formatTimeValue(value: TemporalValueByKind['time'], options: FormatCallOptions<'time'>): string {
-		const validation = validateTime(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'time', validation.issues)
-		const resolved = this.resolveTemporalCall('time', options)
-		const intlOptions = dateTimeDefaults('time', this.stripTemporalOptions(resolved.options) as never)
-		try {
-			return this.getDateTimeFormat(this.timeCache, resolved.locale, resolved.numberingSystem, resolved.calendar, 'UTC', intlOptions).format(validation.value.date)
-		} catch (error) {
-			throw temporalOptionError('time', error)
-		}
-	}
-
-	private formatDurationValue(value: TemporalValueByKind['duration'], options: FormatCallOptions<'duration'>): string {
-		const validation = validateDuration(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'duration', validation.issues)
-		const resolved = this.resolveTemporalCall('duration', options)
-		try {
-			return formatDurationValue(
-				validation.value,
-				resolved.locale,
-				resolved.numberingSystem,
-				this.stripTemporalOptions(resolved.options) as FormatOptionsByKind['duration'],
-				this.messages,
-				(locale, numberingSystem, durationOptions) => this.getDurationNumberFormat(locale, numberingSystem, durationOptions),
-				(locale, pluralOptions) => this.getDurationPluralRules(locale, pluralOptions),
-				(locale) => this.getDurationListFormat(locale),
-				this.config.fallbackLocale,
-			)
-		} catch (error) {
-			if (error instanceof MissingTemporalMessageError) {
-				throw new FormatProblem('unsupported', 'duration', [issue('duration', 'missing_message', error.message, undefined, error)])
-			}
-			throw temporalOptionError('duration', error)
-		}
-	}
-
-	private formatAddressValue(
-		value: ContactValueByKind['address'],
-		options: FormatCallOptions<'address'>,
-		context: ContactFormatImplementationContext<'address'>,
-	): string {
-		const validation = validateAddress(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'address', validation.issues)
-		try {
-			return formatContactAddress(validation.value, options, { locale: context.locale, options })
-		} catch (error) {
-			if (error instanceof UnsupportedAddressLayoutError) {
-				throw new FormatProblem('unsupported', 'address', [issue('address', 'unsupported_country_layout', error.message, 'country', error)])
-			}
-			throw error
-		}
-	}
-
-	private formatPhoneValue(
-		value: ContactValueByKind['phone'],
-		options: FormatCallOptions<'phone'>,
-		context: ContactFormatImplementationContext<'phone'>,
-	): string {
-		const validation = validatePhone(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'phone', validation.issues)
-		try {
-			return formatContactPhone(validation.value, options, { locale: context.locale, messages: this.messages })
-		} catch (error) {
-			if (error instanceof MissingContactMessageError) {
-				throw new FormatProblem('unsupported', 'phone', [issue('phone', 'missing_message', error.message, undefined, error)])
-			}
-			throw error
-		}
-	}
-
-	private formatPersonValue(value: ContactValueByKind['person']): string {
-		const validation = validatePerson(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'person', validation.issues)
-		return formatContactPerson(validation.value)
-	}
-
-	private formatOrganizationValue(
-		value: ContactValueByKind['organization'],
-		context: ContactFormatImplementationContext<'organization'>,
-	): string {
-		const validation = validateOrganization(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'organization', validation.issues)
-		try {
-			return formatContactOrganization(validation.value, { locale: context.locale, messages: this.messages })
-		} catch (error) {
-			if (error instanceof MissingContactMessageError) {
-				throw new FormatProblem('unsupported', 'organization', [issue('organization', 'missing_message', error.message, undefined, error)])
-			}
-			throw error
-		}
-	}
-
-	private formatPartyValue(
-		value: ContactValueByKind['party'],
-		options: FormatCallOptions<'party'>,
-		context: ContactFormatImplementationContext<'party'>,
-	): string {
-		const validation = validateParty(value, options)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'party', validation.issues)
-		const childOptions = { locale: context.locale } as FormatCallOptions<'person'> & FormatCallOptions<'organization'>
-		const identity = inferPartyIdentity(validation.value, options)
-		if (identity === 'person') {
-			return this.invokeContact(
-				this.contactChains.person as ContactChainEntry<'person'>,
-				'person',
-				validation.value as ContactValueByKind['person'],
-				childOptions as FormatCallOptions<'person'>,
-				context.locale,
-			)
-		}
-		if (identity !== 'organization') {
-			throw new FormatProblem('invalid', 'party', [issue('party', 'ambiguous_identity', 'Party identity is ambiguous; supply a person or organization member or partyType option.')])
-		}
-		return this.invokeContact(
-			this.contactChains.organization as ContactChainEntry<'organization'>,
-			'organization',
-			validation.value as ContactValueByKind['organization'],
-			childOptions as FormatCallOptions<'organization'>,
-			context.locale,
+		return this.cached(
+			bucket,
+			{ locale: policy.locale, numberingSystem: policy.numberingSystem, options: { calendar: policy.calendar, timeZone, ...options } },
+			() => createDateTimeFormat(kind, policy, timeZone, options),
 		)
 	}
 
-	private captureFormattingContext(locale: string): CaptureFormattingContext {
-		return {
-			locale,
-			messages: this.messages,
-			fallbackLocale: this.config.fallbackLocale,
-			formatNumber: (value, options) => {
-				const resolved = this.resolveCall('number', { ...options, locale } as FormatCallOptions<'number'>)
-				const output = this.invoke(this.chains.number, 'number', value, resolved.options, resolved.locale)
-				if (typeof output !== 'string') throw new Error('A nested number formatter implementation must return a string.')
-				return output
-			},
-			formatCoordinate: (value, options) => {
-				const resolved = this.resolveCaptureCall('coordinate', { ...options, locale } as FormatCallOptions<'coordinate'>)
-				const output = this.invokeCapture(this.captureChains.coordinate, 'coordinate', value, resolved.options, resolved.locale)
-				if (typeof output !== 'string') throw new Error('A nested coordinate formatter implementation must return a string.')
-				return output
-			},
-			formatDate: (value, options) => {
-				const resolved = this.resolveTemporalCall('date', { ...options, locale } as FormatCallOptions<'date'>)
-				const output = this.invokeTemporal(this.temporalChains.date, 'date', value, resolved.options, resolved.locale)
-				if (typeof output !== 'string') throw new Error('A nested date formatter implementation must return a string.')
-				return output
-			},
+	private messageContext(locale: string): MessageContext {
+		return { locale, messages: this.messages, fallbackLocale: this.fallbackLocale }
+	}
+
+	/**
+	 * Runs one step of a kind's chain. The value is checked once per step, so a
+	 * delegation that passes a new value is checked too.
+	 */
+	private invoke(kind: FormatKind, entry: ChainEntry | undefined, value: unknown, call: ResolvedCall): string {
+		const validation = VALUE_CHECKS[kind](value, call.options)
+		if (!validation.ok) throw new FormatError(validation.status, kind, validation.issues)
+		if (entry === undefined) return this.base(kind, validation.value.parsed, call)
+
+		const current = validation.value.value
+		const delegate = (nextValue: unknown = current, nextOptions?: CallOptions): string =>
+			this.invoke(kind, entry.previous, nextValue, this.resolve(kind, mergeKindOptions(kind, call.options, nextOptions), false))
+		const output: unknown = entry.implementation(current, call.options, {
+			kind,
+			locale: call.policy.locale,
+			options: call.options,
+			delegate,
+		})
+		if (typeof output !== 'string') {
+			throw new FormatError('error', kind, [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
 		}
+		return output
 	}
 
-	private formatCoordinateValue(
-		value: CaptureValueByKind['coordinate'],
-		options: FormatCallOptions<'coordinate'>,
-		context: CaptureFormatImplementationContext<'coordinate'>,
-	): string {
-		const validation = validateCoordinate(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'coordinate', validation.issues)
-		return formatCoordinateValue(validation.value, options, this.captureFormattingContext(context.locale))
+	/** Formats a value one family formats through another kind, such as a signature's date. */
+	private nested(kind: FormatKind, value: unknown, options: CallOptions): string {
+		return this.invoke(kind, this.chains[kind], value, this.resolve(kind, options, false))
 	}
 
-	private formatBboxValue(
-		value: CaptureValueByKind['bbox'],
-		options: FormatCallOptions<'bbox'>,
-		context: CaptureFormatImplementationContext<'bbox'>,
-	): string {
-		const validation = validateBbox(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'bbox', validation.issues)
-		return formatBboxValue(validation.value, options, this.captureFormattingContext(context.locale))
-	}
-
-	private formatIdentificationValue(
-		value: CaptureValueByKind['identification'],
-		options: FormatCallOptions<'identification'>,
-		context: CaptureFormatImplementationContext<'identification'>,
-	): string {
-		const validation = validateIdentification(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'identification', validation.issues)
-		try {
-			return formatIdentificationValue(validation.value, options, this.captureFormattingContext(context.locale))
-		} catch (error) {
-			if (error instanceof MissingCaptureMessageError) {
-				throw new FormatProblem('unsupported', 'identification', [issue('identification', 'missing_message', error.message, undefined, error)])
+	private base(kind: FormatKind, parsed: unknown, call: ResolvedCall): string {
+		const { options, policy } = call
+		switch (kind) {
+			case 'number':
+			case 'money':
+			case 'percentage':
+				return this.formatNumeric(kind, parsed as number | MoneyValue, call)
+			case 'date':
+			case 'datetime': {
+				const value = parsed as ParsedDateValue | ParsedDatetimeValue
+				const timeZone = value.mode === 'instant' ? policy.timeZone : 'UTC'
+				return this.dateTimeFormat(kind, kind, policy, timeZone, dateTimeDefaults(kind, intlOptions(options) as never)).format(value.date)
 			}
-			throw error
-		}
-	}
-
-	private formatAttachmentValue(
-		value: CaptureValueByKind['attachment'],
-		options: FormatCallOptions<'attachment'>,
-		context: CaptureFormatImplementationContext<'attachment'>,
-	): string {
-		const validation = validateAttachment(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'attachment', validation.issues)
-		return formatAttachmentValue(validation.value, options, this.captureFormattingContext(context.locale))
-	}
-
-	private formatSignatureValue(
-		value: CaptureValueByKind['signature'],
-		options: FormatCallOptions<'signature'>,
-		context: CaptureFormatImplementationContext<'signature'>,
-	): string {
-		const validation = validateSignature(value)
-		if (!validation.ok) throw new FormatProblem(validation.status, 'signature', validation.issues)
-		try {
-			return formatSignatureValue(validation.value, options, this.captureFormattingContext(context.locale))
-		} catch (error) {
-			if (error instanceof MissingCaptureMessageError) {
-				throw new FormatProblem('unsupported', 'signature', [issue('signature', 'missing_message', error.message, undefined, error)])
-			}
-			throw error
-		}
-	}
-
-	private invoke<K extends NumericFormatKind>(
-		entry: ChainEntry<K>,
-		kind: K,
-		value: NumericValueByKind[K],
-		options: FormatCallOptions<K>,
-		locale: string,
-	): string {
-		const validation = validateNumericValue(kind, value)
-		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
-		const validatedValue = validation.value
-		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
-			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
-			const resolved = this.resolveCall(kind, delegatedOptions)
-			const delegatedValidation = validateNumericValue(kind, nextValue)
-			if (!delegatedValidation.ok) {
-				throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
-			}
-			const delegatedValue = delegatedValidation.value
-			if (entry.previous === undefined) {
-				return this.baseImplementations[kind](delegatedValue, resolved.options, {
-					kind,
-					locale: resolved.locale,
-					options: resolved.options,
-					delegate: () => {
-						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
-					},
+			case 'time':
+				return this.dateTimeFormat('time', kind, policy, 'UTC', dateTimeDefaults('time', intlOptions(options) as never))
+					.format((parsed as ParsedTimeValue).date)
+			case 'duration':
+				return formatDurationValue(parsed as ParsedDurationValue, intlOptions(options), {
+					...this.messageContext(policy.locale),
+					numberFormat: (durationOptions) => this.numberFormat('duration', kind, policy, durationOptions as Record<string, unknown>),
+					pluralRules: (pluralOptions) => this.cached('durationPlural', { locale: policy.locale, options: pluralOptions }, () => new Intl.PluralRules(policy.locale, pluralOptions)),
+					listFormat: () => this.cached('durationList', { locale: policy.locale }, () => new Intl.ListFormat(policy.locale, { style: 'long', type: 'unit' })),
 				})
+			case 'address':
+				return formatContactAddress(parsed as NormalizedAddress, options as AddressFormatOptions, {
+					locale: policy.locale,
+					options: options as AddressFormatOptions,
+				})
+			case 'phone':
+				return formatContactPhone(parsed as NormalizedPhone, options, this.messageContext(policy.locale))
+			case 'person':
+				return formatContactPerson(parsed as Record<string, unknown>)
+			case 'organization':
+				return formatContactOrganization(parsed as Record<string, unknown>, this.messageContext(policy.locale))
+			case 'party': {
+				const party = parsed as ValidatedParty
+				return this.nested(party.identity, party.value, { locale: policy.locale })
 			}
-			return this.invoke(entry.previous, kind, delegatedValue, resolved.options, resolved.locale)
+			case 'coordinate':
+				return formatCoordinateValue(parsed as Coordinate, options, this.captureContext(policy))
+			case 'bbox':
+				return formatBboxValue(parsed as Bbox, options, this.captureContext(policy))
+			case 'identification':
+				return formatIdentificationValue(parsed as Identification, options, this.captureContext(policy))
+			case 'attachment':
+				return formatAttachmentValue(parsed as Attachment)
+			case 'signature':
+				return formatSignatureValue(parsed as Signature, options, this.captureContext(policy))
+			case 'boolean':
+				return formatBooleanValue(parsed as boolean, options, this.selectionContext(policy))
+			case 'enum':
+				return formatEnumValue(parsed as SelectionOptionValue, options)
+			case 'multiselect':
+				return formatMultiselectValue(parsed as readonly SelectionOptionValue[], options, this.selectionContext(policy))
+			case 'rating':
+				return formatRatingValue(parsed as number, options, this.selectionContext(policy))
 		}
-		const context: FormatImplementationContext<K> = { kind, locale, options, delegate }
-		return entry.implementation(validatedValue, options, context)
 	}
 
-	private validateContactValue<K extends ContactFormatKind>(
-		kind: K,
-		value: unknown,
-		options: FormatCallOptions<K>,
-	): ContactValidation<ContactValueByKind[K]> {
-		if (kind === 'address') return validateAddress(value) as ContactValidation<ContactValueByKind[K]>
-		if (kind === 'phone') return validatePhone(value) as ContactValidation<ContactValueByKind[K]>
-		if (kind === 'person') return validatePerson(value) as ContactValidation<ContactValueByKind[K]>
-		if (kind === 'organization') return validateOrganization(value) as ContactValidation<ContactValueByKind[K]>
-		return validateParty(value, options as FormatCallOptions<'party'>) as ContactValidation<ContactValueByKind[K]>
+	private formatNumeric(kind: NumericFormatKind, value: number | MoneyValue, call: ResolvedCall): string {
+		const money = kind === 'money' ? value as MoneyValue : undefined
+		const options = numericIntlOptions(kind, intlOptions(call.options), money?.currency ?? 'USD')
+		const amount = money === undefined ? value as number : money.amount
+		return this.numberFormat(kind, kind, call.policy, options).format(kind === 'percentage' ? amount / 100 : amount)
 	}
 
-	private invokeContact<K extends ContactFormatKind>(
-		entry: ContactChainEntry<K>,
-		kind: K,
-		value: ContactValueByKind[K],
-		options: FormatCallOptions<K>,
-		locale: string,
-	): string {
-		const validation = this.validateContactValue(kind, value, options)
-		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
-		const validatedValue = validation.value
-		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
-			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
-			const resolved = this.resolveContactCall(kind, delegatedOptions)
-			const delegatedValidation = this.validateContactValue(kind, nextValue, delegatedOptions)
-			if (!delegatedValidation.ok) {
-				throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
-			}
-			if (entry.previous === undefined) {
-				return this.baseContactImplementations[kind](delegatedValidation.value, resolved.options, {
-					kind,
-					locale: resolved.locale,
-					options: resolved.options,
-					delegate: () => {
-						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
-					},
-				} as ContactFormatImplementationContext<K>)
-			}
-			return this.invokeContact(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
+	private captureContext(policy: CallPolicy): CaptureFormattingContext {
+		const { locale } = policy
+		return {
+			...this.messageContext(locale),
+			formatNumber: (value, options) => this.nested('number', value, { ...options, locale }),
+			formatCoordinate: (value, options) => this.nested('coordinate', value, { ...options, locale }),
+			formatDate: (value, options) => this.nested('date', value, { ...options, locale }),
 		}
-		const context: ContactFormatImplementationContext<K> = { kind, locale, options, delegate }
-		return entry.implementation(validatedValue, options, context)
 	}
 
-	private validateTemporalValue<K extends TemporalFormatKind>(
-		kind: K,
-		value: unknown,
-	): TemporalValidation<TemporalValueByKind[K]> {
-		const validation = kind === 'date'
-			? validateDate(value)
-			: kind === 'datetime'
-				? validateDatetime(value)
-				: kind === 'time'
-					? validateTime(value)
-					: validateDuration(value)
-		if (!validation.ok) return validation
-		return { ok: true, value: value as TemporalValueByKind[K] }
-	}
-
-	private invokeTemporal<K extends TemporalFormatKind>(
-		entry: TemporalChainEntry<K>,
-		kind: K,
-		value: TemporalValueByKind[K],
-		options: FormatCallOptions<K>,
-		locale: string,
-	): string {
-		const validation = this.validateTemporalValue(kind, value)
-		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
-		const validatedValue = validation.value
-		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
-			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
-			const resolved = this.resolveTemporalCall(kind, delegatedOptions)
-			const delegatedValidation = this.validateTemporalValue(kind, nextValue)
-			if (!delegatedValidation.ok) throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
-			if (entry.previous === undefined) {
-				return this.baseTemporalImplementations[kind](delegatedValidation.value, resolved.options, {
-					kind,
-					locale: resolved.locale,
-					options: resolved.options,
-					delegate: () => {
-						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
-					},
-				} as TemporalFormatImplementationContext<K>)
-			}
-			return this.invokeTemporal(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
+	private selectionContext(policy: CallPolicy): SelectionFormattingContext {
+		const { locale, numberingSystem } = policy
+		return {
+			...this.messageContext(locale),
+			formatNumber: (value, options) => this.nested('number', value, {
+				...options,
+				locale,
+				...(numberingSystem === undefined ? {} : { numberingSystem }),
+			}),
+			formatEnum: (value, options) => this.nested('enum', value, { ...options, locale }),
+			listFormat: (type, style) => this.selectionListFormat(locale, type, style),
 		}
-		const context: TemporalFormatImplementationContext<K> = { kind, locale, options, delegate }
-		return entry.implementation(validatedValue, options, context)
 	}
 
-	private validateCaptureValue<K extends CaptureFormatKind>(
-		kind: K,
-		value: unknown,
-	): CaptureValidation<CaptureValueByKind[K]> {
-		if (kind === 'coordinate') return validateCoordinate(value) as CaptureValidation<CaptureValueByKind[K]>
-		if (kind === 'bbox') return validateBbox(value) as CaptureValidation<CaptureValueByKind[K]>
-		if (kind === 'identification') return validateIdentification(value) as CaptureValidation<CaptureValueByKind[K]>
-		if (kind === 'attachment') return validateAttachment(value) as CaptureValidation<CaptureValueByKind[K]>
-		return validateSignature(value) as CaptureValidation<CaptureValueByKind[K]>
-	}
-
-	private invokeCapture<K extends CaptureFormatKind>(
-		entry: CaptureChainEntry<K>,
-		kind: K,
-		value: CaptureValueByKind[K],
-		options: FormatCallOptions<K>,
-		locale: string,
-	): string {
-		const validation = this.validateCaptureValue(kind, value)
-		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
-		const validatedValue = validation.value
-		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
-			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
-			const resolved = this.resolveCaptureCall(kind, delegatedOptions)
-			const delegatedValidation = this.validateCaptureValue(kind, nextValue)
-			if (!delegatedValidation.ok) throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
-			if (entry.previous === undefined) {
-				return this.baseCaptureImplementations[kind](delegatedValidation.value, resolved.options, {
-					kind,
-					locale: resolved.locale,
-					options: resolved.options,
-					delegate: () => {
-						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
-					},
-				} as CaptureFormatImplementationContext<K>)
-			}
-			return this.invokeCapture(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
-		}
-		const context: CaptureFormatImplementationContext<K> = { kind, locale, options, delegate }
-		return entry.implementation(validatedValue, options, context)
-	}
-
-	private validateSelectionValue<K extends SelectionFormatKind>(
-		kind: K,
-		value: unknown,
-	): SelectionValidation<SelectionValueByKind[K]> {
-		if (kind === 'boolean') return validateBoolean(value) as SelectionValidation<SelectionValueByKind[K]>
-		if (kind === 'enum') return validateEnumValue(value) as SelectionValidation<SelectionValueByKind[K]>
-		if (kind === 'multiselect') return validateMultiselectValue(value) as SelectionValidation<SelectionValueByKind[K]>
-		return validateRating(value) as SelectionValidation<SelectionValueByKind[K]>
-	}
-
-	private invokeSelection<K extends SelectionFormatKind>(
-		entry: SelectionChainEntry<K>,
-		kind: K,
-		value: SelectionValueByKind[K],
-		options: FormatCallOptions<K>,
-		locale: string,
-	): string {
-		const validation = this.validateSelectionValue(kind, value)
-		if (!validation.ok) throw new FormatProblem(validation.status, kind, validation.issues)
-		const validatedValue = validation.value
-		const delegate = (nextValue = validatedValue, nextOptions = options): string => {
-			const delegatedOptions = Object.freeze({ ...options, ...nextOptions }) as FormatCallOptions<K>
-			const resolved = this.resolveSelectionCall(kind, delegatedOptions)
-			const delegatedValidation = this.validateSelectionValue(kind, nextValue)
-			if (!delegatedValidation.ok) throw new FormatProblem(delegatedValidation.status, kind, delegatedValidation.issues)
-			if (entry.previous === undefined) {
-				return this.baseSelectionImplementations[kind](delegatedValidation.value, resolved.options, {
-					kind,
-					locale: resolved.locale,
-					options: resolved.options,
-					delegate: () => {
-						throw new FormatError('error', kind, [issue(kind, 'invalid_delegate', 'Formatter delegation has no previous implementation.')])
-					},
-				} as SelectionFormatImplementationContext<K>)
-			}
-			return this.invokeSelection(entry.previous, kind, delegatedValidation.value, resolved.options, resolved.locale)
-		}
-		const context: SelectionFormatImplementationContext<K> = { kind, locale, options, delegate }
-		return entry.implementation(validatedValue, options, context)
+	private selectionListFormat(locale: string, type: SelectionListType, style: SelectionListStyle): Intl.ListFormat | undefined {
+		if (typeof Intl.ListFormat !== 'function' || Intl.ListFormat.supportedLocalesOf([locale]).length === 0) return undefined
+		return this.cached('selectionList', { locale, type, style }, () => new Intl.ListFormat(locale, { type, style }))
 	}
 
 	private evaluate(kind: FormatKind | string, value: unknown, options: unknown): FormatResult {
-		if (!FORMAT_KINDS.includes(kind as FormatKind)) {
+		if (!isFormatKind(kind)) {
 			return failed('unsupported', [issue(kind, 'unknown_kind', `Unknown format kind ${JSON.stringify(kind)}.`)])
 		}
-		if (!isNumericKind(kind) && !isContactKind(kind) && !isTemporalKind(kind) && !isCaptureKind(kind) && !isSelectionKind(kind)) {
-			return failed('unsupported', [issue(kind, 'unsupported_kind', `Formatting ${kind} values is not implemented in this formatter.`)])
-		}
-
 		try {
-			if (isContactKind(kind)) {
-				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
-				const resolved = this.resolveContactCall(kind, typedOptions)
-				const output = this.invokeContact(
-					this.contactChains[kind] as ContactChainEntry<typeof kind>,
-					kind,
-					value as ContactValueByKind[typeof kind],
-					resolved.options,
-					resolved.locale,
-				)
-				if (typeof output !== 'string') {
-					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
-				}
-				return formatted(output)
-			}
-			if (isTemporalKind(kind)) {
-				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
-				const resolved = this.resolveTemporalCall(kind, typedOptions)
-				const output = this.invokeTemporal(
-					this.temporalChains[kind] as TemporalChainEntry<typeof kind>,
-					kind,
-					value as TemporalValueByKind[typeof kind],
-					resolved.options,
-					resolved.locale,
-				)
-				if (typeof output !== 'string') {
-					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
-				}
-				return formatted(output)
-			}
-			if (isSelectionKind(kind)) {
-				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
-				const resolved = this.resolveSelectionCall(kind, typedOptions)
-				const output = this.invokeSelection(
-					this.selectionChains[kind] as SelectionChainEntry<typeof kind>,
-					kind,
-					value as SelectionValueByKind[typeof kind],
-					resolved.options,
-					resolved.locale,
-				)
-				if (typeof output !== 'string') {
-					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
-				}
-				return formatted(output)
-			}
-			if (isCaptureKind(kind)) {
-				const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
-				const resolved = this.resolveCaptureCall(kind, typedOptions)
-				const output = this.invokeCapture(
-					this.captureChains[kind] as CaptureChainEntry<typeof kind>,
-					kind,
-					value as CaptureValueByKind[typeof kind],
-					resolved.options,
-					resolved.locale,
-				)
-				if (typeof output !== 'string') {
-					return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
-				}
-				return formatted(output)
-			}
-			const typedOptions = options === undefined ? undefined : options as FormatCallOptions<typeof kind>
-			const resolved = this.resolveCall(kind, typedOptions)
-			const validation = kind === 'number'
-				? validateNumber(value)
-				: kind === 'percentage'
-					? validatePercentage(value)
-					: validateMoney(value)
-			if (!validation.ok) return failed(validation.status, validation.issues)
-
-			const output = this.invoke(
-				this.chains[kind] as ChainEntry<typeof kind>,
-				kind,
-				validation.value as NumericValueByKind[typeof kind],
-				resolved.options,
-				resolved.locale,
-			)
-			if (typeof output !== 'string') {
-				return failed('error', [issue(kind, 'implementation_output', 'A formatter implementation must return a string.')])
-			}
-			return formatted(output)
+			return formatted(this.invoke(kind, this.chains[kind], value, this.resolve(kind, options as CallOptions | undefined, true)))
 		} catch (error) {
-			if (error instanceof FormatProblem) return failed(error.status, error.issues)
-			if (error instanceof SelectionFormatError) {
-				return failed(error.status, [issue(kind, error.code, error.message)])
-			}
-			if (error instanceof MissingSelectionMessageError) {
-				return failed('unsupported', [issue(kind, 'missing_message', error.message, undefined, error)])
-			}
-			if (error instanceof FormatConfigurationError) {
-				return failed('unsupported', [issue(kind, 'unsupported_configuration', error.message, undefined, error)])
-			}
-			return failed('error', [issue(kind, 'implementation_error', error instanceof Error ? error.message : 'Unexpected formatter failure.', undefined, error)])
+			return failure(kind, error)
 		}
 	}
 
@@ -2093,58 +1034,38 @@ class FormatterImpl implements Formatter {
 		return this.safeFormat('rating', value, options)
 	}
 
+
 	compose(options: FormatterOptions = {}): Formatter {
-		const { overrides: _overrides, ...withoutOverrides } = options
-		const merged = mergeConfig(this.config, withoutOverrides)
-		const next = new FormatterImpl(merged, this.numericLayers, this.contactLayers, this.temporalLayers, this.captureLayers, this.selectionLayers)
-		if (options.overrides !== undefined) return next.withOverrides(options.overrides)
-		return next
+		const { overrides, ...withoutOverrides } = options
+		return new FormatterImpl({ ...mergeConfig(this.config, withoutOverrides), overrides }, this.layers)
 	}
 
 	withOverrides(overrides: FormatterOverrides): Formatter {
-		const additions: { kind: NumericFormatKind; implementation: FormatImplementation<NumericFormatKind> }[] = []
-		for (const kind of NUMERIC_KINDS) {
-			const implementation = overrides[kind] as FormatImplementation<NumericFormatKind> | undefined
-			if (implementation !== undefined) additions.push({ kind, implementation })
-		}
-		const contactAdditions: { kind: ContactFormatKind; implementation: ContactFormatImplementation<ContactFormatKind> }[] = []
-		for (const kind of CONTACT_KINDS) {
-			const implementation = overrides[kind] as ContactFormatImplementation<ContactFormatKind> | undefined
-			if (implementation !== undefined) contactAdditions.push({ kind, implementation })
-		}
-		const temporalAdditions: { kind: TemporalFormatKind; implementation: TemporalFormatImplementation<TemporalFormatKind> }[] = []
-		for (const kind of TEMPORAL_KINDS) {
-			const implementation = overrides[kind] as TemporalFormatImplementation<TemporalFormatKind> | undefined
-			if (implementation !== undefined) temporalAdditions.push({ kind, implementation })
-		}
-		const captureAdditions: { kind: CaptureFormatKind; implementation: CaptureFormatImplementation<CaptureFormatKind> }[] = []
-		for (const kind of CAPTURE_KINDS) {
-			const implementation = overrides[kind] as CaptureFormatImplementation<CaptureFormatKind> | undefined
-			if (implementation !== undefined) captureAdditions.push({ kind, implementation })
-		}
-		const selectionAdditions: { kind: SelectionFormatKind; implementation: SelectionFormatImplementation<SelectionFormatKind> }[] = []
-		for (const kind of SELECTION_KINDS) {
-			const implementation = overrides[kind] as SelectionFormatImplementation<SelectionFormatKind> | undefined
-			if (implementation !== undefined) selectionAdditions.push({ kind, implementation })
-		}
-		const next = new FormatterImpl(
-			this.config,
-			[...this.numericLayers, ...additions],
-			[...this.contactLayers, ...contactAdditions],
-			[...this.temporalLayers, ...temporalAdditions],
-			[...this.captureLayers, ...captureAdditions],
-			[...this.selectionLayers, ...selectionAdditions],
-		)
-		return next
+		return new FormatterImpl(this.config, [...this.layers, ...overrideLayers(overrides)])
 	}
 
 	cacheStats(): FormatterCacheStats {
-		return {
-			number: this.numberCache.snapshot(),
-			money: this.moneyCache.snapshot(),
-			percentage: this.percentageCache.snapshot(),
-		}
+		const stats: Record<string, unknown> = {}
+		for (const bucket of CACHE_BUCKETS) stats[bucket] = this.caches[bucket].snapshot()
+		return stats as FormatterCacheStats
 	}
+}
+
+/**
+ * Maps a failure to a result. A bad option is `invalid`, like a bad value. A
+ * gap in the runtime or the resources (locale data, a message, an address
+ * layout) is `unsupported`: the input is right and a caller can fall back.
+ */
+function failure(kind: FormatKind, error: unknown): FormatResult {
+	if (error instanceof FormatError) return failed(error.status, error.issues)
+	if (error instanceof SelectionFormatError) return failed(error.status, [issue(kind, error.code, error.message)])
+	if (error instanceof MissingMessageError) return failed('unsupported', [issue(kind, 'missing_message', error.message, undefined, error)])
+	if (error instanceof UnsupportedAddressLayoutError) {
+		return failed('unsupported', [issue(kind, 'unsupported_country_layout', error.message, 'country', error)])
+	}
+	if (error instanceof UnsupportedLocaleError) return failed('unsupported', [issue(kind, 'unsupported_locale', error.message, undefined, error)])
+	if (error instanceof FormatConfigurationError) return failed('invalid', [issue(kind, 'invalid_options', error.message, undefined, error)])
+	return failed('error', [issue(kind, 'implementation_error', error instanceof Error ? error.message : 'Unexpected formatter failure.', undefined, error)])
 }
 
 export function createFormatter(options: FormatterOptions = {}): Formatter {

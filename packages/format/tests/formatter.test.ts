@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+	FORMAT_KINDS,
 	FormatConfigurationError,
 	FormatError,
 	createFormatter,
@@ -131,6 +132,77 @@ describe('@paradoc/format numeric contract', () => {
 		// Digits the caller sets still win.
 		expect(amountOnly.formatMoney({ amount: 12.5, currency: 'USD' }, { maximumFractionDigits: 0 })).toBe('13')
 		expect(amountOnly.formatMoney({ amount: 12.5, currency: 'USD' }, { maximumSignificantDigits: 1 })).toBe('10')
+	})
+
+	it('evicts the least recently used Intl instance once a cache is full', () => {
+		const formatter = createFormatter({ cacheSize: 2 })
+		formatter.formatNumber(1, { maximumFractionDigits: 1 })
+		formatter.formatNumber(1, { maximumFractionDigits: 2 })
+		formatter.formatNumber(1, { maximumFractionDigits: 3 })
+		expect(formatter.cacheStats().number).toEqual({ size: 2, hits: 0, misses: 3, limit: 2 })
+
+		// The newest two are kept; the oldest was dropped and misses again.
+		formatter.formatNumber(1, { maximumFractionDigits: 3 })
+		formatter.formatNumber(1, { maximumFractionDigits: 2 })
+		expect(formatter.cacheStats().number).toMatchObject({ size: 2, hits: 2, misses: 3 })
+		formatter.formatNumber(1, { maximumFractionDigits: 1 })
+		expect(formatter.cacheStats().number).toMatchObject({ size: 2, hits: 2, misses: 4 })
+	})
+
+	it('accepts a cacheSize from 1 to 256 and refuses anything else', () => {
+		expect(createFormatter({ cacheSize: 1 }).cacheStats().number.limit).toBe(1)
+		expect(createFormatter({ cacheSize: 256 }).cacheStats().date.limit).toBe(256)
+		expect(createFormatter().cacheStats().money.limit).toBe(64)
+		for (const cacheSize of [0, 257, 1.5, -1]) {
+			expect(() => createFormatter({ cacheSize })).toThrow(FormatConfigurationError)
+		}
+	})
+
+	it('reports every cache it keeps', () => {
+		const formatter = createFormatter()
+		formatter.formatNumber(1)
+		formatter.formatMoney({ amount: 1, currency: 'USD' })
+		formatter.formatPercentage(1)
+		formatter.formatDate('2026-01-01')
+		formatter.formatDatetime('2026-01-01T12:00:00Z')
+		formatter.formatTime('12:00')
+		formatter.formatDuration('P1DT2H')
+		formatter.formatMultiselect(['a', 'b'], { options: [{ value: 'a' }, { value: 'b' }] })
+		const stats = formatter.cacheStats()
+		expect(Object.keys(stats).sort()).toEqual([
+			'date', 'datetime', 'duration', 'durationList', 'durationPlural', 'money',
+			'number', 'percentage', 'selectionList', 'time', 'timeZone',
+		])
+		for (const [bucket, bucketStats] of Object.entries(stats)) {
+			expect(bucketStats.size, bucket).toBeGreaterThan(0)
+		}
+	})
+
+	it('reaches a base implementation for every kind it lists', () => {
+		const formatter = createFormatter()
+		expect(new Set(FORMAT_KINDS).size).toBe(21)
+		for (const kind of FORMAT_KINDS) {
+			expect(formatter.safeFormat(kind, undefined as never), kind).toMatchObject({ success: false, status: 'missing' })
+		}
+	})
+
+	it('reports a bad option as invalid and a locale the runtime lacks as unsupported', () => {
+		const formatter = createFormatter()
+		for (const result of [
+			formatter.safeFormatNumber(1, { maximumFractionDigits: 200 }),
+			formatter.safeFormatNumber(1, { locale: '!!' }),
+			formatter.safeFormatNumber(1, { numberingSystem: 'nope' }),
+			formatter.safeFormatDate('2026-01-01T00:00:00Z', { timeZone: 'Nope/Zone' }),
+			formatter.safeFormatDuration('P1D', { maximumFractionDigits: 200 }),
+		]) {
+			expect(result).toMatchObject({ success: false, status: 'invalid', issues: [expect.objectContaining({ code: 'invalid_options' })] })
+		}
+		expect(formatter.safeFormatNumber(1, { locale: 'zz-ZZ' })).toMatchObject({
+			success: false,
+			status: 'unsupported',
+			issues: [expect.objectContaining({ code: 'unsupported_locale', kind: 'number' })],
+		})
+		expect(() => createFormatter({ locale: 'zz-ZZ' })).toThrow(FormatConfigurationError)
 	})
 
 	it('reuses same-policy Intl instances while keeping cache size bounded', () => {

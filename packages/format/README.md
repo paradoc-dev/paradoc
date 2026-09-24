@@ -14,12 +14,14 @@ formatter.formatMoney({ amount: 1500.5, currency: 'USD' }) // '1.500,50 $'
 formatter.formatPercentage(8.25) // '8,25 %'
 ```
 
-Contact values use the same standalone and dynamic operations:
+Contact and capture values use the same standalone and dynamic operations. This block uses an `en-US` formatter:
 
 ```ts
-formatter.formatPerson({ firstName: 'Jane', lastName: 'Smith' }) // 'Jane Smith'
-formatter.formatPhone({ number: '+442071838750', extension: '42' }) // '+442071838750 ext. 42'
-formatter.formatAddress({
+const us = createFormatter({ locale: 'en-US' })
+
+us.formatPerson({ firstName: 'Jane', lastName: 'Smith' }) // 'Jane Smith'
+us.formatPhone({ number: '+442071838750', extension: '42' }) // '+442071838750 ext. 42'
+us.formatAddress({
   line1: '10 Downing Street',
   locality: 'London',
   region: 'Greater London',
@@ -27,18 +29,18 @@ formatter.formatAddress({
   country: 'GB',
 }) // '10 Downing Street, London, Greater London, SW1A 2AA, GB'
 
-formatter.formatCoordinate({ lat: 40.7128, lon: -74.006 }) // '40.7128; -74.006'
-formatter.formatBbox({
+us.formatCoordinate({ lat: 40.7128, lon: -74.006 }) // '40.7128; -74.006'
+us.formatBbox({
   southWest: { lat: 40.4774, lon: -74.2591 },
   northEast: { lat: 40.9176, lon: -73.7004 },
 }) // '40.4774; -74.2591 | 40.9176; -73.7004'
-formatter.formatIdentification({
+us.formatIdentification({
   type: 'passport',
   number: 'A1',
   issueDate: '2020-01-15',
 }) // 'passport: A1 (issued Jan 15, 2020)'
-formatter.formatAttachment({ name: 'contract.pdf', mimeType: 'application/pdf' }) // 'contract.pdf (application/pdf)'
-formatter.formatSignature({ timestamp: '2026-09-04T15:30:00Z', method: 'drawn' }) // 'Signature (drawn) on Sep 4, 2026'
+us.formatAttachment({ name: 'contract.pdf', mimeType: 'application/pdf' }) // 'contract.pdf (application/pdf)'
+us.formatSignature({ timestamp: '2026-09-04T15:30:00Z', method: 'drawn' }) // 'Signature (drawn) on Sep 4, 2026'
 ```
 
 Coordinates use `latitude; longitude`; bounding boxes use `southWest | northEast`. The semicolon and pipe separators remain unambiguous when a locale uses a comma as its decimal separator. Coordinate values default to up to nine fractional digits and accept the same number precision options as `formatNumber`.
@@ -71,9 +73,13 @@ const result = formatter.safeFormatMoney({ amount: 10 })
 // { success: false, status: 'incomplete', issues: [...] }
 ```
 
-The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, `safeFormatParty`, `safeFormatCoordinate`, `safeFormatBbox`, `safeFormatIdentification`, `safeFormatAttachment`, `safeFormatSignature`, `safeFormatDate`, `safeFormatDatetime`, `safeFormatTime`, `safeFormatDuration`, `safeFormatBoolean`, `safeFormatEnum`, `safeFormatMultiselect`, and `safeFormatRating`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. Value families that have not been implemented yet return `unsupported` rather than a fake successful string.
+The safe methods are named `safeFormatMoney`, `safeFormatNumber`, `safeFormatPercentage`, `safeFormatAddress`, `safeFormatPhone`, `safeFormatPerson`, `safeFormatOrganization`, `safeFormatParty`, `safeFormatCoordinate`, `safeFormatBbox`, `safeFormatIdentification`, `safeFormatAttachment`, `safeFormatSignature`, `safeFormatDate`, `safeFormatDatetime`, `safeFormatTime`, `safeFormatDuration`, `safeFormatBoolean`, `safeFormatEnum`, `safeFormatMultiselect`, and `safeFormatRating`. Dynamic callers can use `formatValue(kind, value)` or `safeFormatValue(kind, value)`. A kind the formatter does not know returns `unsupported` with the code `unknown_kind`.
 
-Locale, numbering-system, calendar, and timezone choices are independent. The default locale is `en-US`; temporal defaults are retained as explicit `UTC` and Gregorian settings for the temporal formatter slice. An unsupported runtime locale fails at construction unless `unsupportedLocale: 'fallback'` and an explicit `fallbackLocale` are provided. `fallbackLocale` also supplies package-authored messages when the requested runtime locale is supported but has no matching messages; it does not change the requested locale used for Intl numbers, dates, times, or lists.
+A bad option is `invalid` with the code `invalid_options`, like a bad value: a malformed locale, an unknown timezone, calendar, or numbering system, or an Intl option out of range. `unsupported` means the input is right and the runtime or the resources fall short: a locale the runtime has no data for (`unsupported_locale`), a missing package message (`missing_message`), or a country with no address layout (`unsupported_country_layout`).
+
+A value family that formats through another kind, such as a signature's date, a bounding box's corners, a rating's number, or a multiselect's labels, passes only its own options. The other kind's formatter-level options do not apply, so `number: { maximumFractionDigits: 0 }` does not round a rating. Overrides of the other kind still apply.
+
+Locale, numbering-system, calendar, and timezone choices are independent. The default locale is `en-US`, the default timezone `UTC`, and the default calendar Gregorian. An unsupported runtime locale fails at construction unless `unsupportedLocale: 'fallback'` and an explicit `fallbackLocale` are provided. `fallbackLocale` also supplies package-authored messages, for every value family, when the requested runtime locale is supported but has no matching messages; it does not change the requested locale used for Intl numbers, dates, times, or lists.
 
 ```ts
 const amountOnly = formatter.compose({
@@ -86,3 +92,5 @@ amountOnly.formatMoney({ amount: 1500.5, currency: 'USD' }) // '1.500,50'
 `currencyDisplay: 'none'` drops the symbol and keeps the currency's fraction digits (two for USD, none for JPY) unless you set digits.
 
 `compose` and `withOverrides` return independent formatter instances. Overrides can delegate to the previous implementation through the third callback argument, without recursively invoking themselves.
+
+`cacheStats()` reports the size, hits, misses, and limit of each bounded cache: `number`, `money`, `percentage`, `date`, `datetime`, `time`, `timeZone`, `duration`, `durationPlural`, `durationList`, and `selectionList`. `cacheSize` (default 64, from 1 to 256) bounds each one; the least recently used entry is dropped first.

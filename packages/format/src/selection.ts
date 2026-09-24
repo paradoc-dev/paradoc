@@ -1,4 +1,5 @@
-import { resolveMessage } from './messages'
+import { resolveMessage, type MessageContext } from './messages'
+import { isMissing, issue, type Validation } from './shared'
 import type {
 	BooleanFormatOptions,
 	EnumFormatOptions,
@@ -13,8 +14,6 @@ import type {
 	SelectionOption,
 	SelectionOptionValue,
 } from './types'
-
-export type SelectionStatus = 'missing' | 'incomplete' | 'invalid'
 
 /** Any one kind's selection options, as `validateSelectionOptions` receives them. */
 export type SelectionOptionsByKind =
@@ -36,24 +35,12 @@ export const MISSING_RATING_SCALE = 'missing_scale'
  */
 export const UNSUPPORTED_LIST_JOIN = 'unsupported_list'
 
-export interface SelectionValidationSuccess<T> {
-	ok: true
-	value: T
-}
-
-export interface SelectionValidationFailure {
-	ok: false
-	status: SelectionStatus
-	issues: readonly FormatIssue[]
-}
-
-export type SelectionValidation<T> = SelectionValidationSuccess<T> | SelectionValidationFailure
-
-/** What a selection formatter needs from the formatter that owns it. */
-export interface SelectionFormattingContext {
-	readonly locale: string
-	readonly messages: FormatterMessages
-	readonly fallbackLocale?: string
+/**
+ * What a selection formatter needs from the formatter that owns it. Each
+ * nested call formats with the options it is given and never inherits the
+ * nested kind's formatter-level options.
+ */
+export interface SelectionFormattingContext extends MessageContext {
 	readonly formatNumber: (value: number, options: NumberFormatOptions) => string
 	/**
 	 * Presents one option through the effective enum formatter, so an `enum`
@@ -63,13 +50,6 @@ export interface SelectionFormattingContext {
 	readonly formatEnum: (value: SelectionOptionValue, options: EnumFormatOptions) => string
 	/** Returns the locale's list joiner, or `undefined` when the runtime has none for it. */
 	readonly listFormat: (type: SelectionListType, style: SelectionListStyle) => Intl.ListFormat | undefined
-}
-
-export class MissingSelectionMessageError extends Error {
-	constructor(readonly key: string, readonly locale: string) {
-		super(`No selection message ${JSON.stringify(key)} is available for locale ${JSON.stringify(locale)}.`)
-		this.name = 'MissingSelectionMessageError'
-	}
 }
 
 /**
@@ -101,61 +81,53 @@ const LIST_STYLES: readonly SelectionListStyle[] = ['long', 'short', 'narrow']
 const UNKNOWN_OPTION_POLICIES = ['error', 'value'] as const
 const RATING_DISPLAYS = ['scale', 'value'] as const
 
-function isMissing(value: unknown): value is null | undefined {
-	return value === null || value === undefined
-}
-
-function selectionIssue(kind: string, code: string, message: string, path?: string): FormatIssue {
-	return { kind, code, message, ...(path === undefined ? {} : { path }) }
-}
-
 function isOptionValue(value: unknown): value is SelectionOptionValue {
 	return typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value))
 }
 
-export function validateBoolean(value: unknown): SelectionValidation<boolean> {
+export function validateBoolean(value: unknown): Validation<boolean> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [selectionIssue('boolean', 'missing_value', 'Boolean value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('boolean', 'missing_value', 'Boolean value is missing.')] }
 	}
 	if (typeof value !== 'boolean') {
-		return { ok: false, status: 'invalid', issues: [selectionIssue('boolean', 'invalid_boolean', 'Boolean value must be true or false.')] }
+		return { ok: false, status: 'invalid', issues: [issue('boolean', 'invalid_boolean', 'Boolean value must be true or false.')] }
 	}
 	return { ok: true, value }
 }
 
-export function validateEnumValue(value: unknown): SelectionValidation<SelectionOptionValue> {
+export function validateEnumValue(value: unknown): Validation<SelectionOptionValue> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [selectionIssue('enum', 'missing_value', 'Enum value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('enum', 'missing_value', 'Enum value is missing.')] }
 	}
 	if (!isOptionValue(value)) {
-		return { ok: false, status: 'invalid', issues: [selectionIssue('enum', 'invalid_enum', 'Enum value must be a string or a finite number.')] }
+		return { ok: false, status: 'invalid', issues: [issue('enum', 'invalid_enum', 'Enum value must be a string or a finite number.')] }
 	}
 	return { ok: true, value }
 }
 
-export function validateMultiselectValue(value: unknown): SelectionValidation<readonly SelectionOptionValue[]> {
+export function validateMultiselectValue(value: unknown): Validation<readonly SelectionOptionValue[]> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [selectionIssue('multiselect', 'missing_value', 'Multiselect value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('multiselect', 'missing_value', 'Multiselect value is missing.')] }
 	}
 	if (!Array.isArray(value)) {
-		return { ok: false, status: 'invalid', issues: [selectionIssue('multiselect', 'invalid_multiselect', 'Multiselect value must be an array of selected option values.')] }
+		return { ok: false, status: 'invalid', issues: [issue('multiselect', 'invalid_multiselect', 'Multiselect value must be an array of selected option values.')] }
 	}
 	const issues: FormatIssue[] = []
 	value.forEach((entry, index) => {
 		if (!isOptionValue(entry)) {
-			issues.push(selectionIssue('multiselect', 'invalid_member', 'Every selected value must be a string or a finite number.', `[${index}]`))
+			issues.push(issue('multiselect', 'invalid_member', 'Every selected value must be a string or a finite number.', `[${index}]`))
 		}
 	})
 	if (issues.length > 0) return { ok: false, status: 'invalid', issues }
 	return { ok: true, value: value as readonly SelectionOptionValue[] }
 }
 
-export function validateRating(value: unknown): SelectionValidation<number> {
+export function validateRating(value: unknown): Validation<number> {
 	if (isMissing(value)) {
-		return { ok: false, status: 'missing', issues: [selectionIssue('rating', 'missing_value', 'Rating value is missing.')] }
+		return { ok: false, status: 'missing', issues: [issue('rating', 'missing_value', 'Rating value is missing.')] }
 	}
 	if (typeof value !== 'number' || !Number.isFinite(value)) {
-		return { ok: false, status: 'invalid', issues: [selectionIssue('rating', 'invalid_rating', 'Rating value must be a finite number.')] }
+		return { ok: false, status: 'invalid', issues: [issue('rating', 'invalid_rating', 'Rating value must be a finite number.')] }
 	}
 	return { ok: true, value }
 }
@@ -208,16 +180,6 @@ export function validateSelectionOptions(kind: SelectionFormatKind, options: Sel
 	return validateRatingOptions(options as RatingFormatOptions)
 }
 
-function selectionMessage(context: SelectionFormattingContext, key: string): string {
-	return resolveMessage(
-		context.messages,
-		context.locale,
-		key,
-		context.fallbackLocale,
-		(missingKey, locale) => new MissingSelectionMessageError(missingKey, locale),
-	)
-}
-
 export function formatBooleanValue(
 	value: boolean,
 	options: BooleanFormatOptions,
@@ -225,7 +187,7 @@ export function formatBooleanValue(
 ): string {
 	const supplied = value ? options.trueLabel : options.falseLabel
 	if (supplied !== undefined) return supplied
-	return selectionMessage(context, value ? 'boolean.true' : 'boolean.false')
+	return resolveMessage(context, value ? 'boolean.true' : 'boolean.false')
 }
 
 /**
@@ -280,7 +242,7 @@ export function formatRatingValue(
 	if (options.max === undefined) {
 		throw new SelectionFormatError('unsupported', MISSING_RATING_SCALE, 'The rating declares no maximum, so it has no scale to print.')
 	}
-	const template = selectionMessage(context, 'rating.scale')
+	const template = resolveMessage(context, 'rating.scale')
 	return template
 		.replaceAll('{value}', number)
 		.replaceAll('{max}', context.formatNumber(options.max, {}))

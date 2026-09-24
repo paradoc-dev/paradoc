@@ -1,9 +1,9 @@
-import { resolveMessage } from './messages'
+import { resolveMessage, type MessageContext } from './messages'
+import { issue, type Validation, type ValidationFailure } from './shared'
 import type {
 	DateFormatOptions,
 	DatetimeFormatOptions,
 	DurationFormatOptions,
-	FormatIssue,
 	FormatterMessages,
 	TimeFormatOptions,
 } from './types'
@@ -22,7 +22,6 @@ export interface ParsedDatetimeValue {
 
 export interface ParsedTimeValue {
 	readonly date: Date
-	readonly fractionDigits: number
 }
 
 export interface ParsedDurationValue {
@@ -35,24 +34,11 @@ export interface ParsedDurationValue {
 	readonly seconds: number
 }
 
-export interface TemporalValidationSuccess<T> {
-	ok: true
-	value: T
-}
-
-export interface TemporalValidationFailure {
-	ok: false
-	status: 'missing' | 'invalid'
-	issues: readonly FormatIssue[]
-}
-
-export type TemporalValidation<T> = TemporalValidationSuccess<T> | TemporalValidationFailure
-
-export class MissingTemporalMessageError extends Error {
-	constructor(readonly key: string, readonly locale: string) {
-		super(`No temporal message ${JSON.stringify(key)} is available for locale ${JSON.stringify(locale)}.`)
-		this.name = 'MissingTemporalMessageError'
-	}
+/** What a duration formatter needs from the formatter that owns it, bound to one locale. */
+export interface DurationFormattingContext extends MessageContext {
+	readonly numberFormat: (options: DurationFormatOptions) => Intl.NumberFormat
+	readonly pluralRules: (options: Intl.PluralRulesOptions) => Intl.PluralRules
+	readonly listFormat: () => Intl.ListFormat
 }
 
 export const BUILT_IN_TEMPORAL_MESSAGES: FormatterMessages = {
@@ -164,15 +150,11 @@ const DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})
 const TIME_PATTERN = /^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?$/
 const DURATION_PATTERN = /^P(?=\d|T\d)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(?:T(?=\d)(\d+H)?(\d+M)?(\d+(?:\.\d+)?S)?)?$/
 
-function issue(kind: string, code: string, message: string, path?: string): FormatIssue {
-	return { kind, code, message, ...(path === undefined ? {} : { path }) }
-}
-
-function missing(kind: string): TemporalValidationFailure {
+function missing(kind: string): ValidationFailure {
 	return { ok: false, status: 'missing', issues: [issue(kind, 'missing_value', `${kind} value is missing.`)] }
 }
 
-function invalid(kind: string, message: string, path?: string, code = 'invalid_value'): TemporalValidationFailure {
+function invalid(kind: string, message: string, path?: string, code = 'invalid_value'): ValidationFailure {
 	return { ok: false, status: 'invalid', issues: [issue(kind, code, message, path)] }
 }
 
@@ -216,7 +198,7 @@ function parseOffset(value: string | undefined): number | undefined {
 }
 
 function parseDateTimeString(value: string):
-	| { year: number; month: number; day: number; hour: number; minute: number; second: number; millisecond: number; offsetMinutes?: number; fractionDigits: number }
+	| { year: number; month: number; day: number; hour: number; minute: number; second: number; millisecond: number; offsetMinutes?: number }
 	| undefined {
 	const match = DATETIME_PATTERN.exec(value)
 	if (match === null) return undefined
@@ -232,7 +214,6 @@ function parseDateTimeString(value: string):
 		second: Number(match[6] ?? 0),
 		millisecond: Number((fraction + '000').slice(0, 3)),
 		offsetMinutes,
-		fractionDigits: fraction.length,
 	}
 }
 
@@ -266,7 +247,7 @@ function makeInstant(parts: {
 	).getTime() - parts.offsetMinutes * 60_000)
 }
 
-export function validateDate(value: unknown): TemporalValidation<ParsedDateValue> {
+export function validateDate(value: unknown): Validation<ParsedDateValue> {
 	if (value === null || value === undefined) return missing('date')
 	if (value instanceof Date) {
 		return Number.isNaN(value.getTime())
@@ -294,7 +275,7 @@ export function validateDate(value: unknown): TemporalValidation<ParsedDateValue
 	return { ok: true, value: { date, mode: parts.offsetMinutes === undefined ? 'local' : 'instant' } }
 }
 
-export function validateDatetime(value: unknown): TemporalValidation<ParsedDatetimeValue> {
+export function validateDatetime(value: unknown): Validation<ParsedDatetimeValue> {
 	if (value === null || value === undefined) return missing('datetime')
 	if (value instanceof Date) {
 		return Number.isNaN(value.getTime())
@@ -313,7 +294,7 @@ export function validateDatetime(value: unknown): TemporalValidation<ParsedDatet
 	return { ok: true, value: { date, mode: parts.offsetMinutes === undefined ? 'local' : 'instant' } }
 }
 
-export function validateTime(value: unknown): TemporalValidation<ParsedTimeValue> {
+export function validateTime(value: unknown): Validation<ParsedTimeValue> {
 	if (value === null || value === undefined) return missing('time')
 	if (typeof value !== 'string' || value.length === 0) return invalid('time', 'Time must be an ISO time string.')
 	const match = TIME_PATTERN.exec(value)
@@ -326,12 +307,11 @@ export function validateTime(value: unknown): TemporalValidation<ParsedTimeValue
 		ok: true,
 		value: {
 			date: makeUtcDate(1970, 1, 1, hour, minute, second, Number(((match[4] ?? '') + '000').slice(0, 3))),
-			fractionDigits: match[4]?.length ?? 0,
 		},
 	}
 }
 
-export function validateDuration(value: unknown): TemporalValidation<ParsedDurationValue> {
+export function validateDuration(value: unknown): Validation<ParsedDurationValue> {
 	if (value === null || value === undefined) return missing('duration')
 	if (typeof value !== 'string' || value.length === 0) return invalid('duration', 'Duration must be an ISO 8601 duration string.')
 	const match = DURATION_PATTERN.exec(value)
@@ -356,25 +336,10 @@ export function validateDuration(value: unknown): TemporalValidation<ParsedDurat
 	}
 }
 
-export function resolveTemporalMessage(
-	messages: FormatterMessages,
-	locale: string,
-	key: string,
-	fallbackLocale?: string,
-): string {
-	return resolveMessage(messages, locale, key, fallbackLocale, (missingKey, missingLocale) => new MissingTemporalMessageError(missingKey, missingLocale))
-}
-
 export function formatDurationValue(
 	value: ParsedDurationValue,
-	locale: string,
-	numberingSystem: string | undefined,
 	options: DurationFormatOptions,
-	messages: FormatterMessages,
-	getNumberFormat: (locale: string, numberingSystem: string | undefined, options: DurationFormatOptions) => Intl.NumberFormat,
-	getPluralRules: (locale: string, options: object) => Intl.PluralRules,
-	getListFormat: (locale: string) => Intl.ListFormat,
-	fallbackLocale?: string,
+	context: DurationFormattingContext,
 ): string {
 	const parts: string[] = []
 	const units: readonly [keyof ParsedDurationValue, string][] = [
@@ -386,28 +351,28 @@ export function formatDurationValue(
 		['minutes', 'minute'],
 		['seconds', 'second'],
 	]
-	const numberFormat = getNumberFormat(locale, numberingSystem, {
+	const numberFormat = context.numberFormat({
 		maximumFractionDigits: 9,
 		...options,
 	})
-	const pluralRules = getPluralRules(locale, numberFormat.resolvedOptions())
+	const pluralRules = context.pluralRules(numberFormat.resolvedOptions() as Intl.PluralRulesOptions)
 
 	for (const [key, unit] of units) {
 		const amount = value[key]
 		if (amount === 0) continue
 		const category = pluralRules.select(amount)
-		const template = resolveTemporalMessage(messages, locale, `duration.${unit}.${category}`, fallbackLocale)
+		const template = resolveMessage(context, `duration.${unit}.${category}`)
 		const number = numberFormat.format(amount)
 		parts.push(template.includes('{value}') ? template.replaceAll('{value}', number) : `${number} ${template}`)
 	}
 
 	if (parts.length === 0) {
-		const template = resolveTemporalMessage(messages, locale, 'duration.second.other', fallbackLocale)
+		const template = resolveMessage(context, 'duration.second.other')
 		const number = numberFormat.format(0)
 		return template.includes('{value}') ? template.replaceAll('{value}', number) : `${number} ${template}`
 	}
 
-	return parts.length === 1 ? parts[0]! : getListFormat(locale).format(parts)
+	return parts.length === 1 ? parts[0]! : context.listFormat().format(parts)
 }
 
 export type TemporalIntlOptions = DateFormatOptions | DatetimeFormatOptions | TimeFormatOptions

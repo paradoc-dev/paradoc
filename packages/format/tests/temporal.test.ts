@@ -74,7 +74,7 @@ describe('@paradoc/format temporal values', () => {
 		expect(formatter.safeFormatDate('2026-02-29')).toMatchObject({ success: false, status: 'invalid' })
 		expect(formatter.safeFormatDatetime('2026-01-01T12:00:00+25:00')).toMatchObject({ success: false, status: 'invalid' })
 		expect(() => createFormatter({ calendar: 'not-a-calendar' })).toThrow(FormatConfigurationError)
-		expect(formatter.safeFormatDate('2026-01-01', { calendar: 'not-a-calendar' })).toMatchObject({ success: false, status: 'unsupported' })
+		expect(formatter.safeFormatDate('2026-01-01', { calendar: 'not-a-calendar' })).toMatchObject({ success: false, status: 'invalid', issues: [expect.objectContaining({ code: 'invalid_options' })] })
 		expect(formatter.safeFormatTime('12:00', { fractionalSecondDigits: 4 })).toMatchObject({
 			success: false,
 			status: 'invalid',
@@ -169,5 +169,12 @@ describe('@paradoc/format temporal values', () => {
 
 		expect(custom.formatDate('2026-09-04')).toBe('[Sep 4, 2026]')
 		expect(base.formatDate('2026-09-04')).toBe('Sep 4, 2026')
+	})
+})
+
+describe('@paradoc/format duration messages', () => {
+	it('reads the messages of a locale that shares the language when the region has none', () => {
+		expect(createFormatter({ locale: 'de-AT' }).formatDuration('P1D')).toBe('1 Tag')
+		expect(createFormatter({ locale: 'fr-CA' }).formatDuration('P2D')).toBe('2 jours')
 	})
 })

@@ -270,9 +270,9 @@ export interface FormatterOptions {
 	fallbackLocale?: string
 	/** How construction and per-call locale overrides handle unsupported locales. */
 	unsupportedLocale?: UnsupportedLocalePolicy
-	/** Explicit timezone retained for the temporal formatter slices. Defaults to UTC. */
+	/** Timezone for instants in temporal and capture values. Defaults to UTC. */
 	timeZone?: string
-	/** Explicit calendar retained for the temporal formatter slices. Defaults to Gregorian. */
+	/** Calendar for temporal and capture values. Defaults to Gregorian. */
 	calendar?: string
 	/** Numbering system used by numeric and temporal formatters. */
 	numberingSystem?: string
@@ -475,10 +475,22 @@ export interface FormatterCacheBucketStats {
 	readonly limit: number
 }
 
-export interface FormatterCacheStats {
-	readonly number: FormatterCacheBucketStats
-	readonly money: FormatterCacheBucketStats
-	readonly percentage: FormatterCacheBucketStats
+/** Each bounded cache a formatter keeps: the Intl instances per kind, and the timezone validators. */
+export type FormatterCacheBucket =
+	| 'number'
+	| 'money'
+	| 'percentage'
+	| 'date'
+	| 'datetime'
+	| 'time'
+	| 'timeZone'
+	| 'duration'
+	| 'durationPlural'
+	| 'durationList'
+	| 'selectionList'
+
+export type FormatterCacheStats = {
+	readonly [B in FormatterCacheBucket]: FormatterCacheBucketStats
 }
 
 export interface Formatter {

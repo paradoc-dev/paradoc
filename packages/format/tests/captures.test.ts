@@ -110,7 +110,9 @@ describe('@paradoc/format geography and capture values', () => {
 
 		expect(base.formatCoordinate(coordinate)).toBe('40.7128; -74.006')
 		expect(custom.formatCoordinate(coordinate)).toBe('[40.7; -74]')
-		expect(custom.formatBbox(bbox)).toBe('[40.5; -74.3] | [40.9; -73.7]')
+		// A bbox formats its corners with its own options, not the coordinate's.
+		expect(custom.formatBbox(bbox)).toBe('[40.4774; -74.2591] | [40.9176; -73.7004]')
+		expect(custom.formatBbox(bbox, { maximumFractionDigits: 1 })).toBe('[40.5; -74.3] | [40.9; -73.7]')
 		expect(custom.formatSignature(signature)).toBe('captured: Signature (drawn) on Sep 4, 2026')
 
 		const broken = base.withOverrides({ coordinate: () => 42 as never })
@@ -140,5 +142,52 @@ describe('@paradoc/format geography and capture values', () => {
 		expect(formatter.formatIdentification({ ...identification, issuer: undefined, expiryDate: undefined })).toBe('passport: A1 (emitido el 15 ene 2020)')
 		expect(formatter.formatSignature(signature)).toBe('Firma (dibujada) el 4 sept 2026')
 		expect(createFormatter({ locale: 'es-ES' }).safeFormatSignature(signature)).toMatchObject({ success: false, status: 'unsupported' })
+	})
+})
+
+describe('@paradoc/format capture messages and nested options', () => {
+	const signature = { timestamp: '2026-09-04T15:30:00Z', method: 'drawn' as const }
+	const identification = { type: 'passport', number: 'A1', issueDate: '2020-01-15' }
+
+	it('reads signature and identification labels from the fallback locale', () => {
+		const formatter = createFormatter({ locale: 'es-ES', fallbackLocale: 'en-US' })
+		expect(formatter.formatSignature(signature)).toMatch(/^Signature \(drawn\) on /)
+		expect(formatter.formatIdentification(identification)).toMatch(/^passport: A1 \(issued /)
+		expect(createFormatter({ locale: 'es-ES' }).safeFormatIdentification(identification)).toMatchObject({
+			status: 'unsupported',
+			issues: [expect.objectContaining({ code: 'missing_message', kind: 'identification' })],
+		})
+	})
+
+	it('reads the messages of a locale that shares the language when the region has none', () => {
+		const formatter = createFormatter({ locale: 'de-AT' })
+		expect(formatter.formatSignature(signature)).toMatch(/^Unterschrift \(gezeichnet\) am /)
+		expect(formatter.formatIdentification(identification)).toMatch(/^passport: A1 \(ausgestellt /)
+	})
+
+	it('formats nested dates and numbers with the capture options alone', () => {
+		const formatter = createFormatter({
+			date: { dateStyle: 'long' },
+			number: { maximumFractionDigits: 0 },
+			signature: { month: 'long', day: 'numeric', year: 'numeric' },
+			identification: { month: 'long', day: 'numeric', year: 'numeric' },
+		})
+		expect(formatter.formatSignature(signature)).toBe('Signature (drawn) on September 4, 2026')
+		expect(formatter.formatIdentification(identification)).toBe('passport: A1 (issued January 15, 2020)')
+		expect(formatter.formatCoordinate({ lat: 40.7128, lon: -74.006 })).toBe('40.7128; -74.006')
+		expect(formatter.formatDate('2026-09-04')).toBe('September 4, 2026')
+	})
+
+	it('reports a bad capture option as invalid and names the capture kind', () => {
+		const formatter = createFormatter()
+		expect(formatter.safeFormatCoordinate({ lat: 1, lon: 2 }, { maximumFractionDigits: 200 })).toMatchObject({
+			status: 'invalid',
+			issues: [expect.objectContaining({ code: 'invalid_options', kind: 'coordinate' })],
+		})
+		expect(formatter.safeFormatSignature(signature, { timeZone: 'Nope/Zone' })).toMatchObject({
+			status: 'invalid',
+			issues: [expect.objectContaining({ code: 'invalid_options', kind: 'signature' })],
+		})
+		expect(() => createFormatter({ signature: { fractionalSecondDigits: 7 as never } })).toThrow(/signature/)
 	})
 })

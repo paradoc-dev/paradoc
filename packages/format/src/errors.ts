@@ -19,11 +19,26 @@ export class FormatError extends Error {
 	}
 }
 
-/** A construction or immutable-composition option is not usable. */
+/**
+ * A formatter or call option is not usable. Construction throws it; a safe
+ * call reports it as `invalid` / `invalid_options`.
+ */
 export class FormatConfigurationError extends Error {
 	constructor(message: string, options?: ErrorOptions) {
 		super(message, options)
 		this.name = 'FormatConfigurationError'
+	}
+}
+
+/**
+ * A well-formed locale this runtime has no data for. Construction throws it; a
+ * safe call reports it as `unsupported` / `unsupported_locale`, because the
+ * option is right and the runtime is what falls short.
+ */
+export class UnsupportedLocaleError extends FormatConfigurationError {
+	constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
+		this.name = 'UnsupportedLocaleError'
 	}
 }
 

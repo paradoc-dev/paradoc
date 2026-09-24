@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+	FormatConfigurationError,
 	createFormatter,
 	formatValue,
 	safeFormatValue,
@@ -151,5 +152,92 @@ describe('@paradoc/format contact values', () => {
 		expect(base.formatPerson(person)).toBe('Jane Smith')
 		expect(sibling.formatPerson(person)).toBe('Jane Smith')
 		expect(safeFormatValue('person', person)).toMatchObject({ success: true, value: 'Jane Smith' })
+	})
+})
+
+describe('@paradoc/format contact messages and option guards', () => {
+	const phone = { number: '+34911234567', extension: '12' }
+	const organization = { name: 'Acme', legalName: 'Acme GmbH', taxId: 'X1' }
+
+	it('reads contact messages from the fallback locale when the requested locale has none', () => {
+		const formatter = createFormatter({ locale: 'es-ES', fallbackLocale: 'en-US' })
+		expect(formatter.formatPhone(phone)).toBe('+34911234567 ext. 12')
+		expect(formatter.formatOrganization(organization)).toBe('Acme (Legal name: Acme GmbH, Tax ID: X1)')
+		expect(formatter.formatParty({ name: 'Acme', taxId: 'X1' })).toBe('Acme (Tax ID: X1)')
+
+		const withoutFallback = createFormatter({ locale: 'es-ES' })
+		expect(withoutFallback.safeFormatPhone(phone)).toMatchObject({ status: 'unsupported', issues: [expect.objectContaining({ code: 'missing_message', kind: 'phone' })] })
+		expect(withoutFallback.safeFormatOrganization(organization)).toMatchObject({ status: 'unsupported', issues: [expect.objectContaining({ code: 'missing_message' })] })
+	})
+
+	it('reads the messages of a locale that shares the language when the region has none', () => {
+		const formatter = createFormatter({ locale: 'de-AT' })
+		expect(formatter.formatPhone({ number: '+43123456789', extension: '12' })).toBe('+43123456789 Durchwahl 12')
+		expect(formatter.formatOrganization({ name: 'Acme', taxId: 'X1' })).toBe('Acme (Steuer-ID: X1)')
+		expect(createFormatter({ locale: 'fr-CA' }).formatPhone({ number: '+15145550100', extension: '7' })).toBe('+15145550100 poste 7')
+	})
+
+	it('infers a party identity only from members that carry a value', () => {
+		const formatter = createFormatter()
+		expect(formatter.formatParty({ firstName: 'Jane', lastName: 'Doe', taxId: undefined } as never)).toBe('Jane Doe')
+		expect(formatter.formatParty({ name: 'Acme', taxId: 'X1', firstName: null } as never)).toBe('Acme (Tax ID: X1)')
+		expect(formatter.safeFormatParty({ name: 'Jane', legalName: undefined } as never)).toMatchObject({
+			status: 'invalid',
+			issues: [expect.objectContaining({ code: 'ambiguous_identity' })],
+		})
+	})
+
+	it('refuses address, phone, and party options it cannot act on, at construction and per call', () => {
+		const formatter = createFormatter()
+		const address = { line1: '1 Main St', locality: 'Springfield', region: 'IL', postalCode: '62701', country: 'US' }
+		const badAddressOptions = [
+			{ layout: 'vertical' as never },
+			{ countryLayouts: { USA: () => 'x' } },
+			{ countryLayouts: { US: 'x' as never } },
+		]
+		for (const options of badAddressOptions) {
+			expect(() => createFormatter({ address: options })).toThrow(FormatConfigurationError)
+			expect(formatter.safeFormatAddress(address, options)).toMatchObject({
+				status: 'invalid',
+				issues: [expect.objectContaining({ code: 'invalid_options', kind: 'address' })],
+			})
+		}
+
+		for (const extensionLabel of ['', '   ']) {
+			expect(() => createFormatter({ phone: { extensionLabel } })).toThrow(/extensionLabel/)
+			expect(formatter.safeFormatPhone(phone, { extensionLabel })).toMatchObject({
+				status: 'invalid',
+				issues: [expect.objectContaining({ code: 'invalid_options', kind: 'phone' })],
+			})
+		}
+		expect(formatter.formatPhone(phone, { extensionLabel: 'x' })).toBe('+34911234567 x 12')
+
+		expect(() => createFormatter({ party: { partyType: 'robot' as never } })).toThrow(/partyType/)
+		expect(formatter.safeFormatParty({ name: 'Acme' }, { partyType: 'robot' as never })).toMatchObject({
+			status: 'invalid',
+			issues: [expect.objectContaining({ code: 'invalid_options', kind: 'party' })],
+		})
+		expect(formatter.formatParty({ name: 'Acme' }, { partyType: 'organization' })).toBe('Acme')
+	})
+})
+
+describe('@paradoc/format address layouts', () => {
+	const address = { line1: '1 Main', locality: 'Town', region: 'CA', postalCode: '12345', country: 'US' }
+	const french = { ...address, country: 'FR' }
+	const formatter = createFormatter({ address: { countryLayouts: { US: () => 'CONFIG-US' } } })
+
+	it('adds call layouts to the configured ones', () => {
+		const options = { countryLayouts: { FR: () => 'CALL-FR' } }
+		expect(formatter.formatAddress(address, options)).toBe('CONFIG-US')
+		expect(formatter.formatAddress(french, options)).toBe('CALL-FR')
+		expect(formatter.formatAddress(french)).toBe('1 Main, 12345 Town, CA, FR')
+	})
+
+	it('keeps the configured layouts when an override delegates with more', () => {
+		const delegating = formatter.withOverrides({
+			address: (value, _options, context) => context.delegate(value, { countryLayouts: { FR: () => 'DELEGATE-FR' } }),
+		})
+		expect(delegating.formatAddress(address)).toBe('CONFIG-US')
+		expect(delegating.formatAddress(french)).toBe('DELEGATE-FR')
 	})
 })
