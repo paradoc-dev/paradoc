@@ -203,9 +203,9 @@ describe('authoring validation of template expressions', () => {
     expect(validate(withFiles).issues).toBeUndefined()
     const result = await validateLayers(withFiles, { resolver })
     expect(result.issues?.map((issue) => issue.message)).toEqual([
+      expect.stringMatching(/^Layer "missing" could not be read from "missing\.txt"/),
       expect.stringMatching(/^Template error at layer "bad", line 2, column 3 .*coalesce/),
       'Template error at layer "word", word/document.xml paragraph 1 in {{fields.qty === 1}}: The === and !== operators are removed; use == and !=.',
-      expect.stringMatching(/^Layer "missing" could not be read from "missing\.txt"/),
     ])
     const valid = { ...withFiles, layers: { good: withFiles.layers.good } }
     expect((await validateLayers(valid, { resolver })).issues).toBeUndefined()

@@ -2,6 +2,7 @@ import { defaultFormatter } from '@paradoc/format'
 import type { BinaryContent, Form, FormField, Formatter, LayerFormat } from '@paradoc/types'
 import { formatFieldData, validateFieldBindings, unwrapFormattedValue } from '../text/field-formatter'
 import { getPath, pathSegments } from '../path'
+import { bindingDataPath, bindingSources } from '../layer-bindings'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
 import { PdfFontSet, type PdfFont } from './drawing-fonts'
 import { applyPdfOverlays, type PdfOverlay } from './overlay'
@@ -41,11 +42,7 @@ function assign(field: AcroField | undefined, value: unknown, model: PdfModel, f
 }
 
 function sourcePaths(bindings: Record<string, string>): string[][] {
-  return Object.values(bindings).flatMap((binding) => binding.split(',').map((part) => {
-    const path = part.trim()
-    const qualifier = path.indexOf(':')
-    return pathSegments(qualifier === -1 ? path : path.slice(0, qualifier))
-  }))
+  return Object.values(bindings).flatMap((binding) => bindingSources(binding).map((path) => pathSegments(bindingDataPath(path))))
 }
 
 /** The field definition a data path names, through fieldsets and list items. */
@@ -117,8 +114,7 @@ export async function renderPdf({
     ? formatFieldData(data, form, formatter, { choices: 'value', ...(format?.money && { money: format.money }) })
     : data
   if (form) {
-    const sources = Object.values(bindings ?? {}).flatMap((binding) =>
-      binding.split(',').map((source) => source.trim().split(':')[0]!))
+    const sources = Object.values(bindings ?? {}).flatMap(bindingSources)
     sources.push(...overlays.flatMap((overlay) => 'field' in overlay && overlay.field ? [overlay.field] : []))
     validateFieldBindings(form, Object.fromEntries(sources.map((source, index) => [String(index), source])))
   }
@@ -151,13 +147,13 @@ export async function renderPdf({
           const field = byName.get(pdfName)
           if (!field) continue
           if (binding.includes(',')) {
-            const combined = binding.split(',').map((path) => getPath(preprocessed, path.trim())).filter((value) => value !== null && value !== undefined && String(value) !== '').join(', ')
+            const combined = binding.split(',').map((path) => getPath(preprocessed, bindingDataPath(path))).filter((value) => value !== null && value !== undefined && String(value) !== '').join(', ')
             if (combined) assign(field, combined, model, fonts)
             continue
           }
           if (binding.includes(':')) {
             const separator = binding.indexOf(':')
-            const fieldName = binding.slice(0, separator)
+            const fieldName = bindingDataPath(binding.slice(0, separator))
             const qualifier = binding.slice(separator + 1)
             const value = getPath(data, fieldName)
             if (typeof value === 'boolean') assign(field, value, model, fonts)
@@ -172,7 +168,7 @@ export async function renderPdf({
             }
             continue
           }
-          assign(field, getPath(preprocessed, binding), model, fonts)
+          assign(field, getPath(preprocessed, bindingDataPath(binding)), model, fonts)
         }
       } else if (form) {
         for (const [name, definition] of Object.entries(form.fields ?? {}) as [string, FormField][]) {

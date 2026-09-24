@@ -135,6 +135,6 @@ describe('validateLayers PDF binding fit', () => {
   it('reports a PDF layer the resolver cannot read', async () => {
     const form = { ...artifact({}, {}), layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'missing.pdf' } } }
     const result = await validateLayers(form, { resolver })
-    expect(result.issues).toEqual([expect.objectContaining({ message: expect.stringMatching(/^Layer "pdf" PDF could not be read from "missing\.pdf"/) })])
+    expect(result.issues).toEqual([expect.objectContaining({ message: expect.stringMatching(/^Layer "pdf" could not be read from "missing\.pdf"/), path: ['layers', 'pdf'] })])
   })
 })

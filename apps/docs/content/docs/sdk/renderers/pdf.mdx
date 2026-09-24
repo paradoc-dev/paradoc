@@ -341,7 +341,9 @@ A value that does not fit is reduced in size, down to `MIN_FONT_SIZE` (6 points)
 
 ## Checking bindings before filling
 
-`validateLayers()`, `paradoc validate`, and the `validate_artifact` AI tool check each binding of a form's PDF layer to a text field before any data exists. The check builds values the bound field accepts and lays them out with the same code filling uses, in the font filling would choose: the layer's declared font, then the form's own font for the field, then Helvetica. A font supplied only at render time is not known to the check.
+`validate()` fails a binding whose value is not a known Paradoc path, and `validateLayers()` fails a binding whose key is not an AcroForm field in the template. Both errors name the layer and the key.
+
+`validateLayers()`, `paradoc validate`, and the `validate_artifact` AI tool also check each binding of a form's PDF layer to a text field before any data exists. The check builds values the bound field accepts and lays them out with the same code filling uses, in the font filling would choose: the layer's declared font, then the form's own font for the field, then Helvetica. A font supplied only at render time is not known to the check.
 
 A text, email, uuid, or uri field is checked at its length bound: `maxLength` characters, or the length its `pattern` bounds, whichever is shorter. A uuid field without a pattern takes its 36-character canonical form. Two values of that length are laid out:
 

@@ -155,7 +155,7 @@ export function createValidateCommand(): Command {
                 check.issues.push({
                   message: `Layer file not found: ${layer.path}`,
                   path: ['layers', layerKey, 'path'],
-                  severity: 'warning',
+                  severity: 'error',
                 })
                 layerChecks.push(check)
                 continue
@@ -180,22 +180,6 @@ export function createValidateCommand(): Command {
               }
 
               layerChecks.push(check)
-            }
-
-            // Template expressions in file-backed text and DOCX layers, and
-            // whether bound values can fill a form's PDF text fields
-            if (!options.checksumOnly) {
-              const checked = await validateLayers(parsed, { resolver: createFsResolver({ root: baseDir }) })
-              const found = [
-                ...(checked.issues ?? []).map((issue) => ({ issue, severity: 'error' as const })),
-                ...(checked.warnings ?? []).map((issue) => ({ issue, severity: 'warning' as const })),
-              ]
-              for (const { issue, severity } of found) {
-                const key = String(issue.path?.[1] ?? '')
-                const check = layerChecks.find((candidate) => candidate.key === key)
-                if (!check || check.fileExists === false) continue
-                check.issues.push({ message: issue.message, path: issue.path?.map((segment) => String(segment)) ?? ['layers', key], severity })
-              }
             }
           }
         }
@@ -227,7 +211,7 @@ export function createValidateCommand(): Command {
               check.issues.push({
                 message: `Content file not found: ${ref.path}`,
                 path: [field, 'path'],
-                severity: 'warning',
+                severity: 'error',
               })
               contentRefChecks.push(check)
               continue
@@ -252,6 +236,25 @@ export function createValidateCommand(): Command {
             }
 
             contentRefChecks.push(check)
+          }
+        }
+
+        // What the SDK's validateLayers() finds in the files: an unreadable file,
+        // template expressions, and PDF binding keys and fit. A file already
+        // reported as not found is not reported again.
+        if (!options.schemaOnly && !options.checksumOnly && hasValue && !fromStdin) {
+          const checked = await validateLayers(parsed, { resolver: createFsResolver({ root: baseDir }) })
+          const found = [
+            ...(checked.issues ?? []).map((issue) => ({ issue, severity: 'error' as const })),
+            ...(checked.warnings ?? []).map((issue) => ({ issue, severity: 'warning' as const })),
+          ]
+          for (const { issue, severity } of found) {
+            const [root, key] = (issue.path ?? []).map((segment) => String(segment))
+            const check = root === 'layers'
+              ? layerChecks.find((candidate) => candidate.key === key)
+              : contentRefChecks.find((candidate) => candidate.field === root)
+            if (!check || check.fileExists === false) continue
+            check.issues.push({ message: issue.message, path: issue.path?.map((segment) => String(segment)), severity })
           }
         }
 
@@ -415,7 +418,7 @@ function printHumanResult(context: ResultContext): void {
       if (check.fileExists === true) {
         console.log(`      file:     ${kleur.green('found')}`)
       } else if (check.fileExists === false) {
-        console.log(`      file:     ${kleur.yellow('not found')}`)
+        console.log(`      file:     ${kleur.red('not found')}`)
       }
 
       // Checksum
@@ -458,7 +461,7 @@ function printHumanResult(context: ResultContext): void {
       if (check.fileExists === true) {
         console.log(`      file:     ${kleur.green('found')}`)
       } else if (check.fileExists === false) {
-        console.log(`      file:     ${kleur.yellow('not found')}`)
+        console.log(`      file:     ${kleur.red('not found')}`)
       }
 
       // Checksum
@@ -470,6 +473,14 @@ function printHumanResult(context: ResultContext): void {
         console.log(`      checksum: ${kleur.yellow('not set')}`)
       } else if (check.fileExists === false) {
         console.log(`      checksum: ${kleur.dim('skipped (file not found)')}`)
+      }
+
+      // Read failures; file and checksum issues have their own lines above
+      for (const issue of check.issues) {
+        const subject = issue.path?.[1]
+        if (subject === 'path' || subject === 'checksum') continue
+        const line = `      ${issue.severity === 'error' ? '✗' : '⚠'} ${issue.message}`
+        console.log(issue.severity === 'error' ? kleur.red(line) : kleur.yellow(line))
       }
     }
   }

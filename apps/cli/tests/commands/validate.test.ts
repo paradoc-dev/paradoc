@@ -242,8 +242,7 @@ describe('CLI Validate Command', () => {
   })
 
   describe('validate layer checks', () => {
-    it('should warn about missing layer file', async () => {
-      // Create an artifact with a file layer pointing to nonexistent file
+    it('fails on a missing layer file', async () => {
       const artifactPath = path.join(tempDir, 'bad-layers.json')
       await fs.writeFile(artifactPath, JSON.stringify({
         $schema: PARADOC_SCHEMA_URL,
@@ -264,11 +263,16 @@ describe('CLI Validate Command', () => {
         },
       }))
 
-      const result = await executeCliCommand(['validate', artifactPath])
+      const result = await executeCliCommand(['validate', artifactPath, '--json'])
 
-      // Should pass (missing file is a warning, not error) or give useful output
-      const output = result.stdout + result.stderr
-      expect(output).toMatch(/not found|warning|valid/i)
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([{
+        message: 'Layer file not found: ./nonexistent.pdf',
+        path: ['layers', 'pdf', 'path'],
+      }])
+      const human = await executeCliCommand(['validate', artifactPath])
+      expect(human.exitCode).toBe(1)
+      expect(human.stdout).toContain('✗ Validation failed')
     })
 
     it('should report missing checksum as warning', async () => {
@@ -373,6 +377,109 @@ describe('CLI Validate Command', () => {
       const human = await executeCliCommand(['validate', formPath])
       expect(human.exitCode).toBe(0)
       expect(human.stdout).toContain('fields.amountSource has no maxLength or pattern')
+    })
+  })
+
+  describe('instruction files', () => {
+    const write = async (instructions: Record<string, unknown>) => {
+      const formPath = path.join(tempDir, 'guided.json')
+      await fs.writeFile(path.join(tempDir, 'guide.md'), 'Fill it in.')
+      await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
+        kind: 'form',
+        name: 'guided',
+        fields: { name: { type: 'text', label: 'Name' } },
+        ...instructions,
+      }))
+      return formPath
+    }
+
+    it('fails on a missing instructions file', async () => {
+      const result = await executeCliCommand(['validate', await write({ instructions: { kind: 'file', mimeType: 'text/markdown', path: 'missing.md' } }), '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([{ message: 'Content file not found: missing.md', path: ['instructions', 'path'] }])
+    })
+
+    it('fails on a missing agentInstructions file', async () => {
+      const result = await executeCliCommand(['validate', await write({ agentInstructions: { kind: 'file', mimeType: 'text/markdown', path: 'missing.md' } }), '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([{ message: 'Content file not found: missing.md', path: ['agentInstructions', 'path'] }])
+    })
+
+    it('fails on an instructions path that exists but cannot be read, as validateLayers does', async () => {
+      await fs.mkdir(path.join(tempDir, 'guide-dir'))
+      const formPath = await write({ instructions: { kind: 'file', mimeType: 'text/markdown', path: 'guide-dir' } })
+      const result = await executeCliCommand(['validate', formPath, '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toContainEqual(expect.objectContaining({
+        message: expect.stringMatching(/^instructions could not be read from "guide-dir"/),
+        path: ['instructions'],
+      }))
+      const human = await executeCliCommand(['validate', formPath])
+      expect(human.exitCode).toBe(1)
+      expect(human.stdout).toContain('instructions could not be read from "guide-dir"')
+    })
+
+    it('passes a readable instructions file', async () => {
+      const result = await executeCliCommand(['validate', await write({ instructions: { kind: 'file', mimeType: 'text/markdown', path: 'guide.md' } }), '--json'])
+      expect(result.exitCode).toBe(0)
+      expect(JSON.parse(result.stdout).errors).toEqual([])
+    })
+  })
+
+  describe('PDF bindings', () => {
+    /** Writes a form over the real pet addendum PDF, whose fields are name, weight, species and hasVaccination. */
+    const write = async (bindings: Record<string, string>) => {
+      const formPath = path.join(tempDir, 'pet.json')
+      await fs.copyFile(path.join(fixturesDir, 'pet-addendum.pdf'), path.join(tempDir, 'pet.pdf'))
+      await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
+        kind: 'form',
+        name: 'pet',
+        fields: {
+          petName: { type: 'text', label: 'Pet name', maxLength: 10 },
+          petWeight: { type: 'number', label: 'Weight', min: 0, max: 100 },
+        },
+        layers: { pdf: { kind: 'file', mimeType: 'application/pdf', path: 'pet.pdf', bindings } },
+      }))
+      return formPath
+    }
+
+    it('passes a correct PDF layer', async () => {
+      const result = await executeCliCommand(['validate', await write({ name: 'petName', weight: 'fields.petWeight' }), '--json'])
+      expect(result.exitCode).toBe(0)
+      expect(JSON.parse(result.stdout).errors).toEqual([])
+    })
+
+    it('fails inverted bindings, naming the key', async () => {
+      const result = await executeCliCommand(['validate', await write({ petName: 'name' }), '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([expect.objectContaining({
+        message: expect.stringMatching(/^Layer "pdf", binding "petName": "name" is not a known Paradoc path.*The key "petName" is a field of this artifact/),
+        path: ['layers', 'pdf', 'bindings', 'petName'],
+      })])
+    })
+
+    it('fails an unknown value path, naming the key', async () => {
+      const result = await executeCliCommand(['validate', await write({ name: 'petName', weight: 'petHeight' }), '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([expect.objectContaining({
+        message: expect.stringMatching(/^Layer "pdf", binding "weight": "petHeight" is not a known Paradoc path/),
+        path: ['layers', 'pdf', 'bindings', 'weight'],
+      })])
+    })
+
+    it('fails a key that is not an AcroForm field, naming the key', async () => {
+      const formPath = await write({ name: 'petName', pet_weight: 'petWeight' })
+      const result = await executeCliCommand(['validate', formPath, '--json'])
+      expect(result.exitCode).toBe(1)
+      expect(JSON.parse(result.stdout).errors).toEqual([expect.objectContaining({
+        message: expect.stringMatching(/^Layer "pdf", binding "pet_weight": "pet_weight" is not an AcroForm field in "pet\.pdf"/),
+        path: ['layers', 'pdf', 'bindings', 'pet_weight'],
+      })])
+      const human = await executeCliCommand(['validate', formPath])
+      expect(human.exitCode).toBe(1)
+      expect(human.stdout).toContain('"pet_weight" is not an AcroForm field')
     })
   })
 })

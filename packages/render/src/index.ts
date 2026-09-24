@@ -12,7 +12,7 @@ import type { TextSignatureOptions } from './text/signatures'
 import type { TemplateExpressionOptions } from './template/context'
 
 export type { PdfFont } from './pdf/drawing-fonts'
-export { resolveLayerBindings, type LayerBindingsSpec } from './layer-bindings'
+export { bindingSources, resolveLayerBindings, type LayerBindingsSpec } from './layer-bindings'
 
 /** Options shared by the MIME-selected rendering engines. */
 export interface RenderLayerOptions {

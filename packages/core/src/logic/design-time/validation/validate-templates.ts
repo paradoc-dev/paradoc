@@ -87,7 +87,7 @@ export function validateInlineTemplates(artifact: TemplateArtifact): StandardSch
 /**
  * Check the template expressions of every file-backed text and DOCX layer,
  * reading each through the resolver. A layer the resolver cannot read is
- * reported as an issue naming its path.
+ * skipped: `validateLayers()` reports every unreadable file once.
  */
 export async function validateFileTemplates(artifact: TemplateArtifact, resolver: Resolver): Promise<StandardSchemaV1.Issue[]> {
   const layers = Object.entries(artifact.layers ?? {}).filter(([, layer]) =>
@@ -100,8 +100,7 @@ export async function validateFileTemplates(artifact: TemplateArtifact, resolver
     let bytes: Uint8Array
     try {
       bytes = await resolver.read(path)
-    } catch (error) {
-      issues.push({ message: `Layer "${key}" could not be read from "${path}": ${error instanceof Error ? error.message : String(error)}`, path: ['layers', key] })
+    } catch {
       continue
     }
     const diagnostics = isTextLayer(layer)

@@ -155,8 +155,8 @@ A `not_recoverable` or `unparseable` entry you did not plan for is a binding bug
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `render` fails with `Unknown field path "<PDF name>"` | Bindings are inverted. | Keys are PDF names, values are Paradoc paths. |
-| A bound PDF field stays blank, extract reports `empty` | The binding value starts with `fields.`. | Write the bare field id (`businessName`). |
+| `validate` fails with `binding "<key>": "<PDF name>" is not a known Paradoc path` | Bindings are inverted. | Keys are PDF names, values are Paradoc paths. |
+| `validate` fails with `binding "<key>": "<key>" is not an AcroForm field` | The key is not a PDF field name. | Use the full name `inspectAcroFormFields` lists. |
 | `fields.x.enum: Invalid input: expected array, received undefined` | An enum was scaffolded with `--field x:enum`. | Add the `enum` options list. |
 | `Cannot format parties.x (party, invalid): Party identity is ambiguous` | An `any` party in the sample has only `name`. | Add `firstName` and `lastName` for a person, or `legalName` for an organization. |
 | `Resolver path "../x.pdf" resolves outside the configured root` | A file sits outside the artifact's directory. | Move it next to the artifact. |

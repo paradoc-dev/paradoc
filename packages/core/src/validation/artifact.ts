@@ -8,7 +8,9 @@ import {
 } from '@/logic/design-time/validation/validate-templates'
 import { parse } from '@/serialization/serialization'
 import { findSchemaVersionError } from '@/serialization/schema-version'
-import { validatePdfBindingFit, type LayerValidationIssue } from './pdf-fit'
+import { validatePdfLayers, type LayerValidationIssue } from './pdf-layers'
+import { validatePdfBindingPaths } from './pdf-bindings'
+import { validateFileReferences } from './file-references'
 import {
   validateForm,
   validateDocument,
@@ -18,7 +20,7 @@ import {
 
 // Re-export ValidateOptions from centralized types.ts
 export type { ValidateOptions } from '@/types'
-export type { LayerValidationIssue } from './pdf-fit'
+export type { LayerValidationIssue } from './pdf-layers'
 
 // Import for internal use
 import type { ValidateOptions } from '@/types'
@@ -236,6 +238,15 @@ export function validate<T = unknown>(
     }
   }
 
+  // Step 4: PDF binding values name paths the form declares (with logic validation)
+  if (logic && allIssues.length === 0 && hasTemplateLayers(artifact) && artifact.kind === 'form') {
+    const bindingIssues = validatePdfBindingPaths(artifact as unknown as Form)
+    if (bindingIssues.length > 0) {
+      if (!collectAllErrors) return { issues: bindingIssues.slice(0, 1) }
+      allIssues.push(...bindingIssues)
+    }
+  }
+
   if (allIssues.length > 0) {
     return { issues: allIssues }
   }
@@ -266,11 +277,30 @@ export type ValidateLayersResult<T> = StandardSchemaV1.Result<T> & {
   readonly warnings?: readonly LayerValidationIssue[]
 }
 
+/** A resolver that reads each path once, so the checks that share a file share one read. */
+function readOnce(resolver: Resolver): Resolver {
+  const reads = new Map<string, Promise<Uint8Array>>()
+  return {
+    read(path) {
+      let read = reads.get(path)
+      if (!read) {
+        read = resolver.read(path)
+        reads.set(path, read)
+      }
+      return read
+    },
+  }
+}
+
 /**
- * Validate an artifact and its file-backed layers. `validate()` checks inline
- * layers; this also reads each file-backed layer through the resolver:
+ * Validate an artifact and the files it refers to. `validate()` checks inline
+ * layers; this also reads each file through the resolver, and a file that
+ * cannot be read is an error:
+ * - every file-backed layer except a React layer, whose path names a module;
+ * - the `instructions` and `agentInstructions` files;
  * - the template expressions of each text and DOCX layer;
- * - for a form, that every value a PDF layer binding accepts can fill its PDF
+ * - for a form, that every key of a PDF layer's bindings is an AcroForm field
+ *   of its template, and that every value a binding accepts can fill its PDF
  *   text field: it fits the box at the minimum font size, and has no more
  *   characters than a comb field has boxes. A bound text field with nothing
  *   bounding its length is a warning.
@@ -287,11 +317,13 @@ export async function validateLayers<T = unknown>(
 ): Promise<ValidateLayersResult<T>> {
   const { resolver, ...validateOptions } = options
   const result = validate<T>(artifact, validateOptions)
-  if (result.issues || !hasTemplateLayers(artifact)) return result
-  const templateIssues = validateOptions.logic === false ? [] : await validateFileTemplates(artifact, resolver)
-  const fit = artifact.kind === 'form' ? await validatePdfBindingFit(artifact as unknown as Form, resolver) : []
-  const errors = [...templateIssues, ...fit.filter((issue) => issue.severity === 'error')]
-  const warnings = fit.filter((issue) => issue.severity === 'warning')
+  if (result.issues) return result
+  const reader = readOnce(resolver)
+  const fileIssues = await validateFileReferences(artifact, reader)
+  const templateIssues = validateOptions.logic === false || !hasTemplateLayers(artifact) ? [] : await validateFileTemplates(artifact, reader)
+  const pdf = hasTemplateLayers(artifact) && artifact.kind === 'form' ? await validatePdfLayers(artifact as unknown as Form, reader) : []
+  const errors = [...fileIssues, ...templateIssues, ...pdf.filter((issue) => issue.severity === 'error')]
+  const warnings = pdf.filter((issue) => issue.severity === 'warning')
   const outcome: StandardSchemaV1.Result<T> = errors.length > 0 ? { issues: errors } : result
   return warnings.length > 0 ? { ...outcome, warnings } : outcome
 }
