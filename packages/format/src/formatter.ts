@@ -87,7 +87,7 @@ import {
 	type SelectionFormatKind,
 	type SelectionListStyle,
 	type SelectionListType,
-	type SelectionOptionValue,
+	type EnumOptionValue,
 	type Signature,
 } from './types'
 
@@ -801,9 +801,9 @@ class FormatterImpl implements Formatter {
 			case 'boolean':
 				return formatBooleanValue(parsed as boolean, options, this.selectionContext(policy))
 			case 'enum':
-				return formatEnumValue(parsed as SelectionOptionValue, options)
+				return formatEnumValue(parsed as EnumOptionValue, options)
 			case 'multiselect':
-				return formatMultiselectValue(parsed as readonly SelectionOptionValue[], options, this.selectionContext(policy))
+				return formatMultiselectValue(parsed as readonly EnumOptionValue[], options, this.selectionContext(policy))
 			case 'rating':
 				return formatRatingValue(parsed as number, options, this.selectionContext(policy))
 		}

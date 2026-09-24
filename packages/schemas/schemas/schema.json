@@ -155,31 +155,8 @@
           "description": "Artifact release date"
         },
         "metadata": {
-          "type": "object",
-          "propertyNames": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
-          },
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata",
+          "$ref": "#/$defs/Metadata"
         },
         "instructions": {
           "oneOf": [
@@ -509,31 +486,8 @@
           "description": "Artifact release date"
         },
         "metadata": {
-          "type": "object",
-          "propertyNames": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
-          },
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata",
+          "$ref": "#/$defs/Metadata"
         },
         "instructions": {
           "oneOf": [
@@ -770,31 +724,8 @@
           "description": "Artifact release date"
         },
         "metadata": {
-          "type": "object",
-          "propertyNames": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
-          },
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata",
+          "$ref": "#/$defs/Metadata"
         },
         "instructions": {
           "oneOf": [
@@ -1022,31 +953,8 @@
           "description": "Artifact release date"
         },
         "metadata": {
-          "type": "object",
-          "propertyNames": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "pattern": "^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$"
-          },
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": "Custom key-value pairs for storing domain-specific or organizational metadata"
+          "description": "Custom key-value pairs for storing domain-specific or organizational metadata",
+          "$ref": "#/$defs/Metadata"
         },
         "instructions": {
           "oneOf": [

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MetadataSchema } from '../../primitives/metadata';
 import { ARTIFACT_NAME_PATTERN } from '../../primitives/name';
 import { ARTIFACT_VERSION_PATTERN } from '../../primitives/version';
 import { ContentRefSchema } from './content-ref';
@@ -42,18 +43,8 @@ export const ArtifactSchema = z.object({
 	releaseDate: z.iso.date()
 		.describe('Artifact release date')
 		.optional(),
-	metadata: z.record(
-		z.string()
-			.min(1)
-			.max(100)
-			.regex(/^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$/),
-		z.union([
-			z.string().max(500),
-			z.number(),
-			z.boolean(),
-			z.null(),
-		]),
-	).describe('Custom key-value pairs for storing domain-specific or organizational metadata')
+	metadata: MetadataSchema
+		.describe('Custom key-value pairs for storing domain-specific or organizational metadata')
 		.optional(),
 	instructions: ContentRefSchema
 		.describe('Domain or compliance reference content (e.g., IRS instructions, regulatory guidance)')

@@ -3,7 +3,7 @@
  * These types are used when forms are filled with data, not when defining form schemas.
  */
 
-import type { Person, Organization, Attachment, Signature } from "../schemas/primitives";
+import type { Person, Organization, Attachment, Signature, SignatureMethod } from "../schemas/primitives";
 import type { SigningField } from "./signing.js";
 
 /**
@@ -53,7 +53,7 @@ export interface AdoptedSignature {
 	/** Base64-encoded signature image or data URI. */
 	image?: string;
 	/** Method used to create this signature. */
-	method: 'drawn' | 'typed' | 'uploaded' | 'certificate';
+	method: SignatureMethod;
 }
 
 /**
@@ -113,7 +113,7 @@ export interface SignatureCapture {
 	/** For 'capacity' / 'printed_name': captured text value typed at signing time. */
 	text?: string;
 	/** Capture method (typically 'typed' for capacity/printed_name; 'drawn' / 'uploaded' / 'certificate' for glyph captures). */
-	method?: 'drawn' | 'typed' | 'uploaded' | 'certificate';
+	method?: SignatureMethod;
 }
 
 /**
@@ -315,7 +315,7 @@ export interface DraftFormJSON<F = unknown> {
 	/** Party data keyed by role identifier. */
 	parties: Record<string, RuntimeParty | RuntimeParty[]>;
 	/** Annex data keyed by annex identifier. */
-	annexes: Record<string, unknown>;
+	annexes: Record<string, Attachment>;
 	/** Global registry of signers with their adopted signatures. */
 	signers: Record<string, Signer>;
 	/** Maps parties to their signatories. Structure: role → partyId → signatories. */
@@ -345,7 +345,7 @@ export interface SignableFormJSON<F = unknown> {
 	/** Party data keyed by role identifier (frozen). */
 	parties: Record<string, RuntimeParty | RuntimeParty[]>;
 	/** Annex data keyed by annex identifier (frozen). */
-	annexes: Record<string, unknown>;
+	annexes: Record<string, Attachment>;
 	/** Global registry of signers with their adopted signatures (frozen). */
 	signers: Record<string, Signer>;
 	/** Maps parties to their signatories (frozen). */
@@ -388,7 +388,7 @@ export interface ExecutedFormJSON<F = unknown> {
 	/** Party data keyed by role identifier (frozen). */
 	parties: Record<string, RuntimeParty | RuntimeParty[]>;
 	/** Annex data keyed by annex identifier (frozen). */
-	annexes: Record<string, unknown>;
+	annexes: Record<string, Attachment>;
 	/** Global registry of signers with their adopted signatures (frozen). */
 	signers: Record<string, Signer>;
 	/** Maps parties to their signatories (frozen). */

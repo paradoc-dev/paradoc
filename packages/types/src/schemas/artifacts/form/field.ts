@@ -14,6 +14,7 @@ import type {
   Identification,
 } from "../../primitives";
 import type { ListField } from "./list";
+import type { CondExpr } from "../shared/expressions/cond-expr";
 
 // ============================================================================
 // Base Field Properties
@@ -27,9 +28,9 @@ export interface BaseField {
   /** Human-readable label for the field. */
   label?: string;
   /** Whether this field is required. Can be a boolean or expression. */
-  required?: boolean | string;
+  required?: CondExpr;
   /** Whether this field is visible. Can be a boolean or expression. Defaults to true. */
-  visible?: boolean | string;
+  visible?: CondExpr;
   /** Long-form description or helper text displayed in the UI. */
   description?: string;
 }

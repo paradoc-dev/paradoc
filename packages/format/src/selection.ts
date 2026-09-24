@@ -11,8 +11,8 @@ import type {
 	SelectionListStyle,
 	SelectionListType,
 	SelectionFormatKind,
-	SelectionOption,
-	SelectionOptionValue,
+	EnumOption,
+	EnumOptionValue,
 } from './types'
 
 /** Any one kind's selection options, as `validateSelectionOptions` receives them. */
@@ -47,7 +47,7 @@ export interface SelectionFormattingContext extends MessageContext {
 	 * override reaches a multiselect's labels the way a `person` override
 	 * reaches a person party.
 	 */
-	readonly formatEnum: (value: SelectionOptionValue, options: EnumFormatOptions) => string
+	readonly formatEnum: (value: EnumOptionValue, options: EnumFormatOptions) => string
 	/** Returns the locale's list joiner, or `undefined` when the runtime has none for it. */
 	readonly listFormat: (type: SelectionListType, style: SelectionListStyle) => Intl.ListFormat | undefined
 }
@@ -81,7 +81,7 @@ const LIST_STYLES: readonly SelectionListStyle[] = ['long', 'short', 'narrow']
 const UNKNOWN_OPTION_POLICIES = ['error', 'value'] as const
 const RATING_DISPLAYS = ['scale', 'value'] as const
 
-function isOptionValue(value: unknown): value is SelectionOptionValue {
+function isOptionValue(value: unknown): value is EnumOptionValue {
 	return typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value))
 }
 
@@ -95,7 +95,7 @@ export function validateBoolean(value: unknown): Validation<boolean> {
 	return { ok: true, value }
 }
 
-export function validateEnumValue(value: unknown): Validation<SelectionOptionValue> {
+export function validateEnumValue(value: unknown): Validation<EnumOptionValue> {
 	if (isMissing(value)) {
 		return { ok: false, status: 'missing', issues: [issue('enum', 'missing_value', 'Enum value is missing.')] }
 	}
@@ -105,7 +105,7 @@ export function validateEnumValue(value: unknown): Validation<SelectionOptionVal
 	return { ok: true, value }
 }
 
-export function validateMultiselectValue(value: unknown): Validation<readonly SelectionOptionValue[]> {
+export function validateMultiselectValue(value: unknown): Validation<readonly EnumOptionValue[]> {
 	if (isMissing(value)) {
 		return { ok: false, status: 'missing', issues: [issue('multiselect', 'missing_value', 'Multiselect value is missing.')] }
 	}
@@ -119,7 +119,7 @@ export function validateMultiselectValue(value: unknown): Validation<readonly Se
 		}
 	})
 	if (issues.length > 0) return { ok: false, status: 'invalid', issues }
-	return { ok: true, value: value as readonly SelectionOptionValue[] }
+	return { ok: true, value: value as readonly EnumOptionValue[] }
 }
 
 export function validateRating(value: unknown): Validation<number> {
@@ -143,7 +143,7 @@ function validateOptionList(kind: 'enum' | 'multiselect', options: EnumFormatOpt
 	if (options.options !== undefined) {
 		if (!Array.isArray(options.options)) throw new Error(`The ${kind} options must be an array of declared options.`)
 		for (const option of options.options) {
-			if (option === null || typeof option !== 'object' || !isOptionValue((option as SelectionOption).value)) {
+			if (option === null || typeof option !== 'object' || !isOptionValue((option as EnumOption).value)) {
 				throw new Error(`Every ${kind} option must declare a string or finite number value.`)
 			}
 		}
@@ -196,7 +196,7 @@ export function formatBooleanValue(
  * hides an artifact whose data and declaration have drifted apart.
  */
 export function formatEnumValue(
-	value: SelectionOptionValue,
+	value: EnumOptionValue,
 	options: EnumFormatOptions,
 	kind: 'enum' | 'multiselect' = 'enum',
 ): string {
@@ -211,7 +211,7 @@ export function formatEnumValue(
 }
 
 export function formatMultiselectValue(
-	value: readonly SelectionOptionValue[],
+	value: readonly EnumOptionValue[],
 	options: MultiselectFormatOptions,
 	context: SelectionFormattingContext,
 ): string {

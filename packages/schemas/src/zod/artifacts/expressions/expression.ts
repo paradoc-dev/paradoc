@@ -271,7 +271,3 @@ export const OBJECT_EXPRESSION_TYPES = [
 
 /** All supported expression types */
 export const ALL_EXPRESSION_TYPES = [...SCALAR_EXPRESSION_TYPES, ...OBJECT_EXPRESSION_TYPES] as const;
-
-export type ScalarExpressionType = (typeof SCALAR_EXPRESSION_TYPES)[number];
-export type ObjectExpressionType = (typeof OBJECT_EXPRESSION_TYPES)[number];
-export type ExpressionType = (typeof ALL_EXPRESSION_TYPES)[number];

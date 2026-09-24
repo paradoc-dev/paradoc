@@ -18,6 +18,7 @@ export type {
   Identification,
   Metadata,
   Signature,
+  SignatureMethod,
   Attachment,
 } from "./primitives";
 

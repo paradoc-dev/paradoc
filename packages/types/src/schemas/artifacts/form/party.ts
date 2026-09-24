@@ -3,6 +3,7 @@
  */
 
 import type { Money } from "../../primitives";
+import type { CondExpr } from "../shared/expressions/cond-expr";
 import type { MoneyExpression } from "../shared/expressions/expression";
 
 export interface FormSignature {
@@ -58,7 +59,7 @@ export interface FormParty {
   /** Maximum parties allowed. Defaults to 1. */
   max?: number;
   /** Whether this role is required. Can be boolean or expression. */
-  required?: boolean | string;
+  required?: CondExpr;
   /** Signature requirements for this role. */
   signature?: FormSignature;
   /** Payment requirement for this role. */

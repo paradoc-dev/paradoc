@@ -9,9 +9,10 @@ import { BundleContentItemSchema } from './item';
 export { BundleContentItemSchema } from './item';
 
 /**
- * Bundle artifact — a recursive container for content artifacts.
+ * Bundle object schema, before the recursive annotation. Its output resolves
+ * nested bundles to `Bundle`, so the parity test compares it one level down.
  */
-export const BundleSchema: z.ZodType<Bundle> = ArtifactSchema.extend({
+export const BundleObjectSchema = ArtifactSchema.extend({
 	kind: z.literal('bundle'),
 	defs: DefsSectionSchema.optional(),
 	contents: z.array(z.lazy(() => BundleContentItemSchema))
@@ -28,3 +29,8 @@ export const BundleSchema: z.ZodType<Bundle> = ArtifactSchema.extend({
 	title: 'Bundle',
 	description: 'A bundle artifact that groups together related artifacts into a single distributable unit. Bundles can contain documents, forms, checklists, and other bundles.',
 });
+
+/**
+ * Bundle artifact — a recursive container for content artifacts.
+ */
+export const BundleSchema: z.ZodType<Bundle> = BundleObjectSchema;

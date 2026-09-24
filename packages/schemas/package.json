@@ -67,12 +67,12 @@
     "export:all": "pnpm export:bundled-schema && pnpm export:individual-schemas && pnpm export:manifest && pnpm export:registry"
   },
   "dependencies": {
+    "@paradoc/types": "workspace:*",
     "safe-regex": "^2.1.1",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
-    "@paradoc/types": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/safe-regex": "^1.1.6",

@@ -532,7 +532,7 @@ export class FormRuleViolationError extends Error {
 interface CompleteFormData {
 	fields: Record<string, unknown>
 	parties: Record<string, RuntimeParty | RuntimeParty[]>
-	annexes: Record<string, unknown>
+	annexes: Record<string, Attachment>
 }
 
 /**
@@ -896,7 +896,7 @@ interface RuntimeFormBase<F extends Form> {
 	readonly context: RuntimeContext
 
 	/** Annex data indexed by annex ID */
-	readonly annexes: Record<string, unknown>
+	readonly annexes: Record<string, Attachment>
 
 	/** Global registry of signers */
 	readonly signers: Record<string, Signer>
@@ -1256,7 +1256,7 @@ interface RuntimeFormConfigBase<F extends Form> {
 	form: F
 	fields: Record<string, unknown>
 	parties: Record<string, RuntimeParty | RuntimeParty[]>
-	annexes: Record<string, unknown>
+	annexes: Record<string, Attachment>
 	signers: Record<string, Signer>
 	signatories: Record<string, Record<string, PartySignatory[]>>
 	targetLayer: string
@@ -2964,7 +2964,7 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			if (!defaultedFields.success) throw new FormValidationError(defaultedFields.errors)
 			let validatedFields = (defaultedFields.data as { fields?: Record<string, unknown> }).fields ?? {}
 			let validatedParties: Record<string, RuntimeParty | RuntimeParty[]> = {}
-			let validatedAnnexes: Record<string, unknown> = {}
+			let validatedAnnexes: Record<string, Attachment> = {}
 			if (Object.keys(parties as Record<string, unknown>).length > 0) {
 				const partyResult = validateProgressivePartiesPatch(formDef, parties)
 				if (!partyResult.success) throw new FormValidationError(partyResult.errors)

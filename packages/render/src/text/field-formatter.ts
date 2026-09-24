@@ -3,8 +3,8 @@ import type {
 	FormatResult,
 	Formatter,
 	FormatterProgressivePolicy,
-	SelectionOption,
-	SelectionOptionValue,
+	EnumOption,
+	EnumOptionValue,
 	Form,
 	FormField,
 	FormAnnex,
@@ -232,12 +232,12 @@ function booleanInput(value: unknown, path: string, fieldType: string): boolean 
 	throw formatIssue(path, fieldType, 'invalid_value', 'Expected a boolean value.')
 }
 
-function optionInput(value: unknown, path: string, fieldType: string): SelectionOptionValue {
+function optionInput(value: unknown, path: string, fieldType: string): EnumOptionValue {
 	if (typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value))) return value
 	throw formatIssue(path, fieldType, 'invalid_value', `Expected a string or number ${fieldType} value.`)
 }
 
-function optionListInput(value: unknown, path: string, fieldType: string): readonly SelectionOptionValue[] {
+function optionListInput(value: unknown, path: string, fieldType: string): readonly EnumOptionValue[] {
 	if (!Array.isArray(value)) throw formatIssue(path, fieldType, 'invalid_value', `Expected an array of ${fieldType} values.`)
 	return value.map((entry) => optionInput(entry, path, fieldType))
 }
@@ -249,8 +249,8 @@ function optionListInput(value: unknown, path: string, fieldType: string): reado
  */
 function commaJoinedLabels(
 	formatter: Formatter,
-	values: readonly SelectionOptionValue[],
-	options: readonly SelectionOption[],
+	values: readonly EnumOptionValue[],
+	options: readonly EnumOption[],
 ): FormatResult {
 	const labels: string[] = []
 	for (const value of values) {

@@ -11,6 +11,7 @@ import type {
 	Phone,
 	Signature,
 } from '../schemas/primitives'
+import type { EnumOption, EnumOptionValue } from '../schemas/artifacts/form/field'
 import type { Party } from '../runtime'
 
 /** Value families understood by the public formatter contract. */
@@ -135,17 +136,6 @@ export type AttachmentFormatOptions = Record<string, never>
 /** Options for signature presentation, including nested capture-date formatting. */
 export type SignatureFormatOptions = DateFormatOptions
 
-/** The stored value one selectable option is chosen by. */
-export type SelectionOptionValue = string | number
-
-/** One selectable option, as an artifact's field declares it. */
-export interface SelectionOption {
-	/** The stored value this option is selected by. */
-	readonly value: SelectionOptionValue
-	/** Human-readable label in the artifact's source language. */
-	readonly label?: string
-}
-
 /** What to do with a value no declared option matches. */
 export type UnknownOptionPolicy = 'error' | 'value'
 
@@ -160,7 +150,7 @@ export interface BooleanFormatOptions {
 /** Options for single-choice presentation. */
 export interface EnumFormatOptions {
 	/** The declared options whose labels present the value. */
-	options?: readonly SelectionOption[]
+	options?: readonly EnumOption[]
 	/** Print a value no option declares as itself, or refuse it. @default 'error' */
 	unknownOption?: UnknownOptionPolicy
 }
@@ -233,8 +223,8 @@ export type FormatInputByKind = {
 	datetime: string | Date | null | undefined
 	time: string | null | undefined
 	boolean: boolean | null | undefined
-	enum: SelectionOptionValue | null | undefined
-	multiselect: readonly SelectionOptionValue[] | null | undefined
+	enum: EnumOptionValue | null | undefined
+	multiselect: readonly EnumOptionValue[] | null | undefined
 	rating: number | null | undefined
 }
 
@@ -338,8 +328,8 @@ export type CaptureValueByKind = {
 
 export type SelectionValueByKind = {
 	boolean: boolean
-	enum: SelectionOptionValue
-	multiselect: readonly SelectionOptionValue[]
+	enum: EnumOptionValue
+	multiselect: readonly EnumOptionValue[]
 	rating: number
 }
 

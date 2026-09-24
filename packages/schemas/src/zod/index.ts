@@ -93,12 +93,6 @@ export {
 	ALL_EXPRESSION_TYPES,
 } from './artifacts/expressions';
 
-export type {
-	ScalarExpressionType,
-	ObjectExpressionType,
-	ExpressionType,
-} from './artifacts/expressions';
-
 // Rules (form-level validation)
 export {
 	ValidationRuleSchema,

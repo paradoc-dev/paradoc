@@ -366,6 +366,9 @@ export interface Attachment {
 	checksum?: string;
 }
 
+/** How a signature or initials image was captured. */
+export type SignatureMethod = 'drawn' | 'typed' | 'uploaded' | 'certificate';
+
 /**
  * Signature
  *
@@ -393,7 +396,7 @@ export interface Signature {
 	 */
 	timestamp: string;
 	/** Method used to capture the signature. */
-	method: 'drawn' | 'typed' | 'uploaded' | 'certificate';
+	method: SignatureMethod;
 	/**
 	 * Whether this is a full signature or initials.
 	 * @default "signature"

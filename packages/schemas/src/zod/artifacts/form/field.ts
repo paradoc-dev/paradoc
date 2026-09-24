@@ -292,7 +292,7 @@ const RatingFieldSchema = BaseFieldSchema.extend({
 });
 
 // FieldsetFieldSchema - a field that contains nested fields (recursive)
-const FieldsetFieldObjectSchema = BaseFieldSchema.extend({
+export const FieldsetFieldObjectSchema = BaseFieldSchema.extend({
 	type: z.literal('fieldset'),
 	fields: z.lazy(() => z.record(
 		z.string().min(1).max(100).regex(/^[a-z][a-zA-Z0-9_]*$/).describe('Nested field identifier (camelCase, starts with lowercase letter)'),
@@ -308,7 +308,7 @@ export const FieldsetFieldSchema: z.ZodType<FieldsetField> = FieldsetFieldObject
 
 // The schemas that make up the field union, in one place, so the union and the
 // list of valid `type` values below can never drift apart.
-const FIELD_SCHEMAS = [
+export const FIELD_SCHEMAS = [
 	TextFieldSchema,
 	BooleanFieldSchema,
 	NumberFieldSchema,
