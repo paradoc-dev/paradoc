@@ -4,7 +4,7 @@
  * Handles parsing artifact references and resolving registry URLs.
  */
 
-import { configManager } from './config.js'
+import { configManager, normalizeNamespace } from './config.js'
 import type { ArtifactRef, ResolvedRegistry } from '../types.js'
 
 // Pattern for validating artifact references: @namespace/artifact-name
@@ -134,7 +134,7 @@ export function isValidArtifactRef(ref: string): boolean {
  * @returns Resolved registry configuration
  */
 export async function resolveRegistry(namespace: string): Promise<ResolvedRegistry> {
-  const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+  const normalizedNamespace = normalizeNamespace(namespace)
   const baseUrl = await configManager.getRegistryUrl(normalizedNamespace)
   const headers = await configManager.getRegistryHeaders(normalizedNamespace)
 

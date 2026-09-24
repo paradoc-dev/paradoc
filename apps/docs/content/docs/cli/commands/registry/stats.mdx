@@ -1,23 +1,19 @@
 ---
 title: registry stats
-description: Show registry statistics
+description: Show statistics for a local registry.json
 ogTitle: paradoc registry stats
-ogDescription: View statistics and telemetry data for an Paradoc registry
+ogDescription: View statistics for a local Paradoc registry.json
 ---
 
-Show registry statistics and telemetry data.
+Show statistics for a local `registry.json`.
 
 ## Usage
 
 ```bash
-paradoc registry stats [namespace] [options]
+paradoc registry stats [options]
 ```
 
-## Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `namespace` | Registry namespace (optional; uses local registry.json if not specified) |
+The command takes no arguments. It reads a local file only; for a remote registry, use [registry info](/cli/commands/registry/info).
 
 ## Options
 

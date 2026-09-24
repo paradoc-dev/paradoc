@@ -160,12 +160,18 @@ describe('CLI cache command', () => {
       expect(result.exitCode).toBe(1)
     })
 
-    it('should report no entry for a non-existent namespace', async () => {
-      const result = await executeCliCommand(['cache', 'invalidate', '@nonexistent'])
+    it('reports no entry for the built-in @paradoc registry when nothing is cached', async () => {
+      const result = await executeCliCommand(['cache', 'invalidate', '@paradoc'])
 
       expect(result.exitCode).toBe(0)
-      const output = result.stdout + result.stderr
-      expect(output).toContain('No cache entry found')
+      expect(result.stdout + result.stderr).toContain('No cache entry found for @paradoc')
+    })
+
+    it('fails for an unconfigured namespace, naming the add command', async () => {
+      const result = await executeCliCommand(['cache', 'invalidate', '@nonexistent'])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('No registry is configured for @nonexistent. Run: paradoc registry add @nonexistent <url>')
     })
   })
 })

@@ -23,7 +23,7 @@ paradoc search [query] [options]
 
 | Option | Description |
 |--------|-------------|
-| `--registry <namespace>` | Registry namespace to search (default: @paradoc) |
+| `--registry <namespace>` | Registry namespace to search (default: `@paradoc`) |
 | `--kind <kind>` | Filter by artifact kind: `form`, `document`, `checklist`, `bundle` |
 | `--tags <tags>` | Filter by tags (comma-separated) |
 | `--json` | Output as JSON |
@@ -31,6 +31,8 @@ paradoc search [query] [options]
 ## Description
 
 The `search` command queries a registry's index to find matching artifacts. You can filter results by kind, tags, or a text query that matches against artifact names, titles, and descriptions.
+
+Without `--registry`, it searches the built-in `@paradoc` registry at `https://registry.paradoc.dev`, which needs no configuration. When the registry host cannot be reached, the command fails and names it. Any other namespace must be configured first with [`paradoc registry add`](/cli/commands/registry/add); an unconfigured one fails and prints the command to run.
 
 ## Examples
 

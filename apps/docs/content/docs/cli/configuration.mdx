@@ -40,7 +40,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 |-------|------|---------|-------------|
 | `defaults.output` | string | `"json"` | Default output format (`json`, `yaml`, `typed`, `ts`) |
 | `defaults.artifactsDir` | string | `"artifacts"` | Default directory for downloaded artifacts |
-| `registries` | object | — | Registry configuration by namespace. There is no default registry: an artifact reference always names its namespace, as in `@acme/w9` |
+| `registries` | object | — | Registry configuration by namespace. An artifact reference always names its namespace, as in `@acme/w9`. `@paradoc` is reserved and built in; an entry for it is an error |
 | `cache.ttl` | number | `3600` | Cache time-to-live in seconds |
 | `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory |
 | `security.allowedContentTypes` | array | — | Permitted content types for layer downloads |

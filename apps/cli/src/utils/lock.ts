@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { LocalFileSystem } from './local-fs.js'
+import { normalizeNamespace } from './config.js'
 
 import type {
   ArtifactKind,
@@ -180,7 +181,7 @@ export class LockFileManager {
    * @param namespace - Namespace (with @ prefix)
    */
   getArtifactsByNamespace(namespace: string): Array<{ ref: string; info: LockedArtifact }> {
-    const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+    const normalizedNamespace = normalizeNamespace(namespace)
     return this.listArtifacts().filter(({ ref }) => ref.startsWith(`${normalizedNamespace}/`))
   }
 

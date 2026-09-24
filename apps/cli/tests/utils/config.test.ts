@@ -347,4 +347,96 @@ describe('ConfigManager', () => {
       await expect(fs.access(configPath())).rejects.toThrow()
     })
   })
+
+  describe('registry namespaces', () => {
+    const manifest = (registries?: Record<string, unknown>) => JSON.stringify({
+      $schema: 'https://schema.paradoc.dev/manifest.json',
+      name: 'test-project',
+      title: 'Test Project',
+      visibility: 'private',
+      ...(registries ? { registries } : {}),
+    })
+    const globalConfigPath = () => join(tempDir, '.paradoc', 'config.json')
+    const writeGlobal = async (config: unknown) => {
+      await fs.mkdir(join(tempDir, '.paradoc'), { recursive: true })
+      await fs.writeFile(globalConfigPath(), JSON.stringify(config))
+    }
+
+    it('resolves @paradoc to the built-in registry with an empty config', async () => {
+      expect(await configManager.getRegistryUrl('@paradoc')).toBe('https://registry.paradoc.dev')
+      expect(await configManager.getRegistryUrl('paradoc')).toBe('https://registry.paradoc.dev')
+    })
+
+    it('fails for an unconfigured namespace, naming it and the add command', async () => {
+      await expect(configManager.getRegistryUrl('@acme')).rejects.toThrow(
+        'No registry is configured for @acme. Run: paradoc registry add @acme <url>',
+      )
+    })
+
+    it('resolves a configured namespace to its URL', async () => {
+      await writeGlobal({ registries: { '@acme': 'https://registry.acme.com' } })
+      expect(await configManager.getRegistryUrl('@acme')).toBe('https://registry.acme.com')
+    })
+
+    it('rejects a global config entry for @paradoc, naming the file', async () => {
+      await writeGlobal({ registries: { '@paradoc': 'https://evil.example' } })
+      const load = configManager.loadGlobalConfig()
+      await expect(load).rejects.toThrow(`Invalid global config in ${globalConfigPath()}`)
+      await expect(configManager.loadGlobalConfig()).rejects.toThrow(
+        '"registries.@paradoc": @paradoc is reserved and always resolves to https://registry.paradoc.dev',
+      )
+      await expect(configManager.getRegistryUrl('@paradoc')).rejects.toThrow(globalConfigPath())
+    })
+
+    it('rejects a reserved entry whatever its case', async () => {
+      await writeGlobal({ registries: { '@Paradoc': { url: 'https://evil.example' } } })
+      await expect(configManager.loadGlobalConfig()).rejects.toThrow('"registries.@Paradoc": @Paradoc is reserved')
+    })
+
+    it('rejects a project config entry for @paradoc, naming the file', async () => {
+      await fs.writeFile(join(tempDir, 'paradoc.json'), manifest({ '@paradoc': 'https://evil.example' }))
+      await expect(configManager.loadProjectManifest(tempDir)).rejects.toThrow(
+        `Invalid project config in ${join(tempDir, 'paradoc.json')}: "registries.@paradoc": @paradoc is reserved`,
+      )
+    })
+
+    it('refuses to add @paradoc to the global config and writes nothing', async () => {
+      await expect(configManager.setGlobalRegistry('@paradoc', 'https://evil.example')).rejects.toThrow(
+        '@paradoc is reserved and always resolves to https://registry.paradoc.dev',
+      )
+      await expect(configManager.setGlobalRegistry('paradoc', 'https://evil.example')).rejects.toThrow('reserved')
+      await expect(fs.access(globalConfigPath())).rejects.toThrow()
+    })
+
+    it('refuses to add @paradoc to the project config and leaves paradoc.json as it is', async () => {
+      const original = manifest()
+      await fs.writeFile(join(tempDir, 'paradoc.json'), original)
+      await configManager.loadProjectManifest(tempDir)
+      await expect(configManager.setProjectRegistry('@paradoc', 'https://evil.example')).rejects.toThrow('reserved')
+      expect(await fs.readFile(join(tempDir, 'paradoc.json'), 'utf-8')).toBe(original)
+    })
+
+    it('adds any other namespace', async () => {
+      await configManager.setGlobalRegistry('@acme', 'https://registry.acme.com')
+      expect(await new ConfigManager(tempDir).getRegistryUrl('@acme')).toBe('https://registry.acme.com')
+    })
+
+    it('lists the registries of one scope, including a global entry a project entry shadows', async () => {
+      await writeGlobal({ registries: { '@acme': 'https://global.acme.com', '@other': 'https://other.example' } })
+      await fs.writeFile(join(tempDir, 'paradoc.json'), manifest({ '@acme': 'https://project.acme.com' }))
+      await configManager.loadProjectManifest(tempDir)
+
+      expect(await configManager.listRegistries('global')).toEqual([
+        { namespace: '@acme', url: 'https://global.acme.com', source: 'global' },
+        { namespace: '@other', url: 'https://other.example', source: 'global' },
+      ])
+      expect(await configManager.listRegistries('project')).toEqual([
+        { namespace: '@acme', url: 'https://project.acme.com', source: 'project' },
+      ])
+      expect(await configManager.listRegistries()).toEqual([
+        { namespace: '@acme', url: 'https://project.acme.com', source: 'project' },
+        { namespace: '@other', url: 'https://other.example', source: 'global' },
+      ])
+    })
+  })
 })

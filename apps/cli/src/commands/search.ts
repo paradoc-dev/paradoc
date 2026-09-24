@@ -4,9 +4,18 @@ import ora from 'ora'
 
 import type { SearchOptions, ArtifactKind } from '../types.js'
 import { resolveRegistry } from '../utils/registry.js'
-import { registryClient } from '../utils/registry-client.js'
-import { configManager } from '../utils/config.js'
+import { registryClient, RequestTimeoutError } from '../utils/registry-client.js'
+import { configManager, normalizeNamespace, PARADOC_NAMESPACE } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
+
+/** fetch() rejects with a TypeError carrying a cause when no response arrives at all. */
+function isUnreachable(error: unknown): error is TypeError | RequestTimeoutError {
+  return error instanceof RequestTimeoutError || (error instanceof TypeError && error.cause !== undefined)
+}
+
+function describeUnreachable(error: TypeError | RequestTimeoutError): string {
+  return error.cause instanceof Error ? `${error.message} (${error.cause.message})` : error.message
+}
 
 /**
  * Create the 'search' command
@@ -18,7 +27,7 @@ export function createSearchCommand(): Command {
   search
     .argument('[query]', 'Search query (name, title, or description)')
     .description('Search for artifacts in a registry')
-    .option('--registry <namespace>', 'Registry namespace to search (default: @paradoc)')
+    .option('--registry <namespace>', `Registry namespace to search (default: ${PARADOC_NAMESPACE})`)
     .option('--kind <kind>', 'Filter by artifact kind (form, document, checklist, bundle)')
     .option('--tags <tags>', 'Filter by tags (comma-separated)')
     .option('--json', 'Output as JSON')
@@ -32,28 +41,7 @@ export function createSearchCommand(): Command {
           await configManager.loadProjectManifest(projectRoot)
         }
 
-        // Determine registry namespace
-        const namespace = options.registry
-          ? (options.registry.startsWith('@') ? options.registry : `@${options.registry}`)
-          : '@paradoc'
-
-        // Verify the namespace exists in config
-        const registryEntry = await configManager.getRegistry(namespace)
-        if (!registryEntry) {
-          const registries = await configManager.listRegistries()
-          console.error(kleur.red(`Registry not found: ${namespace}`))
-          if (registries.length > 0) {
-            console.log()
-            console.log('Configured registries:')
-            for (const reg of registries) {
-              const source = reg.source === 'project' ? kleur.blue('[project]') : kleur.dim('[global]')
-              console.log(`  ${kleur.cyan(reg.namespace)} ${source}`)
-            }
-          }
-          console.log()
-          console.log(`To add a registry: ${kleur.white('paradoc registry add <url>')}`)
-          process.exit(1)
-        }
+        const namespace = options.registry ? normalizeNamespace(options.registry) : PARADOC_NAMESPACE
 
         // Validate kind if provided
         if (options.kind) {
@@ -68,16 +56,24 @@ export function createSearchCommand(): Command {
         // Parse tags
         const tags = options.tags?.split(',').map((t) => t.trim()).filter(Boolean)
 
-        // Resolve registry
-        spinner.start(`Searching ${namespace}...`)
+        // Resolve registry (an unconfigured namespace fails here, naming the add command)
         const registry = await resolveRegistry(namespace)
+        spinner.start(`Searching ${namespace}...`)
 
         // Search artifacts
-        const results = await registryClient.searchArtifacts(registry, {
-          query,
-          kind: options.kind,
-          tags,
-        })
+        let results
+        try {
+          results = await registryClient.searchArtifacts(registry, {
+            query,
+            kind: options.kind,
+            tags,
+          })
+        } catch (error) {
+          if (isUnreachable(error)) {
+            throw new Error(`Cannot reach registry ${namespace} at ${registry.baseUrl}: ${describeUnreachable(error)}`)
+          }
+          throw error
+        }
         spinner.stop()
 
         // Output

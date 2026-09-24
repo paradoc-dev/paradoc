@@ -340,7 +340,7 @@ Telemetry is also off with `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`.
 |---------|-----|
 | `paradoc: command not found` | Use `npx paradoc-cli`, or `npm install -g paradoc-cli` |
 | `Not an Paradoc repository (no .paradoc directory found)` / `Not in an Paradoc project.` | Run `paradoc init` in the project root |
-| `Registry not found: @acme` | `paradoc registry add @acme <url>` |
+| `No registry is configured for @acme. Run: paradoc registry add @acme <url>` | Add the registry: `paradoc registry add @acme <url>`. `@paradoc` is built in and cannot be added |
 | `Environment variable not set: ACME_TOKEN` | Export the variable a registry `url` or header names |
 | `"w9" is not a document component.` | Name the registry: `paradoc add @acme/w9` |
 | `Artifact not installed: @acme/lease` / `Artifact "@acme/lease" is not installed.` | `paradoc add @acme/lease` |

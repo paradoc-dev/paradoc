@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import ora from 'ora'
 
 import { registryClient } from '../utils/registry-client.js'
-import { configManager } from '../utils/config.js'
+import { configManager, normalizeNamespace } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
 import { resolveRegistry } from '../utils/registry.js'
 
@@ -117,7 +117,7 @@ export function createCacheCommand(): Command {
       const spinner = ora()
 
       try {
-        const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+        const normalizedNamespace = normalizeNamespace(namespace)
 
         // Initialize cache and config
         const projectRoot = await findRepoRoot()

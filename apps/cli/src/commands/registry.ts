@@ -4,7 +4,7 @@ import ora from 'ora'
 import prompts from 'prompts'
 
 import type { RegistryEntry, ViewOptions } from '../types.js'
-import { configManager } from '../utils/config.js'
+import { assertConfigurableNamespace, configManager, isReservedNamespace, normalizeNamespace, type ConfiguredRegistry } from '../utils/config.js'
 import { lockFileManager } from '../utils/lock.js'
 import { registryClient, RegistryFetchError } from '../utils/registry-client.js'
 import { parseArtifactRef, resolveRegistry } from '../utils/registry.js'
@@ -71,7 +71,7 @@ export function createRegistryCommand(): Command {
 
         if (second) {
           // Two args: first = namespace, second = url
-          namespace = first.startsWith('@') ? first : `@${first}`
+          namespace = normalizeNamespace(first)
           url = second
         } else {
           // One arg: must be a URL — fetch registry.json to get the name
@@ -115,19 +115,21 @@ export function createRegistryCommand(): Command {
               message: 'Namespace:',
               initial: suggested,
               validate: (v: string) => {
-                const ns = v.startsWith('@') ? v : `@${v}`
-                return ns.length >= 2 || 'Namespace is required'
+                if (isReservedNamespace(v)) return `${normalizeNamespace(v)} is reserved; choose another namespace`
+                return normalizeNamespace(v).length >= 2 || 'Namespace is required'
               },
             })
             if (!confirmed) {
               console.log(kleur.yellow('Cancelled.'))
               process.exit(0)
             }
-            namespace = confirmed.startsWith('@') ? confirmed : `@${confirmed}`
+            namespace = normalizeNamespace(confirmed)
           } else {
             namespace = suggested
           }
         }
+
+        assertConfigurableNamespace(namespace)
 
         // Validate URL
         try {
@@ -169,13 +171,13 @@ export function createRegistryCommand(): Command {
                 name: 'newName',
                 message: 'Enter a new namespace:',
                 initial: `${namespace}-2`,
-                validate: (v: string) => (v.startsWith('@') ? v : `@${v}`).length >= 2 || 'Namespace is required',
+                validate: (v: string) => isReservedNamespace(v) ? `${normalizeNamespace(v)} is reserved; choose another namespace` : normalizeNamespace(v).length >= 2 || 'Namespace is required',
               })
               if (!newName) {
                 console.log(kleur.yellow('Cancelled.'))
                 process.exit(0)
               }
-              namespace = newName.startsWith('@') ? newName : `@${newName}`
+              namespace = normalizeNamespace(newName)
             }
             // action === 'overwrite' falls through
           }
@@ -266,7 +268,7 @@ export function createRegistryCommand(): Command {
 
         // If namespace provided, use direct removal (original behavior)
         if (namespace) {
-          const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+          const normalizedNamespace = normalizeNamespace(namespace)
 
           let target: ConfigTarget
 
@@ -305,11 +307,21 @@ export function createRegistryCommand(): Command {
           return
         }
 
-        // Interactive mode: list all registries and let user select
-        const registries = await configManager.listRegistries()
+        // Interactive mode: list the registries of the chosen scope, or all in effect when none is chosen
+        let scope: ConfiguredRegistry['source'] | undefined
+        if (options.global) {
+          scope = 'global'
+        } else if (options.project) {
+          if (!projectRoot) {
+            console.error(kleur.red('Not in an Paradoc project. Cannot use --project flag.'))
+            process.exit(1)
+          }
+          scope = 'project'
+        }
+        const registries = await configManager.listRegistries(scope)
 
         if (registries.length === 0) {
-          console.log(kleur.yellow('No registries configured.'))
+          console.log(kleur.yellow(scope ? `No registries in ${scope} config.` : 'No registries configured.'))
           return
         }
 
@@ -331,7 +343,7 @@ export function createRegistryCommand(): Command {
           return
         }
 
-        for (const reg of selected as Array<{ namespace: string; url: string; source: 'global' | 'project' }>) {
+        for (const reg of selected as ConfiguredRegistry[]) {
           let removed: boolean
           if (reg.source === 'project') {
             removed = await configManager.removeProjectRegistry(reg.namespace)
@@ -580,7 +592,7 @@ export function createRegistryCommand(): Command {
       const spinner = ora()
 
       try {
-        const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+        const normalizedNamespace = normalizeNamespace(namespace)
 
         // Load project config if in a project
         const projectRoot = await findRepoRoot()
@@ -850,26 +862,15 @@ export function createRegistryCommand(): Command {
   // registry stats
   registry
     .command('stats')
-    .argument('[namespace]', 'Registry namespace (optional, uses local registry.json if not specified)')
     .option('-r, --registry <path>', 'Path to local registry.json', './registry.json')
     .option('--json', 'Output as JSON')
-    .description('Show registry statistics (telemetry data)')
-    .action(async (namespace: string | undefined, options: { registry: string; json?: boolean }) => {
+    .description('Show statistics for a local registry.json')
+    .allowExcessArguments(false)
+    .action(async (options: { registry: string; json?: boolean }) => {
       try {
-        // TODO: Implement telemetry endpoint integration
-        // For now, show local registry stats
-
         const { LocalFileSystem } = await import('../utils/local-fs.js')
         const storage = new LocalFileSystem()
 
-        if (namespace) {
-          // Remote registry - would fetch from telemetry endpoint
-          console.log(kleur.yellow('Remote telemetry stats not yet implemented.'))
-          console.log(kleur.gray('Telemetry endpoint integration coming soon.'))
-          process.exit(0)
-        }
-
-        // Local registry stats
         const registryPath = storage.getAbsolutePath(options.registry)
         if (!(await storage.exists(registryPath))) {
           console.error(kleur.red(`Registry not found: ${registryPath}`))

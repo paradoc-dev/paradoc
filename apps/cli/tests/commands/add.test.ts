@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { unreachableNetworkEnv } from '../setup/unreachable-network.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -409,6 +410,40 @@ describe('paradoc add (files the artifact references)', () => {
     const manifest = JSON.parse(await fs.readFile(join(tempDir, 'paradoc.json'), 'utf-8')) as { registries: Record<string, unknown> }
     expect(manifest.registries).not.toHaveProperty('@other')
   }, 30000)
+})
+
+describe('paradoc add (namespace resolution with no registries configured)', () => {
+  let tempDir: string
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(join(tmpdir(), 'paradoc-add-namespaces-'))
+    await executeCliCommand(['init', '--yes', '--name', 'test-project'], { cwd: tempDir })
+  })
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true })
+  })
+
+  it('resolves @paradoc to the built-in registry', async () => {
+    const result = await executeCliCommand(['add', '@paradoc/w9', '--no-cache'], {
+      cwd: tempDir,
+      env: await unreachableNetworkEnv(),
+    })
+
+    expect(result.stdout + result.stderr).toContain('Registry: https://registry.paradoc.dev')
+    expect(result.exitCode).toBe(1)
+  })
+
+  it('fails for an unconfigured namespace, naming it and the add command, without contacting any host', async () => {
+    const result = await executeCliCommand(['add', '@acme/w9', '--no-cache'], {
+      cwd: tempDir,
+      env: await unreachableNetworkEnv(),
+    })
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('No registry is configured for @acme. Run: paradoc registry add @acme <url>')
+    expect(result.stdout + result.stderr).not.toContain('registry.paradoc.dev')
+  })
 })
 
 describe('paradoc add (registry integration)', () => {

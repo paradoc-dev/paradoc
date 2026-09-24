@@ -107,7 +107,7 @@ paradoc view @acme/residential-lease
 
 ## Installing artifacts
 
-Install artifacts from any configured registry:
+Install artifacts from the built-in `@paradoc` registry or any registry you configure:
 
 ```bash
 # Basic install
@@ -131,7 +131,7 @@ Artifacts are referenced using scoped names: `@namespace/artifact-name`
 ## Searching registries
 
 ```bash
-# Search by keyword
+# Search by keyword (the built-in @paradoc registry)
 paradoc search "lease agreement"
 
 # Search a specific registry
@@ -148,6 +148,8 @@ paradoc search --json
 ```
 
 ## Managing registries
+
+`@paradoc` is reserved and built in: it always resolves to `https://registry.paradoc.dev` and cannot be configured. Anyone can host a registry under any other namespace, and the CLI resolves it only through your configuration; an unconfigured namespace fails and prints the `paradoc registry add` command to run.
 
 Add registries to your global or project configuration:
 

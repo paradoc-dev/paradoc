@@ -46,8 +46,11 @@ When called with just a namespace (`@namespace`), the command enters browse mode
 
 A bare name is a document component rather than an artifact: an artifact
 reference always carries a namespace or is a URL, so the two cannot be confused.
-There is no default registry. A bare name that is not a component, such as
+An artifact always names its namespace. A bare name that is not a component, such as
 `paradoc add w9`, fails and asks for the registry: `paradoc add @registry/w9`.
+The built-in `@paradoc` namespace needs no configuration; any other namespace
+must be added with `paradoc registry add @<ns> <url>` first (see
+[Namespaces](/cli/registries#namespaces)).
 
 ```bash
 paradoc add field

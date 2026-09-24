@@ -16,6 +16,8 @@ async function executeCliCommand(
     cwd?: string
     env?: Record<string, string>
     timeout?: number
+    /** Written to the child's stdin, which is then closed. */
+    input?: string
   }
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
@@ -25,6 +27,9 @@ async function executeCliCommand(
       env: { ...process.env, ...options?.env },
       stdio: ['pipe', 'pipe', 'pipe'],
     })
+    if (options?.input !== undefined) {
+      child.stdin.end(options.input)
+    }
 
     let stdout = ''
     let stderr = ''
@@ -201,6 +206,38 @@ describe('CLI Registry Command', () => {
     })
   })
 
+  describe('registry add', () => {
+    it('refuses @paradoc, which is reserved, and writes no config', async () => {
+      const home = path.join(tempDir, 'home')
+      await fs.mkdir(home, { recursive: true })
+
+      for (const namespace of ['@paradoc', 'paradoc', '@PARADOC']) {
+        const result = await executeCliCommand(
+          ['registry', 'add', namespace, 'https://evil.example', '--global'],
+          { cwd: tempDir, env: { HOME: home } }
+        )
+
+        expect(result.exitCode).toBe(1)
+        expect(result.stderr).toContain('is reserved and always resolves to https://registry.paradoc.dev')
+      }
+      await expect(fs.access(path.join(home, '.paradoc', 'config.json'))).rejects.toThrow()
+    })
+
+    it('adds any other namespace', async () => {
+      const home = path.join(tempDir, 'home')
+      await fs.mkdir(home, { recursive: true })
+
+      const result = await executeCliCommand(
+        ['registry', 'add', '@acme', 'https://registry.acme.com', '--global'],
+        { cwd: tempDir, env: { HOME: home } }
+      )
+
+      expect(result.exitCode).toBe(0)
+      const config = JSON.parse(await fs.readFile(path.join(home, '.paradoc', 'config.json'), 'utf-8'))
+      expect(config.registries).toEqual({ '@acme': 'https://registry.acme.com' })
+    })
+  })
+
   describe('registry remove', () => {
     it('should show error for non-existent namespace with --global', async () => {
       const globalDir = path.join(tempDir, 'global')
@@ -218,6 +255,63 @@ describe('CLI Registry Command', () => {
       // Should succeed but report not found
       const output = result.stdout + result.stderr
       expect(output).toMatch(/not found|no registr/i)
+    })
+
+    /** Ctrl+C: cancels the selection prompt once it has listed its choices. */
+    const CANCEL = '\u0003'
+
+    /** A project and a home that both configure @acme, plus one registry each of their own. */
+    async function projectWithBothScopes(): Promise<{ project: string; home: string }> {
+      const home = path.join(tempDir, 'home')
+      const project = path.join(tempDir, 'project')
+      await fs.mkdir(path.join(home, '.paradoc'), { recursive: true })
+      await fs.mkdir(path.join(project, '.paradoc'), { recursive: true })
+      await fs.writeFile(
+        path.join(home, '.paradoc', 'config.json'),
+        JSON.stringify({ registries: { '@acme': 'https://global.acme.example', '@global-only': 'https://global-only.example' } })
+      )
+      await fs.writeFile(
+        path.join(project, 'paradoc.json'),
+        JSON.stringify({
+          name: 'test-project',
+          title: 'Test Project',
+          visibility: 'private',
+          registries: { '@acme': 'https://project.acme.example', '@project-only': 'https://project-only.example' },
+        })
+      )
+      return { project, home }
+    }
+
+    it('offers only global registries with --global', async () => {
+      const { project, home } = await projectWithBothScopes()
+
+      const result = await executeCliCommand(['registry', 'remove', '--global'], { cwd: project, env: { HOME: home }, input: CANCEL })
+
+      expect(result.stdout).toContain('https://global.acme.example')
+      expect(result.stdout).toContain('@global-only')
+      expect(result.stdout).not.toContain('https://project.acme.example')
+      expect(result.stdout).not.toContain('@project-only')
+    })
+
+    it('offers only project registries with --project', async () => {
+      const { project, home } = await projectWithBothScopes()
+
+      const result = await executeCliCommand(['registry', 'remove', '--project'], { cwd: project, env: { HOME: home }, input: CANCEL })
+
+      expect(result.stdout).toContain('https://project.acme.example')
+      expect(result.stdout).toContain('@project-only')
+      expect(result.stdout).not.toContain('https://global.acme.example')
+      expect(result.stdout).not.toContain('@global-only')
+    })
+
+    it('says so when the chosen scope has no registries', async () => {
+      const home = path.join(tempDir, 'home')
+      await fs.mkdir(home, { recursive: true })
+
+      const result = await executeCliCommand(['registry', 'remove', '--global'], { cwd: tempDir, env: { HOME: home } })
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('No registries in global config.')
     })
   })
 
@@ -268,6 +362,14 @@ describe('CLI Registry Command', () => {
       expect(parsed.name).toBe('test-registry')
       expect(parsed.totalArtifacts).toBe(1)
       expect(parsed.byKind).toHaveProperty('form', 1)
+    })
+
+    it('rejects a namespace argument: stats read a local registry.json only', async () => {
+      const result = await executeCliCommand(['registry', 'stats', '@ns'], { cwd: tempDir })
+
+      expect(result.exitCode).not.toBe(0)
+      expect(result.stderr).toContain('too many arguments')
+      expect(result.stdout).not.toContain('not yet implemented')
     })
 
     it('should show error for nonexistent registry.json', async () => {

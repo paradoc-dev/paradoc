@@ -29,7 +29,7 @@ paradoc registry rm [namespace] [options]
 
 ## Description
 
-Removes a registry from your configuration. Without a namespace, the command lists every configured registry and lets you select one or more to remove.
+Removes a registry from your configuration. Without a namespace, the command lists registries and lets you select one or more to remove. With `--global`, the list holds only the registries in the global config; with `--project`, only those in `paradoc.json`. With neither, it lists every registry in effect.
 
 With a namespace, if neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
 
@@ -39,6 +39,7 @@ With a namespace, if neither `--global` nor `--project` is specified, you will b
 paradoc registry remove @acme
 paradoc registry rm @acme --global
 paradoc registry remove
+paradoc registry remove --global
 ```
 
 ## See also

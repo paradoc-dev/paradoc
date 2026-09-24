@@ -9,6 +9,20 @@ A registry is a hosted collection of Paradoc artifacts. Registries can be public
 
 ## Using registries
 
+### Namespaces
+
+Every artifact reference names a registry namespace, as in `@acme/residential-lease`.
+
+- **`@paradoc` is reserved and built in.** It always resolves to `https://registry.paradoc.dev`, needs no configuration, and cannot be pointed anywhere else. `paradoc registry add @paradoc <url>` is refused, and a global or project config that sets a URL for `@paradoc` is an error.
+- **Every other namespace is yours to add.** Anyone can host a registry and give it any other namespace. The CLI resolves it only through your configuration. An unconfigured namespace fails with a message that names it and tells you to run `paradoc registry add @<ns> <url>`.
+
+For example, `https://public.paradoc.dev` is a demo registry you can add under any namespace:
+
+```bash
+paradoc registry add @demo https://public.paradoc.dev --global
+paradoc search --registry @demo
+```
+
 ### Adding a registry
 
 Add a registry to your project by editing `paradoc.json`:
@@ -51,7 +65,7 @@ For registries that require authentication, use the extended format:
 
 ### Searching for artifacts
 
-Use [`paradoc search`](/cli/commands/search) to query a registry:
+Use [`paradoc search`](/cli/commands/search) to query a registry. Without `--registry` it searches `@paradoc`:
 
 ```bash
 paradoc search lease
@@ -128,16 +142,17 @@ For local development servers running over HTTP, set `allowInsecure`:
 
 ### Managing registries
 
-List all configured registries (project and global):
+List all configured registries (project and global). The built-in `@paradoc` is not listed, because it is never configured:
 
 ```bash
 paradoc registry list
 ```
 
-Remove a registry:
+Remove a registry. Without a namespace, the command lets you pick from a list. `--global` or `--project` limits the list to that config:
 
 ```bash
 paradoc registry remove @acme --global
+paradoc registry remove --project
 ```
 
 See the [`registry`](/cli/commands/registry) command reference for all subcommands.

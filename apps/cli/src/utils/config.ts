@@ -20,9 +20,50 @@ import {
 const GLOBAL_CONFIG_DIR = '.paradoc'
 const GLOBAL_CONFIG_FILE = 'config.json'
 const GLOBAL_CONFIG_SCHEMA_URL = 'https://schema.paradoc.dev/config.json'
-const DEFAULT_REGISTRY_URL = 'https://registry.paradoc.dev'
 
 import type { ZodError } from 'zod'
+
+/** The reserved, built-in registry namespace. */
+export const PARADOC_NAMESPACE = '@paradoc'
+
+/** Where {@link PARADOC_NAMESPACE} always resolves. No configuration can change it. */
+export const PARADOC_REGISTRY_URL = 'https://registry.paradoc.dev'
+
+/** A namespace with its `@` prefix. */
+export function normalizeNamespace(namespace: string): string {
+  return namespace.startsWith('@') ? namespace : `@${namespace}`
+}
+
+/** Whether a namespace is the reserved `@paradoc`, in any case. */
+export function isReservedNamespace(namespace: string): boolean {
+  return normalizeNamespace(namespace).toLowerCase() === PARADOC_NAMESPACE
+}
+
+function reservedNamespaceMessage(namespace: string): string {
+  return `${normalizeNamespace(namespace)} is reserved and always resolves to ${PARADOC_REGISTRY_URL}; it cannot be configured`
+}
+
+/** Throw when a namespace is reserved and so cannot be configured. */
+export function assertConfigurableNamespace(namespace: string): void {
+  if (isReservedNamespace(namespace)) {
+    throw new Error(reservedNamespaceMessage(namespace))
+  }
+}
+
+/** Describe each registries entry that configures a reserved namespace, or return undefined. */
+function reservedRegistryIssues(registries: Record<string, unknown> | undefined): string | undefined {
+  const reserved = Object.keys(registries ?? {}).filter(isReservedNamespace)
+  if (reserved.length === 0) return undefined
+  return reserved.map((key) => `"registries.${key}": ${reservedNamespaceMessage(key)}`).join('; ')
+}
+
+/** A namespace that neither is built in nor has a registry configured. */
+export class UnconfiguredRegistryError extends Error {
+  constructor(public readonly namespace: string) {
+    super(`No registry is configured for ${namespace}. Run: paradoc registry add ${namespace} <url>`)
+    this.name = 'UnconfiguredRegistryError'
+  }
+}
 
 /**
  * Describe each global config problem by key: unknown keys by name, other
@@ -54,6 +95,13 @@ export async function findConfig(cwd?: string): Promise<string | undefined> {
   const storage = new LocalFileSystem(cwd)
   const result = await storage.findUp('paradoc.json')
   return result ?? undefined
+}
+
+/** A registry entry as configured in one scope. */
+export interface ConfiguredRegistry {
+  namespace: string
+  url: string
+  source: 'global' | 'project'
 }
 
 // ============================================================================
@@ -121,6 +169,10 @@ export class ConfigManager {
     if (!result.success) {
       throw new Error(`Invalid global config in ${configPath}: ${formatGlobalConfigIssues(result.error)}`)
     }
+    const reserved = reservedRegistryIssues(result.data.registries)
+    if (reserved) {
+      throw new Error(`Invalid global config in ${configPath}: ${reserved}`)
+    }
 
     this.globalConfig = result.data
     return this.globalConfig
@@ -147,27 +199,40 @@ export class ConfigManager {
   }
 
   /**
-   * Load the project manifest from paradoc.json
+   * Load the project manifest from paradoc.json.
+   *
+   * A missing or unreadable manifest loads as null. A manifest that configures
+   * a reserved registry namespace throws an error naming the file.
    */
   async loadProjectManifest(projectRoot: string): Promise<ProjectManifest | null> {
     this.projectRoot = projectRoot
     const projectStorage = new LocalFileSystem(projectRoot)
     const manifestPath = projectStorage.joinPath('paradoc.json')
 
+    let data: unknown
     try {
-      const content = await projectStorage.readFile(manifestPath, 'utf-8')
-      const data = JSON.parse(content)
-      // Lenient validation — ProjectManifest is broader than ManifestSchema
-      const result = z.object({
-        name: z.string(),
-        title: z.string(),
-        visibility: z.enum(['public', 'private']),
-      }).passthrough().safeParse(data)
-      this.projectManifest = result.success ? (result.data as ProjectManifest) : null
-      return this.projectManifest
+      data = JSON.parse(await projectStorage.readFile(manifestPath, 'utf-8'))
     } catch {
       return null
     }
+
+    // Lenient validation — ProjectManifest is broader than ManifestSchema
+    const result = z.object({
+      name: z.string(),
+      title: z.string(),
+      visibility: z.enum(['public', 'private']),
+    }).passthrough().safeParse(data)
+    if (!result.success) {
+      this.projectManifest = null
+      return null
+    }
+    const manifest = result.data as ProjectManifest
+    const reserved = reservedRegistryIssues(manifest.registries)
+    if (reserved) {
+      throw new Error(`Invalid project config in ${manifestPath}: ${reserved}`)
+    }
+    this.projectManifest = manifest
+    return this.projectManifest
   }
 
   /**
@@ -190,7 +255,7 @@ export class ConfigManager {
    */
   async getRegistry(namespace: string): Promise<RegistryEntry | null> {
     // Normalize namespace (ensure @ prefix)
-    const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+    const normalizedNamespace = normalizeNamespace(namespace)
 
     // Check project config first
     if (this.projectManifest?.registries?.[normalizedNamespace]) {
@@ -208,13 +273,23 @@ export class ConfigManager {
   }
 
   /**
-   * Get the resolved registry URL for a namespace
+   * Get the resolved registry URL for a namespace.
+   *
+   * `@paradoc` always resolves to {@link PARADOC_REGISTRY_URL}. Every other
+   * namespace resolves only through configuration; an unconfigured one throws
+   * {@link UnconfiguredRegistryError}.
    */
   async getRegistryUrl(namespace: string): Promise<string> {
-    const registry = await this.getRegistry(namespace)
+    const normalizedNamespace = normalizeNamespace(namespace)
+    // Loads the config first, so a config that configures @paradoc fails here too.
+    const registry = await this.getRegistry(normalizedNamespace)
+
+    if (isReservedNamespace(normalizedNamespace)) {
+      return PARADOC_REGISTRY_URL
+    }
 
     if (!registry) {
-      return DEFAULT_REGISTRY_URL
+      throw new UnconfiguredRegistryError(normalizedNamespace)
     }
 
     if (typeof registry === 'string') {
@@ -330,13 +405,14 @@ export class ConfigManager {
    * Add or update a registry in global config
    */
   async setGlobalRegistry(namespace: string, entry: RegistryEntry): Promise<void> {
+    assertConfigurableNamespace(namespace)
     const config = await this.loadGlobalConfig()
 
     if (!config.registries) {
       config.registries = {}
     }
 
-    const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+    const normalizedNamespace = normalizeNamespace(namespace)
     config.registries[normalizedNamespace] = entry
 
     await this.saveGlobalConfig(config)
@@ -352,7 +428,7 @@ export class ConfigManager {
       return false
     }
 
-    const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+    const normalizedNamespace = normalizeNamespace(namespace)
 
     if (!(normalizedNamespace in config.registries)) {
       return false
@@ -367,6 +443,7 @@ export class ConfigManager {
    * Add or update a registry in project config (paradoc.json)
    */
   async setProjectRegistry(namespace: string, entry: RegistryEntry): Promise<void> {
+    assertConfigurableNamespace(namespace)
     if (!this.projectManifest || !this.projectRoot) {
       throw new Error('Not in an Paradoc project. Cannot save to project config.')
     }
@@ -375,7 +452,7 @@ export class ConfigManager {
       this.projectManifest.registries = {}
     }
 
-    const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+    const normalizedNamespace = normalizeNamespace(namespace)
     this.projectManifest.registries[normalizedNamespace] = entry
 
     await this.saveProjectManifest(this.projectManifest)
@@ -393,7 +470,7 @@ export class ConfigManager {
       return false
     }
 
-    const normalizedNamespace = namespace.startsWith('@') ? namespace : `@${namespace}`
+    const normalizedNamespace = normalizeNamespace(namespace)
 
     if (!(normalizedNamespace in this.projectManifest.registries)) {
       return false
@@ -412,31 +489,27 @@ export class ConfigManager {
   }
 
   /**
-   * List all configured registries
+   * List configured registries.
+   *
+   * With no scope, lists the registries in effect: project entries, then global
+   * entries a project entry does not override. With a scope, lists every entry
+   * of that config only.
    */
-  async listRegistries(): Promise<Array<{ namespace: string; url: string; source: 'global' | 'project' }>> {
-    const result: Array<{ namespace: string; url: string; source: 'global' | 'project' }> = []
+  async listRegistries(scope?: ConfiguredRegistry['source']): Promise<ConfiguredRegistry[]> {
+    const entries = (registries: Record<string, RegistryEntry> | undefined, source: ConfiguredRegistry['source']) =>
+      Object.entries(registries ?? {}).map(([namespace, entry]) => ({
+        namespace,
+        url: typeof entry === 'string' ? entry : entry.url,
+        source,
+      }))
 
-    // Add project registries
-    if (this.projectManifest?.registries) {
-      for (const [namespace, entry] of Object.entries(this.projectManifest.registries)) {
-        const url = typeof entry === 'string' ? entry : entry.url
-        result.push({ namespace, url, source: 'project' })
-      }
-    }
+    const project = entries(this.projectManifest?.registries, 'project')
+    if (scope === 'project') return project
 
-    // Add global registries (if not overridden by project)
-    const globalConfig = await this.loadGlobalConfig()
-    if (globalConfig.registries) {
-      for (const [namespace, entry] of Object.entries(globalConfig.registries)) {
-        if (!result.find((r) => r.namespace === namespace)) {
-          const url = typeof entry === 'string' ? entry : entry.url
-          result.push({ namespace, url, source: 'global' })
-        }
-      }
-    }
+    const global = entries((await this.loadGlobalConfig()).registries, 'global')
+    if (scope === 'global') return global
 
-    return result
+    return [...project, ...global.filter((g) => !project.some((p) => p.namespace === g.namespace))]
   }
 
   // ============================================================================

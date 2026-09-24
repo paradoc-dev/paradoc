@@ -34,6 +34,8 @@ paradoc registry add <namespace> <url> [options]
 
 Adds a registry to your configuration. The `@` prefix on the namespace is optional.
 
+Any namespace can be added except `@paradoc`. It is reserved and built in: it always resolves to `https://registry.paradoc.dev`, so `paradoc registry add @paradoc <url>` is refused. See [Namespaces](/cli/registries#namespaces).
+
 With a URL alone, the CLI fetches the registry's `registry.json` and suggests `@<name>` as the namespace. You confirm or change it at the prompt, or `--yes` accepts it.
 
 If the namespace already exists, you are asked to overwrite it, pick a different name, or cancel. `--yes` overwrites.
