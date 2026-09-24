@@ -169,6 +169,18 @@ A `FOR` loop names its row (`line` above), and `index(line)`, `first(line)`, and
 | `{{FOR row IN list}}...{{END-FOR row}}` | Repeat paragraphs or table rows |
 | `{{signature(parties.client, "client-sign")}}` | Place a signing mark; `initials`, `signatureDate`, `capacity`, and `printedName` work the same way |
 
+The signing directives print as in [text templates](/sdk/renderers/text#signature-and-initials-directives), with underlines in place of the bracketed placeholders:
+
+| Directive | Before capture | After capture |
+|-----------|----------------|---------------|
+| `signature` | `_____________________________` | `[Signed]` |
+| `initials` | `______` | `[Initialed]` |
+| `signatureDate` | `__________` | the capture's `YYYY-MM-DD` date |
+| `capacity` | the signatory's `capacity`, else `________________` | the captured text, else the signatory's `capacity`, else underscores |
+| `printedName` | the signer's `person.name`, else `_______________________` | the captured text, else the signer's `person.name`, else underscores |
+
+`signatureOptions.placeholder` and `signatureOptions.captured` replace this text, as they do for text layers. For `capacity` and `printedName`, a known capacity or name wins over `placeholder`.
+
 The old comparison syntax (`===`, `!==`, and `$row` loop names) is no longer accepted: write `==` and `!=`, and name the row directly (`{{line.amount}}`).
 
 ### checkDocxTemplate()

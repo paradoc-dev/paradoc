@@ -116,7 +116,8 @@ uvx --from skills-ref agentskills validate ./skills/paradoc-react
 
 Tests tie the skills to the code:
 
-- `packages/schemas/tests/skill-docs.test.ts` checks `paradoc`: the field type lists, the signature slot types, and every JSON example. Label each JSON example that parses with its container, for example ```` ```json schema=fields ````. Labels: `artifact`, `form`, `fields`, `parties`, `defs`, `layers`, `layer`, `cli-config`, `registries`.
+- `packages/schemas/tests/skill-docs.test.ts` checks `paradoc`: the field type lists and the signature slot types.
+- `packages/core/tests/skill-docs-examples.test.ts` checks every JSON example in `paradoc`. Label each JSON example that parses with its container, for example ```` ```json schema=fields ````. Labels: `artifact`, `form`, `fields`, `parties`, `defs`, `layers`, `layer`, `cli-config`, `registries`. An artifact example is merged into a minimal form and must pass the full `validate()`: schema, logic, template expressions, and layer references. A fragment that names a field or party must declare it, so use `form` for an example that needs them.
 - `packages/react-pdf/tests/pdf-class-vocabulary-docs.test.ts` checks the `## The verified families` table in `paradoc-react/references/safe-classes.md` against the PDF class vocabulary.
 
 ## When editing

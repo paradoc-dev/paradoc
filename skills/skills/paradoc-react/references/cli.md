@@ -236,10 +236,11 @@ A block installs a whole document:
 | Artifact module | `artifacts/paradoc/<name>.artifact.ts` |
 | Sample data module | `artifacts/paradoc/<name>.data.ts` |
 
-The artifact is a TypeScript module and the composition is not under
-`compositions/`, so `paradoc check` and `paradoc dev` do not pair a block as
-installed. Check it from code with `checkComposition`, or preview it by saving
-the artifact as JSON beside a copy of the composition under `compositions/`.
+The artifact is a TypeScript module, so `paradoc check` and `paradoc dev` do
+not pair a block as installed; they read artifacts only from `.yaml`, `.yml`, or
+`.json` files. `paradoc dev` also finds compositions only under `compositions/`.
+Check it from code with `checkComposition`, or preview it by saving the artifact
+as JSON beside a copy of the composition under `compositions/`.
 
 A block's layer `path` names its source file (for example
 `invoice-document.tsx`), not the installed name. Bind it at render time by the

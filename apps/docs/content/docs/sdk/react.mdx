@@ -207,7 +207,7 @@ A `PagePlan` lists the keep ids on each page (`pages`), the repeated table heade
 
 `@paradoc/react/discovery` holds the project conventions that [`paradoc dev`](/cli/commands/dev) and [`paradoc check`](/cli/commands/check) share, for authoring tools that need the same answers. It reads files and artifacts only; it never loads a composition.
 
-- A composition is a `.tsx` or `.jsx` file under a `compositions/` directory. Its default export is the component.
+- A composition is a `.tsx` or `.jsx` file. Its default export is the component. `discoverCompositions` and `paradoc dev` find compositions under a `compositions/` directory; `paradoc check` takes the file you name.
 - Its artifact is the one whose `text/tsx` or `text/jsx` layer resolves to the file. If none does, an artifact file of the same name beside it is used.
 - Its sample data is a sibling `<name>.sample.{ts,tsx,js,mjs,jsx}` default export, or else a `sample` export on the composition itself.
 

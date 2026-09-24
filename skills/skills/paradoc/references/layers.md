@@ -104,30 +104,42 @@ A React layer takes no `bindings`, `font` or `format`, and needs no resolver. To
 <!-- dep:C8 -->
 Validation rejects `bindings` or `bindingsFrom` on a layer that is not `application/pdf`.
 
-```json schema=layer
+```json schema=form
 {
-  "bindings": {
-    "topmostSubform[0].Page1[0].f1_01[0]": "parties.taxpayer.name",
-    "topmostSubform[0].Page1[0].f1_02[0]": "businessName"
+  "parties": { "taxpayer": { "label": "Taxpayer" } },
+  "fields": { "businessName": { "type": "text" } },
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "w-9.pdf",
+      "bindings": {
+        "topmostSubform[0].Page1[0].f1_01[0]": "parties.taxpayer.name",
+        "topmostSubform[0].Page1[0].f1_02[0]": "businessName"
+      }
+    }
   }
 }
 ```
 
 `bindingsFrom` reuses a sibling PDF layer's bindings, for example for the copies of one form (`pdfCopyA`, `pdfCopyB`):
 
-```json schema=layers
+```json schema=form
 {
-  "pdfCopyA": {
-    "kind": "file",
-    "mimeType": "application/pdf",
-    "path": "copy-a.pdf",
-    "bindings": { "f1_01": "payerName" }
-  },
-  "pdfCopyB": {
-    "kind": "file",
-    "mimeType": "application/pdf",
-    "path": "copy-b.pdf",
-    "bindingsFrom": "pdfCopyA"
+  "fields": { "payerName": { "type": "text" } },
+  "layers": {
+    "pdfCopyA": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "copy-a.pdf",
+      "bindings": { "f1_01": "payerName" }
+    },
+    "pdfCopyB": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "copy-b.pdf",
+      "bindingsFrom": "pdfCopyA"
+    }
   }
 }
 ```
@@ -196,19 +208,27 @@ A Markdown layer with in-flow signatures and an anchored date:
 
 A PDF layer places every slot by coordinates or anchor:
 
-```json schema=layer
+```json schema=form
 {
-  "signatures": {
-    "taxpayer-sig": {
-      "party": { "role": "taxpayer" },
-      "type": "signature",
-      "label": "Signature of U.S. person",
-      "placement": { "page": 1, "x": 175, "y": 586, "width": 195, "height": 14 }
-    },
-    "taxpayer-date": {
-      "party": { "role": "taxpayer" },
-      "type": "date_signed",
-      "placement": { "page": 1, "x": 410, "y": 586, "width": 80, "height": 14 }
+  "parties": { "taxpayer": { "label": "Taxpayer" } },
+  "layers": {
+    "pdf": {
+      "kind": "file",
+      "mimeType": "application/pdf",
+      "path": "w-9.pdf",
+      "signatures": {
+        "taxpayer-sig": {
+          "party": { "role": "taxpayer" },
+          "type": "signature",
+          "label": "Signature of U.S. person",
+          "placement": { "page": 1, "x": 175, "y": 586, "width": 195, "height": 14 }
+        },
+        "taxpayer-date": {
+          "party": { "role": "taxpayer" },
+          "type": "date_signed",
+          "placement": { "page": 1, "x": 410, "y": 586, "width": 80, "height": 14 }
+        }
+      }
     }
   }
 }

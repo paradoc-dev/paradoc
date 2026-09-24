@@ -339,13 +339,13 @@ function evaluateDefsKeys(
  * const form = {
  *   kind: 'form',
  *   name: 'test',
- *   version: '1.0',
+ *   version: '1.0.0',
  *   title: 'Test',
  *   fields: {
  *     age: { type: 'number' },
  *     name: { type: 'text' }
  *   },
- *   parties: [{ id: 'buyer', label: 'Buyer' }],
+ *   parties: { buyer: { label: 'Buyer' } },
  *   defs: {
  *     isAdult: {
  *       type: 'boolean',

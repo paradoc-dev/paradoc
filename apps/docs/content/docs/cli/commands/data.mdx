@@ -63,13 +63,51 @@ paradoc data template my-form.yaml --out data.yaml
 
 ### Output
 
+For a lease form with a text, address, money, date, boolean, enum, and number field, and one annex:
+
 ```yaml
+# yaml-language-server: $schema=https://schema.paradoc.dev/__SCHEMA_VERSION__.json
 fields:
-  address: null
-  monthlyRent: null
-  startDate: null
-  endDate: null
+  tenantName: ""
+  address:
+    line1: ""
+    locality: ""
+    region: ""
+    postalCode: ""
+    country: ""
+  monthlyRent:
+    amount: 0
+    currency: USD
+  startDate: ""
+  furnished: false
+  term: monthly
+  occupants: null
+annexes:
+  photoId: null
 ```
+
+A field with a `default` gets that value. Otherwise each field gets a placeholder for its type:
+
+| Type | Placeholder |
+|------|-------------|
+| `text`, `email`, `uri`, `uuid`, `date`, `datetime`, `time` | `""` |
+| `boolean` | `false` |
+| `number`, `percentage`, `rating` | `null` |
+| `enum` | the first option's value, or `null` with no options |
+| `multiselect` | `[]` |
+| `money` | `{ amount: 0, currency: USD }` |
+| `address` | `line1`, `locality`, `region`, `postalCode`, and `country`, each `""` |
+| `phone` | `{ number: "" }` |
+| `person`, `organization` | `{ name: "" }` |
+| `identification` | `{ type: "", number: "" }` |
+| `coordinate` | `{ lat: 0, lon: 0 }` |
+| `bbox` | `southWest` and `northEast`, each `{ lat: 0, lon: 0 }` |
+| `duration` | `PT0S` |
+| `fieldset` | an object with a placeholder for each nested field |
+
+When the form declares annexes, the template has an `annexes` block with each annex set to `null`. The template has no `parties` block.
+
+The placeholders are a starting point, not valid data. Replace each one before you run [`data validate`](#data-validate). An empty date or a `null` number fails validation, but an empty string in a text field passes, even when the field is required, so a missed placeholder is not always reported.
 
 ---
 

@@ -27,7 +27,7 @@ The deterministic form-completion session engine for Paradoc artifacts. An event
 - 🔁 **Command and view** - one `Command` mutates, `deriveView` projects the current state for rendering
 - 🗄️ **Storage-agnostic** - the persistence port is injected, so in-memory, Redis, and Postgres are all the caller's choice
 - 🧭 **Fill-state aware** - reads visibility and required cascades straight from `@paradoc/core`, so they resolve the same way everywhere
-- 🪶 **No LLM, no UI** - the agent layer that drives this engine lives in `@paradoc/ai`
+- 🪶 **No LLM, no UI** - an agent or app drives the engine by issuing commands; the engine itself calls no model and renders nothing
 
 ## Installation
 

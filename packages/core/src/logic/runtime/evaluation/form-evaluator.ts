@@ -307,7 +307,7 @@ function evaluateAnnexes(
  * const form = {
  *   kind: 'form',
  *   name: 'test',
- *   version: '1.0',
+ *   version: '1.0.0',
  *   title: 'Test',
  *   fields: {
  *     age: { type: 'number' },

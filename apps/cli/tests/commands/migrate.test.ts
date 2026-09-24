@@ -159,6 +159,15 @@ describe('paradoc migrate', () => {
     expect(await readFile(file, 'utf-8')).toBe(source)
   })
 
+  it('names in --help every file that needs --from', async () => {
+    const result = await run(['migrate', '--help'], dir)
+    expect(result.exitCode).toBe(0)
+    const from = result.stdout.slice(result.stdout.indexOf('--from'), result.stdout.indexOf('-h, --help'))
+    expect(from.replace(/\s+/g, ' ').trim()).toMatchInlineSnapshot(
+      `"--from <version> Schema version of a file whose $schema is missing, undated (schema.json), an unpublished version, or not a Paradoc address"`,
+    )
+  })
+
   it('rejects an unknown --from version', async () => {
     await writeFile(path.join(dir, 'pet.json'), signedForm(undefined))
     const result = await run(['migrate', 'pet.json', '--from', '2020-01-01'], dir)

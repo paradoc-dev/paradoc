@@ -162,7 +162,7 @@ The seal renders twice. On the first pass the renderer hands each `Signature` bl
 <Step>
 ## Preview while you edit
 
-[`paradoc dev`](/cli/commands/dev) previews compositions in the browser, and [`paradoc check`](/cli/commands/check) checks them against their artifacts. Both look for a composition under a `compositions/` directory and read artifacts from `.yaml`, `.yml`, or `.json` files. To use them, save the form as JSON (`agreement.toJSON()`) beside the composition and keep the layer's `path` pointing at it. The full conventions are in [Discovery](/sdk/react#discovery).
+[`paradoc dev`](/cli/commands/dev) previews compositions in the browser. It finds every composition under a `compositions/` directory. [`paradoc check`](/cli/commands/check) checks one composition against its artifact. It takes an explicit target, the composition file or the artifact file, and pairs a composition with the artifact whose layer `path` points at it, or else with a same-name artifact file beside it. Both read artifacts from `.yaml`, `.yml`, or `.json` files. To use them, save the form as JSON (`agreement.toJSON()`) beside the composition and keep the layer's `path` pointing at it. The full conventions are in [Discovery](/sdk/react#discovery).
 </Step>
 </Steps>
 

@@ -23,13 +23,13 @@
 
 Framework-neutral AI tool definitions for Paradoc. Provides Zod input schemas, execute functions, and an HTTP registry client that any AI framework adapter can wrap.
 
-- **9 tools** - registry discovery, retrieval, inspection, validation, filling, fill-state inspection, updates, and rendering
+- **10 tools** - registry discovery, retrieval, inspection, validation, filling, fill-state inspection, updates, rendering, and PDF extraction
 - **No framework dependency** - Pure tool protocol, no AI SDK lock-in
 - **3 source modes** - Run operations against artifact JSON, a URL, or an indexed registry item
 - **Registry client** - Fetch artifacts from any Paradoc registry over HTTPS
 - **Bounded output** - Request-scoped caching, cancellation, limits, and selectable render presentation
 
-This package is the foundation for `@paradoc/ai-sdk` (Vercel AI SDK) and `@paradoc/tanstack-ai` (TanStack AI). Advanced users can build custom adapters for other frameworks.
+This package is the foundation for `@paradoc/ai-sdk` (Vercel AI SDK), `@paradoc/mastra` (Mastra), and `@paradoc/tanstack-ai` (TanStack AI). Advanced users can build custom adapters for other frameworks.
 
 ## Installation
 
@@ -150,6 +150,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 ## Related packages
 
 - [`@paradoc/ai-sdk`](../ai-sdk) - Vercel AI SDK adapter
+- [`@paradoc/mastra`](../mastra) - Mastra adapter
 - [`@paradoc/tanstack-ai`](../tanstack-ai) - TanStack AI adapter
 - [`@paradoc/sdk`](../sdk) - Paradoc framework SDK
 

@@ -98,6 +98,7 @@ const renderResult = await tools.render.execute({
 ## Related packages
 
 - [`@paradoc/ai-tools`](../ai-tools) provides the framework-neutral contracts and execution functions.
+- [`@paradoc/mastra`](../mastra) provides the Mastra adapter.
 - [`@paradoc/tanstack-ai`](../tanstack-ai) provides the TanStack AI adapter.
 - [`@paradoc/sdk`](../sdk) provides the Paradoc framework SDK.
 

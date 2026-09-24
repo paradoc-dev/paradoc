@@ -268,11 +268,37 @@ const output = await form.fill(data).render({
 
 ### Output Formats
 
-| Format | Unsigned | Signed (with image) |
-|--------|----------|---------------------|
-| `text` | `[SIGNATURE REQUIRED]` | `[Signature captured]` |
-| `html` | `<span class="signature-placeholder">...</span>` | `<img src="data:..." alt="Signature" class="signature-image" />` |
-| `markdown` | `_[SIGNATURE REQUIRED]_` | `![Signature](data:...)` |
+`signature` and `initials` print by `signatureOptions.format`. The table shows `signature`; `initials` prints `[INITIALS]` and `[Initialed]` the same way.
+
+| Format | Unsigned | Signed, no image | Signed, with image |
+|--------|----------|------------------|--------------------|
+| `text` (default) | `[SIGNATURE]` | `[Signed]` | `[Signed]` |
+| `html` | `<span class="signature-placeholder" data-…>[SIGNATURE]</span>` | `<span class="signature-captured" data-…>[Signed]</span>` | `<img src="data:…" alt="Signature" class="signature-image" data-… />` |
+| `markdown` | `_[SIGNATURE]_` | `_[Signed]_` | `![Signature](data:…)` |
+
+`signatureDate` prints `[DATE]` before the signature at the same location is captured, and the capture's `YYYY-MM-DD` date after. With `format: 'html'` it is wrapped in a `signature-date-placeholder` or `signature-date` span, except a `captured.signatureDate` value, which prints as given.
+
+### Capacity and Printed Name
+
+`capacity` and `printedName` print the signer's details as plain text in every format. They read the signatory: the loop row, or the first signatory of the party given first.
+
+| Directive | Before capture | After a capture at the location |
+|-----------|----------------|---------------------------------|
+| `{{capacity(parties.landlord, "landlord-cap")}}` | The signatory's `capacity` (for example `Managing Member`), else `placeholder.capacity`, else `[CAPACITY]` | `captured.capacity`, else the captured text, else the signatory's `capacity`, else `[CAPACITY]` |
+| `{{printedName(parties.landlord, "landlord-name")}}` | The signer's `person.name`, else `placeholder.printedName`, else `[PRINTED NAME]` | `captured.printedName`, else the captured text, else the signer's `person.name`, else `[PRINTED NAME]` |
+
+A capture counts only when its type matches: a `capacity` capture for `capacity`, a `printed_name` capture for `printedName`. Signing records them with `captureCapacity()` and `capturePrintedName()`. A known capacity or name wins over a `placeholder` option; set `captured` to change what prints after capture.
+
+```text
+{{#each parties.landlord.signatories}}
+{{signature("final-sig")}}
+{{printedName("landlord-name")}}, {{capacity("landlord-cap")}}
+{{/each}}
+```
+
+Before signing, for a signatory `Dana Lee` who signs as `Managing Member`, this prints `[SIGNATURE]`, then `Dana Lee, Managing Member`. For a signatory with no name or capacity, it prints `[PRINTED NAME], [CAPACITY]`.
+
+A template error rejects the layer at validation and render when a directive's location is not a string, or when it is used outside a party or signatories loop with no party given. A party argument that is not a party prints `[<Name> error: no party. Use it inside a party or signatories loop, or pass the party first.]`.
 
 ## Related
 

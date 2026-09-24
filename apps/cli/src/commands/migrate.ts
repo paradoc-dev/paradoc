@@ -120,7 +120,7 @@ export function createMigrateCommand(): Command {
     .argument('<path>', 'Artifact file, or a directory of artifact files')
     .description(`Migrate artifact files to the current schema version (${SCHEMA_VERSION})`)
     .option('--dry-run', 'Print the diff for each file and change nothing')
-    .option('--from <version>', 'Schema version of files that declare none (no $schema)')
+    .option('--from <version>', 'Schema version of a file whose $schema is missing, undated (schema.json), an unpublished version, or not a Paradoc address')
     .action(async (target: string, options: MigrateCommandOptions) => {
       try {
         if (options.from !== undefined && !isSchemaVersion(options.from)) {

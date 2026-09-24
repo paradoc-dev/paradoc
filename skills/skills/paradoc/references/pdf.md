@@ -199,10 +199,17 @@ Only PDF layers declare a `font`. A character no font can draw fails with `PdfFi
 
 A money value prints with its currency symbol (`$1,250.50`). When the PDF pre-prints the symbol beside the box, declare `format` on the layer and `currency` on the field:
 
-```json schema=layer
-"path": "invoice.pdf",
-"format": { "money": { "currencyDisplay": "none" } },
-"bindings": { "Amount": "fee" }
+```json schema=form
+"fields": { "fee": { "type": "money", "currency": "USD" } },
+"layers": {
+  "pdf": {
+    "kind": "file",
+    "mimeType": "application/pdf",
+    "path": "invoice.pdf",
+    "format": { "money": { "currencyDisplay": "none" } },
+    "bindings": { "Amount": "fee" }
+  }
+}
 ```
 
 The box then holds `1,250.50`, and extraction reads it back in the field's declared `currency`. Both forms round-trip. Without a field `currency`, bind `fee.amount` to a box that holds a bare number. Only PDF layers declare `format`. Formatter options are in [formatting.md](./formatting.md).

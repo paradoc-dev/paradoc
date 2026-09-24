@@ -1,21 +1,15 @@
 /**
  * The paradoc skill (paradoc/skills/skills/paradoc) is written by hand. These
  * tests hold its mechanically checkable facts to the schemas: the field type
- * list, the signature slot type names, and every labeled JSON example. Lists
- * are parsed from the docs, so prose edits do not break them.
+ * list and the signature slot type names. Lists are parsed from the docs, so
+ * prose edits do not break them. The labeled JSON examples get full artifact
+ * validation in @paradoc/core (tests/skill-docs-examples.test.ts).
  */
-import { readdirSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { z } from 'zod'
-import {
-	FormFieldSchema,
-	FormSchema,
-	GlobalConfigSchema,
-	LayerSchema,
-	ParadocSchema,
-	SignatureSlotTypeSchema,
-} from '../src/zod'
+import { FormFieldSchema, SignatureSlotTypeSchema } from '../src/zod'
 
 const SKILL_DIR = join(import.meta.dirname, '../../../skills/skills/paradoc')
 
@@ -152,82 +146,5 @@ describe('skill docs: signature slot types', () => {
 
 	it('lists exactly the signature slot types in layers.md', () => {
 		expect(typeRowValues(section(layers, 'Signature slots'))).toEqual(SLOT_TYPES)
-	})
-})
-
-/**
- * A JSON example opts into checking with `schema=<label>` on its fence. The
- * label names where the example sits; a fragment is merged into that minimal
- * container before it is parsed.
- */
-const BASE_FORM = { name: 'example', kind: 'form' }
-const BASE_PDF_LAYER = { kind: 'file', mimeType: 'application/pdf', path: 'example.pdf' }
-const LABELS: Record<string, (value: Record<string, unknown>) => { schema: z.ZodType; input: unknown }> = {
-	artifact: (value) => ({ schema: ParadocSchema, input: value }),
-	form: (value) => ({ schema: FormSchema, input: { ...BASE_FORM, ...value } }),
-	fields: (value) => ({ schema: FormSchema, input: { ...BASE_FORM, fields: value } }),
-	parties: (value) => ({ schema: FormSchema, input: { ...BASE_FORM, parties: value } }),
-	defs: (value) => ({ schema: FormSchema, input: { ...BASE_FORM, defs: value } }),
-	layers: (value) => ({ schema: FormSchema, input: { ...BASE_FORM, layers: value } }),
-	layer: (value) => ({ schema: LayerSchema, input: { ...BASE_PDF_LAYER, ...value } }),
-	'cli-config': (value) => ({ schema: GlobalConfigSchema, input: value }),
-	registries: (value) => ({ schema: GlobalConfigSchema, input: { registries: value } }),
-}
-
-interface JsonExample {
-	location: string
-	label: string | undefined
-	body: string
-}
-
-function jsonExamples(): JsonExample[] {
-	const files = ['SKILL.md', ...readdirSync(join(SKILL_DIR, 'references')).map((name) => `references/${name}`)]
-	return files.flatMap((file) => {
-		const markdown = readSkill(file)
-		return [...markdown.matchAll(/^```json(?![a-z])([^\n]*)\n([\s\S]*?)^```/gm)].map((match) => ({
-			location: `${file}:${markdown.slice(0, match.index).split('\n').length}`,
-			label: match[1]!.match(/\bschema=(\S+)/)?.[1],
-			body: match[2]!,
-		}))
-	})
-}
-
-/** A complete JSON value, or a run of `"key": value` members read as one object. */
-function parseExample(body: string): unknown {
-	try {
-		return JSON.parse(body)
-	} catch {
-		return JSON.parse(`{${body}}`)
-	}
-}
-
-function parses(body: string): boolean {
-	try {
-		parseExample(body)
-		return true
-	} catch {
-		return false
-	}
-}
-
-describe('skill docs: JSON examples', () => {
-	const examples = jsonExamples()
-	const labeled = examples.filter((example) => example.label !== undefined)
-
-	it('finds labeled examples', () => {
-		expect(labeled.length).toBeGreaterThan(20)
-	})
-
-	it('labels every example that is valid JSON', () => {
-		const unlabeled = examples.filter((example) => example.label === undefined && parses(example.body))
-		expect(unlabeled.map((example) => example.location)).toEqual([])
-	})
-
-	it.each(labeled.map((example) => [example.location, example] as const))('%s parses against its schema', (_location, example) => {
-		const build = LABELS[example.label!]
-		expect(build, `unknown label ${example.label}`).toBeDefined()
-		const { schema, input } = build!(parseExample(example.body) as Record<string, unknown>)
-		const result = schema.safeParse(input)
-		expect(result.success ? [] : result.error.issues).toEqual([])
 	})
 })

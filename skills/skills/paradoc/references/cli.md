@@ -148,7 +148,7 @@ paradoc detach lease-agreement.yaml pdf -y                        # or: instruct
 ```bash
 paradoc migrate forms/ --dry-run                 # print each diff, write nothing
 paradoc migrate forms/                           # rewrite in place; JSON stays JSON, YAML keeps comments
-paradoc migrate lease.json --from 2026-08-10     # $schema missing, undated, or unpublished
+paradoc migrate lease.json --from 2026-08-10     # $schema missing, undated, unpublished, or not Paradoc's
 ```
 
 Each file reports `migrated`, `current` or `failed`. A failed file stays as it was, and the command exits 1. When a step names a value it cannot convert, fix that value by hand and run `migrate` again. Files that are not artifacts are skipped. To bump the artifact's own `version`, use `paradoc version`.

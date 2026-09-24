@@ -47,15 +47,15 @@ export interface ValidateLogicOptions {
  *
  * @example
  * ```typescript
- * import { validateLogic } from '@paradoc/core'
+ * import { validateLogic, type Form } from '@paradoc/core'
  *
  * const form: Form = {
  *   kind: 'form',
  *   name: 'test',
- *   version: '1.0',
+ *   version: '1.0.0',
  *   title: 'Test',
- *   logic: {
- *     isAdult: 'fields.age >= 18'
+ *   defs: {
+ *     isAdult: { type: 'boolean', value: 'fields.age >= 18' }
  *   },
  *   fields: {
  *     age: { type: 'number' },

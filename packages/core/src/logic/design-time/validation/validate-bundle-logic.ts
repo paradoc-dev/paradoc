@@ -153,7 +153,7 @@ function collectBundleFieldPaths(
  * const bundle: Bundle = {
  *   kind: 'bundle',
  *   name: 'test',
- *   version: '1.0',
+ *   version: '1.0.0',
  *   title: 'Test',
  *   defs: {
  *     needsForm: {

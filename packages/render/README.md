@@ -204,6 +204,13 @@ templates. DOCX templates also support the signing directives `signature`,
 `initials`, `signatureDate`, `capacity`, and `printedName`, written
 `{{signature(parties.client, "client-sign")}}`.
 
+`capacity` prints the signatory's capacity and `printedName` the signer's name.
+After a `capacity` or `printed_name` capture at that location, each prints the
+captured text. When no value is known, they fall back to a placeholder:
+`[CAPACITY]` and `[PRINTED NAME]` in text templates, underscores in DOCX
+templates. The `placeholder` and `captured` signature options replace the
+defaults, but a known capacity or name wins over `placeholder`.
+
 ## Benchmarking
 
 From a repository checkout, run `pnpm benchmark` from this package to record
