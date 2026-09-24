@@ -200,12 +200,14 @@ describe('one condition language', () => {
       },
     })
     const output = await renderer.render({
+      kind: 'form',
       template: { type: 'text', content: '{{twice(fields.qty)}}' },
       data: { fields: { qty: 21 } },
     } as never)
     expect(output).toBe('42')
 
     const throughArtifact = await renderer.render({
+      kind: 'form',
       template: { type: 'text', content: '{{twice(fields.qty)}}' },
       data: { fields: { qty: 21 } },
       ctx: { expressions: { context: createContext({ fields: { qty: 5 } }) } },

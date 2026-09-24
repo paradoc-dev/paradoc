@@ -134,14 +134,44 @@ export class UnboundReactLayerError extends Error {
 }
 
 /**
- * The render request's payload, in the shape the document context reads.
+ * Thrown when a React layer belongs to an artifact other than a form.
+ *
+ * A composition receives the `Form` it renders and that form's data. A
+ * document or checklist has neither, so a React layer on one has nothing to
+ * hand its composition.
+ */
+export class UnsupportedReactLayerArtifactError extends Error {
+  /** The kind of artifact the layer belongs to. */
+  readonly kind: string;
+  /** The layer's key in the artifact. */
+  readonly layer: string | undefined;
+
+  constructor(kind: string, layer: string | undefined) {
+    super(
+      `Cannot render the React layer${layer ? ` "${layer}"` : ""} of a ${kind}: ` +
+        "a React composition renders a form and its data."
+    );
+    this.name = "UnsupportedReactLayerArtifactError";
+    this.kind = kind;
+    this.layer = layer;
+  }
+}
+
+/**
+ * The form a request renders, and its payload in the shape the document
+ * context reads.
  *
  * `FormData` declares parties and annexes beside the fields and core puts them
  * there, so there is one place to read each from.
+ *
+ * @throws {UnsupportedReactLayerArtifactError} when the request is not a form's.
  */
-function documentData(request: RenderRequest<RendererLayer>): DocumentData {
+function compositionProps(request: RenderRequest<RendererLayer>): ReactLayerComponentProps {
+  if (request.kind !== "form") {
+    throw new UnsupportedReactLayerArtifactError(request.kind, request.template.key);
+  }
   const { fields, parties = {}, annexes } = request.data;
-  return { fields, parties, ...(annexes && { annexes }) };
+  return { artifact: request.artifact, data: { fields, parties, ...(annexes && { annexes }) } };
 }
 
 /**
@@ -304,6 +334,7 @@ async function assertMarkersSurvived(
  * Register it under `text/tsx` and `text/jsx` yourself, or use
  * {@link reactLayerRenderers}, which builds both entries.
  *
+ * @throws {UnsupportedReactLayerArtifactError} when the layer belongs to a document or checklist.
  * @throws {UnboundReactLayerError} when the layer's module cannot be bound.
  * @throws {UnsupportedPdfContentError} when the tree uses something the engine
  * cannot express, exactly as `renderPdf` does.
@@ -314,15 +345,13 @@ export function reactRenderer(
   return {
     id: "react",
     async render(request: RenderRequest<RendererLayer>): Promise<Uint8Array> {
+      const props = compositionProps(request);
       const Composition = await bindComponent(request.template, options);
       const markers = request.ctx?.signing?.markers ?? [];
       const element = createElement(
         SigningMarkerProvider,
         { marks: signingMarks(markers) },
-        createElement(Composition, {
-          artifact: request.form,
-          data: documentData(request),
-        })
+        createElement(Composition, props)
       );
       // The marker face is embedded exactly when there is a marker to carry,
       // unless the caller states otherwise. `signingMarkers: false` against a

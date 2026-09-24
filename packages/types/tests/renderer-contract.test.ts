@@ -1,17 +1,20 @@
 /**
  * Shape tests for the renderer plugin contract: RenderRequest, RendererLayer,
- * the open-ended ParadocRendererContext, and the signing-marker types a seal
+ * the closed ParadocRendererContext, and the signing-marker types a seal
  * hands a renderer for flow placement.
  *
  * See tests/artifact-union.test.ts for the testing idiom.
  */
 import { describe, it, expectTypeOf } from 'vitest'
 import type { Form } from '../src/schemas/artifacts/form'
-import type { FormData } from '../src/runtime'
+import type { Checklist, Document } from '../src/schemas/artifacts'
+import type { ChecklistData, FormData } from '../src/runtime'
 import type {
 	BinaryContent,
 	RendererLayer,
+	RendererLayerType,
 	RenderRequest,
+	RendererExpressions,
 	ParadocRendererContext,
 	ParadocRenderer,
 	SigningMarker,
@@ -20,9 +23,24 @@ import type {
 import type { Resolver } from '../src/interfaces/resolver'
 
 describe('RenderRequest', () => {
-	it('always carries a Form and FormData beside the template', () => {
-		expectTypeOf<RenderRequest>().toHaveProperty('form').toEqualTypeOf<Form>()
-		expectTypeOf<RenderRequest>().toHaveProperty('data').toEqualTypeOf<FormData>()
+	it('pairs each artifact kind with its own payload', () => {
+		function payload(request: RenderRequest): string {
+			switch (request.kind) {
+				case 'form':
+					expectTypeOf(request.artifact).toEqualTypeOf<Form>()
+					expectTypeOf(request.data).toEqualTypeOf<FormData>()
+					return request.artifact.name
+				case 'checklist':
+					expectTypeOf(request.artifact).toEqualTypeOf<Checklist>()
+					expectTypeOf(request.data).toEqualTypeOf<ChecklistData>()
+					return request.artifact.name
+				case 'document':
+					expectTypeOf(request.artifact).toEqualTypeOf<Document>()
+					expectTypeOf(request).not.toHaveProperty('data')
+					return request.artifact.name
+			}
+		}
+		void payload
 	})
 
 	it('is generic over the template layer it renders', () => {
@@ -32,22 +50,61 @@ describe('RenderRequest', () => {
 		expectTypeOf<RenderRequest<PdfLayer>>().toHaveProperty('template').toEqualTypeOf<PdfLayer>()
 	})
 
-	it('rejects a request missing the form', () => {
+	it('rejects a form request missing its artifact', () => {
 		const data: FormData = { fields: {} }
-		// @ts-expect-error a RenderRequest cannot omit `form`.
-		const bad: RenderRequest = { template: { type: 'text' }, data }
+		// @ts-expect-error a form request names the form it renders.
+		const bad: RenderRequest = { kind: 'form', template: { type: 'text' }, data }
+		void bad
+	})
+
+	it('rejects a checklist request that carries form data', () => {
+		const checklist = {} as Checklist
+		// @ts-expect-error a checklist request carries item statuses, not form fields.
+		const bad: RenderRequest = { kind: 'checklist', template: { type: 'text' }, artifact: checklist, data: { fields: {} } }
+		void bad
+	})
+
+	it('rejects a document passed off as a form', () => {
+		const document = {} as Document
+		// @ts-expect-error a form request carries a Form, not a Document.
+		const bad: RenderRequest = { kind: 'form', template: { type: 'text' }, artifact: document, data: { fields: {} } }
+		void bad
+	})
+})
+
+describe('RendererLayer', () => {
+	it('closes its type to the known template types', () => {
+		expectTypeOf<RendererLayer['type']>().toEqualTypeOf<RendererLayerType>()
+		// @ts-expect-error an unknown layer type is not a RendererLayer.
+		const bad: RendererLayer = { type: 'xlsx' }
 		void bad
 	})
 })
 
 describe('ParadocRendererContext', () => {
-	it('stays open for forward-compatible extension', () => {
-		const ctx: ParadocRendererContext = { anythingAtAll: true }
-		expectTypeOf(ctx).toMatchTypeOf<ParadocRendererContext>()
+	it('rejects a key it does not declare', () => {
+		// @ts-expect-error a misspelled member is an error, not an ignored extra.
+		const bad: ParadocRendererContext = { formater: undefined }
+		void bad
 	})
 
 	it('types its known members without forcing them', () => {
+		const empty: ParadocRendererContext = {}
+		void empty
 		expectTypeOf<ParadocRendererContext>().toHaveProperty('signing').toEqualTypeOf<SigningMarkerRequest | undefined>()
+		expectTypeOf<ParadocRendererContext>().toHaveProperty('expressions').toEqualTypeOf<RendererExpressions | undefined>()
+	})
+
+	it('requires expressions to carry a context with lookup', () => {
+		const good: ParadocRendererContext = { expressions: { context: { lookup: () => undefined } } }
+		void good
+		// @ts-expect-error expressions carry an expression context, not arbitrary data.
+		const bad: ParadocRendererContext = { expressions: { items: {} } }
+		void bad
+	})
+
+	it('has no logger member', () => {
+		expectTypeOf<ParadocRendererContext>().not.toHaveProperty('logger')
 	})
 })
 

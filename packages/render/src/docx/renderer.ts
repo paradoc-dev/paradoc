@@ -5,10 +5,10 @@ import type {
   RendererLayer,
   RenderRequest,
 } from '@paradoc/types'
-import { flattenRenderData } from '../render-data'
+import { requestRenderData } from '../render-data'
 import { renderDocx } from './render'
 import type { DocxSignatureOptions } from './signatures'
-import type { TemplateExpressionOptions } from '../template/context'
+import { requestExpressions, type TemplateExpressionOptions } from '../template/context'
 
 export interface DocxRendererOptions {
   formatter?: Formatter
@@ -24,32 +24,15 @@ export function docxRenderer(options: DocxRendererOptions = {}): ParadocRenderer
   return {
     id: 'docx',
     render(request: RenderRequest<DocxLayer>) {
-      const source = request.data as unknown as Record<string, unknown>
-      const expressions: TemplateExpressionOptions = {
-        ...options.expressions,
-        ...(request.ctx?.expressions as TemplateExpressionOptions | undefined),
-      }
-      const layer = request.template.key
-      if (!('fields' in source)) {
-        return renderDocx({
-          template: request.template.content,
-          data: source,
-          form: request.form,
-          formatter: request.ctx?.formatter ?? formatter,
-          signatureOptions: options.signatureOptions,
-          expressions,
-          layer,
-        })
-      }
-
+      const { data, form } = requestRenderData(request)
       return renderDocx({
         template: request.template.content,
-        data: flattenRenderData(request.data),
-        form: request.form,
+        data,
+        form,
         formatter: request.ctx?.formatter ?? formatter,
         signatureOptions: options.signatureOptions,
-        expressions,
-        layer,
+        expressions: requestExpressions(options.expressions, request.ctx?.expressions),
+        layer: request.template.key,
       })
     },
   }

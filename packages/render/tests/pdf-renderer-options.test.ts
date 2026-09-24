@@ -12,8 +12,9 @@ describe('PDF renderer options', () => {
   it('pdfRenderer takes its supported options and renders', async () => {
     const renderer = pdf.pdfRenderer({ font: undefined })
     const output = await renderer.render({
+      kind: 'form',
       template: { type: 'pdf', mimeType: 'application/pdf', content: pagePdf([[300, 300]]) },
-      form,
+      artifact: form,
       data: { fields: {} },
     } as never)
     expect((await pdf.inspectPdf(output)).pageCount).toBe(1)

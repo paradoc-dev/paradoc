@@ -147,6 +147,7 @@ describe('DOCX renderer behavior', () => {
   it('matches the Paradoc renderer adapter data shape', async () => {
     const template = new Uint8Array(await readFile(new URL('./fixtures/pet-addendum.docx', import.meta.url)))
     const request = {
+      kind: 'form',
       template: { type: 'docx', content: template },
       data: { fields: { name: 'Pixel', species: 'cat', weight: 12, hasVaccination: true } },
     }
@@ -164,8 +165,9 @@ describe('DOCX renderer behavior', () => {
     } as unknown as Form
     const owner = { id: 'owner-1', _role: 'owner', name: 'Ada', signatories: [{ signerId: 'signer-1' }] }
     const render = async (data: Record<string, unknown>) => visibleText(await docxRenderer().render({
+      kind: 'form',
       template: { type: 'docx', content: template },
-      form,
+      artifact: form,
       data,
     } as never))
 
@@ -221,7 +223,8 @@ describe('DOCX artifact formatting', () => {
     expect(visibleText(await renderDocx({ template, data, form, formatter }))).toBe(expected)
     const { parties, defs, ...fields } = data
     const actual = await docxRenderer({ formatter: createFormatter({ locale: 'fr-FR' }) }).render({
-      template: { type: 'docx', content: template }, data: { fields, parties, defs }, form, ctx: { formatter },
+      kind: 'form',
+      template: { type: 'docx', content: template }, data: { fields, parties, defs }, artifact: form, ctx: { formatter },
     } as never)
     expect(visibleText(actual)).toBe(expected)
   })
@@ -265,7 +268,7 @@ describe('DOCX templates name values only through fields', () => {
     ['flat', { name: 'Pixel' }],
     ['artifact', { fields: { name: 'Pixel' } }],
   ])('does not resolve a former alias from layer bindings (%s data)', async (_, data) => {
-    const request = { template: { type: 'docx', content: template, bindings: { pet: 'fields.name' } }, form, data }
+    const request = { kind: 'form', template: { type: 'docx', content: template, bindings: { pet: 'fields.name' } }, artifact: form, data }
     expect(visibleText(await docxRenderer().render(request as never))).toBe('[] Pixel')
   })
 })

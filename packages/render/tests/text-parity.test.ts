@@ -64,7 +64,7 @@ describe('text renderer behavior', () => {
     const template = 'Name: {{fields.name}} / {{fields.business}}'
     const data = { name: "O'Brien <b>", business: 'Smith & Sons' }
     expect(renderText({ template, data, mimeType })).toBe(expected)
-    const request = { template: { type: 'text', key: 'body', mimeType, content: template }, data: { fields: data } }
+    const request = { kind: 'form', template: { type: 'text', key: 'body', mimeType, content: template }, data: { fields: data } }
     expect(await textRenderer().render(request as never)).toBe(expected)
   })
 
@@ -210,6 +210,7 @@ describe('text renderer behavior', () => {
 
   it('matches the Paradoc renderer adapter data shape', async () => {
     const request = {
+      kind: 'form',
       template: {
         type: 'text',
         content: '{{fields.name}}|{{parties.owner.name}}|{{term}}',
@@ -219,7 +220,7 @@ describe('text renderer behavior', () => {
         parties: { owner: { name: 'Ada' } },
         defs: { term: 'Pet' },
       },
-      form: {
+      artifact: {
         fields: { name: { type: 'string' } },
         parties: { owner: { label: 'Owner', partyType: 'person' } },
         defs: { term: { type: 'string', value: 'term' } },
@@ -240,11 +241,12 @@ describe('text renderer behavior', () => {
       type: 'signature', timestamp: '2026-07-12T10:30:00Z', method: 'drawn',
     }
     const render = (data: Record<string, unknown>) => textRenderer().render({
+      kind: 'form',
       template: {
         type: 'text',
         content: '{{fields.name}}|{{annexes.proof.name}}|{{signatureDate(parties.tenant, "final")}}|{{printedName(parties.tenant, "name")}}',
       },
-      form,
+      artifact: form,
       data,
     } as never)
 
@@ -368,8 +370,9 @@ describe('text templates name values only through fields', () => {
     ['artifact', { fields: { name: 'Pixel' } }],
   ])('does not resolve a former alias from layer bindings (%s data)', async (_, data) => {
     const request = {
+      kind: 'form',
       template: { type: 'text', mimeType: 'text/markdown', content: '[{{pet}}] {{fields.name}}', bindings: { pet: 'fields.name' } },
-      form,
+      artifact: form,
       data,
     }
     expect(await textRenderer().render(request as never)).toBe('[] Pixel')

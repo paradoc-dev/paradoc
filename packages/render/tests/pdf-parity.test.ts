@@ -213,8 +213,9 @@ describe('PDF renderer behavior', () => {
       kind: 'form', name: 'pet', version: '1.0.0', title: 'Pet', fields: { name: { type: 'text' } },
     } as unknown as Form
     const request = {
+      kind: 'form',
       template: { type: 'pdf', content: template, bindings: { pet_name: 'name' } },
-      form,
+      artifact: form,
       data: { fields: { name: 'Pixel' } },
     }
     const actual = await pdfRenderer().render(request as never)
@@ -228,8 +229,9 @@ describe('PDF renderer behavior', () => {
     } as unknown as Form
     const render = async (data: Record<string, unknown>) => {
       const bytes = await pdfRenderer().render({
+        kind: 'form',
         template: { type: 'pdf', content: textFieldsPdf(['name', 'photo']), bindings: { name: 'name', photo: 'annexes.photo.name' } },
-        form,
+        artifact: form,
         data,
       } as never)
       return Object.fromEntries((await inspectAcroFormFields(bytes)).map((field) => [field.name, field.value]))
@@ -265,7 +267,7 @@ describe('PDF artifact formatting', () => {
     const bindings = { amount: 'rows[0].amount', total: 'defs.total', owner: 'parties.owner', combined: 'count, enabled' }
     const direct = await renderPdf({ template, form, formatter, data, bindings })
     const { parties, defs, ...fields } = data
-    const adapted = await pdfRenderer().render({ template: { type: 'pdf', content: template, bindings }, form,
+    const adapted = await pdfRenderer().render({ kind: 'form', template: { type: 'pdf', content: template, bindings }, artifact: form,
       data: { fields, parties, defs }, ctx: { formatter } } as never)
     const values = async (bytes: Uint8Array) => Object.fromEntries((await inspectAcroFormFields(bytes)).map((field) => [field.name, field.value]))
     expect(await values(direct)).toEqual(await values(adapted))
@@ -290,7 +292,7 @@ describe('PDF artifact formatting', () => {
     const { parties, defs, ...fields } = data
     const values = async (bytes: Uint8Array) => Object.fromEntries((await inspectAcroFormFields(bytes)).map((field) => [field.name, field.value]))
     const render = (format?: { money: { currencyDisplay: 'none' } }, formatter?: ReturnType<typeof createFormatter>) =>
-      pdfRenderer({ formatter }).render({ template: { type: 'pdf', content: template, bindings, ...(format && { format }) }, form,
+      pdfRenderer({ formatter }).render({ kind: 'form', template: { type: 'pdf', content: template, bindings, ...(format && { format }) }, artifact: form,
         data: { fields, parties, defs } } as never)
     const amountOnly = { money: { currencyDisplay: 'none' as const } }
 

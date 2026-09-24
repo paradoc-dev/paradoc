@@ -4,30 +4,27 @@
  * These interfaces define the contract for Paradoc renderer plugins.
  */
 
-import type { Form } from "../schemas/artifacts";
+import type { Checklist, Document, Form } from "../schemas/artifacts";
 import type { Formatter, FormatterProgressivePolicy } from "./formatter";
 import type { Bindings, LayerFormat } from "../schemas/artifacts/shared";
-import type { FormData } from "../runtime";
+import type { ChecklistData, FormData } from "../runtime";
 
-/**
- * Common renderer configuration options
- */
 /**
  * Binary content type for templates.
  * In Node.js, Buffer is assignable to Uint8Array, so this stays platform-agnostic.
  */
 export type BinaryContent = Uint8Array;
 
+/** The logical template types a renderer can receive. */
+export type RendererLayerType = "text" | "docx" | "pdf" | "react";
+
 /**
  * Runtime representation of a template that a renderer operates on.
- * This is the resolved form of your spec-level `Content` union.
+ * This is the resolved form of an artifact's spec-level `Layer`.
  */
 export interface RendererLayer {
-  /**
-   * Logical template type understood by renderers.
-   * Typically 'text', 'docx', 'pdf', 'react', etc., but you can extend it.
-   */
-  type: "text" | "docx" | "pdf" | "react" | string;
+  /** Logical template type. A React layer is `react`; core passes every other layer as `text`. */
+  type: RendererLayerType;
 
   /**
    * Template payload in memory: either text or binary.
@@ -85,12 +82,70 @@ export interface RendererLayerFont {
 
 /**
  * Parameters required to execute a render operation.
+ *
+ * The request names the artifact that declares the layer, and carries the
+ * payload of that artifact's kind. Narrow on `kind` to read `artifact` and
+ * `data` together:
+ *
+ * - `form`: the form definition and its filled `FormData`.
+ * - `checklist`: the checklist definition and its item statuses.
+ * - `document`: the document definition. A document has no payload.
  */
-export interface RenderRequest<Input extends RendererLayer = RendererLayer> {
+export type RenderRequest<Input extends RendererLayer = RendererLayer> =
+  | FormRenderRequest<Input>
+  | ChecklistRenderRequest<Input>
+  | DocumentRenderRequest<Input>;
+
+/** The members every render request carries, whatever the artifact kind. */
+export interface RenderRequestBase<Input extends RendererLayer = RendererLayer> {
+  /** The layer to render. */
   template: Input;
-  form: Form;
-  data: FormData;
+  /** What the caller supplies beside the artifact: formatter, expressions, signing markers. */
   ctx?: ParadocRendererContext;
+}
+
+/** A request to render a form's layer. */
+export interface FormRenderRequest<Input extends RendererLayer = RendererLayer>
+  extends RenderRequestBase<Input> {
+  kind: "form";
+  /** The form definition that declares the layer. */
+  artifact: Form;
+  /** The form's filled values. */
+  data: FormData;
+}
+
+/** A request to render a checklist's layer. */
+export interface ChecklistRenderRequest<Input extends RendererLayer = RendererLayer>
+  extends RenderRequestBase<Input> {
+  kind: "checklist";
+  /** The checklist definition that declares the layer. */
+  artifact: Checklist;
+  /** The checklist's item statuses. */
+  data: ChecklistData;
+}
+
+/** A request to render a document's layer. A document has content, not data. */
+export interface DocumentRenderRequest<Input extends RendererLayer = RendererLayer>
+  extends RenderRequestBase<Input> {
+  kind: "document";
+  /** The document definition that declares the layer. */
+  artifact: Document;
+}
+
+/**
+ * The expression context template expressions read, as `@paradoc/core` builds
+ * it with `@paradoc/expr`'s `createContext`. A renderer passes it to
+ * `@paradoc/expr` unchanged; it never builds one itself.
+ */
+export interface RendererExpressionContext {
+  /** Resolve a top-level identifier (`fields`, `parties`, a defs key), or undefined. */
+  lookup(name: string): unknown;
+}
+
+/** What a template's expressions read, supplied by `@paradoc/core`. */
+export interface RendererExpressions {
+  /** The artifact's expression context, the same one its field logic reads. */
+  context: RendererExpressionContext;
 }
 
 /**
@@ -139,16 +194,10 @@ export interface SigningMarkerRequest {
 }
 
 /**
- * Context passed to renderers. Kept intentionally loose/optional so you can
- * grow it over time (logger, flags, etc.) without breaking plugins.
+ * Context passed to renderers beside the artifact and its payload. Every member
+ * is optional; a key it does not declare is a type error.
  */
 export interface ParadocRendererContext {
-  logger?: {
-    debug?: (...args: unknown[]) => void;
-    info?: (...args: unknown[]) => void;
-    warn?: (...args: unknown[]) => void;
-    error?: (...args: unknown[]) => void;
-  };
   /**
    * Formatter selected for the artifact render. Renderers must use this
    * policy for field-aware value presentation instead of constructing their
@@ -164,14 +213,9 @@ export interface ParadocRendererContext {
   signing?: SigningMarkerRequest;
   /**
    * What template expressions read: the artifact's expression context, supplied
-   * by `@paradoc/core`. Its shape is `TemplateExpressionOptions` from
-   * `@paradoc/render`; renderers without templates ignore it.
+   * by `@paradoc/core`. Renderers without templates ignore it.
    */
-  expressions?: unknown;
-  // Room for future options:
-  // e.g. dryRun?: boolean;
-  //      timezone?: string;
-  [key: string]: unknown;
+  expressions?: RendererExpressions;
 }
 
 /**
@@ -193,7 +237,7 @@ export interface ParadocRenderer<
 
   /**
    * Perform the actual rendering.
-   * @param request - The render request containing template, form, data, and optional context
+   * @param request - The render request: the template, the artifact with its payload, and optional context
    */
   render(request: RenderRequest<Input>): Promise<Output> | Output;
 }

@@ -278,11 +278,13 @@ export interface FormatterOptions {
 	numberingSystem?: string
 	/** Maximum number of Intl formatter configurations retained by this instance. */
 	cacheSize?: number
-	/** Base options for each implemented numeric value kind. */
+	/** Default options for `number` values. */
 	number?: NumberFormatOptions
+	/** Default options for `money` values. */
 	money?: MoneyFormatOptions
+	/** Default options for `percentage` values. */
 	percentage?: PercentageFormatOptions
-	/** Caller-supplied package messages, merged with the initial built-in locale resources. */
+	/** Caller-supplied package messages, merged over the built-in locale messages. */
 	messages?: FormatterMessages
 	address?: AddressFormatOptions
 	phone?: PhoneFormatOptions

@@ -16,15 +16,21 @@ import type {
 	Signer,
 	PartySignatory,
 	Attestation,
+	AttestationTarget,
+	RuntimeContentJSON,
+	FormPhase,
+	ChecklistPhase,
+	DocumentPhase,
+	BundlePhase,
 	FormData,
 	RuntimeContext,
 	DraftDocumentJSON,
 	FinalDocumentJSON,
-	AnyDocumentJSON,
+	RuntimeDocumentJSON,
 	DraftBundleJSON,
 	SignableBundleJSON,
 	ExecutedBundleJSON,
-	AnyBundleJSON,
+	RuntimeBundleJSON,
 } from '../src/runtime'
 
 describe('Party', () => {
@@ -69,9 +75,54 @@ describe('Signer / PartySignatory', () => {
 })
 
 describe('Attestation', () => {
+	const signature = { timestamp: '2026-09-24T00:00:00Z', method: 'typed' } as const
+	const attestsTo = [{ role: 'buyer', partyId: 'buyer-0', signerId: 'bea' }]
+
 	it('requires a signature and its attested targets', () => {
 		expectTypeOf<Attestation>().toHaveProperty('signature')
 		expectTypeOf<Attestation>().toHaveProperty('attestsTo')
+	})
+
+	it('names its witness by reference or inline', () => {
+		const byReference: Attestation = { witnessId: 'w1', signature, attestsTo }
+		const inline: Attestation = {
+			witness: { id: 'w1', party: { name: 'Wes Witness' } },
+			signature,
+			attestsTo,
+		}
+		void byReference
+		void inline
+	})
+
+	it('rejects an attestation that names no witness', () => {
+		// @ts-expect-error an attestation must name its witness.
+		const bad: Attestation = { signature, attestsTo }
+		void bad
+	})
+
+	it('rejects an attestation that names its witness both ways', () => {
+		// @ts-expect-error witnessId and witness are exclusive.
+		const bad: Attestation = { witnessId: 'w1', witness: { id: 'w1', party: { name: 'Wes Witness' } }, signature, attestsTo }
+		void bad
+	})
+
+	it('names the attested party role `role`, as captures do', () => {
+		expectTypeOf<AttestationTarget>().toHaveProperty('role').toEqualTypeOf<string>()
+		expectTypeOf<AttestationTarget>().not.toHaveProperty('roleId')
+	})
+})
+
+describe('phase unions', () => {
+	it('types a bundle content phase as the artifact phases, not any string', () => {
+		expectTypeOf<RuntimeContentJSON['phase']>().toEqualTypeOf<
+			FormPhase | ChecklistPhase | DocumentPhase | BundlePhase | undefined
+		>()
+	})
+
+	it('rejects an unknown content phase', () => {
+		// @ts-expect-error a content phase is one of the artifact phases.
+		const bad: RuntimeContentJSON = { kind: 'form', artifact: {}, targetLayer: 'text', phase: 'archived' }
+		void bad
 	})
 })
 
@@ -95,8 +146,8 @@ describe('RuntimeContext', () => {
 })
 
 describe('document JSON phases', () => {
-	it('narrows AnyDocumentJSON by its phase discriminant', () => {
-		function narrow(json: AnyDocumentJSON): string {
+	it('narrows RuntimeDocumentJSON by its phase discriminant', () => {
+		function narrow(json: RuntimeDocumentJSON): string {
 			if (json.phase === 'final') {
 				expectTypeOf(json).toEqualTypeOf<FinalDocumentJSON>()
 				return json.finalizedAt
@@ -104,7 +155,7 @@ describe('document JSON phases', () => {
 			expectTypeOf(json).toEqualTypeOf<DraftDocumentJSON>()
 			return json.targetLayer
 		}
-		expectTypeOf(narrow).parameter(0).toEqualTypeOf<AnyDocumentJSON>()
+		expectTypeOf(narrow).parameter(0).toEqualTypeOf<RuntimeDocumentJSON>()
 	})
 
 	it('rejects a draft document carrying finalizedAt', () => {
@@ -116,7 +167,7 @@ describe('document JSON phases', () => {
 
 describe('bundle JSON phases', () => {
 	it('is the union of draft, signable, and executed', () => {
-		expectTypeOf<AnyBundleJSON>().toEqualTypeOf<DraftBundleJSON | SignableBundleJSON | ExecutedBundleJSON>()
+		expectTypeOf<RuntimeBundleJSON>().toEqualTypeOf<DraftBundleJSON | SignableBundleJSON | ExecutedBundleJSON>()
 	})
 
 	it('only the executed phase carries executedAt', () => {

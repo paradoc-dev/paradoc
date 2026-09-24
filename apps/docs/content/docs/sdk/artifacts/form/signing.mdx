@@ -53,7 +53,7 @@ const witnessed = signed
     witnessId: 'witness-0',
     signature: { image: 'data:...', method: 'drawn', timestamp: new Date().toISOString() },
     attestsTo: [
-      { roleId: 'tenant', partyId: 'tenant-0', signerId: 'jane' }
+      { role: 'tenant', partyId: 'tenant-0', signerId: 'jane' }
     ]
   })
 
@@ -222,18 +222,19 @@ const withNotary = withWitness.addWitness({
 
 ## Attestation
 
-An `Attestation` records a witness's attestation to one or more party signatures.
+An `Attestation` records a witness's attestation to one or more party signatures. It names its witness exactly once: by `witnessId` or inline as `witness`. `addAttestation` rejects an attestation that names no witness, or names it both ways.
 
 ```typescript
-interface Attestation {
-  witnessId?: string           // Reference to declared witness
-  witness?: WitnessParty       // Inline witness definition
-  signature: Signature         // The witness's signature
+type Attestation = {
+  signature: Signature            // The witness's signature
   attestsTo: AttestationTarget[]  // Signatures being witnessed
-}
+} & (
+  | { witnessId: string }         // Reference to declared witness
+  | { witness: WitnessParty }     // Inline witness definition
+)
 
 interface AttestationTarget {
-  roleId: string       // Role of the party being witnessed
+  role: string         // Role of the party being witnessed
   partyId: string      // Party ID
   signerId: string     // Signer ID
   locationId?: string  // Specific capture location (optional)
@@ -243,8 +244,8 @@ interface AttestationTarget {
 ### Attestation Properties
 
 <PropertiesTable properties={[
-  { name: 'witnessId', type: 'string', description: 'Reference to a pre-declared witness by ID', isOptional: true },
-  { name: 'witness', type: 'WitnessParty', description: 'Inline witness definition', isOptional: true },
+  { name: 'witnessId', type: 'string', description: 'Reference to a pre-declared witness by ID. Give this or `witness`, not both', isOptional: true },
+  { name: 'witness', type: 'WitnessParty', description: 'Inline witness definition. Give this or `witnessId`, not both', isOptional: true },
   { name: 'signature', type: 'Signature', description: 'The witness signature' },
   { name: 'attestsTo', type: 'AttestationTarget[]', description: 'The party signatures this attestation witnesses' },
 ]} />
@@ -252,7 +253,7 @@ interface AttestationTarget {
 ### AttestationTarget Properties
 
 <PropertiesTable properties={[
-  { name: 'roleId', type: 'string', description: 'The role ID of the party being witnessed' },
+  { name: 'role', type: 'string', description: 'The role ID of the party being witnessed' },
   { name: 'partyId', type: 'string', description: 'The party ID whose signature is being witnessed' },
   { name: 'signerId', type: 'string', description: 'The signer ID whose signature is being witnessed' },
   { name: 'locationId', type: 'string', description: 'The specific capture location being witnessed', isOptional: true },
@@ -270,8 +271,8 @@ const attested = signable.addAttestation({
     timestamp: new Date().toISOString()
   },
   attestsTo: [
-    { roleId: 'tenant', partyId: 'tenant-0', signerId: 'jane' },
-    { roleId: 'landlord', partyId: 'landlord-0', signerId: 'bob' }
+    { role: 'tenant', partyId: 'tenant-0', signerId: 'jane' },
+    { role: 'landlord', partyId: 'landlord-0', signerId: 'bob' }
   ]
 })
 
@@ -279,7 +280,7 @@ const attested = signable.addAttestation({
 const attested = signable.addAttestation({
   witness: { id: 'witness-1', party: { name: 'New Witness' } },
   signature: { /* ... */ },
-  attestsTo: [{ roleId: 'tenant', partyId: 'tenant-0', signerId: 'jane' }]
+  attestsTo: [{ role: 'tenant', partyId: 'tenant-0', signerId: 'jane' }]
 })
 ```
 

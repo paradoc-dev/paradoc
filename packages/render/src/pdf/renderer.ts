@@ -5,7 +5,7 @@ import type {
   RendererLayer,
   RenderRequest,
 } from '@paradoc/types'
-import { flattenRenderData } from '../render-data'
+import { requestRenderData } from '../render-data'
 import type { PdfFont } from './drawing-fonts'
 import { renderPdf } from './render'
 
@@ -32,22 +32,11 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
   return {
     id: 'pdf',
     render(request: RenderRequest<PdfLayer>) {
-      const source = request.data as unknown as Record<string, unknown>
-      if (!('fields' in source)) {
-        return renderPdf({
-          template: request.template.content,
-          data: source,
-          form: request.form,
-          formatter: request.ctx?.formatter ?? formatter,
-          bindings: request.template.bindings,
-          ...fromLayer(request.template),
-        })
-      }
-
+      const { data, form } = requestRenderData(request)
       return renderPdf({
         template: request.template.content,
-        data: flattenRenderData(request.data),
-        form: request.form,
+        data,
+        form,
         formatter: request.ctx?.formatter ?? formatter,
         bindings: request.template.bindings,
         ...fromLayer(request.template),

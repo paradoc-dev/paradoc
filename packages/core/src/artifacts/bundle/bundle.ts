@@ -19,11 +19,10 @@ import type {
 	Expression,
 	CondExpr,
 	BinaryContent,
-	DraftBundleJSON,
-	SignableBundleJSON,
-	ExecutedBundleJSON,
 	RuntimeContentJSON,
 	ContentRef,
+	BundlePhase,
+	RuntimeBundleJSON,
 } from '@paradoc/types'
 import {
 	parseBundle as parseBundleSchema,
@@ -71,10 +70,7 @@ type MutableBundle<T extends BundleInput> = DeepMutable<T> & Bundle & { kind: 'b
 type BundleArtifact = Document | Form | Checklist | Bundle
 type BundleArtifactInput = Buildable<BundleArtifact> | { readonly _data: BundleArtifact }
 
-/**
- * RuntimeBundle JSON representation (union of all phases)
- */
-export type RuntimeBundleJSON<B extends Bundle> = DraftBundleJSON<B> | SignableBundleJSON<B> | ExecutedBundleJSON<B>
+export type { RuntimeBundleJSON }
 
 /**
  * A runtime content instance that can be part of a bundle.
@@ -399,7 +395,7 @@ function getInstanceLayerInfo(instance: RuntimeInstance): { layers: Record<strin
 interface RuntimeBundleConfig<B extends Bundle> {
 	bundle: B
 	contents: RuntimeBundleContents
-	phase: 'draft' | 'signable' | 'executed'
+	phase: BundlePhase
 	executedAt?: string
 }
 

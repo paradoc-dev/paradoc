@@ -123,7 +123,7 @@ export interface SignatureCapture {
  */
 export interface AttestationTarget {
 	/** The role ID of the party being witnessed. */
-	roleId: string;
+	role: string;
 	/** The party ID whose signature is being witnessed. */
 	partyId: string;
 	/** The signer ID whose signature is being witnessed. */
@@ -136,13 +136,24 @@ export interface AttestationTarget {
  * Attestation
  *
  * A witness attestation containing the witness signature and the parties being witnessed.
- * Either witnessId (reference) or witness (inline) should be provided.
+ * It names its witness exactly once: by reference to a declared witness
+ * (`witnessId`) or inline (`witness`).
  */
-export interface Attestation {
-	/** Reference to a pre-declared witness by ID. */
-	witnessId?: string;
-	/** Inline witness definition. */
-	witness?: WitnessParty;
+export type Attestation = AttestationBase & (
+	| {
+		/** Reference to a pre-declared witness by ID. */
+		witnessId: string;
+		witness?: never;
+	}
+	| {
+		/** Inline witness definition. */
+		witness: WitnessParty;
+		witnessId?: never;
+	}
+);
+
+/** The fields every attestation carries, whichever way it names its witness. */
+export interface AttestationBase {
 	/** The witness's signature. */
 	signature: Signature;
 	/** The party signatures this attestation witnesses. */
@@ -185,12 +196,12 @@ export interface FormData {
 }
 
 /**
- * Runtime checklist data payload for rendering.
- * Contains status values for checklist items.
+ * The checklist payload a renderer receives.
+ * Every declared item appears; an item with no status yet is `null`.
  */
 export interface ChecklistData {
-	/** Status values keyed by item ID. Boolean for toggle, string for enum. */
-	items: Record<string, boolean | string>;
+	/** Status values keyed by item ID. Boolean for toggle, string for enum, `null` when unset. */
+	items: Record<string, boolean | string | null>;
 }
 
 /**
@@ -405,13 +416,13 @@ export interface ExecutedFormJSON<F = unknown> {
 }
 
 /**
- * AnyFormJSON
+ * RuntimeFormJSON
  *
  * Union type of all form JSON formats for type-safe phase handling.
  *
  * @typeParam F - The form definition type
  */
-export type AnyFormJSON<F = unknown> = DraftFormJSON<F> | SignableFormJSON<F> | ExecutedFormJSON<F>;
+export type RuntimeFormJSON<F = unknown> = DraftFormJSON<F> | SignableFormJSON<F> | ExecutedFormJSON<F>;
 
 // =============================================================================
 // Checklist Lifecycle Phase Types
@@ -471,13 +482,13 @@ export interface CompletedChecklistJSON<C = unknown> {
 }
 
 /**
- * AnyChecklistJSON
+ * RuntimeChecklistJSON
  *
  * Union type of all checklist JSON formats for type-safe phase handling.
  *
  * @typeParam C - The checklist definition type
  */
-export type AnyChecklistJSON<C = unknown> = DraftChecklistJSON<C> | CompletedChecklistJSON<C>;
+export type RuntimeChecklistJSON<C = unknown> = DraftChecklistJSON<C> | CompletedChecklistJSON<C>;
 
 // =============================================================================
 // Document Lifecycle Phase Types
@@ -529,13 +540,13 @@ export interface FinalDocumentJSON<D = unknown> {
 }
 
 /**
- * AnyDocumentJSON
+ * RuntimeDocumentJSON
  *
  * Union type of all document JSON formats for type-safe phase handling.
  *
  * @typeParam D - The document definition type
  */
-export type AnyDocumentJSON<D = unknown> = DraftDocumentJSON<D> | FinalDocumentJSON<D>;
+export type RuntimeDocumentJSON<D = unknown> = DraftDocumentJSON<D> | FinalDocumentJSON<D>;
 
 // =============================================================================
 // Bundle Lifecycle Phase Types
@@ -567,7 +578,7 @@ export interface RuntimeContentJSON {
 	/** Runtime data (for forms and checklists). */
 	data?: unknown;
 	/** Current phase of this content item. */
-	phase?: string;
+	phase?: FormPhase | ChecklistPhase | DocumentPhase | BundlePhase;
 	/** Captured evaluation context for runtime forms and checklists. */
 	context?: RuntimeContext;
 }
@@ -626,13 +637,13 @@ export interface ExecutedBundleJSON<B = unknown> {
 }
 
 /**
- * AnyBundleJSON
+ * RuntimeBundleJSON
  *
  * Union type of all bundle JSON formats for type-safe phase handling.
  *
  * @typeParam B - The bundle definition type
  */
-export type AnyBundleJSON<B = unknown> = DraftBundleJSON<B> | SignableBundleJSON<B> | ExecutedBundleJSON<B>;
+export type RuntimeBundleJSON<B = unknown> = DraftBundleJSON<B> | SignableBundleJSON<B> | ExecutedBundleJSON<B>;
 
 // =============================================================================
 // Sealing Types (E-Signing Integration)

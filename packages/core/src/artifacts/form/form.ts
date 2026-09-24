@@ -24,9 +24,6 @@ import type {
 	Attestation,
 	AdoptedSignature,
 	SigningField,
-	DraftFormJSON,
-	SignableFormJSON,
-	ExecutedFormJSON,
 	SealAdapter,
 	SealLocator,
 	SealingRequest,
@@ -39,6 +36,7 @@ import type {
 	ParadocRenderer,
 	Formatter,
 	FormData,
+	RuntimeFormJSON,
 } from '@paradoc/types'
 import { createLayerRenderer } from '@paradoc/render'
 import { flattenPdf, locate as locatePlacements } from '@paradoc/render/pdf'
@@ -502,10 +500,7 @@ export interface CaptureOptions {
 	timestamp?: string
 }
 
-/**
- * RuntimeForm JSON representation (union of all phases)
- */
-export type RuntimeFormJSON<F extends Form> = DraftFormJSON<F> | SignableFormJSON<F> | ExecutedFormJSON<F>
+export type { RuntimeFormJSON }
 
 /**
  * Custom error class for data validation failures
@@ -2155,14 +2150,23 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			validateRoleId(roleId)
 			return deepReadonlyClone(attestationsView.filter((a) =>
 				a.attestsTo.some(
-					(t) => t.roleId === roleId && t.partyId === partyId && (signerId === undefined || t.signerId === signerId),
+					(t) => t.role === roleId && t.partyId === partyId && (signerId === undefined || t.signerId === signerId),
 				),
 			))
 		},
 
 		addAttestation(attestation: Attestation): RuntimeForm<F> {
 			ensureSignable('addAttestation')
-			if (attestation.witnessId && !witnesses.some((w) => w.id === attestation.witnessId)) {
+			const byReference = attestation.witnessId !== undefined
+			const inline = attestation.witness !== undefined
+			if (byReference === inline) {
+				throw new Error(
+					byReference
+						? 'An attestation names its witness once: pass witnessId or witness, not both'
+						: 'An attestation must name its witness: pass witnessId or witness',
+				)
+			}
+			if (byReference && !witnesses.some((w) => w.id === attestation.witnessId)) {
 				throw new Error(`Witness with ID "${attestation.witnessId}" not found`)
 			}
 			return createRuntimeForm({
@@ -2197,7 +2201,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						(c) => c.role === roleId && c.partyId === partyId && c.signerId === s.signerId && c.type === 'signature',
 					),
 				)
-				const witnessed = attestations.some((a) => a.attestsTo.some((t) => t.roleId === roleId && t.partyId === partyId))
+				const witnessed = attestations.some((a) => a.attestsTo.some((t) => t.role === roleId && t.partyId === partyId))
 				return { partyId, hasSignatory, hasCapture, witnessed }
 			})
 
@@ -2852,8 +2856,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			}
 
 			return await renderer.render({
+				kind: 'form',
 				template,
-				form: formDef,
+				artifact: formDef,
 				data,
 				ctx: { expressions, ...(formatter && { formatter }), ...(progressive && { progressive }) },
 			}) as Output
@@ -3137,8 +3142,9 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 			}
 
 			return await renderer.render({
+				kind: 'form',
 				template,
-				form: formDef,
+				artifact: formDef,
 				data: formData,
 				ctx: { expressions, ...(formatter && { formatter }), ...(progressive && { progressive }) },
 			}) as Output

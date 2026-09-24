@@ -30,6 +30,7 @@ import {
   reactLayerRenderers,
   reactRenderer,
   UnboundReactLayerError,
+  UnsupportedReactLayerArtifactError,
 } from "../src/layer";
 
 /** The package root. */
@@ -219,12 +220,24 @@ describe("a layer that cannot be bound", () => {
     expect((globalThis as Record<string, unknown>)[CWD_IMPORT_EXECUTED]).toBeUndefined();
   });
 
+  it("renders only a form's layer, and names the kind of any other artifact", async () => {
+    const renderer = reactRenderer({ components: { composition: ProposalDocument } });
+    const template = { type: "react", mimeType: "text/tsx", key: "composition" } as const;
+    const brochure = { kind: "document", name: "brochure", version: "1.0.0", title: "Brochure" } as never;
+
+    const attempt = renderer.render({ kind: "document", template, artifact: brochure });
+
+    await expect(attempt).rejects.toThrow(UnsupportedReactLayerArtifactError);
+    await expect(attempt).rejects.toThrow('Cannot render the React layer "composition" of a document');
+  });
+
   it("fails naming both binding options when baseDir is unset and the layer is not in components", async () => {
     const renderer = reactRenderer({});
 
     const attempt = renderer.render({
       template: { type: "react", mimeType: "text/tsx", key: "composition", path: PROPOSAL_REACT_LAYER_PATH },
-      form: proposal.toJSON() as never,
+      kind: "form",
+      artifact: proposal.toJSON() as never,
       data: { fields: {} },
     });
 
@@ -286,7 +299,8 @@ describe("a layer that cannot be bound", () => {
     await expect(
       renderer.render({
         template: { type: "react", mimeType: "text/tsx", key: "composition" },
-        form: proposal.toJSON() as never,
+        kind: "form",
+        artifact: proposal.toJSON() as never,
         data: { fields: {} },
       })
     ).rejects.toThrow(/the layer names no module path/);
@@ -305,7 +319,8 @@ describe("a layer that cannot be bound", () => {
           key: "composition",
           path: resolve(ARTIFACT_DIR, PROPOSAL_REACT_LAYER_PATH),
         },
-        form: proposal.toJSON() as never,
+        kind: "form",
+        artifact: proposal.toJSON() as never,
         data: { fields: {} },
       })
     ).rejects.toThrow(/the layer path is absolute/);
@@ -322,7 +337,8 @@ describe("a layer that cannot be bound", () => {
           key: "composition",
           path: "../../../../../etc/passwd",
         },
-        form: proposal.toJSON() as never,
+        kind: "form",
+        artifact: proposal.toJSON() as never,
         data: { fields: {} },
       })
     ).rejects.toThrow(/outside/);
@@ -335,7 +351,8 @@ describe("a layer that cannot be bound", () => {
 
     const attempt = renderer.render({
       template: { type: "react", mimeType: "text/tsx", key: "composition", path: missing },
-      form: proposal.toJSON() as never,
+      kind: "form",
+      artifact: proposal.toJSON() as never,
       data: { fields: {} },
     });
 
@@ -356,7 +373,8 @@ describe("a layer that cannot be bound", () => {
           key: "composition",
           path: PROPOSAL_REACT_LAYER_PATH,
         },
-        form: proposal.toJSON() as never,
+        kind: "form",
+        artifact: proposal.toJSON() as never,
         data: { fields: {} },
       })
     ).rejects.toThrow(/no `NotAComponent` export that is a component/);

@@ -21,7 +21,7 @@
 
 ## Package overview
 
-Core types for the Paradoc framework.
+Type-only contracts for the Paradoc framework: artifact definitions, runtime data, and the renderer, formatter and resolver interfaces. The package ships no runtime code.
 
 ## Installation
 
@@ -35,6 +35,7 @@ npm install @paradoc/types
 import type { Form } from "@paradoc/types";
 
 const myForm: Form = {
+  kind: "form",
   name: "my-form",
   title: "My Form",
   // ...

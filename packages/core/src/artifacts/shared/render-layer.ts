@@ -6,8 +6,9 @@
  */
 
 import type {
-	Form,
-	FormData,
+	ChecklistRenderRequest,
+	DocumentRenderRequest,
+	FormRenderRequest,
 	FormatterProgressivePolicy,
 	Formatter,
 	Layer,
@@ -155,15 +156,21 @@ export function resolveLayerKey(
 }
 
 /**
- * What a renderer needs beyond the layer itself.
- *
- * An artifact that carries no field data still has to give a renderer an
- * artifact and a payload, so a caller with neither supplies a context standing
- * for it. `Document` does exactly that.
+ * The artifact a render request names, with the payload of its kind: the part
+ * of a `RenderRequest` that is not the layer or the renderer context.
+ */
+export type RenderSubject =
+	| Omit<FormRenderRequest, 'template' | 'ctx'>
+	| Omit<ChecklistRenderRequest, 'template' | 'ctx'>
+	| Omit<DocumentRenderRequest, 'template' | 'ctx'>
+
+/**
+ * What a renderer needs beyond the layer itself: the artifact that declares
+ * the layer, with its payload, and the formatter policy of the render.
  */
 export interface LayerRenderContext {
-	form: Form
-	data: FormData
+	/** The artifact that declares the layer, with the payload of its kind. */
+	subject: RenderSubject
 	/** Formatter policy selected for the containing artifact render. */
 	formatter?: Formatter
 	/** Explicit missing/incomplete value policy for progressive previews. */
@@ -230,9 +237,8 @@ async function renderLayerAt(
 		const formatter = context.formatter ?? options?.formatter
 		const progressive = context.progressive ?? options?.progressive
 		return (await registered.render({
+			...context.subject,
 			template,
-			form: context.form,
-			data: context.data,
 			ctx: formatter || progressive
 				? { formatter, progressive }
 				: undefined,

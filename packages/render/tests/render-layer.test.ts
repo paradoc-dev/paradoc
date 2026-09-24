@@ -21,16 +21,18 @@ const form = { fields: { name: { type: 'string' } } } as never
 describe('createLayerRenderer', () => {
   it('chooses the text engine from a text MIME type', async () => {
     await expect(createLayerRenderer().render({
+      kind: 'form',
       template: { type: 'text', mimeType: 'text/markdown', content: 'Hello {{fields.name}}' },
-      form,
+      artifact: form,
       data: { fields: { name: 'Ada' } },
     } as never)).resolves.toBe('Hello Ada')
   })
 
   it('chooses the PDF engine from application/pdf', async () => {
     const output = await createLayerRenderer().render({
+      kind: 'form',
       template: { type: 'pdf', mimeType: 'application/pdf', content: pagePdf([[300, 300]]) },
-      form,
+      artifact: form,
       data: { fields: { name: 'Ada' } },
     } as never)
     expect((await inspectPdf(output as Uint8Array)).pageCount).toBe(1)
@@ -38,8 +40,9 @@ describe('createLayerRenderer', () => {
 
   it('chooses the DOCX engine from the Office MIME type', async () => {
     const output = await createLayerRenderer().render({
+      kind: 'form',
       template: { type: 'docx', mimeType: DOCX_MIME_TYPE, content: minimalDocx('Hello {{fields.name}}') },
-      form,
+      artifact: form,
       data: { fields: { name: 'Ada' } },
     } as never)
     expect(decoder.decode(unzipSync(output as Uint8Array)['word/document.xml'])).toContain('Hello Ada')
@@ -47,8 +50,9 @@ describe('createLayerRenderer', () => {
 
   it('fails loudly for a missing or unsupported MIME type', async () => {
     await expect(createLayerRenderer().render({
+      kind: 'form',
       template: { type: 'text', content: 'Hello {{fields.name}}' },
-      form,
+      artifact: form,
       data: { fields: { name: 'Ada' } },
     } as never)).rejects.toThrow('Unsupported render layer MIME type: (missing)')
   })
@@ -59,8 +63,9 @@ describe('createLayerRenderer', () => {
     // engines render a payload, so reaching one without a payload is a fault.
     for (const mimeType of ['text/markdown', 'application/pdf', DOCX_MIME_TYPE]) {
       await expect(createLayerRenderer().render({
+        kind: 'form',
         template: { type: 'text', mimeType },
-        form,
+        artifact: form,
         data: { fields: { name: 'Ada' } },
       } as never)).rejects.toThrow(
         `Render layer of MIME type ${mimeType} carries no content.`,
@@ -72,8 +77,9 @@ describe('createLayerRenderer', () => {
     // Both faults at once. Naming the type it cannot render is the answer that
     // helps, so the dispatch decides before the content check runs.
     await expect(createLayerRenderer().render({
+      kind: 'form',
       template: { type: 'react', mimeType: 'text/tsx' },
-      form,
+      artifact: form,
       data: { fields: {} },
     } as never)).rejects.toThrow('Unsupported render layer MIME type: text/tsx')
   })

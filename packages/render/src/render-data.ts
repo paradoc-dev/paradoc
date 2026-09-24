@@ -1,4 +1,4 @@
-import type { FormData } from '@paradoc/types'
+import type { Form, FormData, RendererLayer, RenderRequest } from '@paradoc/types'
 
 /**
  * The flat record a template renders against, built from a render request's
@@ -17,4 +17,18 @@ export function flattenRenderData(data: FormData): Record<string, unknown> {
     ...(signers ? { _signers: signers } : {}),
     ...(captures ? { _captures: captures } : {}),
   }
+}
+
+/**
+ * What a template renders against, read from a render request.
+ *
+ * A form's filled values sit at the root, beside the form that gives them
+ * their field types. A checklist or document template has no field values:
+ * it reads its artifact through the expression context alone.
+ */
+export function requestRenderData(request: RenderRequest<RendererLayer>): { data: Record<string, unknown>; form?: Form } {
+  if (request.kind !== 'form') return { data: {} }
+  const source = request.data as unknown as Record<string, unknown>
+  if (!('fields' in source)) return { data: source, form: request.artifact }
+  return { data: flattenRenderData(request.data), form: request.artifact }
 }

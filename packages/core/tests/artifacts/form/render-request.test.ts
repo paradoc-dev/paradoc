@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { form } from '@/artifacts'
+import { checklist, document, form } from '@/artifacts'
 import type { FormData, ParadocRenderer, RendererLayer, RenderRequest } from '@paradoc/types'
 
 /**
@@ -33,6 +33,7 @@ function recordingRenderer() {
 	const renderer: ParadocRenderer<RendererLayer, string> = {
 		id: 'recording',
 		render(request: RenderRequest<RendererLayer>) {
+			if (request.kind !== 'form') throw new Error(`expected a form request, got ${request.kind}`)
 			seen.push(request.data)
 			return 'rendered'
 		},
@@ -93,5 +94,75 @@ describe('the render request a definition-level render hands its renderer', () =
 		await application.render({ renderer, data })
 
 		expect(seen).toEqual([data])
+	})
+})
+
+/** A renderer that records every request it is handed, whole. */
+function requestRecorder() {
+	const seen: RenderRequest<RendererLayer>[] = []
+	const renderer: ParadocRenderer<RendererLayer, string> = {
+		id: 'request-recorder',
+		render(request: RenderRequest<RendererLayer>) {
+			seen.push(request)
+			return 'rendered'
+		},
+	}
+	return { renderer, seen }
+}
+
+describe('the artifact a render request names', () => {
+	test('a form request names the form and carries its FormData', async () => {
+		const { renderer, seen } = requestRecorder()
+
+		await application.fill({ fields: { amount: 250 } } as never).render({ renderer })
+
+		const [request] = seen
+		expect(request?.kind).toBe('form')
+		if (request?.kind !== 'form') return
+		expect(request.artifact.kind).toBe('form')
+		expect(request.artifact.name).toBe('application')
+		expect(request.data.fields).toEqual({ amount: 250 })
+	})
+
+	test('a document request names the document and carries no payload', async () => {
+		const { renderer, seen } = requestRecorder()
+		const notice = document({
+			name: 'notice',
+			version: '1.0.0',
+			title: 'Notice',
+			layers: { main: { kind: 'inline', mimeType: 'text/plain', text: 'Hello' } },
+			defaultLayer: 'main',
+		})
+
+		await notice.render({ renderers: { 'text/plain': renderer } })
+
+		const [request] = seen
+		expect(request?.kind).toBe('document')
+		expect(request?.artifact).toMatchObject({ kind: 'document', name: 'notice' })
+		expect(request).not.toHaveProperty('data')
+	})
+
+	test('a checklist request names the checklist and carries its item statuses', async () => {
+		const { renderer, seen } = requestRecorder()
+		const onboarding = checklist({
+			name: 'onboarding',
+			version: '1.0.0',
+			title: 'Onboarding',
+			items: [
+				{ id: 'badge', title: 'Badge issued' },
+				{ id: 'laptop', title: 'Laptop issued' },
+			] as const,
+			layers: { main: { kind: 'inline', mimeType: 'text/plain', text: 'Checklist' } },
+			defaultLayer: 'main',
+		})
+
+		await onboarding.fill({ badge: true }).render({ renderer })
+		await onboarding.render({ renderer })
+
+		const [filled, definition] = seen
+		expect(filled?.kind).toBe('checklist')
+		expect(filled?.artifact).toMatchObject({ kind: 'checklist', name: 'onboarding' })
+		expect(filled?.kind === 'checklist' && filled.data).toEqual({ items: { badge: true, laptop: null } })
+		expect(definition?.kind === 'checklist' && definition.data).toEqual({ items: { badge: null, laptop: null } })
 	})
 })

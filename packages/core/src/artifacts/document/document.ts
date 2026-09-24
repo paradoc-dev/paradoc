@@ -7,7 +7,6 @@
 
 import type {
 	Document,
-	Form,
 	Formatter,
 	FormatterProgressivePolicy,
 	Layer,
@@ -15,7 +14,7 @@ import type {
 	ContentRef,
 	Resolver,
 } from '@paradoc/types'
-import type { DraftDocumentJSON, FinalDocumentJSON } from '@paradoc/types'
+import type { RuntimeDocumentJSON } from '@paradoc/types'
 import { parseDocument, parseLayer } from '@/validation/artifact-parsers'
 import { toYAML } from '@/serialization/serialization'
 import {
@@ -33,12 +32,8 @@ import {
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 
 /**
- * The artifact context a registered renderer receives for a document.
- *
- * A `Document` carries content, not field data, so there is no payload to hand
- * a renderer and no `Form` to name. The renderer contract wants both, so the
- * document stands in for the artifact and the payload is empty. A renderer that
- * reads fields will find none, which is the truth about a document.
+ * The artifact context a registered renderer receives for a document: the
+ * document itself. A document carries content, not data, so there is no payload.
  */
 function documentRenderContext(
 	doc: Document,
@@ -46,15 +41,7 @@ function documentRenderContext(
 	progressive?: FormatterProgressivePolicy,
 ): LayerRenderContext {
 	return {
-		form: {
-			kind: 'form',
-			name: doc.name,
-			version: doc.version,
-			title: doc.title,
-			description: doc.description,
-			fields: {},
-		} as unknown as Form,
-		data: { fields: {} },
+		subject: { kind: 'document', artifact: doc },
 		formatter,
 		progressive,
 	}
@@ -69,12 +56,7 @@ function documentRenderContext(
  */
 export type DocumentInput = Omit<Document, 'kind'> & { kind?: 'document' }
 
-/**
- * RuntimeDocument JSON representation
- */
-export type RuntimeDocumentJSON<D extends Document> =
-	| DraftDocumentJSON<D>
-	| FinalDocumentJSON<D>
+export type { RuntimeDocumentJSON }
 
 /**
  * DocumentInstance - design-time wrapper for Document artifacts

@@ -243,7 +243,7 @@ signed = signed
   .addAttestation({
     witnessId: 'witness-0',
     signature: { image: 'data:image/png;base64,…', method: 'drawn', timestamp: new Date().toISOString() },
-    attestsTo: [{ roleId: 'tenant', partyId: 'tenant-0', signerId: 'jane' }],
+    attestsTo: [{ role: 'tenant', partyId: 'tenant-0', signerId: 'jane' }],
   })
 ```
 

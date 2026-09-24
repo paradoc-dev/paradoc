@@ -5,7 +5,7 @@
  * with a single file using closures and composition.
  */
 
-import type { Checklist, ChecklistItem, Layer, Metadata, ParadocRenderer, RendererLayer, Form, ContentRef, Resolver } from '@paradoc/types'
+import type { Checklist, ChecklistData, ChecklistItem, ChecklistPhase, Layer, Metadata, ParadocRenderer, RendererLayer, ContentRef, Resolver, RuntimeChecklistJSON } from '@paradoc/types'
 import { createContext } from '@paradoc/expr'
 import { resolveLayerBindings } from '@paradoc/render'
 import { buildRendererLayer } from '../shared/render-layer'
@@ -15,7 +15,6 @@ import {
 	isReactLayerMimeType,
 	UnregisteredLayerRendererError,
 } from '@/rendering/renderer-registry'
-import type { DraftChecklistJSON, CompletedChecklistJSON } from '@paradoc/types'
 import { parseChecklist, parseChecklistItem, parseLayer } from '@/validation/artifact-parsers'
 import {
 	validateChecklistItemInput,
@@ -137,7 +136,7 @@ export interface ChecklistFillItemState extends ChecklistFillTarget {
 
 /** Complete progressive fill state for a checklist draft. */
 export interface ChecklistFillState {
-	phase: 'draft' | 'completed'
+	phase: ChecklistPhase
 	summary: {
 		requiredTotal: number
 		requiredDone: number
@@ -165,10 +164,7 @@ export type ChecklistInput = DeepReadonly<Omit<Checklist, 'kind'>> & { readonly 
 
 type MutableChecklist<T extends ChecklistInput> = DeepMutable<T> & { kind: 'checklist' }
 
-/**
- * RuntimeChecklist JSON representation
- */
-export type RuntimeChecklistJSON<C extends Checklist> = DraftChecklistJSON<C> | CompletedChecklistJSON<C>
+export type { RuntimeChecklistJSON }
 
 /**
  * ChecklistInstance - design-time wrapper for Checklist artifacts
@@ -607,24 +603,17 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 
 		// A checklist template reads `items.<id>` from its expression context.
 		const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
-
-		// Create a minimal form-like object for the renderer
-		// Renderers mainly use template and data, form is just context
-		const formContext = {
-			kind: 'form' as const,
-			name: checklistDef.name,
-			version: checklistDef.version,
-			title: checklistDef.title,
-			description: checklistDef.description,
-			fields: {},
-		} as unknown as Form
+		const items: ChecklistData['items'] = Object.fromEntries(
+			checklistItems.map((item) => [item.id, (validatedItems.get(item.id) as boolean | string | undefined) ?? null]),
+		)
 
 		return await renderer.render({
+			kind: 'checklist',
 			template,
-			form: formContext,
-			data: { fields: {} },
+			artifact: checklistDef,
+			data: { items },
 			ctx: {
-				expressions: { context: createContext({ items: Object.fromEntries(checklistItems.map((item) => [item.id, validatedItems.get(item.id) ?? null])) }) },
+				expressions: { context: createContext({ items }) },
 				...(options?.formatter && { formatter: options.formatter }),
 				...(options?.progressive && { progressive: options.progressive }),
 			},
@@ -1003,23 +992,17 @@ function createChecklistInstance<C extends Checklist>(
 			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
 			// A checklist template reads `items.<id>` from its expression context.
+			// A definition has no statuses yet, so every item is unset.
 			const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
-
-			const formContext = {
-				kind: 'form' as const,
-				name: checklistDef.name,
-				version: checklistDef.version,
-				title: checklistDef.title,
-				description: checklistDef.description,
-				fields: {},
-			} as unknown as Form
+			const items: ChecklistData['items'] = Object.fromEntries(checklistItems.map((item) => [item.id, null]))
 
 			return await renderer.render({
+				kind: 'checklist',
 				template,
-				form: formContext,
-				data: { fields: {} },
+				artifact: checklistDef,
+				data: { items },
 				ctx: {
-					expressions: { context: createContext({ items: Object.fromEntries(checklistItems.map((item) => [item.id, null])) }) },
+					expressions: { context: createContext({ items }) },
 					...(options?.formatter && { formatter: options.formatter }),
 					...(options?.progressive && { progressive: options.progressive }),
 				},

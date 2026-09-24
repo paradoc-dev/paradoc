@@ -64,6 +64,7 @@ export {
   reactLayerRenderers,
   reactRenderer,
   UnboundReactLayerError,
+  UnsupportedReactLayerArtifactError,
   type ReactLayerComponent,
   type ReactLayerComponentProps,
   type ReactLayerRendererOptions,

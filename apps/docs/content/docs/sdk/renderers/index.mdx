@@ -123,9 +123,11 @@ import type { ParadocRenderer, RenderRequest, RendererLayer } from '@paradoc/typ
 const myRenderer: ParadocRenderer<RendererLayer, string> = {
   id: 'my-renderer',
   render(request: RenderRequest): string {
-    const { template, form, data, ctx } = request
+    // Narrow on `kind` to read the artifact with its payload.
+    if (request.kind !== 'form') return String(request.template.content ?? '')
+    const { template, artifact, data } = request
     // Your rendering logic here
-    return processTemplate(template.content, data)
+    return processTemplate(template.content, artifact, data)
   }
 }
 ```
@@ -139,13 +141,20 @@ const myRenderer: ParadocRenderer<RendererLayer, string> = {
 
 ### RenderRequest
 
-The request object passed to the `render` method:
+The request object passed to the `render` method. It names the artifact that declares the layer and carries the payload of that artifact's kind. Narrow on `kind` to read them:
+
+| `kind` | `artifact` | `data` |
+| --- | --- | --- |
+| `form` | `Form` | `FormData`: `fields` holds field values only; `parties`, `annexes`, `signers`, `captures` and computed `defs` travel beside it |
+| `checklist` | `Checklist` | `ChecklistData`: item statuses keyed by item ID, `null` when unset |
+| `document` | `Document` | none: a document has content, not data |
 
 <PropertiesTable properties={[
+  { name: 'kind', type: '"form" | "checklist" | "document"', description: 'The kind of artifact the layer belongs to' },
   { name: 'template', type: 'RendererLayer', description: 'The resolved template layer to render' },
-  { name: 'form', type: 'Form', description: 'The form schema (used for field type detection)' },
-  { name: 'data', type: 'FormData', description: 'The filled data. `fields` holds field values only; `parties`, `annexes`, `signers`, `captures` and computed `defs` travel beside it' },
-  { name: 'ctx', type: 'ParadocRendererContext', description: 'Optional context with formatter, progressive policy, and logger', isOptional: true },
+  { name: 'artifact', type: 'Form | Checklist | Document', description: 'The artifact definition, matching `kind`' },
+  { name: 'data', type: 'FormData | ChecklistData', description: 'The payload of the artifact kind. A document request has none', isOptional: true },
+  { name: 'ctx', type: 'ParadocRendererContext', description: 'Optional context with formatter, progressive policy, expressions, and signing markers', isOptional: true },
 ]} />
 
 ### RendererLayer
@@ -153,7 +162,7 @@ The request object passed to the `render` method:
 The resolved template content:
 
 <PropertiesTable properties={[
-  { name: 'type', type: '"text" | "docx" | "pdf" | "react" | string', description: 'Logical template type' },
+  { name: 'type', type: '"text" | "docx" | "pdf" | "react"', description: 'Logical template type' },
   { name: 'content', type: 'string | Uint8Array', description: 'Template payload (text or binary). Absent for a layer that only names its content, such as a React composition', isOptional: true },
   { name: 'mimeType', type: 'string', description: 'Media type (e.g., "text/html", "application/pdf")', isOptional: true },
   { name: 'key', type: 'string', description: 'The layer key in the artifact', isOptional: true },
@@ -163,13 +172,13 @@ The resolved template content:
 
 ### ParadocRendererContext
 
-Optional context for customizing renderer behavior:
+Optional context for customizing renderer behavior. A key it does not declare is a type error:
 
 <PropertiesTable properties={[
-  { name: 'logger', type: '{ debug?, info?, warn?, error? }', description: 'Logger instance for debugging', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter selected for the entire artifact render', isOptional: true },
   { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values', isOptional: true },
   { name: 'signing', type: 'SigningMarkerRequest', description: 'Set only on the seal pass that must carry flow signature markers', isOptional: true },
+  { name: 'expressions', type: 'RendererExpressions', description: 'The artifact\'s expression context that template expressions read, supplied by `@paradoc/core`', isOptional: true },
 ]} />
 
 ## Building Custom Renderers
@@ -191,10 +200,11 @@ export function csvRenderer(): ParadocRenderer<
   return {
     id: 'csv',
     render(request: RenderRequest) {
-      const { form, data } = request
+      if (request.kind !== 'form') throw new Error('The CSV renderer renders forms only')
+      const { artifact, data } = request
 
       // Generate CSV from form fields and data
-      const headers = Object.keys(form.fields || {})
+      const headers = Object.keys(artifact.fields || {})
       const values = headers.map(key => {
         const value = data.fields?.[key]
         return value != null ? String(value) : ''

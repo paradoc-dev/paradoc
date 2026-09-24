@@ -33,7 +33,7 @@ function recordingRenderer() {
 		id: 'react-test',
 		render(request: RenderRequest<RendererLayer>) {
 			seen.push(request.template)
-			return `rendered ${request.form.name}`
+			return `rendered ${request.artifact.name}`
 		},
 	}
 	return { renderer, seen }

@@ -16,10 +16,16 @@ import {
   type HostFunction,
   type Registry,
 } from '@paradoc/expr'
-import type { Form } from '@paradoc/types'
+import type { Form, RendererExpressions } from '@paradoc/types'
 import { dataPath } from './scope'
 
-/** How a renderer is told what template expressions can read and call. */
+/**
+ * How a renderer is told what template expressions can read and call.
+ *
+ * Its `context` is the one a render request carries in `ctx.expressions`
+ * (`RendererExpressions` from `@paradoc/types`); the functions and their
+ * signatures come from the renderer's own options.
+ */
 export interface TemplateExpressionOptions {
   /**
    * The artifact's expression context. `@paradoc/core` supplies it, so a
@@ -30,6 +36,24 @@ export interface TemplateExpressionOptions {
   functions?: Readonly<Record<string, HostFunction>>
   /** Signatures of the configured functions. A template cannot call a function it has no signature for. */
   signatures?: readonly FnSignature[]
+}
+
+/**
+ * The expression options for one render: the renderer's configured functions,
+ * and the expression context the request carries.
+ *
+ * `@paradoc/core` builds that context with `@paradoc/expr`'s `createContext`;
+ * `@paradoc/types` declares it structurally, so it stays free of the expression
+ * engine. This is the one place a renderer reads it back as the engine's type.
+ */
+export function requestExpressions(
+  configured: Pick<TemplateExpressionOptions, 'functions' | 'signatures'> | undefined,
+  supplied: RendererExpressions | undefined,
+): TemplateExpressionOptions {
+  return {
+    ...configured,
+    ...(supplied && { context: supplied.context as EvaluationContext }),
+  }
 }
 
 /** Render-data keys that are not field values. */

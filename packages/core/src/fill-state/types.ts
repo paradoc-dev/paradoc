@@ -7,6 +7,7 @@
 
 import type { EvaluationIssue } from '@/logic/runtime/evaluation/types'
 import type { RuleValidationResult } from '@/logic/runtime/evaluation/rule-evaluator'
+import type { FormPhase } from '@paradoc/types'
 
 /** Options for form fill operations. */
 export interface FillOptions {
@@ -75,7 +76,7 @@ export interface FillItemState extends FillTarget {
  */
 export interface FillState {
 	/** Current form phase */
-	phase: 'draft' | 'signable' | 'executed'
+	phase: FormPhase
 	/** Progress summary */
 	summary: {
 		requiredTotal: number
