@@ -21,7 +21,7 @@ export {
 } from './layer-bindings'
 
 /** Options shared by the MIME-selected rendering engines. */
-export interface RenderLayerOptions {
+export interface CreateLayerRendererOptions {
   formatter?: Formatter
   progressive?: FormatterProgressivePolicy
   textSignatureOptions?: TextSignatureOptions
@@ -67,7 +67,7 @@ function requireContent(template: RendererLayer): void {
  * The selected renderer is imported only when it is needed. Import a format
  * subpath directly when an application needs format-specific operations.
  */
-export function renderLayer(options: RenderLayerOptions = {}): ParadocRenderer<RendererLayer, string | Uint8Array> {
+export function createLayerRenderer(options: CreateLayerRendererOptions = {}): ParadocRenderer<RendererLayer, string | Uint8Array> {
   return {
     id: 'render-layer',
     async render(request: RenderRequest<RendererLayer>): Promise<string | Uint8Array> {

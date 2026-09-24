@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { layer, p } from '@/artifacts'
 import { createMemoryResolver } from '@paradoc/resolvers/memory'
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { inspectAcroFormFields, pdfRenderer } from '@paradoc/render/pdf'
 
 /**
@@ -47,7 +47,7 @@ const boxValue = async (bytes: unknown) => (await inspectAcroFormFields(bytes as
 
 describe('a PDF layer that declares its money format', () => {
 	test('prints the amount without a symbol through the default renderers', async () => {
-		expect(await boxValue(await filled().render({ renderer: renderLayer() }))).toBe('12,000.00')
+		expect(await boxValue(await filled().render({ renderer: createLayerRenderer() }))).toBe('12,000.00')
 		expect(await boxValue(await filled().render({ renderer: pdfRenderer(), layer: 'pdf' }))).toBe('12,000.00')
 	})
 
@@ -56,7 +56,7 @@ describe('a PDF layer that declares its money format', () => {
 	})
 
 	test('keeps the symbol on a text layer of the same artifact', async () => {
-		expect(await filled().render({ renderer: renderLayer(), layer: 'markdown' })).toBe('Amount: $12,000.00')
+		expect(await filled().render({ renderer: createLayerRenderer(), layer: 'markdown' })).toBe('Amount: $12,000.00')
 	})
 
 	test('seals the PDF without a symbol', async () => {

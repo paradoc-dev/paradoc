@@ -285,11 +285,11 @@ to `leaseAgreement` travels with `filled`, so the render call doesn't repeat
 it:
 
 ```ts
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { writeFileSync } from 'node:fs'
 
 const output = await filled.render({
-  renderer: renderLayer(),
+  renderer: createLayerRenderer(),
   layer: 'markdown',
 })
 

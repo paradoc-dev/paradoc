@@ -21,7 +21,7 @@ function contextOptions(value: unknown): { context?: import('@paradoc/core').Run
 
 async function renderer() {
 	const module = await import('@paradoc/render')
-	return module.renderLayer()
+	return module.createLayerRenderer()
 }
 
 function outputResult(

@@ -23,7 +23,7 @@ import { p } from "@paradoc/sdk";
 import { createFsResolver } from "@paradoc/resolvers/fs";
 ```
 
-`@paradoc/sdk` is the umbrella. It re-exports all of `@paradoc/core`, `@paradoc/format` and `@paradoc/sessions`, plus `renderLayer`, `hostedSealAdapter`, the placement helpers (`locate`, `locator`, `extractFieldsFromPdf`) and `expr` (the `@paradoc/expr` namespace). Import each package only from the paths in its `exports`:
+`@paradoc/sdk` is the umbrella. It re-exports all of `@paradoc/core`, `@paradoc/format` and `@paradoc/sessions`, plus `createLayerRenderer` (render's MIME-selected renderer factory), `hostedSealAdapter`, the placement helpers (`locate`, `locator`, `extractFieldsFromPdf`) and `expr` (the `@paradoc/expr` namespace). Import each package only from the paths in its `exports`:
 
 | Package | Import paths | Install it when |
 |---------|--------------|-----------------|

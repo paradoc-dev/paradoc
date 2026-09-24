@@ -5,7 +5,7 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 import { p, type ChecklistBuilderInterface, type FormBuilderInterface } from '@/artifacts'
 import { validate } from '@/index'
 import { createMemoryResolver } from '@paradoc/resolvers/memory'
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { inspectAcroFormFields } from '@paradoc/render/pdf'
 
 /**
@@ -42,25 +42,25 @@ const boxValue = async (bytes: unknown) => (await inspectAcroFormFields(bytes as
 
 describe('the bindings render option', () => {
 	test('a PDF layer fills from its own bindings', async () => {
-		expect(await boxValue(await filled().render({ renderer: renderLayer() }))).toBe('Lease')
-		expect(await boxValue(await p.form(definition, { resolver }).render({ renderer: renderLayer(), data }))).toBe('Lease')
+		expect(await boxValue(await filled().render({ renderer: createLayerRenderer() }))).toBe('Lease')
+		expect(await boxValue(await p.form(definition, { resolver }).render({ renderer: createLayerRenderer(), data }))).toBe('Lease')
 	})
 
 	test('lays render-time bindings over a PDF layer\'s own', async () => {
 		const bindings = { name: 'fields.other' }
-		expect(await boxValue(await filled().render({ renderer: renderLayer(), bindings }))).toBe('Addendum')
-		expect(await boxValue(await p.form(definition, { resolver }).render({ renderer: renderLayer(), data, bindings }))).toBe('Addendum')
+		expect(await boxValue(await filled().render({ renderer: createLayerRenderer(), bindings }))).toBe('Addendum')
+		expect(await boxValue(await p.form(definition, { resolver }).render({ renderer: createLayerRenderer(), data, bindings }))).toBe('Addendum')
 	})
 
 	test('renders a text layer through {{fields.x}}', async () => {
-		expect(await filled().render({ renderer: renderLayer(), layer: 'markdown' })).toBe('Title: Lease')
+		expect(await filled().render({ renderer: createLayerRenderer(), layer: 'markdown' })).toBe('Title: Lease')
 	})
 
 	test('is refused for a layer that is not a PDF', async () => {
 		const bindings = { heading: 'fields.title' }
 		const refusal = /Layer "markdown" is not a PDF layer, so the bindings render option does not apply/
-		await expect(filled().render({ renderer: renderLayer(), layer: 'markdown', bindings })).rejects.toThrow(refusal)
-		await expect(p.form(definition, { resolver }).render({ renderer: renderLayer(), layer: 'markdown', data, bindings }))
+		await expect(filled().render({ renderer: createLayerRenderer(), layer: 'markdown', bindings })).rejects.toThrow(refusal)
+		await expect(p.form(definition, { resolver }).render({ renderer: createLayerRenderer(), layer: 'markdown', data, bindings }))
 			.rejects.toThrow(refusal)
 	})
 })

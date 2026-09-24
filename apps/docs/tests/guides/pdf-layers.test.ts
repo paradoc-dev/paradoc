@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { p } from '@paradoc/sdk'
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { inspectAcroFormFields } from '@paradoc/render/pdf'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
@@ -142,7 +142,7 @@ describe('PDF Layers Guide', () => {
 
     test('renders filled form to PDF', async () => {
       const output = await filled.render({
-        renderer: renderLayer(),
+        renderer: createLayerRenderer(),
         layer: 'pdf',
       })
 

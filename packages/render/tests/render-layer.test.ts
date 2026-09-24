@@ -1,6 +1,6 @@
 import { unzipSync, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
-import { renderLayer } from '../src/index'
+import { createLayerRenderer } from '../src/index'
 import { inspectPdf } from '../src/pdf'
 import { pagePdf } from './pdf-fixtures'
 
@@ -18,9 +18,9 @@ function minimalDocx(text: string): Uint8Array {
 
 const form = { fields: { name: { type: 'string' } } } as never
 
-describe('renderLayer', () => {
+describe('createLayerRenderer', () => {
   it('chooses the text engine from a text MIME type', async () => {
-    await expect(renderLayer().render({
+    await expect(createLayerRenderer().render({
       template: { type: 'text', mimeType: 'text/markdown', content: 'Hello {{fields.name}}' },
       form,
       data: { fields: { name: 'Ada' } },
@@ -28,7 +28,7 @@ describe('renderLayer', () => {
   })
 
   it('chooses the PDF engine from application/pdf', async () => {
-    const output = await renderLayer().render({
+    const output = await createLayerRenderer().render({
       template: { type: 'pdf', mimeType: 'application/pdf', content: pagePdf([[300, 300]]) },
       form,
       data: { fields: { name: 'Ada' } },
@@ -37,7 +37,7 @@ describe('renderLayer', () => {
   })
 
   it('chooses the DOCX engine from the Office MIME type', async () => {
-    const output = await renderLayer().render({
+    const output = await createLayerRenderer().render({
       template: { type: 'docx', mimeType: DOCX_MIME_TYPE, content: minimalDocx('Hello {{fields.name}}') },
       form,
       data: { fields: { name: 'Ada' } },
@@ -46,7 +46,7 @@ describe('renderLayer', () => {
   })
 
   it('fails loudly for a missing or unsupported MIME type', async () => {
-    await expect(renderLayer().render({
+    await expect(createLayerRenderer().render({
       template: { type: 'text', content: 'Hello {{fields.name}}' },
       form,
       data: { fields: { name: 'Ada' } },
@@ -58,7 +58,7 @@ describe('renderLayer', () => {
     // composition — belongs to a renderer registered for its MIME type. These
     // engines render a payload, so reaching one without a payload is a fault.
     for (const mimeType of ['text/markdown', 'application/pdf', DOCX_MIME_TYPE]) {
-      await expect(renderLayer().render({
+      await expect(createLayerRenderer().render({
         template: { type: 'text', mimeType },
         form,
         data: { fields: { name: 'Ada' } },
@@ -71,7 +71,7 @@ describe('renderLayer', () => {
   it('reports an unsupported type as unsupported even when it carries no content', async () => {
     // Both faults at once. Naming the type it cannot render is the answer that
     // helps, so the dispatch decides before the content check runs.
-    await expect(renderLayer().render({
+    await expect(createLayerRenderer().render({
       template: { type: 'react', mimeType: 'text/tsx' },
       form,
       data: { fields: {} },

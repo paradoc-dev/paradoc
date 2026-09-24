@@ -390,10 +390,10 @@ Most official forms need no font configuration: their values are Latin-1 and fil
 A host application can supply a font at render time, for example a licensed corporate font. It wins over the layer's font:
 
 ```ts
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 
 const output = await filled.render({
-  renderer: renderLayer({ pdfFont: { bytes: corporateFont, source: 'corporate.ttf' } }),
+  renderer: createLayerRenderer({ pdfFont: { bytes: corporateFont, source: 'corporate.ttf' } }),
 })
 ```
 

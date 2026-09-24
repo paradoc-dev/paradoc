@@ -128,7 +128,7 @@ What a directive prints depends on the engine and on whether a capture exists.
 | `capacity` | the signatory's capacity, else `[CAPACITY]` | the captured text | the capacity, else underscores |
 | `printedName` | the signer's name, else `[PRINTED NAME]` | the captured text | the name, else underscores |
 
-The captured signature image appears only when the text layer renders with `textSignatureOptions.format` set to `"html"` (an `<img>` tag) or `"markdown"` (an image link). With `format: "html"`, the directive returns markup, so write it as `{{{signature(parties.tenant, "tenant-sig")}}}` to keep it unescaped. `placeholder` and `captured` in `textSignatureOptions` and `docxSignatureOptions` replace the default text; see [rendering.md](./rendering.md#renderlayer-options).
+The captured signature image appears only when the text layer renders with `textSignatureOptions.format` set to `"html"` (an `<img>` tag) or `"markdown"` (an image link). With `format: "html"`, the directive returns markup, so write it as `{{{signature(parties.tenant, "tenant-sig")}}}` to keep it unescaped. `placeholder` and `captured` in `textSignatureOptions` and `docxSignatureOptions` replace the default text; see [rendering.md](./rendering.md#createlayerrenderer-options).
 
 ## DOCX commands
 

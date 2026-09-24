@@ -40,7 +40,7 @@ import type {
 	Formatter,
 	FormData,
 } from '@paradoc/types'
-import { renderLayer as createRenderer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { flattenPdf, locate as locatePlacements } from '@paradoc/render/pdf'
 import { extractPdfData, selectPdfExtractionLayer } from '@paradoc/render/pdf'
 import type { PdfExtraction } from '@paradoc/render/pdf'
@@ -2447,7 +2447,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				sealRenderer,
 				markers: signingMarkersFor(slots, plan.flow),
 				textRenderer: (withMarkers) =>
-					createRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) }),
+					createLayerRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) }),
 				override: options.renderer,
 				renderers: options.renderers,
 				render: (renderer) =>
@@ -2579,7 +2579,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				}
 				// No flow slots on this path, so nothing needs core's marker
 				// injection: the override and the registry apply in render's order.
-				const pass = sealPassFor(request, [], {}, () => createRenderer())
+				const pass = sealPassFor(request, [], {}, () => createLayerRenderer())
 				if (sealRenderer) return finalizePdf(await pass.pdf(false))
 				const document = await pass.render(false)
 				if (layerSpec.mimeType === 'application/pdf') {
@@ -2644,7 +2644,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
 				}
 				const slotTextOptionsRenderer = (withMarkers: boolean) =>
-					createRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) })
+					createLayerRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) })
 				const slotPass = sealPassFor(slotRequest, plan.flow, layerSpec.signatures, slotTextOptionsRenderer)
 
 				let slotResult: import('@paradoc/types').SealingResult

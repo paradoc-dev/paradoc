@@ -16,7 +16,7 @@ import type {
 	Resolver,
 } from '@paradoc/types'
 import { isPdfMimeType } from '@paradoc/schemas'
-import { renderLayer as createRenderer, resolveLayerBindings } from '@paradoc/render'
+import { createLayerRenderer, resolveLayerBindings } from '@paradoc/render'
 import {
 	findRegisteredRenderer,
 	InlineReactLayerError,
@@ -338,7 +338,7 @@ export function selectLayerRenderer<Output>(
 	}
 	// The built-in engines render `string | Uint8Array`; the call site's Output
 	// is whatever the caller asked the renderer for. One cast, here.
-	return createRenderer() as ParadocRenderer<RendererLayer, Output>
+	return createLayerRenderer() as ParadocRenderer<RendererLayer, Output>
 }
 
 /**

@@ -11,7 +11,7 @@
 import { zipSync, unzipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { createMemoryResolver } from '@paradoc/resolvers/memory'
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { checklist, form, validate, validateLayers } from '@/index'
 
 const encoder = new TextEncoder()
@@ -101,11 +101,11 @@ describe('one condition language through an artifact', () => {
     const logic = conditions.map((_, index) => (draft.getLogicValue(`c${index}`) ? 'T' : 'F')).join('')
 
     expect(logic).toBe('TTTTTTTTTT')
-    expect(await draft.render({ layer: 'md', renderer: renderLayer() })).toBe(logic)
-    expect(wordText(await draft.render({ layer: 'word', renderer: renderLayer() }) as Uint8Array)).toBe(logic)
+    expect(await draft.render({ layer: 'md', renderer: createLayerRenderer() })).toBe(logic)
+    expect(wordText(await draft.render({ layer: 'word', renderer: createLayerRenderer() }) as Uint8Array)).toBe(logic)
 
     const other = artifact.fill({ ...seed, fields: { ...seed.fields, qty: 1, approved: false, note: 'x' } } as never)
-    expect(await other.render({ layer: 'md', renderer: renderLayer() }))
+    expect(await other.render({ layer: 'md', renderer: createLayerRenderer() }))
       .toBe(conditions.map((_, index) => (other.getLogicValue(`c${index}`) ? 'T' : 'F')).join(''))
   })
 
@@ -127,7 +127,7 @@ describe('one condition language through an artifact', () => {
     const draft = artifact.fill({ parties: seed.parties } as never)
 
     expect(draft.isFieldVisible('memo')).toBe(true)
-    expect(await draft.render({ renderer: renderLayer() })).toBe('Buyer Ada [SIGNATURE]\n1. Bo [SIGNATURE]\n2. Cy [SIGNATURE]\n')
+    expect(await draft.render({ renderer: createLayerRenderer() })).toBe('Buyer Ada [SIGNATURE]\n1. Bo [SIGNATURE]\n2. Cy [SIGNATURE]\n')
     expect(artifact.fill({ parties: { buyer: seed.parties.buyer } } as never).isFieldVisible('memo')).toBe(false)
   })
 
@@ -146,7 +146,7 @@ describe('one condition language through an artifact', () => {
     }
     expect(validate(definition).issues).toBeUndefined()
     const list = checklist.from(definition as never)
-    expect(await list.fill({ reviewed: true, approval: 'approved' } as never).render({ renderer: renderLayer() })).toBe('[x] Reviewed / approved')
+    expect(await list.fill({ reviewed: true, approval: 'approved' } as never).render({ renderer: createLayerRenderer() })).toBe('[x] Reviewed / approved')
     expect(validate({ ...definition, layers: { md: { kind: 'inline', mimeType: 'text/markdown', text: '{{items.missing}}' } } }).issues)
       .toEqual([expect.objectContaining({ message: expect.stringContaining('Unknown reference: items.missing') })])
   })

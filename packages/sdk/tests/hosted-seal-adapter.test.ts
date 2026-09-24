@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { encodeBase64, HostedConversionError, hostedSealAdapter } from '../src/hosted-seal-adapter'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { decodeBase64, encodeBase64, HOSTED_CONVERT_PATH, HostedConversionError, hostedSealAdapter } from '../src/hosted-seal-adapter'
 
 const request = {
   form: {} as never,
@@ -46,7 +46,7 @@ describe('hostedSealAdapter', () => {
     })
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.example.test/v1/execution/convert',
+      'https://api.example.test/v1/exec/convert',
       expect.objectContaining({ method: 'POST' }),
     )
     expect(result.pdf).toEqual(pdf)
@@ -106,35 +106,59 @@ describe('hostedSealAdapter', () => {
     )
   })
 
-  it('forwards the abort signal to fetch', async () => {
-    const controller = new AbortController()
+  it('calls the served conversion route on the default host', async () => {
     const fetch = vi.fn(async () => Response.json({
       document: { content_base64: btoa('%PDF'), mime_type: 'application/pdf' },
     }))
-    const adapter = hostedSealAdapter({ apiKey: 'test-key', fetch, signal: controller.signal })
 
-    await adapter.convert(request)
+    await hostedSealAdapter({ apiKey: 'test-key', fetch }).convert(request)
 
-    expect(fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: controller.signal }))
+    expect(HOSTED_CONVERT_PATH).toBe('/v1/exec/convert')
+    expect(fetch).toHaveBeenCalledWith('https://api.paradoc.dev/v1/exec/convert', expect.anything())
   })
 
-  it('rejects a hung conversion when the signal aborts', async () => {
-    const controller = new AbortController()
+  it.each([undefined, ''])('refuses a missing API key (%j) before any request', (apiKey) => {
+    const fetch = vi.fn()
+
+    expect(() => hostedSealAdapter({ apiKey: apiKey as never, fetch })).toThrow('hostedSealAdapter requires an API key.')
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])('refuses timeoutMs %s', (timeoutMs) => {
+    expect(() => hostedSealAdapter({ apiKey: 'test-key', timeoutMs })).toThrow(RangeError)
+  })
+
+  it('gives each request its own timeout, started when the request starts', async () => {
+    const signals: AbortSignal[] = []
+    const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      if (init?.signal?.aborted) throw init.signal.reason
+      signals.push(init!.signal!)
+      return Response.json({ document: { content_base64: btoa('%PDF'), mime_type: 'application/pdf' } })
+    })
+    const adapter = hostedSealAdapter({ apiKey: 'test-key', fetch, timeoutMs: 30 })
+
+    await adapter.convert(request)
+    await new Promise((resolve) => setTimeout(resolve, 60))
+    await adapter.convert(request)
+
+    expect(signals).toHaveLength(2)
+    expect(signals[0]!.aborted).toBe(true)
+    expect(signals[1]!.aborted).toBe(false)
+  })
+
+  it('rejects a hung conversion when its timeout elapses', async () => {
     const adapter = hostedSealAdapter({
       apiKey: 'test-key',
-      signal: controller.signal,
+      timeoutMs: 10,
       fetch: (_url, init) => new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
       }),
     })
 
-    const pending = adapter.convert(request)
-    controller.abort(new DOMException('Conversion timed out', 'TimeoutError'))
-
-    await expect(pending).rejects.toMatchObject({ name: 'TimeoutError', message: 'Conversion timed out' })
+    await expect(adapter.convert(request)).rejects.toMatchObject({ name: 'TimeoutError' })
   })
 
-  it('sends no signal when none is configured', async () => {
+  it('sends no signal when no timeout is configured', async () => {
     const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       expect(init?.signal).toBeUndefined()
       return Response.json({ document: { content_base64: btoa('%PDF'), mime_type: 'application/pdf' } })
@@ -142,6 +166,52 @@ describe('hostedSealAdapter', () => {
 
     await hostedSealAdapter({ apiKey: 'test-key', fetch }).convert(request)
     expect(fetch).toHaveBeenCalledOnce()
+  })
+
+  it('throws a HostedConversionError when the PDF is not valid base64', async () => {
+    const body = { document: { mime_type: 'application/pdf', content_base64: 'not base64!' } }
+    const adapter = hostedSealAdapter({ apiKey: 'test-key', fetch: async () => Response.json(body) })
+
+    const error = await adapter.convert(request).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(HostedConversionError)
+    expect((error as HostedConversionError).message)
+      .toMatch(/^Paradoc conversion returned a PDF that is not valid base64 \(200\)/)
+  })
+})
+
+describe('decodeBase64', () => {
+  const native = (Uint8Array as unknown as { fromBase64?: unknown }).fromBase64
+
+  /** Hides the native Uint8Array.fromBase64 so the atob fallback runs. */
+  function withoutNativeFromBase64() {
+    Object.defineProperty(Uint8Array, 'fromBase64', { value: undefined, configurable: true, writable: true })
+  }
+
+  afterEach(() => {
+    Object.defineProperty(Uint8Array, 'fromBase64', { value: native, configurable: true, writable: true })
+  })
+
+  it('round-trips a multi-chunk PDF through the atob fallback', () => {
+    const pdf = bytesOfLength(3 * 3 * 0x2000 + 2)
+    withoutNativeFromBase64()
+
+    expect(decodeBase64(Buffer.from(pdf).toString('base64'))).toEqual(pdf)
+  })
+
+  it('throws on invalid base64 in the atob fallback', () => {
+    withoutNativeFromBase64()
+
+    expect(() => decodeBase64('not base64!')).toThrow()
+  })
+
+  it('wraps an invalid PDF from the atob fallback in HostedConversionError', async () => {
+    withoutNativeFromBase64()
+    const adapter = hostedSealAdapter({
+      apiKey: 'test-key',
+      fetch: async () => Response.json({ document: { mime_type: 'application/pdf', content_base64: 'not base64!' } }),
+    })
+
+    await expect(adapter.convert(request)).rejects.toBeInstanceOf(HostedConversionError)
   })
 })
 

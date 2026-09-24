@@ -132,11 +132,11 @@ A billed tool fails with an insufficient-balance error when the organization's b
 | Tool | Arguments | Cost | Does |
 |------|-----------|------|------|
 | `describe` | `artifact` | Free | Fields, parties and annexes with types, plus a sample payload. Call it first. |
-| `extract` | `artifact`, `document: { contentBase64, mimeType }`, `options?: { confidenceThreshold?, validateExtracted? }` | Per page | Reads a filled PDF or image (PNG, JPEG, WebP; 10 MB max, no data-URI prefix). Returns values with confidence and page provenance. Works on scanned and flattened documents. |
-| `prefill` | `artifact`, `document`, `options?: { confidenceThreshold?, includeOptional?, requiredFirst? }` | Extract + fill | Extracts and commits readings above the threshold into a fill. Lower readings come back as suggestions. |
+| `extract` | `artifact`, `document: { content_base64, mime_type }`, `options?: { confidence_threshold?, validate_extracted? }` | Per page | Reads a filled PDF or image (PNG, JPEG, WebP; 10 MB max, no data-URI prefix). Returns values with confidence and page provenance. Works on scanned and flattened documents. |
+| `prefill` | `artifact`, `document`, `options?: { confidence_threshold?, include_optional?, required_first? }` | Extract + fill | Extracts and commits readings above the threshold into a fill. Lower readings come back as suggestions. |
 | `seal` | `artifact`, `data`, `layer?`, `signers?`, `signatories?` | Per call | Fills the form and returns the canonical PDF, the signature map and `canonical_pdf_hash`. Creates no envelope. See [sealing.md](./sealing.md). |
 | `extract_job_submit` | `artifact`, `document` (25 MB, 100 pages max), `options?` | Per page, on success | Starts async extraction and returns a job id. |
-| `extract_job_get` | `jobId` | Free | Job status, and the `extract` result when complete. |
+| `extract_job_get` | `job_id` | Free | Job status, and the `extract` result when complete. |
 | `extract_job_list` | `limit?` (1-100), `offset?` | Free | The organization's jobs, newest first. |
 
 ### E-signature

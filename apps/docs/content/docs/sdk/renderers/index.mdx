@@ -84,7 +84,7 @@ seal adapter. See [@paradoc/react](/sdk/react) for the component side.
 
 ## Format Entry Points
 
-`renderLayer()` is the default application entry point. Import a format subpath
+`createLayerRenderer()` is the default application entry point. Import a format subpath
 when you need its low-level functions or format-specific configuration.
 
 | Entry point | Description |
@@ -97,10 +97,10 @@ when you need its low-level functions or format-specific configuration.
 `flattenPdf`, `selectPdfPages`, `mergePdfs`, and the placement helpers. See
 [PDF utilities](/sdk/renderers/pdf#pdf-utilities).
 
-## renderLayer()
+## createLayerRenderer()
 
 ```ts
-function renderLayer(options?: RenderLayerOptions): ParadocRenderer<
+function createLayerRenderer(options?: CreateLayerRendererOptions): ParadocRenderer<
   RendererLayer,
   string | Uint8Array
 >

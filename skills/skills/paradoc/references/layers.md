@@ -256,7 +256,7 @@ A PDF layer places every slot by coordinates or anchor:
 | Kind | What a render returns |
 |------|-----------------------|
 | form | The layer rendered by its engine, with the form's data |
-| checklist | The raw layer content. Pass `renderer: renderLayer()` or `renderers` to evaluate `{{items.x}}` |
+| checklist | The raw layer content. Pass `renderer: createLayerRenderer()` or `renderers` to evaluate `{{items.x}}` |
 | document | The raw layer content. A document has no data, so its templates hold no `{{ }}` markers |
 
 ## SDK builders

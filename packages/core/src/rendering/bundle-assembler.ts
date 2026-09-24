@@ -12,7 +12,7 @@ import type { DraftForm } from '@/artifacts/form'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import type { DraftBundle } from '@/artifacts/bundle'
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { findRegisteredRenderer, type RendererRegistry } from './renderer-registry'
 import { getExtensionForMime, nestPartOutputs, producedMimeType } from './part-mime'
 import {
@@ -236,7 +236,7 @@ export async function assembleBundle(
 
     const mimeType = layer.mimeType
 
-    const renderer = findRegisteredRenderer(renderers, mimeType) ?? renderLayer()
+    const renderer = findRegisteredRenderer(renderers, mimeType) ?? createLayerRenderer()
 
     const content = await filled.render({ renderer })
 

@@ -41,7 +41,7 @@ import type { RendererRegistry } from '@/rendering'
 import { findRegisteredRenderer } from '@/rendering/renderer-registry'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
 import { getExtensionForMime, nestPartOutputs, producedMimeType } from '@/rendering/part-mime'
-import { renderLayer as createRenderer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 
 // Import artifacts runtime types for content
 import type { RuntimeDocument, DraftDocument } from '../document'
@@ -833,7 +833,7 @@ async function renderInstance(
 	}
 
 	const mimeType = layer.mimeType
-	const renderer = findRegisteredRenderer(renderers, mimeType) ?? createRenderer()
+	const renderer = findRegisteredRenderer(renderers, mimeType) ?? createLayerRenderer()
 
 	// Render based on instance type
 	let content: unknown

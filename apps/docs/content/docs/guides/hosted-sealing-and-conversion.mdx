@@ -27,16 +27,17 @@ const signable = await form
   })
 ```
 
-The adapter calls `POST /v1/execution/convert` and requires an API key.
+The adapter calls `POST /v1/exec/convert` (exported as `HOSTED_CONVERT_PATH`)
+and requires an API key.
 
-Pass `signal` to cancel a conversion that takes too long, for example
-`signal: AbortSignal.timeout(30_000)`. A failed or unreadable response throws
+Pass `timeoutMs` to abort a conversion that takes too long, for example
+`timeoutMs: 30_000`. The timer starts when each request starts. A failed or unreadable response throws
 `HostedConversionError`, which carries the HTTP `status` and the start of the
 response body in `bodyExcerpt`.
 
 ## Seal endpoint
 
-`POST /v1/execution/seal` fills an artifact and returns its canonical PDF,
+`POST /v1/exec/seal` fills an artifact and returns its canonical PDF,
 signature map, and integrity hash. It does not create an e-sign envelope or send
 anything to a signer.
 
@@ -67,7 +68,7 @@ The response contains `valid`, `document`, `signature_map`, and
 
 ## Convert endpoint
 
-`POST /v1/execution/convert` accepts base64-encoded document bytes:
+`POST /v1/exec/convert` accepts base64-encoded document bytes:
 
 ```json
 {

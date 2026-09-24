@@ -9,7 +9,6 @@
       "@paradoc/core": ["../core/src/index.ts"],
       "@paradoc/render": ["../render/src/index.ts"],
       "@paradoc/render/*": ["../render/src/*"],
-      "@paradoc/types": ["../types/src/index.ts"],
       "@paradoc/client": ["../client/src/index.ts"],
       "@paradoc/api-surfaces": ["../contracts/src/index.ts"],
       "@/*": ["../core/src/*"]

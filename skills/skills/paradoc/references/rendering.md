@@ -1,13 +1,13 @@
 ---
 name: rendering
-description: Render calls in the SDK and CLI - form.fill().render(), render options, renderLayer engine options, resolvers, direct engines, PDF utilities, render errors
+description: Render calls in the SDK and CLI - form.fill().render(), render options, createLayerRenderer engine options, resolvers, direct engines, PDF utilities, render errors
 metadata:
-  tags: rendering, render, renderLayer, renderers, resolver, createFsResolver, createMemoryResolver, renderText, renderPdf, renderDocx, paradoc render
+  tags: rendering, render, createLayerRenderer, renderers, resolver, createFsResolver, createMemoryResolver, renderText, renderPdf, renderDocx, paradoc render
 ---
 
 # Rendering
 
-**Contents:** [Install](#install) · [Render a form](#render-a-form) · [Render options](#render-options) · [renderLayer options](#renderlayer-options) · [Resolvers](#resolvers) · [Direct engines](#direct-engines) · [PDF utilities](#pdf-utilities) · [CLI](#cli) · [Errors](#errors)
+**Contents:** [Install](#install) · [Render a form](#render-a-form) · [Render options](#render-options) · [createLayerRenderer options](#createlayerrenderer-options) · [Resolvers](#resolvers) · [Direct engines](#direct-engines) · [PDF utilities](#pdf-utilities) · [CLI](#cli) · [Errors](#errors)
 
 This file covers render calls. To declare a layer, load [layers.md](./layers.md); to write a template, [templates.md](./templates.md); to seal a layer for signing, [sealing.md](./sealing.md); to read a filled PDF back, [pdf.md](./pdf.md#read-a-filled-pdf-back).
 
@@ -17,7 +17,7 @@ This file covers render calls. To declare a layer, load [layers.md](./layers.md)
 npm install @paradoc/sdk @paradoc/resolvers
 ```
 
-`@paradoc/sdk` includes the built-in engines and re-exports `renderLayer`. Add `@paradoc/render` only to import its subpaths directly (`@paradoc/render/pdf`, `/text`, `/docx`).
+`@paradoc/sdk` includes the built-in engines and re-exports `createLayerRenderer`. Add `@paradoc/render` only to import its subpaths directly (`@paradoc/render/pdf`, `/text`, `/docx`).
 
 ## Render a form
 
@@ -58,7 +58,7 @@ Checklists and documents render raw layer content by default. See [layers.md](./
 | `formatter` | `Formatter` | Locale and value styles for this render ([formatting.md](./formatting.md)) |
 | `progressive` | `{ missing?, incomplete? }` | Text for a missing value (default `—`) and an incomplete composite (default `…`) |
 | `renderers` | `Record<mimeType, renderer>` | Renderers keyed by MIME type, tried before the built-in engines. React layers need one |
-| `renderer` | `ParadocRenderer` | Replaces the engine for this call. Use `renderLayer({ ... })` to pass engine options |
+| `renderer` | `ParadocRenderer` | Replaces the engine for this call. Use `createLayerRenderer({ ... })` to pass engine options |
 | `bindings` | `Record<string, string>` | PDF layers only: PDF field name → Paradoc path, merged over the layer's own `bindings`. Any other layer refuses it |
 
 ```typescript
@@ -66,16 +66,16 @@ const preview = await form.fill({ fields: { tenantName: "Ada" } }).render({ prog
 // Rent: ____
 ```
 
-## renderLayer options
+## createLayerRenderer options
 
-`renderLayer(options)` from `@paradoc/sdk` builds the MIME-selected engine with options the render call does not take directly. Pass it as `renderer`:
+`createLayerRenderer(options)` from `@paradoc/sdk` builds the MIME-selected engine with options the render call does not take directly. Pass it as `renderer`:
 
 ```typescript
-import { renderLayer } from "@paradoc/sdk";
+import { createLayerRenderer } from "@paradoc/sdk";
 
 const html = await draft.render({
   layer: "html",
-  renderer: renderLayer({ textSignatureOptions: { format: "html" } }),
+  renderer: createLayerRenderer({ textSignatureOptions: { format: "html" } }),
 });
 ```
 

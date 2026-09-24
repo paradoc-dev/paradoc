@@ -8,14 +8,14 @@ and load only the selected layer engine.
 const output = await filled.render({ layer: 'final' })
 ```
 
-Pass `renderLayer()` explicitly when configuring the built-in renderer or
+Pass `createLayerRenderer()` explicitly when configuring the built-in renderer or
 provide any compatible custom renderer as an override.
 
 ```ts
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 
 const output = await filled.render({
-  renderer: renderLayer({ serializers }),
+  renderer: createLayerRenderer({ serializers }),
   layer: 'final'
 })
 ```
@@ -29,7 +29,7 @@ import { renderPdf } from '@paradoc/render/pdf'
 import { renderDocx } from '@paradoc/render/docx'
 ```
 
-`renderLayer()` supports `text/plain`, `text/markdown`, `text/html`,
+`createLayerRenderer()` supports `text/plain`, `text/markdown`, `text/html`,
 `application/pdf`, and DOCX Office MIME types. It fails loudly for an unknown
 MIME type rather than guessing.
 

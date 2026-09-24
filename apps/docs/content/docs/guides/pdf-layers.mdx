@@ -224,16 +224,16 @@ if (!filled.isValid()) {
 <Step>
 ## Render to PDF
 
-Render the filled form. `renderLayer()` selects the PDF implementation from the
+Render the filled form. `createLayerRenderer()` selects the PDF implementation from the
 layer's MIME type, and the resolver bound to `w9Form` loads the template from
 the filesystem — `filled` carries it too, so the render call doesn't repeat it.
 
 ```ts
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { writeFileSync } from 'node:fs'
 
 const output = await filled.render({
-  renderer: renderLayer(),
+  renderer: createLayerRenderer(),
   layer: 'pdf',
 })
 

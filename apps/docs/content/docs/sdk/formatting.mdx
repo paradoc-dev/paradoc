@@ -135,11 +135,11 @@ React compositions use the `partial` option instead; see [@paradoc/react](/sdk/r
 ## Use one formatter for an artifact
 
 ```ts
-import { createFormatter, p, renderLayer } from '@paradoc/sdk'
+import { createFormatter, p, createLayerRenderer } from '@paradoc/sdk'
 
 const formatter = createFormatter({ locale: 'fr-FR' })
 const output = await p.form(formDefinition).fill(data).render({
-  renderer: renderLayer({ formatter }),
+  renderer: createLayerRenderer({ formatter }),
   layer: 'markdown',
 })
 ```

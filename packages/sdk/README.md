@@ -30,7 +30,13 @@ The Paradoc SDK includes the default renderer. Install a resolver when layers re
 - 🎯 **Composable artifacts** - Reuse fields, forms, and documents across definitions
 - 🤖 **AI-ready** - Built for agent ingestion and verification
 
-The SDK also re-exports the standalone `@paradoc/format` presentation API. Use one formatter for values outside artifact rendering as well as for future renderer configuration:
+The SDK re-exports everything from `@paradoc/core`, `@paradoc/format`, and `@paradoc/sessions`. It also exports:
+
+- `createLayerRenderer()`, the MIME-selected renderer from `@paradoc/render`, to configure rendering options
+- the PDF placement helpers from `@paradoc/render/pdf`: `locate`, `locator`, `extractFieldsFromPdf`, and the marker encoders
+- `hostedSealAdapter()`, which converts HTML, Markdown, and DOCX layers to PDF through Paradoc's hosted conversion API when you seal
+
+The standalone `@paradoc/format` presentation API works on values outside artifact rendering too. Use one formatter for values outside artifact rendering as well as for future renderer configuration:
 
 ```typescript
 import { createFormatter } from "@paradoc/sdk";
@@ -278,7 +284,7 @@ if (result.success) {
 }
 ```
 
-For a complete production example, see `/incubator/apps/demo/src/demos/leasing`. For API reference and advanced patterns, visit [docs.paradoc.dev](https://docs.paradoc.dev).
+For API reference and advanced patterns, visit [docs.paradoc.dev](https://docs.paradoc.dev).
 
 ## Changelog
 
@@ -290,6 +296,7 @@ View the [Changelog](https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.
 - [`@paradoc/types`](../types) - TypeScript utilities and types
 - [`@paradoc/schemas`](../schemas) - JSON Schema definitions
 - [`@paradoc/format`](../format) - Locale-aware value presentation
+- [`@paradoc/sessions`](../sessions) - Form-completion session engine
 - [`@paradoc/resolvers`](../resolvers) - File and environment resolvers
 - [`@paradoc/render`](../render) - MIME-selected PDF, DOCX, and text rendering
 

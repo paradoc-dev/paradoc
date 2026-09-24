@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderLayer } from '../src/index'
+import { createLayerRenderer } from '../src/index'
 import * as pdf from '../src/pdf'
 import { renderPdf } from '../src/pdf'
 import { pagePdf } from './pdf-fixtures'
@@ -34,9 +34,9 @@ describe('PDF renderer options', () => {
     expect((await pdf.inspectPdf(output)).pageCount).toBe(1)
   })
 
-  it('renderLayer rejects pdfSignatureOptions', () => {
-    // @ts-expect-error pdfSignatureOptions is not a renderLayer option
-    expect(renderLayer({ pdfSignatureOptions: {} }).id).toBe('render-layer')
+  it('createLayerRenderer rejects pdfSignatureOptions', () => {
+    // @ts-expect-error pdfSignatureOptions is not a createLayerRenderer option
+    expect(createLayerRenderer({ pdfSignatureOptions: {} }).id).toBe('render-layer')
   })
 
   it('@paradoc/render/pdf exports no signature options resolver', () => {

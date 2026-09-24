@@ -105,7 +105,7 @@ One immutable **formatter** controls value presentation for an artifact. Select 
 
 ```ts
 const output = await form.render({
-  renderer: renderLayer({ formatter: createFormatter({ locale: 'de-DE' }) })
+  renderer: createLayerRenderer({ formatter: createFormatter({ locale: 'de-DE' }) })
 })
 ```
 
@@ -124,7 +124,7 @@ const markdown = await filled.render({ layer: 'markdown' })
 const pdf = await filled.render({ layer: 'pdf' })
 ```
 
-Pass a custom renderer or configured `renderLayer()` through the optional
+Pass a custom renderer or configured `createLayerRenderer()` through the optional
 `renderer` property. Format entry points remain available for low-level
 operations. See [Renderers](/sdk/renderers) for the full API.
 

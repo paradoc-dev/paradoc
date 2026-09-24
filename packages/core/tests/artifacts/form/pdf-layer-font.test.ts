@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { layer, p } from '@/artifacts'
 import { createMemoryResolver } from '@paradoc/resolvers/memory'
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { LayerSchema } from '@paradoc/schemas'
 
 /**
@@ -52,14 +52,14 @@ const filled = (layerFont?: { path: string }) =>
 
 describe('a PDF layer that declares a font', () => {
 	test('renders text only the font covers, embedding the font', async () => {
-		const output = await filled({ path: 'fonts/cyrillic.ttf' }).render({ renderer: renderLayer() }) as Uint8Array
+		const output = await filled({ path: 'fonts/cyrillic.ttf' }).render({ renderer: createLayerRenderer() }) as Uint8Array
 		const source = latin1.decode(output)
 		expect(source).toContain('/BaseFont /ParadocTestCyrillic')
 		expect(source).toContain('/FontFile2')
 	})
 
 	test('fails without it, naming the field and the character', async () => {
-		await expect(filled().render({ renderer: renderLayer() })).rejects.toMatchObject({
+		await expect(filled().render({ renderer: createLayerRenderer() })).rejects.toMatchObject({
 			name: 'PdfFieldFillError',
 			field: 'name',
 			reason: 'missing-glyph',
@@ -80,10 +80,10 @@ describe('a PDF layer that declares a font', () => {
 	test('fails the way a missing layer file does when the resolver cannot find the font', async () => {
 		const missingPdf = await p.form(definition(), { resolver: createMemoryResolver({ contents: {} }) })
 			.fill({ fields: { name: 'Ada' } })
-			.render({ renderer: renderLayer() })
+			.render({ renderer: createLayerRenderer() })
 			.then(() => undefined, (error: unknown) => error as Error)
 		const missingFont = await filled({ path: 'fonts/absent.ttf' })
-			.render({ renderer: renderLayer() })
+			.render({ renderer: createLayerRenderer() })
 			.then(() => undefined, (error: unknown) => error as Error)
 		expect(missingFont?.constructor).toBe(missingPdf?.constructor)
 		expect(missingFont?.message).toBe(missingPdf?.message.replace('form.pdf', 'fonts/absent.ttf'))
@@ -91,7 +91,7 @@ describe('a PDF layer that declares a font', () => {
 
 	test('a render-time font wins over the declared font', async () => {
 		const output = await filled({ path: 'fonts/cyrillic.ttf' }).render({
-			renderer: renderLayer({ pdfFont: { bytes: font, source: 'override.ttf' } }),
+			renderer: createLayerRenderer({ pdfFont: { bytes: font, source: 'override.ttf' } }),
 		}) as Uint8Array
 		// The override drew the value, so the declared font was never embedded.
 		const source = latin1.decode(output)

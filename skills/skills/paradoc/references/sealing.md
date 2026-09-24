@@ -152,7 +152,7 @@ const adapter: SealAdapter = {
 const signable = await draft.setTargetLayer('summary').seal({ adapter })
 ```
 
-Or use Paradoc's hosted converter. It calls `POST https://api.paradoc.dev/v1/execution/convert` with your API key and is billed per page:
+Or use Paradoc's hosted converter. It calls `POST https://api.paradoc.dev/v1/exec/convert` with your API key and is billed per page:
 
 ```typescript
 import { hostedSealAdapter, HostedConversionError } from '@paradoc/sdk'
@@ -160,7 +160,7 @@ import { hostedSealAdapter, HostedConversionError } from '@paradoc/sdk'
 const signable = await draft.setTargetLayer('summary').seal({
   adapter: hostedSealAdapter({
     apiKey: process.env.PARADOC_API_KEY!,
-    signal: AbortSignal.timeout(30_000),
+    timeoutMs: 30_000, // per request
   }),
 })
 // A failed conversion throws HostedConversionError with .status and .bodyExcerpt.
@@ -338,4 +338,4 @@ const merged = await mergePdfs([firstPdfBytes, secondPdfBytes]) // Uint8Array
 
 ## Hosted sealing
 
-Without the SDK, seal through the platform: the MCP `seal` tool ([mcp.md](./mcp.md)) or `POST /v1/execution/seal`. Both fill the artifact and return the canonical PDF, the signature map and the hash. They create no envelope. `data` holds only `fields`, `parties` and `annexes`; pass `signers` (`{ "signer-1": { "person": { "name": "Ada" } } }`) and `signatories` (`{ "<role>": { "<role>-0": [{ "signer_id": "signer-1" }] } }`) beside it so each slot maps to a signer. The MCP `create_envelope` tool seals and sends signing invitations in one call.
+Without the SDK, seal through the platform: the MCP `seal` tool ([mcp.md](./mcp.md)) or `POST /v1/exec/seal`. Both fill the artifact and return the canonical PDF, the signature map and the hash. They create no envelope. `data` holds only `fields`, `parties` and `annexes`; pass `signers` (`{ "signer-1": { "person": { "name": "Ada" } } }`) and `signatories` (`{ "<role>": { "<role>-0": [{ "signer_id": "signer-1" }] } }`) beside it so each slot maps to a signer. The MCP `create_envelope` tool seals and sends signing invitations in one call.

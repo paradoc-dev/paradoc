@@ -269,7 +269,7 @@ const completed = reset.complete()
 
 // completed.completedAt === ISO timestamp
 // Render
-const output = await completed.render({ renderer: renderLayer() })
+const output = await completed.render({ renderer: createLayerRenderer() })
 ```
 
 ### DraftChecklist
@@ -320,7 +320,7 @@ Created by `draft.complete()`. Fully frozen.
 
 <PropertiesTable properties={[
   { name: 'layer', type: 'string', description: 'Layer key to render. Defaults to the target layer', isOptional: true },
-  { name: 'renderer', type: 'ParadocRenderer', description: 'Renderer that processes the layer template, such as `renderLayer()`', isOptional: true },
+  { name: 'renderer', type: 'ParadocRenderer', description: 'Renderer that processes the layer template, such as `createLayerRenderer()`', isOptional: true },
   { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, consulted after `renderer` and before falling back to raw content', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for values in this render', isOptional: true },
   { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values', isOptional: true },

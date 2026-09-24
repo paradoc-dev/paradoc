@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { p } from '@paradoc/sdk'
-import { renderLayer } from '@paradoc/render'
+import { createLayerRenderer } from '@paradoc/render'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -122,7 +122,7 @@ describe('Text Layers Guide', () => {
 
   test('renders lease agreement with all template patterns', async () => {
     const output = await filled.render({
-      renderer: renderLayer(),
+      renderer: createLayerRenderer(),
       layer: 'markdown',
     })
 
@@ -148,7 +148,7 @@ describe('Text Layers Guide', () => {
 
   test('renders and writes to temp file', async () => {
     const output = await filled.render({
-      renderer: renderLayer(),
+      renderer: createLayerRenderer(),
       layer: 'markdown',
     })
 
