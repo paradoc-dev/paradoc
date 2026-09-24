@@ -137,7 +137,7 @@ await writeFile('agreement.pdf', pdf)
 
 Without a renderer registered for the layer's MIME type, `render()` throws `UnregisteredLayerRendererError`. A path that neither `components` nor an import can bind throws `UnboundReactLayerError`.
 
-Binding through `components` works in a bundled application, where the module is already imported. In a Node process that can load `.tsx`, you can leave out `components` and set `baseDir` to the artifact file's directory; the renderer then imports the path and takes its default export. It refuses an absolute path or one that leaves `baseDir`, because importing a module runs it.
+Binding through `components` works in a bundled application, where the module is already imported. In a Node process that can load `.tsx`, you can leave out `components` and set `baseDir` to the artifact file's directory; the renderer then imports the path and takes its default export. It refuses an absolute path or one that leaves `baseDir`, because importing a module runs it. Leaving `baseDir` unset turns the import route off entirely — `process.cwd()` is never used — so an artifact you do not control should bind through `components` only.
 </Step>
 
 <Step>

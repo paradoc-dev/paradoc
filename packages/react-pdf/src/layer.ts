@@ -96,11 +96,12 @@ export interface ReactLayerRendererOptions {
   /**
    * Directory the layer's path resolves against, and the boundary the resolved
    * path may not leave. A layer path is relative to the artifact file that
-   * declares it, so this is that file's directory.
+   * declares it, so this is that file's directory: `paradoc check` and
+   * `paradoc dev` pass it for you.
    *
-   * Leaving it unset defaults to the working directory. Set it to turn the
-   * import route on for one directory, or bind every layer through `components`
-   * and never rely on it.
+   * Leaving it unset turns the import route off entirely: a layer binds only
+   * through `components`, and an unbound layer fails naming both options.
+   * `process.cwd()` is never used.
    */
   baseDir?: string;
   /**
@@ -164,6 +165,18 @@ export async function bindComponent(
     throw new UnboundReactLayerError(path, key, "the layer names no module path.");
   }
 
+  // No `baseDir` means the import route is off entirely: `process.cwd()` is
+  // never used as a fallback. A caller who does not control the artifact binds
+  // through `components` only and never sets `baseDir`, and `paradoc check` and
+  // `paradoc dev` always pass the declaring artifact's own directory.
+  if (options.baseDir === undefined) {
+    throw new UnboundReactLayerError(
+      path,
+      key,
+      "no `baseDir` is set, so the import route is off."
+    );
+  }
+
   // Importing runs the module, so the path an artifact names is confined to
   // baseDir before anything is loaded. An artifact is data; without this, data
   // could name any file on the machine and have it executed.
@@ -176,7 +189,7 @@ export async function bindComponent(
     );
   }
 
-  const baseDir = resolve(options.baseDir ?? process.cwd());
+  const baseDir = resolve(options.baseDir);
   const absolute = resolve(baseDir, path);
   if (isOutside(baseDir, absolute)) {
     throw new UnboundReactLayerError(

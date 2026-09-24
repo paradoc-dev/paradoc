@@ -181,9 +181,11 @@ then the import route. A layer neither covers fails with `UnboundReactLayerError
 relative and stay inside `baseDir`, symlinks included, and the runtime must
 load `.tsx` (for example `tsx`).
 <!-- dep:R2 -->
-Leave `baseDir` unset to resolve against the artifact file's directory. When
-the artifact was not loaded from a file, the import route is off. Bind an
-untrusted artifact through `components` only.
+Leave `baseDir` unset to turn the import route off entirely: `process.cwd()`
+is never used, and a layer not in `components` fails naming both options.
+`paradoc check` and `paradoc dev` pass the declaring artifact file's directory
+as `baseDir` for you. Bind an untrusted artifact through `components` only,
+and never set `baseDir`.
 
 `reactRenderer(options)` returns the single renderer. `bindComponent(layer, options)`
 returns the bound component without rendering.

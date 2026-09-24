@@ -13,7 +13,7 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { UnregisteredLayerRendererError } from "@paradoc/core";
 
 import {
@@ -54,6 +54,7 @@ let bindingBaseLink: string;
 
 const OUTSIDE_FILE_EXECUTED = "__paradocOutsideFileExecuted";
 const OUTSIDE_DIRECTORY_EXECUTED = "__paradocOutsideDirectoryExecuted";
+const CWD_IMPORT_EXECUTED = "__paradocCwdImportExecuted";
 
 beforeAll(async () => {
   bindingRoot = await mkdtemp(join(tmpdir(), "paradoc-react-binding-"));
@@ -191,6 +192,48 @@ describe("choosing between the two binding routes", () => {
 });
 
 describe("a layer that cannot be bound", () => {
+  it("turns the import route off when baseDir is not set, and never falls back to the working directory", async () => {
+    const cwdDir = await mkdtemp(join(tmpdir(), "paradoc-react-cwd-"));
+    await writeFile(
+      join(cwdDir, "component.mjs"),
+      `globalThis.${CWD_IMPORT_EXECUTED} = true; export default function FromCwd() {}\n`
+    );
+    delete (globalThis as Record<string, unknown>)[CWD_IMPORT_EXECUTED];
+
+    const cwd = vi.spyOn(process, "cwd").mockReturnValue(cwdDir);
+    try {
+      // No `baseDir` key at all: even though `component.mjs` exists right where
+      // `process.cwd()` points, it must never be imported. If a guard regresses
+      // to `options.baseDir ?? process.cwd()`, this binds and the flag flips.
+      await expect(
+        bindComponent(
+          { type: "react", mimeType: "text/jsx", key: "composition", path: "component.mjs" },
+          {}
+        )
+      ).rejects.toThrow(/no `baseDir` is set, so the import route is off/);
+    } finally {
+      cwd.mockRestore();
+      await rm(cwdDir, { recursive: true, force: true });
+    }
+
+    expect((globalThis as Record<string, unknown>)[CWD_IMPORT_EXECUTED]).toBeUndefined();
+  });
+
+  it("fails naming both binding options when baseDir is unset and the layer is not in components", async () => {
+    const renderer = reactRenderer({});
+
+    const attempt = renderer.render({
+      template: { type: "react", mimeType: "text/tsx", key: "composition", path: PROPOSAL_REACT_LAYER_PATH },
+      form: proposal.toJSON() as never,
+      data: { fields: {} },
+    });
+
+    await expect(attempt).rejects.toThrow(UnboundReactLayerError);
+    await expect(attempt).rejects.toThrow(/no `baseDir` is set/);
+    await expect(attempt).rejects.toThrow(/`components` map/);
+    await expect(attempt).rejects.toThrow(/default export/);
+  });
+
   it("loads valid dot-prefixed files and links whose targets stay inside baseDir", async () => {
     const dot = await bindComponent(
       { type: "react", mimeType: "text/jsx", key: "dot", path: "..valid.mjs" },
