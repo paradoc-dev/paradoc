@@ -1,5 +1,5 @@
 import { loadFromObject, isCompositeType } from "@paradoc/core";
-import { unflattenPaths } from "./payload";
+import { templateFieldPath, unflattenPaths } from "./payload";
 import type { ArtifactRuntime, FillStateSnapshot } from "./types";
 
 /**
@@ -19,37 +19,49 @@ export function createParadocRuntime(
 	// Loaded once — pure design-time wrapper; doesn't capture answers.
 	const instance = loadFromObject<"form">(artifact);
 
-	const knownFieldPaths: Set<string> = collectFieldPaths(instance.fields);
-	const knownPartyRoles: Set<string> = new Set(
-		instance.parties ? Object.keys(instance.parties) : [],
-	);
-	const partyLabels: Record<string, string | undefined> = {};
-	if (instance.parties) {
-		for (const [roleId, partyDef] of Object.entries(
-			instance.parties as Record<string, unknown>,
-		)) {
-			if (partyDef && typeof partyDef === "object") {
-				const lbl = (partyDef as { label?: unknown }).label;
-				partyLabels[roleId] = typeof lbl === "string" ? lbl : undefined;
-			}
-		}
+	// One walk of the field tree: the public list, the path set, and the type
+	// index all come from it, so they cannot disagree about list items.
+	const fieldList = walkFields(instance.fields);
+	const knownFieldPaths = new Set(fieldList.map((f) => f.fieldPath));
+	const fieldTypes = new Map<string, string>();
+	for (const f of fieldList) {
+		if (f.type) fieldTypes.set(f.fieldPath, f.type);
 	}
+
+	const partyList = Object.entries(instance.parties ?? {}).map(([roleId, def]) => ({
+		roleId,
+		...(def.label ? { label: def.label } : {}),
+		partyType: def.partyType ?? ("any" as const),
+		max: def.max ?? 1,
+	}));
+	const partyLabels = new Map(partyList.map((p) => [p.roleId, p.label]));
+
+	const annexList = Object.entries(instance.annexes ?? {}).map(([annexId, def]) => ({
+		annexId,
+		...(def.title ? { label: def.title } : {}),
+	}));
+	const annexLabels = new Map(annexList.map((a) => [a.annexId, a.label]));
 
 	function hasField(fieldPath: string): boolean {
 		return knownFieldPaths.has(templateFieldPath(fieldPath));
 	}
 
 	function hasParty(roleId: string): boolean {
-		return knownPartyRoles.has(roleId);
+		return partyLabels.has(roleId);
+	}
+
+	function hasAnnex(annexId: string): boolean {
+		return annexLabels.has(annexId);
 	}
 
 	function getFillState(
 		answers: Record<string, unknown>,
 		parties: Record<string, unknown>,
+		annexes: Record<string, unknown>,
 	): FillStateSnapshot {
 		const draft = instance.safeFill(
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			answersToFormPayload(answers, parties) as any,
+			{ fields: unflattenPaths(answers), parties, annexes } as any,
 		);
 		if (!draft.success) {
 			return {
@@ -59,37 +71,40 @@ export function createParadocRuntime(
 				openOptional: [],
 				done: [],
 				openRequiredParties: [],
+				openRequiredAnnexes: [],
+				openOptionalAnnexes: [],
 			};
 		}
 		const runtimeState = draft.data.runtimeState;
 		const fillState = draft.data.getFillState({ includeOptional: true });
+		type Item = (typeof fillState.done)[number];
+		const fields = (items: Item[]) =>
+			items
+				.filter((item) => item.kind === "field")
+				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status }));
+		const annexItems = (items: Item[]) =>
+			items
+				.filter((item) => item.kind === "annex")
+				.map((item) => {
+					const label = annexLabels.get(item.key);
+					return { annexId: item.key, ...(label !== undefined ? { label } : {}), order: item.order };
+				});
 		return {
 			resolved: runtimeState.resolved,
 			...(runtimeState.issues.length > 0
 				? { diagnostics: runtimeState.issues.map((issue) => issue.message) }
 				: {}),
-			openRequired: fillState.openRequired
-				.filter((item) => item.kind === "field")
-				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
-			openOptional: fillState.openOptional
-				.filter((item) => item.kind === "field")
-				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
-			done: fillState.done
-				.filter((item) => item.kind === "field")
-				.map((item) => ({ fieldPath: item.key, order: item.order, status: item.status })),
+			openRequired: fields(fillState.openRequired),
+			openOptional: fields(fillState.openOptional),
+			done: fields(fillState.done),
 			openRequiredParties: fillState.openRequired
 				.filter((item) => item.kind === "party")
-				.map((item) => ({
-					roleId: item.key,
-					...(partyLabels[item.key] !== undefined
-						? { label: partyLabels[item.key] as string }
-						: {}),
-					order: item.order,
-				})),
-			// Canonical — no longer discarded: the full blocked + DAG-ordered candidates.
-			blocked: fillState.blocked
-				.filter((item) => item.kind === "field")
-				.map((item) => ({ fieldPath: item.key, order: item.order, blockedBy: item.blockedBy })),
+				.map((item) => {
+					const label = partyLabels.get(item.key);
+					return { roleId: item.key, ...(label !== undefined ? { label } : {}), order: item.order };
+				}),
+			openRequiredAnnexes: annexItems(fillState.openRequired),
+			openOptionalAnnexes: annexItems(fillState.openOptional),
 			candidates: fillState.candidates.map((c) => ({
 				kind: c.kind,
 				key: c.key,
@@ -99,13 +114,6 @@ export function createParadocRuntime(
 		};
 	}
 
-	// Index field types once at runtime construction so validateField can
-	// coerce string inputs to the canonical type the schema expects.
-	const fieldTypes = new Map<string, string>();
-	for (const f of listFieldsCached(instance.fields)) {
-		if (f.type) fieldTypes.set(f.fieldPath, f.type);
-	}
-
 	function validateField(
 		fieldPath: string,
 		value: unknown,
@@ -113,158 +121,89 @@ export function createParadocRuntime(
 		const coerced = coerceForFieldType(fieldTypes.get(templateFieldPath(fieldPath)), value);
 		const result = instance.validateFieldInput({ fieldPath, value: coerced });
 		if (result.success) {
-			// Hand back the coerced value so the engine persists it instead of
-			// the user's raw string. Without this, e.g. "20" stays a string in
-			// the event log even though it passes validation as a number — and
-			// the next read (renderer) re-validates and fails.
-			return { ok: true, value: coerced };
+			// Persist the value core's schema produced, not the input: e.g. "20"
+			// is stored as the number 20, and any normalization core applies
+			// reaches the event log.
+			return { ok: true, value: result.value };
 		}
-		return {
-			ok: false,
-			issues: result.errors.map((e) => ({
-				fieldPath: e.field,
-				message: e.message,
-			})),
-		};
+		return { ok: false, issues: issuesOf(result.errors) };
 	}
 
 	function validateParty(
 		roleId: string,
 		value: unknown,
+		index: number,
 	): ReturnType<ArtifactRuntime["validateParty"]> {
-		const result = instance.validatePartyInput({ roleId, value });
+		const result = instance.validatePartyInput({ roleId, index, value });
 		if (result.success) {
 			// validatePartyInput returns NormalizedPartyInput; we just need the
 			// runtime party object for downstream serialization.
 			return { ok: true, value: result.value.party };
 		}
-		return {
-			ok: false,
-			issues: result.errors.map((e) => ({
-				fieldPath: e.field,
-				message: e.message,
-			})),
-		};
+		return { ok: false, issues: issuesOf(result.errors) };
 	}
 
-	function listFields(): ReturnType<ArtifactRuntime["listFields"]> {
-		const out: Array<{ fieldPath: string; required: boolean; type?: string }> = [];
-		const walk = (fields: unknown, prefix: string) => {
-			if (!fields || typeof fields !== "object") return;
-			for (const [key, value] of Object.entries(fields as Record<string, unknown>)) {
-				const path = prefix ? `${prefix}.${key}` : key;
-				if (
-					value &&
-					typeof value === "object" &&
-					"fields" in (value as Record<string, unknown>)
-				) {
-					walk((value as { fields: unknown }).fields, path);
-				} else {
-					const def = value as Record<string, unknown> | null;
-					out.push({
-						fieldPath: path,
-						required: def?.required === true,
-						type: typeof def?.type === "string" ? (def.type as string) : undefined,
-					});
-				}
-			}
-		};
-		walk(instance.fields, "");
-		return out;
-	}
-
-	function listParties(): ReturnType<ArtifactRuntime["listParties"]> {
-		if (!instance.parties) return [];
-		return Object.entries(instance.parties as Record<string, unknown>).map(
-			([roleId, def]) => {
-				const rec = (def as Record<string, unknown>) ?? {};
-				const lbl = rec.label;
-				const partyType = rec.partyType;
-				return {
-					roleId,
-					...(typeof lbl === "string" ? { label: lbl } : {}),
-					partyType:
-						partyType === "person" ||
-						partyType === "organization" ||
-						partyType === "any"
-							? (partyType as "person" | "organization" | "any")
-							: "any",
-				};
-			},
-		);
+	function validateAnnex(
+		annexId: string,
+		value: unknown,
+	): ReturnType<ArtifactRuntime["validateAnnex"]> {
+		const result = instance.validateAnnexInput({ annexId, value });
+		if (result.success) return { ok: true, value: result.value };
+		return { ok: false, issues: issuesOf(result.errors) };
 	}
 
 	return {
 		hasField,
 		hasParty,
+		hasAnnex,
 		getFillState,
 		validateField,
 		validateParty,
-		listFields,
-		listParties,
+		validateAnnex,
+		listFields: () => fieldList.map((f) => ({ ...f })),
+		listParties: () => partyList.map((p) => ({ ...p })),
+		listAnnexes: () => annexList.map((a) => ({ ...a })),
 	};
 }
 
+function issuesOf(errors: ReadonlyArray<{ field: string; message: string }>) {
+	return errors.map((e) => ({ fieldPath: e.field, message: e.message }));
+}
+
+type FieldEntry = { fieldPath: string; required: boolean; type?: string };
+
 /**
- * Walk an artifact's `fields` map and yield every leaf field path.
- *
- * Paradoc artifacts express nested fields via fieldsets; the recursive shape
- * mirrors the runtime shape. We collect dot-separated paths because that's
- * the convention used throughout @paradoc/core's APIs (validateFieldInput,
- * FillState keys, etc.).
+ * Walk an artifact's `fields` map and yield every field path, in declaration
+ * order, with the dot-separated form @paradoc/core's APIs use
+ * (validateFieldInput, FillState keys). A fieldset is walked, not listed; a
+ * list is listed and its item paths follow under `[]` (`items[].name`, or
+ * `tags[]` for a list of scalars).
  */
-function collectFieldPaths(
-	fields: unknown,
-	prefix = "",
-): Set<string> {
-	const out = new Set<string>();
+function walkFields(fields: unknown, prefix = ""): FieldEntry[] {
+	const out: FieldEntry[] = [];
 	if (!fields || typeof fields !== "object") return out;
-	for (const [key, value] of Object.entries(
-		fields as Record<string, unknown>,
-	)) {
+	for (const [key, value] of Object.entries(fields as Record<string, unknown>)) {
 		const path = prefix ? `${prefix}.${key}` : key;
-		if (
-			value &&
-			typeof value === "object" &&
-			"fields" in (value as Record<string, unknown>)
-		) {
-			// Nested fieldset — recurse.
-			for (const inner of collectFieldPaths(
-				(value as { fields: unknown }).fields,
-				path,
-			)) {
-				out.add(inner);
-			}
-		} else if (value && typeof value === "object" && (value as { type?: unknown }).type === "list") {
-			out.add(path);
-			const item = (value as { item?: unknown }).item;
-			if (item && typeof item === "object" && "fields" in (item as Record<string, unknown>)) {
-				for (const inner of collectFieldPaths((item as { fields: unknown }).fields, `${path}[]`)) out.add(inner);
-			} else {
-				out.add(`${path}[]`);
-			}
-		} else {
-			out.add(path);
+		const def = value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+		if (def && "fields" in def) {
+			out.push(...walkFields(def.fields, path));
+			continue;
 		}
+		out.push(entryOf(path, def));
+		if (def?.type !== "list") continue;
+		const item = def.item && typeof def.item === "object" ? (def.item as Record<string, unknown>) : null;
+		if (item && "fields" in item) out.push(...walkFields(item.fields, `${path}[]`));
+		else if (item) out.push(entryOf(`${path}[]`, item));
 	}
 	return out;
 }
 
-function templateFieldPath(path: string): string {
-	return path.replace(/\[\d+\]/g, "[]");
-}
-
-/**
- * The engine stores answers as a flat {path: value} map; @paradoc/core's
- * safeFill wants a nested {fields: {...}} payload. `unflattenPaths` is
- * same nesting `sessionPayload` publishes, so what core evaluates and what a
- * caller renders are shaped by one function.
- */
-function answersToFormPayload(
-	answers: Record<string, unknown>,
-	parties: Record<string, unknown> = {},
-): { fields: Record<string, unknown>; parties: Record<string, unknown> } {
-	return { fields: unflattenPaths(answers), parties };
+function entryOf(fieldPath: string, def: Record<string, unknown> | null): FieldEntry {
+	return {
+		fieldPath,
+		required: def?.required === true,
+		...(typeof def?.type === "string" ? { type: def.type } : {}),
+	};
 }
 
 /**
@@ -510,47 +449,5 @@ function aliasAddressKeys(
 			delete out[alias];
 		}
 	}
-	return out;
-}
-
-/**
- * Internal use only: same walk as the public listFields() but reused at
- * construction time to build the type-index. Kept as a free function so
- * the runtime constructor can call it before the runtime object exists.
- */
-function listFieldsCached(
-	fields: unknown,
-): Array<{ fieldPath: string; required: boolean; type?: string }> {
-	const out: Array<{ fieldPath: string; required: boolean; type?: string }> = [];
-	const walk = (node: unknown, prefix: string) => {
-		if (!node || typeof node !== "object") return;
-		for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-			const path = prefix ? `${prefix}.${key}` : key;
-			if (
-				value &&
-				typeof value === "object" &&
-				"fields" in (value as Record<string, unknown>)
-			) {
-				walk((value as { fields: unknown }).fields, path);
-			} else if (value && typeof value === "object" && (value as { type?: unknown }).type === "list") {
-				const list = value as { item?: unknown };
-				out.push({ fieldPath: path, required: (value as { required?: unknown }).required === true, type: "list" });
-				if (list.item && typeof list.item === "object" && "fields" in (list.item as Record<string, unknown>)) {
-					walk((list.item as { fields: unknown }).fields, `${path}[]`);
-				} else if (list.item && typeof list.item === "object") {
-					const item = list.item as Record<string, unknown>;
-					out.push({ fieldPath: `${path}[]`, required: item.required === true, type: typeof item.type === "string" ? item.type : undefined });
-				}
-			} else {
-				const def = value as Record<string, unknown> | null;
-				out.push({
-					fieldPath: path,
-					required: def?.required === true,
-					type: typeof def?.type === "string" ? (def.type as string) : undefined,
-				});
-			}
-		}
-	};
-	walk(fields, "");
 	return out;
 }

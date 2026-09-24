@@ -48,10 +48,13 @@ export type Command =
 	| {
 			kind: "answerParty";
 			roleId: string;
+			/** Position within a repeatable role (`max > 1`); defaults to 0. */
 			index?: number;
 			value: unknown;
 			source: Source;
 	  }
+	| { kind: "answerAnnex"; annexId: string; value: unknown; source: Source }
+	| { kind: "clearAnnex"; annexId: string }
 	| { kind: "validate"; valid: boolean; errors: Issue[] }
 	| { kind: "render"; renderRef: string }
 	| { kind: "abandon" };
@@ -70,6 +73,9 @@ export type CommandErrorCode =
 	| "field-already-deferred"
 	| "field-already-skipped"
 	| "party-not-found"
+	| "party-index-out-of-order"
+	| "annex-not-found"
+	| "annex-not-answered"
 	| "stale-state"
 	| "session-not-active"
 	| "invalid-value";
@@ -113,13 +119,10 @@ export type FillStateSnapshot = {
 	done: Array<{ fieldPath: string; order: number; status: FieldStatus }>;
 	/** Party roles that still need filling — in artifact declaration order. */
 	openRequiredParties: Array<{ roleId: string; label?: string; order: number }>;
-	/**
-	 * Hidden fields whose visibility is gated by unanswered prerequisites.
-	 * `blockedBy` is the transitive set of unfilled fields/parties to answer first.
-	 * Populated by the @paradoc/core adapter when dependency diagnostics are
-	 * available; it is not needed for command authorization.
-	 */
-	blocked?: Array<{ fieldPath: string; order: number; blockedBy: string[] }>;
+	/** Required, unattached, visible annexes — in artifact declaration order. */
+	openRequiredAnnexes: Array<{ annexId: string; label?: string; order: number }>;
+	/** Optional, unattached, visible annexes — in artifact declaration order. */
+	openOptionalAnnexes: Array<{ annexId: string; label?: string; order: number }>;
 	/**
 	 * The canonical DAG-ordered, required-first candidate sequence (fields and
 	 * parties), straight from core — the single source of next-field order.
@@ -136,6 +139,14 @@ export type PartyValidation =
 	| { ok: false; issues: Issue[] };
 
 /**
+ * Validated annex value (an Attachment) as returned by validateAnnexInput.
+ * Opaque to the engine, like a party.
+ */
+export type AnnexValidation =
+	| { ok: true; value: unknown }
+	| { ok: false; issues: Issue[] };
+
+/**
  * Read-only interface the engine uses to query the artifact. Tests build a
  * fake; production wires this to @paradoc/core via a factory in derive.ts.
  */
@@ -144,26 +155,46 @@ export interface ArtifactRuntime {
 	hasField(fieldPath: string): boolean;
 	/** True iff the artifact defines a party role with this id. */
 	hasParty(roleId: string): boolean;
+	/** True iff the artifact defines an annex slot with this id. */
+	hasAnnex(annexId: string): boolean;
 	/**
-	 * Compute the open-required and open-optional buckets given current state
-	 * (both fields and parties). Parties are returned by roleId.
+	 * Compute the open-required and open-optional buckets given current state:
+	 * flat field answers, parties keyed by role (an array for a role with
+	 * `max > 1`), and annexes keyed by id. `sessionPayload` builds the last two.
 	 */
 	getFillState(
 		answers: Record<string, unknown>,
 		parties: Record<string, unknown>,
+		annexes: Record<string, unknown>,
 	): FillStateSnapshot;
 	/** Validate a value against the field's per-field schema. */
 	validateField(fieldPath: string, value: unknown): FieldValidation;
-	/** Validate a value against the party role's schema; returns normalized party. */
-	validateParty(roleId: string, value: unknown): PartyValidation;
-	/** Enumerate every field path the artifact defines (declaration order). */
+	/**
+	 * Validate a value against the party role's schema at `index` (0 for a
+	 * single-party role); returns the normalized party.
+	 */
+	validateParty(roleId: string, value: unknown, index: number): PartyValidation;
+	/** Validate a value against the annex slot's Attachment schema. */
+	validateAnnex(annexId: string, value: unknown): AnnexValidation;
+	/**
+	 * Enumerate every field path the artifact defines (declaration order). A
+	 * list contributes its own path and its item paths under `[]`, for example
+	 * `items` and `items[].name`.
+	 */
 	listFields(): Array<{ fieldPath: string; required: boolean; type?: string }>;
-	/** Enumerate every party role the artifact defines (declaration order). */
+	/**
+	 * Enumerate every party role the artifact defines (declaration order).
+	 * `max` is how many parties the role accepts; above 1 the payload carries
+	 * the role as an array.
+	 */
 	listParties(): Array<{
 		roleId: string;
 		label?: string;
 		partyType: "person" | "organization" | "any";
+		max: number;
 	}>;
+	/** Enumerate every annex slot the artifact defines (declaration order). */
+	listAnnexes(): Array<{ annexId: string; label?: string }>;
 }
 
 export type ExecuteOptions = {

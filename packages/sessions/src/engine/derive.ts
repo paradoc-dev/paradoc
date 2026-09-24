@@ -1,6 +1,6 @@
 import { project } from "../event-log/projector";
 import type { ProjectedSession } from "../event-log/types";
-import { flatAnswers, payloadParties } from "./payload";
+import { fillStateOf, templateFieldPath } from "./payload";
 import type { ArtifactRuntime, FormSession } from "./types";
 
 /**
@@ -39,6 +39,12 @@ export type PartyTarget = {
 	label?: string;
 };
 
+/** Annex target — used when the next thing to collect is an attachment. */
+export type AnnexTarget = {
+	annexId: string;
+	label?: string;
+};
+
 export type ProgressSummary = {
 	answered: number;
 	requiredTotal: number;
@@ -56,13 +62,19 @@ export type SessionView = {
 	next: FieldTarget | null;
 	/** The next party to ask, if the next item to collect is a party. */
 	nextParty: PartyTarget | null;
+	/** The next annex to attach, if the next item to collect is an annex. */
+	nextAnnex: AnnexTarget | null;
 	progress: ProgressSummary;
 	/** All pending party roles (declaration order); `nextParty` is the head. */
 	pendingParties: Array<{ roleId: string; label?: string }>;
+	/** All required annexes still unattached (declaration order). */
+	pendingAnnexes: AnnexTarget[];
 	/** Per-field status overview (declaration order). */
 	fieldIndex: FieldIndexEntry[];
 	/** Per-party status overview (declaration order). */
 	partyIndex: PartyIndexEntry[];
+	/** Per-annex status overview (declaration order). */
+	annexIndex: AnnexIndexEntry[];
 };
 
 export type FieldIndexEntry = {
@@ -80,6 +92,17 @@ export type PartyIndexEntry = {
 	label?: string;
 	partyType: "person" | "organization" | "any";
 	status: "answered" | "pending";
+	/** How many parties the role accepts; the next `answerParty` index is `filled`. */
+	max: number;
+	/** How many parties of the role are answered (indices `0..filled-1`). */
+	filled: number;
+};
+
+export type AnnexIndexEntry = {
+	annexId: string;
+	label?: string;
+	/** `pending` means visible and unattached; `pendingAnnexes` lists the required ones. */
+	status: "answered" | "pending" | "hidden";
 };
 
 /**
@@ -99,10 +122,13 @@ export function deriveView(
 			phase: "rendered",
 			next: null,
 			nextParty: null,
+			nextAnnex: null,
 			progress: zeroProgress(projected),
 			pendingParties: [],
+			pendingAnnexes: [],
 			fieldIndex: [],
 			partyIndex: [],
+			annexIndex: [],
 		};
 	}
 	if (projected.status === "abandoned") {
@@ -111,27 +137,30 @@ export function deriveView(
 			phase: "abandoned",
 			next: null,
 			nextParty: null,
+			nextAnnex: null,
 			progress: zeroProgress(projected),
 			pendingParties: [],
+			pendingAnnexes: [],
 			fieldIndex: [],
 			partyIndex: [],
+			annexIndex: [],
 		};
 	}
 
-	const fillState = runtime.getFillState(
-		flatAnswers(projected),
-		payloadParties(projected),
-	);
+	const fillState = fillStateOf(projected, runtime);
 	if (fillState.resolved !== true) {
 		return {
 			projected,
 			phase: "unresolved",
 			next: null,
 			nextParty: null,
+			nextAnnex: null,
 			progress: zeroProgress(projected),
 			pendingParties: [],
+			pendingAnnexes: [],
 			fieldIndex: buildFieldIndex(runtime, projected, fillState),
-			partyIndex: buildPartyIndex(runtime, projected, fillState),
+			partyIndex: buildPartyIndex(runtime, projected),
+			annexIndex: buildAnnexIndex(runtime, projected, fillState),
 		};
 	}
 
@@ -146,13 +175,17 @@ export function deriveView(
 		...fillState.openOptional.filter((f) => projected.deferred.has(f.fieldPath)),
 	];
 
+	// Totals come from core's buckets: an answered field is in `done` with its
+	// current status, so a hidden answer counts toward neither total.
 	const progress: ProgressSummary = {
 		answered: Object.keys(projected.answers).length,
 		requiredTotal:
 			fillState.openRequired.length +
-			countAnsweredRequired(projected, fillState),
+			fillState.done.filter((f) => f.status === "required").length,
 		requiredRemaining: openRequiredNonDeferred.length,
-		optionalTotal: fillState.openOptional.length + countAnsweredOptional(projected, fillState),
+		optionalTotal:
+			fillState.openOptional.length +
+			fillState.done.filter((f) => f.status === "optional").length,
 		optionalRemaining: openOptionalNonSkipped.length,
 		deferredCount: projected.deferred.size,
 		skippedCount: projected.skipped.size,
@@ -161,10 +194,15 @@ export function deriveView(
 	let phase: Phase;
 	let next: FieldTarget | null = null;
 	let nextParty: PartyTarget | null = null;
+	let nextAnnex: AnnexTarget | null = null;
 	const pendingParties = fillState.openRequiredParties;
+	const pendingAnnexes = fillState.openRequiredAnnexes.map((a) => ({
+		annexId: a.annexId,
+		...(a.label !== undefined ? { label: a.label } : {}),
+	}));
 
-	// Pick the next required-and-non-deferred item across BOTH fields and
-	// parties, ordered by core's single canonical candidate sequence (DAG order:
+	// Pick the next required-and-non-deferred item across fields, parties, and
+	// annexes, ordered by core's single canonical candidate sequence (DAG order:
 	// prerequisites first, then declaration order within a rank). Falls back to
 	// declaration order when a fake runtime doesn't supply candidates.
 	const candidateRank = new Map<string, number>();
@@ -172,10 +210,13 @@ export function deriveView(
 	const rankOf = (key: string, order: number): number =>
 		candidateRank.has(key) ? (candidateRank.get(key) as number) : order + 1_000_000;
 
-	const interleaved: Array<
+	type Interleaved =
 		| { kind: "field"; order: number; fieldPath: string }
 		| { kind: "party"; order: number; roleId: string; label?: string }
-	> = [
+		| { kind: "annex"; order: number; annexId: string; label?: string };
+	const keyOf = (item: Interleaved): string =>
+		item.kind === "field" ? item.fieldPath : item.kind === "party" ? item.roleId : item.annexId;
+	const interleaved: Interleaved[] = [
 		...openRequiredNonDeferred.map((f) => ({
 			kind: "field" as const,
 			order: f.order,
@@ -187,11 +228,13 @@ export function deriveView(
 			roleId: p.roleId,
 			...(p.label !== undefined ? { label: p.label } : {}),
 		})),
-	].sort(
-		(a, b) =>
-			rankOf(a.kind === "field" ? a.fieldPath : a.roleId, a.order) -
-			rankOf(b.kind === "field" ? b.fieldPath : b.roleId, b.order),
-	);
+		...fillState.openRequiredAnnexes.map((a) => ({
+			kind: "annex" as const,
+			order: a.order,
+			annexId: a.annexId,
+			...(a.label !== undefined ? { label: a.label } : {}),
+		})),
+	].sort((a, b) => rankOf(keyOf(a), a.order) - rankOf(keyOf(b), b.order));
 
 	if (interleaved.length > 0) {
 		phase = "collecting-required";
@@ -201,6 +244,11 @@ export function deriveView(
 		} else if (head?.kind === "party") {
 			nextParty = {
 				roleId: head.roleId,
+				...(head.label !== undefined ? { label: head.label } : {}),
+			};
+		} else if (head?.kind === "annex") {
+			nextAnnex = {
+				annexId: head.annexId,
 				...(head.label !== undefined ? { label: head.label } : {}),
 			};
 		}
@@ -228,18 +276,18 @@ export function deriveView(
 		next = null;
 	}
 
-	const fieldIndex = buildFieldIndex(runtime, projected, fillState);
-	const partyIndex = buildPartyIndex(runtime, projected, fillState);
-
 	return {
 		projected,
 		phase,
 		next,
 		nextParty,
+		nextAnnex,
 		progress,
 		pendingParties,
-		fieldIndex,
-		partyIndex,
+		pendingAnnexes,
+		fieldIndex: buildFieldIndex(runtime, projected, fillState),
+		partyIndex: buildPartyIndex(runtime, projected),
+		annexIndex: buildAnnexIndex(runtime, projected, fillState),
 	};
 }
 
@@ -250,16 +298,27 @@ export function deriveView(
  *   - "pending" — currently visible per fillState, awaiting input
  *   - "hidden" — defined but not visible right now (conditional predicate excludes)
  * and a `locked` flag from the prefill's locked paths, independent of status.
+ *
+ * A list item path (`items[].name`) takes the status of its rows: answered
+ * when any row's value is, pending when any row is visible.
  */
 function buildFieldIndex(
 	runtime: ArtifactRuntime,
 	projected: ProjectedSession,
 	fillState: ReturnType<ArtifactRuntime["getFillState"]>,
 ): FieldIndexEntry[] {
-	const visible = new Set([
-		...fillState.openRequired.map((f) => f.fieldPath),
-		...fillState.openOptional.map((f) => f.fieldPath),
-	]);
+	const visible = new Set(
+		[...fillState.openRequired, ...fillState.openOptional].map((f) =>
+			templateFieldPath(f.fieldPath),
+		),
+	);
+	const answeredRows = new Map<string, unknown>();
+	for (const [path, answer] of Object.entries(projected.answers)) {
+		const template = templateFieldPath(path);
+		if (template !== path && !answeredRows.has(template)) {
+			answeredRows.set(template, answer.value);
+		}
+	}
 	return runtime.listFields().map((f) => {
 		const answer = projected.answers[f.fieldPath];
 		let status: FieldIndexEntry["status"];
@@ -267,6 +326,8 @@ function buildFieldIndex(
 		if (answer) {
 			status = "answered";
 			valuePreview = previewValue(answer.value);
+		} else if (answeredRows.has(f.fieldPath)) {
+			status = "answered";
 		} else if (projected.deferred.has(f.fieldPath)) {
 			status = "deferred";
 		} else if (projected.skipped.has(f.fieldPath)) {
@@ -290,16 +351,41 @@ function buildFieldIndex(
 function buildPartyIndex(
 	runtime: ArtifactRuntime,
 	projected: ProjectedSession,
-	_fillState: ReturnType<ArtifactRuntime["getFillState"]>,
 ): PartyIndexEntry[] {
-	const answeredRoleIds = new Set(
-		Object.values(projected.parties).map((p) => p.roleId),
+	const filledByRole = new Map<string, number>();
+	for (const p of Object.values(projected.parties)) {
+		filledByRole.set(p.roleId, (filledByRole.get(p.roleId) ?? 0) + 1);
+	}
+	return runtime.listParties().map((p) => {
+		const filled = filledByRole.get(p.roleId) ?? 0;
+		return {
+			roleId: p.roleId,
+			...(p.label !== undefined ? { label: p.label } : {}),
+			partyType: p.partyType,
+			status: filled > 0 ? "answered" : "pending",
+			max: p.max,
+			filled,
+		};
+	});
+}
+
+function buildAnnexIndex(
+	runtime: ArtifactRuntime,
+	projected: ProjectedSession,
+	fillState: ReturnType<ArtifactRuntime["getFillState"]>,
+): AnnexIndexEntry[] {
+	const open = new Set(
+		[...fillState.openRequiredAnnexes, ...fillState.openOptionalAnnexes].map((a) => a.annexId),
 	);
-	return runtime.listParties().map((p) => ({
-		roleId: p.roleId,
-		...(p.label !== undefined ? { label: p.label } : {}),
-		partyType: p.partyType,
-		status: answeredRoleIds.has(p.roleId) ? "answered" : "pending",
+	return runtime.listAnnexes().map((a) => ({
+		annexId: a.annexId,
+		...(a.label !== undefined ? { label: a.label } : {}),
+		status:
+			a.annexId in projected.annexes
+				? "answered"
+				: open.has(a.annexId)
+					? "pending"
+					: "hidden",
 	}));
 }
 
@@ -313,41 +399,6 @@ function previewValue(value: unknown): string {
 	} catch {
 		return "[unserializable]";
 	}
-}
-
-/**
- * Number of answered fields that, ignoring the current answer, would have
- * been required. Used for `requiredTotal` accounting. We approximate by
- * counting answers whose paths are NOT presently in openOptional (i.e. they
- * were either required or are not currently visible — close enough for a
- * progress indicator).
- */
-function countAnsweredRequired(
-	projected: ProjectedSession,
-	fillState: ReturnType<ArtifactRuntime["getFillState"]>,
-): number {
-	let n = 0;
-	const optionalPaths = new Set(
-		fillState.openOptional.map((f) => f.fieldPath),
-	);
-	for (const path of Object.keys(projected.answers)) {
-		if (!optionalPaths.has(path)) n += 1;
-	}
-	return n;
-}
-
-function countAnsweredOptional(
-	projected: ProjectedSession,
-	fillState: ReturnType<ArtifactRuntime["getFillState"]>,
-): number {
-	let n = 0;
-	const optionalPaths = new Set(
-		fillState.openOptional.map((f) => f.fieldPath),
-	);
-	for (const path of Object.keys(projected.answers)) {
-		if (optionalPaths.has(path)) n += 1;
-	}
-	return n;
 }
 
 function zeroProgress(projected: ProjectedSession): ProgressSummary {

@@ -26,6 +26,7 @@ function makeRuntime(opts: {
 	return {
 		hasField: (fp) => opts.fields.includes(fp),
 		hasParty: () => false,
+		hasAnnex: () => false,
 		getFillState: (answers) => {
 			const open = opts.fields.filter(
 				(fp) => isVisible(fp, answers) && !(fp in answers),
@@ -51,16 +52,20 @@ function makeRuntime(opts: {
 					.map((fp, i) => ({ fieldPath: fp, order: i, status: "optional" as const })),
 				done,
 				openRequiredParties: [],
+				openRequiredAnnexes: [],
+				openOptionalAnnexes: [],
 			};
 		},
 		validateField: (_fp, v) => ({ ok: true, value: v }),
 		validateParty: (_roleId, value) => ({ ok: true, value }),
+		validateAnnex: (_annexId, value) => ({ ok: true, value }),
 		listFields: () =>
 			opts.fields.map((fp) => ({
 				fieldPath: fp,
 				required: isRequired(fp, {}),
 			})),
 		listParties: () => [],
+		listAnnexes: () => [],
 	};
 }
 
@@ -273,6 +278,52 @@ describe("deriveView — progress accounting", () => {
 		expect(view.progress.optionalRemaining).toBe(1);
 	});
 
+	it("counts an answered optional field as optional, not required", () => {
+		const events: SessionEvent[] = [
+			{
+				v: 1,
+				t: "FieldAnswered",
+				at: "t0",
+				by: USER,
+				fieldPath: "/color",
+				value: "red",
+				source: "user",
+			},
+		];
+		const rt = makeRuntime({
+			fields: ["/name", "/age", "/color"],
+			required: (fp) => fp === "/name" || fp === "/age",
+		});
+		const view = deriveView(emptySession(events), rt);
+		expect(view.progress).toMatchObject({
+			answered: 1,
+			requiredTotal: 2,
+			requiredRemaining: 2,
+			optionalTotal: 1,
+			optionalRemaining: 0,
+		});
+	});
+
+	it("counts an answered field that is now hidden toward neither total", () => {
+		const events: SessionEvent[] = [
+			{
+				v: 1,
+				t: "FieldAnswered",
+				at: "t0",
+				by: USER,
+				fieldPath: "/extra",
+				value: "x",
+				source: "user",
+			},
+		];
+		const rt = makeRuntime({
+			fields: ["/name", "/extra"],
+			visible: (fp) => fp !== "/extra",
+		});
+		const view = deriveView(emptySession(events), rt);
+		expect(view.progress).toMatchObject({ requiredTotal: 1, optionalTotal: 0 });
+	});
+
 	it("reports deferred and skipped counts", () => {
 		const events: SessionEvent[] = [
 			{ v: 1, t: "FieldDeferred", at: "t0", by: USER, fieldPath: "/a" },
@@ -319,6 +370,7 @@ describe("deriveView — canonical candidate ordering", () => {
 		const rt: ArtifactRuntime = {
 			hasField: (fp) => fp === "/a" || fp === "/b",
 			hasParty: () => false,
+			hasAnnex: () => false,
 			getFillState: () => ({
 				resolved: true,
 				openRequired: [
@@ -328,6 +380,8 @@ describe("deriveView — canonical candidate ordering", () => {
 				openOptional: [],
 				done: [],
 				openRequiredParties: [],
+				openRequiredAnnexes: [],
+				openOptionalAnnexes: [],
 				candidates: [
 					{ kind: "field", key: "/b", required: true, order: 1 },
 					{ kind: "field", key: "/a", required: true, order: 0 },
@@ -335,11 +389,13 @@ describe("deriveView — canonical candidate ordering", () => {
 			}),
 			validateField: (_fp, v) => ({ ok: true, value: v }),
 			validateParty: (_r, v) => ({ ok: true, value: v }),
+			validateAnnex: (_a, v) => ({ ok: true, value: v }),
 			listFields: () => [
 				{ fieldPath: "/a", required: true },
 				{ fieldPath: "/b", required: true },
 			],
 			listParties: () => [],
+			listAnnexes: () => [],
 		};
 		const view = deriveView(session, rt);
 		expect(view.next?.fieldPath).toBe("/b");

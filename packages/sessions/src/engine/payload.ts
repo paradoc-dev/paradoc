@@ -20,11 +20,13 @@
  */
 
 import type { ProjectedSession } from "../event-log/types";
+import type { ArtifactRuntime, FillStateSnapshot } from "./types";
 
-/** An artifact payload: nested fields, and parties by role. */
+/** An artifact payload: nested fields, parties by role, and annexes by id. */
 export type SessionPayload = {
 	fields: Record<string, unknown>;
 	parties: Record<string, unknown>;
+	annexes: Record<string, unknown>;
 };
 
 /**
@@ -57,6 +59,11 @@ export function unflattenPaths(flat: Record<string, unknown>): Record<string, un
 		setDeep(nested, parsePath(path), value);
 	}
 	return nested;
+}
+
+/** A concrete path with its list indices replaced by `[]`: `items[0].name` → `items[].name`. */
+export function templateFieldPath(path: string): string {
+	return path.replace(/\[\d+\]/g, "[]");
 }
 
 type PathSegment = string | number;
@@ -139,11 +146,16 @@ export function payloadFields(projected: ProjectedSession): Record<string, unkno
  * The parties of a projected session, keyed by role.
  *
  * The log keys a party `roleId#index`, because a role may be filled more than
- * once. An artifact payload keys by role alone, so a role filled once is that
- * party and a role filled more than once is the array of them in index order.
- * That is the shape `Party | Party[]` every consumer already reads.
+ * once. An artifact payload keys by role alone, in the shape the role declares:
+ * a role with `max > 1` is always the array of its parties in index order, even
+ * when one is filled, and a single-party role is that party. A role nobody has
+ * filled is absent.
  */
-export function payloadParties(projected: ProjectedSession): Record<string, unknown> {
+export function payloadParties(
+	projected: ProjectedSession,
+	runtime: Pick<ArtifactRuntime, "listParties">,
+): Record<string, unknown> {
+	const maxByRole = new Map(runtime.listParties().map((role) => [role.roleId, role.max]));
 	const byRole = new Map<string, Array<{ index: number; party: unknown }>>();
 	for (const answer of Object.values(projected.parties)) {
 		const filled = byRole.get(answer.roleId) ?? [];
@@ -154,19 +166,51 @@ export function payloadParties(projected: ProjectedSession): Record<string, unkn
 	const parties: Record<string, unknown> = {};
 	for (const [roleId, filled] of byRole) {
 		filled.sort((a, b) => a.index - b.index);
-		parties[roleId] =
-			filled.length === 1 ? filled[0]!.party : filled.map((entry) => entry.party);
+		const repeatable = (maxByRole.get(roleId) ?? 1) > 1;
+		parties[roleId] = repeatable ? filled.map((entry) => entry.party) : filled[0]!.party;
 	}
 	return parties;
+}
+
+/** The attached annexes of a projected session, keyed by annex id. */
+export function payloadAnnexes(projected: ProjectedSession): Record<string, unknown> {
+	const annexes: Record<string, unknown> = {};
+	for (const [annexId, answer] of Object.entries(projected.annexes)) {
+		annexes[annexId] = answer.attachment;
+	}
+	return annexes;
+}
+
+/**
+ * Core's fill state for a projected session: the flat answers with parties and
+ * annexes in their payload shape.
+ */
+export function fillStateOf(
+	projected: ProjectedSession,
+	runtime: Pick<ArtifactRuntime, "getFillState" | "listParties">,
+): FillStateSnapshot {
+	return runtime.getFillState(
+		flatAnswers(projected),
+		payloadParties(projected, runtime),
+		payloadAnnexes(projected),
+	);
 }
 
 /**
  * Everything a session has been told, in the artifact's own shape.
  *
  * Take it from `deriveView(...).projected`, or from `project(session.events)`
- * when the view is not needed. It is valid at every point of a fill, not only
- * at the end: an unanswered field is simply absent.
+ * when the view is not needed, with the session's runtime (it says which roles
+ * take an array). It is valid at every point of a fill, not only at the end:
+ * an unanswered field, party, or annex is simply absent.
  */
-export function sessionPayload(projected: ProjectedSession): SessionPayload {
-	return { fields: payloadFields(projected), parties: payloadParties(projected) };
+export function sessionPayload(
+	projected: ProjectedSession,
+	runtime: Pick<ArtifactRuntime, "listParties">,
+): SessionPayload {
+	return {
+		fields: payloadFields(projected),
+		parties: payloadParties(projected, runtime),
+		annexes: payloadAnnexes(projected),
+	};
 }

@@ -118,9 +118,11 @@ function step(session: FormSession, runtime: ArtifactRuntime) {
  * there is nothing for React to do — which is claim 3, and it is a property of
  * the engine's contract rather than of anything this package memoizes.
  */
+const PREVIEW_RUNTIME = purchaseOrderRuntime();
+
 function Preview({ session }: { session: FormSession }) {
   const data = useMemo(
-    () => purchaseOrderDocumentData(sessionPayload(project(session.events))),
+    () => purchaseOrderDocumentData(sessionPayload(project(session.events), PREVIEW_RUNTIME)),
     [session]
   );
   return (
@@ -198,7 +200,7 @@ describe("a purchase order filled by a session", () => {
   it("asks for the first answer while the totals it computes are still missing", () => {
     // The totals read rows and a rate nobody has answered yet. They are missing,
     // not failed, so the session still has something to ask.
-    const state = runtimeFor(purchaseOrderSpec).getFillState({}, {});
+    const state = runtimeFor(purchaseOrderSpec).getFillState({}, {}, {});
     expect(state.resolved).toBe(true);
     expect(state.diagnostics).toBeUndefined();
     expect(state.openRequired.map((field) => field.fieldPath)).toContain("orderNumber");

@@ -10,7 +10,17 @@
 
 import { describe, expect, it } from "vitest";
 import type { ProjectedSession } from "../event-log/types";
+import type { ArtifactRuntime } from "./types";
 import { payloadFields, payloadParties, sessionPayload, unflattenPaths } from "./payload";
+
+/** The roles an artifact declares: `buyer` and `supplier` single, `witness` up to three. */
+const roles: Pick<ArtifactRuntime, "listParties"> = {
+	listParties: () => [
+		{ roleId: "buyer", partyType: "any", max: 1 },
+		{ roleId: "supplier", partyType: "any", max: 1 },
+		{ roleId: "witness", partyType: "person", max: 3 },
+	],
+};
 
 /** A projection carrying exactly these answers and parties. */
 function projected(
@@ -35,6 +45,7 @@ function projected(
 		currentTurn: 0,
 		lockedPaths: new Set(),
 		parties: wrappedParties,
+		annexes: {},
 	};
 }
 
@@ -113,11 +124,20 @@ describe("payloadParties", () => {
 	it("keys a role filled once by the role alone", () => {
 		const parties = payloadParties(
 			projected({}, { "buyer#0": { roleId: "buyer", index: 0, party: { id: "buyer-0" } } }),
+			roles,
 		);
 		expect(parties).toEqual({ buyer: { id: "buyer-0" } });
 	});
 
-	it("gives a role filled more than once the array, in index order", () => {
+	it("gives a repeatable role filled once the array of one", () => {
+		const parties = payloadParties(
+			projected({}, { "witness#0": { roleId: "witness", index: 0, party: { id: "w-0" } } }),
+			roles,
+		);
+		expect(parties).toEqual({ witness: [{ id: "w-0" }] });
+	});
+
+	it("gives a repeatable role filled more than once the array, in index order", () => {
 		const parties = payloadParties(
 			projected(
 				{},
@@ -126,6 +146,7 @@ describe("payloadParties", () => {
 					"witness#0": { roleId: "witness", index: 0, party: { id: "w-0" } },
 				},
 			),
+			roles,
 		);
 		expect(parties).toEqual({ witness: [{ id: "w-0" }, { id: "w-1" }] });
 	});
@@ -139,20 +160,22 @@ describe("payloadParties", () => {
 					"supplier#0": { roleId: "supplier", index: 0, party: { id: "s" } },
 				},
 			),
+			roles,
 		);
 		expect(parties).toEqual({ buyer: { id: "b" }, supplier: { id: "s" } });
 	});
 });
 
 describe("sessionPayload", () => {
-	it("is the two halves together", () => {
+	it("is fields, parties, and annexes together", () => {
 		const source = projected(
 			{ orderNumber: "PO-1" },
 			{ "buyer#0": { roleId: "buyer", index: 0, party: { id: "buyer-0" } } },
 		);
-		expect(sessionPayload(source)).toEqual({
+		expect(sessionPayload(source, roles)).toEqual({
 			fields: { orderNumber: "PO-1" },
 			parties: { buyer: { id: "buyer-0" } },
+			annexes: {},
 		});
 	});
 });

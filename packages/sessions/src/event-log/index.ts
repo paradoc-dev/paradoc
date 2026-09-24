@@ -1,5 +1,6 @@
 export type {
 	Actor,
+	AnsweredAnnex,
 	AnsweredParty,
 	AnsweredValue,
 	Issue,

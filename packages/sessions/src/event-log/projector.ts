@@ -16,6 +16,7 @@ function emptyProjection(): ProjectedSession {
 		currentTurn: 0,
 		lockedPaths: new Set(),
 		parties: {},
+		annexes: {},
 	};
 }
 
@@ -133,6 +134,19 @@ function applyEvent(p: ProjectedSession, ev: SessionEvent): void {
 			};
 			return;
 		}
+
+		case "AnnexAnswered":
+			p.annexes[ev.annexId] = {
+				annexId: ev.annexId,
+				attachment: ev.attachment,
+				source: ev.source,
+				at: ev.at,
+			};
+			return;
+
+		case "AnnexCleared":
+			delete p.annexes[ev.annexId];
+			return;
 
 		case "ValidationRan":
 			p.lastValidation = { valid: ev.valid, errors: ev.errors, at: ev.at };

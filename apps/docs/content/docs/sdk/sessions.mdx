@@ -72,7 +72,9 @@ if (result.ok) {
 
 A rejection carries no session. Keep the one you had: nothing about the fill changed.
 
-Commands cover the full lifecycle: `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
+Commands cover the full lifecycle: `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `answerAnnex` / `clearAnnex`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
+
+`answerParty` takes an `index` for a role that accepts more than one party (`max` above 1). Answer the indices in order, starting at 0: an index that skips a position rejects with `party-index-out-of-order`, and an index at or past `max` rejects with `invalid-value`. Answering an index again replaces that party. `answerAnnex` takes an `annexId` and an attachment (`{ name, mimeType, checksum? }`) and replaces any attachment already in that slot.
 
 A field locked by prefill rejects `answer`, `revise`, and `clear` with `field-locked`; the reason names the field. To show it as read-only before the user tries, read `locked` on the field's `fieldIndex` entry in the derived view.
 
@@ -90,16 +92,19 @@ const view = deriveView(session, runtime)
 view.phase            // where the session is in its lifecycle
 view.next             // the next field to ask about, or null
 view.nextParty        // the next party to ask about, or null
+view.nextAnnex        // the next attachment to collect, or null
 view.progress         // ProgressSummary: answered vs. remaining
 ```
 
-A `SessionView` also carries `projected` (the replayed session), `pendingParties`, `fieldIndex` (status and `locked` flag per field, in declaration order), and `partyIndex` (status per party role).
+A `SessionView` also carries `projected` (the replayed session), `pendingParties`, `pendingAnnexes` (required annexes not yet attached), `fieldIndex` (status and `locked` flag per field, in declaration order, with list item fields as `items[].name`), `partyIndex` (status, `max`, and `filled` count per party role), and `annexIndex` (status per annex slot).
+
+The session is `ready` only when no required field, party, or annex is open. `progress` counts fields as core reports them: `requiredTotal` and `optionalTotal` count each field by its current status, whether answered or not, and a field that is now hidden counts toward neither.
 
 `phase` is one of `collecting-required`, `revisit-deferred`, `collecting-optional`, `unresolved`, `ready`, `rendered`, or `abandoned`. The engine reads visibility and required cascades straight from `@paradoc/core`, so they resolve the same way they do everywhere else.
 
 ## Fill, render, and seal from a session
 
-`sessionPayload` turns a projected session into the artifact's own shape: nested `fields` and `parties` by role. Pass it to `fill`, then render or seal the draft like any other. It is valid part-way through a fill: a field nobody has answered is absent.
+`sessionPayload` turns a projected session into the artifact's own shape: nested `fields`, `parties` by role, and `annexes` by id. It takes the runtime too, because a role with `max` above 1 is always an array, even with one party. Pass the payload to `fill`, then render or seal the draft like any other. It is valid part-way through a fill: a field, party, or annex nobody has answered is absent.
 
 ```ts
 import { p, deriveView, sessionPayload } from '@paradoc/sdk'
@@ -107,8 +112,7 @@ import { p, deriveView, sessionPayload } from '@paradoc/sdk'
 const form = p.form(definition)
 
 const view = deriveView(session, runtime)
-const { fields, parties } = sessionPayload(view.projected)
-const draft = form.fill({ fields, parties })
+const draft = form.fill(sessionPayload(view.projected, runtime))
 
 // Preview while the session is still collecting.
 const preview = await draft.render({ progressive: { missing: '—' } })

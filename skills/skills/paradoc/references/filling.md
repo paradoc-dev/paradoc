@@ -229,18 +229,19 @@ const view = deriveView(session, runtime);
 view.phase;      // "collecting-required", "revisit-deferred", "collecting-optional", "unresolved", "ready", "rendered", "abandoned"
 view.next;       // { fieldPath, required, deferred } or null
 view.nextParty;  // { roleId, label } or null
+view.nextAnnex;  // { annexId, label } or null
 view.progress;   // { answered, requiredRemaining, optionalRemaining, deferredCount, ... }
 
-const draft = p.form(definition).fill(sessionPayload(view.projected)); // { fields, parties } answered so far
+const draft = p.form(definition).fill(sessionPayload(view.projected, runtime)); // { fields, parties, annexes } answered so far
 ```
 
 | Part | Detail |
 |------|--------|
-| Commands | `answer`, `revise`, `clear`, `defer`/`undefer`, `skip`/`unskip`, `answerParty` (`roleId`, `index?`, `value`), `present`, `validate`, `render`, `abandon` |
+| Commands | `answer`, `revise`, `clear`, `defer`/`undefer`, `skip`/`unskip`, `answerParty` (`roleId`, `index?`, `value`; indices in order from 0 for a role with `max` above 1), `answerAnnex` (`annexId`, `value`), `clearAnnex`, `present`, `validate`, `render`, `abandon` |
 | Actor | `{ kind: "user" }`, `{ kind: "agent", model }`, `{ kind: "system", reason }` |
-| Error codes | `field-not-found`, `field-not-visible`, `field-locked`, `invalid-value`, `stale-state`, `party-not-found`, `session-not-active`, and others on `CommandErrorCode` |
+| Error codes | `field-not-found`, `field-not-visible`, `field-locked`, `invalid-value`, `stale-state`, `party-not-found`, `party-index-out-of-order`, `annex-not-found`, `session-not-active`, and others on `CommandErrorCode` |
 | Options | `execute(..., { expectedEventCount, now })`: `expectedEventCount` rejects with `stale-state` when another writer appended first |
-| View | Also `pendingParties`, `fieldIndex` (status and `locked` per field) and `partyIndex` |
+| View | Also `pendingParties`, `pendingAnnexes`, `fieldIndex` (status and `locked` per field), `partyIndex` (status, `max`, `filled`) and `annexIndex`. The phase is `ready` only when no required field, party, or annex is open. |
 | Storage | Persist `session.events` append-only, in order, with no duplicates. `deriveView` replays the log as given. |
 
 To give an AI agent fill tools instead of running the engine yourself, load [ai-tools.md](./ai-tools.md).

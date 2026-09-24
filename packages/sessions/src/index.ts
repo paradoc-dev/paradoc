@@ -4,17 +4,24 @@ export type {
 	Command,
 	CommandErrorCode,
 	CommandResult,
+	AnnexValidation,
 	ExecuteOptions,
 	FieldValidation,
 	FillStateSnapshot,
 	FormSession,
+	PartyValidation,
 } from "./engine/types";
 export { execute } from "./engine/execute";
-export { sessionPayload } from "./engine/payload";
+export { fillStateOf, sessionPayload } from "./engine/payload";
 export type { SessionPayload } from "./engine/payload";
 export { deriveView } from "./engine/derive";
 export type {
+	AnnexIndexEntry,
+	AnnexTarget,
+	FieldIndexEntry,
 	FieldTarget,
+	PartyIndexEntry,
+	PartyTarget,
 	Phase,
 	ProgressSummary,
 	SessionView,
@@ -24,6 +31,7 @@ export { createParadocRuntime } from "./engine/paradoc-runtime";
 // ─── Event log ───────────────────────────────────────────────────────────
 export type {
 	Actor,
+	AnsweredAnnex,
 	AnsweredParty,
 	AnsweredValue,
 	Issue,

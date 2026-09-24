@@ -141,6 +141,24 @@ export type SessionEvent =
 	  }
 	| {
 			v: 1;
+			t: "AnnexAnswered";
+			at: string;
+			by: Actor;
+			annexId: string;
+			/** The Attachment as returned by validateAnnexInput. */
+			attachment: unknown;
+			source: Source;
+	  }
+	| {
+			v: 1;
+			t: "AnnexCleared";
+			at: string;
+			by: Actor;
+			annexId: string;
+			previous: unknown;
+	  }
+	| {
+			v: 1;
 			t: "ValidationRan";
 			at: string;
 			valid: boolean;
@@ -186,6 +204,15 @@ export type ProjectedSession = {
 	lockedPaths: Set<string>;
 	/** Map of `roleId#index` -> latest party value, with provenance. */
 	parties: Record<string, AnsweredParty>;
+	/** Map of annexId -> latest attachment, with provenance. */
+	annexes: Record<string, AnsweredAnnex>;
+};
+
+export type AnsweredAnnex = {
+	annexId: string;
+	attachment: unknown;
+	source: Source;
+	at: string;
 };
 
 export type AnsweredParty = {

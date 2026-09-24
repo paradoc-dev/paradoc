@@ -57,6 +57,9 @@ function makeRuntime(opts: {
 		hasParty() {
 			return false;
 		},
+		hasAnnex() {
+			return false;
+		},
 		getFillState(answers): FillStateSnapshot {
 			const open = opts.fields.filter(
 				(fp) => isVisible(fp, answers) && !(fp in answers),
@@ -82,6 +85,8 @@ function makeRuntime(opts: {
 					.map((fp, i) => ({ fieldPath: fp, order: i, status: "optional" as const })),
 				done,
 				openRequiredParties: [],
+				openRequiredAnnexes: [],
+				openOptionalAnnexes: [],
 			};
 		},
 		validateField(fp, v) {
@@ -91,10 +96,16 @@ function makeRuntime(opts: {
 		validateParty(_roleId, value) {
 			return { ok: true, value };
 		},
+		validateAnnex(_annexId, value) {
+			return { ok: true, value };
+		},
 		listFields() {
 			return opts.fields.map((fp) => ({ fieldPath: fp, required: true }));
 		},
 		listParties() {
+			return [];
+		},
+		listAnnexes() {
 			return [];
 		},
 	};
@@ -156,6 +167,8 @@ describe("execute — resolved presentation contract", () => {
 				openOptional: [],
 				done: [],
 				openRequiredParties: [],
+				openRequiredAnnexes: [],
+				openOptionalAnnexes: [],
 			}),
 		};
 		const result = execute(

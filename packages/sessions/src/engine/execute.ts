@@ -1,5 +1,5 @@
 import { project } from "../event-log/projector";
-import { flatAnswers, payloadParties } from "./payload";
+import { fillStateOf } from "./payload";
 import type {
 	Actor,
 	SessionEvent,
@@ -113,7 +113,7 @@ export function execute(
 				);
 			}
 			if (projected.lockedPaths.has(cmd.fieldPath)) return lockedReason(cmd.fieldPath);
-			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			const fillState = fillStateOf(projected, runtime);
 			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			const visible = fieldIsVisible(
 				fillState,
@@ -168,7 +168,7 @@ export function execute(
 					`field ${cmd.fieldPath} has no value to revise — use answer`,
 				);
 			}
-			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			const fillState = fillStateOf(projected, runtime);
 			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			if (!fieldIsVisible(fillState, cmd.fieldPath)) {
 				return reject(
@@ -213,7 +213,7 @@ export function execute(
 					`field ${cmd.fieldPath} has no value to clear`,
 				);
 			}
-			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			const fillState = fillStateOf(projected, runtime);
 			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			if (!fieldIsVisible(fillState, cmd.fieldPath)) {
 				return reject(
@@ -253,7 +253,7 @@ export function execute(
 					`${cmd.fieldPath} is already deferred`,
 				);
 			}
-			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			const fillState = fillStateOf(projected, runtime);
 			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			const visible =
 				fillState.openRequired.some(
@@ -319,7 +319,7 @@ export function execute(
 					`${cmd.fieldPath} is already skipped`,
 				);
 			}
-			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			const fillState = fillStateOf(projected, runtime);
 			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			const inRequired = fillState.openRequired.some(
 				(f) => f.fieldPath === cmd.fieldPath && f.status === "required",
@@ -378,7 +378,7 @@ export function execute(
 					`field ${cmd.fieldPath} does not exist on the artifact`,
 				);
 			}
-			const fillState = runtime.getFillState(flatAnswers(projected), payloadParties(projected));
+			const fillState = fillStateOf(projected, runtime);
 			if (fillState.resolved !== true) return unresolvedReason(cmd.fieldPath);
 			const visible = fieldIsVisible(
 				fillState,
@@ -411,12 +411,25 @@ export function execute(
 					`party role ${cmd.roleId} does not exist on the artifact`,
 				);
 			}
-			const validation = runtime.validateParty(cmd.roleId, cmd.value);
+			const index = cmd.index ?? 0;
+			// Core checks the index against the role's `max` and ties the party id
+			// to it. A role's parties must also stay contiguous, because the
+			// payload carries them as an array whose position is the index.
+			const validation = runtime.validateParty(cmd.roleId, cmd.value, index);
 			if (!validation.ok) {
 				return reject(
 					"invalid-value",
 					validation.issues.map((i) => i.message).join("; ") ||
 						"party value rejected by schema",
+				);
+			}
+			const filled = Object.values(projected.parties).filter(
+				(p) => p.roleId === cmd.roleId,
+			).length;
+			if (index > filled) {
+				return reject(
+					"party-index-out-of-order",
+					`party role ${cmd.roleId} has ${filled} filled; answer index ${filled} next`,
 				);
 			}
 			const emitted: SessionEvent[] = [
@@ -426,9 +439,59 @@ export function execute(
 					at: now(),
 					by: actor,
 					roleId: cmd.roleId,
-					index: cmd.index ?? 0,
+					index,
 					party: validation.value,
 					source: cmd.source,
+				},
+			];
+			return { ok: true, session: appendEvents(session, emitted), emitted };
+		}
+
+		case "answerAnnex": {
+			if (!runtime.hasAnnex(cmd.annexId)) {
+				return reject(
+					"annex-not-found",
+					`annex ${cmd.annexId} does not exist on the artifact`,
+				);
+			}
+			const validation = runtime.validateAnnex(cmd.annexId, cmd.value);
+			if (!validation.ok) {
+				return reject(
+					"invalid-value",
+					validation.issues.map((i) => i.message).join("; ") ||
+						"annex value rejected by schema",
+				);
+			}
+			const emitted: SessionEvent[] = [
+				{
+					v: 1,
+					t: "AnnexAnswered",
+					at: now(),
+					by: actor,
+					annexId: cmd.annexId,
+					attachment: validation.value,
+					source: cmd.source,
+				},
+			];
+			return { ok: true, session: appendEvents(session, emitted), emitted };
+		}
+
+		case "clearAnnex": {
+			const existing = projected.annexes[cmd.annexId];
+			if (!existing) {
+				return reject(
+					"annex-not-answered",
+					`annex ${cmd.annexId} has no attachment to clear`,
+				);
+			}
+			const emitted: SessionEvent[] = [
+				{
+					v: 1,
+					t: "AnnexCleared",
+					at: now(),
+					by: actor,
+					annexId: cmd.annexId,
+					previous: existing.attachment,
 				},
 			];
 			return { ok: true, session: appendEvents(session, emitted), emitted };

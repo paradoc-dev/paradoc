@@ -129,7 +129,7 @@ export function fillBySession(name: string, spec: unknown, script: FillScript): 
   for (let step = 0; step < 200; step++) {
     const done = fillStep(session, runtime, script);
     if (!done) {
-      return { session, runtime, order, payload: sessionPayload(project(session.events)) };
+      return { session, runtime, order, payload: sessionPayload(project(session.events), runtime) };
     }
     session = done.session;
     order.push(done.did);

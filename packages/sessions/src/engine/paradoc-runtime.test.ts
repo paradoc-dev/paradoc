@@ -28,7 +28,7 @@ describe("createParadocRuntime", () => {
 			defaultLayer: "composition",
 		});
 
-		const state = runtime.getFillState({}, {});
+		const state = runtime.getFillState({}, {}, {});
 		expect(state.resolved).toBe(false);
 		expect(state.openRequired).toEqual([]);
 		expect(state.openOptional).toEqual([]);
@@ -59,14 +59,14 @@ describe("createParadocRuntime", () => {
 	});
 
 	it("keeps asking for required fields while computed values are missing their inputs", () => {
-		const state = createParadocRuntime(pricedArtifact()).getFillState({}, {});
+		const state = createParadocRuntime(pricedArtifact()).getFillState({}, {}, {});
 		expect(state.resolved).toBe(true);
 		expect(state.diagnostics).toBeUndefined();
 		expect(state.openRequired.map((field) => field.fieldPath)).toEqual(["quantity", "divisor", "note"]);
 	});
 
 	it("reports a failing computed value as a diagnostic and keeps asking for the rest", () => {
-		const state = createParadocRuntime(pricedArtifact()).getFillState({ quantity: 3, divisor: 0 }, {});
+		const state = createParadocRuntime(pricedArtifact()).getFillState({ quantity: 3, divisor: 0 }, {}, {});
 		expect(state.resolved).toBe(true);
 		expect(state.diagnostics).toEqual([expect.stringContaining("division-by-zero")]);
 		expect(state.openRequired.map((field) => field.fieldPath)).toEqual(["note"]);

@@ -81,15 +81,16 @@ const view = deriveView(session, runtime);
 view.phase; // where the session is in its lifecycle
 view.next; // the field to ask about next, if any
 view.nextParty; // the party to ask about next, if any
+view.nextAnnex; // the attachment to collect next, if any
 view.progress; // answered vs. remaining
 ```
 
-Project the log into the artifact's own shape, to fill, render, or seal from what has been answered. It is valid part-way through a fill: a field nobody has answered is simply absent.
+Project the log into the artifact's own shape, to fill, render, or seal from what has been answered. Pass the runtime: it says which party roles take an array. The payload is valid part-way through a fill: a field, party, or annex nobody has answered is simply absent.
 
 ```typescript
 import { sessionPayload } from "@paradoc/sessions";
 
-const { fields, parties } = sessionPayload(view.projected);
+const { fields, parties, annexes } = sessionPayload(view.projected, runtime);
 ```
 
 Because storage is not baked in, you persist and rehydrate the event log yourself. Store the events append-only, in order, and without duplicates; `deriveView` folds the log exactly as given:
