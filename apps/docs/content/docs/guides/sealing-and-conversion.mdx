@@ -133,8 +133,9 @@ const signable = await draft.seal({ adapter })  // same map, canonicalized
 
 ## Older artifacts
 
-Before schema version `2026-09-24`, layers could declare slots in
-`signatureBlocks` and `anchorBlocks`. Those fields are removed. Run
+Layers in older schema versions could declare slots in `signatureBlocks` and
+`anchorBlocks`. Those fields are removed (see the
+[version history](/schemas#version-history)). Run
 `paradoc migrate` to move each block into `signatures` under the same id.
 
 ## Which operation to use
