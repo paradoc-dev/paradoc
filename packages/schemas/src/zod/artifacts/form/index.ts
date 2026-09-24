@@ -8,7 +8,8 @@ import { FormAnnexSchema } from './annex';
 import { FormPartySchema } from './party';
 
 // Re-export all form-related schemas
-export { FormFieldSchema, FieldsetFieldSchema } from './field';
+export { FormFieldSchema, FieldsetFieldSchema, FORM_FIELD_TYPES } from './field';
+export type { FormFieldType } from './field';
 export { ListFieldSchema } from './list';
 export { FormAnnexSchema } from './annex';
 export { FormPartySchema } from './party';

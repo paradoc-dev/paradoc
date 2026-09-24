@@ -33,7 +33,8 @@ export {
 } from './module';
 
 // Field types
-export { FieldsetFieldSchema } from './artifacts/form/field';
+export { FieldsetFieldSchema, FORM_FIELD_TYPES } from './artifacts/form/field';
+export type { FormFieldType } from './artifacts/form/field';
 export { ListFieldSchema } from './artifacts/form/list';
 
 // Shared

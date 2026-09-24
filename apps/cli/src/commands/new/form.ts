@@ -7,7 +7,9 @@ import {
 	generateFormTemplate,
 	parseFieldDefinition,
 	createField,
+	isValidFieldType,
 } from "../../utils/templates.js";
+import { FORM_FIELD_TYPES } from "@paradoc/schemas";
 import { writeFile, showArtifactDetails } from "../../utils/file-writer.js";
 import { collect } from "../../utils/cli-helpers.js";
 
@@ -45,6 +47,22 @@ async function createFormImpl(
 		dryRun = false,
 		format = "json",
 	} = options;
+
+	// Parse and validate fields up front, before prompting for anything else,
+	// so an unknown --field type fails fast with the list of valid types.
+	const fields: Record<string, unknown> = {};
+	for (const fieldDef of field) {
+		const { name: fieldName, type } = parseFieldDefinition(fieldDef);
+		if (!isValidFieldType(type)) {
+			console.error(
+				kleur.red(
+					`Unknown field type "${type}" for field "${fieldName}". Valid types: ${[...FORM_FIELD_TYPES].sort().join(", ")}`,
+				),
+			);
+			process.exit(1);
+		}
+		fields[fieldName] = createField(fieldName, type);
+	}
 
 	// Gather artifact configuration
 	let artifactTitle: string;
@@ -165,13 +183,6 @@ async function createFormImpl(
 			process.exit(0);
 		}
 		throw error;
-	}
-
-	// Parse fields
-	const fields: Record<string, unknown> = {};
-	for (const fieldDef of field) {
-		const { name: fieldName, type } = parseFieldDefinition(fieldDef);
-		fields[fieldName] = createField(fieldName, type);
 	}
 
 	// Generate template

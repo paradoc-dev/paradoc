@@ -47,6 +47,8 @@ paradoc new form <name> [options]
 | `--dry-run` | Preview without creating files |
 | `--format <format>` | Output format: `json` or `yaml` (default: json) |
 
+`type` must be one of the field types the schema accepts (`text`, `boolean`, `number`, `coordinate`, `bbox`, `money`, `address`, `phone`, `duration`, `email`, `uuid`, `uri`, `enum`, `date`, `datetime`, `time`, `person`, `organization`, `identification`, `multiselect`, `percentage`, `rating`, `fieldset`, `list`). An unknown type exits non-zero and lists the valid types. Every type scaffolds with the keys it requires, so the result passes `paradoc validate`: `enum` and `multiselect` get sample `enum` options, `fieldset` gets an empty `fields` map, and `list` gets a `text` `item`.
+
 ### Examples
 
 Interactive form creation:

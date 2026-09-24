@@ -90,16 +90,7 @@ paradoc new bundle onboarding --yes
 
 The file lands in the current directory (`--dir` to change) with the current `$schema`, and YAML also gets a `yaml-language-server` comment. Other flags: `--slug`, `--description`, `--code`, `--artifact-version` (default `1.0.0`), `--dry-run`.
 
-`--field <id:type>` works on `new form` only. Scalar types scaffold ready to use. Types with required keys need an edit before the file is complete:
-
-| Type | Add |
-|------|-----|
-| `enum`, `multiselect` | `enum: [{ value, label }]` |
-| `fieldset` | `fields` |
-| `list` | `item` |
-
-<!-- dep:L2 -->
-`--field` accepts only schema type names ([fields.md § Type selection table](./fields.md#type-selection-table)). Run `paradoc validate` after the edit.
+`--field <id:type>` works on `new form` only, and accepts only schema type names ([fields.md § Type selection table](./fields.md#type-selection-table)). An unknown type exits non-zero and lists the valid types. Every type scaffolds ready to pass `paradoc validate`: `enum`/`multiselect` get sample options, `fieldset` gets an empty `fields`, and `list` gets a `text` `item` — edit those placeholders as needed.
 
 ### validate
 

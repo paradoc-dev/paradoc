@@ -4,7 +4,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
+import { PARADOC_SCHEMA_URL, FORM_FIELD_TYPES } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -313,6 +313,43 @@ describe('CLI New Command', () => {
       expect(artifact.fields.email.type).toBe('email')
       expect(artifact.fields).toHaveProperty('age')
       expect(artifact.fields.age.type).toBe('number')
+    })
+
+    describe.each(FORM_FIELD_TYPES.map((type) => [type]))('--field with type %s', (type) => {
+      it(`scaffolds a ${type} field that passes paradoc validate`, async () => {
+        const createResult = await executeCliCommand(
+          ['new', 'form', `${type}-field-form`, '--yes', '--field', `sample:${type}`],
+          { cwd: tempDir }
+        )
+
+        expect(createResult.exitCode).toBe(0)
+
+        const files = await fs.readdir(tempDir)
+        const jsonFile = files.find((f) => f.endsWith('.json'))!
+        const content = await fs.readFile(path.join(tempDir, jsonFile), 'utf-8')
+        const artifact = JSON.parse(content)
+        expect(artifact.fields.sample.type).toBe(type)
+
+        const validateResult = await executeCliCommand(['validate', jsonFile], { cwd: tempDir })
+        expect(validateResult.exitCode).toBe(0)
+      })
+    })
+
+    it('should fail with a non-zero exit code and list valid types for an unknown --field type', async () => {
+      const result = await executeCliCommand(
+        ['new', 'form', 'bad-field-form', '--yes', '--field', 'x:strng'],
+        { cwd: tempDir }
+      )
+
+      expect(result.exitCode).not.toBe(0)
+      expect(result.stderr).toContain('strng')
+      for (const type of FORM_FIELD_TYPES) {
+        expect(result.stderr).toContain(type)
+      }
+
+      // Nothing should have been written.
+      const files = await fs.readdir(tempDir)
+      expect(files.some((f) => f.endsWith('.json'))).toBe(false)
     })
 
     it('should create form in custom --dir', async () => {

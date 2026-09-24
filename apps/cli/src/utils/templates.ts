@@ -1,5 +1,6 @@
 import slugify from 'slugify'
 import { PARADOC_SCHEMA_URL } from '@paradoc/core'
+import { FORM_FIELD_TYPES, type FormFieldType } from '@paradoc/schemas'
 
 export interface ProjectTemplate {
   name: string
@@ -212,9 +213,20 @@ export function parseFieldDefinition(fieldDef: string): {
 }
 
 /**
- * Create a field object from name and type
+ * Whether a string is a field type the schema accepts.
  */
-export function createField(name: string, type: string): Record<string, unknown> {
+export function isValidFieldType(type: string): type is FormFieldType {
+  return (FORM_FIELD_TYPES as readonly string[]).includes(type)
+}
+
+/**
+ * Create a field object from name and type.
+ *
+ * `type` must be a value from `FORM_FIELD_TYPES` (checked by the caller); the
+ * result always passes `paradoc validate` on its own, so every type that
+ * requires more than `type`/`label` is scaffolded with the keys it needs.
+ */
+export function createField(name: string, type: FormFieldType): Record<string, unknown> {
   const field: Record<string, unknown> = {
     type,
     label: name
@@ -226,6 +238,21 @@ export function createField(name: string, type: string): Record<string, unknown>
   // Add common field properties based on type
   if (type === 'text' || type === 'email') {
     field.required = false
+  }
+
+  if (type === 'enum' || type === 'multiselect') {
+    field.enum = [
+      { value: 'option_one', label: 'Option One' },
+      { value: 'option_two', label: 'Option Two' },
+    ]
+  }
+
+  if (type === 'fieldset') {
+    field.fields = {}
+  }
+
+  if (type === 'list') {
+    field.item = { type: 'text' }
   }
 
   return field

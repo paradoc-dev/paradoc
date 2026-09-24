@@ -289,9 +289,9 @@ const FieldsetFieldObjectSchema = BaseFieldSchema.extend({
 
 export const FieldsetFieldSchema: z.ZodType<FieldsetField> = FieldsetFieldObjectSchema;
 
-// Complete field union, discriminated on `type`, so an unknown key is reported
-// against the one field shape its type names.
-export const FormFieldSchema: z.ZodType<FormField> = z.lazy(() => z.discriminatedUnion('type', [
+// The schemas that make up the field union, in one place, so the union and the
+// list of valid `type` values below can never drift apart.
+const FIELD_SCHEMAS = [
 	TextFieldSchema,
 	BooleanFieldSchema,
 	NumberFieldSchema,
@@ -316,7 +316,16 @@ export const FormFieldSchema: z.ZodType<FormField> = z.lazy(() => z.discriminate
 	RatingFieldSchema,
 	FieldsetFieldObjectSchema,
 	ListFieldObjectSchema,
-])).meta({
+] as const;
+
+// Complete field union, discriminated on `type`, so an unknown key is reported
+// against the one field shape its type names.
+export const FormFieldSchema: z.ZodType<FormField> = z.lazy(() => z.discriminatedUnion('type', FIELD_SCHEMAS)).meta({
 	title: 'FormField',
 	description: 'Single input/data element, nested fieldset, or recursive list',
 });
+
+/** Every field `type` the schema accepts, derived from the field union itself. */
+export const FORM_FIELD_TYPES = FIELD_SCHEMAS.map((schema) => schema.shape.type.value);
+
+export type FormFieldType = (typeof FORM_FIELD_TYPES)[number];

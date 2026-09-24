@@ -33,7 +33,7 @@ Ask, grouped, only what the user has not already said:
 
 On the PDF branch, the PDF answers most of these. Read it for the title, form code, sections, signature lines, and instructions text.
 
-Name the artifact in kebab-case (`w9`, `residential-lease`). Scaffold with the scalar fields you already know. Add enum, multiselect, fieldset, and list fields in stage 3, because they need more keys than `--field` writes.
+Name the artifact in kebab-case (`w9`, `residential-lease`). Scaffold with the fields you already know, including `enum`, `multiselect`, `fieldset`, and `list` — `--field` writes each with the keys it needs (placeholder options, an empty `fields`, or a `text` `item`). Replace those placeholders with the real options, nested fields, or item type in stage 3.
 
 ```bash
 npx paradoc-cli new form volunteer-signup --title "Volunteer Signup" \
@@ -157,7 +157,7 @@ A `not_recoverable` or `unparseable` entry you did not plan for is a binding bug
 |---------|-------|-----|
 | `validate` fails with `binding "<key>": "<PDF name>" is not a known Paradoc path` | Bindings are inverted. | Keys are PDF names, values are Paradoc paths. |
 | `validate` fails with `binding "<key>": "<key>" is not an AcroForm field` | The key is not a PDF field name. | Use the full name `inspectAcroFormFields` lists. |
-| `fields.x.enum: Invalid input: expected array, received undefined` | An enum was scaffolded with `--field x:enum`. | Add the `enum` options list. |
+| `fields.x.enum: Invalid input: expected array, received undefined` | An `enum` field was hand-written or edited with no `enum` options. | Add the `enum` options list (`--field x:enum` scaffolds placeholder options; replace them). |
 | `Cannot format parties.x (party, invalid): Party identity is ambiguous` | An `any` party in the sample has only `name`. | Add `firstName` and `lastName` for a person, or `legalName` for an organization. |
 | `Resolver path "../x.pdf" resolves outside the configured root` | A file sits outside the artifact's directory. | Move it next to the artifact. |
 | `checksum: mismatch` | A file changed after `attach`. | `npx paradoc-cli fix <file> -y`. |
