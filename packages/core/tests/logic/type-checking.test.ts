@@ -1,9 +1,10 @@
 import { describe, test, expect } from 'vitest'
 import { validateFormDefs, validateBundleDefs } from '@/logic/design-time/validation'
-import { buildFormTypeEnvironment } from '@/logic/design-time/type-checking'
+import { createTypeEnv } from '@paradoc/expr'
+import { buildFormTypeAcc } from '@/logic/design-time/type-checking'
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import type { Form, Bundle } from '@paradoc/types'
-import type { LogicValidationIssue } from '@/logic/design-time/validation/validate-form-logic'
+import type { LogicValidationIssue } from '@/logic/design-time/validation/shared'
 
 describe('Expression Type Checking', () => {
 	describe('validateFormDefs - type checking', () => {
@@ -140,7 +141,6 @@ describe('Expression Type Checking', () => {
 			expect(result.issues?.length).toBeGreaterThan(0)
 
 			const issue = result.issues?.[0] as LogicValidationIssue
-			expect(issue.severity).toBe('error')
 			expect(issue.actualType).toBe('number')
 			expect(issue.expectedType).toBe('boolean')
 			expect(issue.path).toContain('visible')
@@ -167,7 +167,6 @@ describe('Expression Type Checking', () => {
 			expect(result.issues).toBeDefined()
 
 			const issue = result.issues?.[0] as LogicValidationIssue
-			expect(issue.severity).toBe('error')
 			expect(issue.actualType).toBe('string')
 		})
 
@@ -196,7 +195,6 @@ describe('Expression Type Checking', () => {
 			expect(result.issues).toBeDefined()
 
 			const issue = result.issues?.[0] as LogicValidationIssue
-			expect(issue.severity).toBe('error')
 			expect(issue.actualType).toBe('number')
 		})
 
@@ -225,7 +223,7 @@ describe('Expression Type Checking', () => {
 			expect(result.issues).toBeUndefined()
 		})
 
-		test('warns when expression type is unknown (unknown variable)', () => {
+		test('reports an unknown variable in a gate once, not again as a type issue', () => {
 			const form: Form = {
 				kind: 'form',
 				version: '1.0.0',
@@ -236,21 +234,17 @@ describe('Expression Type Checking', () => {
 					info: {
 						type: 'text',
 						label: 'Info',
-						// externalVar is not defined - should result in unknown type warning
-						// (after the unknown variable error from syntax validation)
+						// externalVar is not defined: the reference pass reports it, and
+						// the type pass does not repeat it
 						visible: 'externalVar',
 					},
 				},
 			}
 
 			const result = validateFormDefs(form)
-			// Should have issues (unknown variable + type warning)
-			expect(result.issues).toBeDefined()
-			expect(result.issues?.length).toBeGreaterThan(0)
-
-			// First issue is the unknown variable error (from syntax validation)
-			const issue = result.issues?.[0] as LogicValidationIssue
-			expect(issue.message).toContain('Unknown variable')
+			expect(result.issues).toEqual([
+				expect.objectContaining({ message: 'Unknown variable: "externalVar"', path: ['fields', 'info', 'visible'] }),
+			])
 		})
 
 		test('validates nested fieldset expressions', () => {
@@ -288,7 +282,6 @@ describe('Expression Type Checking', () => {
 				(i) => (i as LogicValidationIssue).path.includes('state')
 			) as LogicValidationIssue
 			expect(stateIssue).toBeDefined()
-			expect(stateIssue.severity).toBe('error')
 		})
 
 		test('validates annex expressions', () => {
@@ -319,7 +312,6 @@ describe('Expression Type Checking', () => {
 				(i) => (i as LogicValidationIssue).path.includes('invoice')
 			) as LogicValidationIssue
 			expect(invoiceIssue).toBeDefined()
-			expect(invoiceIssue.severity).toBe('error')
 		})
 	})
 
@@ -386,7 +378,6 @@ describe('Expression Type Checking', () => {
 				(i) => (i as LogicValidationIssue).path.includes('include')
 			) as LogicValidationIssue
 			expect(issue).toBeDefined()
-			expect(issue.severity).toBe('error')
 			expect(issue.actualType).toBe('number')
 		})
 	})
@@ -472,7 +463,7 @@ describe('Expression Type Checking', () => {
 			)
 			expect(result.issues).toBeUndefined()
 
-			const env = buildFormTypeEnvironment(bboxForm('true'))
+			const env = createTypeEnv(buildFormTypeAcc(bboxForm('true')))
 			expect(env.resolve('fields.area.southWest')?.kind).toBe('object')
 			expect(env.resolve('fields.area.northEast.lon')?.kind).toBe('number')
 		})
@@ -498,7 +489,7 @@ describe('Expression Type Checking', () => {
 		test('types bbox definition corners like bbox field corners', () => {
 			expect(validateFormDefs(bboxDefForm('box.southWest.lat < box.northEast.lat')).issues).toBeUndefined()
 
-			const env = buildFormTypeEnvironment(bboxDefForm('true'))
+			const env = createTypeEnv(buildFormTypeAcc(bboxDefForm('true')))
 			expect(env.resolve('box.southWest')?.kind).toBe('object')
 			expect(env.resolve('box.northEast.lon')?.kind).toBe('number')
 		})
@@ -544,7 +535,7 @@ describe('Expression Type Checking', () => {
 			)
 			expect(result.issues).toBeUndefined()
 
-			const env = buildFormTypeEnvironment(orgForm('true'))
+			const env = createTypeEnv(buildFormTypeAcc(orgForm('true')))
 			expect(env.resolve('fields.org.entityId')?.kind).toBe('string')
 			expect(env.resolve('fields.org.taxId')?.kind).toBe('string')
 		})
@@ -573,7 +564,7 @@ describe('Expression Type Checking', () => {
 			)
 			expect(result.issues).toBeUndefined()
 
-			const env = buildFormTypeEnvironment(idForm('true'))
+			const env = createTypeEnv(buildFormTypeAcc(idForm('true')))
 			expect(env.resolve('fields.id.type')?.kind).toBe('string')
 			expect(env.resolve('fields.id.number')?.kind).toBe('string')
 			expect(env.resolve('fields.id.issueDate')?.kind).toBe('date')
@@ -661,7 +652,7 @@ describe('Expression Type Checking', () => {
 				},
 			}
 
-			const env = buildFormTypeEnvironment(form)
+			const env = createTypeEnv(buildFormTypeAcc(form))
 			expect(env.resolve('fields.level')?.kind).toBe('number')
 			expect(env.resolve('fields.status')?.kind).toBe('string')
 			expect(env.resolve('fields.mixed')?.kind).toBe('unknown')

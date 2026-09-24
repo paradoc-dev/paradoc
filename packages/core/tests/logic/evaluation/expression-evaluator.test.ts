@@ -2,7 +2,6 @@ import { describe, test, expect } from 'vitest'
 import {
   evaluateExpression,
   evaluateGate,
-  evaluateExpressionOrDefault,
 } from '@/logic/runtime/evaluation/expression-evaluator'
 import { FUNCTION_REGISTRY, HOST_FUNCTIONS, type EvaluationContext } from '@/logic/runtime/evaluation/types'
 import { Values, buildRegistry, T } from '@paradoc/expr'
@@ -291,31 +290,6 @@ describe('expression-evaluator', () => {
 			expect(evaluateGate('fields.age / 0 > 1', context)).toMatchObject({ status: 'failed' })
 		})
 	})
-
-  // ============================================================================
-  // evaluateExpressionOrDefault Tests
-  // ============================================================================
-
-  describe('evaluateExpressionOrDefault', () => {
-    test('returns evaluated value on success', () => {
-      const context = createSimpleContext()
-      const result = evaluateExpressionOrDefault('fields.age + 5', context, 0)
-      expect(result).toBe(30)
-    })
-
-    test('returns default on failure', () => {
-      const context = createSimpleContext()
-      const result = evaluateExpressionOrDefault('invalid syntax ((', context, 42)
-      expect(result).toBe(42)
-    })
-
-    test('returns default when evaluation fails', () => {
-      const context = createSimpleContext()
-      // A genuine runtime failure (division by zero) returns the default
-      const result = evaluateExpressionOrDefault('1 / 0', context, 'default')
-      expect(result).toBe('default')
-    })
-  })
 
   // ============================================================================
   // evaluateMultipleExpressions Tests

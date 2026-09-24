@@ -14,7 +14,7 @@ import {
 	type CompositeValueType,
 } from '@/inference/composite-shapes'
 import { COMPLEX_TYPE_PROPERTIES } from '@/logic/shared/complex-type-properties'
-import { collectPartyPaths } from '@/logic/design-time/validation/field-paths'
+import { buildFormTypeAcc } from '@/logic/design-time/type-checking/build-type-environment'
 import { validateFormDefs } from '@/logic/design-time/validation/validate-form-logic'
 import { evaluateFormDefs } from '@/logic/runtime/evaluation/form-evaluator'
 import { validateFormData } from '@/validation'
@@ -94,7 +94,11 @@ describe('composite value shapes', () => {
 	})
 
 	test('party members follow the person and organization shapes', () => {
-		const paths = collectPartyPaths({ buyer: { partyType: 'organization' }, seller: { partyType: 'person' } })
+		const form = {
+			kind: 'form', name: 'f', version: '1.0.0', title: 'F',
+			parties: { buyer: { partyType: 'organization' }, seller: { partyType: 'person' } },
+		} as unknown as Form
+		const paths = new Set(Object.keys(buildFormTypeAcc(form)))
 		expect(paths).toEqual(new Set([
 			'parties.buyer',
 			...['id', ...Object.keys(SAMPLES.organization)].map((m) => `parties.buyer.${m}`),

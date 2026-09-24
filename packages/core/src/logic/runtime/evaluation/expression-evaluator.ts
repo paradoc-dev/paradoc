@@ -300,15 +300,3 @@ export function evaluateGate(condition: boolean | string, context: EvaluationCon
 	if (result.code === 'missing-input') return { status: 'missing' }
 	return { status: 'failed', error: result.error }
 }
-
-/**
- * Evaluates an expression and returns the result or a default value.
- */
-export function evaluateExpressionOrDefault<T>(
-	expr: string,
-	context: EvaluationContext,
-	defaultValue: T,
-): T {
-	const result = evaluateExpression<T>(expr, context)
-	return result.success ? (result.value as T) : defaultValue
-}

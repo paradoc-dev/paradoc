@@ -1,126 +1,74 @@
 /**
- * Validates that an expression used in a boolean gate (required, visible,
- * include) resolves to boolean, via @paradoc/expr's checkBooleanGate.
+ * Type-checks expressions against the type they must return: a boolean gate
+ * (required, visible, include) via @paradoc/expr's checkBooleanGate, or a
+ * definition or payment value via its declared type.
  */
 
-import { check, checkBooleanGate, formatType, typesEqual, type ExprType, type TypeEnv } from '@paradoc/expr'
-import type { InferredType, TypeValidationResult } from './inferred-types'
+import { check, checkBooleanGate, formatType, typesEqual, T, type Diagnostic, type ExprType, type TypeEnv } from '@paradoc/expr'
 
-/** Map an @paradoc/expr type to the legacy InferredType (for messages). */
-function exprTypeToInferred(t: ExprType): InferredType {
-  switch (t.kind) {
-    case 'number':
-      return 'number'
-    case 'string':
-      return 'string'
-    case 'boolean':
-      return 'boolean'
-    case 'date':
-      return 'date'
-    case 'datetime':
-      return 'datetime'
-    case 'time':
-      return 'time'
-    case 'duration':
-      return 'duration'
-    case 'money':
-      return 'money'
-    case 'object':
-      return 'object'
-    case 'array':
-      return 'array'
-    case 'null':
-      return 'null'
-    default:
-      return 'unknown'
-  }
-}
+/** The result of type-checking one expression. Types are `formatType` names. */
+export type TypeValidationResult =
+  | { readonly valid: true }
+  | {
+      readonly valid: false
+      readonly message: string
+      readonly expectedType: string
+      readonly actualType: string
+    }
 
 /**
- * Validates that an expression returns a boolean type.
- *
- * @param expression - The expression string to validate
- * @param environment - @paradoc/expr type environment
- * @returns TypeValidationResult indicating whether the expression returns boolean
+ * Diagnostics the syntax and reference pass reports: an expression that does
+ * not parse, and a reference that does not resolve. The type pass leaves them
+ * out, so each problem is reported once.
  */
+const REFERENCE_PASS_CODES: ReadonlySet<Diagnostic['code']> = new Set([
+  'syntax',
+  'forbidden-operator',
+  'limit-exceeded',
+  'unknown-identifier',
+])
+
+function typeDiagnostic(diagnostics: readonly Diagnostic[]): Diagnostic | undefined {
+  return diagnostics.find((diagnostic) => !REFERENCE_PASS_CODES.has(diagnostic.code))
+}
+
+/** Validates that an expression used as a boolean gate returns a boolean. */
 export function validateBooleanType(expression: string, environment: TypeEnv): TypeValidationResult {
   const { type, diagnostics } = checkBooleanGate(expression, environment)
-
-  if (diagnostics.length === 0) {
-    return { valid: true, severity: 'warning' }
-  }
-
-  // A definite type problem (non-boolean result, or a type mismatch) is an
-  // error. An unresolved reference or syntax issue cannot be verified, so it
-  // remains a warning; unknown functions, arity errors, and misused list
-  // aggregates are definite authoring mistakes. Unknown variables are also reported by the separate
-  // syntax/variable validation pass.
-  const hard = diagnostics.find(
-    (d) =>
-      d.code === 'non-boolean-gate' ||
-      d.code === 'type-mismatch' ||
-      d.code === 'unknown-function' ||
-      d.code === 'arity' ||
-      d.code === 'invalid-aggregate'
-  )
-  if (hard) {
-    return {
-      valid: false,
-      severity: 'error',
-      message: hard.message,
-      expectedType: 'boolean',
-      actualType: exprTypeToInferred(type),
-    }
-  }
-
-  const first = diagnostics[0]!
+  const diagnostic = typeDiagnostic(diagnostics)
+  if (!diagnostic) return { valid: true }
   return {
     valid: false,
-    severity: 'warning',
-    message: `Cannot verify expression returns boolean: ${first.message}`,
-    expectedType: 'boolean',
-    actualType: 'unknown',
+    message: diagnostic.message,
+    expectedType: formatType(T.boolean),
+    actualType: formatType(type),
   }
 }
 
-/**
- * Validates an expression against a declared result type. Unknown identifiers
- * and syntax errors are handled by the separate reference/syntax pass; other
- * checker diagnostics and definite type mismatches are returned here.
- */
+/** Validates an expression against a declared result type. */
 export function validateExpressionType(
   expression: string,
   environment: TypeEnv,
   expected: ExprType
 ): TypeValidationResult {
   const { type, diagnostics } = check(expression, environment)
-  const actionable = diagnostics.find(
-    (diagnostic) => diagnostic.code !== 'syntax' && diagnostic.code !== 'unknown-identifier'
-  )
+  const diagnostic = typeDiagnostic(diagnostics)
 
-  if (actionable) {
+  if (diagnostic) {
     return {
       valid: false,
-      severity: 'error',
-      message: actionable.message,
-      expectedType: exprTypeToInferred(expected),
-      actualType: exprTypeToInferred(type),
+      message: diagnostic.message,
+      expectedType: formatType(expected),
+      actualType: formatType(type),
     }
   }
 
-  if (type.kind === 'unknown') {
-    return { valid: true, severity: 'warning' }
-  }
+  if (type.kind === 'unknown' || typesEqual(type, expected)) return { valid: true }
 
-  if (!typesEqual(type, expected)) {
-    return {
-      valid: false,
-      severity: 'error',
-      message: `Expected expression type ${formatType(expected)}, got ${formatType(type)}`,
-      expectedType: exprTypeToInferred(expected),
-      actualType: exprTypeToInferred(type),
-    }
+  return {
+    valid: false,
+    message: `Expected expression type ${formatType(expected)}, got ${formatType(type)}`,
+    expectedType: formatType(expected),
+    actualType: formatType(type),
   }
-
-  return { valid: true, severity: 'warning' }
 }

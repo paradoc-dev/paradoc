@@ -204,7 +204,6 @@ describe('authoring validation of row references', () => {
 			},
 		}))
 		expect(result.issues).toContainEqual(expect.objectContaining({
-			severity: 'error',
 			message: expect.stringMatching(/^Cannot compare number and string/),
 		}))
 	})
@@ -220,8 +219,8 @@ describe('authoring validation of row references', () => {
 			} as Partial<Form>,
 		))
 		expect(result.issues).toEqual(expect.arrayContaining([
-			expect.objectContaining({ path: ['defs', 'item'], severity: 'error', message: expect.stringContaining('"item" is reserved for list row references') }),
-			expect.objectContaining({ path: ['defs', 'parent'], severity: 'error', message: expect.stringContaining('"parent" is reserved for list row references') }),
+			expect.objectContaining({ path: ['defs', 'item'], message: expect.stringContaining('"item" is reserved for list row references') }),
+			expect.objectContaining({ path: ['defs', 'parent'], message: expect.stringContaining('"parent" is reserved for list row references') }),
 		]))
 	})
 
@@ -234,7 +233,7 @@ describe('authoring validation of row references', () => {
 			defs: { item: { type: 'boolean', value: 'true' } },
 			contents: [],
 		} as unknown as Bundle
-		expect(validateBundleDefs(bundle).issues?.[0]).toMatchObject({ path: ['defs', 'item'], severity: 'error' })
+		expect(validateBundleDefs(bundle).issues?.[0]).toMatchObject({ path: ['defs', 'item'] })
 	})
 })
 

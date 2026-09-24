@@ -1,8 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import {
-  parseExpression,
-  validateExpressionSyntax,
-} from '@/logic/design-time/validation/expression-parser'
+import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 
 /**
  * Tests for expression-parser.ts (design-time validation).
@@ -164,35 +161,6 @@ describe('expression-parser', () => {
         expect(result.success).toBe(true)
         // 'true' is a constant, not a variable
       })
-    })
-  })
-
-  // ============================================================================
-  // validateExpressionSyntax Tests
-  // ============================================================================
-
-  describe('validateExpressionSyntax', () => {
-    test('returns true for valid expression', () => {
-      const result = validateExpressionSyntax('fields.age >= 18')
-      expect(result).toBe(true)
-    })
-
-    test('returns error message for invalid expression', () => {
-      const result = validateExpressionSyntax('fields.age >=')
-      expect(result).not.toBe(true)
-      expect(typeof result).toBe('string')
-    })
-
-    test('returns true for complex valid expression', () => {
-      const result = validateExpressionSyntax(
-        '(isAdult and agreed) or (hasParentConsent and fields.age >= 16)'
-      )
-      expect(result).toBe(true)
-    })
-
-    test('returns error for empty string', () => {
-      const result = validateExpressionSyntax('')
-      expect(result).not.toBe(true)
     })
   })
 })

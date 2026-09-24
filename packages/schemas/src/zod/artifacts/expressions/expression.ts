@@ -207,14 +207,9 @@ const IdentificationExpressionSchema = BaseExpressionSchema.extend({
 // Discriminated Union
 // ============================================================================
 
-/**
- * Logic Expression Union Schema
- *
- * A discriminated union of all supported expression types.
- * The `type` property determines which schema variant applies.
- */
-export const ExpressionSchema = z.discriminatedUnion('type', [
-	// Scalar types
+// The scalar and object variants, in one place each, so the union and the
+// lists of valid `type` values below can never drift apart.
+const SCALAR_EXPRESSION_SCHEMAS = [
 	BooleanExpressionSchema,
 	StringExpressionSchema,
 	NumberExpressionSchema,
@@ -225,7 +220,9 @@ export const ExpressionSchema = z.discriminatedUnion('type', [
 	TimeExpressionSchema,
 	DatetimeExpressionSchema,
 	DurationExpressionSchema,
-	// Object types
+] as const;
+
+const OBJECT_EXPRESSION_SCHEMAS = [
 	MoneyExpressionSchema,
 	AddressExpressionSchema,
 	PhoneExpressionSchema,
@@ -234,40 +231,31 @@ export const ExpressionSchema = z.discriminatedUnion('type', [
 	PersonExpressionSchema,
 	OrganizationExpressionSchema,
 	IdentificationExpressionSchema,
+] as const;
+
+/**
+ * Logic Expression Union Schema
+ *
+ * A discriminated union of all supported expression types.
+ * The `type` property determines which schema variant applies.
+ */
+export const ExpressionSchema = z.discriminatedUnion('type', [
+	...SCALAR_EXPRESSION_SCHEMAS,
+	...OBJECT_EXPRESSION_SCHEMAS,
 ]).meta({
 	title: 'Expression',
 	description: 'A typed computed value with optional metadata (label, description). The type property determines the expected result type and value schema.',
 });
 
 // ============================================================================
-// Type Exports for Internal Use
+// Expression type lists, derived from the union's variants
 // ============================================================================
 
 /** Scalar expression types (value is a string expression) */
-export const SCALAR_EXPRESSION_TYPES = [
-	'boolean',
-	'string',
-	'number',
-	'integer',
-	'percentage',
-	'rating',
-	'date',
-	'time',
-	'datetime',
-	'duration',
-] as const;
+export const SCALAR_EXPRESSION_TYPES = SCALAR_EXPRESSION_SCHEMAS.map((schema) => schema.shape.type.value);
 
 /** Object expression types (value is an object with property expressions) */
-export const OBJECT_EXPRESSION_TYPES = [
-	'money',
-	'address',
-	'phone',
-	'coordinate',
-	'bbox',
-	'person',
-	'organization',
-	'identification',
-] as const;
+export const OBJECT_EXPRESSION_TYPES = OBJECT_EXPRESSION_SCHEMAS.map((schema) => schema.shape.type.value);
 
 /** All supported expression types */
-export const ALL_EXPRESSION_TYPES = [...SCALAR_EXPRESSION_TYPES, ...OBJECT_EXPRESSION_TYPES] as const;
+export const ALL_EXPRESSION_TYPES = [...SCALAR_EXPRESSION_TYPES, ...OBJECT_EXPRESSION_TYPES];

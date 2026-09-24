@@ -1,8 +1,36 @@
-import type { CondExpr, Form, Bundle, BundleContentItem, DefsSection, Expression } from '@paradoc/types'
-import type { LogicValidationIssue } from './validate-form-logic'
+import type { CondExpr, Form, Bundle, BundleContentItem, DefsSection, Expression, ScalarExpressionType } from '@paradoc/types'
+import { T, type ExprType, type TypeEnv } from '@paradoc/expr'
 import { parseExpression } from './expression-parser'
 import { definitionExpressionLeaves } from '../../shared/defs-dependencies'
 import { isScalarExpressionType } from '../../shared/expression-types'
+import { COMPLEX_TYPE_PROPERTIES } from '../../shared/complex-type-properties'
+import { topologicalSortDefsKeys, validateBooleanType, validateExpressionType } from '../type-checking'
+
+/**
+ * Options for logic validation
+ */
+export interface LogicValidationOptions {
+  /** Whether to collect all errors or stop at first. Default: true */
+  collectAllErrors?: boolean
+}
+
+/**
+ * A validation issue from logic validation. Every issue fails validation.
+ */
+export interface LogicValidationIssue {
+  /** Human-readable error message */
+  message: string
+  /** JSON path to the expression location */
+  path: (string | number)[]
+  /** The full expression that failed (optional) */
+  expression?: string
+  /** Specific variable that was not found (optional) */
+  variable?: string
+  /** Expected type, as an @paradoc/expr type name (for type validation issues) */
+  expectedType?: string
+  /** Actual inferred type, as an @paradoc/expr type name (for type validation issues) */
+  actualType?: string
+}
 
 // ============================================================================
 // Type Guards for Content Items
@@ -202,9 +230,175 @@ export function validateReservedDefinitionNames(
     issues.push({
       message: `Computed value name "${key}" is reserved for ${reservedFor}; rename this definition`,
       path: ['defs', key],
-      severity: 'error',
     })
     if (!collectAllErrors) return false
   }
+  return true
+}
+
+/**
+ * Validates a definitions section: each expression's syntax and references,
+ * and dependency cycles, which are errors because a definition in a cycle has
+ * no value.
+ *
+ * @param dependencyExpressions - Each key's dependency expression, from `defsDependencyExpressions`
+ * @returns true if should continue validation, false if should stop
+ */
+export function validateDefsSection(
+  defs: DefsSection,
+  dependencyExpressions: Record<string, string>,
+  validVariables: Set<string>,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  for (const [key, expr] of Object.entries(defs)) {
+    if (!validateDefsExpression(expr, key, validVariables, issues, collectAllErrors)) return false
+  }
+
+  const { cyclicKeys } = topologicalSortDefsKeys(dependencyExpressions)
+  for (const key of cyclicKeys) {
+    const expr = defs[key]
+    issues.push({
+      message: `Circular dependency detected: defs key "${key}" is involved in a dependency cycle`,
+      path: ['defs', key],
+      expression: expr ? getExpressionForKey(expr) : key,
+    })
+    if (!collectAllErrors) return false
+  }
+
+  return true
+}
+
+// ============================================================================
+// Type checking
+// ============================================================================
+
+/** Maps a scalar definition type to the corresponding expression type. */
+const SCALAR_DEFINITION_TYPES: Record<ScalarExpressionType, ExprType> = {
+  boolean: T.boolean,
+  string: T.string,
+  number: T.number,
+  integer: T.number,
+  percentage: T.number,
+  rating: T.number,
+  date: T.date,
+  time: T.time,
+  datetime: T.datetime,
+  duration: T.duration,
+}
+
+/**
+ * Type-checks one expression against its declared type.
+ *
+ * @returns true if should continue validation
+ */
+export function typeCheckExpression(
+  expr: unknown,
+  path: (string | number)[],
+  expected: ExprType,
+  typeEnv: TypeEnv,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (typeof expr !== 'string') return true
+
+  const result = validateExpressionType(expr, typeEnv, expected)
+  if (!result.valid) {
+    issues.push({
+      message: result.message,
+      path,
+      expression: expr,
+      expectedType: result.expectedType,
+      actualType: result.actualType,
+    })
+    if (!collectAllErrors) return false
+  }
+
+  return true
+}
+
+/**
+ * Type-checks one boolean gate (a required, visible, or include condition, or
+ * a rule).
+ *
+ * @returns true if should continue validation
+ */
+export function typeCheckBooleanExpression(
+  expr: CondExpr | undefined,
+  path: (string | number)[],
+  typeEnv: TypeEnv,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (typeof expr !== 'string') return true
+
+  const result = validateBooleanType(expr, typeEnv)
+  if (!result.valid) {
+    issues.push({
+      message: result.message,
+      path,
+      expression: expr,
+      expectedType: result.expectedType,
+      actualType: result.actualType,
+    })
+    if (!collectAllErrors) return false
+  }
+
+  return true
+}
+
+/**
+ * Type-checks the declared result type of every definition expression.
+ *
+ * @returns true if should continue validation
+ */
+export function typeCheckDefsExpressions(
+  defs: DefsSection | undefined,
+  typeEnv: TypeEnv,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (!defs) return true
+
+  for (const [key, expr] of Object.entries(defs)) {
+    if (isScalarExpressionType(expr.type)) {
+      if (
+        !typeCheckExpression(
+          expr.value,
+          ['defs', key, 'value'],
+          SCALAR_DEFINITION_TYPES[expr.type],
+          typeEnv,
+          issues,
+          collectAllErrors
+        )
+      ) {
+        return false
+      }
+      continue
+    }
+
+    const propertyTypes = COMPLEX_TYPE_PROPERTIES[expr.type]
+    if (!propertyTypes) continue
+    for (const [property, propertyType] of Object.entries(propertyTypes)) {
+      const propertyPath = property.split('.')
+      const value = propertyPath.reduce<unknown>(
+        (member, part) => (typeof member === 'object' && member !== null ? (member as Record<string, unknown>)[part] : undefined),
+        expr.value
+      )
+      if (
+        !typeCheckExpression(
+          value,
+          ['defs', key, 'value', ...propertyPath],
+          propertyType,
+          typeEnv,
+          issues,
+          collectAllErrors
+        )
+      ) {
+        return false
+      }
+    }
+  }
+
   return true
 }

@@ -336,7 +336,7 @@ draft.getLogicValue("age"); // 35, same clock
 
 ## Defs
 
-`defs` holds typed computed values, on forms and bundles. Each def has a key (`^[a-z][a-zA-Z0-9_]*$`), a `type`, a `value`, and optional `label` and `description`. The keys `fields`, `parties`, `item`, and `parent` are reserved and fail validation. Defs may reference each other in any key order. A cycle is reported as a warning (`Circular dependency detected`).
+`defs` holds typed computed values, on forms and bundles. Each def has a key (`^[a-z][a-zA-Z0-9_]*$`), a `type`, a `value`, and optional `label` and `description`. The keys `fields`, `parties`, `item`, and `parent` are reserved and fail validation. Defs may reference each other in any key order. A cycle fails validation (`Circular dependency detected`).
 
 For a scalar type, `value` is one expression string, checked against the declared type (`Expected expression type number, got boolean`):
 
@@ -486,7 +486,7 @@ validateLogic(term.toJSON()); // { value } or { issues: [{ message, path, expres
 <!-- dep:C5 -->
 The builder's `.rules({ … })` takes the same object as `rules`.
 
-`validate()` runs the schema and then the logic; `validateLogic()` runs the logic only. A circular def is an issue with severity `"warning"`. Failed defs, conditions and rules on a draft are in `getFillState()` ([filling.md § Fill state](./filling.md#fill-state)).
+`validate()` runs the schema and then the logic; `validateLogic()` runs the logic only. Every logic issue fails validation, a circular def included. Failed defs, conditions and rules on a draft are in `getFillState()` ([filling.md § Fill state](./filling.md#fill-state)).
 
 ## The `@paradoc/expr` API
 

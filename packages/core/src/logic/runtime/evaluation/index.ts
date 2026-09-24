@@ -36,7 +36,6 @@ export type {
 export {
   evaluateExpression,
   evaluateGate,
-  evaluateExpressionOrDefault,
   type GateOutcome,
 } from './expression-evaluator'
 

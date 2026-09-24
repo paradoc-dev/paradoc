@@ -129,7 +129,7 @@ The validator prints `<path>: <message>`. Match on the message:
 | `layers.<key>.checksum: Invalid string: must match pattern ...` | Hand-written checksum | Run `paradoc fix <file> -y` |
 | `<path>: Unknown variable: "<ref>"` | An expression names something that does not exist | See [Expression references](#expression-references) |
 | `<path>: Syntax error: Use 'and'; '&&' is not supported.` | JavaScript operators | Write `and`, `or`, `not` ([logic.md](./logic.md)) |
-| `<path>: Cannot verify expression returns boolean: ...` | Follows an error above, or a gate that is not boolean | Fix the first error; make the gate a comparison |
+| `<path>: A gate must be boolean, got <type>` | A condition that returns another type | Make the gate a comparison |
 
 ### Unknown field type
 

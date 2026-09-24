@@ -5,96 +5,29 @@ import type {
   FieldsetField,
   FormAnnex,
   FormParty,
-  CondExpr,
-  DefsSection,
   RulesSection,
-  ScalarExpressionType,
 } from '@paradoc/types'
-import { T, type ExprType } from '@paradoc/expr'
-import type { TypeEnvironment, TypeValidationSeverity, InferredType, ListRowScope } from '../type-checking'
-import { collectFieldPaths, collectPartyPaths } from './field-paths'
-import { COMPLEX_TYPE_PROPERTIES } from '../../shared/complex-type-properties'
+import { createTypeEnv, T, type TypeEnv } from '@paradoc/expr'
 import {
-  buildFormRuleTypeEnvironment,
-  buildFormTypeEnvironment,
-  validateBooleanType,
-  validateExpressionType,
-  topologicalSortDefsKeys,
+  buildFormRuleTypeAcc,
+  buildFormTypeAcc,
   enterListRow,
   isRowReferencePath,
   rowScopeTypes,
   withRowScopeTypes,
+  type ListRowScope,
 } from '../type-checking'
 import {
   validateExpression,
   validateReservedDefinitionNames,
-  validateDefsExpression,
-  getExpressionForKey,
+  validateDefsSection,
+  typeCheckExpression,
+  typeCheckBooleanExpression,
+  typeCheckDefsExpressions,
+  type LogicValidationIssue,
+  type LogicValidationOptions,
 } from './shared'
 import { defsDependencyExpressions } from '../../shared/defs-dependencies'
-import { isScalarExpressionType } from '../../shared/expression-types'
-
-/** Maps a scalar definition type to the corresponding expression type. */
-const SCALAR_DEFINITION_TYPES: Record<ScalarExpressionType, ExprType> = {
-  boolean: T.boolean,
-  string: T.string,
-  number: T.number,
-  integer: T.number,
-  percentage: T.number,
-  rating: T.number,
-  date: T.date,
-  time: T.time,
-  datetime: T.datetime,
-  duration: T.duration,
-}
-
-/**
- * Options for logic validation
- */
-export interface LogicValidationOptions {
-  /** Whether to collect all errors or stop at first. Default: true */
-  collectAllErrors?: boolean
-}
-
-/**
- * A validation issue from logic validation
- */
-export interface LogicValidationIssue {
-  /** Human-readable error message */
-  message: string
-  /** JSON path to the expression location */
-  path: (string | number)[]
-  /** The full expression that failed (optional) */
-  expression?: string
-  /** Specific variable that was not found (optional) */
-  variable?: string
-  /** Severity of the issue: 'error' for certain failures, 'warning' for unknown types */
-  severity?: TypeValidationSeverity
-  /** Expected type (for type validation issues) */
-  expectedType?: InferredType
-  /** Actual inferred type (for type validation issues) */
-  actualType?: InferredType
-}
-
-/** Records all statically addressable members of definition expressions. */
-function addDefinitionPaths(
-  defs: DefsSection | undefined,
-  validVariables: Set<string>
-): void {
-  if (!defs) return
-
-  for (const [key, expr] of Object.entries(defs)) {
-    validVariables.add(key)
-    if (!isScalarExpressionType(expr.type)) {
-      const properties = COMPLEX_TYPE_PROPERTIES[expr.type]
-      if (properties) {
-        for (const property of Object.keys(properties)) {
-          validVariables.add(`${key}.${property}`)
-        }
-      }
-    }
-  }
-}
 
 /** Whether a payment amount is an expression object rather than fixed Money. */
 function isMoneyExpression(
@@ -109,33 +42,6 @@ function isMoneyExpression(
     typeof (amount as { value: { amount?: unknown } }).value.amount === 'string' &&
     typeof (amount as { value: { currency?: unknown } }).value.currency === 'string'
   )
-}
-
-/** Adds one non-gate expression type issue, preserving the shared issue shape. */
-function typeCheckExpression(
-  expr: unknown,
-  path: (string | number)[],
-  expected: ExprType,
-  typeEnv: TypeEnvironment,
-  issues: LogicValidationIssue[],
-  collectAllErrors: boolean
-): boolean {
-  if (typeof expr !== 'string') return true
-
-  const result = validateExpressionType(expr, typeEnv, expected)
-  if (!result.valid) {
-    issues.push({
-      message: result.message ?? 'Type validation failed',
-      path,
-      expression: expr,
-      severity: result.severity,
-      expectedType: result.expectedType,
-      actualType: result.actualType,
-    })
-    if (!collectAllErrors) return false
-  }
-
-  return true
 }
 
 /**
@@ -353,49 +259,12 @@ function validatePartyExpressions(
 }
 
 /**
- * Type-checks a single boolean expression.
- *
- * @param expr - The expression to type-check
- * @param path - JSON path for error reporting
- * @param typeEnv - Type environment
- * @param issues - Array to accumulate issues
- * @param collectAllErrors - Whether to collect all errors
- * @returns true if should continue validation
- */
-function typeCheckBooleanExpression(
-  expr: CondExpr | undefined,
-  path: (string | number)[],
-  typeEnv: TypeEnvironment,
-  issues: LogicValidationIssue[],
-  collectAllErrors: boolean
-): boolean {
-  // Only check string expressions
-  if (typeof expr !== 'string') return true
-
-  const result = validateBooleanType(expr, typeEnv)
-
-  if (!result.valid) {
-    issues.push({
-      message: result.message ?? 'Type validation failed',
-      path,
-      expression: expr,
-      severity: result.severity,
-      expectedType: result.expectedType,
-      actualType: result.actualType,
-    })
-    if (!collectAllErrors) return false
-  }
-
-  return true
-}
-
-/**
  * Type-checks expressions in field definitions.
  */
 function typeCheckFieldExpressions(
   fields: Record<string, FormField> | undefined,
   basePath: (string | number)[],
-  typeEnv: TypeEnvironment,
+  typeEnv: TypeEnv,
   issues: LogicValidationIssue[],
   collectAllErrors: boolean,
   rows?: ListRowScope
@@ -467,7 +336,7 @@ function typeCheckFieldExpressions(
  */
 function typeCheckAnnexExpressions(
   annexes: Record<string, FormAnnex> | undefined,
-  typeEnv: TypeEnvironment,
+  typeEnv: TypeEnv,
   issues: LogicValidationIssue[],
   collectAllErrors: boolean
 ): boolean {
@@ -507,62 +376,10 @@ function typeCheckAnnexExpressions(
   return true
 }
 
-/** Type-checks the declared result type of every definition expression. */
-function typeCheckDefsExpressions(
-  defs: DefsSection | undefined,
-  typeEnv: TypeEnvironment,
-  issues: LogicValidationIssue[],
-  collectAllErrors: boolean
-): boolean {
-  if (!defs) return true
-
-  for (const [key, expr] of Object.entries(defs)) {
-    if (isScalarExpressionType(expr.type)) {
-      if (
-        !typeCheckExpression(
-          expr.value,
-          ['defs', key, 'value'],
-          SCALAR_DEFINITION_TYPES[expr.type],
-          typeEnv,
-          issues,
-          collectAllErrors
-        )
-      ) {
-        return false
-      }
-      continue
-    }
-
-    const propertyTypes = COMPLEX_TYPE_PROPERTIES[expr.type]
-    if (!propertyTypes) continue
-    for (const [property, propertyType] of Object.entries(propertyTypes)) {
-      const propertyPath = property.split('.')
-      const value = propertyPath.reduce<unknown>(
-        (member, part) => (typeof member === 'object' && member !== null ? (member as Record<string, unknown>)[part] : undefined),
-        expr.value
-      )
-      if (
-        !typeCheckExpression(
-          value,
-          ['defs', key, 'value', ...propertyPath],
-          propertyType,
-          typeEnv,
-          issues,
-          collectAllErrors
-        )
-      ) {
-        return false
-      }
-    }
-  }
-
-  return true
-}
-
 /** Type-checks all form-level rule gates. */
 function typeCheckRuleExpressions(
   rules: RulesSection | undefined,
-  typeEnv: TypeEnvironment,
+  typeEnv: TypeEnv,
   issues: LogicValidationIssue[],
   collectAllErrors: boolean
 ): boolean {
@@ -588,7 +405,7 @@ function typeCheckRuleExpressions(
 /** Type-checks party requiredness and variable payment expressions. */
 function typeCheckPartyExpressions(
   parties: Record<string, FormParty> | undefined,
-  typeEnv: TypeEnvironment,
+  typeEnv: TypeEnv,
   issues: LogicValidationIssue[],
   collectAllErrors: boolean
 ): boolean {
@@ -693,50 +510,25 @@ export function validateFormDefs(
   const { collectAllErrors = true } = options
   const issues: LogicValidationIssue[] = []
 
-  // Build valid variable set
-  const validVariables = new Set<string>()
-
-  // Add all field paths (e.g., 'fields.age', 'fields.address.street')
-  collectFieldPaths(form.fields).forEach((p) => validVariables.add(p))
-  collectPartyPaths(form.parties).forEach((p) => validVariables.add(p))
-
-  // Add all defs keys and their statically known object members as valid variables
-  addDefinitionPaths(form.defs, validVariables)
-
-  // Rules additionally expose fields by their direct paths at runtime, including
-  // nested fieldset members and complex-field properties.
-  const ruleVariables = new Set(validVariables)
-  for (const fieldPath of validVariables) {
-    if (fieldPath.startsWith('fields.')) {
-      ruleVariables.add(fieldPath.slice('fields.'.length))
-    }
-  }
+  // The valid variables are the reference paths of the type environment, so
+  // the reference pass and the type pass see the same paths.
+  const referenceTypes = buildFormTypeAcc(form)
+  const validVariables = new Set(Object.keys(referenceTypes))
+  // Rules additionally expose fields by their direct paths at runtime.
+  const ruleReferenceTypes = buildFormRuleTypeAcc(referenceTypes)
+  const ruleVariables = new Set(Object.keys(ruleReferenceTypes))
 
   validateReservedDefinitionNames(form.defs, issues, collectAllErrors)
 
-  // Validate defs section expressions
+  // Validate defs section expressions and dependency cycles
   if ((collectAllErrors || issues.length === 0) && form.defs) {
-    for (const [key, expr] of Object.entries(form.defs)) {
-      if (!validateDefsExpression(expr, key, validVariables, issues, collectAllErrors)) {
-        break
-      }
-    }
-
-    // Extract expressions for dependency sorting
-    const expressionsForSorting = defsDependencyExpressions(form.defs, form.fields)
-
-    // Check for circular dependencies in defs keys
-    const { cyclicKeys } = topologicalSortDefsKeys(expressionsForSorting)
-    for (const key of cyclicKeys) {
-      const logicExpr = form.defs[key]
-      issues.push({
-        message: `Circular dependency detected: defs key "${key}" is involved in a dependency cycle`,
-        path: ['defs', key],
-        expression: logicExpr ? getExpressionForKey(logicExpr) : key,
-        severity: 'warning',
-      })
-      if (!collectAllErrors) break
-    }
+    validateDefsSection(
+      form.defs,
+      defsDependencyExpressions(form.defs, form.fields),
+      validVariables,
+      issues,
+      collectAllErrors
+    )
   }
 
   // Validate field expressions (recursive for fieldsets)
@@ -761,8 +553,7 @@ export function validateFormDefs(
   // Phase 2: Type checking
   // Only proceed if syntax and variable validation passed (or collecting all errors)
   if (collectAllErrors || issues.length === 0) {
-    // Build type environment for type inference
-    const typeEnv = buildFormTypeEnvironment(form)
+    const typeEnv = createTypeEnv(referenceTypes)
 
     // Check typed definitions before their values flow into other gates.
     if (collectAllErrors || issues.length === 0) {
@@ -782,12 +573,7 @@ export function validateFormDefs(
     // Rules support direct top-level field references, so they use a slightly
     // wider environment than field/annex conditions.
     if (collectAllErrors || issues.length === 0) {
-      typeCheckRuleExpressions(
-        form.rules,
-        buildFormRuleTypeEnvironment(form),
-        issues,
-        collectAllErrors
-      )
+      typeCheckRuleExpressions(form.rules, createTypeEnv(ruleReferenceTypes), issues, collectAllErrors)
     }
     if (collectAllErrors || issues.length === 0) {
       typeCheckPartyExpressions(form.parties, typeEnv, issues, collectAllErrors)

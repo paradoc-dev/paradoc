@@ -46,14 +46,3 @@ export function parseExpression(expr: string): ParseResult {
 	const references = extractReferences(ast)
 	return { success: true, variables: [...references.paths], fullyStatic: references.fullyStatic }
 }
-
-/**
- * Validates that an expression string has valid syntax.
- *
- * @param expr - The expression string to validate
- * @returns true if valid, error message string if invalid
- */
-export function validateExpressionSyntax(expr: string): true | string {
-  const result = parseExpression(expr)
-  return result.success ? true : (result.error ?? 'Invalid expression')
-}

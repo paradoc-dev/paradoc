@@ -4,68 +4,34 @@ import type {
   BundleContentItem,
   CondExpr,
 } from '@paradoc/types'
+import { createTypeEnv } from '@paradoc/expr'
 import { parseExpression } from './expression-parser'
-import { collectFieldPaths } from './field-paths'
-import { validateFormDefs, type LogicValidationOptions, type LogicValidationIssue } from './validate-form-logic'
-import { buildBundleTypeEnvironment, validateBooleanType, topologicalSortDefsKeys } from '../type-checking'
+import { validateFormDefs } from './validate-form-logic'
+import { buildBundleTypeAcc } from '../type-checking'
 import {
-  validateExpression,
-  validateDefsExpression,
-  getExpressionForKey,
   isInlineBundleArtifact,
   isFormArtifact,
   isBundleArtifact,
   unknownVariableMessage,
   validateReservedDefinitionNames,
+  validateDefsSection,
+  typeCheckBooleanExpression,
+  typeCheckDefsExpressions,
+  type LogicValidationIssue,
+  type LogicValidationOptions,
 } from './shared'
 import { defsDependencyExpressions } from '../../shared/defs-dependencies'
-
-/**
- * Collects valid variable paths from a bundle's inline Forms.
- * Format: forms.<key>.fields.<fieldId>
- */
-function collectBundleFieldPaths(
-  bundle: Bundle,
-  validVariables: Set<string>,
-  prefix = ''
-): void {
-  for (const item of bundle.contents) {
-    if (isInlineBundleArtifact(item)) {
-      if (isFormArtifact(item.artifact)) {
-        const form = item.artifact
-        const formPrefix = prefix ? `${prefix}.forms.${item.key}` : `forms.${item.key}`
-        const formPaths = collectFieldPaths(form.fields, `${formPrefix}.fields`)
-        formPaths.forEach((p) => validVariables.add(p))
-
-        // Also add the form's defs keys
-        if (form.defs) {
-          Object.keys(form.defs).forEach((logicKey) => {
-            validVariables.add(`${formPrefix}.${logicKey}`)
-          })
-        }
-      } else if (isBundleArtifact(item.artifact)) {
-        // Recursively collect from nested bundles
-        const bundlePrefix = prefix ? `${prefix}.bundles.${item.key}` : `bundles.${item.key}`
-        collectBundleFieldPaths(item.artifact, validVariables, bundlePrefix)
-
-        // Add nested bundle's defs keys
-        if (item.artifact.defs) {
-          Object.keys(item.artifact.defs).forEach((logicKey) => {
-            validVariables.add(`${bundlePrefix}.${logicKey}`)
-          })
-        }
-      }
-    }
-  }
-}
 
 /**
  * Validates all defs expressions in a Bundle artifact.
  *
  * Checks:
  * 1. Expression syntax using the @paradoc/expr parser
- * 2. Variable references exist for inline artifacts only
- * 3. Recursively validates inline form and bundle artifacts
+ * 2. Variable references exist: definitions against the bundle's reference
+ *    paths, and include conditions on inline items
+ * 3. Definitions have no dependency cycle
+ * 4. Recursively validates inline form and bundle artifacts
+ * 5. Definitions return their declared type, and include conditions return boolean
  *
  * For slug/path references, only syntax is validated (variable references cannot be checked
  * because the artifact definition is not available).
@@ -103,48 +69,21 @@ export function validateBundleDefs(
   const { collectAllErrors = true } = options
   const issues: LogicValidationIssue[] = []
 
-  // Build valid variable set
-  const validVariables = new Set<string>()
-
-  // Add defs keys as valid variables
-  if (bundle.defs) {
-    Object.keys(bundle.defs).forEach((key) => validVariables.add(key))
-  }
-
-  // Collect field paths from inline Form artifacts
-  collectBundleFieldPaths(bundle, validVariables)
+  // The valid variables are the reference paths of the bundle's type
+  // environment: its definitions and every inline artifact's paths.
+  const referenceTypes = buildBundleTypeAcc(bundle)
+  const validVariables = new Set(Object.keys(referenceTypes))
 
   if (!validateReservedDefinitionNames(bundle.defs, issues, collectAllErrors)) {
     return { issues }
   }
 
-  // Validate defs section expressions
-  if (bundle.defs) {
-    for (const [key, expr] of Object.entries(bundle.defs)) {
-      if (!validateDefsExpression(expr, key, validVariables, issues, collectAllErrors)) {
-        if (!collectAllErrors) {
-          return { issues }
-        }
-      }
-    }
-
-    // Extract expressions for dependency sorting
-    const expressionsForSorting = defsDependencyExpressions(bundle.defs)
-
-    // Check for circular dependencies in defs keys
-    const { cyclicKeys } = topologicalSortDefsKeys(expressionsForSorting)
-    for (const key of cyclicKeys) {
-      const logicExpr = bundle.defs[key]
-      issues.push({
-        message: `Circular dependency detected: defs key "${key}" is involved in a dependency cycle`,
-        path: ['defs', key],
-        expression: logicExpr ? getExpressionForKey(logicExpr) : key,
-        severity: 'warning',
-      })
-      if (!collectAllErrors) {
-        return { issues }
-      }
-    }
+  // Validate defs section expressions and dependency cycles
+  if (
+    bundle.defs &&
+    !validateDefsSection(bundle.defs, defsDependencyExpressions(bundle.defs), validVariables, issues, collectAllErrors)
+  ) {
+    return { issues }
   }
 
   // Validate include conditions on content items
@@ -226,32 +165,20 @@ export function validateBundleDefs(
     }
   }
 
-  // Phase 2: Type checking for include expressions
+  // Phase 2: Type checking of definitions and include expressions
   // Only proceed if syntax and variable validation passed (or collecting all errors)
   if (collectAllErrors || issues.length === 0) {
-    const typeEnv = buildBundleTypeEnvironment(bundle)
+    const typeEnv = createTypeEnv(referenceTypes)
 
-    // Type-check include expressions on content items
+    if (!typeCheckDefsExpressions(bundle.defs, typeEnv, issues, collectAllErrors)) {
+      return { issues }
+    }
+
     for (let i = 0; i < bundle.contents.length; i++) {
       const item = bundle.contents[i]
       if (!item) continue
-
-      const include = getIncludeExpression(item)
-      if (typeof include !== 'string') continue
-
-      const result = validateBooleanType(include, typeEnv)
-      if (!result.valid) {
-        issues.push({
-          message: result.message ?? 'Type validation failed',
-          path: ['contents', i, 'include'],
-          expression: include,
-          severity: result.severity,
-          expectedType: result.expectedType,
-          actualType: result.actualType,
-        })
-        if (!collectAllErrors) {
-          return { issues }
-        }
+      if (!typeCheckBooleanExpression(getIncludeExpression(item), ['contents', i, 'include'], typeEnv, issues, collectAllErrors)) {
+        return { issues }
       }
     }
   }

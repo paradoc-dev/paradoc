@@ -1,5 +1,6 @@
 /**
- * Builds @paradoc/expr type environments from artifact definitions, and
+ * Builds the reference types of an artifact's expressions, from which both
+ * the valid-variable set and the @paradoc/expr type environment come, and
  * topologically sorts defs keys for circular-dependency detection.
  *
  * Field reference paths (fields.<id>, nested complex-type properties such as
@@ -142,8 +143,7 @@ function registerFieldTypes(
 // ============================================================================
 
 /** Reserved names that refer to list rows inside list-item expressions. */
-export const ROW_REFERENCE_NAMES = ['item', 'parent'] as const
-export type RowReferenceName = (typeof ROW_REFERENCE_NAMES)[number]
+type RowReferenceName = 'item' | 'parent'
 
 /**
  * The list rows an expression can see. `item` is the item definition of the
@@ -298,7 +298,11 @@ export function registerPartyTypes(
   }
 }
 
-/** Field + inferred-defs types for a Form, in form-local paths. */
+/**
+ * Every reference path a form expression can read, with its type: fields and
+ * their members, parties, and definitions inferred in dependency order. Its
+ * keys are the valid variables of a form expression.
+ */
 export function buildFormTypeAcc(form: Form): Record<string, ExprType> {
   const acc: Record<string, ExprType> = {}
   registerFieldTypes(form.fields, 'fields', acc)
@@ -308,20 +312,12 @@ export function buildFormTypeAcc(form: Form): Record<string, ExprType> {
 }
 
 /**
- * Builds an @paradoc/expr type environment from a Form artifact, with the
- * default function registry (which includes the party/witness predicates).
+ * The reference paths of a form-level rule, from the form's own
+ * (`buildFormTypeAcc`). Rules may address fields directly (`amount`) as well
+ * as through the qualified `fields.amount` path used by other form expressions.
  */
-export function buildFormTypeEnvironment(form: Form): TypeEnv {
-  return createTypeEnv(buildFormTypeAcc(form))
-}
-
-/**
- * Builds the type environment used by form-level rules. Rules may address
- * fields directly (`amount`) as well as through the qualified `fields.amount`
- * path used by other form expressions.
- */
-export function buildFormRuleTypeEnvironment(form: Form): TypeEnv {
-  const acc = buildFormTypeAcc(form)
+export function buildFormRuleTypeAcc(formTypes: Record<string, ExprType>): Record<string, ExprType> {
+  const acc = { ...formTypes }
   // Rule contexts expose the same values both as `fields.<path>` and as
   // direct paths (`fieldId`, `fieldId.member`). Copy every field path so
   // complex and nested values retain their member types in either form.
@@ -332,11 +328,15 @@ export function buildFormRuleTypeEnvironment(form: Form): TypeEnv {
     // form happens to use the same direct name for both.
     if (!(directPath in acc)) acc[directPath] = type
   }
-  return createTypeEnv(acc)
+  return acc
 }
 
-/** Field + inferred-defs types for a Bundle, with forms.<k>./bundles.<k>. prefixes. */
-function buildBundleTypeAcc(bundle: Bundle): Record<string, ExprType> {
+/**
+ * The reference paths of a bundle expression: each inline form's paths under
+ * `forms.<key>.`, each inline bundle's under `bundles.<key>.`, and the
+ * bundle's own definitions.
+ */
+export function buildBundleTypeAcc(bundle: Bundle): Record<string, ExprType> {
   const acc: Record<string, ExprType> = {}
 
   for (const item of bundle.contents) {
@@ -357,14 +357,4 @@ function buildBundleTypeAcc(bundle: Bundle): Record<string, ExprType> {
   // Bundle-level defs are inferred last, so they see the inline content paths.
   if (bundle.defs) inferDefsInto(bundle.defs, acc, '')
   return acc
-}
-
-/**
- * Builds an @paradoc/expr type environment from a Bundle artifact.
- *
- * Inline form fields are registered as `forms.<key>.fields.<fieldId>`; nested
- * bundles are prefixed with `bundles.<key>.`.
- */
-export function buildBundleTypeEnvironment(bundle: Bundle): TypeEnv {
-  return createTypeEnv(buildBundleTypeAcc(bundle))
 }

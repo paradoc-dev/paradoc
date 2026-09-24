@@ -13,9 +13,9 @@ import { validateFormDefs } from './validate-form-logic'
 import { validateBundleDefs } from './validate-bundle-logic'
 
 // Re-export types and utilities (internal use only)
-export { parseExpression, validateExpressionSyntax, type ParseResult } from './expression-parser'
-export { collectFieldPaths, collectFieldIds } from './field-paths'
-export { validateFormDefs, type LogicValidationOptions, type LogicValidationIssue } from './validate-form-logic'
+export { parseExpression, type ParseResult } from './expression-parser'
+export { validateFormDefs } from './validate-form-logic'
+export type { LogicValidationOptions, LogicValidationIssue } from './shared'
 export { validateBundleDefs } from './validate-bundle-logic'
 export { isInlineBundleArtifact, isFormArtifact, isBundleArtifact } from './shared'
 
