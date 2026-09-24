@@ -219,7 +219,7 @@ describe('isChildField', () => {
 
   it('gives filling and inspecting the same fields, names, and types', async () => {
     const bytes = kidsPdf()
-    const filled = acroFields(await PdfModel.load(bytes)).fields
+    const filled = acroFields(await PdfModel.load(bytes))?.fields ?? []
     const inspected = await inspectAcroFormFields(bytes)
     const shape = (fields: Array<{ name: string; type: string }>) => fields.map(({ name, type }) => ({ name, type }))
     const expected = [

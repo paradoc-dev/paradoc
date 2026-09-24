@@ -108,17 +108,24 @@ function findEncodingPosition(runs: TextRun[], charPosition: number): Position |
  * signature or initials.
  */
 export async function extractFieldsFromPdf(pdf: Uint8Array): Promise<ExtractedField[]> {
-  const model = await PdfModel.load(pdf)
-  const pages = await loadPages(model)
+  return fieldsFromPageRuns(await pageTextRuns(pdf))
+}
+
+/**
+ * Extract signature/initials fields from pages already scanned into merged runs.
+ *
+ * @throws {UnknownMarkerError} naming every marker whose field type is not
+ * signature or initials.
+ */
+export function fieldsFromPageRuns(pages: PageTextRuns[]): ExtractedField[] {
   const fields: ExtractedField[] = []
   const unknown: UnknownMarker[] = []
 
   for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-    const page = pages[pageIndex]!
-    const pageHeight = page.mediaBox[3] - page.mediaBox[1]
-    const originX = page.mediaBox[0]
-    const originY = page.mediaBox[1]
-    const runs = mergeRuns(await scanPage(model, page))
+    const { mediaBox, runs } = pages[pageIndex]!
+    const pageHeight = mediaBox[3] - mediaBox[1]
+    const originX = mediaBox[0]
+    const originY = mediaBox[1]
     const accumulated = runs.map((run) => run.text).join('')
 
     for (const encoding of decodeAll(accumulated)) {

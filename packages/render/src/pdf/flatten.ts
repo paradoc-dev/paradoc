@@ -99,15 +99,8 @@ function placement(model: PdfModel, widget: AcroWidget, appearance: PdfRef): str
  */
 export async function flattenPdf(template: BinaryContent): Promise<Uint8Array> {
   const model = await PdfModel.load(template)
-  let form: ReturnType<typeof acroFields>
-  try {
-    form = acroFields(model)
-  } catch (error) {
-    if (error instanceof Error && error.message === 'PDF does not contain an AcroForm') {
-      return new Uint8Array(template)
-    }
-    throw error
-  }
+  const form = acroFields(model)
+  if (!form) return new Uint8Array(template)
 
   const pages = documentPages(model)
   let appearanceIndex = 0

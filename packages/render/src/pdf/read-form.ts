@@ -16,6 +16,7 @@ export type PdfExtractionErrorCode =
   | 'layer_required'
   | 'layer_not_found'
   | 'not_pdf_layer'
+  | 'unknown_bindings_source'
 
 /** Extraction refused the input. `code` says which failure case applies. */
 export class PdfExtractionError extends Error {
@@ -150,7 +151,7 @@ function assertReadablePdf(bytes: Uint8Array): void {
   }
 }
 
-async function loadFormFields(bytes: BinaryContent): Promise<{ model: PdfModel; fields: AcroField[] }> {
+async function loadFormFields(bytes: BinaryContent): Promise<{ model: PdfModel; fields: AcroField[]; names: ReadonlySet<string> }> {
   assertReadablePdf(bytes)
   let model: PdfModel
   try {
@@ -161,11 +162,9 @@ async function loadFormFields(bytes: BinaryContent): Promise<{ model: PdfModel; 
   }
   let fields: AcroField[]
   try {
-    fields = acroFields(model).fields
+    fields = acroFields(model)?.fields ?? []
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    if (message === 'PDF does not contain an AcroForm') fields = []
-    else throw new PdfExtractionError('malformed_pdf', `The PDF could not be read: ${message}`)
+    throw new PdfExtractionError('malformed_pdf', `The PDF could not be read: ${error instanceof Error ? error.message : String(error)}`)
   }
   const fillable = fields.filter((field) => field.type !== 'signature' && field.type !== 'button' && field.type !== 'unknown')
   if (fillable.length === 0) {
@@ -174,7 +173,7 @@ async function loadFormFields(bytes: BinaryContent): Promise<{ model: PdfModel; 
       'The PDF has no AcroForm fields to read. Flattened and scanned documents need the hosted Paradoc extraction service.',
     )
   }
-  return { model, fields: fillable }
+  return { model, fields: fillable, names: new Set(fields.map((field) => field.name)) }
 }
 
 // ---------------------------------------------------------------------------
@@ -189,10 +188,11 @@ type Target =
   /** Something extraction cannot write back: a computed value, an annex, a whole party. */
   | { kind: 'fixed'; reason: string }
 
+/** The member paths of structured values that hold numbers, as bindings write them. */
 const numericMembers: Record<string, ReadonlySet<string>> = {
   money: new Set(['amount']),
-  coordinate: new Set(['latitude', 'longitude', 'lat', 'lon', 'lng']),
-  bbox: new Set(['0', '1', '2', '3', 'minLatitude', 'minLongitude', 'maxLatitude', 'maxLongitude']),
+  coordinate: new Set(['lat', 'lon']),
+  bbox: new Set(['southWest.lat', 'southWest.lon', 'northEast.lat', 'northEast.lon']),
 }
 
 function targetFor(form: Form, path: string): Target {
@@ -211,7 +211,7 @@ function targetFor(form: Form, path: string): Target {
     const segment = rest[index]!
     if (field.type === 'list' && /^\d+$/.test(segment)) field = field.item
     else if (field.type === 'fieldset' && field.fields[segment]) field = field.fields[segment]!
-    else return { kind: 'member', type: numericMembers[field.type]?.has(segment) && index === rest.length - 1 ? 'number' : 'text' }
+    else return { kind: 'member', type: numericMembers[field.type]?.has(rest.slice(index).join('.')) ? 'number' : 'text' }
   }
   return { kind: 'field', field }
 }
@@ -323,17 +323,20 @@ function parseTime(raw: string): string | undefined {
   return `${hours}:${meridiem[2]}${meridiem[3] ? `:${meridiem[3]}` : ''}`
 }
 
-function matchOption(raw: string, options: readonly EnumOption[], formatter: Formatter, formatted: boolean): EnumOption | undefined {
+/**
+ * Match text to one option. PDF fill writes option values, so a value matches
+ * before a label; a label or a case-insensitive match is taken only when no
+ * value matches exactly.
+ */
+function matchOption(raw: string, options: readonly EnumOption[], formatter: Formatter): EnumOption | undefined {
   const label = (option: EnumOption) => {
     const result = formatter.safeFormatEnum(option.value, { options })
     return result.success ? result.value : option.label ?? String(option.value)
   }
-  if (formatted) {
-    const byLabel = options.filter((option) => label(option) === raw)
-    if (byLabel.length === 1) return byLabel[0]
-  }
   const byValue = options.filter((option) => String(option.value) === raw)
   if (byValue.length === 1) return byValue[0]
+  const byLabel = options.filter((option) => label(option) === raw)
+  if (byLabel.length === 1) return byLabel[0]
   const folded = raw.trim().toLowerCase()
   const loose = options.filter((option) => String(option.value).toLowerCase() === folded || label(option).toLowerCase() === folded)
   return loose.length === 1 ? loose[0] : undefined
@@ -379,7 +382,7 @@ function parseMoney(raw: string, field: FormField, formatter: Formatter): Parsed
 const composite = new Set(['address', 'person', 'organization', 'identification', 'coordinate', 'bbox', 'list', 'fieldset'])
 
 /** Parse text written into one PDF field back into the field's type. */
-function parseFieldValue(raw: string, field: FormField, formatter: Formatter, formatted: boolean): Parsed {
+function parseFieldValue(raw: string, field: FormField, formatter: Formatter): Parsed {
   if (composite.has(field.type)) {
     return fail(`A ${field.type} value written as one piece of text cannot be split back into its parts; bind its parts to recover it.`)
   }
@@ -390,16 +393,17 @@ function parseFieldValue(raw: string, field: FormField, formatter: Formatter, fo
     case 'uri':
       return ok(raw)
     case 'enum': {
-      const option = matchOption(raw, field.enum, formatter, formatted)
+      const option = matchOption(raw, field.enum, formatter)
       return option ? ok(option.value) : fail('The text matches none of the field\'s options.')
     }
     case 'multiselect': {
-      if (formatted) return fail('A multiselect value written as one piece of text cannot be split back into its options.')
-      const values = raw.split(',').map((part) => part.trim()).filter(Boolean)
-      const options = values.map((value) => matchOption(value, field.enum, formatter, false))
-      return options.every((option) => option !== undefined)
-        ? ok(options.map((option) => option!.value))
-        : fail('The selection includes a value that matches none of the field\'s options.')
+      // Fill joins the option values with ", "; a value may itself hold a comma.
+      for (const parts of [raw.split(', '), raw.split(',')]) {
+        const values = parts.map((part) => part.trim()).filter(Boolean)
+        const options = values.map((value) => matchOption(value, field.enum, formatter))
+        if (options.every((option) => option !== undefined)) return ok(options.map((option) => option!.value))
+      }
+      return fail('The selection includes a value that matches none of the field\'s options.')
     }
     case 'boolean': {
       const text = raw.trim()
@@ -451,9 +455,9 @@ function parseFieldValue(raw: string, field: FormField, formatter: Formatter, fo
   return fail(`Values of type ${field.type} cannot be read back.`)
 }
 
-function parseTarget(raw: string, target: Target, formatter: Formatter, formatted: boolean): Parsed {
+function parseTarget(raw: string, target: Target, formatter: Formatter): Parsed {
   if (target.kind === 'fixed') return fail(target.reason)
-  if (target.kind === 'field') return parseFieldValue(raw, target.field, formatter, formatted)
+  if (target.kind === 'field') return parseFieldValue(raw, target.field, formatter)
   if (target.type === 'number') {
     const value = parseNumber(raw, formatter.locale)
     return value === undefined ? fail('The text is not a number.') : ok(value)
@@ -499,13 +503,13 @@ function readDirect(state: FieldState, target: Target, formatter: Formatter): Re
   }
   if (field.type === 'radio') {
     if (!state.on || state.raw === undefined) return { kind: 'empty' }
-    const parsed = parseTarget(state.raw, target, formatter, false)
+    const parsed = parseTarget(state.raw, target, formatter)
     return parsed.ok ? { kind: 'value', value: parsed.value } : { kind: 'unparseable', reason: parsed.reason }
   }
   if (field.type === 'dropdown') {
     if (!state.selected || state.selected.length === 0) return { kind: 'empty' }
     const raw = state.selected.join(', ')
-    const parsed = parseTarget(raw, target, formatter, false)
+    const parsed = parseTarget(raw, target, formatter)
     return parsed.ok ? { kind: 'value', value: parsed.value } : { kind: 'unparseable', reason: parsed.reason }
   }
   if (state.raw === undefined) return { kind: 'empty' }
@@ -513,7 +517,7 @@ function readDirect(state: FieldState, target: Target, formatter: Formatter): Re
   if (target.kind === 'field' && composite.has(target.field.type)) {
     return { kind: 'not_recoverable', reason: `A ${target.field.type} value written as one piece of text cannot be split back into its parts; bind its parts to recover it.` }
   }
-  const parsed = parseTarget(state.raw, target, formatter, target.kind === 'field')
+  const parsed = parseTarget(state.raw, target, formatter)
   return parsed.ok ? { kind: 'value', value: parsed.value } : { kind: 'unparseable', reason: parsed.reason }
 }
 
@@ -535,7 +539,7 @@ function resolvePath(work: PathWork, target: Target, formatter: Formatter): { st
     else if (values.slice(0, lastFilled).some((value) => value === undefined)) {
       readings.push({ kind: 'unparseable', reason: 'A part before the last filled part is empty, so the parts cannot be joined in order.' })
     } else {
-      const parsed = parseTarget(values.slice(0, lastFilled + 1).join('-'), target, formatter, false)
+      const parsed = parseTarget(values.slice(0, lastFilled + 1).join('-'), target, formatter)
       readings.push(parsed.ok ? { kind: 'value', value: parsed.value } : { kind: 'unparseable', reason: parsed.reason })
     }
   }
@@ -605,14 +609,23 @@ export async function extractPdfData({ pdf, form, bindings, formatter: filledWit
   const sources = parsed.flatMap(([, parts]) => parts.map((part) => part.source))
   validateFieldBindings(form, Object.fromEntries(sources.map((source, index) => [String(index), source])))
 
-  const { model, fields } = await loadFormFields(pdf)
+  const { model, fields, names } = await loadFormFields(pdf)
   const states = new Map(fields.map((field) => [field.name, readField(model, field)]))
 
-  const bound = Object.keys(bindings).filter((name) => states.has(name))
-  if (bound.length === 0) {
+  // Fill refuses a binding with no PDF field, so a PDF that lacks one was not
+  // filled from this layer.
+  const bindingNames = Object.keys(bindings)
+  const missing = bindingNames.filter((name) => !names.has(name))
+  if (missing.length === bindingNames.length) {
     throw new PdfExtractionError(
       'not_matching',
-      `None of the PDF's ${fields.length} form fields match the layer's ${Object.keys(bindings).length} bindings. Check that the PDF is this artifact's form.`,
+      `None of the PDF's ${fields.length} form fields match the layer's ${bindingNames.length} bindings. Check that the PDF is this artifact's form.`,
+    )
+  }
+  if (missing.length > 0) {
+    throw new PdfExtractionError(
+      'not_matching',
+      `The PDF has no field for ${missing.length} of the layer's ${bindingNames.length} bindings: ${missing.join(', ')}. Check that the PDF is this artifact's form.`,
     )
   }
 
@@ -647,7 +660,8 @@ export async function extractPdfData({ pdf, form, bindings, formatter: filledWit
     const fieldType = target.kind === 'field' ? target.field.type : undefined
     const isPart = qualifier !== undefined && fieldType !== 'boolean' && fieldType !== 'enum' && fieldType !== 'multiselect' && splitPartIndex(qualifier) !== undefined
     if (!state) {
-      // A part whose PDF field is missing still holds its place in the order.
+      // A bound field extraction cannot read (a signature or push button)
+      // holds no value; a part still holds its place in the order.
       if (isPart) entry.parts.set(Number(qualifier), undefined)
       else entry.readings.push({ kind: 'empty' })
       continue
@@ -735,13 +749,13 @@ export function selectPdfExtractionLayer(
     key = pdfKeys[0]!
   }
   const layer = all[key]!
-  // A bindingsFrom naming no layer leaves the layer with no bindings to read by.
-  let bindings: Record<string, string> | undefined
-  try {
-    bindings = resolveLayerBindings(all, layer)
-  } catch {
-    bindings = undefined
+  if (layer.bindingsFrom !== undefined && !layer.bindings && !all[layer.bindingsFrom]) {
+    throw new PdfExtractionError(
+      'unknown_bindings_source',
+      `Layer "${key}" takes its bindings from "${layer.bindingsFrom}", which is not a layer. Layers: ${Object.keys(all).join(', ')}.`,
+    )
   }
+  const bindings = resolveLayerBindings(all, layer)
   if (!bindings || Object.keys(bindings).length === 0) {
     throw new PdfExtractionError('not_matching', `Layer "${key}" has no bindings, so no PDF field maps to the artifact.`)
   }

@@ -352,4 +352,5 @@ Telemetry is also off with `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`.
 | `error: unknown option '--verbose'` | Use `--json` for structured output |
 | `error: required option '--out <file>' not specified` | Add `--out` (`data fill`) |
 | `Error (not_matching): Layer "<key>" has no bindings ...` | Add `bindings` to the PDF layer ([pdf.md](./pdf.md)) |
+| `Error (unknown_bindings_source): Layer "<key>" takes its bindings from "<name>" ...` | Point `bindingsFrom` at an existing PDF layer |
 | `Unsupported render layer MIME type: text/tsx.` | Render React layers with the `paradoc-react` skill |

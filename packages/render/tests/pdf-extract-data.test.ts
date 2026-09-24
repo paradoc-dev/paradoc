@@ -294,6 +294,15 @@ describe('extractPdfData', () => {
       expect((error as PdfEncryptedError).code).toBe('encrypted_pdf')
     })
 
+    it('refuses a PDF that lacks a bound field, naming it, even when other bindings match', async () => {
+      const error = await extractPdfData({
+        pdf: acroFormPdf([{ kind: 'text', name: 'full_name', value: 'Ada' }]),
+        form,
+        bindings: { full_name: 'fullName', count: 'count' },
+      }).catch((caught: unknown) => caught)
+      expect(error).toMatchObject({ code: 'not_matching', message: expect.stringContaining('1 of the layer\'s 2 bindings: count') })
+    })
+
     it('refuses a PDF whose fields match none of the bindings', async () => {
       const error = await codeOf(acroFormPdf([{ kind: 'text', name: 'other', value: 'x' }]))
       expect(error.code).toBe('not_matching')
@@ -349,11 +358,11 @@ describe('selectPdfExtractionLayer', () => {
     expect(() => selectPdfExtractionLayer(layers)).toThrow(expect.objectContaining({ code: 'not_matching' }))
   })
 
-  it('refuses a layer whose bindingsFrom names no layer, as a layer with no bindings', () => {
+  it('refuses a layer whose bindingsFrom names no layer, naming it', () => {
     const layers = { pdf: { mimeType: 'application/pdf', bindingsFrom: 'missing' } }
     expect(() => selectPdfExtractionLayer(layers)).toThrow(expect.objectContaining({
-      code: 'not_matching',
-      message: 'Layer "pdf" has no bindings, so no PDF field maps to the artifact.',
+      code: 'unknown_bindings_source',
+      message: expect.stringContaining('"missing"'),
     }))
   })
 

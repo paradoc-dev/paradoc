@@ -278,13 +278,8 @@ function fitFailure(field: AcroField, binding: string, sources: BoundSource[], l
  */
 export async function checkPdfBindingFit({ template, form, bindings, layerFont }: CheckPdfBindingFitOptions): Promise<PdfBindingFitIssue[]> {
   const model = await PdfModel.load(template)
-  let acro: ReturnType<typeof acroFields>
-  try {
-    acro = acroFields(model)
-  } catch (error) {
-    if (error instanceof Error && error.message === 'PDF does not contain an AcroForm') return []
-    throw error
-  }
+  const acro = acroFields(model)
+  if (!acro) return []
   const fonts = PdfFontSet.create(model, { layerFont })
   await fonts.readFormFonts(model.dict(acro.acroForm.entries.get('DR')))
   const byName = new Map(acro.fields.map((field) => [field.name, field]))

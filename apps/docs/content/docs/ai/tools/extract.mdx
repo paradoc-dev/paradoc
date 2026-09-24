@@ -49,11 +49,12 @@ Each entry's `sources` lists the PDF fields that carry the path, as `{ field, va
 |------|-------|
 | `no_form_fields` | The PDF has no AcroForm fields. A flattened or scanned PDF needs the hosted extraction service. |
 | `encrypted_pdf` | The PDF is encrypted |
-| `not_matching` | None of the PDF's fields match the layer's bindings |
+| `not_matching` | The PDF has no field for one or more of the layer's bindings. The message names them. |
 | `malformed_pdf` | The input is not a PDF, or it is truncated or cannot be parsed |
 | `no_pdf_layer` | The form has no PDF layer |
 | `layer_required` | The form has several PDF layers and `layer` is not set. The message lists them. |
 | `layer_not_found`, `not_pdf_layer` | `layer` names no layer, or a layer that is not a PDF |
+| `unknown_bindings_source` | The PDF layer's `bindingsFrom` names no layer |
 | `invalid_input` | Neither or both of `pdf` and `pdf_url` are set, or `pdf` is not base64 |
 | `pdf_too_large` | The PDF is over the size limit |
 | `unsupported_artifact` | The artifact is not a form |

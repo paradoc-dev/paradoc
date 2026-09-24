@@ -28,11 +28,11 @@ export const MAX_FIELD_TYPE = 15
 export const ENCODING_LENGTH = 8
 
 export function encode(signerIndex: number, fieldType: number): string {
-  if (signerIndex < 0 || signerIndex > MAX_SIGNER_INDEX) {
-    throw new Error(`Signer index must be 0-${MAX_SIGNER_INDEX}, got ${signerIndex}`)
+  if (!Number.isInteger(signerIndex) || signerIndex < 0 || signerIndex > MAX_SIGNER_INDEX) {
+    throw new Error(`Signer index must be an integer 0-${MAX_SIGNER_INDEX}, got ${signerIndex}`)
   }
-  if (fieldType < 0 || fieldType > MAX_FIELD_TYPE) {
-    throw new Error(`Field type must be 0-${MAX_FIELD_TYPE}, got ${fieldType}`)
+  if (!Number.isInteger(fieldType) || fieldType < 0 || fieldType > MAX_FIELD_TYPE) {
+    throw new Error(`Field type must be an integer 0-${MAX_FIELD_TYPE}, got ${fieldType}`)
   }
   let result = ''
   let remaining = signerIndex

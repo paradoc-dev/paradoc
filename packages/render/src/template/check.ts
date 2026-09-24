@@ -86,7 +86,7 @@ function diagnosticsFor(slot: ExpressionSlot, node: Expr, scope: CheckScope): { 
   const result = checkAst(node, scope.typeEnv())
   const diagnostics = result.diagnostics.map((diagnostic): TemplateDiagnostic => {
     let message = diagnostic.message
-    const unknown = message.match(/^Unknown (?:function|reference): (.+)$/)?.[1]
+    const unknown = diagnostic.name
     if (diagnostic.code === 'unknown-function' && unknown && LOOP_FUNCTION_NAMES.has(unknown)) {
       message = `${unknown}() is valid only inside a loop.`
     } else if (diagnostic.code === 'unknown-identifier' && (unknown === 'item' || unknown === 'parent')) {

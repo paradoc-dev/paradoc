@@ -1,9 +1,7 @@
 import type { LocateHit } from '@paradoc/types'
-import { PdfModel } from './syntax'
 import { type FieldTypeValue, fieldTypeToString } from './encoding'
-import { extractFieldsFromPdf } from './extract'
-import { loadPages } from './pages'
-import { mergeRuns, scanPage, type TextRun } from './scanner'
+import { fieldsFromPageRuns, pageTextRuns } from './extract'
+import type { TextRun } from './scanner'
 
 /**
  * A placement query against a converter-produced PDF.
@@ -104,19 +102,20 @@ function findAnchorMatches(pagesRuns: TextRun[][], text: string): AnchorMatch[] 
  */
 export async function locate(pdf: Uint8Array, queries: LocateQuery[]): Promise<LocateHit[]> {
   if (queries.length === 0) return []
+  for (const query of queries) {
+    if (query.kind === 'anchor' && query.occurrence !== undefined && !(Number.isInteger(query.occurrence) && query.occurrence >= 1)) {
+      throw new RangeError(`Placement "${query.id}": occurrence must be a positive integer, got ${query.occurrence}`)
+    }
+  }
 
-  const model = await PdfModel.load(pdf)
-  const pages = await loadPages(model)
+  // One parse and one scan serve both anchor and marker queries.
+  const pages = await pageTextRuns(pdf)
   const pageHeights = pages.map((page) => page.mediaBox[3] - page.mediaBox[1])
   const pageOrigins = pages.map((page) => ({ x: page.mediaBox[0], y: page.mediaBox[1] }))
-
-  const needsAnchors = queries.some((query) => query.kind === 'anchor')
-  const pagesRuns: TextRun[][] = needsAnchors
-    ? await Promise.all(pages.map(async (page) => mergeRuns(await scanPage(model, page))))
-    : []
+  const pagesRuns: TextRun[][] = pages.map((page) => page.runs)
 
   const markerFields = queries.some((query) => query.kind === 'marker')
-    ? await extractFieldsFromPdf(pdf)
+    ? fieldsFromPageRuns(pages)
     : []
 
   const hits: LocateHit[] = []

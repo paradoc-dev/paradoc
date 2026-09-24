@@ -121,13 +121,8 @@ export async function renderPdf({
   const shouldFill = parsed.length > 0 || Boolean(form?.fields && Object.keys(form.fields).length > 0)
 
   if (shouldFill) {
-    let acroFormData: ReturnType<typeof acroFields> | undefined
-    try {
-      acroFormData = acroFields(model)
-    } catch (error) {
-      // Ordinary PDFs can still receive coordinate overlays without AcroForm fields.
-      if (!(error instanceof Error) || error.message !== 'PDF does not contain an AcroForm') throw error
-    }
+    // Ordinary PDFs can still receive coordinate overlays without AcroForm fields.
+    const acroFormData = acroFields(model)
 
     const byName = new Map((acroFormData?.fields ?? []).map((field) => [field.name, field]))
     const unmatched = parsed.map(([pdfName]) => pdfName).filter((pdfName) => !byName.has(pdfName))

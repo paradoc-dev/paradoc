@@ -38,7 +38,7 @@ function nameValue(value: PdfValue | undefined): string | undefined {
 }
 
 /** A text string entry (`/T`, `/V`, `/Opt`) as text; a name is taken as it stands. */
-function textValue(value: PdfValue | undefined): string | undefined {
+export function textValue(value: PdfValue | undefined): string | undefined {
   if (typeof value === 'string') return decodeTextString(value)
   return isName(value) ? value.value : undefined
 }
@@ -79,12 +79,25 @@ export function isChildField(model: PdfModel, kid: PdfValue): boolean {
     || dict?.entries.has('Kids') === true
 }
 
-export function acroFields(model: PdfModel): { fields: AcroField[]; acroForm: PdfDict; acroRef?: PdfRef; catalogRef?: PdfRef } {
+/** A PDF's interactive form: its terminal fields and the AcroForm dictionary. */
+export interface AcroForm {
+  fields: AcroField[]
+  acroForm: PdfDict
+  acroRef?: PdfRef
+  catalogRef?: PdfRef
+}
+
+/**
+ * Walk the AcroForm field tree into terminal fields, with the inheritable
+ * entries (`/FT`, `/Ff`, `/DA`, `/Q`, `/MaxLen`) resolved from their ancestors.
+ * Returns `undefined` for a PDF with no AcroForm.
+ */
+export function acroFields(model: PdfModel): AcroForm | undefined {
   const catalog = model.catalog()
   if (!catalog || !isDict(catalog.value)) throw new Error('PDF catalog not found')
   const acroValue = catalog.value.entries.get('AcroForm')
   const acroForm = model.dict(acroValue)
-  if (!acroForm) throw new Error('PDF does not contain an AcroForm')
+  if (!acroForm) return undefined
   const roots = model.resolve(acroForm.entries.get('Fields'))
   const fields: AcroField[] = []
 

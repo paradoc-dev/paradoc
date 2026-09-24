@@ -41,6 +41,12 @@ describe('checker — catches mistakes at authoring time', () => {
 		expect(codes('frobnicate(fields.age)')).toContain('unknown-function')
 	})
 
+	it('names the unknown reference or function on the diagnostic', () => {
+		expect(check('fields.nope > 1', env).diagnostics).toContainEqual(expect.objectContaining({ code: 'unknown-identifier', name: 'fields.nope' }))
+		expect(check('frobnicate(fields.age)', env).diagnostics).toContainEqual(expect.objectContaining({ code: 'unknown-function', name: 'frobnicate' }))
+		expect(check('startsWith(fields.name)', env).diagnostics[0]).not.toHaveProperty('name')
+	})
+
 	it('flags arity mismatches', () => {
 		expect(codes('startsWith(fields.name)')).toContain('arity')
 	})

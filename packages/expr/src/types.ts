@@ -84,4 +84,6 @@ export interface Diagnostic {
 	readonly code: DiagnosticCode
 	readonly message: string
 	readonly span: Span
+	/** The unknown reference or function a diagnostic names, for `unknown-identifier` and `unknown-function`. */
+	readonly name?: string
 }

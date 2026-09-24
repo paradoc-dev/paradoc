@@ -60,8 +60,8 @@ class Checker {
 
 	constructor(private readonly env: TypeEnv) {}
 
-	private error(code: Diagnostic['code'], message: string, span: Span): void {
-		this.diagnostics.push({ severity: 'error', code, message, span })
+	private error(code: Diagnostic['code'], message: string, span: Span, name?: string): void {
+		this.diagnostics.push({ severity: 'error', code, message, span, ...(name !== undefined && { name }) })
 	}
 
 	infer(node: Expr): ExprType {
@@ -120,7 +120,7 @@ class Checker {
 	private inferRef(path: string, span: Span): ExprType {
 		const t = this.env.resolve(path)
 		if (t === undefined) {
-			this.error('unknown-identifier', `Unknown reference: ${path}`, span)
+			this.error('unknown-identifier', `Unknown reference: ${path}`, span, path)
 			return T.unknown
 		}
 		const open = this.openLists(path)
@@ -184,7 +184,7 @@ class Checker {
 			return fallback
 		}
 		if (resolved === undefined) {
-			this.error('unknown-identifier', `Unknown reference: ${path}`, valuesArg!.span)
+			this.error('unknown-identifier', `Unknown reference: ${path}`, valuesArg!.span, path)
 			return fallback
 		}
 		if (lists.length === 0) {
@@ -288,7 +288,7 @@ class Checker {
 	private inferCall(node: Extract<Expr, { kind: 'Call' }>): ExprType {
 		const sig = this.env.registry.get(node.callee)
 		if (!sig) {
-			this.error('unknown-function', `Unknown function: ${node.callee}`, node.span)
+			this.error('unknown-function', `Unknown function: ${node.callee}`, node.span, node.callee)
 			node.args.forEach((a) => this.infer(a))
 			return T.unknown
 		}

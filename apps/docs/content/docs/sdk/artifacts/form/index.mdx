@@ -438,7 +438,7 @@ Direct bindings, enum checkboxes, radio groups, dropdowns, and split fields are 
 
 A partial value from a combined box stays partial. On the W-9, the city, state, and ZIP code share one box, so `data` has `mailingAddress.line1` only, and `safeFill` names the missing parts.
 
-`extract` throws a `PdfExtractionError` whose `code` names the failure: `no_form_fields` (a flattened or scanned PDF, which needs the hosted Paradoc extraction service), `not_matching` (none of the PDF's fields match the layer), `malformed_pdf` (not a PDF, truncated, or unreadable), `no_pdf_layer`, `layer_required`, `layer_not_found`, or `not_pdf_layer`. An encrypted PDF throws `PdfEncryptedError`, whose `code` is `encrypted_pdf`.
+`extract` throws a `PdfExtractionError` whose `code` names the failure: `no_form_fields` (a flattened or scanned PDF, which needs the hosted Paradoc extraction service), `not_matching` (the PDF has no field for a binding key, so it is not this form), `malformed_pdf` (not a PDF, truncated, or unreadable), `no_pdf_layer`, `layer_required`, `layer_not_found`, `not_pdf_layer`, or `unknown_bindings_source` (the layer's `bindingsFrom` names no layer). An encrypted PDF throws `PdfEncryptedError`, whose `code` is `encrypted_pdf`.
 
 The CLI's [`paradoc data extract`](/cli/commands/data#data-extract) and the AI [`extract`](/ai/tools/extract) tool return the same result.
 
