@@ -16,8 +16,10 @@
  * renderer puts each one where the document draws that slot.
  *
  * Both seal entry points, `prepareSeal` and `seal`, drive their passes through
- * `createSealPass`, so the two pipelines cannot drift on which renderer runs,
- * on how a pass becomes PDF bytes, or on what a wrong answer says.
+ * `createSealPass` and place flow slots through `resolveFlowPlacements`, so the
+ * two pipelines cannot drift on which renderer runs, on how a pass becomes PDF
+ * bytes, on how a flow slot is located and verified, or on what a wrong answer
+ * says.
  */
 
 import {
@@ -38,6 +40,7 @@ import type {
 	SigningMarker,
 } from '@paradoc/types'
 import { findRegisteredRenderer, isReactLayerMimeType, type RendererRegistry } from '@/rendering/renderer-registry'
+import type { TextSignatureOptions } from '@paradoc/render/text'
 import { SealConfigError } from './seal-slots'
 
 /** A renderer the seal drives directly. */
@@ -243,4 +246,91 @@ export async function locateFlowMarkers(pdf: Uint8Array, flow: readonly SigningF
 		if (!(error instanceof LocateError)) throw error
 		throw new LocateError(error.message + (await glyphCoverageHint(pdf)), error.failures)
 	}
+}
+
+const SIGNATURE_UNDERSCORES = '________________'
+const INITIALS_UNDERSCORES = '______'
+
+/**
+ * Core's text placeholders for a seal pass. With markers, each flow slot's
+ * placeholder is prefixed with its invisible marker; without, the visible
+ * placeholders are identical, so coordinates located on the marker pass
+ * transfer to the clean pass.
+ */
+export function flowTextSignatureOptions(flow: readonly SigningField[], withMarkers: boolean): TextSignatureOptions {
+	const flowById = new Map(flow.map((field) => [field.id, field]))
+	return {
+		format: 'text',
+		placeholder: {
+			signature: (context) => {
+				const field = withMarkers ? flowById.get(context.locationId) : undefined
+				const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
+				return prefix + SIGNATURE_UNDERSCORES
+			},
+			initials: (context) => {
+				const field = withMarkers ? flowById.get(context.locationId) : undefined
+				const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
+				return prefix + INITIALS_UNDERSCORES
+			},
+		},
+	}
+}
+
+/** Flow slots placed on the clean render, and that render's PDF. */
+export interface FlowPlacements {
+	/** Each flow slot with the box its marker resolved to. */
+	flowResolved: SigningField[]
+	/** The clean (marker-free) render: the canonical document. */
+	cleanPdf: Uint8Array
+}
+
+/**
+ * Places flow slots. The one implementation behind both `prepareSeal` and
+ * `seal`.
+ *
+ * Renders twice: the marker pass locates each slot's placeholder in the
+ * converted PDF; the clean pass becomes the canonical document. Marker glyphs
+ * occupy width, so a wrap or page break can shift between passes. Each
+ * resolved box is checked against a text run in the clean PDF, so drift is a
+ * loud error, never a silently misplaced signature.
+ *
+ * @throws {LocateError} when a marker is not found in the marker pass.
+ * @throws {Error} when a slot's marker is missing or its box drifted.
+ */
+export async function resolveFlowPlacements(pass: SealPass, flow: readonly SigningField[]): Promise<FlowPlacements> {
+	const markerHits = await locateFlowMarkers(await pass.pdf(true), flow)
+	const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
+	const flowResolved: SigningField[] = []
+	for (const field of flow) {
+		const hit = markersById.get(field.id)
+		if (!hit) throw new Error(`Marker for flow slot "${field.id}" was not found in the converted PDF.`)
+		flowResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
+	}
+
+	const cleanPdf = await pass.pdf(false)
+	const cleanPages = await pageTextRuns(cleanPdf)
+	for (const field of flowResolved) {
+		const page = cleanPages[field.page - 1]
+		if (!page) throw new Error(`Flow slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
+		const pageHeight = page.mediaBox[3] - page.mediaBox[1]
+		const expectedRawY = pageHeight - field.y - field.height + page.mediaBox[1]
+		const expectedX = field.x + page.mediaBox[0]
+		// The clean render merges the label and placeholder into one text run,
+		// so the box must fall INSIDE a run on the same line that still carries
+		// the placeholder underscores.
+		const near = page.runs.some(
+			(run) =>
+				Math.abs(run.y - expectedRawY) <= 3 &&
+				run.text.includes('_') &&
+				run.x - 3 <= expectedX &&
+				expectedX <= run.x + run.width + 3,
+		)
+		if (!near) {
+			throw new Error(
+				`Flow slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
+				'The marker run likely changed a line wrap; use anchor placement for this slot or widen its placeholder.',
+			)
+		}
+	}
+	return { flowResolved, cleanPdf }
 }

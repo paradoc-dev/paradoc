@@ -84,6 +84,22 @@ describe("'flow' placement", () => {
 		await expect(draft().seal({ adapter: chromishConverter(driftedClean) })).rejects.toThrow(/drifted/)
 	})
 
+	// prepareSeal and seal share one flow-placement implementation; these pin
+	// that prepareSeal places and verifies exactly as seal does.
+	test('prepareSeal places flow slots on the clean PDF, as seal does', async () => {
+		const prepared = await draft().prepareSeal({ adapter: chromishConverter() })
+		const sealed = await draft().seal({ adapter: chromishConverter() })
+
+		expect(prepared.pdf).toBe(cleanPdf)
+		expect(prepared.provenance).toEqual({ 'client-sig': 'marker', 'client-ini': 'marker' })
+		expect(prepared.signatureMap).toEqual(sealed.signatureMap)
+	})
+
+	test('prepareSeal fails loud on layout drift, as seal does', async () => {
+		const driftedClean = fixture('large-contract.pdf')
+		await expect(draft().prepareSeal({ adapter: chromishConverter(driftedClean) })).rejects.toThrow(/drifted/)
+	})
+
 	test("'flow' on unsupported field types is a config error before rendering", async () => {
 		await expect(
 			draft({

@@ -45,11 +45,9 @@ import type {
 	FormData,
 } from '@paradoc/types'
 import { renderLayer as createRenderer } from '@paradoc/render'
-import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
-import { encode as encodeMarker } from '@paradoc/render/pdf'
+import { flattenPdf, locate as locatePlacements } from '@paradoc/render/pdf'
 import { extractPdfData, selectPdfExtractionLayer } from '@paradoc/render/pdf'
 import type { PdfExtraction } from '@paradoc/render/pdf'
-import type { TextSignatureOptions } from '@paradoc/render/text'
 import { SealConfigError, buildSlotPlan, compileLegacySignatureSlots, hasSignatureSlots } from './seal-slots'
 import type { PlacementProvenance, SealPreparation } from './seal-slots'
 import {
@@ -101,7 +99,8 @@ import type { ArtifactInstanceOptions } from '../shared/render-layer'
 import type { RendererRegistry } from '@/rendering/renderer-registry'
 import {
 	createSealPass,
-	locateFlowMarkers,
+	flowTextSignatureOptions,
+	resolveFlowPlacements,
 	selectSealRenderer,
 	signingMarkersFor,
 	type SealRenderer,
@@ -2387,8 +2386,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			})
 		},
 
-		// NOTE: keep the pipeline below in sync with seal()'s slot branch; they
-		// unify once the legacy block modes retire at the next major.
 		async prepareSeal(input: SealOptions = {}): Promise<SealPreparation> {
 			ensureDraft('prepareSeal')
 			const validation = runtime.validate()
@@ -2441,24 +2438,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				}
 			}
 
-			const SIGNATURE_UNDERSCORES = '________________'
-			const INITIALS_UNDERSCORES = '______'
-			const flowById = new Map(plan.flow.map((field) => [field.id, field]))
-			const textOptions = (withMarkers: boolean): TextSignatureOptions => ({
-				format: 'text',
-				placeholder: {
-					signature: (context) => {
-						const field = withMarkers ? flowById.get(context.locationId) : undefined
-						const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
-						return prefix + SIGNATURE_UNDERSCORES
-					},
-					initials: (context) => {
-						const field = withMarkers ? flowById.get(context.locationId) : undefined
-						const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
-						return prefix + INITIALS_UNDERSCORES
-					},
-				},
-			})
 			const prepareRequest: SealingRequest<F> = {
 				form: formDef,
 				fields: fieldValues,
@@ -2474,7 +2453,8 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				flow: plan.flow.length > 0,
 				sealRenderer,
 				markers: signingMarkersFor(declaredSlots ?? legacySlots!, plan.flow),
-				textRenderer: (withMarkers) => createRenderer({ textSignatureOptions: textOptions(withMarkers) }),
+				textRenderer: (withMarkers) =>
+					createRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) }),
 				override: options.renderer,
 				renderers: options.renderers,
 				render: (renderer) =>
@@ -2504,37 +2484,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				pdf = document
 			} else {
 				if (plan.flow.length > 0) {
-					const markerHits = await locateFlowMarkers(await pass.pdf(true), plan.flow)
-					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
-					for (const field of plan.flow) {
-						const hit = markersById.get(field.id)
-						if (!hit) throw new Error(`Marker for flow slot "${field.id}" was not found in the converted PDF.`)
-						flowResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
-					}
-				}
-				pdf = await pass.pdf(false)
-				if (flowResolved.length > 0) {
-					const cleanPages = await pageTextRuns(pdf)
-					for (const field of flowResolved) {
-						const page = cleanPages[field.page - 1]
-						if (!page) throw new Error(`Flow slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
-						const pageHeight = page.mediaBox[3] - page.mediaBox[1]
-						const expectedRawY = pageHeight - field.y - field.height + page.mediaBox[1]
-						const expectedX = field.x + page.mediaBox[0]
-						const near = page.runs.some(
-							(run) =>
-								Math.abs(run.y - expectedRawY) <= 3 &&
-								run.text.includes('_') &&
-								run.x - 3 <= expectedX &&
-								expectedX <= run.x + run.width + 3,
-						)
-						if (!near) {
-							throw new Error(
-								`Flow slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
-								'The marker run likely changed a line wrap; use anchor placement for this slot or widen its placeholder.',
-							)
-						}
-					}
+					const placements = await resolveFlowPlacements(pass, plan.flow)
+					flowResolved.push(...placements.flowResolved)
+					pdf = placements.cleanPdf
+				} else {
+					pdf = await pass.pdf(false)
 				}
 			}
 
@@ -2700,77 +2654,17 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 					targetLayer,
 					...(plan.anchors.length > 0 && { anchorFields: plan.anchors.map((entry) => entry.field) }),
 				}
-				// The flow path renders twice: pass one carries invisible markers to
-				// locate placeholders in the converted PDF; pass two renders clean and
-				// becomes the canonical document. Both passes share identical visible
-				// placeholders, so located coordinates transfer to the clean PDF.
-				const SIGNATURE_UNDERSCORES = '________________'
-				const INITIALS_UNDERSCORES = '______'
-				const slotTextOptions = (withMarkers: boolean): TextSignatureOptions => {
-					const flowById = new Map(plan.flow.map((field) => [field.id, field]))
-					return {
-						format: 'text',
-						placeholder: {
-							signature: (context) => {
-								const field = withMarkers ? flowById.get(context.locationId) : undefined
-								const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
-								return prefix + SIGNATURE_UNDERSCORES
-							},
-							initials: (context) => {
-								const field = withMarkers ? flowById.get(context.locationId) : undefined
-								const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
-								return prefix + INITIALS_UNDERSCORES
-							},
-						},
-					}
-				}
 				const slotTextOptionsRenderer = (withMarkers: boolean) =>
-					createRenderer({ textSignatureOptions: slotTextOptions(withMarkers) })
+					createRenderer({ textSignatureOptions: flowTextSignatureOptions(plan.flow, withMarkers) })
 				const slotPass = sealPassFor(slotRequest, plan.flow, layerSpec.signatures, slotTextOptionsRenderer)
 
 				let slotResult: import('@paradoc/types').SealingResult
 				const flowResolved: SigningField[] = []
 				if (plan.flow.length > 0) {
-					const markerHits = await locateFlowMarkers(await slotPass.pdf(true), plan.flow)
-					const markersById = new Map(markerHits.map((hit) => [hit.id, hit]))
-					for (const field of plan.flow) {
-						const hit = markersById.get(field.id)
-						if (!hit) throw new Error(`Marker for flow slot "${field.id}" was not found in the converted PDF.`)
-						flowResolved.push({ ...field, page: hit.page, x: hit.x, y: hit.y, width: hit.width, height: hit.height })
-					}
-
-					const cleanPdf = await slotPass.pdf(false)
-
-					// Marker glyphs occupy width, so wraps or page breaks can shift
-					// between passes. Verify each resolved box still points at a text
-					// run in the clean PDF; drift becomes a loud error, never a
-					// silently misplaced signature.
-					const cleanPages = await pageTextRuns(cleanPdf)
-					for (const field of flowResolved) {
-						const page = cleanPages[field.page - 1]
-						if (!page) throw new Error(`Flow slot "${field.id}" resolved to page ${field.page}, which the clean render does not have.`)
-						const pageHeight = page.mediaBox[3] - page.mediaBox[1]
-						const expectedRawY = pageHeight - field.y - field.height + page.mediaBox[1]
-						const expectedX = field.x + page.mediaBox[0]
-						// The clean render merges the label and placeholder into one text
-						// run, so the box must fall INSIDE a run on the same line that
-						// still carries the placeholder underscores.
-						const near = page.runs.some(
-							(run) =>
-								Math.abs(run.y - expectedRawY) <= 3 &&
-								run.text.includes('_') &&
-								run.x - 3 <= expectedX &&
-								expectedX <= run.x + run.width + 3,
-						)
-						if (!near) {
-							throw new Error(
-								`Flow slot "${field.id}" drifted between the marker pass and the clean render (page ${field.page}). ` +
-								'The marker run likely changed a line wrap; use anchor placement for this slot or widen its placeholder.',
-							)
-						}
-					}
-
-					slotResult = await finalizePdf(cleanPdf)
+					// Flow placement renders twice; see resolveFlowPlacements.
+					const placements = await resolveFlowPlacements(slotPass, plan.flow)
+					flowResolved.push(...placements.flowResolved)
+					slotResult = await finalizePdf(placements.cleanPdf)
 				} else {
 					slotResult = await runSealer(slotRequest)
 				}
