@@ -13,12 +13,11 @@ describe('definition member identity validation', () => {
 			],
 		};
 
-		expect(validateChecklist(input)).toBe(false);
-		expect(validateChecklist.errors).toEqual(
+		expect(validateChecklist(input).issues).toEqual(
 			expect.arrayContaining([
-				expect.objectContaining({ instancePath: '/items/0/id' }),
-				expect.objectContaining({ instancePath: '/items/1/id' }),
-		]),
+				expect.objectContaining({ path: ['items', 0, 'id'] }),
+				expect.objectContaining({ path: ['items', 1, 'id'] }),
+			]),
 		);
 		expect(() => checklist(input)).toThrow(/items\.(?:0|1)\.id/);
 		expect(() => checklist().name('duplicate-items').items(input.items).build()).toThrow(
@@ -36,12 +35,11 @@ describe('definition member identity validation', () => {
 			],
 		};
 
-		expect(validateBundle(input)).toBe(false);
-		expect(validateBundle.errors).toEqual(
+		expect(validateBundle(input).issues).toEqual(
 			expect.arrayContaining([
-				expect.objectContaining({ instancePath: '/contents/0/key' }),
-				expect.objectContaining({ instancePath: '/contents/1/key' }),
-		]),
+				expect.objectContaining({ path: ['contents', 0, 'key'] }),
+				expect.objectContaining({ path: ['contents', 1, 'key'] }),
+			]),
 		);
 		expect(() => bundle(input)).toThrow(/contents\.(?:0|1)\.key/);
 		expect(() =>

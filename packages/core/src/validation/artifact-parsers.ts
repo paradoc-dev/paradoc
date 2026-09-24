@@ -29,37 +29,9 @@ import {
 	BundleContentItemSchema,
 	ChecklistItemSchema,
 } from '@paradoc/schemas'
-import { type ZodType, type ZodError } from 'zod'
+import type { ZodType } from 'zod'
 import { assertCurrentSchemaVersion } from '@/serialization/schema-version'
-
-/**
- * Format Zod error for display
- */
-function formatZodError(error: ZodError, schemaName: string): string {
-	const firstIssue = error.issues[0]
-	if (!firstIssue) return `Invalid ${schemaName}: validation failed`
-
-	const path = firstIssue.path.length > 0 ? ` at ${firstIssue.path.join('.')}` : ''
-	return `Invalid ${schemaName}${path}: ${firstIssue.message}`
-}
-
-/**
- * Factory to create a parser function using Zod schema directly
- */
-function createArtifactParser<T>(
-	schemaName: string,
-	schema: ZodType<T>,
-): (input: unknown) => T {
-	return (input: unknown): T => {
-		const result = schema.safeParse(input)
-
-		if (!result.success) {
-			throw new Error(formatZodError(result.error, schemaName))
-		}
-
-		return result.data
-	}
-}
+import { createParser } from './zod-parser'
 
 /**
  * Factory for a whole-artifact parser. Every artifact entry point parses
@@ -69,7 +41,7 @@ function createArtifactParser<T>(
  * bundle part. Only `migrate` accepts another version.
  */
 function createWholeArtifactParser<T>(schemaName: string, schema: ZodType<T>): (input: unknown) => T {
-	const parseSchema = createArtifactParser(schemaName, schema)
+	const parseSchema = createParser(schemaName, schema)
 	return (input: unknown): T => {
 		assertCurrentSchemaVersion(input, { required: false })
 		return parseSchema(input)
@@ -92,24 +64,24 @@ export const parseChecklist = createWholeArtifactParser<Checklist>('Checklist', 
 // Block Parsers (Form components)
 // ─────────────────────────────────────────────────────────────
 
-export const parseFormField = createArtifactParser<FormField>('FormField', FormFieldSchema)
+export const parseFormField = createParser<FormField>('FormField', FormFieldSchema)
 
-export const parseFormAnnex = createArtifactParser<FormAnnex>('FormAnnex', FormAnnexSchema)
+export const parseFormAnnex = createParser<FormAnnex>('FormAnnex', FormAnnexSchema)
 
-export const parseFormParty = createArtifactParser<FormParty>('FormParty', FormPartySchema)
+export const parseFormParty = createParser<FormParty>('FormParty', FormPartySchema)
 
-export const parseLayer = createArtifactParser<Layer>('Layer', LayerSchema)
+export const parseLayer = createParser<Layer>('Layer', LayerSchema)
 
 // ─────────────────────────────────────────────────────────────
 // Collection Item Parsers
 // ─────────────────────────────────────────────────────────────
 
-export const parseBundleContentItem = createArtifactParser<BundleContentItem>(
+export const parseBundleContentItem = createParser<BundleContentItem>(
 	'BundleContentItem',
 	BundleContentItemSchema,
 )
 
-export const parseChecklistItem = createArtifactParser<ChecklistItem>(
+export const parseChecklistItem = createParser<ChecklistItem>(
 	'ChecklistItem',
 	ChecklistItemSchema,
 )

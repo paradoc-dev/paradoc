@@ -8,6 +8,7 @@
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { Layer } from '@paradoc/types'
+import { isDocxMimeType, isPdfMimeType, isTextTemplateMimeType } from '@paradoc/schemas'
 import { textTemplateSigningDirectives, type SigningDirectiveUse } from '@paradoc/render/text'
 import { hasSignatureSlots } from '@/artifacts/form/seal-slots'
 
@@ -25,11 +26,11 @@ const FLOW_SLOT_TYPES: ReadonlySet<string> = new Set(['signature', 'initials'])
  * Layers whose engines draw no flow marker: a PDF template has fixed
  * content, and core's seal passes signing markers to text renderers only.
  */
-const NO_FLOW_LAYERS: Record<string, string> = {
-  'application/pdf': 'PDF',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+function noFlowEngine(mimeType: string): string | undefined {
+  if (isPdfMimeType(mimeType)) return 'PDF'
+  if (isDocxMimeType(mimeType)) return 'DOCX'
+  return undefined
 }
-const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown', 'text/html'])
 
 /**
  * Every 'flow' slot of a layer must be placed by a signing directive of its
@@ -89,7 +90,7 @@ export function validateLayerReferences(artifact: LayeredArtifact): StandardSche
         issues.push({ message: `${at}: party role "${slot.party.role}" is not declared; declared roles: ${listed(roles)}`, path })
       }
       if (slot.placement !== 'flow') continue
-      const engine = NO_FLOW_LAYERS[layer.mimeType.toLowerCase()]
+      const engine = noFlowEngine(layer.mimeType)
       if (engine) {
         issues.push({ message: `${at}: 'flow' placement needs a text-template layer; ${engine} layers use absolute or anchor placement`, path })
       }
@@ -98,7 +99,7 @@ export function validateLayerReferences(artifact: LayeredArtifact): StandardSche
       }
     }
 
-    if (layer.kind === 'inline' && TEXT_MIME_TYPES.has(layer.mimeType.toLowerCase())) {
+    if (layer.kind === 'inline' && isTextTemplateMimeType(layer.mimeType)) {
       issues.push(...flowPlacementIssues(key, layer, textTemplateSigningDirectives(layer.text)))
     }
 

@@ -1,8 +1,8 @@
 /**
- * Validation module - type guards, validators, coercion
+ * Validation module: validators, type guards, parsers
  */
 
-// Zod validators
+// Validators
 export {
   validateForm,
   validateDocument,
@@ -27,7 +27,7 @@ export {
   validatePerson,
   validatePhone,
 } from './validators'
-export type { ValidatorError } from './validators'
+export type { Validator } from './validators'
 
 // Type guards
 export {
@@ -55,12 +55,10 @@ export {
 } from './type-guards'
 
 // Party validation
+export { inferPartyType } from '@/primitives/party'
 export {
   validatePartyForRole,
   isPartyTypeAllowed,
-  isPerson as isPersonParty,
-  isOrganization as isOrganizationParty,
-  inferPartyType,
   expectsArrayFormat,
   validatePartyId,
   validatePartiesForRole,
@@ -68,11 +66,11 @@ export {
 export type { PartyValidationResult, ExtendedValidationResult } from './party'
 
 // Artifact validation
-export { validateSchema, validate as validateArtifact, validateLayers, parseArtifact } from './artifact'
+export { validate as validateArtifact, validateLayers, parseArtifact } from './artifact'
 export type { LayerValidationIssue, ValidateLayersOptions, ValidateLayersResult } from './artifact'
 
 // Data validation
-export { validateFormData, validateInstance } from './data'
+export { validateFormData } from './data'
 
 // Progressive validation
 export {
@@ -102,14 +100,6 @@ export type {
   ValidationResult,
   ValidateOptions,
 } from '@/types'
-
-// Zod schemas re-exported from @paradoc/schemas
-export {
-  FormSchema,
-  DocumentSchema,
-  BundleSchema,
-  ChecklistSchema,
-} from '@paradoc/schemas'
 
 // Primitive parsers (ready-to-use parse functions)
 export {

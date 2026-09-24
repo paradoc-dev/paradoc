@@ -7,7 +7,6 @@ import {
   type TemplateArtifact,
 } from '@/logic/design-time/validation/validate-templates'
 import { parse } from '@/serialization/serialization'
-import { findSchemaVersionError } from '@/serialization/schema-version'
 import { validatePdfLayers, type LayerValidationIssue } from './pdf-layers'
 import { validatePdfBindingPaths } from './pdf-bindings'
 import { validateFileReferences } from './file-references'
@@ -17,7 +16,8 @@ import {
   validateDocument,
   validateChecklist,
   validateBundle,
-} from '@/validation'
+  type Validator,
+} from './validators'
 
 // Re-export ValidateOptions from centralized types.ts
 export type { ValidateOptions } from '@/types'
@@ -28,16 +28,7 @@ import type { ValidateOptions } from '@/types'
 
 type ArtifactKind = 'form' | 'document' | 'checklist' | 'bundle'
 
-// Error format from validators (compatible with both AJV and Zod)
-interface ValidatorError {
-  instancePath?: string
-  message?: string
-  keyword?: string
-  params?: Record<string, unknown>
-}
-
-// Map of artifact kinds to their validators
-const validatorMap: Record<ArtifactKind, (data: unknown) => boolean> = {
+const validatorMap: Record<ArtifactKind, Validator<unknown>> = {
   form: validateForm,
   document: validateDocument,
   checklist: validateChecklist,
@@ -45,43 +36,13 @@ const validatorMap: Record<ArtifactKind, (data: unknown) => boolean> = {
 }
 
 /**
- * Map validator errors to Standard Schema issues
- */
-function mapErrors(errors: ValidatorError[] | null | undefined): StandardSchemaV1.Issue[] {
-  if (!Array.isArray(errors) || errors.length === 0) {
-    return [{ message: 'Validation failed', path: [] }]
-  }
-  return errors.map((err) => ({
-    message: err.message || 'Validation failed',
-    path: err.instancePath?.split('/').filter(Boolean) || [],
-  }))
-}
-
-/**
  * Validates an artifact's schema version and schema structure only.
- * Returns Standard Schema compliant result.
  *
  * A `$schema` the artifact declares, on the root or on an inline bundle part,
  * must name the current schema version; an artifact without one is taken as
  * built in memory. Use `migrate` to upgrade an older artifact.
- *
- * For full validation including logic expressions, use `validate()` instead.
- *
- * @param artifact - The artifact to validate (Form, Document, etc.)
- * @returns Standard Schema Result: { value } or { issues }
- *
- * @example
- * ```typescript
- * const result = validateSchema(myForm);
- *
- * if (result.issues) {
- *   console.error('Schema validation failed:', result.issues);
- * } else {
- *   console.log('Valid artifact structure:', result.value);
- * }
- * ```
  */
-export function validateSchema<T = unknown>(artifact: unknown): StandardSchemaV1.Result<T> {
+function validateSchema<T = unknown>(artifact: unknown): StandardSchemaV1.Result<T> {
   // Check if artifact has a kind property
   if (typeof artifact !== 'object' || artifact === null || !('kind' in artifact)) {
     return {
@@ -93,18 +54,6 @@ export function validateSchema<T = unknown>(artifact: unknown): StandardSchemaV1
       ],
     }
   }
-
-  // The same version rule every entry point applies: a `$schema` the artifact
-  // declares, on the root or on an inline bundle part, must be current.
-  const versionError = findSchemaVersionError(artifact, { required: false })
-  if (versionError) {
-    return { issues: [{ message: versionError.message, path: [...versionError.path] }] }
-  }
-
-  // Strip $schema before validation (it's metadata, not part of the artifact structure)
-  // This avoids issues with unevaluatedProperties: false on Intersect schemas
-  const artifactToValidate = { ...(artifact as Record<string, unknown>) }
-  delete artifactToValidate.$schema
 
   const kind = (artifact as { kind: unknown }).kind
 
@@ -122,23 +71,9 @@ export function validateSchema<T = unknown>(artifact: unknown): StandardSchemaV1
     }
   }
 
-  // Get the validator for this artifact kind
-  const validate = validatorMap[kind as ArtifactKind]
-
-  // Validate using Zod validators
-  const valid = validate(artifactToValidate)
-
-  if (valid) {
-    return {
-      value: artifact as T,
-    }
-  }
-
-  // Map errors to Standard Schema issues
-  const errors = (validate as unknown as { errors: ValidatorError[] }).errors
-  return {
-    issues: mapErrors(errors),
-  }
+  // The artifact validator applies the schema version rule, then the schema
+  const result = validatorMap[kind as ArtifactKind](artifact)
+  return result.issues ? { issues: result.issues } : { value: artifact as T }
 }
 
 /** Artifact kinds that support logic validation */
@@ -358,7 +293,7 @@ export async function validateLayers<T = unknown>(
 
 export const parseArtifact = (
   content: string
-): Form | Document | Checklist | Bundle | undefined => {
+): Form | Document | Checklist | Bundle => {
   let parsed: unknown
 
   try {
@@ -375,21 +310,6 @@ export const parseArtifact = (
       return `${issue.message}${path}`
     })
     throw new Error(`Invalid artifact: ${messages.join(', ')}`)
-  }
-
-  const data = result.value as Form | Document | Checklist | Bundle
-
-  if (data.kind === 'form') {
-    return data as Form
-  }
-  if (data.kind === 'document') {
-    return data as Document
-  }
-  if (data.kind === 'checklist') {
-    return data as Checklist
-  }
-  if (data.kind === 'bundle') {
-    return data as Bundle
   }
 
   return result.value as Form | Document | Checklist | Bundle

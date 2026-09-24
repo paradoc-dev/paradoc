@@ -10,7 +10,7 @@ import { datetime, time } from '@/primitives'
 export type { ValidationError, ValidationSuccess, ValidationFailure, ValidationResult, InstanceTemplate } from '@/types'
 
 // Import types for internal use
-import type { ValidationError, ValidationResult, InstanceTemplate } from '@/types'
+import type { ValidationError, ValidationResult } from '@/types'
 
 /**
  * Build a Zod schema from a compiled JSON Schema
@@ -261,17 +261,10 @@ export function mapZodIssueToValidationError(
 	let message = issue.message
 
 	// Enhance error messages based on code
-	// Zod 4 has different issue codes than Zod 3
 	if (issue.code === 'invalid_type') {
-		const invalidTypeIssue = issue as { expected?: string; received?: string }
-		// Check for undefined - Zod 4 may report as 'undefined' string or include it in the message
-		const isUndefined =
-			invalidTypeIssue.received === 'undefined' ||
-			message.includes('received undefined')
-		if (isUndefined) {
+		// Zod 4 names what it received only in the message
+		if (message.includes('received undefined')) {
 			message = `Missing required field: ${field}`
-		} else if (invalidTypeIssue.expected && invalidTypeIssue.received) {
-			message = `Expected type ${invalidTypeIssue.expected}, received ${invalidTypeIssue.received}`
 		}
 	} else if (issue.code === 'too_small') {
 		const tooSmallIssue = issue as { minimum?: number; type?: string }
@@ -380,23 +373,4 @@ export function validateFormData<F extends Form>(
 		data: null,
 		errors,
 	}
-}
-
-/**
- * Validate an instance template against a form definition
- *
- * This function validates both fields and annexes according to the form's schema.
- * It uses the same validation logic as validateFormData but with proper InstanceTemplate typing.
- *
- * @param form - The form definition (artifact schema)
- * @param instance - The instance template to validate
- * @returns Validation result with success status, data (with defaults applied), and errors
- */
-export function validateInstance<F extends Form>(
-	form: F,
-	instance: InstanceTemplate
-): ValidationResult<InferFormPayload<F>> {
-	// InstanceTemplate extends Record<string, unknown> so it's compatible
-	// with validateFormData which expects { fields: {...}, annexes: {...} }
-	return validateFormData(form, instance)
 }

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { bundle, document, form } from '@/artifacts'
-import { validateBundle, validateSchema } from '@/validation'
+import { validateArtifact, validateBundle } from '@/validation'
 import type { Bundle, BundleContentItem } from '@paradoc/types'
 
 describe('Bundle', () => {
@@ -245,9 +245,8 @@ describe('Bundle', () => {
             ],
           } as any
 
-          expect(validateBundle(input)).toBe(false)
-          expect(validateBundle.errors?.[0]?.instancePath).toBe('/contents/0/artifact')
-          expect(validateSchema(input).issues?.[0]?.path).toEqual(['contents', '0', 'artifact'])
+          expect(validateBundle(input).issues?.[0]?.path).toEqual(['contents', 0, 'artifact'])
+          expect(validateArtifact(input, { logic: false }).issues?.[0]?.path).toEqual(['contents', 0, 'artifact'])
           expect(() => bundle(input)).toThrow('contents.0.artifact')
         })
 

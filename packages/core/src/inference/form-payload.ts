@@ -906,7 +906,9 @@ function compileParty(party: FormParty): JsonSchema {
   const baseSchema = getPartyTypeSchema(party.partyType)
   const max = party.max ?? 1
 
-  // If max > 1, party data can be an array
+  // If max > 1, party data can be an array. An empty list counts as an absent
+  // role, so only a role that is always required sets a minimum here; party
+  // validation applies `min` to a list that names parties.
   if (max > 1) {
     return {
       anyOf: [
@@ -914,7 +916,7 @@ function compileParty(party: FormParty): JsonSchema {
         {
           type: 'array',
           items: baseSchema,
-          minItems: party.min ?? 1,
+          ...(party.required === true && { minItems: Math.max(party.min ?? 1, 1) }),
           maxItems: max,
         },
       ],

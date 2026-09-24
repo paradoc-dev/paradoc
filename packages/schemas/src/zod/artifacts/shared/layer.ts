@@ -159,6 +159,22 @@ export function isPdfMimeType(mimeType: string): boolean {
 	return mimeType.toLowerCase() === 'application/pdf';
 }
 
+/** The DOCX MIME type. */
+export const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+/** Whether a layer's MIME type names a DOCX template. Case-insensitive, as every MIME check here is. */
+export function isDocxMimeType(mimeType: string): boolean {
+	return mimeType.toLowerCase() === DOCX_MIME_TYPE;
+}
+
+/** The MIME types of text templates: layers whose text is a template the text renderer fills. */
+export const TEXT_TEMPLATE_MIME_TYPES = ['text/plain', 'text/markdown', 'text/html'] as const;
+
+/** Whether a layer's MIME type names a text template. Case-insensitive, as every MIME check here is. */
+export function isTextTemplateMimeType(mimeType: string): boolean {
+	return (TEXT_TEMPLATE_MIME_TYPES as readonly string[]).includes(mimeType.toLowerCase());
+}
+
 /**
  * A PDF layer's bindings: each key is a fully qualified AcroForm field name in
  * the template, and each value is the Paradoc path that fills it.

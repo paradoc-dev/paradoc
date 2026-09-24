@@ -49,8 +49,12 @@ export { ArtifactSchema } from './artifacts/shared/base';
 export { ContentRefSchema } from './artifacts/shared/content-ref';
 export { LayerSchema, SignatureSlotSchema, SignatureSlotTypeSchema } from './artifacts/shared/layer';
 export {
+	DOCX_MIME_TYPE,
+	isDocxMimeType,
 	isPdfMimeType,
 	isReactLayerMimeType,
+	isTextTemplateMimeType,
+	TEXT_TEMPLATE_MIME_TYPES,
 	LAYER_BINDINGS_RULE,
 	REACT_LAYER_MIME_PATTERN,
 	REACT_LAYER_MIME_TYPES,

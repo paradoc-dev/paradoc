@@ -5,11 +5,16 @@
  * Party type is inferred from shape - no explicit type discriminator needed.
  */
 
-import { validatePerson, validateOrganization } from '@/validation/validators';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { Party, Person, Organization } from '@paradoc/types';
+import { validatePerson, validateOrganization, type Validator } from '@/validation/validators';
 
 /** Organization-specific property names (not present on Person). */
 const ORG_KEYS = new Set(['legalName', 'domicile', 'entityType', 'entityId', 'taxId']);
+
+function hasOrganizationKey(value: object): boolean {
+  return Object.keys(value).some(k => ORG_KEYS.has(k));
+}
 
 /**
  * Type guard to check if a party is a Person.
@@ -20,7 +25,7 @@ const ORG_KEYS = new Set(['legalName', 'domicile', 'entityType', 'entityId', 'ta
  * @returns true if the party is a Person
  */
 export function isPerson(party: Party): party is Person {
-  return !Object.keys(party).some(k => ORG_KEYS.has(k));
+  return !hasOrganizationKey(party);
 }
 
 /**
@@ -32,7 +37,7 @@ export function isPerson(party: Party): party is Person {
  * @returns true if the party is an Organization
  */
 export function isOrganization(party: Party): party is Organization {
-  return Object.keys(party).some(k => ORG_KEYS.has(k));
+  return hasOrganizationKey(party);
 }
 
 /**
@@ -42,48 +47,61 @@ export function isOrganization(party: Party): party is Organization {
  * @returns 'person' if the party has no org-specific keys, 'organization' otherwise
  */
 export function inferPartyType(party: Party): 'person' | 'organization' {
-  return isPerson(party) ? 'person' : 'organization';
+  return hasOrganizationKey(party) ? 'organization' : 'person';
+}
+
+/** The validators {@link checkParty} checks each party type against. */
+export interface PartyValidators {
+  person: Validator<unknown>;
+  organization: Validator<unknown>;
+}
+
+/** The result of {@link checkParty}. */
+export type PartyCheck =
+  | { success: true; type: 'person' | 'organization'; data: Party }
+  | { success: false; type?: 'person' | 'organization'; error: string };
+
+function firstMessage(issues: readonly StandardSchemaV1.Issue[]): string {
+  return issues[0]?.message ?? 'validation failed';
 }
 
 /**
- * Parse an unknown input into a Party (Person or Organization).
- * Type is inferred from shape:
- * - If any org-specific key is present (legalName, domicile, entityType, entityId, taxId), validates as Organization
- * - Otherwise validates as Person
+ * Check a value as a party. The type is inferred from shape: a value with any
+ * organization-specific key (legalName, domicile, entityType, entityId,
+ * taxId) is checked as an Organization, any other as a Person. Every party
+ * check in core goes through this; `validators` picks the schemas, such as
+ * the runtime schemas that also require the party `id`.
+ */
+export function checkParty(
+  input: unknown,
+  validators: PartyValidators = { person: validatePerson, organization: validateOrganization },
+): PartyCheck {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    return { success: false, error: 'Invalid party: must be an object' };
+  }
+  if (!('name' in input)) {
+    return { success: false, error: 'Invalid party: must have a name property' };
+  }
+  const type = hasOrganizationKey(input) ? 'organization' : 'person';
+  const result = validators[type](input);
+  if (result.issues) {
+    return { success: false, type, error: `Invalid ${type} data: ${firstMessage(result.issues)}` };
+  }
+  return { success: true, type, data: input as Party };
+}
+
+/**
+ * Parse an unknown input into a Party (Person or Organization), with the type
+ * inferred from shape as {@link checkParty} does.
  *
  * @param input - The input to parse
  * @returns Validated Party data
- * @throws Error if validation fails or shape cannot be determined
+ * @throws Error if validation fails
  */
 function parse(input: unknown): Party {
-  if (typeof input !== 'object' || input === null) {
-    throw new Error('Invalid party: must be an object');
-  }
-
-  const obj = input as Record<string, unknown>;
-
-  if (!('name' in obj)) {
-    throw new Error('Invalid party: must have a name property');
-  }
-
-  // Check if it has org-specific keys
-  const hasOrgKey = Object.keys(obj).some(k => ORG_KEYS.has(k));
-
-  if (hasOrgKey) {
-    // Validate as Organization
-    if (!validateOrganization(obj)) {
-      const errors = (validateOrganization as unknown as { errors: Array<{ message?: string }> }).errors;
-      throw new Error(`Invalid organization data: ${errors?.[0]?.message || 'validation failed'}`);
-    }
-    return obj as unknown as Party;
-  }
-
-  // Validate as Person
-  if (!validatePerson(obj)) {
-    const errors = (validatePerson as unknown as { errors: Array<{ message?: string }> }).errors;
-    throw new Error(`Invalid person data: ${errors?.[0]?.message || 'validation failed'}`);
-  }
-  return obj as unknown as Party;
+  const result = checkParty(input);
+  if (!result.success) throw new Error(result.error);
+  return result.data;
 }
 
 /**

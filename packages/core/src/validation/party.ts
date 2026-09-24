@@ -12,7 +12,7 @@
  */
 
 import type { FormParty, Party } from '@paradoc/types';
-import { inferPartyType, isPerson, isOrganization } from '@/primitives/party';
+import { checkParty, inferPartyType } from '@/primitives/party';
 import { evaluateGate } from '@/logic/runtime/evaluation/expression-evaluator';
 import type { EvaluationContext } from '@/logic/runtime/evaluation/types';
 import { validateRuntimePerson, validateRuntimeOrganization } from './validators';
@@ -69,44 +69,14 @@ export function validatePartyForRole(
   data: unknown,
   formParty: FormParty
 ): PartyValidationResult {
-  // Basic object check
-  if (typeof data !== 'object' || data === null) {
-    return { success: false, error: 'Invalid party data: must be an object' };
+  const checked = checkParty(data, {
+    person: validateRuntimePerson,
+    organization: validateRuntimeOrganization,
+  });
+  if (!checked.success) {
+    return { success: false, error: checked.error, inferredType: checked.type };
   }
-
-  const obj = data as Record<string, unknown>;
-  let inferredType: 'person' | 'organization';
-
-  // Must have name
-  if (!('name' in obj)) {
-    return {
-      success: false,
-      error: 'Party must have a name property',
-    };
-  }
-
-  // Infer type from shape: org-specific keys → organization, otherwise → person
-  if (isOrganization(obj as unknown as Party)) {
-    inferredType = 'organization';
-    if (!validateRuntimeOrganization(obj)) {
-      const errors = (validateRuntimeOrganization as unknown as { errors: Array<{ message?: string }> }).errors;
-      return {
-        success: false,
-        error: `Invalid organization data: ${errors?.[0]?.message || 'validation failed'}`,
-        inferredType,
-      };
-    }
-  } else {
-    inferredType = 'person';
-    if (!validateRuntimePerson(obj)) {
-      const errors = (validateRuntimePerson as unknown as { errors: Array<{ message?: string }> }).errors;
-      return {
-        success: false,
-        error: `Invalid person data: ${errors?.[0]?.message || 'validation failed'}`,
-        inferredType,
-      };
-    }
-  }
+  const inferredType = checked.type;
 
   // Check FormParty.partyType constraint
   const allowed = formParty.partyType ?? 'any';
@@ -166,9 +136,6 @@ export function getEffectivePartyMinimum(formParty: FormParty): number {
     ? Math.max(declaredMinimum, 1)
     : declaredMinimum
 }
-
-// Re-export type guards for convenience
-export { isPerson, isOrganization, inferPartyType };
 
 /**
  * Determine if a role expects array format based on max value.
@@ -250,8 +217,8 @@ export function validatePartiesForRole(
   const max = formParty.max ?? 1;
   const expectsArray = max > 1;
 
-  // Handle undefined/null parties
-  if (parties === undefined || parties === null) {
+  // An absent role, and an empty list for a multi-party role, give no parties
+  if (parties === undefined || parties === null || (expectsArray && Array.isArray(parties) && parties.length === 0)) {
     if (min > 0 && (formParty.required === true || formParty.required === undefined)) {
       errors.push(`Role "${roleId}" requires at least ${min} party(ies)`);
     }

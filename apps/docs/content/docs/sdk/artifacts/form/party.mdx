@@ -9,6 +9,8 @@ Party data format is determined by `max`:
 - `max = 1` (default): single party object with required `id`
 - `max > 1`: array of party objects, each with required `id`
 
+An empty list for a `max > 1` role counts as an absent role. A role whose `required` is `false`, or whose `required` expression evaluates to false, may be absent or empty; `min` then applies only to a list that names parties.
+
 ## Examples
 
 ### Creating parties

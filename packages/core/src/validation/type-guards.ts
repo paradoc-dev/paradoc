@@ -1,11 +1,6 @@
 /**
- * TypeScript-Safe Validator Wrappers
- *
- * This module provides type-safe wrappers around runtime AJV validators.
- * Validators are compiled on-demand and cached for performance.
- * We provide:
- * - Type guards: `isForm(x): x is Form`
- * - Raw validators: `validateForm(x): boolean`
+ * Type guards over the runtime validators: `isForm(x): x is Form` holds when
+ * `validateForm(x)` reports no issues.
  */
 
 import type {
@@ -54,46 +49,26 @@ import {
   validatePhone,
 } from './validators'
 
-// Alias for internal use
-const _validateForm = validateForm
-const _validateDocument = validateDocument
-const _validateBundle = validateBundle
-const _validateChecklist = validateChecklist
-const _validateFormField = validateFormField
-const _validateFormAnnex = validateFormAnnex
-const _validateFormParty = validateFormParty
-const _validateSignature = validateSignature
-const _validateAttachment = validateAttachment
-const _validateLayer = validateLayer
-const _validateAddress = validateAddress
-const _validateBbox = validateBbox
-const _validateCoordinate = validateCoordinate
-const _validateDuration = validateDuration
-const _validateIdentification = validateIdentification
-const _validateMetadata = validateMetadata
-const _validateMoney = validateMoney
-const _validateOrganization = validateOrganization
-const _validatePerson = validatePerson
-const _validatePhone = validatePhone
+import { checkParty } from '@/primitives/party'
 
 // =============================================================================
 // Artifact Type Guards
 // =============================================================================
 
 export function isForm(value: unknown): value is Form {
-  return _validateForm(value)
+  return !validateForm(value).issues
 }
 
 export function isDocument(value: unknown): value is Document {
-  return _validateDocument(value)
+  return !validateDocument(value).issues
 }
 
 export function isBundle(value: unknown): value is Bundle {
-  return _validateBundle(value)
+  return !validateBundle(value).issues
 }
 
 export function isChecklist(value: unknown): value is Checklist {
-  return _validateChecklist(value)
+  return !validateChecklist(value).issues
 }
 
 // =============================================================================
@@ -101,19 +76,19 @@ export function isChecklist(value: unknown): value is Checklist {
 // =============================================================================
 
 export function isFormField(value: unknown): value is FormField {
-  return _validateFormField(value)
+  return !validateFormField(value).issues
 }
 
 export function isFormAnnex(value: unknown): value is FormAnnex {
-  return _validateFormAnnex(value)
+  return !validateFormAnnex(value).issues
 }
 
 export function isFormParty(value: unknown): value is FormParty {
-  return _validateFormParty(value)
+  return !validateFormParty(value).issues
 }
 
 export function isLayer(value: unknown): value is Layer {
-  return _validateLayer(value)
+  return !validateLayer(value).issues
 }
 
 // =============================================================================
@@ -121,28 +96,19 @@ export function isLayer(value: unknown): value is Layer {
 // =============================================================================
 
 /**
- * Shape-based type guard for Party.
- * Checks if value is a valid Person or Organization based on shape.
- *
- * - Organization: has org-specific keys (legalName, domicile, entityType, entityId, taxId)
- * - Person: has `name` but no org-specific keys
+ * Type guard for Party: a valid Person or Organization, the type inferred
+ * from shape as `checkParty` infers it.
  */
 export function isParty(value: unknown): value is Party {
-  if (typeof value !== 'object' || value === null) return false
-  const obj = value as Record<string, unknown>
-  if (!('name' in obj)) return false
-  const orgKeys = ['legalName', 'domicile', 'entityType', 'entityId', 'taxId']
-  const hasOrgKey = Object.keys(obj).some(k => orgKeys.includes(k))
-  if (hasOrgKey) return _validateOrganization(value)
-  return _validatePerson(value)
+  return checkParty(value).success
 }
 
 export function isSignature(value: unknown): value is Signature {
-  return _validateSignature(value)
+  return !validateSignature(value).issues
 }
 
 export function isAttachment(value: unknown): value is Attachment {
-  return _validateAttachment(value)
+  return !validateAttachment(value).issues
 }
 
 // =============================================================================
@@ -150,71 +116,41 @@ export function isAttachment(value: unknown): value is Attachment {
 // =============================================================================
 
 export function isAddress(value: unknown): value is Address {
-  return _validateAddress(value)
+  return !validateAddress(value).issues
 }
 
 export function isBbox(value: unknown): value is Bbox {
-  return _validateBbox(value)
+  return !validateBbox(value).issues
 }
 
 export function isCoordinate(value: unknown): value is Coordinate {
-  return _validateCoordinate(value)
+  return !validateCoordinate(value).issues
 }
 
 export function isDuration(value: unknown): value is Duration {
-  return _validateDuration(value)
+  return !validateDuration(value).issues
 }
 
 export function isIdentification(value: unknown): value is Identification {
-  return _validateIdentification(value)
+  return !validateIdentification(value).issues
 }
 
 export function isMetadata(value: unknown): value is Metadata {
-  return _validateMetadata(value)
+  return !validateMetadata(value).issues
 }
 
 export function isMoney(value: unknown): value is Money {
-  return _validateMoney(value)
+  return !validateMoney(value).issues
 }
 
 export function isOrganization(value: unknown): value is Organization {
-  return _validateOrganization(value)
+  return !validateOrganization(value).issues
 }
 
 export function isPerson(value: unknown): value is Person {
-  return _validatePerson(value)
+  return !validatePerson(value).issues
 }
 
 export function isPhone(value: unknown): value is Phone {
-  return _validatePhone(value)
+  return !validatePhone(value).issues
 }
-
-// =============================================================================
-// Raw Validator Exports (for advanced use)
-// =============================================================================
-
-// Re-export validators directly
-export {
-  validateForm,
-  validateDocument,
-  validateBundle,
-  validateChecklist,
-  validateFormField,
-  validateFormAnnex,
-  validateFormParty,
-  validateSignature,
-  validateAttachment,
-  validateLayer,
-  validateAddress,
-  validateBbox,
-  validateCoordinate,
-  validateDuration,
-  validateIdentification,
-  validateMetadata,
-  validateMoney,
-  validateOrganization,
-  validatePerson,
-  validatePhone,
-  validateChecklistItem,
-  validateBundleContentItem,
-} from './validators'

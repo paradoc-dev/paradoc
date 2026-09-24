@@ -105,7 +105,7 @@ function getSchemaAtPath(rootSchema: JsonSchemaObject, path: string[]): JsonSche
 			return null
 		}
 
-		const nextSchema = properties[segment]
+		const nextSchema = Object.hasOwn(properties, segment) ? properties[segment] : undefined
 		if (!isRecord(nextSchema)) {
 			return null
 		}
@@ -172,7 +172,7 @@ function collectUnknownKeysForObjectSchema(
 
 	const errors: ValidationError[] = []
 	for (const [key, nestedValue] of Object.entries(value)) {
-		const nestedSchema = properties[key]
+		const nestedSchema = Object.hasOwn(properties, key) ? properties[key] : undefined
 		if (!isRecord(nestedSchema)) {
 			const fieldPath = ['fields', ...pathPrefix].join('.')
 			errors.push(createValidationError(fieldPath, `Unknown field(s): ${key}`))

@@ -10,6 +10,7 @@
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { FileLayer, Form, Resolver } from '@paradoc/types'
+import { isPdfMimeType } from '@paradoc/schemas'
 import { resolveLayerBindings } from '@paradoc/render'
 import { checkPdfBindingFit, inspectAcroFormFields, type PdfBindingFitIssue } from '@paradoc/render/pdf'
 
@@ -17,8 +18,6 @@ import { checkPdfBindingFit, inspectAcroFormFields, type PdfBindingFitIssue } fr
 export interface LayerValidationIssue extends StandardSchemaV1.Issue {
   readonly severity: 'error' | 'warning'
 }
-
-const PDF_MIME_TYPE = 'application/pdf'
 
 function issueFor(key: string, issue: PdfBindingFitIssue): LayerValidationIssue {
   return {
@@ -63,7 +62,7 @@ export async function validatePdfLayers(form: Form, resolver: Resolver): Promise
   const layers = form.layers ?? {}
   const issues: LayerValidationIssue[] = []
   for (const [key, layer] of Object.entries(layers)) {
-    if (layer.kind !== 'file' || layer.mimeType.toLowerCase() !== PDF_MIME_TYPE) continue
+    if (layer.kind !== 'file' || !isPdfMimeType(layer.mimeType)) continue
     const fileLayer = layer as FileLayer
     const { font } = fileLayer
     let template: Uint8Array

@@ -13,11 +13,10 @@ import type { Checklist, Form, Layer, Resolver } from '@paradoc/types'
 import { createTypeEnv, T, type ExprType, type TypeEnv } from '@paradoc/expr'
 import { checkTextTemplate, textTemplateSigningDirectives, type TemplateDiagnostic } from '@paradoc/render/text'
 import { checkDocxTemplate } from '@paradoc/render/docx'
+import { isDocxMimeType, isTextTemplateMimeType } from '@paradoc/schemas'
 import { flowPlacementIssues } from '@/validation/layer-references'
 import { buildFormTypeAcc, registerPartyTypes } from '../type-checking/build-type-environment'
 
-const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown', 'text/html'])
-const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 /** An artifact whose layers carry templates. */
 export interface TemplateArtifact {
@@ -73,7 +72,7 @@ function issueFor(key: string, diagnostic: TemplateDiagnostic): StandardSchemaV1
 }
 
 function isTextLayer(layer: Layer): boolean {
-  return TEXT_MIME_TYPES.has(layer.mimeType.toLowerCase())
+  return isTextTemplateMimeType(layer.mimeType)
 }
 
 /** Check the template expressions of every inline text layer. */
@@ -93,7 +92,7 @@ export function validateInlineTemplates(artifact: TemplateArtifact): StandardSch
  */
 export async function validateFileTemplates(artifact: TemplateArtifact, resolver: Resolver): Promise<StandardSchemaV1.Issue[]> {
   const layers = Object.entries(artifact.layers ?? {}).filter(([, layer]) =>
-    layer.kind === 'file' && (isTextLayer(layer) || layer.mimeType.toLowerCase() === DOCX_MIME_TYPE))
+    layer.kind === 'file' && (isTextLayer(layer) || isDocxMimeType(layer.mimeType)))
   if (layers.length === 0) return []
   const env = buildTemplateTypeEnvironment(artifact)
   const issues: StandardSchemaV1.Issue[] = []

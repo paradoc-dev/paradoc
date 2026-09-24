@@ -6,6 +6,9 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Fixed
 
+- `@paradoc/core`: an empty list for an optional multi-party role passes, as an absent role does. `validatePartiesForRole` and the compiled payload schema failed `[]` with `requires at least 1 party(ies)` for a role whose `required` is `false` or evaluates to false, so a fill the fill state reported complete did not validate. `min` applies to a list that names parties.
+- `@paradoc/core`: `validateFieldInput` rejects `__proto__` as an unknown field path. The schema lookup read inherited properties, so any value passed at that path.
+- `@paradoc/core`: `isForm`, `isDocument`, `isChecklist` and `isBundle`, and their validators, apply the schema version rule of every other artifact entry point: a `$schema` the artifact declares must be current.
 - `@paradoc/sdk`: `hostedSealAdapter` calls `POST /v1/exec/convert`, the route the Platform API serves, exported as `HOSTED_CONVERT_PATH`. It called `/v1/execution/convert`, so every hosted conversion failed with a 404.
 - `@paradoc/sdk`: `hostedSealAdapter` throws `HostedConversionError` when the PDF in a conversion response is not valid base64. It threw a raw `SyntaxError`.
 - `@paradoc/sdk`: `renderLayer` from the SDK is core's `renderLayer(layers, layerKey, options)`, as it is from `@paradoc/core`. The SDK exported render's renderer factory under that name, which hid core's function.
@@ -179,6 +182,9 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Changed
 
+- **Breaking.** `@paradoc/core`: `validateForm`, `validatePerson` and the other schema validators return a Standard Schema result, `{ value }` or `{ issues }`, in place of a boolean with a shared mutable `.errors` in an AJV shape. Issue paths keep numeric indexes as numbers.
+- `@paradoc/core`: one Zod parser factory and issue mapping serve the primitive and artifact parsers and the validators, and one party check infers a party's type from its shape for `isParty`, `partyData.parse` and `validatePartyForRole`. A party that is not an object or has no name reads `Invalid party: must be an object` or `Invalid party: must have a name property` from each.
+- `@paradoc/schemas`: `isDocxMimeType`, `isTextTemplateMimeType`, `DOCX_MIME_TYPE` and `TEXT_TEMPLATE_MIME_TYPES` join `isPdfMimeType`; core's layer validation uses them in place of its own MIME strings.
 - `@paradoc/render`: the MIME-selected renderer factory is `createLayerRenderer(options)`, and its options type is `CreateLayerRendererOptions`. It was `renderLayer`, the name of core's layer-rendering function, so the SDK could export only one of them.
 - `@paradoc/sdk`: `hostedSealAdapter` takes `timeoutMs` in place of `signal`. The timeout starts with each conversion request. A signal given to the adapter started its timer when the adapter was created, so every request after that time was aborted before it was sent.
 - `@paradoc/format` and `@paradoc/types`: `cacheStats()` reports every cache a formatter keeps: `number`, `money`, `percentage`, `date`, `datetime`, `time`, `timeZone`, `duration`, `durationPlural`, `durationList`, and `selectionList`. It reported only the first three. `FormatterCacheStats` has a key per `FormatterCacheBucket`, exported from `@paradoc/types` and `@paradoc/format`.
