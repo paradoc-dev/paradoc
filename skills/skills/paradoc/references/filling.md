@@ -237,9 +237,10 @@ const draft = p.form(definition).fill(sessionPayload(view.projected, runtime)); 
 
 | Part | Detail |
 |------|--------|
-| Commands | `answer`, `revise`, `clear`, `defer`/`undefer`, `skip`/`unskip`, `answerParty` (`roleId`, `index?`, `value`; indices in order from 0 for a role with `max` above 1), `answerAnnex` (`annexId`, `value`), `clearAnnex`, `present`, `validate`, `render`, `abandon` |
+| Commands | `start`, `prefill` (`values` by field path, `lockedPaths?`; each value checked against its field schema; visibility is not checked), `answer` and `revise` (`fieldPath`, `value`, `source`), `clear`, `defer`/`undefer`, `skip`/`unskip`, `answerParty` (`roleId`, `index?`, `value`; indices in order from 0 for a role with `max` above 1), `answerAnnex` (`annexId`, `value`), `clearAnnex`, `present`, `validate`, `render`, `abandon` |
+| Coercion | Only inputs with one reading: `"36"` to 36, yes/no to a boolean, JSON strings for lists and composites, `"25"` or `"25 EUR"` to money (the field's `currency` when none is given; never an invented one). Dates are not parsed: use `YYYY-MM-DD`. A phone number needs a leading `+`, unless `createParadocRuntime(definition, { defaultCallingCode: "+1" })` supplies one. |
 | Actor | `{ kind: "user" }`, `{ kind: "agent", model }`, `{ kind: "system", reason }` |
-| Error codes | `field-not-found`, `field-not-visible`, `field-locked`, `invalid-value`, `stale-state`, `party-not-found`, `party-index-out-of-order`, `annex-not-found`, `session-not-active`, and others on `CommandErrorCode` |
+| Error codes | `field-not-found`, `field-not-visible`, `field-locked`, `invalid-value`, `stale-state`, `party-not-found`, `party-index-out-of-order`, `annex-not-found`, `session-not-active`, `session-already-started`, and others on `CommandErrorCode` |
 | Options | `execute(..., { expectedEventCount, now })`: `expectedEventCount` rejects with `stale-state` when another writer appended first |
 | View | Also `pendingParties`, `pendingAnnexes`, `fieldIndex` (status and `locked` per field), `partyIndex` (status, `max`, `filled`) and `annexIndex`. The phase is `ready` only when no required field, party, or annex is open. |
 | Storage | Persist `session.events` append-only, in order, with no duplicates. `deriveView` replays the log as given. |

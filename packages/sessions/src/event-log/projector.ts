@@ -93,7 +93,7 @@ function applyEvent(p: ProjectedSession, ev: SessionEvent): void {
 			const existing = p.answers[ev.fieldPath];
 			p.answers[ev.fieldPath] = {
 				value: ev.value,
-				source: existing?.source ?? "user",
+				source: ev.source,
 				at: ev.at,
 				revisions: (existing?.revisions ?? 0) + 1,
 			};

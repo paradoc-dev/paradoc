@@ -37,8 +37,16 @@ export type FormSession = {
  * `execute()` decides what events (if any) to append.
  */
 export type Command =
+	/** Open the session log; only valid on a session with no events. */
+	| { kind: "start" }
+	/**
+	 * Apply host-supplied values, each checked against its field schema (not
+	 * visibility: prefill precedes the answers visibility depends on), and lock
+	 * `lockedPaths` (field paths the artifact defines) against change.
+	 */
+	| { kind: "prefill"; values: Record<string, unknown>; lockedPaths?: string[] }
 	| { kind: "answer"; fieldPath: string; value: unknown; source: Source }
-	| { kind: "revise"; fieldPath: string; value: unknown }
+	| { kind: "revise"; fieldPath: string; value: unknown; source: Source }
 	| { kind: "clear"; fieldPath: string }
 	| { kind: "defer"; fieldPath: string; note?: string }
 	| { kind: "undefer"; fieldPath: string }
@@ -78,6 +86,7 @@ export type CommandErrorCode =
 	| "annex-not-answered"
 	| "stale-state"
 	| "session-not-active"
+	| "session-already-started"
 	| "invalid-value";
 
 export type CommandResult =

@@ -105,6 +105,78 @@ export function execute(
 	}
 
 	switch (cmd.kind) {
+		case "start": {
+			if (session.events.length > 0) {
+				return reject(
+					"session-already-started",
+					`session already has ${session.events.length} events`,
+				);
+			}
+			const emitted: SessionEvent[] = [
+				{
+					v: 1,
+					t: "SessionStarted",
+					at: now(),
+					by: actor,
+					artifact: session.artifactRef.name,
+				},
+			];
+			return { ok: true, session: appendEvents(session, emitted), emitted };
+		}
+
+		case "prefill": {
+			const values: Record<string, unknown> = {};
+			const sources: Record<string, "prefill"> = {};
+			for (const [fieldPath, value] of Object.entries(cmd.values)) {
+				if (!runtime.hasField(fieldPath)) {
+					return reject(
+						"field-not-found",
+						`prefill field ${fieldPath} does not exist on the artifact`,
+					);
+				}
+				if (projected.lockedPaths.has(fieldPath)) return lockedReason(fieldPath);
+				if (fieldPath in projected.answers) {
+					return reject(
+						"field-already-answered",
+						`prefill field ${fieldPath} is already answered`,
+					);
+				}
+				const validation = runtime.validateField(fieldPath, value);
+				if (!validation.ok) {
+					return reject(
+						"invalid-value",
+						`prefill field ${fieldPath}: ${
+							validation.issues.map((i) => i.message).join("; ") ||
+							"value rejected by field schema"
+						}`,
+					);
+				}
+				values[fieldPath] = validation.value;
+				sources[fieldPath] = "prefill";
+			}
+			const lockedPaths = cmd.lockedPaths ?? [];
+			for (const fieldPath of lockedPaths) {
+				if (!runtime.hasField(fieldPath)) {
+					return reject(
+						"field-not-found",
+						`locked field ${fieldPath} does not exist on the artifact`,
+					);
+				}
+			}
+			const emitted: SessionEvent[] = [
+				{
+					v: 1,
+					t: "PrefillApplied",
+					at: now(),
+					by: actor,
+					values,
+					sources,
+					lockedPaths: [...lockedPaths],
+				},
+			];
+			return { ok: true, session: appendEvents(session, emitted), emitted };
+		}
+
 		case "answer": {
 			if (!runtime.hasField(cmd.fieldPath)) {
 				return reject(
@@ -193,6 +265,7 @@ export function execute(
 					fieldPath: cmd.fieldPath,
 					previous: existing.value,
 					value: validation.value,
+					source: cmd.source,
 				},
 			];
 			return { ok: true, session: appendEvents(session, emitted), emitted };

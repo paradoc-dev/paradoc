@@ -27,6 +27,7 @@ export type {
 	SessionView,
 } from "./engine/derive";
 export { createParadocRuntime } from "./engine/paradoc-runtime";
+export type { CoercionOptions } from "./engine/coerce";
 
 // ─── Event log ───────────────────────────────────────────────────────────
 export type {

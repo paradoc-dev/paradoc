@@ -85,6 +85,7 @@ export type SessionEvent =
 			fieldPath: string;
 			previous: unknown;
 			value: unknown;
+			source: Source;
 	  }
 	| {
 			v: 1;

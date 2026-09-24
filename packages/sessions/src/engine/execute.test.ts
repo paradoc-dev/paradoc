@@ -139,7 +139,7 @@ describe("execute — resolved presentation contract", () => {
 		const revised = execute(
 			reviseSession,
 			rt,
-			{ kind: "revise", fieldPath: "/name", value: "New" },
+			{ kind: "revise", fieldPath: "/name", value: "New", source: "user" },
 			USER,
 			{ now: nextTick },
 		);
@@ -174,7 +174,7 @@ describe("execute — resolved presentation contract", () => {
 		const result = execute(
 			session,
 			rt,
-			{ kind: "revise", fieldPath: "/name", value: "New" },
+			{ kind: "revise", fieldPath: "/name", value: "New", source: "user" },
 			USER,
 			{ now: nextTick },
 		);
@@ -198,7 +198,7 @@ describe("execute — resolved presentation contract", () => {
 		const result = execute(
 			session,
 			rt,
-			{ kind: "revise", fieldPath: "/license", value: "def" },
+			{ kind: "revise", fieldPath: "/license", value: "def", source: "user" },
 			USER,
 			{ now: nextTick },
 		);
@@ -320,7 +320,7 @@ describe("execute — revise", () => {
 		const result = execute(
 			session,
 			rt,
-			{ kind: "revise", fieldPath: "/name", value: "New" },
+			{ kind: "revise", fieldPath: "/name", value: "New", source: "user" },
 			USER,
 			{ now: nextTick },
 		);
@@ -340,7 +340,7 @@ describe("execute — revise", () => {
 		const result = execute(
 			session,
 			rt,
-			{ kind: "revise", fieldPath: "/name", value: "X" },
+			{ kind: "revise", fieldPath: "/name", value: "X", source: "user" },
 			USER,
 			{ now: nextTick },
 		);
@@ -366,7 +366,7 @@ describe("execute — revise", () => {
 		const result = execute(
 			session,
 			rt,
-			{ kind: "revise", fieldPath: "/age", value: -5 },
+			{ kind: "revise", fieldPath: "/age", value: -5, source: "user" },
 			USER,
 			{ now: nextTick },
 		);
@@ -895,7 +895,7 @@ describe("execute — locked prefill fields", () => {
 		const result = execute(
 			session,
 			rt,
-			{ kind: "revise", fieldPath: "/ssn", value: "000-00-0000" },
+			{ kind: "revise", fieldPath: "/ssn", value: "000-00-0000", source: "user" },
 			AGENT,
 			{ now: nextTick },
 		);
@@ -936,7 +936,7 @@ describe("execute — locked prefill fields", () => {
 		const revised = execute(
 			session,
 			rt,
-			{ kind: "revise", fieldPath: "/ssn", value: "000-00-0000" },
+			{ kind: "revise", fieldPath: "/ssn", value: "000-00-0000", source: "user" },
 			AGENT,
 			{ now: nextTick },
 		);
@@ -1031,5 +1031,115 @@ describe("execute — end-to-end scripted walkthrough", () => {
 			"FieldSkipped",
 			"DocumentRendered",
 		]);
+	});
+});
+
+describe("execute — start", () => {
+	it("opens an empty session with SessionStarted naming the artifact", () => {
+		const result = execute(emptySession(), makeRuntime({ fields: [] }), { kind: "start" }, SYSTEM, {
+			now: nextTick,
+		});
+		expect(result.ok).toBe(true);
+		if (!result.ok) throw new Error("unreachable");
+		expect(result.emitted).toEqual([
+			{ v: 1, t: "SessionStarted", at: "2026-01-01T00:00:01.000Z", by: SYSTEM, artifact: "test-form" },
+		]);
+	});
+
+	it("rejects a second start", () => {
+		const rt = makeRuntime({ fields: [] });
+		const started = execute(emptySession(), rt, { kind: "start" }, SYSTEM, { now: nextTick });
+		if (!started.ok) throw new Error("unreachable");
+		const again = execute(started.session, rt, { kind: "start" }, SYSTEM, { now: nextTick });
+		expect(again).toMatchObject({ ok: false, code: "session-already-started" });
+	});
+});
+
+describe("execute — prefill", () => {
+	const rt = makeRuntime({
+		fields: ["/name", "/age"],
+		validate: (fp, v) => fp !== "/age" || typeof v === "number",
+	});
+
+	it("applies validated values with prefill source and locks the named paths", () => {
+		const result = execute(
+			emptySession(),
+			rt,
+			{ kind: "prefill", values: { "/name": "Acme" }, lockedPaths: ["/name"] },
+			SYSTEM,
+			{ now: nextTick },
+		);
+		expect(result.ok).toBe(true);
+		if (!result.ok) throw new Error("unreachable");
+		expect(result.emitted[0]).toMatchObject({
+			t: "PrefillApplied",
+			values: { "/name": "Acme" },
+			sources: { "/name": "prefill" },
+			lockedPaths: ["/name"],
+		});
+		const revise = execute(
+			result.session,
+			rt,
+			{ kind: "revise", fieldPath: "/name", value: "Other", source: "user" },
+			USER,
+			{ now: nextTick },
+		);
+		expect(revise).toMatchObject({ ok: false, code: "field-locked" });
+	});
+
+	it("stores the value the runtime's validation returns", () => {
+		const coercing: ArtifactRuntime = {
+			...rt,
+			validateField: (_fp, v) => ({ ok: true, value: Number(v) }),
+		};
+		const result = execute(emptySession(), coercing, { kind: "prefill", values: { "/age": "20" } }, SYSTEM);
+		if (!result.ok) throw new Error("unreachable");
+		expect(result.emitted[0]).toMatchObject({ values: { "/age": 20 } });
+	});
+
+	it.each<[string, { values: Record<string, unknown>; lockedPaths?: string[] }, string]>([
+		["an unknown value path", { values: { "/nope": 1 } }, "field-not-found"],
+		["an invalid value", { values: { "/age": "old" } }, "invalid-value"],
+		["an unknown locked path", { values: {}, lockedPaths: ["/nope"] }, "field-not-found"],
+	])("rejects %s and emits nothing", (_label, cmd, code) => {
+		const session = emptySession();
+		const result = execute(session, rt, { kind: "prefill", ...cmd }, SYSTEM);
+		expect(result).toMatchObject({ ok: false, code });
+		if (result.ok) throw new Error("unreachable");
+		expect(result.reason).toContain("/");
+		expect(session.events).toHaveLength(0);
+	});
+
+	it("rejects a value for a path that is already answered or locked", () => {
+		const answered = emptySession([
+			{ v: 1, t: "FieldAnswered", at: "t", by: USER, fieldPath: "/name", value: "A", source: "user" },
+		]);
+		expect(execute(answered, rt, { kind: "prefill", values: { "/name": "B" } }, SYSTEM)).toMatchObject({
+			ok: false,
+			code: "field-already-answered",
+		});
+		const locked = emptySession([
+			{ v: 1, t: "PrefillApplied", at: "t", by: SYSTEM, values: {}, sources: {}, lockedPaths: ["/age"] },
+		]);
+		expect(execute(locked, rt, { kind: "prefill", values: { "/age": 3 } }, SYSTEM)).toMatchObject({
+			ok: false,
+			code: "field-locked",
+		});
+	});
+});
+
+describe("execute — revise source", () => {
+	it("records the revision's own source over a prefilled one", () => {
+		const rt = makeRuntime({ fields: ["/name"] });
+		const prefilled = execute(emptySession(), rt, { kind: "prefill", values: { "/name": "Pre" } }, SYSTEM);
+		if (!prefilled.ok) throw new Error("unreachable");
+		const revised = execute(
+			prefilled.session,
+			rt,
+			{ kind: "revise", fieldPath: "/name", value: "Mine", source: "user" },
+			USER,
+		);
+		if (!revised.ok) throw new Error("unreachable");
+		expect(revised.emitted[0]).toMatchObject({ t: "FieldRevised", source: "user" });
 	});
 });

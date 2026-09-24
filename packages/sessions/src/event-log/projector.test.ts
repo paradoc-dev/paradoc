@@ -188,7 +188,7 @@ describe("project — FieldAnswered", () => {
 });
 
 describe("project — FieldRevised", () => {
-	it("updates value and bumps revisions, preserving source from prior answer", () => {
+	it("updates value and bumps revisions, taking the revision's source", () => {
 		const p = project([
 			{
 				v: 1,
@@ -207,26 +207,20 @@ describe("project — FieldRevised", () => {
 				fieldPath: "/age",
 				previous: 20,
 				value: 21,
+				source: "user",
 			},
 		]);
 		expect(p.answers["/age"]?.value).toBe(21);
-		expect(p.answers["/age"]?.source).toBe("prefill");
+		expect(p.answers["/age"]?.source).toBe("user");
 		expect(p.answers["/age"]?.revisions).toBe(1);
 	});
 
-	it("defaults source to 'user' when revising a path with no prior answer", () => {
+	it("keeps a non-user source when the revision carries one", () => {
 		const p = project([
-			{
-				v: 1,
-				t: "FieldRevised",
-				at: AT(1),
-				by: USER,
-				fieldPath: "/x",
-				previous: null,
-				value: 1,
-			},
+			{ v: 1, t: "FieldAnswered", at: AT(1), by: USER, fieldPath: "/x", value: 1, source: "user" },
+			{ v: 1, t: "FieldRevised", at: AT(2), by: SYSTEM, fieldPath: "/x", previous: 1, value: 2, source: "computed" },
 		]);
-		expect(p.answers["/x"]?.source).toBe("user");
+		expect(p.answers["/x"]?.source).toBe("computed");
 		expect(p.answers["/x"]?.revisions).toBe(1);
 	});
 });

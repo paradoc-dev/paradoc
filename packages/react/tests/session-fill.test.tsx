@@ -277,7 +277,7 @@ describe("a purchase order filled by a session", () => {
     const rejected = execute(
       session,
       runtime,
-      { kind: "revise", fieldPath: "currency", value: "dollars" },
+      { kind: "revise", fieldPath: "currency", value: "dollars", source: "user" },
       ACTOR,
       CLOCK
     );

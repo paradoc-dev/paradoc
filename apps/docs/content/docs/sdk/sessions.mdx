@@ -72,7 +72,11 @@ if (result.ok) {
 
 A rejection carries no session. Keep the one you had: nothing about the fill changed.
 
-Commands cover the full lifecycle: `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `answerAnnex` / `clearAnnex`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
+Commands cover the full lifecycle: `start`, `prefill`, `answer`, `revise`, `clear`, `defer` / `undefer`, `skip` / `unskip`, `answerParty`, `answerAnnex` / `clearAnnex`, `present`, `validate`, `render`, and `abandon`. A failed command returns a typed `CommandErrorCode` instead of throwing, so callers branch on the outcome.
+
+`start` opens the log with a `SessionStarted` event; it rejects with `session-already-started` on a session that has events. `prefill` takes `values` (field path to value) and optional `lockedPaths` (field paths). Each value must be a field the artifact defines and pass its schema, and is stored with source `prefill`; an unknown path, an invalid value, or a path already answered or locked rejects the whole command. To prefill a party, send `answerParty` with source `prefill`. `answer` and `revise` both take a `source`, so a revised value records where it came from.
+
+`answer`, `revise`, and `prefill` store the value the field's schema returns. Before validation, the runtime coerces an input only when it has one reading: a decimal string for a number (`"1,250.5"`, not `"1e5"` or `"1,5"`), yes/no for a boolean, a JSON string for a list or composite value, a string for a phone number, person, or organization, and an amount such as `"25"` or `"25 EUR"` for money. Money takes the currency given or the field's declared `currency`, and never invents one. Dates are not parsed: a date field takes `YYYY-MM-DD`, so `"March 4, 2025"` rejects with `invalid-value`. A phone number without a leading `+` gets a calling code only from `createParadocRuntime(definition, { defaultCallingCode: '+1' })`.
 
 `answerParty` takes an `index` for a role that accepts more than one party (`max` above 1). Answer the indices in order, starting at 0: an index that skips a position rejects with `party-index-out-of-order`, and an index at or past `max` rejects with `invalid-value`. Answering an index again replaces that party. `answerAnnex` takes an `annexId` and an attachment (`{ name, mimeType, checksum? }`) and replaces any attachment already in that slot.
 

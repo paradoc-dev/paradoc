@@ -71,6 +71,8 @@ if (result.ok) {
 
 A rejection carries no session at all, so the caller simply keeps the one it had. Nothing about the fill changed.
 
+Open a new log with `{ kind: "start" }`. Apply host-supplied values with `{ kind: "prefill", values, lockedPaths }`: each value must name a field and pass its schema, and a locked field then rejects `answer`, `revise`, and `clear`. Values are coerced only when the input has one reading; money never gets an invented currency, dates must be `YYYY-MM-DD`, and a phone number needs a leading `+` unless the runtime is built with `{ defaultCallingCode: "+1" }`.
+
 Project the log into the current view for rendering:
 
 ```typescript
