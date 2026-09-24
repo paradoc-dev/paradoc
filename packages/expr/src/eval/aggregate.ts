@@ -16,6 +16,7 @@ import { Decimal } from '../decimal/decimal'
 import type { EvaluationContext } from './context'
 import { EvaluationError } from './errors'
 import { NULL, Values, truthy, type Value } from './values'
+import { datetimeEpoch } from './temporal'
 
 export const AGGREGATE_NAMES = ['sum', 'count', 'min', 'max', 'avg', 'any', 'all'] as const
 export type AggregateName = (typeof AGGREGATE_NAMES)[number]
@@ -200,9 +201,20 @@ function total(values: readonly Decimal[]): Decimal {
 function extreme(name: 'min' | 'max', values: readonly Value[]): Value {
 	if (values.length === 0) return NULL
 	if (values.every((value) => value.kind === 'string')) {
-		let best = values[0] as Extract<Value, { kind: 'string' }>
-		for (const value of values.slice(1) as Extract<Value, { kind: 'string' }>[]) {
-			if (name === 'min' ? value.value < best.value : value.value > best.value) best = value
+		const strings = values as Extract<Value, { kind: 'string' }>[]
+		const epochs = strings.map((value) => datetimeEpoch(value.value))
+		const allTemporal = epochs.every((epoch) => epoch !== undefined)
+		let best = strings[0]!
+		let bestEpoch = epochs[0]
+		for (let i = 1; i < strings.length; i++) {
+			const value = strings[i]!
+			const isBetter = allTemporal
+				? name === 'min' ? epochs[i]! < bestEpoch! : epochs[i]! > bestEpoch!
+				: name === 'min' ? value.value < best.value : value.value > best.value
+			if (isBetter) {
+				best = value
+				bestEpoch = epochs[i]
+			}
 		}
 		return best
 	}

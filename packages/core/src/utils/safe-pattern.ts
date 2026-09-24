@@ -8,6 +8,7 @@
 
 import safeRegex from 'safe-regex'
 import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
+import { TIME_PATTERN } from '@/primitives/time'
 
 /**
  * Maximum allowed pattern length (defense in depth)
@@ -24,6 +25,10 @@ const KNOWN_SAFE_PATTERNS = new Set([
 	// ISO 8601 duration: \d+ groups separated by non-overlapping literals (P,Y,M,W,D,T,H,S).
 	// The lookaheads enforce that P and T are followed by a component.
 	ISO_8601_DURATION_PATTERN,
+	// Time-of-day (@/primitives/time.ts): fixed-width HH:MM:SS digit classes followed
+	// by one unambiguous trailing `\d+` for the fraction, anchored at the end of the
+	// string. No overlap between the quantified group and anything after it.
+	TIME_PATTERN,
 ])
 
 /**

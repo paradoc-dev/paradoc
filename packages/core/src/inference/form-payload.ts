@@ -8,6 +8,7 @@ import type {
   Attachment,
 } from '@paradoc/types'
 import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
+import { TIME_PATTERN } from '@/primitives/time'
 
 type EnumOptionValue<T> = T extends { value: infer V } ? V : never
 type RuntimeEnumOption = { value: string | number }
@@ -639,7 +640,8 @@ function compileField(field: FormField): JsonSchema {
       return {
         type: 'string',
         format: 'time',
-        pattern: '^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$',
+        // Same pattern the `time` primitive validates against (@/primitives/time.ts).
+        pattern: TIME_PATTERN,
         ...('min' in field && field.min !== undefined && { formatMinimum: field.min }),
         ...('max' in field && field.max !== undefined && { formatMaximum: field.max }),
         ...('default' in field && field.default !== undefined && { default: field.default }),

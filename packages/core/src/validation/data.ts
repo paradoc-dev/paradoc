@@ -3,6 +3,8 @@ import type { Form } from '@paradoc/types'
 import { compile, type InferFormPayload } from '@/inference'
 import { deepClone } from '@/utils/clone'
 import { createSafeRegex } from '@/utils/safe-pattern'
+import { compareFormattedTemporal } from '@/utils/temporal-compare'
+import { datetime, time } from '@/primitives'
 
 // Re-export types from centralized types.ts
 export type { ValidationError, ValidationSuccess, ValidationFailure, ValidationResult, InstanceTemplate } from '@/types'
@@ -101,9 +103,13 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 		} else if (format === 'date') {
 			schema = z.iso.date()
 		} else if (format === 'date-time') {
-			schema = z.iso.datetime()
+			// Delegate to the `datetime` primitive itself, so the field accepts exactly
+			// what the primitive accepts (and nothing z.iso.datetime()'s fixed option
+			// set can drift from it).
+			schema = z.string().refine(datetime.isValid, { message: 'Invalid ISO datetime' })
 		} else if (format === 'time') {
-			schema = z.iso.time()
+			// Delegate to the `time` primitive itself for the same reason.
+			schema = z.string().refine(time.isValid, { message: 'Invalid ISO time' })
 		}
 
 		if (minLength !== undefined) {
@@ -118,17 +124,18 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 		}
 
 		if (format === 'date' || format === 'date-time' || format === 'time') {
+			const temporalFormat = format
 			const formatMinimum = jsonSchema.formatMinimum as string | undefined
 			const formatMaximum = jsonSchema.formatMaximum as string | undefined
 			if (formatMinimum !== undefined) {
 				schema = schema.refine(
-					(value) => typeof value === 'string' && value >= formatMinimum,
+					(value) => typeof value === 'string' && compareFormattedTemporal(temporalFormat, value, formatMinimum) >= 0,
 					{ message: `Must be on or after ${formatMinimum}` },
 				)
 			}
 			if (formatMaximum !== undefined) {
 				schema = schema.refine(
-					(value) => typeof value === 'string' && value <= formatMaximum,
+					(value) => typeof value === 'string' && compareFormattedTemporal(temporalFormat, value, formatMaximum) <= 0,
 					{ message: `Must be on or before ${formatMaximum}` },
 				)
 			}

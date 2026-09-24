@@ -215,9 +215,9 @@ const DatetimeFieldSchema = BaseFieldSchema.extend({
 
 const TimeFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('time'),
-	min: z.string().describe('Minimum time (HH:MM:SS)').optional(),
-	max: z.string().describe('Maximum time (HH:MM:SS)').optional(),
-	default: z.string().describe('Default value').optional(),
+	min: z.iso.time().describe('Minimum time (ISO 8601: HH:MM or HH:MM:SS[.fff])').optional(),
+	max: z.iso.time().describe('Maximum time (ISO 8601: HH:MM or HH:MM:SS[.fff])').optional(),
+	default: z.iso.time().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', compareClockTimeBounds)
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })

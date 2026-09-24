@@ -6,6 +6,7 @@
  */
 
 import { Decimal } from '../decimal/decimal'
+import { datetimeEpoch } from './temporal'
 
 export type Value =
 	| { readonly kind: 'number'; readonly value: Decimal }
@@ -117,8 +118,13 @@ export function valueEquals(a: Value, b: Value): boolean {
 			return true
 		case 'boolean':
 			return a.value === (b as typeof a).value
-		case 'string':
-			return a.value === (b as typeof a).value
+		case 'string': {
+			const bValue = (b as typeof a).value
+			const leftEpoch = datetimeEpoch(a.value)
+			const rightEpoch = datetimeEpoch(bValue)
+			if (leftEpoch !== undefined && rightEpoch !== undefined) return leftEpoch === rightEpoch
+			return a.value === bValue
+		}
 		case 'number':
 			return a.value.eq((b as typeof a).value)
 		case 'array': {

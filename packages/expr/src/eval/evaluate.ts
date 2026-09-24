@@ -15,7 +15,7 @@ import { NULL, Values, truthy, valueEquals, valueToString, type Value } from './
 import type { EvaluationContext } from './context'
 import { buildRegistry } from '../registry/registry'
 import type { ExprType } from '../types'
-import { validateDate, validateDateDuration, validateDatetime } from './temporal'
+import { datetimeEpoch, validateDate, validateDateDuration, validateDatetime } from './temporal'
 import { missingReferences } from '../analyze/missing'
 
 const DEFAULT_REGISTRY = buildRegistry()
@@ -193,7 +193,13 @@ function compareOrdered(op: string, left: Value, right: Value): Value {
 	if (left.kind === 'number' && right.kind === 'number') {
 		c = left.value.cmp(right.value)
 	} else if (left.kind === 'string' && right.kind === 'string') {
-		c = left.value < right.value ? -1 : left.value > right.value ? 1 : 0
+		const leftEpoch = datetimeEpoch(left.value)
+		const rightEpoch = datetimeEpoch(right.value)
+		if (leftEpoch !== undefined && rightEpoch !== undefined) {
+			c = leftEpoch < rightEpoch ? -1 : leftEpoch > rightEpoch ? 1 : 0
+		} else {
+			c = left.value < right.value ? -1 : left.value > right.value ? 1 : 0
+		}
 	} else {
 		// Incomparable or missing (null) operands degrade to false at runtime; the
 		// checker reports genuine type mismatches at authoring time.

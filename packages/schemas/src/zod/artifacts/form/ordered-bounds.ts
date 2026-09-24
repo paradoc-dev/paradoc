@@ -33,22 +33,20 @@ export function compareTemporalBounds(min: string, max: string): boolean {
 	return min <= max
 }
 
-export function compareClockTimeBounds(min: string, max: string): boolean {
-	const parseTime = (value: string): number | undefined => {
-		const [hours, minutes, seconds] = value.split(':').map(Number)
-		if (
-			hours === undefined ||
-			minutes === undefined ||
-			seconds === undefined ||
-			![hours, minutes, seconds].every(Number.isFinite)
-		) {
-			return undefined
-		}
-		return hours * 3600 + minutes * 60 + seconds
-	}
+/** Parse an ISO `HH:MM` or `HH:MM:SS[.fff]` time of day into seconds since midnight, or `undefined` if `value` doesn't match. */
+function parseClockTimeSeconds(value: string): number | undefined {
+	const match = /^(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?$/.exec(value)
+	if (!match) return undefined
+	const hours = Number(match[1])
+	const minutes = Number(match[2])
+	const seconds = match[3] !== undefined ? Number(match[3]) : 0
+	if (![hours, minutes, seconds].every(Number.isFinite)) return undefined
+	return hours * 3600 + minutes * 60 + seconds
+}
 
-	const minSeconds = parseTime(min)
-	const maxSeconds = parseTime(max)
+export function compareClockTimeBounds(min: string, max: string): boolean {
+	const minSeconds = parseClockTimeSeconds(min)
+	const maxSeconds = parseClockTimeSeconds(max)
 
 	if (minSeconds !== undefined && maxSeconds !== undefined) {
 		return minSeconds <= maxSeconds

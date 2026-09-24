@@ -53,6 +53,22 @@ export function formatDate(d: Date): string {
 	return d.toISOString().slice(0, 10)
 }
 
+/**
+ * Epoch milliseconds for `s` if it is a canonical datetime with an explicit
+ * offset, or `undefined` otherwise. Used to compare datetimes as instants
+ * (ordering, equality, `min`/`max`) instead of as raw strings: values that
+ * differ only in UTC offset or sub-second precision must still compare equal
+ * or order correctly.
+ */
+export function datetimeEpoch(s: string): number | undefined {
+	try {
+		validateDatetime(s)
+	} catch {
+		return undefined
+	}
+	return Date.parse(s)
+}
+
 /** Whole days from `a` to `b` (b - a), truncated toward zero. */
 export function diffDays(a: string, b: string): number {
 	return Math.trunc((parse(b).getTime() - parse(a).getTime()) / MS_PER_DAY)

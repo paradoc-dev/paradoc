@@ -2,8 +2,11 @@
  * Time primitive builder with HH:MM:SS format validation
  */
 
-// Time format regex (HH:MM:SS with optional milliseconds)
-const TIME_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?$/;
+// Time format pattern (HH:MM:SS with an optional fraction), exported as a string
+// so the compiled field schema (@/inference/form-payload.ts) can use the exact
+// same pattern the primitive validates against.
+export const TIME_PATTERN = '^(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?$';
+const TIME_REGEX = new RegExp(TIME_PATTERN);
 
 function isValidTime(value: string): boolean {
 	return TIME_REGEX.test(value);
