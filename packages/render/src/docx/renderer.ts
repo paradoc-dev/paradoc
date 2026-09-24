@@ -5,6 +5,7 @@ import type {
   RendererLayer,
   RenderRequest,
 } from '@paradoc/types'
+import { flattenRenderData } from '../render-data'
 import { renderDocx } from './render'
 import type { DocxSignatureOptions } from './signatures'
 import type { TemplateExpressionOptions } from '../template/context'
@@ -41,25 +42,9 @@ export function docxRenderer(options: DocxRendererOptions = {}): ParadocRenderer
         })
       }
 
-      const { fields, parties, annexes, defs, ...rest } = source
-      const nested = fields as Record<string, unknown> | undefined
-      const cleanFields = nested ? { ...nested } : {}
-      const actualParties = parties ?? cleanFields.parties
-      const actualAnnexes = annexes ?? cleanFields.annexes
-      const actualDefs = defs ?? cleanFields.defs
-      delete cleanFields.parties
-      delete cleanFields.annexes
-      delete cleanFields.defs
-
       return renderDocx({
         template: request.template.content,
-        data: {
-          ...cleanFields,
-          ...(actualParties ? { parties: actualParties } : {}),
-          ...(actualAnnexes ? { annexes: actualAnnexes } : {}),
-          ...(actualDefs ? { defs: actualDefs } : {}),
-          ...rest,
-        },
+        data: flattenRenderData(request.data),
         form: request.form,
         formatter: request.ctx?.formatter ?? formatter,
         signatureOptions: options.signatureOptions,

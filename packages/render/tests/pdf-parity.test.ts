@@ -220,6 +220,30 @@ describe('PDF renderer behavior', () => {
     const actual = await pdfRenderer().render(request as never)
     expect((await inspectAcroFormFields(actual)).find((field) => field.name === 'pet_name')?.value).toBe('Pixel')
   })
+
+  describe('binds an annex the render request carries beside fields', () => {
+    const form = {
+      kind: 'form', name: 'pet', version: '1.0.0', title: 'Pet',
+      fields: { name: { type: 'text' } }, annexes: { photo: { title: 'Photo' } },
+    } as unknown as Form
+    const render = async (data: Record<string, unknown>) => {
+      const bytes = await pdfRenderer().render({
+        template: { type: 'pdf', content: textFieldsPdf(['name', 'photo']), bindings: { name: 'name', photo: 'annexes.photo.name' } },
+        form,
+        data,
+      } as never)
+      return Object.fromEntries((await inspectAcroFormFields(bytes)).map((field) => [field.name, field.value]))
+    }
+
+    it('fills the annex binding', async () => {
+      expect(await render({ fields: { name: 'Pixel' }, annexes: { photo: { name: 'pixel.png', mimeType: 'image/png' } } }))
+        .toEqual({ name: 'Pixel', photo: 'pixel.png' })
+    })
+
+    it('leaves the annex binding empty when the request carries no annexes', async () => {
+      expect(await render({ fields: { name: 'Pixel' } })).toEqual({ name: 'Pixel', photo: '' })
+    })
+  })
 })
 
 

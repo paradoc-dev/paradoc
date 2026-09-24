@@ -4,7 +4,8 @@
  *
  * Roots are those of every other artifact expression: `fields`, computed
  * values by name, `parties`, and `items` for a checklist. An artifact runtime
- * hands over its own context; a direct render builds one from the data.
+ * hands over its own context; a direct render builds one from the data. A
+ * printed path may also name an attachment as `annexes.<slot>`.
  */
 
 import {
@@ -33,8 +34,8 @@ export interface TemplateExpressionOptions {
 
 /** Render-data keys that are not field values. */
 const RESERVED_ROOTS = new Set([
-  'parties', 'defs', 'annexes', 'schema', 'witnesses', 'signatures',
-  '_signers', '_captures', '_executedAt',
+  'parties', 'defs', 'annexes', 'witnesses', 'signatures',
+  '_signers', '_captures',
 ])
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -108,7 +109,7 @@ export function templateData(
       const [head, ...rest] = segments
       if (head === undefined) return undefined
       if (head === 'fields') return rest.length === 0 ? undefined : dataPath(prepared, rest)
-      if (head === 'parties' || head === 'items') return dataPath(prepared[head], rest)
+      if (head === 'parties' || head === 'annexes' || head === 'items') return dataPath(prepared[head], rest)
       if (defs && Object.prototype.hasOwnProperty.call(defs, head)) return dataPath(defs[head], rest)
       return undefined
     },

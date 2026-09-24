@@ -73,7 +73,7 @@ import { renderPdf, type RenderPdfOptions } from "./render";
 export interface ReactLayerComponentProps {
   /** The artifact the layer belongs to. */
   artifact: Form;
-  /** The field values and parties the form carries. */
+  /** The field values, parties and annexes the form carries. */
   data: DocumentData;
 }
 
@@ -136,11 +136,12 @@ export class UnboundReactLayerError extends Error {
 /**
  * The render request's payload, in the shape the document context reads.
  *
- * `FormData` declares parties beside the fields and core puts them there, so
- * there is one place to read them from.
+ * `FormData` declares parties and annexes beside the fields and core puts them
+ * there, so there is one place to read each from.
  */
 function documentData(request: RenderRequest<RendererLayer>): DocumentData {
-  return { fields: request.data.fields, parties: request.data.parties ?? {} };
+  const { fields, parties = {}, annexes } = request.data;
+  return { fields, parties, ...(annexes && { annexes }) };
 }
 
 /**

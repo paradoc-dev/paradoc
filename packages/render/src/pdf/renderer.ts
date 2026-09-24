@@ -5,6 +5,7 @@ import type {
   RendererLayer,
   RenderRequest,
 } from '@paradoc/types'
+import { flattenRenderData } from '../render-data'
 import type { PdfFont } from './drawing-fonts'
 import { renderPdf } from './render'
 
@@ -43,25 +44,9 @@ export function pdfRenderer(options: PdfRendererOptions = {}): ParadocRenderer<P
         })
       }
 
-      const { fields, parties, annexes, defs, ...rest } = source
-      const nested = fields as Record<string, unknown> | undefined
-      const cleanFields = nested ? { ...nested } : {}
-      const actualParties = parties ?? cleanFields.parties
-      const actualAnnexes = annexes ?? cleanFields.annexes
-      const actualDefs = defs ?? cleanFields.defs
-      delete cleanFields.parties
-      delete cleanFields.annexes
-      delete cleanFields.defs
-
       return renderPdf({
         template: request.template.content,
-        data: {
-          ...cleanFields,
-          ...(actualParties ? { parties: actualParties } : {}),
-          ...(actualAnnexes ? { annexes: actualAnnexes } : {}),
-          ...(actualDefs ? { defs: actualDefs } : {}),
-          ...rest,
-        },
+        data: flattenRenderData(request.data),
         form: request.form,
         formatter: request.ctx?.formatter ?? formatter,
         bindings: request.template.bindings,

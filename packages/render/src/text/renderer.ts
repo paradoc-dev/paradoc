@@ -6,6 +6,7 @@ import type {
   RendererLayer,
   RenderRequest,
 } from '@paradoc/types'
+import { flattenRenderData } from '../render-data'
 import { renderText } from './render'
 import type { TextSignatureOptions } from './signatures'
 import type { TemplateExpressionOptions } from '../template/context'
@@ -46,25 +47,9 @@ export function textRenderer(options: TextRendererOptions = {}): ParadocRenderer
         })
       }
 
-      const { fields, parties, annexes, defs, ...rest } = source
-      const nested = fields as Record<string, unknown> | undefined
-      const cleanFields = nested ? { ...nested } : {}
-      const actualParties = parties ?? cleanFields.parties
-      const actualAnnexes = annexes ?? cleanFields.annexes
-      const actualDefs = defs ?? cleanFields.defs
-      delete cleanFields.parties
-      delete cleanFields.annexes
-      delete cleanFields.defs
-
       return renderText({
         template: request.template.content,
-        data: {
-          ...cleanFields,
-          ...(actualParties ? { parties: actualParties } : {}),
-          ...(actualAnnexes ? { annexes: actualAnnexes } : {}),
-          ...(actualDefs ? { defs: actualDefs } : {}),
-          ...rest,
-        },
+        data: flattenRenderData(request.data),
         form: request.form,
         formatter: request.ctx?.formatter ?? formatter,
         progressive: request.ctx?.progressive ?? options.progressive,

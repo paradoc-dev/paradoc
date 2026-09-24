@@ -154,6 +154,37 @@ describe('DOCX renderer behavior', () => {
     expect(visibleText(actual)).toContain('Pixel')
     expect(documentXml(actual)).not.toMatch(/\{\{/)
   })
+
+  describe('reads what a render request carries beside fields', () => {
+    const template = minimalDocx('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{{fields.name}}|{{annexes.photo.name}}|{{signatureDate(parties.owner, "final")}}</w:t></w:r></w:p></w:body></w:document>')
+    const form = {
+      fields: { name: { type: 'text' } },
+      parties: { owner: { label: 'Owner', partyType: 'person' } },
+      annexes: { photo: { title: 'Photo' } },
+    } as unknown as Form
+    const owner = { id: 'owner-1', _role: 'owner', name: 'Ada', signatories: [{ signerId: 'signer-1' }] }
+    const render = async (data: Record<string, unknown>) => visibleText(await docxRenderer().render({
+      template: { type: 'docx', content: template },
+      form,
+      data,
+    } as never))
+
+    it('resolves an annex path and a capture from beside fields', async () => {
+      expect(await render({
+        fields: { name: 'Pixel' },
+        parties: { owner },
+        annexes: { photo: { name: 'pixel.png', mimeType: 'image/png' } },
+        captures: [{
+          role: 'owner', partyId: 'owner-1', signerId: 'signer-1', locationId: 'final',
+          type: 'signature', timestamp: '2026-08-04T12:00:00Z',
+        }],
+      })).toBe('Pixel|pixel.png|2026-08-04')
+    })
+
+    it('renders an empty annex and a date placeholder when the request carries neither', async () => {
+      expect(await render({ fields: { name: 'Pixel' }, parties: { owner } })).toBe('Pixel||__________')
+    })
+  })
 })
 
 

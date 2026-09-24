@@ -215,11 +215,9 @@ describe('text renderer behavior', () => {
         content: '{{fields.name}}|{{parties.owner.name}}|{{term}}',
       },
       data: {
-        fields: {
-          name: 'Pixel',
-          parties: { owner: { name: 'Ada' } },
-          defs: { term: 'Pet' },
-        },
+        fields: { name: 'Pixel' },
+        parties: { owner: { name: 'Ada' } },
+        defs: { term: 'Pet' },
       },
       form: {
         fields: { name: { type: 'string' } },
@@ -228,6 +226,41 @@ describe('text renderer behavior', () => {
       },
     }
     expect(await textRenderer().render(request as never)).toBe('Pixel|Ada|Pet')
+  })
+
+  describe('reads what a render request carries beside fields', () => {
+    const form = {
+      fields: { name: { type: 'string' } },
+      parties: { tenant: { label: 'Tenant', partyType: 'person' } },
+      annexes: { proof: { title: 'Proof' } },
+    } as unknown as Form
+    const tenant = { id: 'tenant-1', _role: 'tenant', name: 'Ada', signatories: [{ signerId: 'signer-1' }] }
+    const capture = {
+      role: 'tenant', partyId: 'tenant-1', signerId: 'signer-1', locationId: 'final',
+      type: 'signature', timestamp: '2026-07-12T10:30:00Z', method: 'drawn',
+    }
+    const render = (data: Record<string, unknown>) => textRenderer().render({
+      template: {
+        type: 'text',
+        content: '{{fields.name}}|{{annexes.proof.name}}|{{signatureDate(parties.tenant, "final")}}|{{printedName(parties.tenant, "name")}}',
+      },
+      form,
+      data,
+    } as never)
+
+    it('resolves annexes, signers and captures from beside fields', async () => {
+      expect(await render({
+        fields: { name: 'Pixel' },
+        parties: { tenant },
+        annexes: { proof: { name: 'proof.pdf', mimeType: 'application/pdf' } },
+        signers: { 'signer-1': { id: 'signer-1', person: { name: 'Ada Lovelace' } } },
+        captures: [capture],
+      })).toBe('Pixel|proof.pdf|2026-07-12|Ada Lovelace')
+    })
+
+    it('renders an empty annex and placeholders when the request carries none', async () => {
+      expect(await render({ fields: { name: 'Pixel' }, parties: { tenant } })).toBe('Pixel||[DATE]|[PRINTED NAME]')
+    })
   })
 
   it('applies one custom formatter across nested fields, computed values, and parties', () => {

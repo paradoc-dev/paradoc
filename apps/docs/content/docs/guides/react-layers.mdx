@@ -84,7 +84,7 @@ The `signatures` map makes the layer a seal target. A `flow` slot sits wherever 
 <Step>
 ## Write the composition
 
-The module's default export is the component. It receives the form as `artifact` and the filled values as `data`.
+The module's default export is the component. It receives the form as `artifact` and the filled `fields`, `parties` and `annexes` as `data`, so `<Field as="image" path="annexes.<slot>">` draws an attached picture in a render and a seal.
 
 ```tsx title="documents/agreement-document.tsx"
 import type { ReactLayerComponentProps } from '@paradoc/react-pdf'

@@ -42,6 +42,7 @@ import type {
 	Resolver,
 	ParadocRenderer,
 	Formatter,
+	FormData,
 } from '@paradoc/types'
 import { renderLayer as createRenderer } from '@paradoc/render'
 import { FieldType, flattenPdf, locate as locatePlacements, pageTextRuns } from '@paradoc/render/pdf'
@@ -1299,6 +1300,25 @@ function ownCanonicalPdfBytes(bytes: Uint8Array): Uint8Array {
 	const owned = deepClone(bytes)
 	ownedCanonicalPdfBytes.add(owned)
 	return owned
+}
+
+/**
+ * The `FormData` a definition-level render hands its renderer.
+ *
+ * `data` is either a `FormData` (it has a `fields` record) or bare field
+ * values. Bare values may name `parties`, `annexes` and `defs` beside the
+ * fields; they move beside `fields`, where a filled form's render puts them,
+ * so every renderer reads them from one place.
+ */
+function renderPayload(data: Record<string, unknown> | undefined): FormData {
+	if (data && typeof data.fields === 'object' && data.fields !== null) return data as unknown as FormData
+	const { parties, annexes, defs, ...fields } = data ?? {}
+	return {
+		fields,
+		...(parties !== undefined && { parties: parties as FormData['parties'] }),
+		...(annexes !== undefined && { annexes: annexes as FormData['annexes'] }),
+		...(defs !== undefined && { defs: defs as FormData['defs'] }),
+	}
 }
 
 /**
@@ -3179,30 +3199,21 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 				defsValuesObj[k] = v
 			}
 
-			const fullData = {
-				schema: {
-					name: formDef.name,
-					version: formDef.version,
-					title: formDef.title,
-					description: formDef.description,
-					code: formDef.code,
-					releaseDate: formDef.releaseDate,
-					metadata: formDef.metadata,
-				},
-				...fieldValues,
-				...(Object.keys(annexValues).length > 0 && { annexes: annexValues }),
-				...(Object.keys(signerValues).length > 0 && { _signers: signerValues }),
-				...(captures.length > 0 && { _captures: captures }),
+			// The payload is the runtime `FormData`: `fields` holds field values and
+			// nothing else, and parties, annexes, signers, captures and computed
+			// values travel beside it, where a renderer reads them.
+			const data: FormData = {
+				fields: { ...fieldValues },
+				...(Object.keys(augmentedParties).length > 0 && { parties: augmentedParties }),
+				// Fill and setAnnex admit only attachments into an annex slot.
+				...(Object.keys(annexValues).length > 0 && { annexes: annexValues as Record<string, Attachment> }),
+				...(Object.keys(signerValues).length > 0 && { signers: signerValues }),
+				...(captures.length > 0 && { captures }),
 				...(Object.keys(defsValuesObj).length > 0 && { defs: defsValuesObj }),
-				...(executedAt && { _executedAt: executedAt }),
 			}
 
 			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
-			// Parties travel beside the fields, where `FormData` declares them. A
-			// template that names `parties.landlord` still reads them: the text,
-			// PDF and DOCX renderers take them from either place, and one place
-			// is enough.
 			// Templates read the expression context field logic reads, with the
 			// parties carrying the signing records their marks are placed for.
 			const expressions = {
@@ -3217,10 +3228,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			return await renderer.render({
 				template,
 				form: formDef,
-				data: {
-					fields: fullData,
-					...(Object.keys(augmentedParties).length > 0 && { parties: augmentedParties }),
-				},
+				data,
 				ctx: { expressions, ...(formatter && { formatter }), ...(progressive && { progressive }) },
 			}) as Output
 		},
@@ -3496,18 +3504,10 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
 
-			// Build FormData payload
-			let formData: { fields: Record<string, unknown> }
-			if (data && typeof data === 'object' && 'fields' in data && typeof (data as { fields?: unknown }).fields === 'object') {
-				formData = data as { fields: Record<string, unknown> }
-			} else {
-				formData = { fields: (data ?? {}) as Record<string, unknown> }
-			}
-
-			const payload = formData as { fields: Record<string, unknown>; parties?: Record<string, Party | Party[]> }
-			const parties = payload.parties ?? (payload.fields.parties as Record<string, Party | Party[]> | undefined) ?? {}
+			const formData = renderPayload(data)
+			const parties = (formData.parties ?? {}) as Record<string, Party | Party[]>
 			const expressions = {
-				context: buildTemplateExpressionContext(formDef, { fields: payload.fields, parties }, parties),
+				context: buildTemplateExpressionContext(formDef, { fields: formData.fields, parties }, parties),
 			}
 
 			return await renderer.render({

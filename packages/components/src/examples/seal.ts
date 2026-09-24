@@ -126,6 +126,7 @@ export function fillProposalForSeal(data: ProposalData) {
   let draft = proposal.fill({
     fields: data.fields,
     parties: data.parties,
+    annexes: data.annexes,
   } as Parameters<typeof proposal.fill>[0]);
 
   for (const role of Object.keys(SIGNER_CONTACT_FIELD) as ProposalPartyRole[]) {

@@ -180,6 +180,8 @@ export interface FormData {
 	captures?: SignatureCapture[];
 	/** Attached documents keyed by annex identifier (the key from form.annexes). */
 	annexes?: Record<string, Attachment>;
+	/** Computed values keyed by def name (the key from form.defs). */
+	defs?: Record<string, unknown>;
 }
 
 /**

@@ -144,7 +144,7 @@ The request object passed to the `render` method:
 <PropertiesTable properties={[
   { name: 'template', type: 'RendererLayer', description: 'The resolved template layer to render' },
   { name: 'form', type: 'Form', description: 'The form schema (used for field type detection)' },
-  { name: 'data', type: 'FormData', description: 'The data to populate the template with' },
+  { name: 'data', type: 'FormData', description: 'The filled data. `fields` holds field values only; `parties`, `annexes`, `signers`, `captures` and computed `defs` travel beside it' },
   { name: 'ctx', type: 'ParadocRendererContext', description: 'Optional context with formatter, progressive policy, and logger', isOptional: true },
 ]} />
 
