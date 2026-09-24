@@ -329,7 +329,7 @@ describe('closure-based Checklist', () => {
 			test('returns new runtime with updated item (draft)', () => {
 				const instance = createChecklistWithItems()
 				const draft = instance.fill({ item1: false, item2: false } as any)
-				const updated = draft.setItem('item1' as any, true)
+				const updated = (draft.setItem as any)('item1', true)
 
 				expect(updated.getItem('item1' as any)).toBe(true)
 				expect(draft.getItem('item1' as any)).toBe(false) // original unchanged
@@ -341,7 +341,7 @@ describe('closure-based Checklist', () => {
 			test('returns new runtime with multiple items updated', () => {
 				const instance = createChecklistWithItems()
 				const draft = instance.fill({ item1: false, item2: false } as any)
-				const updated = draft.updateItems({ item1: true, item2: true })
+				const updated = draft.updateItems({ item1: true, item2: true } as any)
 
 				expect(updated.getAllItems()).toEqual({ item1: true, item2: true })
 			})

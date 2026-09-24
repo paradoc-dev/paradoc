@@ -6,6 +6,7 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ### Fixed
 
+- `@paradoc/core`: `ChecklistInstance.safeFill` takes the same optional, progressive payload as `fill` — no seed, a partial seed, or a full one — instead of demanding every item up front. The inferred checklist payload type (`InferChecklistPayload`) also now keeps each item's own id and value type; it used to collapse to `Record<string, boolean | string>` for every checklist, so a call with an unknown item id or a wrong value type compiled without error.
 - `@paradoc/core`: full payload validation (`validateFormData`, `fill`) honors `allowAdditionalAnnexes`. An undeclared annex is accepted when the form allows it, and its value must still be an Attachment. It used to be rejected, while the per-annex validators accepted it. The rule now lives in one place, and the per-annex validators use it.
 - `@paradoc/core`: `InferFormPayload` allows extra annex keys, typed as Attachments, only when a form sets `allowAdditionalAnnexes: true`. The form builder keeps the literal flag in its type.
 - `@paradoc/core`: `validateLayers()` reports a `bindingsFrom` that names no layer. Rendering already failed on it.

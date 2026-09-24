@@ -59,10 +59,28 @@ export type ItemStatusToDataType<S> = S extends { kind: 'boolean' }
 		: boolean
 
 /**
+ * Merges a union of single-key object types into one object type. Used to
+ * turn the per-item union produced by distributing over a tuple's members
+ * back into a single record keyed by item id.
+ */
+type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void ? I : never
+
+/**
+ * Maps one checklist item definition to its single-key payload entry, so
+ * each item keeps its own status type instead of sharing one inferred from
+ * every item in the array.
+ */
+type ItemToDataTypeEntry<Item> = Item extends { id: infer Id extends string; status?: infer S }
+	? { [K in Id]: S extends object ? ItemStatusToDataType<S> : boolean }
+	: never
+
+/**
  * Maps checklist items array to a record type of item IDs to their status data types.
  */
-export type ItemsToDataType<Items> = Items extends readonly { id: infer Id; status?: infer S }[]
-	? { [K in Id & string]: S extends object ? ItemStatusToDataType<S> : boolean }
+export type ItemsToDataType<Items> = Items extends readonly { id: string }[]
+	? [Items[number]] extends [never]
+		? Record<string, never>
+		: UnionToIntersection<ItemToDataTypeEntry<Items[number]>>
 	: Record<string, boolean | string>
 
 /**
@@ -145,7 +163,7 @@ export interface ChecklistFillState {
  */
 export type ChecklistInput = DeepReadonly<Omit<Checklist, 'kind'>> & { readonly kind?: 'checklist' }
 
-type MutableChecklist<T extends ChecklistInput> = DeepMutable<T> & Checklist & { kind: 'checklist' }
+type MutableChecklist<T extends ChecklistInput> = DeepMutable<T> & { kind: 'checklist' }
 
 /**
  * RuntimeChecklist JSON representation
@@ -182,10 +200,10 @@ export interface ChecklistInstance<C extends Checklist> extends ArtifactMethods<
 
 	/**
 	 * Safely create a RuntimeChecklist, returning a result object instead of throwing.
-	 * @param data - The item status payload
+	 * @param seed - Empty, partial, or complete item status payload
 	 */
 	safeFill(
-		data: InferChecklistPayload<C>,
+		seed?: ProgressiveChecklistPayload<C>,
 		options?: ChecklistFillOptions,
 	): { success: true; data: DraftChecklist<C> } | { success: false; error: Error }
 
@@ -933,13 +951,13 @@ function createChecklistInstance<C extends Checklist>(
 			},
 
 		safeFill(
-			data: InferChecklistPayload<C>,
+			seed?: ProgressiveChecklistPayload<C>,
 			options?: ChecklistFillOptions,
 		): { success: true; data: DraftChecklist<C> } | { success: false; error: Error } {
 			try {
 				return {
 					success: true,
-					data: this.fill(data, options),
+					data: this.fill(seed, options),
 				}
 			} catch (err) {
 				return { success: false, error: err as Error }
