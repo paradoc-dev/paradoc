@@ -19,11 +19,11 @@ const ContentItemBaseSchema = z.object({
 });
 
 /**
- * Inline content item — artifact defined directly within the bundle.
+ * Inline content item — artifact defined directly within the bundle. The
+ * recursive `artifact` needs an explicit shape type, so it is stated here.
  */
-type InlineContentItemShape = {
+type InlineContentItemShape = typeof ContentItemBaseSchema.shape & {
 	type: z.ZodLiteral<'inline'>;
-	key: z.ZodString;
 	artifact: z.ZodLazy<z.ZodUnion<readonly [
 		typeof DocumentSchema,
 		typeof FormSchema,
@@ -32,14 +32,8 @@ type InlineContentItemShape = {
 	]>>;
 };
 
-const InlineContentItemSchema: z.ZodObject<InlineContentItemShape, z.core.$strict> = z.object({
+const InlineContentItemSchema: z.ZodObject<InlineContentItemShape, z.core.$strict> = ContentItemBaseSchema.extend({
 	type: z.literal('inline'),
-	key: z.string()
-		.min(1)
-		.max(100)
-		.regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/)
-		.describe('Unique identifier for this content item, used to reference it in defs expressions'),
-	include: CondExprSchema.optional(),
 	artifact: z.lazy(() => z.union([
 		DocumentSchema,
 		FormSchema,
@@ -71,7 +65,7 @@ const RegistryContentItemSchema = ContentItemBaseSchema.extend({
 
 /**
  * Bundle content item — one of three types:
- * - { type: 'inline', key, artifact } - inline artifact definition
+ * - { type: 'inline', key, artifact, include? } - inline artifact definition
  * - { type: 'path', key, path, include? } - reference by path from repo root
  * - { type: 'registry', key, slug, include? } - reference by registry slug
  */
@@ -83,4 +77,7 @@ export const BundleContentItemSchema: z.ZodDiscriminatedUnion<[
 	InlineContentItemSchema,
 	PathContentItemSchema,
 	RegistryContentItemSchema,
-]).describe('Bundle content item: an inline artifact, path reference, or registry reference with optional include condition');
+]).meta({
+	title: 'BundleContentItem',
+	description: 'Bundle content item: an inline artifact, path reference, or registry reference with optional include condition',
+});

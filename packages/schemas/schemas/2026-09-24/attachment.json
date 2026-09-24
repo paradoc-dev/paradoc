@@ -26,5 +26,6 @@
     "mimeType"
   ],
   "additionalProperties": false,
+  "description": "Attachment data representing an attached document. The key in the record is the annex identifier (the key from form.annexes).",
   "title": "Attachment"
 }

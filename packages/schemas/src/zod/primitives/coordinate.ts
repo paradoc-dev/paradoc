@@ -9,7 +9,7 @@ export const CoordinateSchema = z.object({
 		.min(-180)
 		.max(180)
 		.describe('Longitude in decimal degrees (WGS84), range -180 (west) to 180 (east)'),
-}).meta({
+}).strict().meta({
 	title: 'Coordinate',
 	description: 'Geographic coordinate (WGS84) with latitude and longitude in decimal degrees',
-}).strict();
+});

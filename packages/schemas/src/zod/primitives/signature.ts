@@ -22,7 +22,7 @@ export const SignatureSchema = z.object({
 	metadata: z.record(z.string(), z.unknown())
 		.describe('Additional metadata (IP address, device info, etc.)')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Signature',
 	description: 'Captured signature data containing the signature image, timestamp, capture method, and optional metadata.',
-}).strict();
+});

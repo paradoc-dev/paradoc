@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ChecksumSchema } from '../../primitives/checksum';
 
 /**
  * Inline content reference — text embedded directly.
@@ -9,10 +10,10 @@ const InlineContentRefSchema = z.object({
 		.min(1)
 		.max(1000000)
 		.describe('Inline text content'),
-}).meta({
+}).strict().meta({
 	title: 'InlineContentRef',
 	description: 'Inline content reference with embedded text',
-}).strict();
+});
 
 /**
  * File content reference — references an external file by path.
@@ -37,16 +38,11 @@ const FileContentRefSchema = z.object({
 		.max(2000)
 		.describe('Description of the content')
 		.optional(),
-	checksum: z.string()
-		.min(1)
-		.max(100)
-		.regex(/^sha256:[a-f0-9]{64}$/)
-		.describe('SHA-256 checksum for integrity verification')
-		.optional(),
-}).meta({
+	checksum: ChecksumSchema.optional(),
+}).strict().meta({
 	title: 'FileContentRef',
 	description: 'File content reference with path and metadata',
-}).strict();
+});
 
 /**
  * Content reference — inline text or external file.

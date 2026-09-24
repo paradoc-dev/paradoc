@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { ChecksumSchema } from '../primitives/checksum';
 import { ARTIFACT_NAME_PATTERN } from '../primitives/name';
 import { ARTIFACT_VERSION_PATTERN } from '../primitives/version';
 import {
@@ -37,10 +38,7 @@ const RegistryLayerBaseSchema = z.object({
 		.max(2000)
 		.describe('Description of what this layer represents')
 		.optional(),
-	checksum: z.string()
-		.regex(/^sha256:[a-f0-9]{64}$/)
-		.describe('SHA-256 checksum for integrity verification')
-		.optional(),
+	checksum: ChecksumSchema.optional(),
 });
 
 /**

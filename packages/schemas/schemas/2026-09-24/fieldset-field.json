@@ -44,5 +44,6 @@
     "fields"
   ],
   "additionalProperties": false,
+  "description": "Field that groups nested fields under one key",
   "title": "FieldsetField"
 }

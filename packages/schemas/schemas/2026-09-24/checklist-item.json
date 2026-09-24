@@ -78,7 +78,8 @@
                   "value",
                   "label"
                 ],
-                "additionalProperties": false
+                "additionalProperties": false,
+                "title": "EnumStatusOption"
               },
               "description": "Allowed status options"
             },
@@ -107,5 +108,6 @@
     "title"
   ],
   "additionalProperties": false,
+  "description": "A single item in a checklist artifact. Each item has an ID, title, optional description, and an optional status specification (boolean or enum). If status is omitted, a default boolean status may be assumed (implementation-defined).",
   "title": "ChecklistItem"
 }

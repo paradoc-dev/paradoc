@@ -66,9 +66,9 @@ Each section lists the properties a type adds to the common ones, its fill value
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `minLength` | number | Minimum length |
-| `maxLength` | number | Maximum length |
-| `pattern` | string | Regular expression, 1-500 characters. A pattern open to catastrophic backtracking is refused. |
+| `minLength` | integer >= 0 | Minimum length |
+| `maxLength` | integer >= 0 | Maximum length |
+| `pattern` | string | Regular expression, 1-500 characters. A pattern that does not compile, or is open to catastrophic backtracking, is refused. |
 | `default` | string | Default value |
 
 A `uuid` value must be a UUID. A `uri` value must be an absolute URL (`x.co` fails with `Invalid URL format`).
@@ -82,8 +82,8 @@ A `uuid` value must be a UUID. A `uri` value must be an absolute URL (`x.co` fai
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `minLength` | number | Minimum length |
-| `maxLength` | number | Maximum length |
+| `minLength` | integer >= 0 | Minimum length |
+| `maxLength` | integer >= 0 | Maximum length |
 | `default` | string | Default value |
 
 The type checks the address format itself, so email takes no `pattern`.
@@ -128,7 +128,7 @@ The type checks the address format itself, so email takes no `pattern`.
 |----------|------|-------------|
 | `min` | number | Minimum value |
 | `max` | number | Maximum value |
-| `precision` | number | Descriptive only. Fill and render do not use it. |
+| `precision` | integer >= 0 | Descriptive only. Fill and render do not use it. |
 | `default` | number | Default value |
 
 A percentage has no implied range: without bounds, `150` is accepted. Set `min: 0` and `max: 100` when the value is a share of a whole.
@@ -143,7 +143,7 @@ A percentage has no implied range: without bounds, `150` is accepted. Set `min: 
 |----------|------|-------------|
 | `min` | number | Minimum value |
 | `max` | number | Maximum value. Also the scale the formatter prints ("4 of 5"). |
-| `step` | number | A value must be a multiple of it (`0.5` for half stars) |
+| `step` | number > 0 | A value must be a multiple of it (`0.5` for half stars) |
 | `default` | number | Default value |
 
 A rating has no implied range. Set `min` and `max`; without `max` a rendered rating prints as a plain number.
@@ -185,7 +185,7 @@ The value is `P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S` with at least one component: `P1Y`
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `enum` | `{ value: string \| number, label?: string }[]` | Required. At least one option. `label` is 1-200 characters. |
+| `enum` | `{ value: string \| number, label?: string }[]` | Required. At least one option, each with a distinct `value`. `label` is 1-200 characters. |
 | `default` | string or number | Must equal one option's `value` |
 
 Fill with the option's `value`, not its label. The JSON type must match: with `{ "value": 2 }`, `"2"` fails.
@@ -207,10 +207,10 @@ Fill with the option's `value`, not its label. The JSON type must match: with `{
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `enum` | `{ value, label? }[]` | Required. At least one option. |
-| `min` | number | Minimum number of selections |
-| `max` | number | Maximum number of selections |
-| `default` | `(string \| number)[]` | Default selections |
+| `enum` | `{ value, label? }[]` | Required. At least one option, each with a distinct `value`. |
+| `min` | integer >= 0 | Minimum number of selections |
+| `max` | integer >= 0 | Maximum number of selections |
+| `default` | `(string \| number)[]` | Each value must equal one option's `value` |
 
 Fill with an array of option values. Duplicates fail with `Array items must be unique`.
 

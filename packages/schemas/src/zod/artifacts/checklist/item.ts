@@ -7,7 +7,7 @@ const BooleanStatusSpecSchema = z.object({
 	default: z.boolean()
 		.describe('Default status value (true/false) for new instances')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'BooleanStatusSpec',
 	description: 'Boolean status (e.g., incomplete/complete) with an optional default value.',
 });
@@ -26,9 +26,9 @@ const EnumStatusOptionSchema = z.object({
 		.max(2000)
 		.describe('Optional description or help text for this status option')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'EnumStatusOption',
-}).strict();
+});
 
 const EnumStatusSpecSchema = z.object({
 	kind: z.literal('enum'),
@@ -40,7 +40,7 @@ const EnumStatusSpecSchema = z.object({
 		.max(64)
 		.describe('Default status value for new instances (must match one of the option values)')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'EnumStatusSpec',
 	description: 'Enum-based status with a set of allowed options and an optional default.',
 }).superRefine((status, ctx) => {
@@ -81,7 +81,7 @@ export const ChecklistItemSchema = z.object({
 		.describe('Detailed description or instructions for the item')
 		.optional(),
 	status: StatusSpecSchema.optional(),
-}).meta({
+}).strict().meta({
 	title: 'ChecklistItem',
 	description: 'A single item in a checklist artifact. Each item has an ID, title, optional description, and an optional status specification (boolean or enum). If status is omitted, a default boolean status may be assumed (implementation-defined).',
-}).strict();
+});

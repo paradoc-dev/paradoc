@@ -46,5 +46,6 @@
     "item"
   ],
   "additionalProperties": false,
+  "description": "Field that holds a list of items, each shaped by the item field",
   "title": "ListField"
 }

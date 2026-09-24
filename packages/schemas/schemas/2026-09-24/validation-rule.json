@@ -16,13 +16,12 @@
       "description": "Error message displayed when the rule fails (expression evaluates to false)"
     },
     "severity": {
-      "default": "error",
-      "description": "Severity level: error (default) blocks submission, warning allows but warns",
       "type": "string",
       "enum": [
         "error",
         "warning"
-      ]
+      ],
+      "description": "Severity level: error (default) blocks submission, warning allows but warns"
     }
   },
   "required": [
@@ -30,5 +29,6 @@
     "message"
   ],
   "additionalProperties": false,
+  "description": "A form-level validation rule with a boolean expression and error message",
   "title": "ValidationRule"
 }

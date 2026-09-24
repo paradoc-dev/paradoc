@@ -6,14 +6,13 @@
  * patterns cause catastrophic backtracking.
  */
 
-import safeRegex from 'safe-regex'
-import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
+import {
+	ISO_8601_DURATION_PATTERN,
+	describePatternProblem,
+	findPatternProblem,
+	type PatternProblem,
+} from '@paradoc/schemas'
 import { TIME_PATTERN } from '@/primitives/time'
-
-/**
- * Maximum allowed pattern length (defense in depth)
- */
-const MAX_PATTERN_LENGTH = 500
 
 /**
  * Schema-defined patterns known to be safe despite safe-regex false positives.
@@ -38,7 +37,7 @@ export class UnsafePatternError extends Error {
 	constructor(
 		message: string,
 		public pattern: string,
-		public reason: 'redos' | 'too_long' | 'invalid'
+		public reason: PatternProblem
 	) {
 		super(message)
 		this.name = 'UnsafePatternError'
@@ -46,43 +45,27 @@ export class UnsafePatternError extends Error {
 }
 
 /**
- * Validate that a regex pattern is safe from ReDoS attacks
+ * Find why a pattern is refused. The rule is `@paradoc/schemas`' field pattern
+ * rule, so a pattern the schema accepts compiles here. Paradoc's own patterns
+ * in `KNOWN_SAFE_PATTERNS` skip the ReDoS check.
+ */
+function findProblem(pattern: string): PatternProblem | undefined {
+	const problem = findPatternProblem(pattern)
+	return problem === 'redos' && KNOWN_SAFE_PATTERNS.has(pattern) ? undefined : problem
+}
+
+/**
+ * Validate that a regex pattern compiles and is safe from ReDoS attacks
  *
  * @param pattern - The regex pattern string to validate
  * @param fieldName - Optional field name for error messages
- * @throws UnsafePatternError if the pattern is unsafe
+ * @throws UnsafePatternError if the pattern is unsafe or invalid
  */
 export function assertSafePattern(pattern: string, fieldName?: string): void {
+	const problem = findProblem(pattern)
+	if (!problem) return
 	const fieldContext = fieldName ? ` in field "${fieldName}"` : ''
-
-	// Check pattern length first (defense in depth)
-	if (pattern.length > MAX_PATTERN_LENGTH) {
-		throw new UnsafePatternError(
-			`Regex pattern${fieldContext} exceeds maximum length of ${MAX_PATTERN_LENGTH} characters`,
-			pattern,
-			'too_long'
-		)
-	}
-
-	// Check for ReDoS vulnerability using safe-regex (skip known-safe schema patterns)
-	if (!KNOWN_SAFE_PATTERNS.has(pattern) && !safeRegex(pattern)) {
-		throw new UnsafePatternError(
-			`Regex pattern${fieldContext} is potentially unsafe (ReDoS vulnerability detected)`,
-			pattern,
-			'redos'
-		)
-	}
-
-	// Validate that the pattern compiles (catch syntax errors)
-	try {
-		new RegExp(pattern)
-	} catch {
-		throw new UnsafePatternError(
-			`Invalid regex pattern${fieldContext}: syntax error`,
-			pattern,
-			'invalid'
-		)
-	}
+	throw new UnsafePatternError(describePatternProblem(problem, `Regex pattern${fieldContext}`), pattern, problem)
 }
 
 /**
@@ -93,36 +76,11 @@ export function assertSafePattern(pattern: string, fieldName?: string): void {
  */
 export function isSafePattern(pattern: string): {
 	safe: boolean
-	reason?: 'redos' | 'too_long' | 'invalid'
+	reason?: PatternProblem
 	message?: string
 } {
-	if (pattern.length > MAX_PATTERN_LENGTH) {
-		return {
-			safe: false,
-			reason: 'too_long',
-			message: `Pattern exceeds maximum length of ${MAX_PATTERN_LENGTH} characters`,
-		}
-	}
-
-	if (!KNOWN_SAFE_PATTERNS.has(pattern) && !safeRegex(pattern)) {
-		return {
-			safe: false,
-			reason: 'redos',
-			message: 'Pattern is potentially unsafe (ReDoS vulnerability)',
-		}
-	}
-
-	try {
-		new RegExp(pattern)
-	} catch {
-		return {
-			safe: false,
-			reason: 'invalid',
-			message: 'Pattern has invalid regex syntax',
-		}
-	}
-
-	return { safe: true }
+	const problem = findProblem(pattern)
+	return problem ? { safe: false, reason: problem, message: describePatternProblem(problem) } : { safe: true }
 }
 
 /**

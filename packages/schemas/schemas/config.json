@@ -77,6 +77,8 @@
     }
   },
   "additionalProperties": false,
+  "title": "Paradoc Global Config",
+  "description": "Schema for ~/.paradoc/config.json global configuration file",
   "$defs": {
     "RegistryEntry": {
       "anyOf": [

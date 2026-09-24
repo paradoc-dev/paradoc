@@ -80,19 +80,19 @@ Text input field for string values.
   {
     name: 'minLength',
     type: 'number',
-    description: 'Minimum character length',
+    description: 'Minimum character length (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'maxLength',
     type: 'number',
-    description: 'Maximum character length',
+    description: 'Maximum character length (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'pattern',
     type: 'string',
-    description: 'Regular expression pattern for validation',
+    description: 'Regular expression pattern for validation. It must compile and must not be open to catastrophic backtracking (ReDoS)',
     isOptional: true,
   },
   {
@@ -170,7 +170,7 @@ Single-select dropdown field.
   {
     name: 'enum',
     type: '{ value: string | number; label?: string }[]',
-    description: 'Available options for selection',
+    description: 'Available options for selection; each option value must be distinct',
   },
   {
     name: 'default',
@@ -193,24 +193,24 @@ Multi-select field allowing multiple selections.
   {
     name: 'enum',
     type: '{ value: string | number; label?: string }[]',
-    description: 'Available options for selection',
+    description: 'Available options for selection; each option value must be distinct',
   },
   {
     name: 'min',
     type: 'number',
-    description: 'Minimum number of selections required',
+    description: 'Minimum number of selections required (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'max',
     type: 'number',
-    description: 'Maximum number of selections allowed',
+    description: 'Maximum number of selections allowed (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'default',
     type: 'EnumOptionValue[]',
-    description: 'Default value for the field',
+    description: 'Default selections; each must equal one option value',
     isOptional: true,
   },
 ]} />
@@ -318,13 +318,13 @@ Email address input field.
   {
     name: 'minLength',
     type: 'number',
-    description: 'Minimum character length',
+    description: 'Minimum character length (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'maxLength',
     type: 'number',
-    description: 'Maximum character length',
+    description: 'Maximum character length (a non-negative integer)',
     isOptional: true,
   },
   {
@@ -348,19 +348,19 @@ URI/URL input field.
   {
     name: 'minLength',
     type: 'number',
-    description: 'Minimum character length',
+    description: 'Minimum character length (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'maxLength',
     type: 'number',
-    description: 'Maximum character length',
+    description: 'Maximum character length (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'pattern',
     type: 'string',
-    description: 'Regular expression pattern for validation',
+    description: 'Regular expression pattern for validation. It must compile and must not be open to catastrophic backtracking (ReDoS)',
     isOptional: true,
   },
   {
@@ -384,19 +384,19 @@ UUID input field.
   {
     name: 'minLength',
     type: 'number',
-    description: 'Minimum character length',
+    description: 'Minimum character length (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'maxLength',
     type: 'number',
-    description: 'Maximum character length',
+    description: 'Maximum character length (a non-negative integer)',
     isOptional: true,
   },
   {
     name: 'pattern',
     type: 'string',
-    description: 'Regular expression pattern for validation',
+    description: 'Regular expression pattern for validation. It must compile and must not be open to catastrophic backtracking (ReDoS)',
     isOptional: true,
   },
   {
@@ -468,7 +468,7 @@ Percentage input field (0-100 by default).
   {
     name: 'precision',
     type: 'number',
-    description: 'Number of decimal places',
+    description: 'Number of decimal places (a non-negative integer)',
     isOptional: true,
   },
   {
@@ -504,7 +504,7 @@ Rating input field (1-5 by default).
   {
     name: 'step',
     type: 'number',
-    description: 'Rating increment step',
+    description: 'Rating increment step; must be greater than 0',
     isOptional: true,
   },
   {

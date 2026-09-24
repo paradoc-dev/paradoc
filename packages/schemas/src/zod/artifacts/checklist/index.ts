@@ -33,7 +33,7 @@ export const ChecklistSchema = ArtifactSchema.extend({
 		.max(100)
 		.describe('Key of the default layer to use when none specified at render time')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Checklist',
 	description: 'A checklist artifact containing an ordered list of items to track. Each item may define how its status should be represented at runtime (boolean or enum).',
-}).strict();
+});

@@ -21,5 +21,6 @@
     "lon"
   ],
   "additionalProperties": false,
+  "description": "Geographic coordinate (WGS84) with latitude and longitude in decimal degrees",
   "title": "Coordinate"
 }

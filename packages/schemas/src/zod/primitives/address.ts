@@ -26,7 +26,7 @@ export const AddressSchema = z.object({
 		.min(2)
 		.max(100)
 		.describe('ISO 3166-1 country code (e.g., "US", "GB", "FRA") or full country name'),
-}).meta({
+}).strict().meta({
 	title: 'Address',
 	description: 'Physical address with street, locality, region, postal code, and country',
-}).strict();
+});

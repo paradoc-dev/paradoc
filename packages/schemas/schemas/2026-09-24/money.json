@@ -20,5 +20,6 @@
     "currency"
   ],
   "additionalProperties": false,
+  "description": "Monetary value with currency code. Represents an amount in a specific currency, supporting both positive and negative values",
   "title": "Money"
 }

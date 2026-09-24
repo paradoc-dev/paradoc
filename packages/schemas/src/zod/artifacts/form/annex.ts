@@ -18,7 +18,7 @@ export const FormAnnexSchema = z.object({
 		.min(0)
 		.describe('Display order for rendering')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'FormAnnex',
 	description: 'Defines an annex slot where a document must or may be attached at runtime',
-}).strict();
+});

@@ -18,6 +18,10 @@ export const ListFieldObjectSchema = BaseFieldSchema.extend({
 		(min, max) => min <= max,
 	)
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })
-}).meta({ id: 'ListField' });
+}).meta({
+	id: 'ListField',
+	title: 'ListField',
+	description: 'Field that holds a list of items, each shaped by the item field',
+});
 
 export const ListFieldSchema: z.ZodType<ListField> = ListFieldObjectSchema;

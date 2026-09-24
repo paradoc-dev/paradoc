@@ -50,7 +50,9 @@
         "type",
         "item"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "ListField",
+      "description": "Field that holds a list of items, each shaped by the item field"
     },
     "FieldsetField": {
       "type": "object",
@@ -95,7 +97,9 @@
         "type",
         "fields"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "FieldsetField",
+      "description": "Field that groups nested fields under one key"
     },
     "Form": {
       "type": "object",
@@ -197,7 +201,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -232,8 +238,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -243,7 +247,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -269,7 +275,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -304,8 +312,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -315,7 +321,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -353,20 +361,21 @@
                 "description": "Error message displayed when the rule fails (expression evaluates to false)"
               },
               "severity": {
-                "default": "error",
-                "description": "Severity level: error (default) blocks submission, warning allows but warns",
                 "type": "string",
                 "enum": [
                   "error",
                   "warning"
-                ]
+                ],
+                "description": "Severity level: error (default) blocks submission, warning allows but warns"
               }
             },
             "required": [
               "expr",
               "message"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "title": "ValidationRule",
+            "description": "A form-level validation rule with a boolean expression and error message"
           },
           "title": "RulesSection",
           "description": "Form-level validation rules for cross-field constraints. Rules use expressions with direct access to field values and defs section values."
@@ -406,9 +415,8 @@
           "description": "Key of the default layer to use when none specified at render time"
         },
         "allowAdditionalAnnexes": {
-          "default": false,
-          "description": "Whether additional ad-hoc annexes can be attached beyond those defined in the annexes record",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether additional ad-hoc annexes can be attached beyond those defined in the annexes record (default: false)"
         },
         "annexes": {
           "type": "object",
@@ -443,7 +451,9 @@
         "name",
         "kind"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Form",
+      "description": "A form artifact that defines a data contract with field definitions, optional layers for rendering, and optional annexes. Forms are the primary artifact type for structured data collection and document generation."
     },
     "Document": {
       "type": "object",
@@ -545,7 +555,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -580,8 +592,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -591,7 +601,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -617,7 +629,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -652,8 +666,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -663,7 +675,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -698,7 +712,9 @@
         "name",
         "kind"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Document",
+      "description": "A document artifact representing static content with no inputs. Documents can have multiple layers for rendering to different output formats (e.g., PDF, Markdown, HTML)."
     },
     "Bundle": {
       "type": "object",
@@ -800,7 +816,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -835,8 +853,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -846,7 +862,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -872,7 +890,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -907,8 +927,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -918,7 +936,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -944,7 +964,9 @@
         "kind",
         "contents"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Bundle",
+      "description": "A bundle artifact that groups together related artifacts into a single distributable unit. Bundles can contain documents, forms, checklists, and other bundles."
     },
     "Checklist": {
       "type": "object",
@@ -1046,7 +1068,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -1081,8 +1105,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -1092,7 +1114,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -1118,7 +1142,9 @@
                 "kind",
                 "text"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "InlineContentRef",
+              "description": "Inline content reference with embedded text"
             },
             {
               "type": "object",
@@ -1153,8 +1179,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -1164,7 +1188,9 @@
                 "path",
                 "mimeType"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "FileContentRef",
+              "description": "File content reference with path and metadata"
             }
           ],
           "title": "ContentRef",
@@ -1207,17 +1233,15 @@
         "kind",
         "items"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Checklist",
+      "description": "A checklist artifact containing an ordered list of items to track. Each item may define how its status should be represented at runtime (boolean or enum)."
     },
     "BundleContentItem": {
       "oneOf": [
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "inline"
-            },
             "key": {
               "type": "string",
               "minLength": 1,
@@ -1227,6 +1251,10 @@
             },
             "include": {
               "$ref": "#/$defs/CondExpr"
+            },
+            "type": {
+              "type": "string",
+              "const": "inline"
             },
             "artifact": {
               "description": "Inline artifact definition (document, form, checklist, or nested bundle)",
@@ -1247,8 +1275,8 @@
             }
           },
           "required": [
-            "type",
             "key",
+            "type",
             "artifact"
           ],
           "additionalProperties": false
@@ -1313,7 +1341,9 @@
           ],
           "additionalProperties": false
         }
-      ]
+      ],
+      "title": "BundleContentItem",
+      "description": "Bundle content item: an inline artifact, path reference, or registry reference with optional include condition"
     },
     "ChecklistItem": {
       "type": "object",
@@ -1393,7 +1423,8 @@
                       "value",
                       "label"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "title": "EnumStatusOption"
                   },
                   "description": "Allowed status options"
                 },
@@ -1421,9 +1452,13 @@
         "id",
         "title"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "ChecklistItem",
+      "description": "A single item in a checklist artifact. Each item has an ID, title, optional description, and an optional status specification (boolean or enum). If status is omitted, a default boolean status may be assumed (implementation-defined)."
     },
     "FormField": {
+      "title": "FormField",
+      "description": "Single input/data element, nested fieldset, or recursive list",
       "oneOf": [
         {
           "type": "object",
@@ -1451,11 +1486,15 @@
               "const": "text"
             },
             "minLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Minimum length"
             },
             "maxLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Maximum length"
             },
             "pattern": {
@@ -1802,11 +1841,15 @@
               "const": "email"
             },
             "minLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Minimum length"
             },
             "maxLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Maximum length"
             },
             "default": {
@@ -1845,11 +1888,15 @@
               "const": "uuid"
             },
             "minLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Minimum length"
             },
             "maxLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Maximum length"
             },
             "pattern": {
@@ -1894,11 +1941,15 @@
               "const": "uri"
             },
             "minLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Minimum length"
             },
             "maxLength": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Maximum length"
             },
             "pattern": {
@@ -2301,11 +2352,15 @@
               "description": "Available options"
             },
             "min": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Minimum selections required"
             },
             "max": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Maximum selections allowed"
             },
             "default": {
@@ -2363,7 +2418,9 @@
               "description": "Maximum value (default: 100)"
             },
             "precision": {
-              "type": "number",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
               "description": "Decimal places (default: 2)"
             },
             "default": {
@@ -2411,6 +2468,7 @@
             },
             "step": {
               "type": "number",
+              "exclusiveMinimum": 0,
               "description": "Increment step (e.g., 0.5 for half stars, default: 1)"
             },
             "default": {
@@ -2458,7 +2516,9 @@
           "description": "Display order for rendering"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "FormAnnex",
+      "description": "Defines an annex slot where a document must or may be attached at runtime"
     },
     "FormParty": {
       "type": "object",
@@ -2475,8 +2535,6 @@
           "description": "Description of this role"
         },
         "partyType": {
-          "default": "any",
-          "description": "Constraint on party type",
           "anyOf": [
             {
               "type": "string",
@@ -2490,19 +2548,20 @@
               "type": "string",
               "const": "any"
             }
-          ]
+          ],
+          "description": "Constraint on party type (default: any)"
         },
         "min": {
-          "default": 1,
-          "description": "Minimum parties required",
-          "type": "number",
-          "minimum": 0
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Minimum parties required (default: 1)"
         },
         "max": {
-          "default": 1,
-          "description": "Maximum parties allowed",
-          "type": "number",
-          "minimum": 1
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "Maximum parties allowed (default: 1)"
         },
         "required": {
           "$ref": "#/$defs/CondExpr"
@@ -2511,20 +2570,18 @@
           "type": "object",
           "properties": {
             "required": {
-              "default": false,
-              "description": "Whether signature is required for this role",
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether signature is required for this role (default: false)"
             },
             "witnesses": {
-              "default": 0,
-              "description": "Number of witnesses required for this signature",
-              "type": "number",
-              "minimum": 0
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Number of witnesses required for this signature (default: 0)"
             },
             "notarized": {
-              "default": false,
-              "description": "Whether at least one witness must be a notary",
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether at least one witness must be a notary (default: false)"
             }
           },
           "additionalProperties": false,
@@ -2535,9 +2592,8 @@
           "type": "object",
           "properties": {
             "required": {
-              "default": false,
-              "description": "Whether payment is required for this role",
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether payment is required for this role (default: false)"
             },
             "amount": {
               "anyOf": [
@@ -2608,7 +2664,9 @@
       "required": [
         "label"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "FormParty",
+      "description": "Design-time party role definition. Defines what roles exist and what constraints apply when filling a form."
     },
     "Layer": {
       "oneOf": [
@@ -2733,7 +2791,8 @@
                           "width",
                           "height"
                         ],
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "title": "AbsolutePlacement"
                       },
                       {
                         "type": "object",
@@ -2783,7 +2842,8 @@
                           "width",
                           "height"
                         ],
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "title": "AnchorPlacement"
                       }
                     ],
                     "description": "Placement: 'flow', absolute coordinates, or a text anchor"
@@ -2794,7 +2854,9 @@
                   "type",
                   "placement"
                 ],
-                "additionalProperties": false
+                "additionalProperties": false,
+                "title": "SignatureSlot",
+                "description": "Signature slot binding a party to a placement on this layer"
               },
               "description": "Signature slots keyed by slot id"
             },
@@ -2814,7 +2876,9 @@
             "kind",
             "text"
           ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "title": "InlineLayer",
+          "description": "Inline layer with embedded content"
         },
         {
           "type": "object",
@@ -2934,7 +2998,8 @@
                           "width",
                           "height"
                         ],
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "title": "AbsolutePlacement"
                       },
                       {
                         "type": "object",
@@ -2984,7 +3049,8 @@
                           "width",
                           "height"
                         ],
-                        "additionalProperties": false
+                        "additionalProperties": false,
+                        "title": "AnchorPlacement"
                       }
                     ],
                     "description": "Placement: 'flow', absolute coordinates, or a text anchor"
@@ -2995,7 +3061,9 @@
                   "type",
                   "placement"
                 ],
-                "additionalProperties": false
+                "additionalProperties": false,
+                "title": "SignatureSlot",
+                "description": "Signature slot binding a party to a placement on this layer"
               },
               "description": "Signature slots keyed by slot id"
             },
@@ -3011,8 +3079,6 @@
             },
             "checksum": {
               "type": "string",
-              "minLength": 1,
-              "maxLength": 100,
               "pattern": "^sha256:[a-f0-9]{64}$",
               "description": "SHA-256 checksum for integrity verification"
             },
@@ -3027,8 +3093,6 @@
                 },
                 "checksum": {
                   "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
                   "pattern": "^sha256:[a-f0-9]{64}$",
                   "description": "SHA-256 checksum for integrity verification"
                 }
@@ -3037,6 +3101,7 @@
                 "path"
               ],
               "additionalProperties": false,
+              "title": "LayerFont",
               "description": "Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form's own fonts"
             },
             "format": {
@@ -3054,10 +3119,13 @@
                   "required": [
                     "currencyDisplay"
                   ],
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "title": "LayerMoneyFormat",
+                  "description": "How a PDF layer presents money values"
                 }
               },
               "additionalProperties": false,
+              "title": "LayerFormat",
               "description": "Presentation the template requires of filled values; PDF layers only. It applies to this layer alone, not to a layer that reuses its bindings"
             },
             "bindings": {
@@ -3201,7 +3269,9 @@
         "postalCode",
         "country"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Address",
+      "description": "Physical address with street, locality, region, postal code, and country"
     },
     "Attachment": {
       "type": "object",
@@ -3228,7 +3298,9 @@
         "name",
         "mimeType"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Attachment",
+      "description": "Attachment data representing an attached document. The key in the record is the annex identifier (the key from form.annexes)."
     },
     "Bbox": {
       "type": "object",
@@ -3246,7 +3318,9 @@
         "southWest",
         "northEast"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Bbox",
+      "description": "Geographic bounding box defined by southwest (minimum) and northeast (maximum) corner coordinates"
     },
     "Coordinate": {
       "type": "object",
@@ -3268,11 +3342,15 @@
         "lat",
         "lon"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Coordinate",
+      "description": "Geographic coordinate (WGS84) with latitude and longitude in decimal degrees"
     },
     "Duration": {
       "type": "string",
-      "pattern": "^P(?=\\d|T\\d)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(?:T(?=\\d)(\\d+H)?(\\d+M)?(\\d+(?:\\.\\d+)?S)?)?$"
+      "pattern": "^P(?=\\d|T\\d)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(?:T(?=\\d)(\\d+H)?(\\d+M)?(\\d+(?:\\.\\d+)?S)?)?$",
+      "title": "Duration",
+      "description": "ISO 8601 duration string representing a time period. Format: P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S where P indicates period, T separates date and time components. Examples: P1Y (1 year), P3M (3 months), P2W (2 weeks), P1DT12H (1 day 12 hours), PT30M (30 minutes), PT5S (5 seconds)"
     },
     "Identification": {
       "type": "object",
@@ -3312,7 +3390,9 @@
         "type",
         "number"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Identification",
+      "description": "Identification document with type, number, issuer, and optional issue and expiry dates"
     },
     "Money": {
       "type": "object",
@@ -3333,7 +3413,9 @@
         "amount",
         "currency"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Money",
+      "description": "Monetary value with currency code. Represents an amount in a specific currency, supporting both positive and negative values"
     },
     "Metadata": {
       "type": "object",
@@ -3364,7 +3446,9 @@
             "description": "Metadata value as null"
           }
         ]
-      }
+      },
+      "title": "Metadata",
+      "description": "Custom key-value pairs for storing domain-specific or organizational metadata. Keys must be alphanumeric with hyphens, values can be strings, numbers, booleans, or null"
     },
     "Organization": {
       "type": "object",
@@ -3409,7 +3493,9 @@
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Organization",
+      "description": "Organization with legal details and identification"
     },
     "Person": {
       "type": "object",
@@ -3454,7 +3540,9 @@
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Person",
+      "description": "Person with name (required) and optional name components (title, first name, middle name, last name, suffix)"
     },
     "Phone": {
       "type": "object",
@@ -3482,7 +3570,9 @@
       "required": [
         "number"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Phone",
+      "description": "Phone number in E.164 international format with optional type and extension"
     },
     "Signature": {
       "type": "object",
@@ -3546,7 +3636,9 @@
         "timestamp",
         "method"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Signature",
+      "description": "Captured signature data containing the signature image, timestamp, capture method, and optional metadata."
     },
     "CondExpr": {
       "anyOf": [
@@ -3560,7 +3652,9 @@
           "maxLength": 2000,
           "description": "Expression string - either inline expression or reference to a defs key"
         }
-      ]
+      ],
+      "title": "CondExpr",
+      "description": "Conditional expression: boolean literal or expression string"
     },
     "DefsSection": {
       "type": "object",
@@ -4418,7 +4512,9 @@
         ],
         "title": "Expression",
         "description": "A typed computed value with optional metadata (label, description). The type property determines the expected result type and value schema."
-      }
+      },
+      "title": "DefsSection",
+      "description": "Named computed values with type information that can be referenced in conditional expressions"
     },
     "Paradoc": {
       "anyOf": [
@@ -4434,7 +4530,9 @@
         {
           "$ref": "#/$defs/Bundle"
         }
-      ]
+      ],
+      "title": "Paradoc",
+      "description": "Root schema for any Paradoc artifact document"
     }
   }
 }

@@ -5,17 +5,15 @@ import { MoneySchema } from '../../primitives';
 
 const FormSignatureSchema = z.object({
 	required: z.boolean()
-		.default(false)
-		.describe('Whether signature is required for this role')
+		.describe('Whether signature is required for this role (default: false)')
 		.optional(),
 	witnesses: z.number()
+		.int()
 		.min(0)
-		.default(0)
-		.describe('Number of witnesses required for this signature')
+		.describe('Number of witnesses required for this signature (default: 0)')
 		.optional(),
 	notarized: z.boolean()
-		.default(false)
-		.describe('Whether at least one witness must be a notary')
+		.describe('Whether at least one witness must be a notary (default: false)')
 		.optional(),
 }).strict().meta({
 	title: 'FormSignature',
@@ -24,8 +22,7 @@ const FormSignatureSchema = z.object({
 
 const FormPaymentSchema = z.object({
 	required: z.boolean()
-		.default(false)
-		.describe('Whether payment is required for this role')
+		.describe('Whether payment is required for this role (default: false)')
 		.optional(),
 	amount: z.union([
 		MoneySchema,
@@ -53,18 +50,18 @@ export const FormPartySchema = z.object({
 		z.literal('person'),
 		z.literal('organization'),
 		z.literal('any'),
-	]).default('any')
-		.describe('Constraint on party type')
+	])
+		.describe('Constraint on party type (default: any)')
 		.optional(),
 	min: z.number()
+		.int()
 		.min(0)
-		.default(1)
-		.describe('Minimum parties required')
+		.describe('Minimum parties required (default: 1)')
 		.optional(),
 	max: z.number()
+		.int()
 		.min(1)
-		.default(1)
-		.describe('Maximum parties allowed')
+		.describe('Maximum parties allowed (default: 1)')
 		.optional(),
 	required: CondExprSchema.optional(),
 	signature: FormSignatureSchema.optional(),

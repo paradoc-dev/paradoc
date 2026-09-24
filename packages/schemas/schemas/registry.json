@@ -54,6 +54,8 @@
     "items"
   ],
   "additionalProperties": false,
+  "title": "Paradoc Registry Index",
+  "description": "Schema for registry.json index file",
   "$defs": {
     "RegistryItemSummary": {
       "type": "object",

@@ -17,5 +17,6 @@
     "northEast"
   ],
   "additionalProperties": false,
+  "description": "Geographic bounding box defined by southwest (minimum) and northeast (maximum) corner coordinates",
   "title": "Bbox"
 }

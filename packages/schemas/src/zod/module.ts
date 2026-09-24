@@ -46,40 +46,47 @@ import { RulesSectionSchema } from './artifacts/rules/rules-section';
  */
 export const ParadocRegistry = z.globalRegistry;
 
-// Register all schemas with their IDs for $ref generation
-ParadocRegistry.add(FormSchema, { id: 'Form' });
-ParadocRegistry.add(DocumentSchema, { id: 'Document' });
-ParadocRegistry.add(BundleSchema, { id: 'Bundle' });
-ParadocRegistry.add(ChecklistSchema, { id: 'Checklist' });
-ParadocRegistry.add(BundleContentItemSchema, { id: 'BundleContentItem' });
-ParadocRegistry.add(ChecklistItemSchema, { id: 'ChecklistItem' });
+/**
+ * Register a schema under its id. `add` replaces a schema's metadata, so the
+ * title and description its `.meta()` set are carried over with the id.
+ */
+function register(schema: z.ZodType, id: string): void {
+	ParadocRegistry.add(schema, { ...schema.meta(), id });
+}
 
-ParadocRegistry.add(FormFieldSchema, { id: 'FormField' });
-// FieldsetFieldSchema already has id via .meta({ id: 'FieldsetField' }) - no need to add again
-// ListFieldSchema already has id via .meta({ id: 'ListField' }) - no need to add again
-ParadocRegistry.add(FormAnnexSchema, { id: 'FormAnnex' });
-ParadocRegistry.add(FormPartySchema, { id: 'FormParty' });
+// Register all schemas with their IDs for $ref generation
+register(FormSchema, 'Form');
+register(DocumentSchema, 'Document');
+register(BundleSchema, 'Bundle');
+register(ChecklistSchema, 'Checklist');
+register(BundleContentItemSchema, 'BundleContentItem');
+register(ChecklistItemSchema, 'ChecklistItem');
+
+register(FormFieldSchema, 'FormField');
+// FieldsetFieldSchema and ListFieldSchema set their id in their own .meta().
+register(FormAnnexSchema, 'FormAnnex');
+register(FormPartySchema, 'FormParty');
 
 // Note: ContentRefSchema is NOT registered separately because ArtifactSchema already
 // includes it as a field. Registering it separately causes Zod v4 $ref bugs.
-// Keep the layer's own metadata: it carries the font and format rules' JSON Schema form.
-ParadocRegistry.add(LayerSchema, { ...LayerSchema.meta(), id: 'Layer' });
+// The layer's own metadata carries the font and format rules' JSON Schema form.
+register(LayerSchema, 'Layer');
 
-ParadocRegistry.add(AddressSchema, { id: 'Address' });
-ParadocRegistry.add(AttachmentSchema, { id: 'Attachment' });
-ParadocRegistry.add(BboxSchema, { id: 'Bbox' });
-ParadocRegistry.add(CoordinateSchema, { id: 'Coordinate' });
-ParadocRegistry.add(DurationSchema, { id: 'Duration' });
-ParadocRegistry.add(IdentificationSchema, { id: 'Identification' });
-ParadocRegistry.add(MoneySchema, { id: 'Money' });
-ParadocRegistry.add(MetadataSchema, { id: 'Metadata' });
-ParadocRegistry.add(OrganizationSchema, { id: 'Organization' });
-ParadocRegistry.add(PersonSchema, { id: 'Person' });
-ParadocRegistry.add(PhoneSchema, { id: 'Phone' });
-ParadocRegistry.add(SignatureSchema, { id: 'Signature' });
+register(AddressSchema, 'Address');
+register(AttachmentSchema, 'Attachment');
+register(BboxSchema, 'Bbox');
+register(CoordinateSchema, 'Coordinate');
+register(DurationSchema, 'Duration');
+register(IdentificationSchema, 'Identification');
+register(MoneySchema, 'Money');
+register(MetadataSchema, 'Metadata');
+register(OrganizationSchema, 'Organization');
+register(PersonSchema, 'Person');
+register(PhoneSchema, 'Phone');
+register(SignatureSchema, 'Signature');
 
-ParadocRegistry.add(CondExprSchema, { id: 'CondExpr' });
-ParadocRegistry.add(DefsSectionSchema, { id: 'DefsSection' });
+register(CondExprSchema, 'CondExpr');
+register(DefsSectionSchema, 'DefsSection');
 
 // Note: RulesSectionSchema is NOT registered separately because FormSchema already
 // includes it as a field. Registering it separately causes Zod v4 $ref bugs.
@@ -98,7 +105,7 @@ export const ParadocSchema = z.union([
 	description: 'Root schema for any Paradoc artifact document',
 });
 
-ParadocRegistry.add(ParadocSchema, { id: 'Paradoc' });
+register(ParadocSchema, 'Paradoc');
 
 // Export all schemas for direct import
 export {

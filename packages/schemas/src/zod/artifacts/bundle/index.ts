@@ -24,7 +24,7 @@ export const BundleSchema: z.ZodType<Bundle> = ArtifactSchema.extend({
 			);
 		})
 		.describe('Ordered bundle contents. Each item has a key and is either an inline artifact, path reference, or registry reference.'),
-}).meta({
+}).strict().meta({
 	title: 'Bundle',
 	description: 'A bundle artifact that groups together related artifacts into a single distributable unit. Bundles can contain documents, forms, checklists, and other bundles.',
-}).strict();
+});

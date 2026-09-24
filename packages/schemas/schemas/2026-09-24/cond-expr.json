@@ -13,5 +13,6 @@
       "description": "Expression string - either inline expression or reference to a defs key"
     }
   ],
+  "description": "Conditional expression: boolean literal or expression string",
   "title": "CondExpr"
 }

@@ -16,7 +16,7 @@ export const PhoneSchema = z.object({
 		.max(20)
 		.describe('Phone extension or extension number')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Phone',
 	description: 'Phone number in E.164 international format with optional type and extension',
-}).strict();
+});

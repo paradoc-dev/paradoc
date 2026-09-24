@@ -32,10 +32,9 @@ export const ValidationRuleSchema = z.object({
 		.max(500)
 		.describe('Error message displayed when the rule fails (expression evaluates to false)'),
 	severity: RuleSeveritySchema
-		.default('error')
 		.describe('Severity level: error (default) blocks submission, warning allows but warns')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'ValidationRule',
 	description: 'A form-level validation rule with a boolean expression and error message',
-}).strict();
+});

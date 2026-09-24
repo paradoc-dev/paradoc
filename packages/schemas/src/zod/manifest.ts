@@ -79,10 +79,10 @@ export const ManifestSchema = z.object({
 	security: SecurityConfigSchema
 		.describe('Security settings for layer downloads (overrides global config)')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Paradoc Project Manifest',
 	description: 'Schema for paradoc.json project manifest files',
-}).strict();
+});
 
 /**
  * Manifest Schema Registry
@@ -98,7 +98,7 @@ export const ManifestSchemaRegistry = z.registry<{
 }>();
 
 // Only register the main schema - nested schemas will be inlined
-ManifestSchemaRegistry.add(ManifestSchema, { id: 'Manifest' });
+ManifestSchemaRegistry.add(ManifestSchema, { ...ManifestSchema.meta(), id: 'Manifest' });
 
 /**
  * TypeScript types

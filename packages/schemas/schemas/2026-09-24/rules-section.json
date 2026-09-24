@@ -25,20 +25,21 @@
         "description": "Error message displayed when the rule fails (expression evaluates to false)"
       },
       "severity": {
-        "default": "error",
-        "description": "Severity level: error (default) blocks submission, warning allows but warns",
         "type": "string",
         "enum": [
           "error",
           "warning"
-        ]
+        ],
+        "description": "Severity level: error (default) blocks submission, warning allows but warns"
       }
     },
     "required": [
       "expr",
       "message"
     ],
-    "additionalProperties": false
+    "additionalProperties": false,
+    "title": "ValidationRule",
+    "description": "A form-level validation rule with a boolean expression and error message"
   },
   "description": "Form-level validation rules keyed by rule identifier. Rules use expressions to validate cross-field constraints.",
   "title": "RulesSection"

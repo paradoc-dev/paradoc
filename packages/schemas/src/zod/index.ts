@@ -36,6 +36,13 @@ export {
 export { FieldsetFieldSchema, FORM_FIELD_TYPES } from './artifacts/form/field';
 export type { FormFieldType } from './artifacts/form/field';
 export { ListFieldSchema } from './artifacts/form/list';
+export {
+	FieldPatternSchema,
+	MAX_PATTERN_LENGTH,
+	describePatternProblem,
+	findPatternProblem,
+} from './artifacts/form/pattern';
+export type { PatternProblem } from './artifacts/form/pattern';
 
 // Shared
 export { ArtifactSchema } from './artifacts/shared/base';
@@ -55,6 +62,7 @@ export {
 	AddressSchema,
 	AttachmentSchema,
 	BboxSchema,
+	ChecksumSchema,
 	CoordinateSchema,
 	DurationSchema,
 	ISO_8601_DURATION_PATTERN,

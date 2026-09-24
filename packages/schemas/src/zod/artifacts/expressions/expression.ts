@@ -23,7 +23,7 @@ const BaseExpressionSchema = z.object({
 		.max(1000)
 		.describe('Description or documentation of the computed value')
 		.optional(),
-});
+}).strict();
 
 // Expression string constraints
 const ExpressionString = z.string()
@@ -126,7 +126,7 @@ export const MoneyExpressionSchema = BaseExpressionSchema.extend({
 	value: z.object({
 		amount: ExpressionString,
 		currency: ExpressionString,
-	}).describe('Money object with amount and currency expressions'),
+	}).strict().describe('Money object with amount and currency expressions'),
 });
 
 const AddressExpressionSchema = BaseExpressionSchema.extend({
@@ -138,7 +138,7 @@ const AddressExpressionSchema = BaseExpressionSchema.extend({
 		region: ExpressionString,
 		postalCode: ExpressionString,
 		country: ExpressionString,
-	}).describe('Address object with component expressions'),
+	}).strict().describe('Address object with component expressions'),
 });
 
 const PhoneExpressionSchema = BaseExpressionSchema.extend({
@@ -147,13 +147,13 @@ const PhoneExpressionSchema = BaseExpressionSchema.extend({
 		number: ExpressionString,
 		type: OptionalExpressionString,
 		extension: OptionalExpressionString,
-	}).describe('Phone object with number and optional type/extension expressions'),
+	}).strict().describe('Phone object with number and optional type/extension expressions'),
 });
 
 const CoordinateExpressionValueSchema = z.object({
 	lat: ExpressionString,
 	lon: ExpressionString,
-});
+}).strict();
 
 const CoordinateExpressionSchema = BaseExpressionSchema.extend({
 	type: z.literal('coordinate'),
@@ -165,7 +165,7 @@ const BboxExpressionSchema = BaseExpressionSchema.extend({
 	value: z.object({
 		southWest: CoordinateExpressionValueSchema.describe('Southwest (minimum) corner expressions'),
 		northEast: CoordinateExpressionValueSchema.describe('Northeast (maximum) corner expressions'),
-	}).describe('Bounding box with southwest and northeast corner expressions'),
+	}).strict().describe('Bounding box with southwest and northeast corner expressions'),
 });
 
 const PersonExpressionSchema = BaseExpressionSchema.extend({
@@ -177,7 +177,7 @@ const PersonExpressionSchema = BaseExpressionSchema.extend({
 		middleName: OptionalExpressionString,
 		lastName: OptionalExpressionString,
 		suffix: OptionalExpressionString,
-	}).describe('Person object with name component expressions'),
+	}).strict().describe('Person object with name component expressions'),
 });
 
 const OrganizationExpressionSchema = BaseExpressionSchema.extend({
@@ -189,7 +189,7 @@ const OrganizationExpressionSchema = BaseExpressionSchema.extend({
 		entityType: OptionalExpressionString,
 		entityId: OptionalExpressionString,
 		taxId: OptionalExpressionString,
-	}).describe('Organization object with component expressions'),
+	}).strict().describe('Organization object with component expressions'),
 });
 
 const IdentificationExpressionSchema = BaseExpressionSchema.extend({
@@ -200,7 +200,7 @@ const IdentificationExpressionSchema = BaseExpressionSchema.extend({
 		issuer: OptionalExpressionString,
 		issueDate: OptionalExpressionString,
 		expiryDate: OptionalExpressionString,
-	}).describe('Identification object with type, number, and optional issuer/date expressions'),
+	}).strict().describe('Identification object with type, number, and optional issuer/date expressions'),
 });
 
 // ============================================================================

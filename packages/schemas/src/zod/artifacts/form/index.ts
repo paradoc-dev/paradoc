@@ -44,8 +44,7 @@ export const FormSchema = ArtifactSchema.extend({
 		.describe('Key of the default layer to use when none specified at render time')
 		.optional(),
 	allowAdditionalAnnexes: z.boolean()
-		.default(false)
-		.describe('Whether additional ad-hoc annexes can be attached beyond those defined in the annexes record')
+		.describe('Whether additional ad-hoc annexes can be attached beyond those defined in the annexes record (default: false)')
 		.optional(),
 	annexes: z.record(
 		z.string()
@@ -65,7 +64,7 @@ export const FormSchema = ArtifactSchema.extend({
 		FormPartySchema,
 	).describe('Party role definitions keyed by role identifier. Each role specifies constraints on who can fill it (person/organization) and signature requirements.')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Form',
 	description: 'A form artifact that defines a data contract with field definitions, optional layers for rendering, and optional annexes. Forms are the primary artifact type for structured data collection and document generation.',
-}).strict();
+});

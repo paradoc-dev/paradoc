@@ -28,5 +28,6 @@
     }
   },
   "additionalProperties": false,
+  "description": "Defines an annex slot where a document must or may be attached at runtime",
   "title": "FormAnnex"
 }

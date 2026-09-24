@@ -317,7 +317,8 @@
                       "width",
                       "height"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "title": "AbsolutePlacement"
                   },
                   {
                     "type": "object",
@@ -367,7 +368,8 @@
                       "width",
                       "height"
                     ],
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "title": "AnchorPlacement"
                   }
                 ],
                 "description": "Placement: 'flow', absolute coordinates, or a text anchor"
@@ -378,7 +380,9 @@
               "type",
               "placement"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "title": "SignatureSlot",
+            "description": "Signature slot binding a party to a placement on this layer"
           },
           "description": "Signature slots keyed by slot id"
         },
@@ -394,8 +398,6 @@
         },
         "checksum": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 100,
           "pattern": "^sha256:[a-f0-9]{64}$",
           "description": "SHA-256 checksum for integrity verification"
         },
@@ -410,8 +412,6 @@
             },
             "checksum": {
               "type": "string",
-              "minLength": 1,
-              "maxLength": 100,
               "pattern": "^sha256:[a-f0-9]{64}$",
               "description": "SHA-256 checksum for integrity verification"
             }
@@ -420,6 +420,7 @@
             "path"
           ],
           "additionalProperties": false,
+          "title": "LayerFont",
           "description": "Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form's own fonts"
         },
         "format": {
@@ -437,10 +438,13 @@
               "required": [
                 "currencyDisplay"
               ],
-              "additionalProperties": false
+              "additionalProperties": false,
+              "title": "LayerMoneyFormat",
+              "description": "How a PDF layer presents money values"
             }
           },
           "additionalProperties": false,
+          "title": "LayerFormat",
           "description": "Presentation the template requires of filled values; PDF layers only. It applies to this layer alone, not to a layer that reuses its bindings"
         },
         "bindings": {

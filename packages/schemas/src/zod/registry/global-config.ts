@@ -93,10 +93,10 @@ export const GlobalConfigSchema = z.object({
 	anonymousId: z.uuid()
 		.describe('Anonymous telemetry identifier. The CLI generates it once and keeps it across resets.')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Paradoc Global Config',
 	description: 'Schema for ~/.paradoc/config.json global configuration file',
-}).strict();
+});
 
 /**
  * TypeScript types

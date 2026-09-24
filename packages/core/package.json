@@ -73,7 +73,6 @@
     "@paradoc/schemas": "workspace:^",
     "@paradoc/types": "workspace:^",
     "@standard-schema/spec": "^1.0.0",
-    "safe-regex": "^2.1.1",
     "yaml": "catalog:",
     "zod": "catalog:"
   },
@@ -83,7 +82,6 @@
     "@paradoc/resolvers": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
-    "@types/safe-regex": "^1.1.6",
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "fflate": "^0.8.3",

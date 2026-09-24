@@ -39,5 +39,6 @@
     "number"
   ],
   "additionalProperties": false,
+  "description": "Identification document with type, number, issuer, and optional issue and expiry dates",
   "title": "Identification"
 }

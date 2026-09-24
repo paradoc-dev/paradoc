@@ -44,5 +44,6 @@
     "name"
   ],
   "additionalProperties": false,
+  "description": "Organization with legal details and identification",
   "title": "Organization"
 }

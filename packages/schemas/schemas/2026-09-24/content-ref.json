@@ -20,7 +20,9 @@
         "kind",
         "text"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "InlineContentRef",
+      "description": "Inline content reference with embedded text"
     },
     {
       "type": "object",
@@ -55,8 +57,6 @@
         },
         "checksum": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 100,
           "pattern": "^sha256:[a-f0-9]{64}$",
           "description": "SHA-256 checksum for integrity verification"
         }
@@ -66,7 +66,9 @@
         "path",
         "mimeType"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "FileContentRef",
+      "description": "File content reference with path and metadata"
     }
   ],
   "description": "Content reference — inline text or file reference",

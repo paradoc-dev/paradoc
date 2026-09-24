@@ -48,5 +48,6 @@
     "country"
   ],
   "additionalProperties": false,
+  "description": "Physical address with street, locality, region, postal code, and country",
   "title": "Address"
 }

@@ -63,5 +63,6 @@
     "method"
   ],
   "additionalProperties": false,
+  "description": "Captured signature data containing the signature image, timestamp, capture method, and optional metadata.",
   "title": "Signature"
 }

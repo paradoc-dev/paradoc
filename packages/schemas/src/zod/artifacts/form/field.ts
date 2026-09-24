@@ -11,6 +11,7 @@ import { DurationSchema } from '../../primitives/duration';
 import { PersonSchema } from '../../primitives/person';
 import { OrganizationSchema } from '../../primitives/organization';
 import { IdentificationSchema } from '../../primitives/identification';
+import { FieldPatternSchema } from './pattern';
 import {
 	compareClockTimeBounds,
 	compareTemporalBounds,
@@ -28,15 +29,30 @@ const EnumOptionSchema = z.object({
 		.optional(),
 }).strict();
 
+// A length, count, or number of decimal places: a non-negative integer.
+const CountSchema = z.number().int().min(0);
+
+const EnumOptionsSchema = z.array(EnumOptionSchema)
+	.min(1)
+	.superRefine((options, ctx) => {
+		const seen = new Set<string | number>();
+		options.forEach((option, index) => {
+			if (seen.has(option.value)) {
+				ctx.addIssue({
+					code: 'custom',
+					path: [index, 'value'],
+					message: `Duplicate option value ${JSON.stringify(option.value)}`,
+				});
+			}
+			seen.add(option.value);
+		});
+	});
+
 const TextFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('text'),
-	minLength: z.number().describe('Minimum length').optional(),
-	maxLength: z.number().describe('Maximum length').optional(),
-	pattern: z.string()
-		.min(1)
-		.max(500)
-		.describe('Regular expression pattern for validation')
-		.optional(),
+	minLength: CountSchema.describe('Minimum length').optional(),
+	maxLength: CountSchema.describe('Maximum length').optional(),
+	pattern: FieldPatternSchema.optional(),
 	default: z.string().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(
@@ -108,8 +124,8 @@ const DurationFieldSchema = BaseFieldSchema.extend({
 
 const EmailFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('email'),
-	minLength: z.number().describe('Minimum length').optional(),
-	maxLength: z.number().describe('Maximum length').optional(),
+	minLength: CountSchema.describe('Minimum length').optional(),
+	maxLength: CountSchema.describe('Maximum length').optional(),
 	default: z.string().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(
@@ -124,13 +140,9 @@ const EmailFieldSchema = BaseFieldSchema.extend({
 
 const UuidFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('uuid'),
-	minLength: z.number().describe('Minimum length').optional(),
-	maxLength: z.number().describe('Maximum length').optional(),
-	pattern: z.string()
-		.min(1)
-		.max(500)
-		.describe('Regular expression pattern for validation')
-		.optional(),
+	minLength: CountSchema.describe('Minimum length').optional(),
+	maxLength: CountSchema.describe('Maximum length').optional(),
+	pattern: FieldPatternSchema.optional(),
 	default: z.string().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(
@@ -145,13 +157,9 @@ const UuidFieldSchema = BaseFieldSchema.extend({
 
 const UriFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('uri'),
-	minLength: z.number().describe('Minimum length').optional(),
-	maxLength: z.number().describe('Maximum length').optional(),
-	pattern: z.string()
-		.min(1)
-		.max(500)
-		.describe('Regular expression pattern for validation')
-		.optional(),
+	minLength: CountSchema.describe('Minimum length').optional(),
+	maxLength: CountSchema.describe('Maximum length').optional(),
+	pattern: FieldPatternSchema.optional(),
 	default: z.string().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(
@@ -166,9 +174,7 @@ const UriFieldSchema = BaseFieldSchema.extend({
 
 const EnumFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('enum'),
-	enum: z.array(EnumOptionSchema)
-		.min(1)
-		.describe('Array of allowed options for the enum field'),
+	enum: EnumOptionsSchema.describe('Array of allowed options for the enum field'),
 	default: EnumOptionValueSchema
 		.describe('Default value')
 		.optional(),
@@ -243,24 +249,31 @@ const IdentificationFieldSchema = BaseFieldSchema.extend({
 
 const MultiselectFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('multiselect'),
-	enum: z.array(EnumOptionSchema)
-		.min(1)
-		.describe('Available options'),
-	min: z.number().describe('Minimum selections required').optional(),
-	max: z.number().describe('Maximum selections allowed').optional(),
+	enum: EnumOptionsSchema.describe('Available options'),
+	min: CountSchema.describe('Minimum selections required').optional(),
+	max: CountSchema.describe('Maximum selections allowed').optional(),
 	default: z.array(EnumOptionValueSchema)
 		.describe('Default selected values')
 		.optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })
+	field.default?.forEach((value, index) => {
+		if (!field.enum.some((option) => option.value === value)) {
+			ctx.addIssue({
+				code: 'custom',
+				path: ['default', index],
+				message: 'Default value must match one of the multiselect option values',
+			});
+		}
+	});
 });
 
 const PercentageFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('percentage'),
 	min: z.number().describe('Minimum value (default: 0)').optional(),
 	max: z.number().describe('Maximum value (default: 100)').optional(),
-	precision: z.number().describe('Decimal places (default: 2)').optional(),
+	precision: CountSchema.describe('Decimal places (default: 2)').optional(),
 	default: z.number().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
@@ -271,7 +284,7 @@ const RatingFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('rating'),
 	min: z.number().describe('Minimum value (default: 1)').optional(),
 	max: z.number().describe('Maximum value (default: 5)').optional(),
-	step: z.number().describe('Increment step (e.g., 0.5 for half stars, default: 1)').optional(),
+	step: z.number().positive().describe('Increment step (e.g., 0.5 for half stars, default: 1)').optional(),
 	default: z.number().describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', (min, max) => min <= max)
@@ -285,7 +298,11 @@ const FieldsetFieldObjectSchema = BaseFieldSchema.extend({
 		z.string().min(1).max(100).regex(/^[a-z][a-zA-Z0-9_]*$/).describe('Nested field identifier (camelCase, starts with lowercase letter)'),
 		FormFieldSchema,
 	)),
-}).meta({ id: 'FieldsetField' });
+}).meta({
+	id: 'FieldsetField',
+	title: 'FieldsetField',
+	description: 'Field that groups nested fields under one key',
+});
 
 export const FieldsetFieldSchema: z.ZodType<FieldsetField> = FieldsetFieldObjectSchema;
 

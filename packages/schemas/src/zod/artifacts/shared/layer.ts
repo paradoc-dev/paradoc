@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ChecksumSchema } from '../../primitives/checksum';
 
 /**
  * Field type for a signature slot (mirrors SigningFieldType).
@@ -12,7 +13,7 @@ const AbsolutePlacementSchema = z.object({
 	y: z.number().min(0).describe('Y in points from the top page edge'),
 	width: z.number().min(1).describe('Width in points'),
 	height: z.number().min(1).describe('Height in points'),
-}).meta({ title: 'AbsolutePlacement' }).strict();
+}).strict().meta({ title: 'AbsolutePlacement' });
 
 const AnchorPlacementSchema = z.object({
 	anchor: z.object({
@@ -23,7 +24,7 @@ const AnchorPlacementSchema = z.object({
 	}).strict(),
 	width: z.number().min(1).describe('Width in points'),
 	height: z.number().min(1).describe('Height in points'),
-}).meta({ title: 'AnchorPlacement' }).strict();
+}).strict().meta({ title: 'AnchorPlacement' });
 
 /**
  * Signature slot: one signing field on a layer, keyed by slot id.
@@ -41,10 +42,10 @@ export const SignatureSlotSchema = z.object({
 		AbsolutePlacementSchema,
 		AnchorPlacementSchema,
 	]).describe("Placement: 'flow', absolute coordinates, or a text anchor"),
-}).meta({
+}).strict().meta({
 	title: 'SignatureSlot',
 	description: 'Signature slot binding a party to a placement on this layer',
-}).strict();
+});
 
 /**
  * MIME types that name a React composition module.
@@ -139,10 +140,10 @@ const InlineLayerSchema = LayerBaseSchema.extend({
 		.min(1)
 		.max(1000000)
 		.describe('Layer content with interpolation placeholders (e.g., {{fields.fieldName}})'),
-}).meta({
+}).strict().meta({
 	title: 'InlineLayer',
 	description: 'Inline layer with embedded content',
-}).strict();
+});
 
 /** The rule a font on a layer other than a PDF breaks, stated once so every error reads the same. */
 export const LAYER_FONT_RULE = 'Only PDF layers (application/pdf) can declare a font';
@@ -193,16 +194,11 @@ const LayerFontSchema = z.object({
 		.min(1)
 		.max(1000)
 		.describe('Logical resolver path of a TrueType-outline font program (.ttf), resolved like the layer path'),
-	checksum: z.string()
-		.min(1)
-		.max(100)
-		.regex(/^sha256:[a-f0-9]{64}$/)
-		.describe('SHA-256 checksum for integrity verification')
-		.optional(),
-}).meta({
+	checksum: ChecksumSchema.optional(),
+}).strict().meta({
 	title: 'LayerFont',
 	description: 'Font a PDF layer draws filled values and overlay text with',
-}).strict();
+});
 
 /** The rule a format on a layer other than a PDF breaks, stated once so every error reads the same. */
 export const LAYER_FORMAT_RULE = 'Only PDF layers (application/pdf) can declare a format';
@@ -214,10 +210,10 @@ export const LAYER_FORMAT_RULE = 'Only PDF layers (application/pdf) can declare 
 const LayerMoneyFormatSchema = z.object({
 	currencyDisplay: z.literal('none')
 		.describe('`none` prints the amount without a currency symbol or code, for a template that pre-prints the symbol beside each money box'),
-}).meta({
+}).strict().meta({
 	title: 'LayerMoneyFormat',
 	description: 'How a PDF layer presents money values',
-}).strict();
+});
 
 /**
  * Presentation a PDF layer's template requires of filled values, applied over
@@ -225,10 +221,10 @@ const LayerMoneyFormatSchema = z.object({
  */
 const LayerFormatSchema = z.object({
 	money: LayerMoneyFormatSchema.optional(),
-}).meta({
+}).strict().meta({
 	title: 'LayerFormat',
 	description: 'Presentation a PDF layer\'s template requires of filled values, applied over the caller\'s formatter',
-}).strict();
+});
 
 /**
  * The file layer's keys, before its PDF-only rules. The registry file layer
@@ -240,12 +236,7 @@ export const FileLayerObjectSchema = LayerBaseSchema.extend({
 		.min(1)
 		.max(1000)
 		.describe('Logical resolver path; the CLI resolves file-backed artifacts from their directory and stdin artifacts from cwd'),
-	checksum: z.string()
-		.min(1)
-		.max(100)
-		.regex(/^sha256:[a-f0-9]{64}$/)
-		.describe('SHA-256 checksum for integrity verification')
-		.optional(),
+	checksum: ChecksumSchema.optional(),
 	font: LayerFontSchema
 		.describe('Font for filled values and overlay text; PDF layers only. It is tried after a font supplied at render time and before the form\'s own fonts')
 		.optional(),

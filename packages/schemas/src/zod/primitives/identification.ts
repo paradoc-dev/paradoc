@@ -20,7 +20,7 @@ export const IdentificationSchema = z.object({
 	expiryDate: z.iso.date()
 		.describe('Expiry date in ISO 8601 format (YYYY-MM-DD)')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Identification',
 	description: 'Identification document with type, number, issuer, and optional issue and expiry dates',
-}).strict();
+});

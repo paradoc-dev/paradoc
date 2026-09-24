@@ -21,7 +21,7 @@ export const DocumentSchema = ArtifactSchema.extend({
 		.max(100)
 		.describe('Key of the default layer to use when none specified at render time')
 		.optional(),
-}).meta({
+}).strict().meta({
 	title: 'Document',
 	description: 'A document artifact representing static content with no inputs. Documents can have multiple layers for rendering to different output formats (e.g., PDF, Markdown, HTML).',
-}).strict();
+});

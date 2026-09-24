@@ -87,10 +87,10 @@ export const RegistryIndexSchema = z.object({
 		.optional(),
 	items: z.array(RegistryItemSummarySchema)
 		.describe('List of all artifacts in the registry'),
-}).meta({
+}).strict().meta({
 	title: 'Paradoc Registry Index',
 	description: 'Schema for registry.json index file',
-}).strict();
+});
 
 /**
  * TypeScript types

@@ -27,5 +27,6 @@
     "number"
   ],
   "additionalProperties": false,
+  "description": "Phone number in E.164 international format with optional type and extension",
   "title": "Phone"
 }

@@ -379,7 +379,7 @@ describe('Form', () => {
             annexes: { guide: { title: 'User Guide' } },
           }
           const result = form(input)
-          expect(result.toJSON({ includeSchema: false })).toEqual({ ...input, allowAdditionalAnnexes: false })
+          expect(result.toJSON({ includeSchema: false })).toEqual(input)
         })
 
         test('creates form with valid name patterns', () => {
@@ -611,7 +611,7 @@ describe('Form', () => {
         test('parses valid form and returns FormInstance', () => {
           const input = { kind: 'form', version: '1.0.0', name: 'test-form', title: 'Test Form' }
           const result = form.from(input)
-          expect(result.toJSON({ includeSchema: false })).toEqual({ ...input, allowAdditionalAnnexes: false })
+          expect(result.toJSON({ includeSchema: false })).toEqual(input)
         })
 
         test('parses form with fields', () => {
@@ -682,7 +682,7 @@ describe('Form', () => {
           const result = form.safeFrom(input)
           expect(result.success).toBe(true)
           if (result.success) {
-            expect(result.data.toJSON({ includeSchema: false })).toEqual({ ...input, allowAdditionalAnnexes: false })
+            expect(result.data.toJSON({ includeSchema: false })).toEqual(input)
           }
         })
 

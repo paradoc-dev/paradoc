@@ -1,5 +1,6 @@
 export { AddressSchema } from './address';
 export { AttachmentSchema } from './attachment';
+export { ChecksumSchema } from './checksum';
 export { BboxSchema } from './bbox';
 export { CoordinateSchema } from './coordinate';
 export { DurationSchema, ISO_8601_DURATION_PATTERN, ISO_8601_DURATION_REGEX } from './duration';

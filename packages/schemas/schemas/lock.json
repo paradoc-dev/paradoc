@@ -31,6 +31,8 @@
     "artifacts"
   ],
   "additionalProperties": false,
+  "title": "Paradoc Lock File",
+  "description": "Schema for .paradoc/lock.json lock file",
   "$defs": {
     "LockedArtifact": {
       "type": "object",

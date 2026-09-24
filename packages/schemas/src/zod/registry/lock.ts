@@ -66,10 +66,10 @@ export const LockFileSchema = z.object({
 			.describe('Artifact reference (@namespace/name)'),
 		LockedArtifactSchema,
 	).describe('Installed artifacts by reference'),
-}).meta({
+}).strict().meta({
 	title: 'Paradoc Lock File',
 	description: 'Schema for .paradoc/lock.json lock file',
-}).strict();
+});
 
 /**
  * TypeScript types

@@ -857,5 +857,6 @@
     "title": "Expression",
     "description": "A typed computed value with optional metadata (label, description). The type property determines the expected result type and value schema."
   },
+  "description": "Named computed values with type information that can be referenced in conditional expressions",
   "title": "DefsSection"
 }

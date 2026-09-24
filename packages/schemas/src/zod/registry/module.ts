@@ -49,25 +49,25 @@ export const CLISchemaRegistry = z.registry<{
 }>();
 
 // Registry Index schemas
-CLISchemaRegistry.add(RegistryItemSummarySchema, { id: 'RegistryItemSummary' });
-CLISchemaRegistry.add(RegistryIndexSchema, { id: 'RegistryIndex' });
+CLISchemaRegistry.add(RegistryItemSummarySchema, { ...RegistryItemSummarySchema.meta(), id: 'RegistryItemSummary' });
+CLISchemaRegistry.add(RegistryIndexSchema, { ...RegistryIndexSchema.meta(), id: 'RegistryIndex' });
 
 // Registry Item schemas
-CLISchemaRegistry.add(RegistryInlineLayerSchema, { id: 'RegistryInlineLayer' });
-CLISchemaRegistry.add(RegistryFileLayerSchema, { id: 'RegistryFileLayer' });
-CLISchemaRegistry.add(RegistryLayerSchema, { id: 'RegistryLayer' });
-CLISchemaRegistry.add(RegistryItemSchema, { id: 'RegistryItem' });
+CLISchemaRegistry.add(RegistryInlineLayerSchema, { ...RegistryInlineLayerSchema.meta(), id: 'RegistryInlineLayer' });
+CLISchemaRegistry.add(RegistryFileLayerSchema, { ...RegistryFileLayerSchema.meta(), id: 'RegistryFileLayer' });
+CLISchemaRegistry.add(RegistryLayerSchema, { ...RegistryLayerSchema.meta(), id: 'RegistryLayer' });
+CLISchemaRegistry.add(RegistryItemSchema, { ...RegistryItemSchema.meta(), id: 'RegistryItem' });
 
 // Global Config schemas
-CLISchemaRegistry.add(RegistryEntryObjectSchema, { id: 'RegistryEntryObject' });
-CLISchemaRegistry.add(RegistryEntrySchema, { id: 'RegistryEntry' });
-CLISchemaRegistry.add(GlobalDefaultsSchema, { id: 'GlobalDefaults' });
-CLISchemaRegistry.add(GlobalConfigSchema, { id: 'GlobalConfig' });
+CLISchemaRegistry.add(RegistryEntryObjectSchema, { ...RegistryEntryObjectSchema.meta(), id: 'RegistryEntryObject' });
+CLISchemaRegistry.add(RegistryEntrySchema, { ...RegistryEntrySchema.meta(), id: 'RegistryEntry' });
+CLISchemaRegistry.add(GlobalDefaultsSchema, { ...GlobalDefaultsSchema.meta(), id: 'GlobalDefaults' });
+CLISchemaRegistry.add(GlobalConfigSchema, { ...GlobalConfigSchema.meta(), id: 'GlobalConfig' });
 
 // Lock file schemas
-CLISchemaRegistry.add(LockedLayerSchema, { id: 'LockedLayer' });
-CLISchemaRegistry.add(LockedArtifactSchema, { id: 'LockedArtifact' });
-CLISchemaRegistry.add(LockFileSchema, { id: 'LockFile' });
+CLISchemaRegistry.add(LockedLayerSchema, { ...LockedLayerSchema.meta(), id: 'LockedLayer' });
+CLISchemaRegistry.add(LockedArtifactSchema, { ...LockedArtifactSchema.meta(), id: 'LockedArtifact' });
+CLISchemaRegistry.add(LockFileSchema, { ...LockFileSchema.meta(), id: 'LockFile' });
 
 // Re-export all schemas
 export {

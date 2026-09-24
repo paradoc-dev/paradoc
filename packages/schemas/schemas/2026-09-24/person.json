@@ -44,5 +44,6 @@
     "name"
   ],
   "additionalProperties": false,
+  "description": "Person with name (required) and optional name components (title, first name, middle name, last name, suffix)",
   "title": "Person"
 }

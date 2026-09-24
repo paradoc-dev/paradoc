@@ -106,7 +106,7 @@ describe('definition payload inference', () => {
 		expect(openBuilt.fill(openBuiltPayload).getAnnex('extra')).toEqual(attachment)
 		expect(openLiteral.fill(openLiteralPayload).getAnnex('extra')).toEqual(attachment)
 		expect(openBuilt.allowAdditionalAnnexes).toBe(true)
-		expect(closedBuilt.allowAdditionalAnnexes).toBe(false)
+		expect(closedBuilt.allowAdditionalAnnexes).toBeUndefined()
 		void [openPatch, openBadValue, openMissingProof, closedBuiltPayload, closedExplicitPayload, closedLiteralPayload]
 	})
 

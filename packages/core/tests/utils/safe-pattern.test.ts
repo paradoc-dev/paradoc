@@ -5,6 +5,8 @@ import {
 	createSafeRegex,
 	UnsafePatternError,
 } from '../../src/utils/safe-pattern'
+import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
+import { TIME_PATTERN } from '../../src/primitives/time'
 
 describe('safe-pattern', () => {
 	describe('assertSafePattern', () => {
@@ -40,10 +42,21 @@ describe('safe-pattern', () => {
 			expect(error?.reason).toBe('too_long')
 		})
 
-		it('should reject patterns that safe-regex flags as unsafe', () => {
-			// safe-regex may flag some patterns as unsafe even if they have syntax errors
-			// The key is that they get rejected
-			expect(() => assertSafePattern('[invalid')).toThrow(UnsafePatternError)
+		it.each(['[invalid', '(abc', 'a{2,1}'])('reports %s, a syntax error, as invalid and not as ReDoS', (pattern) => {
+			let error: UnsafePatternError | undefined
+			try {
+				assertSafePattern(pattern)
+			} catch (e) {
+				error = e as UnsafePatternError
+			}
+			expect(error).toBeInstanceOf(UnsafePatternError)
+			expect(error?.reason).toBe('invalid')
+			expect(error?.message).toContain('invalid regular expression syntax')
+		})
+
+		it('accepts the known-safe schema patterns that safe-regex flags', () => {
+			expect(() => assertSafePattern(ISO_8601_DURATION_PATTERN)).not.toThrow()
+			expect(() => assertSafePattern(TIME_PATTERN)).not.toThrow()
 		})
 
 		it('should include field name in error message when provided', () => {
@@ -73,11 +86,10 @@ describe('safe-pattern', () => {
 			expect(result.message).toContain('maximum length')
 		})
 
-		it('should return safe: false for patterns flagged by safe-regex', () => {
-			// safe-regex flags patterns it considers unsafe
-			const result = isSafePattern('[invalid')
+		it.each(['[invalid', '(abc', 'a{2,1}'])('reports %s, a syntax error, as invalid', (pattern) => {
+			const result = isSafePattern(pattern)
 			expect(result.safe).toBe(false)
-			// The reason might be 'redos' if safe-regex flags it before we check syntax
+			expect(result.reason).toBe('invalid')
 		})
 	})
 
