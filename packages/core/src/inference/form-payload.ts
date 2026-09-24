@@ -3,12 +3,19 @@ import type {
   FormField,
   FormAnnex,
   FormParty,
+  Address,
+  Bbox,
+  Coordinate,
+  Identification,
+  Money,
   Person,
   Organization,
+  Phone,
   Attachment,
 } from '@paradoc/types'
 import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
 import { TIME_PATTERN } from '@/primitives/time'
+import { compositeJsonSchema } from './composite-shapes'
 
 type EnumOptionValue<T> = T extends { value: infer V } ? V : never
 type RuntimeEnumOption = { value: string | number }
@@ -57,25 +64,15 @@ export type FieldToDataType<F> = F extends { type: 'text' }
           : F extends { type: 'number' }
             ? number
             : F extends { type: 'coordinate' }
-              ? { lat: number; lon: number }
+              ? Coordinate
               : F extends { type: 'bbox' }
-                ? {
-                    southWest: { lat: number; lon: number }
-                    northEast: { lat: number; lon: number }
-                  }
+                ? Bbox
                 : F extends { type: 'money' }
-                  ? { amount: number; currency: string }
+                  ? Money
                   : F extends { type: 'address' }
-                    ? {
-                        line1: string
-                        line2?: string
-                        locality: string
-                        region: string
-                        postalCode: string
-                        country: string
-                      }
+                    ? Address
                     : F extends { type: 'phone' }
-                      ? { number: string; type?: string; extension?: string }
+                      ? Phone
                       : F extends { type: 'duration' }
                         ? string
                         : F extends { type: 'enum'; enum: infer E }
@@ -90,31 +87,11 @@ export type FieldToDataType<F> = F extends { type: 'text' }
                               : F extends { type: 'time' }
                                 ? string
                                 : F extends { type: 'person' }
-                                  ? {
-                                      name: string
-                                      title?: string
-                                      firstName?: string
-                                      middleName?: string
-                                      lastName?: string
-                                      suffix?: string
-                                    }
+                                  ? Person
                                   : F extends { type: 'organization' }
-                                    ? {
-                                        name: string
-                                        legalName?: string
-                                        domicile?: string
-                                        entityType?: string
-                                        entityId?: string
-                                        taxId?: string
-                                      }
+                                    ? Organization
                                     : F extends { type: 'identification' }
-                                      ? {
-                                          type: string
-                                          number: string
-                                          issuer?: string
-                                          issueDate?: string
-                                          expiryDate?: string
-                                        }
+                                      ? Identification
                                       : F extends { type: 'multiselect'; enum: infer E }
                                         ? E extends readonly (infer U)[]
                                           ? EnumOptionValue<U>[]
@@ -448,6 +425,12 @@ function compileFields(fields: Record<string, FormField>): JsonSchema {
   }
 }
 
+/** Adds a field's declared default to its compiled value schema. */
+function withDefault(schema: JsonSchema, field: FormField): JsonSchema {
+  if ('default' in field && field.default !== undefined) schema.default = field.default
+  return schema
+}
+
 /**
  * Convert a single field definition to its data type schema
  */
@@ -504,101 +487,27 @@ function compileField(field: FormField): JsonSchema {
     }
 
     case 'coordinate':
-      return {
-        type: 'object',
-        properties: {
-          lat: { type: 'number', minimum: -90, maximum: 90 },
-          lon: { type: 'number', minimum: -180, maximum: 180 },
-        },
-        required: ['lat', 'lon'],
-        additionalProperties: false,
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
-
     case 'bbox':
-      return {
-        type: 'object',
-        properties: {
-          southWest: {
-            type: 'object',
-            properties: {
-              lat: { type: 'number', minimum: -90, maximum: 90 },
-              lon: { type: 'number', minimum: -180, maximum: 180 },
-            },
-            required: ['lat', 'lon'],
-            additionalProperties: false,
-          },
-          northEast: {
-            type: 'object',
-            properties: {
-              lat: { type: 'number', minimum: -90, maximum: 90 },
-              lon: { type: 'number', minimum: -180, maximum: 180 },
-            },
-            required: ['lat', 'lon'],
-            additionalProperties: false,
-          },
-        },
-        required: ['southWest', 'northEast'],
-        additionalProperties: false,
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
-
-    case 'money':
-      return {
-        type: 'object',
-        properties: {
-          amount: (() => {
-            const amountSchema: JsonSchema = { type: 'number' }
-            if ('min' in field && typeof field.min === 'number') {
-              amountSchema.minimum = field.min
-            }
-            if ('max' in field && typeof field.max === 'number') {
-              amountSchema.maximum = field.max
-            }
-            return amountSchema
-          })(),
-          currency: {
-            type: 'string',
-            minLength: 3,
-            maxLength: 3,
-            pattern: '^[A-Z]{3}$',
-            ...('currency' in field && typeof field.currency === 'string' && { const: field.currency }),
-          },
-        },
-        required: ['amount', 'currency'],
-        additionalProperties: false,
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
-
     case 'address':
-      return {
-        type: 'object',
-        properties: {
-          line1: { type: 'string' },
-          line2: { type: 'string' },
-          locality: { type: 'string' },
-          region: { type: 'string' },
-          postalCode: { type: 'string' },
-          country: { type: 'string' },
-        },
-        required: ['line1', 'locality', 'region', 'postalCode', 'country'],
-        additionalProperties: false,
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
-
     case 'phone':
-      return {
-        type: 'object',
-        properties: {
-          number: { type: 'string', pattern: '^\\+[1-9]\\d{1,14}$' },
-          type: {
-            anyOf: [{ const: 'mobile' }, { const: 'work' }, { const: 'home' }],
-          },
-        },
-        required: ['number'],
-        additionalProperties: false,
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
+    case 'person':
+    case 'organization':
+      return withDefault(compositeJsonSchema(field.type), field)
+
+    case 'money': {
+      const schema = compositeJsonSchema('money')
+      const amount = schema.properties!.amount!
+      if (typeof field.min === 'number') amount.minimum = field.min
+      if (typeof field.max === 'number') amount.maximum = field.max
+      if (typeof field.currency === 'string') schema.properties!.currency!.const = field.currency
+      return withDefault(schema, field)
+    }
+
+    case 'identification': {
+      const schema = compositeJsonSchema('identification')
+      if (field.allowedTypes !== undefined) schema.properties!.type!.enum = [...field.allowedTypes]
+      return withDefault(schema, field)
+    }
 
     case 'duration':
       return {
@@ -644,57 +553,6 @@ function compileField(field: FormField): JsonSchema {
         pattern: TIME_PATTERN,
         ...('min' in field && field.min !== undefined && { formatMinimum: field.min }),
         ...('max' in field && field.max !== undefined && { formatMaximum: field.max }),
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
-
-    // New field types: Entity
-    case 'person':
-      return {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          title: { type: 'string' },
-          firstName: { type: 'string' },
-          middleName: { type: 'string' },
-          lastName: { type: 'string' },
-          suffix: { type: 'string' },
-        },
-        required: ['name'],
-        additionalProperties: false,
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
-
-    case 'organization':
-      return {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          legalName: { type: 'string' },
-          domicile: { type: 'string' },
-          entityType: { type: 'string' },
-          entityId: { type: 'string' },
-          taxId: { type: 'string' },
-        },
-        required: ['name'],
-        additionalProperties: false,
-        ...('default' in field && field.default !== undefined && { default: field.default }),
-      }
-
-    case 'identification':
-      return {
-        type: 'object',
-        properties: {
-          type: {
-            type: 'string',
-            ...('allowedTypes' in field && field.allowedTypes !== undefined && { enum: [...field.allowedTypes] }),
-          },
-          number: { type: 'string' },
-          issuer: { type: 'string' },
-          issueDate: { type: 'string', format: 'date' },
-          expiryDate: { type: 'string', format: 'date' },
-        },
-        required: ['type', 'number'],
-        additionalProperties: false,
         ...('default' in field && field.default !== undefined && { default: field.default }),
       }
 
@@ -833,42 +691,20 @@ function compileAnnexes(annexes: Record<string, FormAnnex>, allowAdditional: boo
 // ============================================================================
 
 /**
- * JSON Schema for a Person with required runtime `id` field.
- * Validates that a party is a Person entity.
+ * JSON Schema for a party value: the Person or Organization primitive plus the
+ * runtime `id` that identifies the party.
  */
-const PERSON_SCHEMA: JsonSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string', minLength: 1 },
-    name: { type: 'string', minLength: 1, maxLength: 200 },
-    title: { type: 'string', minLength: 1, maxLength: 50 },
-    firstName: { type: 'string', minLength: 1, maxLength: 100 },
-    middleName: { type: 'string', minLength: 1, maxLength: 100 },
-    lastName: { type: 'string', minLength: 1, maxLength: 100 },
-    suffix: { type: 'string', minLength: 1, maxLength: 50 },
-  },
-  required: ['id', 'name'],
-  additionalProperties: false,
+function partySchema(type: 'person' | 'organization'): JsonSchema {
+  const schema = compositeJsonSchema(type)
+  return {
+    ...schema,
+    properties: { id: { type: 'string', minLength: 1 }, ...schema.properties },
+    required: ['id', ...(schema.required ?? [])],
+  }
 }
 
-/**
- * JSON Schema for an Organization with required runtime `id` field.
- * Validates that a party is an Organization entity.
- */
-const ORGANIZATION_SCHEMA: JsonSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string', minLength: 1 },
-    name: { type: 'string', minLength: 1, maxLength: 200 },
-    legalName: { type: 'string', minLength: 1, maxLength: 200 },
-    domicile: { type: 'string', minLength: 1, maxLength: 100 },
-    entityType: { type: 'string', minLength: 1, maxLength: 100 },
-    entityId: { type: 'string', minLength: 1, maxLength: 100 },
-    taxId: { type: 'string', minLength: 1, maxLength: 100 },
-  },
-  required: ['id', 'name'],
-  additionalProperties: false,
-}
+const PERSON_SCHEMA = partySchema('person')
+const ORGANIZATION_SCHEMA = partySchema('organization')
 
 /**
  * JSON Schema for a party that can be either Person or Organization.
@@ -957,11 +793,4 @@ function compileParties(parties: Record<string, FormParty>): JsonSchema {
     ...(required.length > 0 && { required }),
     additionalProperties: false,
   }
-}
-
-/**
- * Compile and return as plain JSON Schema object
- */
-export function compileToJsonSchema(form: Form): JsonSchema {
-  return compile(form)
 }

@@ -136,7 +136,7 @@ describe('form payload inference', () => {
 		expect(fields?.time).toMatchObject({ format: 'time', formatMinimum: '09:00:00', formatMaximum: '17:00:00' })
 		expect(fields?.rating).toMatchObject({ minimum: 1, maximum: 5, multipleOf: 1 })
 		expect(fields?.choices).toMatchObject({ type: 'array', uniqueItems: true })
-		expect(fields?.identification?.properties?.type).toEqual({ type: 'string', enum: ['passport'] })
+		expect(fields?.identification?.properties?.type).toMatchObject({ type: 'string', minLength: 1, maxLength: 50, enum: ['passport'] })
 		expect(fields?.money?.properties?.currency).toMatchObject({ pattern: '^[A-Z]{3}$' })
 
 		const valid = {

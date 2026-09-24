@@ -1,5 +1,6 @@
 import type { FormField, FieldsetField } from '@paradoc/types'
 import { COMPLEX_TYPE_PROPERTIES } from '../../shared/complex-type-properties'
+import { partyMemberTypes } from '../type-checking/build-type-environment'
 
 /**
  * Collects all valid field paths from a field definition record.
@@ -99,11 +100,6 @@ export function collectFieldIds(
   return ids
 }
 
-const PARTY_MEMBERS: Record<string, string[]> = {
-  person: ['name', 'firstName', 'middleName', 'lastName', 'suffix', 'title'],
-  organization: ['name', 'legalName', 'domicile', 'entityType', 'entityId', 'taxId'],
-}
-
 /**
  * Collects `parties.<role>` and its member paths: the party's id and the
  * person or organization parts its type allows.
@@ -115,10 +111,7 @@ export function collectPartyPaths(
   for (const [role, party] of Object.entries(parties ?? {})) {
     const path = `parties.${role}`
     paths.add(path)
-    const members = party.partyType === 'person' || party.partyType === 'organization'
-      ? PARTY_MEMBERS[party.partyType]!
-      : [...PARTY_MEMBERS.person!, ...PARTY_MEMBERS.organization!]
-    for (const member of ['id', ...members]) paths.add(`${path}.${member}`)
+    for (const member of Object.keys(partyMemberTypes(party.partyType))) paths.add(`${path}.${member}`)
   }
   return paths
 }

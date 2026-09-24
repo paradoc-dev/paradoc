@@ -70,7 +70,7 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 	}
 
 	if (type === 'string') {
-		let schema: z.ZodType = z.string()
+		let schema: z.ZodType<string, string> = z.string()
 		const format = jsonSchema.format as string | undefined
 		const minLength = jsonSchema.minLength as number | undefined
 		const maxLength = jsonSchema.maxLength as number | undefined
@@ -78,21 +78,7 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 		const enumValues = jsonSchema.enum as unknown[] | undefined
 		const constValue = jsonSchema.const
 
-		if (enumValues !== undefined) {
-			if (enumValues.length === 0) return z.never()
-			if (enumValues.every((value): value is string => typeof value === 'string')) {
-				schema = z.enum(enumValues as [string, ...string[]])
-			} else {
-				schema = schema.refine((value) => enumValues.includes(value), {
-					message: `Invalid value; expected one of ${enumValues.join(', ')}`,
-				})
-			}
-		}
-		if (typeof constValue === 'string') {
-			schema = schema.refine((value) => value === constValue, {
-				message: `Invalid value; expected ${constValue}`,
-			})
-		}
+		if (enumValues !== undefined && enumValues.length === 0) return z.never()
 
 		if (format === 'email') {
 			schema = z.email()
@@ -139,6 +125,23 @@ export function jsonSchemaToZod(jsonSchema: Record<string, unknown>): z.ZodType 
 					{ message: `Must be on or before ${formatMaximum}` },
 				)
 			}
+		}
+
+		// An enum or const narrows the string; its format, length, and pattern
+		// checks still apply.
+		if (enumValues !== undefined) {
+			if (enumValues.every((value): value is string => typeof value === 'string')) {
+				schema = z.enum(enumValues as [string, ...string[]]).pipe(schema)
+			} else {
+				schema = schema.refine((value) => enumValues.includes(value), {
+					message: `Invalid value; expected one of ${enumValues.join(', ')}`,
+				})
+			}
+		}
+		if (typeof constValue === 'string') {
+			schema = schema.refine((value) => value === constValue, {
+				message: `Invalid value; expected ${constValue}`,
+			})
 		}
 		return schema
 	}

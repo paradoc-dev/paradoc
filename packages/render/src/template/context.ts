@@ -17,6 +17,7 @@ import {
   type Registry,
 } from '@paradoc/expr'
 import type { Form, RendererExpressions } from '@paradoc/types'
+import { RENDER_DATA_ROOTS } from '../render-data'
 import { dataPath } from './scope'
 
 /**
@@ -56,11 +57,6 @@ export function requestExpressions(
   }
 }
 
-/** Render-data keys that are not field values. */
-const RESERVED_ROOTS = new Set([
-  'parties', 'defs', 'annexes', 'witnesses', 'signatures',
-  '_signers', '_captures',
-])
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined
@@ -73,7 +69,7 @@ export function templateRoots(raw: Record<string, unknown>, form?: Form): Record
   const items = form?.fields ? undefined : record(raw.items)
   const fieldIds = form?.fields
     ? Object.keys(form.fields)
-    : Object.keys(raw).filter((key) => !RESERVED_ROOTS.has(key) && !(key === 'items' && items))
+    : Object.keys(raw).filter((key) => !RENDER_DATA_ROOTS.has(key) && !(key === 'items' && items))
   for (const id of fieldIds) if (Object.prototype.hasOwnProperty.call(raw, id)) fields[id] = raw[id]
   const roots: Record<string, unknown> = { fields }
   const parties = record(raw.parties)

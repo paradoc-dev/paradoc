@@ -60,55 +60,6 @@ const FIELD_TYPE_TO_EXPR: Record<string, ExprType> = {
   list: T.array(T.unknown),
 }
 
-/**
- * Statically known properties exposed by object-valued definition expressions.
- * A nested member is keyed by its dotted path, such as `southWest.lat`.
- */
-export const DEFINITION_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
-  money: { amount: T.number, currency: T.string },
-  address: {
-    line1: T.string,
-    line2: T.string,
-    locality: T.string,
-    region: T.string,
-    postalCode: T.string,
-    country: T.string,
-  },
-  phone: { number: T.string, type: T.string, extension: T.string },
-  coordinate: { lat: T.number, lon: T.number },
-  bbox: {
-    southWest: T.object,
-    'southWest.lat': T.number,
-    'southWest.lon': T.number,
-    northEast: T.object,
-    'northEast.lat': T.number,
-    'northEast.lon': T.number,
-  },
-  person: {
-    name: T.string,
-    firstName: T.string,
-    middleName: T.string,
-    lastName: T.string,
-    suffix: T.string,
-    title: T.string,
-  },
-  organization: {
-    name: T.string,
-    legalName: T.string,
-    domicile: T.string,
-    entityType: T.string,
-    entityId: T.string,
-    taxId: T.string,
-  },
-  identification: {
-    type: T.string,
-    number: T.string,
-    issuer: T.string,
-    issueDate: T.date,
-    expiryDate: T.date,
-  },
-}
-
 function enumOptionExprType(options: readonly EnumOption[]): ExprType {
   const kinds = new Set(options.map((option) => typeof option.value))
   if (kinds.size !== 1) return T.unknown
@@ -139,7 +90,7 @@ function registerDefType(
     ? check(expr.value as string, createTypeEnv(acc)).type
     : objectDefsExprType(expr)
 
-  const properties = DEFINITION_PROPERTY_TYPES[expr.type]
+  const properties = COMPLEX_TYPE_PROPERTIES[expr.type]
   if (properties) {
     for (const [property, propertyType] of Object.entries(properties)) {
       acc[`${fullKey}.${property}`] = propertyType
@@ -318,8 +269,8 @@ function inferDefsInto(
 
 /** Members a party value carries: its identity, and the person or organization parts its type allows. */
 export function partyMemberTypes(partyType: string | undefined): Record<string, ExprType> {
-  const person = DEFINITION_PROPERTY_TYPES.person!
-  const organization = DEFINITION_PROPERTY_TYPES.organization!
+  const person = COMPLEX_TYPE_PROPERTIES.person!
+  const organization = COMPLEX_TYPE_PROPERTIES.organization!
   const identity = partyType === 'person'
     ? person
     : partyType === 'organization'

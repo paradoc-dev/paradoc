@@ -31,7 +31,6 @@ export {
   buildFormTypeEnvironment,
   buildFormRuleTypeEnvironment,
   buildBundleTypeEnvironment,
-  DEFINITION_PROPERTY_TYPES,
   ROW_REFERENCE_NAMES,
   enterListRow,
   isRowReferencePath,

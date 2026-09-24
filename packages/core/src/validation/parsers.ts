@@ -39,18 +39,7 @@ export const parseMoney = createParser<Money>('Money', MoneySchema)
 
 export const parseCoordinate = createParser<Coordinate>('Coordinate', CoordinateSchema)
 
-export const parseBbox = createParser<Bbox>('Bbox', BboxSchema, (bbox) => {
-	if (bbox.southWest.lat >= bbox.northEast.lat) {
-		throw new Error(
-			`Invalid Bbox: southWest.lat (${bbox.southWest.lat}) must be less than northEast.lat (${bbox.northEast.lat})`,
-		)
-	}
-	if (bbox.southWest.lon >= bbox.northEast.lon) {
-		throw new Error(
-			`Invalid Bbox: southWest.lon (${bbox.southWest.lon}) must be less than northEast.lon (${bbox.northEast.lon})`,
-		)
-	}
-})
+export const parseBbox = createParser<Bbox>('Bbox', BboxSchema)
 
 export const parseAddress = createParser<Address>('Address', AddressSchema)
 

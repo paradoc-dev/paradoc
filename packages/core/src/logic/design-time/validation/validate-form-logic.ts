@@ -13,10 +13,10 @@ import type {
 import { T, type ExprType } from '@paradoc/expr'
 import type { TypeEnvironment, TypeValidationSeverity, InferredType, ListRowScope } from '../type-checking'
 import { collectFieldPaths, collectPartyPaths } from './field-paths'
+import { COMPLEX_TYPE_PROPERTIES } from '../../shared/complex-type-properties'
 import {
   buildFormRuleTypeEnvironment,
   buildFormTypeEnvironment,
-  DEFINITION_PROPERTY_TYPES,
   validateBooleanType,
   validateExpressionType,
   topologicalSortDefsKeys,
@@ -86,7 +86,7 @@ function addDefinitionPaths(
   for (const [key, expr] of Object.entries(defs)) {
     validVariables.add(key)
     if (!isScalarExpressionType(expr.type)) {
-      const properties = DEFINITION_PROPERTY_TYPES[expr.type]
+      const properties = COMPLEX_TYPE_PROPERTIES[expr.type]
       if (properties) {
         for (const property of Object.keys(properties)) {
           validVariables.add(`${key}.${property}`)
@@ -533,7 +533,7 @@ function typeCheckDefsExpressions(
       continue
     }
 
-    const propertyTypes = DEFINITION_PROPERTY_TYPES[expr.type]
+    const propertyTypes = COMPLEX_TYPE_PROPERTIES[expr.type]
     if (!propertyTypes) continue
     for (const [property, propertyType] of Object.entries(propertyTypes)) {
       const propertyPath = property.split('.')

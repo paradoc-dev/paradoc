@@ -349,12 +349,12 @@ export type {
   DeepPartial,
   CompositePropertySpec,
   CompositeShape,
+  CompositeValueType,
   // InferFormPayload is already exported from ./artifacts
 } from "./inference";
 
 export {
   compile,
-  compileToJsonSchema,
   CANONICAL_SHAPES,
   isCompositeType,
   describeCompositeShape,

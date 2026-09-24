@@ -22,20 +22,17 @@ export function formatZodError(error: ZodError, schemaName: string): string {
 
 /**
  * A parse function for a schema: it returns the parsed value, or throws an
- * `Error` whose message names the first issue. `postValidate` checks the
- * parsed value further and throws for a value it refuses.
+ * `Error` whose message names the first issue.
  */
 export function createParser<T>(
 	schemaName: string,
 	schema: ZodType<T>,
-	postValidate?: (data: T) => void,
 ): (input: unknown) => T {
 	return (input: unknown): T => {
 		const result = schema.safeParse(input)
 		if (!result.success) {
 			throw new Error(formatZodError(result.error, schemaName))
 		}
-		postValidate?.(result.data)
 		return result.data
 	}
 }

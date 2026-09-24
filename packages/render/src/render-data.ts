@@ -1,6 +1,24 @@
 import type { Form, FormData, RendererLayer, RenderRequest } from '@paradoc/types'
 
 /**
+ * The `FormData` keys `flattenRenderData` spreads at the root beside the field
+ * values. Typed against `FormData`, so a new key must be placed here.
+ */
+const SPREAD_ROOTS: Record<Exclude<keyof FormData, 'fields' | 'signers' | 'captures'>, true> = {
+  parties: true,
+  signatories: true,
+  annexes: true,
+  defs: true,
+}
+
+/** Keys of flattened render data that are not field values. */
+export const RENDER_DATA_ROOTS: ReadonlySet<string> = new Set([
+  ...Object.keys(SPREAD_ROOTS),
+  '_signers',
+  '_captures',
+])
+
+/**
  * The flat record a template renders against, built from a render request's
  * `FormData`.
  *

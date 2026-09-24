@@ -12,9 +12,9 @@ export type {
   ProgressiveFormPayload,
 } from './form-payload'
 
-export { compile, compileToJsonSchema } from './form-payload'
+export { compile } from './form-payload'
 
-export type { CompositePropertySpec, CompositeShape } from './composite-shapes'
+export type { CompositePropertySpec, CompositeShape, CompositeValueType } from './composite-shapes'
 export {
   CANONICAL_SHAPES,
   isCompositeType,

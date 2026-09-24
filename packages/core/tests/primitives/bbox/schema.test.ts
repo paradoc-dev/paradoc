@@ -62,28 +62,32 @@ describe('Bbox', () => {
 					expect(() => bbox(input)).toThrow();
 				});
 
-				test('throws error when southWest.lat equals northEast.lat', () => {
+				test('throws error when a corner is out of range', () => {
 					const input = {
-						southWest: { lat: 37.7749, lon: -122.4863 },
+						southWest: { lat: -91, lon: -122.4863 },
 						northEast: { lat: 37.7749, lon: -122.4194 },
 					} as any;
 					expect(() => bbox(input)).toThrow('southWest.lat');
 				});
+			});
 
-				test('throws error when southWest.lat exceeds northEast.lat', () => {
+			describe('corner order', () => {
+				// BboxSchema sets no order on the corners, so bbox() accepts what
+				// isBbox and field validation accept.
+				test('accepts a box whose southWest.lat exceeds northEast.lat', () => {
 					const input = {
 						southWest: { lat: 40, lon: -122.4863 },
 						northEast: { lat: 37.7749, lon: -122.4194 },
-					} as any;
-					expect(() => bbox(input)).toThrow('southWest.lat');
+					};
+					expect(bbox(input)).toEqual(input);
 				});
 
-				test('throws error when southWest.lon exceeds northEast.lon', () => {
+				test('accepts a box that crosses the antimeridian', () => {
 					const input = {
-						southWest: { lat: 37.7396, lon: -120 },
-						northEast: { lat: 37.7749, lon: -122.4194 },
-					} as any;
-					expect(() => bbox(input)).toThrow('southWest.lon');
+						southWest: { lat: 0, lon: 170 },
+						northEast: { lat: 10, lon: -170 },
+					};
+					expect(bbox(input)).toEqual(input);
 				});
 			});
 		});
@@ -105,9 +109,9 @@ describe('Bbox', () => {
 				}
 			});
 
-			test('returns error when southWest.lat >= northEast.lat', () => {
+			test('returns error when a corner is out of range', () => {
 				const input = {
-					southWest: { lat: 40, lon: -122.4863 },
+					southWest: { lat: 37.7396, lon: -181 },
 					northEast: { lat: 37.7749, lon: -122.4194 },
 				};
 				const result = bbox.safeParse(input);
@@ -115,7 +119,7 @@ describe('Bbox', () => {
 				expect(result.success).toBe(false);
 				if (!result.success) {
 					expect(result.error).toBeInstanceOf(Error);
-					expect(result.error.message).toContain('southWest.lat');
+					expect(result.error.message).toContain('southWest.lon');
 				}
 			});
 		});
@@ -192,22 +196,13 @@ describe('Bbox', () => {
 					expect(() => bbox().build()).toThrow();
 				});
 
-				test('throws error when southWest.lat exceeds northEast.lat', () => {
-					expect(() =>
+				test('builds a box that crosses the antimeridian', () => {
+					expect(
 						bbox()
-							.southWest({ lat: 40, lon: -122.4863 })
-							.northEast({ lat: 37.7749, lon: -122.4194 })
+							.southWest({ lat: 0, lon: 170 })
+							.northEast({ lat: 10, lon: -170 })
 							.build(),
-					).toThrow('southWest.lat');
-				});
-
-				test('throws error when southWest.lon exceeds northEast.lon', () => {
-					expect(() =>
-						bbox()
-							.southWest({ lat: 37.7396, lon: -120 })
-							.northEast({ lat: 37.7749, lon: -122.4194 })
-							.build(),
-					).toThrow('southWest.lon');
+					).toEqual({ southWest: { lat: 0, lon: 170 }, northEast: { lat: 10, lon: -170 } });
 				});
 			});
 
