@@ -12,11 +12,12 @@ import { unzipSync } from 'fflate'
 import { checkAst, formatType, T, type Diagnostic, type Expr, type ExprType, type TypeEnv } from '@paradoc/expr'
 import { removedSyntaxHint, TemplateError, type TemplateDiagnostic, type TemplatePosition } from './errors'
 import { expressionSlot, parseTemplate, type ExpressionSlot, type TemplateNode } from './markers'
-import { LOOP_FUNCTION_NAMES, referenceSegments, withLoopFunctions } from './scope'
+import { frameFor, LOOP_FUNCTION_NAMES, referenceSegments, withLoopFunctions } from './scope'
 import { SIGNING_DIRECTIVES } from '../text/template'
 import {
+  docxControlProblems,
   DOCX_TEMPLATE_PARTS,
-  normalizeDocxExpressions,
+  normalizeDelimiters,
   normalizeInlineControls,
   paragraphText,
 } from '../docx/render'
@@ -37,17 +38,7 @@ class CheckScope {
   }
 
   frameFor(name: string): CheckFrame | undefined {
-    let rows = 0
-    for (let index = this.frames.length - 1; index >= 0; index--) {
-      const frame = this.frames[index]!
-      if (frame.kind === 'named') {
-        if (frame.name === name) return frame
-        continue
-      }
-      rows++
-      if ((name === 'item' && rows === 1) || (name === 'parent' && rows === 2)) return frame
-    }
-    return undefined
+    return frameFor(this.frames, name)
   }
 
   typeEnv(): TypeEnv {
@@ -219,8 +210,12 @@ export function checkDocxTemplate(template: Uint8Array, env: TypeEnv, options: D
   const found: TemplateDiagnostic[] = []
   for (const [part, bytes] of Object.entries(unzipSync(template))) {
     if (!DOCX_TEMPLATE_PARTS.test(part)) continue
-    const xml = normalizeInlineControls(textDecoder.decode(bytes))
+    const xml = normalizeInlineControls(textDecoder.decode(bytes), delimiters)
     const paragraphs = [...xml.matchAll(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g)]
+    const commands = paragraphs.map((match) => commandOf(match[0], delimiters))
+    for (const { index, message } of docxControlProblems(commands)) {
+      found.push({ code: 'markers', message, location: `${part} paragraph ${index + 1}` })
+    }
     let scope = new CheckScope(env)
     const open: Array<'IF' | 'FOR'> = []
     paragraphs.forEach((match, index) => {
@@ -228,7 +223,7 @@ export function checkDocxTemplate(template: Uint8Array, env: TypeEnv, options: D
       const locate = (diagnostics: TemplateDiagnostic[]) => diagnostics.map((diagnostic) => ({ ...diagnostic, location }))
       // A control command fills its paragraph, so the paragraph is its position.
       const locateCommand = (diagnostics: TemplateDiagnostic[]) => diagnostics.map(({ position: _position, ...diagnostic }) => ({ ...diagnostic, location }))
-      const command = commandOf(match[0], delimiters)
+      const command = commands[index]
       if (command !== undefined) {
         const forMatch = command.match(/^FOR\s+(\S+)\s+IN\s+(.+)$/)
         if (forMatch) {
@@ -245,9 +240,7 @@ export function checkDocxTemplate(template: Uint8Array, env: TypeEnv, options: D
           return
         }
         if (/^END-(?:FOR|IF)/.test(command)) {
-          const closed = open.pop()
-          if (!closed) found.push({ code: 'markers', message: `Unexpected ${command}`, location })
-          else if (closed === 'FOR') scope = new CheckScope(scope.env, scope.frames.slice(0, -1))
+          if (open.pop() === 'FOR') scope = new CheckScope(scope.env, scope.frames.slice(0, -1))
           return
         }
         if (command === 'ELSE') return
@@ -256,7 +249,7 @@ export function checkDocxTemplate(template: Uint8Array, env: TypeEnv, options: D
       if (!text.includes(delimiters[0])) return
       let nodes: TemplateNode[]
       try {
-        nodes = parseTemplate(normalizeDocxExpressions(text, delimiters))
+        nodes = parseTemplate(normalizeDelimiters(text, delimiters))
       } catch (error) {
         found.push(...locate(markerProblem(error)))
         return
@@ -265,7 +258,6 @@ export function checkDocxTemplate(template: Uint8Array, env: TypeEnv, options: D
       checkNodes(nodes, scope, inner)
       found.push(...locate(inner))
     })
-    if (open.length > 0) found.push({ code: 'markers', message: `Unclosed DOCX control command in ${part}` })
   }
   return found
 }

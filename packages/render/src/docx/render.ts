@@ -56,7 +56,8 @@ function regexEscape(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function normalizeDelimiters(value: string, delimiters: [string, string]): string {
+/** The text of a run, with the layer's delimiters normalized to `{{` and `}}`. */
+export function normalizeDelimiters(value: string, delimiters: [string, string]): string {
   if (delimiters[0] === '{{' && delimiters[1] === '}}') return value
   return value
     .replace(new RegExp(regexEscape(delimiters[0]), 'g'), '{{')
@@ -106,17 +107,20 @@ function controlsIn(xml: string, delimiters: [string, string]): Control[] {
 
 /**
  * Word templates sometimes put a complete FOR/IF block, including its body,
- * in one paragraph. Split that paragraph into standalone control paragraphs
- * before expansion so the same syntax works whether Word kept the commands
- * on separate lines or in one run.
+ * in one paragraph. Split that paragraph at each control command, ELSE
+ * included, so the same syntax works whether Word kept the commands on
+ * separate lines or in one run.
  */
-export function normalizeInlineControls(xml: string): string {
+export function normalizeInlineControls(xml: string, delimiters: [string, string]): string {
   const paragraphPattern = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g
-  const inlinePattern = /^(\s*)(\{\{(?:FOR|IF)\s+[^{}]+\}\})([\s\S]*?)(\{\{END-(?:FOR|IF)(?:\s+[^{}]+)?\}\})(\s*)$/
+  const [open, close] = delimiters.map(regexEscape) as [string, string]
+  const command = (body: string) => `${open}\\s*(?:${body})(?:(?!${close})[\\s\\S])*?${close}`
+  const inlinePattern = new RegExp(`^\\s*${command('(?:FOR|IF)\\s')}[\\s\\S]*${command('END-(?:FOR|IF)')}\\s*$`)
+  const anyCommand = new RegExp(`(${command('(?:FOR|IF)\\s|ELSE\\s*(?=' + close + ')|END-(?:FOR|IF)')})`)
 
   return xml.replace(paragraphPattern, (paragraph) => {
-    const match = paragraphText(paragraph).match(inlinePattern)
-    if (!match) return paragraph
+    const text = paragraphText(paragraph)
+    if (!inlinePattern.test(text)) return paragraph
 
     const opening = paragraph.match(/^<w:p\b[^>]*>/)?.[0] ?? '<w:p>'
     const properties = paragraph.match(/<w:pPr\b[\s\S]*?<\/w:pPr>/)?.[0] ?? ''
@@ -127,11 +131,55 @@ export function normalizeInlineControls(xml: string): string {
       return `${opening}${properties}${content}</w:p>`
     }
 
-    return [match[1], match[2], match[3], match[4], match[5]]
-      .filter((text): text is string => Boolean(text))
+    return text.split(anyCommand)
+      .filter((piece) => piece.length > 0)
       .map(makeParagraph)
       .join('')
   })
+}
+
+const OPENING = /^(?:FOR\s+\S+\s+IN\s+.+|IF\s+.+)$/
+const CLOSING = /^END-(?:FOR|IF)(?:\s+\S+)?$/
+
+/** A block-structure problem, at the index of the command it names. */
+export interface DocxControlProblem {
+  index: number
+  message: string
+}
+
+/**
+ * Check that a part's control commands nest: each END-FOR or END-IF closes the
+ * block it follows (an END-FOR that names its row names the loop's row), an
+ * IF has at most one ELSE, and ELSE appears only in an IF. `commands` lists
+ * every command paragraph in document order; other entries are skipped.
+ */
+export function docxControlProblems(commands: readonly (string | undefined)[]): DocxControlProblem[] {
+  const problems: DocxControlProblem[] = []
+  const open: Array<{ index: number; command: string; kind: 'FOR' | 'IF'; alias?: string; hasElse: boolean }> = []
+  commands.forEach((command, index) => {
+    if (command === undefined) return
+    if (OPENING.test(command)) {
+      const kind = command.startsWith('FOR ') ? 'FOR' : 'IF'
+      open.push({ index, command, kind, alias: kind === 'FOR' ? command.split(/\s+/)[1] : undefined, hasElse: false })
+      return
+    }
+    if (CLOSING.test(command)) {
+      const [closer, alias] = command.split(/\s+/) as [string, string | undefined]
+      const block = open.pop()
+      if (!block) problems.push({ index, message: `Unexpected ${command}: no block is open.` })
+      else if (closer !== `END-${block.kind}`) problems.push({ index, message: `${command} cannot close ${block.command}; write END-${block.kind}.` })
+      else if (alias !== undefined && alias !== block.alias) problems.push({ index, message: `${command} cannot close ${block.command}; write END-FOR ${block.alias}.` })
+      return
+    }
+    if (command === 'ELSE') {
+      const block = open.at(-1)
+      if (block?.kind !== 'IF') problems.push({ index, message: 'ELSE belongs inside an IF block.' })
+      else if (block.hasElse) problems.push({ index, message: `${block.command} has a second ELSE; an IF takes one.` })
+      else block.hasElse = true
+    }
+  })
+  for (const block of open) problems.push({ index: block.index, message: `Unclosed DOCX control command: ${block.command}` })
+  return problems.sort((a, b) => a.index - b.index)
 }
 
 interface DocxRun {
@@ -147,7 +195,7 @@ const PARAGRAPH_MARK = /<!--pdc:(\d+)-->/
 /** Number every paragraph of a part so errors can name it; removed after rendering. */
 function markParagraphs(xml: string): string {
   let count = 0
-  return xml.replace(/<w:p\b[^>]*>/g, (open) => /^<w:pPr\b|^<w:p[A-Z]/.test(open) ? open : `${open}<!--pdc:${++count}-->`)
+  return xml.replace(/<w:p\b[^>]*>/g, (open) => `${open}<!--pdc:${++count}-->`)
 }
 
 function unmarkParagraphs(xml: string): string {
@@ -168,9 +216,6 @@ function located<T>(run: DocxRun, xml: string, render: () => T): T {
   }
 }
 
-const OPENING = /^(?:FOR\s+\S+\s+IN\s+.+|IF\s+.+)$/
-const CLOSING = /^END-(?:FOR|IF)(?:\s+\S+)?$/
-
 function expandControls(xml: string, run: DocxRun): string {
   const controls = controlsIn(xml, run.delimiters)
   const openingIndex = controls.findIndex(({ command }) => OPENING.test(command))
@@ -188,13 +233,12 @@ function expandControls(xml: string, run: DocxRun): string {
     } else if (control.command === 'ELSE' && depth === 1) alternative = control
   }
   const openingXml = xml.slice(opening.start, opening.end)
-  if (!closing) {
-    throw new TemplateError({ code: 'markers', message: `Unclosed DOCX control command: ${opening.command}`, location: locate(run, openingXml) }, run.options.layer)
-  }
 
   const before = xml.slice(0, opening.start)
-  const truthyBody = xml.slice(opening.end, alternative?.start ?? closing.start)
-  const falseBody = alternative ? xml.slice(alternative.end, closing.start) : ''
+  // validateControls ran over the whole part, so every opener has its closer.
+  const close = closing!
+  const truthyBody = xml.slice(opening.end, alternative?.start ?? close.start)
+  const falseBody = alternative ? xml.slice(alternative.end, close.start) : ''
   const expanded = located(run, openingXml, () => {
     if (isFor) {
       const match = opening.command.match(/^FOR\s+(\S+)\s+IN\s+(.+)$/)!
@@ -214,16 +258,20 @@ function expandControls(xml: string, run: DocxRun): string {
     }
     return expandControls(value.kind === 'boolean' && value.value ? truthyBody : falseBody, run)
   })
-  return `${renderLeafXml(before, run)}${expanded}${expandControls(xml.slice(closing.end), run)}`
+  return `${renderLeafXml(before, run)}${expanded}${expandControls(xml.slice(close.end), run)}`
 }
 
-/** The text of a run, with the layer's delimiters and the `INS` alias normalized. */
-export function normalizeDocxExpressions(value: string, delimiters: [string, string]): string {
-  return normalizeDelimiters(value, delimiters).replace(/\{\{\s*INS\s+([^}]+)\}\}/g, '{{$1}}')
+/** Reject a part whose control commands do not nest, before any of it renders. */
+function validateControls(xml: string, run: DocxRun): void {
+  const controls = controlsIn(xml, run.delimiters)
+  const [problem] = docxControlProblems(controls.map(({ command }) => command))
+  if (!problem) return
+  const control = controls[problem.index]!
+  throw new TemplateError({ code: 'markers', message: problem.message, location: locate(run, xml.slice(control.start, control.end)) }, run.options.layer)
 }
 
 function renderRunText(text: string, run: DocxRun): string {
-  const nodes = parseTemplate(normalizeDocxExpressions(text, run.delimiters))
+  const nodes = parseTemplate(normalizeDelimiters(text, run.delimiters))
   const rendered = encodeXml(renderTemplateNodes(nodes, run.scope, run.options))
   return run.processLineBreaks ? rendered.replace(/\r?\n/g, '</w:t><w:br/><w:t xml:space="preserve">') : rendered
 }
@@ -287,8 +335,9 @@ export async function renderDocx({
   const processLineBreaks = options.processLineBreaks ?? true
   for (const [name, bytes] of Object.entries(files)) {
     if (!DOCX_TEMPLATE_PARTS.test(name)) continue
-    const xml = markParagraphs(normalizeInlineControls(textDecoder.decode(bytes)))
+    const xml = markParagraphs(normalizeInlineControls(textDecoder.decode(bytes), delimiters))
     const run: DocxRun = { scope, options: templateOptions, delimiters, processLineBreaks, part: name }
+    validateControls(xml, run)
     files[name] = textEncoder.encode(unmarkParagraphs(expandControls(xml, run)))
   }
   return zipSync(files, { level: 6 })

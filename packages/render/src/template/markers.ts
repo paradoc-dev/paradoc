@@ -2,8 +2,8 @@
  * Block markers of text, Markdown, and HTML templates.
  *
  * The markers are `{{#if}}`, `{{#unless}}`, `{{else}}`, `{{#each}}`, their
- * closing tags, comments, and value placeholders (`{{ }}` escaped, `{{{ }}}` or
- * `{{& }}` raw). Everything inside a marker is an artifact expression, parsed
+ * closing tags, comments, and value placeholders (`{{ }}` escaped, `{{{ }}}`
+ * raw). Everything inside a marker is an artifact expression, parsed
  * here once so rendering and checking read the same tree.
  */
 
@@ -174,10 +174,7 @@ export function parseTemplate(template: string, base?: TemplatePosition): Templa
       continue
     }
 
-    const raw = !triple && content.startsWith('&')
-    const expression = raw ? inner.trimStart().slice(1) : inner
-    const offset = raw ? innerOffset + 1 + (expression.length - expression.trimStart().length) : innerOffset
-    output.push({ type: 'value', slot: expressionSlot(expression, positionAt(offset)), escaped: !triple && !raw })
+    output.push({ type: 'value', slot: expressionSlot(inner, positionAt(innerOffset)), escaped: !triple })
   }
 
   if (cursor < template.length) pushText(template.slice(cursor))

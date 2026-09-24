@@ -82,6 +82,8 @@ export function removedSyntaxHint(source: string): string | undefined {
     const name = text.split(/\s/)[0]
     return `Write ${name}("location") inside a party loop, or ${name}(parties.role, "location").`
   }
+  if (/^INS\s/.test(text)) return 'The INS form is removed; write the expression alone, such as {{fields.name}}.'
+  if (text.startsWith('&')) return 'The {{& }} form is removed; use {{{ }}} to print without HTML escaping.'
   if (/===|!==/.test(text)) return 'The === and !== operators are removed; use == and !=.'
   if (/(^|[^\w.])this\b/.test(text)) return '"this" is removed; use item inside a loop, or a full path such as fields.name.'
   if (text.includes('../')) return '"../" is removed; use parent inside a nested loop, or a full path from the root.'

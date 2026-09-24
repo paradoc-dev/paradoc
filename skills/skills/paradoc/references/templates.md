@@ -18,7 +18,7 @@ A PDF layer is not a template: it maps PDF field names to data through `bindings
 | Marker | Effect |
 |--------|--------|
 | `{{expr}}` | Print the value, formatted for its type. HTML layers escape it |
-| `{{{expr}}}`, `{{& expr}}` | Print without HTML escaping |
+| `{{{expr}}}` | Print without HTML escaping |
 | `{{#if cond}}…{{else}}…{{/if}}` | Condition. `{{else}}` is optional |
 | `{{#unless cond}}…{{/unless}}` | Negated condition |
 | `{{#each list}}…{{else}}…{{/each}}` | Loop. `{{else}}` renders when the list is empty or missing |
@@ -132,13 +132,12 @@ A `text/html` layer prints signing marks as HTML (a `<span>`, or an `<img>` tag 
 
 ## DOCX commands
 
-A DOCX template takes the text markers inside a paragraph, plus these commands, each alone in its own paragraph:
+A DOCX template takes the text markers inside a paragraph, plus these commands, each alone in its own paragraph. Each closer must match its block, and an IF takes at most one ELSE:
 
 | Command | Effect |
 |---------|--------|
 | `{{IF cond}}` … `{{ELSE}}` … `{{END-IF}}` | Condition. `{{ELSE}}` is optional |
 | `{{FOR line IN fields.lines}}` … `{{END-FOR line}}` | Loop. The row is named: `{{line.description}}`, `{{index(line) + 1}}` |
-| `{{INS expr}}` | Same as `{{expr}}` |
 
 ```text
 {{IF fields.hasPets}}

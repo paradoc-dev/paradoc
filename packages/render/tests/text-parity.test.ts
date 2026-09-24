@@ -70,10 +70,10 @@ describe('text renderer behavior', () => {
 
   it('leaves raw placeholders unescaped in HTML output', () => {
     expect(renderText({
-      template: '{{{fields.value}}} / {{& fields.value}}',
+      template: '{{{fields.value}}}',
       data: { value: '<b>A & B</b>' },
       mimeType: 'text/html',
-    })).toBe('<b>A & B</b> / <b>A & B</b>')
+    })).toBe('<b>A & B</b>')
   })
 
   const party = (captures: unknown[] = []) => ({
