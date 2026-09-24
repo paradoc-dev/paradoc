@@ -1,8 +1,8 @@
 /**
  * core-018: prepareSeal and seal disagreed on which slots a required party
  * must fill, because they planned through separate copies.
- * Input: party "client" requires a signature and has a slot but no
- * signatory; the witness is bound.
+ * Input: organization party "client" requires a signature and has a slot
+ * but no signatory; the witness is bound.
  * Expected: prepareSeal rejects exactly as seal does, with the same problems.
  */
 import { readFileSync } from 'node:fs'
@@ -26,13 +26,13 @@ const draft = () =>
 		.title('Slots')
 		.fields({ amount: { type: 'number', label: 'Amount' } })
 		.parties({
-			client: { label: 'Client', partyType: 'person', signature: { required: true } },
+			client: { label: 'Client', partyType: 'organization', signature: { required: true } },
 			witness: { label: 'Witness', partyType: 'person', signature: { required: true } },
 		})
 		.inlineLayer('md', { mimeType: 'text/markdown', text: 'Contract', signatures: slots })
 		.defaultLayer('md')
 		.build()
-		.fill({ fields: { amount: 1 }, parties: { client: { id: 'client-0', name: 'C' }, witness: { id: 'witness-0', name: 'W' } } })
+		.fill({ fields: { amount: 1 }, parties: { client: { id: 'client-0', name: 'C', legalName: 'C LLC' }, witness: { id: 'witness-0', name: 'W' } } })
 		.addSigner('w', { person: { name: 'W' } })
 		.addSignatory('witness', 'witness-0', { signerId: 'w' })
 

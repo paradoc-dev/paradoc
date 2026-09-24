@@ -43,6 +43,7 @@ import { flattenPdf, locate as locatePlacements } from '@paradoc/render/pdf'
 import { extractPdfData, selectPdfExtractionLayer } from '@paradoc/render/pdf'
 import type { PdfExtraction } from '@paradoc/render/pdf'
 import { SealConfigError, buildSlotPlan, hasSignatureSlots } from './seal-slots'
+import { partySignerIds } from '@/primitives/party'
 import type { PlacementProvenance, SealPreparation } from './seal-slots'
 import {
 	parseForm,
@@ -1463,8 +1464,9 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 	/**
 	 * Rejects a capture whose (role, partyId, signerId, locationId, type) does
 	 * not name a real signing slot: the role and party must exist, the signer
-	 * must be a signatory for that party, and a sealed form's signatureMap must
-	 * hold a field with that id, signer, and type.
+	 * must sign for that party (a listed signatory, or a Person with none
+	 * signing as itself), and a sealed form's signatureMap must hold a field
+	 * with that id, signer, and type.
 	 */
 	const ensureCaptureSlot = (
 		operation: string,
@@ -1474,18 +1476,18 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		locationId: string,
 		type: SignatureCapture['type'],
 	): void => {
-		if (!signerValues[signerId]) {
+		const listed = signatoryValues[role]?.[partyId]
+		// A party that signs as itself has no registry entry; every listed
+		// signatory does.
+		if (!(signerId === partyId && !listed?.length) && !signerValues[signerId]) {
 			throw new Error(`Signer with ID "${signerId}" not found in registry`)
 		}
 		validateRoleId(role)
-		const partyExists = getPartiesInternal(role).some(
-			(party) => party.id === partyId,
-		)
-		if (!partyExists) {
+		const party = getPartiesInternal(role).find((candidate) => candidate.id === partyId)
+		if (!party) {
 			throw new Error(`Cannot ${operation}: party "${partyId}" not found for role "${role}"`)
 		}
-		const isSignatory = (signatoryValues[role]?.[partyId] ?? []).some((signatory) => signatory.signerId === signerId)
-		if (!isSignatory) {
+		if (!partySignerIds(party, listed).includes(signerId)) {
 			throw new Error(`Cannot ${operation}: signer "${signerId}" is not a signatory for party "${partyId}" in role "${role}"`)
 		}
 		if (signatureMap === undefined) return
@@ -2386,11 +2388,11 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			const partyStatuses = roleParties.map((party) => {
 				const partyId = party.id
-				const partySignatories = roleSignatories[partyId] ?? []
-				const hasSignatory = partySignatories.length > 0
-				const hasCapture = partySignatories.some((s) =>
+				const signerIds = partySignerIds(party, roleSignatories[partyId])
+				const hasSignatory = signerIds.length > 0
+				const hasCapture = signerIds.some((signerId) =>
 					captures.some(
-						(c) => c.role === roleId && c.partyId === partyId && c.signerId === s.signerId && c.type === 'signature',
+						(c) => c.role === roleId && c.partyId === partyId && c.signerId === signerId && c.type === 'signature',
 					),
 				)
 				const witnessed = attestations.some((a) => a.attestsTo.some((t) => t.role === roleId && t.partyId === partyId))
@@ -2622,10 +2624,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			} else {
 				const hasRequiredSignature = Object.entries(formDef.parties ?? {}).some(([roleId, partyDef]) => {
 					if (!partyDef.signature?.required) return false
-					return Object.values(signatoryValues[roleId] ?? {}).some((signatories) => signatories.length > 0)
+					return getPartiesInternal(roleId).some((party) => partySignerIds(party, signatoryValues[roleId]?.[party.id]).length > 0)
 				})
 				if (!hasRequiredSignature) {
-					problems.push('no party has a required signature. Ensure parties are assigned and have signatories configured')
+					problems.push('no party has a required signature. Ensure parties are assigned, and give each organization a signatory')
 				}
 			}
 			if (problems.length > 0) throw new SealConfigError(`Cannot seal: ${problems.join('; ')}`, problems)

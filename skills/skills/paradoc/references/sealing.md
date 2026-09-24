@@ -83,7 +83,7 @@ This scratch form has a PDF layer with absolute slots and a markdown layer with 
 
 ## 2. Bind signers
 
-A **signer** is a person who signs. A **signatory** binds a signer to one filled party. Sealing and capture both need the binding.
+A **signer** is a person who signs. A **signatory** binds a signer to one filled party. Sealing and capture both read the binding. A person party with no signatories signs for itself: its signer id is its party id, and it needs no `addSigner`. An organization with no signatories has no signer.
 
 ```typescript
 import { readFile } from 'node:fs/promises'
@@ -194,7 +194,7 @@ prep.pdf          // the converted PDF, before flattening
 
 | Message contains | Fix |
 |------------------|-----|
-| `required slots without signatories: slot "tenant-sig" (tenant[0]) has no signatory` | `addSignatory(role, partyId, { signerId })` for that party. |
+| `required slots without signatories: slot "tenant-sig" (tenant[0]) has no signatory` | The party is an organization with no signatory. `addSignatory(role, partyId, { signerId })` for that party. |
 | `party role "tenant" requires a signature but no slot places it on this layer` | Add a slot for the role on the layer you seal, or seal another layer. |
 | `slot "x" references unknown party role "y"` | Fix `party.role` in the slot. |
 | `Cannot seal text/markdown without a converter` | Pass `adapter`, or seal a PDF layer. |
@@ -202,7 +202,7 @@ prep.pdf          // the converted PDF, before flattening
 | `flow supports signature and initials` | Give `date_signed`, `capacity` and `printed_name` slots absolute or anchor placement. |
 | `'flow' placement is incompatible with a custom renderer override` | Drop `renderer`, or change the slot's placement. |
 | `declares no signature slots` | `prepareSeal()` needs a layer with `signatures`. Add slots, or call `seal()`. |
-| `form has no parties` / `no party has a required signature` | A layer with no slots seals only for a party whose signature is required and that has a signatory. |
+| `form has no parties` / `no party has a required signature` | A layer with no slots seals only for a party whose signature is required and that has a signer: a person, or an organization with a signatory. |
 
 A slot for an unfilled party index (for example `tenant` index 2 when one tenant is filled) is skipped with a warning, not an error.
 
@@ -228,7 +228,7 @@ Each capture checks its slot and throws with the value it rejects:
 
 | Error | Cause |
 |-------|-------|
-| `Signer with ID "jane" not found in registry` | No `addSigner` for that id. |
+| `Signer with ID "jane" not found in registry` | No `addSigner` for that id. A person party with no signatories captures with its party id as `signerId`. |
 | `signer "jane" is not a signatory for party "tenant-0" in role "tenant"` | No `addSignatory` binding. |
 | `location "x" not found in signatureMap` | Sealed form: the location is not a slot id. |
 | `location "tenant-sig" already has a signature capture for signer "jane"` | A slot takes one capture. To redo it, capture on the form instance from before the first capture. |

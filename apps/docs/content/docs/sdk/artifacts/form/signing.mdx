@@ -175,7 +175,7 @@ const signed = signable.captureSignature('tenant', 'tenant-0', 'jane', 'page-1-s
 const initialed = signed.captureInitials('tenant', 'tenant-0', 'jane', 'page-1-init')
 ```
 
-Each capture method checks its slot and throws, naming the value, when the role is not declared, the party is not filled for that role, or the signer is not a signatory for that party. On a sealed form, `locationId` must also be a `signatureMap` field assigned to that signer with the same type (`signature`, `initials`, `capacity`, or `printed_name`).
+Each capture method checks its slot and throws, naming the value, when the role is not declared, the party is not filled for that role, or the signer does not sign for that party. A person party with no signatories signs for itself: pass its party id as `signerId`, with no `addSigner`. An organization with no signatories has no signer. On a sealed form, `locationId` must also be a `signatureMap` field assigned to that signer with the same type (`signature`, `initials`, `capacity`, or `printed_name`).
 
 A slot takes one capture. Capturing the same role, party, signer, location, and type again throws. Forms are immutable, so to correct a capture, capture again from the form instance before the first capture.
 

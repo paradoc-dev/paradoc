@@ -6,7 +6,7 @@
  */
 
 import type { StandardSchemaV1 } from '@standard-schema/spec';
-import type { Party, Person, Organization } from '@paradoc/types';
+import type { Party, Person, Organization, RuntimeParty } from '@paradoc/types';
 import { validatePerson, validateOrganization, type Validator } from '@/validation/validators';
 
 /** Organization-specific property names (not present on Person). */
@@ -48,6 +48,27 @@ export function isOrganization(party: Party): party is Organization {
  */
 export function inferPartyType(party: Party): 'person' | 'organization' {
   return hasOrganizationKey(party) ? 'organization' : 'person';
+}
+
+/**
+ * The ids of the signers who sign for a party. A party's listed signatories
+ * sign for it. A Person with none signs for itself, so its signer id is its
+ * party id (`signerId = party.id`). An Organization with none has no signer:
+ * it issues without a personal signature.
+ *
+ * Seal-slot binding, capture checks and signing status all read this, so
+ * they agree on who may sign.
+ *
+ * @param party - The filled party
+ * @param signatories - The party's signatories, if any
+ * @returns The signer ids, in signatory order
+ */
+export function partySignerIds(
+  party: RuntimeParty,
+  signatories: readonly { signerId: string }[] | undefined,
+): string[] {
+  if (signatories && signatories.length > 0) return signatories.map((signatory) => signatory.signerId);
+  return isPerson(party) ? [party.id] : [];
 }
 
 /** The validators {@link checkParty} checks each party type against. */

@@ -35,12 +35,13 @@ test('core-021 no parties', async () => {
 })
 
 test('core-021 no bound party with a required signature', async () => {
+	// An organization with no signatory has no signer; a person would sign as itself.
 	const d = base()
-		.parties({ client: { label: 'Client', partyType: 'person', signature: { required: true } } })
+		.parties({ client: { label: 'Client', partyType: 'organization', signature: { required: true } } })
 		.inlineLayer('md', { mimeType: 'text/markdown', text: 'x' })
 		.defaultLayer('md')
 		.build()
-		.fill({ fields: { a: 'x' }, parties: { client: { id: 'client-0', name: 'C' } } })
+		.fill({ fields: { a: 'x' }, parties: { client: { id: 'client-0', name: 'C', legalName: 'C LLC' } } })
 	const [problem] = await problemsOf(d.seal({ adapter }))
 	expect(problem).toMatch(/no party has a required signature/)
 })

@@ -1,4 +1,5 @@
 import type { Form, Layer, RuntimeParty, SignatureSlot, SigningField } from '@paradoc/types'
+import { partySignerIds } from '@/primitives/party'
 
 /**
  * Signature-slot planning for seal().
@@ -103,16 +104,14 @@ export function buildSlotPlan({ formDef, slots, partyValues, signatoryValues }: 
 		)
 	}
 
-	// Signer bindings: "role:index" -> signerId, mirroring definition mode.
+	// Signer bindings: "role:index" -> the party's first signer.
 	const signerMap = new Map<string, string>()
-	for (const [roleId, roleSignatories] of Object.entries(signatoryValues)) {
+	for (const roleId of Object.keys(partyValues)) {
 		const partyArray = partyArrayFor(partyValues, roleId)
 		for (let index = 0; index < partyArray.length; index++) {
-			const partyId = partyArray[index]!.id
-			const partySignatories = roleSignatories[partyId] ?? []
-			if (partySignatories.length > 0) {
-				signerMap.set(`${roleId}:${index}`, partySignatories[0]!.signerId)
-			}
+			const party = partyArray[index]!
+			const [signerId] = partySignerIds(party, signatoryValues[roleId]?.[party.id])
+			if (signerId !== undefined) signerMap.set(`${roleId}:${index}`, signerId)
 		}
 	}
 

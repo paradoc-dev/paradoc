@@ -623,7 +623,7 @@ describe('Formal Signing', () => {
 			)
 		})
 
-		test('throws error when parties exist but no signatories configured', async () => {
+		test('a person with no signatory counts as a signing party', async () => {
 			const formInstance = createFormWithSignature()
 			const draft = formInstance.fill({
 				fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
@@ -632,20 +632,18 @@ describe('Formal Signing', () => {
 					tenant: [{ id: 'tenant-0', name: 'Jane Tenant' }],
 				},
 			})
-			// Note: No signers or signatories added
+			// No signers or signatories: each person signs as itself.
 
-			await expect(draft.seal(sealOptions())).rejects.toThrow(
-				/no party has a required signature/
-			)
+			await expect(draft.seal(sealOptions())).resolves.toBeDefined()
 		})
 	})
 
 	// ============================================================================
-	// Definition mode: required parties without signatories
+	// Slot seal: a person party with no signatories signs as itself
 	// ============================================================================
 
-	describe('Slot seal with an unbound required party', () => {
-		const slots = (tenantRequired?: boolean): Record<string, SignatureSlot> => ({
+	describe('Slot seal with a person who has no signatory', () => {
+		const slots: Record<string, SignatureSlot> = {
 			'sb-landlord': {
 				party: { role: 'landlord' },
 				type: 'signature',
@@ -655,12 +653,11 @@ describe('Formal Signing', () => {
 				party: { role: 'tenant' },
 				type: 'signature',
 				placement: { page: 1, x: 50, y: 200, width: 120, height: 30 },
-				...(tenantRequired !== undefined && { required: tenantRequired }),
 			},
-		})
+		}
 
-		const landlordOnlyDraft = (signatures: Record<string, SignatureSlot>) =>
-			createFormWithSignature(signatures)
+		test('binds the slot to the party id (signerId = party id)', async () => {
+			const sealed = await createFormWithSignature(slots)
 				.fill({
 					fields: { rentAmount: 1500, moveInDate: '2024-01-01' },
 					parties: {
@@ -670,22 +667,11 @@ describe('Formal Signing', () => {
 				})
 				.addSigner('landlord-signer', createLandlordSigner())
 				.addSignatory('landlord', 'landlord-0', { signerId: 'landlord-signer' })
-
-		test('rejects and names the required party instead of dropping its slot, before converting', async () => {
-			const adapter = createMockAdapter()
-			const convert = vi.spyOn(adapter, 'convert')
-			const sealing = landlordOnlyDraft(slots()).seal({ adapter })
-
-			await expect(sealing).rejects.toThrow(SealConfigError)
-			await expect(sealing).rejects.toThrow(
-				'Cannot seal: 1 required slot without signatories: slot "sb-tenant" (tenant[0]) has no signatory',
-			)
-			expect(convert).not.toHaveBeenCalled()
-		})
-
-		test('skips a slot marked required: false for an unbound party', async () => {
-			const sealed = await landlordOnlyDraft(slots(false)).seal(sealOptions())
-			expect(sealed.signatureMap?.map((field) => field.id)).toEqual(['sb-landlord'])
+				.seal(sealOptions())
+			expect(sealed.signatureMap?.map((field) => [field.id, field.signerId])).toEqual([
+				['sb-landlord', 'landlord-signer'],
+				['sb-tenant', 'tenant-0'],
+			])
 		})
 	})
 
@@ -1420,13 +1406,12 @@ describe('Formal Signing', () => {
 				.addSigner('tenant-signer', { person: { name: 'Jane Tenant' } })
 				.addSignatory('tenant', 'tenant-0', { signerId: 'tenant-signer' })
 
-		test('rejects and names a required party with no signatory instead of dropping its anchor', async () => {
+		test('binds the anchor of a person with no signatory to the party id', async () => {
 			const { options, requests } = createAnchorOptions()
-			const sealing = fillAnchorForm().seal(options)
+			await fillAnchorForm().seal(options)
 
-			await expect(sealing).rejects.toThrow(SealConfigError)
-			await expect(sealing).rejects.toThrow('slot "anc-tenant-sig" (tenant[0]) has no signatory')
-			expect(requests).toEqual([])
+			const tenantField = requests[0]!.anchorFields?.find((field) => field.id === 'anc-tenant-sig')
+			expect(tenantField?.signerId).toBe('tenant-0')
 		})
 
 		test('passes anchorFields to the adapter with correct signer bindings', async () => {

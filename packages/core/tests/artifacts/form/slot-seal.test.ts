@@ -240,7 +240,7 @@ describe('Signature slots', () => {
 		).rejects.toThrow(/requires a signature but no slot places it/)
 	})
 
-	test('a required slot whose party has no signatory fails loud', async () => {
+	test('a person with no signatory signs its slot as itself (signerId = party id)', async () => {
 		const draft = buildForm({
 			'client-sig': {
 				party: { role: 'client' },
@@ -254,10 +254,8 @@ describe('Signature slots', () => {
 				witness: { id: 'witness-0', name: 'Wanda Witness' },
 			},
 		})
-		// Signer added but never bound as signatory.
-		await expect(
-			draft.addSigner('client-signer', { person: { name: 'Cleo Client' } }).seal({ adapter: pureConverter }),
-		).rejects.toThrow(/no signatory/)
+		const sealed = await draft.seal({ adapter: pureConverter })
+		expect(sealed.signatureMap).toEqual([expect.objectContaining({ id: 'client-sig', signerId: 'client-0' })])
 	})
 
 	test('slots for unfilled party indexes are skipped, not errors', async () => {
