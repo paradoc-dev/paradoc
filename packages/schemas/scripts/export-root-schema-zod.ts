@@ -19,6 +19,7 @@ import {
 	SCHEMA_ROOT_ID,
 	SCHEMA_VERSIONED_ID,
 } from '../src/zod/config.js';
+import { buildDefs } from './lib/registry-export.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,35 +28,9 @@ const SCHEMAS_PKG_DIR = join(__dirname, '..');
 const OUTPUT_DIR = join(SCHEMAS_PKG_DIR, 'schemas');
 
 /**
- * Transform bare $ref values to JSON Pointer format (#/$defs/Name)
- */
-function transformRefsToPointer(obj: unknown, knownDefs: Set<string>): unknown {
-	if (typeof obj !== 'object' || obj === null) return obj;
-	if (Array.isArray(obj)) return obj.map((item) => transformRefsToPointer(item, knownDefs));
-
-	const result: Record<string, unknown> = {};
-	for (const [key, value] of Object.entries(obj)) {
-		if (key === '$ref' && typeof value === 'string') {
-			// If it's a bare name that matches a known definition, transform to JSON Pointer
-			if (knownDefs.has(value)) {
-				result[key] = `#/$defs/${value}`;
-			} else if (value.startsWith('#/$defs/') || value === '#') {
-				// Already in correct format
-				result[key] = value;
-			} else {
-				result[key] = value;
-			}
-		} else {
-			result[key] = transformRefsToPointer(value, knownDefs);
-		}
-	}
-	return result;
-}
-
-/**
  * Generate the bundled JSON Schema using Zod's registry approach
  */
-async function generateBundledSchema(schemaId: string, isLatest: boolean): Promise<Record<string, unknown>> {
+export async function generateBundledSchema(schemaId: string, isLatest: boolean): Promise<Record<string, unknown>> {
 	// Import the registry (which has all schemas registered with IDs)
 	const { ParadocRegistry } = await import('../src/zod/module.js');
 
@@ -68,13 +43,8 @@ async function generateBundledSchema(schemaId: string, isLatest: boolean): Promi
 	// Get all schema names for ref transformation
 	const defNames = new Set(Object.keys(result.schemas));
 
-	// Build $defs from the registry output, transforming refs to JSON Pointer format
-	const $defs: Record<string, Record<string, unknown>> = {};
-	for (const [name, schema] of Object.entries(result.schemas)) {
-		// Remove $schema and $id from individual defs (they go at root level only)
-		const { $schema, $id, id, ...rest } = schema;
-		$defs[name] = transformRefsToPointer(rest, defNames) as Record<string, unknown>;
-	}
+	// Build $defs from every registered schema, transforming refs to JSON Pointer format
+	const $defs = buildDefs(defNames, result.schemas, defNames);
 
 	// Build the final bundled schema
 	const description = isLatest
@@ -123,4 +93,9 @@ async function main() {
 	}
 }
 
-main().catch(console.error);
+if (process.argv[1] === __filename) {
+	main().catch((error) => {
+		console.error('Unhandled error while exporting Paradoc schema:', error);
+		process.exitCode = 1;
+	});
+}

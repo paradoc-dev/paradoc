@@ -23,7 +23,6 @@
   ],
   "keywords": [
     "paradoc",
-    "paradoc",
     "forms",
     "json-schema",
     "schemas",
@@ -53,7 +52,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "clean": "rm -rf schemas/paradoc.schema.json dist",
+    "clean": "rm -rf dist",
     "pack:dry": "npm pack --dry-run",
     "prepublishOnly": "pnpm run build",
     "lint": "eslint .",

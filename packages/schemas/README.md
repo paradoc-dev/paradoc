@@ -13,7 +13,7 @@
 <div align="center">
 
 [![Paradoc documentation](https://img.shields.io/badge/Documentation-Paradoc-red.svg)](https://docs.paradoc.dev?utm_source=github&utm_medium=schemas)
-[![Follow on Twitter](https://img.shields.io/twitter/follow/paradochq?style=social)](https://twitter.intent/follow?screen_name=paradochq)
+[![Follow on Twitter](https://img.shields.io/twitter/follow/paradochq?style=social)](https://x.com/intent/follow?screen_name=paradochq)
 
 </div>
 
@@ -34,14 +34,14 @@ npm install @paradoc/schemas
 ```typescript
 import { FormSchema, DocumentSchema, BundleSchema, ListFieldSchema } from "@paradoc/schemas";
 
-// Validate form data
-const result = FormSchema.safeParse(myFormData);
+// Validate a form definition
+const result = FormSchema.safeParse(myFormDefinition);
 if (!result.success) {
   console.log(result.error.issues);
 }
 
 // Parse and validate (throws on error)
-const form = FormSchema.parse(myFormData);
+const form = FormSchema.parse(myFormDefinition);
 
 // Lists are recursive, so their item may be any field, including another list.
 const list = ListFieldSchema.parse({

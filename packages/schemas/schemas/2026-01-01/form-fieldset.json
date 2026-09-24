@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-01-01/formfieldset.json",
+  "$id": "https://schema.paradoc.dev/2026-01-01/form-fieldset.json",
   "type": "object",
   "properties": {
     "title": {
@@ -25,7 +25,7 @@
         "description": "Field identifier (camelCase, starts with lowercase letter)"
       },
       "additionalProperties": {
-        "$ref": "https://schema.paradoc.dev/2026-01-01.json/$defs/FormField"
+        "$ref": "https://schema.paradoc.dev/2026-01-01.json#/$defs/FormField"
       }
     },
     "required": {

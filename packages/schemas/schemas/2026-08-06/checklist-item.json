@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-08-06/checklistitem.json",
+  "$id": "https://schema.paradoc.dev/2026-08-06/checklist-item.json",
   "type": "object",
   "properties": {
     "id": {

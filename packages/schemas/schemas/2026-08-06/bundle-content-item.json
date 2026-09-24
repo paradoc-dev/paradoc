@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-08-06/bundlecontentitem.json",
+  "$id": "https://schema.paradoc.dev/2026-08-06/bundle-content-item.json",
   "oneOf": [
     {
       "type": "object",
@@ -38,7 +38,7 @@
           "description": "Unique identifier for this content item, used to reference it in defs expressions"
         },
         "include": {
-          "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+          "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
         },
         "type": {
           "type": "string",
@@ -68,7 +68,7 @@
           "description": "Unique identifier for this content item, used to reference it in defs expressions"
         },
         "include": {
-          "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+          "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
         },
         "type": {
           "type": "string",

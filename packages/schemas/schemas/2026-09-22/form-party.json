@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-09-22/formparty.json",
+  "$id": "https://schema.paradoc.dev/2026-09-22/form-party.json",
   "type": "object",
   "properties": {
     "label": {
@@ -45,7 +45,7 @@
       "minimum": 1
     },
     "required": {
-      "$ref": "https://schema.paradoc.dev/2026-09-22.json/$defs/CondExpr"
+      "$ref": "https://schema.paradoc.dev/2026-09-22.json#/$defs/CondExpr"
     },
     "signature": {
       "type": "object",
@@ -82,7 +82,7 @@
         "amount": {
           "anyOf": [
             {
-              "$ref": "https://schema.paradoc.dev/2026-09-22.json/$defs/Money"
+              "$ref": "https://schema.paradoc.dev/2026-09-22.json#/$defs/Money"
             },
             {
               "type": "object",

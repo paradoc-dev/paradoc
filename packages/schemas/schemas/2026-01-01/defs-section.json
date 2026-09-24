@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-01-01/defssection.json",
+  "$id": "https://schema.paradoc.dev/2026-01-01/defs-section.json",
   "type": "object",
   "propertyNames": {
     "type": "string",

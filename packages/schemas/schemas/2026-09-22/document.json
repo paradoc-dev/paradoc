@@ -238,7 +238,7 @@
         "description": "Layer identifier (camelCase, starts with lowercase letter)"
       },
       "additionalProperties": {
-        "$ref": "https://schema.paradoc.dev/2026-09-22.json/$defs/Layer"
+        "$ref": "https://schema.paradoc.dev/2026-09-22.json#/$defs/Layer"
       },
       "description": "Named layers for rendering this document into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
     },

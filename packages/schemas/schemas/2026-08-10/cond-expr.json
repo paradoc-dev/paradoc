@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-08-10/condexpr.json",
+  "$id": "https://schema.paradoc.dev/2026-08-10/cond-expr.json",
   "anyOf": [
     {
       "type": "boolean",

@@ -15,6 +15,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import { extractRegistryEntry } from './lib/registry-export.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,28 +59,47 @@ const SCHEMAS_TO_EXPORT: SchemaExport[] = [
 	},
 ];
 
-/**
- * Transform bare $ref values to JSON Pointer format (#/$defs/Name)
- */
-function transformRefsToPointer(obj: unknown, knownDefs: Set<string>): unknown {
-	if (typeof obj !== 'object' || obj === null) return obj;
-	if (Array.isArray(obj)) return obj.map((item) => transformRefsToPointer(item, knownDefs));
+/** Generate every registry-exported schema, keyed by output file name. */
+export async function generateRegistrySchemas(): Promise<Record<string, Record<string, unknown>>> {
+	// Import the CLI registry
+	const { CLISchemaRegistry } = await import('../src/zod/registry/module.js');
 
-	const result: Record<string, unknown> = {};
-	for (const [key, value] of Object.entries(obj)) {
-		if (key === '$ref' && typeof value === 'string') {
-			if (knownDefs.has(value)) {
-				result[key] = `#/$defs/${value}`;
-			} else if (value.startsWith('#/$defs/') || value === '#') {
-				result[key] = value;
-			} else {
-				result[key] = value;
-			}
-		} else {
-			result[key] = transformRefsToPointer(value, knownDefs);
+	// Generate all schemas from the registry
+	const result = z.toJSONSchema(CLISchemaRegistry, {
+		target: 'draft-2020-12',
+	}) as { schemas: Record<string, Record<string, unknown>> };
+
+	// Get all schema names for ref transformation
+	const allDefNames = new Set(Object.keys(result.schemas));
+
+	const files: Record<string, Record<string, unknown>> = {};
+
+	for (const schemaConfig of SCHEMAS_TO_EXPORT) {
+		const mainSchema = result.schemas[schemaConfig.registryId];
+
+		if (!mainSchema) {
+			throw new Error(`${schemaConfig.registryId} not found in registry`);
 		}
+
+		// Clean the main schema, and collect+clean every schema it references, for $defs
+		const { main: transformedMain, defs: $defs } = extractRegistryEntry(mainSchema, result.schemas, allDefNames);
+
+		// Build final schema
+		const jsonSchema: Record<string, unknown> = {
+			$schema: 'https://json-schema.org/draft/2020-12/schema',
+			$id: schemaConfig.schemaId,
+			...transformedMain,
+		};
+
+		// Add $defs if there are any
+		if (Object.keys($defs).length > 0) {
+			jsonSchema.$defs = $defs;
+		}
+
+		files[schemaConfig.outputFile] = jsonSchema;
 	}
-	return result;
+
+	return files;
 }
 
 /**
@@ -92,80 +112,20 @@ async function main() {
 		// Ensure output directory exists
 		await mkdir(OUTPUT_DIR, { recursive: true });
 
-		// Import the CLI registry
-		const { CLISchemaRegistry } = await import('../src/zod/registry/module.js');
-
-		// Generate all schemas from the registry
-		const result = z.toJSONSchema(CLISchemaRegistry, {
-			target: 'draft-2020-12',
-		}) as { schemas: Record<string, Record<string, unknown>> };
-
-		// Get all schema names for ref transformation
-		const allDefNames = new Set(Object.keys(result.schemas));
+		const files = await generateRegistrySchemas();
 
 		for (const schemaConfig of SCHEMAS_TO_EXPORT) {
-			const mainSchema = result.schemas[schemaConfig.registryId];
-
-			if (!mainSchema) {
-				throw new Error(`${schemaConfig.registryId} not found in registry`);
-			}
-
-			// Find all schemas that this main schema references (for $defs)
-			const referencedSchemas = new Set<string>();
-			const findRefs = (obj: unknown): void => {
-				if (typeof obj !== 'object' || obj === null) return;
-				if (Array.isArray(obj)) {
-					obj.forEach(findRefs);
-					return;
-				}
-				for (const [key, value] of Object.entries(obj)) {
-					if (key === '$ref' && typeof value === 'string' && allDefNames.has(value)) {
-						referencedSchemas.add(value);
-						// Recursively find refs in the referenced schema
-						if (result.schemas[value]) {
-							findRefs(result.schemas[value]);
-						}
-					} else {
-						findRefs(value);
-					}
-				}
-			};
-			findRefs(mainSchema);
-
-			// Build $defs from referenced schemas
-			const $defs: Record<string, Record<string, unknown>> = {};
-			for (const refName of referencedSchemas) {
-				const refSchema = result.schemas[refName];
-				if (refSchema) {
-					// Remove $schema, $id, id from def entries
-					const { $schema: _s, $id: _i, id: _id, ...rest } = refSchema;
-					$defs[refName] = transformRefsToPointer(rest, allDefNames) as Record<string, unknown>;
-				}
-			}
-
-			// Clean and transform the main schema
-			const { $schema: _s, $id: _i, id: _id, ...mainSchemaClean } = mainSchema;
-			const transformedMain = transformRefsToPointer(mainSchemaClean, allDefNames) as Record<string, unknown>;
-
-			// Build final schema
-			const jsonSchema: Record<string, unknown> = {
-				$schema: 'https://json-schema.org/draft/2020-12/schema',
-				$id: schemaConfig.schemaId,
-				...transformedMain,
-			};
-
-			// Add $defs if there are any
-			if (Object.keys($defs).length > 0) {
-				jsonSchema.$defs = $defs;
-			}
+			const jsonSchema = files[schemaConfig.outputFile];
+			if (!jsonSchema) continue;
 
 			// Write the schema
 			const outputPath = join(OUTPUT_DIR, schemaConfig.outputFile);
 			await writeFile(outputPath, JSON.stringify(jsonSchema, null, 2), 'utf-8');
 
+			const $defs = jsonSchema.$defs as Record<string, unknown> | undefined;
 			console.log(`Done: ${schemaConfig.name} -> ${schemaConfig.outputFile}`);
 			console.log(`  $id: ${schemaConfig.schemaId}`);
-			if (Object.keys($defs).length > 0) {
+			if ($defs && Object.keys($defs).length > 0) {
 				console.log(`  $defs: ${Object.keys($defs).join(', ')}`);
 			}
 		}
@@ -181,4 +141,9 @@ async function main() {
 	}
 }
 
-main().catch(console.error);
+if (process.argv[1] === __filename) {
+	main().catch((error) => {
+		console.error('Unhandled error while exporting registry schemas:', error);
+		process.exitCode = 1;
+	});
+}

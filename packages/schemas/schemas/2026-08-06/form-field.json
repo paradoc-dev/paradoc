@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-08-06/formfield.json",
+  "$id": "https://schema.paradoc.dev/2026-08-06/form-field.json",
   "anyOf": [
     {
       "oneOf": [
@@ -20,10 +20,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -69,10 +69,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -104,10 +104,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -147,17 +147,17 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
               "const": "coordinate"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Coordinate"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Coordinate"
             }
           },
           "required": [
@@ -181,17 +181,17 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
               "const": "bbox"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Bbox"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Bbox"
             }
           },
           "required": [
@@ -215,10 +215,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -233,7 +233,7 @@
               "description": "Maximum amount"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Money"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Money"
             }
           },
           "required": [
@@ -257,17 +257,17 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
               "const": "address"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Address"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Address"
             }
           },
           "required": [
@@ -291,17 +291,17 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
               "const": "phone"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Phone"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Phone"
             }
           },
           "required": [
@@ -325,17 +325,17 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
               "const": "duration"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Duration"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Duration"
             }
           },
           "required": [
@@ -359,10 +359,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -402,10 +402,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -451,10 +451,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -500,10 +500,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -574,10 +574,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -623,10 +623,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -672,10 +672,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -715,17 +715,17 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
               "const": "person"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Person"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Person"
             }
           },
           "required": [
@@ -749,17 +749,17 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
               "const": "organization"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Organization"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Organization"
             }
           },
           "required": [
@@ -783,10 +783,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -800,7 +800,7 @@
               "description": "Allowed ID types (e.g., passport, drivers_license)"
             },
             "default": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/Identification"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/Identification"
             }
           },
           "required": [
@@ -824,10 +824,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -909,10 +909,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -956,10 +956,10 @@
               "description": "Description or help text for the field"
             },
             "required": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "visible": {
-              "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/CondExpr"
+              "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/CondExpr"
             },
             "type": {
               "type": "string",
@@ -990,10 +990,10 @@
       ]
     },
     {
-      "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/FieldsetField"
+      "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/FieldsetField"
     },
     {
-      "$ref": "https://schema.paradoc.dev/2026-08-06.json/$defs/ListField"
+      "$ref": "https://schema.paradoc.dev/2026-08-06.json#/$defs/ListField"
     }
   ],
   "title": "FormField"

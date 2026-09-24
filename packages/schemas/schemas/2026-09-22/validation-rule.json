@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schema.paradoc.dev/2026-09-22/validationrule.json",
+  "$id": "https://schema.paradoc.dev/2026-09-22/validation-rule.json",
   "type": "object",
   "properties": {
     "expr": {

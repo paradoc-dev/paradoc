@@ -229,7 +229,7 @@
       "const": "form"
     },
     "defs": {
-      "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/DefsSection"
+      "$ref": "https://schema.paradoc.dev/2026-08-10.json#/$defs/DefsSection"
     },
     "rules": {
       "type": "object",
@@ -284,7 +284,7 @@
         "description": "Field identifier (camelCase, starts with lowercase letter)"
       },
       "additionalProperties": {
-        "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/FormField"
+        "$ref": "https://schema.paradoc.dev/2026-08-10.json#/$defs/FormField"
       },
       "description": "Form field definitions keyed by field identifier. Fields define the input structure and validation rules for the form"
     },
@@ -298,7 +298,7 @@
         "description": "Layer identifier (camelCase, starts with lowercase letter)"
       },
       "additionalProperties": {
-        "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/Layer"
+        "$ref": "https://schema.paradoc.dev/2026-08-10.json#/$defs/Layer"
       },
       "description": "Named layers for rendering this form into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)"
     },
@@ -323,7 +323,7 @@
         "description": "Annex identifier (camelCase, starts with lowercase letter)"
       },
       "additionalProperties": {
-        "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/FormAnnex"
+        "$ref": "https://schema.paradoc.dev/2026-08-10.json#/$defs/FormAnnex"
       },
       "description": "Predefined annex slots keyed by identifier. Each slot can be marked as required (must be filled at runtime) or optional"
     },
@@ -337,7 +337,7 @@
         "description": "Party role identifier (e.g., buyer, seller, landlord, buyerRepresentative)"
       },
       "additionalProperties": {
-        "$ref": "https://schema.paradoc.dev/2026-08-10.json/$defs/FormParty"
+        "$ref": "https://schema.paradoc.dev/2026-08-10.json#/$defs/FormParty"
       },
       "description": "Party role definitions keyed by role identifier. Each role specifies constraints on who can fill it (person/organization) and signature requirements."
     }
