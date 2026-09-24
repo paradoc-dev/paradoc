@@ -604,6 +604,42 @@ function createMissingValueError(kind: 'field' | 'annex', key: string): Validati
 	}
 }
 
+/** The only top-level keys `fill`, `safeFill`, `update` and `safeUpdate` accept. */
+const KNOWN_PAYLOAD_KEYS = new Set(['fields', 'parties', 'annexes'])
+
+/**
+ * Reject a `fill`/`update` payload that carries a top-level key other than
+ * `fields`, `parties` or `annexes`. Nothing supplied at the top level is ever
+ * dropped silently: an unrecognized key that matches a declared party role
+ * names where party data belongs; any other unrecognized key just names
+ * itself.
+ */
+function assertKnownPayloadKeys(formDef: Form, payload: unknown): void {
+	if (!isMergeRecord(payload)) return
+
+	const partyRoles = new Set(Object.keys(formDef.parties ?? {}))
+	const errors: ValidationError[] = []
+
+	for (const key of Object.keys(payload)) {
+		if (KNOWN_PAYLOAD_KEYS.has(key)) continue
+
+		if (partyRoles.has(key)) {
+			errors.push({
+				field: key,
+				message: `Unknown top-level key "${key}": party data belongs under "parties.${key}".`,
+			})
+			continue
+		}
+
+		errors.push({
+			field: key,
+			message: `Unknown top-level key "${key}". Valid top-level keys are: fields, parties, annexes.`,
+		})
+	}
+
+	if (errors.length > 0) throw new FormValidationError(errors)
+}
+
 /**
  * Validate every form payload section, then apply the role-specific party
  * checks that are not represented by the compiled payload schema.
@@ -1822,6 +1858,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		update(patch: ProgressiveFormPayload<F>, options?: UpdateOptions): DraftForm<F> {
 			ensureDraft('update')
+			assertKnownPayloadKeys(formDef, patch)
 
 			const patchFields = (patch as Record<string, unknown>).fields as Record<string, unknown> | undefined
 			const patchParties = (patch as Record<string, unknown>).parties
@@ -3378,13 +3415,12 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 
 		fill(seed?: ProgressiveFormPayload<F>, options?: FillOptions): DraftForm<F> {
 			assertValidArtifactDefinition(formDef)
+			assertKnownPayloadKeys(formDef, seed)
 			const context = captureRuntimeContext(options)
 
 			const fields = (seed as Record<string, unknown> | undefined)?.fields ?? {}
 			const parties = (seed as Record<string, unknown> | undefined)?.parties ?? {}
 			const annexes = (seed as Record<string, unknown> | undefined)?.annexes ?? {}
-			const signers = (seed as Record<string, unknown> | undefined)?.signers ?? {}
-			const signatories = (seed as Record<string, unknown> | undefined)?.signatories ?? {}
 			const fieldsOnlyForm = {
 				...makeRuntimeOptionalForm(formDef),
 				parties: undefined,
@@ -3413,8 +3449,8 @@ function createFormInstance<F extends Form>(formDef: F, options?: ArtifactInstan
 				fields: validatedFields,
 				parties: validatedParties,
 				annexes: validatedAnnexes,
-				signers: signers as Record<string, Signer>,
-				signatories: signatories as Record<string, Record<string, PartySignatory[]>>,
+				signers: {},
+				signatories: {},
 				targetLayer,
 				resolver,
 				phase: 'draft',

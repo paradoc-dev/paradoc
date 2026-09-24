@@ -125,6 +125,115 @@ describe('DraftForm', () => {
   })
 
   // ============================================================================
+  // Top-level payload keys: fill(), safeFill(), update()
+  // ============================================================================
+
+  describe('top-level payload keys', () => {
+    const createFormWithParty = () =>
+      form()
+        .name('top-level-keys-probe')
+        .fields({
+          amount: { type: 'number', label: 'Amount', required: true },
+        })
+        .parties({
+          buyer: { label: 'Buyer', partyType: 'person' },
+        })
+        .annexes({
+          receipt: { title: 'Receipt' },
+        })
+        .build()
+
+    test('fill() accepts only fields, parties and annexes at the top level', () => {
+      const formInstance = createFormWithParty()
+      const draft = formInstance.fill({
+        fields: { amount: 100 },
+        parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
+        annexes: { receipt: { name: 'receipt.pdf', mimeType: 'application/pdf' } },
+      })
+
+      expect(draft.getField('amount')).toBe(100)
+      expect(draft.getParty('buyer')).toMatchObject({ name: 'Alice' })
+      expect(draft.getAnnex('receipt')).toMatchObject({ name: 'receipt.pdf' })
+    })
+
+    test('fill() rejects a misspelled top-level key', () => {
+      const formInstance = createFormWithParty()
+      expect(() => formInstance.fill({ fieldz: { amount: 100 } } as any)).toThrow(/Unknown top-level key "fieldz"/)
+    })
+
+    test('fill() rejects a top-level key that matches a declared party role', () => {
+      const formInstance = createFormWithParty()
+      expect(() =>
+        formInstance.fill({ fields: { amount: 100 }, buyer: { id: 'buyer-0', name: 'Alice' } } as any),
+      ).toThrow(/parties\.buyer/)
+    })
+
+    test('safeFill() reports a role-named top-level key without throwing', () => {
+      const formInstance = createFormWithParty()
+      const result = formInstance.safeFill({
+        fields: { amount: 100 },
+        buyer: { id: 'buyer-0', name: 'Alice' },
+      } as any)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.message).toMatch(/parties\.buyer/)
+      }
+    })
+
+    test('safeFill() reports a misspelled top-level key without throwing', () => {
+      const formInstance = createFormWithParty()
+      const result = formInstance.safeFill({ fieldz: { amount: 100 } } as any)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.message).toMatch(/Unknown top-level key "fieldz"/)
+      }
+    })
+
+    test('safeFill() accepts fields, parties and annexes at the top level', () => {
+      const formInstance = createFormWithParty()
+      const result = formInstance.safeFill({
+        fields: { amount: 100 },
+        parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
+        annexes: { receipt: { name: 'receipt.pdf', mimeType: 'application/pdf' } },
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.getField('amount')).toBe(100)
+        expect(result.data.getParty('buyer')).toMatchObject({ name: 'Alice' })
+        expect(result.data.getAnnex('receipt')).toMatchObject({ name: 'receipt.pdf' })
+      }
+    })
+
+    test('update() rejects a top-level key that matches a declared party role', () => {
+      const formInstance = createFormWithParty()
+      const draft = formInstance.fill({ fields: { amount: 100 } })
+      expect(() => draft.update({ buyer: { id: 'buyer-0', name: 'Alice' } } as any)).toThrow(/parties\.buyer/)
+    })
+
+    test('update() rejects a misspelled top-level key', () => {
+      const formInstance = createFormWithParty()
+      const draft = formInstance.fill({ fields: { amount: 100 } })
+      expect(() => draft.update({ fieldz: { amount: 50 } } as any)).toThrow(/Unknown top-level key "fieldz"/)
+    })
+
+    test('update() still accepts fields, parties and annexes', () => {
+      const formInstance = createFormWithParty()
+      const draft = formInstance
+        .fill({ fields: { amount: 100 } })
+        .update({
+          parties: { buyer: { id: 'buyer-0', name: 'Alice' } },
+          annexes: { receipt: { name: 'receipt.pdf', mimeType: 'application/pdf' } },
+        })
+
+      expect(draft.getParty('buyer')).toMatchObject({ name: 'Alice' })
+      expect(draft.getAnnex('receipt')).toMatchObject({ name: 'receipt.pdf' })
+    })
+  })
+
+  // ============================================================================
   // getField() Method
   // ============================================================================
 
@@ -621,13 +730,10 @@ describe('DraftForm', () => {
         .build()
       const partyInput = { id: 'tenant-0', name: 'Original Tenant' }
       const signerInput = { person: { name: 'Original Signer' } }
-      const draft = definition.fill(
-        {
-          parties: { tenant: partyInput },
-          signers: { signer: signerInput },
-          signatories: { tenant: { 'tenant-0': [{ signerId: 'signer', capacity: 'President' }] } },
-        } as any,
-      )
+      const draft = definition
+        .fill({ parties: { tenant: partyInput } })
+        .addSigner('signer', signerInput)
+        .addSignatory('tenant', 'tenant-0', { signerId: 'signer', capacity: 'President' })
 
       partyInput.name = 'Changed Input'
       signerInput.person.name = 'Changed Input'

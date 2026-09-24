@@ -60,7 +60,7 @@ let draft = lease.fill(
 
 - The seed is optional and may be partial. Supplied values are validated at once; omitted ones stay open.
 - A field with a `default` gets it when the seed omits it, required or not.
-- Seed keys: `fields`, `parties`, `annexes`, and for signing `signers` and `signatories` ([sealing.md](./sealing.md)).
+- Seed keys: `fields`, `parties`, and `annexes`. Any other top-level key fails, naming it; a key that matches a declared party role says party data belongs under `parties.<role>`. To register signers, call `addSigner`/`addSignatory` on the draft ([sealing.md](./sealing.md)) instead of seeding them through `fill()`.
 - `context.asOf` fixes the clock for `today()` and `now()` ([logic.md § Dates and the clock](./logic.md#dates-and-the-clock)). Set it for reproducible date logic and tests.
 - `fill()` also checks the form's logic. A bad reference throws `Invalid form definition: Unknown variable: ...`.
 

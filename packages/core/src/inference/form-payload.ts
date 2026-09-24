@@ -6,8 +6,6 @@ import type {
   Person,
   Organization,
   Attachment,
-  PartySignatory,
-  Signer,
 } from '@paradoc/types'
 import { ISO_8601_DURATION_PATTERN } from '@paradoc/schemas'
 
@@ -322,17 +320,12 @@ type AnnexesPayload<FormSchema> = FormSchema extends { annexes: infer A }
  */
 type InferFormDataInternal<FormSchema> = FieldsPayload<FormSchema> &
   PartiesPayload<FormSchema> &
-  AnnexesPayload<FormSchema> & {
-    signers?: Record<string, Signer>
-    signatories?: Record<string, Record<string, PartySignatory[]>>
-  }
+  AnnexesPayload<FormSchema>
 
 type UnknownFormData = {
   fields?: Record<string, unknown>
   parties?: Record<string, RuntimePerson | RuntimeOrganization | (RuntimePerson | RuntimeOrganization)[]>
   annexes?: Record<string, Attachment>
-  signers?: Record<string, Signer>
-  signatories?: Record<string, Record<string, PartySignatory[]>>
 }
 
 export type InferFormData<Form> = [Form] extends [never]
