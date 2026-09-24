@@ -12,8 +12,20 @@ describe('naming a rendered bundle part', () => {
 		['application/json', 'json'],
 		['text/yaml', 'yaml'],
 		['application/yaml', 'yaml'],
+		['text/csv', 'csv'],
+		['image/png', 'png'],
+		['image/jpeg', 'jpg'],
+		['image/gif', 'gif'],
+		['image/tiff', 'tiff'],
+		['application/zip', 'zip'],
 	])('%s is named .%s', (mimeType, extension) => {
 		expect(getExtensionForMime(mimeType)).toBe(extension)
+	})
+
+	test('a type is named whatever its case', () => {
+		expect(getExtensionForMime('Application/PDF')).toBe('pdf')
+		expect(getExtensionForMime('IMAGE/PNG')).toBe('png')
+		expect(producedMimeType('Application/PDF')).toBe('application/pdf')
 	})
 
 	test('an unknown type falls back to .bin', () => {

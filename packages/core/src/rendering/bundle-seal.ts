@@ -50,11 +50,9 @@ import type { DraftForm } from '@/artifacts/form'
 import { SealConfigError, hasSignatureSlots } from '@/artifacts/form/seal-slots'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
-import {
-  assembleBundle,
-  isAssemblyBytesEntry,
-  type AssemblyContentEntry,
-} from './bundle-assembler'
+import type { AssemblyContentEntry } from './bundle-assembler'
+import { isAssemblyBytesEntry, renderBundlePart } from './bundle-part'
+import { normalizeMimeType } from './part-mime'
 import type { RendererRegistry } from './renderer-registry'
 import { evaluateBundleInclusion, type BundleEvaluationMember } from '@/artifacts/bundle/inclusion'
 
@@ -290,15 +288,16 @@ function isZipContainer(mimeType: string): boolean {
  * this exists to catch, and it would otherwise surface as a parser error about
  * a byte offset.
  */
-function sniffMismatch(bytes: Uint8Array, declared: string): string | undefined {
+function sniffMismatch(bytes: Uint8Array, declaredType: string): string | undefined {
+  const declared = normalizeMimeType(declaredType)
   const sniffed = SIGNATURES.find((signature) => signature.matches(bytes))?.mimeType
   if (sniffed !== undefined) {
     if (sniffed === declared) return undefined
     if (sniffed === 'application/zip' && isZipContainer(declared)) return undefined
-    return `it is declared ${declared} but its bytes begin with a ${sniffed} signature`
+    return `it is declared ${declaredType} but its bytes begin with a ${sniffed} signature`
   }
   const recognisable = SIGNATURES.some((signature) => signature.mimeType === declared)
-  if (recognisable) return `it is declared ${declared} but its bytes carry no ${declared} signature`
+  if (recognisable) return `it is declared ${declaredType} but its bytes carry no ${declared} signature`
   return undefined
 }
 
@@ -391,15 +390,7 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
 
   for (const key of declared) {
     const entry = contents[key]!
-    if (isAssemblyBytesEntry(entry)) {
-      renderedParts.set(key, {
-        content: entry.content,
-        mimeType: entry.mimeType,
-        filename: entry.filename ?? `${key}.pdf`,
-      })
-      continue
-    }
-    const form = sealableForm(entry)
+    const form = isAssemblyBytesEntry(entry) ? undefined : sealableForm(entry)
     if (form) {
       try {
         const preparation = await form.prepareSeal({ renderers, adapter, locate })
@@ -411,12 +402,8 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
       continue
     }
     try {
-      const assembled = await assembleBundle(bundle, {
-        renderers,
-        contents: { [key]: entry },
-        inclusionContents: contents,
-      })
-      renderedParts.set(key, assembled.outputs[key]!)
+      const rendered = await renderBundlePart(key, entry, { renderers })
+      renderedParts.set(key, rendered[key]!)
     } catch (error) {
       throw partFailure(key, 'rendering', error)
     }

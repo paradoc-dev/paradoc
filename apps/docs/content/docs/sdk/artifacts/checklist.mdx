@@ -316,12 +316,12 @@ Created by `draft.complete()`. Fully frozen.
 
 ## Render options
 
-`render()` takes `RuntimeChecklistRenderOptions`. Without a renderer it returns the layer's raw content.
+`render()` takes `RuntimeChecklistRenderOptions`. It picks a renderer the way a form does: `renderer`, then the entry in `renderers` for the layer's MIME type, then the built-in engine for that type, which evaluates `{{items.x}}`.
 
 <PropertiesTable properties={[
   { name: 'layer', type: 'string', description: 'Layer key to render. Defaults to the target layer', isOptional: true },
   { name: 'renderer', type: 'ParadocRenderer', description: 'Renderer that processes the layer template, such as `createLayerRenderer()`', isOptional: true },
-  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, consulted after `renderer` and before falling back to raw content', isOptional: true },
+  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, consulted after `renderer` and before the built-in engine', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for values in this render', isOptional: true },
   { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values', isOptional: true },
 ]} />

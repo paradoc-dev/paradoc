@@ -297,8 +297,9 @@ export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
 /**
  * Options for rendering a RuntimeChecklist.
  *
- * The renderer is optional - if not provided, returns raw layer content.
- * When a renderer is provided, it evaluates the template's expressions, such as {{items.reviewed}}.
+ * The renderer is optional. Without one, the layer renders through the renderer
+ * registered for its MIME type, or the built-in engine for that type, which
+ * evaluates the template's expressions, such as {{items.reviewed}}.
  *
  * @typeParam Output - The output type produced by the renderer
  *
@@ -306,18 +307,15 @@ export interface RuntimeFormRenderOptions<Output = string | Uint8Array> {
  * ```typescript
  * const filled = checklist.fill({ reviewed: true, approved: false })
  *
- * // With renderer - processes template variables
- * const output = await filled.render({
- *   renderer: textRenderer(),
- *   layer: 'markdown'
- * })
+ * // The built-in engine for the layer's MIME type evaluates {{items.x}}
+ * const output = await filled.render({ layer: 'markdown' })
  *
- * // Without renderer - returns raw layer content
- * const raw = await filled.render({ layer: 'markdown' })
+ * // Or pass a renderer explicitly
+ * const custom = await filled.render({ renderer: textRenderer(), layer: 'markdown' })
  * ```
  */
 export interface RuntimeChecklistRenderOptions<Output = unknown> {
-  /** The renderer to use for template processing. If not provided, returns raw layer content. */
+  /** Custom renderer override. Supported layer MIME types use the built-in renderer by default. */
   renderer?: ParadocRenderer<RendererLayer, Output>
 
   /** Formatter policy applied throughout this artifact render. */
@@ -328,7 +326,7 @@ export interface RuntimeChecklistRenderOptions<Output = unknown> {
 
   /**
    * Renderers keyed by layer MIME type, consulted after an explicit `renderer`
-   * and before falling back to raw layer content.
+   * and before the built-in engines.
    */
   renderers?: RendererRegistry
 

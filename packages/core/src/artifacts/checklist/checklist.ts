@@ -5,16 +5,11 @@
  * with a single file using closures and composition.
  */
 
-import type { Checklist, ChecklistData, ChecklistItem, ChecklistPhase, Layer, Metadata, ParadocRenderer, RendererLayer, ContentRef, Resolver, RuntimeChecklistJSON } from '@paradoc/types'
+import type { Checklist, ChecklistData, ChecklistItem, ChecklistPhase, Layer, Metadata, ContentRef, Resolver, RuntimeChecklistJSON } from '@paradoc/types'
 import { createContext } from '@paradoc/expr'
 import { resolveLayerBindings } from '@paradoc/render'
-import { buildRendererLayer } from '../shared/render-layer'
+import { buildRendererLayer, resolveLayerKey, selectLayerRenderer } from '../shared/render-layer'
 import type { ArtifactInstanceOptions } from '../shared/render-layer'
-import {
-	findRegisteredRenderer,
-	isReactLayerMimeType,
-	UnregisteredLayerRendererError,
-} from '@/rendering/renderer-registry'
 import { parseChecklist, parseChecklistItem, parseLayer } from '@/validation/artifact-parsers'
 import {
 	validateChecklistItemInput,
@@ -206,7 +201,7 @@ export interface ChecklistInstance<C extends Checklist> extends ArtifactMethods<
 	/**
 	 * Render checklist content.
 	 * @param options - Render options including renderer, resolver and layer override
-	 * @returns If renderer provided: processed output. Otherwise: raw layer content.
+	 * @returns The rendered layer. With no renderer given, the layer renders through the one registered for its MIME type or the built-in engine.
 	 */
 	render<Output = string | Uint8Array>(options?: RuntimeChecklistRenderOptions<Output>): Promise<Output>
 
@@ -262,7 +257,7 @@ interface RuntimeChecklistBase<C extends Checklist> {
 	/**
 	 * Render the checklist content.
 	 * @param options - Render options including renderer, resolver and layer override
-	 * @returns If renderer provided: processed output. Otherwise: raw layer content.
+	 * @returns The rendered layer. With no renderer given, the layer renders through the one registered for its MIME type or the built-in engine.
 	 */
 	render<Output = string | Uint8Array>(options?: RuntimeChecklistRenderOptions<Output>): Promise<Output>
 
@@ -562,62 +557,13 @@ function createRuntimeChecklist<C extends Checklist>(config: RuntimeChecklistCon
 		}
 	}
 
-	const render = async <Output = string | Uint8Array>(
-		options?: RuntimeChecklistRenderOptions<Output>,
-	): Promise<Output> => {
-		// Resolve layer key and content
-		const layers = checklistDef.layers
-		if (!layers || Object.keys(layers).length === 0) {
-			throw new Error('Checklist has no layers defined')
-		}
-
-		const key = options?.layer || targetLayer || checklistDef.defaultLayer || Object.keys(layers)[0]
-		if (!key) {
-			throw new Error('No layer key provided and no defaultLayer set.')
-		}
-
-		const layerSpec = layers[key]
-		if (!layerSpec) {
-			throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(layers).join(', ')}`)
-		}
-
-		const bindings = resolveLayerBindings(layers, layerSpec)
-
-		// An explicit renderer wins, then one registered for the layer's MIME
-		// type. With neither, a checklist returns its raw layer content — except
-		// for a React layer, which has none, and fails naming the option.
-		const renderer =
-			options?.renderer ?? (findRegisteredRenderer(options?.renderers, layerSpec.mimeType) as
-				| ParadocRenderer<RendererLayer, Output>
-				| undefined)
-
-		if (!renderer) {
-			if (isReactLayerMimeType(layerSpec.mimeType)) {
-				throw new UnregisteredLayerRendererError(key, layerSpec.mimeType)
-			}
-			const raw = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
-			return raw.content as Output
-		}
-
-		const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
-
-		// A checklist template reads `items.<id>` from its expression context.
+	// A checklist template reads `items.<id>` from its expression context.
+	const render = <Output = string | Uint8Array>(options?: RuntimeChecklistRenderOptions<Output>): Promise<Output> => {
 		const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
 		const items: ChecklistData['items'] = Object.fromEntries(
 			checklistItems.map((item) => [item.id, (validatedItems.get(item.id) as boolean | string | undefined) ?? null]),
 		)
-
-		return await renderer.render({
-			kind: 'checklist',
-			template,
-			artifact: checklistDef,
-			data: { items },
-			ctx: {
-				expressions: { context: createContext({ items }) },
-				...(options?.formatter && { formatter: options.formatter }),
-				...(options?.progressive && { progressive: options.progressive }),
-			},
-		})
+		return renderChecklistLayer(checklistDef, targetLayer, items, resolver, options)
 	}
 
 	// Draft phase
@@ -952,61 +898,12 @@ function createChecklistInstance<C extends Checklist>(
 			}
 		},
 
-		async render<Output = string | Uint8Array>(
-			options?: RuntimeChecklistRenderOptions<Output>,
-		): Promise<Output> {
+		render<Output = string | Uint8Array>(options?: RuntimeChecklistRenderOptions<Output>): Promise<Output> {
 			assertValidArtifactDefinition(checklistDef)
-			// Resolve layer key and content
-			const layers = checklistDef.layers
-			if (!layers || Object.keys(layers).length === 0) {
-				throw new Error('Checklist has no layers defined')
-			}
-
-			const key = options?.layer || checklistDef.defaultLayer || Object.keys(layers)[0]
-			if (!key) {
-				throw new Error('No layer key provided and no defaultLayer set.')
-			}
-
-			const layerSpec = layers[key]
-			if (!layerSpec) {
-				throw new Error(`Layer "${key}" not found. Available layers: ${Object.keys(layers).join(', ')}`)
-			}
-
-			const bindings = resolveLayerBindings(layers, layerSpec)
-
-			// As in the filled path: an explicit renderer, then the registry, then
-			// raw content — and a React layer, which has none, fails instead.
-			const renderer =
-				options?.renderer ?? (findRegisteredRenderer(options?.renderers, layerSpec.mimeType) as
-					| ParadocRenderer<RendererLayer, Output>
-					| undefined)
-
-			if (!renderer) {
-				if (isReactLayerMimeType(layerSpec.mimeType)) {
-					throw new UnregisteredLayerRendererError(key, layerSpec.mimeType)
-				}
-				const raw = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
-				return raw.content as Output
-			}
-
-			const template = await buildRendererLayer(key, layerSpec, bindings, resolver, 'artifact')
-
-			// A checklist template reads `items.<id>` from its expression context.
 			// A definition has no statuses yet, so every item is unset.
 			const checklistItems = (checklistDef.items ?? []) as ChecklistItem[]
 			const items: ChecklistData['items'] = Object.fromEntries(checklistItems.map((item) => [item.id, null]))
-
-			return await renderer.render({
-				kind: 'checklist',
-				template,
-				artifact: checklistDef,
-				data: { items },
-				ctx: {
-					expressions: { context: createContext({ items }) },
-					...(options?.formatter && { formatter: options.formatter }),
-					...(options?.progressive && { progressive: options.progressive }),
-				},
-			})
+			return renderChecklistLayer(checklistDef, undefined, items, resolver, options)
 		},
 
 		clone(): ChecklistInstance<C> {
@@ -1015,6 +912,42 @@ function createChecklistInstance<C extends Checklist>(
 	}
 
 	return instance
+}
+
+/**
+ * Render one checklist layer with the given item statuses.
+ *
+ * Renderer selection is the one every artifact uses: an explicit `renderer`,
+ * then one registered for the layer's MIME type, then the built-in engine for
+ * that type. A React layer has no built-in engine and fails naming the option.
+ */
+async function renderChecklistLayer<Output>(
+	checklistDef: Checklist,
+	targetLayer: string | undefined,
+	items: ChecklistData['items'],
+	resolver: Resolver | undefined,
+	options: RuntimeChecklistRenderOptions<Output> | undefined,
+): Promise<Output> {
+	const layers = checklistDef.layers
+	if (!layers || Object.keys(layers).length === 0) {
+		throw new Error('Checklist has no layers defined')
+	}
+	const key = resolveLayerKey(layers, targetLayer, checklistDef.defaultLayer, { layer: options?.layer })
+	const layerSpec = layers[key]!
+	const renderer = selectLayerRenderer<Output>(key, layerSpec, options?.renderer, options?.renderers)
+	const template = await buildRendererLayer(key, layerSpec, resolveLayerBindings(layers, layerSpec), resolver, 'artifact')
+
+	return await renderer.render({
+		kind: 'checklist',
+		template,
+		artifact: checklistDef,
+		data: { items },
+		ctx: {
+			expressions: { context: createContext({ items }) },
+			...(options?.formatter && { formatter: options.formatter }),
+			...(options?.progressive && { progressive: options.progressive }),
+		},
+	})
 }
 
 // ============================================================================

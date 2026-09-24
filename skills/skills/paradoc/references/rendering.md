@@ -46,7 +46,7 @@ await writeFile("lease.pdf", pdf);
 - Inline layers need no resolver.
 - A draft renders before every required field is filled. `progressive` sets how missing values print.
 
-Checklists and documents render raw layer content by default. See [layers.md](./layers.md#render-by-kind).
+Documents render raw layer content by default; forms and checklists render through their engine. See [layers.md](./layers.md#render-by-kind).
 
 ## Render options
 

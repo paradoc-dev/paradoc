@@ -13,12 +13,10 @@ import type {
 	Checklist,
 	Formatter,
 	FormatterProgressivePolicy,
-	Layer,
 	Metadata,
 	DefsSection,
 	Expression,
 	CondExpr,
-	BinaryContent,
 	RuntimeContentJSON,
 	ContentRef,
 	BundlePhase,
@@ -37,10 +35,8 @@ import {
 } from '../shared/artifact-methods'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RendererRegistry } from '@/rendering'
-import { findRegisteredRenderer } from '@/rendering/renderer-registry'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
-import { getExtensionForMime, nestPartOutputs, producedMimeType } from '@/rendering/part-mime'
-import { createLayerRenderer } from '@paradoc/render'
+import { renderBundlePart, type BundlePartOutput } from '@/rendering/bundle-part'
 
 // Import artifacts runtime types for content
 import type { RuntimeDocument, DraftDocument } from '../document'
@@ -105,17 +101,8 @@ export interface RuntimeBundleRenderOptions {
 	progressive?: FormatterProgressivePolicy
 }
 
-/**
- * Output from a single rendered content item.
- */
-export interface RuntimeBundleRenderedOutput {
-	/** The rendered content (binary) */
-	content: BinaryContent
-	/** The MIME type of the rendered content */
-	mimeType: string
-	/** Suggested filename with extension */
-	filename: string
-}
+/** Output from a single rendered content item. */
+export type RuntimeBundleRenderedOutput = BundlePartOutput
 
 /**
  * Result of rendering a RuntimeBundle.
@@ -354,38 +341,6 @@ function serializeContents(contents: RuntimeBundleContents): Record<string, Runt
 		serialized[key] = serializeInstance(instance)
 	}
 	return serialized
-}
-
-/**
- * Get layers and target layer from a runtime instance.
- */
-function getInstanceLayerInfo(instance: RuntimeInstance): { layers: Record<string, Layer>; targetLayer: string } {
-	if ('form' in instance && 'fields' in instance) {
-		const form = (instance as RuntimeForm<Form>).form
-		return {
-			layers: form.layers ?? {},
-			targetLayer: (instance as RuntimeForm<Form>).targetLayer,
-		}
-	}
-
-	if ('checklist' in instance) {
-		const checklist = (instance as RuntimeChecklist<Checklist>).checklist
-		return {
-			layers: checklist.layers ?? {},
-			targetLayer: (instance as RuntimeChecklist<Checklist>).targetLayer,
-		}
-	}
-
-	if ('document' in instance) {
-		const document = (instance as RuntimeDocument<Document>).document
-		return {
-			layers: document.layers ?? {},
-			targetLayer: (instance as RuntimeDocument<Document>).targetLayer,
-		}
-	}
-
-	// Bundles don't have layers
-	return { layers: {}, targetLayer: '' }
 }
 
 // ============================================================================
@@ -641,7 +596,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 			const included = runtime.getIncludedContents()
 
 			for (const [key, instance] of Object.entries(included)) {
-				Object.assign(outputs, await renderInstance(key, instance, { renderers, formatter, progressive }))
+				Object.assign(outputs, await renderBundlePart(key, instance, { renderers, formatter, progressive }))
 			}
 
 			return {
@@ -796,67 +751,6 @@ function transitionToExecuted(instance: RuntimeInstance): RuntimeInstance {
 	}
 
 	throw new Error(`Cannot finalize: expected signable-phase content, got ${describeInstance(instance)}`)
-}
-
-/**
- * Render a single runtime instance into the parts it contributes.
- *
- * A form, checklist or document is one part under its content key. A nested
- * bundle contributes every one of its parts, named as a folder under its key.
- */
-async function renderInstance(
-	key: string,
-	instance: RuntimeInstance,
-	options: {
-		renderers?: RendererRegistry
-		formatter?: Formatter
-		progressive?: FormatterProgressivePolicy
-	}
-): Promise<Record<string, RuntimeBundleRenderedOutput>> {
-	const { renderers, formatter, progressive } = options
-
-	// A nested bundle has no layer of its own: its parts are its contents.
-	if ('bundle' in instance && instance.phase !== undefined) {
-		const nestedResult = await (instance as RuntimeBundle<Bundle>).render({ renderers, formatter, progressive })
-		return nestPartOutputs(key, nestedResult.outputs)
-	}
-
-	const { layers, targetLayer } = getInstanceLayerInfo(instance)
-
-	const layer = layers[targetLayer]
-	if (!layer) {
-		throw new Error(`Layer "${targetLayer}" not found for content "${key}"`)
-	}
-
-	const mimeType = layer.mimeType
-	const renderer = findRegisteredRenderer(renderers, mimeType) ?? createLayerRenderer()
-
-	// Render based on instance type
-	let content: unknown
-
-	if ('form' in instance && 'fields' in instance) {
-		content = await (instance as RuntimeForm<Form>).render({ renderer, formatter, progressive, layer: targetLayer })
-	} else if ('checklist' in instance) {
-		content = await (instance as RuntimeChecklist<Checklist>).render({ formatter, progressive, layer: targetLayer })
-	} else if ('document' in instance) {
-		content = await (instance as RuntimeDocument<Document>).render({ formatter, progressive, layer: targetLayer })
-	} else {
-		throw new Error('Unknown instance type')
-	}
-
-	// Convert to binary
-	const binaryContent: BinaryContent =
-		typeof content === 'string' ? new TextEncoder().encode(content) : (content as BinaryContent)
-
-	// The part is named after what it is, not after the module that drew it.
-	const produced = producedMimeType(mimeType)
-	return {
-		[key]: {
-			content: binaryContent,
-			mimeType: produced,
-			filename: `${key}.${getExtensionForMime(produced)}`,
-		},
-	}
 }
 
 /**

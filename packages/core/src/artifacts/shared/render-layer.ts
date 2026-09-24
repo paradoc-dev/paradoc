@@ -251,27 +251,30 @@ async function renderLayerAt(
 		throw new UnregisteredLayerRendererError(layerKey, layerSpec.mimeType)
 	}
 
-	// Handle inline layers - return embedded text directly
-	if (layerSpec.kind === 'inline') {
-		return layerSpec.text
-	}
+	return readLayerContent(layerKey, layerSpec, options?.resolver, site)
+}
 
-	// Handle file-backed layers - requires resolver
+/**
+ * A text or binary layer's payload: an inline layer's text, or the bytes a
+ * resolver reads for a file layer, decoded for text-based types.
+ *
+ * @throws {UnboundResolverError} when a file layer has no resolver to read it.
+ */
+async function readLayerContent(
+	layerKey: string,
+	layerSpec: Layer,
+	resolver: Resolver | undefined,
+	site: ResolverBindingSite,
+): Promise<string | Uint8Array> {
+	if (layerSpec.kind === 'inline') return layerSpec.text
 	if (layerSpec.kind === 'file') {
-		if (!options?.resolver) {
+		if (!resolver) {
 			throw new UnboundResolverError(layerKey, layerSpec.path, site)
 		}
-
-		const bytes = await options.resolver.read(layerSpec.path)
-
-		// Decode text-based mime types to string
-		if (layerSpec.mimeType.startsWith('text/') || layerSpec.mimeType === 'application/json') {
-			return new TextDecoder().decode(bytes)
-		}
-
-		return bytes
+		const bytes = await resolver.read(layerSpec.path)
+		const mimeType = layerSpec.mimeType.toLowerCase()
+		return mimeType.startsWith('text/') || mimeType === 'application/json' ? new TextDecoder().decode(bytes) : bytes
 	}
-
 	throw new Error(`Unknown layer kind: ${(layerSpec as { kind: string }).kind}`)
 }
 
@@ -409,21 +412,7 @@ export async function buildRendererLayer(
 		}
 	}
 
-	let content: string | Uint8Array
-	if (layerSpec.kind === 'inline') {
-		content = layerSpec.text
-	} else if (layerSpec.kind === 'file') {
-		if (!resolver) {
-			throw new UnboundResolverError(layerKey, layerSpec.path, site)
-		}
-		const bytes = await resolver.read(layerSpec.path)
-		content =
-			layerSpec.mimeType.startsWith('text/') || layerSpec.mimeType === 'application/json'
-				? new TextDecoder().decode(bytes)
-				: bytes
-	} else {
-		throw new Error('Unknown layer spec kind')
-	}
+	const content = await readLayerContent(layerKey, layerSpec, resolver, site)
 
 	const font = layerSpec.kind === 'file' && layerSpec.font && resolver
 		? { content: await resolver.read(layerSpec.font.path), path: layerSpec.font.path }

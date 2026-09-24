@@ -1,20 +1,12 @@
 // packages/core/src/rendering/bundle-assembler.ts
 
-import type {
-  Bundle,
-  Form,
-  Document,
-  Checklist,
-  BinaryContent,
-  Layer,
-} from '@paradoc/types'
+import type { Bundle, Form, Document, Checklist } from '@paradoc/types'
 import type { DraftForm } from '@/artifacts/form'
 import type { DraftChecklist } from '@/artifacts/checklist'
 import type { DraftDocument } from '@/artifacts/document'
 import type { DraftBundle } from '@/artifacts/bundle'
-import { createLayerRenderer } from '@paradoc/render'
-import { findRegisteredRenderer, type RendererRegistry } from './renderer-registry'
-import { getExtensionForMime, nestPartOutputs, producedMimeType } from './part-mime'
+import type { RendererRegistry } from './renderer-registry'
+import { renderBundlePart, type AssemblyBytesEntry, type BundlePartOutput } from './bundle-part'
 import {
   assertBundleInclusionResolved,
   evaluateBundleInclusion,
@@ -25,25 +17,6 @@ import {
 // ============================================================================
 // Bundle Assembly API
 // ============================================================================
-
-/**
- * Content a bundle part carries as bytes rather than as an artifact to render.
- *
- * An annex is the case this exists for: a certificate, a scan, a statement the
- * packet includes but nothing in Paradoc produced. It has no layer, no fields
- * and nothing to fill, so it arrives already final and assembly passes it
- * through.
- */
-export interface AssemblyBytesEntry {
-  /** Literal `"bytes"` discriminator. */
-  kind: 'bytes'
-  /** The content itself. */
-  content: BinaryContent
-  /** What the content is. `application/pdf` is the only kind a packet can paint. */
-  mimeType: string
-  /** Name to carry it under. Defaults to the content key plus the type's extension. */
-  filename?: string
-}
 
 /**
  * Content entry for bundle assembly.
@@ -67,16 +40,6 @@ export type AssemblyContentEntry =
  */
 export type BundleAssemblyEntry = AssemblyContentEntry | DraftBundle<Bundle>
 
-/** True when the entry carries its content rather than an artifact to render. */
-export function isAssemblyBytesEntry(entry: BundleAssemblyEntry): entry is AssemblyBytesEntry {
-  return 'kind' in entry && entry.kind === 'bytes'
-}
-
-/** True when the entry is a bundle nested in the one being assembled. */
-function isNestedBundleEntry(entry: BundleAssemblyEntry): entry is DraftBundle<Bundle> {
-  return 'bundle' in entry && 'phase' in entry
-}
-
 /**
  * Options for the new bundle assembly API.
  */
@@ -92,26 +55,10 @@ export interface BundleAssemblyOptions {
 
   /** Content entries keyed by bundle content key */
   contents: Record<string, BundleAssemblyEntry>
-
-  /**
-   * Complete content map used to resolve inclusion while a caller renders one
-   * part at a time. This is used by packet sealing; ordinary callers should
-   * leave it unset so the supplied contents are the evaluation input.
-   */
-  inclusionContents?: Record<string, BundleAssemblyEntry>
 }
 
-/**
- * Output from a single assembled content item.
- */
-export interface AssembledBundleOutput {
-  /** The rendered content (string or binary) */
-  content: BinaryContent
-  /** The MIME type of the rendered content */
-  mimeType: string
-  /** Suggested filename with extension */
-  filename: string
-}
+/** Output from a single assembled content item. */
+export type AssembledBundleOutput = BundlePartOutput
 
 /**
  * Result of assembling a bundle with the new API.
@@ -124,29 +71,6 @@ export interface AssembledBundle {
    * as a folder under its content key, such as `nested/docA`.
    */
   outputs: Record<string, AssembledBundleOutput>
-}
-
-/**
- * Get layers record from a draft instance.
- */
-function getLayersFromFilled(
-  filled: DraftForm<Form> | DraftChecklist<Checklist> | DraftDocument<Document>
-): Record<string, Layer> {
-  // Use duck typing to check which type we have
-  if ('form' in filled) {
-    // DraftForm
-    const form = (filled as DraftForm<Form>).form
-    return form.layers ?? {}
-  } else if ('checklist' in filled) {
-    // DraftChecklist
-    const checklist = (filled as DraftChecklist<Checklist>).checklist
-    return checklist.layers ?? {}
-  } else if ('document' in filled) {
-    // DraftDocument
-    const document = (filled as DraftDocument<Document>).document
-    return document.layers ?? {}
-  }
-  return {}
 }
 
 /**
@@ -187,10 +111,9 @@ export async function assembleBundle(
   options: BundleAssemblyOptions
 ): Promise<AssembledBundle> {
   const { renderers, contents } = options
-  const inclusionContents = options.inclusionContents ?? contents
   const inclusionState: BundleInclusionState = evaluateBundleInclusion(
     bundle,
-    inclusionContents as Record<string, BundleEvaluationMember>,
+    contents as Record<string, BundleEvaluationMember>,
   )
   assertBundleInclusionResolved(inclusionState)
   const outputs: Record<string, AssembledBundleOutput> = {}
@@ -206,53 +129,10 @@ export async function assembleBundle(
     }
   }
 
-  // Process each content entry
-  for (const [key, filled] of Object.entries(contents)) {
+  // Each part renders the way it renders inside a runtime bundle.
+  for (const [key, entry] of Object.entries(contents)) {
     if (inclusionState.excludedKeys.includes(key)) continue
-
-    if (isAssemblyBytesEntry(filled)) {
-      outputs[key] = {
-        content: filled.content,
-        mimeType: filled.mimeType,
-        filename: filled.filename ?? `${key}.${getExtensionForMime(filled.mimeType)}`,
-      }
-      continue
-    }
-
-    if (isNestedBundleEntry(filled)) {
-      const nested = await filled.render({ renderers })
-      Object.assign(outputs, nestPartOutputs(key, nested.outputs))
-      continue
-    }
-
-    // Get target layer and its MIME type
-    const targetLayer = filled.targetLayer
-    const layers = getLayersFromFilled(filled)
-
-    const layer = layers[targetLayer]
-    if (!layer) {
-      throw new Error(`Layer "${targetLayer}" not found for content "${key}"`)
-    }
-
-    const mimeType = layer.mimeType
-
-    const renderer = findRegisteredRenderer(renderers, mimeType) ?? createLayerRenderer()
-
-    const content = await filled.render({ renderer })
-
-    // Convert to binary if needed
-    const binaryContent: BinaryContent =
-      typeof content === 'string'
-        ? new TextEncoder().encode(content)
-        : (content as BinaryContent)
-
-    // The part is named after what it is, not after the module that drew it.
-    const produced = producedMimeType(mimeType)
-    outputs[key] = {
-      content: binaryContent,
-      mimeType: produced,
-      filename: `${key}.${getExtensionForMime(produced)}`,
-    }
+    Object.assign(outputs, await renderBundlePart(key, entry, { renderers }))
   }
 
   return { bundle, outputs }

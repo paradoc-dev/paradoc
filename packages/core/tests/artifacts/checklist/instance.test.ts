@@ -249,6 +249,30 @@ describe('ChecklistInstance', () => {
       )
     })
 
+    test('evaluates a template with the built-in engine when no renderer is given', async () => {
+      const instance = checklist({
+        name: 'checklist',
+        version: '1.0.0',
+        title: 'Checklist',
+        items: [{ id: 'done', title: 'Done' }],
+        layers: { md: { kind: 'inline', mimeType: 'text/markdown', text: 'Done: {{items.done}}' } },
+        defaultLayer: 'md',
+      })
+      await expect(instance.fill({ done: true }).render()).resolves.toBe('Done: Yes')
+    })
+
+    test('refuses a layer type no built-in engine renders when no renderer is given', async () => {
+      const instance = checklist({
+        name: 'checklist',
+        version: '1.0.0',
+        title: 'Checklist',
+        items: [{ id: 'done', title: 'Done' }],
+        layers: { csv: { kind: 'inline', mimeType: 'text/csv', text: 'a,b' } },
+        defaultLayer: 'csv',
+      })
+      await expect(instance.fill({ done: true }).render()).rejects.toThrow('Unsupported render layer MIME type')
+    })
+
     test('uses first available layer when no defaultLayer set', async () => {
       const instance = checklist()
         .name('checklist')

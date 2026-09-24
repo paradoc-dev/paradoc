@@ -12,7 +12,18 @@ import { isReactLayerMimeType } from './renderer-registry'
  * module that drew it, so the produced type is asked for separately.
  */
 export function producedMimeType(layerMimeType: string): string {
-  return isReactLayerMimeType(layerMimeType) ? 'application/pdf' : layerMimeType
+  return isReactLayerMimeType(layerMimeType) ? 'application/pdf' : normalizeMimeType(layerMimeType)
+}
+
+/**
+ * A MIME type in the one case every comparison uses.
+ *
+ * MIME types are case-insensitive, and a layer or an annex may declare
+ * `Application/PDF`. Parts are named and compared through this, so the
+ * declared spelling never changes what a part is.
+ */
+export function normalizeMimeType(mimeType: string): string {
+  return mimeType.toLowerCase()
 }
 
 const EXTENSION_BY_MIME: Readonly<Record<string, string>> = {
@@ -24,6 +35,12 @@ const EXTENSION_BY_MIME: Readonly<Record<string, string>> = {
   'application/json': 'json',
   'text/yaml': 'yaml',
   'application/yaml': 'yaml',
+  'text/csv': 'csv',
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/tiff': 'tiff',
+  'application/zip': 'zip',
 }
 
 /**
@@ -33,7 +50,7 @@ const EXTENSION_BY_MIME: Readonly<Record<string, string>> = {
  * declared type, so a React part is named `.pdf` rather than `.bin`.
  */
 export function getExtensionForMime(mimeType: string): string {
-  return EXTENSION_BY_MIME[mimeType] ?? 'bin'
+  return EXTENSION_BY_MIME[normalizeMimeType(mimeType)] ?? 'bin'
 }
 
 /**
