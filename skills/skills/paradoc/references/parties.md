@@ -250,8 +250,9 @@ const lease = p
 | `.min(n)`, `.max(n)` | `min`, `max` |
 | `.required(cond = true)` | `required` |
 | `.signature({ required?, witnesses?, notarized? })` | `signature` |
-| `.from(role)` | Every property of an existing role, including `payment` |
+| `.payment({ required?, amount })` | `payment` |
+| `.from(role)` | Every property of an existing role |
 | `.build()` | Validates and returns the role |
 
-Declare `payment` in a plain role object, or seed the builder with `.from({ label, payment })`; the builder has no `payment` method.
+Declare `payment` in a plain role object or with `.payment({ ... })`.
 

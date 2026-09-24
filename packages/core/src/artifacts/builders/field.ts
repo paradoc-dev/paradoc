@@ -148,6 +148,8 @@ export interface NumberFieldBuilder<R extends CondExpr | undefined = undefined> 
 	visible(value?: CondExpr): NumberFieldBuilder<R>;
 	min(value: number): NumberFieldBuilder<R>;
 	max(value: number): NumberFieldBuilder<R>;
+	/** Set the allowed increment: a value must be a multiple of `step` (for example 0.01 for cents). */
+	step(value: number): NumberFieldBuilder<R>;
 	default(value: number): NumberFieldBuilder<R>;
 	build(): BuiltField<NumberField, R>;
 }
@@ -183,6 +185,8 @@ export interface MoneyFieldBuilder<R extends CondExpr | undefined = undefined> {
 	visible(value?: CondExpr): MoneyFieldBuilder<R>;
 	min(value: number): MoneyFieldBuilder<R>;
 	max(value: number): MoneyFieldBuilder<R>;
+	/** Set the ISO 4217 alpha-3 currency code a value must use (for example USD). */
+	currency(value: string): MoneyFieldBuilder<R>;
 	default(value: Money): MoneyFieldBuilder<R>;
 	build(): BuiltField<MoneyField, R>;
 }
@@ -229,7 +233,6 @@ export interface EmailFieldBuilder<R extends CondExpr | undefined = undefined> {
 	visible(value?: CondExpr): EmailFieldBuilder<R>;
 	minLength(value: number): EmailFieldBuilder<R>;
 	maxLength(value: number): EmailFieldBuilder<R>;
-	pattern(value: string): EmailFieldBuilder<R>;
 	default(value: string): EmailFieldBuilder<R>;
 	build(): BuiltField<EmailField, R>;
 }
@@ -472,6 +475,7 @@ export function numberField(): NumberFieldBuilder {
 		visible(value: CondExpr = true) { _def.visible = value; return self; },
 		min(value: number) { _def.min = value; return self; },
 		max(value: number) { _def.max = value; return self; },
+		step(value: number) { _def.step = value; return self; },
 		default(value: number) { _def.default = value; return self; },
 		build() { return parseField(_def) as NumberField; },
 	};
@@ -513,6 +517,7 @@ export function moneyField(): MoneyFieldBuilder {
 		visible(value: CondExpr = true) { _def.visible = value; return self; },
 		min(value: number) { _def.min = value; return self; },
 		max(value: number) { _def.max = value; return self; },
+		currency(value: string) { _def.currency = value; return self; },
 		default(value: Money) { _def.default = value; return self; },
 		build() { return parseField(_def) as MoneyField; },
 	};
@@ -567,7 +572,6 @@ export function emailField(): EmailFieldBuilder {
 		visible(value: CondExpr = true) { _def.visible = value; return self; },
 		minLength(value: number) { _def.minLength = value; return self; },
 		maxLength(value: number) { _def.maxLength = value; return self; },
-		pattern(value: string) { _def.pattern = value; return self; },
 		default(value: string) { _def.default = value; return self; },
 		build() { return parseField(_def) as EmailField; },
 	};

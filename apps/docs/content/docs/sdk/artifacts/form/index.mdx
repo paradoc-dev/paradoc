@@ -202,6 +202,7 @@ Chain methods to build a form incrementally:
 <MethodChain
   starter="p.form()"
   methods={[
+    { name: 'from', params: 'value: Form', description: 'Initialize from an existing form definition, keeping every definition key' },
     { name: 'name', params: 'value: string', description: 'Set form name (required)' },
     { name: 'version', params: 'value: string', description: 'Set semantic version' },
     { name: 'title', params: 'value: string', description: 'Set human-readable title' },
@@ -214,6 +215,7 @@ Chain methods to build a form incrementally:
     { name: 'agentInstructions', params: 'value: ContentRef', description: 'Set LLM/agent presentation guidance' },
     { name: 'defs', params: 'value: DefsSection', description: 'Set all typed computed values' },
     { name: 'def', params: 'name: string, expression: string | Expression', description: 'Add a single typed computed value' },
+    { name: 'rules', params: 'value: RulesSection', description: 'Set form-level validation rules' },
     { name: 'field', params: 'id: string, field: FormField', description: 'Add a single field' },
     { name: 'fields', params: 'fields: Record<string, FormField>', description: 'Set all fields at once' },
     { name: 'layers', params: 'value: Record<string, Layer>', description: 'Set all layers at once' },

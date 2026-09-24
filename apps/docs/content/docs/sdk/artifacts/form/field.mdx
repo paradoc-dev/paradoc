@@ -155,7 +155,7 @@ All field builders share these methods:
 
 ### Type-Specific Methods
 
-#### Text / Email / UUID / URI
+#### Text / UUID / URI
 
 <PropertiesTable properties={[
   { name: 'minLength', type: '(value: number) => this', description: 'Minimum character length' },
@@ -164,11 +164,22 @@ All field builders share these methods:
   { name: 'default', type: '(value: string) => this', description: 'Default value' },
 ]} />
 
+#### Email
+
+Email fields have no `pattern`: the email format is the constraint.
+
+<PropertiesTable properties={[
+  { name: 'minLength', type: '(value: number) => this', description: 'Minimum character length' },
+  { name: 'maxLength', type: '(value: number) => this', description: 'Maximum character length' },
+  { name: 'default', type: '(value: string) => this', description: 'Default value' },
+]} />
+
 #### Number
 
 <PropertiesTable properties={[
   { name: 'min', type: '(value: number) => this', description: 'Minimum allowed value' },
   { name: 'max', type: '(value: number) => this', description: 'Maximum allowed value' },
+  { name: 'step', type: '(value: number) => this', description: 'Allowed increment: a value must be a multiple of step (e.g., 0.01 for cents)' },
   { name: 'default', type: '(value: number) => this', description: 'Default value' },
 ]} />
 
@@ -177,6 +188,7 @@ All field builders share these methods:
 <PropertiesTable properties={[
   { name: 'min', type: '(value: number) => this', description: 'Minimum amount' },
   { name: 'max', type: '(value: number) => this', description: 'Maximum amount' },
+  { name: 'currency', type: '(value: string) => this', description: 'ISO 4217 alpha-3 code a value must use (e.g., USD). Omit to accept any currency' },
   { name: 'default', type: '(value: Money) => this', description: 'Default value ({ amount, currency })' },
 ]} />
 

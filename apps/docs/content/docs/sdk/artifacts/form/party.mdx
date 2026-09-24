@@ -40,7 +40,7 @@ const coOwners = party()
 // Optional party (min: 0 allows empty)
 const coSigner = party()
   .label('Co-signer')
-  .optional()  // sets min: 0
+  .min(0)
   .signature({ required: true })
   .build()
 
@@ -125,6 +125,7 @@ const partyDef: FormParty = {
   { name: 'max', type: 'number', description: 'Maximum parties allowed. Defaults to 1. When max > 1, party data must be an array', isOptional: true },
   { name: 'required', type: 'boolean | string', description: 'Whether this role is required. Can be an expression.', isOptional: true },
   { name: 'signature', type: 'FormSignature', description: 'Signature requirements', isOptional: true },
+  { name: 'payment', type: 'FormPayment', description: 'Payment requirement', isOptional: true },
 ]} />
 
 #### FormSignature Properties
@@ -133,6 +134,13 @@ const partyDef: FormParty = {
   { name: 'required', type: 'boolean', description: 'Whether signature is required for this role', isOptional: true },
   { name: 'witnesses', type: 'number', description: 'Number of witnesses required for this signature', isOptional: true },
   { name: 'notarized', type: 'boolean', description: 'Whether at least one witness must be a notary', isOptional: true },
+]} />
+
+#### FormPayment Properties
+
+<PropertiesTable properties={[
+  { name: 'required', type: 'boolean', description: 'Whether payment is required for this role', isOptional: true },
+  { name: 'amount', type: 'Money | MoneyExpression', description: 'Amount owed: a fixed Money value, or a MoneyExpression resolved from filled data at request time' },
 ]} />
 
 ### Builder Pattern
@@ -147,9 +155,9 @@ Chain methods to build a party incrementally:
     { name: 'partyType', params: "value: 'person' | 'organization' | 'any'", description: 'Constrain party type' },
     { name: 'min', params: 'value: number', description: 'Set minimum parties required (default: 1)' },
     { name: 'max', params: 'value: number', description: 'Set maximum parties allowed (default: 1). When > 1, party data is an array' },
-    { name: 'optional', params: '', description: 'Set min to 0, making this party optional' },
     { name: 'required', params: 'value?: boolean | string', description: 'Mark as required (default: true). Accepts expression.' },
     { name: 'signature', params: 'value: FormSignature', description: 'Set signature requirements' },
+    { name: 'payment', params: 'value: FormPayment', description: 'Set the payment requirement' },
     { name: 'from', params: 'value: FormParty', description: 'Initialize from existing party' },
     { name: 'build', params: '', description: 'Build and validate', terminal: true },
   ]}

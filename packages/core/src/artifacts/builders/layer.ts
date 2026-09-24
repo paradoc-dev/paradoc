@@ -5,7 +5,7 @@
  * Replaces instanceof checks with duck typing via _isLayerBuilder property.
  */
 
-import type { InlineLayer, FileLayer, Layer, LayerFont, LayerFormat } from '@paradoc/types';
+import type { InlineLayer, FileLayer, Layer, LayerFont, LayerFormat, SignatureSlot } from '@paradoc/types';
 
 // ============================================================================
 // Layer Builder Marker
@@ -40,6 +40,8 @@ export interface FileLayerBuilderType {
 	format(value: LayerFormat): FileLayerBuilderType;
 	bindings(value: Record<string, string>): FileLayerBuilderType;
 	bindingsFrom(value: string): FileLayerBuilderType;
+	/** Declare the signature slots on this layer, keyed by slot id. */
+	signatures(value: Record<string, SignatureSlot>): FileLayerBuilderType;
 	build(): FileLayer;
 }
 
@@ -51,6 +53,8 @@ export interface InlineLayerBuilderType {
 	description(value: string): InlineLayerBuilderType;
 	bindings(value: Record<string, string>): InlineLayerBuilderType;
 	bindingsFrom(value: string): InlineLayerBuilderType;
+	/** Declare the signature slots on this layer, keyed by slot id. */
+	signatures(value: Record<string, SignatureSlot>): InlineLayerBuilderType;
 	build(): InlineLayer;
 }
 
@@ -116,6 +120,10 @@ export function fileLayer(): FileLayerBuilderType {
 			_def.bindingsFrom = value;
 			return self;
 		},
+		signatures(value: Record<string, SignatureSlot>) {
+			_def.signatures = value;
+			return self;
+		},
 		build(): FileLayer {
 			if (!_def.path) {
 				throw new Error('FileLayer requires a path. Use .path() to set it.');
@@ -175,6 +183,10 @@ export function inlineLayer(): InlineLayerBuilderType {
 		},
 		bindingsFrom(value: string) {
 			_def.bindingsFrom = value;
+			return self;
+		},
+		signatures(value: Record<string, SignatureSlot>) {
+			_def.signatures = value;
 			return self;
 		},
 		build(): InlineLayer {

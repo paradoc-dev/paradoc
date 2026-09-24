@@ -36,6 +36,7 @@ import type {
 	SealingRequest,
 	SignatureSlot,
 	DefsSection,
+	RulesSection,
 	Expression,
 	ContentRef,
 	Resolver,
@@ -3567,6 +3568,8 @@ export interface FormBuilderInterface<
 	agentInstructions(value: ContentRef): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	defs(defsDef: DefsSection): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	def(name: string, expression: string | Expression): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
+	/** Set the form-level validation rules, keyed by rule id */
+	rules(value: RulesSection): FormBuilderInterface<TFields, TParties, TAnnexes, TAllowAdditionalAnnexes>
 	field<const K extends string, const D extends Buildable<FormField>>(
 		id: K,
 		fieldDef: D,
@@ -3672,6 +3675,7 @@ function createFormBuilder<
 		instructions: undefined,
 		agentInstructions: undefined,
 		defs: undefined,
+		rules: undefined,
 		fields: undefined,
 		layers: undefined,
 		defaultLayer: undefined,
@@ -3695,6 +3699,7 @@ function createFormBuilder<
 			_def.instructions = parsed.instructions
 			_def.agentInstructions = parsed.agentInstructions
 			_def.defs = parsed.defs ? { ...parsed.defs } : undefined
+			_def.rules = parsed.rules ? { ...parsed.rules } : undefined
 			_def.fields = parsed.fields
 				? Object.fromEntries(Object.entries(parsed.fields).map(([id, field]) => [id, parseFormField(field)]))
 				: undefined
@@ -3775,6 +3780,11 @@ function createFormBuilder<
 				defs[name] = expression
 			}
 			_def.defs = defs
+			return builder
+		},
+
+		rules(value: RulesSection) {
+			_def.rules = value
 			return builder
 		},
 

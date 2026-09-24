@@ -261,4 +261,4 @@ const lease = p
   .build();
 ```
 
-`.inlineLayer(key, { mimeType, text, signatures? })` adds an inline layer. `.layers({ ... })` takes a record of objects or `p.layer()` chains. A chain reads `p.layer().file().path("templates/lease.pdf").mimeType("application/pdf").bindings({ Tenant_Name: "tenantName" })`, with `.title()`, `.description()`, `.checksum()`, `.font()`, `.format()` and `.bindingsFrom()`.
+`.inlineLayer(key, { mimeType, text, signatures? })` adds an inline layer. `.layers({ ... })` takes a record of objects or `p.layer()` chains. A chain reads `p.layer().file().path("templates/lease.pdf").mimeType("application/pdf").bindings({ Tenant_Name: "tenantName" })`, with `.title()`, `.description()`, `.checksum()`, `.font()`, `.format()`, `.signatures()` and `.bindingsFrom()`. `p.layer().inline()` has `.signatures()` too.

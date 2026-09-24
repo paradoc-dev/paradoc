@@ -4,7 +4,7 @@
  * Uses factory function and object literal instead of class.
  */
 
-import type { FormParty, FormSignature } from '@paradoc/types';
+import type { FormParty, FormPayment, FormSignature } from '@paradoc/types';
 import { parseFormParty } from '@/validation/artifact-parsers';
 
 // Condition expression type (boolean or string expression)
@@ -45,6 +45,8 @@ export interface PartyBuilder<R extends CondExpr | undefined = undefined> {
 	required<const V extends CondExpr>(value: V): PartyBuilder<V>;
 	/** Set signature requirements for this party role */
 	signature(value: FormSignature): PartyBuilder<R>;
+	/** Set the payment requirement for this party role */
+	payment(value: FormPayment): PartyBuilder<R>;
 	/** Build the FormParty definition */
 	build(): BuiltParty<R>;
 }
@@ -88,6 +90,10 @@ export function partyBuilder(): PartyBuilder {
 		},
 		signature(value: FormSignature) {
 			_def.signature = value;
+			return self;
+		},
+		payment(value: FormPayment) {
+			_def.payment = value;
 			return self;
 		},
 		build() {
