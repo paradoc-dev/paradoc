@@ -38,7 +38,7 @@ An installed reference such as `@acme/w9` works in place of a file path for `val
 |---------|---------|---------|
 | `init [dir]` | Create `paradoc.json` and `.paradoc/` | [init](#init) |
 | `new form\|document\|checklist\|bundle <name>` | Scaffold an artifact file | [new](#new) |
-| `validate <artifact>` | Check schema, logic, layer files, checksums, bindings | [validate](#validate) |
+| `validate <artifacts...>` | Check schema, logic, layer files, checksums, bindings | [validate](#validate) |
 | `fix <artifact>` | Add or update layer and ContentRef checksums | [fix](#fix) |
 | `attach <artifact> <file>` / `detach <artifact> [target]` | Add or remove a layer, `instructions` or `agentInstructions` | [attach and detach](#attach-and-detach) |
 | `migrate <path>` | Move files to the current schema version | [migrate](#migrate) |
@@ -95,14 +95,14 @@ The file lands in the current directory (`--dir` to change) with the current `$s
 ### validate
 
 ```bash
-paradoc validate lease-agreement.yaml          # human output
-paradoc validate lease-agreement.yaml --json   # { ok, errors[], warnings[], layers[] }
+paradoc validate lease-agreement.yaml                        # human output
+paradoc validate lease-agreement.yaml --json                 # { ok, errors[], warnings[], layers[] }
 paradoc validate lease-agreement.yaml --silent --expect-kind form
-for f in forms/*.yaml; do paradoc validate "$f" || exit 1; done
+paradoc validate forms/*.yaml                                 # each file reported; exits 1 if any fails
 ```
 
 <!-- dep:L1 -->
-`validate` takes one artifact per call. Loop over several files, as above.
+`validate` takes one or more artifacts per call and reports each one; with `--json` and more than one file, the output is an array of result objects in argument order.
 
 What it checks, unless `--schema-only`:
 

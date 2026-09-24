@@ -105,6 +105,77 @@ describe('CLI Validate Command', () => {
     })
   })
 
+  describe('validate multiple files', () => {
+    const writeGood = async (dir: string, name: string) => {
+      const good = path.join(dir, name)
+      await fs.copyFile(path.join(fixturesDir, 'pet-addendum.yaml'), good)
+      return good
+    }
+    const writeBad = async (dir: string, name: string) => {
+      const bad = path.join(dir, name)
+      await fs.writeFile(bad, JSON.stringify({ name: 'invalid-artifact', version: '1.0.0' }))
+      return bad
+    }
+
+    it('exits non-zero and reports both files (good then bad)', async () => {
+      const good = await writeGood(tempDir, 'good.yaml')
+      const bad = await writeBad(tempDir, 'bad.json')
+
+      const result = await executeCliCommand(['validate', good, bad])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stdout).toContain(good)
+      expect(result.stdout).toContain(bad)
+    })
+
+    it('exits non-zero and reports both files (bad then good)', async () => {
+      const good = await writeGood(tempDir, 'good.yaml')
+      const bad = await writeBad(tempDir, 'bad.json')
+
+      const result = await executeCliCommand(['validate', bad, good])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stdout).toContain(good)
+      expect(result.stdout).toContain(bad)
+    })
+
+    it('exits zero when every file is valid', async () => {
+      const good1 = await writeGood(tempDir, 'good1.yaml')
+      const good2 = await writeGood(tempDir, 'good2.yaml')
+
+      const result = await executeCliCommand(['validate', good1, good2])
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain(good1)
+      expect(result.stdout).toContain(good2)
+    })
+
+    it('reports both files as a JSON array, in argument order', async () => {
+      const good = await writeGood(tempDir, 'good.yaml')
+      const bad = await writeBad(tempDir, 'bad.json')
+
+      const result = await executeCliCommand(['validate', good, bad, '--json'])
+
+      expect(result.exitCode).toBe(1)
+      const parsed = JSON.parse(result.stdout)
+      expect(Array.isArray(parsed)).toBe(true)
+      expect(parsed).toHaveLength(2)
+      expect(parsed[0]).toMatchObject({ ok: true, source: good })
+      expect(parsed[1]).toMatchObject({ ok: false, source: bad })
+    })
+
+    it('keeps validating remaining files when one does not exist', async () => {
+      const good = await writeGood(tempDir, 'good.yaml')
+
+      const result = await executeCliCommand(['validate', '/nonexistent/path/file.yaml', good])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toMatch(/not found/i)
+      expect(result.stdout).toContain(good)
+      expect(result.stdout).toContain('Valid')
+    })
+  })
+
   describe('validate invalid artifacts', () => {
     it('should fail validation for missing required fields', async () => {
       // Create an invalid artifact (missing kind)
