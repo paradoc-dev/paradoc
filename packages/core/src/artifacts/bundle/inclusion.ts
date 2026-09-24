@@ -10,6 +10,7 @@ import type {
 import { buildFormContext, evaluateExpression, type EvaluationContext } from '@/logic/runtime/evaluation'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 import { topologicalSortDefsKeys } from '@/logic/design-time/type-checking/build-type-environment'
+import { isScalarExpressionType } from '@/logic/shared/expression-types'
 import type { RuntimeContext } from '../shared/runtime-context'
 
 /** A member's resolved membership in a bundle. */
@@ -74,21 +75,8 @@ interface BundleContextBuild {
 	readonly errors: string[]
 }
 
-const SCALAR_EXPRESSION_TYPES = new Set([
-	'boolean',
-	'string',
-	'number',
-	'integer',
-	'percentage',
-	'rating',
-	'date',
-	'time',
-	'datetime',
-	'duration',
-])
-
 function isScalarExpression(expr: Expression): boolean {
-	return SCALAR_EXPRESSION_TYPES.has(expr.type)
+	return isScalarExpressionType(expr.type)
 }
 
 function valueAtPath(root: unknown, path: string): { present: boolean; value: unknown } {

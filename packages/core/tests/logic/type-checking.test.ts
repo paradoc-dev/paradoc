@@ -524,6 +524,71 @@ describe('Expression Type Checking', () => {
 				expect.stringContaining(`Unknown variable: "fields.area.${member}"`),
 			)
 		})
+
+		const orgForm = (visible: string): Form => ({
+			kind: 'form',
+			version: '1.0.0',
+			name: 'test-form',
+			title: 'Test Form',
+			fields: {
+				org: { type: 'organization', label: 'Org' },
+				note: { type: 'text', label: 'Note', visible },
+			},
+		})
+
+		test('accepts every member of the canonical Organization shape, typed as strings', () => {
+			const result = validateFormDefs(
+				orgForm(
+					"fields.org.name != '' and fields.org.legalName != '' and fields.org.domicile != '' and fields.org.entityType != '' and fields.org.entityId != '' and fields.org.taxId != ''",
+				),
+			)
+			expect(result.issues).toBeUndefined()
+
+			const env = buildFormTypeEnvironment(orgForm('true'))
+			expect(env.resolve('fields.org.entityId')?.kind).toBe('string')
+			expect(env.resolve('fields.org.taxId')?.kind).toBe('string')
+		})
+
+		test('rejects a member name organization fields never had', () => {
+			const result = validateFormDefs(orgForm("fields.org.registrationNumber != ''"))
+			expect(result.issues?.map((issue) => issue.message)).toContainEqual(
+				expect.stringContaining('Unknown variable: "fields.org.registrationNumber"'),
+			)
+		})
+
+		const idForm = (visible: string): Form => ({
+			kind: 'form',
+			version: '1.0.0',
+			name: 'test-form',
+			title: 'Test Form',
+			fields: {
+				id: { type: 'identification', label: 'ID' },
+				note: { type: 'text', label: 'Note', visible },
+			},
+		})
+
+		test('accepts every member of the canonical Identification shape, typed to match the primitive', () => {
+			const result = validateFormDefs(
+				idForm("fields.id.type != '' and fields.id.number != '' and fields.id.issuer != ''"),
+			)
+			expect(result.issues).toBeUndefined()
+
+			const env = buildFormTypeEnvironment(idForm('true'))
+			expect(env.resolve('fields.id.type')?.kind).toBe('string')
+			expect(env.resolve('fields.id.number')?.kind).toBe('string')
+			expect(env.resolve('fields.id.issueDate')?.kind).toBe('date')
+			expect(env.resolve('fields.id.expiryDate')?.kind).toBe('date')
+		})
+
+		test.each(['idType', 'idNumber', 'issuingAuthority', 'issuedDate'])(
+			'rejects the retired identification alias %s',
+			(member) => {
+				const result = validateFormDefs(idForm(`fields.id.${member} != ''`))
+				expect(result.issues?.map((issue) => issue.message)).toContainEqual(
+					expect.stringContaining(`Unknown variable: "fields.id.${member}"`),
+				)
+			},
+		)
 	})
 
 	describe('definition expression coverage', () => {

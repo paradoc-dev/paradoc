@@ -13,7 +13,6 @@ import type {
   Signature,
   Expression,
   DefsSection,
-  ScalarExpressionType,
 } from '@paradoc/types'
 import { inferPartyType } from '@/primitives/party'
 import { PARTY_ENTRIES, ROW_VISIBILITY, WITNESS_ENTRIES, type ContextRowVisibility, type EvaluationContext, type EvaluationIssue, type NestedFieldValues, type PartyContextEntry } from './types'
@@ -21,30 +20,10 @@ import type { RuntimeContext } from '@/artifacts/shared/runtime-context'
 import { topologicalSortDefsKeys } from '../../design-time/type-checking/build-type-environment'
 import { isRowVisible } from '../../shared/list-paths'
 import { defsDependencyExpressions } from '../../shared/defs-dependencies'
+import { isScalarExpressionType } from '../../shared/expression-types'
 import { evaluateBooleanExpression, evaluateExpressionValue, withRowReferences, fromExpressionValue, markEvaluationContextReusable, toExpressionContext, wrapExpressionValue } from './expression-evaluator'
 import { Values, type Value } from '@paradoc/expr'
 import type { EvaluationContext as ExprEvaluationContext, HostFunction, Registry } from '@paradoc/expr'
-
-/** Scalar expression types (value is a string expression) */
-const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
-  'boolean',
-  'string',
-  'number',
-  'integer',
-  'percentage',
-  'rating',
-  'date',
-  'time',
-  'datetime',
-  'duration',
-])
-
-/**
- * Check if an expression type is a scalar type.
- */
-function isScalarExpressionType(type: string): type is ScalarExpressionType {
-  return SCALAR_EXPRESSION_TYPES.has(type)
-}
 
 /**
  * Data payload structure (matches form data shape).

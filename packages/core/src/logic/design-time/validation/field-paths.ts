@@ -1,20 +1,5 @@
 import type { FormField, FieldsetField } from '@paradoc/types'
-
-/**
- * Maps complex field types to their nested property names.
- * These properties are accessible at runtime via dot notation (e.g., fields.rent.amount).
- */
-const COMPLEX_TYPE_PROPERTIES: Record<string, string[]> = {
-  money: ['amount', 'currency'],
-  address: ['line1', 'line2', 'locality', 'region', 'postalCode', 'country'],
-  phone: ['number', 'type', 'extension'],
-  coordinate: ['lat', 'lon'],
-  bbox: ['southWest', 'southWest.lat', 'southWest.lon', 'northEast', 'northEast.lat', 'northEast.lon'],
-  duration: ['years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds'],
-  person: ['name', 'firstName', 'middleName', 'lastName', 'suffix', 'title'],
-  organization: ['name', 'legalName', 'entityType', 'domicile'],
-  identification: ['idType', 'idNumber', 'issuingAuthority', 'issuedDate', 'expiryDate'],
-}
+import { COMPLEX_TYPE_PROPERTIES } from '../../shared/complex-type-properties'
 
 /**
  * Collects all valid field paths from a field definition record.
@@ -67,7 +52,7 @@ export function collectFieldPaths(
 function collectMemberPaths(field: FormField, fieldPath: string, paths: Set<string>): void {
   const nestedProps = COMPLEX_TYPE_PROPERTIES[field.type]
   if (nestedProps) {
-    for (const prop of nestedProps) {
+    for (const prop of Object.keys(nestedProps)) {
       paths.add(`${fieldPath}.${prop}`)
     }
   }

@@ -3,8 +3,6 @@ import type {
   Bundle,
   BundleContentItem,
   CondExpr,
-  Expression,
-  ScalarExpressionType,
 } from '@paradoc/types'
 import { parseExpression } from './expression-parser'
 import { collectFieldPaths } from './field-paths'
@@ -12,87 +10,15 @@ import { validateFormDefs, type LogicValidationOptions, type LogicValidationIssu
 import { buildBundleTypeEnvironment, validateBooleanType, topologicalSortDefsKeys } from '../type-checking'
 import {
   validateExpression,
+  validateDefsExpression,
+  getExpressionForKey,
   isInlineBundleArtifact,
   isFormArtifact,
   isBundleArtifact,
   unknownVariableMessage,
   validateReservedDefinitionNames,
 } from './shared'
-import { defsDependencyExpressions, definitionExpressionLeaves } from '../../shared/defs-dependencies'
-
-/** Scalar expression types (value is a string expression) */
-const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
-  'boolean',
-  'string',
-  'number',
-  'integer',
-  'percentage',
-  'rating',
-  'date',
-  'time',
-  'datetime',
-  'duration',
-])
-
-/**
- * Check if an expression type is a scalar type.
- */
-function isScalarExpressionType(type: string): type is ScalarExpressionType {
-  return SCALAR_EXPRESSION_TYPES.has(type)
-}
-
-/**
- * Validates a single Expression (scalar or object type).
- *
- * For scalar types, validates the value expression string.
- * For object types, validates each property expression string.
- */
-function validateDefsExpression(
-  expr: Expression,
-  key: string,
-  validVariables: Set<string>,
-  issues: LogicValidationIssue[],
-  collectAllErrors: boolean
-): boolean {
-  if (isScalarExpressionType(expr.type)) {
-    // Scalar type: value is a single expression string
-    return validateExpression(
-      expr.value as string,
-      ['defs', key, 'value'],
-      validVariables,
-      issues,
-      collectAllErrors
-    )
-  }
-
-  // Object type: value is an object with expression strings for each property
-  for (const leaf of definitionExpressionLeaves(expr.value)) {
-    if (
-      !validateExpression(
-        leaf.expression,
-        ['defs', key, 'value', ...leaf.path],
-        validVariables,
-        issues,
-        collectAllErrors
-      )
-    ) {
-      return false
-    }
-  }
-
-  return true
-}
-
-
-/**
- * Gets the expression string for a defs key (for error reporting).
- */
-function getExpressionForKey(expr: Expression): string {
-  if (isScalarExpressionType(expr.type)) {
-    return expr.value as string
-  }
-  return definitionExpressionLeaves(expr.value)[0]?.expression ?? '[object expression]'
-}
+import { defsDependencyExpressions } from '../../shared/defs-dependencies'
 
 /**
  * Collects valid variable paths from a bundle's inline Forms.

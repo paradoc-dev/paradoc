@@ -4,19 +4,7 @@
 
 import type { DefsSection, Form } from '@paradoc/types'
 import { rowConditionsOfExpression } from './list-paths'
-
-const SCALAR_EXPRESSION_TYPES: ReadonlySet<string> = new Set([
-	'boolean',
-	'string',
-	'number',
-	'integer',
-	'percentage',
-	'rating',
-	'date',
-	'time',
-	'datetime',
-	'duration',
-])
+import { isScalarExpressionType } from './expression-types'
 
 /** One expression string of an object definition and its path inside the value. */
 export interface DefinitionExpressionLeaf {
@@ -45,7 +33,7 @@ export function definitionExpressionLeaves(value: unknown, path: readonly string
 export function defsDependencyExpressions(defs: DefsSection, fields?: Form['fields']): Record<string, string> {
 	const result: Record<string, string> = {}
 	for (const [key, expr] of Object.entries(defs)) {
-		const expressions = SCALAR_EXPRESSION_TYPES.has(expr.type)
+		const expressions = isScalarExpressionType(expr.type)
 			? [expr.value as string]
 			: definitionExpressionLeaves(expr.value).map((leaf) => leaf.expression)
 		const rowConditions = fields ? expressions.flatMap((expression) => rowConditionsOfExpression(fields, expression)) : []

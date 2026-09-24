@@ -1,6 +1,8 @@
-import type { CondExpr, Form, Bundle, BundleContentItem, DefsSection } from '@paradoc/types'
+import type { CondExpr, Form, Bundle, BundleContentItem, DefsSection, Expression } from '@paradoc/types'
 import type { LogicValidationIssue } from './validate-form-logic'
 import { parseExpression } from './expression-parser'
+import { definitionExpressionLeaves } from '../../shared/defs-dependencies'
+import { isScalarExpressionType } from '../../shared/expression-types'
 
 // ============================================================================
 // Type Guards for Content Items
@@ -95,6 +97,66 @@ export function validateExpression(
   }
 
   return true
+}
+
+/**
+ * Validates a single Expression (scalar or object type).
+ *
+ * For scalar types, validates the value expression string.
+ * For object types, validates each property expression string.
+ *
+ * @param expr - The Expression to validate
+ * @param key - The defs key name
+ * @param validVariables - Set of valid variable names
+ * @param issues - Array to accumulate issues
+ * @param collectAllErrors - Whether to collect all errors
+ * @returns true if should continue validation, false if should stop
+ */
+export function validateDefsExpression(
+  expr: Expression,
+  key: string,
+  validVariables: Set<string>,
+  issues: LogicValidationIssue[],
+  collectAllErrors: boolean
+): boolean {
+  if (isScalarExpressionType(expr.type)) {
+    // Scalar type: value is a single expression string
+    return validateExpression(
+      expr.value as string,
+      ['defs', key, 'value'],
+      validVariables,
+      issues,
+      collectAllErrors
+    )
+  }
+
+  // Object type: value is an object with expression strings for each property
+  for (const leaf of definitionExpressionLeaves(expr.value)) {
+    if (
+      !validateExpression(
+        leaf.expression,
+        ['defs', key, 'value', ...leaf.path],
+        validVariables,
+        issues,
+        collectAllErrors
+      )
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+/**
+ * Gets the expression string for a defs key (for error reporting).
+ */
+export function getExpressionForKey(expr: Expression): string {
+  if (isScalarExpressionType(expr.type)) {
+    return expr.value as string
+  }
+  // For object types, show the first property expression
+  return definitionExpressionLeaves(expr.value)[0]?.expression ?? '[object expression]'
 }
 
 /**

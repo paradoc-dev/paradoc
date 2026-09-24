@@ -18,31 +18,14 @@ import type {
   EnumOption,
   Expression,
   DefsSection,
-  ScalarExpressionType,
 } from '@paradoc/types'
 import { check, createTypeEnv, T, type ExprType, type TypeEnv } from '@paradoc/expr'
 import { parseExpression } from '../validation/expression-parser'
 import { isInlineBundleArtifact, isFormArtifact, isBundleArtifact } from '../validation/shared'
 import { topologicalSort } from '../../shared/topological-sort'
 import { defsDependencyExpressions } from '../../shared/defs-dependencies'
-
-/** Scalar expression types (value is a string expression). */
-const SCALAR_EXPRESSION_TYPES: Set<string> = new Set([
-  'boolean',
-  'string',
-  'number',
-  'integer',
-  'percentage',
-  'rating',
-  'date',
-  'time',
-  'datetime',
-  'duration',
-])
-
-function isScalarExpressionType(type: string): type is ScalarExpressionType {
-  return SCALAR_EXPRESSION_TYPES.has(type)
-}
+import { isScalarExpressionType } from '../../shared/expression-types'
+import { COMPLEX_TYPE_PROPERTIES } from '../../shared/complex-type-properties'
 
 // ============================================================================
 // Field type mapping (Paradoc field types -> @paradoc/expr ExprType)
@@ -126,54 +109,6 @@ export const DEFINITION_PROPERTY_TYPES: Record<string, Record<string, ExprType>>
   },
 }
 
-/** Nested property types for complex field types (mirrors field-paths.ts). */
-const COMPLEX_PROPERTY_TYPES: Record<string, Record<string, ExprType>> = {
-  money: { amount: T.number, currency: T.string },
-  address: {
-    line1: T.string,
-    line2: T.string,
-    locality: T.string,
-    region: T.string,
-    postalCode: T.string,
-    country: T.string,
-  },
-  phone: { number: T.string, type: T.string, extension: T.string },
-  coordinate: { lat: T.number, lon: T.number },
-  bbox: {
-    southWest: T.object,
-    'southWest.lat': T.number,
-    'southWest.lon': T.number,
-    northEast: T.object,
-    'northEast.lat': T.number,
-    'northEast.lon': T.number,
-  },
-  duration: {
-    years: T.number,
-    months: T.number,
-    weeks: T.number,
-    days: T.number,
-    hours: T.number,
-    minutes: T.number,
-    seconds: T.number,
-  },
-  person: {
-    name: T.string,
-    firstName: T.string,
-    middleName: T.string,
-    lastName: T.string,
-    suffix: T.string,
-    title: T.string,
-  },
-  organization: { name: T.string, legalName: T.string, entityType: T.string, domicile: T.string },
-  identification: {
-    idType: T.string,
-    idNumber: T.string,
-    issuingAuthority: T.string,
-    issuedDate: T.date,
-    expiryDate: T.date,
-  },
-}
-
 function enumOptionExprType(options: readonly EnumOption[]): ExprType {
   const kinds = new Set(options.map((option) => typeof option.value))
   if (kinds.size !== 1) return T.unknown
@@ -219,7 +154,7 @@ function registerDefType(
  * one row's amount; the checker only accepts such a path inside an aggregate.
  */
 function registerMemberTypes(field: FormField, path: string, acc: Record<string, ExprType>): void {
-  const props = COMPLEX_PROPERTY_TYPES[field.type]
+  const props = COMPLEX_TYPE_PROPERTIES[field.type]
   if (props) {
     for (const [prop, propType] of Object.entries(props)) {
       acc[`${path}.${prop}`] = propType
@@ -282,7 +217,7 @@ export function rowScopeTypes(scope: ListRowScope): Record<string, ExprType> {
   const acc: Record<string, ExprType> = {}
   const register = (root: RowReferenceName, row: FormField): void => {
     acc[root] = fieldExprType(row)
-    const props = COMPLEX_PROPERTY_TYPES[row.type]
+    const props = COMPLEX_TYPE_PROPERTIES[row.type]
     if (props) {
       for (const [prop, propType] of Object.entries(props)) acc[`${root}.${prop}`] = propType
     }
