@@ -13,7 +13,8 @@ import type {
  */
 export type FormSession = {
 	formSessionId: string;
-	chatId: string;
+	/** Host-supplied conversation id, if the host is chat-based. */
+	chatId?: string;
 	artifactRef: {
 		name: string;
 		version?: string;
@@ -73,7 +74,6 @@ export type CommandErrorCode =
 	| "field-locked"
 	| "unresolved-state"
 	| "field-required"
-	| "field-not-required"
 	| "field-already-answered"
 	| "field-not-answered"
 	| "field-not-deferred"
@@ -102,6 +102,9 @@ export type FieldValidation =
 	| { ok: true; value: unknown }
 	| { ok: false; issues: Issue[] };
 
+/** A field's effective status; `required` implies visible (see @paradoc/core). */
+export type FieldStatus = "hidden" | "optional" | "required";
+
 /**
  * Minimal subset of FillState that `execute()` needs.
  *
@@ -109,9 +112,6 @@ export type FieldValidation =
  * adapter; in tests it's built directly. Keeping the shape minimal keeps the
  * engine independent of core's evolution and makes tests cheap.
  */
-/** A field's effective status; `required` implies visible (see @paradoc/core). */
-export type FieldStatus = "hidden" | "optional" | "required";
-
 export type FillStateSnapshot = {
 	/** Whether the host successfully resolved visibility and requiredness. */
 	resolved: boolean;

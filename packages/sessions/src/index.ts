@@ -6,6 +6,7 @@ export type {
 	CommandResult,
 	AnnexValidation,
 	ExecuteOptions,
+	FieldStatus,
 	FieldValidation,
 	FillStateSnapshot,
 	FormSession,
@@ -44,18 +45,3 @@ export type {
 	Source,
 } from "./event-log/types";
 export { project } from "./event-log/projector";
-
-// ─── State (v2) ──────────────────────────────────────────────────────────
-export type {
-	PlaygroundWorkflowStateV2,
-	WorkflowStateAdapterV2,
-} from "./state/types";
-export {
-	createEmptyWorkflowStateV2,
-	WorkflowStateConflictError,
-} from "./state/types";
-export type {
-	WorkflowModelUsage,
-	WorkflowUsageState,
-	WorkflowUsageTurn,
-} from "./state/usage";

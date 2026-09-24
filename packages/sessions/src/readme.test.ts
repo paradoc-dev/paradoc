@@ -35,4 +35,18 @@ describe('sessions README', () => {
 		const published = publishedPackages()
 		expect(named.filter((name) => !published.has(name))).toEqual([])
 	})
+
+	it('does not claim an injected persistence port — execute/deriveView take no store', () => {
+		expect(README).not.toMatch(/persistence port/i)
+	})
+})
+
+describe('sessions package.json', () => {
+	const PACKAGE_JSON = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')) as {
+		description: string
+	}
+
+	it('does not claim an injected persistence port', () => {
+		expect(PACKAGE_JSON.description).not.toMatch(/persistence port/i)
+	})
 })

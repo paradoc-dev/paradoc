@@ -25,7 +25,7 @@ The deterministic form-completion session engine for Paradoc artifacts. An event
 
 - 📝 **Event-sourced** - every answer is an appended event; a session rebuilds from its log
 - 🔁 **Command and view** - one `Command` mutates, `deriveView` projects the current state for rendering
-- 🗄️ **Storage-agnostic** - the persistence port is injected, so in-memory, Redis, and Postgres are all the caller's choice
+- 🗄️ **Storage-agnostic** - the engine holds no store; you persist and rehydrate the event log yourself, so in-memory, Redis, and Postgres are all your choice
 - 🧭 **Fill-state aware** - reads visibility and required cascades straight from `@paradoc/core`, so they resolve the same way everywhere
 - 🪶 **No LLM, no UI** - an agent or app drives the engine by issuing commands; the engine itself calls no model and renders nothing
 
@@ -105,7 +105,7 @@ await store.save(session.formSessionId, result.session.events);
 const session = { ...rest, events: await store.load(id) };
 ```
 
-For the full API and the persistence port, visit [docs.paradoc.dev](https://docs.paradoc.dev/sdk/sessions).
+For the full API, visit [docs.paradoc.dev](https://docs.paradoc.dev/sdk/sessions).
 
 ## Changelog
 

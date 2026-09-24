@@ -1053,6 +1053,23 @@ describe("execute — start", () => {
 		const again = execute(started.session, rt, { kind: "start" }, SYSTEM, { now: nextTick });
 		expect(again).toMatchObject({ ok: false, code: "session-already-started" });
 	});
+
+	it("opens a session with no chatId — the engine has no chat host to tie to", () => {
+		// FormSession.chatId is host metadata for a chat-based host; a
+		// non-chat host must be able to open a session without inventing one.
+		const session: FormSession = {
+			formSessionId: "fs-no-chat",
+			artifactRef: { name: "test-form" },
+			events: [],
+			createdAt: "2026-01-01T00:00:00.000Z",
+		};
+		const result = execute(session, makeRuntime({ fields: [] }), { kind: "start" }, SYSTEM, {
+			now: nextTick,
+		});
+		expect(result.ok).toBe(true);
+		if (!result.ok) throw new Error("unreachable");
+		expect(result.session.chatId).toBeUndefined();
+	});
 });
 
 describe("execute — prefill", () => {

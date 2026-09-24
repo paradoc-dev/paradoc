@@ -7,9 +7,9 @@ import type { ArtifactRuntime, FillStateSnapshot } from "./types";
  * Build an ArtifactRuntime backed by @paradoc/core.
  *
  * The artifact object is loaded once; per-call we run safeFill against
- * the current answers and ask the resulting DraftForm for its FillState. This
- * is the same pattern the legacy session.ts uses, just wrapped behind a tight
- * interface so the engine remains independent of core's evolving API.
+ * the current answers and ask the resulting DraftForm for its FillState,
+ * wrapped behind a tight interface so the engine remains independent of
+ * core's evolving API.
  *
  * Performance: loadFromObject + safeFill is a few milliseconds for
  * typical artifacts; cheap enough to recompute on every command.
@@ -64,9 +64,17 @@ export function createParadocRuntime(
 		parties: Record<string, unknown>,
 		annexes: Record<string, unknown>,
 	): FillStateSnapshot {
+		// The session engine flattens answers to dot/bracket paths and holds
+		// them independent of core's generic artifact type; unflattening them
+		// back into a nested seed can't be checked against `Parameters<
+		// typeof instance.safeFill>[0]` without re-deriving core's generic, so
+		// this goes through `unknown` rather than `any` — the object shape
+		// (fields/parties/annexes) is still enforced above, just not core's
+		// exact per-field generic.
 		const draft = instance.safeFill(
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			{ fields: unflattenPaths(answers), parties, annexes } as any,
+			{ fields: unflattenPaths(answers), parties, annexes } as unknown as Parameters<
+				typeof instance.safeFill
+			>[0],
 		);
 		if (!draft.success) {
 			return {
