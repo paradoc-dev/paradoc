@@ -579,8 +579,12 @@ export interface RuntimeContentJSON {
 	data?: unknown;
 	/** Current phase of this content item. */
 	phase?: FormPhase | ChecklistPhase | DocumentPhase | BundlePhase;
-	/** Captured evaluation context for runtime forms and checklists. */
+	/** Captured evaluation context of a form, checklist, or nested bundle. */
 	context?: RuntimeContext;
+	/** When a completed checklist was completed. */
+	completedAt?: string;
+	/** When a final document was finalized. */
+	finalizedAt?: string;
 }
 
 /**
@@ -596,6 +600,8 @@ export interface DraftBundleJSON<B = unknown> {
 	phase: 'draft';
 	/** The embedded bundle definition. */
 	bundle: B;
+	/** The clock captured when the bundle was prepared, which inclusion reads. */
+	context: RuntimeContext;
 	/** Runtime content instances keyed by content key. */
 	contents: Record<string, RuntimeContentJSON>;
 }
@@ -613,6 +619,8 @@ export interface SignableBundleJSON<B = unknown> {
 	phase: 'signable';
 	/** The embedded bundle definition (frozen). */
 	bundle: B;
+	/** The clock captured when the bundle was prepared, which inclusion reads. */
+	context: RuntimeContext;
 	/** Runtime content instances keyed by content key (frozen). */
 	contents: Record<string, RuntimeContentJSON>;
 }
@@ -630,6 +638,8 @@ export interface ExecutedBundleJSON<B = unknown> {
 	phase: 'executed';
 	/** The embedded bundle definition (frozen). */
 	bundle: B;
+	/** The clock captured when the bundle was prepared, which inclusion reads. */
+	context: RuntimeContext;
 	/** Runtime content instances keyed by content key (frozen). */
 	contents: Record<string, RuntimeContentJSON>;
 	/** ISO 8601 date-time when the bundle was executed. */

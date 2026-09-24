@@ -1,7 +1,6 @@
 import type {
 	Bundle,
 	BundleContentItem,
-	Checklist,
 	CondExpr,
 	Expression,
 	Form,
@@ -16,6 +15,7 @@ import { signingStateOf } from '@/logic/runtime/evaluation/signing-state'
 import { parseExpression } from '@/logic/design-time/validation/expression-parser'
 import { topologicalSortDefsKeys } from '@/logic/design-time/type-checking/build-type-environment'
 import { isScalarExpressionType } from '@/logic/shared/expression-types'
+import { defsDependencyExpressions, definitionExpressionLeaves } from '@/logic/shared/defs-dependencies'
 import type { RuntimeContext } from '../shared/runtime-context'
 
 /** A member's resolved membership in a bundle. */
@@ -41,7 +41,10 @@ export interface BundleInclusionDecision {
 export interface BundleInclusionState {
 	/** One decision for every declared bundle member, in declaration order. */
 	readonly decisions: readonly BundleInclusionDecision[]
-	/** Keys that are present in the resulting packet. */
+	/**
+	 * Keys whose members belong in the resulting packet, whether or not their
+	 * content has been supplied yet.
+	 */
 	readonly includedKeys: readonly string[]
 	/** Keys retained in the definition and draft but omitted from output. */
 	readonly excludedKeys: readonly string[]
@@ -53,7 +56,11 @@ export interface BundleInclusionState {
 	readonly resolved: boolean
 }
 
-/** A runtime member shape consumed by the evaluator without importing bundle implementations. */
+/**
+ * A runtime member shape consumed by the evaluator without importing bundle
+ * implementations. Only form and bundle members reach include conditions;
+ * checklist and document members carry no values an include can read.
+ */
 export interface BundleRuntimeMember {
 	readonly form?: Form
 	readonly fields?: Record<string, unknown>
@@ -63,8 +70,6 @@ export interface BundleRuntimeMember {
 	readonly captures?: readonly SignatureCapture[]
 	readonly attestations?: readonly Attestation[]
 	readonly context?: RuntimeContext
-	readonly checklist?: Checklist
-	readonly items?: unknown
 	readonly bundle?: Bundle
 	readonly phase?: string
 	getAllContents?: () => Record<string, BundleEvaluationMember>
@@ -114,8 +119,6 @@ function expressionValue(expression: string, context: EvaluationContext):
 		'witnesses',
 		'forms',
 		'bundles',
-		'checklists',
-		'documents',
 		...Object.keys(context),
 	])
 	const unknownRoots = parsed.variables
@@ -130,7 +133,7 @@ function expressionValue(expression: string, context: EvaluationContext):
 	if (/(?:^|[^\w])(today|now)\s*\(/.test(expression) && context[EVALUATION_CLOCK] === undefined) {
 		return {
 			status: 'unresolved',
-			reason: `Include expression "${expression}" needs a fixed evaluation clock.`,
+			reason: `Include expression "${expression}" reads today() or now(), and the bundle has no clock.`,
 		}
 	}
 
@@ -161,71 +164,45 @@ function buildRuntimeContext(member: BundleRuntimeMember): EvaluationContext | u
 	}
 
 	if (member.bundle && member.getAllContents) {
-		return buildBundleContext(member.bundle, member.getAllContents()).context
-	}
-
-	if (member.checklist) {
-		return {
-			fields: {},
-			checklists: { items: member.items ?? {} },
-			...(member.context?.asOf && { [EVALUATION_CLOCK]: member.context.asOf }),
-		}
+		return buildBundleContext(member.bundle, member.getAllContents(), member.context).context
 	}
 
 	return undefined
 }
 
+/**
+ * The context include conditions read. `today()` and `now()` read the bundle's
+ * own clock, captured when the bundle was prepared; a member's clock never
+ * decides inclusion, so members filled at different instants agree.
+ */
 function buildBundleContext(
 	bundle: Bundle,
 	contents: Record<string, BundleEvaluationMember>,
-	): BundleContextBuild {
+	bundleContext: RuntimeContext | undefined,
+): BundleContextBuild {
 	const forms: Record<string, unknown> = {}
 	const bundles: Record<string, unknown> = {}
-	const checklists: Record<string, unknown> = {}
-	const documents: Record<string, unknown> = {}
 	const errors: string[] = []
-	let asOf: RuntimeContext['asOf'] | undefined
-	let clockConflict = false
 
 	for (const item of bundle.contents) {
 		const member = contents[item.key]
 		if (!member || 'kind' in member) continue
 		const childContext = buildRuntimeContext(member)
 		if (!childContext) continue
-		const childClock = childContext[EVALUATION_CLOCK]
-		if (childClock) {
-			if (asOf === undefined) asOf = childClock
-			else if (asOf.datetime !== childClock.datetime) clockConflict = true
-		}
-
 		if (member.form) forms[item.key] = childContext
 		else if (member.bundle) bundles[item.key] = childContext
-		else if (member.checklist) checklists[item.key] = childContext
-		else documents[item.key] = childContext
 	}
 
 	const context: EvaluationContext = {
 		fields: {},
 		forms,
 		bundles,
-		checklists,
-		documents,
-		...(asOf && !clockConflict && { [EVALUATION_CLOCK]: asOf }),
+		...(bundleContext && { [EVALUATION_CLOCK]: bundleContext.asOf }),
 	}
 
 	if (!bundle.defs || Object.keys(bundle.defs).length === 0) return { context, errors }
 
-	const expressions = Object.fromEntries(
-		Object.entries(bundle.defs).map(([key, expression]) => [
-			key,
-			isScalarExpression(expression)
-				? String(expression.value)
-			: Object.values(expression.value as unknown as Record<string, string | undefined>)
-						.filter((value): value is string => value !== undefined)
-						.join(' and '),
-		]),
-	)
-	const { sorted } = topologicalSortDefsKeys(expressions)
+	const { sorted } = topologicalSortDefsKeys(defsDependencyExpressions(bundle.defs))
 
 	for (const key of sorted) {
 		const expression = bundle.defs[key]
@@ -241,17 +218,16 @@ function buildBundleContext(
 			continue
 		}
 
+		// An object definition resolves member by member, nested members too
+		// (a bbox's `southWest.lat`), and reads as missing until all resolve.
 		const values: Record<string, unknown> = {}
 		let unresolved = false
-		for (const [property, propertyExpression] of Object.entries(
-			expression.value as unknown as Record<string, string | undefined>,
-		)) {
-			if (propertyExpression === undefined) continue
-			const result = expressionValue(propertyExpression, context)
-			if (result.status === 'value') values[property] = result.value
+		for (const leaf of definitionExpressionLeaves(expression.value)) {
+			const result = expressionValue(leaf.expression, context)
+			if (result.status === 'value') setAtPath(values, leaf.path, result.value)
 			else {
 				unresolved = true
-				if (result.status === 'error') errors.push(`Bundle definition "${key}.${property}": ${result.reason}`)
+				if (result.status === 'error') errors.push(`Bundle definition "${[key, ...leaf.path].join('.')}": ${result.reason}`)
 			}
 		}
 		;(context as Record<string, unknown>)[key] = unresolved ? undefined : values
@@ -260,21 +236,36 @@ function buildBundleContext(
 	return { context, errors }
 }
 
+function setAtPath(target: Record<string, unknown>, path: readonly string[], value: unknown): void {
+	let node = target
+	for (const segment of path.slice(0, -1)) {
+		const next = node[segment]
+		node = (next && typeof next === 'object' ? next : (node[segment] = {})) as Record<string, unknown>
+	}
+	node[path[path.length - 1]!] = value
+}
+
 function nestedState(
 	item: BundleContentItem,
 	member: BundleEvaluationMember,
 	): BundleInclusionState | undefined {
 	if (item.type !== 'inline' || item.artifact.kind !== 'bundle') return undefined
 	if (!member || 'kind' in member || !member.bundle || !member.getAllContents) return undefined
-	return evaluateBundleInclusion(member.bundle, member.getAllContents())
+	return evaluateBundleInclusion(member.bundle, member.getAllContents(), member.context)
 }
 
-/** Evaluate all bundle member conditions against the supplied runtime data. */
+/**
+ * Evaluate all bundle member conditions against the supplied runtime data.
+ *
+ * `context` is the bundle's clock. Without one, a condition that reads
+ * `today()` or `now()` stays unresolved.
+ */
 export function evaluateBundleInclusion(
 	bundle: Bundle,
 	contents: Record<string, BundleEvaluationMember> = {},
+	context?: RuntimeContext,
 ): BundleInclusionState {
-	const { context, errors } = buildBundleContext(bundle, contents)
+	const { context: evaluationContext, errors } = buildBundleContext(bundle, contents, context)
 	const decisions: BundleInclusionDecision[] = []
 
 	for (const item of bundle.contents) {
@@ -285,7 +276,7 @@ export function evaluateBundleInclusion(
 		} else if (include === false) {
 			decision = { key: item.key, include, status: 'excluded', value: false }
 		} else {
-			const result = expressionValue(include, context)
+			const result = expressionValue(include, evaluationContext)
 			if (result.status === 'value') {
 				if (typeof result.value !== 'boolean') {
 					decision = {

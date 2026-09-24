@@ -52,6 +52,7 @@ export {
   runtimeDocumentFromJSON,
   runtimeChecklistFromJSON,
   runtimeBundleFromJSON,
+  runtimeContentFromJSON,
   assertBundleInclusionResolved,
   decisionForKey,
   evaluateBundleInclusion,

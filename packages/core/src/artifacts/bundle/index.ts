@@ -3,7 +3,7 @@
  * Barrel export
  */
 
-export { bundle, runtimeBundleFromJSON } from './bundle'
+export { bundle, runtimeBundleFromJSON, runtimeContentFromJSON } from './bundle'
 export {
 	assertBundleInclusionResolved,
 	decisionForKey,

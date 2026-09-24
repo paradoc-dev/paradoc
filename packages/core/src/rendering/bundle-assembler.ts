@@ -13,6 +13,7 @@ import {
   type BundleEvaluationMember,
   type BundleInclusionState,
 } from '@/artifacts/bundle/inclusion'
+import { captureRuntimeContext, type RuntimeCreationOptions } from '@/artifacts/shared/runtime-context'
 
 // ============================================================================
 // Bundle Assembly API
@@ -42,8 +43,11 @@ export type BundleAssemblyEntry = AssemblyContentEntry | DraftBundle<Bundle>
 
 /**
  * Options for the new bundle assembly API.
+ *
+ * `context.asOf` is the one clock include conditions read for `today()` and
+ * `now()`; it defaults to the current instant.
  */
-export interface BundleAssemblyOptions {
+export interface BundleAssemblyOptions extends RuntimeCreationOptions {
   /**
    * Optional custom renderers keyed by MIME type. Supported layers render
    * automatically.
@@ -114,6 +118,7 @@ export async function assembleBundle(
   const inclusionState: BundleInclusionState = evaluateBundleInclusion(
     bundle,
     contents as Record<string, BundleEvaluationMember>,
+    captureRuntimeContext(options),
   )
   assertBundleInclusionResolved(inclusionState)
   const outputs: Record<string, AssembledBundleOutput> = {}

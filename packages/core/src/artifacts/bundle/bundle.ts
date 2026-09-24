@@ -21,6 +21,10 @@ import type {
 	ContentRef,
 	BundlePhase,
 	RuntimeBundleJSON,
+	RuntimeChecklistJSON,
+	RuntimeContext,
+	RuntimeDocumentJSON,
+	RuntimeFormJSON,
 } from '@paradoc/types'
 import {
 	parseBundle as parseBundleSchema,
@@ -37,11 +41,17 @@ import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type { RendererRegistry } from '@/rendering'
 import { assembleBundle, type BundleAssemblyOptions, type AssembledBundle } from '@/rendering'
 import { renderBundlePart, type BundlePartOutput } from '@/rendering/bundle-part'
+import {
+	captureRuntimeContext,
+	restoreRuntimeContext,
+	type RuntimeCreationOptions,
+} from '../shared/runtime-context'
+import type { ArtifactInstanceOptions } from '../shared/render-layer'
 
 // Import artifacts runtime types for content
-import type { RuntimeDocument, DraftDocument } from '../document'
-import type { RuntimeChecklist, DraftChecklist } from '../checklist'
-import type { RuntimeForm, DraftForm, SignableForm } from '../form'
+import { runtimeDocumentFromJSON, type RuntimeDocument, type DraftDocument } from '../document'
+import { runtimeChecklistFromJSON, type RuntimeChecklist, type DraftChecklist } from '../checklist'
+import { runtimeFormFromJSON, type RuntimeForm, type DraftForm, type SignableForm } from '../form'
 import type { DeepMutable, DeepReadonly } from '@/artifacts/shared/definition-types'
 import {
 	assertBundleInclusionResolved,
@@ -140,10 +150,15 @@ export interface BundleInstance<B extends Bundle> extends ArtifactMethods<B> {
 	 * Creates a RuntimeBundle in draft phase that encapsulates the bundle definition
 	 * together with all its content instances.
 	 *
+	 * The bundle captures one clock here (`options.context.asOf`, or the
+	 * current instant). Include conditions that read `today()` or `now()` use
+	 * it, whatever instant each member was filled at.
+	 *
 	 * @param contents - Runtime instances keyed by bundle content key (optional, defaults to empty)
+	 * @param options - The clock the bundle captures
 	 * @returns A DraftBundle ready for further mutation or signing
 	 */
-	prepare(contents?: RuntimeBundleContents): DraftBundle<B>
+	prepare(contents?: RuntimeBundleContents, options?: RuntimeCreationOptions): DraftBundle<B>
 
 	/**
 	 * Create an exact copy of this instance.
@@ -164,6 +179,9 @@ export interface BundleInstance<B extends Bundle> extends ArtifactMethods<B> {
 interface RuntimeBundleBase<B extends Bundle> {
 	/** Embedded bundle definition */
 	readonly bundle: B
+
+	/** The clock captured when the bundle was prepared, which inclusion reads. */
+	readonly context: RuntimeContext
 
 	// Convenience getters
 	readonly name: string
@@ -294,6 +312,7 @@ function serializeInstance(instance: RuntimeInstance): RuntimeContentJSON {
 			context: json.context,
 			data: json.items,
 			phase: json.phase,
+			...('completedAt' in json && { completedAt: json.completedAt }),
 		}
 	}
 
@@ -305,6 +324,7 @@ function serializeInstance(instance: RuntimeInstance): RuntimeContentJSON {
 			artifact: json.document,
 			targetLayer: json.targetLayer,
 			phase: json.phase,
+			...('finalizedAt' in json && { finalizedAt: json.finalizedAt }),
 		}
 	}
 
@@ -316,6 +336,7 @@ function serializeInstance(instance: RuntimeInstance): RuntimeContentJSON {
 				kind: 'bundle',
 				artifact: json.bundle,
 				targetLayer: '',
+				context: json.context,
 				data: { contents: json.contents, executedAt: json.executedAt },
 				phase: json.phase,
 			}
@@ -324,6 +345,7 @@ function serializeInstance(instance: RuntimeInstance): RuntimeContentJSON {
 			kind: 'bundle',
 			artifact: json.bundle,
 			targetLayer: '',
+			context: json.context,
 			data: json.contents,
 			phase: json.phase,
 		}
@@ -351,6 +373,7 @@ interface RuntimeBundleConfig<B extends Bundle> {
 	bundle: B
 	contents: RuntimeBundleContents
 	phase: BundlePhase
+	context: RuntimeContext
 	executedAt?: string
 }
 
@@ -358,7 +381,7 @@ interface RuntimeBundleConfig<B extends Bundle> {
  * Creates a RuntimeBundle object (replaces DraftBundle, SignableBundle, ExecutedBundle classes)
  */
 function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): RuntimeBundle<B> {
-	const { bundle: bundleDef, contents: contentValues, phase, executedAt } = config
+	const { bundle: bundleDef, contents: contentValues, phase, context, executedAt } = config
 	assertValidArtifactDefinition(bundleDef)
 
 	// Build content keys set from bundle definition
@@ -414,8 +437,11 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 			throw new Error(`Cannot ${operation}: content "${key}" must be a ${expectedKind} instance, got a ${kind}`)
 		}
 
-		const requiredPhase = requiredContentPhase(phase, kind)
-		if (requiredPhase && instance.phase !== requiredPhase) {
+		// A replacement keeps the phase of the member it replaces: an excluded
+		// member stays a draft in a signable bundle. assertContentsFitPhase
+		// then checks the resulting bundle as a whole.
+		const requiredPhase = phase === 'draft' ? 'draft' : (existing?.phase ?? requiredContentPhase(phase, kind))
+		if (instance.phase !== requiredPhase) {
 			throw new Error(
 				`Cannot ${operation}: content "${key}" is a ${kind} in ${instance.phase} phase, ` +
 					`but a ${phase} bundle requires ${requiredPhase} phase`
@@ -423,9 +449,12 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		}
 	}
 
+	assertContentsFitPhase(bundleDef, contentValues, phase, context)
+
 	const runtime = {
 		phase,
 		bundle: bundleDef,
+		context,
 		executedAt,
 
 		// Convenience getters
@@ -463,7 +492,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 		},
 
 		getInclusionState(): BundleInclusionState {
-			return evaluateBundleInclusion(bundleDef, contentValues)
+			return evaluateBundleInclusion(bundleDef, contentValues, context)
 		},
 
 		getInclusion(key: string): BundleInclusionDecision {
@@ -551,37 +580,42 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 
 		prepareForSigning(): RuntimeBundle<B> {
 			ensureDraft('prepareForSigning')
-			assertBundleInclusionResolved(runtime.getInclusionState())
+			const state = runtime.getInclusionState()
+			assertSignableContents(state, contentValues)
 
-			// Transition all content instances to signable/completed/final
+			// Included members move to signable/completed/final. Excluded members
+			// stay drafts, so reinclusion still restores their answers and an
+			// incomplete excluded member never blocks signing.
+			const included = new Set(state.includedKeys)
 			const signableContents: RuntimeBundleContents = {}
-
 			for (const [key, instance] of Object.entries(contentValues)) {
-				signableContents[key] = transitionToSignable(instance)
+				signableContents[key] = included.has(key) ? transitionToSignable(instance) : instance
 			}
 
 			return createRuntimeBundle({
 				bundle: bundleDef,
 				contents: signableContents,
 				phase: 'signable',
+				context,
 			})
 		},
 
 		finalize(): RuntimeBundle<B> {
 			ensureSignable('finalize')
-			assertBundleInclusionResolved(runtime.getInclusionState())
+			const state = runtime.getInclusionState()
+			assertSignableContents(state, contentValues)
 
-			// Transition all content instances to executed
+			const included = new Set(state.includedKeys)
 			const executedContents: RuntimeBundleContents = {}
-
 			for (const [key, instance] of Object.entries(contentValues)) {
-				executedContents[key] = transitionToExecuted(instance)
+				executedContents[key] = included.has(key) ? transitionToExecuted(instance) : instance
 			}
 
 			return createRuntimeBundle({
 				bundle: bundleDef,
 				contents: executedContents,
 				phase: 'executed',
+				context,
 				executedAt: new Date().toISOString(),
 			})
 		},
@@ -617,6 +651,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 				return {
 					phase: 'draft',
 					bundle: bundleDef,
+					context,
 					contents: serializedContents,
 				}
 			}
@@ -625,6 +660,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 				return {
 					phase: 'signable',
 					bundle: bundleDef,
+					context,
 					contents: serializedContents,
 				}
 			}
@@ -632,6 +668,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 			return {
 				phase: 'executed',
 				bundle: bundleDef,
+				context,
 				contents: serializedContents,
 				executedAt: executedAt!,
 			}
@@ -646,6 +683,7 @@ function createRuntimeBundle<B extends Bundle>(config: RuntimeBundleConfig<B>): 
 				bundle: structuredClone(bundleDef),
 				contents: cloneContents(contentValues),
 				phase,
+				context: structuredClone(context),
 				executedAt,
 			})
 		},
@@ -669,15 +707,70 @@ function instanceKind(instance: RuntimeInstance): ContentKind | undefined {
 }
 
 /**
- * The content phase a bundle phase requires for each kind. Executed bundles
- * are read-only, so they require nothing here.
+ * A bundle can sign or execute only when inclusion has resolved and every
+ * included member has content.
  */
-function requiredContentPhase(bundlePhase: RuntimeBundleConfig<Bundle>['phase'], kind: ContentKind): string | undefined {
+function assertSignableContents(state: BundleInclusionState, contents: RuntimeBundleContents): void {
+	assertBundleInclusionResolved(state)
+	const missing = state.includedKeys.filter((key) => !(key in contents))
+	if (missing.length > 0) {
+		const details = missing.map((key) => `Content "${key}" is included but has no content.`)
+		throw new Error(`Cannot produce a completed bundle packet: ${details.join('; ')}`)
+	}
+}
+
+/** The phase a bundle phase requires of an included member of each kind. */
+function requiredContentPhase(bundlePhase: BundlePhase, kind: ContentKind): string {
 	if (bundlePhase === 'draft') return 'draft'
 	if (bundlePhase === 'signable') {
 		return { form: 'signable', checklist: 'completed', document: 'final', bundle: 'signable' }[kind]
 	}
-	return undefined
+	return { form: 'executed', checklist: 'completed', document: 'final', bundle: 'executed' }[kind]
+}
+
+/**
+ * Check that every member fits the bundle, whether the bundle was prepared,
+ * transitioned, mutated, or loaded from JSON: its key is declared, its kind is
+ * the declared kind, and its phase is the one the bundle phase requires. Past
+ * draft, inclusion must be resolved and every included member present; an
+ * excluded member stays a draft.
+ */
+function assertContentsFitPhase(
+	bundleDef: Bundle,
+	contents: RuntimeBundleContents,
+	phase: BundlePhase,
+	context: RuntimeContext,
+): void {
+	const items = new Map(bundleDef.contents.map((item) => [item.key, item]))
+	const problem = (key: string, detail: string): Error =>
+		new Error(`Invalid ${phase} bundle "${bundleDef.name}": content "${key}" ${detail}`)
+
+	for (const [key, instance] of Object.entries(contents)) {
+		const item = items.get(key)
+		if (!item) throw problem(key, `is not declared. Available keys: ${Array.from(items.keys()).join(', ')}`)
+		const kind = instanceKind(instance)
+		if (!kind) throw problem(key, 'is not a form, checklist, document, or bundle instance')
+		if (item.type === 'inline' && item.artifact.kind !== kind) {
+			throw problem(key, `must be a ${item.artifact.kind} instance, got a ${kind}`)
+		}
+	}
+	if (phase === 'draft') {
+		for (const [key, instance] of Object.entries(contents)) {
+			if (instance.phase !== 'draft') throw problem(key, `is ${describeInstance(instance)}, but a draft bundle requires draft phase`)
+		}
+		return
+	}
+
+	const state = evaluateBundleInclusion(bundleDef, contents, context)
+	assertSignableContents(state, contents)
+	const included = new Set(state.includedKeys)
+	for (const [key, instance] of Object.entries(contents)) {
+		const required = included.has(key) ? requiredContentPhase(phase, instanceKind(instance)!) : 'draft'
+		if (instance.phase !== required) {
+			const role = included.has(key) ? 'an included' : 'an excluded'
+			throw problem(key, `is ${describeInstance(instance)}, but ${role} member of a ${phase} bundle requires ${required} phase`)
+		}
+	}
 }
 
 /**
@@ -754,13 +847,73 @@ function transitionToExecuted(instance: RuntimeInstance): RuntimeInstance {
 }
 
 /**
- * Load a RuntimeBundle from JSON
+ * Load one bundle member from its JSON, whatever its kind. A nested bundle
+ * loads its own members the same way.
+ *
+ * A resolver is behavior, not data, so it is not in the JSON: bind it here to
+ * give file-backed layers back.
+ */
+export function runtimeContentFromJSON(content: RuntimeContentJSON, options?: ArtifactInstanceOptions): RuntimeInstance {
+	const { kind, artifact, targetLayer, context, phase } = content
+	switch (kind) {
+		case 'form':
+			return runtimeFormFromJSON(
+				{ ...(content.data as object), phase, form: artifact, targetLayer, context } as RuntimeFormJSON<Form>,
+				options,
+			)
+		case 'checklist':
+			return runtimeChecklistFromJSON(
+				{
+					phase,
+					checklist: artifact,
+					targetLayer,
+					context,
+					items: content.data,
+					...(content.completedAt !== undefined && { completedAt: content.completedAt }),
+				} as RuntimeChecklistJSON<Checklist>,
+				options,
+			)
+		case 'document':
+			return runtimeDocumentFromJSON(
+				{
+					phase,
+					document: artifact,
+					targetLayer,
+					...(content.finalizedAt !== undefined && { finalizedAt: content.finalizedAt }),
+				} as RuntimeDocumentJSON<Document>,
+				options,
+			)
+		case 'bundle': {
+			const executed = phase === 'executed'
+			const data = content.data as { contents: Record<string, RuntimeContentJSON>; executedAt: string }
+			return runtimeBundleFromJSON(
+				{
+					phase,
+					bundle: artifact,
+					context,
+					contents: executed ? data.contents : content.data,
+					...(executed && { executedAt: data.executedAt }),
+				} as RuntimeBundleJSON<Bundle>,
+				(member) => runtimeContentFromJSON(member, options),
+			)
+		}
+		default:
+			throw new Error(`Cannot load bundle content of kind "${String(kind)}"`)
+	}
+}
+
+/**
+ * Load a RuntimeBundle from JSON.
+ *
+ * Every member passes the same key, kind, and phase checks as a prepared
+ * bundle, so a signable bundle cannot load with a draft included member or an
+ * undeclared key. `deserializeContent` defaults to
+ * {@link runtimeContentFromJSON}; pass one to bind a resolver.
  */
 export function runtimeBundleFromJSON<B extends Bundle>(
 	json: RuntimeBundleJSON<B>,
-	deserializeContent: (content: RuntimeContentJSON) => RuntimeInstance
+	deserializeContent: (content: RuntimeContentJSON) => RuntimeInstance = (content) => runtimeContentFromJSON(content),
 ): RuntimeBundle<B> {
-	// Deserialize contents
 	const contents: RuntimeBundleContents = {}
 	for (const [key, contentJson] of Object.entries(json.contents)) {
 		contents[key] = deserializeContent(contentJson)
@@ -770,6 +923,7 @@ export function runtimeBundleFromJSON<B extends Bundle>(
 		bundle: snapshotArtifactDefinition(json.bundle),
 		contents,
 		phase: json.phase,
+		context: restoreRuntimeContext(json.context),
 		executedAt: 'executedAt' in json ? json.executedAt : undefined,
 	})
 }
@@ -796,12 +950,13 @@ function createBundleInstance<B extends Bundle>(bundleDef: B): BundleInstance<B>
 			return assembleBundle(bundleDef, options)
 		},
 
-		prepare(contents: RuntimeBundleContents = {}): DraftBundle<B> {
+		prepare(contents: RuntimeBundleContents = {}, options?: RuntimeCreationOptions): DraftBundle<B> {
 			assertValidArtifactDefinition(bundleDef)
 			const empty = createRuntimeBundle({
 				bundle: snapshotArtifactDefinition(bundleDef),
 				contents: {},
 				phase: 'draft',
+				context: captureRuntimeContext(options),
 			}) as DraftBundle<B>
 			// Contents pass the same key, kind, and phase checks as updateContents.
 			return empty.updateContents(contents)

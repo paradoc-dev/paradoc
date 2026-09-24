@@ -55,6 +55,7 @@ import { isAssemblyBytesEntry, renderBundlePart } from './bundle-part'
 import { normalizeMimeType } from './part-mime'
 import type { RendererRegistry } from './renderer-registry'
 import { evaluateBundleInclusion, type BundleEvaluationMember } from '@/artifacts/bundle/inclusion'
+import { captureRuntimeContext, type RuntimeCreationOptions } from '@/artifacts/shared/runtime-context'
 
 /** What a part turned out to be once the packet was assembled. */
 export type PacketPartKind =
@@ -151,7 +152,11 @@ export interface SealedBundle {
 }
 
 /** What `sealBundle` needs. */
-export interface BundleSealOptions {
+/**
+ * `context.asOf` is the one clock include conditions read for `today()` and
+ * `now()`; it defaults to the current instant.
+ */
+export interface BundleSealOptions extends RuntimeCreationOptions {
   /**
    * Renderers keyed by layer MIME type, reaching every part's render and every
    * part's seal.
@@ -328,7 +333,11 @@ export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Pr
   const { contents, renderers, adapter, locate } = options
 
   const problems: string[] = []
-  const inclusion = evaluateBundleInclusion(bundle, contents as Record<string, BundleEvaluationMember>)
+  const inclusion = evaluateBundleInclusion(
+    bundle,
+    contents as Record<string, BundleEvaluationMember>,
+    captureRuntimeContext(options),
+  )
   if (!inclusion.resolved) {
     problems.push(...inclusion.errors)
     problems.push(...inclusion.unresolvedKeys.map((key) => `content "${key}" has unresolved inclusion`))

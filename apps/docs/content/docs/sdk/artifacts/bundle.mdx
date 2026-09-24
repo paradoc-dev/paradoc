@@ -124,7 +124,7 @@ Returns a `BundleInstance` with the following properties and methods:
   { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML (includes the current dated $schema by default)', isMethod: true },
   { name: 'clone', type: '() => BundleInstance', description: 'Deep clone the instance', isMethod: true },
   { name: 'assemble', type: '(options: BundleAssemblyOptions) => Promise<AssembledBundle>', description: 'Resolve contents and render runtime instances', isMethod: true },
-  { name: 'prepare', type: '(contents?: RuntimeBundleContents) => DraftBundle', description: 'Create runtime bundle in draft phase', isMethod: true },
+  { name: 'prepare', type: '(contents?: RuntimeBundleContents, options?: RuntimeCreationOptions) => DraftBundle', description: 'Create runtime bundle in draft phase. Captures the bundle clock: `options.context.asOf`, or the current instant', isMethod: true },
 ]} />
 
 ### Builder Pattern
@@ -248,6 +248,7 @@ when it was constructed.
 <PropertiesTable properties={[
   { name: 'contents', type: 'Record<string, BundleAssemblyEntry>', description: 'Content to assemble, keyed by bundle content key' },
   { name: 'renderers', type: 'RendererRegistry', description: 'Custom renderers keyed by MIME type; layers with built-in support render automatically', isOptional: true },
+  { name: 'context', type: '{ asOf?: string | AsOf }', description: 'The clock include conditions read for `today()` and `now()`. Defaults to the current instant', isOptional: true },
 ]} />
 
 A `BundleAssemblyEntry` is a filled artifact instance, bytes supplied
@@ -299,6 +300,7 @@ packet.signatureMap      // every slot, on packet pages
   { name: 'adapter', type: 'SealAdapter', description: 'Converter for a part whose layer is neither PDF nor drawn by a registered renderer', isOptional: true },
   { name: 'locate', type: 'SealLocator', description: 'Locator for anchor placements', isOptional: true },
   { name: 'signers', type: 'Record<string, string>', description: 'Maps `<part>/<signerId>` to a packet signer id. Without an entry, each part signer is its own packet signer', isOptional: true },
+  { name: 'context', type: '{ asOf?: string | AsOf }', description: 'The clock include conditions read for `today()` and `now()`. Defaults to the current instant', isOptional: true },
 ]} />
 
 The result, a `SealedBundle`, carries `pdf`, `canonicalPdfHash`, `packetHash` (a digest over the merged PDF's hash and every part's), `signers`, `signatureMap`, and `parts`. Each part reports its `kind` (`'sealed'`, `'rendered'`, or `'annex'`), its page range in the packet, and its own digest.
@@ -337,6 +339,37 @@ const executed = updated.finalize()
 // executed.executedAt === ISO timestamp
 ```
 
+Only included members change phase. An excluded member stays a draft, so it
+never blocks signing and reinclusion keeps its answers. `prepareForSigning()`
+and `finalize()` throw when a condition is unresolved or an included member
+has no content.
+
+### The bundle clock
+
+`prepare()` captures one clock, and every include condition that reads
+`today()` or `now()` uses it. A member's own clock never decides inclusion, so
+members filled at different instants agree. Pass `{ context: { asOf } }` as the
+second argument to fix it. The clock is kept through every phase and in
+`toJSON()`.
+
+### Save and reload
+
+`toJSON()` stores the bundle clock and every member with its phase, and the
+completion time of a checklist or document. `runtimeBundleFromJSON(json)`
+rebuilds it:
+
+```ts
+import { runtimeBundleFromJSON, runtimeContentFromJSON } from '@paradoc/sdk'
+
+const reloaded = runtimeBundleFromJSON(JSON.parse(stored))
+// Bind a resolver for file-backed layers:
+const withFiles = runtimeBundleFromJSON(JSON.parse(stored), (member) => runtimeContentFromJSON(member, { resolver }))
+```
+
+Loading runs the same checks as `prepare()` and the phase transitions: an
+undeclared key, a member of the wrong kind, or a member in the wrong phase
+throws.
+
 ### DraftBundle
 
 Created by `bundle.prepare()`. Contains runtime instances of all artifacts.
@@ -344,6 +377,7 @@ Created by `bundle.prepare()`. Contains runtime instances of all artifacts.
 <PropertiesTable properties={[
   { name: 'phase', type: "'draft'", description: 'Phase discriminator' },
   { name: 'bundle', type: 'Bundle', description: 'The underlying bundle definition' },
+  { name: 'context', type: 'RuntimeContext', description: 'The clock captured by `prepare()`, which include conditions read' },
   { name: 'executedAt', type: 'undefined', description: 'Execution timestamp (always undefined for draft)' },
   { name: 'getContentKeys', type: '() => string[]', description: 'Get all content keys', isMethod: true },
   { name: 'getContent', type: '(key: string) => RuntimeInstance | undefined', description: 'Get runtime instance by key', isMethod: true },
@@ -365,6 +399,7 @@ Created by `draft.prepareForSigning()`. Contains signable instances.
 <PropertiesTable properties={[
   { name: 'phase', type: "'signable'", description: 'Phase discriminator' },
   { name: 'bundle', type: 'Bundle', description: 'The underlying bundle definition' },
+  { name: 'context', type: 'RuntimeContext', description: 'The clock captured by `prepare()`, which include conditions read' },
   { name: 'executedAt', type: 'undefined', description: 'Execution timestamp (always undefined for signable)' },
   { name: 'getContentKeys', type: '() => string[]', description: 'Get all content keys', isMethod: true },
   { name: 'getContent', type: '(key: string) => RuntimeInstance | undefined', description: 'Get runtime instance by key', isMethod: true },
@@ -384,6 +419,7 @@ Created by `signable.finalize()`. Fully frozen.
 <PropertiesTable properties={[
   { name: 'phase', type: "'executed'", description: 'Phase discriminator' },
   { name: 'bundle', type: 'Bundle', description: 'The underlying bundle definition' },
+  { name: 'context', type: 'RuntimeContext', description: 'The clock captured by `prepare()`, which include conditions read' },
   { name: 'executedAt', type: 'string', description: 'ISO timestamp of execution' },
   { name: 'getContentKeys', type: '() => string[]', description: 'Get all content keys', isMethod: true },
   { name: 'getContent', type: '(key: string) => RuntimeInstance | undefined', description: 'Get runtime instance by key', isMethod: true },

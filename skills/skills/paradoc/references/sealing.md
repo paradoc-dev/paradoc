@@ -316,6 +316,7 @@ const packet = await sealBundle(bundle, {
 |---------------------|-----|
 | `contents` | One entry per bundle content key: a filled draft, or `{ kind: 'bytes', content, mimeType, filename? }` for supplied files. The packet reads no paths from the bundle. |
 | `signers` | Which part signers are one person: `'<part>/<signerId>'` → packet signer id. Without an entry, each part signer is a separate packet signer. A key that names no part signer is an error. |
+| `context` | `{ asOf }`: the clock include conditions read for `today()` and `now()`. Defaults to the current instant. |
 | `renderers`, `adapter`, `locate` | As in `SealOptions`, for every part. No resolver: each draft carries its own. |
 
 | Result | Meaning |

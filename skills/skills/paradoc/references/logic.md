@@ -332,6 +332,7 @@ draft.getLogicValue("age"); // 35, same clock
 
 - `asOf` is an ISO instant with `Z` or an offset. `"2026-01-01"` alone throws `Invalid context.asOf`.
 - `today()` is the UTC calendar date of that instant: `2026-01-01T02:00:00+05:00` gives `2025-12-31`.
+- A bundle has one clock, captured by `prepare()`. Bundle include conditions and bundle defs read it, not the clocks of its members.
 
 ## Defs
 

@@ -173,7 +173,7 @@ export type {
 } from './form'
 
 // Bundle artifact
-export { bundle, runtimeBundleFromJSON } from './bundle'
+export { bundle, runtimeBundleFromJSON, runtimeContentFromJSON } from './bundle'
 export {
 	assertBundleInclusionResolved,
 	decisionForKey,

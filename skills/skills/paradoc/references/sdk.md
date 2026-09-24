@@ -236,6 +236,8 @@ const executed = draft.prepareForSigning().finalize();
 - Each member is a runtime instance that carries its own resolver. The bundle binds none.
 - `bundle.assemble({ contents })` renders the included members from the design-time bundle. A nested bundle's parts get folder-style keys such as `nested/docA`.
 - `getInclusionState()` lists each member's decision: `included`, `excluded`, or `unresolved` with a reason.
+- `prepare(contents, { context: { asOf } })` fixes the bundle clock. Include conditions read `today()` and `now()` from it, never from a member's clock. Without `asOf`, `prepare()` captures the current instant.
+- Only included members change phase at `prepareForSigning()` and `finalize()`. An excluded member stays a draft. A missing included member throws.
 - A sealed packet (one PDF for all members) is `sealBundle`: see [sealing.md](./sealing.md).
 
 ## Serialize

@@ -117,13 +117,11 @@ describe('bundle content mutation', () => {
 		)
 	})
 
-	test('finalize names the kind and phase of content it cannot move', () => {
+	test('loading names the kind and phase of content a signable bundle cannot hold', () => {
 		const { formB, signable } = fixture()
-		const loaded = runtimeBundleFromJSON(signable.toJSON(), () => formB.fill())
-		if (loaded.phase !== 'signable') throw new Error('expected a signable bundle')
 
-		expect(() => loaded.finalize()).toThrow(
-			'Cannot finalize: expected signable-phase content, got a form in draft phase'
+		expect(() => runtimeBundleFromJSON(signable.toJSON(), () => formB.fill())).toThrow(
+			'Invalid signable bundle "packet": content "formA" is a form in draft phase, but an included member of a signable bundle requires signable phase'
 		)
 	})
 })

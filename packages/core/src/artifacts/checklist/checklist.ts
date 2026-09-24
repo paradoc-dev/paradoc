@@ -818,13 +818,19 @@ export function runtimeChecklistFromJSON<C extends Checklist>(
 	json: RuntimeChecklistJSON<C>,
 	options?: ArtifactInstanceOptions,
 ): RuntimeChecklist<C> {
+	if (json.phase !== 'draft' && json.phase !== 'completed') {
+		throw new TypeError(`Invalid checklist JSON: unknown phase "${String((json as { phase: unknown }).phase)}"`)
+	}
+	if (json.phase === 'completed' && typeof json.completedAt !== 'string') {
+		throw new TypeError('Invalid checklist JSON: a completed checklist needs completedAt')
+	}
 	return createRuntimeChecklist({
 		checklist: snapshotArtifactDefinition(json.checklist),
 		items: json.items,
 		targetLayer: json.targetLayer,
 		context: restoreRuntimeContext(json.context),
 		resolver: options?.resolver,
-		completedAt: 'completedAt' in json ? json.completedAt : undefined,
+		completedAt: json.phase === 'completed' ? json.completedAt : undefined,
 	})
 }
 

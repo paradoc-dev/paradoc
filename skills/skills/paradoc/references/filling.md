@@ -178,22 +178,19 @@ if (resumed.phase === "draft") {
 | Form (any phase) | `runtimeFormFromJSON(json, { resolver? })` |
 | Document | `runtimeDocumentFromJSON(json, { resolver? })` |
 | Checklist | `runtimeChecklistFromJSON(json, { resolver? })` |
-| Bundle | `runtimeBundleFromJSON(json, deserializeContent)` |
+| Bundle | `runtimeBundleFromJSON(json, deserializeContent?)` |
 
-A bundle stores each member as `{ kind, artifact, targetLayer, context?, data?, phase }`. Your `deserializeContent` maps it back:
+A bundle stores its clock and each member with its kind, phase, and data. `runtimeBundleFromJSON(json)` rebuilds every member kind, nested bundles too. To bind a resolver, pass a `deserializeContent` that calls `runtimeContentFromJSON`:
 
 ```typescript
-import { runtimeBundleFromJSON, runtimeFormFromJSON, runtimeDocumentFromJSON, runtimeChecklistFromJSON } from "@paradoc/sdk";
+import { runtimeBundleFromJSON, runtimeContentFromJSON } from "@paradoc/sdk";
 
 const bundleJson = JSON.parse(storedBundle);
-const resumedBundle = runtimeBundleFromJSON(bundleJson, (content) => {
-  const member = content as any; // RuntimeContentJSON types artifact and data as unknown
-  if (member.kind === "form") return runtimeFormFromJSON({ phase: member.phase, form: member.artifact, targetLayer: member.targetLayer, context: member.context, ...member.data });
-  if (member.kind === "checklist") return runtimeChecklistFromJSON({ phase: member.phase, checklist: member.artifact, targetLayer: member.targetLayer, context: member.context, items: member.data });
-  if (member.kind === "document") return runtimeDocumentFromJSON({ phase: member.phase, document: member.artifact, targetLayer: member.targetLayer });
-  throw new Error(`nested bundle member: store it separately`);
-});
+const resumedBundle = runtimeBundleFromJSON(bundleJson);
+const withFiles = runtimeBundleFromJSON(bundleJson, (member) => runtimeContentFromJSON(member, { resolver }));
 ```
+
+Loading checks each member like `prepare()` does. An undeclared key, a member of the wrong kind, or a member in the wrong phase for the bundle phase throws.
 
 A sealed form serializes `signatureMap` and `canonicalPdfHash`, not `canonicalPdfBytes`. Store the PDF bytes yourself, keyed by the hash.
 

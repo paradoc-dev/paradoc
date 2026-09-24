@@ -136,7 +136,7 @@ describe('bundle inclusion', () => {
 		expect(state.unresolvedKeys).toEqual(['doc'])
 	})
 
-	test('uses the supplied member clock for temporal conditions', () => {
+	test('uses the supplied bundle clock for temporal conditions', () => {
 		const source = sourceForm()
 		const definition = bundle()
 			.name('clocked')
@@ -149,11 +149,14 @@ describe('bundle inclusion', () => {
 			)
 			.inline('source', source)
 			.build()
-		const state = evaluateBundleInclusion(definition, {
-			source: source.fill(undefined, { context: { asOf: '2026-09-12T12:00:00Z' } }),
+		const contents = { source: source.fill(undefined, { context: { asOf: '2026-09-12T12:00:00Z' } }) }
+		const state = evaluateBundleInclusion(definition, contents, {
+			asOf: { date: '2026-09-12', datetime: '2026-09-12T12:00:00.000Z' },
 		})
 
 		expect(state.decisions[0]?.status).toBe('included')
+		// A member clock alone never decides inclusion.
+		expect(evaluateBundleInclusion(definition, contents).decisions[0]?.status).toBe('unresolved')
 	})
 
 	test('filters draft rendering and assembly while retaining excluded answers', async () => {
@@ -239,7 +242,7 @@ describe('bundle inclusion', () => {
 		expect(state.decisions[0]?.nested?.excludedKeys).toEqual(['child'])
 	})
 
-	test('rechecks inclusion when a signable bundle is finalized', () => {
+	test('rechecks inclusion when a signable bundle member changes', () => {
 		const source = sourceForm()
 		const optional = document().name('optional').version('1.0.0').title('Optional').build()
 		const definition = bundle()
@@ -254,8 +257,7 @@ describe('bundle inclusion', () => {
 			source: source.fill({ fields: { enabled: true } }),
 		})
 		const signable = draft.prepareForSigning()
-		const invalidated = signable.updateContent('source', source.fill().prepareForSigning())
 
-		expect(() => invalidated.finalize()).toThrow(/unresolved/)
+		expect(() => signable.updateContent('source', source.fill().prepareForSigning())).toThrow(/unresolved/)
 	})
 })

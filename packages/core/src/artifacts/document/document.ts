@@ -339,11 +339,17 @@ export function runtimeDocumentFromJSON<D extends Document>(
 	json: RuntimeDocumentJSON<D>,
 	options?: ArtifactInstanceOptions,
 ): RuntimeDocument<D> {
+	if (json.phase !== 'draft' && json.phase !== 'final') {
+		throw new TypeError(`Invalid document JSON: unknown phase "${String((json as { phase: unknown }).phase)}"`)
+	}
+	if (json.phase === 'final' && typeof json.finalizedAt !== 'string') {
+		throw new TypeError('Invalid document JSON: a final document needs finalizedAt')
+	}
 	return createRuntimeDocument({
 		document: snapshotArtifactDefinition(json.document),
 		targetLayer: json.targetLayer,
 		resolver: options?.resolver,
-		finalizedAt: 'finalizedAt' in json ? json.finalizedAt : undefined,
+		finalizedAt: json.phase === 'final' ? json.finalizedAt : undefined,
 	})
 }
 
