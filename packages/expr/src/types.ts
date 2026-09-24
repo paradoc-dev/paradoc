@@ -75,10 +75,7 @@ export type DiagnosticCode =
 	| 'type-mismatch'
 	| 'arity'
 	| 'non-boolean-gate'
-	| 'circular-defs'
 	| 'forbidden-operator' // '=' used as an operator, '||', '&&'
-	| 'non-deterministic' // random() and similar
-	| 'division-by-zero'
 	| 'limit-exceeded'
 	| 'invalid-aggregate' // a list path outside an aggregate, or an aggregate that does not read a list
 

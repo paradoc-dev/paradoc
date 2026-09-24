@@ -68,6 +68,23 @@ describe('parser — membership, calls, arrays, members', () => {
 		expect(notIn.negated).toBe(true)
 	})
 
+	it("reads not 'in' as not applied to a string, not as not in", () => {
+		const r = parse("fields.x not 'in' fields.list")
+		expect(r.ast).toBeNull()
+		expect(r.errors[0]).toMatchObject({ code: 'syntax', message: "Unexpected 'not'" })
+		const not = ast("not 'in'") as Extract<Expr, { kind: 'Unary' }>
+		expect(not).toMatchObject({ kind: 'Unary', op: 'not', operand: { kind: 'StringLiteral', value: 'in' } })
+	})
+
+	it('binds in tighter than comparison and equality, and chains it', () => {
+		const eq = ast('fields.country in ["US"] == fields.ok') as Extract<Expr, { kind: 'Binary' }>
+		expect(eq).toMatchObject({ kind: 'Binary', op: '==', left: { kind: 'Membership' } })
+		const lt = ast('a in b < c') as Extract<Expr, { kind: 'Binary' }>
+		expect(lt).toMatchObject({ kind: 'Binary', op: '<', left: { kind: 'Membership' } })
+		const chained = ast('a in b in c') as Extract<Expr, { kind: 'Membership' }>
+		expect(chained).toMatchObject({ kind: 'Membership', element: { kind: 'Membership' }, collection: { kind: 'Identifier', name: 'c' } })
+	})
+
 	it('parses calls with arguments', () => {
 		const c = ast('contains(fields.tags, "x")') as Extract<Expr, { kind: 'Call' }>
 		expect(c.kind).toBe('Call')

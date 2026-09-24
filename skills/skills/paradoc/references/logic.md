@@ -157,7 +157,7 @@ The complete builtin set (`DEFAULT_SIGNATURES` in `@paradoc/expr`). Any other na
 
 | Function | Returns | Behavior |
 |----------|---------|----------|
-| `round(value, digits?)` | number | Half away from zero. `digits` defaults to `0`. `round(2.345, 2)` is `2.35`. |
+| `round(value, digits?)` | number | Half away from zero. `digits` defaults to `0` and must be a whole number from `0` to `1000`. `round(2.345, 2)` is `2.35`. |
 | `floor(value)` | number | |
 | `ceil(value)` | number | |
 | `abs(value)` | number | |
@@ -298,7 +298,7 @@ A **missing** result is not an error. It means the expression cannot be computed
 - A condition over a missing value is false: the field waits on its inputs.
 - A rule over a missing value is not met and fails with its own `message`.
 
-A result **fails** only when the expression errors with every input present: a type mismatch, division by zero, a mixed-currency sum, a `matches` pattern outside the subset. Then:
+A result **fails** when the operation that errors did not read a missing value: a type mismatch, division by zero, a mixed-currency sum, a `matches` pattern outside the subset. A missing value elsewhere does not hide the failure: `(fields.total - coalesce(fields.discount, 0)) / fields.count` with no discount and a count of `0` fails with division by zero. Then:
 
 - A failed def reads as missing, and `getFillState().issues` has an entry with path `["defs", "<key>"]`. The rest of the form still evaluates, and completion is blocked.
 - A failed condition uses the property's default and adds an issue.
@@ -518,6 +518,6 @@ expr.checkBooleanGate("fields.age", env).diagnostics;
 | `DEFAULT_SIGNATURES`, `buildRegistry(extra, { explicitOverrides })` | The builtin set, and a registry with host functions added. A host function must be deterministic, and its name may not collide with a builtin unless listed in `explicitOverrides`. |
 | `Decimal`, `MAX_EXPRESSION_LENGTH`, `MAX_EXPRESSION_DEPTH`, `MAX_DECIMAL_DIGITS`, `MAX_DECIMAL_SCALE` | Exact arithmetic and engine limits. |
 
-Failure codes: `missing-input`, `type-error`, `division-by-zero`, `currency-mismatch`, `unknown-function`, `arity`, `missing-clock`, `missing-capability` (a party function with no party context), `limit-exceeded`, `host-error`.
+Failure codes: `missing-input`, `syntax` (the source does not parse), `type-error`, `division-by-zero`, `currency-mismatch`, `unknown-function`, `arity`, `missing-clock`, `missing-capability` (a party function with no party context), `limit-exceeded`, `host-error`.
 
 Templates can also call host functions configured on the renderer: see [rendering.md](./rendering.md).

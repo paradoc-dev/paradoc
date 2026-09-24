@@ -142,7 +142,3 @@ export function valueEquals(a: Value, b: Value): boolean {
 		}
 	}
 }
-
-export function typeName(v: Value): string {
-	return v.kind
-}

@@ -13,7 +13,7 @@ import { staticPath } from '../ast/paths'
 import { extractReferences } from '../analyze/references'
 import { isAggregateName, type AggregateName } from '../eval/aggregate'
 import { parse } from '../parser/parser'
-import { buildRegistry, type Registry, type ReturnSpec } from '../registry/registry'
+import { arityMismatch, DEFAULT_REGISTRY, type FnSignature, type Registry, type ReturnSpec } from '../registry/registry'
 import { formatType, typesEqual, T, type Diagnostic, type ExprType, type Span } from '../types'
 import { validateDate, validateDateDuration, validateDatetime } from '../eval/temporal'
 
@@ -36,8 +36,7 @@ function assignable(expected: ExprType, actual: ExprType): boolean {
 
 const NUMERIC = (t: ExprType) => t.kind === 'number' || t.kind === 'unknown'
 const STRINGY = (t: ExprType) => t.kind === 'string' || t.kind === 'unknown'
-
-const DEFAULT_REGISTRY = buildRegistry()
+const TEMPORAL = (t: ExprType) => t.kind === 'date' || t.kind === 'datetime' || t.kind === 'time' || t.kind === 'unknown'
 
 /** The element kinds each aggregate accepts; `count` accepts any row. */
 const AGGREGATE_ELEMENT_KINDS: Readonly<Record<Exclude<AggregateName, 'count'>, readonly string[]>> = {
@@ -166,7 +165,7 @@ class Checker {
 	 * Check a list aggregate. Returns undefined when `min`/`max` is not given a
 	 * path into a list, so the caller checks it as the variadic comparison.
 	 */
-	private inferAggregate(name: AggregateName, node: Extract<Expr, { kind: 'Call' }>): ExprType | undefined {
+	private inferAggregate(name: AggregateName, sig: FnSignature, node: Extract<Expr, { kind: 'Call' }>): ExprType | undefined {
 		const [valuesArg, filterArg] = node.args
 		const path = valuesArg ? staticPath(valuesArg) : null
 		const resolved = path === null ? undefined : this.env.resolve(path)
@@ -174,8 +173,9 @@ class Checker {
 		if ((name === 'min' || name === 'max') && (lists.length === 0 || node.args.length > 2)) return undefined
 
 		const fallback = name === 'count' ? T.number : name === 'any' || name === 'all' ? T.boolean : T.unknown
-		if (node.args.length < 1 || node.args.length > 2) {
-			this.error('arity', `${name} expects ${arityText(1, 2)}, got ${node.args.length}`, node.span)
+		const arity = arityMismatch(name, sig, node.args.length)
+		if (arity) {
+			this.error('arity', arity, node.span)
 			return fallback
 		}
 		if (path === null) {
@@ -245,8 +245,7 @@ class Checker {
 		const op = node.op
 		if (op === '==' || op === '!=') return T.boolean
 		if (op === '<' || op === '<=' || op === '>' || op === '>=') {
-			const temporal = ['date', 'datetime', 'time'].includes(l.kind) && l.kind === r.kind
-			const ok = (NUMERIC(l) && NUMERIC(r)) || (STRINGY(l) && STRINGY(r)) || temporal
+			const ok = (NUMERIC(l) && NUMERIC(r)) || (STRINGY(l) && STRINGY(r)) || (TEMPORAL(l) && TEMPORAL(r) && (l.kind === r.kind || l.kind === 'unknown' || r.kind === 'unknown'))
 			if (!ok) this.error('type-mismatch', `Cannot compare ${formatType(l)} and ${formatType(r)}`, node.span)
 			return T.boolean
 		}
@@ -294,7 +293,7 @@ class Checker {
 			return T.unknown
 		}
 		if (sig.aggregate && isAggregateName(node.callee) && sig === DEFAULT_REGISTRY.get(node.callee)) {
-			const aggregated = this.inferAggregate(node.callee, node)
+			const aggregated = this.inferAggregate(node.callee, sig, node)
 			if (aggregated) return aggregated
 		}
 		const argTypes = node.args.map((a) => this.infer(a))
@@ -315,11 +314,8 @@ class Checker {
 				this.error('type-mismatch', `contains expects ${formatType(haystack.element)}, got ${formatType(needle)}`, node.args[1]!.span)
 			}
 		}
-		const required = sig.params.filter((p) => !p.optional).length
-		const max = sig.variadic ? Infinity : sig.params.length
-		if (argTypes.length < required || argTypes.length > max) {
-			this.error('arity', `${node.callee} expects ${arityText(required, max)}, got ${argTypes.length}`, node.span)
-		}
+		const arity = arityMismatch(node.callee, sig, argTypes.length)
+		if (arity) this.error('arity', arity, node.span)
 		argTypes.forEach((at, i) => {
 			const param = sig.params[Math.min(i, sig.params.length - 1)]
 			const temporalLiteral = param && ['date', 'datetime', 'time', 'duration'].includes(param.type.kind) && at.kind === 'string'
@@ -341,19 +337,9 @@ class Checker {
 	}
 }
 
-function arityText(required: number, max: number): string {
-	if (max === Infinity) return `at least ${required} argument(s)`
-	if (required === max) return `${required} argument(s)`
-	return `${required} to ${max} argument(s)`
-}
-
 function resolveReturn(spec: ReturnSpec, argTypes: readonly ExprType[]): ExprType {
 	if (spec.kind === 'fixed') return spec.type
 	if (spec.kind === 'aggregate') return T.unknown
-	if (spec.kind === 'elementOf') {
-		const t = argTypes[spec.arg]
-		return t && t.kind === 'array' ? t.element : T.unknown
-	}
 	// commonOfArgs
 	const known = argTypes.filter((t) => t.kind !== 'null' && t.kind !== 'unknown')
 	const first = known[0]
@@ -362,7 +348,7 @@ function resolveReturn(spec: ReturnSpec, argTypes: readonly ExprType[]): ExprTyp
 }
 
 /** Build a simple TypeEnv from a path->type map (host adapters build richer ones). */
-export function createTypeEnv(paths: Record<string, ExprType>, registry: Registry = buildRegistry()): TypeEnv {
+export function createTypeEnv(paths: Record<string, ExprType>, registry: Registry = DEFAULT_REGISTRY): TypeEnv {
 	const map = new Map(Object.entries(paths))
 	return { resolve: (p) => map.get(p), registry }
 }

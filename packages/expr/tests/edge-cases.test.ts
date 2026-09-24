@@ -60,9 +60,10 @@ describe('Decimal — rounding modes and edges', () => {
 		expect(D('-2.5').round(0, 'ceil').toString()).toBe('-2')
 	})
 
-	it('round clamps negative and fractional digits to a valid scale', () => {
-		expect(D('123.456').round(-1).toString()).toBe('123')
-		expect(D('1.555').round(2.9).toString()).toBe('1.56')
+	it('round rejects negative and fractional digits', () => {
+		expect(() => D('123.456').round(-1)).toThrow(RangeError)
+		expect(() => D('1.555').round(2.9)).toThrow(RangeError)
+		expect(D('1.555').round(2).toString()).toBe('1.56')
 	})
 
 	it('round pads when asked for more places than present', () => {

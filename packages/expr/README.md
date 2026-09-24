@@ -59,7 +59,7 @@ const result = evaluateExpression("fields.age >= 18", ctx);
 // { success: true, value: { kind: "boolean", value: true } }
 ```
 
-`evaluateExpression` is the safe source API. Low-level `parseOrThrow`, `evaluate`, and `Decimal` operations may throw. Numbers are exact decimals inside the engine; conversion back to JavaScript numbers is explicitly lossy. Division retains up to 20 fractional places. Expression length, nesting, regex input, and decimal scale are bounded and return `limit-exceeded` from the safe API.
+`evaluateExpression` is the safe source API. Low-level `parseOrThrow`, `evaluate`, and `Decimal` operations may throw. Numbers are exact decimals inside the engine; conversion back to JavaScript numbers is explicitly lossy. Division retains up to 20 fractional places. Expression length, nesting, regex input, and decimal scale are bounded and return `limit-exceeded` from the safe API. A source that does not parse returns `syntax`, with the parser's diagnostics.
 
 `coalesce` evaluates from left to right and stops at the first non-null value. Date inputs use `YYYY-MM-DD`; datetimes representing instants require `Z` or an explicit offset. Month and year additions clamp to the final valid day of the target month. Source offsets and columns count UTF-16 code units.
 

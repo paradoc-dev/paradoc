@@ -151,14 +151,12 @@ export class Decimal {
 		return this.n === 0n
 	}
 
-	/** Round to `digits` decimal places (default 0). Negative/fractional
-	 * digits are clamped to a valid non-negative integer scale. */
+	/** Round to `digits` decimal places (default 0): an integer from 0 to MAX_DECIMAL_SCALE. */
 	round(digits = 0, rm: RoundingMode = 'half-up'): Decimal {
-		const scale = Math.max(0, Math.trunc(digits))
-		if (!Number.isSafeInteger(scale) || scale > MAX_DECIMAL_SCALE) {
-			throw new RangeError(`Decimal scale must be between 0 and ${MAX_DECIMAL_SCALE}`)
+		if (!Number.isSafeInteger(digits) || digits < 0 || digits > MAX_DECIMAL_SCALE) {
+			throw new RangeError(`Decimal scale must be an integer between 0 and ${MAX_DECIMAL_SCALE}, got ${digits}`)
 		}
-		return this.toScale(scale, rm)
+		return this.toScale(digits, rm)
 	}
 
 	floor(): Decimal {

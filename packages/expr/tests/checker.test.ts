@@ -51,6 +51,12 @@ describe('checker — catches mistakes at authoring time', () => {
 
 	it('flags ordering of incompatible types', () => {
 		expect(codes('fields.name < fields.age')).toContain('type-mismatch')
+		expect(codes('fields.dob < fields.age')).toContain('type-mismatch')
+	})
+
+	it('orders an unknown value against a temporal one', () => {
+		expect(codes('(isAdult ? fields.dob : null) > fields.dob')).toEqual([])
+		expect(codes('fields.dob <= (isAdult ? fields.dob : null)')).toEqual([])
 	})
 
 	it('flags arithmetic on non-numbers', () => {

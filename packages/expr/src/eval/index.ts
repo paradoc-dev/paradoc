@@ -1,5 +1,5 @@
 export type { Value } from './values'
-export { Values, toValue, truthy, valueToString, valueEquals, typeName, NULL } from './values'
+export { Values, toValue, truthy, valueToString, valueEquals, NULL } from './values'
 export { EvaluationError } from './errors'
 export type { EvalErrorCode } from './errors'
 export type { EvaluationContext, AsOf, HostFunction, ContextOptions, RowVisibility } from './context'

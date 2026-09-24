@@ -1,7 +1,7 @@
 /**
- * Pure-data grammar configuration consumed by the parser. Declares the keyword
- * set and the operator precedence / associativity table. No logic lives here;
- * the parser (config-declares, packages-execute) reads this to drive parsing.
+ * Pure-data grammar configuration: the keyword set, the binary operator
+ * precedence and associativity table, and the rejected operators. The lexer
+ * and parser read it; the unary operators are parsed directly.
  */
 
 /** Reserved words that are never parsed as identifiers. */
@@ -43,9 +43,6 @@ export const BINARY_OPERATORS: readonly OperatorInfo[] = [
 	{ token: '%', precedence: 7, associativity: 'left' },
 ]
 
-/** Prefix unary operators. `!` is an alias for `not`. */
-export const UNARY_OPERATORS = ['not', '!', '-'] as const
-
 /**
  * Operators the language deliberately rejects, mapped to the message the
  * checker surfaces. `=` is assignment (a `==` typo); `||` / `&&` are the
@@ -59,6 +56,3 @@ export const FORBIDDEN_OPERATORS: Readonly<Record<string, string>> = {
 
 /** Fast membership lookup for the lexer/parser. */
 export const KEYWORD_SET: ReadonlySet<string> = new Set(KEYWORDS)
-export const BINARY_OPERATOR_TOKENS: ReadonlySet<string> = new Set(
-	BINARY_OPERATORS.map((o) => o.token),
-)

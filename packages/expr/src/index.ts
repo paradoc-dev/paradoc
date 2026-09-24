@@ -1,11 +1,6 @@
 /**
- * @paradoc/expr — a purpose-built expression language for Paradoc artifacts.
- *
- * Public surface grows by phase:
- *   Phase 1 (this): shared types, the typed AST, grammar config, function registry.
- *   Phase 2: parser (`parse`).
- *   Phase 3: evaluator (`evaluate`).
- *   Phase 4: artifact-aware checker (`check`).
+ * @paradoc/expr: the Paradoc expression language, with its parser, evaluator,
+ * and artifact-aware type checker.
  */
 
 // Shared types
@@ -50,8 +45,6 @@ export {
 	KEYWORDS,
 	KEYWORD_SET,
 	BINARY_OPERATORS,
-	BINARY_OPERATOR_TOKENS,
-	UNARY_OPERATORS,
 	FORBIDDEN_OPERATORS,
 } from './grammar/grammar'
 export type { Keyword, Associativity, OperatorInfo } from './grammar/grammar'

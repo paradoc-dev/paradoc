@@ -13,14 +13,12 @@ import { T, type ExprType } from '../types'
 
 /**
  * How a function's return type is determined. Most are `fixed`; `commonOfArgs`
- * (coalesce), `elementOf` (reserved for collection ops), and `aggregate` (the
- * list aggregates, typed from the aggregated path's element) depend on
- * argument types and are resolved by the checker.
+ * (coalesce) and `aggregate` (the list aggregates, typed from the aggregated
+ * path's element) depend on argument types and are resolved by the checker.
  */
 export type ReturnSpec =
 	| { readonly kind: 'fixed'; readonly type: ExprType }
 	| { readonly kind: 'commonOfArgs' }
-	| { readonly kind: 'elementOf'; readonly arg: number }
 	| { readonly kind: 'aggregate' }
 
 export interface ParamSpec {
@@ -385,4 +383,18 @@ export function buildRegistry(extra: readonly FnSignature[] = [], options: Regis
 		get: (name) => map.get(name),
 		names: () => [...map.keys()],
 	}
+}
+
+/** The registry of the default signatures alone, shared by the checker and the evaluator. */
+export const DEFAULT_REGISTRY: Registry = buildRegistry()
+
+/** The message for a call to `name` with `count` arguments, or undefined when the count fits the signature. */
+export function arityMismatch(name: string, sig: FnSignature, count: number): string | undefined {
+	const required = sig.params.filter((param) => !param.optional).length
+	const maximum = sig.variadic ? Infinity : sig.params.length
+	if (count >= required && count <= maximum) return undefined
+	const expected = maximum === Infinity
+		? `at least ${required}`
+		: required === maximum ? String(required) : `${required} to ${maximum}`
+	return `${name} expects ${expected} argument(s), got ${count}`
 }

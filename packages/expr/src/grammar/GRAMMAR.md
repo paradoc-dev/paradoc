@@ -9,12 +9,12 @@ expression   = ternary ;
 ternary      = logic_or [ "?" expression ":" expression ] ;
 
 logic_or     = logic_and { "or" logic_and } ;
-logic_and    = membership { "and" membership } ;
-
-membership   = equality [ ( "in" | "not" "in" ) equality ] ;
+logic_and    = equality { "and" equality } ;
 
 equality     = comparison { ( "==" | "!=" ) comparison } ;
-comparison   = additive { ( "<" | "<=" | ">" | ">=" ) additive } ;
+comparison   = membership { ( "<" | "<=" | ">" | ">=" ) membership } ;
+
+membership   = additive { ( "in" | "not" "in" ) additive } ;
 
 additive     = multiplicative { ( "+" | "-" ) multiplicative } ;
 multiplicative = unary { ( "*" | "/" | "%" ) unary } ;
@@ -43,7 +43,12 @@ Notes:
 
 - `+` is polymorphic: numeric addition or string concatenation, resolved by
   operand type during checking and evaluation.
-- `not in` is the negated membership operator.
+- Binary operators are left-associative. From loosest to tightest: `or`,
+  `and`, equality, comparison, membership, additive, multiplicative. So
+  `fields.country in ["US"] == fields.ok` compares the membership result, and
+  membership chains like any other binary operator.
+- `not in` is the negated membership operator. Both words must be keywords:
+  `not 'in'` is `not` applied to a string.
 - A bare `identifier` is a reference (defs key or context root such as
   `fields`); an `identifier` immediately followed by `(` is a function call.
   Functions are not first-class values.

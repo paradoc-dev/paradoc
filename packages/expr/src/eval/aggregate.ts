@@ -258,9 +258,6 @@ export function evaluateAggregate(name: AggregateName, node: Call, ctx: Evaluati
 	const [valuesArg, filterArg] = node.args
 	const path = valuesArg ? staticPath(valuesArg) : null
 	if (comparison && (path === null || node.args.length > 2)) return undefined
-	if (node.args.length < 1 || node.args.length > 2) {
-		throw new EvaluationError('arity', `${name} expects 1 to 2 argument(s), got ${node.args.length}`, node.span)
-	}
 	if (path === null) {
 		throw new EvaluationError('type-error', `${name} expects a path into a list, such as ${name}(fields.items.amount)`, valuesArg!.span)
 	}
@@ -282,7 +279,7 @@ export function evaluateAggregate(name: AggregateName, node: Call, ctx: Evaluati
 	try {
 		return reduce(name, included.map((entry) => entry.value))
 	} catch (error) {
-		if (error instanceof EvaluationError && !error.span) throw new EvaluationError(error.code, error.message, node.span)
+		if (error instanceof EvaluationError && !error.span) throw new EvaluationError(error.code, error.message, node.span, error.inputs)
 		throw error
 	}
 }

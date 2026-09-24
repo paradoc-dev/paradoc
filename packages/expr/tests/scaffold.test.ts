@@ -73,6 +73,9 @@ describe('function registry', () => {
 
 	it('registers only deterministic functions', () => {
 		expect(DEFAULT_SIGNATURES.every((s) => s.deterministic)).toBe(true)
+		const sig = { name: 'orgScore', category: 'domain', params: [], returns: { kind: 'fixed', type: T.number }, hostInjected: true } as const
+		expect(buildRegistry([{ ...sig, deterministic: true }]).has('orgScore')).toBe(true)
+		expect(() => buildRegistry([{ ...sig, deterministic: false }])).toThrow('Function orgScore must be deterministic')
 	})
 
 	it('requires host extensions to override by name explicitly', () => {

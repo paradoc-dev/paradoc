@@ -10,7 +10,7 @@
 import { Decimal, MAX_DECIMAL_SCALE } from '../decimal/decimal'
 import { EvaluationError } from './errors'
 import { addDays, addDuration, dateDiff, validateDatetime, yearsBetween } from './temporal'
-import { NULL, Values, valueEquals, type Value } from './values'
+import { NULL, Values, valueEquals, valueToString, type Value } from './values'
 import type { EvaluationContext } from './context'
 
 export type Impl = (args: readonly Value[], ctx: EvaluationContext) => Value
@@ -108,8 +108,11 @@ export const BUILTIN_IMPLS: Readonly<Record<string, Impl>> = {
 		const value = asNumber(arg(args, 0), 'round')
 		const digitsArg = args[1]
 		const digits = digitsArg && digitsArg.kind === 'number' ? digitsArg.value.toNumber() : 0
-		if (!Number.isSafeInteger(digits) || digits < 0 || digits > MAX_DECIMAL_SCALE) {
-			throw new EvaluationError('limit-exceeded', `round digits must be an integer between 0 and ${MAX_DECIMAL_SCALE}`)
+		if (!Number.isInteger(digits) || digits < 0) {
+			throw new EvaluationError('type-error', `round digits must be a non-negative integer, got ${digitsArg ? valueToString(digitsArg) : digits}`)
+		}
+		if (digits > MAX_DECIMAL_SCALE) {
+			throw new EvaluationError('limit-exceeded', `round digits must be at most ${MAX_DECIMAL_SCALE}`)
 		}
 		return Values.number(value.round(digits))
 	},
@@ -140,7 +143,6 @@ export const BUILTIN_IMPLS: Readonly<Record<string, Impl>> = {
 
 /** Compare the present arguments; null (absent) arguments are skipped, and none present is null. */
 function reduceNumbers(args: readonly Value[], fn: string, pick: (a: Decimal, b: Decimal) => Decimal): Value {
-	if (args.length === 0) throw new EvaluationError('arity', `${fn} requires at least one argument`)
 	const present = args.filter((value) => value.kind !== 'null')
 	if (present.length === 0) return NULL
 	let acc = asNumber(present[0]!, fn)

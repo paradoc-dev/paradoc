@@ -10,15 +10,14 @@ import { parse } from '../parser/parser'
 import type { Diagnostic } from '../types'
 import { EvaluationError, type EvalErrorCode } from './errors'
 import { BUILTIN_IMPLS } from './functions'
-import { evaluateAggregate, isAggregateName, resolveScopedMember } from './aggregate'
+import { evaluateAggregate, isAggregateName, resolveScopedMember, type AggregateName } from './aggregate'
 import { NULL, Values, truthy, valueEquals, valueToString, type Value } from './values'
 import type { EvaluationContext } from './context'
-import { buildRegistry } from '../registry/registry'
+import { arityMismatch, DEFAULT_REGISTRY, type FnSignature } from '../registry/registry'
+import { staticPath } from '../ast/paths'
 import type { ExprType } from '../types'
 import { datetimeEpoch, validateDate, validateDateDuration, validateDatetime } from './temporal'
 import { missingReferences } from '../analyze/missing'
-
-const DEFAULT_REGISTRY = buildRegistry()
 
 function isValue(value: unknown): value is Value {
 	if (!value || typeof value !== 'object' || !('kind' in value)) return false
@@ -53,10 +52,6 @@ function resolvedReturnType(sig: ReturnType<NonNullable<EvaluationContext['regis
 	if (!sig) return undefined
 	if (sig.returns.kind === 'fixed') return sig.returns.type
 	if (sig.returns.kind === 'aggregate') return undefined
-	if (sig.returns.kind === 'elementOf') {
-		const value = args[sig.returns.arg]
-		return value?.kind === 'array' && value.value[0] ? typeOfValue(value.value[0]) : undefined
-	}
 	const nonNull = args.filter((arg) => arg.kind !== 'null')
 	const first = nonNull[0]
 	return first && nonNull.every((arg) => arg.kind === first.kind) ? typeOfValue(first) : undefined
@@ -68,7 +63,7 @@ export function evaluate(node: Expr, ctx: EvaluationContext): Value {
 	} catch (error) {
 		if (error instanceof EvaluationError) {
 			if (error.span) throw error
-			throw new EvaluationError(error.code, error.message, node.span)
+			throw new EvaluationError(error.code, error.message, node.span, error.inputs)
 		}
 		if (error instanceof RangeError) throw new EvaluationError('limit-exceeded', error.message, node.span)
 		throw error
@@ -106,8 +101,10 @@ function evaluateNode(node: Expr, ctx: EvaluationContext): Value {
 			if (obj.kind === 'object' && idx.kind === 'string') return obj.value.get(idx.value) ?? NULL
 			return NULL
 		}
-		case 'Unary':
-			return evalUnary(node.op, evaluate(node.operand, ctx))
+		case 'Unary': {
+			const operand = evaluate(node.operand, ctx)
+			return reading([node.operand], [operand], () => evalUnary(node.op, operand))
+		}
 		case 'Binary':
 			return evalBinary(node.op, node, ctx)
 		case 'Logical':
@@ -123,6 +120,25 @@ function evaluateNode(node: Expr, ctx: EvaluationContext): Value {
 	}
 }
 
+/**
+ * Run an operation over operands already evaluated. When it fails, the error
+ * records the operands it read that can hold a missing input: each one whose
+ * value is null, and each reference path (a list path can have a row with no
+ * value). An operand that computed a value from a missing input, such as
+ * `coalesce(fields.discount, 0)`, did not read one.
+ */
+function reading<T>(operands: readonly Expr[], values: readonly (Value | undefined)[], run: () => T): T {
+	try {
+		return run()
+	} catch (error) {
+		if (error instanceof EvaluationError && !error.inputs) {
+			const inputs = operands.filter((operand, index) => values[index]?.kind === 'null' || staticPath(operand) !== null)
+			throw new EvaluationError(error.code, error.message, error.span, inputs)
+		}
+		throw error
+	}
+}
+
 function evalUnary(op: 'not' | 'neg', operand: Value): Value {
 	if (op === 'not') return Values.boolean(!truthy(operand))
 	if (operand.kind !== 'number') {
@@ -134,7 +150,10 @@ function evalUnary(op: 'not' | 'neg', operand: Value): Value {
 function evalBinary(op: string, node: Extract<Expr, { kind: 'Binary' }>, ctx: EvaluationContext): Value {
 	const left = evaluate(node.left, ctx)
 	const right = evaluate(node.right, ctx)
+	return reading([node.left, node.right], [left, right], () => binaryOperation(op, left, right))
+}
 
+function binaryOperation(op: string, left: Value, right: Value): Value {
 	switch (op) {
 		case '==':
 			return Values.boolean(valueEquals(left, right))
@@ -226,6 +245,10 @@ function evalLogical(op: 'and' | 'or', node: Extract<Expr, { kind: 'Logical' }>,
 function evalMembership(node: Extract<Expr, { kind: 'Membership' }>, ctx: EvaluationContext): Value {
 	const element = evaluate(node.element, ctx)
 	const collection = evaluate(node.collection, ctx)
+	return reading([node.element, node.collection], [element, collection], () => membership(node.negated, element, collection))
+}
+
+function membership(negated: boolean, element: Value, collection: Value): Value {
 	let present: boolean
 	if (collection.kind === 'array') {
 		present = collection.value.some((el) => valueEquals(el, element))
@@ -239,23 +262,22 @@ function evalMembership(node: Extract<Expr, { kind: 'Membership' }>, ctx: Evalua
 	} else {
 		throw new EvaluationError('type-error', `'in' requires an array or string, got ${collection.kind}`)
 	}
-	return Values.boolean(node.negated ? !present : present)
+	return Values.boolean(negated ? !present : present)
 }
 
 function evalCall(node: Extract<Expr, { kind: 'Call' }>, ctx: EvaluationContext): Value {
 	const sig = (ctx.registry ?? DEFAULT_REGISTRY).get(node.callee)
 	if (!sig) throw new EvaluationError('unknown-function', `Unknown function: ${node.callee}`)
-	const required = sig.params.filter((param) => !param.optional).length
-	const maximum = sig.variadic ? Infinity : sig.params.length
-	if (node.args.length < required || node.args.length > maximum) {
-		throw new EvaluationError('arity', `${node.callee} expects ${maximum === Infinity ? `at least ${required}` : required === maximum ? String(required) : `${required} to ${maximum}`} argument(s), got ${node.args.length}`)
-	}
+	const arity = arityMismatch(node.callee, sig, node.args.length)
+	if (arity) throw new EvaluationError('arity', arity)
 	const explicitlyOverridden = Boolean(ctx.registry && sig !== DEFAULT_REGISTRY.get(node.callee))
 	if (sig.aggregate && isAggregateName(node.callee) && !explicitlyOverridden) {
-		const aggregated = evaluateAggregate(node.callee, node, ctx, evaluate)
+		const name: AggregateName = node.callee
+		const aggregated = reading(node.args.slice(0, 1), [], () => evaluateAggregate(name, node, ctx, evaluate))
 		if (aggregated) return aggregated
 		// `min`/`max` over plain arguments compare them, skipping nulls.
-		return BUILTIN_IMPLS[node.callee]!(node.args.map((a) => evaluate(a, ctx)), ctx)
+		const values = node.args.map((a) => evaluate(a, ctx))
+		return reading(node.args, values, () => BUILTIN_IMPLS[node.callee]!(values, ctx))
 	}
 	if (node.callee === 'coalesce' && !explicitlyOverridden) {
 		for (const arg of node.args) {
@@ -265,6 +287,10 @@ function evalCall(node: Extract<Expr, { kind: 'Call' }>, ctx: EvaluationContext)
 		return NULL
 	}
 	const args = node.args.map((a) => evaluate(a, ctx))
+	return reading(node.args, args, () => applyFunction(node, sig, args, ctx, explicitlyOverridden))
+}
+
+function applyFunction(node: Extract<Expr, { kind: 'Call' }>, sig: FnSignature, args: readonly Value[], ctx: EvaluationContext, explicitlyOverridden: boolean): Value {
 	args.forEach((value, index) => {
 		const param = sig.params[Math.min(index, sig.params.length - 1)]
 		if (param && !valueMatchesType(value, param.type)) {
@@ -316,25 +342,34 @@ export type EvalResult =
 /** Failures that depend on input values, and so can be caused by an input with no value. */
 const VALUE_ERROR_CODES: ReadonlySet<EvalErrorCode> = new Set(['type-error', 'division-by-zero', 'currency-mismatch'])
 
+/** The references with no value among the operands a failed operation read, sorted. */
+function missingInputs(inputs: readonly Expr[], ctx: EvaluationContext): string[] {
+	return [...new Set(inputs.flatMap((input) => missingReferences(input, ctx)))].sort()
+}
+
 /**
- * Parse and evaluate a source expression, capturing errors as a result.
+ * Parse and evaluate a source expression, capturing errors as a result. A
+ * source that does not parse has code `syntax`, or `limit-exceeded` when it is
+ * over the length or nesting bound, with the parser's diagnostics.
  *
- * An expression that fails on its values while one of its references has no
- * value is not a failure: it cannot be computed yet, and the result has code
- * `missing-input` naming those references. The same failure with every input
+ * An expression whose failing operation read an input with no value is not a
+ * failure: it cannot be computed yet, and the result has code `missing-input`
+ * naming those references. A failure that no missing input caused keeps its
+ * own code, even when another reference in the expression has no value. The same failure with every input
  * present keeps its own code. Null-safe expressions that handle a missing
  * value themselves (`coalesce`, `?:`, `or`) evaluate as usual.
  */
 export function evaluateExpression(source: string, ctx: EvaluationContext): EvalResult {
 	const { ast, errors } = parse(source)
 	if (!ast) {
-		return { success: false, error: errors[0]?.message ?? 'Parse error', diagnostics: errors }
+		const code = errors[0]?.code === 'limit-exceeded' ? 'limit-exceeded' : 'syntax'
+		return { success: false, error: errors[0]?.message ?? 'Parse error', code, diagnostics: errors }
 	}
 	try {
 		return { success: true, value: evaluate(ast, ctx) }
 	} catch (e) {
 		if (e instanceof EvaluationError) {
-			const missing = VALUE_ERROR_CODES.has(e.code) ? missingReferences(ast, ctx) : []
+			const missing = VALUE_ERROR_CODES.has(e.code) ? missingInputs(e.inputs ?? [], ctx) : []
 			if (missing.length > 0) {
 				return { success: false, error: `Missing input: ${missing.join(', ')}`, code: 'missing-input', missing }
 			}

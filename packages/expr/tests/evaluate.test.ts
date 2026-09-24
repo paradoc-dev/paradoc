@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createContext, evaluateExpression, evaluateBoolean, Values, type Value } from '../src/index'
+import { buildRegistry, createContext, evaluateExpression, evaluateBoolean, T, Values, type FnSignature, type Value } from '../src/index'
 import type { EvaluationContext } from '../src/index'
 
 function unwrap(v: Value): unknown {
@@ -156,6 +156,65 @@ describe('host-injected domain functions', () => {
 	})
 })
 
+describe('host function guards', () => {
+	const outcome = (src: string, opts: Parameters<typeof createContext>[1]) => {
+		const r = evaluateExpression(src, createContext({}, opts))
+		return r.success ? { value: unwrap(r.value) } : { code: r.code, error: r.error }
+	}
+	const trimOverride: FnSignature = { name: 'trim', category: 'string', params: [{ name: 'value', type: T.string }], returns: { kind: 'fixed', type: T.string }, deterministic: true }
+	const overridden = buildRegistry([trimOverride], { explicitOverrides: ['trim'] })
+
+	it('accepts a host result that is a value of the declared type', () => {
+		expect(outcome('partyCount("buyer")', { hostFunctions: { partyCount: () => Values.num('2') } })).toEqual({ value: '2' })
+	})
+
+	it('rejects a host result that is not a value', () => {
+		const bad = () => ({ kind: 'number', value: 2 }) as unknown as Value
+		expect(outcome('partyCount("buyer")', { hostFunctions: { partyCount: bad } })).toEqual({ code: 'host-error', error: 'Host function partyCount returned an invalid value' })
+	})
+
+	it('rejects a host result of the wrong type', () => {
+		expect(outcome('partyCount("buyer")', { hostFunctions: { partyCount: () => Values.string('2') } })).toEqual({ code: 'host-error', error: 'Host function partyCount returned string, expected number' })
+	})
+
+	it('uses a host function in place of a builtin only when the registry overrides it', () => {
+		const shout = () => Values.string('SHOUT')
+		expect(outcome('trim(" a ")', { registry: overridden, hostFunctions: { trim: shout } })).toEqual({ value: 'SHOUT' })
+		expect(outcome('trim(" a ")', { hostFunctions: { trim: shout } })).toEqual({ code: 'type-error', error: 'Host function trim collides with a builtin without an explicit override' })
+	})
+
+	it('fails an override that has no host implementation', () => {
+		expect(outcome('trim(" a ")', { registry: overridden })).toEqual({ code: 'missing-capability', error: 'Override trim requires a host implementation' })
+	})
+
+	it('fails a host-injected function the host does not supply', () => {
+		expect(outcome('partyCount("buyer")', {})).toEqual({ code: 'missing-capability', error: 'Function partyCount requires a host capability' })
+	})
+})
+
+describe('safe API failure codes', () => {
+	const code = (src: string) => {
+		const r = evaluateExpression(src, createContext({}))
+		return r.success ? 'success' : r.code
+	}
+
+	it('reports a source over the nesting bound as limit-exceeded', () => {
+		expect(code('('.repeat(300) + '1' + ')'.repeat(300))).toBe('limit-exceeded')
+	})
+
+	it('reports a source that does not parse as syntax', () => {
+		expect(code('1 +')).toBe('syntax')
+		expect(code('(1)')).toBe('success')
+	})
+
+	it('reports bad round digits as a type error and too many as a limit', () => {
+		expect(code('round(1.5, 0.5)')).toBe('type-error')
+		expect(code('round(1.5, -1)')).toBe('type-error')
+		expect(code('round(1.5, 1001)')).toBe('limit-exceeded')
+		expect(code('round(1.25, 1)')).toBe('success')
+	})
+})
+
 describe('evaluateBoolean — gate semantics', () => {
 	it('short-circuits boolean literals and defaults on failure', () => {
 		const ctx = createContext({ fields: { age: 20 } })
@@ -213,6 +272,20 @@ describe('missing inputs', () => {
 
 	it('does not treat an authoring error as missing even when an input is missing', () => {
 		expect(failure('nope(fields.a)', { fields: { a: null } }).code).toBe('unknown-function')
+	})
+
+	it('reports only the missing inputs the failing operation reads', () => {
+		expect(failure('coalesce(fields.a, fields.b) * 2', { fields: { a: null, b: null } }).missing).toEqual(['fields.a', 'fields.b'])
+		expect(failure('upper(fields.x)', { fields: { x: null } }).missing).toEqual(['fields.x'])
+		expect(failure('coalesce(fields.x, 0) + fields.y * 2', { fields: { x: null, y: null } }).missing).toEqual(['fields.y'])
+	})
+
+	it('keeps a failure that a handled or unrelated missing input did not cause', () => {
+		const src = '(fields.total - coalesce(fields.discount, 0)) / fields.count'
+		const r = failure(src, { fields: { total: 10, discount: null, count: 0 } })
+		expect({ code: r.code, missing: r.missing }).toEqual({ code: 'division-by-zero', missing: undefined })
+		expect(failure(src, { fields: { total: 10, discount: 1, count: 0 } }).code).toBe('division-by-zero')
+		expect(failure('fields.name * 2 + coalesce(fields.x, 0)', { fields: { name: 'bob', x: null } }).code).toBe('type-error')
 	})
 
 	it('evaluates an expression that handles the missing value itself', () => {

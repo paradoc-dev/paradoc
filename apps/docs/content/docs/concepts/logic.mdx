@@ -306,7 +306,7 @@ A computed value is **missing** while an input it reads has no value: an unanswe
 
 Whatever reads a missing value treats it the way it treats an unanswered field. A `visible` or `required` condition that cannot be computed yet is false, so the field waits on the answers it depends on. A rule that cannot be computed yet is not met, and fails with its own message.
 
-A computed value **fails** when its expression errors with every input present: a type mismatch, a division by zero, or a money sum in more than one currency. The failure is reported with the def's name and reads as missing, so the rest of the form still evaluates: other defs, conditions, and the fill state's next field. It blocks completion until the inputs change. An expression that handles `null` itself, with `coalesce` or `?:`, is evaluated as written.
+A computed value **fails** when the operation that errors did not read a missing value: a type mismatch, a division by zero, or a money sum in more than one currency. A missing value elsewhere in the expression does not hide the failure. The failure is reported with the def's name and reads as missing, so the rest of the form still evaluates: other defs, conditions, and the fill state's next field. It blocks completion until the inputs change. An expression that handles `null` itself, with `coalesce` or `?:`, is evaluated as written.
 
 ---
 

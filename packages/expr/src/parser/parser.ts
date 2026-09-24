@@ -144,7 +144,7 @@ class Parser {
 			const tok = this.peek()
 
 			// `not in`
-			if (tok.type === 'keyword' && tok.value === 'not' && this.peek(1).value === 'in') {
+			if (tok.type === 'keyword' && tok.value === 'not' && this.peek(1).type === 'keyword' && this.peek(1).value === 'in') {
 				const info = OPERATOR_INFO.get('in')!
 				if (info.precedence < minPrec) break
 				this.next() // not
