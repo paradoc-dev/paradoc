@@ -86,7 +86,6 @@ import {
 import { layer as layerBuilder, type FileLayerBuilderType, type InlineLayerBuilderType } from '@/artifacts/builders/layer'
 import { type Buildable, resolveBuildable } from '@/artifacts/shared/buildable'
 import type {
-	DeepPartial,
 	FieldsToDataType,
 	InferFormPayload as InferredFormPayload,
 	ProgressiveFormPayload as InferredProgressiveFormPayload,
@@ -702,20 +701,6 @@ function collectRuntimeValidationErrors(
 }
 
 /**
- * Validate a complete fields section without requiring unrelated payload
- * sections such as parties or annexes.
- */
-function validateFieldsOnly(formDef: Form, fields: Record<string, unknown>): Record<string, unknown> {
-	const fieldsOnlyForm = { ...formDef, parties: undefined, annexes: undefined } as Form
-	const result = validateFormData(fieldsOnlyForm, { fields }, { applyDefaults: false })
-	if (!result.success) {
-		throw new FormValidationError(result.errors)
-	}
-
-	return (result.data as { fields: Record<string, unknown> }).fields
-}
-
-/**
  * Comprehensive validation result returned by DraftForm.validate().
  */
 export interface FormValidationResult {
@@ -979,10 +964,6 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	/** No canonical hash in draft */
 	readonly canonicalPdfHash: undefined
 	readonly canonicalPdfBytes: undefined
-
-	// Field Mutation
-	setField<K extends FieldKeys<F>>(fieldId: K, value: ExtractFields<F>[K]): DraftForm<F>
-	updateFields(partial: DeepPartial<ExtractFields<F>>): DraftForm<F>
 
 	// Party Mutation
 	/**
@@ -1631,28 +1612,6 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 		getAllFields(): ExtractFields<F> {
 			return fieldsView as ExtractFields<F>
-		},
-
-		// ============================================================================
-		// Field Mutation (draft only)
-		// ============================================================================
-
-		setField<K extends FieldKeys<F>>(fieldId: K, value: ExtractFields<F>[K]): RuntimeForm<F> {
-			ensureDraft('setField')
-			const newFields = { ...fieldValues, [fieldId]: value }
-			return createRuntimeForm({
-				...config,
-				fields: validateFieldsOnly(formDef, newFields),
-			})
-		},
-
-		updateFields(partial: DeepPartial<ExtractFields<F>>): RuntimeForm<F> {
-			ensureDraft('updateFields')
-			const newFields = mergePatchValues(fieldValues, partial)
-			return createRuntimeForm({
-				...config,
-				fields: validateFieldsOnly(formDef, newFields),
-			})
 		},
 
 		// ============================================================================

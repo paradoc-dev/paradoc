@@ -23,7 +23,7 @@ describe('runtime definition snapshots', () => {
 		;(authoring.fields!.age as { min?: number }).min = 50
 		;(authoring.rules!.adult as { expr: string }).expr = 'age >= 65'
 
-		expect(() => original.setField('age', 20)).not.toThrow()
+		expect(() => original.update({ fields: { age: 20 } })).not.toThrow()
 		expect(definition.safeFill({ fields: { age: 20 } }).success).toBe(false)
 		expect(definition.safeFill({ fields: { age: 65 } }).success).toBe(true)
 	})
@@ -130,7 +130,7 @@ describe('runtime definition snapshots', () => {
 
 		expect(restored.phase).toBe('draft')
 		if (restored.phase === 'draft') {
-			expect(() => restored.setField('age', 20)).not.toThrow()
+			expect(() => restored.update({ fields: { age: 20 } })).not.toThrow()
 		}
 	})
 })

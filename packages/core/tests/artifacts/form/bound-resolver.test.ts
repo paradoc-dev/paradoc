@@ -7,7 +7,7 @@ import { createMemoryResolver } from '@paradoc/resolvers/memory'
  * The resolver is bound when the form is constructed, so every instance
  * derived from that one carries it.
  *
- * A runtime form is immutable by reconstruction: `addSigner`, `setField`,
+ * A runtime form is immutable by reconstruction: `addSigner`, `update`,
  * `setTargetLayer` and every other mutator build a fresh form from the config.
  * A resolver that arrived with a render call would not survive the next
  * mutator, which is why there is no per-call resolver.

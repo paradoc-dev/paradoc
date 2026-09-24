@@ -1014,12 +1014,11 @@ describe('fill-state', () => {
 			}
 		})
 
-		test('field-only mutations do not require missing party or annex sections', () => {
+		test('field-only updates do not require missing party or annex sections', () => {
 			const f = createFormWithParties()
 			const draft = f.fill({ fields: { amount: 100 } } as any)
 
-			expect(draft.setField('amount', 101).getField('amount')).toBe(101)
-			expect(draft.updateFields({ amount: 102 }).getField('amount')).toBe(102)
+			expect(draft.update({ fields: { amount: 101 } }).getField('amount')).toBe(101)
 		})
 
 		test('full updates validate merged parties and annexes', () => {

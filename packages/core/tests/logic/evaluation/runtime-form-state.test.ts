@@ -116,8 +116,7 @@ describe('RuntimeForm runtime state', () => {
     test('new RuntimeForm has fresh cache', () => {
       const formInstance = createFormWithDefs()
       const filled1 = formInstance.fill({ fields:  { age: 25, hasLicense: true } } as any)
-      // Use type assertion since builder pattern doesn't preserve exact field types
-      const filled2 = (filled1.setField as (k: string, v: unknown) => typeof filled1)('age', 16)
+      const filled2 = filled1.update({ fields: { age: 16 } } as any)
 
       const state1 = filled1.runtimeState
       const state2 = filled2.runtimeState
@@ -392,15 +391,14 @@ describe('RuntimeForm runtime state', () => {
   // ============================================================================
 
   describe('cache invalidation', () => {
-    test('set() creates new RuntimeForm with fresh state', () => {
+    test('update() of one field creates new RuntimeForm with fresh state', () => {
       const formInstance = createFormWithDefs()
       const filled = formInstance.fill({ fields:  { age: 16, hasLicense: false } } as any)
 
       expect(filled.getLogicValue('isAdult')).toBe(false)
       expect(filled.isFieldVisible('drivingLicense')).toBe(false)
 
-      // Use type assertion since builder pattern doesn't preserve exact field types
-      const updated = (filled.setField as (k: string, v: unknown) => typeof filled)('age', 25)
+      const updated = filled.update({ fields: { age: 25 } } as any)
 
       expect(updated.getLogicValue('isAdult')).toBe(true)
       expect(updated.isFieldVisible('drivingLicense')).toBe(true)
@@ -409,14 +407,13 @@ describe('RuntimeForm runtime state', () => {
       expect(filled.getLogicValue('isAdult')).toBe(false)
     })
 
-    test('update() creates new RuntimeForm with fresh state', () => {
+    test('update() of multiple fields creates new RuntimeForm with fresh state', () => {
       const formInstance = createFormWithDefs()
       const filled = formInstance.fill({ fields:  { age: 16, hasLicense: false } } as any)
 
       expect(filled.getLogicValue('canDrive')).toBe(false)
 
-      // Use type assertion since builder pattern doesn't preserve exact field types
-      const updated = filled.updateFields({ age: 25, hasLicense: true } as any)
+      const updated = filled.update({ fields: { age: 25, hasLicense: true } } as any)
 
       expect(updated.getLogicValue('canDrive')).toBe(true)
 

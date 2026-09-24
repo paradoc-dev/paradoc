@@ -465,8 +465,6 @@ Created by `form.fill()`. Mutable data and signer configuration.
   { name: 'runtimeState', type: 'FormRuntimeState', description: 'Evaluated logic state' },
   { name: 'getField', type: '(fieldId: string) => T | undefined', description: 'Get a field value', isMethod: true },
   { name: 'getAllFields', type: '() => Record<string, unknown>', description: 'Get all field values', isMethod: true },
-  { name: 'setField', type: '(fieldId: string, value: T) => DraftForm', description: 'Update a field (immutable)', isMethod: true },
-  { name: 'updateFields', type: '(partial: Record<string, unknown>) => DraftForm', description: 'Update multiple fields', isMethod: true },
   { name: 'getParty', type: '(roleId: string) => RuntimeParty | RuntimeParty[] | undefined', description: 'Get party for role', isMethod: true },
   { name: 'setParty', type: '(roleId: string, party: Party | Party[]) => DraftForm', description: 'Replace the role\'s parties, validated and given their `<role>-<index>` ids', isMethod: true },
   { name: 'addParty', type: '(roleId: string, party: Party) => DraftForm', description: 'Append a party with the next `<role>-<index>` id', isMethod: true },

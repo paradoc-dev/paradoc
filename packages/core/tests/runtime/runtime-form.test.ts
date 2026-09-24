@@ -227,17 +227,17 @@ describe('DraftForm', () => {
   })
 
   // ============================================================================
-  // setField() Method
+  // update() Method
   // ============================================================================
 
-  describe('setField()', () => {
+  describe('update()', () => {
     test('returns new DraftForm with updated field', () => {
       const formInstance = createFormWithFields()
       const filled = formInstance.fill({
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      const updated = filled.setField('name', 'Jane')
+      const updated = filled.update({ fields: { name: 'Jane' } } as any)
 
       expect(updated.getField('name')).toBe('Jane')
       expect(updated.getField('email')).toBe('john@example.com')
@@ -249,7 +249,7 @@ describe('DraftForm', () => {
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      filled.setField('name', 'Jane')
+      filled.update({ fields: { name: 'Jane' } } as any)
 
       expect(filled.getField('name')).toBe('John') // unchanged
     })
@@ -260,21 +260,10 @@ describe('DraftForm', () => {
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      const updated = filled.setField('name', 'Jane')
+      const updated = filled.update({ fields: { name: 'Jane' } } as any)
 
       expect(updated).not.toBe(filled)
       expect(updated).toHaveProperty('phase', 'draft')
-    })
-
-    test('validates updated data', () => {
-      const formInstance = createFormWithFields()
-      const filled = formInstance.fill({
-        fields: { name: 'John', email: 'john@example.com' },
-      } as any)
-
-      // Valid set should work
-      const updated = filled.setField('name', 'Jane')
-      expect(updated.getField('name')).toBe('Jane')
     })
 
     test('validates age constraints', () => {
@@ -284,7 +273,7 @@ describe('DraftForm', () => {
       } as any)
 
       // Age out of range should throw
-      expect(() => filled.setField('age', 200)).toThrow()
+      expect(() => filled.update({ fields: { age: 200 } } as any)).toThrow()
     })
 
     test('can set optional field', () => {
@@ -293,53 +282,35 @@ describe('DraftForm', () => {
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      const updated = filled.setField('age', 25)
+      const updated = filled.update({ fields: { age: 25 } } as any)
       expect(updated.getField('age')).toBe(25)
     })
-  })
 
-  // ============================================================================
-  // updateFields() Method
-  // ============================================================================
-
-  describe('updateFields()', () => {
     test('returns new DraftForm with multiple updated fields', () => {
       const formInstance = createFormWithFields()
       const filled = formInstance.fill({
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      const updated = filled.updateFields({
-        name: 'Jane',
-        age: 30,
-      })
+      const updated = filled.update({
+        fields: { name: 'Jane', age: 30 },
+      } as any)
 
       expect(updated.getField('name')).toBe('Jane')
       expect(updated.getField('age')).toBe(30)
       expect(updated.getField('email')).toBe('john@example.com') // unchanged
     })
 
-    test('original DraftForm is not modified', () => {
+    test('original DraftForm is not modified by a multi-field update', () => {
       const formInstance = createFormWithFields()
       const filled = formInstance.fill({
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      filled.updateFields({ name: 'Jane', age: 30 })
+      filled.update({ fields: { name: 'Jane', age: 30 } } as any)
 
       expect(filled.getField('name')).toBe('John')
       expect(filled.getField('age')).toBeUndefined()
-    })
-
-    test('validates updated data', () => {
-      const formInstance = createFormWithFields()
-      const filled = formInstance.fill({
-        fields: { name: 'John', email: 'john@example.com' },
-      } as any)
-
-      // Update returns new DraftForm - test passes with valid data
-      const updated = filled.updateFields({ name: 'Jane' })
-      expect(updated.getField('name')).toBe('Jane')
     })
 
     test('can update multiple fields at once', () => {
@@ -348,17 +319,46 @@ describe('DraftForm', () => {
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      const updated = filled.updateFields({
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        age: 28,
-        subscribe: true,
-      })
+      const updated = filled.update({
+        fields: {
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          age: 28,
+          subscribe: true,
+        },
+      } as any)
 
       expect(updated.getField('name')).toBe('Jane Doe')
       expect(updated.getField('email')).toBe('jane@example.com')
       expect(updated.getField('age')).toBe(28)
       expect(updated.getField('subscribe')).toBe(true)
+    })
+
+    test('updates one field on a draft filled with only some required fields', () => {
+      // A draft can be filled with only some of the form's required fields
+      // (progressive fill: `email` is required but omitted here). update()
+      // must still change one field without demanding the rest of the
+      // required fields be present.
+      const formInstance = createFormWithFields()
+      const filled = formInstance.fill({ fields: { name: 'John' } } as any)
+
+      const updated = filled.update({ fields: { age: 25 } } as any)
+
+      expect(updated.getField('name')).toBe('John')
+      expect(updated.getField('age')).toBe(25)
+      expect(updated.getField('email')).toBeUndefined()
+    })
+
+    test('setField and updateFields no longer exist on DraftForm', () => {
+      const formInstance = createFormWithFields()
+      const filled = formInstance.fill({
+        fields: { name: 'John', email: 'john@example.com' },
+      } as any)
+
+      // @ts-expect-error - setField was removed; update() is the only mutator
+      expect(filled.setField).toBeUndefined()
+      // @ts-expect-error - updateFields was removed; update() is the only mutator
+      expect(filled.updateFields).toBeUndefined()
     })
   })
 
@@ -404,7 +404,7 @@ describe('DraftForm', () => {
       expect(cloned.fields).not.toBe(filled.fields)
 
       // Modifying one doesn't affect the other
-      const updated = cloned.setField('name', 'Jane')
+      const updated = cloned.update({ fields: { name: 'Jane' } } as any)
       expect(filled.getField('name')).toBe('John')
       expect(updated.getField('name')).toBe('Jane')
     })
@@ -566,12 +566,12 @@ describe('DraftForm', () => {
         fields: { name: 'John', email: 'john@example.com' },
       } as any)
 
-      const afterSet = original.setField('name', 'Jane')
-      const afterUpdate = original.updateFields({ age: 30 })
+      const afterUpdate = original.update({ fields: { name: 'Jane' } } as any)
+      const afterMultiUpdate = original.update({ fields: { age: 30 } } as any)
       const afterClone = original.clone()
 
-      expect(afterSet).not.toBe(original)
       expect(afterUpdate).not.toBe(original)
+      expect(afterMultiUpdate).not.toBe(original)
       expect(afterClone).not.toBe(original)
     })
 
@@ -1141,26 +1141,24 @@ describe('DraftForm', () => {
     })
 
     describe('runtime state with data changes', () => {
-      test('new DraftForm has fresh runtime state after set()', () => {
+      test('new DraftForm has fresh runtime state after update()', () => {
         const formInstance = createFormWithExpressions()
         const filled = formInstance.fill({ fields:  { age: 16 } } as any)
 
         expect(filled.isFieldVisible('parentConsent')).toBe(true)
         expect(filled.isFieldVisible('drivingLicense')).toBe(false)
 
-        // Use type assertion since builder pattern doesn't preserve exact field types
-        const updated = (filled.setField as (k: string, v: unknown) => typeof filled)('age', 25)
+        const updated = filled.update({ fields: { age: 25 } } as any)
 
         expect(updated.isFieldVisible('parentConsent')).toBe(false)
         expect(updated.isFieldVisible('drivingLicense')).toBe(true)
       })
 
-      test('original DraftForm state is unchanged after set()', () => {
+      test('original DraftForm state is unchanged after update()', () => {
         const formInstance = createFormWithExpressions()
         const filled = formInstance.fill({ fields:  { age: 16 } } as any)
 
-        // Use type assertion since builder pattern doesn't preserve exact field types
-        ;(filled.setField as (k: string, v: unknown) => typeof filled)('age', 25) // Create new instance
+        filled.update({ fields: { age: 25 } } as any) // Create new instance
 
         // Original should remain unchanged
         expect(filled.isFieldVisible('parentConsent')).toBe(true)
@@ -1173,8 +1171,7 @@ describe('DraftForm', () => {
 
         expect(filled.getLogicValue('isAdult')).toBe(false)
 
-        // Use type assertion since builder pattern doesn't preserve exact field types
-        const updated = (filled.setField as (k: string, v: unknown) => typeof filled)('age', 25)
+        const updated = filled.update({ fields: { age: 25 } } as any)
 
         expect(updated.getLogicValue('isAdult')).toBe(true)
         expect(filled.getLogicValue('isAdult')).toBe(false) // Original unchanged
