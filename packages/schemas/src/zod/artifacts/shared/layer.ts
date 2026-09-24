@@ -340,9 +340,10 @@ const LayerFormatSchema = z.object({
 }).strict();
 
 /**
- * File layer — references external content through a resolver-defined path.
+ * The file layer's keys, before its PDF-only rules. The registry file layer
+ * extends it, so the two describe one layer.
  */
-const FileLayerSchema = LayerBaseSchema.extend({
+export const FileLayerObjectSchema = LayerBaseSchema.extend({
 	kind: z.literal('file'),
 	path: z.string()
 		.min(1)
@@ -362,22 +363,39 @@ const FileLayerSchema = LayerBaseSchema.extend({
 		.optional(),
 	bindings: PdfBindingsSchema.optional(),
 	bindingsFrom: PdfBindingsFromSchema.optional(),
-}).meta({
+}).strict();
+
+/** The file layer keys that only a PDF layer can declare. */
+export const PDF_ONLY_FILE_LAYER_KEYS = ['font', 'format', 'bindings', 'bindingsFrom'] as const;
+
+type PdfOnlyFileLayerKeys = { mimeType: string } & Partial<Record<(typeof PDF_ONLY_FILE_LAYER_KEYS)[number], unknown>>;
+
+/**
+ * Apply the file layer's PDF-only rules to a file layer object schema.
+ */
+export function withPdfOnlyFileLayerRules<T extends z.ZodType<PdfOnlyFileLayerKeys>>(schema: T) {
+	return schema.refine(
+		(layer) => layer.font === undefined || isPdfMimeType(layer.mimeType),
+		{ error: LAYER_FONT_RULE, path: ['font'] },
+	).refine(
+		(layer) => layer.format === undefined || isPdfMimeType(layer.mimeType),
+		{ error: LAYER_FORMAT_RULE, path: ['format'] },
+	).refine(
+		(layer) => layer.bindings === undefined || isPdfMimeType(layer.mimeType),
+		{ error: LAYER_BINDINGS_RULE, path: ['bindings'] },
+	).refine(
+		(layer) => layer.bindingsFrom === undefined || isPdfMimeType(layer.mimeType),
+		{ error: LAYER_BINDINGS_RULE, path: ['bindingsFrom'] },
+	);
+}
+
+/**
+ * File layer — references external content through a resolver-defined path.
+ */
+const FileLayerSchema = withPdfOnlyFileLayerRules(FileLayerObjectSchema.meta({
 	title: 'FileLayer',
 	description: 'File-backed layer with path reference',
-}).strict().refine(
-	(layer) => layer.font === undefined || isPdfMimeType(layer.mimeType),
-	{ error: LAYER_FONT_RULE, path: ['font'] },
-).refine(
-	(layer) => layer.format === undefined || isPdfMimeType(layer.mimeType),
-	{ error: LAYER_FORMAT_RULE, path: ['format'] },
-).refine(
-	(layer) => layer.bindings === undefined || isPdfMimeType(layer.mimeType),
-	{ error: LAYER_BINDINGS_RULE, path: ['bindings'] },
-).refine(
-	(layer) => layer.bindingsFrom === undefined || isPdfMimeType(layer.mimeType),
-	{ error: LAYER_BINDINGS_RULE, path: ['bindingsFrom'] },
-);
+}));
 
 /**
  * Union of all layer types.
@@ -389,5 +407,5 @@ export const LayerSchema = z.discriminatedUnion('kind', [
 	title: 'Layer',
 	description: 'Layer specification — inline content or file reference',
 	// The file layer's font, format and bindings refinements.
-	allOf: pdfOnlyLayerKeysJsonSchema(['font', 'format', 'bindings', 'bindingsFrom']),
+	allOf: pdfOnlyLayerKeysJsonSchema(PDF_ONLY_FILE_LAYER_KEYS),
 });

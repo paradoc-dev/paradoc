@@ -30,7 +30,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           artifacts: {
@@ -48,7 +48,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           artifacts: {
@@ -67,7 +67,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           artifacts: {
@@ -92,7 +92,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           artifacts: {
@@ -112,7 +112,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
         })
@@ -128,7 +128,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           registries: {
@@ -147,7 +147,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           registries: {
@@ -170,7 +170,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           registries: {
@@ -199,7 +199,7 @@ describe('ConfigManager', () => {
         join(tempDir, 'paradoc.json'),
         JSON.stringify({
           $schema: 'https://schema.paradoc.dev/manifest.json',
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
         })
@@ -348,10 +348,45 @@ describe('ConfigManager', () => {
     })
   })
 
+  describe('project manifest', () => {
+    const manifestPath = () => join(tempDir, 'paradoc.json')
+
+    it('loads a missing manifest as null', async () => {
+      expect(await configManager.loadProjectManifest(tempDir)).toBeNull()
+    })
+
+    it('loads a manifest the manifest schema accepts', async () => {
+      await fs.writeFile(manifestPath(), JSON.stringify({
+        name: '@test/test-project',
+        title: 'Test Project',
+        artifacts: { output: 'typed' },
+      }))
+      const manifest = await configManager.loadProjectManifest(tempDir)
+      expect(manifest).toMatchObject({ name: '@test/test-project', visibility: 'private' })
+      expect(configManager.getDefaultFormat()).toBe('typed')
+    })
+
+    it('refuses a manifest with an unknown key, naming the file and key', async () => {
+      await fs.writeFile(manifestPath(), JSON.stringify({
+        name: '@test/test-project',
+        title: 'Test Project',
+        registry: 'https://registry.acme.com',
+      }))
+      await expect(configManager.loadProjectManifest(tempDir)).rejects.toThrow(
+        `Invalid project config in ${manifestPath()}: unknown key "registry"`,
+      )
+    })
+
+    it('refuses a manifest that is not JSON, naming the file', async () => {
+      await fs.writeFile(manifestPath(), '{ not json')
+      await expect(configManager.loadProjectManifest(tempDir)).rejects.toThrow(`Invalid JSON in ${manifestPath()}`)
+    })
+  })
+
   describe('registry namespaces', () => {
     const manifest = (registries?: Record<string, unknown>) => JSON.stringify({
       $schema: 'https://schema.paradoc.dev/manifest.json',
-      name: 'test-project',
+      name: '@test/test-project',
       title: 'Test Project',
       visibility: 'private',
       ...(registries ? { registries } : {}),

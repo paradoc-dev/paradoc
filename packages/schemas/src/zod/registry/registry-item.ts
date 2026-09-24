@@ -4,18 +4,19 @@
  * Defines the schema for r/{name}.json
  * Individual artifact served from a registry.
  *
- * This extends the standard layer schema with a `url` field
- * for file-backed layers to enable downloading.
+ * Its file layer is the artifact file layer with a `url` field, so a
+ * registry can serve every layer key an artifact defines.
  */
 
 import { z } from 'zod';
+import { ARTIFACT_NAME_PATTERN } from '../primitives/name';
 import { ARTIFACT_VERSION_PATTERN } from '../primitives/version';
 import {
-	isPdfMimeType,
+	FileLayerObjectSchema,
 	LAYER_BINDINGS_RULE,
+	PDF_ONLY_FILE_LAYER_KEYS,
 	pdfOnlyLayerKeysJsonSchema,
-	PdfBindingsFromSchema,
-	PdfBindingsSchema,
+	withPdfOnlyFileLayerRules,
 } from '../artifacts/shared/layer';
 
 /**
@@ -61,35 +62,15 @@ export const RegistryInlineLayerSchema = RegistryLayerBaseSchema.extend({
 });
 
 /**
- * File layer for registry items - includes URL for downloading
+ * File layer for registry items: the artifact file layer, plus the URL to
+ * download the layer file from.
  */
-export const RegistryFileLayerSchema = RegistryLayerBaseSchema.extend({
-	kind: z.literal('file'),
-	path: z.string()
-		.min(1)
-		.max(1000)
-		.describe('Relative path for the layer file when installed'),
+export const RegistryFileLayerSchema = withPdfOnlyFileLayerRules(FileLayerObjectSchema.extend({
 	url: z.url().describe('URL to download the layer file from'),
-	font: z.object({
-		path: z.string().min(1).max(1000).describe('Relative path for the font file when installed'),
-		checksum: z.string()
-			.regex(/^sha256:[a-f0-9]{64}$/)
-			.describe('SHA-256 checksum for integrity verification')
-			.optional(),
-	}).describe('Font a PDF layer draws with, installed beside the layer file')
-		.optional(),
-	bindings: PdfBindingsSchema.optional(),
-	bindingsFrom: PdfBindingsFromSchema.optional(),
 }).meta({
 	title: 'RegistryFileLayer',
 	description: 'File-backed layer with download URL',
-}).refine(
-	(layer) => layer.bindings === undefined || isPdfMimeType(layer.mimeType),
-	{ error: LAYER_BINDINGS_RULE, path: ['bindings'] },
-).refine(
-	(layer) => layer.bindingsFrom === undefined || isPdfMimeType(layer.mimeType),
-	{ error: LAYER_BINDINGS_RULE, path: ['bindingsFrom'] },
-);
+}));
 
 /**
  * Registry layer union
@@ -100,8 +81,8 @@ export const RegistryLayerSchema = z.discriminatedUnion('kind', [
 ]).meta({
 	title: 'RegistryLayer',
 	description: 'Layer in a registry item - inline or file with URL',
-	// The file layer's bindings refinements, stated to JSON Schema as well.
-	allOf: pdfOnlyLayerKeysJsonSchema(['bindings', 'bindingsFrom']),
+	// The file layer's PDF-only refinements, stated to JSON Schema as well.
+	allOf: pdfOnlyLayerKeysJsonSchema(PDF_ONLY_FILE_LAYER_KEYS),
 });
 
 /**
@@ -110,7 +91,7 @@ export const RegistryLayerSchema = z.discriminatedUnion('kind', [
  * Note: This is intentionally loose to accommodate all artifact kinds.
  * The CLI validates against the full artifact schema after fetching.
  */
-export const RegistryItemSchema = z.object({
+export const RegistryItemSchema = z.looseObject({
 	$schema: z.url()
 		.describe('JSON Schema URI for validation')
 		.optional(),
@@ -123,7 +104,7 @@ export const RegistryItemSchema = z.object({
 	name: z.string()
 		.min(1)
 		.max(128)
-		.regex(/^[a-zA-Z0-9][a-zA-Z0-9-_]*$/)
+		.regex(ARTIFACT_NAME_PATTERN)
 		.describe('Artifact name'),
 	version: z.string()
 		.regex(ARTIFACT_VERSION_PATTERN)
@@ -146,8 +127,8 @@ export const RegistryItemSchema = z.object({
 	defaultLayer: z.string()
 		.describe('Default layer key')
 		.optional(),
-	// Allow additional properties for artifact-specific fields (fields, items, etc.)
-}).passthrough().meta({
+	// Additional properties carry the artifact-specific keys (fields, items, etc.)
+}).meta({
 	title: 'Paradoc Registry Item',
 	description: 'Schema for registry item files (r/{name}.json)',
 });

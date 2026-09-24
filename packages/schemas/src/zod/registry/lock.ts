@@ -6,14 +6,22 @@
  */
 
 import { z } from 'zod';
+import { ARTIFACT_REFERENCE_PATTERN } from '../primitives/name';
+import { ArtifactOutputFormatSchema } from './registry-entry';
+
+/**
+ * Lock file integrity: `sha256-` and the base64 SHA-256 digest of the file
+ * as written, the Subresource Integrity form.
+ */
+const LockIntegritySchema = z.string()
+	.regex(/^sha256-[A-Za-z0-9+/]{43}=$/);
 
 /**
  * Locked layer information
  */
 export const LockedLayerSchema = z.object({
-	integrity: z.string()
-		.regex(/^sha256:[a-f0-9]{64}$/)
-		.describe('SHA-256 integrity hash of the layer file'),
+	integrity: LockIntegritySchema
+		.describe('SHA-256 integrity of the layer file (sha256-<base64>)'),
 	path: z.string().describe('Relative path to the layer file from project root'),
 }).meta({
 	title: 'LockedLayer',
@@ -27,12 +35,11 @@ export const LockedArtifactSchema = z.object({
 	kind: z.enum(['form', 'document', 'checklist', 'bundle']).describe('Artifact kind'),
 	version: z.string().describe('Installed artifact version'),
 	resolved: z.url().describe('Full URL used to fetch the artifact'),
-	integrity: z.string()
-		.regex(/^sha256:[a-f0-9]{64}$/)
-		.describe('SHA-256 integrity hash of the artifact JSON'),
+	integrity: LockIntegritySchema
+		.describe('SHA-256 integrity of the artifact file as written (sha256-<base64>)'),
 	installedAt: z.iso.datetime().describe('ISO 8601 timestamp when artifact was installed'),
-	format: z.union([z.literal('json'), z.literal('yaml')])
-		.describe('Format the artifact was saved in'),
+	output: ArtifactOutputFormatSchema
+		.describe('Output format the artifact was written in'),
 	path: z.string().describe('Relative path to the artifact file from project root'),
 	layers: z.record(
 		z.string().describe('Layer key'),
@@ -55,7 +62,7 @@ export const LockFileSchema = z.object({
 		.describe('Lock file format version'),
 	artifacts: z.record(
 		z.string()
-			.regex(/^@[a-zA-Z0-9][a-zA-Z0-9-_]*\/[a-zA-Z0-9][a-zA-Z0-9-_]*$/)
+			.regex(ARTIFACT_REFERENCE_PATTERN)
 			.describe('Artifact reference (@namespace/name)'),
 		LockedArtifactSchema,
 	).describe('Installed artifacts by reference'),

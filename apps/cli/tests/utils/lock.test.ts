@@ -39,7 +39,7 @@ describe('LockFileManager', () => {
               kind: 'form',
               version: '1.0.0',
               resolved: 'https://registry.acme.com/r/test-artifact.json',
-              integrity: 'sha256-abc123',
+              integrity: `sha256-${'A'.repeat(43)}=`,
               installedAt: '2024-01-01T00:00:00Z',
               output: 'yaml',
               path: 'artifacts/@acme/test-artifact.yaml',
@@ -51,6 +51,52 @@ describe('LockFileManager', () => {
 
       await manager.init(tempDir)
       expect(manager.isInstalled('@acme/test-artifact')).toBe(true)
+    })
+
+    it('reads back a lock file it wrote', async () => {
+      await manager.init(tempDir)
+      const locked = manager.createLockedArtifact({
+        kind: 'form',
+        version: '1.0.0',
+        resolved: 'https://registry.acme.com/r/w9.json',
+        content: '{}',
+        output: 'typed',
+        path: 'artifacts/@acme/w9.json',
+        layers: { pdf: { content: '%PDF', path: 'artifacts/@acme/w9.pdf' } },
+      })
+      manager.setArtifact('@acme/w9', locked)
+      manager.setArtifact('@registry.acme.com/w9', locked)
+      await manager.save()
+
+      const saved = JSON.parse(await fs.readFile(join(tempDir, '.paradoc', 'lock.json'), 'utf-8'))
+      expect(saved.$schema).toBe('https://schema.paradoc.dev/lock.json')
+
+      const reloaded = new LockFileManager()
+      await reloaded.init(tempDir)
+      expect(reloaded.getArtifact('@acme/w9')).toEqual(manager.getArtifact('@acme/w9'))
+      expect(reloaded.isInstalled('@registry.acme.com/w9')).toBe(true)
+    })
+
+    it('refuses a lock file the lock schema refuses, naming the file and key', async () => {
+      const lockDir = join(tempDir, '.paradoc')
+      await fs.mkdir(lockDir, { recursive: true })
+      const lockPath = join(lockDir, 'lock.json')
+      await fs.writeFile(lockPath, JSON.stringify({
+        version: 1,
+        artifacts: { '@acme/w9': { kind: 'form', version: '1.0.0', format: 'json' } },
+      }))
+
+      await expect(manager.init(tempDir)).rejects.toThrow(`Invalid lock file ${lockPath}`)
+      await expect(manager.init(tempDir)).rejects.toThrow('artifacts.@acme/w9.output')
+    })
+
+    it('refuses a lock file that is not JSON, naming the file', async () => {
+      const lockDir = join(tempDir, '.paradoc')
+      await fs.mkdir(lockDir, { recursive: true })
+      const lockPath = join(lockDir, 'lock.json')
+      await fs.writeFile(lockPath, '{ not json')
+
+      await expect(manager.init(tempDir)).rejects.toThrow(`Invalid JSON in ${lockPath}`)
     })
   })
 

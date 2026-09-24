@@ -75,7 +75,7 @@ describe('paradoc add', () => {
       join(tempDir, 'paradoc.json'),
       JSON.stringify({
         $schema: 'https://schema.paradoc.dev/manifest.json',
-        name: 'test-project',
+        name: '@test/test-project',
         title: 'Test Project',
         visibility: 'private',
       })

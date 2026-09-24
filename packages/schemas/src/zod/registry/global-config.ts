@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { REGISTRY_NAMESPACE_PATTERN } from '../primitives/name';
 import { ArtifactOutputFormatSchema, RegistryEntrySchema } from './registry-entry';
 
 /**
@@ -75,7 +76,7 @@ export const GlobalConfigSchema = z.object({
 		.describe('JSON Schema URI for validation')
 		.optional(),
 	registries: z.record(
-		z.string().regex(/^@[a-zA-Z0-9][a-zA-Z0-9-_]*$/).describe('Registry namespace (must start with @)'),
+		z.string().regex(REGISTRY_NAMESPACE_PATTERN).describe('Registry namespace (must start with @)'),
 		RegistryEntrySchema,
 	).describe('Configured registries by namespace')
 		.optional(),

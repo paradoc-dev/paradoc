@@ -1,6 +1,5 @@
 import { LocalFileSystem } from './local-fs.js'
-import { GlobalConfigSchema, type GlobalConfig } from '@paradoc/schemas'
-import { z } from 'zod'
+import { GlobalConfigSchema, ManifestSchema, type GlobalConfig } from '@paradoc/schemas'
 
 import type {
   ProjectManifest,
@@ -66,10 +65,10 @@ export class UnconfiguredRegistryError extends Error {
 }
 
 /**
- * Describe each global config problem by key: unknown keys by name, other
+ * Describe each config problem by key: unknown keys by name, other
  * problems by their dotted path.
  */
-function formatGlobalConfigIssues(error: ZodError): string {
+export function formatConfigIssues(error: ZodError): string {
   return error.issues
     .flatMap((issue) => {
       const prefix = issue.path.length > 0 ? `${issue.path.join('.')}.` : ''
@@ -82,7 +81,7 @@ function formatGlobalConfigIssues(error: ZodError): string {
     .join('; ')
 }
 
-function isMissingFileError(error: unknown): boolean {
+export function isMissingFileError(error: unknown): boolean {
   return error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT'
 }
 
@@ -167,7 +166,7 @@ export class ConfigManager {
 
     const result = GlobalConfigSchema.safeParse(data)
     if (!result.success) {
-      throw new Error(`Invalid global config in ${configPath}: ${formatGlobalConfigIssues(result.error)}`)
+      throw new Error(`Invalid global config in ${configPath}: ${formatConfigIssues(result.error)}`)
     }
     const reserved = reservedRegistryIssues(result.data.registries)
     if (reserved) {
@@ -189,7 +188,7 @@ export class ConfigManager {
     const result = GlobalConfigSchema.safeParse(configWithSchema)
     if (!result.success) {
       throw new Error(
-        `Refusing to write an invalid global config to ${configPath}: ${formatGlobalConfigIssues(result.error)}`,
+        `Refusing to write an invalid global config to ${configPath}: ${formatConfigIssues(result.error)}`,
       )
     }
 
@@ -201,37 +200,42 @@ export class ConfigManager {
   /**
    * Load the project manifest from paradoc.json.
    *
-   * A missing or unreadable manifest loads as null. A manifest that configures
-   * a reserved registry namespace throws an error naming the file.
+   * A missing manifest loads as null. Invalid JSON, a manifest the manifest
+   * schema refuses, or one that configures a reserved registry namespace
+   * throws an error naming the file.
    */
   async loadProjectManifest(projectRoot: string): Promise<ProjectManifest | null> {
     this.projectRoot = projectRoot
+    this.projectManifest = null
     const projectStorage = new LocalFileSystem(projectRoot)
     const manifestPath = projectStorage.joinPath('paradoc.json')
 
-    let data: unknown
+    let content: string
     try {
-      data = JSON.parse(await projectStorage.readFile(manifestPath, 'utf-8'))
-    } catch {
-      return null
+      content = await projectStorage.readFile(manifestPath, 'utf-8')
+    } catch (error) {
+      if (isMissingFileError(error)) return null
+      throw error
     }
 
-    // Lenient validation — ProjectManifest is broader than ManifestSchema
-    const result = z.object({
-      name: z.string(),
-      title: z.string(),
-      visibility: z.enum(['public', 'private']),
-    }).passthrough().safeParse(data)
-    if (!result.success) {
-      this.projectManifest = null
-      return null
+    let data: unknown
+    try {
+      data = JSON.parse(content)
+    } catch (error) {
+      throw new Error(
+        `Invalid JSON in ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`,
+      )
     }
-    const manifest = result.data as ProjectManifest
-    const reserved = reservedRegistryIssues(manifest.registries)
+
+    const result = ManifestSchema.safeParse(data)
+    if (!result.success) {
+      throw new Error(`Invalid project config in ${manifestPath}: ${formatConfigIssues(result.error)}`)
+    }
+    const reserved = reservedRegistryIssues(result.data.registries)
     if (reserved) {
       throw new Error(`Invalid project config in ${manifestPath}: ${reserved}`)
     }
-    this.projectManifest = manifest
+    this.projectManifest = result.data
     return this.projectManifest
   }
 

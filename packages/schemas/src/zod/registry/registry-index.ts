@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { ARTIFACT_NAME_PATTERN } from '../primitives/name';
 import { ARTIFACT_VERSION_PATTERN } from '../primitives/version';
 
 /**
@@ -15,7 +16,7 @@ export const RegistryItemSummarySchema = z.object({
 	name: z.string()
 		.min(1)
 		.max(128)
-		.regex(/^[a-zA-Z0-9][a-zA-Z0-9-_]*$/)
+		.regex(ARTIFACT_NAME_PATTERN)
 		.describe('Artifact name (unique within registry)'),
 	kind: z.union([
 		z.literal('form'),

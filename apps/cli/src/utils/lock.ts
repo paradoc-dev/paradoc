@@ -5,9 +5,9 @@
  */
 
 import { createHash } from 'node:crypto'
-import { z } from 'zod'
+import { LockFileSchema } from '@paradoc/schemas'
 import { LocalFileSystem } from './local-fs.js'
-import { normalizeNamespace } from './config.js'
+import { formatConfigIssues, isMissingFileError, normalizeNamespace } from './config.js'
 
 import type {
   ArtifactKind,
@@ -21,6 +21,7 @@ import type {
 const LOCK_FILE_DIR = '.paradoc'
 const LOCK_FILE_NAME = 'lock.json'
 const LOCK_FILE_VERSION = 1
+const LOCK_FILE_SCHEMA_URL = 'https://schema.paradoc.dev/lock.json'
 
 /**
  * Lock file manager for tracking installed artifacts
@@ -51,27 +52,30 @@ export class LockFileManager {
 
     const lockPath = this.getLockPath()
 
+    let content: string
     try {
-      const content = await this.storage.readFile(lockPath, 'utf-8')
-      const data = JSON.parse(content)
-      // Lenient validation — LockFile CLI type is broader than LockFileSchema
-      const result = z.object({
-        version: z.number(),
-        artifacts: z.record(z.string(), z.object({}).passthrough()),
-      }).passthrough().safeParse(data)
-      this.lockFile = result.success ? (result.data as unknown as LockFile) : {
-        $schema: 'https://schema.paradoc.dev/cli/lock.json',
-        version: LOCK_FILE_VERSION,
-        artifacts: {},
-      }
-    } catch {
-      // Create empty lock file if it doesn't exist
-      this.lockFile = {
-        $schema: 'https://schema.paradoc.dev/cli/lock.json',
-        version: LOCK_FILE_VERSION,
-        artifacts: {},
-      }
+      content = await this.storage.readFile(lockPath, 'utf-8')
+    } catch (error) {
+      if (!isMissingFileError(error)) throw error
+      this.lockFile = { $schema: LOCK_FILE_SCHEMA_URL, version: LOCK_FILE_VERSION, artifacts: {} }
+      this.dirty = false
+      return this.lockFile
     }
+
+    let data: unknown
+    try {
+      data = JSON.parse(content)
+    } catch (error) {
+      throw new Error(
+        `Invalid JSON in ${lockPath}: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+
+    const result = LockFileSchema.safeParse(data)
+    if (!result.success) {
+      throw new Error(`Invalid lock file ${lockPath}: ${formatConfigIssues(result.error)}`)
+    }
+    this.lockFile = result.data
 
     this.dirty = false
     return this.lockFile

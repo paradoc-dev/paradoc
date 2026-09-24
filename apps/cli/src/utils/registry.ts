@@ -4,14 +4,20 @@
  * Handles parsing artifact references and resolving registry URLs.
  */
 
+import { ARTIFACT_NAME_PATTERN, REGISTRY_NAMESPACE_PATTERN } from '@paradoc/schemas'
 import { configManager, normalizeNamespace } from './config.js'
 import type { ArtifactRef, ResolvedRegistry } from '../types.js'
 
-// Pattern for validating artifact references: @namespace/artifact-name
-const ARTIFACT_REF_PATTERN = /^@([a-zA-Z0-9][a-zA-Z0-9-_]*)\/([a-zA-Z0-9][a-zA-Z0-9-_]*)$/
+const unanchored = (pattern: RegExp) => pattern.source.slice(1, -1)
+
+// Pattern for validating artifact references: @namespace/artifact-name,
+// built from the schemas' namespace and name rules
+const ARTIFACT_REF_PATTERN = new RegExp(
+  `^(${unanchored(REGISTRY_NAMESPACE_PATTERN)})/(${unanchored(ARTIFACT_NAME_PATTERN)})$`,
+)
 
 // Pattern for bare namespace: @namespace (no artifact name)
-const NAMESPACE_ONLY_PATTERN = /^@([a-zA-Z0-9][a-zA-Z0-9-_]*)$/
+const NAMESPACE_ONLY_PATTERN = new RegExp(`^(${unanchored(REGISTRY_NAMESPACE_PATTERN)})$`)
 
 /**
  * Result of parsing an artifact argument (either reference or direct URL)
@@ -45,9 +51,10 @@ export function parseArtifactArg(arg: string): ParsedArtifactArg | null {
         return null
       }
 
-      // Remove file extension (.json, .yaml, .yml)
+      // Remove file extension (.json, .yaml, .yml). The rest names the
+      // installed file and lock entry, so it must be a valid artifact name.
       const name = lastSegment.replace(/\.(json|yaml|yml)$/i, '')
-      if (!name) {
+      if (!ARTIFACT_NAME_PATTERN.test(name)) {
         return null
       }
 
@@ -113,7 +120,7 @@ export function parseArtifactRef(ref: string): ArtifactRef | null {
   }
 
   return {
-    namespace: `@${namespace}`,
+    namespace,
     name,
     full: ref,
   }
@@ -249,5 +256,5 @@ export function parseNamespaceOnly(arg: string): { namespace: string } | null {
   if (!match || !match[1]) {
     return null
   }
-  return { namespace: `@${match[1]}` }
+  return { namespace: match[1] }
 }

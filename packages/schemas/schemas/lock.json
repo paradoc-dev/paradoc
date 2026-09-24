@@ -17,7 +17,7 @@
       "type": "object",
       "propertyNames": {
         "type": "string",
-        "pattern": "^@[a-zA-Z0-9][a-zA-Z0-9-_]*\\/[a-zA-Z0-9][a-zA-Z0-9-_]*$",
+        "pattern": "^(?:@[a-zA-Z0-9][a-zA-Z0-9-_]*|@[a-z0-9-]+(?:\\.[a-z0-9-]+)+)\\/[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$",
         "description": "Artifact reference (@namespace/name)"
       },
       "additionalProperties": {
@@ -56,8 +56,8 @@
         },
         "integrity": {
           "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$",
-          "description": "SHA-256 integrity hash of the artifact JSON"
+          "pattern": "^sha256-[A-Za-z0-9+/]{43}=$",
+          "description": "SHA-256 integrity of the artifact file as written (sha256-<base64>)"
         },
         "installedAt": {
           "type": "string",
@@ -65,7 +65,7 @@
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
           "description": "ISO 8601 timestamp when artifact was installed"
         },
-        "format": {
+        "output": {
           "anyOf": [
             {
               "type": "string",
@@ -74,9 +74,18 @@
             {
               "type": "string",
               "const": "yaml"
+            },
+            {
+              "type": "string",
+              "const": "typed"
+            },
+            {
+              "type": "string",
+              "const": "ts"
             }
           ],
-          "description": "Format the artifact was saved in"
+          "title": "ArtifactOutputFormat",
+          "description": "Output format the artifact was written in"
         },
         "path": {
           "type": "string",
@@ -100,7 +109,7 @@
         "resolved",
         "integrity",
         "installedAt",
-        "format",
+        "output",
         "path",
         "layers"
       ],
@@ -113,8 +122,8 @@
       "properties": {
         "integrity": {
           "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$",
-          "description": "SHA-256 integrity hash of the layer file"
+          "pattern": "^sha256-[A-Za-z0-9+/]{43}=$",
+          "description": "SHA-256 integrity of the layer file (sha256-<base64>)"
         },
         "path": {
           "type": "string",

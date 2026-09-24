@@ -273,7 +273,7 @@ describe('CLI Registry Command', () => {
       await fs.writeFile(
         path.join(project, 'paradoc.json'),
         JSON.stringify({
-          name: 'test-project',
+          name: '@test/test-project',
           title: 'Test Project',
           visibility: 'private',
           registries: { '@acme': 'https://project.acme.example', '@project-only': 'https://project-only.example' },

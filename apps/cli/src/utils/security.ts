@@ -5,7 +5,7 @@
  * Uses local-fs for all filesystem operations.
  */
 
-import { ARTIFACT_VERSION_PATTERN } from '@paradoc/schemas'
+import { ARTIFACT_NAME_PATTERN, ARTIFACT_VERSION_PATTERN } from '@paradoc/schemas'
 import { LocalFileSystem } from './local-fs.js'
 
 /**
@@ -337,11 +337,6 @@ export interface ArtifactValidationResult {
  * Valid artifact kinds
  */
 const VALID_ARTIFACT_KINDS = ['form', 'document', 'checklist', 'bundle'] as const
-
-/**
- * Name pattern from schema: starts with letter/digit, allows letters, numbers, hyphens (no leading/trailing/consecutive hyphens)
- */
-const ARTIFACT_NAME_PATTERN = /^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$/
 
 /**
  * Magic byte signature - can have multiple signatures that ALL must match

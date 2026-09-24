@@ -47,79 +47,16 @@ export type RegistryEntry = string | {
 }
 
 /**
- * Security configuration for content types
+ * Project manifest (paradoc.json), lock file (.paradoc/lock.json) and their
+ * entries: the published schemas' types, so the CLI reads and writes exactly
+ * what the schemas describe.
  */
-export interface ContentTypeConfig {
-  /**
-   * Additional allowed content types beyond the defaults.
-   * These are merged with DEFAULT_ALLOWED_CONTENT_TYPES.
-   * Blocked content types cannot be added here.
-   */
-  allowedContentTypes?: string[]
-}
-
-/**
- * Project-level cache configuration (without directory - uses global)
- */
-export interface ProjectCacheConfig {
-  /** Cache TTL in seconds. 0 disables caching. Default: 3600 (1 hour) */
-  ttl?: number
-}
-
-/**
- * Project manifest (paradoc.json)
- */
-export interface ProjectManifest {
-  $schema?: string
-  name: string
-  title: string
-  description?: string
-  visibility: 'public' | 'private'
-  registries?: Record<string, RegistryEntry>
-  artifacts?: {
-    dir?: string
-    output?: OutputFormat
-  }
-  /**
-   * Security settings for layer downloads (overrides global config)
-   */
-  security?: ContentTypeConfig
-  /**
-   * Project-level cache configuration (overrides global config)
-   */
-  cache?: ProjectCacheConfig
-}
-
-/**
- * Locked layer metadata
- */
-export interface LockedLayer {
-  integrity: string
-  path: string
-}
-
-/**
- * Locked artifact metadata
- */
-export interface LockedArtifact {
-  kind: ArtifactKind
-  version: string
-  resolved: string
-  integrity: string
-  installedAt: string
-  output: OutputFormat
-  path: string
-  layers: Record<string, LockedLayer>
-}
-
-/**
- * Lock file structure
- */
-export interface LockFile {
-  $schema?: string
-  version: number
-  artifacts: Record<string, LockedArtifact>
-}
+export type {
+  Manifest as ProjectManifest,
+  LockFile,
+  LockedArtifact,
+  LockedLayer,
+} from '@paradoc/schemas'
 
 /**
  * Registry item summary (from registry.json index)

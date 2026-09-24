@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
+  parseArtifactArg,
   parseArtifactRef,
+  parseNamespaceOnly,
   isValidArtifactRef,
   buildRegistryIndexUrl,
   buildArtifactItemUrl,
@@ -19,13 +21,20 @@ describe('parseArtifactRef', () => {
   })
 
   it('handles namespace with underscore', () => {
-    const result = parseArtifactRef('@my_org/my_artifact')
+    const result = parseArtifactRef('@my_org/my-artifact')
     expect(result).toEqual({
       namespace: '@my_org',
-      name: 'my_artifact',
-      full: '@my_org/my_artifact',
+      name: 'my-artifact',
+      full: '@my_org/my-artifact',
     })
   })
+
+  it.each(['@acme/my_artifact', '@acme/a--b', '@acme/-a', '@acme/a-'])(
+    'refuses %s, whose name breaks the artifact name rule',
+    (ref) => {
+      expect(parseArtifactRef(ref)).toBeNull()
+    },
+  )
 
   it('handles namespace with dash', () => {
     const result = parseArtifactRef('@my-org/my-artifact')
@@ -67,16 +76,47 @@ describe('parseArtifactRef', () => {
   })
 })
 
+describe('parseNamespaceOnly', () => {
+  it('returns the namespace with its @', () => {
+    expect(parseNamespaceOnly('@my_org')).toEqual({ namespace: '@my_org' })
+  })
+
+  it('returns null for a reference or a bare name', () => {
+    expect(parseNamespaceOnly('@acme/w9')).toBeNull()
+    expect(parseNamespaceOnly('acme')).toBeNull()
+  })
+})
+
+describe('parseArtifactArg with a direct URL', () => {
+  it('names the artifact after the last path segment and the namespace after the host', () => {
+    expect(parseArtifactArg('https://registry.acme.com/r/w-9.json')).toEqual({
+      type: 'url',
+      artifactUrl: 'https://registry.acme.com/r/w-9.json',
+      baseUrl: 'https://registry.acme.com',
+      namespace: '@registry.acme.com',
+      name: 'w-9',
+    })
+  })
+
+  it.each(['https://registry.acme.com/r/w_9.json', 'https://registry.acme.com/r/w--9.yaml'])(
+    'refuses %s, whose file name is not a valid artifact name',
+    (url) => {
+      expect(parseArtifactArg(url)).toBeNull()
+    },
+  )
+})
+
 describe('isValidArtifactRef', () => {
   it('returns true for valid references', () => {
     expect(isValidArtifactRef('@acme/residential-lease')).toBe(true)
     expect(isValidArtifactRef('@paradoc/contact-form')).toBe(true)
-    expect(isValidArtifactRef('@my_org/my_artifact_123')).toBe(true)
+    expect(isValidArtifactRef('@my_org/my-artifact-123')).toBe(true)
   })
 
   it('returns false for invalid references', () => {
     expect(isValidArtifactRef('acme/residential-lease')).toBe(false)
     expect(isValidArtifactRef('@acme')).toBe(false)
+    expect(isValidArtifactRef('@my_org/my_artifact_123')).toBe(false)
     expect(isValidArtifactRef('')).toBe(false)
   })
 })

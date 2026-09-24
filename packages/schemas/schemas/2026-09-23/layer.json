@@ -826,7 +826,9 @@
         "kind",
         "path"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "FileLayer",
+      "description": "File-backed layer with path reference"
     }
   ],
   "description": "Layer specification — inline content or file reference",

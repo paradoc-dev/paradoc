@@ -69,7 +69,10 @@ export {
 	RuntimeOrganizationSchema,
 	RuntimePersonSchema,
 	SignatureSchema,
+	ARTIFACT_NAME_PATTERN,
+	ARTIFACT_REFERENCE_PATTERN,
 	ARTIFACT_VERSION_PATTERN,
+	REGISTRY_NAMESPACE_PATTERN,
 } from './primitives';
 
 // Expressions

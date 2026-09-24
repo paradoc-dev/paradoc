@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { REGISTRY_NAMESPACE_PATTERN } from './primitives/name';
 import { SecurityConfigSchema } from './registry/global-config';
 import { ArtifactOutputFormatSchema, RegistryEntrySchema } from './registry/registry-entry';
 
@@ -67,7 +68,7 @@ export const ManifestSchema = z.object({
 		.default('private')
 		.describe('Project visibility'),
 	registries: z.record(
-		z.string().regex(/^@[a-zA-Z0-9][a-zA-Z0-9-_]*$/).describe('Registry namespace (must start with @)'),
+		z.string().regex(REGISTRY_NAMESPACE_PATTERN).describe('Registry namespace (must start with @)'),
 		RegistryEntrySchema,
 	).describe('Custom registries for this project (overrides global config)')
 		.optional(),

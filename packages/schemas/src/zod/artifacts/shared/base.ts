@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ARTIFACT_NAME_PATTERN } from '../../primitives/name';
 import { ARTIFACT_VERSION_PATTERN } from '../../primitives/version';
 import { ContentRefSchema } from './content-ref';
 
@@ -9,7 +10,7 @@ export const ArtifactSchema = z.object({
 	name: z.string()
 		.min(1)
 		.max(128)
-		.regex(/^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$/)
+		.regex(ARTIFACT_NAME_PATTERN)
 		.describe('Unique artifact identifier. Must start with a letter or digit, can contain letters, numbers, and hyphens (no leading/trailing/consecutive hyphens).'),
 	version: z.string()
 		.min(1)
