@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import { dirname, extname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { isForm, reactLayersOf, validate, type Form } from '@paradoc/core'
+import { assertCurrentSchemaVersion, isForm, reactLayersOf, validate, type Form } from '@paradoc/core'
 import type { checkComposition, CompositionCheckResult } from '@paradoc/react/check'
 import type * as Discovery from '@paradoc/react/discovery'
 import type { bindComponent } from '@paradoc/react/pdf'
@@ -238,8 +238,16 @@ async function findArtifactForComposition(
   )
 }
 
-/** Holds a matched artifact to the schema, which loose pairing deliberately does not. */
+/**
+ * Holds a matched artifact file to the current schema version and the schema,
+ * which loose pairing deliberately does not. `paradoc dev` applies the same rule.
+ */
 function validatedLayer(resolved: ResolvedLayer): ResolvedLayer {
+  try {
+    assertCurrentSchemaVersion(resolved.artifact, { required: true })
+  } catch (error) {
+    throw new Error(`"${resolved.artifactPath}": ${error instanceof Error ? error.message : String(error)}`)
+  }
   const validation = validate(resolved.artifact)
   if (validation.issues) {
     const issues = validation.issues
@@ -252,7 +260,12 @@ function validatedLayer(resolved: ResolvedLayer): ResolvedLayer {
 
 /** Parses and validates an artifact, requiring a form that declares at least one React layer. */
 function parseFormArtifact(raw: string, label: string): Form {
-  const parsed = parseArtifactFile(raw)
+  let parsed: unknown
+  try {
+    parsed = parseArtifactFile(raw)
+  } catch (error) {
+    throw new Error(`"${label}": ${error instanceof Error ? error.message : String(error)}`)
+  }
   const validation = validate(parsed)
   if (validation.issues) {
     const issues = validation.issues

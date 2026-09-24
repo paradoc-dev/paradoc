@@ -9,6 +9,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { Artifact, Metadata, ContentRef } from '@paradoc/types'
 import { validate as validateArtifact } from '@/validation/artifact'
 import { toYAML } from '@/serialization/serialization'
+import { assertCurrentSchemaVersion } from '@/serialization/schema-version'
 import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 import type { ValidateOptions, SerializationOptions } from '@/types'
 import { deepClone } from '@/utils/clone'
@@ -87,6 +88,7 @@ export interface ArtifactMethods<T extends Artifact> {
  * validated at their creation time.
  */
 export function assertValidArtifactDefinition<T extends Artifact>(data: T): void {
+	assertCurrentSchemaVersion(data, { required: false })
 	const result = validateArtifact<T>(data)
 	if ('issues' in result && result.issues) {
 		const details = result.issues
@@ -112,8 +114,9 @@ export function snapshotArtifactDefinition<T extends Artifact>(data: T): T {
 /**
  * The artifact as it is written to a file.
  *
- * An instance always holds a current-version definition, so it serializes
- * with the current dated `$schema` first, whatever address it was read with.
+ * An instance always holds a current-version definition: every entry point
+ * refuses another `$schema`, and only `migrate` upgrades one. So it serializes
+ * with the current dated `$schema` first, and never restamps an unmigrated file.
  */
 function serializableArtifact<T extends Artifact>(data: T, includeSchema: boolean): T {
 	const definition: T = { ...data }

@@ -70,10 +70,10 @@ These surfaces refuse an artifact whose `$schema` is not current: `load()` and `
 | Current dated address | none | loads |
 | Earlier dated address | `outdated-version` | `The artifact was written for schema version <v>; ...` |
 | Missing | `missing-version` | `The artifact has no $schema; ...` |
-| Undated (`schema.json`) | `missing-version` | `$schema ... names no schema version; ...` |
+| Undated (`schema.json`) | `unknown-version` | `$schema ... names no schema version; ...` |
 | Unpublished date, or not a Paradoc address | `unknown-version` | `$schema names schema version <v>, which does not exist` or `... is not a Paradoc schema address` |
 
-The SDK throws `SchemaVersionError` with that `code`. Run [migrate](#migrate) to upgrade; loading does not. An object passed to `loadFromObject()`, or an inline `artifact` given to the AI tools, may leave out `$schema`; one it declares must be current. SDK `validate()` checks structure and logic only, not the version.
+The SDK throws `SchemaVersionError` with that `code`. Run [migrate](#migrate) to upgrade; loading does not. An object passed to `loadFromObject()`, `p.<kind>()`, `.from()`, `.safeFrom()` or a builder's `.from()`, or an inline `artifact` given to the AI tools, may leave out `$schema`; one it declares must be current, and so must one on each inline part of a bundle. SDK `validate()` reports an outdated or unknown `$schema` as an issue at `$schema`.
 
 ### Migrate
 

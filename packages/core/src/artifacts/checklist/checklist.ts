@@ -1117,7 +1117,8 @@ function createChecklistBuilder<TItems extends ChecklistItem[] = []>(): Checklis
 	}
 
 	const builder: ChecklistBuilderInterface<TItems> = {
-		from(checklistValue: Checklist) {
+		from(value: Checklist) {
+			const checklistValue = parseChecklist(value)
 			_def.kind = 'checklist'
 			_def.name = checklistValue.name
 			_def.version = checklistValue.version

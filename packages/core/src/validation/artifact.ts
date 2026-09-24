@@ -7,6 +7,7 @@ import {
   type TemplateArtifact,
 } from '@/logic/design-time/validation/validate-templates'
 import { parse } from '@/serialization/serialization'
+import { findSchemaVersionError } from '@/serialization/schema-version'
 import { validatePdfBindingFit, type LayerValidationIssue } from './pdf-fit'
 import {
   validateForm,
@@ -54,8 +55,12 @@ function mapErrors(errors: ValidatorError[] | null | undefined): StandardSchemaV
 }
 
 /**
- * Validates an artifact's schema structure only.
+ * Validates an artifact's schema version and schema structure only.
  * Returns Standard Schema compliant result.
+ *
+ * A `$schema` the artifact declares, on the root or on an inline bundle part,
+ * must name the current schema version; an artifact without one is taken as
+ * built in memory. Use `migrate` to upgrade an older artifact.
  *
  * For full validation including logic expressions, use `validate()` instead.
  *
@@ -84,6 +89,13 @@ export function validateSchema<T = unknown>(artifact: unknown): StandardSchemaV1
         },
       ],
     }
+  }
+
+  // The same version rule every entry point applies: a `$schema` the artifact
+  // declares, on the root or on an inline bundle part, must be current.
+  const versionError = findSchemaVersionError(artifact, { required: false })
+  if (versionError) {
+    return { issues: [{ message: versionError.message, path: [...versionError.path] }] }
   }
 
   // Strip $schema before validation (it's metadata, not part of the artifact structure)

@@ -42,7 +42,7 @@ Every loading surface applies the same rules: the SDK, the CLI, the AI tools, an
 
 Each error names what it found and the current version, and points to `paradoc migrate`. Loading never migrates.
 
-In the SDK, `load()` and `safeLoad()` read file content and apply these rules; the error is a `SchemaVersionError` with a `code` of `missing-version`, `outdated-version`, or `unknown-version`. `loadFromObject()` takes an object that may have been built in memory, so it accepts one without `$schema`; a `$schema` it does carry must still be current.
+In the SDK, `load()` and `safeLoad()` read file content and apply these rules; the error is a `SchemaVersionError` with a `code` of `missing-version`, `outdated-version`, or `unknown-version`. Every other way to create an artifact takes an object that may have been built in memory, so it accepts one without `$schema`, but a `$schema` it does carry must still be current: `loadFromObject()`, `p.form()`, `p.document()`, `p.checklist()` and `p.bundle()` with an object, their `.from()` and `.safeFrom()`, and the builder's `.from()`. `validate()` reports the same condition as an issue at `$schema`. A bundle holds each inline part to the rule too, and the error names the part. Only [`migrate`](/cli/commands/migrate) accepts another version.
 
 ```ts
 import { load, SchemaVersionError } from '@paradoc/sdk'

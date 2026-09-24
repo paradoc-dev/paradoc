@@ -4,9 +4,11 @@ import {
 	SCHEMA_VERSION,
 	SCHEMA_VERSIONS,
 	readSchemaAddress,
+	schemaVersionUrl,
 	type SchemaVersion,
 } from '@paradoc/schemas'
 import { validate } from '@/validation/artifact'
+import { findSchemaVersionError } from '@/serialization/schema-version'
 import { deepClone } from '@/utils/clone'
 import { SchemaMigrationError, UnconvertibleValueError } from './errors'
 import { MIGRATION_STEPS, type ArtifactObject, type MigrationStep } from './steps'
@@ -78,10 +80,14 @@ function sourceVersion(artifact: ArtifactObject, from: SchemaVersion | undefined
 	}
 }
 
-/** The ordered steps from one version to the current one. */
-function stepsFrom(version: SchemaVersion, steps: readonly MigrationStep[]): MigrationStep[] {
+/** The ordered steps from one version to a later one, the current one by default. */
+function stepsFrom(
+	version: SchemaVersion,
+	steps: readonly MigrationStep[],
+	to: SchemaVersion = SCHEMA_VERSION,
+): MigrationStep[] {
 	const chain: MigrationStep[] = []
-	for (let index = SCHEMA_VERSIONS.indexOf(version); index < SCHEMA_VERSIONS.length - 1; index++) {
+	for (let index = SCHEMA_VERSIONS.indexOf(version); index < SCHEMA_VERSIONS.indexOf(to); index++) {
 		const from = SCHEMA_VERSIONS[index] as SchemaVersion
 		const to = SCHEMA_VERSIONS[index + 1] as SchemaVersion
 		const step = steps.find((candidate) => candidate.from === from && candidate.to === to)
@@ -93,18 +99,69 @@ function stepsFrom(version: SchemaVersion, steps: readonly MigrationStep[]): Mig
 	return chain
 }
 
-/** Point `$schema` at the current version: first on the root, kept in place on nested inline artifacts. */
-function stampCurrentVersion(artifact: ArtifactObject): ArtifactObject {
+/** The inline parts of a bundle, one level down. */
+function inlineParts(artifact: ArtifactObject): { key: string; item: Record<string, unknown>; part: ArtifactObject }[] {
 	const contents = artifact.contents
-	if (artifact.kind === 'bundle' && Array.isArray(contents)) {
-		for (const item of contents) {
-			if (isObject(item) && item.type === 'inline' && isObject(item.artifact) && item.artifact.$schema !== undefined) {
-				item.artifact.$schema = PARADOC_SCHEMA_URL
-			}
-		}
+	if (artifact.kind !== 'bundle' || !Array.isArray(contents)) return []
+	return contents.flatMap((item, index) =>
+		isObject(item) && item.type === 'inline' && isObject(item.artifact)
+			? [{ key: typeof item.key === 'string' ? item.key : String(index), item, part: item.artifact }]
+			: [],
+	)
+}
+
+/**
+ * Bring every inline part of a bundle to the version of the bundle that holds it.
+ *
+ * The steps walk a whole bundle, its parts included, from the version its root
+ * declares. A part that declares an earlier version first takes the steps up to
+ * its bundle's version, its own parts before it, so the bundle's chain then
+ * converts it with the rest. A part without `$schema` follows its bundle. A part
+ * that declares a later version, or no published version, cannot be placed and
+ * is refused.
+ */
+function alignInlineParts(artifact: ArtifactObject, version: SchemaVersion, steps: readonly MigrationStep[]): void {
+	for (const { key, item, part } of inlineParts(artifact)) {
+		const partVersion = inlinePartVersion(part, key, version)
+		alignInlineParts(part, partVersion, steps)
+		let aligned = part
+		for (const step of stepsFrom(partVersion, steps, version)) aligned = step.apply(aligned)
+		if (aligned.$schema !== undefined) aligned.$schema = schemaVersionUrl(version)
+		item.artifact = aligned
 	}
+}
+
+function inlinePartVersion(part: ArtifactObject, key: string, bundleVersion: SchemaVersion): SchemaVersion {
+	const address = part.$schema
+	if (address === undefined) return bundleVersion
+	const read = typeof address === 'string' ? readSchemaAddress(address) : ({ kind: 'foreign' } as const)
+	if (read.kind !== 'known') {
+		throw new SchemaMigrationError(
+			'unknown-version',
+			`The inline artifact "${key}" declares $schema ${JSON.stringify(address)}, which names no published schema version. Set it to the bundle's version, ${bundleVersion}, or remove it.`,
+		)
+	}
+	if (SCHEMA_VERSIONS.indexOf(read.version) > SCHEMA_VERSIONS.indexOf(bundleVersion)) {
+		throw new SchemaMigrationError(
+			'version-conflict',
+			`The inline artifact "${key}" declares schema version ${read.version}, later than the ${bundleVersion} of the bundle that holds it.`,
+		)
+	}
+	return read.version
+}
+
+/** Point `$schema` at the current version: first on the root, kept in place on inline parts at any depth. */
+function stampCurrentVersion(artifact: ArtifactObject): ArtifactObject {
+	stampInlineParts(artifact)
 	const { $schema: _previous, ...rest } = artifact
 	return { $schema: PARADOC_SCHEMA_URL, ...rest }
+}
+
+function stampInlineParts(artifact: ArtifactObject): void {
+	for (const { part } of inlineParts(artifact)) {
+		if (part.$schema !== undefined) part.$schema = PARADOC_SCHEMA_URL
+		stampInlineParts(part)
+	}
 }
 
 /**
@@ -120,13 +177,15 @@ export function migrateArtifact(input: unknown, options: MigrateOptions = {}): A
 		throw new SchemaMigrationError('not-an-artifact', 'Expected an artifact: an object with a "kind".')
 	}
 	const { version, declared } = sourceVersion(input, options.from)
-	if (version === SCHEMA_VERSION && declared) {
+	if (version === SCHEMA_VERSION && declared && !findSchemaVersionError(input, { required: true })) {
 		return { status: 'current', version, artifact: input }
 	}
 
-	const chain = stepsFrom(version, options.steps ?? MIGRATION_STEPS)
+	const steps = options.steps ?? MIGRATION_STEPS
+	const chain = stepsFrom(version, steps)
 	let artifact = deepClone(input)
 	try {
+		alignInlineParts(artifact, version, steps)
 		for (const step of chain) artifact = step.apply(artifact)
 	} catch (error) {
 		if (error instanceof UnconvertibleValueError) throw new SchemaMigrationError('unconvertible-value', error.message)

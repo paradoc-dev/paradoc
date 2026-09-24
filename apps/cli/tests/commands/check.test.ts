@@ -230,6 +230,83 @@ describe('CLI check command', () => {
   }, 30000)
 })
 
+/**
+ * `paradoc check` holds its artifact to the current schema version on every
+ * target shape, as `paradoc dev` does: the artifact file itself, a composition
+ * an artifact's layer points at, and a composition paired with a sibling
+ * artifact of the same name.
+ */
+describe('CLI check command applies the schema version rule', () => {
+  const OUTDATED = 'https://schema.paradoc.dev/2026-08-10.json'
+
+  /** The clean fixture pair, with the artifact rewritten under `artifactName`. */
+  async function fixtureWith(
+    artifactName: string,
+    change: (artifact: Record<string, any>) => void
+  ): Promise<string> {
+    const dir = await isolatedFixture('clean-composition.tsx')
+    const artifact = JSON.parse(await fs.readFile(path.join(fixturesDir, 'clean-artifact.json'), 'utf-8'))
+    change(artifact)
+    await fs.writeFile(path.join(dir, artifactName), JSON.stringify(artifact, null, 2))
+    return dir
+  }
+
+  const outdated = (artifact: Record<string, any>) => {
+    artifact.$schema = OUTDATED
+  }
+  const siblingOnly = (artifact: Record<string, any>) => {
+    delete artifact.layers
+  }
+
+  const shapes = [
+    ['an artifact target', 'intake.json', 'intake.json'],
+    ['a composition matched by layer path', 'intake.json', 'clean-composition.tsx'],
+    ['a sibling-matched composition', 'clean-composition.json', 'clean-composition.tsx'],
+  ] as const
+
+  it.each(shapes)('%s with an outdated $schema exits 1 and points to paradoc migrate', async (label, artifactName, target) => {
+    const dir = await fixtureWith(artifactName, (artifact) => {
+      outdated(artifact)
+      if (label === 'a sibling-matched composition') siblingOnly(artifact)
+    })
+    try {
+      const result = await executeCliCommand(['check', target], { cwd: dir })
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('2026-08-10')
+      expect(result.stderr).toContain('paradoc migrate')
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  }, 30000)
+
+  it.each(shapes)('%s with the current $schema passes', async (label, artifactName, target) => {
+    const dir = await fixtureWith(artifactName, (artifact) => {
+      if (label === 'a sibling-matched composition') siblingOnly(artifact)
+    })
+    try {
+      const result = await executeCliCommand(['check', target], { cwd: dir })
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('No unsupported classes, unresolved paths, or missing images')
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  }, 30000)
+
+  it('a sibling-matched composition whose artifact has no $schema exits 1', async () => {
+    const dir = await fixtureWith('clean-composition.json', (artifact) => {
+      delete artifact.$schema
+      siblingOnly(artifact)
+    })
+    try {
+      const result = await executeCliCommand(['check', 'clean-composition.tsx'], { cwd: dir })
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('no $schema')
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  }, 30000)
+})
+
 describe('CLI check command (built binary)', () => {
   const builtCliPath = path.resolve(__dirname, '../../dist/index.js')
 

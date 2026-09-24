@@ -481,7 +481,8 @@ function createDocumentBuilder(): DocumentBuilderInterface {
 	}
 
 	const builder: DocumentBuilderInterface = {
-		from(doc: Document) {
+		from(value: Document) {
+			const doc = parseDocument(value)
 			_def.kind = 'document'
 			_def.name = doc.name
 			_def.version = doc.version

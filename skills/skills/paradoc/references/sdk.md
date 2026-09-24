@@ -106,7 +106,7 @@ if (!isFormInstance(artifact)) throw new Error("expected a form");
 | `load(text, { resolver })` | JSON or YAML text | Required, must be current | Throws `LoadError` or `SchemaVersionError` |
 | `loadFromObject(obj, { resolver })` | Parsed object | Optional; if present, must be current | Same |
 | `safeLoad`, `safeLoadFromObject` | Same | Same | Returns `{ success, data \| error }` |
-| `p.form.from(obj, { resolver })`, `p.form.safeFrom(...)` | Parsed form object | Must be current | Throws `Error("Invalid Form ...")` |
+| `p.form.from(obj, { resolver })`, `p.form.safeFrom(...)` | Parsed form object | Optional; if present, must be current | Throws `SchemaVersionError` or `Error("Invalid Form ...")` |
 
 A bundle takes no resolver (its members carry their own); passing one throws `BundleResolverError`. Narrow the result with `isFormInstance`, `isDocumentInstance`, `isChecklistInstance` or `isBundleInstance`. Use `createMemoryResolver({ contents: { "lease.pdf": bytes } })` from `@paradoc/resolvers/memory` in a browser or a test.
 

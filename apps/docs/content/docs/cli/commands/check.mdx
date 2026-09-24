@@ -49,6 +49,12 @@ React layer resolves to it; passing the artifact file reads its declared
 layer directly. If more than one artifact points at the composition, or the
 artifact declares more than one React layer, pass `--layer` to pick one.
 
+Whichever way the artifact is found, from the target, from a layer that
+points at the composition, or as a sibling of the same name, it must carry
+the current [schema version](/schemas#loading-rules) in `$schema`, as for
+`paradoc dev`. A missing, outdated, or unknown `$schema` exits 1 and points
+to [`paradoc migrate`](/cli/commands/migrate).
+
 Sample data, when `--data` is not given, is discovered **sibling-first**: a
 `<composition>.sample.{ts,tsx,js,mjs,jsx}` file next to the composition wins
 if present; only when none exists does discovery fall back to a named
