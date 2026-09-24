@@ -1,4 +1,4 @@
-import { parsePhone } from '@/validation';
+import { parsePhone } from '@/validation/parsers';
 import type { Phone } from '@paradoc/types';
 
 export interface PhoneBuilder {

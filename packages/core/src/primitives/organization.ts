@@ -1,4 +1,4 @@
-import { parseOrganization } from '@/validation';
+import { parseOrganization } from '@/validation/parsers';
 import type { Organization } from '@paradoc/types';
 
 export interface OrganizationBuilder {

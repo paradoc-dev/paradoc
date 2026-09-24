@@ -1,4 +1,4 @@
-import { parseMoney } from '@/validation';
+import { parseMoney } from '@/validation/parsers';
 import type { Money } from '@paradoc/types';
 
 export interface MoneyBuilder {

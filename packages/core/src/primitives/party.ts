@@ -5,7 +5,7 @@
  * Party type is inferred from shape - no explicit type discriminator needed.
  */
 
-import { validatePerson, validateOrganization } from '@/validation';
+import { validatePerson, validateOrganization } from '@/validation/validators';
 import type { Party, Person, Organization } from '@paradoc/types';
 
 /** Organization-specific property names (not present on Person). */

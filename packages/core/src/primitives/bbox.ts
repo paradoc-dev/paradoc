@@ -1,4 +1,4 @@
-import { parseBbox, parseCoordinate } from '@/validation';
+import { parseBbox, parseCoordinate } from '@/validation/parsers';
 import type { Bbox, Coordinate } from '@paradoc/types';
 
 export interface BboxBuilder {

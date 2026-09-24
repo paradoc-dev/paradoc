@@ -1,4 +1,4 @@
-import { parsePerson } from '@/validation';
+import { parsePerson } from '@/validation/parsers';
 import type { Person } from '@paradoc/types';
 
 export interface PersonBuilder {

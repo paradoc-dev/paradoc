@@ -1,4 +1,4 @@
-import { parseMetadata } from '@/validation';
+import { parseMetadata } from '@/validation/parsers';
 import type { Metadata } from '@paradoc/types';
 
 export interface MetadataBuilder {

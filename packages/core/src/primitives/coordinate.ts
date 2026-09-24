@@ -1,4 +1,4 @@
-import { parseCoordinate } from '@/validation';
+import { parseCoordinate } from '@/validation/parsers';
 import type { Coordinate } from '@paradoc/types';
 
 export interface CoordinateBuilder {

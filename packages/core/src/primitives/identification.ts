@@ -1,4 +1,4 @@
-import { parseIdentification } from '@/validation';
+import { parseIdentification } from '@/validation/parsers';
 import type { Identification } from '@paradoc/types';
 
 export interface IdentificationBuilder {

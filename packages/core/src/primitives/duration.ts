@@ -1,4 +1,4 @@
-import { parseDuration } from '@/validation';
+import { parseDuration } from '@/validation/parsers';
 import type { Duration } from '@paradoc/types';
 
 export interface DurationBuilder {

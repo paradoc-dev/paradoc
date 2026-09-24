@@ -1,4 +1,4 @@
-import { parseAddress } from '@/validation';
+import { parseAddress } from '@/validation/parsers';
 import type { Address } from '@paradoc/types';
 
 export interface AddressBuilder {
