@@ -1,8 +1,7 @@
 import type { ParadocToolsConfig } from '../config'
-import type { ValidateInputOutput, ValidateInputValue } from '../contracts'
+import { ValidateInputValueSchema, type ValidateInputOutput, type ValidateInputValue } from '../contracts'
 import { artifactKind } from '../artifact'
 import { errorFromUnknown, toolError, validationErrors } from '../errors'
-import { normalizeValidateInput } from '../input'
 import { resolveSource } from '../resolve-source'
 
 function failure(input: ValidateInputValue, kind: ReturnType<typeof artifactKind> | undefined, message: string, path?: string): ValidateInputOutput {
@@ -18,8 +17,8 @@ export async function executeValidateInput(
 	input: ValidateInputValue | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<ValidateInputOutput> {
-	const normalized = normalizeValidateInput(input)
 	try {
+		const normalized = ValidateInputValueSchema.parse(input)
 		const { isChecklist, isForm, loadFromObject } = await import('@paradoc/core')
 		const { artifact } = await resolveSource(normalized, config)
 		const kind = artifactKind(artifact)
@@ -65,6 +64,9 @@ export async function executeValidateInput(
 			? { valid: true, target: normalized.target, artifact_kind: 'checklist', normalized_value: result.value }
 			: { valid: false, target: normalized.target, artifact_kind: 'checklist', errors: validationErrors(result.errors) }
 	} catch (error) {
-		return { valid: false, target: normalized.target, error: errorFromUnknown(error, 'validation_error') }
+		const target = input && typeof input === 'object' && 'target' in input && ['field', 'party', 'annex', 'checklist_item'].includes(String(input.target))
+			? input.target as ValidateInputValue['target']
+			: 'field'
+		return { valid: false, target, error: errorFromUnknown(error, 'validation_error') }
 	}
 }

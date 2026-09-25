@@ -1,9 +1,8 @@
 import type { ValidateLayersResult } from '@paradoc/core'
 import type { ParadocToolsConfig } from '../config'
-import type { ValidateArtifactInput, ValidateArtifactOutput } from '../contracts'
+import { ValidateArtifactInputSchema, type ValidateArtifactInput, type ValidateArtifactOutput } from '../contracts'
 import { artifactKind, makeResolver } from '../artifact'
 import { errorFromUnknown } from '../errors'
-import { normalizeValidateArtifactInput } from '../input'
 import { resolveSource } from '../resolve-source'
 
 export async function executeValidateArtifact(
@@ -12,7 +11,7 @@ export async function executeValidateArtifact(
 ): Promise<ValidateArtifactOutput> {
 	try {
 		const { validate, validateLayers } = await import('@paradoc/core')
-		const normalized = normalizeValidateArtifactInput(input)
+		const normalized = ValidateArtifactInputSchema.parse(input)
 		const { artifact, base_url } = await resolveSource(normalized, config)
 		const kind = artifactKind(artifact)
 		// File-backed layers resolve against the source's base URL; without one

@@ -1,3 +1,4 @@
+import { ZodError } from 'zod'
 import type { ToolError } from './contracts'
 
 export function toolError(code: string, message: string, path?: Array<string | number>, retryable = false): ToolError {
@@ -5,6 +6,9 @@ export function toolError(code: string, message: string, path?: Array<string | n
 }
 
 export function errorFromUnknown(error: unknown, fallbackCode = 'execution_error'): ToolError {
+	if (error instanceof ZodError) {
+		return toolError('invalid_input', error.message)
+	}
 	if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
 		const value = error as { code?: unknown; message?: unknown; path?: unknown; retryable?: unknown }
 		if (typeof value.code === 'string' && typeof value.message === 'string') {
@@ -18,7 +22,6 @@ export function errorFromUnknown(error: unknown, fallbackCode = 'execution_error
 	}
 	return toolError(fallbackCode, error instanceof Error ? error.message : 'Unknown tool error')
 }
-
 export function validationErrors(error: unknown): ToolError[] {
 	const errors = Array.isArray(error)
 		? error

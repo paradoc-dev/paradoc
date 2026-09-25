@@ -47,19 +47,34 @@ const SourceShape = {
 /**
  * Provider schemas use one object so providers that cannot represent a
  * discriminated union can still expose the same canonical contract. The
- * execution boundary performs the source-specific validation once.
+ * Every execute function parses its canonical input schema at entry, so the
+ * execution boundary performs source-specific validation exactly once.
  */
 export const SourceOperationSchema = z.object({
 	source: z.enum(['artifact', 'url', 'registry']),
 	...SourceShape,
+}).superRefine((value, context) => {
+	if (value.source === 'artifact' && value.artifact === undefined) {
+		context.addIssue({ code: 'custom', path: ['artifact'], message: 'artifact is required when source is "artifact"' })
+	}
+	if (value.source === 'url' && value.url === undefined) {
+		context.addIssue({ code: 'custom', path: ['url'], message: 'url is required when source is "url"' })
+	}
+	if (value.source === 'registry') {
+		if (value.registry_url === undefined) context.addIssue({ code: 'custom', path: ['registry_url'], message: 'registry_url is required when source is "registry"' })
+		if (value.artifact_name === undefined) context.addIssue({ code: 'custom', path: ['artifact_name'], message: 'artifact_name is required when source is "registry"' })
+	}
 })
 
 function withSourceFields<T extends z.ZodRawShape>(shape: T) {
-	return z.discriminatedUnion('source', [
-		ArtifactSourceSchema.extend(shape),
-		UrlSourceSchema.extend(shape),
-		RegistrySourceSchema.extend(shape),
-	])
+	return z.object({ source: z.enum(['artifact', 'url', 'registry']), ...SourceShape, ...shape }).superRefine((value, context) => {
+		const result = SourceSchema.safeParse(value)
+		if (!result.success) {
+			for (const issue of result.error.issues) {
+				context.addIssue({ code: 'custom', path: issue.path, message: issue.message })
+			}
+		}
+	})
 }
 
 export const GetRegistryInputSchema = z.object({
@@ -201,14 +216,6 @@ export const InstructionContentSchema = z.object({
 	encoding: z.enum(['utf-8', 'base64']),
 })
 export type InstructionContent = z.infer<typeof InstructionContentSchema>
-
-export interface OperationDefinition<I, O> {
-	name: string
-	description: string
-	input_schema: z.ZodType<I>
-	output_schema: z.ZodType<O>
-	execute: (input: I, config?: unknown) => Promise<O>
-}
 
 export const ValidateArtifactOutputSchema = z.object({
 	valid: z.boolean(),
