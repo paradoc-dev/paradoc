@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type RefObject,
+  type ReactNode,
 } from "react";
 
 import { measureKeeps } from "../lib/measure";
@@ -16,7 +17,7 @@ export interface FontReadiness {
   error: Error | null;
 }
 
-/** Tracks the requested document family and exposes loading failures. */
+/** Waits for all document fonts; `family` is the readiness cache key. */
 export function useFontReadiness(family?: string): FontReadiness {
   const [state, setState] = useState<{ family: string | null; error: Error | null }>({ family: null, error: null });
   useEffect(() => {
@@ -40,6 +41,8 @@ export function useFontReadiness(family?: string): FontReadiness {
 export interface PaginationOptions {
   budget: number;
   onPaginate?: (plan: PagePlan) => void;
+  /** The measured tree. A new identity schedules a fresh measurement. */
+  children?: ReactNode;
 }
 
 export interface PaginationBinding extends FontReadiness {
@@ -62,8 +65,8 @@ export function samePagePlan(a: PagePlan | null, b: PagePlan): boolean {
     a.oversize.every((keep, index) => keep.id === b.oversize[index]?.id && keep.height === b.oversize[index]?.height);
 }
 
-/** Measures and plans copy-owned page furniture without rendering any markup. */
-export function usePagination({ budget, onPaginate }: PaginationOptions): PaginationBinding {
+/** Measures the document flow and plans its keeps into pages. */
+export function usePagination({ budget, onPaginate, children }: PaginationOptions): PaginationBinding {
   const measureRef = useRef<HTMLDivElement>(null);
   const [plan, setPlan] = useState<PagePlan | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -73,17 +76,22 @@ export function usePagination({ budget, onPaginate }: PaginationOptions): Pagina
     const container = measureRef.current;
     if (!container) return;
     const current = ++generation.current;
-    void captureApplicationFonts(container).then((snapshot) => {
-      if (current !== generation.current || container !== measureRef.current) return;
-      const next = planPages(measureKeeps(container), budget);
-      next.fonts = snapshot;
-      setError(null);
-      setPlan((previous) => samePagePlan(previous, next) ? previous : next);
-    }, (cause: unknown) => {
-      if (current === generation.current) setError(cause instanceof Error ? cause : new Error(String(cause)));
-    });
+    void (async () => {
+      try {
+        const snapshot = await captureApplicationFonts(container);
+        if (current !== generation.current || container !== measureRef.current) return;
+        const next = planPages(measureKeeps(container), budget);
+        next.fonts = snapshot;
+        setError(null);
+        setPlan((previous) => samePagePlan(previous, next) ? previous : next);
+      } catch (cause) {
+        if (current === generation.current) {
+          setError(cause instanceof Error ? cause : new Error(String(cause)));
+        }
+      }
+    })();
   }, [budget]);
-  useLayoutEffect(() => { if (fonts.ready) repaginate(); });
+  useLayoutEffect(() => { if (fonts.ready) repaginate(); }, [children, fonts.ready, repaginate]);
   useEffect(() => {
     if (!fonts.ready || typeof ResizeObserver === "undefined" || !measureRef.current) return;
     const observer = new ResizeObserver(repaginate);

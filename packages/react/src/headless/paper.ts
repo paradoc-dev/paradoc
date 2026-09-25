@@ -19,7 +19,7 @@ export interface Fit {
 }
 
 /**
- * Measures copy-owned page furniture without choosing any markup or styles.
+ * Fits a fixed-width sheet to its frame and reserves its scaled height.
  *
  * `frame`'s own horizontal padding is subtracted before dividing: the
  * installed `Paper`/`Pages` markup puts padding directly on the same element

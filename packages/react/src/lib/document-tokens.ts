@@ -76,7 +76,10 @@ interface TokenProps {
 }
 
 function markers(element: ReactElement): TokenMarkers {
-  return typeof element.type === "function" ? (element.type as TokenMarkers) : {};
+  return (typeof element.type === "function" ||
+    (typeof element.type === "object" && element.type !== null))
+    ? (element.type as TokenMarkers)
+    : {};
 }
 
 /**

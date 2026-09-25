@@ -20,14 +20,13 @@ interface CachedFont {
   value?: { bytes: ArrayBuffer; integrity: string };
   etag?: string;
   lastModified?: string;
-  immutable?: boolean;
   pending?: Promise<{ bytes: ArrayBuffer; integrity: string }>;
 }
 const fontBytes = new Map<string, CachedFont>();
 
 function fetchFont(source: string): Promise<{ bytes: ArrayBuffer; integrity: string }> {
   const cached = fontBytes.get(source) ?? {};
-  if (cached.immutable && cached.value !== undefined) return Promise.resolve(cached.value);
+  if (cached.value !== undefined) return Promise.resolve(cached.value);
   if (cached.pending !== undefined) return cached.pending;
   cached.pending = (async () => {
       const headers = new Headers();
@@ -41,7 +40,6 @@ function fetchFont(source: string): Promise<{ bytes: ArrayBuffer; integrity: str
       cached.value = value;
       cached.etag = response.headers.get("etag") ?? undefined;
       cached.lastModified = response.headers.get("last-modified") ?? undefined;
-      cached.immutable = /(?:^|,)\s*immutable(?:,|$)/iu.test(response.headers.get("cache-control") ?? "");
       return value;
     })().catch((error: unknown) => { fontBytes.delete(source); throw error; })
       .finally(() => { cached.pending = undefined; });

@@ -103,7 +103,7 @@ When `format` omits `formatter` or `progressive`, `ArtifactProvider` inherits th
 | `usePageNumber()` | `{ page, pages }`, 1-based; `{ page: 1, pages: 1 }` outside a page |
 | `useKeepVisible(id)` | Whether a keep belongs on the current page |
 | `useSectionVisible(id)` | Whether a section has content on the current page |
-| `useFontReadiness(family?)` | `{ ready, error }` once the fonts have loaded |
+| `useFontReadiness(family?)` | `{ ready, error }` once all document fonts have loaded; `family` is the readiness cache key |
 
 ### Packets
 

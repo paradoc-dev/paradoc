@@ -59,7 +59,7 @@ export function Pages({ className, onPaginate, furniture, children }: PagesProps
   const stackRef = useRef<HTMLDivElement>(null);
   const { drawn, geometry, sheetStyle } = useDocumentSettings(children);
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
-  const pagination = usePagination({ budget: geometry.contentHeightPx, onPaginate });
+  const pagination = usePagination({ budget: geometry.contentHeightPx, onPaginate, children });
   const bands = useFurnitureFit(geometry.marginPx);
   if (pagination.error) throw pagination.error;
   if (bands.error) throw bands.error;
