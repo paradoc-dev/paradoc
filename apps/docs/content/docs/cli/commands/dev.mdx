@@ -200,3 +200,7 @@ Serve on another port and open a browser:
 ```bash
 paradoc dev ./packages/documents --port 5300 --open
 ```
+
+## Headless PDF requests
+
+A client posting a page plan must send `Content-Type: application/json` and `Origin: <preview URL>`. The plan accepts `fonts` alongside `id` and `plan`. The server returns `415` for another content type and `403` for another origin, including cross-origin font requests.

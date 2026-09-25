@@ -94,3 +94,7 @@ Some patches cannot be applied (conflicts detected)
 
 - [diff](/cli/commands/diff) - Generate diffs between files
 - [validate](/cli/commands/validate) - Validate artifacts
+
+## Project and patch rules
+
+`apply` must run inside a Paradoc project. Patch paths are relative to the project root, even when invoked from a subdirectory. Application is all-or-nothing: conflicts write nothing, and a write failure rolls back prior writes. Failed validation after applying is reported as a warning. Create compatible patches with `git diff` or `diff -u`; `paradoc diff` is a display format and is not an input to `apply`.

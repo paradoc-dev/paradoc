@@ -127,3 +127,7 @@ Set "instructions" on: my-form.yaml
 - [detach](/cli/commands/detach) - Remove layers or content references
 - [fix](/cli/commands/fix) - Compute checksums for attached files
 - [render](/cli/commands/render) - Render artifact layers
+
+An artifact argument may be a file path or an installed `@namespace/name` reference from `.paradoc/lock.json`. An uninstalled reference fails with an error.
+
+The attached file must be in the artifact's directory; copy it there first. Layer names use camelCase and default to the camelCased filename (`lease-template.pdf` becomes `leaseTemplate`). MIME detection includes PDF, DOCX, TSX, JSX, common text and image formats, and other known extensions; an unknown extension uses `application/octet-stream` with a warning.

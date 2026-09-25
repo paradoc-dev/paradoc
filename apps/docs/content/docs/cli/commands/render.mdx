@@ -98,3 +98,7 @@ Dry run summary:
 
 - [show](/cli/commands/show) - Display artifact content
 - [inspect](/cli/commands/inspect) - Inspect PDF form fields
+
+An artifact argument may be a file path or an installed `@namespace/name` reference from `.paradoc/lock.json`. An uninstalled reference fails with an error.
+
+`--data` and `--bindings` apply only to forms. Other artifact kinds ignore `--data` with a warning and reject `--bindings`. Invalid form data stops rendering.

@@ -103,3 +103,7 @@ Detached content reference "instructions" from: my-form.yaml
 
 - [attach](/cli/commands/attach) - Attach files to artifacts
 - [show](/cli/commands/show) - Display artifact content
+
+An artifact argument may be a file path or an installed `@namespace/name` reference from `.paradoc/lock.json`. An uninstalled reference fails with an error.
+
+A layer cannot be detached while `defaultLayer` names it or another layer names it through `bindingsFrom`; update those references first. `--dry-run` previews the change, but still prompts unless combined with `--yes`.
