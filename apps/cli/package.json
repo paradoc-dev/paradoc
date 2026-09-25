@@ -46,6 +46,7 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
+    "pretest": "pnpm build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
