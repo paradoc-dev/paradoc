@@ -23,9 +23,8 @@ import type { Formatter, FormatterProgressivePolicy } from "@paradoc/types";
  * preview is more permissive than the PDF, so a document that looks right on
  * screen can still be wrong on paper; saying so is the point.
  *
- * It lives beside `index.ts` rather than in it because `seal.tsx` calls it and
- * `index.ts` re-exports `seal.tsx`; a module that is both the package entry and
- * a dependency of what it exports is a cycle.
+ * The implementation lives in this module so the package entry can re-export
+ * the renderer without also owning its adapter orchestration.
  */
 
 import type { ReactNode } from "react";
@@ -216,12 +215,8 @@ async function resolveAdapter(name: PdfAdapterName | PdfAdapter): Promise<PdfAda
  * @throws {RootTokenMismatchError} when the document root resolves a paper or a
  * typeface this render did not, which is what a composition that hides its own
  * tokens from the element walk produces.
- * @throws {UnregisteredFontFamilyError} when the document names a family this
- * package carries no files for. A family the engine cannot embed would be
- * written as null glyphs rather than as a fallback.
- * @throws {UnsupportedScriptError} when the family it does name carries no
- * glyphs for the script the document's language is written in, which is the
- * same loss one level down.
+ * Glyph coverage is the application's responsibility: supply faces that cover
+ * every codepoint the document prints.
  * @throws {UnsupportedApplicationTypographyError} when `applicationCss` is
  * passed to the Takumi adapter, which cannot apply a stylesheet.
  * @throws {UnsupportedDirectionError} when the chosen engine does not lay out
@@ -244,9 +239,8 @@ export async function renderPdf(
   // Read off the element, synchronously, by the same function the preview's
   // furniture uses. Nothing is rendered to find out: see `documentTokensOf` in
   // `@paradoc/react`.
-  // Resolving them is what checks them: a family with no glyphs for the
-  // document's script fails here, before an engine is even chosen, because that
-  // refusal is the same one whichever engine would have been asked.
+  // Resolving them validates the root token contract before an engine is
+  // chosen. Applications remain responsible for glyph coverage.
   const tokens = documentTokensOf(element, options.tokens);
 
   const resolution = { resolveFrom: options.resolveFrom };

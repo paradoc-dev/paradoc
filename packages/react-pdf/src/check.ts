@@ -45,9 +45,10 @@
  * data={...}>` call it renders.
  *
  * **`missingImages` is not a verdict.** A render needs bytes for every image
- * `src` that is not a `data:` URI, and this check supplies none — it never
- * renders — so every such `src` is reported unconditionally, whether or not
- * the caller would in fact have bytes for it at render time. `paradoc check`, who
+ * `src` that is neither a `data:` URI nor inline SVG markup, and this check
+ * supplies none — it never renders — so every such `src` is reported
+ * unconditionally, whether or not the caller would in fact have bytes for it
+ * at render time. `paradoc check`, who
  * never resolves bytes either, treats a non-empty list as a failure. `paradoc
  * dev`, who resolves image sources from disk itself before handing them to
  * `renderPdf`, must not: a composition whose images the tool can in fact
@@ -131,7 +132,7 @@ export interface CompositionCheckResult {
    * with no sample data looks like, not a fault.
    */
   unresolvedPaths: string[];
-  /** Image `src` values that are not `data:` URIs, in document order. */
+  /** Image `src` values that are neither `data:` URIs nor inline SVG markup, in document order. */
   missingImages: string[];
 }
 
@@ -149,10 +150,6 @@ function collectInto(paths: string[]): UnresolvedPathCollector {
  * layer's module produces one. Pass an already-built element to
  * {@link checkElement} instead.
  *
- * @throws Whatever the composition itself throws for a reason other than an
- * unresolved field path or party role — a value a serializer rejects, for one
- * — because that is a defect in the sample data or the artifact rather than
- * something this check is scoped to name.
  */
 export async function checkComposition(
   options: CheckCompositionOptions
@@ -171,8 +168,6 @@ export async function checkComposition(
  * element you already have. `artifact` and `data` play no part here: the
  * element already carries whatever it was built with.
  *
- * @throws Whatever the element itself throws for a reason other than an
- * unresolved field path or party role.
  */
 export async function checkElement(
   element: ReactElement,
@@ -198,8 +193,9 @@ export async function checkElement(
   // rather than thrown, so this should never reject with either error. The
   // catch stays as a defensive fallback for a composition that resolves a
   // path or formats a value itself, outside the document context check mode
-  // instruments — reported the same way rather than escaping uncaught and
-  // losing whatever classes and images the walk found first.
+  // instruments — reported the same way rather than escaping uncaught. The
+  // tree walk never completed in this fallback, so its class and image lists
+  // are necessarily empty.
   let node: Awaited<ReturnType<typeof fromJsx>>["node"];
   try {
     ({ node } = await fromJsx(wrapped));
@@ -227,4 +223,3 @@ export async function checkElement(
     missingImages: prepared.missingImages,
   };
 }
-

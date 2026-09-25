@@ -90,8 +90,6 @@ export interface TranslateFurnitureOptions {
   geometry: PdfPageGeometry;
   /** `src` values the caller supplied bytes for. */
   imageSources: Iterable<string>;
-  /** The document's language, for the checks the tree walk makes. */
-  lang: string;
 }
 
 /**
@@ -194,7 +192,6 @@ async function translateSlot(
   for (const sheet of stylesheets) recordOnce(into.stylesheets, sheet);
   const prepared = preparePdfTree(node, {
     imageSources: options.imageSources,
-    lang: options.lang,
   });
   for (const name of prepared.unsupportedClasses) recordOnce(into.unsupportedClasses, name);
   for (const src of prepared.missingImages) recordOnce(into.missingImages, src);

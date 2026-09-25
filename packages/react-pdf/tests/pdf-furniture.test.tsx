@@ -242,7 +242,6 @@ describe("the band a stamp rides in", () => {
     const translated = await translateFurniture(slots, {
       geometry,
       imageSources: [],
-      lang: "en",
     });
     return measureFurnitureBands(translated, geometry, async () => 16);
   }
@@ -268,7 +267,7 @@ describe("the band a stamp rides in", () => {
   it("carries a stylesheet the slot's own markup declared", async () => {
     const translated = await translateFurniture(
       { header: <div><style>{"i { color: #445566 }"}</style><i>{HEADER}</i></div> },
-      { geometry, imageSources: [], lang: "en" }
+      { geometry, imageSources: [] }
     );
     expect(translated.stylesheets).toEqual(["i { color: #445566 }"]);
     expect(translated.unsupportedClasses).toEqual([]);
@@ -292,7 +291,7 @@ describe("the band a stamp rides in", () => {
   it("carries none when no slot declared one", async () => {
     const translated = await translateFurniture(
       { header: <span>{HEADER}</span> },
-      { geometry, imageSources: [], lang: "en" }
+      { geometry, imageSources: [] }
     );
     expect(translated.stylesheets).toEqual([]);
   });

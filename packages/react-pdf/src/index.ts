@@ -1,6 +1,6 @@
 /**
  * `@paradoc/react-pdf` — the Node-only surface that turns the composed document
- * into PDF bytes and seals it.
+ * into PDF bytes and serves the seal marker pass owned by core.
  *
  * Everything here is re-exported from a module beside it. `render.ts` holds the
  * one render call, `adapters/` the engines behind it, `layer.ts` the renderer

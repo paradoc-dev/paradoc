@@ -23,7 +23,6 @@ import { measure, render } from "takumi-pdf";
 import {
   UnsupportedPdfContentError,
   type PdfAdapter,
-  type PdfAdapterOptions,
   type PdfRenderResult,
   type PreparedPdfInput,
 } from "../adapter";
@@ -50,16 +49,12 @@ export const takumiAdapter: PdfAdapter = {
   // See `takumi-furniture.ts`.
   furniture: ["header", "footer", "stamp"],
 
-  async render(input: PreparedPdfInput, options: PdfAdapterOptions): Promise<PdfRenderResult> {
+  async render(input: PreparedPdfInput): Promise<PdfRenderResult> {
     const { node, stylesheets: treeStylesheets } = await fromJsx(input.element);
 
     const prepared = preparePdfTree(node, {
       plan: input.plan,
       imageSources: input.images.map((image) => image.src),
-      // The resolved text is checked against the resolved family here, where
-      // both exist: a document written in a script the family cannot set
-      // reaches this engine as null glyphs and no error.
-      lang: options.lang,
     });
 
     // The bands the engine repeats on every page. They are translated with the
@@ -68,7 +63,6 @@ export const takumiAdapter: PdfAdapter = {
     const furniture = await translateFurniture(input.furniture, {
       geometry: input.geometry,
       imageSources: input.images.map((image) => image.src),
-      lang: options.lang,
     });
 
     const offendingClasses = [...prepared.unsupportedClasses];
@@ -97,7 +91,7 @@ export const takumiAdapter: PdfAdapter = {
     // never saw lays out short and then overprints the first line of the page.
     const images = input.images.map((image) => ({ src: image.src, data: image.data }));
     const bands = await measureFurnitureBands(furniture, input.geometry, async (band) => {
-      const measured = await measure(band, { size, fonts, fontFamilies, images, stylesheets, lang: options.lang });
+      const measured = await measure(band, { size, fonts, fontFamilies, images, stylesheets });
       return measured.height;
     });
 
@@ -111,7 +105,6 @@ export const takumiAdapter: PdfAdapter = {
       fontFamilies,
       images,
       stylesheets,
-      lang: options.lang,
     });
 
     return {

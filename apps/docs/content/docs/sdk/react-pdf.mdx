@@ -49,13 +49,13 @@ await writeFile("invoice.pdf", bytes);
 | `tokens` | `DocumentTokensInput` | A last token layer for this render only, for example one tenant's accent colour or logo |
 | `partial` | `boolean` | Print missing values blank instead of failing. Off by default; use it for drafts, never for a finished document |
 | `adapter` | `"takumi" \| "chromium" \| PdfAdapter` | The engine that writes the bytes. Defaults to `"takumi"` |
-| `images` | `PdfImage[]` | Bytes for every image `src` that is not a `data:` URI. No engine fetches images; a missing one fails the render |
+| `images` | `PdfImage[]` | Bytes for every image `src` that is neither a `data:` URI nor inline SVG markup. No engine fetches images; a missing one fails the render |
 | `fonts` | `PdfFontResource[]` | Application font faces to embed. A preview plan already carries the faces it measured with |
 | `applicationCss` | `string` | Compiled application CSS (Chromium adapter only) |
 | `formatter` / `progressive` | | Override the formatter and its progressive policy |
 | `signingMarkers` | `boolean` | Embeds the face that carries seal markers. Set by the seal flow; you rarely set it yourself |
 
-The result carries `bytes`, plus `unknownBreaks` and `unknownRepeats`: plan entries the tree had no keep for.
+The result carries `bytes`; `unknownBreaks` and `unknownRepeats` for plan entries the tree had no keep for; and `fontResources`, the family, weight, style, and SHA-256 identity of every embedded face.
 
 ### Use the preview's plan and furniture
 
@@ -152,7 +152,7 @@ if (result.unresolvedPaths.length > 0 || result.unsupportedClasses.length > 0) {
 | --- | --- |
 | `unsupportedClasses` | Classes outside the adapter's verified vocabulary. Always empty for `chromium` |
 | `unresolvedPaths` | Field paths, party roles (`party:<role>`), party indexes (`party:<role>[<index>]`), non-picture annexes (`image:<path>`), and definitions (`defs.<name>`) that would fail |
-| `missingImages` | Image `src` values that are not `data:` URIs, which a render needs bytes for |
+| `missingImages` | Image `src` values that are neither `data:` URIs nor inline SVG markup, which a render needs bytes for |
 
 The lists do not combine into a verdict. Whether `missingImages` fails your check depends on whether you supply image bytes at render time.
 
@@ -179,6 +179,6 @@ A layer binds through `components`, keyed by the layer's path or key, or by impo
 
 ## Fonts and images
 
-`resolveFontResources(resources, options?)` resolves `PdfFontResource` entries (a local path, package specifier, file URL, or HTTP(S) URL, with an optional SHA-256 `integrity`) and throws `FontResourceError` on failure. Package specifiers and relative paths resolve from `options.resolveFrom`, which defaults to `process.cwd()`; `renderPdf` exposes the same `resolveFrom` option. If `fonts` and the plan's measured fonts name different faces, the render throws `FontResourceIdentityMismatchError`: repaginate with the current fonts first.
+`resolveFontResources(resources, options?)` resolves `PdfFontResource` entries (a local path, package specifier, file URL, or HTTP(S) URL, with an optional SHA-256 `integrity`) and throws `FontResourceError` on failure. Package specifiers and relative paths resolve from `options.resolveFrom`, which defaults to `process.cwd()`; `renderPdf` exposes the same `resolveFrom` option. If `fonts` and the plan's measured fonts name different faces, the render throws `FontResourceIdentityMismatchError`: repaginate with the current fonts first. A successful result's `fontResources` lists the family, weight, style, and SHA-256 identity of every embedded face; it does not return font bytes or paths.
 
 Images are passed as `{ src, data }` pairs in `images`, keyed by the `src` the tree names.
