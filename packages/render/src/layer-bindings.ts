@@ -38,7 +38,7 @@ export function resolveLayerBindings(
 export interface PdfBindingPart {
   /** The path as the binding writes it, trimmed: `fields.name`, `ssn`. */
   source: string
-  /** Where the path sits in fill data, which holds field values at the top level: `fields.name` is `name`. */
+  /** Where the path sits in fill data, historically without the `fields` root. */
   path: string
   /** The text after `:`, trimmed: the option a checkbox tests, or the one-based part a split binding fills. */
   qualifier?: string
@@ -115,8 +115,20 @@ export class PdfBindingKeyError extends Error {
   }
 }
 
-/** Where a binding path sits in fill data, which holds field values at the top level: `fields.x` is `x`. */
+/** The normalized artifact path used to validate and extract a PDF binding. */
 export function bindingDataPath(path: string): string {
   const trimmed = path.trim()
   return trimmed.startsWith('fields.') ? trimmed.slice('fields.'.length) : trimmed
+}
+
+/** The path used to read a binding from canonical render data. */
+export function renderDataPath(data: Record<string, unknown>, path: string): string {
+  const trimmed = path.trim()
+  const hasFieldsRoot = data.fields !== null && typeof data.fields === 'object' && !Array.isArray(data.fields)
+  if (!hasFieldsRoot) return bindingDataPath(trimmed)
+  if (trimmed.startsWith('fields.')) return trimmed
+  const root = trimmed.split('.', 1)[0]
+  return root === 'parties' || root === 'annexes' || root === 'defs' || root === '_signers' || root === '_captures'
+    ? trimmed
+    : `fields.${trimmed}`
 }

@@ -2,7 +2,7 @@ import { defaultFormatter } from '@paradoc/format'
 import type { BinaryContent, Form, FormField, Formatter, LayerFormat } from '@paradoc/types'
 import { formatFieldData, validateFieldBindings, unwrapFormattedValue } from '../text/field-formatter'
 import { getPath, pathSegments } from '../path'
-import { parseBindings, PdfBindingKeyError, splitPartIndex, type ParsedPdfBindings } from '../layer-bindings'
+import { parseBindings, PdfBindingKeyError, renderDataPath, splitPartIndex, type ParsedPdfBindings } from '../layer-bindings'
 import { acroFields, setAcroFieldValue, type AcroField } from './acroform'
 import { PdfFontSet, type PdfFont } from './drawing-fonts'
 import { applyPdfOverlays, type PdfOverlay } from './overlay'
@@ -143,13 +143,13 @@ export async function renderPdf({
         for (const [pdfName, parts] of parsed) {
           const field = byName.get(pdfName)
           if (parts.length > 1) {
-            const combined = parts.map((part) => getPath(preprocessed, part.path)).filter((value) => value !== null && value !== undefined && String(value) !== '').join(', ')
+            const combined = parts.map((part) => getPath(preprocessed, renderDataPath(preprocessed, part.source))).filter((value) => value !== null && value !== undefined && String(value) !== '').join(', ')
             if (combined) assign(field, combined, model, fonts)
             continue
           }
           const { path, qualifier } = parts[0]!
           if (qualifier !== undefined) {
-            const value = getPath(data, path)
+            const value = getPath(data, renderDataPath(data, parts[0]!.source))
             if (typeof value === 'boolean') assign(field, value, model, fonts)
             else if (Array.isArray(value)) assign(field, value.includes(qualifier), model, fonts)
             else if (fieldDefinition(form, path)?.type === 'enum') assign(field, String(value) === qualifier, model, fonts)
@@ -162,12 +162,12 @@ export async function renderPdf({
             }
             continue
           }
-          assign(field, getPath(preprocessed, path), model, fonts)
+          assign(field, getPath(preprocessed, renderDataPath(preprocessed, parts[0]!.source)), model, fonts)
         }
       } else if (form) {
         for (const [name, definition] of Object.entries(form.fields ?? {}) as [string, FormField][]) {
           if (definition.type === 'fieldset') continue
-          assign(byName.get(name), preprocessed[name], model, fonts)
+          assign(byName.get(name), (preprocessed.fields as Record<string, unknown> | undefined)?.[name] ?? preprocessed[name], model, fonts)
         }
       }
     }

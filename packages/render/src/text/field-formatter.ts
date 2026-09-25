@@ -501,11 +501,16 @@ export function formatFieldData(
 	options?: FieldFormattingOptions,
 ): RecordValue {
 	const result: RecordValue = { ...data }
+	const nestedFields = isRecord(data.fields)
+	const fieldValues: RecordValue = isRecord(data.fields) ? data.fields : data
+	const formattedFields: RecordValue = { ...fieldValues }
 	for (const [key, field] of Object.entries(form.fields ?? {})) {
-		if (Object.prototype.hasOwnProperty.call(data, key) || options?.progressive) {
-			result[key] = formatFieldValue(formatter, field, data[key], `fields.${key}`, options)
+		if (Object.prototype.hasOwnProperty.call(fieldValues, key) || options?.progressive) {
+			formattedFields[key] = formatFieldValue(formatter, field, fieldValues[key], `fields.${key}`, options)
 		}
 	}
+	if (nestedFields) result.fields = formattedFields
+	else Object.assign(result, formattedFields)
 
 	if (Object.prototype.hasOwnProperty.call(data, 'parties') || (options?.progressive && form.parties)) {
 		const parties = data.parties

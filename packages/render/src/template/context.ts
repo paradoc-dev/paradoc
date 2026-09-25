@@ -64,10 +64,13 @@ function record(value: unknown): Record<string, unknown> | undefined {
 
 /** Roots for a direct render, read from raw data the way core lays out a render. */
 export function templateRoots(raw: Record<string, unknown>, form?: Form): Record<string, unknown> {
-  const fields: Record<string, unknown> = {}
+  const nestedFields = record(raw.fields)
+  const fields: Record<string, unknown> = nestedFields ? { ...nestedFields } : {}
   // Without a form, a checklist's `items` record is its own root; a list named items is a field.
   const items = form?.fields ? undefined : record(raw.items)
-  const fieldIds = form?.fields
+  const fieldIds = nestedFields
+    ? []
+    : form?.fields
     ? Object.keys(form.fields)
     : Object.keys(raw).filter((key) => !RENDER_DATA_ROOTS.has(key) && !(key === 'items' && items))
   for (const id of fieldIds) if (Object.prototype.hasOwnProperty.call(raw, id)) fields[id] = raw[id]
@@ -128,7 +131,10 @@ export function templateData(
     resolveData(segments) {
       const [head, ...rest] = segments
       if (head === undefined) return undefined
-      if (head === 'fields') return rest.length === 0 ? undefined : dataPath(prepared, rest)
+      if (head === 'fields') {
+        if (rest.length === 0) return undefined
+        return dataPath(record(prepared.fields) ?? prepared, rest)
+      }
       if (head === 'parties' || head === 'annexes' || head === 'items') return dataPath(prepared[head], rest)
       if (defs && Object.prototype.hasOwnProperty.call(defs, head)) return dataPath(defs[head], rest)
       return undefined
