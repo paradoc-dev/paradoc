@@ -1,7 +1,7 @@
-import { formatParties } from "@paradoc/render/text/field-formatter";
 import { INITIALS_RULE, SIGNATURE_RULE } from "@paradoc/core";
 
-import { useArtifact, useFormatter, useParty } from "./artifact";
+import { useArtifact } from "./artifact";
+import { usePartyContact } from "./party";
 import { findSigningMark, useSigningMarks, type SigningMarkType } from "../components/signing-context";
 
 export const DATE_RULE = "__________";
@@ -27,22 +27,17 @@ export interface SignatureBinding {
 /** Resolves one signing slot without rendering its markup. */
 export function useSignature(role: string, index = 0, type: SigningMarkType = "signature"): SignatureBinding {
   const artifact = useArtifact();
-  const parties = useParty(role);
-  const formatter = useFormatter();
+  const contact = usePartyContact(role, index);
   const marks = useSigningMarks();
   const definition = artifact.parties?.[role];
   const field = FIELDS[type];
-  const party = parties[index];
-  const partyText = party === undefined
-    ? "—"
-    : String(formatParties(formatter, artifact, party, `parties.${role}[${index}]`, { progressive: { missing: "—", incomplete: "—" } }, role) ?? "—");
   const marker = findSigningMark(marks, role, index, type);
   return {
     role,
     index,
     type,
-    roleLabel: definition?.label ?? role,
-    partyText,
+    roleLabel: contact.roleLabel,
+    partyText: contact.nameText,
     fieldLabel: field.label,
     required: definition?.signature?.required ?? false,
     rule: field.rule,

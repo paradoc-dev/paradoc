@@ -19,8 +19,10 @@ import {
   readValue,
   resolveAnnex,
   resolveField,
+  UnknownFieldPathError,
 } from "../lib/fields";
 import {
+  ArtifactFieldFormatError,
   createValueFormatter,
   formatByType,
   type DocumentFormatter,
@@ -199,8 +201,12 @@ function formatOrReport(snapshot: ArtifactSnapshot, path: string, attempt: () =>
   try {
     return attempt();
   } catch (error) {
-    if (error instanceof CompositeFieldPathError) {
-      snapshot.collector.report(path);
+    if (
+      error instanceof ArtifactFieldFormatError ||
+      error instanceof CompositeFieldPathError ||
+      error instanceof UnknownFieldPathError
+    ) {
+      snapshot.collector.report(error.path || path);
       return snapshot.formatting.blank;
     }
     throw error;
@@ -321,14 +327,10 @@ export function useAnnex(path: string): AnnexBinding {
       annex,
       label: annex.title ?? annexSlot(path) ?? path,
       attachment: isAttachment(value) ? value : undefined,
-      text: formatByType(
-        "attachment",
-        value,
-        snapshot.formatting.formatter,
-        snapshot.formatting.blank,
-        path,
-        snapshot.formatting.progressive
-      ),
+      text: formatOrReport(snapshot, path, () => formatByType(
+        "attachment", value, snapshot.formatting.formatter, snapshot.formatting.blank,
+        path, snapshot.formatting.progressive
+      )),
     };
   }, sameAnnex);
 }
@@ -370,8 +372,12 @@ export interface ListBinding {
 }
 
 function sameList(a: ListBinding, b: ListBinding): boolean {
-  return a.field === b.field && a.item === b.item && a.rows === b.rows && a.format === b.format;
+  return a.field === b.field && a.item === b.item &&
+    a.rows.length === b.rows.length && a.rows.every((row, index) => Object.is(row, b.rows[index])) &&
+    a.format === b.format;
 }
+
+const EMPTY_ROWS: readonly unknown[] = Object.freeze([]);
 
 /** Reads one declared list and formats scalar items or fields within its rows. */
 export function useList(path: string): ListBinding {
@@ -388,12 +394,17 @@ export function useList(path: string): ListBinding {
       item = { type: "text", label: path, required: false, visible: true };
     }
     const value = readValue(snapshot.data.fields, path);
-    if (value !== undefined && !Array.isArray(value)) throw new InvalidListValueError(path, value);
-    const rows = value ?? [];
+    if (value !== undefined && value !== null && !Array.isArray(value)) {
+      if (!snapshot.collector) throw new InvalidListValueError(path, value);
+      snapshot.collector.report(path);
+    }
+    const rows = Array.isArray(value) ? value : EMPTY_ROWS;
     const text = (index: number, childPath?: string) => {
       const rowPath = childPath ? `${path}.${index}.${childPath}` : `${path}.${index}`;
-      const rowField = resolveField(snapshot.artifact, rowPath);
-      return snapshot.formatting.format(rowField, readValue(snapshot.data.fields, rowPath), rowPath);
+      return formatOrReport(snapshot, rowPath, () => {
+        const rowField = resolveField(snapshot.artifact, rowPath);
+        return snapshot.formatting.format(rowField, readValue(snapshot.data.fields, rowPath), rowPath);
+      });
     };
     return { field, item, rows, format: snapshot.formatting.format, text };
   }, sameList);
@@ -434,14 +445,10 @@ export function useTotals(names: readonly string[]): readonly TotalBinding[] {
       name,
       label: definition.label ?? name,
       value,
-      text: formatByType(
-        definition.type,
-        value,
-        snapshot.formatting.formatter,
-        snapshot.formatting.blank,
-        `defs.${name}`,
-        snapshot.formatting.progressive
-      ),
+      text: formatOrReport(snapshot, issuePath, () => formatByType(
+        definition.type, value, snapshot.formatting.formatter, snapshot.formatting.blank,
+        issuePath, snapshot.formatting.progressive
+      )),
     };
   }), sameTotals);
 }
@@ -458,7 +465,7 @@ export function useParty(role: string): readonly Party[] {
     }
     const value = snapshot.data.parties[role];
     return value === undefined ? [] : Array.isArray(value) ? value : [value];
-  }, same);
+  }, (a, b) => a.length === b.length && a.every((party, index) => Object.is(party, b[index])));
 }
 
 /**
@@ -482,4 +489,9 @@ export function usePartialPlaceholder(): string | undefined {
 /** Reads the formatter registry for advanced copy-owned components. */
 export function useFormatter(): Formatter {
   return useSelection("formatter", (snapshot) => snapshot.formatting.formatter, same);
+}
+
+/** Reads the document's complete formatting policy for headless bindings. */
+export function useDocumentFormatting(): DocumentFormatter {
+  return useSelection("document-formatting", (snapshot) => snapshot.formatting, same);
 }

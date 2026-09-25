@@ -285,12 +285,11 @@ describe("both parties render", () => {
     expect(signature).not.toContain("Northgate Systems");
   });
 
-  it("shows the blank when the role has no party", () => {
-    const markup = renderAlone(<Signature party="provider" />, {
+  it("fails when a finished document has no party for the signing role", () => {
+    expect(() => renderAlone(<Signature party="provider" />, {
       ...shortProposalData,
       parties: {},
-    });
-    expect(keep(markup, "signature:provider")).toContain("—");
+    })).toThrow(/provider.*out of range/);
   });
 
   it("takes the role label and the signing requirement from the artifact", () => {

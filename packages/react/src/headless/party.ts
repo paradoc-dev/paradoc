@@ -1,7 +1,7 @@
 import { formatParties } from "@paradoc/render/text/field-formatter";
 
 import { useUnresolvedPathCollector } from "../components/check-context";
-import { useArtifact, useFields, useFormatter, useParty, usePartialPlaceholder, type FieldBinding } from "./artifact";
+import { useArtifact, useDocumentFormatting, useFields, useParty, usePartialPlaceholder, type FieldBinding } from "./artifact";
 
 /**
  * The field paths a party's organization, address, and contact lines print
@@ -58,12 +58,6 @@ export interface PartyContactBinding {
   contactText?: string;
 }
 
-// The same placeholder `useSignature` (`../headless/signing.ts`) prints for a
-// party's own name: a party mid-fill, an organization whose name has not been
-// answered yet, say, is the normal state of a document being filled, not a
-// fault, so it prints a placeholder rather than throwing.
-const PARTY_PROGRESSIVE = { progressive: { missing: "—", incomplete: "—" } };
-
 const EMPTY_PATHS: PartyContactPaths = {};
 
 function lineText(bindings: readonly FieldBinding[]): string | undefined {
@@ -83,7 +77,7 @@ function lineText(bindings: readonly FieldBinding[]): string | undefined {
 export function usePartyContact(role: string, index = 0, paths: PartyContactPaths = EMPTY_PATHS): PartyContactBinding {
   const artifact = useArtifact();
   const parties = useParty(role);
-  const formatter = useFormatter();
+  const formatting = useDocumentFormatting();
   const collector = useUnresolvedPathCollector();
   const partialPlaceholder = usePartialPlaceholder();
   const contactPaths = paths.contact === undefined ? [] : typeof paths.contact === "string" ? [paths.contact] : paths.contact;
@@ -98,7 +92,7 @@ export function usePartyContact(role: string, index = 0, paths: PartyContactPath
       // An undeclared role was already reported by `useParty` above; only a
       // declared role with too few filled parties is a fresh fault here.
       if (Object.hasOwn(artifact.parties ?? {}, role)) collector.report(`party:${role}[${index}]`);
-      return { role, index, roleLabel, nameText: "—" };
+      return { role, index, roleLabel, nameText: formatting.blank };
     }
     // A partial document is still being filled, so a party not answered yet
     // prints the document's placeholder, as an unanswered `Field` does. A
@@ -108,7 +102,14 @@ export function usePartyContact(role: string, index = 0, paths: PartyContactPath
   }
 
   const path = `parties.${role}[${index}]`;
-  const nameText = String(formatParties(formatter, artifact, party, path, PARTY_PROGRESSIVE, role) ?? "—");
+  const nameText = String(formatParties(
+    formatting.formatter,
+    artifact,
+    party,
+    path,
+    { progressive: formatting.progressive },
+    role
+  ) ?? formatting.blank);
   let next = 0;
   const organizationText = paths.organization === undefined ? undefined : lineText([fields[next++]!]);
   const addressText = paths.address === undefined ? undefined : lineText([fields[next++]!]);
