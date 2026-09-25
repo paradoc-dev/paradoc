@@ -74,7 +74,7 @@ An installed `Document` component wraps `ArtifactProvider` and the token provide
 | `useAnnexPicture(path)` | `AnnexBinding` plus `picture`, set only when the attachment is an image |
 | `useFormatter()` | The formatter registry, for components that format values themselves |
 
-Paths are field paths as the artifact declares them. A path the artifact does not declare throws `UnknownFieldPathError`. A path that resolves to a fieldset or a list throws `CompositeFieldPathError`, because it has no single value to print. An undeclared role throws `UnknownPartyRoleError`, and an undeclared definition throws `UnknownDefinitionError`. A hook used outside `ArtifactProvider` throws `MissingArtifactProviderError`.
+Paths use Paradoc's shared field-path grammar: dot-separated object members and either bracket or dot notation for zero-based list indexes (`lineItems[0].unitPrice` and `lineItems.0.unitPrice` are equivalent). Empty segments and the unsafe members `__proto__`, `prototype`, and `constructor` are rejected. A path the artifact does not declare throws `UnknownFieldPathError`. A path that resolves to a fieldset or a list throws `CompositeFieldPathError`, because it has no single value to print. An undeclared role throws `UnknownPartyRoleError`, and an undeclared definition throws `UnknownDefinitionError`. A hook used outside `ArtifactProvider` throws `MissingArtifactProviderError`.
 
 ### Signing
 
@@ -191,7 +191,7 @@ A `PagePlan` lists the keep ids on each page (`pages`), the repeated table heade
 | Error | Thrown when |
 | --- | --- |
 | `MissingArtifactProviderError` | A hook runs outside `ArtifactProvider` |
-| `UnknownFieldPathError` / `InvalidFieldPathError` | A path is not declared, or is not a valid dot path |
+| `UnknownFieldPathError` / `InvalidFieldPathError` | A path is not declared, or does not follow the shared dot-and-bracket grammar |
 | `CompositeFieldPathError` | A path resolves to a fieldset or list |
 | `UnknownPartyRoleError` / `PartyIndexOutOfRangeError` | A role is not declared, or has fewer parties than the index |
 | `UnknownDefinitionError` | A `useTotals` name is not in `defs` |

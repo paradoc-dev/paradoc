@@ -11,6 +11,7 @@
  */
 
 import type { Attachment, Form, FormAnnex, FormField } from "@paradoc/types";
+import { pathSegments as parsePathSegments } from "@paradoc/render";
 
 /** Raised when a component names a path the artifact does not declare. */
 export class UnknownFieldPathError extends Error {
@@ -53,11 +54,8 @@ const FORBIDDEN_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
 
 /** Splits and validates a Paradoc field path. */
 export function pathSegments(path: string): string[] {
-  const segments = path.split(".");
-  if (
-    path.length === 0 ||
-    segments.some((segment) => segment.length === 0 || FORBIDDEN_SEGMENTS.has(segment))
-  ) {
+  const segments = parsePathSegments(path);
+  if (segments.length === 0 || segments.some((segment) => FORBIDDEN_SEGMENTS.has(segment))) {
     throw new InvalidFieldPathError(path);
   }
   return segments;

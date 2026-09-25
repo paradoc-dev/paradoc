@@ -29,9 +29,11 @@ and rendering one outside a `Document` throws. Most fields sit inside a
 nothing requires that — the Preview above renders three `Field`s directly
 inside `Document`, with no `Section` around them.
 
-The `path` prop follows the artifact's own path convention: a top-level
-field name like `customer`, or a dotted path into a list item like
-`lineItems.0.unitPrice`. `Field` does not validate or format anything
+The `path` prop follows Paradoc's shared path grammar: a top-level field name
+like `customer`, or a path into a list item like `lineItems[0].unitPrice`.
+Numeric indexes can also use dot notation (`lineItems.0.unitPrice`). Empty
+segments and the unsafe object members `__proto__`, `prototype`, and
+`constructor` are rejected. `Field` does not validate or format anything
 itself — it asks the artifact for the field at that path and the value's
 serializer for the text to print.
 

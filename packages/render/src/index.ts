@@ -11,6 +11,7 @@ import type { TextSignatureOptions } from './text/signatures'
 import type { TemplateExpressionOptions } from './template/context'
 
 export type { PdfFont } from './pdf/drawing-fonts'
+export { getPath, pathSegments } from './path'
 export {
   parseBinding,
   PdfBindingKeyError,

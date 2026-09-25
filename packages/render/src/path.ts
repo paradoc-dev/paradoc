@@ -4,7 +4,8 @@ const blockedSegments = new Set(['__proto__', 'prototype', 'constructor'])
 export function pathSegments(path: string): string[] {
   const normalized = path.replace(/\[(\d+)\]/g, '.$1')
   if (normalized.includes('[') || normalized.includes(']')) return []
-  return normalized.split('.').filter(Boolean)
+  const segments = normalized.split('.')
+  return segments.some((segment) => segment.length === 0) ? [] : segments
 }
 
 export function getPath(value: unknown, path: string): unknown {
