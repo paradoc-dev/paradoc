@@ -30,10 +30,11 @@ npx paradoc-cli --help
 paradoc init my-project
 cd my-project
 
+paradoc registry add @acme https://registry.acme.com
 paradoc search "lease agreement"
-paradoc add @paradoc/example-form
+paradoc add @acme/example-form
 paradoc list
-paradoc show @paradoc/example-form
+paradoc show @acme/example-form
 ```
 
 `paradoc init` prompts for project details. For a non-interactive setup, pass `--yes` and `--name`:

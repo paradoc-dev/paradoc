@@ -400,14 +400,15 @@ describe('paradoc add (namespace resolution with no registries configured)', () 
     await fs.rm(tempDir, { recursive: true, force: true })
   })
 
-  it('resolves @paradoc to the built-in registry', async () => {
+  it('refuses the reserved @paradoc without contacting any host: its registry is not available yet', async () => {
     const result = await executeCliCommand(['add', '@paradoc/w9', '--no-cache'], {
       cwd: tempDir,
       env: await unreachableNetworkEnv(),
     })
 
-    expect(result.stdout + result.stderr).toContain('Registry: https://registry.paradoc.dev')
     expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('The Paradoc registry is not available yet, so @paradoc cannot be resolved.')
+    expect(result.stdout + result.stderr).not.toContain('Registry:')
   })
 
   it('fails for an unconfigured namespace, naming it and the add command, without contacting any host', async () => {

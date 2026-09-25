@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { ConfigManager } from '../../src/utils/config.js'
+import { ConfigManager, ParadocRegistryUnavailableError } from '../../src/utils/config.js'
 import { configAllowsTelemetry } from '../../src/utils/telemetry.js'
 
 describe('ConfigManager', () => {
@@ -418,9 +418,13 @@ describe('ConfigManager', () => {
       await fs.writeFile(globalConfigPath(), JSON.stringify(config))
     }
 
-    it('resolves @paradoc to the built-in registry with an empty config', async () => {
-      expect(await configManager.getRegistryUrl('@paradoc')).toBe('https://registry.paradoc.dev')
-      expect(await configManager.getRegistryUrl('paradoc')).toBe('https://registry.paradoc.dev')
+    it('refuses the reserved @paradoc, whose registry is not available yet', async () => {
+      for (const namespace of ['@paradoc', 'paradoc', '@PARADOC']) {
+        await expect(configManager.getRegistryUrl(namespace)).rejects.toThrow(ParadocRegistryUnavailableError)
+      }
+      await expect(configManager.getRegistryUrl('@paradoc')).rejects.toThrow(
+        'The Paradoc registry is not available yet, so @paradoc cannot be resolved.',
+      )
     })
 
     it('fails for an unconfigured namespace, naming it and the add command', async () => {
@@ -439,7 +443,7 @@ describe('ConfigManager', () => {
       const load = configManager.loadGlobalConfig()
       await expect(load).rejects.toThrow(`Invalid global config in ${globalConfigPath()}`)
       await expect(configManager.loadGlobalConfig()).rejects.toThrow(
-        '"registries.@paradoc": @paradoc is reserved and always resolves to https://registry.paradoc.dev',
+        '"registries.@paradoc": @paradoc is reserved for the Paradoc registry; it cannot be configured',
       )
       await expect(configManager.getRegistryUrl('@paradoc')).rejects.toThrow(globalConfigPath())
     })
@@ -458,7 +462,7 @@ describe('ConfigManager', () => {
 
     it('refuses to add @paradoc to the global config and writes nothing', async () => {
       await expect(configManager.setGlobalRegistry('@paradoc', 'https://evil.example')).rejects.toThrow(
-        '@paradoc is reserved and always resolves to https://registry.paradoc.dev',
+        '@paradoc is reserved for the Paradoc registry; it cannot be configured',
       )
       await expect(configManager.setGlobalRegistry('paradoc', 'https://evil.example')).rejects.toThrow('reserved')
       await expect(fs.access(globalConfigPath())).rejects.toThrow()

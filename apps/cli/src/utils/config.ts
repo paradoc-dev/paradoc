@@ -24,11 +24,11 @@ const GLOBAL_CONFIG_SCHEMA_URL = `${SCHEMA_BASE}/config.json`
 
 import type { ZodError } from 'zod'
 
-/** The reserved, built-in registry namespace. */
+/**
+ * The namespace reserved for the Paradoc registry. No configuration can set it,
+ * and until that registry is available it resolves to nothing.
+ */
 export const PARADOC_NAMESPACE = '@paradoc'
-
-/** Where {@link PARADOC_NAMESPACE} always resolves. No configuration can change it. */
-export const PARADOC_REGISTRY_URL = 'https://registry.paradoc.dev'
 
 /** A namespace with its `@` prefix. */
 export function normalizeNamespace(namespace: string): string {
@@ -41,7 +41,7 @@ export function isReservedNamespace(namespace: string): boolean {
 }
 
 function reservedNamespaceMessage(namespace: string): string {
-  return `${normalizeNamespace(namespace)} is reserved and always resolves to ${PARADOC_REGISTRY_URL}; it cannot be configured`
+  return `${normalizeNamespace(namespace)} is reserved for the Paradoc registry; it cannot be configured`
 }
 
 /** Throw when a namespace is reserved and so cannot be configured. */
@@ -58,7 +58,18 @@ function reservedRegistryIssues(registries: Record<string, unknown> | undefined)
   return reserved.map((key) => `"registries.${key}": ${reservedNamespaceMessage(key)}`).join('; ')
 }
 
-/** A namespace that neither is built in nor has a registry configured. */
+/** The reserved {@link PARADOC_NAMESPACE}, whose registry is not available yet. */
+export class ParadocRegistryUnavailableError extends Error {
+  constructor(public readonly namespace: string) {
+    super(
+      `The Paradoc registry is not available yet, so ${namespace} cannot be resolved. ` +
+        'Use another registry: paradoc registry add @<namespace> <url>',
+    )
+    this.name = 'ParadocRegistryUnavailableError'
+  }
+}
+
+/** A namespace that has no registry configured. */
 export class UnconfiguredRegistryError extends Error {
   constructor(public readonly namespace: string) {
     super(`No registry is configured for ${namespace}. Run: paradoc registry add ${namespace} <url>`)
@@ -283,9 +294,9 @@ export class ConfigManager {
   /**
    * Get the resolved registry URL for a namespace.
    *
-   * `@paradoc` always resolves to {@link PARADOC_REGISTRY_URL}. Every other
-   * namespace resolves only through configuration; an unconfigured one throws
-   * {@link UnconfiguredRegistryError}.
+   * A namespace resolves only through configuration; an unconfigured one throws
+   * {@link UnconfiguredRegistryError}. The reserved `@paradoc` throws
+   * {@link ParadocRegistryUnavailableError}.
    */
   async getRegistryUrl(namespace: string): Promise<string> {
     const normalizedNamespace = normalizeNamespace(namespace)
@@ -293,7 +304,7 @@ export class ConfigManager {
     const registry = await this.getRegistry(normalizedNamespace)
 
     if (isReservedNamespace(normalizedNamespace)) {
-      return PARADOC_REGISTRY_URL
+      throw new ParadocRegistryUnavailableError(normalizedNamespace)
     }
 
     if (!registry) {

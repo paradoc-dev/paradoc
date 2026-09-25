@@ -25,7 +25,7 @@ Examples below use `paradoc`. Without a global install, write `npx paradoc-cli` 
 |-----------|------------|------------|
 | A project (`paradoc.json` + `.paradoc/`) | `add`, `list`, `version`, `apply`, `registry view`, and any `@ns/name` argument | Run `paradoc init` first |
 | A current `$schema` | Every command that reads an artifact file | Run `paradoc migrate` (see [schemas.md](./schemas.md#schema-version)) |
-| A known registry namespace | `add @ns/name`, `search --registry @ns` | `@paradoc` is built in. Add any other namespace with `paradoc registry add` |
+| A configured registry namespace | `add @ns/name`, `search` | There is no default registry. Add one with `paradoc registry add`. `@paradoc` is reserved and not available yet |
 | Project-root paths | `show`, `diff`, `version`, `apply` inside a project | Write relative paths from the project root |
 
 An installed reference such as `@acme/w9` works in place of a file path for `validate`, `render`, `fix`, `show`, `data`, `attach` and `detach`. The CLI resolves it through `.paradoc/lock.json`.
@@ -280,13 +280,13 @@ paradoc add https://example.com/r/form.json --header "Authorization: Bearer TOKE
 `add` writes the artifact to `<artifactsDir>/<namespace>/` (default `artifacts`) and records it in `.paradoc/lock.json`. Pass `--layers` to download layer files. ContentRef files (`instructions`, `agentInstructions`) always download. `--no-cache` or `--cache-ttl 0` fetches fresh.
 
 <!-- dep:L3 -->
-Namespaces other than `@paradoc` need `registry add` first ([Preconditions](#preconditions)).
+Every namespace needs `registry add` first ([Preconditions](#preconditions)).
 
 ### Find and inspect
 
 <!-- dep:L3 -->
 ```bash
-paradoc search lease                               # the @paradoc registry
+paradoc search lease                               # the one configured registry
 paradoc search tax --registry @acme --kind form --tags irs --json
 paradoc list --kind form --json                    # installed artifacts
 paradoc registry list                              # configured registries (ls)
@@ -340,7 +340,10 @@ Telemetry is also off with `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`.
 |---------|-----|
 | `paradoc: command not found` | Use `npx paradoc-cli`, or `npm install -g paradoc-cli` |
 | `Not in a Paradoc project. Expected paradoc.json with a .paradoc directory.` | Run `paradoc init` in the project root |
-| `No registry is configured for @acme. Run: paradoc registry add @acme <url>` | Add the registry: `paradoc registry add @acme <url>`. `@paradoc` is built in and cannot be added |
+| `No registry is configured for @acme. Run: paradoc registry add @acme <url>` | Add the registry: `paradoc registry add @acme <url>` |
+| `No registry to search. Pass --registry @<namespace>, or add one first: ...` | Add a registry, or pass `--registry @acme` |
+| `Several registries are configured (...). Pass --registry to choose one.` | Pass `--registry @acme` |
+| `The Paradoc registry is not available yet, ...` | `@paradoc` is reserved and cannot be added. Use another registry |
 | `Environment variable not set: ACME_TOKEN` | Export the variable a registry `url` or header names |
 | `"w9" is not a document component.` | Name the registry: `paradoc add @acme/w9` |
 | `Artifact not installed: @acme/lease` / `Artifact "@acme/lease" is not installed.` | `paradoc add @acme/lease` |

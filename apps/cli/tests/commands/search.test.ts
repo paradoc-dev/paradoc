@@ -33,20 +33,57 @@ describe('CLI search command', () => {
     expect(result.stderr).toContain('No registry is configured for @nonexistent. Run: paradoc registry add @nonexistent <url>')
   })
 
-  it('searches @paradoc by default on a fresh install and names its host when it cannot be reached', async () => {
+  /** Run `search` in a fresh home whose global config holds these registries. */
+  async function searchInHome(args: string[], registries?: Record<string, string>) {
     const home = await fs.mkdtemp(path.join(os.tmpdir(), 'paradoc-search-home-'))
     try {
-      const result = await executeCliCommand(['search', 'lease'], {
+      if (registries) {
+        await fs.mkdir(path.join(home, '.paradoc'), { recursive: true })
+        await fs.writeFile(path.join(home, '.paradoc', 'config.json'), JSON.stringify({ registries }))
+      }
+      return await executeCliCommand(['search', ...args], {
         cwd: home,
         env: { HOME: home, ...(await unreachableNetworkEnv()) },
       })
-
-      expect(result.exitCode).toBe(1)
-      expect(result.stderr).toContain('Cannot reach registry @paradoc at https://registry.paradoc.dev')
-      expect(result.stderr).not.toContain('No registry is configured')
     } finally {
       await fs.rm(home, { recursive: true, force: true })
     }
+  }
+
+  it('has no default registry: on a fresh install it names --registry and the add command', async () => {
+    const result = await searchInHome(['lease'])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain(
+      'No registry to search. Pass --registry @<namespace>, or add one first: paradoc registry add @<namespace> <url>',
+    )
+    expect(result.stderr).not.toContain('registry.paradoc.dev')
+  })
+
+  it('searches the one configured registry without --registry', async () => {
+    const result = await searchInHome(['lease'], { '@acme': 'https://registry.acme.com' })
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('Cannot reach registry @acme at https://registry.acme.com')
+  })
+
+  it('asks for --registry when several registries are configured', async () => {
+    const result = await searchInHome(['lease'], {
+      '@acme': 'https://registry.acme.com',
+      '@other': 'https://registry.other.com',
+    })
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('Several registries are configured (@acme, @other). Pass --registry to choose one.')
+    expect(result.stderr).not.toContain('Cannot reach')
+  })
+
+  it('refuses the reserved @paradoc: its registry is not available yet', async () => {
+    const result = await searchInHome(['lease', '--registry', '@paradoc'])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('The Paradoc registry is not available yet')
+    expect(result.stderr).not.toContain('Cannot reach')
   })
 
   it('rejects an invalid kind before contacting a registry', async () => {

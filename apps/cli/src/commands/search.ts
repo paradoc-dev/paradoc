@@ -5,7 +5,7 @@ import ora from 'ora'
 import type { SearchOptions, ArtifactKind } from '../types.js'
 import { resolveRegistry } from '../utils/registry.js'
 import { registryClient, RequestTimeoutError } from '../utils/registry-client.js'
-import { configManager, normalizeNamespace, PARADOC_NAMESPACE } from '../utils/config.js'
+import { configManager, normalizeNamespace } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
 import { formatLayerCount } from '../utils/user-copy.js'
 
@@ -19,6 +19,24 @@ function describeUnreachable(error: TypeError | RequestTimeoutError): string {
 }
 
 /**
+ * The namespace to search: `--registry`, else the one configured registry.
+ * There is no default registry, so none or several configured is an error.
+ */
+async function searchNamespace(registry: string | undefined): Promise<string> {
+  if (registry) return normalizeNamespace(registry)
+  const configured = await configManager.listRegistries()
+  if (configured.length === 1) return configured[0]!.namespace
+  if (configured.length === 0) {
+    throw new Error(
+      'No registry to search. Pass --registry @<namespace>, or add one first: paradoc registry add @<namespace> <url>',
+    )
+  }
+  throw new Error(
+    `Several registries are configured (${configured.map((r) => r.namespace).join(', ')}). Pass --registry to choose one.`,
+  )
+}
+
+/**
  * Create the 'search' command
  * Searches for artifacts in a registry
  */
@@ -28,7 +46,7 @@ export function createSearchCommand(): Command {
   search
     .argument('[query]', 'Search query (name, title, or description)')
     .description('Search for artifacts in a registry')
-    .option('--registry <namespace>', `Registry namespace to search (default: ${PARADOC_NAMESPACE})`)
+    .option('--registry <namespace>', 'Registry namespace to search (default: the only configured registry)')
     .option('--kind <kind>', 'Filter by artifact kind (form, document, checklist, bundle)')
     .option('--tags <tags>', 'Filter by tags (comma-separated)')
     .option('--json', 'Output as JSON')
@@ -43,8 +61,6 @@ export function createSearchCommand(): Command {
           await configManager.loadProjectManifest(projectRoot)
         }
 
-        const namespace = options.registry ? normalizeNamespace(options.registry) : PARADOC_NAMESPACE
-
         // Validate kind if provided
         if (options.kind) {
           const validKinds: ArtifactKind[] = ['form', 'document', 'checklist', 'bundle']
@@ -54,6 +70,8 @@ export function createSearchCommand(): Command {
             process.exit(1)
           }
         }
+
+        const namespace = await searchNamespace(options.registry)
 
         // Parse tags
         const tags = options.tags?.split(',').map((t) => t.trim()).filter(Boolean)

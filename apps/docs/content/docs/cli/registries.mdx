@@ -13,8 +13,9 @@ A registry is a hosted collection of Paradoc artifacts. Registries can be public
 
 Every artifact reference names a registry namespace, as in `@acme/residential-lease`.
 
-- **`@paradoc` is reserved and built in.** It always resolves to `https://registry.paradoc.dev`, needs no configuration, and cannot be pointed anywhere else. `paradoc registry add @paradoc <url>` is refused, and a global or project config that sets a URL for `@paradoc` is an error.
-- **Every other namespace is yours to add.** Anyone can host a registry and give it any other namespace. The CLI resolves it only through your configuration. An unconfigured namespace fails with a message that names it and tells you to run `paradoc registry add @<ns> <url>`.
+- **There is no default registry.** The CLI resolves a namespace only through your configuration. An unconfigured namespace fails with a message that names it and tells you to run `paradoc registry add @<ns> <url>`.
+- **`@paradoc` is reserved.** It is kept for the Paradoc registry, which is not available yet. Using it fails with `The Paradoc registry is not available yet`. `paradoc registry add @paradoc <url>` is refused, and a global or project config that sets a URL for `@paradoc` is an error.
+- **Every other namespace is yours to add.** Anyone can host a registry and give it any other namespace.
 
 For example, `https://public.paradoc.dev` is a demo registry you can add under any namespace:
 
@@ -64,7 +65,7 @@ For registries that require authentication, use the extended format:
 
 ### Searching for artifacts
 
-Use [`paradoc search`](/cli/commands/search) to query a registry. Without `--registry` it searches `@paradoc`:
+Use [`paradoc search`](/cli/commands/search) to query a registry. Without `--registry` it searches your one configured registry; with none or several configured, pass `--registry`:
 
 ```bash
 paradoc search lease

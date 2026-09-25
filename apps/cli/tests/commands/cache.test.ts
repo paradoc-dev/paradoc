@@ -130,11 +130,11 @@ describe('CLI cache command', () => {
       expect(result.exitCode).toBe(1)
     })
 
-    it('reports no entry for the built-in @paradoc registry when nothing is cached', async () => {
+    it('refuses the reserved @paradoc: its registry is not available yet', async () => {
       const result = await executeCliCommand(['cache', 'invalidate', '@paradoc'])
 
-      expect(result.exitCode).toBe(0)
-      expect(result.stdout + result.stderr).toContain('No cache entry found for @paradoc')
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('The Paradoc registry is not available yet, so @paradoc cannot be resolved.')
     })
 
     it('fails for an unconfigured namespace, naming the add command', async () => {

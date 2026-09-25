@@ -77,7 +77,7 @@ describe('classifyRegistryUrl', () => {
 
   describe('public registries', () => {
     it('classifies standard HTTPS URL as public', () => {
-      expect(classifyRegistryUrl('https://registry.paradoc.dev/r')).toBe('public')
+      expect(classifyRegistryUrl('https://registry.acme.com/r')).toBe('public')
     })
 
     it('classifies HTTP URL with public host as public', () => {

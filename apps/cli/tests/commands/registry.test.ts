@@ -175,7 +175,7 @@ describe('CLI Registry Command', () => {
         )
 
         expect(result.exitCode).toBe(1)
-        expect(result.stderr).toContain('is reserved and always resolves to https://registry.paradoc.dev')
+        expect(result.stderr).toContain('is reserved for the Paradoc registry; it cannot be configured')
       }
       await expect(fs.access(path.join(home, '.paradoc', 'config.json'))).rejects.toThrow()
     })
