@@ -827,23 +827,12 @@ describe('Formal Signing', () => {
 			expect(executed.signatureMap?.[0]?.x).toBe(100)
 		})
 
-		test('unsealed executed form JSON omits formal signing fields and restores as not formal', () => {
-			const executed = sealedDraft().prepareForSigning().finalize()
-			expect(executed.isFormal).toBe(false)
-
-			const json = executed.toJSON()
-			expect('signatureMap' in json).toBe(false)
-			expect('canonicalPdfHash' in json).toBe(false)
-
-			const restored = runtimeFormFromJSON(json)
-			expect(restored.phase).toBe('executed')
-			expect(restored.isFormal).toBe(false)
-			expect(restored.signatureMap).toBeUndefined()
-			expect(restored.canonicalPdfHash).toBeUndefined()
+		test('unsealed signable form cannot finalize with required signatures missing', () => {
+			expect(() => sealedDraft().prepareForSigning().finalize()).toThrow(/required signatures/)
 		})
 
 		test('canonicalPdfBytes are not serialized', async () => {
-			const executed = (await sealedDraft().seal(sealOptions({ signatureMap: [] }))).finalize()
+			const executed = await sealedDraft().seal(sealOptions({ signatureMap: [] }))
 			expect(executed.canonicalPdfBytes).toEqual(await flattenedFixture())
 
 			const json = executed.toJSON()
@@ -1244,21 +1233,22 @@ describe('Formal Signing', () => {
 					signatureMap: [
 						{ id: 'sig-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'signature', page: 1, x: 0, y: 0, width: 200, height: 50 },
 						{ id: 'date-landlord-0', signerIndex: 0, signerId: 'landlord-signer', type: 'date_signed', page: 1, x: 0, y: 60, width: 100, height: 20 },
-						{ id: 'initials-tenant-0', signerIndex: 1, signerId: 'tenant-signer', type: 'initials', page: 2, x: 0, y: 0, width: 50, height: 30, required: false },
+						{ id: 'sig-tenant-0', signerIndex: 1, signerId: 'tenant-signer', type: 'signature', page: 2, x: 0, y: 0, width: 50, height: 30, required: false },
 					],
 				}),
 			)
 			expect(() => formal.finalize()).toThrow(
 				'Cannot finalize: required signing slots have no capture: "sig-landlord-0" (signature, signer "landlord-signer")',
 			)
-			const executed = formal.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0').finalize()
+			const executed = formal.captureSignature('landlord', 'landlord-0', 'landlord-signer', 'sig-landlord-0')
+				.captureSignature('tenant', 'tenant-0', 'tenant-signer', 'sig-tenant-0').finalize()
 			expect(executed.phase).toBe('executed')
 		})
 
-		test('a formal form sealed with an empty signatureMap finalizes', async () => {
+		test('a formal form sealed with an empty signatureMap still enforces required roles', async () => {
 			const formal = await buildDraft().seal(sealOptions({ signatureMap: [] }))
 			expect(formal.isFormal).toBe(true)
-			expect(formal.finalize().phase).toBe('executed')
+			expect(() => formal.finalize()).toThrow(/required signatures/)
 		})
 	})
 

@@ -1531,7 +1531,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 	 * not captured, so they are not checked.
 	 */
 	const ensureRequiredSlotsCaptured = (): void => {
-		if (signatureMap === undefined || canonicalPdfHash === undefined) return
+		if (signatureMap !== undefined && canonicalPdfHash !== undefined) {
 		const missing = signatureMap.filter(
 			(field) =>
 				field.required !== false &&
@@ -1541,6 +1541,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 		if (missing.length > 0) {
 			const list = missing.map((field) => `"${field.id}" (${field.type}, signer "${field.signerId}")`).join(', ')
 			throw new Error(`Cannot finalize: required signing slots have no capture: ${list}`)
+		}
+		}
+		if (!runtime.getOverallSignatureStatus().complete) {
+			throw new Error('Cannot finalize: required signatures, witnesses, or notary attestations are incomplete')
 		}
 	}
 
@@ -2384,7 +2388,10 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			const formParty = formDef.parties?.[roleId]
 			const signatureRequired = formParty?.signature?.required ?? false
+			const witnessesRequired = formParty?.signature?.witnesses ?? 0
+			const notarized = formParty?.signature?.notarized ?? false
 
+			const partyCompletion: boolean[] = []
 			const partyStatuses = roleParties.map((party) => {
 				const partyId = party.id
 				const signerIds = partySignerIds(party, roleSignatories[partyId])
@@ -2394,7 +2401,12 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 						(c) => c.role === roleId && c.partyId === partyId && c.signerId === signerId && c.type === 'signature',
 					),
 				)
-				const witnessed = attestations.some((a) => a.attestsTo.some((t) => t.role === roleId && t.partyId === partyId))
+				const partyAttestations = attestations.filter((a) => a.attestsTo.some((t) => t.role === roleId && t.partyId === partyId))
+				const witnessFor = (attestation: Attestation) => attestation.witness ?? witnesses.find((w) => w.id === attestation.witnessId)
+				const witnessed = partyAttestations.length > 0
+				const witnessesComplete = partyAttestations.length >= witnessesRequired
+				const hasNotary = partyAttestations.some((a) => witnessFor(a)?.notary === true)
+				partyCompletion.push((!signatureRequired || hasCapture) && witnessesComplete && (!notarized || hasNotary))
 				return { partyId, hasSignatory, hasCapture, witnessed }
 			})
 
@@ -2404,7 +2416,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 			return {
 				required,
 				collected,
-				complete: collected >= required,
+				complete: partyCompletion.every(Boolean),
 				parties: partyStatuses,
 			}
 		},
@@ -2434,7 +2446,7 @@ function createRuntimeForm<F extends Form>(config: RuntimeFormConfig<F>): Runtim
 
 			return {
 				roles,
-				complete: totalCollected >= totalRequired,
+				complete: Object.values(roles).every((role) => role.complete),
 				totalRequired,
 				totalCollected,
 			}

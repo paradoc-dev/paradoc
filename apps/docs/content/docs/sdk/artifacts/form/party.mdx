@@ -134,8 +134,8 @@ const partyDef: FormParty = {
 
 <PropertiesTable properties={[
   { name: 'required', type: 'boolean', description: 'Whether signature is required for this role', isOptional: true },
-  { name: 'witnesses', type: 'number', description: 'Number of witnesses required for this signature', isOptional: true },
-  { name: 'notarized', type: 'boolean', description: 'Whether at least one witness must be a notary', isOptional: true },
+  { name: 'witnesses', type: 'number', description: 'Number of caller-declared witness attestations required for this signature', isOptional: true },
+  { name: 'notarized', type: 'boolean', description: 'Whether an attesting witness must be declared with notary status', isOptional: true },
 ]} />
 
 #### FormPayment Properties

@@ -10,10 +10,10 @@ const FormSignatureSchema = z.object({
 	witnesses: z.number()
 		.int()
 		.min(0)
-		.describe('Number of witnesses required for this signature (default: 0)')
+		.describe('Number of caller-declared witness attestations required for this signature (default: 0)')
 		.optional(),
 	notarized: z.boolean()
-		.describe('Whether at least one witness must be a notary (default: false)')
+		.describe('Whether at least one caller-declared attesting witness must have notary status (default: false)')
 		.optional(),
 }).strict().meta({
 	title: 'FormSignature',

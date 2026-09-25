@@ -42,8 +42,8 @@ A conditional `required` must type-check as boolean ([logic.md § Conditions are
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `required` | boolean | `false` | The role must sign |
-| `witnesses` | number ≥ 0 | `0` | Witnesses required for this role's signature |
-| `notarized` | boolean | `false` | At least one witness must be a notary |
+| `witnesses` | number ≥ 0 | `0` | Caller-declared witness attestations required for this role's signature |
+| `notarized` | boolean | `false` | At least one attesting witness must be declared with notary status |
 
 Put witnesses on the role they witness. A form's general witness block belongs to the last party that signs. Put `notarized: true` on the role whose signature the notary block certifies. To add witnesses and attestations at runtime, load [sealing.md § Witnesses and attestations](./sealing.md#witnesses-and-attestations).
 
@@ -255,4 +255,3 @@ const lease = p
 | `.build()` | Validates and returns the role |
 
 Declare `payment` in a plain role object or with `.payment({ ... })`.
-
