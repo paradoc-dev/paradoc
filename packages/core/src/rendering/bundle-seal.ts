@@ -320,14 +320,14 @@ function partFailure(key: string, action: string, error: unknown): BundleSealErr
  * Every content key the bundle declares must have an entry, because a packet
  * missing a part is a different packet. Order is the bundle's, not the entries'.
  *
- * @throws {BundleSealError} when a part is missing, when an entry is not what
- * the bundle declares, when a part fails to render or seal, or when nothing in
- * the packet can be painted. `part` names the part when the failure belongs to
- * one.
+ * @throws {BundleSealError} when a part is missing, a bytes entry's content
+ * does not match its declared MIME type, an entry is not what the bundle
+ * declares, a part fails to render, seal or read, or nothing in the packet can
+ * be painted. `part` names the part when the failure belongs to one, and
+ * `cause` preserves the underlying error. An unreadable supplied annex is
+ * carried as an attachment and reported in `warnings` instead of failing.
  * @throws {SealConfigError} when a rendered part's renderer returns something
  * that is not a PDF, which no packet can hold.
- * @throws {PdfMergeError} when a part reached a PDF the merge cannot read.
- * @throws {PdfEncryptedError} when a part is an encrypted PDF.
  */
 export async function sealBundle(bundle: Bundle, options: BundleSealOptions): Promise<SealedBundle> {
   const { contents, renderers, adapter, locate } = options

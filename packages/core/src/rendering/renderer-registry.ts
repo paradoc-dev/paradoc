@@ -106,7 +106,7 @@ export class UnregisteredLayerRendererError extends Error {
 			`Layer "${layer}" has MIME type ${mimeType} and no renderer is registered for it. ` +
 				'Core renders text, PDF and DOCX layers itself; every other format arrives as an injection. ' +
 				'Pass one in the `renderers` option, keyed by MIME type — for a React composition, ' +
-				'`reactLayerRenderers()` from @paradoc/react-pdf builds the entries.',
+				'`reactLayerRenderers({ baseDir })` or `reactLayerRenderers({ components })` from @paradoc/react-pdf builds the entries.',
 		)
 		this.name = 'UnregisteredLayerRendererError'
 		this.layer = layer

@@ -90,12 +90,16 @@ A `text/tsx` or `text/jsx` layer names a React composition module. It is always 
 
 <!-- dep:R4 -->
 ```typescript
+import { fileURLToPath } from "node:url";
 import { reactLayerRenderers } from "@paradoc/react-pdf";
 
-const pdf = await draft.render({ layer: "composition", renderers: reactLayerRenderers() });
+const pdf = await draft.render({
+  layer: "composition",
+  renderers: reactLayerRenderers({ baseDir: fileURLToPath(new URL(".", import.meta.url)) }),
+});
 ```
 
-A React layer takes no `bindings`, `font` or `format`, and needs no resolver. To compose, check or seal one, use the `paradoc-react` skill.
+A React layer takes no `bindings`, `font` or `format`, and needs no resolver. `baseDir` is the artifact file's directory; use `components` instead when the composition is already imported. To compose, check or seal one, use the `paradoc-react` skill.
 
 ## Bindings
 

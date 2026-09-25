@@ -206,7 +206,7 @@ try {
 }
 ```
 
-A part whose renderer produces something other than PDF throws `SealConfigError`. A part PDF the merge cannot read throws `PdfMergeError`, and an encrypted one throws `PdfEncryptedError`.
+A renderer that produces something other than PDF throws `SealConfigError`. An unreadable or encrypted PDF produced by a renderer throws `BundleSealError`; `part` names the content key and `cause` preserves the PDF error. An unreadable supplied annex is carried as an attachment instead, with `attached: true` and an explanation in `warnings`.
 </Step>
 </Steps>
 

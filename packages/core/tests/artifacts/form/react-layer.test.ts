@@ -126,7 +126,7 @@ describe('React layers dispatch by MIME type', () => {
 		)
 		await expect(definition.render({ data: { fields: {} } })).rejects.toThrow(/`renderers` option/)
 		await expect(definition.render({ data: { fields: {} } })).rejects.toThrow(
-			/`reactLayerRenderers\(\)` from @paradoc\/react-pdf builds the entries/,
+			/`reactLayerRenderers\(\{ baseDir \}\)` or `reactLayerRenderers\(\{ components \}\)` from @paradoc\/react-pdf builds the entries/,
 		)
 	})
 

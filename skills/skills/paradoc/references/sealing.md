@@ -329,7 +329,9 @@ const packet = await sealBundle(bundle, {
 | `parts` | Per part: `kind` (`sealed`, `rendered`, `annex`), `firstPage`, `pageCount`, `digest`, `attached`. |
 | `warnings` | Everything reported without failing. |
 
-`sealBundle()` throws `BundleSealError` when the packet cannot be built. `error.problems` lists each issue (for example `bundle content "w9" has no entry`), and `error.part` names the content key when one part failed. A part whose renderer does not produce PDF throws `SealConfigError`. An unreadable part PDF throws `PdfMergeError`, and an encrypted one throws `PdfEncryptedError`.
+`sealBundle()` throws `BundleSealError` when the packet cannot be built. `error.problems` lists each issue (for example `bundle content "w9" has no entry`), `error.part` names the content key when one part failed, and `error.cause` preserves an underlying PDF or renderer error. It also refuses a bytes entry whose content signature does not match its declared `mimeType`. A part whose renderer does not produce PDF throws `SealConfigError`.
+
+An unreadable supplied annex does not fail the packet. It is carried as an attachment with `attached: true`, and `warnings` explains why it could not be painted. An unreadable or encrypted PDF produced by a renderer cannot be treated as an annex, so it fails with `BundleSealError` and names the part.
 
 To merge PDFs with no signing, use `mergePdfs`. Flatten filled AcroForms first: a merge drops interactive form fields.
 
