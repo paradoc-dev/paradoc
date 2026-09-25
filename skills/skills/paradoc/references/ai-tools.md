@@ -158,9 +158,9 @@ const agent = new Agent({
 |--------|---------|
 | `paradocTools(config?)` (aliases `createParadocTools`, `createMastraTools`) | Object keyed by tool name. |
 | `createGetRegistryTool`, `createGetArtifactTool`, `createInspectArtifactTool`, `createValidateArtifactTool`, `createValidateInputTool`, `createFillTool`, `createGetFillStateTool`, `createUpdateFillTool`, `createRenderTool`, `createExtractTool` | One Mastra tool each. Tool `id` is the snake_case name. |
-| `ParadocMastraConfig` | `ParadocToolsConfig` plus `modelOutputMaxBytes`. |
+| `ParadocMastraConfig` | Alias of `ParadocToolsConfig`. |
 
-`modelOutputMaxBytes` (default `DEFAULT_MODEL_OUTPUT_MAX_BYTES`, 16,384) caps the `content` the model sees through `toModelOutput`. Your code still gets the full tool result. No subpaths.
+`maxOutputBytes` (default `DEFAULT_MODEL_OUTPUT_MAX_BYTES`, 16,384) caps the `content` the model sees in every adapter. Your code still gets the full tool result. No subpaths.
 
 ### `@paradoc/tanstack-ai`
 
@@ -201,11 +201,11 @@ Every adapter factory takes `ParadocToolsConfig`:
 | `allowLocalDevelopment` | `false` | Allow loopback and private hosts, and plain HTTP. Otherwise only public HTTPS URLs are fetched. |
 | `fetch` | global `fetch` | Add auth headers, or mock in tests. |
 | `maxRedirects` | `3` | Validated redirects per request. |
-| `maxOutputBytes` | none | Default `render` output budget when a call has no `presentation`. |
+| `maxOutputBytes` | 16,384 | Maximum content bytes sent to the model. |
 | `signal` | none | Abort all work for the call. |
 | `context` | per call | `createToolExecutionContext()`: one request-scoped cache and signal. Create one per request. |
 
-Bound model-facing output with `presentation.max_bytes` on `render`. The result then has `truncated: true` and the full `byte_length`. Base64 content is cut on a whole 4-character group, so it stays decodable.
+Bound model-facing output with `maxOutputBytes`. Use `presentation.max_bytes` on `render` only when application code also wants a smaller result. A truncated result keeps the full `byte_length`; base64 content is cut on a whole 4-character group, so it stays decodable.
 
 ## Limits
 

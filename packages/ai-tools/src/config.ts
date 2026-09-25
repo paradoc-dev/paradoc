@@ -13,6 +13,6 @@ export interface ParadocToolsConfig {
 	context?: import('./context').ToolExecutionContext
 	/** Abort all work associated with this tool call. */
 	signal?: AbortSignal
-	/** Default model-facing render output budget. */
+	/** Maximum content bytes exposed to the model; application results stay complete. */
 	maxOutputBytes?: number
 }

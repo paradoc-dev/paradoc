@@ -94,13 +94,13 @@ const tools = {
 
 ## Output limits
 
-`render` can return large content. Bound what goes back to the model with `maxOutputBytes`, or per call with the `presentation` input. The result keeps `byte_length` and `truncated`, so your code can tell when content was cut.
+Tool results can contain large content. `maxOutputBytes` bounds only the copy sent back to the model; application code receives the complete result. A `render` call can separately request a smaller application result with its `presentation` input.
 
 ```typescript
 const tools = paradocTools({ maxOutputBytes: 200_000 })
 ```
 
-`maxOutputBytes` applies only when the call has no `presentation`. See [`render`](/ai/tools/render).
+The default model-facing budget is 16,384 bytes. See [`render`](/ai/tools/render) for the separate application-facing presentation controls.
 
 ## Configuration
 

@@ -50,6 +50,8 @@ import type { output } from 'zod'
 
 export * from './contracts'
 export { configForExecution, createToolExecutionContext } from './context'
+export { attachModelOutputSerialization, boundModelValue, DEFAULT_MODEL_OUTPUT_MAX_BYTES, toModelOutput, truncateContent } from './model-output'
+export type { ToolResultOutput } from './model-output'
 export type { ToolExecutionContext, RequestCache } from './context'
 export type { ParadocToolsConfig } from './config'
 export { resolveSource } from './resolve-source'

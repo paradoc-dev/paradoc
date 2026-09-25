@@ -124,7 +124,7 @@ const config: ParadocToolsConfig = {
 };
 ```
 
-The configured default is used only when an operation omits `registry_url`; an explicit input always wins. Local HTTP/loopback access requires `allowLocalDevelopment: true`. `approvedOrigins` should be used with a connection-level egress policy when sources are untrusted, because lexical hostname checks cannot prevent DNS rebinding.
+The configured default is used only when an operation omits `registry_url`; an explicit input always wins. `maxOutputBytes` bounds content sent to a model while leaving application results complete, and defaults to 16,384. Local HTTP/loopback access requires `allowLocalDevelopment: true`. `approvedOrigins` should be used with a connection-level egress policy when sources are untrusted, because lexical hostname checks cannot prevent DNS rebinding.
 
 ## Tools
 

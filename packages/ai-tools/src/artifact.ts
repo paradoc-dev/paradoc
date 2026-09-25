@@ -2,6 +2,7 @@ import type { FormPayload } from './contracts'
 import type { ParadocToolsConfig } from './config'
 import { createHttpResolver } from '@paradoc/resolvers/http'
 import { bytesToBase64, fetchPolicyFromConfig, MAX_LAYER_FILE_SIZE, safeFetch } from './registry-client'
+import { truncateContent } from './model-output'
 
 export type ArtifactKind = 'form' | 'document' | 'bundle' | 'checklist'
 
@@ -82,17 +83,10 @@ export function boundedPresentation(
 	const includeContent = options?.include_content !== false
 	if (!includeContent) return { byte_length: value.byte_length, truncated: true }
 	if (!maxBytes || !Number.isFinite(maxBytes)) return { content: value.content, byte_length: value.byte_length }
-	if (value.encoding === 'utf-8') {
-		const bytes = new TextEncoder().encode(value.content)
-		if (bytes.byteLength <= maxBytes) return { content: value.content, byte_length: value.byte_length }
-		return { content: new TextDecoder().decode(bytes.slice(0, maxBytes)), byte_length: value.byte_length, truncated: true }
-	}
-	// Base64 output must remain decodable. Trim to the largest complete 4-byte group.
-	const chars = Math.floor(maxBytes / 3) * 4
-	if (chars === 0) return { content: '', byte_length: value.byte_length, truncated: value.content.length > 0 }
+	const bounded = truncateContent(value.content, value.encoding ?? 'utf-8', maxBytes)
 	return {
-		content: value.content.slice(0, chars),
+		content: bounded.content,
 		byte_length: value.byte_length,
-		truncated: value.content.length > chars,
+		...(bounded.truncated ? { truncated: true } : {}),
 	}
 }

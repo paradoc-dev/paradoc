@@ -71,7 +71,7 @@ const tools = paradocTools({
 });
 ```
 
-`maxOutputBytes` supplies the default render presentation limit when the call does not provide one. An explicit `presentation` input remains authoritative.
+`maxOutputBytes` bounds content sent to the model while leaving the application result complete. It defaults to 16,384 bytes. An explicit `presentation` input independently controls the application-facing render result.
 
 ## Related packages
 

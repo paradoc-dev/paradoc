@@ -141,11 +141,11 @@ paradocTools({
 | `maxRedirects` | `number` | Maximum validated redirects per request. Default `3`. |
 | `context` | `ToolExecutionContext` | Request-scoped cache and signal. Create one per request with `createToolExecutionContext()`. |
 | `signal` | `AbortSignal` | Abort all work for the call |
-| `maxOutputBytes` | `number` | Default `render` output budget when the call has no `presentation` |
+| `maxOutputBytes` | `number` | Maximum content bytes sent to the model; defaults to 16,384 |
 
 `approvedOrigins` checks hostnames only. When sources are untrusted, pair it with a network egress policy, because a hostname check cannot stop DNS rebinding.
 
-Every adapter combines the framework's abort signal with `signal` and `context.signal`. The Mastra adapter adds one option, [`modelOutputMaxBytes`](/ai/mastra#configuration).
+Every adapter combines the framework's abort signal with `signal` and `context.signal`, returns the complete result to application code, and bounds the model-facing copy with `maxOutputBytes`.
 
 ## Differences from the MCP server
 
