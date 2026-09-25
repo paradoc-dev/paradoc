@@ -1,2 +1,3 @@
 #!/usr/bin/env node
-import '@paradoc/cli/dist/index.js';
+process.env.PARADOC_CLI_PACKAGE = 'paradoc-cli'
+await import('@paradoc/cli/dist/index.js')

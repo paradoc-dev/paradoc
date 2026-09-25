@@ -1,6 +1,5 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import { brandColorBold } from '../constants.js'
 
 /**
  * Command group definition for help output
@@ -51,12 +50,12 @@ export function formatGroupedHelp(
 
   // Header
   lines.push('')
-  lines.push(`${brandColorBold('Paradoc CLI')} ${kleur.gray('— Registry-first artifact manager')}`)
+  lines.push(program.description())
   lines.push('')
 
   // Usage
   lines.push(kleur.bold('Usage:'))
-  lines.push(`  ${program.name()} [command] [options]`)
+  lines.push(`  ${program.name()} ${program.usage()}`)
   lines.push('')
 
   // Calculate alignment
@@ -83,8 +82,11 @@ export function formatGroupedHelp(
 
   // Global options
   lines.push(kleur.bold('Options:'))
-  lines.push(`  ${kleur.white('-v, --version')}  ${kleur.gray('Display version number')}`)
-  lines.push(`  ${kleur.white('-h, --help')}     ${kleur.gray('Display help for command')}`)
+  const optionWidth = Math.max(...program.options.map(option => option.flags.length))
+  for (const option of program.options) {
+    const padding = ' '.repeat(optionWidth - option.flags.length + 2)
+    lines.push(`  ${kleur.white(option.flags)}${padding}${kleur.gray(option.description)}`)
+  }
   lines.push('')
 
   // Footer

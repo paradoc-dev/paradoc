@@ -18,4 +18,11 @@ describe('paradoc-cli shim', () => {
     expect(readFileSync(path.join(packageRoot, 'bin.js'), 'utf8')).toContain("@paradoc/cli/dist/index.js")
     expect(existsSync(path.join(cliRoot, 'dist/index.js'))).toBe(true)
   })
+
+  it('identifies the shim package before loading the CLI', () => {
+    const source = readFileSync(path.join(packageRoot, 'bin.js'), 'utf8')
+    expect(source.indexOf("PARADOC_CLI_PACKAGE = 'paradoc-cli'")).toBeLessThan(
+      source.indexOf("import('@paradoc/cli/dist/index.js')"),
+    )
+  })
 })

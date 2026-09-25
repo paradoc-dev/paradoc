@@ -10,7 +10,7 @@ export interface CommandEntry {
 
 export const commandEntries: CommandEntry[] = [
 	// Registry
-	{ name: 'add', description: 'Add an artifact from a registry, or a document component', group: 'Registry',
+	{ name: 'add', description: 'Add an artifact from a registry, or one or more document components from the Paradoc component registry', group: 'Registry',
 		load: () => import('./commands/add.js').then(m => m.createAddCommand()) },
 	{ name: 'list', description: 'List installed artifacts', group: 'Registry', aliases: ['ls'],
 		load: () => import('./commands/list.js').then(m => m.createListCommand()) },
@@ -22,7 +22,7 @@ export const commandEntries: CommandEntry[] = [
 	// Artifacts
 	{ name: 'show', description: 'Show details about an artifact', group: 'Artifacts',
 		load: () => import('./commands/show.js').then(m => m.createShowCommand()) },
-	{ name: 'validate', description: 'Validate any Paradoc artifact against the core schema', group: 'Artifacts',
+	{ name: 'validate', description: 'Validate one or more Paradoc artifacts against the core schema', group: 'Artifacts',
 		load: () => import('./commands/validate.js').then(m => m.createValidateCommand()) },
 	{ name: 'inspect', description: 'Inspect PDF form fields to aid in bindings configuration', group: 'Artifacts',
 		load: () => import('./commands/inspect.js').then(m => m.createInspectCommand()) },
@@ -38,7 +38,7 @@ export const commandEntries: CommandEntry[] = [
 		load: () => import('./commands/version.js').then(m => m.createVersionCommand()) },
 	{ name: 'attach', description: 'Attach a file as a layer to an artifact', group: 'Artifacts',
 		load: () => import('./commands/attach.js').then(m => m.createAttachCommand()) },
-	{ name: 'detach', description: 'Detach (remove) a layer from an artifact', group: 'Artifacts',
+	{ name: 'detach', description: 'Detach (remove) a layer or content reference from an artifact', group: 'Artifacts',
 		load: () => import('./commands/detach.js').then(m => m.createDetachCommand()) },
 	{ name: 'generate', description: 'Generate TypeScript types for an artifact file', group: 'Artifacts',
 		load: () => import('./commands/generate.js').then(m => m.createGenerateCommand()) },
@@ -46,7 +46,7 @@ export const commandEntries: CommandEntry[] = [
 		load: () => import('./commands/hash.js').then(m => m.createHashCommand()) },
 	{ name: 'data', description: 'Data operations for Paradoc artifacts', group: 'Artifacts',
 		load: () => import('./commands/data/index.js').then(m => m.createDataCommand()) },
-	{ name: 'migrate', description: 'Migrate artifact files to the current schema version', group: 'Artifacts',
+	{ name: 'migrate', description: 'Migrate artifact files to the current schema version (2026-09-24)', group: 'Artifacts',
 		load: () => import('./commands/migrate.js').then(m => m.createMigrateCommand()) },
 	{ name: 'diff', description: 'Show differences between two artifact files', group: 'Artifacts',
 		load: () => import('./commands/diff.js').then(m => m.createDiffCommand()) },

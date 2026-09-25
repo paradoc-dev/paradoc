@@ -14,8 +14,9 @@ import { paradocHomePath } from './home.js'
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 hours
 const FETCH_TIMEOUT_MS = 5_000
-/** The documented install. @paradoc/cli is an alternative that publishes the same version. */
-const CLI_PACKAGE = 'paradoc-cli'
+const CLI_PACKAGE = process.env.PARADOC_CLI_PACKAGE === 'paradoc-cli'
+	? 'paradoc-cli'
+	: '@paradoc/cli'
 const NPM_REGISTRY_URL = `https://registry.npmjs.org/${CLI_PACKAGE}/latest`
 
 interface UpdateCache {

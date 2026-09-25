@@ -1,5 +1,7 @@
 import { runCli as executeCliCommand } from '../setup/spawn-cli'
 import { describe, it, expect } from 'vitest'
+import fs from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -26,6 +28,53 @@ describe('CLI General Commands', () => {
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('Usage:')
       expect(result.stdout).toContain('paradoc')
+    })
+
+    it('prints command help for -h before a command', async () => {
+      const result = await executeCliCommand(['-h', 'add'])
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('Usage: paradoc add')
+    })
+
+    it('rejects an unknown command even when help is requested', async () => {
+      const result = await executeCliCommand(['unknown-command', '--help'])
+
+      expect(result.exitCode).not.toBe(0)
+      expect(result.stderr).toContain("unknown command 'unknown-command'")
+    })
+
+    it('lists every registered global option', async () => {
+      const result = await executeCliCommand(['--help'])
+
+      expect(result.stdout).toContain('--no-telemetry')
+    })
+
+    it('prints the update notice after asynchronous command output', async () => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), 'paradoc-update-order-'))
+      const home = path.join(root, 'home')
+      const preload = path.join(root, 'tty.mjs')
+      try {
+        await fs.mkdir(path.join(home, '.paradoc'), { recursive: true })
+        await fs.writeFile(
+          path.join(home, '.paradoc', 'update-check.json'),
+          JSON.stringify({ lastChecked: Date.now(), latestVersion: '99.0.0' }),
+        )
+        await fs.writeFile(preload, "Object.defineProperty(process.stdout, 'isTTY', { value: true })\n")
+
+        const result = await executeCliCommand(['cache', 'info'], {
+          cwd: root,
+          target: 'dist',
+          nodeArgs: ['--import', preload],
+          env: { HOME: home, CI: undefined, PARADOC_NO_UPDATE_CHECK: undefined, NO_COLOR: '1' },
+        })
+        expect(result.exitCode).toBe(0)
+        expect(result.stdout.indexOf('Cache Statistics')).toBeLessThan(
+          result.stdout.indexOf('Update available'),
+        )
+      } finally {
+        await fs.rm(root, { recursive: true, force: true })
+      }
     })
 
     it('should list all available commands', async () => {

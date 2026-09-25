@@ -21,12 +21,15 @@ program
 	.helpOption('-h, --help', 'Display help for command')
 	.option('--no-telemetry', 'Disable telemetry for this invocation')
 
-// `paradoc help [command...]` is the same request as `paradoc [command...] --help`
+// Normalize every root-level help spelling to `<command> --help`.
 const rawArgs = process.argv.slice(2)
 const helpIndex = rawArgs.findIndex(a => !a.startsWith('-'))
-const args = rawArgs[helpIndex] === 'help'
+let args = rawArgs[helpIndex] === 'help'
 	? [...rawArgs.slice(0, helpIndex), ...rawArgs.slice(helpIndex + 1), '--help']
 	: rawArgs
+if ((args[0] === '-h' || args[0] === '--help') && args[1] && !args[1].startsWith('-')) {
+	args = [args[1], ...args.slice(2), '--help']
+}
 const firstPositional = args.find(a => !a.startsWith('-'))
 
 // Look up command by name or alias
@@ -59,6 +62,10 @@ if (entry) {
 	configureGroupedHelp(program, commandGroups)
 }
 
+if (firstPositional && !entry) {
+	program.error(`error: unknown command '${firstPositional}'`)
+}
+
 // Handle unknown commands
 program.on('command:*', (operands) => {
 	console.error(kleur.red(`error: unknown command '${operands[0]}'`))
@@ -78,13 +85,9 @@ program.hook('preAction', () => {
 	}
 })
 
-// Parse arguments
-program.parse(args, { from: 'user' })
-
-// Print update notice (sync, reads cached result from checkForUpdate)
-printUpdateNotice()
-
-// If no arguments are provided, show help
-if (!args.length) {
-	program.outputHelp()
+try {
+	await program.parseAsync(args, { from: 'user' })
+	printUpdateNotice()
+} catch (error) {
+	program.error(error instanceof Error ? error.message : String(error))
 }

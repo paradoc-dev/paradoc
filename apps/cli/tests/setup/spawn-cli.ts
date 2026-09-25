@@ -14,6 +14,7 @@ export interface CliRunOptions {
   stdin?: string
   target?: CliTarget
   built?: boolean
+  nodeArgs?: string[]
 }
 
 export interface CliResult {
@@ -33,7 +34,7 @@ export function runCli(args: string[], options: CliRunOptions = {}): Promise<Cli
   const input = options.input ?? options.stdin
 
   return new Promise((resolve, reject) => {
-    const child = spawn(executable, [entry, ...args], {
+    const child = spawn(executable, [...(options.nodeArgs ?? []), entry, ...args], {
       cwd: options.cwd ?? process.cwd(),
       env: { ...process.env, ...options.env },
       stdio: ['pipe', 'pipe', 'pipe'],

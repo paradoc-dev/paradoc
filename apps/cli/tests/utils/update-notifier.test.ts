@@ -111,7 +111,7 @@ describe('update-notifier', () => {
 			expect(fetchSpy).not.toHaveBeenCalled()
 		})
 
-		it('checks the documented paradoc-cli package on npm', async () => {
+		it('checks the package that is running on npm', async () => {
 			vi.resetModules()
 
 			const fetchSpy = vi
@@ -126,7 +126,7 @@ describe('update-notifier', () => {
 			})
 
 			expect(fetchSpy).toHaveBeenCalledWith(
-				'https://registry.npmjs.org/paradoc-cli/latest',
+				'https://registry.npmjs.org/@paradoc/cli/latest',
 				expect.anything(),
 			)
 		})
@@ -190,8 +190,7 @@ describe('update-notifier', () => {
 
 			const output = consoleSpy.mock.calls.flat().join('\n')
 			expect(output).toContain('0.2.0')
-			expect(output).toContain('npm i -g paradoc-cli')
-			expect(output).not.toContain('@paradoc/cli')
+			expect(output).toContain('npm i -g @paradoc/cli')
 		})
 
 		it('skips notice when PARADOC_NO_UPDATE_CHECK is set', async () => {
