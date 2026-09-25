@@ -1,7 +1,6 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import {
-  validate,
   renderLayer,
   resolveLayerKey,
   isForm,
@@ -16,7 +15,7 @@ import { createFsResolver } from '@paradoc/resolvers/fs'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { parseDataInput, normalizeFormData } from '../utils/data-input.js'
-import { parseArtifactFile } from '../utils/artifact-file.js'
+import { loadValidatedArtifact } from '../utils/artifact-file.js'
 
 type OutputFormat = 'json' | 'pretty'
 
@@ -46,20 +45,7 @@ export function createRenderCommand(): Command {
         const format = normalizeFormatOption(options.format ?? 'pretty')
         const resolvedTarget = await resolveArtifactTarget(artifactTarget)
         const { raw, sourcePath, baseDir } = await readTextInput(resolvedTarget)
-        const parsed = parseArtifactFile(raw)
-
-        const validation = validate(parsed)
-        if (validation.issues) {
-          const issues = validation.issues.map((issue) => ({
-            message: issue.message,
-            path: issue.path?.map((segment) => String(segment)),
-          }))
-          printIssues(issues)
-          process.exitCode = 1
-          return
-        }
-
-        const artifact = validation.value as Artifact
+        const artifact = loadValidatedArtifact(raw)
 
         // Check if artifact has layers
         if (!('layers' in artifact) || !artifact.layers || Object.keys(artifact.layers).length === 0) {
@@ -171,14 +157,6 @@ function normalizeFormatOption(value: string): OutputFormat {
     throw new Error(`Unknown format "${value}". Use "pretty" or "json".`)
   }
   return normalized
-}
-
-function printIssues(issues: Array<{ message: string; path?: string[] | undefined }>): void {
-  console.error(kleur.red('Validation failed:'))
-  for (const issue of issues) {
-    const location = issue.path?.length ? issue.path.join('.') : 'root'
-    console.error(`  - ${location}: ${issue.message}`)
-  }
 }
 
 interface DryRunSummaryInput {

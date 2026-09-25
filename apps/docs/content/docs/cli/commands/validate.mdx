@@ -27,10 +27,10 @@ paradoc validate <artifacts...> [options]
 | `--silent` | Suppress console output (exit code only) |
 | `--expect-kind <kind>` | Assert artifact kind: `form`, `document`, `checklist`, `bundle` |
 | `--schema-only` | Only validate artifact schema (skip layer and content reference checks) |
-| `--layers-only` | Only validate layers (paths + checksums) |
-| `--checksum-only` | Only verify layer checksums |
+| `--layers-only` | Validate the schema and referenced files (paths + checksums) |
+| `--checksum-only` | Validate the schema and verify checksums for files that exist |
 
-The scope flags (`--schema-only`, `--layers-only`, `--checksum-only`) are mutually exclusive.
+The scope flags (`--schema-only`, `--layers-only`, `--checksum-only`) are mutually exclusive. Every scope first requires a schema-valid artifact.
 
 ## Description
 

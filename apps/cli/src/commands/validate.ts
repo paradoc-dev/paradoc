@@ -11,7 +11,7 @@ import { createFsResolver } from '@paradoc/resolvers/fs'
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { verifyHashFromFile } from '../utils/hash.js'
-import { parseArtifactFile } from '../utils/artifact-file.js'
+import { fileReferencesOf, parseArtifactFile } from '../utils/artifact-file.js'
 
 interface ValidateOptions {
   json?: boolean
@@ -63,8 +63,8 @@ export function createValidateCommand(): Command {
     .option('--silent', 'Suppress console output (exit code only)')
     .option('--expect-kind <kind>', 'Assert artifact kind (form, document, checklist, bundle)')
     .option('--schema-only', 'Only validate artifact schema (skip layer checks)')
-    .option('--layers-only', 'Only validate layers (paths + checksums)')
-    .option('--checksum-only', 'Only verify layer checksums')
+    .option('--layers-only', 'Validate schema and referenced files (paths + checksums)')
+    .option('--checksum-only', 'Validate schema and verify checksums for files that exist')
     .action(async (artifactTargets: string[], options: ValidateOptions) => {
       // Validate flag exclusivity — a global option error, unrelated to any one file
       const scopeFlags = [options.schemaOnly, options.layersOnly, options.checksumOnly].filter(Boolean)
@@ -81,9 +81,6 @@ export function createValidateCommand(): Command {
           results.push(await validateOneFile(artifactTarget, options))
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
-          if (!options.silent) {
-            console.error(kleur.red(`Error: ${message}`))
-          }
           results.push({ ok: false, sourcePath: sourceLabel, error: message })
         }
       }
@@ -101,7 +98,7 @@ export function createValidateCommand(): Command {
             console.log(kleur.bold(`── ${result.sourcePath} ──`))
           }
           if ('error' in result) {
-            console.log(kleur.red(`✗ ${result.error}`))
+            console.error(kleur.red(`✗ ${result.error}`))
           } else {
             printHumanResult(result)
           }
@@ -138,28 +135,23 @@ async function validateOneFile(artifactTarget: string, options: ValidateOptions)
   let layersSkipped = false
   let layersSkipReason: string | undefined
 
-  // Schema validation phase — always run internally (needed for layer extraction),
-  // but only collect/report schema issues unless --layers-only or --checksum-only
-  const reportSchema = !options.layersOnly && !options.checksumOnly
+  // Every scope requires a structurally valid artifact before file checks can run.
+  for (const issue of result.issues ?? []) {
+    schemaIssues.push({
+      message: issue.message,
+      path: issue.path?.map((segment) => String(segment)),
+      severity: 'error',
+    })
+  }
 
-  if (reportSchema) {
-    for (const issue of result.issues ?? []) {
+  if (hasValue && !schemaIssues.length && options.expectKind) {
+    const artifact = result.value as Artifact
+    if (artifact.kind !== options.expectKind) {
       schemaIssues.push({
-        message: issue.message,
-        path: issue.path?.map((segment) => String(segment)),
+        message: `Expected kind "${options.expectKind}" but received "${artifact.kind}".`,
+        path: ['kind'],
         severity: 'error',
       })
-    }
-
-    if (hasValue && !schemaIssues.length && options.expectKind) {
-      const artifact = result.value as Artifact
-      if (artifact.kind !== options.expectKind) {
-        schemaIssues.push({
-          message: `Expected kind "${options.expectKind}" but received "${artifact.kind}".`,
-          path: ['kind'],
-          severity: 'error',
-        })
-      }
     }
   }
 
@@ -259,7 +251,7 @@ async function validateOneFile(artifactTarget: string, options: ValidateOptions)
       const fileExists = await storage.exists(absPath)
       check.fileExists = fileExists
 
-      if (!fileExists) {
+      if (!fileExists && !options.checksumOnly) {
         check.issues.push({
           message: `Content file not found: ${ref.path}`,
           path: [field, 'path'],
@@ -287,6 +279,39 @@ async function validateOneFile(artifactTarget: string, options: ValidateOptions)
         })
       }
 
+      contentRefChecks.push(check)
+    }
+  }
+
+  // Fonts and bundle path items are file references too. Layers and content
+  // refs above retain their richer presentation; this loop covers the rest.
+  if (!options.schemaOnly && artifact && !fromStdin) {
+    const alreadyChecked = new Set([
+      ...layerChecks.map((check) => `layers.${check.key}`),
+      ...contentRefChecks.map((check) => check.field),
+    ])
+    const storage = new LocalFileSystem(baseDir)
+    for (const reference of fileReferencesOf(artifact)) {
+      const key = reference.propertyPath.join('.')
+      if (alreadyChecked.has(key)) continue
+      const exists = await storage.exists(storage.getAbsolutePath(reference.path))
+      const check: ContentRefCheckResult = {
+        field: key,
+        kind: 'file',
+        path: reference.path,
+        checksumExpected: reference.checksum,
+        fileExists: exists,
+        issues: [],
+      }
+      if (!exists && !options.checksumOnly) {
+        check.issues.push({ message: `File not found: ${reference.path}`, path: [...reference.propertyPath, 'path'], severity: 'error' })
+      } else if (exists && reference.checksum) {
+        const matches = await verifyHashFromFile(storage.getAbsolutePath(reference.path), reference.checksum)
+        check.checksumMatch = matches
+        if (!matches) check.issues.push({ message: 'Checksum mismatch. Run `paradoc fix` to update.', path: [...reference.propertyPath, 'checksum'], severity: 'error' })
+      } else if (exists && reference.propertyPath[0] !== 'contents') {
+        check.issues.push({ message: 'No checksum set. Run `paradoc fix` to add one.', path: [...reference.propertyPath, 'checksum'], severity: 'warning' })
+      }
       contentRefChecks.push(check)
     }
   }

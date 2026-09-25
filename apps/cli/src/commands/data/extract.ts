@@ -1,9 +1,9 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import { form as formApi, isForm, validate, type Form, type FormExtraction } from '@paradoc/core'
+import { form as formApi, isForm, type Form, type FormExtraction } from '@paradoc/core'
 import { LocalFileSystem } from '../../utils/local-fs.js'
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
-import { parseArtifactFile } from '../../utils/artifact-file.js'
+import { loadValidatedArtifact } from '../../utils/artifact-file.js'
 
 interface ExtractOptions {
   layer?: string
@@ -22,18 +22,12 @@ function errorOf(error: unknown): { code: string; message: string } {
 
 async function loadForm(target: string): Promise<Form> {
   const { raw } = await readTextInput(await resolveArtifactTarget(target))
-  const validation = validate(parseArtifactFile(raw))
-  if (validation.issues) {
-    const detail = validation.issues
-      .map((issue) => `  - ${issue.path?.length ? issue.path.map(String).join('.') : 'root'}: ${issue.message}`)
-      .join('\n')
-    throw new Error(`Form validation failed:\n${detail}`)
-  }
-  if (!isForm(validation.value)) {
-    const kind = (validation.value as { kind?: string })?.kind ?? 'unknown'
+  const artifact = loadValidatedArtifact(raw)
+  if (!isForm(artifact)) {
+    const kind = artifact.kind
     throw new Error(`Expected form artifact, but received kind "${kind}".`)
   }
-  return validation.value as Form
+  return artifact as Form
 }
 
 /**

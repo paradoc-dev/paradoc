@@ -1,11 +1,11 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import { validate as validateArtifact, isForm, type Form } from '@paradoc/core'
+import { isForm, type Form } from '@paradoc/core'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
 import { parseDataInput, toFormPayload } from '../../utils/data-input.js'
 import { printPayloadErrors, validateFormPayload } from '../../utils/validate-data.js'
-import { parseArtifactFile } from '../../utils/artifact-file.js'
+import { loadValidatedArtifact } from '../../utils/artifact-file.js'
 
 interface ValidateDataOptions {
   json?: boolean
@@ -34,31 +34,11 @@ export function createValidateCommand(): Command {
         // Read form file
         const resolvedFormTarget = await resolveArtifactTarget(formTarget)
         const { raw: formRaw } = await readTextInput(resolvedFormTarget)
-        const formParsed = parseArtifactFile(formRaw)
-
-        // Validate form artifact
-        const formValidation = validateArtifact(formParsed)
-        if (formValidation.issues) {
-          const issues = formValidation.issues.map((issue) => ({
-            message: issue.message,
-            path: issue.path?.map((segment) => String(segment)),
-          }))
-
-          if (!options.silent) {
-            console.error(kleur.red('Form validation failed:'))
-            for (const issue of issues) {
-              const location = issue.path?.length ? issue.path.join('.') : 'root'
-              console.error(`  - ${location}: ${issue.message}`)
-            }
-          }
-          process.exit(1)
-          return
-        }
+        const artifact = loadValidatedArtifact(formRaw)
 
         // Check artifact kind is 'form'
-        if (!isForm(formValidation.value)) {
-          const artifact = formValidation.value as { kind?: string }
-          const kind = artifact?.kind ?? 'unknown'
+        if (!isForm(artifact)) {
+          const kind = artifact.kind
           if (!options.silent) {
             console.error(kleur.red(`Error: Expected form artifact, but received kind "${kind}".`))
           }
@@ -66,7 +46,7 @@ export function createValidateCommand(): Command {
           return
         }
 
-        const form = formValidation.value as Form
+        const form = artifact as Form
 
         // Parse data from file, stdin, or inline JSON
         const { data: rawData, source: dataSource } = await parseDataInput(dataTarget)

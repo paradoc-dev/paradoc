@@ -15,7 +15,7 @@ import { normalizeFormData, parseDataInput } from '../utils/data-input.js'
 import { findRepoRoot } from '../utils/project.js'
 import { rendererManager } from '../utils/renderer-manager.js'
 import { ensureTsLoader } from '../utils/ts-loader.js'
-import { parseArtifactFile } from '../utils/artifact-file.js'
+import { loadValidatedArtifact } from '../utils/artifact-file.js'
 
 type AdapterName = 'takumi' | 'chromium'
 
@@ -260,23 +260,16 @@ function validatedLayer(resolved: ResolvedLayer): ResolvedLayer {
 
 /** Parses and validates an artifact, requiring a form that declares at least one React layer. */
 function parseFormArtifact(raw: string, label: string): Form {
-  let parsed: unknown
+  let artifact
   try {
-    parsed = parseArtifactFile(raw)
+    artifact = loadValidatedArtifact(raw)
   } catch (error) {
     throw new Error(`"${label}": ${error instanceof Error ? error.message : String(error)}`)
   }
-  const validation = validate(parsed)
-  if (validation.issues) {
-    const issues = validation.issues
-      .map((issue) => `  - ${issue.path?.length ? issue.path.join('.') : 'root'}: ${issue.message}`)
-      .join('\n')
-    throw new Error(`"${label}" is not a valid artifact:\n${issues}`)
-  }
-  if (!isForm(validation.value)) {
+  if (!isForm(artifact)) {
     throw new Error(`"${label}" is not a form artifact. Only forms declare React layers today.`)
   }
-  return validation.value as Form
+  return artifact as Form
 }
 
 function pickLayer(

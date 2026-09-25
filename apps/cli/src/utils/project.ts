@@ -1,8 +1,7 @@
 import { LocalFileSystem } from './local-fs.js'
 
-import { validate } from '@paradoc/core'
 import type { Artifact } from '@paradoc/core'
-import { parseArtifactFile } from './artifact-file.js'
+import { fileReferencesOf, loadValidatedArtifact } from './artifact-file.js'
 
 // --------------------------------------------
 // Project Utilities
@@ -124,21 +123,7 @@ export async function parseAndValidateArtifact(filePath: string): Promise<Artifa
   const content = await storage.readFile(filePath)
 
   // Parse the content (auto-detects JSON/YAML)
-  const parsed = parseArtifactFile(content)
-
-  // Validate the artifact
-  const result = validate(parsed)
-  if (result.issues) {
-    const issueMessages = result.issues
-      .map((issue) => {
-        const path = issue.path ? issue.path.map(String).join('.') : 'root'
-        return `${path}: ${issue.message}`
-      })
-      .join(', ')
-    throw new Error(`Invalid artifact: ${issueMessages}`)
-  }
-
-  const artifact = result.value as Artifact
+  const artifact = loadValidatedArtifact(content)
 
   // Type guard to ensure we have a valid artifact
   if (
@@ -161,43 +146,7 @@ export async function parseAndValidateArtifact(filePath: string): Promise<Artifa
  * Detect file dependencies from an artifact
  */
 export function detectFileDependencies(artifact: Artifact): string[] {
-  const deps: string[] = []
-
-  // Helper to extract deps from layers
-  const extractLayerDeps = (layers: Record<string, { kind: string; path?: string; font?: { path: string } }>) => {
-    for (const layer of Object.values(layers)) {
-      if (layer.kind === 'file' && layer.path) {
-        deps.push(layer.path)
-        if (layer.font?.path) deps.push(layer.font.path)
-      }
-    }
-  }
-
-  // Forms with file-based layers
-  if (artifact.kind === 'form' && artifact.layers) {
-    extractLayerDeps(artifact.layers as Record<string, { kind: string; path?: string }>)
-  }
-
-  // Documents with file-based layers
-  if (artifact.kind === 'document' && artifact.layers) {
-    extractLayerDeps(artifact.layers as Record<string, { kind: string; path?: string }>)
-  }
-
-  // Checklists with file-based layers
-  if (artifact.kind === 'checklist' && artifact.layers) {
-    extractLayerDeps(artifact.layers as Record<string, { kind: string; path?: string }>)
-  }
-
-  // ContentRef file dependencies (on ArtifactBase — all kinds)
-  const contentRefFields = ['instructions', 'agentInstructions'] as const
-  for (const field of contentRefFields) {
-    const ref = (artifact as unknown as Record<string, unknown>)[field] as { kind: string; path?: string } | undefined
-    if (ref && ref.kind === 'file' && ref.path) {
-      deps.push(ref.path)
-    }
-  }
-
-  return deps
+  return [...fileReferencesOf(artifact)].map((reference) => reference.path)
 }
 
 // --------------------------------------------

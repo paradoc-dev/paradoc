@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { validate, toYAML, isForm, createSafeRegex, type Form, type FormField } from '@paradoc/core'
+import { toYAML, isForm, createSafeRegex, type Form, type FormField } from '@paradoc/core'
 import { LocalFileSystem } from '../../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
@@ -12,40 +12,13 @@ import {
   validateFormPayload,
   type FilledPayload,
 } from '../../utils/validate-data.js'
-import { parseArtifactFile } from '../../utils/artifact-file.js'
+import { loadValidatedArtifact, outputFormatOf } from '../../utils/artifact-file.js'
 
 interface FillOptions {
   out: string
   data?: string
   json?: boolean
   yaml?: boolean
-}
-
-/**
- * Determine output format based on options and file extension
- */
-function determineOutputFormat(options: FillOptions, storage: LocalFileSystem): 'json' | 'yaml' {
-  // Check explicit flags first
-  if (options.json) {
-    return 'json'
-  }
-  if (options.yaml) {
-    return 'yaml'
-  }
-
-  // Check file extension if --out is specified
-  if (options.out) {
-    const ext = storage.extname(options.out).toLowerCase()
-    if (ext === '.json') {
-      return 'json'
-    }
-    if (ext === '.yaml' || ext === '.yml') {
-      return 'yaml'
-    }
-  }
-
-  // Default to YAML
-  return 'yaml'
 }
 
 /**
@@ -259,35 +232,17 @@ export function createFillCommand(): Command {
         // Read form file
         const resolvedTarget = await resolveArtifactTarget(fileTarget)
         const { raw, sourcePath: _sourcePath } = await readTextInput(resolvedTarget)
-        const parsed = parseArtifactFile(raw)
-
-        // Validate artifact
-        const validation = validate(parsed)
-        if (validation.issues) {
-          const issues = validation.issues.map((issue) => ({
-            message: issue.message,
-            path: issue.path?.map((segment) => String(segment)),
-          }))
-
-          console.error(kleur.red('Validation failed:'))
-          for (const issue of issues) {
-            const location = issue.path?.length ? issue.path.join('.') : 'root'
-            console.error(`  - ${location}: ${issue.message}`)
-          }
-          process.exit(1)
-          return
-        }
+        const artifact = loadValidatedArtifact(raw)
 
         // Check artifact kind is 'form'
-        if (!isForm(validation.value)) {
-          const artifact = validation.value as { kind?: string }
-          const kind = artifact?.kind ?? 'unknown'
+        if (!isForm(artifact)) {
+          const kind = artifact.kind
           console.error(kleur.red(`Error: Expected form artifact, but received kind "${kind}".`))
           process.exit(1)
           return
         }
 
-        const form = validation.value as Form
+        const form = artifact as Form
 
         // Interactive mode prompts for fields only; a form without fields has nothing to prompt for.
         if (!options.data && (!form.fields || Object.keys(form.fields).length === 0)) {
@@ -341,7 +296,7 @@ export function createFillCommand(): Command {
         }
 
         // Determine output format
-        const format = determineOutputFormat(options, storage)
+        const format = outputFormatOf({ ...options, filePath: options.out, fallback: 'yaml' })
 
         // Serialize data
         const serialized =
