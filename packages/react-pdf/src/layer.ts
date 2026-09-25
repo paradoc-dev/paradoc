@@ -48,7 +48,7 @@
  */
 
 import { realpath } from "node:fs/promises";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createElement, type ReactNode } from "react";
@@ -64,6 +64,7 @@ import type {
 
 import {
   type DocumentData,
+  isOutside,
   SigningMarkerProvider,
   type SigningMarks,
 } from "@paradoc/react";
@@ -79,12 +80,6 @@ export interface ReactLayerComponentProps {
 
 /** A composition: the component a React layer's module names. */
 export type ReactLayerComponent = (props: ReactLayerComponentProps) => ReactNode;
-
-/** True when `candidate` is outside `root`, using whole path segments. */
-function isOutside(root: string, candidate: string): boolean {
-  const inside = relative(root, candidate);
-  return inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
-}
 
 /** How the renderer binds a layer to a component and renders the PDF. */
 export interface ReactLayerRendererOptions {
@@ -226,7 +221,7 @@ export async function bindComponent(
 
   const baseDir = resolve(options.baseDir);
   const absolute = resolve(baseDir, path);
-  if (isOutside(baseDir, absolute)) {
+  if (isOutside(relative(baseDir, absolute))) {
     throw new UnboundReactLayerError(
       path,
       key,
@@ -243,7 +238,7 @@ export async function bindComponent(
     // in-root symlink whose target leaves the root. Resolve the root too so a
     // project reached through a symlink is compared in one filesystem space.
     const [realBaseDir, realModule] = await Promise.all([realpath(baseDir), realpath(absolute)]);
-    if (isOutside(realBaseDir, realModule)) {
+    if (isOutside(relative(realBaseDir, realModule))) {
       throw new UnboundReactLayerError(
         path,
         key,

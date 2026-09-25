@@ -93,7 +93,7 @@ describe("finding compositions", () => {
 });
 
 describe("pairing a composition with its artifact", () => {
-  it("pairs through the React layer, resolved against the artifact file", async () => {
+  it("reports a React layer that leaves its artifact directory", async () => {
     await write("compositions/purchase-order.tsx", "export default () => null");
     await write(
       "artifacts/purchase-order.json",
@@ -102,11 +102,8 @@ describe("pairing a composition with its artifact", () => {
 
     const [entry] = await discoverCompositions(root);
 
-    expect(entry?.artifact?.relative).toBe("artifacts/purchase-order.json");
-    expect(entry?.artifact?.layer).toBe("composition");
-    expect(entry?.artifact?.mimeType).toBe("text/tsx");
-    expect(entry?.artifact?.matchedBy).toBe("layer");
-    expect(entry?.problems).toEqual([]);
+    expect(entry?.artifact).toBeUndefined();
+    expect(entry?.problems.join("\n")).toMatch(/leaves the artifact directory/);
   });
 
   it("falls back to a sibling artifact of the same name", async () => {

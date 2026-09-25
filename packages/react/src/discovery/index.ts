@@ -38,10 +38,11 @@
  */
 
 import { readFile, readdir, stat } from "node:fs/promises";
-import { dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, extname, relative, resolve, sep } from "node:path";
 
 import { assertCurrentSchemaVersion, parse, reactLayersOf, validate } from "@paradoc/core";
 import type { Form } from "@paradoc/types";
+import { isOutside } from "../lib/paths";
 
 /** The directory name a composition has to live under. */
 export const COMPOSITIONS_DIRECTORY = "compositions";
@@ -133,8 +134,6 @@ export interface DiscoveredComposition {
 export interface ArtifactMatch {
   /** Every artifact whose React layer resolves to the composition, in path order. */
   byLayer: CompositionArtifact[];
-  /** The artifact file of the same name beside it, when there is one. */
-  sibling?: CompositionArtifact;
 }
 
 /** An artifact file that parsed, with its React layers already resolved. */
@@ -143,7 +142,7 @@ interface ProjectArtifact {
   relative: string;
   artifact: Form;
   /** Absolute composition paths this artifact's React layers name, by layer key and MIME type. */
-  layers: { key: string; mimeType: string; composition: string }[];
+  layers: { key: string; mimeType: string; composition: string; outside: boolean }[];
 }
 
 /** A path in the POSIX form these results are reported in. */
@@ -205,14 +204,16 @@ function isComposition(root: string, file: string): boolean {
  *
  * Only forms declare React layers today, so only forms are candidates.
  */
-async function readArtifact(file: string): Promise<Form | undefined> {
+async function readArtifact(file: string, reportParseError = false): Promise<Form | undefined> {
   if (!(ARTIFACT_EXTENSIONS as readonly string[]).includes(extname(file).toLowerCase())) return undefined;
   if (NOT_AN_ARTIFACT.has(relativeTo(dirname(file), file))) return undefined;
+  if (!(await isFile(file))) return undefined;
   try {
     const parsed: unknown = parse(await readFile(file, "utf8"));
     const kind = (parsed as { kind?: unknown } | null | undefined)?.kind;
     return kind === "form" ? (parsed as Form) : undefined;
-  } catch {
+  } catch (error) {
+    if (reportParseError) throw error;
     return undefined;
   }
 }
@@ -233,11 +234,16 @@ async function readProjectArtifacts(root: string, files: readonly string[]): Pro
       file,
       relative: relativeTo(root, file),
       artifact,
-      layers: reactLayersOf(artifact).map((layer) => ({
-        key: layer.key,
-        mimeType: layer.mimeType,
-        composition: resolve(dirname(file), layer.path),
-      })),
+      layers: reactLayersOf(artifact).map((layer) => {
+        const artifactDir = dirname(file);
+        const composition = resolve(artifactDir, layer.path);
+        return {
+          key: layer.key,
+          mimeType: layer.mimeType,
+          composition,
+          outside: isOutside(relative(artifactDir, composition)),
+        };
+      }),
     });
   }
   return found;
@@ -267,12 +273,22 @@ function describe(
  */
 export async function siblingArtifact(
   root: string,
-  compositionFile: string
+  compositionFile: string,
+  problems?: string[]
 ): Promise<CompositionArtifact | undefined> {
   const base = compositionFile.slice(0, -extname(compositionFile).length);
   for (const extension of ARTIFACT_EXTENSIONS) {
     const candidate = `${base}${extension}`;
-    const artifact = await readArtifact(candidate);
+    let artifact: Form | undefined;
+    try {
+      artifact = await readArtifact(candidate, true);
+    } catch (error) {
+      problems?.push(
+        `The sibling artifact ${relativeTo(root, candidate)} could not be parsed: ` +
+          (error instanceof Error ? error.message : String(error))
+      );
+      return undefined;
+    }
     if (!artifact) continue;
     return {
       file: candidate,
@@ -307,12 +323,21 @@ export async function findCompositionArtifact(
 function matchArtifact(
   root: string,
   file: string,
-  artifacts: readonly ProjectArtifact[]
+  artifacts: readonly ProjectArtifact[],
+  problems?: string[]
 ): ArtifactMatch {
   const byLayer: CompositionArtifact[] = [];
   for (const candidate of artifacts) {
     for (const layer of candidate.layers) {
-      if (layer.composition === file) byLayer.push(describe(root, candidate, "layer", layer));
+      if (layer.composition !== file) continue;
+      if (layer.outside) {
+        problems?.push(
+          `The React layer ${candidate.relative}#${layer.key} leaves the artifact directory. ` +
+            "A React layer path must stay inside the directory of the artifact that declares it."
+        );
+        continue;
+      }
+      byLayer.push(describe(root, candidate, "layer", layer));
     }
   }
   return { byLayer };
@@ -386,17 +411,18 @@ async function pair(
   artifacts: readonly ProjectArtifact[],
   problems: string[]
 ): Promise<CompositionArtifact | undefined> {
-  const { byLayer } = matchArtifact(root, file, artifacts);
+  const problemCount = problems.length;
+  const { byLayer } = matchArtifact(root, file, artifacts, problems);
 
   if (byLayer.length > 1) {
     problems.push(ambiguousMessage(byLayer, relativeTo(root, file)));
   }
   if (byLayer[0]) return validated(byLayer[0], problems);
 
-  const sibling = await siblingArtifact(root, file);
+  const sibling = await siblingArtifact(root, file, problems);
   if (sibling) return validated(sibling, problems);
 
-  problems.push(UNPAIRED_MESSAGE);
+  if (problems.length === problemCount) problems.push(UNPAIRED_MESSAGE);
   return undefined;
 }
 
@@ -452,6 +478,7 @@ export function describeComposition(entry: DiscoveredComposition): string {
 
 /** True when a path is inside `root`, which is what a project-scoped search covers. */
 export function isInsideProject(root: string, file: string): boolean {
-  const inside = relative(resolve(root), resolve(file));
-  return inside !== "" && !inside.startsWith("..") && !isAbsolute(inside);
+  const projectRoot = resolve(root);
+  const candidate = resolve(file);
+  return candidate !== projectRoot && !isOutside(relative(projectRoot, candidate));
 }

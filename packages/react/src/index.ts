@@ -271,3 +271,4 @@ export {
   type PdfPaintReport,
 } from "./headless/packet";
 export { FormatterProvider, useArtifactFormatting, type ArtifactFormatting } from "./components/formatter-context";
+export { isOutside } from "./lib/paths";
