@@ -4,6 +4,8 @@ The documented install of the Paradoc CLI. It runs [`@paradoc/cli`](https://www.
 
 ## Install
 
+Requires Node.js 22 or newer.
+
 ```bash
 npm install -g paradoc-cli
 # or, without installing:

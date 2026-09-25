@@ -30,6 +30,8 @@
 
 ## Installation
 
+Requires Node.js 22 or newer.
+
 ```bash
 npm install -g paradoc-cli
 ```

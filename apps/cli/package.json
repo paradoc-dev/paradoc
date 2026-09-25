@@ -13,22 +13,22 @@
   ],
   "keywords": [
     "paradoc",
-    "paradoc",
     "cli",
     "forms",
+    "documents-as-code",
     "command-line"
   ],
   "license": "MIT",
   "author": "Paradoc",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/paradoc-dev/paradoc.git",
     "directory": "apps/cli"
   },
-  "homepage": "https://www.paradoc.dev",
+  "homepage": "https://paradoc.dev",
   "bugs": {
     "url": "https://github.com/paradoc-dev/paradoc/issues"
   },
