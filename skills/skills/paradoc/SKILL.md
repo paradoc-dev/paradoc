@@ -36,7 +36,7 @@ Paradoc is a documents-as-code framework. An **artifact** (form, document, check
 
 ## Packages
 
-Install `@paradoc/sdk`: it re-exports `core`, `render`, `format` and `sessions`, and `expr` as a namespace. Add others only for their job.
+Install `@paradoc/sdk`: it re-exports `core`, `format` and `sessions`, `expr` as a namespace, plus `createLayerRenderer` and the PDF placement helpers from `render`. Import other rendering APIs from `@paradoc/render/text`, `@paradoc/render/pdf`, or `@paradoc/render/docx`.
 
 | Package | Use it for |
 |---------|-----------|

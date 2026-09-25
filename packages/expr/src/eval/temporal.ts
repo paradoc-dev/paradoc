@@ -86,7 +86,7 @@ export function yearsBetween(from: string, to: string): number {
 	return years
 }
 
-/** Difference between two dates in the given unit (`days` default). */
+/** Difference between two dates. Days truncate toward zero; months and years floor. */
 export function dateDiff(from: string, to: string, unit = 'days'): number {
 	switch (unit) {
 		case 'days':

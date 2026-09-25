@@ -146,7 +146,7 @@ A bundle takes `contents` (required, ordered, may be empty) and `defs`. Each con
 | `type` | Source key | Points at |
 |--------|-----------|-----------|
 | `inline` | `artifact` | A full artifact object of any kind, including a nested bundle |
-| `path` | `path` | An artifact file, as a path from the repository root |
+| `path` | `path` | An artifact file, relative to the bundle file's directory |
 | `registry` | `slug` | `@org/repo/resource` or `@org/repo/resource@version`, in a known namespace ([cli.md § Preconditions](./cli.md#preconditions)) |
 
 ### Include conditions
@@ -191,7 +191,7 @@ A bundle has no fields of its own, so `fields.x` is an unknown reference. An `in
         "layers": { "markdown": { "kind": "inline", "mimeType": "text/markdown", "text": "# Truth in Lending" } }
       }
     },
-    { "type": "path", "key": "schedule-a", "path": "artifacts/schedule-a.json" }
+    { "type": "path", "key": "schedule-a", "path": "schedule-a.json" }
   ]
 }
 ```

@@ -13,7 +13,7 @@ A form's `fields` object maps each field id to a field definition. Field ids, ne
 
 ## Common properties
 
-Every field type takes these four, plus the properties its type lists below.
+Every field type takes `type` plus these four optional properties, along with the properties its type lists below.
 
 | Property | Type | Constraint |
 |----------|------|------------|
@@ -42,7 +42,7 @@ Paradoc has 24 field types. The fill value column is the exact JSON a payload ca
 | `time` | `"14:30:00"` or `"14:30:00.5"` (`HH:MM:SS[.fff]`, 24-hour) | Times of day |
 | `duration` | `"P1Y"`, `"PT30M"` (ISO 8601) | Lease terms, warranties |
 | `email` | `"jane@example.com"` | Email addresses |
-| `phone` | `{ "number": "+14155552671", "type": "mobile" }` | Phone numbers |
+| `phone` | `{ "number": "+14155552671", "type"?: "mobile", "extension"?: "12" }` | Phone numbers |
 | `address` | `{ "line1", "line2"?, "locality", "region", "postalCode", "country" }` | Postal addresses |
 | `person` | `{ "name", "title"?, "firstName"?, "middleName"?, "lastName"?, "suffix"? }` | People |
 | `organization` | `{ "name", "legalName"?, "domicile"?, "entityType"?, "entityId"?, "taxId"? }` | Companies |
@@ -56,7 +56,7 @@ Paradoc has 24 field types. The fill value column is the exact JSON a payload ca
 | `fieldset` | object keyed by the nested field ids | Grouped sub-fields |
 | `list` | array of `item` values | Repeating entries |
 
-Object values are strict too: `{ "number": "+14155552671", "ext": "12" }` fails with `Unknown field(s): ext`.
+Object values are strict too: `{ "number": "+14155552671", "ext": "12" }` fails with `Unknown field(s): ext`; use `extension` instead.
 
 ## Type-specific properties
 
@@ -229,7 +229,7 @@ Fill with an array of option values. Duplicates fail with `Array items must be u
 |----------|------|-------------|
 | `default` | phone object | Default value |
 
-`number` is E.164: `+`, country code, subscriber number, no spaces (`^\+[1-9]\d{1,14}$`). `"555-1234"` fails. `type` is optional and is one of `mobile`, `work`, `home`.
+`number` is E.164: `+`, country code, subscriber number, no spaces (`^\+[1-9]\d{1,14}$`). `"555-1234"` fails. `type` is optional free text up to 50 characters, and `extension` is an optional string.
 
 #### address
 
@@ -237,7 +237,7 @@ Fill with an array of option values. Duplicates fail with `Array items must be u
 |----------|------|-------------|
 | `default` | address object | Default value |
 
-`line1`, `locality`, `region`, `postalCode` and `country` are required; `line2` is optional. `country` is an ISO 3166-1 code (`US`, `GB`) or a country name. A `default` is checked against the schema: `postalCode` 3-20 characters of `A-Z`, digits, spaces and hyphens.
+`line1`, `locality`, `region`, `postalCode` and `country` are required; `line2` is optional. `country` is an ISO 3166-1 code (`US`, `GB`) or a country name. Every address value, including a `default`, requires `postalCode` to contain 3-20 characters of `A-Z`, digits, spaces and hyphens.
 
 ```json schema=fields
 "propertyAddress": {

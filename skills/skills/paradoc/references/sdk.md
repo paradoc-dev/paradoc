@@ -120,7 +120,7 @@ const result = migrateArtifact(oldArtifact); // { from } names the version when 
 const current = result.artifact; // result.status is "current" or "migrated"
 ```
 
-`migrateArtifactSource(text, { format?, from? })` does the same on JSON or YAML text and returns `{ status, content }` in the input's format. Both throw `SchemaMigrationError` with a `code` (`missing-version`, `unknown-version`, `version-conflict`, `no-migration-path`, `unconvertible-value`, `invalid-result`). The CLI equivalent is [`paradoc migrate`](./cli.md#migrate).
+`migrateArtifactSource(text, { format?, from? })` does the same on JSON or YAML text and returns `{ status, content }` in the input's format. Both throw `SchemaMigrationError` with a `code` (`missing-version`, `unknown-version`, `version-conflict`, `no-migration-path`, `unconvertible-value`, `invalid-result`, `not-an-artifact`, or `unparseable`; `unparseable` applies only to `migrateArtifactSource`). The CLI equivalent is [`paradoc migrate`](./cli.md#migrate).
 
 ## Check a definition
 

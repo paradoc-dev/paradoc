@@ -25,7 +25,7 @@ A layer is `inline` (content in the artifact) or `file` (a path the resolver rea
 | `path` | none | required | Relative to the artifact file's directory, and inside it |
 | `checksum` | none | optional | `sha256:<64 hex>`. `paradoc fix -y` writes it |
 | `title`, `description` | optional | optional | Up to 200 and 2000 characters |
-| `bindings`, `bindingsFrom` | PDF only | PDF only | See [Bindings](#bindings) |
+| `bindings`, `bindingsFrom` | none | PDF only | See [Bindings](#bindings) |
 | `signatures` | optional | optional | See [Signature slots](#signature-slots) |
 | `font`, `format` | none | PDF only | Font for filled values, money display. See [pdf.md](./pdf.md) |
 
@@ -58,7 +58,7 @@ paradoc attach lease.json templates/lease.md --name markdown -y
 A file `path` (and a PDF layer's font `path`) resolves against the artifact file's directory and must stay inside it. Keep templates and PDFs next to the artifact or in a subfolder such as `templates/`. A path that leaves the directory fails:
 
 ```text
-✗ Layer "pdf" PDF could not be read from "../w-9.pdf": Resolver path "../w-9.pdf" resolves outside the configured root
+✗ Layer "pdf" could not be read from "../w-9.pdf": Resolver path "../w-9.pdf" resolves outside the configured root
 ```
 
 ## MIME type and engine
@@ -265,7 +265,7 @@ A PDF layer places every slot by coordinates or anchor:
 
 ## SDK builders
 
-Declare a layer with `signatures` as an object; the chained `p.layer()` builder has no method for them.
+Declare a layer with `signatures` as an object, or use `.signatures()` on either `p.layer().file()` or `p.layer().inline()`.
 
 ```typescript
 import { p } from "@paradoc/sdk";

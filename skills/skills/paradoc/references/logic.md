@@ -92,7 +92,7 @@ Each field type has one expression type. Operators and functions check against i
 | `multiselect` | array of option values | `'email' in fields.channels` |
 | `fieldset` | object | `fields.applicant.email` |
 | `list` | array of rows | `count(fields.items)`, `fields.items[0].qty` |
-| `address`, `phone`, `coordinate`, `bbox`, `person` | object | `fields.home.country`, `fields.area.southWest.lat` |
+| `address`, `phone`, `coordinate`, `bbox`, `person`, `organization`, `identification` | object | `fields.home.country`, `fields.employer.legalName`, `fields.id.expiryDate` |
 
 Member names follow the value shapes in [fields.md](./fields.md).
 
@@ -173,7 +173,7 @@ Given a path into a list, `min` and `max` aggregate instead ([List aggregates](#
 | `today()` | date | The as-of date ([Dates and the clock](#dates-and-the-clock)). |
 | `now()` | datetime | The as-of instant. |
 | `yearsBetween(from, to)` | number | Whole calendar years from `from` to `to`. Age: `yearsBetween(fields.birthDate, today())`. |
-| `dateDiff(from, to, unit?)` | number | `to - from` in `'days'` (default), `'months'`, or `'years'`, truncated. Any other unit fails. |
+| `dateDiff(from, to, unit?)` | number | `to - from` in `'days'` (default), `'months'`, or `'years'`. Days truncate toward zero; months and years floor, so backward spans round away from zero. Any other unit fails. |
 | `addDays(date, days)` | date | `days` may be negative. |
 | `addDuration(date, duration)` | date | Date components only (`P1Y2M3W4D`). Month and year steps clamp to the last valid day: `addDuration('2026-01-31', 'P1M')` is `2026-02-28`. |
 
@@ -306,7 +306,7 @@ A result **fails** when the operation that errors did not read a missing value: 
 - A failed condition uses the property's default and adds an issue.
 - A failed rule fails with `Rule expression error: <error>`.
 
-A value with no expression form, such as `NaN` or `Infinity` passed through the SDK, is not missing: every expression that reads its root fails with a `type-error` naming its path.
+Form `fill()` and `update()` reject `NaN` and `Infinity` before expressions run. A low-level `evaluateExpression()` context containing either value returns a `type-error` when an expression reads its root.
 
 ## Dates and the clock
 
@@ -426,7 +426,7 @@ A rule over an unanswered field fails with its message until the field is filled
 |-------|-------|
 | Expression string in an artifact (condition, def value or component, rule `expr`) | 1-2000 chars |
 | Rule `message` | 1-500 chars |
-| Nesting of `(` and `[` | 256 levels |
+| Parser complexity | 256 bracket-nesting levels; 256 total `(`, `[`, `?`, `not`, `!`, and unary `-` tokens; AST depth 256 |
 | `matches` pattern / input | 512 / 10,000 chars |
 | `round` digits | 0-1000 |
 
@@ -480,7 +480,7 @@ const term = p.form()
 const draft = term.fill({ fields: { leaseTermMonths: 18 } });
 draft.getLogicValue("isLongTerm"); // true
 
-validateLogic(term.toJSON()); // { value } or { issues: [{ message, path, expression?, severity? }] }
+validateLogic(term.toJSON()); // { value } or { issues: [{ message, path, expression?, variable?, expectedType?, actualType? }] }
 ```
 
 <!-- dep:C5 -->
@@ -508,7 +508,7 @@ expr.evaluateExpression("fields.missing * 2", ctx);
 
 const env = expr.createTypeEnv({ "fields.age": expr.T.number });
 expr.check("fields.age + fields.x", env).diagnostics;
-// [{ severity: "error", code: "unknown-identifier", message: "Unknown reference: fields.x", span }]
+// [{ name: "fields.x", severity: "error", code: "unknown-identifier", message: "Unknown reference: fields.x", span }]
 expr.checkBooleanGate("fields.age", env).diagnostics;
 // [{ code: "non-boolean-gate", message: "A gate must be boolean, got number", … }]
 ```

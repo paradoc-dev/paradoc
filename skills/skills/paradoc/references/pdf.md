@@ -35,7 +35,7 @@ The JSON is an array with one entry per AcroForm field:
 
 ## Bindings
 
-`bindings` maps each **PDF field name (key)** to a **Paradoc path (value)**. Keys are at most 100 characters. Where `bindings` may appear and how `bindingsFrom` reuses them is in [layers.md § Bindings](./layers.md#bindings).
+`bindings` maps each **PDF field name (key)** to a **Paradoc path (value)**. Keys are at most 500 characters. Where `bindings` may appear and how `bindingsFrom` reuses them is in [layers.md § Bindings](./layers.md#bindings).
 
 <!-- dep:C7 -->
 `paradoc validate` rejects a binding whose key is not a field in the PDF, or whose value is not a known path. An inverted map (Paradoc id as key) fails validation. The round trip remains the final check.

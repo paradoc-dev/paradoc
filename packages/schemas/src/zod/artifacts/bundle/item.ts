@@ -50,7 +50,7 @@ const PathContentItemSchema = ContentItemBaseSchema.extend({
 	type: z.literal('path'),
 	path: z.string()
 		.min(1)
-		.describe('Absolute path from repo root to the artifact file'),
+		.describe("Path to the artifact file, relative to the bundle file's directory"),
 }).strict();
 
 /**
@@ -66,7 +66,7 @@ const RegistryContentItemSchema = ContentItemBaseSchema.extend({
 /**
  * Bundle content item — one of three types:
  * - { type: 'inline', key, artifact, include? } - inline artifact definition
- * - { type: 'path', key, path, include? } - reference by path from repo root
+ * - { type: 'path', key, path, include? } - reference relative to the bundle file's directory
  * - { type: 'registry', key, slug, include? } - reference by registry slug
  */
 export const BundleContentItemSchema: z.ZodDiscriminatedUnion<[

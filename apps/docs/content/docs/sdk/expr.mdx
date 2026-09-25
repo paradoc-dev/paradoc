@@ -79,6 +79,7 @@ check('fields.age >= 18', env)
 // An unknown reference is caught at authoring time.
 check('fields.age + fields.unknownField', env)
 // diagnostics: [{
+//   name: 'fields.unknownField',
 //   severity: 'error',
 //   code: 'unknown-identifier',
 //   message: 'Unknown reference: fields.unknownField',
