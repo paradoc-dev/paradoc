@@ -1,14 +1,15 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
+import { validate, type Artifact, type Layer } from '@paradoc/core'
+import { IDENTIFIER_PATTERN } from '@paradoc/schemas'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { computeHash } from '../utils/hash.js'
 import { getMimeType, isKnownMimeType } from '../utils/mime.js'
 import { sanitizePath } from '../utils/security.js'
-import { parseArtifactFile } from '../utils/artifact-file.js'
+import { parseArtifactFile, writeArtifactEdit } from '../utils/artifact-file.js'
 
 type AttachTarget = 'layer' | 'instructions' | 'agent-instructions'
 
@@ -169,10 +170,7 @@ export function createAttachCommand(): Command {
           artifactRecord[fieldName] = contentRef
 
           // Write back to file
-          const outputExt = storage.extname(sourcePath).toLowerCase()
-          const isJson = outputExt === '.json'
-          const content = isJson ? JSON.stringify(artifact, null, 2) : toYAML(artifact)
-          await storage.writeFile(sourcePath, content)
+          await writeArtifactEdit(storage, sourcePath, raw, artifact)
 
           console.log(kleur.green(`Set "${fieldName}" on: ${artifactTarget}`))
           return
@@ -192,7 +190,10 @@ export function createAttachCommand(): Command {
         // Default layer name from filename (without extension)
         const baseName = storage.basename(fileTarget)
         const nameWithoutExt = ext ? baseName.slice(0, -ext.length) : baseName
-        const defaultName = nameWithoutExt.toLowerCase().replace(/[^a-z0-9]/g, '-')
+        const defaultName = nameWithoutExt
+          .replace(/[^a-zA-Z0-9]+(.)/g, (_, character: string) => character.toUpperCase())
+          .replace(/^[^a-z]+/i, '')
+          .replace(/^./, (character) => character.toLowerCase()) || 'layer'
 
         if (!options.yes) {
           // Interactive mode
@@ -217,7 +218,7 @@ export function createAttachCommand(): Command {
             initial: layerName || defaultName,
             validate: (val: string) => {
               if (!val.trim()) return 'Layer name is required'
-              if (!/^[a-z0-9-]+$/.test(val)) return 'Layer name must be lowercase letters, numbers, and hyphens only'
+              if (!IDENTIFIER_PATTERN.test(val)) return 'Layer name must be camelCase and start with a lowercase letter'
               if (existingLayers.includes(val)) return `Layer "${val}" already exists`
               return true
             },
@@ -258,6 +259,10 @@ export function createAttachCommand(): Command {
           }
         }
 
+        if (!layerName || !IDENTIFIER_PATTERN.test(layerName)) {
+          throw new Error('Layer name must be camelCase and start with a lowercase letter')
+        }
+
         // Build the new layer
         const newLayer: Layer = {
           kind: 'file',
@@ -293,10 +298,7 @@ export function createAttachCommand(): Command {
         layers[layerName!] = newLayer
 
         // Write back to file
-        const outputExt = storage.extname(sourcePath).toLowerCase()
-        const isJson = outputExt === '.json'
-        const content = isJson ? JSON.stringify(artifact, null, 2) : toYAML(artifact)
-        await storage.writeFile(sourcePath, content)
+        await writeArtifactEdit(storage, sourcePath, raw, artifact)
 
         console.log(kleur.green(`Attached "${layerName}" layer to: ${artifactTarget}`))
       } catch (error) {

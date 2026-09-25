@@ -48,19 +48,19 @@ describe('CLI detach command', () => {
     expect(result.stderr).toContain('not found')
   })
 
-  it('should detach a layer with --yes', async () => {
+  it('should refuse to detach the default layer', async () => {
     const artifact = path.join(tmpDir, 'pet-addendum.yaml')
     const result = await executeCliCommand(['detach', artifact, 'default', '--yes'])
 
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('Detached')
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('defaultLayer')
   })
 
-  it('should support dry-run', async () => {
+  it('should still protect the default layer during a dry run', async () => {
     const artifact = path.join(tmpDir, 'pet-addendum.yaml')
     const result = await executeCliCommand(['detach', artifact, 'default', '--yes', '--dry-run'])
 
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('Dry run')
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('defaultLayer')
   })
 })

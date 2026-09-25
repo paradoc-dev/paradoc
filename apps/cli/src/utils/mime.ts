@@ -20,6 +20,8 @@ const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.htm': 'text/html',
   '.css': 'text/css',
+  '.tsx': 'text/tsx',
+  '.jsx': 'text/jsx',
   '.csv': 'text/csv',
 
   // Data

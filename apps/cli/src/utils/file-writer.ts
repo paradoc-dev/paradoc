@@ -1,6 +1,6 @@
 import kleur from "kleur";
-import { toYAML } from "@paradoc/core";
 import { LocalFileSystem } from "./local-fs.js";
+import { serializeArtifactFile } from "./artifact-file.js";
 
 export interface WriteOptions {
 	dryRun?: boolean;
@@ -23,12 +23,7 @@ export async function writeFile(
 	const storage = new LocalFileSystem();
 
 	// Format content using serializers
-	let formattedContent: string;
-	if (format === "yaml") {
-		formattedContent = toYAML(content);
-	} else {
-		formattedContent = JSON.stringify(content, null, 2) + "\n";
-	}
+	const formattedContent = serializeArtifactFile(content, format);
 
 	if (dryRun) {
 		console.log();

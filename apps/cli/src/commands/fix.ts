@@ -1,12 +1,12 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { toYAML, type Artifact } from '@paradoc/core'
+import { type Artifact } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { computeHash, verifyHashFromFile } from '../utils/hash.js'
-import { artifactSourceFormatOf, fileReferencesOf, loadValidatedArtifact } from '../utils/artifact-file.js'
+import { fileReferencesOf, loadValidatedArtifact, writeArtifactEdit } from '../utils/artifact-file.js'
 
 interface FixOptions {
   dryRun?: boolean
@@ -114,8 +114,7 @@ export function createFixCommand(): Command {
 
         // Determine the format (JSON or YAML) based on file extension
         const outputStorage = new LocalFileSystem()
-        const fixedContent = artifactSourceFormatOf(sourcePath) === 'json' ? JSON.stringify(artifact, null, 2) : toYAML(artifact)
-        await outputStorage.writeFile(sourcePath, fixedContent)
+        await writeArtifactEdit(outputStorage, sourcePath, raw, artifact)
 
         console.log(kleur.green(`\n✓ Fixed artifact written to: ${artifactTarget}`))
         process.exit(0)

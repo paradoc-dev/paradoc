@@ -1,11 +1,11 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { validate, toYAML, type Artifact, type Layer } from '@paradoc/core'
+import { validate, type Artifact, type Layer } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
-import { parseArtifactFile } from '../utils/artifact-file.js'
+import { parseArtifactFile, writeArtifactEdit } from '../utils/artifact-file.js'
 
 interface DetachOptions {
   yes?: boolean
@@ -132,6 +132,18 @@ export function createDetachCommand(): Command {
 
         const isContentRef = targetKey in contentRefMap
 
+        if (!isContentRef) {
+          if ('defaultLayer' in artifact && artifact.defaultLayer === targetKey) {
+            throw new Error(`Cannot detach layer "${targetKey}": defaultLayer names it.`)
+          }
+          const bindingOwner = Object.entries(layers).find(
+            ([key, layer]) => key !== targetKey && 'bindingsFrom' in layer && layer.bindingsFrom === targetKey
+          )
+          if (bindingOwner) {
+            throw new Error(`Cannot detach layer "${targetKey}": layer "${bindingOwner[0]}" names it in bindingsFrom.`)
+          }
+        }
+
         // Show what will be removed
         console.log()
         if (isContentRef) {
@@ -193,10 +205,7 @@ export function createDetachCommand(): Command {
         }
 
         // Write back to file
-        const outputExt = storage.extname(sourcePath).toLowerCase()
-        const isJson = outputExt === '.json'
-        const content = isJson ? JSON.stringify(artifact, null, 2) : toYAML(artifact)
-        await storage.writeFile(sourcePath, content)
+        await writeArtifactEdit(storage, sourcePath, raw, artifact)
 
         const kindLabel = isContentRef ? 'content reference' : 'layer'
         console.log(kleur.green(`Detached ${kindLabel} "${targetKey}" from: ${artifactTarget}`))

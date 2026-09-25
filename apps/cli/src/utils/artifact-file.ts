@@ -1,4 +1,6 @@
-import { assertCurrentSchemaVersion, parse, validate, type Artifact } from '@paradoc/core'
+import { assertCurrentSchemaVersion, parse, toYAML, validate, type Artifact } from '@paradoc/core'
+import { parseDocument } from 'yaml'
+import type { LocalFileSystem } from './local-fs.js'
 
 export type ArtifactSourceFormat = 'json' | 'yaml'
 
@@ -37,6 +39,11 @@ export function artifactSourceFormatOf(filePath: string): ArtifactSourceFormat {
   return /\.ya?ml$/i.test(filePath) ? 'yaml' : 'json'
 }
 
+/** Serialize a newly-created artifact in the requested source format. */
+export function serializeArtifactFile(value: unknown, format: ArtifactSourceFormat): string {
+  return format === 'yaml' ? toYAML(value) : `${JSON.stringify(value, null, 2)}\n`
+}
+
 /** Resolve an artifact/data output format from flags, a file name, and a fallback. */
 export function outputFormatOf(options: {
   json?: boolean
@@ -48,6 +55,55 @@ export function outputFormatOf(options: {
   if (options.yaml) return 'yaml'
   if (options.filePath) return artifactSourceFormatOf(options.filePath)
   return options.fallback ?? 'json'
+}
+
+/** Validate and write an edited artifact while retaining YAML comments. */
+export async function writeArtifactEdit(
+  storage: LocalFileSystem,
+  filePath: string,
+  original: string,
+  artifact: Artifact
+): Promise<void> {
+  const validation = validate(artifact)
+  if (validation.issues) {
+    const details = validation.issues.map((issue) => {
+      const location = issue.path?.length ? issue.path.map(String).join('.') : 'root'
+      return `${location}: ${issue.message}`
+    }).join(', ')
+    throw new Error(`Edited artifact is invalid: ${details}`)
+  }
+
+  if (artifactSourceFormatOf(filePath) === 'json') {
+    await storage.writeFile(filePath, serializeArtifactFile(artifact, 'json'))
+    return
+  }
+
+  const document = parseDocument(original)
+  syncYamlDocument(document, document.toJS(), artifact, [])
+  await storage.writeFile(filePath, document.toString())
+}
+
+function syncYamlDocument(
+  document: ReturnType<typeof parseDocument>,
+  before: unknown,
+  after: unknown,
+  path: (string | number)[]
+): void {
+  if (isRecord(before) && isRecord(after)) {
+    for (const key of Object.keys(before)) {
+      if (!(key in after)) document.deleteIn([...path, key])
+    }
+    for (const [key, value] of Object.entries(after)) {
+      if (!(key in before)) document.setIn([...path, key], value)
+      else syncYamlDocument(document, before[key], value, [...path, key])
+    }
+    return
+  }
+  if (!Object.is(before, after)) document.setIn(path, after)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /** Walk every local file referenced by an artifact, including nested inline bundles. */

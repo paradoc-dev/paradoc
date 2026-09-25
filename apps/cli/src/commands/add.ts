@@ -1,6 +1,5 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import YAML from 'yaml'
 import ora, { type Ora } from 'ora'
 import prompts from 'prompts'
 import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule, validate } from '@paradoc/core'
@@ -18,6 +17,7 @@ import { verifyChecksum } from '../utils/hash.js'
 import { trackInstall } from '../utils/telemetry.js'
 import { collectHeader } from '../utils/cli-helpers.js'
 import { join } from 'node:path'
+import { serializeArtifactFile } from '../utils/artifact-file.js'
 
 interface InstallArtifactOpts {
   registry: ResolvedRegistry
@@ -308,13 +308,13 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     const sourceFileName = `${artifactName}.json`
     const sourcePath = sanitizePath(namespaceDir, sourceFileName)
     if (!sourcePath) throw new Error('Invalid artifact source path')
-    contentString = JSON.stringify(artifactContent, null, 2)
+    contentString = serializeArtifactFile(artifactContent, 'json')
     await assertNotSymlink(sourcePath)
     await storage.writeFile(sourcePath, contentString)
     writtenFiles.push(sourceFileName)
   } else if (format === 'typed') {
     spinner.start(`Writing ${artifactFileName}...`)
-    contentString = JSON.stringify(artifactContent, null, 2)
+    contentString = serializeArtifactFile(artifactContent, 'json')
     await assertNotSymlink(sanitizedArtifactPath)
     await storage.writeFile(sanitizedArtifactPath, contentString)
     writtenFiles.push(artifactFileName)
@@ -332,9 +332,7 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     }
   } else {
     spinner.start(`Writing ${artifactFileName}...`)
-    contentString = format === 'json'
-      ? JSON.stringify(artifactContent, null, 2)
-      : YAML.stringify(artifactContent)
+    contentString = serializeArtifactFile(artifactContent, format)
     await assertNotSymlink(sanitizedArtifactPath)
     await storage.writeFile(sanitizedArtifactPath, contentString)
     writtenFiles.push(artifactFileName)

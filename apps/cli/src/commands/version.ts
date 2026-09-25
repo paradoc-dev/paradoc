@@ -1,10 +1,10 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import semver from 'semver'
-import { validate, toYAML } from '@paradoc/core'
+import { validate, type Artifact } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { ensureRepo, fileExists } from '../utils/project.js'
-import { parseArtifactFile } from '../utils/artifact-file.js'
+import { parseArtifactFile, writeArtifactEdit } from '../utils/artifact-file.js'
 import { isValidSemver } from '../utils/security.js'
 
 /**
@@ -36,13 +36,7 @@ export function createVersionCommand(): Command {
         const ext = storage.extname(file).toLowerCase()
 
         // Parse artifact (auto-detects format)
-        let format: 'json' | 'yaml'
-
-        if (ext === '.json') {
-          format = 'json'
-        } else if (ext === '.yaml' || ext === '.yml') {
-          format = 'yaml'
-        } else {
+        if (!['.json', '.yaml', '.yml'].includes(ext)) {
           throw new Error(`Unsupported file type: ${ext}`)
         }
 
@@ -110,28 +104,7 @@ export function createVersionCommand(): Command {
         // Update artifact with new version
         artifact.version = newVersion
 
-        // Serialize artifact back to string
-        let updatedContent: string
-
-        if (format === 'json') {
-          updatedContent = JSON.stringify(artifact, null, 2)
-
-          // Add trailing newline (convention)
-          if (!updatedContent.endsWith('\n')) {
-            updatedContent += '\n'
-          }
-        } else {
-          // YAML
-          updatedContent = toYAML(artifact)
-
-          // Ensure trailing newline
-          if (!updatedContent.endsWith('\n')) {
-            updatedContent += '\n'
-          }
-        }
-
-        // Write updated artifact to disk
-        await storage.writeFile(file, updatedContent)
+        await writeArtifactEdit(storage, file, content, artifact as unknown as Artifact)
 
         // Output success message
         console.log(kleur.green(`✓ Version bumped: ${currentVersion} → ${newVersion}`))
