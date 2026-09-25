@@ -164,12 +164,16 @@ function fieldText(path: string): string {
 }
 
 describe("a purchase order filled by a session", () => {
-  it("renders every state between empty and complete", async () => {
+  // Claims 1 and 2 in one walk: every state from empty to complete is
+  // rendered once, and each render is compared with the one before it.
+  it("renders every state between empty and complete, and each answer leaves every other keep's node alone", async () => {
     const runtime = purchaseOrderRuntime();
     let session = emptySession(NAME);
 
     await show(session);
-    expect(stack().querySelectorAll("[data-keep-id]").length).toBeGreaterThan(0);
+    let before = keeps();
+    let beforeText = new Map([...before].map(([id, node]) => [id, node.textContent ?? ""]));
+    expect(before.size).toBeGreaterThan(0);
     // Nothing has been answered, so every value is blank and the totals have
     // nothing to add up. The document is still a document.
     expect(fieldText("orderNumber")).toContain("—");
@@ -179,7 +183,25 @@ describe("a purchase order filled by a session", () => {
       if (!answered) break;
       session = answered.session;
       await show(session);
-      expect(stack().querySelectorAll("[data-keep-id]").length).toBeGreaterThan(0);
+
+      const after = keeps();
+      expect(after.size).toBeGreaterThan(0);
+      for (const [id, node] of before) {
+        // The plan did not change, so no sheet was unmounted and every keep the
+        // preview already had is the very same element.
+        expect(after.get(id), `keep "${id}" was replaced`).toBe(node);
+      }
+
+      // A field answer changes exactly its own keep. A party answer changes the
+      // signature blocks, and answering the currency reprints every money value
+      // there is, so only the field case is pinned down this precisely.
+      if (answered.did === "orderNumber") {
+        const changed = [...after].filter(([id, node]) => beforeText.get(id) !== node.textContent);
+        expect(changed.map(([id]) => id)).toEqual(["field:orderNumber"]);
+      }
+
+      before = after;
+      beforeText = new Map([...after].map(([id, node]) => [id, node.textContent ?? ""]));
     }
 
     expect(deriveView(session, runtime).phase).toBe("ready");
@@ -227,40 +249,6 @@ describe("a purchase order filled by a session", () => {
     const { session } = fillBySession(NAME, purchaseOrderSpec, purchaseOrderAnswers);
     await show(session);
     expect(keeps().get("totals")?.textContent).toBe(fromTheSample);
-  });
-
-  it("changes the answered field and leaves every other keep's node alone", async () => {
-    const runtime = purchaseOrderRuntime();
-    let session = emptySession(NAME);
-    await show(session);
-
-    let before = keeps();
-    let beforeText = new Map([...before].map(([id, node]) => [id, node.textContent ?? ""]));
-
-    for (let count = 0; count < 60; count++) {
-      const answered = step(session, runtime);
-      if (!answered) break;
-      session = answered.session;
-      await show(session);
-
-      const after = keeps();
-      for (const [id, node] of before) {
-        // The plan did not change, so no sheet was unmounted and every keep the
-        // preview already had is the very same element.
-        expect(after.get(id), `keep "${id}" was replaced`).toBe(node);
-      }
-
-      // A field answer changes exactly its own keep. A party answer changes the
-      // signature blocks, and answering the currency reprints every money value
-      // there is, so only the field case is pinned down this precisely.
-      if (answered.did === "orderNumber") {
-        const changed = [...after].filter(([id, node]) => beforeText.get(id) !== node.textContent);
-        expect(changed.map(([id]) => id)).toEqual(["field:orderNumber"]);
-      }
-
-      before = after;
-      beforeText = new Map([...after].map(([id, node]) => [id, node.textContent ?? ""]));
-    }
   });
 
   it("leaves the document exactly as it was when a value is rejected", async () => {

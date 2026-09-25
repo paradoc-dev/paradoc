@@ -81,6 +81,7 @@
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/essentials": "workspace:^",
     "@paradoc/sessions": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
     "@types/node": "catalog:",
