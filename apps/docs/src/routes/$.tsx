@@ -120,8 +120,6 @@ import { PageLastUpdate } from "fumadocs-ui/layouts/notebook/page";
 
 import {
   PropertiesTable,
-  DesignTimeBadge,
-  RunTimeBadge,
   MethodChain,
   MethodTable,
   BlockUsage,
@@ -197,9 +195,7 @@ const clientLoader = browserCollections.docs.createClientLoader({
                 />
               ),
               PropertiesTable,
-              DesignTimeBadge,
-              RunTimeBadge,
-              MethodChain,
+                                      MethodChain,
               MethodTable,
               BlockUsage,
               ComponentPreview,

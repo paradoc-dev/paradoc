@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# Check that docs.paradoc.dev is serving traffic (HTTP 200 on root).
-# This is an SSR site, not a JSON API — no /health route.
+# Check the public Worker health contract.
 
 set -uo pipefail
 
-URL="https://docs.paradoc.dev/"
-
-status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL" 2>/dev/null)
-
-if [[ "$status" == "200" ]]; then
-  echo "✅ docs: ${URL} (HTTP ${status})"
-  exit 0
-else
-  echo "❌ docs: ${URL} (HTTP ${status:-unreachable})"
+URL="${PARADOC_DOCS_URL:-https://docs.paradoc.dev}/api/health"
+body=$(curl -fsS --max-time 10 "$URL" 2>/dev/null) || {
+  echo "❌ docs: ${URL} (unreachable)"
   exit 1
+}
+
+if [[ "$body" == *'"status":"ok"'* ]]; then
+  echo "✅ docs: ${URL}"
+  exit 0
 fi
+
+echo "❌ docs: ${URL} (unhealthy response)"
+exit 1

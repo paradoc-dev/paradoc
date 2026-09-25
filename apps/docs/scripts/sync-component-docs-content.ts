@@ -95,228 +95,63 @@ const EXAMPLES_DIR = resolve(COMPONENTS_SRC_DIR, "examples");
 const COMPONENT_SOURCES_DIR = resolve(COMPONENTS_SRC_DIR, "components");
 const TARGET = resolve(here, "../src/generated/component-docs-content.ts");
 
-/** Demo composition file, per component, that the Preview section renders live. */
-const DEMO_FILES: Record<string, string> = {
-  bundle: "bundle-demo.tsx",
-  document: "document-demo.tsx",
-  field: "field-demo.tsx",
-  image: "image-demo.tsx",
-  "keep-together": "keep-together-demo.tsx",
-  list: "list-demo.tsx",
-  "page-break": "page-break-demo.tsx",
-  pages: "pages-demo.tsx",
-  "page-number": "page-number-demo.tsx",
-  paper: "paper-demo.tsx",
-  party: "party-demo.tsx",
-  section: "section-demo.tsx",
-  table: "table-demo.tsx",
-  text: "text-demo.tsx",
-  part: "part-demo.tsx",
-  "pdf-pages": "pdf-pages-demo.tsx",
-  "qr-code": "qr-code-demo.tsx",
-  signature: "signature-demo.tsx",
-  totals: "totals-demo.tsx",
-};
+/** Demo and variant files are derived from the component package's examples directory. */
+const exampleFiles = readdirSync(EXAMPLES_DIR).filter((file) => file.endsWith(".tsx"));
+const allDemoFiles = Object.fromEntries(
+  exampleFiles
+    .filter((file) => file.endsWith("-demo.tsx"))
+    .map((file) => [file.slice(0, -"-demo.tsx".length), file]),
+);
+const allVariantFiles = exampleFiles
+  .map((file) => file.match(/^(.+)-variant-(.+)\.tsx$/))
+  .filter((match): match is RegExpMatchArray => match !== null)
+  .reduce<Record<string, { key: string; file: string }[]>>((result, match) => {
+    (result[match[1]] ??= []).push({ key: match[2], file: match[0] });
+    return result;
+  }, {});
+const componentNames = new Set(
+  readdirSync(COMPONENT_SOURCES_DIR)
+    .filter((file) => file.endsWith(".tsx"))
+    .map((file) => file.slice(0, -4)),
+);
+const DEMO_FILES = Object.fromEntries(
+  Object.entries(allDemoFiles).filter(([name]) => componentNames.has(name)),
+);
+const VARIANT_FILES = Object.fromEntries(
+  Object.entries(allVariantFiles).filter(([name]) => componentNames.has(name)),
+);
+const GUIDE_DEMO_FILES = Object.fromEntries(
+  Object.entries(allDemoFiles).filter(([name]) => !componentNames.has(name)),
+);
+const GUIDE_VARIANT_FILES = Object.fromEntries(
+  Object.entries(allVariantFiles).filter(([name]) => !componentNames.has(name)),
+);
+const BLOCK_DEMO_FILES = Object.fromEntries(
+  exampleFiles
+    .map((file) => file.match(/^(.+)-block-preview\.tsx$/))
+    .filter((match): match is RegExpMatchArray => match !== null)
+    .map((match) => [match[1], match[0]]),
+);
+const BLOCK_VARIANT_FILES = Object.fromEntries(
+  Object.entries(BLOCK_DEMO_FILES).map(([name, demoFile]) => [
+    name,
+    allVariantFiles[`${name}-block`] ?? [{ key: "standard", file: demoFile }],
+  ]),
+);
 
-/**
- * Alternate prop configurations, per component, in the order their Variant
- * subheadings appear on the page. Each is its own file so it can render and
- * show its own source independently of the others.
- */
-const VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
-  bundle: [
-    { key: "single-document", file: "bundle-variant-single-document.tsx" },
-    { key: "row", file: "bundle-variant-row.tsx" },
-    { key: "branded-tokens", file: "bundle-variant-branded-tokens.tsx" },
-  ],
-  document: [
-    { key: "custom-layout", file: "document-variant-custom-layout.tsx" },
-    { key: "custom-format", file: "document-variant-custom-format.tsx" },
-    { key: "branded-tokens", file: "document-variant-branded-tokens.tsx" },
-  ],
-  field: [
-    { key: "default-label", file: "field-variant-default-label.tsx" },
-    { key: "no-label", file: "field-variant-no-label.tsx" },
-    { key: "custom-label", file: "field-variant-custom-label.tsx" },
-    { key: "paragraphs", file: "field-variant-paragraphs.tsx" },
-    { key: "rule", file: "field-variant-rule.tsx" },
-  ],
-  image: [
-    { key: "source", file: "image-variant-source.tsx" },
-    { key: "attachment-field", file: "image-variant-attachment-field.tsx" },
-    { key: "attachment-name", file: "image-variant-attachment-name.tsx" },
-  ],
-  "keep-together": [
-    { key: "default-element", file: "keep-together-variant-default-element.tsx" },
-    { key: "custom-element", file: "keep-together-variant-custom-element.tsx" },
-    { key: "passthrough-attributes", file: "keep-together-variant-passthrough-attributes.tsx" },
-  ],
-  list: [
-    { key: "unordered", file: "list-variant-unordered.tsx" },
-    { key: "nested", file: "list-variant-nested.tsx" },
-    { key: "roman", file: "list-variant-roman.tsx" },
-  ],
-  "page-break": [
-    { key: "before-a-section", file: "page-break-variant-before-a-section.tsx" },
-    { key: "inside-a-tables-rows", file: "page-break-variant-inside-a-tables-rows.tsx" },
-  ],
-  pages: [
-    { key: "multi-page", file: "pages-variant-multi-page.tsx" },
-    { key: "page-furniture", file: "pages-variant-page-furniture.tsx" },
-    { key: "draft-watermark", file: "pages-variant-draft-watermark.tsx" },
-    { key: "custom-frame", file: "pages-variant-custom-frame.tsx" },
-    { key: "page-count", file: "pages-variant-page-count.tsx" },
-  ],
-  "page-number": [
-    { key: "number-only", file: "page-number-variant-number-only.tsx" },
-    { key: "custom-wording", file: "page-number-variant-custom-wording.tsx" },
-  ],
-  paper: [
-    { key: "minimal-content", file: "paper-variant-minimal-content.tsx" },
-    { key: "custom-frame", file: "paper-variant-custom-frame.tsx" },
-    { key: "overflowing-content", file: "paper-variant-overflowing-content.tsx" },
-  ],
-  party: [
-    { key: "inline", file: "party-variant-inline.tsx" },
-    { key: "multiple", file: "party-variant-multiple.tsx" },
-  ],
-  section: [
-    { key: "titled", file: "section-variant-titled.tsx" },
-    { key: "untitled", file: "section-variant-untitled.tsx" },
-    { key: "row", file: "section-variant-row.tsx" },
-  ],
-  table: [
-    { key: "compact", file: "table-variant-compact.tsx" },
-    { key: "left-aligned", file: "table-variant-left-aligned.tsx" },
-    { key: "custom-headers", file: "table-variant-custom-headers.tsx" },
-    { key: "continued", file: "table-variant-continued.tsx" },
-    { key: "footer", file: "table-variant-footer.tsx" },
-    { key: "cell-renderer", file: "table-variant-cell-renderer.tsx" },
-  ],
-  text: [
-    { key: "heading", file: "text-variant-heading.tsx" },
-    { key: "caption", file: "text-variant-caption.tsx" },
-    { key: "small", file: "text-variant-small.tsx" },
-    { key: "custom-element", file: "text-variant-custom-element.tsx" },
-  ],
-  part: [
-    { key: "unplaced", file: "part-variant-unplaced.tsx" },
-    { key: "placed", file: "part-variant-placed.tsx" },
-    { key: "pending", file: "part-variant-pending.tsx" },
-  ],
-  "pdf-pages": [
-    { key: "standalone", file: "pdf-pages-variant-standalone.tsx" },
-    { key: "attachment", file: "pdf-pages-variant-attachment.tsx" },
-    { key: "styled", file: "pdf-pages-variant-styled.tsx" },
-  ],
-  "qr-code": [
-    { key: "custom-colors", file: "qr-code-variant-custom-colors.tsx" },
-    { key: "larger-size", file: "qr-code-variant-larger-size.tsx" },
-    { key: "custom-label", file: "qr-code-variant-custom-label.tsx" },
-  ],
-  signature: [
-    { key: "signature", file: "signature-variant-signature.tsx" },
-    { key: "initials", file: "signature-variant-initials.tsx" },
-    { key: "custom-id", file: "signature-variant-custom-id.tsx" },
-  ],
-  totals: [
-    { key: "single-row", file: "totals-variant-single-row.tsx" },
-    { key: "with-tax-rate", file: "totals-variant-with-tax-rate.tsx" },
-    { key: "custom-label", file: "totals-variant-custom-label.tsx" },
-  ],
-};
+function pascalCase(name: string): string {
+  return name.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join("");
+}
 
-/**
- * Guide pages: a docs page about a concern that spans the components rather
- * than one item, keyed by the page's name. Like a block, a guide has a live
- * Preview and Variants and nothing else. `typography`'s Preview is the token
- * unset; its levels are the `GUIDE_VARIANT_FILES` entries.
- */
-const GUIDE_DEMO_FILES: Record<string, string> = {
-  typography: "typography-demo.tsx",
-};
-const GUIDE_VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
-  typography: [
-    { key: "compact", file: "typography-variant-compact.tsx" },
-    { key: "roomy", file: "typography-variant-roomy.tsx" },
-    { key: "flow-compact", file: "typography-variant-flow-compact.tsx" },
-    { key: "flow-roomy", file: "typography-variant-flow-roomy.tsx" },
-  ],
-};
-
-/**
- * Preview demo composition, per block. Unlike a base component's demo, this
- * wraps the block's own (bare) composition in `Pages` so Preview live-renders
- * the full, paginated document a consumer would actually see — see
- * `*BlockPreview` in `packages/components/src/examples/`. `vendor-packet`
- * needs no wrapper of its own: its composition already self-paginates.
- *
- * Blocks get their own maps rather than joining `DEMO_FILES`: a block's Usage
- * anatomy is a full composition-plus-data dump (see `BlockUsage` in the docs
- * app), never the extracted call-site-snippet-plus-props-table base
- * components get, so blocks are read here only for `PREVIEW_SOURCES` and
- * `VARIANT_SOURCES` and never for `USAGE_SNIPPETS` or `PROPS_TABLES`.
- */
-const BLOCK_DEMO_FILES: Record<string, string> = {
-  invoice: "invoice-block-preview.tsx",
-  "purchase-order": "purchase-order-block-preview.tsx",
-  "vendor-packet": "vendor-packet-block-preview.tsx",
-  "engagement-letter": "engagement-letter-block-preview.tsx",
-};
-
-/**
- * A block's existing alternate sample-data scenarios, never a new prop
- * configuration (per the spec). Invoice has a real second scenario, the
- * 48-row overflow sample. The other three blocks have only one sample-data
- * export today, so each one's entry points at the same file its Preview
- * does: the live render and the code shown are honestly identical,
- * documented as such on the block's own docs page, rather than a fabricated
- * second scenario.
- */
-const BLOCK_VARIANT_FILES: Record<string, { key: string; file: string }[]> = {
-  invoice: [{ key: "overflow", file: "invoice-block-variant-overflow.tsx" }],
-  "purchase-order": [{ key: "standard", file: "purchase-order-block-preview.tsx" }],
-  "vendor-packet": [{ key: "standard", file: "vendor-packet-block-preview.tsx" }],
-  "engagement-letter": [{ key: "standard", file: "engagement-letter-block-preview.tsx" }],
-};
-
-/**
- * The exported props interface backing each component's Usage props table.
- *
- * `pages.tsx` and `paper.tsx` each carry two components (`Page`/`Pages`,
- * `Sheet`/`Paper`); the interface named here is always the public one the
- * registry item installs under that name (`Pages`, `Paper`), never its
- * internal helper (`Page`, `Sheet`).
- */
-const PROPS_INTERFACES: Record<string, { file: string; interfaceName: string }> = {
-  bundle: { file: "bundle.tsx", interfaceName: "BundleProps" },
-  document: { file: "document.tsx", interfaceName: "DocumentProps" },
-  field: { file: "field.tsx", interfaceName: "FieldProps" },
-  image: { file: "image.tsx", interfaceName: "ImageProps" },
-  "keep-together": { file: "keep-together.tsx", interfaceName: "KeepTogetherProps" },
-  // `list.tsx` also carries the recursive `ListLevel` the component builds
-  // each level from; it is internal, so the item's own `ListProps` backs the
-  // table and the `ListItem` shape is covered in the page's Composition prose.
-  list: { file: "list.tsx", interfaceName: "ListProps" },
-  "page-break": { file: "page-break.tsx", interfaceName: "PageBreakProps" },
-  pages: { file: "pages.tsx", interfaceName: "PagesProps" },
-  "page-number": { file: "page-number.tsx", interfaceName: "PageNumberProps" },
-  paper: { file: "paper.tsx", interfaceName: "PaperProps" },
-  party: { file: "party.tsx", interfaceName: "PartyProps" },
-  section: { file: "section.tsx", interfaceName: "SectionProps" },
-  table: { file: "table.tsx", interfaceName: "TableProps" },
-  text: { file: "text.tsx", interfaceName: "TextProps" },
-  part: { file: "part.tsx", interfaceName: "PartProps" },
-  // `pdf-pages.tsx` ships both `Attachment` and `PdfPages`, but the item's own
-  // description centers on painting pages ("painted page by page ... or a
-  // named attachment when it cannot be painted") — `PdfPages` is the primary,
-  // consumer-facing export, so its props interface backs the table. The
-  // Composition section covers the `Attachment` fallback in prose instead.
-  "pdf-pages": { file: "pdf-pages.tsx", interfaceName: "PdfPagesProps" },
-  "qr-code": { file: "qr-code.tsx", interfaceName: "QRCodeProps" },
-  signature: { file: "signature.tsx", interfaceName: "SignatureProps" },
-  totals: { file: "totals.tsx", interfaceName: "TotalsProps" },
-};
+const PROPS_INTERFACES = Object.fromEntries(
+  Object.keys(DEMO_FILES).map((name) => [
+    name,
+    {
+      file: `${name}.tsx`,
+      interfaceName: name === "qr-code" ? "QRCodeProps" : `${pascalCase(name)}Props`,
+    },
+  ]),
+);
 
 function readRegistryContent(): Record<string, RegistryItem> {
   const items: Record<string, RegistryItem> = {};

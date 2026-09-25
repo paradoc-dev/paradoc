@@ -146,7 +146,9 @@ describe.each(DOCUMENTED_GUIDES)('%s guide docs content', (name) => {
 
   test("has the page's four variants, each with its token written as a consumer writes it", () => {
     const variants = VARIANT_SOURCES[name]
-    expect(Object.keys(variants)).toEqual(['compact', 'roomy', 'flow-compact', 'flow-roomy'])
+    expect(Object.keys(variants).sort()).toEqual(
+      ['compact', 'roomy', 'flow-compact', 'flow-roomy'].sort(),
+    )
     expect(variants.compact).toContain('tokens={{ typography: { scale: "compact" } }}')
     expect(variants.roomy).toContain('tokens={{ typography: { scale: "roomy" } }}')
     expect(variants['flow-compact']).toContain('tokens={{ typography: { flow: "compact" } }}')

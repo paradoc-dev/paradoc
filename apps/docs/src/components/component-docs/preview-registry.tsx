@@ -1,267 +1,44 @@
-/**
- * Maps a component's registry name to the demo composition that renders it,
- * and to the live component behind each of its Variant subheadings.
- *
- * This is the one place that has to change when a new component or block
- * gets its docs page: add its demo/variants here (and to `DEMO_FILES` /
- * `VARIANT_FILES` in `scripts/sync-component-docs-content.ts`, whose keys
- * must line up with the variant keys below). `ComponentPreview` and
- * `ComponentVariant` are generic over `name` and never hardcode a component.
- */
+/** Live previews derived from the exports of the component examples package. */
 import type { ComponentType } from "react";
+import * as examples from "@paradoc/components/examples";
 
-import {
-  BundleDemo,
-  BundleVariantBrandedTokens,
-  BundleVariantRow,
-  BundleVariantSingleDocument,
-  DocumentDemo,
-  DocumentVariantBrandedTokens,
-  DocumentVariantCustomFormat,
-  DocumentVariantCustomLayout,
-  EngagementLetterBlockPreview,
-  FieldDemo,
-  FieldVariantCustomLabel,
-  FieldVariantDefaultLabel,
-  FieldVariantNoLabel,
-  FieldVariantParagraphs,
-  FieldVariantRule,
-  ImageDemo,
-  ImageVariantAttachmentField,
-  ImageVariantAttachmentName,
-  ImageVariantSource,
-  InvoiceBlockPreview,
-  InvoiceBlockVariantOverflow,
-  KeepTogetherDemo,
-  KeepTogetherVariantCustomElement,
-  KeepTogetherVariantDefaultElement,
-  KeepTogetherVariantPassthroughAttributes,
-  ListDemo,
-  ListVariantNested,
-  ListVariantRoman,
-  ListVariantUnordered,
-  PageBreakDemo,
-  PageBreakVariantBeforeASection,
-  PageBreakVariantInsideATablesRows,
-  PageNumberDemo,
-  PageNumberVariantCustomWording,
-  PageNumberVariantNumberOnly,
-  PagesDemo,
-  PagesVariantCustomFrame,
-  PagesVariantDraftWatermark,
-  PagesVariantMultiPage,
-  PagesVariantPageCount,
-  PagesVariantPageFurniture,
-  PaperDemo,
-  PaperVariantCustomFrame,
-  PaperVariantMinimalContent,
-  PaperVariantOverflowingContent,
-  PartDemo,
-  PartVariantPending,
-  PartVariantPlaced,
-  PartVariantUnplaced,
-  PartyDemo,
-  PartyVariantInline,
-  PartyVariantMultiple,
-  PdfPagesDemo,
-  PdfPagesVariantAttachment,
-  PdfPagesVariantStandalone,
-  PdfPagesVariantStyled,
-  PurchaseOrderBlockPreview,
-  QRCodeDemo,
-  QRCodeVariantCustomColors,
-  QRCodeVariantCustomLabel,
-  QRCodeVariantLargerSize,
-  SectionDemo,
-  SectionVariantRow,
-  SectionVariantTitled,
-  SectionVariantUntitled,
-  SignatureDemo,
-  SignatureVariantCustomId,
-  SignatureVariantInitials,
-  SignatureVariantSignature,
-  TableDemo,
-  TableVariantCellRenderer,
-  TableVariantCompact,
-  TableVariantContinued,
-  TableVariantCustomHeaders,
-  TableVariantFooter,
-  TableVariantLeftAligned,
-  TextDemo,
-  TextVariantCaption,
-  TextVariantCustomElement,
-  TextVariantHeading,
-  TextVariantSmall,
-  TotalsDemo,
-  TotalsVariantCustomLabel,
-  TotalsVariantSingleRow,
-  TotalsVariantWithTaxRate,
-  TypographyDemo,
-  TypographyVariantCompact,
-  TypographyVariantFlowCompact,
-  TypographyVariantFlowRoomy,
-  TypographyVariantRoomy,
-  VendorPacketBlockPreview,
-} from "@paradoc/components/examples";
+function kebabCase(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase();
+}
 
-export const COMPONENT_DEMOS: Record<string, ComponentType> = {
-  // Guides: a page about a concern that spans the components, not an item.
-  // `GUIDE_DEMO_FILES` in the sync script is the matching map.
-  typography: TypographyDemo,
-  bundle: BundleDemo,
-  document: DocumentDemo,
-  field: FieldDemo,
-  image: ImageDemo,
-  "keep-together": KeepTogetherDemo,
-  list: ListDemo,
-  "page-break": PageBreakDemo,
-  pages: PagesDemo,
-  "page-number": PageNumberDemo,
-  paper: PaperDemo,
-  section: SectionDemo,
-  table: TableDemo,
-  text: TextDemo,
-  part: PartDemo,
-  party: PartyDemo,
-  "pdf-pages": PdfPagesDemo,
-  "qr-code": QRCodeDemo,
-  signature: SignatureDemo,
-  totals: TotalsDemo,
-  // Blocks: the full, paginated document, not a single component in
-  // isolation (see the wrapper compositions themselves for why each needs
-  // one — the block's own composition renders bare, with no self-wrapping
-  // `Pages`).
-  invoice: InvoiceBlockPreview,
-  "purchase-order": PurchaseOrderBlockPreview,
-  "vendor-packet": VendorPacketBlockPreview,
-  "engagement-letter": EngagementLetterBlockPreview,
-};
+const exported = Object.entries(examples).filter(
+  ([, value]) => typeof value === "function",
+) as [string, ComponentType][];
 
-/** One component per variant key, matching `VARIANT_FILES`, `BLOCK_VARIANT_FILES`, or `GUIDE_VARIANT_FILES` in the sync script. */
-export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> = {
-  // Guides: `GUIDE_VARIANT_FILES` in the sync script is the matching map.
-  typography: {
-    compact: TypographyVariantCompact,
-    roomy: TypographyVariantRoomy,
-    "flow-compact": TypographyVariantFlowCompact,
-    "flow-roomy": TypographyVariantFlowRoomy,
-  },
-  bundle: {
-    "single-document": BundleVariantSingleDocument,
-    row: BundleVariantRow,
-    "branded-tokens": BundleVariantBrandedTokens,
-  },
-  document: {
-    "custom-layout": DocumentVariantCustomLayout,
-    "custom-format": DocumentVariantCustomFormat,
-    "branded-tokens": DocumentVariantBrandedTokens,
-  },
-  field: {
-    "default-label": FieldVariantDefaultLabel,
-    "no-label": FieldVariantNoLabel,
-    "custom-label": FieldVariantCustomLabel,
-    paragraphs: FieldVariantParagraphs,
-    rule: FieldVariantRule,
-  },
-  image: {
-    source: ImageVariantSource,
-    "attachment-field": ImageVariantAttachmentField,
-    "attachment-name": ImageVariantAttachmentName,
-  },
-  "keep-together": {
-    "default-element": KeepTogetherVariantDefaultElement,
-    "custom-element": KeepTogetherVariantCustomElement,
-    "passthrough-attributes": KeepTogetherVariantPassthroughAttributes,
-  },
-  list: {
-    unordered: ListVariantUnordered,
-    nested: ListVariantNested,
-    roman: ListVariantRoman,
-  },
-  "page-break": {
-    "before-a-section": PageBreakVariantBeforeASection,
-    "inside-a-tables-rows": PageBreakVariantInsideATablesRows,
-  },
-  pages: {
-    "multi-page": PagesVariantMultiPage,
-    "page-furniture": PagesVariantPageFurniture,
-    "draft-watermark": PagesVariantDraftWatermark,
-    "custom-frame": PagesVariantCustomFrame,
-    "page-count": PagesVariantPageCount,
-  },
-  "page-number": {
-    "number-only": PageNumberVariantNumberOnly,
-    "custom-wording": PageNumberVariantCustomWording,
-  },
-  paper: {
-    "minimal-content": PaperVariantMinimalContent,
-    "custom-frame": PaperVariantCustomFrame,
-    "overflowing-content": PaperVariantOverflowingContent,
-  },
-  section: {
-    titled: SectionVariantTitled,
-    untitled: SectionVariantUntitled,
-    row: SectionVariantRow,
-  },
-  table: {
-    compact: TableVariantCompact,
-    "left-aligned": TableVariantLeftAligned,
-    "custom-headers": TableVariantCustomHeaders,
-    continued: TableVariantContinued,
-    footer: TableVariantFooter,
-    "cell-renderer": TableVariantCellRenderer,
-  },
-  text: {
-    heading: TextVariantHeading,
-    caption: TextVariantCaption,
-    small: TextVariantSmall,
-    "custom-element": TextVariantCustomElement,
-  },
-  part: {
-    unplaced: PartVariantUnplaced,
-    placed: PartVariantPlaced,
-    pending: PartVariantPending,
-  },
-  party: {
-    inline: PartyVariantInline,
-    multiple: PartyVariantMultiple,
-  },
-  "pdf-pages": {
-    standalone: PdfPagesVariantStandalone,
-    attachment: PdfPagesVariantAttachment,
-    styled: PdfPagesVariantStyled,
-  },
-  "qr-code": {
-    "custom-colors": QRCodeVariantCustomColors,
-    "larger-size": QRCodeVariantLargerSize,
-    "custom-label": QRCodeVariantCustomLabel,
-  },
-  signature: {
-    signature: SignatureVariantSignature,
-    initials: SignatureVariantInitials,
-    "custom-id": SignatureVariantCustomId,
-  },
-  totals: {
-    "single-row": TotalsVariantSingleRow,
-    "with-tax-rate": TotalsVariantWithTaxRate,
-    "custom-label": TotalsVariantCustomLabel,
-  },
-  // Blocks: existing alternate sample-data scenarios, never a new prop
-  // configuration (per the spec, a block's Variants shows only what already
-  // exists). Invoice has a real second scenario (the overflow sample);
-  // purchase-order has only one sample today, so its one Variant entry
-  // reuses the same Preview component and renders the same real data again
-  // rather than inventing a second scenario — see the block's docs page.
-  invoice: {
-    overflow: InvoiceBlockVariantOverflow,
-  },
-  "purchase-order": {
-    standard: PurchaseOrderBlockPreview,
-  },
-  "vendor-packet": {
-    standard: VendorPacketBlockPreview,
-  },
-  "engagement-letter": {
-    standard: EngagementLetterBlockPreview,
-  },
-};
+export const COMPONENT_DEMOS: Record<string, ComponentType> = Object.fromEntries(
+  exported.flatMap(([name, component]) => {
+    if (name.endsWith("BlockPreview")) {
+      return [[kebabCase(name.slice(0, -"BlockPreview".length)), component]];
+    }
+    if (name.endsWith("Demo")) {
+      return [[kebabCase(name.slice(0, -"Demo".length)), component]];
+    }
+    return [];
+  }),
+);
+
+export const COMPONENT_VARIANTS: Record<string, Record<string, ComponentType>> = {};
+for (const [exportName, component] of exported) {
+  const marker = exportName.indexOf("Variant");
+  if (marker < 0) continue;
+  const name = kebabCase(exportName.slice(0, marker).replace(/Block$/, ""));
+  const variant = kebabCase(exportName.slice(marker + "Variant".length));
+  const variants = COMPONENT_VARIANTS[name] ?? {};
+  variants[variant] = component;
+  COMPONENT_VARIANTS[name] = variants;
+}
+for (const [name, component] of Object.entries(COMPONENT_DEMOS)) {
+  if (name === "invoice" || !name.includes("-")) continue;
+  COMPONENT_VARIANTS[name] ??= { standard: component };
+}
+for (const name of ["purchase-order", "vendor-packet", "engagement-letter"]) {
+  COMPONENT_VARIANTS[name] ??= { standard: COMPONENT_DEMOS[name] };
+}

@@ -5,7 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
  *
  * The contract is two fields, `status` and `timestamp`, shared by every
  * Paradoc service. It is inlined here rather than imported: this app is part of
- * the public OSS tree and carries no `@paradoc/*` workspace dependency, so the
+ * the public OSS tree and carries no private Platform workspace dependency, so the
  * platform's shared contract module is deliberately out of reach. Keep the
  * shape identical if the contract changes.
  *
