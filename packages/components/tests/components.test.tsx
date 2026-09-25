@@ -48,7 +48,7 @@ it("composes signing and truthful packet placement from headless bindings", () =
       <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
         <Signature party="buyer" />
         <Signature party="buyer" index={0} type="initials" />
-        <Signature party="buyer" index={1} />
+        <Signature party="supplier" />
       </Document>
     </Part>
   );
@@ -58,5 +58,5 @@ it("composes signing and truthful packet placement from headless bindings", () =
   expect(html).toContain("Initials (required)");
   expect(html).toContain('data-keep-id="signature:buyer"');
   expect(html).toContain('data-keep-id="initials:buyer"');
-  expect(html).toContain('data-keep-id="signature:buyer:1"');
+  expect(html).toContain('data-keep-id="signature:supplier"');
 });
