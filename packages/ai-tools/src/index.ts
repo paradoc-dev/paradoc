@@ -65,7 +65,14 @@ export {
 	resolveRelativeUrl,
 	bytesToBase64,
 	bytesToText,
+	MAX_INDEX_SIZE,
+	MAX_ITEM_SIZE,
+	MAX_INSTRUCTIONS_SIZE,
+	MAX_LAYER_FILE_SIZE,
+	FETCH_TIMEOUT_MS,
+	DEFAULT_MAX_REDIRECTS,
 } from './registry-client'
+export type { RegistryIndex, FetchPolicy } from './registry-client'
 
 // These wrappers keep the package root free of document-core and renderer
 // imports. The implementation module is loaded only when an operation runs.
