@@ -46,7 +46,7 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "check": "pnpm lint && pnpm check-types",
-    "pretest": "pnpm build",
+    "pretest": "pnpm --dir ../../.. exec turbo run build --filter=@paradoc/cli",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
