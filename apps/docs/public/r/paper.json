@@ -5,7 +5,7 @@
   "title": "Paper",
   "description": "One sheet at the document's page geometry, the scaled sheet the preview lays out, and the fit-to-width hook.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [],
   "files": [

@@ -5,7 +5,7 @@
   "title": "Signature",
   "description": "A party's signing block. Its rule is the placeholder the core seal measures a flow-placed signature field from.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

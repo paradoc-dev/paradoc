@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/essentials",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Ready-to-use Paradoc artifacts for common business forms: IRS W-9, 1099-NEC, 1099-MISC, and 4506-T, USCIS I-9, and NACHA ACH forms",
   "type": "module",
   "main": "./dist/index.js",

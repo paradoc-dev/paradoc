@@ -5,7 +5,7 @@
   "title": "Totals",
   "description": "The artifact's computed amounts, evaluated by @paradoc/core and printed by the serializer each def's type names.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

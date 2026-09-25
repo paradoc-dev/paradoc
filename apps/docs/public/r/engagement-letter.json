@@ -5,9 +5,9 @@
   "title": "Engagement Letter",
   "description": "A prose document: the engagement letter artifact with its React layer and two signature slots, the composition that renders its scope as numbered clauses, and one sample that runs to two pages.",
   "dependencies": [
-    "@paradoc/react@^0.5.0",
-    "@paradoc/core@^0.5.0",
-    "@paradoc/types@^0.5.0"
+    "@paradoc/react@^0.6.0",
+    "@paradoc/core@^0.6.0",
+    "@paradoc/types@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/document",

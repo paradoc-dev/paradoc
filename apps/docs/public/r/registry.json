@@ -24,7 +24,7 @@
       "title": "Keep Together",
       "description": "The pagination unit. Content inside one is never split across a page break, and renders only on the page the plan put it on.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -41,7 +41,7 @@
       "title": "Page Break",
       "description": "Starts a new page at its position and occupies no height of its own. The plan opens a page there in both outputs, and a table's header still repeats on the page it opens.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -60,8 +60,8 @@
       "title": "Document",
       "description": "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
       "dependencies": [
-        "@paradoc/react@^0.5.0",
-        "@paradoc/types@^0.5.0"
+        "@paradoc/react@^0.6.0",
+        "@paradoc/types@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -78,7 +78,7 @@
       "title": "Bundle",
       "description": "Groups the documents of one composition, mirroring the artifact hierarchy's outermost level.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -95,7 +95,7 @@
       "title": "Part",
       "description": "One document of a packet. It is the boundary between them, so each numbers its own pages and says where it sits in the packet.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -112,7 +112,7 @@
       "title": "PDF Pages",
       "description": "A PDF part of a packet, painted page by page at its own paper size, or a named attachment card when it cannot be painted.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -129,7 +129,7 @@
       "title": "Paper",
       "description": "One sheet at the document's page geometry, the scaled sheet the preview lays out, and the fit-to-width hook.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -146,7 +146,7 @@
       "title": "Pages",
       "description": "Measures the document once and lays it out as paginated sheets. One tree, rendered once per page.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/paper"
@@ -165,7 +165,7 @@
       "title": "Page Number",
       "description": "The page being drawn and how many there are, for a document's page furniture. The preview counts the sheets it laid out and the PDF engine fills the same two numbers.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -182,7 +182,7 @@
       "title": "Section",
       "description": "A titled container. It collapses on the pages that hold none of its keeps, so a continued page carries no empty heading.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -201,7 +201,7 @@
       "title": "Field",
       "description": "One labelled value at a path into the artifact, printed by the artifact's serializers. It never formats a value itself.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -220,7 +220,7 @@
       "title": "Image",
       "description": "A picture at a declared size, from its own bytes or from a source. The encoding is sniffed and one an engine cannot decode fails by name.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -239,7 +239,7 @@
       "title": "Text",
       "description": "Static prose in a named role — heading, body, caption, or small — sized and led by the document's typography token.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -258,7 +258,7 @@
       "title": "List",
       "description": "An ordered or unordered list whose markers are text, so both outputs draw the same ones. Every item is its own pagination unit.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -277,7 +277,7 @@
       "title": "Table",
       "description": "A list field as rows. Each row is its own pagination unit and the header repeats on every page the table continues onto.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -296,7 +296,7 @@
       "title": "Totals",
       "description": "The artifact's computed amounts, evaluated by @paradoc/core and printed by the serializer each def's type names.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -315,7 +315,7 @@
       "title": "Party",
       "description": "One party of a declared role — name, organization, address, and contact — as a block or inline, through the shared formatter.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -334,7 +334,7 @@
       "title": "Signature",
       "description": "A party's signing block. Its rule is the placeholder the core seal measures a flow-placed signature field from.",
       "dependencies": [
-        "@paradoc/react@^0.5.0"
+        "@paradoc/react@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/keep-together"
@@ -370,7 +370,7 @@
       "title": "Line-item arithmetic",
       "description": "Sample-owned row multiplication and subtotal arithmetic used by the priced document blocks.",
       "dependencies": [
-        "@paradoc/types@^0.5.0"
+        "@paradoc/types@^0.6.0"
       ],
       "registryDependencies": [],
       "files": [
@@ -387,9 +387,9 @@
       "title": "Purchase Order",
       "description": "A whole document: the purchase order artifact with its React layer, the composition that binds it, and a sample order that runs to three pages.",
       "dependencies": [
-        "@paradoc/react@^0.5.0",
-        "@paradoc/core@^0.5.0",
-        "@paradoc/types@^0.5.0"
+        "@paradoc/react@^0.6.0",
+        "@paradoc/core@^0.6.0",
+        "@paradoc/types@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/document",
@@ -426,9 +426,9 @@
       "title": "Invoice",
       "description": "A whole document nothing signs: the invoice artifact with its React layer, the composition that brands it from its own tokens, and two samples — one that fits a page and one whose table runs past two breaks.",
       "dependencies": [
-        "@paradoc/react@^0.5.0",
-        "@paradoc/core@^0.5.0",
-        "@paradoc/types@^0.5.0"
+        "@paradoc/react@^0.6.0",
+        "@paradoc/core@^0.6.0",
+        "@paradoc/types@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/document",
@@ -466,9 +466,9 @@
       "title": "Engagement Letter",
       "description": "A prose document: the engagement letter artifact with its React layer and two signature slots, the composition that renders its scope as numbered clauses, and one sample that runs to two pages.",
       "dependencies": [
-        "@paradoc/react@^0.5.0",
-        "@paradoc/core@^0.5.0",
-        "@paradoc/types@^0.5.0"
+        "@paradoc/react@^0.6.0",
+        "@paradoc/core@^0.6.0",
+        "@paradoc/types@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/document",
@@ -504,9 +504,9 @@
       "title": "Vendor Packet",
       "description": "A packet of three documents: the purchase order composed live, a filled W-9 painted from its PDF layer, and the vendor's certificate of insurance as an annex, whose bytes it ships.",
       "dependencies": [
-        "@paradoc/react@^0.5.0",
-        "@paradoc/core@^0.5.0",
-        "@paradoc/types@^0.5.0"
+        "@paradoc/react@^0.6.0",
+        "@paradoc/core@^0.6.0",
+        "@paradoc/types@^0.6.0"
       ],
       "registryDependencies": [
         "@paradoc/bundle",

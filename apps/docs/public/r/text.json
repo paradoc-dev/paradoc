@@ -5,7 +5,7 @@
   "title": "Text",
   "description": "Static prose in a named role — heading, body, caption, or small — sized and led by the document's typography token.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

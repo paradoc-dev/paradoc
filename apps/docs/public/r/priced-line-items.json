@@ -5,7 +5,7 @@
   "title": "Line-item arithmetic",
   "description": "Sample-owned row multiplication and subtotal arithmetic used by the priced document blocks.",
   "dependencies": [
-    "@paradoc/types@^0.5.0"
+    "@paradoc/types@^0.6.0"
   ],
   "registryDependencies": [],
   "files": [

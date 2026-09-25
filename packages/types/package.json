@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/types",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Type-only contracts for the Paradoc framework: artifact definitions, runtime data, and renderer, formatter and resolver interfaces",
   "type": "module",
   "main": "./dist/index.js",

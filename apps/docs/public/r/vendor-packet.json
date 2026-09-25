@@ -5,9 +5,9 @@
   "title": "Vendor Packet",
   "description": "A packet of three documents: the purchase order composed live, a filled W-9 painted from its PDF layer, and the vendor's certificate of insurance as an annex, whose bytes it ships.",
   "dependencies": [
-    "@paradoc/react@^0.5.0",
-    "@paradoc/core@^0.5.0",
-    "@paradoc/types@^0.5.0"
+    "@paradoc/react@^0.6.0",
+    "@paradoc/core@^0.6.0",
+    "@paradoc/types@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/bundle",

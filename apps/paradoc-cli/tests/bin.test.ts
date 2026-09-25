@@ -9,7 +9,7 @@ const cliRoot = path.resolve(packageRoot, '../cli')
 
 describe('paradoc-cli shim', () => {
   it('runs the built CLI and reports its version', async () => {
-    await expect(runCli(['--version'], { target: 'shim' })).resolves.toMatchObject({ stdout: '0.5.0\n', exitCode: 0 })
+    await expect(runCli(['--version'], { target: 'shim' })).resolves.toMatchObject({ stdout: '0.6.0\n', exitCode: 0 })
   })
 
   it('imports the dist entry published by @paradoc/cli', () => {

@@ -5,7 +5,7 @@
   "title": "List",
   "description": "An ordered or unordered list whose markers are text, so both outputs draw the same ones. Every item is its own pagination unit.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

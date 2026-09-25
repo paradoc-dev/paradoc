@@ -5,7 +5,7 @@
   "title": "Field",
   "description": "One labelled value at a path into the artifact, printed by the artifact's serializers. It never formats a value itself.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/sdk",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Umbrella package for the Paradoc framework: re-exports @paradoc/core, @paradoc/format, and @paradoc/sessions, plus the layer renderer, PDF placement helpers, and hosted sealing",
   "type": "module",
   "main": "./dist/index.js",

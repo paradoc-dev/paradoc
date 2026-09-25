@@ -5,7 +5,7 @@
   "title": "Image",
   "description": "A picture at a declared size, from its own bytes or from a source. The encoding is sniffed and one an engine cannot decode fails by name.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

@@ -18,7 +18,7 @@
  * builds first.
  *
  * The one step that is stubbed is the package manager. An item declares its
- * substrate at a version (`@paradoc/react@^0.5.0`), and the CLI installs a
+ * substrate at a version (`@paradoc/react@^0.6.0`), and the CLI installs a
  * versioned dependency rather than skipping it even when the project already
  * has it, so leaving it real would make this suite depend on a public npm
  * registry to test something that is not npm's. A recording stub stands in, and

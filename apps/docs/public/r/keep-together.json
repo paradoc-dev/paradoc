@@ -5,7 +5,7 @@
   "title": "Keep Together",
   "description": "The pagination unit. Content inside one is never split across a page break, and renders only on the page the plan put it on.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [],
   "files": [

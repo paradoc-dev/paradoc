@@ -1,6 +1,6 @@
 {
   "name": "@paradoc/tanstack-ai",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Experimental TanStack AI 0.53.0 RC adapter for Paradoc document tools",
   "type": "module",
   "main": "./dist/index.js",

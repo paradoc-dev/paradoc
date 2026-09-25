@@ -5,7 +5,7 @@
   "title": "Bundle",
   "description": "Groups the documents of one composition, mirroring the artifact hierarchy's outermost level.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [],
   "files": [

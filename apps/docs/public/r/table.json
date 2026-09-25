@@ -5,7 +5,7 @@
   "title": "Table",
   "description": "A list field as rows. Each row is its own pagination unit and the header repeats on every page the table continues onto.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

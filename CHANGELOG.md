@@ -4,6 +4,8 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-25
+
 ### Fixed
 
 - CLI: text, PDF, and DOCX rendering ship with the CLI. The obsolete `paradoc renderers` command, renderer cache, and `reset --keep-renderers` option are removed; React composition commands require their React peers in the project.

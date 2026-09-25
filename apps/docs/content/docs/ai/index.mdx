@@ -13,7 +13,7 @@ The Paradoc AI packages give your own AI agents tools to find, inspect, validate
 |---------|-------------|---------|
 | [`@paradoc/ai-tools`](/ai/ai-tools) | Framework-neutral tool contract: Zod schemas, execute functions, registry client | `npm install @paradoc/ai-tools` |
 | [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK 7 adapter | `npm install @paradoc/ai-sdk ai zod` |
-| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
+| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai@0.6.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
 | [`@paradoc/mastra`](/ai/mastra) | Mastra adapter | `npm install @paradoc/mastra @mastra/core zod` |
 
 Install the adapter for your framework. Each adapter depends on `@paradoc/ai-tools`, so every adapter exposes the same tools with the same schemas.
@@ -61,7 +61,7 @@ All tools except `get_registry` and `get_artifact` take a [source](/ai/tools#sou
   </Tab>
   <Tab value="TanStack AI">
     ```bash
-    npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
+    npm install @paradoc/tanstack-ai@0.6.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
     ```
 
     ```typescript

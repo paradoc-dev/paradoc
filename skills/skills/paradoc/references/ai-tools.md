@@ -18,7 +18,7 @@ The AI packages are npm libraries. The tools run in your own process, with no Pa
 | `@paradoc/ai-tools` | The framework-neutral contract: Zod schemas, `execute*` functions, `toolDefinitions` | `npm install @paradoc/ai-tools` |
 | `@paradoc/ai-sdk` | Vercel AI SDK 7 (`generateText`, `streamText`, agents) | `npm install @paradoc/ai-sdk ai zod` |
 | `@paradoc/mastra` | Mastra agents | `npm install @paradoc/mastra @mastra/core zod` |
-| `@paradoc/tanstack-ai` | TanStack AI `chat()` | `npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
+| `@paradoc/tanstack-ai` | TanStack AI `chat()` | `npm install @paradoc/tanstack-ai@0.6.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
 
 Every adapter wraps `@paradoc/ai-tools`, so the tool names, inputs and outputs are the same everywhere.
 

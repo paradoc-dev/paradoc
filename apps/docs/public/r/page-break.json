@@ -5,7 +5,7 @@
   "title": "Page Break",
   "description": "Starts a new page at its position and occupies no height of its own. The plan opens a page there in both outputs, and a table's header still repeats on the page it opens.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

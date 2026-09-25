@@ -5,7 +5,7 @@
   "title": "Party",
   "description": "One party of a declared role — name, organization, address, and contact — as a block or inline, through the shared formatter.",
   "dependencies": [
-    "@paradoc/react@^0.5.0"
+    "@paradoc/react@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/keep-together"

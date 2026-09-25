@@ -7,7 +7,7 @@ The adapter consumes the canonical schemas, descriptions, result contracts, and 
 ## Installation
 
 ```bash
-npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
+npm install @paradoc/tanstack-ai@0.6.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
 ```
 
 ## Native server tools

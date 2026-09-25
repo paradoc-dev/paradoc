@@ -5,9 +5,9 @@
   "title": "Purchase Order",
   "description": "A whole document: the purchase order artifact with its React layer, the composition that binds it, and a sample order that runs to three pages.",
   "dependencies": [
-    "@paradoc/react@^0.5.0",
-    "@paradoc/core@^0.5.0",
-    "@paradoc/types@^0.5.0"
+    "@paradoc/react@^0.6.0",
+    "@paradoc/core@^0.6.0",
+    "@paradoc/types@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/document",

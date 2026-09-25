@@ -5,9 +5,9 @@
   "title": "Invoice",
   "description": "A whole document nothing signs: the invoice artifact with its React layer, the composition that brands it from its own tokens, and two samples — one that fits a page and one whose table runs past two breaks.",
   "dependencies": [
-    "@paradoc/react@^0.5.0",
-    "@paradoc/core@^0.5.0",
-    "@paradoc/types@^0.5.0"
+    "@paradoc/react@^0.6.0",
+    "@paradoc/core@^0.6.0",
+    "@paradoc/types@^0.6.0"
   ],
   "registryDependencies": [
     "@paradoc/document",
