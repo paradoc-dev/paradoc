@@ -7,10 +7,10 @@
  * the three things core cannot infer — the renderer that draws the purchase
  * order, the person who signs for each party, and the annex's bytes.
  *
- * The W-9 arrives from the caller rather than from here. `@paradoc/react` does
- * not depend on `@paradoc/essentials`, and it should not: a packet declaration
- * names the parts, and where a part comes from is the application's business.
- * The test and the lab each hand in their own filled draft.
+ * The W-9 arrives from the caller rather than from here. The components package
+ * uses `@paradoc/essentials` in its browser preview, while this Node-only seal
+ * helper accepts any filled draft the caller resolved. The test and the lab
+ * each hand in their own filled draft.
  */
 
 import { readFile } from "node:fs/promises";
@@ -119,7 +119,7 @@ export function fillPurchaseOrderForSeal(data: PurchaseOrderData = purchaseOrder
 export interface SealVendorPacketOptions {
   /**
    * The W-9, filled and with a signatory bound to the taxpayer party. It comes
-   * from the caller because this package does not depend on the registry.
+   * from the caller so this helper stays independent of registry resolution.
    */
   taxpayer: DraftForm<Form>;
   /** The certificate of insurance, as the vendor supplied it. Defaults to the checked-in fixture. */

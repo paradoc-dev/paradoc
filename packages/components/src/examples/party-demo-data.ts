@@ -22,7 +22,7 @@ export const partyDemoData: DocumentData = {
     buyerPhone: { number: "+15125550142", type: "work" },
   },
   parties: {
-    buyer: { name: "Dana Whitfield" },
+    buyer: { name: "Dana Whitfield", firstName: "Dana", lastName: "Whitfield" },
     witness: [
       { name: "Marisol Vega" },
       { name: "Priya Natarajan" },

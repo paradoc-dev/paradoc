@@ -11,8 +11,8 @@
  * 2. **A registry PDF form.** The IRS W-9 from `@paradoc/essentials`, filled
  *    through its official PDF layer and signed by the taxpayer. The bundle
  *    names it by its registry slug; the caller supplies the filled draft,
- *    because this package does not depend on the registry to describe a packet
- *    that includes one.
+ *    because the bundle declaration does not load registry artifacts. The
+ *    block preview uses `@paradoc/essentials` to supply this part.
  * 3. **An annex.** A certificate of insurance the vendor supplies as PDF bytes.
  *    The bundle declares what it is; the packet carries the bytes.
  *
