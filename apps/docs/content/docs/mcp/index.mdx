@@ -5,7 +5,7 @@ ogTitle: Paradoc MCP Server
 ogDescription: Connect AI assistants to the Paradoc MCP server for artifact validation, filling, rendering, and registry browsing
 ---
 
-The Paradoc MCP server lets AI assistants validate, fill, render, and browse artifacts over the [Model Context Protocol](https://modelcontextprotocol.io). It is a hosted service, so there is nothing to install. Every request needs a Paradoc credential.
+The Paradoc MCP server lets AI assistants validate, fill, render, and browse artifacts over the [Model Context Protocol](https://modelcontextprotocol.io). It is a hosted Paradoc Platform service, so there is nothing to install. You need a Platform account and authenticate through OAuth or an API key.
 
 ## Endpoints
 
@@ -24,6 +24,8 @@ The server accepts two credentials:
 - **API key.** Headless clients send a Paradoc API key in the `x-api-key` header.
 
 A request to `/mcp` without a valid credential gets `401 Unauthorized` with a `WWW-Authenticate: Bearer resource_metadata="https://mcp.paradoc.dev/.well-known/oauth-protected-resource"` header. OAuth-capable clients read that metadata to find the authorization server and start sign-in.
+
+If the service cannot verify an API key, it returns `503 Service Unavailable`; retry that request later. A `POST /mcp` request without the client IP metadata required for rate limiting returns `400 Bad Request`.
 
 ## Connecting
 

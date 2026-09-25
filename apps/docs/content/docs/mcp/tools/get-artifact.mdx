@@ -30,6 +30,8 @@ Requires an [authenticated session](/mcp#authentication).
 | `metadata.stats` | `object` | Install stats: `installsTotal`, `installs24h`, `installs7d` |
 | `error` | `string` | Error message if the artifact was not found or registry is not verified |
 
+File-backed `instructions` and `agentInstructions` are returned inline as `{ kind: 'inline', text }`, so clients can use them without fetching another file.
+
 ## Example
 
 ```json

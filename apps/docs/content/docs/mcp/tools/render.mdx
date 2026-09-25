@@ -19,7 +19,7 @@ Requires an [authenticated session](/mcp#authentication).
 |-----------|------|----------|-------------|
 | `registry_id` | `string` | Yes | Registry ID (must be a verified registry) |
 | `artifact_name` | `string` | Yes | Artifact name within the registry |
-| `data` | `object` | Yes | Data to fill before rendering. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
+| `data` | `object` | Yes | Data to fill before rendering: `{ fields: { fieldId: value }, parties: { roleId: { id, name, ... } }, annexes: { annexId: attachment } }`. |
 | `layer` | `string` | No | Layer key to render. Falls back to `defaultLayer`, then first layer |
 | `outputMode` | `"url"` \| `"inline"` | No | `"url"` (default) returns a short download link with 7-day TTL. `"inline"` returns content directly — best for text/markdown. |
 

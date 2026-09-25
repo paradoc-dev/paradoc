@@ -18,7 +18,7 @@ The tool works only on the artifact you pass in and calls no registry or API. Li
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `artifact` | `object` | Yes | The Paradoc artifact (form or checklist) definition |
-| `data` | `object` | Yes | Data to fill. Fields go under `"fields"` key: `{ fields: { fieldId: value } }`. Parties go under their party ID: `{ partyId: { id, name, ... } }`. |
+| `data` | `object` | Yes | Data to fill: `{ fields: { fieldId: value }, parties: { roleId: { id, name, ... } }, annexes: { annexId: attachment } }`. |
 
 ## Response
 
@@ -27,7 +27,7 @@ The tool works only on the artifact you pass in and calls no registry or API. Li
 | `accepted` | `boolean` | Whether every supplied value was accepted |
 | `complete` | `boolean` | Whether the artifact is ready for its final transition (every required value present and valid) |
 | `artifactKind` | `string` | Detected kind: `form` or `checklist` |
-| `data` | `object` | The accepted values with defaults applied (when `accepted` is `true`) |
+| `data` | `object` | Accepted field values with defaults applied (when `accepted` is `true`); party and annex values are not included |
 | `errors` | `array` | Rejected values, each with `field` and `message` |
 | `error` | `string` | Error message if filling could not be performed (for example, the artifact is not a form or checklist) |
 
@@ -68,7 +68,7 @@ The supplied values were accepted, but `complete` is `false` because other requi
   "complete": false,
   "artifactKind": "form",
   "errors": [
-    { "field": "age", "message": "Expected number, received string" }
+    { "field": "fields.age", "message": "Invalid input: expected number, received string" }
   ]
 }
 ```
