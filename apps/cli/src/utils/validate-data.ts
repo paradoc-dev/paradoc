@@ -12,15 +12,12 @@ import {
   type FormValidationResult,
   type ValidationError,
 } from '@paradoc/core'
+import type { FormData } from '@paradoc/types'
 
 type RuleValidationResult = FormValidationResult['rules']['errors'][number]
 
 /** The payload the SDK holds after a successful fill. */
-export interface FilledPayload {
-  fields: Record<string, unknown>
-  parties?: Record<string, unknown>
-  annexes?: Record<string, unknown>
-}
+export type FilledPayload = Pick<FormData, 'fields' | 'parties' | 'annexes'>
 
 export type PayloadValidationResult =
   | { success: true; data: FilledPayload }
@@ -54,10 +51,16 @@ export function validateFormPayload(formDef: Form, payload: Record<string, unkno
 
 /** Print validation errors and failed rules, one per line. */
 export function printPayloadErrors(errors: ValidationError[], ruleErrors: RuleValidationResult[]): void {
-  for (const error of errors) {
-    console.error(`  - ${error.field || 'root'}: ${error.message}`)
-  }
-  for (const rule of ruleErrors) {
-    console.error(`  - rules.${rule.ruleId}: ${rule.message ?? 'Rule failed'}`)
-  }
+  for (const line of formatPayloadErrors(errors, ruleErrors)) console.error(`  - ${line}`)
+}
+
+/** Format validation errors for command error messages. */
+export function formatPayloadErrors(
+  errors: ValidationError[],
+  ruleErrors: RuleValidationResult[]
+): string[] {
+  return [
+    ...errors.map((error) => `${error.field || 'root'}: ${error.message}`),
+    ...ruleErrors.map((rule) => `rules.${rule.ruleId}: ${rule.message ?? 'Rule failed'}`),
+  ]
 }

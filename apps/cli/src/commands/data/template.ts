@@ -75,7 +75,7 @@ export function createTemplateCommand(): Command {
         const serialized =
           format === 'json'
             ? JSON.stringify(instanceTemplate, null, 2)
-            : toYAML(instanceTemplate)
+            : toYAML(instanceTemplate, { includeSchema: false })
 
         // Ensure trailing newline
         const content = serialized.endsWith('\n') ? serialized : serialized + '\n'

@@ -11,11 +11,12 @@ import type { checkComposition, CompositionCheckResult } from '@paradoc/react-pd
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
-import { normalizeFormData, parseDataInput } from '../utils/data-input.js'
+import { parseDataInput, toFormPayload } from '../utils/data-input.js'
 import { findRepoRoot } from '../utils/project.js'
 import { rendererManager } from '../utils/renderer-manager.js'
 import { ensureTsLoader } from '../utils/ts-loader.js'
 import { loadValidatedArtifact } from '../utils/artifact-file.js'
+import { formatPayloadErrors, validateFormPayload } from '../utils/validate-data.js'
 
 type AdapterName = 'takumi' | 'chromium'
 
@@ -109,7 +110,7 @@ export function createCheckCommand(): Command {
         )
 
         const data = options.data
-          ? await explicitData(options.data)
+          ? await explicitData(options.data, resolved.artifact)
           : await discoverSampleData(compositionPath)
 
         const runCheck = await loadCheckComposition()
@@ -299,12 +300,17 @@ function pickLayer(
 }
 
 /** `--data` explicitly overrides sample discovery. */
-async function explicitData(value: string): Promise<DocumentData> {
+async function explicitData(value: string, form: Form): Promise<DocumentData> {
   const { data } = await parseDataInput(value)
-  const normalized = normalizeFormData(data)
+  const result = validateFormPayload(form, toFormPayload(data))
+  if (!result.success) {
+    throw new Error(formatPayloadErrors(result.errors, result.ruleErrors).join('\n'))
+  }
+  const normalized = result.data
   return {
-    fields: normalized.fields,
+    fields: normalized.fields as DocumentData['fields'],
     parties: (normalized.parties as DocumentData['parties']) ?? {},
+    annexes: (normalized.annexes as DocumentData['annexes']) ?? {},
   }
 }
 

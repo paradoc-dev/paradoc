@@ -66,7 +66,6 @@ paradoc data template my-form.yaml --out data.yaml
 For a lease form with a text, address, money, date, boolean, enum, and number field, and one annex:
 
 ```yaml
-# yaml-language-server: $schema=https://schema.paradoc.dev/__SCHEMA_VERSION__.json
 fields:
   tenantName: ""
   address:
@@ -95,6 +94,7 @@ A field with a `default` gets that value. Otherwise each field gets a placeholde
 | `number`, `percentage`, `rating` | `null` |
 | `enum` | the first option's value, or `null` with no options |
 | `multiselect` | `[]` |
+| `list` | `[]` |
 | `money` | `{ amount: 0, currency: USD }` |
 | `address` | `line1`, `locality`, `region`, `postalCode`, and `country`, each `""` |
 | `phone` | `{ number: "" }` |

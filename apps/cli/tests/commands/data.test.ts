@@ -78,6 +78,22 @@ describe('CLI Data Commands', () => {
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('name:')
       expect(result.stdout).toContain('species:')
+      expect(result.stdout).not.toContain('yaml-language-server')
+    })
+
+    it('uses an empty array for list fields', async () => {
+      const formPath = path.join(tempDir, 'list-form.json')
+      await fs.writeFile(formPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
+        kind: 'form', name: 'list-form', version: '1.0.0', title: 'List form',
+        fields: {
+          rows: { type: 'list', label: 'Rows', item: { type: 'text', label: 'Row' } },
+        },
+      }))
+
+      const result = await executeCliCommand(['data', 'template', formPath, '--json'])
+      expect(result.exitCode).toBe(0)
+      expect(JSON.parse(result.stdout).fields.rows).toEqual([])
     })
   })
 
@@ -190,6 +206,17 @@ describe('CLI Data Commands', () => {
       const result = await executeCliCommand(['data', 'validate', formPath, inlineData])
 
       expect(result.exitCode).toBe(0)
+    })
+
+    it('rejects unknown keys in a structured payload', async () => {
+      const formPath = path.join(fixturesDir, 'pet-addendum.yaml')
+      const result = await executeCliCommand([
+        'data', 'validate', formPath,
+        JSON.stringify({ fields: { name: 'Rex' }, partys: {} }),
+      ])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('Unknown top-level key "partys"')
     })
   })
 

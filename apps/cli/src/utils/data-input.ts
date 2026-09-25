@@ -6,7 +6,6 @@
  */
 
 import { parse } from '@paradoc/core'
-import type { FormData } from '@paradoc/types'
 import { readTextInput } from './io.js'
 
 export interface DataInputResult {
@@ -96,23 +95,11 @@ export async function parseDataInput(value: string): Promise<DataInputResult> {
  * @param data - Raw data object
  * @returns The render payload
  */
-export function normalizeFormData(data: Record<string, unknown>): FormData {
-	if (!('fields' in data) || typeof data.fields !== 'object' || data.fields === null) {
-		return { fields: data }
-	}
-	const result: FormData = { fields: data.fields as FormData['fields'] }
-	if (data.parties) result.parties = data.parties as FormData['parties']
-	if (data.annexes) result.annexes = data.annexes as FormData['annexes']
-	if (data.defs) result.defs = data.defs as FormData['defs']
-	if (data.signers) result.signers = data.signers as FormData['signers']
-	if (data.signatories) result.signatories = data.signatories as FormData['signatories']
-	return result
-}
-
 /**
  * Wrap flat field data in `{ fields }`. A payload that already names a
- * `fields`, `parties` or `annexes` section is passed on as written, so the
- * SDK sees (and rejects) any other top-level key.
+ * `fields`, `parties` or `annexes` section is treated as a full form payload.
+ * Full payloads pass through unchanged so the SDK can report any unknown
+ * top-level keys with its normal validation errors.
  */
 export function toFormPayload(data: Record<string, unknown>): Record<string, unknown> {
 	const isPayload = 'fields' in data || 'parties' in data || 'annexes' in data

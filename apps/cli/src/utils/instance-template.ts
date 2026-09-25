@@ -57,6 +57,7 @@ function getFieldDefault(field: FormField): unknown {
       return field.enum && field.enum.length > 0 ? field.enum[0]?.value : null
 
     case 'multiselect':
+    case 'list':
       return []
 
     case 'coordinate':

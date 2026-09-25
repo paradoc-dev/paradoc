@@ -10,7 +10,7 @@ export interface CliRunOptions {
   cwd?: string
   env?: Record<string, string | undefined>
   timeout?: number
-  input?: string
+  input?: string | string[]
   stdin?: string
   target?: CliTarget
   built?: boolean
@@ -41,7 +41,21 @@ export function runCli(args: string[], options: CliRunOptions = {}): Promise<Cli
     })
     child.stdout.setEncoding('utf8')
     child.stderr.setEncoding('utf8')
-    child.stdin.end(input)
+    if (Array.isArray(input)) {
+      let index = 0
+      const writeNext = (): void => {
+        const chunk = input[index++]
+        if (chunk === undefined) {
+          child.stdin.end()
+          return
+        }
+        child.stdin.write(chunk)
+        setTimeout(writeNext, 400)
+      }
+      setTimeout(writeNext, 1500)
+    } else {
+      child.stdin.end(input)
+    }
 
     let stdout = ''
     let stderr = ''

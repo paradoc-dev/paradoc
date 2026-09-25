@@ -6,7 +6,6 @@ import { LocalFileSystem } from '../../utils/local-fs.js'
 
 import { readTextInput, resolveArtifactTarget } from '../../utils/io.js'
 import { parseDataInput, toFormPayload } from '../../utils/data-input.js'
-import { makeInstanceTemplate } from '../../utils/instance-template.js'
 import {
   printPayloadErrors,
   validateFormPayload,
@@ -75,28 +74,32 @@ async function promptForField(
     return value
   }
 
-  // Handle number fields
-  if (field.type === 'number') {
+  // Handle numeric fields. A blank optional value stays absent instead of
+  // turning a null placeholder into zero or the string "null".
+  if (field.type === 'number' || field.type === 'percentage' || field.type === 'rating') {
     const { value } = await prompts({
-      type: 'number',
+      type: 'text',
       name: 'value',
       message,
-      initial: defaultValue !== undefined ? Number(defaultValue) : undefined,
-      validate: (val: number | undefined) => {
-        if (isRequired && (val === null || val === undefined)) {
+      initial: typeof defaultValue === 'number' ? String(defaultValue) : '',
+      validate: (val: string) => {
+        if (isRequired && !val.trim()) {
           return 'This field is required'
         }
-        if (val !== undefined && field.min !== undefined && val < field.min) {
+        if (!val.trim()) return true
+        const parsed = Number(val)
+        if (!Number.isFinite(parsed)) return 'Must be a number'
+        if ('min' in field && field.min !== undefined && parsed < field.min) {
           return `Must be at least ${field.min}`
         }
-        if (val !== undefined && field.max !== undefined && val > field.max) {
+        if ('max' in field && field.max !== undefined && parsed > field.max) {
           return `Must be at most ${field.max}`
         }
         return true
       },
     })
     if (value === undefined) throw new Error('User force closed the prompt')
-    return value
+    return value.trim() ? Number(value) : undefined
   }
 
   // Handle fieldset fields (recursive)
@@ -123,9 +126,18 @@ async function promptForField(
 
   // Handle string fields (text, email, uri, uuid, etc.)
   // For complex types, we'll prompt as JSON strings and parse them
-  const isComplexType = ['coordinate', 'bbox', 'money', 'address', 'phone', 'duration'].includes(
-    field.type
-  )
+  const isComplexType = [
+    'coordinate',
+    'bbox',
+    'money',
+    'address',
+    'phone',
+    'person',
+    'organization',
+    'identification',
+    'list',
+    'multiselect',
+  ].includes(field.type)
 
   if (isComplexType) {
     const defaultStr = defaultValue !== undefined ? JSON.stringify(defaultValue, null, 2) : ''
@@ -272,9 +284,6 @@ export function createFillCommand(): Command {
           console.log(kleur.gray(`Using data from ${sourceDesc}`))
         } else {
           // Interactive mode
-          // Generate instance template to get defaults
-          const template = makeInstanceTemplate(form)
-
           console.log()
           console.log(kleur.bold(`Fill Form: ${form.title || form.name}`))
           if (form.description) {
@@ -285,14 +294,20 @@ export function createFillCommand(): Command {
           // Prompt for each field
           const filledFields: Record<string, unknown> = {}
           for (const [fieldId, field] of Object.entries(form.fields ?? {})) {
-            const defaultValue = template.fields[fieldId]
-            filledFields[fieldId] = await promptForField(fieldId, field, defaultValue)
+            const defaultValue = 'default' in field ? field.default : undefined
+            const value = await promptForField(fieldId, field, defaultValue)
+            if (value !== undefined) filledFields[fieldId] = value
           }
 
           // Interactive mode collects field values only; annexes are attached separately.
-          data = {
-            fields: filledFields,
+          const validationResult = validateFormPayload(form, { fields: filledFields })
+          if (!validationResult.success) {
+            console.error(kleur.red('Data validation failed:'))
+            printPayloadErrors(validationResult.errors, validationResult.ruleErrors)
+            process.exit(1)
+            return
           }
+          data = validationResult.data
         }
 
         // Determine output format
@@ -300,7 +315,7 @@ export function createFillCommand(): Command {
 
         // Serialize data
         const serialized =
-          format === 'json' ? JSON.stringify(data, null, 2) : toYAML(data)
+          format === 'json' ? JSON.stringify(data, null, 2) : toYAML(data, { includeSchema: false })
 
         // Ensure trailing newline
         const content = serialized.endsWith('\n') ? serialized : serialized + '\n'

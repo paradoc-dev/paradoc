@@ -13,9 +13,10 @@ import { LocalFileSystem } from '../utils/local-fs.js'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
-import { parseDataInput, normalizeFormData } from '../utils/data-input.js'
+import { parseDataInput, toFormPayload } from '../utils/data-input.js'
 import { loadValidatedArtifact } from '../utils/artifact-file.js'
 import { createLayerRenderer } from '@paradoc/render'
+import { formatPayloadErrors, validateFormPayload } from '../utils/validate-data.js'
 
 type OutputFormat = 'json' | 'pretty'
 
@@ -89,7 +90,19 @@ export function createRenderCommand(): Command {
         if ((options.data || parsedBindings) && isForm(artifact)) {
           // Parse data from file, stdin, or inline JSON
           const parsedData = options.data ? await parseDataInput(options.data) : undefined
-          const normalizedData = parsedData ? normalizeFormData(parsedData.data) : undefined
+          let normalizedData
+          if (parsedData) {
+            const validationResult = validateFormPayload(
+              artifact as Form,
+              toFormPayload(parsedData.data)
+            )
+            if (!validationResult.success) {
+              throw new Error(
+                formatPayloadErrors(validationResult.errors, validationResult.ruleErrors).join('\n')
+              )
+            }
+            normalizedData = validationResult.data
+          }
 
           const formInstance = formApi.from(artifact as Form, { resolver })
 
