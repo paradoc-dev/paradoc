@@ -1,13 +1,13 @@
 # @paradoc/tanstack-ai
 
-Experimental [TanStack AI](https://tanstack.com/ai) tools for Paradoc document workflows. The adapter is tested against TanStack AI `0.53.0`, the latest published release candidate, and remains experimental until TanStack AI reaches a stable release. TanStack AI's pre-1.0 API may change between releases.
+Experimental [TanStack AI](https://tanstack.com/ai) tools for Paradoc document workflows. The adapter is tested against TanStack AI `0.53.0` and remains experimental until TanStack AI reaches a stable release. TanStack AI's pre-1.0 API may change between releases.
 
 The adapter consumes the canonical schemas, descriptions, result contracts, and execution functions from `@paradoc/ai-tools`.
 
 ## Installation
 
 ```bash
-npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 zod
+npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
 ```
 
 ## Native server tools

@@ -192,7 +192,8 @@ describe('AI SDK 7 Paradoc tools', () => {
 
 	it('exposes canonical native schema errors for malformed model input', () => {
 		const tools = paradocTools()
-		const parsed = toolDefinitions.validate_artifact.input_schema.safeParse({ source: 'artifact' })
+		const schema = tools.validate_artifact.inputSchema as typeof toolDefinitions.validate_artifact.input_schema
+		const parsed = schema.safeParse({ source: 'artifact' })
 
 		expect(parsed.success).toBe(false)
 		if (!parsed.success) expect(parsed.error.issues[0]?.path).toEqual(['artifact'])

@@ -13,7 +13,7 @@ ogDescription: Integrate Paradoc tools into Vercel AI SDK 7 applications with @p
 npm install @paradoc/ai-sdk ai zod
 ```
 
-Peer dependencies: `ai` ^7.0.94 and `zod` ^4.1.8.
+Peer dependencies: `ai` ^7.0.94 and `zod` ^4.1.12.
 
 ## Usage
 
@@ -129,7 +129,7 @@ Each subpath default-exports its factory and also exports it by name. The packag
 
 ### Types
 
-The package re-exports `ParadocToolsConfig` and the input and output type of every operation from `@paradoc/ai-tools`:
+The package re-exports `createToolExecutionContext`, `ParadocToolsConfig`, `OperationName`, `ToolDefinitions`, and the input and output type of every operation from `@paradoc/ai-tools`:
 
 ```typescript
 import type {

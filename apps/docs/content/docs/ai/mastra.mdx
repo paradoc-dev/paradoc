@@ -13,7 +13,7 @@ ogDescription: Integrate Paradoc tools into Mastra agents with @paradoc/mastra
 npm install @paradoc/mastra @mastra/core zod
 ```
 
-Peer dependencies: `@mastra/core` ^1.64.0 and `zod` ^4.0.0. Requires Node.js 22.13 or newer.
+Peer dependencies: `@mastra/core` ^1.64.0 and `zod` ^4.1.12. Requires Node.js 22.13 or newer.
 
 ## Usage
 
@@ -50,7 +50,8 @@ const agent = new Agent({
 })
 ```
 
-Each operation also has its own factory, such as `createRenderTool()`.
+Each operation also has its own factory, such as `render()`.
+Each factory is also the named and default export of its package subpath, such as `@paradoc/mastra/render`.
 
 ## Configuration
 
@@ -75,20 +76,20 @@ Mastra's execution `abortSignal` is combined with `signal` and `context.signal`.
 
 ### `paradocTools(config?)`
 
-Returns ten Mastra tools keyed by their snake_case names. `createParadocTools` and `createMastraTools` are aliases of `paradocTools`.
+Returns ten Mastra tools keyed by their snake_case names.
 
 | Key | Factory |
 |-----|---------|
-| [`get_registry`](/ai/tools/get-registry) | `createGetRegistryTool()` |
-| [`get_artifact`](/ai/tools/get-artifact) | `createGetArtifactTool()` |
-| [`inspect_artifact`](/ai/tools/inspect-artifact) | `createInspectArtifactTool()` |
-| [`validate_artifact`](/ai/tools/validate-artifact) | `createValidateArtifactTool()` |
-| [`validate_input`](/ai/tools/validate-input) | `createValidateInputTool()` |
-| [`fill`](/ai/tools/fill) | `createFillTool()` |
-| [`get_fill_state`](/ai/tools/get-fill-state) | `createGetFillStateTool()` |
-| [`update_fill`](/ai/tools/update-fill) | `createUpdateFillTool()` |
-| [`render`](/ai/tools/render) | `createRenderTool()` |
-| [`extract`](/ai/tools/extract) | `createExtractTool()` |
+| [`get_registry`](/ai/tools/get-registry) | `getRegistry()` |
+| [`get_artifact`](/ai/tools/get-artifact) | `getArtifact()` |
+| [`inspect_artifact`](/ai/tools/inspect-artifact) | `inspectArtifact()` |
+| [`validate_artifact`](/ai/tools/validate-artifact) | `validateArtifact()` |
+| [`validate_input`](/ai/tools/validate-input) | `validateInput()` |
+| [`fill`](/ai/tools/fill) | `fill()` |
+| [`get_fill_state`](/ai/tools/get-fill-state) | `getFillState()` |
+| [`update_fill`](/ai/tools/update-fill) | `updateFill()` |
+| [`render`](/ai/tools/render) | `render()` |
+| [`extract`](/ai/tools/extract) | `extract()` |
 
 Every factory takes an optional `ParadocMastraConfig`. The package also exports `operationNames` and `DEFAULT_MODEL_OUTPUT_MAX_BYTES`.
 

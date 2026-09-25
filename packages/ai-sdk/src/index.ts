@@ -10,7 +10,8 @@ import {
 	type ToolDefinitions,
 } from '@paradoc/ai-tools'
 
-export type { ParadocToolsConfig }
+export { createToolExecutionContext } from '@paradoc/ai-tools'
+export type { OperationName, ParadocToolsConfig, ToolDefinitions }
 export type {
 	ExtractInput,
 	ExtractOutput,

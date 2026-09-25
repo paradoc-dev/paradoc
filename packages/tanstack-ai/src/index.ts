@@ -16,6 +16,7 @@ import {
 	type ToolDefinitions,
 } from '@paradoc/ai-tools'
 
+export { createToolExecutionContext } from '@paradoc/ai-tools'
 export type { ParadocToolsConfig }
 export type {
 	ExtractInput,

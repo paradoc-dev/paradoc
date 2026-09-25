@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import {
 	configForExecution,
+	createToolExecutionContext,
 	operationNames,
 	toolDefinitions,
 	type ParadocToolsConfig,
@@ -33,6 +34,7 @@ export type {
 	ValidateInputValue,
 } from '@paradoc/ai-tools'
 export { operationNames }
+export { createToolExecutionContext }
 
 /** Configuration for the Mastra adapter and the shared Paradoc operations. */
 export interface ParadocMastraConfig extends ParadocToolsConfig {
@@ -117,61 +119,58 @@ function createMastraTool<Input, Output>(
 	})
 }
 
-export function createGetRegistryTool(config?: ParadocMastraConfig) {
+export function getRegistry(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.get_registry, config)
 }
 
-export function createGetArtifactTool(config?: ParadocMastraConfig) {
+export function getArtifact(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.get_artifact, config)
 }
 
-export function createInspectArtifactTool(config?: ParadocMastraConfig) {
+export function inspectArtifact(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.inspect_artifact, config)
 }
 
-export function createValidateArtifactTool(config?: ParadocMastraConfig) {
+export function validateArtifact(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.validate_artifact, config)
 }
 
-export function createValidateInputTool(config?: ParadocMastraConfig) {
+export function validateInput(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.validate_input, config)
 }
 
-export function createFillTool(config?: ParadocMastraConfig) {
+export function fill(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.fill, config)
 }
 
-export function createGetFillStateTool(config?: ParadocMastraConfig) {
+export function getFillState(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.get_fill_state, config)
 }
 
-export function createUpdateFillTool(config?: ParadocMastraConfig) {
+export function updateFill(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.update_fill, config)
 }
 
-export function createRenderTool(config?: ParadocMastraConfig) {
+export function render(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.render, config)
 }
 
-export function createExtractTool(config?: ParadocMastraConfig) {
+export function extract(config?: ParadocMastraConfig) {
 	return createMastraTool(toolDefinitions.extract, config)
 }
 
 /** Create all ten shared Paradoc operations with their canonical snake_case IDs. */
 export function paradocTools(config?: ParadocMastraConfig) {
 	return {
-		get_registry: createGetRegistryTool(config),
-		get_artifact: createGetArtifactTool(config),
-		inspect_artifact: createInspectArtifactTool(config),
-		validate_artifact: createValidateArtifactTool(config),
-		validate_input: createValidateInputTool(config),
-		fill: createFillTool(config),
-		get_fill_state: createGetFillStateTool(config),
-		update_fill: createUpdateFillTool(config),
-		render: createRenderTool(config),
-		extract: createExtractTool(config),
+		get_registry: getRegistry(config),
+		get_artifact: getArtifact(config),
+		inspect_artifact: inspectArtifact(config),
+		validate_artifact: validateArtifact(config),
+		validate_input: validateInput(config),
+		fill: fill(config),
+		get_fill_state: getFillState(config),
+		update_fill: updateFill(config),
+		render: render(config),
+		extract: extract(config),
 	} as const
 }
-
-export const createParadocTools = paradocTools
-export const createMastraTools = paradocTools

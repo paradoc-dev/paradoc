@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import {
-	createExtractTool,
-	createFillTool,
-	createGetArtifactTool,
-	createGetFillStateTool,
-	createGetRegistryTool,
-	createInspectArtifactTool,
-	createRenderTool,
-	createUpdateFillTool,
-	createValidateArtifactTool,
-	createValidateInputTool,
+	extract,
+	fill,
+	getArtifact,
+	getFillState,
+	getRegistry,
+	inspectArtifact,
+	render,
+	updateFill,
+	validateArtifact,
+	validateInput,
 	DEFAULT_MODEL_OUTPUT_MAX_BYTES,
 	paradocTools,
 } from '../src'
@@ -84,22 +84,22 @@ describe('@paradoc/mastra', () => {
 
 	it('exports every operation as an individually importable factory', () => {
 		const factories = [
-			createGetRegistryTool,
-			createGetArtifactTool,
-			createInspectArtifactTool,
-			createValidateArtifactTool,
-			createValidateInputTool,
-			createFillTool,
-			createGetFillStateTool,
-			createUpdateFillTool,
-			createRenderTool,
-			createExtractTool,
+			getRegistry,
+			getArtifact,
+			inspectArtifact,
+			validateArtifact,
+			validateInput,
+			fill,
+			getFillState,
+			updateFill,
+			render,
+			extract,
 		]
 		expect(factories.map((factory) => factory().id)).toEqual(operationNames)
 	})
 
 	it('reads a filled PDF through the extract tool with the shared result', async () => {
-		const result = await execute(createExtractTool(), extractInput)
+		const result = await execute(extract(), extractInput)
 
 		expect(result).toMatchObject({ success: true, layer: 'pdf', data: { fields: { name: 'Ada Lovelace' } } })
 		expect(result).toEqual(await executeExtract(extractInput))
@@ -139,7 +139,7 @@ describe('@paradoc/mastra', () => {
 	})
 
 	it('returns a structured result for malformed validation input', async () => {
-		const result = await execute(createValidateArtifactTool(), {
+		const result = await execute(validateArtifact(), {
 			source: 'artifact',
 			artifact: { malformed: true },
 		})
@@ -148,18 +148,18 @@ describe('@paradoc/mastra', () => {
 })
 
 	it('keeps the complete render result while bounding only model output', () => {
-		const tool = createRenderTool({ modelOutputMaxBytes: 8 })
+		const tool = render({ modelOutputMaxBytes: 8 })
 		const output = { success: true, encoding: 'utf-8' as const, content: '0123456789', byte_length: 10 }
 		const modelOutput = tool.toModelOutput?.(output)
 
 		expect(output.content).toBe('0123456789')
 		expect(modelOutput).toMatchObject({ content: '01234567', byte_length: 10, truncated: true })
-		const defaultOutput = createRenderTool().toModelOutput?.({ success: true, content: 'x'.repeat(DEFAULT_MODEL_OUTPUT_MAX_BYTES + 1), encoding: 'utf-8' as const })
+		const defaultOutput = render().toModelOutput?.({ success: true, content: 'x'.repeat(DEFAULT_MODEL_OUTPUT_MAX_BYTES + 1), encoding: 'utf-8' as const })
 		expect(defaultOutput).toMatchObject({ truncated: true })
 	})
 
 	it('keeps base64 model output decodable at the configured byte bound', () => {
-		const tool = createRenderTool({ modelOutputMaxBytes: 6 })
+		const tool = render({ modelOutputMaxBytes: 6 })
 		const output = { success: true, encoding: 'base64' as const, content: 'QUJDREVGRw==', byte_length: 7 }
 		const modelOutput = tool.toModelOutput?.(output)
 
@@ -174,7 +174,7 @@ describe('@paradoc/mastra', () => {
 			await new Promise<void>((resolve) => observedSignal?.addEventListener('abort', () => resolve(), { once: true }))
 			throw new Error('aborted by test')
 		})
-		const pending = execute(createGetRegistryTool({ fetch }), { registry_url: 'https://registry.example' }, { abortSignal: controller.signal })
+		const pending = execute(getRegistry({ fetch }), { registry_url: 'https://registry.example' }, { abortSignal: controller.signal })
 
 		await vi.waitFor(() => expect(observedSignal).toBeDefined())
 		controller.abort()
@@ -192,7 +192,7 @@ describe('@paradoc/mastra', () => {
 			? { signal: controller.signal }
 			: { context: { signal: controller.signal } }
 
-		const result = await execute(createGetRegistryTool({
+		const result = await execute(getRegistry({
 			...signalConfig,
 			fetch,
 			defaultRegistryUrl: 'https://registry.example',
@@ -204,7 +204,7 @@ describe('@paradoc/mastra', () => {
 
 	it('creates a fresh request cache for each Mastra call', async () => {
 		const fetch = vi.fn(async () => Response.json({ items: [] }))
-		const tool = createGetRegistryTool({ fetch, defaultRegistryUrl: 'https://registry.example' })
+		const tool = getRegistry({ fetch, defaultRegistryUrl: 'https://registry.example' })
 
 		await execute(tool, {})
 		await execute(tool, {})

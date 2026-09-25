@@ -71,7 +71,6 @@
   ],
   "keywords": [
     "paradoc",
-    "paradoc",
     "ai",
     "tanstack",
     "tools",
@@ -116,7 +115,7 @@
   },
   "peerDependencies": {
     "@tanstack/ai": "0.53.0",
-    "zod": "^4.0.0"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
