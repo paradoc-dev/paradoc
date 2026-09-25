@@ -33,7 +33,7 @@ paradoc registry make [directory] [options]
 
 ## Description
 
-Creates a `registry.json` file that defines a new artifact registry. This is the first step in hosting your own Paradoc registry. The command prompts for a name and description interactively, or you can pass them via options.
+Creates a `registry.json` file that defines a new artifact registry. This is the first step in hosting your own Paradoc registry. The command prompts for a name, description, and homepage interactively, or you can pass them via options.
 
 ## Examples
 
@@ -47,7 +47,7 @@ Create in a specific directory with options:
 
 ```bash
 paradoc registry make ./my-registry \
-  --name "Acme Forms" \
+  --name acme-forms \
   --description "Internal form templates" \
   --homepage https://acme.com/forms \
   -y

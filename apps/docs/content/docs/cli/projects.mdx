@@ -13,7 +13,7 @@ A project is a directory managed by the CLI. It contains a manifest that describ
 paradoc init
 ```
 
-In interactive mode, the CLI prompts for a project title, description, and visibility (public or private). Use `--yes` to skip prompts:
+In interactive mode, the CLI first prompts for the target directory, then the project title, description, and visibility (public or private). Use `--yes` to skip prompts:
 
 ```bash
 paradoc init --yes --name "My Project" --visibility private
@@ -40,10 +40,11 @@ The `paradoc.json` file in the project root defines your project:
     "@acme": "https://registry.acme.com"
   },
   "security": {
-    "allowedContentTypes": ["application/pdf", "text/markdown"]
+    "allowedContentTypes": ["application/vnd.acme.form+json"]
   },
   "cache": {
-    "ttl": 3600
+    "ttl": 3600,
+    "directory": ".cache/paradoc"
   }
 }
 ```
@@ -56,10 +57,10 @@ The `paradoc.json` file in the project root defines your project:
 | `name` | string | Yes | Project identifier in `@org/name` format |
 | `title` | string | Yes | Human-readable project title |
 | `description` | string | No | Project description |
-| `visibility` | `"public"` \| `"private"` | Yes | Project visibility |
+| `visibility` | `"public"` \| `"private"` | No | Project visibility (default: `private`) |
 | `artifacts` | object | No | Artifact storage configuration |
 | `registries` | object | No | Registry configuration by namespace |
-| `security` | object | No | Security restrictions |
+| `security` | object | No | Download settings |
 | `cache` | object | No | Cache configuration overrides |
 
 ### Artifacts
@@ -79,13 +80,14 @@ Maps namespaces to registry URLs. See [Registries](/cli/registries) for details.
 
 | Field | Description |
 |-------|-------------|
-| `security.allowedContentTypes` | Content types permitted when downloading layers, added to the built-in defaults. When set, it is used in place of the global `security.allowedContentTypes`. Blocked types are never allowed |
+| `security.allowedContentTypes` | Content types added to the built-in download defaults. Project values replace global additions but cannot narrow the built-in defaults. Blocked types are never allowed |
 
 ### Cache
 
 | Field | Default | Description |
 |-------|---------|-------------|
 | `cache.ttl` | `3600` | Time in seconds before cached registry data expires |
+| `cache.directory` | `"~/.paradoc/cache"` | Cache directory. Relative paths resolve from the project root |
 
 ## Directory structure
 
@@ -107,13 +109,11 @@ The `.paradoc/` directory stores internal CLI state. Together with `paradoc.json
 
 | File | Purpose |
 |------|---------|
-| `lock.json` | Pinned versions and checksums for reproducible installs |
+| `lock.json` | Record of installed artifact versions, source URLs, and integrity checksums |
 
 ## The lock file
 
-`.paradoc/lock.json` pins the exact version and checksum of every installed artifact. This ensures that running `paradoc add` on a different machine produces the same result.
-
-Commit the lock file to version control. The CLI updates it automatically when you add, remove, or update artifacts.
+`.paradoc/lock.json` records the version, source URL, and integrity checksum written by `paradoc add` for each installed artifact. The CLI does not use the lock file to restore or pin a later install.
 
 ## Output formats
 

@@ -40,7 +40,7 @@ With a URL alone, the CLI fetches the registry's `registry.json` and suggests `@
 
 If the namespace already exists, you are asked to overwrite it, pick a different name, or cancel. `--yes` overwrites.
 
-If neither `--global` nor `--project` is specified, you will be prompted to choose. When not in a project directory, defaults to global config.
+Passing both `--global` and `--project` is an error. If neither is specified, the CLI prompts for a scope unless `--yes` is set. With `--yes`, it uses project config inside a project and global config elsewhere.
 
 ## Examples
 
@@ -60,8 +60,10 @@ Add with authentication:
 
 ```bash
 paradoc registry add @private https://registry.example.com \
-  --header "Authorization: Bearer ${REGISTRY_TOKEN}"
+  --header 'Authorization: Bearer ${REGISTRY_TOKEN}'
 ```
+
+Single quotes keep the placeholder in the saved config. The CLI expands it from the environment when making a request.
 
 Add to global config:
 

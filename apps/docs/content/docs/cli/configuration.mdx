@@ -5,7 +5,7 @@ ogTitle: Paradoc CLI Configuration
 ogDescription: Learn how to configure global settings, project overrides, environment variables, and more
 ---
 
-The CLI reads settings from two places: a **global config** for user-wide preferences, and the **project manifest** for project-specific overrides. This page explains the configuration system, including environment variables, renderer plugins, cache, and proxy support.
+The CLI reads settings from two places: a **global config** for user-wide preferences, and the **project manifest** for project-specific overrides. This page explains the configuration system, including environment variables, cache, and proxy support.
 
 ## Global configuration
 
@@ -26,7 +26,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
     "directory": "~/.paradoc/cache"
   },
   "security": {
-    "allowedContentTypes": ["application/pdf", "text/markdown"]
+    "allowedContentTypes": ["application/vnd.acme.form+json"]
   },
   "telemetry": {
     "enabled": false
@@ -43,7 +43,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 | `registries` | object | — | Registry configuration by namespace. An artifact reference always names its namespace, as in `@acme/w9`. `@paradoc` is reserved and built in; an entry for it is an error |
 | `cache.ttl` | number | `3600` | Cache time-to-live in seconds |
 | `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory. `~` uses your home directory; relative paths use the directory containing the config file. |
-| `security.allowedContentTypes` | array | — | Permitted content types for layer downloads |
+| `security.allowedContentTypes` | array | — | Content types added to the built-in download defaults. This cannot narrow the defaults |
 | `telemetry.enabled` | boolean | `true` | Set to `false` to turn off [telemetry](#telemetry) |
 | `anonymousId` | string | — | Anonymous telemetry ID. The CLI creates it once and keeps it across resets |
 
@@ -56,8 +56,8 @@ The `paradoc.json` manifest can override global settings on a per-project basis.
 - `artifacts.output` — output format
 - `artifacts.dir` — artifacts directory
 - `registries` — registry mappings
-- `cache.ttl` — cache duration
-- `security` — security restrictions
+- `cache.ttl` and `cache.directory` — cache settings
+- `security` — download settings
 
 See the [project manifest](/cli/projects#the-project-manifest) reference for full details.
 
@@ -115,7 +115,7 @@ Registry URLs and headers also support `${VAR_NAME}` expansion:
 {
   "registries": {
     "@private": {
-      "url": "${PRIVATE_REGISTRY_URL}",
+      "url": "https://${PRIVATE_REGISTRY_HOST}/registry.json",
       "headers": {
         "Authorization": "Bearer ${REGISTRY_TOKEN}"
       }
@@ -124,28 +124,7 @@ Registry URLs and headers also support `${VAR_NAME}` expansion:
 }
 ```
 
-The CLI will error if a referenced environment variable is not set. This works in both the global config and the project manifest.
-
-## Renderer plugins
-
-The renderer is not bundled with the CLI to keep the base install small. The
-first time you run [`render`](/cli/commands/render) or
-[`inspect`](/cli/commands/inspect), `@paradoc/render` is installed to
-`~/.paradoc/renderers/`.
-
-One package provides MIME-driven rendering and format-specific entry points:
-
-| Package | Formats |
-|---------|---------|
-| `@paradoc/render` | Text, Markdown, HTML, PDF, and DOCX |
-
-Manage renderers manually with [`paradoc renderers`](/cli/commands/renderers):
-
-```bash
-paradoc renderers status    # Show installation status
-paradoc renderers install   # Install all renderers
-paradoc renderers update    # Update to match CLI version
-```
+The URL itself must remain a valid URL before expansion, so put placeholders inside a URL rather than using a placeholder as the entire value. Header values may be free-form placeholders. The CLI errors if a referenced environment variable is not set. Expansion works in both the global config and project manifest.
 
 ## Cache
 
@@ -208,7 +187,7 @@ export PARADOC_NO_UPDATE_CHECK=1
 
 ## Telemetry
 
-The CLI collects anonymous usage data (commands run, artifact kinds installed) to help improve the tool. No personal information or artifact content is collected.
+The CLI sends three anonymous events: `project.initialized`, `artifact.installed`, and `registry.added`. Events include the operating system, CPU architecture, Node.js version, and whether the CLI is running in CI. Public-registry installs also include the registry origin, artifact name, and artifact version. No personal information or artifact content is collected.
 
 Telemetry can be disabled in three ways:
 
