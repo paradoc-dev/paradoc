@@ -42,13 +42,12 @@ its own list item, such as `address="tenants.1.address"`.
 ```
 
 `role` names an undeclared role, `index` a party past how many the role was
-actually filled with, and a path a field the artifact does not declare: each
-fails by name the same way an unknown [`Field`](/components/field) path does — including an optional role (`min: 0`) a document has not filled
-at all, where index `0` is already past the parties it carries. `Party`
-never prints a placeholder for a party that is not there, unlike
-[`Signature`](/components/signature)'s em dash for the same case: a
-composition that wants a placeholder for an unfilled optional party checks
-for one before rendering `Party`.
+actually filled with, and a path a field the artifact does not declare. A
+finished render fails by name in each case, the same way an unknown
+[`Field`](/components/field) path does. That includes an optional role
+(`min: 0`) a document has not filled at all, where index `0` is already past
+the parties it carries. A partial document prints its configured placeholder
+for the missing party, while check mode reports the missing path.
 
 Every size in the block — the role heading and every line beneath it —
 follows the document's [typography](/components/typography) token.

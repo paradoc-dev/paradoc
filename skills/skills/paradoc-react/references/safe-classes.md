@@ -78,7 +78,9 @@ values included.
 | Text wrapping | `text-wrap`, `text-nowrap`, `text-balance` |
 
 Two non-utility classes also pass: `paradoc-document` and
-`paradoc-ltr-isolate`. The installed stylesheet defines them.
+`paradoc-ltr-isolate`. The installed stylesheet loads Tailwind and defines
+only `paradoc-ltr-isolate`; the consuming application supplies font faces and
+uses `paradoc-document` to apply them.
 
 Rotation is for the page stamp
 ([components.md § Furniture slots](./components.md#furniture-slots)). It turns a box without

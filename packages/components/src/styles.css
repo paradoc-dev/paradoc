@@ -16,6 +16,11 @@
  * whole verified scale here, rather than only what the shipped components
  * reach, keeps a copy owner's own literal on the same footing.
  */
+/*
+ * The generated class below is available to copy owners for left-to-right
+ * content inside a right-to-left document. Field applies the same behavior
+ * with inline styles.
+ */
 /* generated:shared-render-vocabulary:start */
 @source inline("text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,8xl,9xl}");
 @source inline("leading-{none,tight,snug,relaxed,loose,{0..999},{0..999}.5}");

@@ -24,7 +24,10 @@ export interface DocumentProps {
   format?: FormatOptions;
   /** Tenant branding applied to this document and every component nested inside it. */
   tokens?: DocumentTokensInput;
-  /** Pagination id for this document; falls back to the artifact's own name. */
+  /**
+   * Value for the wrapping element's `data-document-id`; falls back to the artifact name.
+   * Keep ids remain document-global, so repeated compositions must give their keeps distinct ids.
+   */
   id?: string;
   /** Classes for the document's wrapping element. */
   className?: string;

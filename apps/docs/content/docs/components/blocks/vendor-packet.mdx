@@ -55,11 +55,12 @@ No resolver is passed: `@paradoc/essentials` binds each artifact's bundled
 resolver when it constructs the form, and every instance derived from it,
 including `draft`, carries it.
 
-The third part is the certificate of insurance, also painted by `PdfPages`,
-as an `attached` part carried beside the packet rather than merged into its
-page count. It is not the caller's to supply: the block installs it as
-`vendor-packet.annex.ts`, a module of bytes, because a block installed into a
-browser project has no engine to draw one with.
+The third part is the certificate of insurance, also painted by `PdfPages`.
+Its readable PDF bytes are merged into the packet's pages; an annex is carried
+as a true attachment only when its bytes cannot be read as a PDF. It is not
+the caller's to supply: the block installs it as `vendor-packet.annex.ts`, a
+module of bytes, because a block installed into a browser project has no engine
+to draw one with.
 
 ## Variants
 

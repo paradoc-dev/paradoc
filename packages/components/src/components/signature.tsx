@@ -10,8 +10,8 @@
  * sizing the field from the underscore run on the same line, so a document that
  * draws its rule with a one-pixel div gives the seal nothing to measure. The
  * default is the exact placeholder core's flow renderer produces, so the sealed
- * document and the plain one are the same page. `tests/seal.test.tsx` asserts
- * that, page by page.
+ * document and the plain one are the same page. `@paradoc/react-pdf`'s
+ * `tests/seal.test.tsx` asserts that, page by page.
  *
  * The block is also where the marker goes. On the seal's marker pass the layer's
  * renderer supplies one per slot through the signing context, and the block
@@ -29,7 +29,6 @@ import React from "react";
 import { scaleTextClasses, useDocumentTokens, useSignature, type SigningMarkType } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
-/** The rule and the caption each field type draws. */
 export interface SignatureProps {
   /** Party role declared by the artifact, such as `provider`. */
   party: string;
@@ -45,7 +44,7 @@ export interface SignatureProps {
   type?: SigningMarkType;
   /**
    * Stable keep id.
-   * @default "<type>:<role>"
+   * @default "<type>:<role>", or "<type>:<role>:<index>" after the first
    */
   id?: string;
   /** Application-owned classes replacing the block's default column layout. */

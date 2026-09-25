@@ -30,8 +30,8 @@ export interface TableFooterRow {
  * would measure the header one line short of what a copy actually draws. A
  * non-breaking space keeps the same font metrics, and so the same line
  * height, as the real label the copy substitutes in its place — see
- * `revealContinuedLabel` in `pdf/tree.ts`, the translation that makes the
- * substitution on the PDF path's one flat render.
+ * `revealContinuedLabel` in `@paradoc/react-pdf`'s `src/tree.ts`, the
+ * translation that makes the substitution on the PDF path's one flat render.
  */
 const CONTINUED_LABEL_PLACEHOLDER = "\u00a0";
 

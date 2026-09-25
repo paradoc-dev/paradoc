@@ -2,8 +2,7 @@
  * What the registry ships, and what each item is made of.
  *
  * A component is not a file. `paper.tsx` carries `Paper`, `Sheet` and
- * `useFitToWidth`; `pages.tsx` carries `Page` and `Pages`; the four context
- * modules carry no component at all. Nor is a file one kind of thing: a block
+ * `useFitToWidth`; `pages.tsx` carries `Page` and `Pages`. Nor is a file one kind of thing: a block
  * is an artifact, a composition that binds it and a module of sample data, and
  * the three do not land in the same folder. So the registry is described here
  * rather than inferred from the directory listing: this manifest names the

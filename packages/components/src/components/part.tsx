@@ -53,7 +53,6 @@ export interface PartProps {
   children: ReactNode;
 }
 
-/** Which of the four things the header can say about this part's pages. */
 /** One document within a packet, with its own pages and its own numbering. */
 export function Part(props: PartProps) {
   const { id, kind, label, attached, className, children } = props;
