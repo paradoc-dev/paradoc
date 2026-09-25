@@ -15,6 +15,7 @@ function emptyProjection(): ProjectedSession {
 		eventCount: 0,
 		currentTurn: 0,
 		lockedPaths: new Set(),
+		lockedPartyRoles: new Set(),
 		parties: {},
 		annexes: {},
 	};
@@ -58,6 +59,9 @@ function applyEvent(p: ProjectedSession, ev: SessionEvent): void {
 			}
 			for (const path of ev.lockedPaths) {
 				p.lockedPaths.add(path);
+			}
+			for (const roleId of ev.lockedPartyRoles ?? []) {
+				p.lockedPartyRoles.add(roleId);
 			}
 			return;
 		}

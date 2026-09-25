@@ -54,6 +54,13 @@ function lockedReason(fieldPath: string): CommandResult {
 	);
 }
 
+function lockedPartyReason(roleId: string): CommandResult {
+	return reject(
+		"party-locked",
+		`party role ${roleId} is locked by prefill and cannot be changed`,
+	);
+}
+
 function unresolvedReason(fieldPath: string): CommandResult {
 	return reject(
 		"unresolved-state",
@@ -163,6 +170,15 @@ export function execute(
 					);
 				}
 			}
+			const lockedPartyRoles = cmd.lockedPartyRoles ?? [];
+			for (const roleId of lockedPartyRoles) {
+				if (!runtime.hasParty(roleId)) {
+					return reject(
+						"party-not-found",
+						`locked party role ${roleId} does not exist on the artifact`,
+					);
+				}
+			}
 			const emitted: SessionEvent[] = [
 				{
 					v: 1,
@@ -172,6 +188,7 @@ export function execute(
 					values,
 					sources,
 					lockedPaths: [...lockedPaths],
+					lockedPartyRoles: [...lockedPartyRoles],
 				},
 			];
 			return { ok: true, session: appendEvents(session, emitted), emitted };
@@ -484,6 +501,7 @@ export function execute(
 					`party role ${cmd.roleId} does not exist on the artifact`,
 				);
 			}
+			if (projected.lockedPartyRoles.has(cmd.roleId)) return lockedPartyReason(cmd.roleId);
 			const index = cmd.index ?? 0;
 			// Core checks the index against the role's `max` and ties the party id
 			// to it. A role's parties must also stay contiguous, because the

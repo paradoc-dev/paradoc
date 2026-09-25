@@ -44,6 +44,7 @@ function projected(
 		eventCount: 0,
 		currentTurn: 0,
 		lockedPaths: new Set(),
+		lockedPartyRoles: new Set(),
 		parties: wrappedParties,
 		annexes: {},
 	};

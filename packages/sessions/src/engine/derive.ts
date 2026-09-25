@@ -92,6 +92,8 @@ export type PartyIndexEntry = {
 	label?: string;
 	partyType: "person" | "organization" | "any";
 	status: "answered" | "pending";
+	/** True when prefill locked this role; `answerParty` rejects it with `party-locked`. */
+	locked: boolean;
 	/** How many parties the role accepts; the next `answerParty` index is `filled`. */
 	max: number;
 	/** How many parties of the role are answered (indices `0..filled-1`). */
@@ -363,6 +365,7 @@ function buildPartyIndex(
 			...(p.label !== undefined ? { label: p.label } : {}),
 			partyType: p.partyType,
 			status: filled > 0 ? "answered" : "pending",
+			locked: projected.lockedPartyRoles.has(p.roleId),
 			max: p.max,
 			filled,
 		};

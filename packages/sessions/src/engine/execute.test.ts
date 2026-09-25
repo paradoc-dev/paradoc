@@ -1114,6 +1114,48 @@ describe("execute — prefill", () => {
 		expect(result.emitted[0]).toMatchObject({ values: { "/age": 20 } });
 	});
 
+	it("locks one prefilled party role while leaving another role editable", () => {
+		const partyRuntime: ArtifactRuntime = {
+			...makeRuntime({ fields: [] }),
+			hasParty: (roleId) => roleId === "landlord" || roleId === "tenant",
+			listParties: () => [
+				{ roleId: "landlord", partyType: "organization", max: 1 },
+				{ roleId: "tenant", partyType: "person", max: 1 },
+			],
+		};
+		const landlord = execute(
+			emptySession(),
+			partyRuntime,
+			{ kind: "answerParty", roleId: "landlord", value: { name: "Acme" }, source: "prefill" },
+			SYSTEM,
+		);
+		if (!landlord.ok) throw new Error("unreachable");
+		const locked = execute(
+			landlord.session,
+			partyRuntime,
+			{ kind: "prefill", values: {}, lockedPartyRoles: ["landlord"] },
+			SYSTEM,
+		);
+		if (!locked.ok) throw new Error("unreachable");
+
+		expect(execute(
+			locked.session,
+			partyRuntime,
+			{ kind: "answerParty", roleId: "landlord", value: { name: "Other" }, source: "user" },
+			USER,
+		)).toMatchObject({
+			ok: false,
+			code: "party-locked",
+			reason: "party role landlord is locked by prefill and cannot be changed",
+		});
+		expect(execute(
+			locked.session,
+			partyRuntime,
+			{ kind: "answerParty", roleId: "tenant", value: { name: "Ada" }, source: "user" },
+			USER,
+		)).toMatchObject({ ok: true });
+	});
+
 	it.each<[string, { values: Record<string, unknown>; lockedPaths?: string[] }, string]>([
 		["an unknown value path", { values: { "/nope": 1 } }, "field-not-found"],
 		["an invalid value", { values: { "/age": "old" } }, "invalid-value"],

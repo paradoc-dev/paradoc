@@ -45,7 +45,7 @@ export type Command =
 	 * visibility: prefill precedes the answers visibility depends on), and lock
 	 * `lockedPaths` (field paths the artifact defines) against change.
 	 */
-	| { kind: "prefill"; values: Record<string, unknown>; lockedPaths?: string[] }
+	| { kind: "prefill"; values: Record<string, unknown>; lockedPaths?: string[]; lockedPartyRoles?: string[] }
 	| { kind: "answer"; fieldPath: string; value: unknown; source: Source }
 	| { kind: "revise"; fieldPath: string; value: unknown; source: Source }
 	| { kind: "clear"; fieldPath: string }
@@ -72,6 +72,7 @@ export type CommandErrorCode =
 	| "field-not-found"
 	| "field-not-visible"
 	| "field-locked"
+	| "party-locked"
 	| "unresolved-state"
 	| "field-required"
 	| "field-already-answered"

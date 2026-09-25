@@ -58,6 +58,8 @@ export type SessionEvent =
 			values: Record<string, unknown>;
 			sources: Record<string, Source>;
 			lockedPaths: string[];
+			/** Party roles prefill has made immutable. */
+			lockedPartyRoles?: string[];
 	  }
 	| {
 			v: 1;
@@ -203,6 +205,8 @@ export type ProjectedSession = {
 	currentTurn: number;
 	/** Locked field paths from prefill (not user-editable). */
 	lockedPaths: Set<string>;
+	/** Party roles the user cannot answer or replace after prefill. */
+	lockedPartyRoles: Set<string>;
 	/** Map of `roleId#index` -> latest party value, with provenance. */
 	parties: Record<string, AnsweredParty>;
 	/** Map of annexId -> latest attachment, with provenance. */
