@@ -10,13 +10,24 @@ import { registryClient, RegistryFetchError } from '../utils/registry-client.js'
 import { parseArtifactRef, resolveRegistry } from '../utils/registry.js'
 import { findRepoRoot } from '../utils/project.js'
 import { trackRegistryAdd } from '../utils/telemetry.js'
-import { parseArtifactFile } from '../utils/artifact-file.js'
+import { fileReferencesOf, loadValidatedArtifact, parseArtifactFile } from '../utils/artifact-file.js'
 import { collectHeader } from '../utils/cli-helpers.js'
 import { SCHEMA_BASE } from '@paradoc/schemas'
 
 type ConfigTarget = 'global' | 'project'
 
 const REGISTRY_NAME_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
+
+function setPropertyAtPath(target: Record<string, unknown>, propertyPath: string[], value: unknown): void {
+  let cursor: Record<string, unknown> = target
+  for (const segment of propertyPath.slice(0, -1)) {
+    const next = cursor[segment]
+    if (next === null || typeof next !== 'object') return
+    cursor = next as Record<string, unknown>
+  }
+  const property = propertyPath.at(-1)
+  if (property) cursor[property] = value
+}
 
 /**
  * Convert a string to a valid registry slug
@@ -941,7 +952,6 @@ export function createRegistryCommand(): Command {
 
       try {
         const { LocalFileSystem } = await import('../utils/local-fs.js')
-        const { validate } = await import('@paradoc/core')
         const { computeHash } = await import('../utils/hash.js')
         const storage = new LocalFileSystem()
 
@@ -1010,51 +1020,41 @@ export function createRegistryCommand(): Command {
 
             // Read and validate
             const content = await storage.readFile(artifactPath)
-            const parsed = parseArtifactFile(content)
-            const validation = validate(parsed)
-
-            if (validation.issues) {
-              spinner.fail(`${item.name}: validation failed`)
-              for (const issue of validation.issues) {
-                const location = issue.path?.length ? issue.path.map(String).join('.') : 'root'
-                console.error(kleur.red(`    ${location}: ${issue.message}`))
-              }
-              errors++
-              continue
+            const artifact = loadValidatedArtifact(content)
+            const artifactDir = storage.dirname(artifactPath)
+            const outputPath = storage.joinPath(outputDir, `${item.name}.json`)
+            if (outputPath === artifactPath) {
+              throw new Error(`output would overwrite source artifact: ${artifactPath}`)
             }
 
-            const artifact = validation.value as Record<string, unknown> & {
-              layers?: Record<string, { kind: string; path?: string; font?: { path: string; checksum?: string }; [key: string]: unknown }>
-            }
-
-            // Process layers - compute checksums for file layers and their fonts
-            if (artifact.layers) {
-              for (const [_layerKey, layer] of Object.entries(artifact.layers)) {
-                if (layer.kind === 'file' && layer.path) {
-                  const layerPath = storage.joinPath(registryDir, layer.path)
-                  if (await storage.exists(layerPath)) {
-                    const hash = await computeHash(layerPath)
-                    layer.checksum = `sha256:${hash}`
-                  }
-                  if (layer.font) {
-                    const fontPath = storage.joinPath(registryDir, layer.font.path)
-                    if (await storage.exists(fontPath)) {
-                      layer.font.checksum = `sha256:${await computeHash(fontPath)}`
-                    }
-                  }
-                }
+            const filesToCopy: Array<{ source: string; destination: string }> = []
+            for (const reference of fileReferencesOf(artifact)) {
+              const source = storage.joinPath(artifactDir, reference.path)
+              if (!(await storage.exists(source))) {
+                throw new Error(`referenced file not found: ${reference.path}`)
               }
+
+              // Bundle path items point at other artifacts and have no checksum
+              // property. Every other walker result is a checksummed file ref.
+              if (reference.checksum !== undefined || reference.propertyPath[0] !== 'contents') {
+                setPropertyAtPath(artifact as unknown as Record<string, unknown>, [...reference.propertyPath, 'checksum'], `sha256:${await computeHash(source)}`)
+              }
+
+              const destination = storage.joinPath(outputDir, reference.path)
+              const relativeDestination = storage.relative(outputDir, destination)
+              if (relativeDestination === '..' || relativeDestination.startsWith('../') || relativeDestination.startsWith('..\\')) {
+                throw new Error(`referenced file escapes output directory: ${reference.path}`)
+              }
+              filesToCopy.push({ source, destination })
             }
 
             if (options.dryRun) {
               spinner.succeed(`${item.name}: would compile`)
             } else {
-              // Write registry item (use item.path if set, else {name}.json)
-              const outputRelPath = item.path || `${item.name}.json`
-              const outputPath = storage.joinPath(outputDir, outputRelPath)
-              // Ensure parent dirs exist for nested paths
-              const outputParent = storage.dirname(outputPath)
-              await storage.mkdir(outputParent, true)
+              for (const file of filesToCopy) {
+                if (file.source === file.destination) continue
+                await storage.writeFile(file.destination, await storage.readFile(file.source, 'binary'))
+              }
               await storage.writeFile(outputPath, JSON.stringify(artifact, null, 2))
               spinner.succeed(`${item.name}: compiled`)
             }
@@ -1068,6 +1068,7 @@ export function createRegistryCommand(): Command {
         console.log()
         if (errors > 0) {
           console.log(kleur.yellow(`Compiled ${compiled}/${registryData.items.length} artifacts (${errors} error(s))`))
+          process.exitCode = 1
         } else {
           console.log(kleur.green(`Compiled ${compiled} artifact(s) successfully`))
         }

@@ -38,29 +38,7 @@
       "type": "enum",
       "label": "Addendum Type",
       "description": "Type of modification being made",
-      "enum": [
-        {
-          "value": "pet-agreement"
-        },
-        {
-          "value": "rent-modification"
-        },
-        {
-          "value": "lease-extension"
-        },
-        {
-          "value": "roommate-addition"
-        },
-        {
-          "value": "parking-agreement"
-        },
-        {
-          "value": "early-termination"
-        },
-        {
-          "value": "other"
-        }
-      ],
+      "enum": [{ "value": "pet-agreement" }, { "value": "rent-modification" }, { "value": "lease-extension" }, { "value": "roommate-addition" }, { "value": "parking-agreement" }, { "value": "early-termination" }, { "value": "other" }],
       "required": true
     },
     "addendumTitle": {

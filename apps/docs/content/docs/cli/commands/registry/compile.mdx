@@ -23,7 +23,7 @@ paradoc registry compile [options]
 
 ## Description
 
-Reads the `registry.json` catalog, finds each artifact file (`.json`, `.yaml`, `.yml`), validates it against the Paradoc schema, computes SHA256 checksums for file-backed layers, and writes the compiled artifacts to the output directory (defaults to the `artifactsPath` defined in `registry.json`).
+Reads the `registry.json` catalog, finds and validates each artifact, and resolves its referenced files relative to the artifact source. It refreshes SHA256 checksums, copies referenced files, and writes every compiled artifact as `<name>.json` in the output directory. The output defaults to `artifactsPath` from `registry.json`, or the registry directory when that setting is absent. Compile refuses to overwrite a source artifact and exits with an error if an artifact or referenced file cannot be compiled.
 
 ## Examples
 

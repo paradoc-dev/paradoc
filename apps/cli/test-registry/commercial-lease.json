@@ -26,23 +26,7 @@
     "businessType": {
       "type": "enum",
       "label": "Business Type",
-      "enum": [
-        {
-          "value": "LLC"
-        },
-        {
-          "value": "Corporation"
-        },
-        {
-          "value": "Partnership"
-        },
-        {
-          "value": "Sole Proprietorship"
-        },
-        {
-          "value": "Non-Profit"
-        }
-      ],
+      "enum": [{ "value": "LLC" }, { "value": "Corporation" }, { "value": "Partnership" }, { "value": "Sole Proprietorship" }, { "value": "Non-Profit" }],
       "required": true
     },
     "contactName": {
@@ -77,23 +61,7 @@
     "zoning": {
       "type": "enum",
       "label": "Zoning Classification",
-      "enum": [
-        {
-          "value": "retail"
-        },
-        {
-          "value": "office"
-        },
-        {
-          "value": "industrial"
-        },
-        {
-          "value": "mixed-use"
-        },
-        {
-          "value": "warehouse"
-        }
-      ],
+      "enum": [{ "value": "retail" }, { "value": "office" }, { "value": "industrial" }, { "value": "mixed-use" }, { "value": "warehouse" }],
       "required": true
     },
     "permittedUse": {
@@ -163,8 +131,7 @@
     "legal": {
       "kind": "file",
       "mimeType": "text/markdown",
-      "path": "commercial-lease-legal.md",
-      "checksum": "sha256:3daa81c4b4798e716f3f6df3ae306e4243b52d04b2d00c75fb68839010a14494"
+      "path": "commercial-lease-legal.md"
     }
   },
   "defaultLayer": "default"

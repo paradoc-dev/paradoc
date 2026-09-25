@@ -8,8 +8,10 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import os from 'node:os'
 import { validate } from '@paradoc/core'
 import { RegistryIndexSchema } from '@paradoc/schemas'
+import { runCli } from '../setup/spawn-cli.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test-registry')
 const itemsDir = path.join(root, 'r')
@@ -17,6 +19,22 @@ const itemFiles = fs.readdirSync(itemsDir).filter((file) => file.endsWith('.json
 const readJson = (file: string): Record<string, unknown> => JSON.parse(fs.readFileSync(file, 'utf-8'))
 
 describe('test registry', () => {
+  it('matches fresh registry compile output', async () => {
+    const output = fs.mkdtempSync(path.join(os.tmpdir(), 'paradoc-test-registry-'))
+    try {
+      const result = await runCli(['registry', 'compile', '--registry', path.join(root, 'registry.json'), '--output', output], { cwd: root })
+      expect(result.exitCode).toBe(0)
+      const generated = fs.readdirSync(output).sort()
+      const committed = fs.readdirSync(itemsDir).sort()
+      expect(generated).toEqual(committed)
+      for (const file of committed) {
+        expect(fs.readFileSync(path.join(output, file))).toEqual(fs.readFileSync(path.join(itemsDir, file)))
+      }
+    } finally {
+      fs.rmSync(output, { recursive: true, force: true })
+    }
+  })
+
   it.each(itemFiles)('serves %s as a valid artifact', (file) => {
     const result = validate(readJson(path.join(itemsDir, file)))
     expect(result.issues ?? []).toEqual([])

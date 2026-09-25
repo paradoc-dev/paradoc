@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const testRegistryRoot = path.resolve(__dirname, '../../test-registry')
 
 const TEST_REGISTRY_URL = inject('testRegistryUrl')
 /**
@@ -159,11 +160,11 @@ describe('Registry Integration Tests', () => {
 
     createIntegrationTest('adds artifact with --layers flag', async (tempDir) => {
       await setupProject(tempDir)
-      // Test-registry uses inline layers (not file layers), so no files are downloaded
-      // but the command should still succeed
       const result = await runCli(['add', '@acme/residential-lease', '--layers', 'all'], tempDir)
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('Added')
+      expect(await fs.readFile(path.join(tempDir, 'artifacts', '@acme', 'residential-lease-legal.md'), 'utf8'))
+        .toBe(await fs.readFile(path.join(testRegistryRoot, 'r', 'residential-lease-legal.md'), 'utf8'))
     })
 
     createIntegrationTest('creates lock file entry', async (tempDir) => {

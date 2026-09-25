@@ -526,7 +526,7 @@ describe('CLI Registry Command', () => {
       )
 
       const result = await executeCliCommand(
-        ['registry', 'compile', '--registry', path.join(tempDir, 'registry.json'), '--dry-run'],
+        ['registry', 'compile', '--registry', path.join(tempDir, 'registry.json'), '--output', path.join(tempDir, 'out'), '--dry-run'],
       )
 
       expect(result.exitCode).toBe(0)
@@ -623,7 +623,7 @@ describe('CLI Registry Command', () => {
         ['registry', 'compile', '--registry', path.join(tempDir, 'registry.json'), '--dry-run'],
       )
 
-      // Should still exit 0 but report errors in output
+      expect(result.exitCode).toBe(1)
       const output = result.stdout + result.stderr
       expect(output).toMatch(/error|not found|missing/i)
     })

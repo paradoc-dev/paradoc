@@ -46,26 +46,7 @@
       "type": "enum",
       "label": "Property Type",
       "description": "Type of residential property",
-      "enum": [
-        {
-          "value": "apartment"
-        },
-        {
-          "value": "house"
-        },
-        {
-          "value": "condo"
-        },
-        {
-          "value": "townhouse"
-        },
-        {
-          "value": "studio"
-        },
-        {
-          "value": "other"
-        }
-      ],
+      "enum": [{ "value": "apartment" }, { "value": "house" }, { "value": "condo" }, { "value": "townhouse" }, { "value": "studio" }, { "value": "other" }],
       "required": true
     },
     "bedrooms": {
@@ -131,26 +112,7 @@
       "type": "multiselect",
       "label": "Utilities Included",
       "description": "Which utilities are included in the rent",
-      "enum": [
-        {
-          "value": "water"
-        },
-        {
-          "value": "electricity"
-        },
-        {
-          "value": "gas"
-        },
-        {
-          "value": "internet"
-        },
-        {
-          "value": "trash"
-        },
-        {
-          "value": "none"
-        }
-      ],
+      "enum": [{ "value": "water" }, { "value": "electricity" }, { "value": "gas" }, { "value": "internet" }, { "value": "trash" }, { "value": "none" }],
       "required": true
     }
   },
@@ -163,8 +125,7 @@
     "legal": {
       "kind": "file",
       "mimeType": "text/markdown",
-      "path": "residential-lease-legal.md",
-      "checksum": "sha256:b0596ed261cd029021b015a3037398369031f8f4c097a6b67d75c0d841731cb3"
+      "path": "residential-lease-legal.md"
     }
   },
   "defaultLayer": "default"

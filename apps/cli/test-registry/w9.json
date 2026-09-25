@@ -21,29 +21,7 @@
       "type": "enum",
       "label": "Federal Tax Classification",
       "description": "Check appropriate box for federal tax classification",
-      "enum": [
-        {
-          "value": "individual"
-        },
-        {
-          "value": "c_corp"
-        },
-        {
-          "value": "s_corp"
-        },
-        {
-          "value": "partnership"
-        },
-        {
-          "value": "trust_estate"
-        },
-        {
-          "value": "llc"
-        },
-        {
-          "value": "other"
-        }
-      ],
+      "enum": [{ "value": "individual" }, { "value": "c_corp" }, { "value": "s_corp" }, { "value": "partnership" }, { "value": "trust_estate" }, { "value": "llc" }, { "value": "other" }],
       "required": true
     },
     "llcTaxCode": {
@@ -123,8 +101,7 @@
         "topmostSubform[0].Page1[0].f1_13[0]": "ssn:3",
         "topmostSubform[0].Page1[0].f1_14[0]": "ein:1",
         "topmostSubform[0].Page1[0].f1_15[0]": "ein:2"
-      },
-      "checksum": "sha256:8aa8553f47ad98ba870c8f9fd5714c77a656b695892e396ad0108ad3c10c8d79"
+      }
     }
   },
   "defaultLayer": "pdf"
