@@ -19,7 +19,7 @@ export const docs = await create.docs("docs", "content/docs", import.meta.glob([
   "query": "?collection=docs",
   "import": "default",
   "eager": true
-}), import.meta.glob(["./**/*.{mdx,md}"], {
+}), import.meta.glob(["./**/!(hosted-sealing-and-conversion).{md,mdx}"], {
   "base": "./../content/docs",
   "query": "?collection=docs",
   "eager": true

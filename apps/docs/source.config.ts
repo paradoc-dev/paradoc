@@ -19,6 +19,10 @@ const generator = createGenerator({
 export const docs = defineDocs({
   dir: "content/docs",
   docs: {
+    files:
+      process.env.PARADOC_DOCS_PLATFORM_API === "true"
+        ? ["**/*.{md,mdx}"]
+        : ["**/!(hosted-sealing-and-conversion).{md,mdx}"],
     schema: pageSchema.extend({
       ogTitle: z.string().optional(),
       ogDescription: z.string().optional(),

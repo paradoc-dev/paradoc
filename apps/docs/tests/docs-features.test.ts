@@ -84,3 +84,11 @@ describe("gated platform API pages", () => {
     expect(pagesLinking(pages, gatedSlug)).toEqual(["sdk/index.mdx", "sdk/other.mdx"]);
   });
 });
+
+test("robots.txt contains only valid directives and comments", () => {
+  const robots = readFileSync(path.resolve(__dirname, "../public/robots.txt"), "utf8");
+  for (const line of robots.split("\n")) {
+    if (line.trim() === "") continue;
+    expect(line).toMatch(/^(?:#|[A-Za-z-]+:\s*\S)/);
+  }
+});

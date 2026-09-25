@@ -17,13 +17,13 @@ import {
   useSidebar,
 } from "fumadocs-ui/components/sidebar/base";
 import { useTreeContext, useTreePath } from "fumadocs-ui/contexts/tree";
-import { useNotebookLayout, type DocsSlots } from "fumadocs-ui/layouts/notebook";
-import { LinkItem } from "fumadocs-ui/layouts/shared";
+import type { DocsSlots } from "fumadocs-ui/layouts/notebook";
 import { ScrollArea } from "@base-ui/react/scroll-area";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { DocsAreaTabs } from "@/components/docs-header";
+import { SiteLinks } from "@/components/site-links";
 
 /**
  * The sidebar slot: only the active area's tree, in compact text rows.
@@ -34,7 +34,8 @@ import { DocsAreaTabs } from "@/components/docs-header";
  * always show their children; folders nested inside them collapse behind a
  * chevron and open when they hold the current page. Separators (`--- Label
  * ---` in meta.json) render as section labels. Logo, search, banner and site
- * links live in the header, so none of them appear here.
+ * links sit below the tree and also appear in the header on pages without a
+ * sidebar.
  *
  * The provider, drawer and collapsible mechanics are the stock Fumadocs
  * primitives; only the composition and the rows are owned here.
@@ -122,7 +123,7 @@ function DocsSidebar(props: ComponentProps<"aside">) {
               )}
             >
               <SidebarScroll>{tree}</SidebarScroll>
-              <SidebarLinks />
+              <SiteLinks className="px-4 py-3" />
             </aside>
           </div>
         )}
@@ -148,7 +149,7 @@ function DocsSidebar(props: ComponentProps<"aside">) {
           </SidebarTrigger>
         </div>
         <SidebarScroll>{tree}</SidebarScroll>
-        <SidebarLinks />
+        <SiteLinks className="px-4 py-3" />
       </SidebarDrawerContent>
     </>
   );
@@ -167,40 +168,6 @@ function SidebarScroll({ children }: { children: ReactNode }) {
         {children}
       </ScrollArea.Viewport>
     </ScrollArea.Root>
-  );
-}
-
-/**
- * The site links (X, GitHub) at the foot of the sidebar, so the header keeps
- * only navigation, search, and the theme toggle. Only icon links have a home
- * here, and `on: "nav"` keeps every link out of the sidebar tree, so any other
- * kind would vanish silently: it fails instead.
- */
-function SidebarLinks() {
-  const { navItems } = useNotebookLayout();
-  const unsupported = navItems.find((item) => item.type !== "icon");
-  if (unsupported) {
-    throw new Error(`The sidebar footer renders icon links only; got a "${unsupported.type}" link`);
-  }
-  const iconLinks = navItems.filter((item) => item.type === "icon");
-  if (iconLinks.length === 0) return null;
-
-  return (
-    <div className="flex shrink-0 items-center gap-1 px-4 py-3">
-      {iconLinks.map((item) => (
-        <LinkItem
-          key={item.url}
-          item={item}
-          aria-label={item.label}
-          className={cn(
-            buttonVariants({ size: "icon-sm", variant: "ghost" }),
-            "text-fd-muted-foreground hover:text-fd-foreground",
-          )}
-        >
-          {item.icon}
-        </LinkItem>
-      ))}
-    </div>
   );
 }
 

@@ -18,6 +18,7 @@ import { DocsHeader, DocsShellProvider } from "@/components/docs-header";
 import { docsSidebar, noSidebar } from "@/components/docs-sidebar";
 import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { Link } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/$")({
   component: Page,
   loader: async ({ params }) => {
@@ -156,46 +157,43 @@ const clientLoader = browserCollections.docs.createClientLoader({
             components={{
               ...defaultMdxComponents,
               h1: (props) => (
-                <h1
+                <defaultMdxComponents.h1
                   {...props}
-                  className="tracking-tight text-[1.35rem] font-semibold text-foreground/90 dark:text-foreground/100"
+                  className={cn("tracking-tight text-[1.35rem] font-semibold text-foreground/90 dark:text-foreground/100", props.className)}
                 />
               ),
               h2: (props) => (
-                <h2
+                <defaultMdxComponents.h2
                   {...props}
-                  className="tracking-tight text-lg font-semibold text-foreground/90"
+                  className={cn("tracking-tight text-lg font-semibold text-foreground/90", props.className)}
                 />
               ),
               h3: (props) => (
-                <h3
+                <defaultMdxComponents.h3
                   {...props}
-                  className="font-semibold text-base text-foreground/90"
+                  className={cn("font-semibold text-base text-foreground/90", props.className)}
                 />
               ),
               h4: (props) => (
-                <h4
+                <defaultMdxComponents.h4
                   {...props}
-                  className="font-semibold text-base text-foreground/90"
+                  className={cn("font-semibold text-base text-foreground/90", props.className)}
                 />
               ),
               h5: (props) => (
-                <h5
+                <defaultMdxComponents.h5
                   {...props}
-                  className="font-semibold text-base text-muted-foreground uppercase"
+                  className={cn("font-semibold text-base text-muted-foreground uppercase", props.className)}
                 />
               ),
               strong: (props) => (
                 <strong {...props} className="font-semibold" />
               ),
-              code: (props) => (
-                <code {...props} className="line-[1rem] py-0.25 font-medium" />
-              ),
               li: (props) => <li {...props} className="leading-normal ml-4" />,
               a: (props) => (
-                <a
+                <defaultMdxComponents.a
                   {...props}
-                  className="text-primary no-underline font-medium"
+                  className={cn("text-primary no-underline font-medium", props.className)}
                 />
               ),
               PropertiesTable,
@@ -225,7 +223,7 @@ function Page() {
   const base = baseOptions();
 
   return (
-    <DocsShellProvider tabs={data.tabs} activeTab={data.activeTab}>
+    <DocsShellProvider tabs={data.tabs} activeTab={data.activeTab} sidebar={data.sidebar}>
       <DocsLayout
         {...base}
         nav={{ ...base.nav, mode: "top" }}

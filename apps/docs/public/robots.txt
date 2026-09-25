@@ -1,4 +1,4 @@
-// public/robots.txt
+# public/robots.txt
 User-agent: *
 Allow: /
 

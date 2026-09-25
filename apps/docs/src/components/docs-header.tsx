@@ -4,6 +4,7 @@ import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
 import { SidebarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { SiteLinks } from "./site-links";
 import { SearchTrigger } from "./search-trigger";
 
 export interface DocsTab {
@@ -15,6 +16,7 @@ interface DocsShell {
   tabs: DocsTab[];
   /** Index into `tabs` of the area holding the current page. */
   activeTab: number;
+  sidebar: boolean;
 }
 
 const DocsShellContext = createContext<DocsShell | null>(null);
@@ -22,10 +24,11 @@ const DocsShellContext = createContext<DocsShell | null>(null);
 export function DocsShellProvider({
   tabs,
   activeTab,
+  sidebar,
   children,
 }: DocsShell & { children: ReactNode }) {
   return (
-    <DocsShellContext value={{ tabs, activeTab }}>{children}</DocsShellContext>
+    <DocsShellContext value={{ tabs, activeTab, sidebar }}>{children}</DocsShellContext>
   );
 }
 
@@ -37,11 +40,12 @@ function useDocsShell(): DocsShell {
 
 /**
  * The site header, rendered on every page: logo, area tabs, search, and the
- * theme toggle. The site links live in the sidebar footer. On phones the tabs move to a second row so the
+ * theme toggle. On phones the tabs move to a second row so the
  * areas stay reachable from every page, including the ones without a sidebar.
  */
 export function DocsHeader(props: ComponentProps<"header">) {
   const { slots } = useNotebookLayout();
+  const { sidebar } = useDocsShell();
 
   // --fd-header-height drives the sticky offsets of the sidebar and TOC. It is
   // the 14 row on md+, and on phones the 14 row plus the 10 tabs row: 24.
@@ -68,6 +72,7 @@ export function DocsHeader(props: ComponentProps<"header">) {
             </>
           )}
           {slots.themeSwitch && <slots.themeSwitch />}
+          {!sidebar && <SiteLinks />}
           {slots.sidebar && (
             <slots.sidebar.trigger
               className={cn(

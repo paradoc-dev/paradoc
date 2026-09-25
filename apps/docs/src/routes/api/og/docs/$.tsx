@@ -12,6 +12,15 @@ const FALLBACK_OG_URL = "https://assets.paradoc.dev/paradoc-og-docs.png";
 // (Satori: "Unsupported OpenType signature") and yields a blank image.
 const GEIST_FONT_URL =
   "https://assets.paradoc.dev/fonts/geist-sans-latin-600-normal.woff";
+let geistFontPromise: Promise<ArrayBuffer> | undefined;
+
+function getGeistFont(): Promise<ArrayBuffer> {
+  geistFontPromise ??= fetch(GEIST_FONT_URL).then((response) => {
+    if (!response.ok) throw new Error(`Font request failed: ${response.status}`);
+    return response.arrayBuffer();
+  });
+  return geistFontPromise;
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -24,15 +33,23 @@ function escapeHtml(text: string): string {
 export const Route = createFileRoute("/api/og/docs/$")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         try {
           const slugs = params._splat?.split("/") ?? [];
+          if (slugs.at(-1) !== "image.png") {
+            return new Response("Not found", { status: 404 });
+          }
 
           // Remove the trailing "image.png" from slugs
           const pageSlug = slugs.slice(0, -1);
           const page = source.getPage(pageSlug);
+          if (!page) return new Response("Not found", { status: 404 });
 
-          const pageData = page?.data as Record<string, unknown> | undefined;
+          const cache = (globalThis.caches as CacheStorage & { default: Cache }).default;
+          const cached = await cache.match(request);
+          if (cached) return cached;
+
+          const pageData = page.data;
           const title =
             (pageData?.ogTitle as string) ??
             (pageData?.title as string) ??
@@ -42,7 +59,7 @@ export const Route = createFileRoute("/api/og/docs/$")({
             (pageData?.description as string) ??
             "Documents as code for developers and AI agents";
 
-          const fontData = await (await fetch(GEIST_FONT_URL)).arrayBuffer();
+          const fontData = await getGeistFont();
 
           const html = `
             <div style="display: flex; flex-direction: column; width: 1200px; height: 630px; background-color: #0a0a0a; color: white; padding: 64px; font-family: 'Geist Sans', system-ui, sans-serif; position: relative;">
@@ -80,13 +97,15 @@ export const Route = createFileRoute("/api/og/docs/$")({
             return Response.redirect(FALLBACK_OG_URL, 302);
           }
 
-          return new Response(bytes, {
+          const response = new Response(bytes, {
             headers: {
               "Content-Type": "image/png",
               // Cache for 1 week at edge, 1 day in browser
               "Cache-Control": "public, s-maxage=604800, max-age=86400",
             },
           });
+          await cache.put(request, response.clone());
+          return response;
         } catch {
           return Response.redirect(FALLBACK_OG_URL, 302);
         }
