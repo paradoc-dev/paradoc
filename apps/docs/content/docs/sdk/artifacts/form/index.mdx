@@ -477,7 +477,7 @@ Created by `form.fill()`. Mutable data and signer configuration.
   { name: 'safeUpdate', type: '(patch: Partial<Payload>) => SafeFillResult', description: 'Safely merge a patch (returns result object)', isMethod: true },
   { name: 'getFillState', type: '(options?: FillTargetOptions) => FillState', description: 'Compute full fill state: open/blocked/done items, candidates, progress summary', isMethod: true },
   { name: 'getNextFillTarget', type: '(options?: FillTargetOptions) => FillTarget | null', description: 'Get the next recommended fill target, or null if all required are done', isMethod: true },
-  { name: 'getAvailableFillTargets', type: '(options?: FillTargetOptions) => FillTarget[]', description: 'Get all available fill targets in declaration order', isMethod: true },
+  { name: 'getAvailableFillTargets', type: '(options?: FillTargetOptions) => FillTarget[]', description: 'Get available fill targets in dependency order, required before optional by default', isMethod: true },
   { name: 'prepareForSigning', type: '() => SignableForm', description: 'Transition to signable phase', isMethod: true },
   { name: 'seal', type: '(options?: SealOptions) => Promise<SignableForm>', description: 'Render, place signature fields, flatten, and hash the target layer for formal e-signing. See [Seal options](#seal-options)', isMethod: true },
   { name: 'prepareSeal', type: '(options?: SealOptions) => Promise<SealPreparation>', description: 'Resolve the signature map and the converted PDF it describes, without flattening, hashing, or changing phase. Requires a layer with `signatures`', isMethod: true },

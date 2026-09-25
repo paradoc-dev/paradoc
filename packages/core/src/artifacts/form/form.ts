@@ -1070,7 +1070,7 @@ export interface DraftForm<F extends Form> extends RuntimeFormBase<F> {
 	getNextFillTarget(options?: FillTargetOptions): FillTarget | null
 
 	/**
-	 * Get all available fill targets in declaration order.
+	 * Get available fill targets in dependency order, required before optional by default.
 	 */
 	getAvailableFillTargets(options?: FillTargetOptions): FillTarget[]
 

@@ -32,7 +32,7 @@ Takes a [source](/ai/tools#sources) plus:
 | `open_optional` | `FillItemState[]` | Visible, optional, unfilled targets |
 | `blocked` | `FillItemState[]` | Hidden targets that can become visible once their prerequisites are filled |
 | `done` | `FillItemState[]` | Filled targets |
-| `candidates` | `FillTarget[]` | Targets that can be filled now, in declaration order |
+| `candidates` | `FillTarget[]` | Targets that can be filled now. Forms use dependency order, with required targets before optional targets by default and declaration order breaking ties. Checklists use item declaration order. |
 | `next` | `FillTarget \| null` | The first candidate, or `null` when nothing is left |
 | `evaluation_context` | `object` | The draft's fixed context |
 | `errors` | [`ToolError[]`](/ai/tools#errors) | Set when the draft data was rejected (`validation_error`), or when the form's logic could not be evaluated (`logic_unresolved`) and the rules were not run |
@@ -48,7 +48,7 @@ A `RuleViolation` has `rule_id`, the key of the failed rule in the artifact's `r
 }
 ```
 
-A `FillTarget` has `kind` (`field`, `party`, or `annex`), `key`, `required`, and `order`. A `FillItemState` adds `visible`, `status` (`hidden`, `optional`, or `required`), `filled`, and `blockedBy` (the unfilled targets that keep it hidden). These nested entries keep their camelCase keys.
+A `FillTarget` has `kind` (`field`, `party`, or `annex` for forms; `item` for checklists), `key`, `required`, and `order`. A `FillItemState` adds `visible`, `status` (`hidden`, `optional`, or `required`), `filled`, and `blockedBy` (the unfilled targets that keep it hidden). These nested entries keep their camelCase keys.
 
 ## Direct usage
 

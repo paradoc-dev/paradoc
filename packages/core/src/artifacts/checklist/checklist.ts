@@ -112,7 +112,7 @@ export class ChecklistValidationError extends Error {
 	}
 }
 
-/** A checklist answer that can be filled next. */
+/** A checklist answer that can be filled next. Checklist targets use kind `item`. */
 export interface ChecklistFillTarget {
 	kind: 'item'
 	key: string

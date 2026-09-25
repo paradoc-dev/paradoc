@@ -40,7 +40,7 @@ export interface FillTarget {
 	key: string
 	/** Whether this target is required */
 	required: boolean
-	/** Declaration order in schema (parties first, then fields, then annexes) */
+	/** Stable declaration order used to break ties within a dependency rank */
 	order: number
 }
 
@@ -102,7 +102,7 @@ export interface FillState {
 	blocked: FillItemState[]
 	/** Already filled items */
 	done: FillItemState[]
-	/** Available fill targets in declaration order */
+	/** Available fill targets in dependency order, required before optional by default */
 	candidates: FillTarget[]
 	/** First candidate (convenience) */
 	next: FillTarget | null

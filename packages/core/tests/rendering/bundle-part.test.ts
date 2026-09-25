@@ -172,6 +172,13 @@ describe('what every member receives', () => {
 			assembleBundle(inlineBundle('cl'), { contents: { cl: broken } }),
 		).rejects.toThrow('Layer "gone" not found for content "cl"')
 	})
+
+	test('a layerless part names the content key and missing declaration', async () => {
+		const cl = checklist().name('cl').version('1.0.0').title('CL').item({ id: 'done', title: 'Done' }).build()
+		await expect(
+			assembleBundle(inlineBundle('cl'), { contents: { cl: cl.fill({ done: true } as never) } }),
+		).rejects.toThrow('Content "cl" declares no layer to render')
+	})
 })
 
 describe('naming and sealing bytes parts', () => {

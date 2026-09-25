@@ -104,6 +104,9 @@ export async function renderBundlePart(
   }
 
   const { layers, targetLayer } = partLayers(entry)
+  if (Object.keys(layers).length === 0) {
+    throw new Error(`Content "${key}" declares no layer to render`)
+  }
   const layer = layers[targetLayer]
   if (!layer) {
     throw new Error(`Layer "${targetLayer}" not found for content "${key}"`)

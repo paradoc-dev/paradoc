@@ -111,7 +111,7 @@ Returned by `draft.getFillState()`.
   { name: 'openOptional', type: 'FillItemState[]', description: 'Visible, unfilled, optional items' },
   { name: 'blocked', type: 'FillItemState[]', description: 'Not visible — waiting on dependencies to be filled' },
   { name: 'done', type: 'FillItemState[]', description: 'Already filled items' },
-  { name: 'candidates', type: 'FillTarget[]', description: 'Available fill targets in declaration order (parties first, then fields, then annexes)' },
+  { name: 'candidates', type: 'FillTarget[]', description: 'Available fill targets in dependency order, with required targets before optional targets by default and declaration order breaking ties' },
   { name: 'next', type: 'FillTarget | null', description: 'First candidate — convenience shorthand for candidates[0]' },
 ]} />
 
@@ -152,7 +152,7 @@ A candidate target that can be filled next.
   { name: 'kind', type: 'FillTargetKind', description: "'field', 'party', or 'annex'" },
   { name: 'key', type: 'string', description: 'Field id, role id, or annex id' },
   { name: 'required', type: 'boolean', description: 'Whether this target is required' },
-  { name: 'order', type: 'number', description: 'Declaration order in schema' },
+  { name: 'order', type: 'number', description: 'Stable declaration order used to break ties within a dependency rank' },
 ]} />
 
 ### FillItemState
@@ -163,7 +163,7 @@ Extended fill target with runtime state. Used in `openRequired`, `openOptional`,
   { name: 'kind', type: 'FillTargetKind', description: "'field', 'party', or 'annex'" },
   { name: 'key', type: 'string', description: 'Field id, role id, or annex id' },
   { name: 'required', type: 'boolean', description: 'Whether this target is required' },
-  { name: 'order', type: 'number', description: 'Declaration order in schema' },
+  { name: 'order', type: 'number', description: 'Stable declaration order used to break ties within a dependency rank' },
   { name: 'visible', type: 'boolean', description: 'Whether this item is currently visible' },
   { name: 'status', type: "'hidden' | 'optional' | 'required'", description: 'Effective status combining visible and required. hidden < optional < required; required implies visible, so "hidden but required" cannot occur' },
   { name: 'filled', type: 'boolean', description: 'Whether this item has been filled' },

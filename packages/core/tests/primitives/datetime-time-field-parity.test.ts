@@ -13,7 +13,7 @@ const f = form().name('drift').fields({
 }).build()
 
 describe('core-072', () => {
-	test.each(['2024-01-01T10:00:00', '2024-01-01T10:00:00+02:00', '2024-01-01T10:00:00Z'])('datetime %s', (value) => {
+	test.each(['2024-01-01T10:00:00', '2024-01-01T10:00:00+02:00', '2024-01-01T10:00:00Z', '0099-01-01T10:00:00Z'])('datetime %s', (value) => {
 		expect(datetime.isValid(value)).toBe(true)
 		expect(validateFieldInput(f, { fieldPath: 'when', value }).success).toBe(true)
 		expect(f.safeFill({ fields: { when: value } } as never).success).toBe(true)
@@ -30,5 +30,11 @@ describe('core-072', () => {
 		expect(validateFieldInput(f, { fieldPath: 'when', value: 'not-a-datetime' }).success).toBe(false)
 		expect(time.isValid('25:00:00')).toBe(false)
 		expect(validateFieldInput(f, { fieldPath: 'at', value: '25:00:00' }).success).toBe(false)
+	})
+
+	test.each(['2024-02-30T10:00:00Z', '2023-02-29T10:00:00Z', '2024-04-31T00:00:00'])('impossible calendar datetime %s', (value) => {
+		expect(datetime.isValid(value)).toBe(false)
+		expect(() => datetime(value)).toThrow()
+		expect(validateFieldInput(f, { fieldPath: 'when', value }).success).toBe(false)
 	})
 })

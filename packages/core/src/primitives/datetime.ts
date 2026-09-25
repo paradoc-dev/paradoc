@@ -10,6 +10,19 @@ function isValidDatetime(value: string): boolean {
 	if (!DATETIME_REGEX.test(value)) {
 		return false;
 	}
+	const year = Number(value.slice(0, 4));
+	const month = Number(value.slice(5, 7));
+	const day = Number(value.slice(8, 10));
+	const calendarDate = new Date(0);
+	calendarDate.setUTCHours(0, 0, 0, 0);
+	calendarDate.setUTCFullYear(year, month - 1, day);
+	if (
+		calendarDate.getUTCFullYear() !== year ||
+		calendarDate.getUTCMonth() !== month - 1 ||
+		calendarDate.getUTCDate() !== day
+	) {
+		return false;
+	}
 	// Additional validation: check if the datetime is actually valid
 	const date = new Date(value);
 	return !isNaN(date.getTime());
