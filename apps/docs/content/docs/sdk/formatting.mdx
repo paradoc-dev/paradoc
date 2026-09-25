@@ -29,7 +29,7 @@ const formatter = createFormatter({ locale: 'de-DE' })
 formatter.formatNumber(1234567.89) // '1.234.567,89'
 formatter.formatMoney({ amount: 1500.5, currency: 'EUR' }) // '1.500,50 €'
 formatter.formatPercentage(8.25) // '8,25 %'
-formatter.formatDate('2026-09-07') // '07.09.2026'
+formatter.formatDate('2026-09-07') // '7. Sept. 2026'
 ```
 
 Money always carries its currency. Percentages use percentage points, so `8.25` formats as `8.25%`. Address country is independent of document locale.

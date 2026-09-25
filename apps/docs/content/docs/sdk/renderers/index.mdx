@@ -110,7 +110,9 @@ function createLayerRenderer(options?: CreateLayerRendererOptions): ParadocRende
   { name: 'formatter', type: 'Formatter', description: 'Presentation formatter shared by every supported format.', isOptional: true },
   { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values in a preview.', isOptional: true },
   { name: 'textSignatureOptions', type: 'TextSignatureOptions', description: 'Signature rendering options for text layers.', isOptional: true },
+  { name: 'pdfFont', type: 'PdfFont', description: 'Font the PDF engine tries before a font declared by the layer.', isOptional: true },
   { name: 'docxSignatureOptions', type: 'DocxSignatureOptions', description: 'Signature rendering options for DOCX layers.', isOptional: true },
+  { name: 'expressions', type: '{ functions?, signatures? }', description: 'Host functions available to text and DOCX templates, with their signatures.', isOptional: true },
 ]} />
 
 ## Renderer Interface
@@ -168,6 +170,8 @@ The resolved template content:
   { name: 'key', type: 'string', description: 'The layer key in the artifact', isOptional: true },
   { name: 'path', type: 'string', description: 'The path a file layer declares', isOptional: true },
   { name: 'bindings', type: 'Bindings', description: 'PDF layers only: AcroForm field name to Paradoc path. Other layers carry none', isOptional: true },
+  { name: 'font', type: 'RendererLayerFont', description: 'Resolved font declared by a PDF layer', isOptional: true },
+  { name: 'format', type: 'LayerFormat', description: 'Presentation overrides declared by a PDF layer', isOptional: true },
 ]} />
 
 ### ParadocRendererContext

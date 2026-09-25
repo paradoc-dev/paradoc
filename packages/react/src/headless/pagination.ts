@@ -17,7 +17,7 @@ export interface FontReadiness {
   error: Error | null;
 }
 
-/** Waits for all document fonts; `family` is the readiness cache key. */
+/** Without `family`, reports ready immediately. With one, waits for all document fonts; `family` is the readiness cache key. */
 export function useFontReadiness(family?: string): FontReadiness {
   const [state, setState] = useState<{ family: string | null; error: Error | null }>({ family: null, error: null });
   useEffect(() => {

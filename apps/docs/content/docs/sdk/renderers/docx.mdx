@@ -15,6 +15,7 @@ condition means the same thing in a Word layer as in a field rule.
 import { p } from '@paradoc/core'
 import { docxRenderer } from '@paradoc/render/docx'
 import { createFsResolver } from '@paradoc/resolvers/fs'
+import { writeFileSync } from 'node:fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
@@ -51,7 +52,7 @@ const output = await filled.render({
 })
 
 // output is Uint8Array - write to file
-fs.writeFileSync('contract-filled.docx', output)
+writeFileSync('contract-filled.docx', output)
 ```
 
 ## Import
@@ -86,13 +87,14 @@ function docxRenderer(options?: DocxRendererOptions): ParadocRenderer<
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Artifact value formatter. Defaults to en-US.', isOptional: true },
   { name: 'signatureOptions', type: 'DocxSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
+  { name: 'expressions', type: '{ functions?, signatures? }', description: 'Host functions templates can call, with their signatures.', isOptional: true },
 ]} />
 
 #### DocxSignatureOptions
 
 <PropertiesTable properties={[
-  { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
-  { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
+  { name: 'placeholder', type: '{ signature?, initials?, signatureDate?, capacity?, printedName? }', description: 'Placeholder text/function for unsigned signing marks.', isOptional: true },
+  { name: 'captured', type: '{ signature?, initials?, signatureDate?, capacity?, printedName? }', description: 'Text/function for captured signing marks.', isOptional: true },
 ]} />
 
 #### Returns
@@ -193,7 +195,7 @@ When a form schema is provided, field values are automatically formatted:
 
 ```ts
 // Money fields formatted as "$50,000.00"
-// Date fields formatted as "April 1, 2024"
+// Date fields formatted as "Apr 1, 2024"
 // Phone fields formatted as "(555) 123-4567"
 ```
 

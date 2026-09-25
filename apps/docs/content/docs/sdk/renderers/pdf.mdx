@@ -13,6 +13,7 @@ field formatting, plus coordinate-based text and image overlays.
 import { p } from '@paradoc/core'
 import { pdfRenderer } from '@paradoc/render/pdf'
 import { createFsResolver } from '@paradoc/resolvers/fs'
+import { writeFileSync } from 'node:fs'
 
 const resolver = createFsResolver({ root: process.cwd() })
 
@@ -60,7 +61,7 @@ const output = await filled.render({
 })
 
 // output is Uint8Array - write to file
-fs.writeFileSync('w9-filled.pdf', output)
+writeFileSync('w9-filled.pdf', output)
 ```
 
 ## Import
@@ -321,7 +322,7 @@ Field values are automatically serialized based on their schema types:
 
 ```ts
 // Money fields formatted as "$50,000.00"
-// Date fields formatted as "April 1, 2024"
+// Date fields formatted as "Apr 1, 2024"
 // Phone fields formatted as "(555) 123-4567"
 ```
 
@@ -364,7 +365,7 @@ The check is also exported on its own:
 import { checkPdfBindingFit } from '@paradoc/render/pdf'
 
 const issues = await checkPdfBindingFit({ template: pdfBytes, form, bindings })
-// [{ field: 'amountSource', paths: ['fields.amountSource'], severity: 'error', reason: 'overflow', value: 'typical', limit: 6, length: 200, message: '...' }]
+// [{ field: 'amountSource', binding: 'fields.amountSource', paths: ['fields.amountSource'], severity: 'error', reason: 'overflow', value: 'typical', limit: 6, length: 200, message: '...' }]
 ```
 
 ## Fonts

@@ -55,7 +55,7 @@ const output = await filled.render({
 // <h1>Receipt</h1>
 // <p>Customer: Acme Corp</p>
 // <p>Total: $250.00</p>
-// <p>Date: March 15, 2024</p>
+// <p>Date: Mar 15, 2024</p>
 ```
 
 ## Import
@@ -89,6 +89,7 @@ function textRenderer(options?: TextRendererOptions): ParadocRenderer<
 
 <PropertiesTable properties={[
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for every declared artifact value.', isOptional: true },
+  { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values in a preview.', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials template marker rendering.', isOptional: true },
   { name: 'expressions', type: '{ functions?, signatures? }', description: 'Host-configured expression functions templates can call, with their signatures. A template cannot call a function without a signature.', isOptional: true },
 ]} />
@@ -96,9 +97,9 @@ function textRenderer(options?: TextRendererOptions): ParadocRenderer<
 #### TextSignatureOptions
 
 <PropertiesTable properties={[
-  { name: 'format', type: "'text' | 'html' | 'markdown'", description: 'Output format for signatures. Defaults to "text".', isOptional: true },
-  { name: 'placeholder', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Placeholder text/function for unsigned signatures and initials.', isOptional: true },
-  { name: 'captured', type: '{ signature?: string | Function, initials?: string | Function }', description: 'Text/function for captured signatures and initials.', isOptional: true },
+  { name: 'format', type: "'text' | 'html' | 'markdown'", description: 'Output format for signatures. Defaults from the layer MIME type, or to "text".', isOptional: true },
+  { name: 'placeholder', type: '{ signature?, initials?, signatureDate?, capacity?, printedName? }', description: 'Placeholder text/function for unsigned signing marks.', isOptional: true },
+  { name: 'captured', type: '{ signature?, initials?, signatureDate?, capacity?, printedName? }', description: 'Text/function for captured signing marks.', isOptional: true },
   { name: 'altText', type: 'string', description: 'Alt text for signature images (html format only).', isOptional: true },
   { name: 'cssClass', type: 'string', description: 'CSS class for signature images (html format only).', isOptional: true },
 ]} />
@@ -122,9 +123,11 @@ function renderText(options: {
   data: Record<string, unknown>
   form?: Form
   formatter?: Formatter
+  progressive?: FormatterProgressivePolicy
   signatureOptions?: TextSignatureOptions
   expressions?: TemplateExpressionOptions
   layer?: string
+  mimeType?: string
 }): string
 ```
 
@@ -135,9 +138,11 @@ function renderText(options: {
   { name: 'data', type: 'Record<string, unknown>', description: 'Data object to populate the template' },
   { name: 'form', type: 'Form', description: 'Form schema for automatic field-aware formatting', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for declared artifact values.', isOptional: true },
+  { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values.', isOptional: true },
   { name: 'signatureOptions', type: 'TextSignatureOptions', description: 'Options for signature and initials rendering', isOptional: true },
   { name: 'expressions', type: 'TemplateExpressionOptions', description: 'The expression context (`context`), or configured `functions` and their `signatures`. Artifact renders supply the artifact context.', isOptional: true },
   { name: 'layer', type: 'string', description: 'Layer key, named in template errors', isOptional: true },
+  { name: 'mimeType', type: 'string', description: 'Layer media type. `text/html` enables HTML escaping and selects HTML signature output.', isOptional: true },
 ]} />
 
 #### Returns
@@ -182,15 +187,15 @@ const form = p.form({
 const filled = form.fill({
   fields: {
     price: { amount: 99.99, currency: 'USD' },
-    percentage: 0.15,
-    phone: { e164: '+14155551234' }
+    percentage: 15,
+    phone: { number: '+14155551234' }
   }
 })
 
 const output = await filled.render({
   renderer: textRenderer()
 })
-// output: "$99.99 15% (415) 555-1234"
+// output: "$99.99 15% +14155551234"
 ```
 
 ## Custom Serializers
@@ -205,7 +210,7 @@ const renderer = textRenderer({
   formatter: createFormatter({ locale: 'de-DE' })
 })
 
-// Money formatted as "99,99 €" instead of "$99.99"
+// USD formatted as "99,99 $" instead of "$99.99"
 ```
 
 ## Values in templates

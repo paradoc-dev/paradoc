@@ -188,11 +188,11 @@ Created by `draft.finalize()`. Fully frozen.
 
 ## Render options
 
-`render()` takes `ArtifactLayerRenderOptions`. A text, PDF, or DOCX layer renders through the built-in engines; a layer whose MIME type has an entry in `renderers` renders through that entry instead.
+`render()` takes `ArtifactLayerRenderOptions`. A renderer registered for the layer's MIME type runs first. Otherwise a document layer returns its resolved content unchanged.
 
 <PropertiesTable properties={[
   { name: 'layer', type: 'string', description: 'Layer key to render. Defaults to the target layer, then defaultLayer', isOptional: true },
-  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type. This is how a React layer (`text/tsx`, `text/jsx`) renders', isOptional: true },
+  { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type', isOptional: true },
   { name: 'formatter', type: 'Formatter', description: 'Formatter used for values in this render', isOptional: true },
   { name: 'progressive', type: 'FormatterProgressivePolicy', description: 'Text for missing and incomplete values', isOptional: true },
 ]} />
