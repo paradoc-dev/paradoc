@@ -6,7 +6,9 @@
  * Usage:
  *   tsx scripts/changelog-draft.ts [next-version]
  */
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 function sh(command: string): string {
   return execSync(command, { encoding: "utf8" }).trim();
@@ -14,17 +16,22 @@ function sh(command: string): string {
 
 function lastVersionTag(): string | null {
   try {
-    // Most recent tag that looks like a semver release (with or without `v`).
+    // Most recent v-prefixed tag that looks like a semver release.
     return sh("git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null") || null;
   } catch {
     return null;
   }
 }
 
-function prTitlesSince(tag: string | null): string[] {
+export function prTitlesSince(tag: string | null, repositoryRoot = sh("git rev-parse --show-toplevel")): string[] {
   const range = tag ? `${tag}..HEAD` : "HEAD";
-  // Subjects of merge commits and squashed PRs both carry the PR title.
-  const log = sh(`git log ${range} --no-merges --format=%s`);
+  const publicRoot = resolve(repositoryRoot, "paradoc");
+  // Squashed PR commits carry the PR title. Restrict the draft to the public subtree.
+  const log = execFileSync(
+    "git",
+    ["log", range, "--no-merges", "--format=%s", "--", publicRoot],
+    { cwd: repositoryRoot, encoding: "utf8" },
+  ).trim();
   if (!log) return [];
   return log
     .split("\n")
@@ -58,4 +65,6 @@ function main(): void {
   console.log(lines.join("\n"));
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

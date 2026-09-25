@@ -5,7 +5,7 @@
  * The canonical changelog is the single source of truth and is NOT shipped
  * inside any npm package; this copy is generated, not authored.
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,12 +14,6 @@ const here = dirname(fileURLToPath(import.meta.url));
 // scripts/ -> apps/docs/ -> apps/ -> paradoc/
 const SOURCE = resolve(here, "../../../CHANGELOG.md");
 const TARGET = resolve(here, "../content/docs/changelog/index.mdx");
-/**
- * Where this script wrote before the changelog became its own docs area. The
- * file is generated and untracked, so a checkout that ran the old sync keeps
- * it, and it registers as a page outside every area. Removed on every run.
- */
-const LEGACY_TARGET = resolve(here, "../content/docs/changelog.mdx");
 
 /** Pull the first `## [x.y.z]` version from a Keep-a-Changelog document. */
 export function latestVersion(markdown: string): string | null {
@@ -31,14 +25,30 @@ function escapeYaml(value: string): string {
   return value.replace(/"/g, '\\"');
 }
 
-function buildPage(markdown: string): string {
+function escapeMdxProse(markdown: string): string {
+  let fenced = false;
+  return markdown.split("\n").map((line) => {
+    if (/^\s*```/.test(line)) {
+      fenced = !fenced;
+      return line;
+    }
+    if (fenced) return line;
+
+    return line.split(/(`[^`]*`)/g).map((part, index) => {
+      if (index % 2 === 1) return part;
+      return part.replace(/</g, "&lt;").replace(/\{/g, "&#123;").replace(/\}/g, "&#125;");
+    }).join("");
+  }).join("\n");
+}
+
+export function buildPage(markdown: string): string {
   const version = latestVersion(markdown);
   const ogTitle = "Changelog";
   const description = version ? `Release v${version}` : "Paradoc changelog";
 
   // Drop the leading `# Changelog` H1; fumadocs renders the title from
   // frontmatter, so a second H1 in the body would duplicate it.
-  const body = markdown.replace(/^#\s+Changelog\s*\n+/, "");
+  const body = escapeMdxProse(markdown.replace(/^#\s+Changelog\s*\n+/, ""));
 
   const frontmatter = [
     "---",
@@ -58,11 +68,12 @@ function buildPage(markdown: string): string {
 function main(): void {
   const markdown = readFileSync(SOURCE, "utf8");
   const page = buildPage(markdown);
-  rmSync(LEGACY_TARGET, { force: true });
   mkdirSync(dirname(TARGET), { recursive: true });
   writeFileSync(TARGET, page, "utf8");
   const version = latestVersion(markdown) ?? "unknown";
   console.log(`[sync-changelog] wrote ${TARGET} (latest v${version})`);
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
