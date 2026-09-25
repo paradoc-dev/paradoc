@@ -3,7 +3,7 @@ import { rewritePath } from "fumadocs-core/negotiation";
 import { redirect } from "@tanstack/react-router";
 
 const { rewrite: rewriteLLM } = rewritePath(
-  "/docs{/*path}.mdx",
+  "/{*path}.mdx",
   "/llms.mdx/docs{/*path}"
 );
 

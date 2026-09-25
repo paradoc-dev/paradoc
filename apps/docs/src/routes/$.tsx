@@ -79,7 +79,7 @@ export const Route = createFileRoute("/$")({
         <div className="flex flex-col items-center justify-center gap-4">
           <h1>Not Found</h1>
           <p>This page doesn't exist...</p>
-          <Link to="/$" className="bg-secondary px-4 py-2 rounded-md">
+          <Link to="/$" params={{ _splat: "" }} className="bg-secondary px-4 py-2 rounded-md">
             Go back to the home page
           </Link>
         </div>
@@ -246,11 +246,12 @@ function Page() {
 
 import { LLMCopyButton, ViewOptions } from "@/components/page-actions";
 import { PageProvider, usePageContext } from "@/lib/page-context";
+import { pageGitHubUrl, pageMarkdownUrl } from "@/lib/page-actions";
 
 function PageActions() {
   const { url, filePath } = usePageContext();
-  const markdownUrl = `${url}.mdx`;
-  const githubUrl = `https://github.com/nicholasgriffintn/paradoc/blob/main/apps/docs/${filePath}`;
+  const markdownUrl = pageMarkdownUrl(url);
+  const githubUrl = pageGitHubUrl(filePath);
 
   return (
     <div className="flex flex-row gap-2 items-center border-b border-fd-border pb-4 mb-6">

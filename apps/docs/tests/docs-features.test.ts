@@ -13,7 +13,9 @@ function contentPages(): string[] {
 
 /** Pages whose text links `slug`, as a docs URL. */
 function pagesLinking(pages: Record<string, string>, slug: string): string[] {
-  const link = new RegExp(`\\]\\(/${slug}(?:[#)])`);
+  const link = new RegExp(
+    `(?:\\]\\(|href=["'])/${slug}(?:[/#?]|["')])`,
+  );
   return Object.entries(pages)
     .filter(([, text]) => link.test(text))
     .map(([file]) => file);
