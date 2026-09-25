@@ -22,12 +22,7 @@ const executionOptions = {
 }
 
 async function resolveToolResult<T>(result: T | PromiseLike<T> | AsyncIterable<T>): Promise<T> {
-	if (typeof result === 'object' && result !== null && Symbol.asyncIterator in result) {
-		let last: T | undefined
-		for await (const value of result) last = value
-		return last as T
-	}
-	return await result
+	return (await result) as T
 }
 
 const formArtifact = {
