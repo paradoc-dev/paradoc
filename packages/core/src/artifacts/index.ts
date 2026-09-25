@@ -144,6 +144,7 @@ export type {
 // Form artifact
 export { form, runtimeFormFromJSON, FormValidationError, FormRuleViolationError } from './form'
 export { SealConfigError, buildSlotPlan } from './form'
+export { INITIALS_RULE, SIGNATURE_RULE } from './form'
 export type { SlotPlan } from './form'
 export type { PlacementProvenance, SealPreparation } from './form'
 export type {

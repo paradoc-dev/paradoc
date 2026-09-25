@@ -8,8 +8,10 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { INITIALS_RULE as CORE_INITIALS_RULE, SIGNATURE_RULE as CORE_SIGNATURE_RULE } from "@paradoc/core";
 
 import { AmbiguousSigningMarkError, findSigningMark } from "../src/components/signing-context";
+import { INITIALS_RULE, SIGNATURE_RULE } from "../src";
 
 const SLOTS = { signature: "tenant-signature", initials: "tenant-initials" } as const;
 
@@ -50,5 +52,12 @@ describe("finding a block's own marker", () => {
     expect(() => findSigningMark(ambiguous, "tenant", 0, "signature")).toThrowError(
       /one flow slot per field type/
     );
+  });
+});
+
+describe("the public signing rules", () => {
+  it("re-exports core's canonical rules", () => {
+    expect(SIGNATURE_RULE).toBe(CORE_SIGNATURE_RULE);
+    expect(INITIALS_RULE).toBe(CORE_INITIALS_RULE);
   });
 });

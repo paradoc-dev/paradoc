@@ -5,6 +5,7 @@
 
 export { form, runtimeFormFromJSON, FormValidationError, FormRuleViolationError } from './form'
 export { SealConfigError, buildSlotPlan } from './seal-slots'
+export { INITIALS_RULE, SIGNATURE_RULE } from './seal-renderer'
 export type { SlotPlan } from './seal-slots'
 export type { PlacementProvenance, SealPreparation } from './seal-slots'
 export type {

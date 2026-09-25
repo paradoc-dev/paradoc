@@ -8,6 +8,8 @@ export {
   FormRuleViolationError,
   SealConfigError,
   buildSlotPlan,
+  INITIALS_RULE,
+  SIGNATURE_RULE,
   form,
   field,
   textField,

@@ -1,10 +1,9 @@
 import { formatParties } from "@paradoc/render/text/field-formatter";
+import { INITIALS_RULE, SIGNATURE_RULE } from "@paradoc/core";
 
 import { useArtifact, useFormatter, useParty } from "./artifact";
 import { findSigningMark, useSigningMarks, type SigningMarkType } from "../components/signing-context";
 
-export const SIGNATURE_RULE = "________________";
-export const INITIALS_RULE = "______";
 export const DATE_RULE = "__________";
 
 const FIELDS = {

@@ -78,7 +78,7 @@ Paths are field paths as the artifact declares them. A path the artifact does no
 
 ### Signing
 
-`useSignature(role, index?, type?)` returns a `SignatureBinding` for one signing mark: `roleLabel`, `partyText`, `fieldLabel`, `required`, the `rule` and `dateRule` strings, and the invisible `marker` the seal flow locates. `type` is `"signature"` (the default) or `"initials"`. `SIGNATURE_RULE`, `INITIALS_RULE`, and `DATE_RULE` are the rules the default components draw.
+`useSignature(role, index?, type?)` returns a `SignatureBinding` for one signing mark: `roleLabel`, `partyText`, `fieldLabel`, `required`, the `rule` and `dateRule` strings, and the invisible `marker` the seal flow locates. `type` is `"signature"` (the default) or `"initials"`. Core owns `SIGNATURE_RULE` and `INITIALS_RULE`; `@paradoc/react` re-exports them alongside its `DATE_RULE` for the rules the default components draw.
 
 ### Document settings and paper
 

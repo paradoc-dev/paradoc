@@ -130,9 +130,8 @@ export {
 } from "./lib/document-tokens";
 export {
   DATE_RULE,
-  INITIALS_RULE,
-  SIGNATURE_RULE,
 } from "./headless/signing";
+export { INITIALS_RULE, SIGNATURE_RULE } from "@paradoc/core";
 
 export {
   annexSlot,

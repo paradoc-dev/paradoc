@@ -248,8 +248,11 @@ export async function locateFlowMarkers(pdf: Uint8Array, flow: readonly SigningF
 	}
 }
 
-const SIGNATURE_UNDERSCORES = '________________'
-const INITIALS_UNDERSCORES = '______'
+/** The visible rule used for a flow-positioned signature field. */
+export const SIGNATURE_RULE = '________________'
+
+/** The visible rule used for a flow-positioned initials field. */
+export const INITIALS_RULE = '______'
 
 /**
  * Core's text placeholders for a seal pass. With markers, each flow slot's
@@ -265,12 +268,12 @@ export function flowTextSignatureOptions(flow: readonly SigningField[], withMark
 			signature: (context) => {
 				const field = withMarkers ? flowById.get(context.locationId) : undefined
 				const prefix = field && field.type === 'signature' ? encodeMarker(field.signerIndex, FieldType.SIGNATURE) : ''
-				return prefix + SIGNATURE_UNDERSCORES
+				return prefix + SIGNATURE_RULE
 			},
 			initials: (context) => {
 				const field = withMarkers ? flowById.get(context.locationId) : undefined
 				const prefix = field && field.type === 'initials' ? encodeMarker(field.signerIndex, FieldType.INITIALS) : ''
-				return prefix + INITIALS_UNDERSCORES
+				return prefix + INITIALS_RULE
 			},
 		},
 	}

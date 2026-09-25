@@ -538,5 +538,5 @@ component does not fit.
 |---|---|---|
 | `Page`, `Sheet`, `PageFurnitureBands` | `pages.tsx`, `paper.tsx` | Draw sheets yourself from a `PagePlan`. `Page` takes `plan`, `index`, `furniture`, `children`. |
 | `Attachment` | `pdf-pages.tsx` | A card for a part carried as a file: `filename`, `mimeType`, `byteLength?`, `reason`. Preview only: its default classes include `border-dashed`, which the PDF path refuses. |
-| `FIELD_RULE`, `SIGNATURE_RULE`, `INITIALS_RULE`, `DATE_RULE` | `field.tsx`, `signature.tsx` | The underscore runs the components print. |
+| `FIELD_RULE`, `SIGNATURE_RULE`, `INITIALS_RULE`, `DATE_RULE` | `field.tsx`, `signature.tsx` | The underscore runs the components print. Core owns the signature and initials rules; `@paradoc/react` re-exports them. |
 | `ListMarker`, `TextRole`, `PartKind`, `TotalRow`, `TableColumn` | the component files | Prop types. |
