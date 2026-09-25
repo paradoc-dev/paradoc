@@ -14,12 +14,10 @@
  * proposal it hands the render no bytes at all.
  *
  * The letter is the case where the two slots are further apart than the
- * proposal's: they sit on the last page, below ten clauses of prose that decide
- * where that page starts. `tests/engagement-letter-seal.test.tsx` is what says
+ * proposal's: they sit on the last page, below nine clauses of prose that decide
+ * where that page starts. `@paradoc/react-pdf`'s `tests/engagement-letter-seal.test.tsx` is what says
  * both markers are still located there.
  */
-
-import type { Person } from "@paradoc/types";
 
 import { reactLayerRenderers } from "@paradoc/react-pdf";
 import type { RenderPdfOptions } from "@paradoc/react-pdf";
@@ -32,6 +30,7 @@ import {
 } from "./engagement-letter";
 import type { EngagementLetterData } from "./engagement-letter-data";
 import { EngagementLetterDocument, engagementLetterFurniture } from "./engagement-letter-document";
+import { bindOrganizationSigners } from "./organization-signers";
 
 /** The party roles the artifact declares a signature slot for. */
 export type EngagementLetterPartyRole = keyof typeof ENGAGEMENT_LETTER_SIGNATURE_SLOTS;
@@ -48,35 +47,6 @@ const SIGNER_CONTACT_FIELD = {
   firm: "firmContact",
   client: "clientContact",
 } as const satisfies Record<EngagementLetterPartyRole, string>;
-
-/** Thrown when the data names no person to sign for a party. */
-export class MissingEngagementSignerError extends Error {
-  /** The party role with no signer. */
-  readonly role: string;
-  /** The field that should have named the person. */
-  readonly field: string;
-
-  constructor(role: string, field: string) {
-    super(
-      `Cannot seal: "${field}" names no person, so the ${role} party has no signatory. ` +
-        "Core binds a signer to a Person, and this party is an organization."
-    );
-    this.name = "MissingEngagementSignerError";
-    this.role = role;
-    this.field = field;
-  }
-}
-
-/** Thrown when the data has no party filling a role the seal requires. */
-export class MissingEngagementLetterPartyError extends Error {
-  readonly role: EngagementLetterPartyRole;
-
-  constructor(role: EngagementLetterPartyRole) {
-    super(`Cannot seal the engagement letter: no party fills the required "${role}" role.`);
-    this.name = "MissingEngagementLetterPartyError";
-    this.role = role;
-  }
-}
 
 /** What the sample's renderer registry needs. */
 export interface EngagementLetterRenderersOptions {
@@ -113,24 +83,6 @@ export function engagementLetterRenderers({
   });
 }
 
-/** The person who signs for a party. @throws {MissingEngagementSignerError} */
-function signerPerson(data: EngagementLetterData, role: EngagementLetterPartyRole): Person {
-  const field = SIGNER_CONTACT_FIELD[role];
-  const contact = data.fields[field];
-  if (typeof contact !== "object" || contact === null || typeof (contact as Person).name !== "string") {
-    throw new MissingEngagementSignerError(role, field);
-  }
-  return contact as Person;
-}
-
-/** The id the data carries for the party filling a role. `RuntimeParty` requires one. */
-function partyId(data: EngagementLetterData, role: EngagementLetterPartyRole): string {
-  const party = data.parties[role];
-  const selected = Array.isArray(party) ? party[0] : party;
-  if (!selected) throw new MissingEngagementLetterPartyError(role);
-  return selected.id;
-}
-
 /**
  * Fills the letter and binds a signer to each party, ready to seal.
  *
@@ -147,12 +99,9 @@ export function fillEngagementLetterForSeal(data: EngagementLetterData) {
     parties: data.parties,
   } as Parameters<typeof engagementLetter.fill>[0]);
 
-  for (const role of Object.keys(SIGNER_CONTACT_FIELD) as EngagementLetterPartyRole[]) {
-    draft = draft
-      .addSigner(`${role}-signer`, { person: signerPerson(data, role) })
-      .addSignatory(role, partyId(data, role), { signerId: `${role}-signer` });
-  }
-  return draft;
+  return bindOrganizationSigners(draft, data, SIGNER_CONTACT_FIELD, (current, binding) => current
+    .addSigner(binding.signerId, { person: binding.person })
+    .addSignatory(binding.role, binding.partyId, { signerId: binding.signerId }));
 }
 
 /** What `sealEngagementLetter` needs. */

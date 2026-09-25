@@ -22,8 +22,8 @@ export function DocumentDemo() {
     <Document artifact={proposalForm} data={shortProposalData} id="document-demo">
       <Field path="proposalNumber" />
       <Section id="customer" title="Prepared for" className="flex flex-col gap-1">
-        <Field path="customer" label={false} className="text-sm font-medium text-neutral-900" />
-        <Field path="customerAddress" label={false} className="text-sm text-neutral-600" />
+        <Field path="customer" label={false} className="font-medium text-neutral-900" />
+        <Field path="customerAddress" label={false} className="text-neutral-600" />
       </Section>
     </Document>
   );

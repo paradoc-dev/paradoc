@@ -1,9 +1,9 @@
 /**
  * A minimal form artifact for the `/components/party` docs page, declaring a
  * single-filled `buyer` role, the fields its block prints beside the name,
- * and a `witness` role a document may fill more than once, so the page's demo and variants can show both an `index` and an
- * `undeclared role`/`index past the filled parties` failure without pulling
- * in a full priced document.
+ * and a `witness` role a document may fill more than once. The page's demo and
+ * variants show ordinary party rendering without pulling in a full priced
+ * document.
  *
  * Built and validated through `p.form`, the same path `proposal.ts` and every
  * other sample artifact in this package takes, rather than a cast past the

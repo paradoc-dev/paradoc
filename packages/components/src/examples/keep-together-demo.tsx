@@ -4,9 +4,9 @@ import React from "react";
 /**
  * Demo composition for the `/components/keep-together` docs page.
  *
- * Mirrors the masthead title in this package's own `ProposalDocument` (see
- * `proposal-document.tsx`): a `KeepTogether` rendered `as="span"`, wrapping a
- * short piece of text so it is never split across a page break. This is what
+ * Shows the lower-level pagination primitive directly: a `KeepTogether`
+ * rendered `as="span"`, wrapping a short piece of text so it is never split
+ * across a page break. Application headings normally use `Text`. This is what
  * the docs page's live Preview renders, and its raw source is what the
  * Composition section shows.
  */

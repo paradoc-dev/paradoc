@@ -17,8 +17,8 @@ export function KeepTogetherVariantDefaultElement() {
   return (
     <Document artifact={proposalForm} data={shortProposalData} id="keep-together-variant-default-element">
       <KeepTogether keepId="keep-together-variant-default-element" className="flex flex-col gap-1 rounded border border-neutral-200 p-3">
-        <Field path="customer" label={false} className="text-sm font-medium text-neutral-900" />
-        <Field path="customerAddress" label={false} className="text-sm text-neutral-600" />
+        <Field path="customer" label={false} className="font-medium text-neutral-900" />
+        <Field path="customerAddress" label={false} className="text-neutral-600" />
       </KeepTogether>
     </Document>
   );

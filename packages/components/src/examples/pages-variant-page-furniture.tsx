@@ -16,11 +16,13 @@ import { Table } from "../components/table";
 import { proposalForm } from "./proposal";
 import { overflowProposalData } from "./proposal-data";
 
+const provider = String((overflowProposalData.fields.provider as { name?: unknown }).name ?? "");
+
 export function PagesVariantPageFurniture() {
   return (
     <Pages
       furniture={{
-        header: <span className="text-xs text-neutral-500">Northwind Partners LLP</span>,
+        header: <span className="text-xs text-neutral-500">{provider}</span>,
         footer: <PageNumber />,
         stamp: <span className="text-6xl font-semibold text-neutral-200">DRAFT</span>,
       }}

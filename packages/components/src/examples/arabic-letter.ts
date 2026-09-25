@@ -15,12 +15,11 @@
  * schedule of items paginates on its own terms, which is what a right-to-left
  * page has to be measured on.
  *
- * **It declares its script, and the caller has to hand it over.** Direction,
- * language and typography are root-only tokens, and the element walk that reads
+ * **It declares its script, and the caller has to hand it over.** Direction
+ * and language are root-only tokens, and the element walk that reads
  * them cannot see inside a composition. So `arabicLetterTokens` is exported and
  * passed in — the same contract `brandedProposalTokens` has — rather than being
- * hidden inside the tree, where `RootTokenMismatchError` would catch it. See
- * "Branding" in the README.
+ * hidden inside the tree, where `RootTokenMismatchError` would catch it.
  */
 
 import { p } from "@paradoc/core";
@@ -42,8 +41,8 @@ export const ARABIC_LETTER_REACT_LAYER_PATH = "arabic-letter-document.tsx";
 /**
  * Everything the letter changes about the default document.
  *
- * Three tokens, and they are one decision: the language it is written in, the
- * direction that language runs, and the family that carries the script. The
+ * Two tokens forming one decision: the language it is written in and the
+ * direction that language runs. The
  * paper stays US Letter with the package's own margin, so the difference
  * between this document and the proposal is the script rather than the page.
  */

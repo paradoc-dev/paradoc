@@ -17,7 +17,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { sealBundle, type DraftForm, type SealedBundle } from "@paradoc/core";
-import type { Form, Person } from "@paradoc/types";
+import type { Form } from "@paradoc/types";
 
 import { reactLayerRenderers, type ReactLayerRendererOptions } from "@paradoc/react-pdf";
 import { renderPdf, type RenderPdfOptions } from "@paradoc/react-pdf";
@@ -38,6 +38,7 @@ import {
   VENDOR_PACKET_KEYS,
   vendorPacketBundle,
 } from "./vendor-packet";
+import { bindOrganizationSigners } from "./organization-signers";
 
 /** The party roles the purchase order declares a signature slot for. */
 export type PurchaseOrderPartyRole = "buyer" | "supplier";
@@ -54,23 +55,6 @@ const SIGNER_CONTACT_FIELD = {
   supplier: "supplierContact",
 } as const satisfies Record<PurchaseOrderPartyRole, string>;
 
-/** Thrown when the data names no person to sign for a party. */
-export class MissingPurchaseOrderSignerError extends Error {
-  /** The party role with no signer. */
-  readonly role: string;
-  /** The field that should have named the person. */
-  readonly field: string;
-
-  constructor(role: string, field: string) {
-    super(
-      `Cannot seal: "${field}" names no person, so the ${role} party has no signatory. ` +
-        "Core binds a signer to a Person, and this party is an organization."
-    );
-    this.name = "MissingPurchaseOrderSignerError";
-    this.role = role;
-    this.field = field;
-  }
-}
 
 /**
  * The renderer registry that renders and seals the packet's compositions.
@@ -117,52 +101,6 @@ export async function insuranceCertificatePdf(options: RenderPdfOptions = {}): P
   return bytes;
 }
 
-/** The person who signs for a party. @throws {MissingPurchaseOrderSignerError} */
-function signerPerson(data: PurchaseOrderData, role: PurchaseOrderPartyRole): Person {
-  const field = SIGNER_CONTACT_FIELD[role];
-  const contact = data.fields[field];
-  if (typeof contact !== "object" || contact === null || typeof (contact as Person).name !== "string") {
-    throw new MissingPurchaseOrderSignerError(role, field);
-  }
-  return contact as Person;
-}
-
-/**
- * Thrown when no party fills a role the seal must bind a signatory to.
- *
- * A session that has not reached the parties yet, or data assembled by hand,
- * both produce this. Named for the same reason {@link MissingPurchaseOrderSignerError}
- * is: reading `undefined.id` says nothing about which party is missing from
- * which packet.
- */
-export class MissingPurchaseOrderPartyError extends Error {
-  /** The party role nothing fills. */
-  readonly role: string;
-
-  constructor(role: string) {
-    super(
-      `Cannot seal: no party fills the "${role}" role, so there is nobody to bind a ` +
-        "signatory to. A packet is sealed from a completed fill; this one is not complete."
-    );
-    this.name = "MissingPurchaseOrderPartyError";
-    this.role = role;
-  }
-}
-
-/**
- * The id the data carries for the party filling a role.
- *
- * @throws {MissingPurchaseOrderPartyError} when nothing fills the role.
- */
-function partyId(data: PurchaseOrderData, role: PurchaseOrderPartyRole): string {
-  const filling = data.parties[role];
-  const party = Array.isArray(filling) ? filling[0] : filling;
-  if (party === undefined || typeof party.id !== "string" || party.id.length === 0) {
-    throw new MissingPurchaseOrderPartyError(role);
-  }
-  return party.id;
-}
-
 /** Fills the purchase order and binds a signer to each party, ready to seal. */
 export function fillPurchaseOrderForSeal(data: PurchaseOrderData = purchaseOrderData) {
   // See `seal.ts`: `DocumentData` carries `Record<string, unknown>` fields and
@@ -172,12 +110,9 @@ export function fillPurchaseOrderForSeal(data: PurchaseOrderData = purchaseOrder
     parties: data.parties,
   } as Parameters<typeof purchaseOrder.fill>[0]);
 
-  for (const role of Object.keys(SIGNER_CONTACT_FIELD) as PurchaseOrderPartyRole[]) {
-    draft = draft
-      .addSigner(`${role}-signer`, { person: signerPerson(data, role) })
-      .addSignatory(role, partyId(data, role), { signerId: `${role}-signer` });
-  }
-  return draft;
+  return bindOrganizationSigners(draft, data, SIGNER_CONTACT_FIELD, (current, binding) => current
+    .addSigner(binding.signerId, { person: binding.person })
+    .addSignatory(binding.role, binding.partyId, { signerId: binding.signerId }));
 }
 
 /** What `sealVendorPacket` needs. */

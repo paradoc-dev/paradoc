@@ -3,6 +3,7 @@ import React from "react";
 import type { PageFurniture } from "@paradoc/react";
 
 import { PageNumber } from "../components/page-number";
+import { shortProposalData } from "./proposal-data";
 
 /**
  * The page furniture the sample proposal is measured with.
@@ -17,7 +18,9 @@ import { PageNumber } from "../components/page-number";
  */
 
 /** The firm the running head names. */
-export const PROPOSAL_FURNITURE_FIRM = "Northwind Partners LLP";
+export const PROPOSAL_FURNITURE_FIRM = String(
+  (shortProposalData.fields.provider as { name?: unknown }).name ?? ""
+);
 
 /** The document the running head names. */
 export const PROPOSAL_FURNITURE_TITLE = "Services proposal";

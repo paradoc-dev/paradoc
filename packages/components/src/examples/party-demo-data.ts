@@ -1,5 +1,5 @@
 /**
- * Sample data for `party-demo.ts`.
+ * Sample data for `party-artifact.ts`.
  *
  * The party records carry names only. The buyer's organization, address, and
  * phone are field values the artifact declares beside the `buyer` role, which

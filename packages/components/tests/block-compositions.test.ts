@@ -1,11 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { REGISTRY_ITEMS } from "../scripts/registry/manifest";
-
 /**
- * The shipped blocks are the acid test of the component vocabulary: a
+ * The shipped examples are the acid test of the component vocabulary: a
  * developer who reads one should see components, not the workarounds the
  * components replaced. So a block composition may not size its own text, route
  * its own sizes through the token helpers, wrap its own title in a bare keep,
@@ -16,9 +14,9 @@ import { REGISTRY_ITEMS } from "../scripts/registry/manifest";
  * components themselves emit sized classes on purpose: what is retired is a
  * composition writing them by hand.
  *
- * The proposal is not a block and is not scanned: it is the sample the
- * recorded preview plan was measured on, and one of its sections keeps its own
- * line pitch until that plan is measured again.
+ * A small explicit exception set demonstrates the lower-level primitives or
+ * CSS controls themselves. Those files are still scanned and must continue to
+ * contain the pattern that justifies their exception.
  */
 
 /** A text size or a leading, the same family `typography-guard.test.ts` holds components to. */
@@ -51,24 +49,39 @@ function retiredMarkup(source: string): string[] {
   return found;
 }
 
-/** The compositions the registry ships as blocks, read from the manifest so a new block is scanned without being listed here. */
-const COMPOSITIONS = REGISTRY_ITEMS.filter((item) => item.type === "registry:block").flatMap((item) =>
-  item.files.filter((file) => file.path.endsWith("-document.tsx")).map((file) => file.path)
-);
+/** Demos whose purpose is to expose the lower-level primitive or explicit CSS named here. */
+const DOCUMENTED_EXCEPTIONS = new Set([
+  "document-variant-custom-layout.tsx",
+  "keep-together-demo.tsx",
+  "keep-together-variant-custom-element.tsx",
+  "keep-together-variant-default-element.tsx",
+  "keep-together-variant-passthrough-attributes.tsx",
+  "page-break-demo.tsx",
+  "page-break-variant-inside-a-tables-rows.tsx",
+  "pages-variant-draft-watermark.tsx",
+  "pages-variant-page-count.tsx",
+  "pages-variant-page-furniture.tsx",
+  "proposal-document.tsx",
+  "proposal-furniture.tsx",
+  "vendor-packet-block-preview.tsx",
+]);
 
-describe("the block compositions", () => {
-  it("scans every block the registry ships", () => {
-    expect(COMPOSITIONS).toEqual([
-      "examples/purchase-order-document.tsx",
-      "examples/invoice-document.tsx",
-      "examples/engagement-letter-document.tsx",
-      "examples/vendor-packet-document.tsx",
-    ]);
+const EXAMPLES = (await readdir(resolve(import.meta.dirname, "../src/examples")))
+  .filter((path) => path.endsWith(".tsx"))
+  .sort();
+
+describe("the example compositions", () => {
+  it("scans every TSX source in src/examples", () => {
+    expect(EXAMPLES).toContain("arabic-letter-document.tsx");
+    expect(EXAMPLES).toContain("insurance-certificate.tsx");
+    expect(EXAMPLES.length).toBeGreaterThan(40);
   });
 
-  it.each(COMPOSITIONS)("%s composes components, not hand-sized markup", async (path) => {
-    const source = await readFile(resolve(import.meta.dirname, "../src", path), "utf8");
-    expect(retiredMarkup(source)).toEqual([]);
+  it.each(EXAMPLES)("%s has only documented retired markup", async (path) => {
+    const source = await readFile(resolve(import.meta.dirname, "../src/examples", path), "utf8");
+    const findings = retiredMarkup(source);
+    if (DOCUMENTED_EXCEPTIONS.has(path)) expect(findings.length).toBeGreaterThan(0);
+    else expect(findings).toEqual([]);
   });
 });
 
