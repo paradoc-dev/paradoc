@@ -107,6 +107,19 @@ describe('CLI inspect command', () => {
       }
     })
 
+    it('treats ? as exactly one character in a filter', async () => {
+      const pdf = path.join(fixturesDir, 'pet-addendum-bindings.pdf')
+      const all = await executeCliCommand(['inspect', pdf, '--format', 'json'])
+      expect(all.exitCode, all.stderr).toBe(0)
+      const [field] = JSON.parse(all.stdout) as Array<{ name: string }>
+      expect(field).toBeDefined()
+      const pattern = `${field!.name.slice(0, -1)}?`
+
+      const result = await executeCliCommand(['inspect', pdf, '--format', 'json', '--filter', pattern])
+      expect(result.exitCode, result.stderr).toBe(0)
+      expect((JSON.parse(result.stdout) as Array<{ name: string }>).map(({ name }) => name)).toContain(field!.name)
+    })
+
     it('should show summary with --summary', async () => {
       const pdf = path.join(fixturesDir, 'pet-addendum-bindings.pdf')
       const result = await executeCliCommand(['inspect', pdf, '--summary'])

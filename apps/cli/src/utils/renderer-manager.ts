@@ -17,7 +17,6 @@ const RENDERER_VERSIONS: Record<string, string> =
   typeof __RENDERER_VERSIONS__ !== 'undefined'
     ? __RENDERER_VERSIONS__
     : {
-        '@paradoc/render': '0.5.0',
         '@paradoc/react': '0.5.0',
         '@paradoc/react-pdf': '0.5.0',
       }
@@ -34,10 +33,6 @@ const RENDERER_PEER_VERSIONS: Record<string, Record<string, string>> =
   typeof __RENDERER_PEER_VERSIONS__ !== 'undefined'
     ? __RENDERER_PEER_VERSIONS__
     : {
-        '@paradoc/render': {
-          '@paradoc/types': '0.5.0',
-          '@paradoc/format': '0.5.0',
-        },
         '@paradoc/react': {
           react: '19.2.3',
           'react-dom': '19.2.3',
@@ -90,10 +85,15 @@ class RendererManager {
     // In a workspace (dev), the renderer resolves via pnpm linking
     try {
       return await import(pkg)
-    } catch {
-      // Published CLI — install into isolated directory
-      const dir = await this.ensureRenderer(pkg)
-      return await import(pathToFileURL(resolveInstalledEntry(dir, pkg)).href)
+    } catch (error) {
+      const packageName = getPackageName(pkg)
+      try {
+        createRequire(import.meta.url).resolve(packageName)
+      } catch {
+        const dir = await this.ensureRenderer(pkg)
+        return await import(pathToFileURL(resolveInstalledEntry(dir, pkg)).href)
+      }
+      throw error
     }
   }
 
@@ -125,7 +125,7 @@ class RendererManager {
       await fs.writeFile(join(dir, 'package.json'), JSON.stringify(pkgJson, null, 2))
 
       // npm is always available with Node.js
-      await execFileAsync('npm', ['install', '--production', '--ignore-scripts'], {
+      await execFileAsync('npm', ['install', '--omit=dev', '--ignore-scripts'], {
         cwd: dir,
         env: { ...process.env, NODE_ENV: 'production' },
       })

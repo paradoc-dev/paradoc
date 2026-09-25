@@ -5,8 +5,8 @@ ogTitle: paradoc renderers
 ogDescription: Manage the Paradoc CLI renderer package
 ---
 
-Manages the renderer packages used by the `render`, `inspect`, and `check`
-commands.
+Manages the optional renderer packages used by the `check` command. The CLI
+bundles `@paradoc/render` for `render` and `inspect`.
 
 ## Usage
 
@@ -16,13 +16,12 @@ paradoc renderers <command>
 
 ## Overview
 
-The renderer packages are not bundled with the CLI. Each one is installed on
-demand the first time a command needs it, then cached in
+Optional renderer packages are installed on demand the first time `check`
+needs them, then cached in
 `~/.paradoc/renderers/`.
 
 | Package | Short name | Used for |
 |---------|------------|----------|
-| `@paradoc/render` | `render` | `render` (text, Markdown, HTML, PDF, DOCX) and `inspect` |
 | `@paradoc/react` | `react` | `check` (finding a composition's artifact and sample) |
 | `@paradoc/react-pdf` | `react-pdf` | `check` (binding and checking React document layers) |
 
@@ -70,7 +69,7 @@ paradoc renderers install [name]
 
 | Argument | Description |
 |----------|-------------|
-| `name` | A short name (`render`, `react`, `react-pdf`), a full package name (`@paradoc/render`, `@paradoc/react`, `@paradoc/react-pdf`), or a format served by `@paradoc/render` (`text`, `pdf`, `docx`) |
+| `name` | A short name (`react`, `react-pdf`) or a full package name (`@paradoc/react`, `@paradoc/react-pdf`) |
 
 ### Examples
 
@@ -84,12 +83,6 @@ Install one package by its short name:
 
 ```bash
 paradoc renderers install react-pdf
-```
-
-The format names install `@paradoc/render`:
-
-```bash
-paradoc renderers install pdf
 ```
 
 ---
@@ -106,19 +99,19 @@ paradoc renderers remove [name]
 
 | Argument | Description |
 |----------|-------------|
-| `name` | A short name (`render`, `react`, `react-pdf`), a full package name (`@paradoc/render`, `@paradoc/react`, `@paradoc/react-pdf`), or a format served by `@paradoc/render` (`text`, `pdf`, `docx`) |
+| `name` | A short name (`react`, `react-pdf`) or a full package name (`@paradoc/react`, `@paradoc/react-pdf`) |
 
 ---
 
 ## renderers update
 
-Reinstall all renderers to match the versions pinned by the current CLI release.
+Update installed renderers to match the versions pinned by the current CLI release.
 
 ```bash
 paradoc renderers update
 ```
 
-This is useful after upgrading the CLI to ensure renderer versions stay in sync.
+Renderers that are not installed remain uninstalled.
 
 ## See also
 

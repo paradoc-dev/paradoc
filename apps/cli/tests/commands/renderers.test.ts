@@ -1,10 +1,10 @@
 import { runCli } from '../setup/spawn-cli'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { resolveRendererName } from '../../src/commands/renderers'
+import { createRenderersCommand, resolveRendererName } from '../../src/commands/renderers'
 import { rendererManager, resolveInstalledEntry } from '../../src/utils/renderer-manager'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -35,15 +35,10 @@ function executeCliCommand(args: string[], options: Parameters<typeof runCli>[1]
 describe('CLI renderers command', () => {
   it('keeps isolated renderer packages on the release version', () => {
     expect(rendererManager.getRendererPackages()).toEqual({
-      '@paradoc/render': '0.5.0',
       '@paradoc/react': '0.5.0',
       '@paradoc/react-pdf': '0.5.0',
     })
     expect(rendererManager.getRendererPeerDependencies()).toEqual({
-      '@paradoc/render': {
-        '@paradoc/types': '0.5.0',
-        '@paradoc/format': '0.5.0',
-      },
       '@paradoc/react': {
         react: '19.2.3',
         'react-dom': '19.2.3',
@@ -100,17 +95,11 @@ describe('CLI renderers command', () => {
   })
 
   describe('resolveRendererName', () => {
-    const packages = { '@paradoc/render': '0.5.0', '@paradoc/react': '0.5.0', '@paradoc/react-pdf': '0.5.0' }
+    const packages = { '@paradoc/react': '0.5.0', '@paradoc/react-pdf': '0.5.0' }
 
     it.each([
-      ['render', '@paradoc/render'],
       ['react', '@paradoc/react'],
-      ['@paradoc/render', '@paradoc/render'],
       ['@paradoc/react', '@paradoc/react'],
-      ['text', '@paradoc/render'],
-      ['pdf', '@paradoc/render'],
-      ['docx', '@paradoc/render'],
-      ['@paradoc/render/pdf', '@paradoc/render'],
       ['react-pdf', '@paradoc/react-pdf'],
       ['@paradoc/react-pdf', '@paradoc/react-pdf'],
       ['@paradoc/react-pdf/check', '@paradoc/react-pdf'],
@@ -121,7 +110,7 @@ describe('CLI renderers command', () => {
 
     it('rejects an unknown name and lists every name it accepts', () => {
       expect(() => resolveRendererName('nonexistent', packages)).toThrow(
-        'Unknown renderer "nonexistent". Available: render, react, react-pdf, text, pdf, docx',
+        'Unknown renderer "nonexistent". Available: react, react-pdf',
       )
     })
 
@@ -140,6 +129,22 @@ describe('CLI renderers command', () => {
       expect(result.stdout).toContain('remove')
       expect(result.stdout).toContain('update')
     })
+  })
+
+  it('updates only renderer packages that are already installed', async () => {
+    const status = vi.spyOn(rendererManager, 'status').mockResolvedValue([
+      { name: '@paradoc/react', expectedVersion: '0.5.0', installedVersion: '0.4.0', installed: true, size: 1 },
+      { name: '@paradoc/react-pdf', expectedVersion: '0.5.0', installedVersion: null, installed: false, size: null },
+    ])
+    const install = vi.spyOn(rendererManager, 'installRenderer').mockResolvedValue()
+    try {
+      await createRenderersCommand().parseAsync(['node', 'renderers', 'update'])
+      expect(install).toHaveBeenCalledOnce()
+      expect(install).toHaveBeenCalledWith('@paradoc/react')
+    } finally {
+      status.mockRestore()
+      install.mockRestore()
+    }
   })
 
   describe('status', () => {

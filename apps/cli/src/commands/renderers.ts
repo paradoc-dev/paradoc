@@ -99,17 +99,14 @@ export function createRenderersCommand(): Command {
   // renderers update
   renderers
     .command('update')
-    .description('Reinstall all renderers to match current CLI version')
+    .description('Update installed renderers to match current CLI version')
     .action(async () => {
       try {
-        const spinner = ora('Removing outdated renderers...').start()
-        await rendererManager.removeAll()
-        spinner.succeed('Cleared existing renderers')
-
-        await rendererManager.installAll()
+        const installed = (await rendererManager.status()).filter((renderer) => renderer.installed)
+        for (const renderer of installed) await rendererManager.installRenderer(renderer.name)
 
         console.log()
-        console.log(kleur.green('✓') + ' All renderers updated')
+        console.log(kleur.green('✓') + ` Updated ${installed.length} installed ${installed.length === 1 ? 'renderer' : 'renderers'}`)
       } catch (error) {
         console.error(kleur.red(error instanceof Error ? error.message : String(error)))
         process.exit(1)
@@ -119,22 +116,16 @@ export function createRenderersCommand(): Command {
   return renderers
 }
 
-/** Format names whose entry points all live in @paradoc/render. */
-const RENDER_FORMATS = ['text', 'pdf', 'docx']
-
 /**
  * Resolve a renderer name to its package. Accepts the full package name, its
- * short name (`render`, `react`, `react-pdf`), one of its subpaths (`@paradoc/react-pdf/check`),
- * or a format served by @paradoc/render (`text`, `pdf`, `docx`).
+ * short name, or one of its subpaths (`@paradoc/react-pdf/check`).
  */
 export function resolveRendererName(name: string, packages: Record<string, string>): string {
-  if (RENDER_FORMATS.includes(name) && '@paradoc/render' in packages) return '@paradoc/render'
-
   const match = Object.keys(packages).find(
     (pkg) => name === pkg || name.startsWith(`${pkg}/`) || name === pkg.split('/').pop(),
   )
   if (match) return match
 
-  const available = [...Object.keys(packages).map((pkg) => pkg.split('/').pop()), ...RENDER_FORMATS].join(', ')
+  const available = Object.keys(packages).map((pkg) => pkg.split('/').pop()).join(', ')
   throw new Error(`Unknown renderer "${name}". Available: ${available}`)
 }

@@ -158,6 +158,13 @@ describe('CLI render command', () => {
       expect(result.stderr).toContain('Layer "default" is not a PDF layer, so the bindings render option does not apply')
     })
 
+    it('should refuse --bindings for a non-PDF layer even without --data', async () => {
+      const result = await executeCliCommand(['render', fixture, '--bindings', '{"pet":"fields.name"}'])
+
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('Layer "default" is not a PDF layer, so the bindings render option does not apply')
+    })
+
     it('should write output to file with --out', async () => {
       const outPath = path.join(tempDir, 'output.md')
 

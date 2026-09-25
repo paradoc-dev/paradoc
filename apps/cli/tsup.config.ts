@@ -6,7 +6,6 @@ const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 // Read the unified renderer package version for build-time injection
 const rendererVersions = {
-  '@paradoc/render': JSON.parse(readFileSync(resolve('../../packages/render/package.json'), 'utf-8')).version,
   '@paradoc/react': JSON.parse(readFileSync(resolve('../../packages/react/package.json'), 'utf-8')).version,
   '@paradoc/react-pdf': JSON.parse(readFileSync(resolve('../../packages/react-pdf/package.json'), 'utf-8')).version,
 }
@@ -14,10 +13,6 @@ const rendererVersions = {
 // (`react`/`react-dom` are ranges in the React packages' own peerDependencies,
 // so the exact version installed alongside each is read from its node_modules).
 const rendererPeerVersions = {
-  '@paradoc/render': {
-    '@paradoc/types': JSON.parse(readFileSync(resolve('../../packages/types/package.json'), 'utf-8')).version,
-    '@paradoc/format': JSON.parse(readFileSync(resolve('../../packages/format/package.json'), 'utf-8')).version,
-  },
   '@paradoc/react': {
     react: JSON.parse(readFileSync(resolve('../../packages/react/node_modules/react/package.json'), 'utf-8')).version,
     'react-dom': JSON.parse(readFileSync(resolve('../../packages/react/node_modules/react-dom/package.json'), 'utf-8')).version,
@@ -39,7 +34,7 @@ export default defineConfig({
     '.json': 'json',
   },
   // Don't externalize workspace packages that need to be bundled
-  noExternal: ['@paradoc/schemas', '@paradoc/core', 'zod'],
+  noExternal: ['@paradoc/schemas', '@paradoc/core', '@paradoc/render', 'zod'],
   // Deps that must remain external (CJS or Node-provided).
   external: ['fast-glob', 'safe-regex', 'undici'],
   // Resolve @/* path alias used internally by @paradoc/core

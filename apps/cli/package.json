@@ -53,6 +53,7 @@
     "test-registry": "tsx test-registry/server.ts"
   },
   "dependencies": {
+    "@paradoc/render": "workspace:^",
     "@paradoc/resolvers": "workspace:^",
     "commander": "^12.1.0",
     "diff": "^8.0.2",
@@ -74,7 +75,6 @@
     "@paradoc/eslint-config": "workspace:*",
     "@paradoc/react": "workspace:*",
     "@paradoc/react-pdf": "workspace:*",
-    "@paradoc/render": "workspace:*",
     "@paradoc/schemas": "workspace:*",
     "@paradoc/types": "workspace:*",
     "@paradoc/typescript-config": "workspace:*",

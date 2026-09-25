@@ -9,13 +9,13 @@ import {
   type Layer,
   type Form,
 } from '@paradoc/core'
-import { rendererManager } from '../utils/renderer-manager.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { createFsResolver } from '@paradoc/resolvers/fs'
 
 import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { parseDataInput, normalizeFormData } from '../utils/data-input.js'
 import { loadValidatedArtifact } from '../utils/artifact-file.js'
+import { createLayerRenderer } from '@paradoc/render'
 
 type OutputFormat = 'json' | 'pretty'
 
@@ -38,7 +38,7 @@ export function createRenderCommand(): Command {
     .option('--bindings <pathOrJson>', 'PDF layers only: AcroForm field bindings merged over the layer\'s own (path to JSON/YAML or inline JSON)')
     .option('--out <file>', 'Write output to file (defaults to stdout)')
     .option('--format <style>', 'Summary format: pretty|json', 'pretty')
-    .option('--layer <key>', 'Layer key to use (defaults to artifact.defaultLayer)')
+    .option('--layer <key>', 'Layer key to use (defaults to defaultLayer, else the first declared layer)')
     .option('--dry-run', 'Validate and resolve layer without rendering')
     .action(async (artifactTarget: string, options: RenderOptions) => {
       try {
@@ -80,25 +80,30 @@ export function createRenderCommand(): Command {
           ? (await parseDataInput(options.bindings)).data as Record<string, string>
           : undefined
 
-        if (options.data && isForm(artifact)) {
+        if (parsedBindings) {
+          if (!isForm(artifact)) {
+            throw new Error('The bindings render option is only supported for form artifacts.')
+          }
+        }
+
+        if ((options.data || parsedBindings) && isForm(artifact)) {
           // Parse data from file, stdin, or inline JSON
-          const { data: rawData, source: dataSource } = await parseDataInput(options.data)
-          const normalizedData = normalizeFormData(rawData)
+          const parsedData = options.data ? await parseDataInput(options.data) : undefined
+          const normalizedData = parsedData ? normalizeFormData(parsedData.data) : undefined
 
           const formInstance = formApi.from(artifact as Form, { resolver })
 
-          const mod = await rendererManager.loadModule('@paradoc/render')
-          const renderer = (mod.createLayerRenderer as (...args: never[]) => any)()
+          const renderer = createLayerRenderer()
           content = await formInstance.render({
             renderer,
-            data: normalizedData,
+            ...(normalizedData && { data: normalizedData }),
             layer: layerKey,
             bindings: parsedBindings,
           })
 
           // Log data source if not writing to file (when outputting to stdout)
-          if (!options.out && format === 'pretty') {
-            const sourceDesc = dataSource === 'stdin' ? 'stdin' : dataSource === 'inline' ? 'inline JSON' : options.data
+          if (options.data && parsedData && !options.out && format === 'pretty') {
+            const sourceDesc = parsedData.source === 'stdin' ? 'stdin' : parsedData.source === 'inline' ? 'inline JSON' : options.data
             console.error(kleur.gray(`Data from: ${sourceDesc}`))
           }
         } else if (options.data && !isForm(artifact)) {

@@ -1,21 +1,10 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
-import { rendererManager } from '../utils/renderer-manager.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { formatTable } from '../utils/table.js'
+import { inspectAcroFormFields, type PdfFieldInfo } from '@paradoc/render/pdf'
 
 import { readBinaryInput } from '../utils/io.js'
-
-/** PDF field info shape returned by inspectAcroFormFields */
-interface PdfFieldInfo {
-  name: string
-  type: string
-  required: boolean
-  value: string | boolean | string[] | null | undefined
-  page?: number
-  rect?: [number, number, number, number]
-  maxLen?: number | null
-}
 
 interface InspectOptions {
   format?: 'table' | 'json'
@@ -44,13 +33,6 @@ export function createInspectCommand(): Command {
 
         const format = normalizeFormatOption(options.format ?? 'table')
         const { data, sourcePath } = await readBinaryInput(pdfTarget)
-
-        // Dynamically load the PDF renderer for inspectAcroFormFields
-        const mod = await rendererManager.loadModule('@paradoc/render/pdf')
-        const inspectAcroFormFields = mod.inspectAcroFormFields as (
-          data: Uint8Array,
-          options?: { includeButton?: boolean; includeSignature?: boolean }
-        ) => Promise<PdfFieldInfo[]>
 
         const fields = await inspectAcroFormFields(data, {
           includeButton: Boolean(options.includeButtons),
@@ -100,7 +82,7 @@ function applyFilter(fields: PdfFieldInfo[], pattern?: string): PdfFieldInfo[] {
 }
 
 function globToRegex(pattern: string): RegExp {
-  const escaped = pattern.replace(/[-[\]/{}()+?.\\^$|]/g, '\\$&')
+  const escaped = pattern.replace(/[-[\]/{}()+.\\^$|]/g, '\\$&')
   const regexPattern = `^${escaped.replace(/\*/g, '.*').replace(/\?/g, '.')}$`
   return new RegExp(regexPattern, 'i')
 }

@@ -27,7 +27,7 @@ paradoc render <artifact> [options]
 | `--bindings <pathOrJson>` | PDF layers only: AcroForm field name to Paradoc path, merged over the layer's own bindings (path to JSON/YAML or inline JSON) |
 | `--out <file>` | Write output to file (defaults to stdout) |
 | `--format <style>` | Summary format: `pretty` or `json` (default: pretty) |
-| `--layer <key>` | Layer key to use (defaults to artifact.defaultLayer) |
+| `--layer <key>` | Layer key to use (defaults to `defaultLayer`, else the first declared layer) |
 | `--dry-run` | Validate and resolve layer without rendering |
 
 ## Description
