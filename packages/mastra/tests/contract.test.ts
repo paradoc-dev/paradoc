@@ -200,7 +200,7 @@ describe('@paradoc/mastra', () => {
 			name: 'Model output test',
 			instructions: 'Render the document.',
 			model: model as never,
-			tools: { render: createRenderTool({ maxOutputBytes: 4 }) },
+			tools: { render: render({ maxOutputBytes: 4 }) },
 		})
 
 		await agent.generate('Render it', { maxSteps: 2 })
