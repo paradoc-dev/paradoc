@@ -19,7 +19,7 @@ allowed-tools: "Bash(npx:*) Bash(node:*) Read Write Edit Glob Grep"
 
 # Paradoc
 
-Paradoc is a documents-as-code framework. An **artifact** (form, document, checklist or bundle) is a typed JSON/YAML definition. You fill a form to get a **draft**, validate it, render it to text, Markdown, HTML, DOCX or PDF, and seal it for signing.
+Paradoc is a documents-as-code framework. An **artifact** is a typed JSON/YAML form, document, checklist, or bundle. Fill a form to get a **draft**, validate it, render it to text, Markdown, HTML, DOCX, or PDF, and seal it for signing.
 
 ## Global rules
 
@@ -36,7 +36,7 @@ Paradoc is a documents-as-code framework. An **artifact** (form, document, check
 
 ## Packages
 
-Install `@paradoc/sdk`: it re-exports `core`, `format` and `sessions`, `expr` as a namespace, plus `createLayerRenderer` and the PDF placement helpers from `render`. Import other rendering APIs from `@paradoc/render/text`, `@paradoc/render/pdf`, or `@paradoc/render/docx`.
+Install `@paradoc/sdk`. It re-exports `core`, `format`, and `sessions`; exposes `expr` as a namespace; and includes `createLayerRenderer` and the PDF placement helpers from `render`. Import other rendering APIs from `@paradoc/render/text`, `@paradoc/render/pdf`, or `@paradoc/render/docx`.
 
 | Package | Use it for |
 |---------|-----------|
@@ -51,7 +51,7 @@ More: [sdk.md § Packages](./references/sdk.md).
 
 ## Pick a surface
 
-Load the ref for how the user works. Load more than one when surfaces mix.
+Load the reference for the user's surface. Load each relevant reference when surfaces mix.
 
 | The user is... | Load |
 |----------------|------|
@@ -66,7 +66,7 @@ The AI tool packages and the MCP server are different tool sets with different n
 
 ## Topics
 
-Topic refs are the one source for each concept. Load the one the task touches.
+Each concept has one topic reference. Load every reference the task touches.
 
 | Task | Load |
 |------|------|

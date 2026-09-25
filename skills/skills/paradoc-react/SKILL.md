@@ -18,7 +18,7 @@ allowed-tools: "Bash(npx:*) Bash(node:*) Bash(pnpm:*) Bash(paradoc:*) Read Write
 
 # Paradoc React
 
-A **composition** is a React component that draws one Paradoc form artifact. The same tree renders in the browser and as PDF. The artifact supplies every value; the composition decides only how the page looks.
+A **composition** is a React component that lays out one Paradoc form artifact. The same tree renders in the browser and as a PDF. The artifact supplies every value; the composition controls only the page layout.
 
 ## Core rules
 
@@ -35,11 +35,11 @@ A **composition** is a React component that draws one Paradoc form artifact. The
 
 Do the steps in order. Each ends on a result you can check.
 
-1. **Install.** `paradoc add document-styles pages document field table signature` (needs a `components.json`), or a block plus the shared substrate, such as `paradoc add document-styles pages invoice`. See [cli.md § paradoc add](./references/cli.md#paradoc-add).
+1. **Install.** With a `components.json` in place, run `paradoc add document-styles pages document field table signature`, or install a block with its shared substrate, such as `paradoc add document-styles pages invoice`. See [cli.md § paradoc add](./references/cli.md#paradoc-add).
    Done when the component files exist under your components folder.
 2. **Declare the layer.** Add a file layer with `mimeType: "text/tsx"` whose `path` names the composition module. See [render-and-seal.md § Declare the layer](./references/render-and-seal.md#declare-the-layer).
    Done when `npx paradoc-cli validate <artifact>` exits 0.
-3. **Compose.** Write the default export with the components in [components.md](./references/components.md). When you write a component of your own, load [custom-components.md](./references/custom-components.md) first.
+3. **Compose.** Write the default export with the components in [components.md](./references/components.md). Before writing your own component, load [custom-components.md](./references/custom-components.md).
    Done when every value on the page comes from a `Field`, `Table`, `Totals`, `Party` or `Signature` path.
 4. **Check.** `paradoc check <composition>` finds unsupported classes, unresolved paths and missing images without rendering. See [cli.md § paradoc check](./references/cli.md#paradoc-check).
    Done when it exits 0.
@@ -47,7 +47,7 @@ Do the steps in order. Each ends on a result you can check.
    Done when the composition is listed with no `!`.
 6. **Render.** `renderPdf(element, { plan, furniture })`, or render through the artifact with `reactLayerRenderers`. Pass the preview's `plan` when the PDF must break where the preview broke. See [render-and-seal.md](./references/render-and-seal.md#render-through-the-layer).
    Done when you have bytes and `unknownBreaks` and `unknownRepeats` are empty.
-7. **Seal** (signed documents). Fill the form, add signers and signatories, then `seal({ renderers })`. See [render-and-seal.md § Seal](./references/render-and-seal.md#seal).
+7. **Seal signed documents.** Fill the form, add signers and signatories, then call `seal({ renderers })`. See [render-and-seal.md § Seal](./references/render-and-seal.md#seal).
    Done when `signatureMap` has one entry per slot.
 
 Render React layers with `renderPdf` or the layer renderers; `paradoc render` handles only the other layer kinds.
