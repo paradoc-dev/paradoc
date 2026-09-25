@@ -64,40 +64,6 @@ export async function ensureRepo(): Promise<string> {
   return root
 }
 
-// --------------------------------------------
-// File System Utilities
-// --------------------------------------------
-
-/**
- * Scan for artifacts in the repository
- */
-export async function scanArtifacts(repoRoot: string, pattern?: string): Promise<string[]> {
-  const storage = new LocalFileSystem(repoRoot)
-  const patterns = pattern ? [pattern] : ['*.yaml', '*.yml', '*.json', '!paradoc.json']
-
-  const files = await storage.glob(patterns, {
-    onlyFiles: true,
-    ignore: ['.paradoc/**', 'node_modules/**', '.git/**', 'artifacts/**'],
-  })
-
-  return files
-}
-
-/**
- * Scan for all files in the repository (not just artifacts)
- */
-export async function scanAllFiles(repoRoot: string, pattern?: string): Promise<string[]> {
-  const storage = new LocalFileSystem(repoRoot)
-  const patterns = pattern ? [pattern] : ['**/*', '!paradoc.json']
-
-  const files = await storage.glob(patterns, {
-    onlyFiles: true,
-    ignore: ['.paradoc/**', 'node_modules/**', '.git/**'],
-  })
-
-  return files
-}
-
 /**
  * Check if a file exists
  */
@@ -147,36 +113,4 @@ export async function parseAndValidateArtifact(filePath: string): Promise<Artifa
  */
 export function detectFileDependencies(artifact: Artifact): string[] {
   return [...fileReferencesOf(artifact)].map((reference) => reference.path)
-}
-
-// --------------------------------------------
-// Media type detection
-// --------------------------------------------
-
-/**
- * Get media type from file extension
- */
-export function getMediaType(filePath: string): string {
-  const storage = new LocalFileSystem()
-  const ext = storage.extname(filePath).toLowerCase()
-  const mediaTypes: Record<string, string> = {
-    '.html': 'text/html',
-    '.htm': 'text/html',
-    '.css': 'text/css',
-    '.js': 'text/javascript',
-    '.json': 'application/json',
-    '.yaml': 'application/yaml',
-    '.yml': 'application/yaml',
-    '.md': 'text/markdown',
-    '.txt': 'text/plain',
-    '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-  }
-
-  return mediaTypes[ext] || 'application/octet-stream'
 }

@@ -10,5 +10,5 @@ export interface ConsoleConfig {
 }
 
 export const consoleConfig: ConsoleConfig = {
-	baseUrl: 'https://paradoc.dev',
+	baseUrl: 'https://console.paradoc.dev',
 };

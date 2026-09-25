@@ -131,6 +131,7 @@ export async function findComponentsConfig(from: string): Promise<string | null>
 export async function ensureNamespace(
   configPath: string,
   registryUrl: string = COMPONENT_REGISTRY_URL,
+  dryRun: boolean = false,
 ): Promise<NamespaceResult> {
   const raw = await fs.readFile(configPath, 'utf8')
   const config = JSON.parse(raw) as ComponentsConfig
@@ -141,6 +142,8 @@ export async function ensureNamespace(
   }
 
   config.registries = { ...config.registries, [COMPONENT_NAMESPACE]: registryUrl }
+
+  if (dryRun) return 'added'
 
   // Two spaces and a trailing newline: what every tool that writes this file
   // uses, so adding one key does not reformat the whole thing in the diff.
@@ -196,7 +199,7 @@ export async function addComponents(
     return 1
   }
 
-  const namespace = await ensureNamespace(configPath, registryUrl)
+  const namespace = await ensureNamespace(configPath, registryUrl, options.dryRun)
   if (namespace === 'conflict') {
     console.error(
       kleur.red(`components.json already maps ${COMPONENT_NAMESPACE} to a different registry.`),
@@ -206,7 +209,7 @@ export async function addComponents(
     )
     return 1
   }
-  if (namespace === 'added') {
+  if (namespace === 'added' && !options.dryRun) {
     console.log(kleur.gray(`Registered ${COMPONENT_NAMESPACE} in ${configPath}`))
   }
 

@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import kleur from "kleur";
 import open from "open";
+import { consoleConfig } from "../config/index.js";
 
 /**
  * Create the 'console' command
@@ -13,7 +14,7 @@ export function createConsoleCommand(): Command {
 		.description("Open Paradoc web console in browser")
 		.action(async () => {
 			console.log(kleur.gray("Opening Paradoc console..."));
-			await open("https://paradoc.dev");
+			await open(consoleConfig.baseUrl);
 		});
 
 	return consoleCmd;

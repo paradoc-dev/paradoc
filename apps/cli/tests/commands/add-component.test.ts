@@ -130,9 +130,7 @@ describe('registering the namespace', () => {
 
     expect(await ensureNamespace(configPath)).toBe('conflict')
     const written = JSON.parse(await fs.readFile(configPath, 'utf8'))
-    expect(written.registries[COMPONENT_NAMESPACE]).toBe(
-      'https://mirror.example.com/r/{name}.json',
-    )
+    expect(written.registries[COMPONENT_NAMESPACE]).toBe('https://mirror.example.com/r/{name}.json')
   })
 
   it('keeps another registry namespace beside ours', async () => {
@@ -224,8 +222,7 @@ describe('installing', () => {
     }
 
     const written = JSON.parse(await fs.readFile(configPath, 'utf8'))
-    expect(written.registries[COMPONENT_NAMESPACE]).toBe(
-      'https://mirror.example.com/r/{name}.json',
-    )
+    expect(written.registries).toBeUndefined()
+    expect(printed.join('\n')).toContain('@paradoc/field')
   })
 })

@@ -1,4 +1,4 @@
-import { Command } from 'commander'
+import { Command, Option } from 'commander'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import slugify from 'slugify'
@@ -7,6 +7,7 @@ import { generateManifestTemplate } from '../utils/templates.js'
 import { writeFile } from '../utils/file-writer.js'
 import { findConfig } from '../utils/config.js'
 import { trackEvent } from '../utils/telemetry.js'
+import { ManifestSchema } from '@paradoc/schemas'
 
 interface InitOptions {
   yes?: boolean
@@ -30,7 +31,7 @@ export function createInitCommand(): Command {
     .option('-y, --yes', 'Non-interactive mode (skip prompts)')
     .option('--name <name>', 'Project title (required in non-interactive mode)')
     .option('--description <desc>', 'Project description')
-    .option('--visibility <public|private>', 'Project visibility (default: private)')
+    .addOption(new Option('--visibility <visibility>', 'Project visibility (default: private)').choices(['public', 'private']))
     .option('--nested', 'Allow creating nested project inside existing project')
     .option('--dry-run', 'Preview without creating files')
     .action(async (directory?: string, options: InitOptions = {}) => {
@@ -135,7 +136,7 @@ export function createInitCommand(): Command {
         // Check if paradoc.json already exists in target directory
         const configPath = storage.joinPath('paradoc.json')
         try {
-          if ((await storage.exists('paradoc.json')) && !dryRun) {
+          if (await storage.exists('paradoc.json')) {
             console.log()
             console.log(kleur.red('✗ paradoc.json already exists in this directory'))
             console.log(kleur.gray(`  ${configPath}`))
@@ -150,7 +151,7 @@ export function createInitCommand(): Command {
         const parentConfig = await findConfig(targetDirectory)
         let allowNested = options.nested || false
 
-        if (parentConfig && !allowNested && !dryRun) {
+        if (parentConfig && !allowNested) {
           if (yes) {
             // Non-interactive mode: error if nested not explicitly allowed
             console.log()
@@ -203,11 +204,18 @@ export function createInitCommand(): Command {
 
         // Generate manifest template
         const slug = slugify(projectTitle, { lower: true, strict: true, trim: true })
+        if (!slug) {
+          throw new Error('Project title must contain at least one letter or number')
+        }
         const template = generateManifestTemplate(projectTitle, {
           description: projectDescription,
           visibility: projectVisibility,
           org: orgSlug,
         })
+        const parsedTemplate = ManifestSchema.safeParse(template)
+        if (!parsedTemplate.success) {
+          throw new Error(`Invalid project manifest: ${parsedTemplate.error.issues.map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`).join(', ')}`)
+        }
 
         // Show summary in interactive mode
         if (!yes && !dryRun) {
@@ -236,7 +244,7 @@ export function createInitCommand(): Command {
         }
 
         // Write paradoc.json
-        writeFile(configPath, template, { dryRun, format: 'json' })
+        await writeFile(configPath, parsedTemplate.data, { dryRun, format: 'json' })
 
         // Show success message
         if (!dryRun) {
