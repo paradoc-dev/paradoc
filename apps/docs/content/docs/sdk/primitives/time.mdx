@@ -79,7 +79,7 @@ const time = p.time('14:30:00')
   { name: 'parse', params: 'input: unknown', returns: 'string', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<string>', description: 'Parse unknown input (returns result object)' },
   { name: 'isValid', params: 'input: string', returns: 'boolean', description: 'Check if a string is a valid time' },
-  { name: 'now', params: '', returns: 'string', description: 'Get current time as ISO string' },
+  { name: 'now', params: '', returns: 'string', description: 'Get current local wall-clock time as HH:mm:ss' },
 ]} />
 
 ## Format
@@ -88,7 +88,7 @@ The Time primitive expects and returns strings in ISO 8601 time format:
 
 ```
 HH:mm:ss
-HH:mm:ss.sss
+HH:mm:ss[.fraction]
 ```
 
 | Component | Description | Range |
@@ -96,7 +96,7 @@ HH:mm:ss.sss
 | `HH` | Hours (24-hour) | 00-23 |
 | `mm` | Minutes | 00-59 |
 | `ss` | Seconds | 00-59 |
-| `.sss` | Milliseconds (optional) | 000-999 |
+| `.fraction` | Fractional seconds, one or more digits (optional) | .123 |
 
 ## Common Times
 
@@ -113,7 +113,7 @@ HH:mm:ss.sss
 
 The Time primitive validates:
 
-- String must match `HH:mm:ss` or `HH:mm:ss.sss` format
+- String must match `HH:mm:ss` or `HH:mm:ss[.fraction]` format
 - Hours must be 00-23
 - Minutes must be 00-59
 - Seconds must be 00-59
@@ -127,19 +127,14 @@ p.time('14:30:00.123')
 
 // Invalid - throws Error
 p.time('24:00:00')
-// Error: Invalid Time: hours must be between 00 and 23
 
 p.time('12:60:00')
-// Error: Invalid Time: minutes must be between 00 and 59
 
 p.time('14:30')
-// Error: Invalid Time: must be in HH:mm:ss format
 
 p.time('2:30:00')
-// Error: Invalid Time: must be in HH:mm:ss format
 
 p.time('not-a-time')
-// Error: Invalid Time: must be in HH:mm:ss format
 ```
 
 ## Related
@@ -147,4 +142,4 @@ p.time('not-a-time')
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Date](/sdk/primitives/date) - Date only
 - [Datetime](/sdk/primitives/datetime) - Combined date and time
-- [Time Field](/sdk/artifacts/form/field#time) - Time field type
+- [Time Field](/sdk/artifacts/form/field#date--datetime--time) - Time field type

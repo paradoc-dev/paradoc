@@ -155,15 +155,13 @@ p.identification({
 
 // Invalid - throws Error
 p.identification({ type: 'passport' })
-// Error: Invalid Identification: number is required
 
 p.identification({ type: '', number: 'AB123456' })
-// Error: Invalid Identification: type cannot be empty
 ```
 
 ## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Person](/sdk/primitives/person) - Person information
-- [Identification Field](/sdk/artifacts/form/field#identification) - Identification field type
+- [Identification Field](/sdk/artifacts/form/field#entity) - Identification field type
 - [Identification Schema](/schemas/primitives/identification) - JSON Schema definition

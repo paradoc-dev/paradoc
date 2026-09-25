@@ -125,13 +125,10 @@ p.coordinate({ lat: -90, lon: 0 })              // South Pole
 
 // Invalid - throws Error
 p.coordinate({ lat: 91, lon: 0 })
-// Error: Invalid Coordinate: lat must be between -90 and 90
 
 p.coordinate({ lat: 0, lon: 181 })
-// Error: Invalid Coordinate: lon must be between -180 and 180
 
 p.coordinate({ lat: NaN, lon: 0 })
-// Error: Invalid Coordinate: lat must be a valid number
 ```
 
 ## Common Coordinates
@@ -148,5 +145,5 @@ p.coordinate({ lat: NaN, lon: 0 })
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Bbox](/sdk/primitives/bbox) - Bounding box using coordinates
-- [Coordinate Field](/sdk/artifacts/form/field#coordinate) - Coordinate field type
+- [Coordinate Field](/sdk/artifacts/form/field#spatial) - Coordinate field type
 - [Coordinate Schema](/schemas/primitives/coordinate) - JSON Schema definition

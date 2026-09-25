@@ -58,7 +58,7 @@ const form = p.form({
 const filled = form.fill({
   fields: {
     overallRating: p.rating(4),
-    serviceRating: p.rating(8)
+    serviceRating: p.rating.parse(8, { min: 1, max: 10 })
   }
 })
 ```
@@ -82,7 +82,7 @@ const rating = p.rating(4)
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown, options?: RatingOptions', returns: 'number', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown, options?: RatingOptions', returns: 'Result<number>', description: 'Parse unknown input (returns result object)' },
-  { name: 'isValid', params: 'input: number', returns: 'boolean', description: 'Check if a number is a valid rating' },
+  { name: 'isValid', params: 'input: number, options?: RatingOptions', returns: 'boolean', description: 'Check if a number is a valid rating' },
 ]} />
 
 ### RatingOptions
@@ -140,16 +140,12 @@ p.rating.parse(0, { min: 0, max: 5 })              // Valid: custom min
 
 // Invalid with defaults - throws Error
 p.rating(0)
-// Error: 0 is outside the valid range (1-5)
 
 p.rating(4.5)
-// Error: 4.5 does not align with step size 1
 
 p.rating(NaN)
-// Error: value must be a finite number
 
 p.rating.parse(6, { min: 1, max: 5 })
-// Error: 6 is outside the valid range (1-5)
 ```
 
 ## Related

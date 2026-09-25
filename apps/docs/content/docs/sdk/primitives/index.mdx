@@ -3,16 +3,15 @@ title: Primitive Reference
 description: Build and validate primitive data types
 ---
 
-Primitives are structured data types used throughout Paradoc for representing common values like money, addresses, coordinates, and more. Each primitive has:
-
-- **Object pattern**: Pass a plain object for validation
-- **Builder pattern**: Chain methods for incremental construction
-- **Static methods**: `parse()` and `safeParse()` for validation
+Primitives are validated data types used throughout Paradoc. Object primitives accept plain objects and provide builders. Scalar primitives (`date`, `datetime`, `time`, `percentage`, and `rating`) accept one value and do not have builders. Every primitive provides `parse()` and `safeParse()` for validation.
 
 ## Available Primitives
 
 | Primitive | Description |
 |-----------|-------------|
+| [attachment](/schemas/primitives/attachment) | File attachment |
+| [metadata](/schemas/primitives/metadata) | Artifact metadata |
+| [signature](/schemas/primitives/signature) | Signature value |
 | [address](/sdk/primitives/address) | Postal address |
 | [bbox](/sdk/primitives/bbox) | Bounding box |
 | [coordinate](/sdk/primitives/coordinate) | Lat/lng point |
@@ -42,7 +41,6 @@ const price = money({ amount: 99.99, currency: 'USD' })
 
 // Throws if invalid
 const invalid = money({ amount: 'not a number', currency: 'USD' })
-// Error: Invalid Money: amount must be a number
 ```
 
 ### Builder Pattern

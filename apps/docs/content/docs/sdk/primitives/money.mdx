@@ -123,13 +123,10 @@ p.money({ amount: 99.999, currency: 'BTC' }) // Decimals allowed
 
 // Invalid - throws Error
 p.money({ amount: NaN, currency: 'USD' })
-// Error: Invalid Money: amount must be a valid number
 
 p.money({ amount: Infinity, currency: 'USD' })
-// Error: Invalid Money: amount cannot be Infinity
 
 p.money({ amount: 100 })
-// Error: Invalid Money: currency is required
 ```
 
 ## Common Currency Codes

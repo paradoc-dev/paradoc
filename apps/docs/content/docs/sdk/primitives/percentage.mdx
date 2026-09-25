@@ -73,7 +73,7 @@ const filled = form.fill({
 p.percentage(input: number): number
 ```
 
-Pass a number for validation. Returns the validated number or throws on error.
+Pass a number for validation. Returns the validated number, rounded to the configured precision (two decimal places by default), or throws on error.
 
 ```ts
 const pct = p.percentage(75.5)
@@ -84,7 +84,7 @@ const pct = p.percentage(75.5)
 <MethodTable methods={[
   { name: 'parse', params: 'input: unknown, options?: PercentageOptions', returns: 'number', description: 'Parse unknown input (throws on error)' },
   { name: 'safeParse', params: 'input: unknown, options?: PercentageOptions', returns: 'Result<number>', description: 'Parse unknown input (returns result object)' },
-  { name: 'isValid', params: 'input: number', returns: 'boolean', description: 'Check if a number is a valid percentage' },
+  { name: 'isValid', params: 'input: number, options?: PercentageOptions', returns: 'boolean', description: 'Check if a number is a valid percentage' },
   { name: 'fromDecimal', params: 'decimal: number', returns: 'number', description: 'Convert decimal to percentage (0.5 → 50)' },
   { name: 'toDecimal', params: 'percentage: number', returns: 'number', description: 'Convert percentage to decimal (50 → 0.5)' },
 ]} />
@@ -132,10 +132,8 @@ p.percentage.parse(150, { min: 0, max: 100 }) // Throws
 
 // Invalid - throws Error
 p.percentage(NaN)
-// Error: Invalid Percentage: value must be a valid number
 
 p.percentage(Infinity)
-// Error: Invalid Percentage: value cannot be Infinity
 ```
 
 ## Related

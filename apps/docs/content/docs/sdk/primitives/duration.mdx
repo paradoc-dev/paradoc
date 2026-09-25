@@ -120,21 +120,17 @@ p.duration('P0D')  // Zero duration
 
 // Invalid - throws Error
 p.duration('1Y')
-// Error: Invalid Duration: must start with P
 
 p.duration('P')
-// Error: Invalid Duration: must specify at least one component
 
 p.duration('P2H')
-// Error: Invalid Duration: time components must follow T
 
 p.duration('PT1Y')
-// Error: Invalid Duration: years cannot follow T designator
 ```
 
 ## Related
 
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Date](/sdk/primitives/date) - Date values
-- [Duration Field](/sdk/artifacts/form/field#duration) - Duration field type
+- [Duration Field](/sdk/artifacts/form/field#temporal) - Duration field type
 - [Duration Schema](/schemas/primitives/duration) - JSON Schema definition

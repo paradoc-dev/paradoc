@@ -81,7 +81,7 @@ const dt = p.datetime('2024-01-15T10:30:00Z')
   { name: 'safeParse', params: 'input: unknown', returns: 'Result<string>', description: 'Parse unknown input (returns result object)' },
   { name: 'isValid', params: 'input: string', returns: 'boolean', description: 'Check if a string is a valid datetime' },
   { name: 'fromDate', params: 'date: Date', returns: 'string', description: 'Convert a JavaScript Date to ISO datetime string' },
-  { name: 'now', params: '', returns: 'string', description: 'Get current datetime as ISO string' },
+  { name: 'now', params: '', returns: 'string', description: 'Get current UTC datetime with a Z suffix' },
 ]} />
 
 ## Format
@@ -90,7 +90,7 @@ The Datetime primitive expects and returns strings in ISO 8601 datetime format:
 
 ```
 YYYY-MM-DDTHH:mm:ssZ
-YYYY-MM-DDTHH:mm:ss.sssZ
+YYYY-MM-DDTHH:mm:ss[.fraction]Z
 YYYY-MM-DDTHH:mm:ss±HH:mm
 ```
 
@@ -99,7 +99,7 @@ YYYY-MM-DDTHH:mm:ss±HH:mm
 | `YYYY-MM-DD` | Date portion | 2024-01-15 |
 | `T` | Separator | T |
 | `HH:mm:ss` | Time (24-hour) | 10:30:00 |
-| `.sss` | Milliseconds (optional) | .123 |
+| `.fraction` | Fractional seconds, one or more digits (optional) | .123 |
 | `Z` | UTC timezone | Z |
 | `±HH:mm` | Timezone offset | +05:30 |
 
@@ -121,16 +121,12 @@ p.datetime('2024-01-15T10:30:00-08:00')
 
 // Invalid - throws Error
 p.datetime('2024-01-15')
-// Error: Invalid Datetime: missing time component
 
 p.datetime('2024-01-15T10:30:00')
-// Error: Invalid Datetime: missing timezone
 
 p.datetime('2024-01-15 10:30:00Z')
-// Error: Invalid Datetime: must use T separator
 
 p.datetime('not-a-datetime')
-// Error: Invalid Datetime: invalid format
 ```
 
 ## Related
@@ -138,4 +134,4 @@ p.datetime('not-a-datetime')
 - [Primitives Overview](/sdk/primitives) - All available primitives
 - [Date](/sdk/primitives/date) - Date only
 - [Time](/sdk/primitives/time) - Time only
-- [Datetime Field](/sdk/artifacts/form/field#datetime) - Datetime field type
+- [Datetime Field](/sdk/artifacts/form/field#date--datetime--timetime) - Datetime field type
