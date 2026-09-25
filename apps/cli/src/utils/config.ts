@@ -1,5 +1,5 @@
 import { LocalFileSystem } from './local-fs.js'
-import { GlobalConfigSchema, ManifestSchema, type GlobalConfig } from '@paradoc/schemas'
+import { GlobalConfigSchema, ManifestSchema, SCHEMA_BASE, type GlobalConfig } from '@paradoc/schemas'
 
 import type {
   ProjectManifest,
@@ -10,6 +10,7 @@ import type {
 } from '../types.js'
 import { DEFAULT_CACHE_TTL, defaultCacheDir } from './cache.js'
 import { userHomeDir } from './home.js'
+import path from 'node:path'
 import {
   DEFAULT_ALLOWED_CONTENT_TYPES,
   isBlockedContentType,
@@ -18,7 +19,7 @@ import {
 // Default paths (relative to the home directory)
 const GLOBAL_CONFIG_DIR = '.paradoc'
 const GLOBAL_CONFIG_FILE = 'config.json'
-const GLOBAL_CONFIG_SCHEMA_URL = 'https://schema.paradoc.dev/config.json'
+const GLOBAL_CONFIG_SCHEMA_URL = `${SCHEMA_BASE}/config.json`
 
 import type { ZodError } from 'zod'
 
@@ -116,11 +117,13 @@ export class ConfigManager {
   private projectManifest: ProjectManifest | null = null
   private projectRoot: string | null = null
   private readonly globalStorage: LocalFileSystem
+  private readonly homeDir: string
 
   /**
    * @param homeDir - Directory that holds `.paradoc/config.json`. Defaults to the user's home.
    */
   constructor(homeDir: string = userHomeDir()) {
+    this.homeDir = homeDir
     this.globalStorage = new LocalFileSystem(homeDir)
   }
 
@@ -549,11 +552,28 @@ export class ConfigManager {
 
   /**
    * Get cache directory path
-   * Global config takes precedence, falls back to default
+   * Project config takes precedence over global config, then falls back to the default.
    */
   async getCacheDirectory(): Promise<string> {
+    const projectDirectory = this.getProjectCacheConfig()?.directory
+    if (projectDirectory) return this.resolveCacheDirectory(projectDirectory, this.projectRoot ?? process.cwd())
     const globalCache = await this.getGlobalCacheConfig()
-    return globalCache?.directory ?? defaultCacheDir()
+    return globalCache?.directory
+      ? this.resolveCacheDirectory(globalCache.directory, path.dirname(this.getGlobalConfigPath()))
+      : defaultCacheDir()
+  }
+
+  private resolveCacheDirectory(directory: string, relativeTo: string): string {
+    if (directory === '~') return this.homeDir
+    if (directory.startsWith('~/')) return path.join(this.homeDir, directory.slice(2))
+    return path.isAbsolute(directory) ? directory : path.resolve(relativeTo, directory)
+  }
+
+  async getEffectiveCacheSettings(namespace: string, commandTtl?: number): Promise<{ directory: string; ttl: number }> {
+    return {
+      directory: await this.getCacheDirectory(),
+      ttl: await this.getEffectiveCacheTtl(namespace, commandTtl),
+    }
   }
 
   /**

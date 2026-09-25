@@ -31,7 +31,8 @@ export function createSearchCommand(): Command {
     .option('--kind <kind>', 'Filter by artifact kind (form, document, checklist, bundle)')
     .option('--tags <tags>', 'Filter by tags (comma-separated)')
     .option('--json', 'Output as JSON')
-    .action(async (query: string | undefined, options: SearchOptions & { registry?: string }) => {
+    .option('--no-cache', 'Skip cache and fetch fresh')
+    .action(async (query: string | undefined, options: SearchOptions & { registry?: string; cache?: boolean }) => {
       const spinner = ora()
 
       try {
@@ -58,6 +59,8 @@ export function createSearchCommand(): Command {
 
         // Resolve registry (an unconfigured namespace fails here, naming the add command)
         const registry = await resolveRegistry(namespace)
+        const cache = await configManager.getEffectiveCacheSettings(namespace)
+        await registryClient.initCache({ directory: cache.directory })
         spinner.start(`Searching ${namespace}...`)
 
         // Search artifacts
@@ -67,6 +70,9 @@ export function createSearchCommand(): Command {
             query,
             kind: options.kind,
             tags,
+          }, {
+            cacheTtl: options.cache === false ? 0 : cache.ttl,
+            skipCache: options.cache === false,
           })
         } catch (error) {
           if (isUnreachable(error)) {

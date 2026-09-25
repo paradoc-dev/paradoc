@@ -1,6 +1,6 @@
 import slugify from 'slugify'
 import { PARADOC_SCHEMA_URL } from '@paradoc/core'
-import { FORM_FIELD_TYPES, type FormFieldType } from '@paradoc/schemas'
+import { FORM_FIELD_TYPES, SCHEMA_BASE, type FormFieldType } from '@paradoc/schemas'
 
 export interface ProjectTemplate {
   name: string
@@ -90,7 +90,7 @@ export function generateManifestTemplate(
   const org = options.org || 'your-org'
 
   return {
-    $schema: 'https://schema.paradoc.dev/manifest.json',
+    $schema: `${SCHEMA_BASE}/manifest.json`,
     name: `@${org}/${slug}`,
     title,
     description: options.description || '',

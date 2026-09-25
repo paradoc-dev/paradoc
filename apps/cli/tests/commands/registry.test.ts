@@ -186,6 +186,23 @@ describe('CLI Registry Command', () => {
       const config = JSON.parse(await fs.readFile(path.join(home, '.paradoc', 'config.json'), 'utf-8'))
       expect(config.registries).toEqual({ '@acme': 'https://registry.acme.com' })
     })
+
+    it('uses project scope without prompting when --yes is passed in a project', async () => {
+      const project = path.join(tempDir, 'project')
+      const home = path.join(tempDir, 'home')
+      await fs.mkdir(path.join(project, '.paradoc'), { recursive: true })
+      await fs.writeFile(path.join(project, 'paradoc.json'), JSON.stringify({ name: '@test/project', title: 'Project' }))
+
+      const result = await executeCliCommand(
+        ['registry', 'add', '@acme', 'https://registry.acme.com', '--yes'],
+        { cwd: project, env: { HOME: home } },
+      )
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).not.toContain('Where would you like')
+      const manifest = JSON.parse(await fs.readFile(path.join(project, 'paradoc.json'), 'utf8'))
+      expect(manifest.registries, result.stdout + result.stderr).toEqual({ '@acme': 'https://registry.acme.com' })
+    })
   })
 
   describe('registry remove', () => {

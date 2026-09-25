@@ -42,7 +42,7 @@ The global config lives at `~/.paradoc/config.json`. It applies to all projects 
 | `defaults.artifactsDir` | string | `"artifacts"` | Default directory for downloaded artifacts |
 | `registries` | object | — | Registry configuration by namespace. An artifact reference always names its namespace, as in `@acme/w9`. `@paradoc` is reserved and built in; an entry for it is an error |
 | `cache.ttl` | number | `3600` | Cache time-to-live in seconds |
-| `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory |
+| `cache.directory` | string | `"~/.paradoc/cache"` | Cache storage directory. `~` uses your home directory; relative paths use the directory containing the config file. |
 | `security.allowedContentTypes` | array | — | Permitted content types for layer downloads |
 | `telemetry.enabled` | boolean | `true` | Set to `false` to turn off [telemetry](#telemetry) |
 | `anonymousId` | string | — | Anonymous telemetry ID. The CLI creates it once and keeps it across resets |

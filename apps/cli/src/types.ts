@@ -21,30 +21,8 @@ export type OutputFormat = 'json' | 'yaml' | 'typed' | 'ts'
 /**
  * Per-registry cache configuration
  */
-export interface RegistryCacheConfig {
-  /** Cache TTL in seconds. 0 disables caching for this registry. */
-  ttl?: number
-}
-
-/**
- * Cache configuration
- */
-export interface CacheConfig {
-  /** Default cache TTL in seconds. 0 disables caching. Default: 3600 (1 hour) */
-  ttl?: number
-  /** Custom cache directory path. Default: ~/.paradoc/cache */
-  directory?: string
-}
-
-/**
- * Registry entry - simple URL or object with auth
- */
-export type RegistryEntry = string | {
-  url: string
-  headers?: Record<string, string>
-  params?: Record<string, string>
-  cache?: RegistryCacheConfig
-}
+import type { RegistryCacheConfig } from '@paradoc/schemas'
+export type { RegistryCacheConfig, CacheConfig, RegistryEntry } from '@paradoc/schemas'
 
 /**
  * Project manifest (paradoc.json), lock file (.paradoc/lock.json) and their
@@ -61,28 +39,7 @@ export type {
 /**
  * Registry item summary (from registry.json index)
  */
-export interface RegistryItemSummary {
-  name: string
-  kind: ArtifactKind
-  version: string
-  path?: string
-  title?: string
-  description?: string
-  layers?: string[]
-  tags?: string[]
-}
-
-/**
- * Registry index (registry.json)
- */
-export interface RegistryIndex {
-  $schema?: string
-  name: string
-  homepage?: string
-  description?: string
-  artifactsPath?: string
-  items: RegistryItemSummary[]
-}
+export type { RegistryItemSummary, RegistryIndex } from '@paradoc/schemas'
 
 /**
  * Parsed artifact reference

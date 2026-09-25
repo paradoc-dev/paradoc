@@ -35,7 +35,7 @@
         },
         "directory": {
           "type": "string",
-          "description": "Custom cache directory path. Default: ~/.paradoc/cache"
+          "description": "Custom cache directory. A leading ~ uses the home directory; relative paths use the config file directory. Default: ~/.paradoc/cache"
         }
       },
       "additionalProperties": false,

@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import ora from 'ora'
 
 import { registryClient } from '../utils/registry-client.js'
-import { configManager, normalizeNamespace } from '../utils/config.js'
+import { configManager, normalizeNamespace, PARADOC_NAMESPACE } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
 import { resolveRegistry } from '../utils/registry.js'
 import { formatBytes } from '../utils/format.js'
@@ -77,9 +77,10 @@ export function createCacheCommand(): Command {
           await configManager.loadProjectManifest(projectRoot)
         }
         const cacheDir = await configManager.getCacheDirectory()
-        await registryClient.initCache({ directory: cacheDir })
+        const defaultTtl = await configManager.getCacheTtl(PARADOC_NAMESPACE)
+        await registryClient.initCache({ directory: cacheDir, defaultTtl })
 
-        const stats = await registryClient.getCacheStats()
+        const { sessionEntries: _, ...stats } = await registryClient.getCacheStats()
 
         if (options.json) {
           console.log(JSON.stringify(stats, null, 2))
@@ -90,7 +91,6 @@ export function createCacheCommand(): Command {
           console.log(kleur.gray('Directory:'), stats.directory)
           console.log(kleur.gray('Default TTL:'), formatTtl(stats.defaultTtl))
           console.log(kleur.gray('Disk entries:'), stats.entries)
-          console.log(kleur.gray('Session entries:'), stats.sessionEntries)
           console.log(kleur.gray('Total size:'), formatBytes(stats.totalSize))
           console.log()
         }

@@ -12,6 +12,7 @@ import { findRepoRoot } from '../utils/project.js'
 import { trackRegistryAdd } from '../utils/telemetry.js'
 import { parseArtifactFile } from '../utils/artifact-file.js'
 import { collectHeader } from '../utils/cli-helpers.js'
+import { SCHEMA_BASE } from '@paradoc/schemas'
 
 type ConfigTarget = 'global' | 'project'
 
@@ -121,7 +122,7 @@ export function createRegistryCommand(): Command {
             })
             if (!confirmed) {
               console.log(kleur.yellow('Cancelled.'))
-              process.exit(0)
+              process.exit(1)
             }
             namespace = normalizeNamespace(confirmed)
           } else {
@@ -163,7 +164,7 @@ export function createRegistryCommand(): Command {
             })
             if (action === 'cancel' || action === undefined) {
               console.log(kleur.yellow('Cancelled.'))
-              process.exit(0)
+              process.exit(1)
             }
             if (action === 'rename') {
               const { newName } = await prompts({
@@ -175,7 +176,7 @@ export function createRegistryCommand(): Command {
               })
               if (!newName) {
                 console.log(kleur.yellow('Cancelled.'))
-                process.exit(0)
+                process.exit(1)
               }
               namespace = normalizeNamespace(newName)
             }
@@ -212,6 +213,8 @@ export function createRegistryCommand(): Command {
             process.exit(1)
           }
           target = 'project'
+        } else if (options.yes) {
+          target = projectRoot ? 'project' : 'global'
         } else {
           // Interactive prompt
           if (projectRoot) {
@@ -535,7 +538,7 @@ export function createRegistryCommand(): Command {
 
         // Build registry object
         const registry: Record<string, unknown> = {
-          $schema: 'https://schema.paradoc.dev/registry.json',
+          $schema: `${SCHEMA_BASE}/registry.json`,
           name: registryName,
         }
 
@@ -603,11 +606,13 @@ export function createRegistryCommand(): Command {
         // Resolve registry
         spinner.start(`Fetching registry info for ${normalizedNamespace}...`)
         const resolved = await resolveRegistry(normalizedNamespace)
+        const cache = await configManager.getEffectiveCacheSettings(normalizedNamespace)
+        await registryClient.initCache({ directory: cache.directory })
 
         // Fetch registry index
         let index
         try {
-          index = await registryClient.fetchIndex(resolved)
+          index = await registryClient.fetchIndex(resolved, { cacheTtl: cache.ttl })
         } catch (error) {
           spinner.fail(`Failed to fetch registry index`)
           if (error instanceof RegistryFetchError) {
@@ -1198,4 +1203,3 @@ export function createRegistryCommand(): Command {
 
   return registry
 }
-

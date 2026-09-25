@@ -5,7 +5,7 @@
  */
 
 import { createHash } from 'node:crypto'
-import { LockFileSchema } from '@paradoc/schemas'
+import { LockFileSchema, SCHEMA_BASE } from '@paradoc/schemas'
 import { LocalFileSystem } from './local-fs.js'
 import { formatConfigIssues, isMissingFileError } from './config.js'
 
@@ -21,7 +21,7 @@ import type {
 const LOCK_FILE_DIR = '.paradoc'
 const LOCK_FILE_NAME = 'lock.json'
 const LOCK_FILE_VERSION = 1
-const LOCK_FILE_SCHEMA_URL = 'https://schema.paradoc.dev/lock.json'
+const LOCK_FILE_SCHEMA_URL = `${SCHEMA_BASE}/lock.json`
 
 /**
  * Lock file manager for tracking installed artifacts

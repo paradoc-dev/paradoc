@@ -20,6 +20,9 @@ export const ManifestCacheConfigSchema = z.strictObject({
 		.default(3600)
 		.describe('Default cache TTL in seconds. 0 disables caching. Default: 3600 (1 hour)')
 		.optional(),
+	directory: z.string()
+		.describe('Custom cache directory. A leading ~ uses the home directory; relative paths use the project root')
+		.optional(),
 }).meta({
 	title: 'ManifestCacheConfig',
 	description: 'Project-level cache configuration for registry data',

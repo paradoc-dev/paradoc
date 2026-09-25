@@ -56,6 +56,17 @@ describe('CLI cache command', () => {
       expect(result.stdout).toContain('Cache Statistics')
     })
 
+    it('reports the configured effective TTL without a session-entry field', async () => {
+      await fs.mkdir(path.join(testHome, '.paradoc'), { recursive: true })
+      await fs.writeFile(path.join(testHome, '.paradoc', 'config.json'), JSON.stringify({ cache: { ttl: 60 } }))
+
+      const result = await executeCliCommand(['cache', 'stats', '--json'])
+      const stats = JSON.parse(result.stdout)
+
+      expect(stats.defaultTtl).toBe(60)
+      expect(stats).not.toHaveProperty('sessionEntries')
+    })
+
     it('should support info alias', async () => {
       const result = await executeCliCommand(['cache', 'info', '--json'])
 

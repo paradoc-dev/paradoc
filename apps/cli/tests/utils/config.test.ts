@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { ConfigManager } from '../../src/utils/config.js'
 import { configAllowsTelemetry } from '../../src/utils/telemetry.js'
@@ -261,6 +261,19 @@ describe('ConfigManager', () => {
     }
     const readRaw = () => fs.readFile(configPath(), 'utf-8')
 
+    it('resolves global cache paths from the config directory and expands home paths', async () => {
+      await writeRaw(JSON.stringify({ cache: { directory: 'cache-data' } }))
+      const globalDirectory = await configManager.getCacheDirectory()
+      expect(basename(globalDirectory)).toBe('cache-data')
+      expect(await fs.realpath(dirname(globalDirectory))).toBe(await fs.realpath(join(tempDir, '.paradoc')))
+
+      const homePath = new ConfigManager(tempDir)
+      await fs.writeFile(configPath(), JSON.stringify({ cache: { directory: '~/cache-data' } }))
+      const homeDirectory = await homePath.getCacheDirectory()
+      expect(basename(homeDirectory)).toBe('cache-data')
+      expect(await fs.realpath(dirname(homeDirectory))).toBe(await fs.realpath(tempDir))
+    })
+
     it('loads a missing file as an empty config', async () => {
       expect(await configManager.loadGlobalConfig()).toEqual({})
     })
@@ -350,6 +363,14 @@ describe('ConfigManager', () => {
 
   describe('project manifest', () => {
     const manifestPath = () => join(tempDir, 'paradoc.json')
+
+    it('resolves a relative project cache directory from the project root', async () => {
+      await fs.writeFile(manifestPath(), JSON.stringify({ name: '@test/project', title: 'Project', cache: { directory: 'project-cache' } }))
+      await configManager.loadProjectManifest(tempDir)
+      const projectDirectory = await configManager.getCacheDirectory()
+      expect(basename(projectDirectory)).toBe('project-cache')
+      expect(await fs.realpath(dirname(projectDirectory))).toBe(await fs.realpath(tempDir))
+    })
 
     it('loads a missing manifest as null', async () => {
       expect(await configManager.loadProjectManifest(tempDir)).toBeNull()

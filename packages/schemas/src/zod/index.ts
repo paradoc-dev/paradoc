@@ -132,6 +132,7 @@ export {
 
 export type {
 	GlobalConfig,
+	CacheConfig,
 	GlobalDefaults,
 	ArtifactOutputFormat,
 	RegistryCacheConfig,

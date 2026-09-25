@@ -60,7 +60,8 @@ export function createResetCommand(): Command {
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('--keep-registries', 'Keep registry configurations')
     .option('--keep-cache', 'Keep cached data')
-    .action(async (options: { yes?: boolean; keepRegistries?: boolean; keepCache?: boolean }) => {
+    .option('--keep-renderers', 'Keep installed renderers')
+    .action(async (options: { yes?: boolean; keepRegistries?: boolean; keepCache?: boolean; keepRenderers?: boolean }) => {
       const spinner = ora()
 
       try {
@@ -78,9 +79,10 @@ export function createResetCommand(): Command {
         // Read the current config before anything is cleared, so a config the
         // CLI cannot read stops the reset with nothing changed.
         const currentConfig = await configManager.loadGlobalConfig()
+        const cacheDirectory = await configManager.getCacheDirectory()
 
         if (!options.keepCache) {
-          cacheSize = await getDirectorySize(paradocHomePath('cache'))
+          cacheSize = await getDirectorySize(cacheDirectory)
         }
 
         // Show what will be affected
@@ -97,13 +99,17 @@ export function createResetCommand(): Command {
 
         if (!options.keepCache) {
           if (cacheSize > 0) {
-            console.log(kleur.yellow(`  • Clear cache (~/.paradoc/cache) - ${formatBytes(cacheSize)}`))
+            console.log(kleur.yellow(`  • Clear cache (${cacheDirectory}) - ${formatBytes(cacheSize)}`))
           } else {
             console.log(kleur.gray('  • Clear cache (currently empty)'))
           }
         } else {
           console.log(kleur.gray('  • Keep cached data'))
         }
+
+        console.log(options.keepRenderers
+          ? kleur.gray('  • Keep installed renderers')
+          : kleur.yellow('  • Remove installed renderers'))
 
         console.log()
 
@@ -127,7 +133,7 @@ export function createResetCommand(): Command {
         // Clear cache
         if (!options.keepCache) {
           spinner.start('Clearing cache...')
-          await registryClient.initCache({ directory: paradocHomePath('cache') })
+          await registryClient.initCache({ directory: cacheDirectory })
           const cacheResult = await registryClient.clearCache()
           if (cacheResult.deleted > 0) {
             spinner.succeed(`Cleared ${cacheResult.deleted} cached ${cacheResult.deleted === 1 ? 'entry' : 'entries'}`)
@@ -137,9 +143,11 @@ export function createResetCommand(): Command {
         }
 
         // Clear installed renderers
-        spinner.start('Clearing installed renderers...')
-        await rendererManager.removeAll()
-        spinner.succeed('Cleared installed renderers')
+        if (!options.keepRenderers) {
+          spinner.start('Clearing installed renderers...')
+          await rendererManager.removeAll()
+          spinner.succeed('Cleared installed renderers')
+        }
 
         // Preserve user preferences from existing config
         const existingRegistries: GlobalConfig['registries'] | undefined =
