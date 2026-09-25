@@ -66,13 +66,13 @@ Party descriptions are left out here.
   "sections": {
     "fields": {
       "petName": { "type": "text", "label": "Pet name", "description": "Name of the pet", "required": true, "maxLength": 100 },
-      "species": { "type": "enum", "label": "Species", "description": "Species of the pet", "required": true, "enum": [{ "value": "dog" }, { "value": "cat" }, { "value": "fish" }] },
-      "weight": { "type": "number", "label": "Weight (lbs)", "description": "Weight of the pet in pounds", "required": true, "min": 0 },
+      "species": { "type": "enum", "label": "Species", "description": "Species of the pet", "required": true, "enum": [{ "value": "dog", "label": "Dog" }, { "value": "cat", "label": "Cat" }, { "value": "fish", "label": "Fish" }] },
+      "weight": { "type": "number", "label": "Weight (lbs)", "description": "Weight of the pet in pounds", "required": true, "min": 0, "max": 200 },
       "isVaccinated": { "type": "boolean", "label": "Vaccinated", "description": "Whether the pet is up to date on all required vaccinations", "required": true }
     },
     "parties": [
       { "id": "tenant", "label": "Tenant", "partyType": "person", "min": 1, "max": 1, "signature": { "required": true, "witnesses": 0, "notarized": false } },
-      { "id": "landlord", "label": "Landlord", "partyType": "organization", "min": 1, "max": 1, "signature": { "required": true, "witnesses": 0, "notarized": false } }
+      { "id": "landlord", "label": "Landlord", "partyType": "any", "min": 1, "max": 1, "signature": { "required": true, "witnesses": 0, "notarized": false } }
     ]
   },
   "truncated": false

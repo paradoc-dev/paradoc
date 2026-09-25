@@ -15,7 +15,7 @@ Use it directly to call the tools from your own code, or to build an adapter for
 npm install @paradoc/ai-tools
 ```
 
-Requires Node.js 18 or newer.
+Requires Node.js 22.13 or newer.
 
 ## Tool definitions
 
@@ -60,7 +60,7 @@ The execute functions do not throw for tool failures. They return a result with 
 
 An artifact read from a URL or a registry must carry the current dated `$schema`. An inline artifact may omit it, but one it declares must be current. Otherwise the error code is `missing-version`, `outdated-version`, or `unknown-version`, and the message names the current version and `paradoc migrate`. See [loading rules](/schemas#loading-rules).
 
-The execute functions do not parse their input with the Zod schema; the adapters leave that to the framework, which validates model calls first. When you call them directly, pass the snake_case field names shown on each tool page.
+The execute functions parse their input with the tool's Zod schema. Pass the snake_case field names shown on each tool page.
 
 ```typescript
 import { executeFill, executeGetFillState, executeRender } from "@paradoc/ai-tools"

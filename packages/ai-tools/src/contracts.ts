@@ -170,7 +170,7 @@ export const RenderInputSchema = withSourceFields({
 			include_content: z.boolean().optional().default(true),
 		})
 		.optional()
-		.describe('Optional model-facing output limit; application content remains available to the executor'),
+		.describe('Optional application-facing output limit; include_content false removes content from the returned result'),
 })
 export type RenderInput = z.infer<typeof RenderInputSchema>
 
