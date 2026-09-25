@@ -64,7 +64,7 @@ export const RegistryInlineLayerSchema = RegistryLayerBaseSchema.extend({
  * download the layer file from.
  */
 export const RegistryFileLayerSchema = withPdfOnlyFileLayerRules(FileLayerObjectSchema.extend({
-	url: z.url().describe('URL to download the layer file from'),
+	url: z.url().describe('Optional URL to download the layer file from; clients otherwise resolve path relative to the registry item').optional(),
 }).meta({
 	title: 'RegistryFileLayer',
 	description: 'File-backed layer with download URL',

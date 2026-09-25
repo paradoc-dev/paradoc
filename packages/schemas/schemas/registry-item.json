@@ -472,14 +472,13 @@
         "url": {
           "type": "string",
           "format": "uri",
-          "description": "URL to download the layer file from"
+          "description": "Optional URL to download the layer file from; clients otherwise resolve path relative to the registry item"
         }
       },
       "required": [
         "mimeType",
         "kind",
-        "path",
-        "url"
+        "path"
       ],
       "additionalProperties": false,
       "title": "RegistryFileLayer",

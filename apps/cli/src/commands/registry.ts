@@ -12,7 +12,7 @@ import { findRepoRoot } from '../utils/project.js'
 import { trackRegistryAdd } from '../utils/telemetry.js'
 import { fileReferencesOf, loadValidatedArtifact, parseArtifactFile } from '../utils/artifact-file.js'
 import { collectHeader } from '../utils/cli-helpers.js'
-import { SCHEMA_BASE } from '@paradoc/schemas'
+import { RegistryItemSchema, SCHEMA_BASE } from '@paradoc/schemas'
 
 type ConfigTarget = 'global' | 'project'
 
@@ -1046,6 +1046,14 @@ export function createRegistryCommand(): Command {
                 throw new Error(`referenced file escapes output directory: ${reference.path}`)
               }
               filesToCopy.push({ source, destination })
+            }
+
+            const compiledItem = RegistryItemSchema.safeParse(artifact)
+            if (!compiledItem.success) {
+              const issues = compiledItem.error.issues
+                .map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`)
+                .join('; ')
+              throw new Error(`compiled registry item is invalid: ${issues}`)
             }
 
             if (options.dryRun) {

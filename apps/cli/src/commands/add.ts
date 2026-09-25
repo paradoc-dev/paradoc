@@ -174,13 +174,13 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   const verifiedFiles: VerifiedFile[] = []
   const failures: FileFailure[] = []
 
-  const fetchVerified = async (label: string, filePath: string, destination: string, checksum: string): Promise<Buffer | null> => {
+  const fetchVerified = async (label: string, filePath: string, destination: string, checksum: string, sourceUrl = `${artifactDir}/${filePath}`): Promise<Buffer | null> => {
     spinner.start(`Downloading ${label}: ${filePath}...`)
     let cause: string
     try {
       const content = Buffer.from(await registryClient.fetchLayerBinary(
         registry,
-        `${artifactDir}/${filePath}`,
+        sourceUrl,
         allowedContentTypes
       ))
       const checksumResult = verifyChecksum(content, checksum)
@@ -225,7 +225,7 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
         continue
       }
 
-      const layerContent = await fetchVerified(`layer "${layerKey}"`, layer.path, sanitizedPath, layer.checksum)
+      const layerContent = await fetchVerified(`layer "${layerKey}"`, layer.path, sanitizedPath, layer.checksum, layer.url ?? `${artifactDir}/${layer.path}`)
       if (layerContent) {
         downloadedLayers[layerKey] = { content: layerContent, path: layer.path }
       }

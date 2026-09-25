@@ -5,7 +5,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
+import { PARADOC_SCHEMA_URL, RegistryItemSchema } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -602,6 +602,7 @@ describe('CLI Registry Command', () => {
       expect(result.exitCode).toBe(0)
 
       const compiled = JSON.parse(await fs.readFile(path.join(outDir, 'font-form.json'), 'utf8'))
+      expect(RegistryItemSchema.safeParse(compiled).success).toBe(true)
       const digest = (text: string) => `sha256:${createHash('sha256').update(text).digest('hex')}`
       expect(compiled.layers.pdf.checksum).toBe(digest('pdf bytes'))
       expect(compiled.layers.pdf.font).toEqual({ path: 'fonts/form.ttf', checksum: digest('font bytes') })

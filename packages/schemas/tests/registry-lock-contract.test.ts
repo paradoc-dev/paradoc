@@ -108,9 +108,9 @@ describe('schemas-014: the registry file layer extends the artifact file layer',
 		expect(RegistryFileLayerSchema.safeParse({ ...pdfLayer, colour: 'red' }).success).toBe(false);
 	});
 
-	it('requires the download URL', () => {
+	it('allows clients to resolve a missing download URL from the item path', () => {
 		const { url: _url, ...rest } = pdfLayer;
-		expect(messages(RegistryFileLayerSchema.safeParse(rest))).toEqual([expect.stringMatching(/^url: /)]);
+		expect(messages(RegistryFileLayerSchema.safeParse(rest))).toEqual([]);
 	});
 
 	it.each([
