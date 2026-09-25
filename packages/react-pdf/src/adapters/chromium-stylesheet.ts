@@ -1,21 +1,14 @@
 /**
  * The stylesheet the Chromium adapter prints against.
  *
- * The preview is a Tailwind page compiled by the lab's Vite plugin. A browser
- * printing the same tree needs the same CSS, and there is no bundler in a Node
- * render, so Tailwind is compiled here through its own API from
- * `src/styles.css` — the one stylesheet the package publishes — against the
- * class names the markup actually carries.
+ * A browser printing the tree needs Tailwind's utilities without a bundler, so
+ * this module compiles an inline Tailwind import and the shared direction rule
+ * against the class names the markup actually carries.
  *
  * Three things are added to it and nothing else:
  *
- * 1. `@font-face` rules for the files `resources.ts` names, as `file://` URLs,
- *    and the custom property that selects the document's family.
- *    The package's own stylesheet loads the faces through the bundler with
- *    relative paths, which resolve to nothing in a temporary directory, so they
- *    are restated from the same list rather than imported. The families, weights
- *    and unicode ranges are the fontsource packages' own, and only the family the
- *    document names is restated: a render embeds the faces it uses.
+ * 1. `@font-face` rules for every supplied face. Resolved bytes become `data:`
+ *    URLs; a file URL is used only when bytes are not retained.
  * 2. The page box. The preview's sheet is 816 x 1056 CSS pixels with a 48 pixel
  *    padding; a printed page is the same size with that 48 as its page margin,
  *    so every page carries it rather than only the first. That is the same
@@ -40,13 +33,7 @@ import { LTR_ISOLATE_STYLESHEET } from "@paradoc/react";
 
 const require = createRequire(import.meta.url);
 
-/**
- * The package's published stylesheet: the document's one font source.
- *
- * Resolved through the package's own export map rather than relative to this
- * module, which is one file in source and another in the built bundle. The
- * export map names one path from both, and it is the path the preview imports.
- */
+/** Shared direction isolation appended to the inline Tailwind source. */
 const DOCUMENT_STYLES = LTR_ISOLATE_STYLESHEET;
 
 /** CSS pixels per inch, which is what makes 816 x 1056 US Letter. */
@@ -131,13 +118,6 @@ function fontFace(font: PdfFontFile): string {
   return `@font-face {\n${lines.join("\n")}\n}`;
 }
 
-/**
- * The document's family, as the property `styles.css` reads it from.
- *
- * The preview writes the same property on the sheet from the same resolved
- * tokens, so the browser printing this page and the browser drawing the preview
- * select the same faces.
- */
 /** The page box, in the inches a printer takes and the pixels the preview states. */
 function pageBox(geometry: PdfPageGeometry): string {
   return [
@@ -184,6 +164,9 @@ export async function chromiumStylesheets(
 
   const content = [
     compiled.build(classCandidates(markup)),
+    fonts.some((font) => font.family === "Paradoc Signing Marker")
+      ? 'body { font-family: sans-serif, "Paradoc Signing Marker"; }'
+      : "",
     applicationCss ?? "",
     fonts.map(fontFace).join("\n\n"),
   ].join("\n\n");

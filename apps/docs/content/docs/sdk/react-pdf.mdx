@@ -179,6 +179,6 @@ A layer binds through `components`, keyed by the layer's path or key, or by impo
 
 ## Fonts and images
 
-`resolveFontResources(resources)` resolves `PdfFontResource` entries (a local path, package specifier, file URL, or HTTP(S) URL, with an optional SHA-256 `integrity`) and throws `FontResourceError` on failure. If `fonts` and the plan's measured fonts name different faces, the render throws `FontResourceIdentityMismatchError`: repaginate with the current fonts first.
+`resolveFontResources(resources, options?)` resolves `PdfFontResource` entries (a local path, package specifier, file URL, or HTTP(S) URL, with an optional SHA-256 `integrity`) and throws `FontResourceError` on failure. Package specifiers and relative paths resolve from `options.resolveFrom`, which defaults to `process.cwd()`; `renderPdf` exposes the same `resolveFrom` option. If `fonts` and the plan's measured fonts name different faces, the render throws `FontResourceIdentityMismatchError`: repaginate with the current fonts first.
 
 Images are passed as `{ src, data }` pairs in `images`, keyed by the `src` the tree names.

@@ -66,6 +66,8 @@ export {
 export interface RenderPdfOptions {
   /** Application-owned font faces shared by headless renders. */
   fonts?: readonly PdfFontResource[];
+  /** Directory package font specifiers and relative font paths resolve from. Defaults to `process.cwd()`. */
+  resolveFrom?: string;
   /**
    * The relevant compiled application CSS for browser-backed fidelity rendering.
    * Chromium adapter only: Takumi refuses it.
@@ -184,6 +186,18 @@ async function resolveAdapter(name: PdfAdapterName | PdfAdapter): Promise<PdfAda
     const { chromiumAdapter } = await import("./adapters/chromium");
     return chromiumAdapter;
   } catch (error) {
+    const missingPeer = (() => {
+      let current: unknown = error;
+      while (current instanceof Error) {
+        const message = current.message;
+        const code = "code" in current ? (current as Error & { code?: unknown }).code : undefined;
+        if ((code === "ERR_MODULE_NOT_FOUND" || code === "MODULE_NOT_FOUND") &&
+          CHROMIUM_PEERS.some((peer) => message.includes(peer))) return true;
+        current = current.cause;
+      }
+      return false;
+    })();
+    if (!missingPeer) throw error;
     throw new MissingAdapterPeerError(name, CHROMIUM_PEERS, error);
   }
 }
@@ -235,8 +249,9 @@ export async function renderPdf(
   // refusal is the same one whichever engine would have been asked.
   const tokens = documentTokensOf(element, options.tokens);
 
-  const explicitFonts = options.fonts === undefined ? undefined : await resolveFontResources(options.fonts);
-  const plannedFonts = options.plan?.fonts === undefined ? undefined : await resolveFontResources(options.plan.fonts.resources);
+  const resolution = { resolveFrom: options.resolveFrom };
+  const explicitFonts = options.fonts === undefined ? undefined : await resolveFontResources(options.fonts, resolution);
+  const plannedFonts = options.plan?.fonts === undefined ? undefined : await resolveFontResources(options.plan.fonts.resources, resolution);
   if (explicitFonts !== undefined && plannedFonts !== undefined) {
     const identity = (faces: Awaited<ReturnType<typeof resolveFontResources>>) => faces
       .map((face) => `${face.family}:${face.weight}:${face.style ?? "normal"}:${face.identity}`)
@@ -247,8 +262,11 @@ export async function renderPdf(
   const fonts = [
     ...(explicitFonts ?? plannedFonts ?? []),
   ];
+  const adapter = await resolveAdapter(options.adapter ?? "takumi");
   if (signingMarkers) {
-    const families = new Set(["sans-serif", ...fonts.map((font) => font.family)]);
+    const families = adapter.name === "chromium"
+      ? new Set(["Paradoc Signing Marker", ...fonts.map((font) => font.family)])
+      : new Set(["sans-serif", ...fonts.map((font) => font.family)]);
     fonts.push(...await Promise.all([...families].map(markerFontFile)));
   }
 
@@ -272,7 +290,6 @@ export async function renderPdf(
     geometry: pageGeometry(tokens),
   };
 
-  const adapter = await resolveAdapter(options.adapter ?? "takumi");
   // Takumi embeds application fonts, explicit or captured by the preview, through
   // the same loaders as the built-in faces. It cannot apply a stylesheet, so CSS
   // the caller passes is refused. The page-wide CSS a preview plan captures is

@@ -11,6 +11,8 @@
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
+import { isAbsolute, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { FontLoader } from "takumi-pdf";
 
 
@@ -67,20 +69,30 @@ export class FontResourceError extends Error {
 
 const resolvedResources = new Map<string, Promise<PdfFontFile>>();
 
-function resourcePath(source: string): string | undefined {
+export interface ResolveFontResourceOptions {
+  /** Directory package specifiers and relative paths resolve from. */
+  resolveFrom?: string;
+}
+
+function resourcePath(source: string, resolveFrom: string): string | undefined {
   if (source.startsWith("data:")) return undefined;
-  if (source.startsWith("file:")) return new URL(source).pathname;
+  if (source.startsWith("file:")) return fileURLToPath(source);
   if (source.startsWith("http://") || source.startsWith("https://")) return undefined;
-  try { return require.resolve(source); } catch { return source; }
+  if (source.startsWith(".") || isAbsolute(source)) return resolve(resolveFrom, source);
+  return createRequire(join(resolveFrom, "paradoc-font-resolver.cjs")).resolve(source);
 }
 
 /** Resolve and cache application font bytes, independently of their provider. */
-export function resolveFontResource(resource: PdfFontResource): Promise<PdfFontFile> {
-  const key = JSON.stringify(resource);
+export function resolveFontResource(
+  resource: PdfFontResource,
+  options: ResolveFontResourceOptions = {}
+): Promise<PdfFontFile> {
+  const resolveFrom = options.resolveFrom ?? process.cwd();
+  const key = JSON.stringify([resource, resolveFrom]);
   let pending = resolvedResources.get(key);
   if (pending === undefined) {
     pending = (async () => {
-      const path = resourcePath(resource.source);
+      const path = resourcePath(resource.source, resolveFrom);
       const bytes = resource.source.startsWith("data:")
         ? new Uint8Array(Buffer.from(resource.source.slice(resource.source.indexOf(",") + 1), "base64"))
         : path === undefined ? new Uint8Array(await (async () => {
@@ -113,8 +125,11 @@ export function resolveFontResource(resource: PdfFontResource): Promise<PdfFontF
   return pending;
 }
 
-export function resolveFontResources(resources: readonly PdfFontResource[]): Promise<PdfFontFile[]> {
-  return Promise.all(resources.map(resolveFontResource));
+export function resolveFontResources(
+  resources: readonly PdfFontResource[],
+  options: ResolveFontResourceOptions = {}
+): Promise<PdfFontFile[]> {
+  return Promise.all(resources.map((resource) => resolveFontResource(resource, options)));
 }
 
 /**
