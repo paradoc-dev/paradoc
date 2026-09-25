@@ -32,7 +32,7 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   splitting: true,
-  dts: true,
+  dts: false,
   clean: true,
   // Bundle JSON files from dependencies
   loader: {

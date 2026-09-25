@@ -1,5 +1,5 @@
+import { runCli } from '../setup/spawn-cli'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { spawn } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -8,24 +8,12 @@ import { PARADOC_SCHEMA_URL, SCHEMA_VERSION } from '@paradoc/schemas'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-function run(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn('tsx', [path.resolve(__dirname, '../../src/index.ts'), ...args], {
-      cwd,
-      env: { ...process.env, PARADOC_TELEMETRY_DISABLED: '1', NO_COLOR: '1' },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-    let stdout = ''
-    let stderr = ''
-    child.stdout.on('data', (data) => (stdout += data.toString()))
-    child.stderr.on('data', (data) => (stderr += data.toString()))
-    child.on('close', (code) => resolve({ stdout, stderr, exitCode: code ?? 0 }))
-    child.on('error', reject)
-  })
-}
-
 const notice = (schema?: string) =>
   `${schema ? `$schema: ${schema}\n` : ''}kind: document\nname: notice\nlayers:\n  text:\n    kind: inline\n    mimeType: text/plain\n    text: Notice\n`
+
+function run(args: string[], cwd: string) {
+  return runCli(args, { cwd, env: { PARADOC_TELEMETRY_DISABLED: '1', NO_COLOR: '1' } })
+}
 
 describe('CLI loading applies the schema version rules', () => {
   let dir: string

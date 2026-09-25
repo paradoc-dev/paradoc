@@ -1,3 +1,4 @@
+import { runCli as spawnCli } from '../setup/spawn-cli'
 /**
  * Integration tests for registry workflow
  *
@@ -6,7 +7,6 @@
  */
 
 import { describe, it, expect, inject } from 'vitest'
-import { spawn } from 'node:child_process'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -16,57 +16,15 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const TEST_REGISTRY_URL = inject('testRegistryUrl')
-const CLI_PATH = path.resolve(__dirname, '../../src/index.ts')
-
 /**
  * Execute a CLI command in a given directory
  */
-async function runCli(
-  args: string[],
-  cwd: string,
-  timeout: number = 30000
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn('tsx', [CLI_PATH, ...args], {
-      cwd,
-      env: {
-        ...process.env,
-        // Use a temp directory for global config to isolate tests
-        XDG_CONFIG_HOME: path.join(cwd, '.config'),
-        HOME: cwd,
-      },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
 
-    let stdout = ''
-    let stderr = ''
-
-    const timer = setTimeout(() => {
-      child.kill()
-      reject(new Error(`Command timed out after ${timeout}ms`))
-    }, timeout)
-
-    child.stdout.on('data', (data) => {
-      stdout += data.toString()
-    })
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    child.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({
-        stdout,
-        stderr,
-        exitCode: code ?? 0,
-      })
-    })
-
-    child.on('error', (error) => {
-      clearTimeout(timer)
-      reject(error)
-    })
+async function runCli(args: string[], cwd: string, timeout = 30000) {
+  return spawnCli(args, {
+    cwd,
+    timeout,
+    env: { XDG_CONFIG_HOME: path.join(cwd, '.config'), HOME: cwd },
   })
 }
 

@@ -1,5 +1,5 @@
+import { runCli } from '../setup/spawn-cli'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { spawn } from 'node:child_process'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -7,29 +7,6 @@ import { fileURLToPath } from 'node:url'
 import { PARADOC_SCHEMA_URL, SCHEMA_VERSION } from '@paradoc/schemas'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-function run(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn('tsx', [path.resolve(__dirname, '../../src/index.ts'), ...args], {
-      cwd,
-      env: { ...process.env, PARADOC_TELEMETRY_DISABLED: '1', NO_COLOR: '1' },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-    let stdout = ''
-    let stderr = ''
-    const timer = setTimeout(() => {
-      child.kill()
-      reject(new Error('Command timed out'))
-    }, 30000)
-    child.stdout.on('data', (data) => (stdout += data.toString()))
-    child.stderr.on('data', (data) => (stderr += data.toString()))
-    child.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({ stdout, stderr, exitCode: code ?? 0 })
-    })
-    child.on('error', reject)
-  })
-}
 
 const PREVIOUS = 'https://schema.paradoc.dev/2026-08-10.json'
 
@@ -73,6 +50,10 @@ layers:
         type: signature
         placement: auto
 `
+
+function run(args: string[], cwd: string) {
+  return runCli(args, { cwd, env: { PARADOC_TELEMETRY_DISABLED: '1', NO_COLOR: '1' } })
+}
 
 describe('paradoc migrate', () => {
   let dir: string

@@ -1,3 +1,4 @@
+import { runCli as executeCliCommand } from '../setup/spawn-cli'
 /**
  * `paradoc dev` at the command line, and the pieces of its server that can be
  * tested without one.
@@ -14,7 +15,6 @@
  * in `/tmp` has no `@paradoc/react` above it.
  */
 
-import { spawn } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -27,42 +27,6 @@ import { servableRoots } from '../../src/commands/dev/server.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURES = path.resolve(__dirname, '../fixtures/dev')
-
-async function executeCliCommand(
-  args: string[],
-  options?: { cwd?: string; timeout?: number }
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve, reject) => {
-    const cliPath = path.resolve(__dirname, '../../src/index.ts')
-    const child = spawn('tsx', [cliPath, ...args], {
-      cwd: options?.cwd ?? process.cwd(),
-      env: process.env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-    const timer = setTimeout(() => {
-      child.kill()
-      reject(new Error(`Command timed out after ${options?.timeout ?? 60000}ms`))
-    }, options?.timeout ?? 60000)
-
-    child.stdout.on('data', (data) => {
-      stdout += String(data)
-    })
-    child.stderr.on('data', (data) => {
-      stderr += String(data)
-    })
-    child.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({ stdout, stderr, exitCode: code ?? 0 })
-    })
-    child.on('error', (error) => {
-      clearTimeout(timer)
-      reject(error)
-    })
-  })
-}
 
 describe('CLI dev command', () => {
   it('is listed among the commands', async () => {

@@ -37,7 +37,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "dev": "tsup src/index.ts --format esm --watch",
     "start": "tsx src/index.ts",
     "clean": "rm -rf dist",
     "prebuild": "pnpm run clean",

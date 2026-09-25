@@ -1,5 +1,5 @@
+import { runCli as executeCliCommand } from '../setup/spawn-cli'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -9,56 +9,6 @@ import { PARADOC_SCHEMA_URL } from '@paradoc/schemas'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-
-async function executeCliCommand(
-  args: string[],
-  options?: {
-    cwd?: string
-    env?: Record<string, string>
-    timeout?: number
-    /** Written to the child's stdin, which is then closed. */
-    input?: string
-  }
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve, reject) => {
-    const cliPath = path.resolve(__dirname, '../../src/index.ts')
-    const child = spawn('tsx', [cliPath, ...args], {
-      cwd: options?.cwd || process.cwd(),
-      env: { ...process.env, ...options?.env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-    if (options?.input !== undefined) {
-      child.stdin.end(options.input)
-    }
-
-    let stdout = ''
-    let stderr = ''
-
-    const timeout = options?.timeout || 30000
-    const timer = setTimeout(() => {
-      child.kill()
-      reject(new Error(`Command timed out after ${timeout}ms`))
-    }, timeout)
-
-    child.stdout.on('data', (data) => {
-      stdout += data.toString()
-    })
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    child.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({ stdout, stderr, exitCode: code ?? 0 })
-    })
-
-    child.on('error', (error) => {
-      clearTimeout(timer)
-      reject(error)
-    })
-  })
-}
 
 describe('CLI Registry Command', () => {
   let tempDir: string

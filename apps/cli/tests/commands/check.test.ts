@@ -1,5 +1,5 @@
+import { runCli as executeCliCommand } from '../setup/spawn-cli'
 import { describe, it, expect, beforeAll } from 'vitest'
-import { spawn } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -23,58 +23,6 @@ interface CliResult {
  * snapshotted mid-flight. Encoding is set explicitly on both streams so a
  * multi-chunk write cannot be read back split across a UTF-8 boundary.
  */
-async function executeCliCommand(
-  args: string[],
-  options?: { cwd?: string; timeout?: number }
-): Promise<CliResult> {
-  return new Promise((resolve, reject) => {
-    const cliPath = path.resolve(__dirname, '../../src/index.ts')
-    const child = spawn('tsx', [cliPath, ...args], {
-      cwd: options?.cwd || process.cwd(),
-      env: { ...process.env },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    child.stdout.setEncoding('utf8')
-    child.stderr.setEncoding('utf8')
-
-    let stdout = ''
-    let stderr = ''
-    let settled = false
-
-    const timeout = options?.timeout || 30000
-    const timer = setTimeout(() => {
-      if (settled) return
-      settled = true
-      child.kill()
-      reject(new Error(`Command timed out after ${timeout}ms`))
-    }, timeout)
-
-    child.stdout.on('data', (chunk: string) => {
-      stdout += chunk
-    })
-
-    child.stderr.on('data', (chunk: string) => {
-      stderr += chunk
-    })
-
-    // `close` fires only after every stdio stream has emitted its own `end`,
-    // so `stdout`/`stderr` are complete by the time this runs — unlike `exit`,
-    // which can fire while output is still buffered.
-    child.on('close', (code) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      resolve({ stdout, stderr, exitCode: code ?? 0 })
-    })
-
-    child.on('error', (error) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      reject(error)
-    })
-  })
-}
 
 /**
  * Copies one fixture composition + artifact pair into an isolated directory
@@ -326,35 +274,7 @@ describe('CLI check command (built binary)', () => {
   })
 
   async function executeBuiltCommand(args: string[], options?: { cwd?: string }): Promise<CliResult> {
-    return new Promise((resolve, reject) => {
-      const child = spawn('node', [builtCliPath, ...args], {
-        cwd: options?.cwd,
-        env: { ...process.env },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
-      child.stdout.setEncoding('utf8')
-      child.stderr.setEncoding('utf8')
-      let stdout = ''
-      let stderr = ''
-      const timer = setTimeout(() => {
-        child.kill()
-        reject(new Error('Command timed out'))
-      }, 30000)
-      child.stdout.on('data', (chunk: string) => {
-        stdout += chunk
-      })
-      child.stderr.on('data', (chunk: string) => {
-        stderr += chunk
-      })
-      child.on('close', (code) => {
-        clearTimeout(timer)
-        resolve({ stdout, stderr, exitCode: code ?? 0 })
-      })
-      child.on('error', (error) => {
-        clearTimeout(timer)
-        reject(error)
-      })
-    })
+    return executeCliCommand(args, { ...options, target: 'dist' })
   }
 
   it(

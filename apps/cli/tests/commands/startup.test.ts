@@ -1,5 +1,5 @@
+import { runCli } from '../setup/spawn-cli'
 import { beforeAll, describe, it, expect } from 'vitest'
-import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,41 +17,13 @@ const packageVersion = (
  * Spawn a command and resolve when the process exits.
  * Returns elapsed wall-clock time in milliseconds and the captured output.
  */
-function runCommand(
-  bin: string,
-  args: string[],
-): Promise<{ ms: number; exitCode: number; stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const start = performance.now()
-    const child = spawn(bin, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    child.stdout.setEncoding('utf8')
-    child.stderr.setEncoding('utf8')
-    let stdout = ''
-    let stderr = ''
-    child.stdout.on('data', (chunk: string) => {
-      stdout += chunk
-    })
-    child.stderr.on('data', (chunk: string) => {
-      stderr += chunk
-    })
 
-    const timer = setTimeout(() => {
-      child.kill()
-      reject(new Error('Command timed out'))
-    }, 10_000)
-
-    child.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({ ms: performance.now() - start, exitCode: code ?? 0, stdout, stderr })
-    })
-
-    child.on('error', (err) => {
-      clearTimeout(timer)
-      reject(err)
-    })
-  })
+async function runCommand(bin: string, args: string[]) {
+  const start = performance.now()
+  const target = bin === 'tsx' ? 'source' : 'dist'
+  const cliArgs = args.slice(1)
+  const result = await runCli(cliArgs, { target, timeout: 10000 })
+  return { ...result, ms: performance.now() - start }
 }
 
 function p95(sorted: number[]): number {

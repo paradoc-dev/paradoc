@@ -1,5 +1,5 @@
+import { runCli } from '../setup/spawn-cli'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { spawn } from 'node:child_process'
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -20,49 +20,15 @@ afterAll(async () => {
   await rm(tempHome, { recursive: true, force: true })
 })
 
-async function executeCliCommand(
-  args: string[],
-  options?: {
-    cwd?: string
-    env?: Record<string, string>
-    timeout?: number
-  }
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve, reject) => {
-    const cliPath = path.resolve(__dirname, '../../src/index.ts')
-    // The CLI keeps renderers under ~/.paradoc; never let it touch the real home
-    const child = spawn('tsx', [cliPath, ...args], {
-      cwd: options?.cwd || process.cwd(),
-      env: { ...process.env, HOME: tempHome, USERPROFILE: tempHome, XDG_CONFIG_HOME: path.join(tempHome, '.config'), ...options?.env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    const timeout = options?.timeout || 30000
-    const timer = setTimeout(() => {
-      child.kill()
-      reject(new Error(`Command timed out after ${timeout}ms`))
-    }, timeout)
-
-    child.stdout.on('data', (data) => {
-      stdout += data.toString()
-    })
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    child.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({ stdout, stderr, exitCode: code ?? 0 })
-    })
-
-    child.on('error', (error) => {
-      clearTimeout(timer)
-      reject(error)
-    })
+function executeCliCommand(args: string[], options: Parameters<typeof runCli>[1] = {}) {
+  return runCli(args, {
+    ...options,
+    env: {
+      HOME: tempHome,
+      USERPROFILE: tempHome,
+      XDG_CONFIG_HOME: path.join(tempHome, '.config'),
+      ...options.env,
+    },
   })
 }
 
