@@ -16,6 +16,7 @@ import { runCli as executeCliCommand } from '../setup/spawn-cli'
  */
 
 import { promises as fs } from 'node:fs'
+import { createServer as createTcpServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,7 +24,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { clientModule, stylesheetModule } from '../../src/commands/dev/harness.js'
 import { DEV_PEERS, MissingDevPeerError, missingDevPeers } from '../../src/commands/dev/peers.js'
-import { servableRoots } from '../../src/commands/dev/server.js'
+import { projectAliases, servableRoots, serverOrigin, startDevServer } from '../../src/commands/dev/server.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURES = path.resolve(__dirname, '../fixtures/dev')
@@ -67,6 +68,18 @@ describe('CLI dev command', () => {
 
     expect(result.exitCode).toBe(0)
     expect(JSON.parse(result.stdout)).toEqual([
+      {
+        id: 'compositions/bad-sample',
+        composition: 'compositions/bad-sample.tsx',
+        artifact: {
+          file: 'compositions/bad-sample.json',
+          name: 'bad-sample',
+          layer: null,
+          matched_by: 'sibling',
+        },
+        sample: { from: 'composition', file: 'compositions/bad-sample.tsx' },
+        problems: [],
+      },
       {
         id: 'compositions/change-order',
         composition: 'compositions/change-order.tsx',
@@ -122,6 +135,18 @@ describe('CLI dev command', () => {
 
     expect(result.exitCode).toBe(1)
     expect(result.stderr).toContain('--port must be a port number')
+  })
+
+  it('requires --list with --json', async () => {
+    const result = await executeCliCommand(['dev', path.join(FIXTURES, 'paired'), '--json'])
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('--json requires --list')
+  })
+
+  it('names the pages install before starting a project without it', async () => {
+    const result = await executeCliCommand(['dev', path.join(FIXTURES, 'orphan')])
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('paradoc add pages')
   })
 })
 
@@ -196,6 +221,27 @@ describe('what the dev server may read', () => {
     const root = path.join(FIXTURES, 'paired')
     expect(servableRoots(root)).toEqual([root])
   })
+
+  it('formats IPv6 and wildcard hosts as usable URLs', () => {
+    expect(serverOrigin('::1', 5180)).toBe('http://[::1]:5180')
+    expect(serverOrigin('0.0.0.0', 5180)).toBe('http://127.0.0.1:5180')
+    expect(serverOrigin('::', 5180)).toBe('http://127.0.0.1:5180')
+  })
+
+  it('maps tsconfig paths to Vite aliases', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'paradoc-dev-aliases-'))
+    try {
+      await fs.writeFile(path.join(root, 'tsconfig.json'), `{
+        // The documented project alias
+        "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["src/*",], }, },
+      }`)
+      const aliases = await projectAliases(root)
+      expect(aliases).toHaveLength(1)
+      expect('@/document'.replace(aliases[0]!.find, aliases[0]!.replacement)).toBe(path.join(root, 'src/document'))
+    } finally {
+      await fs.rm(root, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('the stylesheet the preview compiles', () => {
@@ -226,4 +272,62 @@ describe('the proof view', () => {
     expect(client).toContain('fetch(PDF_ROUTE')
     expect(client).toContain('plan: plan ? { breaks: plan.breaks, repeats: plan.repeats, fonts: plan.fonts } : undefined')
   })
+
+  it('survives malformed hashes and keys async state by entry', () => {
+    const client = clientModule()
+    expect(client).toContain('try {\n    fromHash = decodeURIComponent')
+    expect(client).toContain('state.entryId === entry?.id')
+  })
 })
+
+describe('the running dev server', () => {
+  it('serves its page and confines the PDF route to same-origin JSON', async () => {
+    const port = await availablePort()
+    const server = await startDevServer({ root: path.join(FIXTURES, 'paired'), host: '127.0.0.1', port, open: false })
+    try {
+      expect((await fetch(server.url)).status).toBe(200)
+
+      const hostile = await fetch(`${server.url}/@paradoc/dev/pdf`, { method: 'POST', body: '{}' })
+      expect(hostile.status).toBe(415)
+
+      const crossOrigin = await fetch(`${server.url}/@paradoc/dev/pdf`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://attacker.invalid' }, body: '{}',
+      })
+      expect(crossOrigin.status).toBe(403)
+
+      const remoteFont = await fetch(`${server.url}/@paradoc/dev/pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: server.url },
+        body: JSON.stringify({ id: 'compositions/change-order', plan: { breaks: [], repeats: [], fonts: { identity: 'x', css: '', resources: [{ family: 'Remote', source: 'https://attacker.invalid/font.woff2', integrity: 'x' }] } } }),
+      })
+      expect(remoteFont.status).toBe(403)
+
+      const finding = await fetch(`${server.url}/@paradoc/dev/pdf`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: server.url }, body: JSON.stringify({ id: 'missing' }),
+      })
+      expect(finding.status).toBe(422)
+
+      const badSample = await fetch(`${server.url}/@paradoc/dev/pdf`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: server.url }, body: JSON.stringify({ id: 'compositions/bad-sample' }),
+      })
+      expect(badSample.status).toBe(500)
+
+      const pdf = await fetch(`${server.url}/@paradoc/dev/pdf`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: server.url }, body: JSON.stringify({ id: 'compositions/change-order' }),
+      })
+      expect(pdf.status).toBe(200)
+      expect(pdf.headers.get('content-type')).toBe('application/pdf')
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+})
+
+async function availablePort(): Promise<number> {
+  const server = createTcpServer()
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address()
+  if (!address || typeof address === 'string') throw new Error('Could not reserve a test port')
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+  return address.port
+}

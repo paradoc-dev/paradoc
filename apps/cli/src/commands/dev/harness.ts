@@ -395,7 +395,10 @@ const PDF_ROUTE = "${PDF_ROUTE}";
 
 /** The composition named in the address bar, so a reload keeps the selection. */
 function selectedId() {
-  const fromHash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+  let fromHash = "";
+  try {
+    fromHash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+  } catch {}
   return entries.some((entry) => entry.id === fromHash) ? fromHash : (entries[0]?.id ?? "");
 }
 
@@ -416,15 +419,15 @@ async function readSample(entry, module) {
 
 /** Loads one composition and its sample, reporting rather than throwing. */
 function useComposition(entry) {
-  const [state, setState] = useState({ status: "loading" });
+  const [state, setState] = useState({ status: "loading", entryId: entry?.id });
 
   useEffect(() => {
     let live = true;
-    setState({ status: "loading" });
+    setState({ status: "loading", entryId: entry?.id });
 
     if (!entry) return undefined;
     if (entry.problems.length > 0 || entry.artifact === null) {
-      setState({ status: "failed", messages: entry.problems });
+      setState({ status: "failed", entryId: entry.id, messages: entry.problems });
       return undefined;
     }
 
@@ -434,9 +437,9 @@ function useComposition(entry) {
         const Composition = module.default;
         if (typeof Composition !== "function") throw new Error(entry.messages.noComponent);
         const data = await readSample(entry, module);
-        if (live) setState({ status: "ready", Composition, data });
+        if (live) setState({ status: "ready", entryId: entry.id, Composition, data });
       } catch (error) {
-        if (live) setState({ status: "failed", messages: [String(error?.message ?? error)] });
+        if (live) setState({ status: "failed", entryId: entry.id, messages: [String(error?.message ?? error)] });
       }
     })();
 
@@ -445,7 +448,7 @@ function useComposition(entry) {
     };
   }, [entry]);
 
-  return state;
+  return state.entryId === entry?.id ? state : { status: "loading", entryId: entry?.id };
 }
 
 /** A comma-joined response header, as a list. */

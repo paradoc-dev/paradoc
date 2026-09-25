@@ -1,0 +1,8 @@
+{
+  "$schema": "https://schema.paradoc.dev/2026-09-24.json",
+  "kind": "form",
+  "name": "bad-sample",
+  "version": "1.0.0",
+  "title": "Bad sample",
+  "fields": {}
+}

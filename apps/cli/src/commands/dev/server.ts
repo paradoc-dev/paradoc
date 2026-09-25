@@ -92,6 +92,7 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
 		appType: 'custom',
 		clearScreen: false,
 		logLevel: 'warn',
+		resolve: { alias: await projectAliases(root) },
 		server: {
 			port: options.port,
 			host: options.host,
@@ -130,8 +131,9 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
 	server.watcher.on('unlink', (file) => rediscover(file, 'unlink'))
 	server.watcher.on('change', (file) => rediscover(file, 'change'))
 
+	const publicOrigin = serverOrigin(options.host, options.port)
 	server.middlewares.use(PDF_ROUTE, (request, response) => {
-		void renderRoute(server, root, () => compositions, request, response)
+		void renderRoute(server, root, publicOrigin, () => compositions, request, response)
 	})
 	server.middlewares.use((request, response, next) => {
 		void servePage(server, request, response, next)
@@ -140,7 +142,7 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
 	await server.listen()
 
 	return {
-		url: `http://${options.host}:${options.port}`,
+		url: publicOrigin,
 		get compositions() {
 			return compositions
 		},
@@ -149,21 +151,81 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
 }
 
 /**
- * Directories the dev server may read files from.
+ * Directories Vite may serve files from.
  *
- * The project, the `@paradoc/react` installation, and the packages that
- * installation depends on, which is where its typeface files are. Nothing else:
- * an earlier version walked to the filesystem root allowing every ancestor that
- * held a `node_modules`, which put the whole checkout — and, with a stray
- * `~/node_modules`, the home directory — behind a local HTTP server.
- *
- * A dependency is named through the installation's own `node_modules`, and its
- * real path is what is allowed, because a package manager that links rather than
- * copies puts the files somewhere else entirely and Vite checks the path it
- * finally reads.
+ * Only the project root is exposed. Package imports still resolve normally
+ * through Vite, while arbitrary files beside or above the project do not become
+ * HTTP-readable merely because a parent directory contains `node_modules`.
  */
 export function servableRoots(root: string): string[] {
 	return [resolve(root)]
+}
+
+/** The URL displayed to a person and accepted by the private PDF endpoint. */
+export function serverOrigin(host: string, port: number): string {
+	const visible = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host
+	return `http://${visible.includes(':') ? `[${visible}]` : visible}:${port}`
+}
+
+/** Vite aliases derived from a project's TypeScript or JavaScript config. */
+export async function projectAliases(root: string): Promise<{ find: string | RegExp; replacement: string }[]> {
+	for (const name of ['tsconfig.json', 'jsconfig.json']) {
+		try {
+			const text = await readFile(resolve(root, name), 'utf8')
+			const config = JSON.parse(jsoncToJson(text)) as {
+				compilerOptions?: { baseUrl?: string; paths?: Record<string, string[]> }
+			}
+			const base = resolve(root, config.compilerOptions?.baseUrl ?? '.')
+			return Object.entries(config.compilerOptions?.paths ?? {}).flatMap(([key, targets]) => {
+				const target = targets[0]
+				if (!target) return []
+				const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('\\*', '(.*)')
+				return [{ find: new RegExp(`^${escaped}$`), replacement: resolve(base, target.replace('*', '$1')) }]
+			})
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw new Error(`Could not read ${name}: ${error instanceof Error ? error.message : String(error)}`)
+		}
+	}
+	return []
+}
+
+function jsoncToJson(input: string): string {
+	let output = ''
+	let quoted = false
+	let escaped = false
+	for (let index = 0; index < input.length; index += 1) {
+		const character = input[index]!
+		const next = input[index + 1]
+		if (quoted) {
+			output += character
+			if (escaped) escaped = false
+			else if (character === '\\') escaped = true
+			else if (character === '"') quoted = false
+			continue
+		}
+		if (character === '"') {
+			quoted = true
+			output += character
+			continue
+		}
+		if (character === '/' && next === '/') {
+			while (index + 1 < input.length && input[index + 1] !== '\n') index += 1
+			continue
+		}
+		if (character === '/' && next === '*') {
+			index += 1
+			while (index + 1 < input.length && !(input[index] === '*' && input[index + 1] === '/')) index += 1
+			index += 1
+			continue
+		}
+		if (character === ',') {
+			let lookahead = index + 1
+			while (/\s/.test(input[lookahead] ?? '')) lookahead += 1
+			if (input[lookahead] === '}' || input[lookahead] === ']') continue
+		}
+		output += character
+	}
+	return output
 }
 
 /**
@@ -303,12 +365,28 @@ async function readRequest(request: IncomingMessage): Promise<PdfRequest> {
 async function renderRoute(
 	server: ViteDevServer,
 	root: string,
+	origin: string,
 	current: () => readonly DiscoveredComposition[],
 	request: IncomingMessage,
 	response: ServerResponse,
 ): Promise<void> {
 	try {
+		if (request.method !== 'POST' || !request.headers['content-type']?.toLowerCase().startsWith('application/json')) {
+			response.statusCode = 415
+			response.end('The PDF route accepts POST application/json requests only.')
+			return
+		}
+		if (request.headers.origin !== origin) {
+			response.statusCode = 403
+			response.end('The PDF route accepts same-origin requests only.')
+			return
+		}
 		const sent = await readRequest(request)
+		if (!fontsAreLocal(sent.plan, root, origin)) {
+			response.statusCode = 403
+			response.end('The PDF route accepts fonts from the project or preview origin only.')
+			return
+		}
 		const entry = current().find((each) => each.id === sent.id)
 		if (!entry) {
 			return findings(response, [
@@ -388,6 +466,26 @@ async function renderRoute(
 		response.setHeader('Content-Type', 'text/plain; charset=utf-8')
 		response.end(error instanceof Error ? error.message : String(error))
 	}
+}
+
+function fontsAreLocal(plan: PageBreakPlan | undefined, root: string, origin: string): boolean {
+	for (const font of plan?.fonts?.resources ?? []) {
+		const source = font.source
+		if (source.startsWith('data:')) continue
+		if (/^https?:/i.test(source)) {
+			try { if (new URL(source).origin === origin) continue } catch {}
+			return false
+		}
+		const file = fileFor(root, source)
+		if (!file || !isWithin(root, file)) return false
+	}
+	return true
+}
+
+function isWithin(root: string, candidate: string): boolean {
+	const base = resolve(root)
+	const path = resolve(candidate)
+	return path === base || path.startsWith(`${base}/`)
 }
 
 /** What `@paradoc/react-pdf/check` answers with. */

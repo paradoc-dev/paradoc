@@ -15,6 +15,7 @@ import { bindingLabel, sampleLabel } from './messages.js'
 import { assertDevPeers, MissingDevPeerError } from './peers.js'
 import { findRepoRoot } from '../../utils/project.js'
 import { resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 
 interface DevOptions {
 	port: string
@@ -48,6 +49,9 @@ export function createDevCommand(): Command {
 			const root = (await findRepoRoot(start)) ?? start
 
 			try {
+				if (options.json && !options.list) {
+					throw new Error('--json requires --list.')
+				}
 				// Before anything is read from disk: an unusable port is a mistake in
 				// the invocation, and reporting it after a project scan would make a
 				// typo look like a slow command.
@@ -70,6 +74,10 @@ export function createDevCommand(): Command {
 				if (compositions.length === 0) {
 					console.error(kleur.red(NOTHING_FOUND))
 					process.exit(1)
+				}
+
+				if (!existsSync(resolve(root, 'components/paradoc/pages.tsx'))) {
+					throw new Error('The preview needs components/paradoc/pages.tsx. Install it with: paradoc add pages')
 				}
 
 				const { startDevServer } = await import('./server.js')

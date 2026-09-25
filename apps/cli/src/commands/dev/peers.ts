@@ -156,7 +156,7 @@ function packageOf(specifier: string): string {
  * sent back for the next one each time they run it.
  */
 export function missingDevPeers(root: string): string[] {
-	return DEV_PEERS.filter((peer) => resolveFrom(root, entryOf(peer)) === undefined)
+	return DEV_PEERS.filter((peer) => resolveFrom(root, peer) === undefined)
 }
 
 /** Refuses a project that cannot supply the toolchain. @throws {MissingDevPeerError} */
@@ -191,8 +191,4 @@ function unwrap(module: Record<string, unknown>): unknown {
 	const exported = module.default ?? module
 	const nested = (exported as { default?: unknown }).default
 	return typeof exported === 'function' ? exported : (nested ?? exported)
-}
-
-function entryOf(peer: string): string {
-	return peer
 }

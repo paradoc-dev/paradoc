@@ -151,7 +151,14 @@ starts.
 
 The project's own `vite.config` is not read: `paradoc dev` serves one page it
 generates itself, so a composition should import packages and its own neighbours
-and nothing else.
+and nothing else. TypeScript and JavaScript path aliases from `tsconfig.json` or
+`jsconfig.json` are supported.
+
+The preview also uses the installed `pages` component. Add it before starting:
+
+```bash
+paradoc add pages
+```
 
 ## Examples
 
