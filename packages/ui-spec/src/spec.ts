@@ -80,7 +80,9 @@ const catalogNameValues = CATALOG_COMPONENT_NAMES as [
 	...CatalogComponentName[],
 ];
 
-const fieldPathSchema = z.string().min(1, "fieldPath must not be empty");
+const fieldPathSchema = z.string().refine((path) => !path.includes("*"), {
+	message: "fieldPath contains invalid character '*'",
+});
 
 /**
  * The raw recursive shape is intentionally closed. Its refinement dispatches
@@ -157,9 +159,7 @@ const nodeObjectSchema = z
 export const SpecNodeSchema = specNodeSchema as z.ZodType<SpecNode>;
 
 function isTemplateSyntax(path: string): boolean {
-	// `*` is recognized only to report the old wildcard shape as a template;
-	// it is never converted into a concrete address.
-	return path.includes("[]") || path.includes("*");
+	return path.includes("[]");
 }
 
 /** Classify an optional host address without inventing a root path. */
@@ -213,10 +213,6 @@ export function resolveConcreteFieldPath(
 		}
 		return target.path;
 	}
-	if (target.path.includes("*")) {
-		throw new Error(`Unsupported wildcard field template: ${target.path}`);
-	}
-
 	let index = 0;
 	const resolved = target.path.replace(/\[\]/g, () => {
 		const itemIndex = indices[index++];
@@ -252,6 +248,42 @@ function validateTemplateTargets(
 			message: "Reusable list descendants must retain template addressing",
 		});
 	}
+	if (inherited === "concrete" && target.kind === "template") {
+		issues.push({
+			code: "custom",
+			path: [...path, "fieldPath"],
+			message: "Concrete descendants cannot introduce template addressing outside a List",
+		});
+	}
+	if (node.type === "Fieldset" && target.kind !== "unbound") {
+		for (const [index, child] of node.children.entries()) {
+			if (
+				!child.fieldPath || !child.fieldPath.startsWith(`${target.path}.`)
+			) {
+				issues.push({
+					code: "custom",
+					path: [...path, "children", index, "fieldPath"],
+					message: `Fieldset child path must derive from ${target.path}`,
+				});
+			}
+		}
+	}
+	if (node.type === "List" && target.kind !== "unbound") {
+		const child = node.children[0];
+		const templatePath = `${target.path}[]`;
+		if (
+			!child?.fieldPath ||
+			(child.fieldPath !== templatePath &&
+				!child.fieldPath.startsWith(`${templatePath}.`) &&
+				!child.fieldPath.startsWith(`${templatePath}[]`))
+		) {
+			issues.push({
+				code: "custom",
+				path: [...path, "children", 0, "fieldPath"],
+				message: `List child path must derive from ${target.path}`,
+			});
+		}
+	}
 
 	const childContext =
 		node.type === "List"
@@ -283,19 +315,22 @@ export function validateSpec(input: unknown): SpecNode {
 
 function normalizeSpecNode(node: SpecNode): SpecNode {
 	const props = CATALOG[node.type].props.parse(node.props);
+	const binding = node.fieldPath ? { fieldPath: node.fieldPath } : {};
 	if (node.type === "Fieldset") {
 		return {
-			...node,
+			type: node.type,
+			...binding,
 			props,
 			children: node.children.map(normalizeSpecNode),
 		};
 	}
 	if (node.type === "List") {
 		return {
-			...node,
+			type: node.type,
+			...binding,
 			props,
 			children: [normalizeSpecNode(node.children[0])],
 		};
 	}
-	return { ...node, props } as SpecNode;
+	return { type: node.type, ...binding, props } as SpecNode;
 }

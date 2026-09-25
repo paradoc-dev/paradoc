@@ -82,7 +82,7 @@ The catalog defines the following input primitives. See `src/catalog.ts` for the
 | `YesNoToggle` | `boolean` |
 | `EnumPicker`, `MultiSelectChips` | `enum`, `multiselect` |
 | `DateInput`, `DateTimeInput`, `TimeInput`, `DurationInput` | `date`, `datetime`, `time`, `duration` |
-| `EmailInput`, `PhoneInput`, `UriInput` | typed text variants with format validation |
+| `EmailInput`, `PhoneInput`, `UriInput` | typed text variants; email and URI values remain plain strings, matching the field schemas |
 | `AddressForm`, `PersonForm`, `OrganizationForm` | `address`, `person`, `organization` |
 | `IdentificationInput` | `identification` |
 | `RatingStars` | `rating` |
@@ -99,7 +99,7 @@ import type { ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import {
   createSubmitFieldValueAction,
-  type CatalogAction,
+  type SubmitFieldValueAction,
   type CatalogComponentName,
   type CatalogPropsFor,
   type SpecNode,
@@ -107,7 +107,7 @@ import {
 
 type RegistryArgs<TName extends CatalogComponentName> = {
   spec: Extract<SpecNode, { type: TName }>;
-  emit: (action: CatalogAction) => void;
+  emit: (action: SubmitFieldValueAction) => void;
 };
 
 type Registry = Partial<{

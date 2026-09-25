@@ -6,7 +6,7 @@ import {
 } from "../src/catalog.js";
 
 describe("catalog", () => {
-	it("exposes all 22 component names", () => {
+	it("exposes all 24 component names", () => {
 		expect(CATALOG_COMPONENT_NAMES.length).toBe(24);
 	});
 

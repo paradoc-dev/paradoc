@@ -22,6 +22,7 @@ import {
 	OrganizationSchema,
 	PersonSchema,
 	PhoneSchema,
+	FormFieldSchema,
 } from "@paradoc/schemas";
 
 // ---------------------------------------------------------------------------
@@ -43,6 +44,23 @@ export type CatalogOption = z.infer<typeof optionSchema>;
 const catalogObject = <T extends z.ZodRawShape>(shape: T) =>
 	z.object(shape).strict();
 
+/**
+ * Keep presentation constraints aligned with the canonical field schemas.
+ * The mapper uses the same property names for field-backed props, so a small
+ * synthetic field lets the source schema remain the single validation owner.
+ */
+const fieldBackedProps = <T extends z.ZodRawShape>(
+	shape: T,
+	toField: (props: z.output<z.ZodObject<T>>) => unknown,
+) =>
+	catalogObject(shape).superRefine((props, ctx) => {
+		const result = FormFieldSchema.safeParse(toField(props));
+		if (result.success) return;
+		for (const issue of result.error.issues) {
+			ctx.addIssue({ ...issue, path: issue.path });
+		}
+	});
+
 // ---------------------------------------------------------------------------
 // Common props every input shares
 // ---------------------------------------------------------------------------
@@ -57,48 +75,56 @@ const baseInputProps = {
 // Per-component prop schemas
 // ---------------------------------------------------------------------------
 
-const textInputProps = catalogObject({
+const textInputShape = {
 	...baseInputProps,
 	placeholder: z.string().optional(),
 	default: z.string().optional(),
 	minLength: z.number().optional(),
 	maxLength: z.number().optional(),
 	pattern: z.string().optional(),
+};
+
+const textField = (props: z.output<z.ZodObject<typeof textInputShape>>) => ({
+	type: "text" as const,
+	label: props.label,
+	description: props.description,
+	required: props.required,
+	default: props.default,
+	minLength: props.minLength,
+	maxLength: props.maxLength,
+	pattern: props.pattern,
 });
 
-const textAreaProps = catalogObject({
-	...baseInputProps,
-	placeholder: z.string().optional(),
-	default: z.string().optional(),
-	minLength: z.number().optional(),
-	maxLength: z.number().optional(),
-	pattern: z.string().optional(),
+const textInputProps = fieldBackedProps(textInputShape, textField);
+
+const textAreaProps = fieldBackedProps({
+	...textInputShape,
 	rows: z.number().optional(),
-});
+}, textField);
 
-const numberInputProps = catalogObject({
+const numberInputProps = fieldBackedProps({
 	...baseInputProps,
 	default: z.number().optional(),
 	min: z.number().optional(),
 	max: z.number().optional(),
 	step: z.number().optional(),
-});
+}, (props) => ({ type: "number", ...props }));
 
-const moneyInputProps = catalogObject({
+const moneyInputProps = fieldBackedProps({
 	...baseInputProps,
 	default: MoneySchema.optional(),
 	min: z.number().optional(),
 	max: z.number().optional(),
 	currency: CurrencyCodeSchema.optional(),
-});
+}, (props) => ({ type: "money", ...props }));
 
-const percentageInputProps = catalogObject({
+const percentageInputProps = fieldBackedProps({
 	...baseInputProps,
 	default: z.number().optional(),
 	min: z.number().optional(),
 	max: z.number().optional(),
 	precision: z.number().optional(),
-});
+}, (props) => ({ type: "percentage", ...props }));
 
 const coordinateInputProps = catalogObject({
 	...baseInputProps,
@@ -117,72 +143,72 @@ const yesNoToggleProps = catalogObject({
 	noLabel: z.string().optional(),
 });
 
-const enumPickerProps = catalogObject({
+const enumPickerProps = fieldBackedProps({
 	...baseInputProps,
 	options: z.array(optionSchema),
 	default: z.union([z.string(), z.number()]).optional(),
 	/** "radio" or "dropdown". Mapper picks; consumer can override. */
 	display: z.enum(["radio", "dropdown"]).optional(),
-});
+}, ({ options, display: _display, ...props }) => ({ type: "enum", enum: options, ...props }));
 
-const multiSelectChipsProps = catalogObject({
+const multiSelectChipsProps = fieldBackedProps({
 	...baseInputProps,
 	options: z.array(optionSchema),
 	default: z.array(z.union([z.string(), z.number()])).optional(),
 	min: z.number().optional(),
 	max: z.number().optional(),
-});
+}, ({ options, ...props }) => ({ type: "multiselect", enum: options, ...props }));
 
-const dateInputProps = catalogObject({
+const dateInputProps = fieldBackedProps({
 	...baseInputProps,
 	/** ISO 8601 date (YYYY-MM-DD). */
 	default: z.string().optional(),
 	min: z.string().optional(),
 	max: z.string().optional(),
-});
+}, (props) => ({ type: "date", ...props }));
 
-const dateTimeInputProps = catalogObject({
+const dateTimeInputProps = fieldBackedProps({
 	...baseInputProps,
 	/** ISO 8601 datetime. */
 	default: z.string().optional(),
 	min: z.string().optional(),
 	max: z.string().optional(),
-});
+}, (props) => ({ type: "datetime", ...props }));
 
-const timeInputProps = catalogObject({
+const timeInputProps = fieldBackedProps({
 	...baseInputProps,
 	/** HH:MM:SS. */
 	default: z.string().optional(),
 	min: z.string().optional(),
 	max: z.string().optional(),
-});
+}, (props) => ({ type: "time", ...props }));
 
 const durationInputProps = catalogObject({
 	...baseInputProps,
 	default: DurationSchema.optional(),
 });
 
-const emailInputProps = catalogObject({
+const emailInputProps = fieldBackedProps({
 	...baseInputProps,
 	placeholder: z.string().optional(),
 	default: z.string().optional(),
 	minLength: z.number().optional(),
 	maxLength: z.number().optional(),
-});
+}, (props) => ({ type: "email", ...props }));
 
 const phoneInputProps = catalogObject({
 	...baseInputProps,
 	default: PhoneSchema.optional(),
 });
 
-const uriInputProps = catalogObject({
+const uriInputProps = fieldBackedProps({
 	...baseInputProps,
 	placeholder: z.string().optional(),
 	default: z.string().optional(),
 	minLength: z.number().optional(),
 	maxLength: z.number().optional(),
 	pattern: z.string().optional(),
-});
+}, (props) => ({ type: "uri", ...props }));
 
 const addressFormProps = catalogObject({
 	...baseInputProps,
@@ -205,23 +231,23 @@ const identificationInputProps = catalogObject({
 	allowedTypes: z.array(z.string()).optional(),
 });
 
-const ratingStarsProps = catalogObject({
+const ratingStarsProps = fieldBackedProps({
 	...baseInputProps,
 	default: z.number().optional(),
 	min: z.number().optional(),
 	max: z.number().optional(),
 	step: z.number().optional(),
-});
+}, (props) => ({ type: "rating", ...props }));
 
 const fieldsetProps = catalogObject({
 	...baseInputProps,
 });
 
-const listProps = catalogObject({
+const listProps = fieldBackedProps({
 	...baseInputProps,
 	minItems: z.number().int().nonnegative().optional(),
 	maxItems: z.number().int().nonnegative().optional(),
-});
+}, (props) => ({ type: "list", item: { type: "text" }, ...props }));
 
 // ---------------------------------------------------------------------------
 // The catalog

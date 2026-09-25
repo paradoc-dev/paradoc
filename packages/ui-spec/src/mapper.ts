@@ -1,7 +1,7 @@
 /**
  * Maps a Paradoc artifact field definition to a catalog spec node.
  *
- * Single switch over the 23 field types in @paradoc/types. For each field
+ * Single switch over the field types in @paradoc/types. For each field
  * type, picks the appropriate catalog component and constructs props from
  * the field's metadata (label, description, min/max, options, default, etc.).
  *
@@ -44,7 +44,7 @@ import type { SpecNode } from "./spec.js";
 /**
  * Mapping context. Optional values shape the produced spec.
  *
- * - `fieldPath`: artifact path (e.g. "/pet/species") attached to the spec
+ * - `fieldPath`: artifact path (e.g. `pet.species`) attached to the spec
  *   so the resulting `submitFieldValue` action carries it through.
  * - `sourceLanguage`: BCP 47-style source language tag for authored labels.
  * - `targetLanguage`: BCP 47-style target language tag for rendered labels.
@@ -65,9 +65,6 @@ export type MapperContext = {
 	translateOption?: (option: TranslateOptionInput) => string;
 };
 
-/**
- * Map a paradoc form field to a catalog spec node.
- */
 function optionToCatalogOption(option: EnumOption, ctx: MapperContext): CatalogOption {
 	const label = ctx.translateOption
 		? ctx.translateOption({
@@ -85,6 +82,7 @@ function optionToCatalogOption(option: EnumOption, ctx: MapperContext): CatalogO
 	return { label, value: option.value };
 }
 
+/** Map a Paradoc form field to a catalog spec node. */
 export function fieldToSpec(field: FormField, ctx: MapperContext = {}): SpecNode {
 	const baseProps = {
 		label: field.label,
@@ -393,7 +391,7 @@ function textOrTextArea(field: TextField): "TextInput" | "TextArea" {
 }
 
 function optionalFieldPath(ctx: MapperContext): { fieldPath?: string } {
-	return ctx.fieldPath !== undefined ? { fieldPath: ctx.fieldPath } : {};
+	return ctx.fieldPath ? { fieldPath: ctx.fieldPath } : {};
 }
 
 function mapFieldset(field: FieldsetField, ctx: MapperContext): SpecNode {
@@ -444,9 +442,9 @@ function mapList(field: ListField, ctx: MapperContext): SpecNode {
 }
 
 function appendFieldPath(parent: string | undefined, key: string): string | undefined {
-	return parent === undefined ? undefined : parent === "" ? key : `${parent}.${key}`;
+	return parent ? `${parent}.${key}` : undefined;
 }
 
 function appendListTemplatePath(parent: string | undefined): string | undefined {
-	return parent === undefined ? undefined : `${parent}[]`;
+	return parent ? `${parent}[]` : undefined;
 }
