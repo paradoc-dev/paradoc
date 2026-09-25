@@ -100,6 +100,32 @@ describe('CLI New Command', () => {
       const files = await fs.readdir(tempDir)
       expect(files.some((f) => f.includes('dry-form'))).toBe(false)
     })
+
+    it('refuses to overwrite an existing artifact unless --force is passed', async () => {
+      const file = path.join(tempDir, 'existing.json')
+      await fs.writeFile(file, '{"keep":"me"}\n')
+
+      const refused = await executeCliCommand(['new', 'form', 'existing', '--yes'], { cwd: tempDir })
+      expect(refused.exitCode).toBe(1)
+      expect(refused.stderr).toContain('File already exists')
+      expect(await fs.readFile(file, 'utf8')).toBe('{"keep":"me"}\n')
+
+      const forced = await executeCliCommand(['new', 'form', 'existing', '--yes', '--force'], { cwd: tempDir })
+      expect(forced.exitCode).toBe(0)
+      expect(JSON.parse(await fs.readFile(file, 'utf8')).kind).toBe('form')
+    })
+
+    it.each([
+      ['bad slug', ['--slug', 'Bad Slug']],
+      ['bad version', ['--artifact-version', 'banana']],
+      ['bad field id', ['--field', 'First Name:text']],
+      ['extra field delimiter', ['--field', 'a:enum:extra']],
+      ['bad format', ['--format', 'xml']],
+    ])('writes nothing for %s', async (_label, flags) => {
+      const result = await executeCliCommand(['new', 'form', 'invalid', '--yes', ...flags], { cwd: tempDir })
+      expect(result.exitCode).toBe(1)
+      expect(await fs.readdir(tempDir)).toEqual([])
+    })
   })
 
   describe('new document', () => {

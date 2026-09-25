@@ -2,20 +2,6 @@ import slugify from 'slugify'
 import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 import { FORM_FIELD_TYPES, SCHEMA_BASE, type FormFieldType } from '@paradoc/schemas'
 
-export interface ProjectTemplate {
-  name: string
-  slug: string
-  description?: string
-  version: string
-  artifacts: {
-    forms: string[]
-    documents: string[]
-    checklists: string[]
-    bundles: string[]
-  }
-  metadata?: Record<string, unknown>
-}
-
 export interface ManifestTemplate {
   $schema: string
   name: string
@@ -35,44 +21,6 @@ export interface ArtifactTemplate {
   version?: string
   metadata?: Record<string, unknown>
   [key: string]: unknown
-}
-
-/**
- * Generate paradoc.json template
- */
-export function generateProjectTemplate(
-  name: string,
-  slug: string,
-  options: {
-    version?: string
-    description?: string
-    scaffold?: boolean
-    metadata?: Record<string, any>
-  } = {}
-): ProjectTemplate {
-  // Build template with correct field order: name, slug, version, description, artifacts, metadata
-  const template: ProjectTemplate = {
-    name,
-    slug,
-    version: options.version || '1.0.0',
-    ...(options.description ? { description: options.description } : {}),
-    artifacts: options.scaffold
-      ? {
-          forms: ['forms/**/*.{json,yaml}'],
-          documents: ['documents/**/*.{json,yaml}'],
-          checklists: ['checklists/**/*.{json,yaml}'],
-          bundles: ['bundles/**/*.{json,yaml}'],
-        }
-      : {
-          forms: [],
-          documents: [],
-          checklists: [],
-          bundles: [],
-        },
-    metadata: options.metadata || {},
-  }
-
-  return template
 }
 
 /**
@@ -270,18 +218,4 @@ export function createChecklistItem(text: string, index: number): Record<string,
       default: false,
     },
   }
-}
-
-
-/**
- * Create a resource reference
- */
-export function createResourceRef(pathOrSlugOrUri: string): Record<string, string> {
-  if (pathOrSlugOrUri.startsWith('http://') || pathOrSlugOrUri.startsWith('https://')) {
-    return { uri: pathOrSlugOrUri }
-  }
-  if (pathOrSlugOrUri.startsWith('@') || pathOrSlugOrUri.includes('/')) {
-    return { slug: pathOrSlugOrUri }
-  }
-  return { path: pathOrSlugOrUri }
 }
