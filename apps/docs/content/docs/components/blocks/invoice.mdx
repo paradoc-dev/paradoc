@@ -50,8 +50,8 @@ PDF alike. The line-item [`Table`](/components/table) sits in the
 same section as the [`Totals`](/components/totals) that follows it, and
 neither carries a copy of the subtotal, tax, or total — `@paradoc/core`
 evaluates each from the artifact's own `defs`. The subtotal is
-`sum(fields.lineItems.amount)`, and tax applies to
-`sum(fields.lineItems.amount, fields.lineItems.taxable)`, the rows marked
+`sum(fields.lineItems.amount).amount`, and the taxable subtotal is
+`coalesce(sum(fields.lineItems.amount, fields.lineItems.taxable).amount, 0)`, using the rows marked
 taxable, so no caller supplies a total.
 
 Like the purchase order, the composition renders bare, with no self-wrapping

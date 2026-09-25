@@ -39,6 +39,9 @@ const lease = p.form()
     tenant: { type: "text", required: true },
     rent: { type: "money", required: true },
   })
+  .layers({
+    markdown: p.layer().inline().mimeType("text/markdown").text("Tenant: {{fields.tenant}}"),
+  })
   .build()
 
 // Runtime: fill and render

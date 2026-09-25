@@ -27,7 +27,7 @@ export const contactFields = {
   fullName: { type: "text", label: "Full Name", required: true },
   email: { type: "text", label: "Email", required: true },
   phone: { type: "phone", label: "Phone Number" },
-}
+} as const
 
 // forms/application.ts
 import { contactFields } from "../common/fields"
@@ -61,7 +61,7 @@ const leasePackage = p.bundle()
   .build()
 ```
 
-Bundle contents can be **inline** (embedded directly) or **referenced** (loaded from a path at runtime).
+Bundle contents can be **inline**, **path-referenced**, or **registry-referenced**.
 
 ---
 
@@ -71,7 +71,7 @@ When composing, you choose between:
 - **Inline** — content is embedded directly. Good for one-off definitions or keeping everything in one place.
 - **Referenced** — content is loaded from elsewhere. Good for shared definitions or large systems.
 
-This applies to fields, annexes, layers, and bundle contents.
+This applies to layers and bundle contents. Reuse fields by spreading typed field objects, as above; fields and annexes are not path references.
 
 ---
 

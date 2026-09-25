@@ -256,12 +256,12 @@ Field references carry their type into the expression, and the checker enforces 
 
 ## Authoring-Time Checking
 
-Because evaluation and checking share one type system, mistakes surface when the artifact is authored, not when a user fills it. Building or validating a form runs the checker over every expression, which catches:
+`validate()` and `fill()` run the expression checker before evaluation. They catch:
 
 - unknown references (`fields.hasVehicle.value` — there is no `.value`)
 - row references (`item`, `parent`) used where no list row encloses the expression
 - unknown functions
-- type mismatches (comparing a string field to a number)
+- type mismatches in ordering comparisons (for example, a string field greater than a number)
 - gates that don't evaluate to a boolean
 - misused list aggregates, and list values read outside one
 
