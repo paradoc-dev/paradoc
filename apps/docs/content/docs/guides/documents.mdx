@@ -16,7 +16,7 @@ This guide walks through creating a static document with multiple layers and ren
 A document needs a name, version, and title. Unlike forms, documents don't have fields or parties—they're static content with one or more layers.
 
 ```ts tab="Object Pattern"
-import { p } from '@paradoc/core'
+import { p } from '@paradoc/sdk'
 
 const privacyPolicy = p.document({
   name: 'privacy-policy',
@@ -28,7 +28,7 @@ const privacyPolicy = p.document({
 ```
 
 ```ts tab="Builder Pattern"
-import { p } from '@paradoc/core'
+import { p } from '@paradoc/sdk'
 
 const privacyPolicy = p
   .document()

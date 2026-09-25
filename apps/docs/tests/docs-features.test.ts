@@ -64,14 +64,15 @@ describe("docs feature flags", () => {
 describe("gated platform API pages", () => {
   const gatedSlug = PLATFORM_API_PAGE.replace(/\.mdx$/, "");
 
-  test("no page that is always built links a gated page", () => {
+  test("only the feature-gated guide index links the gated page", () => {
     const pages = Object.fromEntries(
       contentPages()
         .filter((file) => file !== PLATFORM_API_PAGE)
         .map((file) => [file, readFileSync(path.join(CONTENT_DIR, file), "utf8")]),
     );
 
-    expect(pagesLinking(pages, gatedSlug)).toEqual([]);
+    expect(pagesLinking(pages, gatedSlug)).toEqual(["guides/index.mdx"]);
+    expect(pages["guides/index.mdx"]).toContain("platformApiDocsEnabled ?");
   });
 
   test("finds a link to a gated page", () => {

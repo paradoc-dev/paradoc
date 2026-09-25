@@ -96,7 +96,7 @@ const signable = await draft.seal({
 A custom converter is one honest function:
 
 ```ts
-import type { SealAdapter } from '@paradoc/core'
+import type { SealAdapter } from '@paradoc/sdk'
 
 const adapter: SealAdapter = {
   async convert({ document }) {

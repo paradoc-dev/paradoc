@@ -23,6 +23,8 @@ const signable = await form
   .seal({
     adapter: hostedSealAdapter({
       apiKey: process.env.PARADOC_API_KEY!,
+      baseUrl: 'https://api.paradoc.dev',
+      fetch,
     }),
   })
 ```
@@ -30,9 +32,9 @@ const signable = await form
 The adapter calls `POST /v1/exec/convert` (exported as `HOSTED_CONVERT_PATH`)
 and requires an API key.
 
-Pass `timeoutMs` to abort a conversion that takes too long, for example
+`baseUrl` defaults to `https://api.paradoc.dev`; `fetch` can replace the request implementation. Pass `timeoutMs` to abort a conversion that takes too long, for example
 `timeoutMs: 30_000`. The timer starts when each request starts. A failed or unreadable response throws
-`HostedConversionError`, which carries the HTTP `status` and the start of the
+`TimeoutError` on timeout, or `HostedConversionError` for a failed response, which carries the HTTP `status` and the start of the
 response body in `bodyExcerpt`.
 
 ## Seal endpoint

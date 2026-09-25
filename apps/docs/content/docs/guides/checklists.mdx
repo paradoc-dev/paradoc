@@ -16,7 +16,7 @@ This guide walks through creating a checklist with items, filling it with data, 
 A checklist needs a name, version, title, and items. Each item has an ID, title, and status configuration.
 
 ```ts tab="Object Pattern"
-import { p } from '@paradoc/core'
+import { p } from '@paradoc/sdk'
 
 const onboarding = p.checklist({
   name: 'employee-onboarding',
@@ -31,7 +31,7 @@ const onboarding = p.checklist({
 ```
 
 ```ts tab="Builder Pattern"
-import { p } from '@paradoc/core'
+import { p } from '@paradoc/sdk'
 
 const onboarding = p
   .checklist()

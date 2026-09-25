@@ -16,7 +16,7 @@ Bundles group forms, documents, and checklists into a single package. This guide
 A lease transaction needs multiple artifacts. Start with the form from the previous guide, then add a disclosure document and a move-in checklist.
 
 ```ts tab="Object Pattern"
-import { p } from '@paradoc/core'
+import { p } from '@paradoc/sdk'
 
 // Lease Agreement Form
 const lease = p.form({
@@ -61,11 +61,13 @@ const moveInChecklist = p.checklist({
     { id: 'utilities', title: 'Utilities Transferred' },
     { id: 'inspection', title: 'Walk-Through Complete' },
   ],
+  defaultLayer: 'text',
+  layers: { text: { kind: 'inline', mimeType: 'text/plain', text: 'Move-In Checklist' } },
 })
 ```
 
 ```ts tab="Builder Pattern"
-import { p } from '@paradoc/core'
+import { p } from '@paradoc/sdk'
 
 // Lease Agreement Form
 const lease = p
@@ -107,6 +109,8 @@ const moveInChecklist = p
   .item({ id: 'keys', title: 'Keys Provided' })
   .item({ id: 'utilities', title: 'Utilities Transferred' })
   .item({ id: 'inspection', title: 'Walk-Through Complete' })
+  .inlineLayer('text', { mimeType: 'text/plain', text: 'Move-In Checklist' })
+  .defaultLayer('text')
   .build()
 ```
 </Step>
@@ -184,8 +188,8 @@ const filledLease = lease.fill({
     endDate: '2026-01-31',
   },
   parties: {
-    landlord: { id: 'landlord-1', name: 'Jane Smith' },
-    tenant: { id: 'tenant-1', name: 'John Doe' },
+    landlord: { id: 'landlord-0', name: 'Jane Smith' },
+    tenant: { id: 'tenant-0', name: 'John Doe' },
   },
 })
 
@@ -284,6 +288,6 @@ const bundle = p
   .name('mixed-bundle')
   .inline('embedded', someForm)           // Embedded
   .path('local', './forms/other.yaml')    // File reference
-  .registry('shared', '@acme/disclosure') // Registry reference
+  .registry('shared', '@acme/forms/disclosure') // Registry reference
   .build()
 ```

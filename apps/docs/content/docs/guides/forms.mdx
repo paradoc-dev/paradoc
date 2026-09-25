@@ -26,7 +26,7 @@ Create a new project, set up the directory structure, and download the W-9 form:
   <Tab value="pnpm">
     ```bash
     mkdir my-form && cd my-form
-    pnpm init -y
+    pnpm init
     ```
   </Tab>
   <Tab value="yarn">
@@ -181,8 +181,8 @@ Use `.fill()` to create a runtime instance with data:
 ```ts
 const filled = lease.fill({
   parties: {
-    landlord: { id: 'landlord-1', name: 'Jane Smith' },
-    tenant: { id: 'tenant-1', name: 'John Doe' },
+    landlord: { id: 'landlord-0', name: 'Jane Smith' },
+    tenant: { id: 'tenant-0', name: 'John Doe' },
   },
   fields: {
     address: {

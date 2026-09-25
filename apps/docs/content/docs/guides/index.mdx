@@ -5,6 +5,8 @@ ogTitle: Paradoc Guides
 ogDescription: Step-by-step guides for building forms, documents, checklists, bundles, and packets
 ---
 
+import { platformApiDocsEnabled } from '../../../src/lib/docs-features'
+
 Step-by-step guides for working with Paradoc.
 
 | Guide | Description |
@@ -18,3 +20,5 @@ Step-by-step guides for working with Paradoc.
 | [Text Layers](/guides/text-layers) | Working with text-based (Markdown, HTML, plain text) layers |
 | [PDF Layers](/guides/pdf-layers) | Working with PDF form fields and bindings |
 | [React Layers](/guides/react-layers) | Render and seal a form through a React composition |
+
+{platformApiDocsEnabled ? <p><a href="/guides/hosted-sealing-and-conversion">Hosted Sealing</a> — Seal and convert documents with the Paradoc Platform API.</p> : null}
