@@ -173,30 +173,7 @@ describe('LockFileManager', () => {
       expect(artifacts.map((a) => a.ref)).toContain('@acme/artifact2')
     })
 
-    it('getArtifactsByNamespace filters by namespace', () => {
-      manager.setArtifact('@acme/artifact1', {
-        kind: 'form',
-        version: '1.0.0',
-        resolved: 'https://registry.acme.com/r/artifact1.json',
-        integrity: 'sha256-111',
-        output: 'yaml',
-        path: 'artifacts/@acme/artifact1.yaml',
-        layers: {},
-      })
-      manager.setArtifact('@other/artifact2', {
-        kind: 'bundle',
-        version: '2.0.0',
-        resolved: 'https://registry.other.com/r/artifact2.json',
-        integrity: 'sha256-222',
-        output: 'json',
-        path: 'artifacts/@other/artifact2.json',
-        layers: {},
-      })
 
-      const acmeArtifacts = manager.getArtifactsByNamespace('@acme')
-      expect(acmeArtifacts).toHaveLength(1)
-      expect(acmeArtifacts[0]?.ref).toBe('@acme/artifact1')
-    })
   })
 
   describe('save', () => {

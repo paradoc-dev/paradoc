@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto'
 import { LockFileSchema } from '@paradoc/schemas'
 import { LocalFileSystem } from './local-fs.js'
-import { formatConfigIssues, isMissingFileError, normalizeNamespace } from './config.js'
+import { formatConfigIssues, isMissingFileError } from './config.js'
 
 import type {
   ArtifactKind,
@@ -101,12 +101,6 @@ export class LockFileManager {
   /**
    * Save only if there are changes
    */
-  async saveIfDirty(): Promise<void> {
-    if (this.dirty) {
-      await this.save()
-    }
-  }
-
   /**
    * Get the path to the lock file
    */
@@ -184,21 +178,6 @@ export class LockFileManager {
    * Get all installed artifacts for a namespace
    * @param namespace - Namespace (with @ prefix)
    */
-  getArtifactsByNamespace(namespace: string): Array<{ ref: string; info: LockedArtifact }> {
-    const normalizedNamespace = normalizeNamespace(namespace)
-    return this.listArtifacts().filter(({ ref }) => ref.startsWith(`${normalizedNamespace}/`))
-  }
-
-  /**
-   * Check if the installed version matches the requested version
-   * @param artifactRef - Full artifact reference
-   * @param version - Version to check
-   */
-  isVersionMatch(artifactRef: string, version: string): boolean {
-    const artifact = this.getArtifact(artifactRef)
-    return artifact?.version === version
-  }
-
   /**
    * Compute integrity hash for content
    * @param content - Content to hash
@@ -215,14 +194,6 @@ export class LockFileManager {
    * @param artifactRef - Full artifact reference
    * @param content - Current content
    */
-  verifyIntegrity(artifactRef: string, content: string | Buffer): boolean {
-    const artifact = this.getArtifact(artifactRef)
-    if (!artifact) return false
-
-    const currentIntegrity = this.computeIntegrity(content)
-    return artifact.integrity === currentIntegrity
-  }
-
   /**
    * Create a locked artifact entry
    */

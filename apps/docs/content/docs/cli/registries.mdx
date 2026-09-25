@@ -60,7 +60,6 @@ For registries that require authentication, use the extended format:
 |-------|-------------|
 | `url` | Registry base URL |
 | `headers` | Custom headers (supports `${ENV_VAR}` expansion) |
-| `allowInsecure` | Allow HTTP URLs (for local development only) |
 | `cache.ttl` | Per-registry cache TTL override in seconds |
 
 ### Searching for artifacts
@@ -127,14 +126,13 @@ export REGISTRY_TOKEN="your-token-here"
 paradoc add @private/internal-form
 ```
 
-For local development servers running over HTTP, set `allowInsecure`:
+Local development registries may use HTTP:
 
 ```json
 {
   "registries": {
     "@local": {
-      "url": "http://localhost:4567",
-      "allowInsecure": true
+      "url": "http://localhost:4567"
     }
   }
 }
@@ -256,14 +254,13 @@ For local development, serve the directory with a static file server:
 npx serve my-registry -l 4567
 ```
 
-Then configure the local registry with `allowInsecure`:
+Then configure the local registry:
 
 ```json
 {
   "registries": {
     "@local": {
-      "url": "http://localhost:4567",
-      "allowInsecure": true
+      "url": "http://localhost:4567"
     }
   }
 }

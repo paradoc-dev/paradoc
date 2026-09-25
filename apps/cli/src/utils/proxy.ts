@@ -8,7 +8,7 @@
  * Uses undici which ships with Node — no extra dependency needed.
  */
 
-import { ProxyAgent, setGlobalDispatcher } from 'undici'
+import { EnvHttpProxyAgent, setGlobalDispatcher } from 'undici'
 
 let initialized = false
 
@@ -20,13 +20,11 @@ export function initProxy(): void {
   if (initialized) return
   initialized = true
 
-  const proxyUrl =
-    process.env.HTTPS_PROXY ||
-    process.env.https_proxy ||
-    process.env.HTTP_PROXY ||
-    process.env.http_proxy
+  if (!process.env.HTTPS_PROXY && !process.env.https_proxy && !process.env.HTTP_PROXY && !process.env.http_proxy) return
 
-  if (!proxyUrl) return
-
-  setGlobalDispatcher(new ProxyAgent(proxyUrl))
+  setGlobalDispatcher(new EnvHttpProxyAgent({
+    httpProxy: process.env.HTTP_PROXY || process.env.http_proxy,
+    httpsProxy: process.env.HTTPS_PROXY || process.env.https_proxy,
+    noProxy: process.env.NO_PROXY || process.env.no_proxy,
+  }))
 }

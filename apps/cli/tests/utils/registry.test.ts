@@ -3,7 +3,6 @@ import {
   parseArtifactArg,
   parseArtifactRef,
   parseNamespaceOnly,
-  isValidArtifactRef,
   buildRegistryIndexUrl,
   buildArtifactItemUrl,
   buildLayerFileUrl,
@@ -75,7 +74,6 @@ describe('parseArtifactRef', () => {
     expect(result).toBeNull()
   })
 })
-
 describe('parseNamespaceOnly', () => {
   it('returns the namespace with its @', () => {
     expect(parseNamespaceOnly('@my_org')).toEqual({ namespace: '@my_org' })
@@ -106,20 +104,7 @@ describe('parseArtifactArg with a direct URL', () => {
   )
 })
 
-describe('isValidArtifactRef', () => {
-  it('returns true for valid references', () => {
-    expect(isValidArtifactRef('@acme/residential-lease')).toBe(true)
-    expect(isValidArtifactRef('@paradoc/contact-form')).toBe(true)
-    expect(isValidArtifactRef('@my_org/my-artifact-123')).toBe(true)
-  })
 
-  it('returns false for invalid references', () => {
-    expect(isValidArtifactRef('acme/residential-lease')).toBe(false)
-    expect(isValidArtifactRef('@acme')).toBe(false)
-    expect(isValidArtifactRef('@my_org/my_artifact_123')).toBe(false)
-    expect(isValidArtifactRef('')).toBe(false)
-  })
-})
 
 describe('buildRegistryIndexUrl', () => {
   it('builds correct URL for registry index', () => {

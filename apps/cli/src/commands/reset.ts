@@ -9,6 +9,7 @@ import type { GlobalConfig } from '@paradoc/schemas'
 import { registryClient } from '../utils/registry-client.js'
 import { configManager } from '../utils/config.js'
 import { rendererManager } from '../utils/renderer-manager.js'
+import { formatBytes } from '../utils/format.js'
 
 /**
  * Global storage for ~/.paradoc operations
@@ -18,12 +19,6 @@ const globalStorage = new LocalFileSystem(userHomeDir())
 /**
  * Format bytes to human-readable string
  */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
 /**
  * Get directory size recursively using storage
  */

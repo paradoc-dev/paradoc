@@ -37,21 +37,10 @@ export const NETWORK_TIMEOUTS = {
   CONNECT_TIMEOUT: 30_000, // 30 seconds
 
   /**
-   * Read timeout for slow responses
-   */
-  READ_TIMEOUT: 60_000, // 60 seconds
-
-  /**
    * Total download timeout
    */
   DOWNLOAD_TIMEOUT: 300_000, // 5 minutes
 }
-
-/**
- * Allowed URL schemes for registry URLs
- * Only HTTPS is allowed for security
- */
-export const ALLOWED_URL_SCHEMES = ['https:']
 
 /**
  * Blocked content types that should never be downloaded as layers.

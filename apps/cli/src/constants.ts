@@ -13,5 +13,4 @@ export const VERSION: string =
  * Brand color using ANSI 256 color code
  * #F53D00 (RGB: 245, 61, 0) ≈ ANSI 256 color 202 (orange-red)
  */
-export const brandColor = (text: string): string => `\x1b[38;5;202m${text}\x1b[0m`
 export const brandColorBold = (text: string): string => `\x1b[1m\x1b[38;5;202m${text}\x1b[0m`

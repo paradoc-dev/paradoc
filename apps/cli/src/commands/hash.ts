@@ -1,8 +1,8 @@
 import { Command } from 'commander'
-import { createHash } from 'node:crypto'
 import kleur from 'kleur'
 
 import { readBinaryInput } from '../utils/io.js'
+import { computeHashFromContent } from '../utils/hash.js'
 
 interface HashOptions {
   json?: boolean
@@ -32,9 +32,7 @@ export function createHashCommand(): Command {
         const { data, sourcePath } = await readBinaryInput(file)
 
         // Compute hash
-        const hashObj = createHash(algorithm)
-        hashObj.update(data)
-        const hashHex = hashObj.digest('hex')
+        const hashHex = computeHashFromContent(data)
         const checksum = `${algorithm}:${hashHex}`
 
         if (options.json) {

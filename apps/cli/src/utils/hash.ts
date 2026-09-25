@@ -13,10 +13,22 @@ import { LocalFileSystem } from './local-fs.js'
  * @param content - Content to hash
  * @returns Hex-encoded SHA256 hash
  */
-export function computeHashFromContent(content: string | Buffer): string {
+export function computeHashFromContent(content: string | Uint8Array): string {
   const hash = createHash('sha256')
   hash.update(content)
   return hash.digest('hex')
+}
+
+function parseChecksum(checksum: string): { algorithm: 'sha256'; hash: string } {
+  const parts = checksum.split(':')
+  if (parts.length !== 2) {
+    throw new Error(`Invalid checksum format: ${checksum}. Expected "sha256:hash"`)
+  }
+  const [algorithm, hash] = parts
+  if (algorithm !== 'sha256') {
+    throw new Error(`Unsupported hash algorithm: ${algorithm}. Only sha256 is supported`)
+  }
+  return { algorithm, hash: hash ?? '' }
 }
 
 /**
@@ -29,25 +41,15 @@ export function verifyChecksum(
   content: string | Buffer,
   expectedChecksum: string
 ): { valid: boolean; expected: string; actual: string; algorithm: string } {
-  // Parse checksum format: "sha256:hash"
-  const parts = expectedChecksum.split(':')
-  if (parts.length !== 2) {
-    throw new Error(`Invalid checksum format: ${expectedChecksum}. Expected "sha256:hash"`)
-  }
-
-  const [algorithm, expectedHash] = parts
-
-  if (algorithm !== 'sha256') {
-    throw new Error(`Unsupported hash algorithm: ${algorithm}. Only sha256 is supported`)
-  }
+  const { algorithm, hash: expectedHash } = parseChecksum(expectedChecksum)
 
   const actualHash = computeHashFromContent(content)
 
   return {
     valid: actualHash === expectedHash,
-    expected: expectedHash ?? '',
+    expected: expectedHash,
     actual: actualHash,
-    algorithm: algorithm ?? 'sha256',
+    algorithm,
   }
 }
 
@@ -72,17 +74,7 @@ export async function verifyHashFromFile(
   filePath: string,
   expectedChecksum: string
 ): Promise<boolean> {
-  // Parse checksum format: "sha256:hash"
-  const parts = expectedChecksum.split(':')
-  if (parts.length !== 2) {
-    throw new Error(`Invalid checksum format: ${expectedChecksum}. Expected "sha256:hash"`)
-  }
-
-  const [algorithm, expectedHash] = parts
-
-  if (algorithm !== 'sha256') {
-    throw new Error(`Unsupported hash algorithm: ${algorithm}. Only sha256 is supported`)
-  }
+  const { hash: expectedHash } = parseChecksum(expectedChecksum)
 
   const storage = new LocalFileSystem()
   const actualHash = await storage.computeFileHash(filePath, 'sha256')

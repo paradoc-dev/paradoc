@@ -81,7 +81,7 @@ class CacheManager {
   async init(config?: CacheManagerConfig): Promise<void> {
     if (config?.directory) {
       this.directory = config.directory
-      // Update storage to use the custom directory's parent
+      // Use cwd-based storage for an absolute custom cache directory.
       this.storage = new LocalFileSystem()
     }
     if (config?.defaultTtl !== undefined) {
@@ -329,57 +329,6 @@ class CacheManager {
    * Get the effective TTL considering hierarchy:
    * command flag > per-registry > project > global > default
    */
-  getEffectiveTtl(options: {
-    commandTtl?: number
-    registryTtl?: number
-    projectTtl?: number
-    globalTtl?: number
-  }): number {
-    // Command flag takes highest priority
-    if (options.commandTtl !== undefined) {
-      return options.commandTtl
-    }
-    // Then per-registry
-    if (options.registryTtl !== undefined) {
-      return options.registryTtl
-    }
-    // Then project
-    if (options.projectTtl !== undefined) {
-      return options.projectTtl
-    }
-    // Then global
-    if (options.globalTtl !== undefined) {
-      return options.globalTtl
-    }
-    // Finally, default
-    return this.defaultTtl
-  }
-
-  /**
-   * Update configuration (for runtime reconfiguration)
-   */
-  configure(config: CacheManagerConfig): void {
-    if (config.directory !== undefined) {
-      this.directory = config.directory
-    }
-    if (config.defaultTtl !== undefined) {
-      this.defaultTtl = config.defaultTtl
-    }
-  }
-
-  /**
-   * Get current cache directory
-   */
-  getDirectory(): string {
-    return this.directory
-  }
-
-  /**
-   * Get current default TTL
-   */
-  getDefaultTtl(): number {
-    return this.defaultTtl
-  }
 }
 
 /**

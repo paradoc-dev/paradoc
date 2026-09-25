@@ -4,12 +4,7 @@ import ora from 'ora'
 
 import { rendererManager } from '../utils/renderer-manager.js'
 import { formatTable } from '../utils/table.js'
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+import { formatBytes } from '../utils/format.js'
 
 export function createRenderersCommand(): Command {
   const renderers = new Command('renderers')

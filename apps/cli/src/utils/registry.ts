@@ -131,10 +131,6 @@ export function parseArtifactRef(ref: string): ArtifactRef | null {
  * @param ref - Artifact reference to validate
  * @returns true if valid, false otherwise
  */
-export function isValidArtifactRef(ref: string): boolean {
-  return ARTIFACT_REF_PATTERN.test(ref)
-}
-
 /**
  * Resolve registry configuration for a namespace
  * @param namespace - Namespace (with or without @ prefix)
@@ -200,52 +196,6 @@ export function buildLayerFileUrl(registry: ResolvedRegistry, filePath: string):
  * @param ref - Artifact reference string
  * @returns Object with parsed ref and resolved registry, or null if invalid
  */
-export async function parseAndResolveArtifact(ref: string): Promise<{
-  artifactRef: ArtifactRef
-  registry: ResolvedRegistry
-} | null> {
-  const artifactRef = parseArtifactRef(ref)
-  if (!artifactRef) {
-    return null
-  }
-
-  const registry = await resolveRegistry(artifactRef.namespace)
-
-  return {
-    artifactRef,
-    registry,
-  }
-}
-
-/**
- * Format an artifact reference for display
- * @param ref - Artifact reference
- * @returns Formatted string
- */
-export function formatArtifactRef(ref: ArtifactRef): string {
-  return ref.full
-}
-
-/**
- * Extract namespace from artifact reference
- * @param ref - Full artifact reference string
- * @returns Namespace (with @ prefix) or null if invalid
- */
-export function extractNamespace(ref: string): string | null {
-  const parsed = parseArtifactRef(ref)
-  return parsed ? parsed.namespace : null
-}
-
-/**
- * Extract artifact name from reference
- * @param ref - Full artifact reference string
- * @returns Artifact name or null if invalid
- */
-export function extractArtifactName(ref: string): string | null {
-  const parsed = parseArtifactRef(ref)
-  return parsed ? parsed.name : null
-}
-
 /**
  * Parse a bare namespace argument (e.g., "@acme" without an artifact name)
  * @param arg - The argument to parse

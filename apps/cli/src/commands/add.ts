@@ -7,7 +7,7 @@ import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule, validate } from 
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import type { AddOptions, OutputFormat, ArtifactKind, ResolvedRegistry, RegistryItemSummary } from '../types.js'
-import { parseArtifactArg, resolveRegistry, createRegistryFromUrl, buildArtifactItemUrl, parseNamespaceOnly } from '../utils/registry.js'
+import { parseArtifactArg, resolveRegistry, createRegistryFromUrl, parseNamespaceOnly } from '../utils/registry.js'
 import { addComponents, COMPONENT_ITEMS, COMPONENT_NAMESPACE, isComponentName } from './add-component.js'
 import { registryClient, RegistryFetchError, type RegistryItem } from '../utils/registry-client.js'
 import { lockFileManager } from '../utils/lock.js'
@@ -83,10 +83,12 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
 
   let registryItem
   try {
-    registryItem = await registryClient.fetchItem(registry, artifactName, {
+    const fetched = await registryClient.fetchItem(registry, artifactName, {
       cacheTtl,
       skipCache,
     })
+    registryItem = fetched.item
+    resolvedUrl ??= fetched.url
   } catch (error) {
     spinner.fail(`Failed to fetch ${artifactFull}`)
     if (error instanceof RegistryFetchError && error.statusCode === 404) {
@@ -98,17 +100,6 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     process.exit(1)
   }
   spinner.succeed(`Found ${registryItem.name} v${registryItem.version}`)
-
-  // Build resolvedUrl for lock file (if not set by direct URL mode)
-  if (!resolvedUrl) {
-    const artifactsPath = await registryClient.getArtifactsPath(registry, { cacheTtl, skipCache })
-    const summary = await registryClient.getArtifactSummary(registry, artifactName, { cacheTtl, skipCache })
-    resolvedUrl = buildArtifactItemUrl(
-      { ...registry, artifactsPath },
-      artifactName,
-      summary?.path,
-    )
-  }
 
   // A registry serves artifact files, so the schema version rule for files applies.
   try {
@@ -632,4 +623,3 @@ function parseLayerOption(layersOption: string, availableLayers: string[]): stri
 function toCamelCase(str: string): string {
   return str.replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase())
 }
-

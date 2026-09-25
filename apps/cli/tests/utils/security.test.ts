@@ -5,14 +5,10 @@ import { tmpdir } from 'node:os'
 import {
   sanitizePath,
   validateUrl,
-  isValidName,
   sanitizeForDisplay,
   isValidSemver,
-  validateArtifactMetadata,
   validateDownloadedArtifact,
-  validateContentType,
   assertNotSymlink,
-  checkSymlink,
   SymlinkError,
 } from '../../src/utils/security.js'
 
@@ -110,7 +106,6 @@ describe('sanitizePath', () => {
     })
   })
 })
-
 describe('validateUrl', () => {
   describe('valid URLs', () => {
     it('accepts HTTPS URLs', () => {
@@ -186,37 +181,7 @@ describe('validateUrl', () => {
   })
 })
 
-describe('isValidName', () => {
-  it('accepts valid names', () => {
-    expect(isValidName('my-artifact')).toBe(true)
-    expect(isValidName('my_artifact')).toBe(true)
-    expect(isValidName('MyArtifact123')).toBe(true)
-    expect(isValidName('a')).toBe(true)
-  })
 
-  it('rejects names starting with special characters', () => {
-    expect(isValidName('-artifact')).toBe(false)
-    expect(isValidName('_artifact')).toBe(false)
-    expect(isValidName('123artifact')).toBe(false)
-  })
-
-  it('rejects names with invalid characters', () => {
-    expect(isValidName('my artifact')).toBe(false)
-    expect(isValidName('my.artifact')).toBe(false)
-    expect(isValidName('my@artifact')).toBe(false)
-    expect(isValidName('my/artifact')).toBe(false)
-  })
-
-  it('rejects empty names', () => {
-    expect(isValidName('')).toBe(false)
-  })
-
-  it('rejects names exceeding max length', () => {
-    const longName = 'a'.repeat(129)
-    expect(isValidName(longName)).toBe(false)
-    expect(isValidName(longName, 200)).toBe(true)
-  })
-})
 
 describe('sanitizeForDisplay', () => {
   it('returns normal text unchanged', () => {
@@ -282,81 +247,7 @@ describe('isValidSemver', () => {
   })
 })
 
-describe('validateArtifactMetadata', () => {
-  it('validates correct metadata', () => {
-    const result = validateArtifactMetadata({
-      name: 'my-artifact',
-      title: 'My Artifact',
-      description: 'A great artifact',
-      version: '1.0.0',
-      kind: 'form',
-    })
-    expect(result.valid).toBe(true)
-    expect(result.errors).toHaveLength(0)
-    expect(result.warnings).toHaveLength(0)
-  })
 
-  it('reports errors for invalid name', () => {
-    const result = validateArtifactMetadata({
-      name: 'invalid name!',
-      version: '1.0.0',
-    })
-    expect(result.valid).toBe(false)
-    expect(result.errors).toHaveLength(1)
-    expect(result.errors[0]).toContain('Invalid artifact name')
-  })
-
-  it('reports errors for invalid version', () => {
-    const result = validateArtifactMetadata({
-      name: 'valid-name',
-      version: 'invalid',
-    })
-    expect(result.valid).toBe(false)
-    expect(result.errors).toHaveLength(1)
-    expect(result.errors[0]).toContain('Invalid version')
-  })
-
-  it('reports errors for invalid kind', () => {
-    const result = validateArtifactMetadata({
-      name: 'valid-name',
-      version: '1.0.0',
-      kind: 'invalid-kind',
-    })
-    expect(result.valid).toBe(false)
-    expect(result.errors[0]).toContain('Invalid kind')
-  })
-
-  it('sanitizes title with escape sequences', () => {
-    const result = validateArtifactMetadata({
-      name: 'valid-name',
-      title: '\x1B[31mMalicious Title\x1B[0m',
-    })
-    expect(result.valid).toBe(true)
-    expect(result.sanitized.title).toBe('Malicious Title')
-    expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0]).toContain('unsafe characters')
-  })
-
-  it('sanitizes description with control characters', () => {
-    const result = validateArtifactMetadata({
-      name: 'valid-name',
-      description: 'Normal\x00Dangerous',
-    })
-    expect(result.valid).toBe(true)
-    expect(result.sanitized.description).toBe('NormalDangerous')
-    expect(result.warnings).toHaveLength(1)
-  })
-
-  it('accumulates multiple errors', () => {
-    const result = validateArtifactMetadata({
-      name: 'invalid name',
-      version: 'bad',
-      kind: 'invalid',
-    })
-    expect(result.valid).toBe(false)
-    expect(result.errors.length).toBeGreaterThan(1)
-  })
-})
 
 describe('validateDownloadedArtifact', () => {
   describe('valid artifacts', () => {
@@ -693,129 +584,7 @@ describe('validateDownloadedArtifact', () => {
   })
 })
 
-describe('validateContentType', () => {
-  describe('string content', () => {
-    it('validates valid JSON content', () => {
-      const content = '{"key": "value"}'
-      const result = validateContentType(content, 'application/json')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('application/json')
-    })
 
-    it('rejects invalid JSON content', () => {
-      const content = 'not json'
-      const result = validateContentType(content, 'application/json')
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('not valid JSON')
-    })
-
-    it('accepts text/plain content', () => {
-      const content = 'Hello, world!'
-      const result = validateContentType(content, 'text/plain')
-      expect(result.valid).toBe(true)
-    })
-
-    it('accepts text/html content', () => {
-      const content = '<!DOCTYPE html><html><body>Hello</body></html>'
-      const result = validateContentType(content, 'text/html')
-      expect(result.valid).toBe(true)
-    })
-
-    it('handles mime type with charset', () => {
-      const content = '{"key": "value"}'
-      const result = validateContentType(content, 'application/json; charset=utf-8')
-      expect(result.valid).toBe(true)
-    })
-
-    it('warns when binary type received as string', () => {
-      const content = 'some text'
-      const result = validateContentType(content, 'application/pdf')
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('Expected binary content')
-    })
-  })
-
-  describe('binary content', () => {
-    it('validates PDF content', () => {
-      // PDF magic bytes: %PDF
-      const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34])
-      const result = validateContentType(pdfBytes.buffer, 'application/pdf')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('application/pdf')
-    })
-
-    it('validates PNG content', () => {
-      // PNG magic bytes
-      const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-      const result = validateContentType(pngBytes.buffer, 'image/png')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('image/png')
-    })
-
-    it('validates JPEG content', () => {
-      // JPEG magic bytes
-      const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10])
-      const result = validateContentType(jpegBytes.buffer, 'image/jpeg')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('image/jpeg')
-    })
-
-    it('validates GIF87a content', () => {
-      // GIF87a magic bytes
-      const gifBytes = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x37, 0x61])
-      const result = validateContentType(gifBytes.buffer, 'image/gif')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('image/gif')
-    })
-
-    it('validates GIF89a content', () => {
-      // GIF89a magic bytes
-      const gifBytes = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61])
-      const result = validateContentType(gifBytes.buffer, 'image/gif')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('image/gif')
-    })
-
-    it('validates ZIP content', () => {
-      // ZIP magic bytes
-      const zipBytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04])
-      const result = validateContentType(zipBytes.buffer, 'application/zip')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('application/zip')
-    })
-
-    it('validates GZIP content', () => {
-      // GZIP magic bytes
-      const gzipBytes = new Uint8Array([0x1f, 0x8b, 0x08, 0x00])
-      const result = validateContentType(gzipBytes.buffer, 'application/gzip')
-      expect(result.valid).toBe(true)
-      expect(result.detectedType).toBe('application/gzip')
-    })
-
-    it('detects type mismatch', () => {
-      // PDF bytes but claiming to be PNG
-      const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31])
-      const result = validateContentType(pdfBytes.buffer, 'image/png')
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('appears to be application/pdf')
-      expect(result.detectedType).toBe('application/pdf')
-    })
-
-    it('fails when expected signature not found', () => {
-      // Random bytes claiming to be PDF
-      const randomBytes = new Uint8Array([0x00, 0x01, 0x02, 0x03])
-      const result = validateContentType(randomBytes.buffer, 'application/pdf')
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('signature not found')
-    })
-
-    it('accepts unknown types without validation', () => {
-      const randomBytes = new Uint8Array([0x00, 0x01, 0x02, 0x03])
-      const result = validateContentType(randomBytes.buffer, 'application/octet-stream')
-      expect(result.valid).toBe(true)
-    })
-  })
-})
 
 describe('assertNotSymlink', () => {
   let testDir: string
@@ -869,47 +638,5 @@ describe('assertNotSymlink', () => {
       expect(error).toBeInstanceOf(SymlinkError)
       expect((error as SymlinkError).filePath).toBe(testSymlink)
     }
-  })
-})
-
-describe('checkSymlink', () => {
-  let testDir: string
-  let testFile: string
-  let testSymlink: string
-
-  beforeEach(async () => {
-    testDir = path.join(tmpdir(), `symlink-check-${Date.now()}-${Math.random().toString(36).slice(2)}`)
-    await fs.mkdir(testDir, { recursive: true })
-    testFile = path.join(testDir, 'regular-file.txt')
-    testSymlink = path.join(testDir, 'symlink-file.txt')
-  })
-
-  afterEach(async () => {
-    try {
-      await fs.rm(testDir, { recursive: true, force: true })
-    } catch {
-      // Ignore cleanup errors
-    }
-  })
-
-  it('returns exists: false for non-existent path', async () => {
-    const result = await checkSymlink(path.join(testDir, 'nope.txt'))
-    expect(result.exists).toBe(false)
-    expect(result.isSymlink).toBe(false)
-  })
-
-  it('returns isSymlink: false for regular file', async () => {
-    await fs.writeFile(testFile, 'test content')
-    const result = await checkSymlink(testFile)
-    expect(result.exists).toBe(true)
-    expect(result.isSymlink).toBe(false)
-  })
-
-  it('returns isSymlink: true for symlink', async () => {
-    await fs.writeFile(testFile, 'test content')
-    await fs.symlink(testFile, testSymlink)
-    const result = await checkSymlink(testSymlink)
-    expect(result.exists).toBe(true)
-    expect(result.isSymlink).toBe(true)
   })
 })

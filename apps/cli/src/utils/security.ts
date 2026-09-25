@@ -47,23 +47,6 @@ export function validateUrl(urlString: string): UrlValidationResult {
   return { valid: true, url, warnings }
 }
 
-// Pattern for valid artifact/layer names (must start with letter)
-const SAFE_NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9-_]*$/
-
-/**
- * Validate an artifact or layer name
- *
- * @param name - The name to validate
- * @param maxLength - Maximum allowed length (default 128)
- * @returns true if valid, false otherwise
- */
-export function isValidName(name: string, maxLength: number = 128): boolean {
-  if (!name || name.length > maxLength) {
-    return false
-  }
-  return SAFE_NAME_PATTERN.test(name)
-}
-
 /**
  * Sanitize a string for safe terminal display
  *
@@ -102,85 +85,6 @@ export function isValidSemver(version: string): boolean {
 /**
  * Result of artifact metadata validation
  */
-export interface MetadataValidationResult {
-  valid: boolean
-  errors: string[]
-  warnings: string[]
-  sanitized: {
-    name?: string
-    title?: string
-    description?: string
-    version?: string
-  }
-}
-
-/**
- * Validate and sanitize artifact metadata
- *
- * @param metadata - Artifact metadata to validate
- * @returns Validation result with sanitized values
- */
-export function validateArtifactMetadata(metadata: {
-  name?: string
-  title?: string
-  description?: string
-  version?: string
-  kind?: string
-}): MetadataValidationResult {
-  const errors: string[] = []
-  const warnings: string[] = []
-  const sanitized: MetadataValidationResult['sanitized'] = {}
-
-  // Validate name
-  if (metadata.name) {
-    if (!isValidName(metadata.name)) {
-      errors.push(`Invalid artifact name: "${metadata.name}". Names must be alphanumeric with hyphens/underscores.`)
-    }
-    sanitized.name = metadata.name
-  }
-
-  // Validate and sanitize title
-  if (metadata.title) {
-    const sanitizedTitle = sanitizeForDisplay(metadata.title)
-    if (sanitizedTitle !== metadata.title) {
-      warnings.push('Title contained potentially unsafe characters that were removed.')
-    }
-    sanitized.title = sanitizedTitle
-  }
-
-  // Validate and sanitize description
-  if (metadata.description) {
-    const sanitizedDesc = sanitizeForDisplay(metadata.description)
-    if (sanitizedDesc !== metadata.description) {
-      warnings.push('Description contained potentially unsafe characters that were removed.')
-    }
-    sanitized.description = sanitizedDesc
-  }
-
-  // Validate version
-  if (metadata.version) {
-    if (!isValidSemver(metadata.version)) {
-      errors.push(`Invalid version: "${metadata.version}". Must be valid SemVer (e.g., 1.0.0 or 1.1.0-beta.1).`)
-    }
-    sanitized.version = metadata.version
-  }
-
-  // Validate kind
-  if (metadata.kind) {
-    const validKinds = ['form', 'document', 'checklist', 'bundle']
-    if (!validKinds.includes(metadata.kind)) {
-      errors.push(`Invalid kind: "${metadata.kind}". Must be one of: ${validKinds.join(', ')}`)
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    sanitized,
-  }
-}
-
 /**
  * Validate and sanitize a file path to prevent path traversal attacks
  *
@@ -271,56 +175,18 @@ export class SymlinkError extends Error {
 export async function assertNotSymlink(filePath: string): Promise<void> {
   const storage = new LocalFileSystem()
 
-  // First check if file exists
-  const exists = await storage.exists(filePath)
-  if (!exists) {
-    // File doesn't exist yet, which is fine for new files
-    return
+  let isSymlink: boolean
+  try {
+    isSymlink = await storage.isSymlink(filePath)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
+    throw error
   }
-
-  // Check if it's a symlink
-  const isSymlink = await storage.isSymlink(filePath)
   if (isSymlink) {
     throw new SymlinkError(
       `Refusing to write to symlink: ${filePath}. This could be a security risk.`,
       filePath
     )
-  }
-}
-
-/**
- * Check if a path is a symlink without throwing
- *
- * @param filePath - The path to check
- * @returns Object with isSymlink flag and any error details
- */
-export async function checkSymlink(filePath: string): Promise<{
-  isSymlink: boolean
-  exists: boolean
-  error?: string
-}> {
-  const storage = new LocalFileSystem()
-
-  try {
-    const exists = await storage.exists(filePath)
-    if (!exists) {
-      return {
-        isSymlink: false,
-        exists: false,
-      }
-    }
-
-    const isSymlink = await storage.isSymlink(filePath)
-    return {
-      isSymlink,
-      exists: true,
-    }
-  } catch (err) {
-    return {
-      isSymlink: false,
-      exists: false,
-      error: (err as Error).message,
-    }
   }
 }
 
@@ -337,157 +203,6 @@ export interface ArtifactValidationResult {
  * Valid artifact kinds
  */
 const VALID_ARTIFACT_KINDS = ['form', 'document', 'checklist', 'bundle'] as const
-
-/**
- * Magic byte signature - can have multiple signatures that ALL must match
- * (e.g., WebP needs RIFF at offset 0 AND WEBP at offset 8)
- */
-interface MagicSignature {
-  /** All parts must match for this signature to be valid */
-  parts: { bytes: number[]; offset?: number }[]
-}
-
-/**
- * Magic bytes for common file types
- * Each type has an array of alternative signatures - if ANY signature matches, the type is detected
- * Each signature has parts that must ALL match (for complex formats like WebP)
- */
-const MAGIC_BYTES: Record<string, MagicSignature[]> = {
-  'application/pdf': [{ parts: [{ bytes: [0x25, 0x50, 0x44, 0x46] }] }], // %PDF
-  'image/png': [{ parts: [{ bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] }] }],
-  'image/jpeg': [{ parts: [{ bytes: [0xff, 0xd8, 0xff] }] }],
-  'image/gif': [
-    { parts: [{ bytes: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61] }] }, // GIF87a
-    { parts: [{ bytes: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61] }] }, // GIF89a
-  ],
-  'image/webp': [
-    {
-      parts: [
-        { bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 }, // RIFF
-        { bytes: [0x57, 0x45, 0x42, 0x50], offset: 8 }, // WEBP
-      ],
-    },
-  ],
-  'application/zip': [{ parts: [{ bytes: [0x50, 0x4b, 0x03, 0x04] }] }],
-  'application/gzip': [{ parts: [{ bytes: [0x1f, 0x8b] }] }],
-  'application/json': [], // Special case: validated by parsing
-  'text/plain': [], // Text files don't have magic bytes
-  'text/html': [], // Text-based, no magic bytes
-  'text/css': [], // Text-based, no magic bytes
-  'application/javascript': [], // Text-based, no magic bytes
-}
-
-/**
- * Content type validation result
- */
-export interface ContentTypeValidationResult {
-  valid: boolean
-  detectedType?: string
-  error?: string
-}
-
-/**
- * Validate that downloaded content matches the expected MIME type
- *
- * Uses magic bytes to detect actual file type and compares with expected type.
- * For text-based types, performs basic content validation.
- *
- * @param content - The downloaded content (ArrayBuffer or string)
- * @param expectedMimeType - The expected MIME type
- * @returns Validation result
- */
-export function validateContentType(
-  content: ArrayBuffer | string,
-  expectedMimeType: string
-): ContentTypeValidationResult {
-  const normalizedType = (expectedMimeType.toLowerCase().split(';')[0] ?? '').trim()
-
-  // For string content, validate text-based types
-  if (typeof content === 'string') {
-    // JSON validation
-    if (normalizedType === 'application/json') {
-      try {
-        JSON.parse(content)
-        return { valid: true, detectedType: 'application/json' }
-      } catch {
-        return {
-          valid: false,
-          error: 'Content is not valid JSON',
-          detectedType: 'text/plain',
-        }
-      }
-    }
-
-    // HTML detection
-    if (normalizedType === 'text/html') {
-      const trimmed = content.trim().toLowerCase()
-      if (trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
-        return { valid: true, detectedType: 'text/html' }
-      }
-      // Allow as it might be a fragment
-      return { valid: true, detectedType: 'text/html' }
-    }
-
-    // Text types - generally valid for string content
-    if (normalizedType.startsWith('text/') || normalizedType === 'application/javascript') {
-      return { valid: true, detectedType: normalizedType }
-    }
-
-    // For binary types received as string, this is suspicious
-    if (MAGIC_BYTES[normalizedType] && MAGIC_BYTES[normalizedType].length > 0) {
-      return {
-        valid: false,
-        error: `Expected binary content for ${normalizedType}, but received text`,
-        detectedType: 'text/plain',
-      }
-    }
-
-    return { valid: true, detectedType: normalizedType }
-  }
-
-  // For ArrayBuffer content, check magic bytes
-  const bytes = new Uint8Array(content)
-
-  // Check known magic bytes
-  for (const [mimeType, signatures] of Object.entries(MAGIC_BYTES)) {
-    if (signatures.length === 0) continue
-
-    // Check if ANY signature matches (alternatives like GIF87a vs GIF89a)
-    const anySignatureMatches = signatures.some((signature) => {
-      // ALL parts of the signature must match
-      return signature.parts.every((part) => {
-        const offset = part.offset || 0
-        if (bytes.length < offset + part.bytes.length) return false
-        return part.bytes.every((byte, i) => bytes[offset + i] === byte)
-      })
-    })
-
-    if (anySignatureMatches) {
-      // Found a match
-      if (mimeType === normalizedType) {
-        return { valid: true, detectedType: mimeType }
-      }
-      // Type mismatch
-      return {
-        valid: false,
-        error: `Content appears to be ${mimeType}, but expected ${normalizedType}`,
-        detectedType: mimeType,
-      }
-    }
-  }
-
-  // No magic bytes matched - could be unknown binary or corrupted
-  // For types we know should have magic bytes, this is a warning
-  if (MAGIC_BYTES[normalizedType] && MAGIC_BYTES[normalizedType].length > 0) {
-    return {
-      valid: false,
-      error: `Could not verify content type. Expected ${normalizedType} signature not found.`,
-    }
-  }
-
-  // For unknown types, we can't validate
-  return { valid: true, detectedType: normalizedType }
-}
 
 /**
  * Validate a downloaded artifact for structural integrity

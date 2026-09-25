@@ -2,6 +2,14 @@ import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from 'vitest
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+vi.mock('undici', async (importOriginal) => {
+  const undici = await importOriginal<typeof import('undici')>()
+  return {
+    ...undici,
+    fetch: (input: string | URL | Request, init?: RequestInit) => globalThis.fetch(input, init),
+  }
+})
 import {
   RegistryClient,
   RegistryFetchError,
@@ -89,10 +97,6 @@ describe('Security Constants', () => {
     // Connect timeout should be reasonable (not too short, not too long)
     expect(NETWORK_TIMEOUTS.CONNECT_TIMEOUT).toBeGreaterThanOrEqual(5000) // At least 5 seconds
     expect(NETWORK_TIMEOUTS.CONNECT_TIMEOUT).toBeLessThanOrEqual(120000) // Max 2 minutes
-
-    // Read timeout
-    expect(NETWORK_TIMEOUTS.READ_TIMEOUT).toBeGreaterThanOrEqual(10000)
-    expect(NETWORK_TIMEOUTS.READ_TIMEOUT).toBeLessThanOrEqual(300000)
 
     // Download timeout (for large files)
     expect(NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT).toBeGreaterThanOrEqual(60000)
@@ -246,79 +250,7 @@ describe('RegistryClient network fetches', () => {
     })
   })
 
-  describe('layer text', () => {
-    it('decodes UTF-8 split across streamed chunks without adding Accept', async () => {
-      const bytes = new TextEncoder().encode('Caf\u00e9 \u2713')
-      const fetchMock = stubFetch(
-        () =>
-          new Response(streamOf([bytes.slice(0, 4), bytes.slice(4)]), {
-            headers: { 'content-type': 'text/markdown' },
-          })
-      )
 
-      await expect((await newClient()).fetchLayerText(registry, layerUrl)).resolves.toBe('Caf\u00e9 \u2713')
-      expect(fetchMock.mock.calls[0]![1]?.headers).toEqual({ Authorization: 'Bearer t0ken' })
-    })
-
-    it('refuses a blocked content type even when allowed', async () => {
-      stubFetch(() => new Response('x', { headers: { 'content-type': 'application/x-msdownload' } }))
-
-      const error = await (await newClient())
-        .fetchLayerText(registry, layerUrl, ['application/x-msdownload'])
-        .catch((e: unknown) => e)
-      expect(error).toBeInstanceOf(ContentTypeError)
-      expect((error as ContentTypeError).message).toBe(
-        "Content type 'application/x-msdownload' is blocked for security reasons"
-      )
-    })
-
-    it('refuses a content type outside the allowed list', async () => {
-      stubFetch(() => new Response('x', { headers: { 'content-type': 'text/markdown' } }))
-
-      const error = await (await newClient())
-        .fetchLayerText(registry, layerUrl, ['application/pdf'])
-        .catch((e: unknown) => e)
-      expect(error).toBeInstanceOf(ContentTypeError)
-      expect((error as ContentTypeError).message).toBe("Content type 'text/markdown' is not in the allowed list")
-    })
-
-    it('refuses a declared Content-Length over the layer limit', async () => {
-      const limit = SECURITY_LIMITS.MAX_LAYER_SIZE
-      stubFetch(
-        () =>
-          new Response('x', {
-            headers: { 'content-type': 'text/markdown', 'content-length': String(limit + 1) },
-          })
-      )
-
-      const error = await (await newClient()).fetchLayerText(registry, layerUrl).catch((e: unknown) => e)
-      expect(error).toBeInstanceOf(FileSizeExceededError)
-      expect((error as FileSizeExceededError).limit).toBe(limit)
-    })
-
-    it('times out after the download timeout, not the connect timeout', async () => {
-      vi.useFakeTimers()
-      stubFetch(hangUntilAborted)
-
-      let settled = false
-      const client = await newClient()
-      const pending = client
-        .fetchLayerText(registry, layerUrl)
-        .catch((e: unknown) => e)
-        .finally(() => {
-          settled = true
-        })
-      await vi.advanceTimersByTimeAsync(NETWORK_TIMEOUTS.CONNECT_TIMEOUT)
-      expect(settled).toBe(false)
-      await vi.advanceTimersByTimeAsync(NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT - NETWORK_TIMEOUTS.CONNECT_TIMEOUT)
-
-      const error = await pending
-      expect(error).toBeInstanceOf(RequestTimeoutError)
-      expect((error as RequestTimeoutError).message).toBe(
-        `Request timed out after ${NETWORK_TIMEOUTS.DOWNLOAD_TIMEOUT}ms`
-      )
-    })
-  })
 
   describe('layer binary', () => {
     it('returns exactly the streamed bytes', async () => {

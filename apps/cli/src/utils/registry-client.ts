@@ -9,6 +9,7 @@ import type {
   RegistryItemSummary,
   ResolvedRegistry,
 } from '../types.js'
+import { fetch } from 'undici'
 import {
   buildRegistryIndexUrl,
   buildArtifactItemUrl,
@@ -21,8 +22,9 @@ import {
   validateLayerContentType,
   DEFAULT_ALLOWED_CONTENT_TYPES,
 } from './constants.js'
-import { validateUrl } from './security.js'
+import { sanitizeForDisplay, validateUrl } from './security.js'
 import { cacheManager, type CacheResult } from './cache.js'
+import { formatBytes } from './format.js'
 
 /**
  * ContentRef from a registry item (inline text or file reference)
@@ -34,7 +36,7 @@ export type RegistryContentRef =
 /**
  * Registry item with full details (fetched from r/{name}.json).
  *
- * A registry serves the artifact itself, flat, as `paradoc registry build`
+ * A registry serves the artifact itself, flat, as `paradoc registry compile`
  * writes it. `tags` and a file layer's `url` are registry metadata that the
  * installed artifact does not carry.
  */
@@ -170,7 +172,9 @@ function assertValidUrl(url: string): string[] {
 /**
  * Check Content-Length header and throw if exceeds limit
  */
-function checkContentLength(response: Response, url: string, maxSize: number): void {
+type RegistryResponse = Awaited<ReturnType<typeof fetch>>
+
+function checkContentLength(response: RegistryResponse, url: string, maxSize: number): void {
   const contentLength = response.headers.get('content-length')
   if (contentLength) {
     const size = parseInt(contentLength, 10)
@@ -186,19 +190,10 @@ function checkContentLength(response: Response, url: string, maxSize: number): v
 }
 
 /**
- * Format bytes to human-readable string
- */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-/**
  * Read a response body, refusing it once it grows past maxSize
  * (covers streaming responses without Content-Length)
  */
-async function readBytesWithSizeLimit(response: Response, url: string, maxSize: number): Promise<Uint8Array<ArrayBuffer>> {
+async function readBytesWithSizeLimit(response: RegistryResponse, url: string, maxSize: number): Promise<Uint8Array<ArrayBuffer>> {
   const reader = response.body?.getReader()
   if (!reader) {
     return new Uint8Array(await response.arrayBuffer())
@@ -268,8 +263,6 @@ async function fetchBytesWithLimits(url: string, limits: FetchLimits): Promise<U
       signal: controller.signal,
     })
 
-    clearTimeout(timeoutId)
-
     if (!response.ok) {
       throw new RegistryFetchError(
         `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
@@ -287,13 +280,44 @@ async function fetchBytesWithLimits(url: string, limits: FetchLimits): Promise<U
     // Check Content-Length before downloading
     checkContentLength(response, url, limits.maxSize)
 
-    return await readBytesWithSizeLimit(response, url, limits.maxSize)
+    const bytes = await readBytesWithSizeLimit(response, url, limits.maxSize)
+    clearTimeout(timeoutId)
+    return bytes
   } catch (error) {
     clearTimeout(timeoutId)
     if (error instanceof Error && error.name === 'AbortError') {
       throw new RequestTimeoutError(`Request timed out after ${limits.timeoutMs}ms`, url)
     }
     throw error
+  }
+}
+
+function sanitizeRegistryItem<T extends RegistryItem | RegistryItemSummary>(item: T): T {
+  return {
+    ...item,
+    name: sanitizeForDisplay(item.name),
+    kind: sanitizeForDisplay(item.kind) as T['kind'],
+    version: sanitizeForDisplay(item.version),
+    title: item.title === undefined ? undefined : sanitizeForDisplay(item.title),
+    description: item.description === undefined ? undefined : sanitizeForDisplay(item.description),
+    tags: item.tags?.map(sanitizeForDisplay),
+    ...('layers' in item && item.layers && !Array.isArray(item.layers) ? {
+      layers: Object.fromEntries(Object.entries(item.layers).map(([name, layer]) => [name, {
+        ...layer,
+        title: layer.title === undefined ? undefined : sanitizeForDisplay(layer.title),
+        description: layer.description === undefined ? undefined : sanitizeForDisplay(layer.description),
+      }]))
+    } : {}),
+  }
+}
+
+function sanitizeRegistryIndex(index: RegistryIndex): RegistryIndex {
+  return {
+    ...index,
+    name: sanitizeForDisplay(index.name),
+    description: index.description === undefined ? undefined : sanitizeForDisplay(index.description),
+    homepage: index.homepage === undefined ? undefined : sanitizeForDisplay(index.homepage),
+    items: index.items.map(sanitizeRegistryItem),
   }
 }
 
@@ -387,18 +411,20 @@ export class RegistryClient {
     if (!options?.skipCache && ttl !== 0) {
       const cacheResult: CacheResult<RegistryIndex> = await cacheManager.get<RegistryIndex>(url, ttl)
       if (cacheResult.hit) {
+        const sanitized = sanitizeRegistryIndex(cacheResult.data)
         // Store in session cache for fast repeated access
-        this.sessionCache.set(url, cacheResult.data)
-        return cacheResult.data
+        this.sessionCache.set(url, sanitized)
+        return sanitized
       }
     }
 
     // Fetch from network
-    const index = await fetchJson<RegistryIndex>(
+    const fetchedIndex = await fetchJson<RegistryIndex>(
       url,
       registry.headers,
       SECURITY_LIMITS.MAX_INDEX_SIZE,
     )
+    const index = sanitizeRegistryIndex(fetchedIndex)
 
     // Store in persistent cache (if caching is enabled)
     if (ttl !== 0) {
@@ -468,7 +494,7 @@ export class RegistryClient {
    * @param artifactName - Name of the artifact
    * @param options - Fetch options including cache TTL
    */
-  async fetchItem(registry: ResolvedRegistry, artifactName: string, options?: FetchOptions): Promise<RegistryItem> {
+  async fetchItem(registry: ResolvedRegistry, artifactName: string, options?: FetchOptions): Promise<{ item: RegistryItem; url: string }> {
     // Ensure we have the artifacts path
     const artifactsPath = await this.getArtifactsPath(registry, options)
     const resolvedRegistry = { ...registry, artifactsPath }
@@ -478,28 +504,12 @@ export class RegistryClient {
     const item = index.items.find((i) => i.name === artifactName)
 
     const url = buildArtifactItemUrl(resolvedRegistry, artifactName, item?.path)
-    return fetchJson<RegistryItem>(
+    const fetchedItem = await fetchJson<RegistryItem>(
       url,
       registry.headers,
       SECURITY_LIMITS.MAX_ARTIFACT_SIZE,
     )
-  }
-
-  /**
-   * Fetch a layer file as text
-   * @param registry - Resolved registry configuration
-   * @param filePath - Path to the file (or full URL from layer info)
-   * @param allowedContentTypes - List of allowed MIME types for layers
-   */
-  async fetchLayerText(
-    registry: ResolvedRegistry,
-    filePath: string,
-    allowedContentTypes: readonly string[] = DEFAULT_ALLOWED_CONTENT_TYPES
-  ): Promise<string> {
-    // If it's already a full URL, use it directly
-    const url = filePath.startsWith('https') || filePath.startsWith('http') ? filePath : buildLayerFileUrl(registry, filePath)
-    const bytes = await fetchLayerBytes(url, registry.headers, allowedContentTypes)
-    return new TextDecoder().decode(bytes)
+    return { item: sanitizeRegistryItem(fetchedItem), url }
   }
 
   /**
@@ -563,24 +573,6 @@ export class RegistryClient {
     }
 
     return results
-  }
-
-  /**
-   * Check if an artifact exists in a registry
-   * @param registry - Resolved registry configuration
-   * @param artifactName - Name of the artifact
-   * @param options - Fetch options including cache TTL
-   */
-  async artifactExists(registry: ResolvedRegistry, artifactName: string, options?: FetchOptions): Promise<boolean> {
-    try {
-      await this.fetchItem(registry, artifactName, options)
-      return true
-    } catch (error) {
-      if (error instanceof RegistryFetchError && error.statusCode === 404) {
-        return false
-      }
-      throw error
-    }
   }
 
   /**
