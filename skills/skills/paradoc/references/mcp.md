@@ -86,8 +86,8 @@ These two run on an artifact object you pass in. They make no outbound call.
 
 | Tool | Arguments | Returns |
 |------|-----------|---------|
-| `validate` | `artifact` (object), `options?: { schema?: boolean, logic?: boolean }` (both default `true`) | `{ valid, detectedKind?, issues?: [{ message, path? }] }` |
-| `fill` | `artifact` (form or checklist object), `data` | `{ accepted, complete, artifactKind, data?, errors?: [{ field, message }] }` |
+| `validate` | `artifact` (object), `options?: { schema?: boolean, logic?: boolean }` (both default `true`) | `{ valid, detectedKind?, issues?: [{ message, path? }], error? }` |
+| `fill` | `artifact` (form or checklist object), `data` | `{ accepted, complete, artifactKind, data?, errors?: [{ field, message }], error? }` |
 
 `accepted` is `true` when every supplied value is valid. `complete` is `true` when every required value is present. The `data` that `fill` returns is the flat field map, not a payload: keep your own `data` object and pass it to `render`.
 
@@ -112,7 +112,7 @@ These two run on an artifact object you pass in. They make no outbound call.
 | `layer?` | Layer key. Defaults to `defaultLayer`, then the first layer. |
 | `outputMode?` | `"url"` (default): a short download link that expires in 7 days. `"inline"`: the content in the response, base64 for binary output. Use `"inline"` for text or markdown shown in chat. |
 
-Returns `{ success, renderId, artifactKind, mimeType, downloadUrl?, expiresAt?, content?, encoding?, errors?, validationIssues? }`.
+Returns `{ success, renderId, artifactKind, mimeType, downloadUrl?, expiresAt?, content?, encoding?, errors?, validationIssues?, error? }`.
 
 `render` renders forms from a verified registry, with text, markdown, HTML, PDF and DOCX layers. For an unpublished artifact, render locally with the SDK or CLI ([rendering.md](./rendering.md)). React (`text/tsx`) layers render with the `paradoc-react` skill.
 
@@ -165,8 +165,8 @@ A billed tool fails with an insufficient-balance error when the organization's b
 
 | Limit | Value |
 |-------|-------|
-| Rate limit, `mcp.paradoc.dev` | 2 `POST /mcp` requests per 60 seconds per client IP |
+| Rate limit, `mcp.paradoc.dev` | 60 `POST /mcp` requests per 60 seconds per client IP |
 | Rate limit, `mcp-dev.paradoc.dev` | 60 per 60 seconds |
 | `extract`, `prefill` document | 10 MB. Larger documents: `extract_job_submit` (25 MB, 100 pages). |
 
-The session handshake counts against the rate limit, so a new session plus two tool calls can reach the production limit. On `429`, wait 60 seconds before the next call. For many calls in a row, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally.
+The session handshake counts against the rate limit. A normal handshake and `tools/list` leave room for an active fill loop within the 60-request window. Request 61 from the same client IP gets `429`; wait for the 60-second window to reset. For larger workloads, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally. When a result has no `issues` or `errors` array, read its top-level `error` string.
