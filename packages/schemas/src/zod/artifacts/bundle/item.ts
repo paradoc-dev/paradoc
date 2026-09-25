@@ -3,7 +3,10 @@ import { CondExprSchema } from '../expressions/cond-expr';
 import { ChecklistSchema } from '../checklist';
 import { DocumentSchema } from '../document';
 import { FormSchema } from '../form';
-import { BundleSchema } from './index';
+import type { Bundle } from '@paradoc/types';
+import { ArtifactSchema } from '../shared/base';
+import { DefsSectionSchema } from '../expressions/defs-section';
+import { addDuplicateIdentityIssues } from '../shared/unique';
 
 /**
  * Base properties shared by every bundle content item with an optional
@@ -62,6 +65,26 @@ const RegistryContentItemSchema = ContentItemBaseSchema.extend({
 		.min(1)
 		.describe('Resource slug in format @org/repo/resource or @org/repo/resource@version'),
 }).strict();
+
+export const BundleObjectSchema = ArtifactSchema.extend({
+	kind: z.literal('bundle'),
+	defs: DefsSectionSchema.optional(),
+	contents: z.array(z.lazy(() => BundleContentItemSchema))
+		.superRefine((contents, ctx) => {
+			addDuplicateIdentityIssues(
+				contents,
+				(content) => content.key,
+				{ collection: 'contents', property: 'key', label: 'bundle content key' },
+				(path, message) => ctx.addIssue({ code: 'custom', path, message }),
+			);
+		})
+		.describe('Ordered bundle contents. Each item has a key and is either an inline artifact, path reference, or registry reference.'),
+}).strict().meta({
+	title: 'Bundle',
+	description: 'A bundle artifact that groups together related artifacts into a single distributable unit. Bundles can contain documents, forms, checklists, and other bundles.',
+});
+
+export const BundleSchema: z.ZodType<Bundle> = BundleObjectSchema;
 
 /**
  * Bundle content item — one of three types:

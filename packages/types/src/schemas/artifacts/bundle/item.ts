@@ -6,7 +6,18 @@ import type { CondExpr } from "../shared/expressions";
 import type { Document } from "../document";
 import type { Form } from "../form";
 import type { Checklist } from "../checklist";
-import type { Bundle } from "./index";
+import type { ArtifactBase } from "../shared";
+import type { DefsSection } from "../shared/expressions";
+
+/** A recursive container for content artifacts. */
+export interface Bundle extends ArtifactBase {
+  /** Literal `"bundle"` discriminator. */
+  kind: "bundle";
+  /** Named definitions that can be referenced in include conditions. */
+  defs?: DefsSection;
+  /** Ordered list of bundle contents with keys. */
+  contents: BundleContentItem[];
+}
 
 /**
  * Inline bundle content item with embedded artifact.

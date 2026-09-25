@@ -13,7 +13,6 @@ import type {
   Organization,
   Identification,
 } from "../../primitives";
-import type { ListField } from "./list";
 import type { CondExpr } from "../shared/expressions/cond-expr";
 
 // ============================================================================
@@ -55,6 +54,18 @@ export interface FieldsetField extends BaseField {
   type: "fieldset";
   /** Nested field definitions keyed by identifier. */
   fields: Record<string, FormField>;
+}
+
+/** An ordered, variable-length collection of form fields. */
+export interface ListField extends BaseField {
+  /** Literal `"list"` discriminator. */
+  type: "list";
+  /** Definition applied to every item in the list. */
+  item: FormField;
+  /** Minimum number of items accepted. */
+  minItems?: number;
+  /** Maximum number of items accepted. */
+  maxItems?: number;
 }
 
 /**

@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { IDENTIFIER_PATTERN } from '../../primitives/name';
-import type { FieldsetField, FormField } from '@paradoc/types';
+import type { FieldsetField, FormField, ListField } from '@paradoc/types';
 import { BaseFieldSchema } from './base-field';
-import { ListFieldObjectSchema } from './list';
 import { CoordinateSchema } from '../../primitives/coordinate';
 import { BboxSchema } from '../../primitives/bbox';
 import { CurrencyCodeSchema, MoneySchema } from '../../primitives/money';
@@ -312,6 +311,28 @@ export const FieldsetFieldObjectSchema = BaseFieldSchema.extend({
 });
 
 export const FieldsetFieldSchema: z.ZodType<FieldsetField> = FieldsetFieldObjectSchema;
+
+export const ListFieldObjectSchema = BaseFieldSchema.extend({
+	type: z.literal('list'),
+	item: z.lazy(() => FormFieldSchema),
+	minItems: z.number().int().min(0).describe('Minimum number of items').optional(),
+	maxItems: z.number().int().min(0).describe('Maximum number of items').optional(),
+}).superRefine((field, ctx) => {
+	const issue = getOrderedBoundsIssue(
+		field.minItems,
+		field.maxItems,
+		'minItems',
+		'maxItems',
+		(min, max) => min <= max,
+	)
+	if (issue) ctx.addIssue({ code: 'custom', ...issue })
+}).meta({
+	id: 'ListField',
+	title: 'ListField',
+	description: 'Field that holds a list of items, each shaped by the item field',
+});
+
+export const ListFieldSchema: z.ZodType<ListField> = ListFieldObjectSchema;
 
 // The schemas that make up the field union, in one place, so the union and the
 // list of valid `type` values below can never drift apart.
