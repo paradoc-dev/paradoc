@@ -23,3 +23,6 @@ coverage
 # Misc
 .DS_Store
 
+
+# Generated JSON schema output
+/schemas/

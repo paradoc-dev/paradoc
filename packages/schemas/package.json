@@ -50,9 +50,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "node scripts/prepare-schema-output.mjs && tsup && pnpm export:all",
     "dev": "tsup --watch",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist schemas",
     "pack:dry": "npm pack --dry-run",
     "prepublishOnly": "pnpm run build",
     "lint": "eslint .",
