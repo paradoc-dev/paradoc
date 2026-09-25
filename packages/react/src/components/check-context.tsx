@@ -1,5 +1,5 @@
 /**
- * The document context's check mode.
+ * The artifact provider's composition-check mode.
  *
  * Normal rendering treats a `Field`/`Table` path, or a `Signature` party role,
  * the artifact does not declare as a fault worth stopping for: `resolveField`
@@ -13,11 +13,10 @@
  * checks that follow can run over all of it rather than the fragment before
  * the first throw.
  *
- * `CheckModeProvider` supplies a collector that `Document`'s context reads.
+ * `CheckModeProvider` supplies a collector that `ArtifactProvider` reads.
  * When present, `field`, `item`, and `party` record an unresolved reference
- * instead of throwing and return something harmless enough to keep
- * rendering going: a blank placeholder field, or the empty party list
- * `party` already returns for an unknown role in every mode. Nothing outside
+ * instead of throwing and return something harmless enough to keep rendering
+ * going: a blank placeholder field or an empty party list. Nothing outside
  * `@paradoc/react-pdf/check` ever supplies a collector, so ordinary rendering —
  * and every other consumer of this package — is unchanged.
  */

@@ -19,7 +19,7 @@
  * are keyed by slot id, exactly as the layer declares them, and a block finds
  * its own by naming the party and the kind of field it draws. A party may carry
  * one flow slot per field type; two flow slots of the same type on the same
- * party is an authoring error, and `useSigningMark` says so rather than picking
+ * party is an authoring error, and `useSigningMarks` says so rather than picking
  * one.
  */
 

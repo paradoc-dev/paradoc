@@ -16,9 +16,9 @@ export {
   type ApplicationFontResource,
   type ApplicationFontSnapshot,
 } from "./lib/application-fonts";
-// `Document` reads this on every render, checking or not, so it is substrate
+// `ArtifactProvider` reads this on every render, checking or not, so it is substrate
 // an installed `document.tsx` must reach through this package rather than a
-// copy of its own — the same reason `useSigningMarks` is exported here.
+// copy of its own.
 // `@paradoc/react-pdf/check` is the only caller that ever supplies one.
 export {
   CheckModeProvider,
@@ -35,9 +35,9 @@ export {
   type PartialValuesProviderProps,
 } from "./components/partial-context";
 // The provider is the seal's, and the seal is Node: it is exported from
-// `@paradoc/react-pdf`. The hook is not — `Document` calls it on every render,
-// sealing or not — so it belongs to the browser entry alongside the vocabulary
-// a document context is described in.
+// `@paradoc/react-pdf`. The hook is not — `useSignature` calls it on every
+// render, sealing or not — so it belongs to the browser entry alongside the
+// shared rendering vocabulary.
 export {
   AmbiguousSigningMarkError,
   SigningMarkerProvider,
