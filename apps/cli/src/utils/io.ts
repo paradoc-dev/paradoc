@@ -50,12 +50,18 @@ export async function resolveArtifactTarget(target: string): Promise<string> {
 }
 
 // Stdin handling requires direct access - not a storage concern
-async function readStdinBuffer(): Promise<Uint8Array> {
+let stdinReadBy: string | undefined;
+
+export async function readStdinBuffer(argument: string): Promise<Uint8Array> {
+	if (stdinReadBy) {
+		throw new Error(`stdin was already read by ${stdinReadBy}`);
+	}
 	if (stdin.isTTY) {
 		throw new Error(
 			'No stdin data detected. Pipe content or provide a file path.',
 		);
 	}
+	stdinReadBy = argument;
 
 	return await new Promise<Uint8Array>((resolve, reject) => {
 		const chunks: Buffer[] = [];
@@ -82,9 +88,9 @@ async function readStdinBuffer(): Promise<Uint8Array> {
 	});
 }
 
-export async function readTextInput(target: string): Promise<TextInputResult> {
+export async function readTextInput(target: string, argument: string = target): Promise<TextInputResult> {
 	if (!target || target === STDIN_TOKEN) {
-		const buffer = await readStdinBuffer();
+		const buffer = await readStdinBuffer(argument);
 		const raw = new TextDecoder('utf-8').decode(buffer);
 		return {
 			raw,
@@ -113,9 +119,10 @@ export async function readTextInput(target: string): Promise<TextInputResult> {
 
 export async function readBinaryInput(
 	target: string,
+	argument: string = target,
 ): Promise<BinaryInputResult> {
 	if (!target || target === STDIN_TOKEN) {
-		const buffer = await readStdinBuffer();
+		const buffer = await readStdinBuffer(argument);
 		return {
 			data: new Uint8Array(buffer),
 			fromStdin: true,

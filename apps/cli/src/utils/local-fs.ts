@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import {
   join,
   resolve,
+  isAbsolute,
   dirname as pathDirname,
   basename as pathBasename,
   extname as pathExtname,
@@ -212,9 +213,6 @@ export class LocalFileSystem {
   }
 
   private resolvePath(path: string): string {
-    if (path.startsWith('/')) {
-      return path
-    }
-    return join(this.baseDir, path)
+    return isAbsolute(path) ? path : resolve(this.baseDir, path)
   }
 }

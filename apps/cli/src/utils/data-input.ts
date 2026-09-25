@@ -38,7 +38,7 @@ function looksLikeInlineJson(value: string): boolean {
 export async function parseDataInput(value: string): Promise<DataInputResult> {
 	// Handle stdin
 	if (value === '-') {
-		const { raw } = await readTextInput('-')
+		const { raw } = await readTextInput('-', '--data')
 		const parsed = parse(raw)
 
 		if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
