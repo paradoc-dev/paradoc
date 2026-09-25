@@ -127,7 +127,7 @@ export const purchaseOrderSpec = {
       type: "person",
       label: "Buyer contact",
       description:
-        "The person who signs for the buyer. `sealPurchaseOrder` reads this field to bind the buyer's signer, because core's Signer.person is always a Person and an organization cannot fill it. The composition does not print it: the document names the party, and who signed it is what the seal records. Not printing a field is the composition's decision, not the artifact's, so it is visible and a session collects it like any other required field.",
+        "The person who signs for the buyer. The seal flow reads this field to bind the buyer's signer, because core's Signer.person is always a Person and an organization cannot fill it. The composition does not print it: the document names the party, and who signed it is what the seal records. Not printing a field is the composition's decision, not the artifact's, so it is visible and a session collects it like any other required field.",
       required: true,
       visible: true,
     },
@@ -149,7 +149,7 @@ export const purchaseOrderSpec = {
       type: "person",
       label: "Supplier contact",
       description:
-        "The person at the supplier who receives the order, and the person who signs for it. `sealPurchaseOrder` reads this field to bind the supplier's signer.",
+        "The person at the supplier who receives the order, and the person the seal flow binds as its signer.",
       required: true,
       visible: true,
     },

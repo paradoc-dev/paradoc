@@ -15,10 +15,7 @@ import { shortProposalData } from "./proposal-data";
 
 const nameOnlyFormatter = createFormatter({
   overrides: {
-    organization: (value, options, context) => {
-      context.delegate(value, options);
-      return String(value?.name ?? "");
-    },
+    organization: (value) => String(value?.name ?? ""),
   },
 });
 

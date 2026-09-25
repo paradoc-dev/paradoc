@@ -16,8 +16,9 @@
  * `src/examples/pdf.ts`, and the PNG itself is beside this module as
  * `proposal-logo.png`.
  *
- * `{Bundle,Document,KeepTogether,List,Pages,Paper,Field,Section,Table,Text,
- * Part,PdfPages,QRCode,Signature,Totals}Demo` and their per-variant siblings
+ * `{Bundle,Document,Field,Image,KeepTogether,List,PageBreak,PageNumber,Pages,
+ * Paper,Part,Party,PdfPages,QRCode,Section,Signature,Table,Text,Totals,
+ * Typography}Demo` and their per-variant siblings
  * (`FieldVariantDefaultLabel`, `TableVariantCompact`, and so on — one export
  * per alternate configuration, so each can render and show its own source)
  * are smaller demo compositions for the docs site's `/components/<name>`
@@ -61,7 +62,7 @@ export {
   type PurchaseOrderData,
   type PurchaseOrderPayload,
 } from "./purchase-order-data";
-export { PurchaseOrderDocument, type PurchaseOrderDocumentProps } from "./purchase-order-document";
+export { PurchaseOrderDocument, purchaseOrderFurniture, type PurchaseOrderDocumentProps } from "./purchase-order-document";
 export {
   invoice,
   invoiceForm,
@@ -73,7 +74,7 @@ export {
   INVOICE_REACT_LAYER_PATH,
 } from "./invoice";
 export { overflowInvoiceData, shortInvoiceData, type InvoiceData } from "./invoice-data";
-export { InvoiceDocument, type InvoiceDocumentProps } from "./invoice-document";
+export { InvoiceDocument, invoiceFurniture, type InvoiceDocumentProps } from "./invoice-document";
 export {
   engagementLetter,
   engagementLetterForm,
@@ -85,6 +86,7 @@ export {
 export { engagementLetterData, type EngagementLetterData } from "./engagement-letter-data";
 export {
   EngagementLetterDocument,
+  engagementLetterFurniture,
   type EngagementLetterDocumentProps,
 } from "./engagement-letter-document";
 export { EngagementLetterBlockPreview } from "./engagement-letter-block-preview";

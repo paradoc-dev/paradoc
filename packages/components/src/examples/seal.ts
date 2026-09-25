@@ -15,9 +15,7 @@
  * What this module supplies is the two things core cannot infer: which person
  * signs for each organization party, and the image bytes the document needs.
  *
- * **One finding worth keeping in view**, recorded in the README with
- * `@paradoc/react-pdf`'s `tests/seal-marker-font.test.tsx` as its evidence.
- * Flow placement imposes an undocumented font requirement. The marker is eight
+ * Flow placement imposes a marker-font requirement. The marker is eight
  * braille codepoints, and takumi writes U+0000 for anything the embedded fonts
  * do not cover, so with Inter alone the marker reaches the PDF as nulls. The
  * renderer embeds the braille face on a marker pass, and checks the marker
@@ -25,14 +23,13 @@
  * surfacing as an unlocatable placement.
  */
 
-import type { Person } from "@paradoc/types";
-
 import type { ProposalData } from "./proposal-data";
 import { reactLayerRenderers } from "@paradoc/react-pdf";
 import type { RenderPdfOptions } from "@paradoc/react-pdf";
 import type { PdfImage } from "@paradoc/react-pdf";
 import { PROPOSAL_REACT_LAYER, PROPOSAL_REACT_LAYER_PATH, PROPOSAL_SIGNATURE_SLOTS, proposal } from "./proposal";
 import { ProposalDocument } from "./proposal-document";
+import { bindOrganizationSigners } from "./organization-signers";
 
 /** The party roles the artifact declares a signature slot for. */
 export type ProposalPartyRole = keyof typeof PROPOSAL_SIGNATURE_SLOTS;
@@ -49,24 +46,6 @@ const SIGNER_CONTACT_FIELD = {
   provider: "providerContact",
   customer: "customerContact",
 } as const satisfies Record<ProposalPartyRole, string>;
-
-/** Thrown when the data names no person to sign for a party. */
-export class MissingSignerError extends Error {
-  /** The party role with no signer. */
-  readonly role: string;
-  /** The field that should have named the person. */
-  readonly field: string;
-
-  constructor(role: string, field: string) {
-    super(
-      `Cannot seal: "${field}" names no person, so the ${role} party has no signatory. ` +
-        "Core binds a signer to a Person, and this party is an organization."
-    );
-    this.name = "MissingSignerError";
-    this.role = role;
-    this.field = field;
-  }
-}
 
 /** What the sample's renderer registry needs. */
 export interface ProposalRenderersOptions {
@@ -96,22 +75,6 @@ export function proposalRenderers({ images = [], pdf }: ProposalRenderersOptions
   });
 }
 
-/** The person who signs for a party. @throws {MissingSignerError} */
-function signerPerson(data: ProposalData, role: ProposalPartyRole): Person {
-  const field = SIGNER_CONTACT_FIELD[role];
-  const contact = data.fields[field];
-  if (typeof contact !== "object" || contact === null || typeof (contact as Person).name !== "string") {
-    throw new MissingSignerError(role, field);
-  }
-  return contact as Person;
-}
-
-/** The id the data carries for the party filling a role. `RuntimeParty` requires one. */
-function partyId(data: ProposalData, role: ProposalPartyRole): string {
-  const party = data.parties[role];
-  return (Array.isArray(party) ? party[0]! : party!).id;
-}
-
 /**
  * Fills the proposal and binds a signer to each party, ready to seal.
  *
@@ -122,19 +85,16 @@ export function fillProposalForSeal(data: ProposalData) {
   // DocumentData carries `Record<string, unknown>` fields, which is what the
   // components need to read a path they are given as a string, and core infers
   // a fully typed payload from the artifact. Nothing published bridges the two,
-  // so the payload is asserted here and the README records it.
+  // so the sample asserts the payload at this boundary.
   let draft = proposal.fill({
     fields: data.fields,
     parties: data.parties,
     annexes: data.annexes,
   } as Parameters<typeof proposal.fill>[0]);
 
-  for (const role of Object.keys(SIGNER_CONTACT_FIELD) as ProposalPartyRole[]) {
-    draft = draft
-      .addSigner(`${role}-signer`, { person: signerPerson(data, role) })
-      .addSignatory(role, partyId(data, role), { signerId: `${role}-signer` });
-  }
-  return draft;
+  return bindOrganizationSigners(draft, data, SIGNER_CONTACT_FIELD, (current, binding) => current
+    .addSigner(binding.signerId, { person: binding.person })
+    .addSignatory(binding.role, binding.partyId, { signerId: binding.signerId }));
 }
 
 /** What `sealProposal` needs. */

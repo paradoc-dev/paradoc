@@ -9,7 +9,7 @@
  * clauses asks both: it runs past the end of the first page, so the plan has a
  * break to place, and it ends in two `Signature` keeps that must not be split.
  *
- * The clause count is asserted in `tests/engagement-letter-artifact.test.ts`,
+ * The clause count is asserted in `@paradoc/react`'s `tests/engagement-letter-artifact.test.ts`,
  * so shortening the letter fails rather than quietly making the second page
  * disappear.
  */

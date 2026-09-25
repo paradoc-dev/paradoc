@@ -4,8 +4,8 @@ import { createFormatter } from "@paradoc/format";
 /**
  * The proposal, composed from the components.
  *
- * This is the whole point: one tree, built only from `Document`,
- * `Section`, `Field`, `Table`, `Totals`, and `Signature`, that carries no copy
+ * This is the whole point: one tree built from the package's document,
+ * layout, field, image, prose, table, total, and signature components, carrying no copy
  * of any label, format, or total. It is the same tree the preview paginates and
  * the PDF renders.
  */
@@ -59,7 +59,7 @@ function ProposalMark({ fallbackSrc }: { fallbackSrc: string }) {
 }
 
 // The compact masthead names the provider; legal details remain in the artifact.
-export const proposalFormatter = createFormatter({ overrides: { organization: (value, options, context) => { context.delegate(value, options); return String(value?.name ?? ""); } } });
+export const proposalFormatter = createFormatter({ overrides: { organization: (value) => String(value?.name ?? "") } });
 
 export interface ProposalDocumentProps {
   /** The proposal data to render. */

@@ -11,7 +11,6 @@ export { proposalLogoImage } from "./logo-image";
 export {
   engagementLetterRenderers,
   fillEngagementLetterForSeal,
-  MissingEngagementSignerError,
   sealEngagementLetter,
   type EngagementLetterPartyRole,
   type EngagementLetterRenderersOptions,
@@ -19,7 +18,6 @@ export {
 } from "./engagement-letter-seal";
 export {
   fillProposalForSeal,
-  MissingSignerError,
   proposalRenderers,
   sealProposal,
   type ProposalPartyRole,
@@ -30,9 +28,12 @@ export {
   fillPurchaseOrderForSeal,
   insuranceCertificateFixture,
   insuranceCertificatePdf,
-  MissingPurchaseOrderSignerError,
   sealVendorPacket,
   vendorPacketRenderers,
   type PurchaseOrderPartyRole,
   type SealVendorPacketOptions,
 } from "./vendor-packet-seal";
+export {
+  MissingOrganizationPartyError,
+  MissingOrganizationSignerError,
+} from "./organization-signers";
