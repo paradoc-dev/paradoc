@@ -101,7 +101,7 @@ export interface DocumentTokensInput {
   dir?: TextDirection;
   /**
    * BCP-47 language tag, as HTML's `lang` means it. It decides the script the
-   * document is written in, which the typeface has to carry glyphs for.
+   * document is written in and is exposed as the root element's `lang`.
    */
   lang?: string;
   /**

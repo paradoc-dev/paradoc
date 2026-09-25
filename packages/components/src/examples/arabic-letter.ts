@@ -16,7 +16,7 @@
  * page has to be measured on.
  *
  * **It declares its script, and the caller has to hand it over.** Direction,
- * language and typeface are root-only tokens, and the element walk that reads
+ * language and typography are root-only tokens, and the element walk that reads
  * them cannot see inside a composition. So `arabicLetterTokens` is exported and
  * passed in — the same contract `brandedProposalTokens` has — rather than being
  * hidden inside the tree, where `RootTokenMismatchError` would catch it. See

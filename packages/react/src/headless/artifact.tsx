@@ -28,11 +28,18 @@ import {
   type DocumentFormatter,
   type FormatOptions,
 } from "../lib/format";
-import type { DocumentData } from "../components/document-context";
 import { useUnresolvedPathCollector, type UnresolvedPathCollector } from "../components/check-context";
 import { useArtifactFormatting } from "../components/formatter-context";
 import { usePartialValues } from "../components/partial-context";
 import { DRAWABLE_IMAGE_MEDIA_TYPES } from "../lib/image";
+
+/** The data one composed document renders. */
+export interface DocumentData {
+  fields: Record<string, unknown>;
+  parties: Record<string, Party | Party[]>;
+  annexes?: Record<string, Attachment>;
+  defs?: Record<string, unknown>;
+}
 
 export class MissingArtifactProviderError extends Error {
   constructor() {

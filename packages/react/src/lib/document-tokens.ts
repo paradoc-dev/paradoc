@@ -1,5 +1,5 @@
 /**
- * The paper and the typeface, read off the element instead of out of a render.
+ * The document settings, read off the element instead of out of a render.
  *
  * A document declares its branding at its root, and two things above that root
  * need to know the paper before the document renders: the page furniture, which
@@ -154,7 +154,6 @@ function walk(node: ReactNode, branch: FoundRoot, roots: FoundRoot[]): void {
  *
  * @throws {MultipleDocumentRootsError} when the element holds more than one root.
  * @throws {InvalidDocumentTokenError} when a declared value is one no renderer can act on.
- * @throws {UnregisteredFontFamilyError} when it names a family with no files.
  */
 export function documentTokensOf(
   element: ReactNode,

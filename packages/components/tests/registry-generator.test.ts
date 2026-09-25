@@ -113,7 +113,6 @@ describe("the manifest covers the package", () => {
     const uncovered = exported.filter((name) => !carried.has(name ?? ""));
     expect(uncovered.sort()).toEqual([
       "check-context",
-      "document-context",
       "formatter-context",
       "page-context",
       "paper-geometry",

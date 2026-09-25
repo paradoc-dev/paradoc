@@ -81,7 +81,7 @@ export const INVOICE_ACCENT_COLOR = "#0f766e";
  * would be a sample nobody could copy — but neither key here is root-only, so
  * the composition hands this to its own `Document` and a caller who layers
  * another set over it changes only what that set names. Paper, margin and
- * typeface stay the package's defaults, which is what keeps the invoice
+ * language and typography stay the package's defaults, which is what keeps the invoice
  * measurable against every other US Letter sample here.
  */
 export const invoiceTokens: DocumentTokensInput = {

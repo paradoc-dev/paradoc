@@ -117,7 +117,7 @@ describe("the invoice artifact", () => {
     if (!(logo instanceof Uint8Array)) throw new Error("the invoice's mark is not bytes");
     expect(Array.from(logo.slice(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
     // Nothing root-only: the composition hands this set to its own `Document`,
-    // and a set that named the paper or the typeface could not be layered there.
+    // and a set that named root-only document settings could not be layered there.
     expect(invoiceTokens.pageSize).toBeUndefined();
   });
 });

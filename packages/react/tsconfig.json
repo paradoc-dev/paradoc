@@ -10,21 +10,13 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@paradoc/react": ["./src/index.ts"],
-      "@paradoc/react/discovery": ["./src/discovery/index.ts"]
+      "@paradoc/react": ["./src/index.ts"]
     }
   },
   "include": [
     "src",
-    "scripts",
     "tests",
     "types",
-    "vitest.config.ts",
-    "vitest.registry.config.ts"
-  ],
-  // The registry fixture is source for the scratch project the install suite
-  // builds, not for this package: it imports `@/components/paradoc/*`, which
-  // exists only where the CLI installs it.
-  "exclude": ["node_modules", "dist", "tests/registry/fixtures"]
+    "vitest.config.ts"
+  ]
 }

@@ -88,7 +88,7 @@ When `format` omits `formatter` or `progressive`, `ArtifactProvider` inherits th
 | --- | --- |
 | `useDocumentTokens()` | The resolved `DocumentTokens` in scope, or the defaults outside a document |
 | `useDocumentTokensAround(children)` | The tokens a subtree resolves to, read without rendering it |
-| `useDocumentSettings(children)` | `DocumentSettingsBinding`: the drawn paper, `tokens`, `geometry`, and a `sheetStyle` |
+| `useDocumentSettings(children)` | `DocumentSettingsBinding`: the drawn paper, `tokens`, and `geometry` |
 | `usePaperGeometry()` | The `PageGeometry` of the paper being drawn |
 | `useDrawnPaper()` | The `DrawnPaper` in scope, or `null` |
 | `useFitToWidth(frameRef, contentRef, width?)` | A `Fit` that scales a sheet down to its frame |
@@ -123,7 +123,7 @@ Tokens carry one document's branding. A document root (an installed `Document` o
 | `marginPx` | `number` | `48` | The margin on all four sides, in CSS pixels |
 | `logo` | `Uint8Array \| string` | none | The organization's mark. Bytes become a `data:` URI; keep it small |
 | `dir` | `"ltr" \| "rtl"` | `"ltr"` | Which way lines run |
-| `lang` | `string` | `"en"` | BCP-47 language tag; the typeface must carry glyphs for its script |
+| `lang` | `string` | `"en"` | BCP-47 language tag exposed on the document root |
 | `typography` | `{ scale?, flow? }` | `regular` / `regular` | The document's rhythm (below) |
 
 ```tsx

@@ -57,7 +57,7 @@ export interface PagesProps {
 export function Pages({ className, onPaginate, furniture, children }: PagesProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
-  const { drawn, geometry, sheetStyle } = useDocumentSettings(children);
+  const { drawn, geometry } = useDocumentSettings(children);
   const fit = useFitToWidth(frameRef, stackRef, geometry.widthPx);
   const pagination = usePagination({ budget: geometry.contentHeightPx, onPaginate, children });
   const bands = useFurnitureFit(geometry.marginPx);
@@ -67,12 +67,12 @@ export function Pages({ className, onPaginate, furniture, children }: PagesProps
   return <DrawnPaperProvider value={drawn}>
     <div ref={frameRef} className={className ?? "w-full overflow-hidden bg-neutral-200 p-6"}>
       <div className="mx-auto" style={{ width: geometry.widthPx * fit.scale, height: fit.height || undefined }}>
-        <div ref={stackRef} data-page-stack="true" className="flex flex-col" style={{ ...sheetStyle, width: geometry.widthPx, gap: PAGE_GAP_PX, transform: `scale(${fit.scale})`, transformOrigin: "top left" }}>
+        <div ref={stackRef} data-page-stack="true" className="flex flex-col" style={{ width: geometry.widthPx, gap: PAGE_GAP_PX, transform: `scale(${fit.scale})`, transformOrigin: "top left" }}>
           {pagination.plan ? Array.from({ length: sheets }, (_sheet, index) => <Page key={index} plan={pagination.plan!} index={index} furniture={furniture}>{children}</Page>) : null}
         </div>
       </div>
     </div>
-    <div ref={pagination.measureRef} data-paper-measure="true" className="paradoc-document" aria-hidden="true" style={{ ...sheetStyle, position: "fixed", insetInlineStart: -10000, top: 0, visibility: "hidden", pointerEvents: "none", width: geometry.contentWidthPx }}>{children}</div>
-    <PageFurnitureMeasure furniture={furniture} measureRef={bands.measureRef} style={sheetStyle} />
+    <div ref={pagination.measureRef} data-paper-measure="true" className="paradoc-document" aria-hidden="true" style={{ position: "fixed", insetInlineStart: -10000, top: 0, visibility: "hidden", pointerEvents: "none", width: geometry.contentWidthPx }}>{children}</div>
+    <PageFurnitureMeasure furniture={furniture} measureRef={bands.measureRef} />
   </DrawnPaperProvider>;
 }

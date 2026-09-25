@@ -104,7 +104,7 @@ export function TokenOverrideProvider({ tokens, children }: TokenOverrideProvide
 
 (TokenOverrideProvider as TokenMarkers)[TOKEN_OVERRIDE] = true;
 
-/** A nested document tried to change the paper or the typeface of its bundle. */
+/** A nested document tried to change a root-only setting of its bundle. */
 export class NestedPaperTokenError extends Error {
   /** The token it tried to set. */
   readonly token: string;
@@ -126,10 +126,9 @@ export class NestedPaperTokenError extends Error {
  * A document root resolved a root-only token differently from whatever is
  * drawing it.
  *
- * Paper is the obvious case and the typeface is the dangerous one: a serif the
- * sheet never heard about produces a preview in the serif whose page plan was
- * measured in Inter, and a PDF byte-identical to the unbranded default with the
- * serif quietly dropped. Neither says anything without this.
+ * Paper, direction, language, and rhythm must match the settings the surrounding
+ * preview or PDF resolved before rendering. Neither side can detect a mismatch
+ * without this explicit comparison.
  */
 export class RootTokenMismatchError extends Error {
   /** The root-only token the two disagree about. */
@@ -175,7 +174,7 @@ function assertNestedTokens(own: DocumentTokensInput): void {
  * instead is the check that the two agree, which is the one place a composition
  * the element walk could not see through is caught.
  *
- * @throws {NestedPaperTokenError} when a nested document sets paper or typeface.
+ * @throws {NestedPaperTokenError} when a nested document sets a root-only token.
  * @throws {RootTokenMismatchError} when a root-only token is not the drawn one.
  */
 export function useDocumentRootTokens(own: DocumentTokensInput | undefined): ResolvedRoot {

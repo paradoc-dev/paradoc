@@ -1,5 +1,5 @@
 /**
- * The paper and typeface a document is actually being drawn with, as context.
+ * The paper and document settings a document is actually being drawn with, as context.
  *
  * It lives in a module of its own because three things need it and two of them
  * would otherwise import each other: `Paper` and `Pages` supply it from the
@@ -9,7 +9,7 @@
  * `renderPdf` supplies the same context around the element it hands an adapter.
  * That is not decoration: the check below is the only thing standing between a
  * composition whose tokens the element walk could not see and a PDF that
- * silently comes out on the wrong paper in the wrong face, and a check that ran
+ * silently comes out with the wrong settings, and a check that ran
  * only in the browser would miss every server render — which is every render a
  * React layer performs.
  */

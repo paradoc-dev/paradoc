@@ -103,17 +103,17 @@ export interface PaperProps {
 export function Paper({ className, furniture, children }: PaperProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const { drawn, geometry, sheetStyle } = useDocumentSettings(children);
+  const { drawn, geometry } = useDocumentSettings(children);
   const fit = useFitToWidth(frameRef, sheetRef, geometry.widthPx);
   const bands = useFurnitureFit(geometry.marginPx);
   if (bands.error) throw bands.error;
   return <DrawnPaperProvider value={drawn}>
     <div ref={frameRef} className={className ?? "w-full overflow-hidden bg-neutral-200 p-6"}>
       <div className="mx-auto" style={{ width: geometry.widthPx * fit.scale, height: fit.height || undefined }}>
-        <Sheet ref={sheetRef} style={{ ...sheetStyle, transform: `scale(${fit.scale})`, transformOrigin: "top left" }}><PageFurnitureBands furniture={furniture} />{children}</Sheet>
+        <Sheet ref={sheetRef} style={{ transform: `scale(${fit.scale})`, transformOrigin: "top left" }}><PageFurnitureBands furniture={furniture} />{children}</Sheet>
       </div>
     </div>
-    <PageFurnitureMeasure furniture={furniture} measureRef={bands.measureRef} style={sheetStyle} />
+    <PageFurnitureMeasure furniture={furniture} measureRef={bands.measureRef} />
   </DrawnPaperProvider>;
 }
 

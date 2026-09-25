@@ -16,13 +16,6 @@ export {
   type ApplicationFontResource,
   type ApplicationFontSnapshot,
 } from "./lib/application-fonts";
-export {
-  createDocumentContext,
-  DocumentContextProvider,
-  useDocument,
-  type DocumentContextValue,
-  type DocumentData,
-} from "./components/document-context";
 // `Document` reads this on every render, checking or not, so it is substrate
 // an installed `document.tsx` must reach through this package rather than a
 // copy of its own — the same reason `useSigningMarks` is exported here.
@@ -174,6 +167,7 @@ export {
   type FieldBinding,
   type ListBinding,
   type TotalBinding,
+  type DocumentData,
 } from "./headless/artifact";
 export {
   PartyIndexOutOfRangeError,
@@ -191,10 +185,8 @@ export {
   type ValueFormatter,
 } from "./lib/format";
 export {
-  collectStrings,
   isTextDirection,
   scriptOf,
-  scriptsIn,
   DEFAULT_DOCUMENT_LANG,
   DEFAULT_TEXT_DIRECTION,
   type TextDirection,
