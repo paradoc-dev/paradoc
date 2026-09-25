@@ -335,10 +335,11 @@ body {
 export function manifestModule(entries: readonly DiscoveredComposition[]): string {
 	const rows = entries.map((entry) => {
 		const sample = entry.samples[0]
-		const loadSample =
-			sample && sample.from === 'sibling'
-				? `() => import(${JSON.stringify(`/${sample.relative}`)})`
-				: 'null'
+		const samples = entry.samples.map((source) => `{
+      relative: ${JSON.stringify(source.relative)},
+      exportName: ${JSON.stringify(source.exportName)},
+      load: ${source.file === entry.file ? 'null' : `() => import(${JSON.stringify(`/${source.relative}`)})`},
+    }`).join(', ')
 		return `  {
     id: ${JSON.stringify(entry.id)},
     relative: ${JSON.stringify(entry.relative)},
@@ -346,11 +347,10 @@ export function manifestModule(entries: readonly DiscoveredComposition[]): strin
     artifactName: ${JSON.stringify(entry.artifact?.name ?? null)},
     binding: ${JSON.stringify(bindingLabel(entry))},
     sample: ${JSON.stringify(sampleLabel(entry))},
-    sampleFrom: ${JSON.stringify(sample?.from ?? 'composition')},
+    samples: [${samples}],
     problems: ${JSON.stringify(entry.problems)},
     messages: ${JSON.stringify(messagesFor(entry))},
     load: () => import(${JSON.stringify(`/${entry.relative}`)}),
-    loadSample: ${loadSample},
   }`
 	})
 
@@ -400,16 +400,18 @@ function selectedId() {
 }
 
 /** The sample the preview renders with, or why there is none. */
-function readSample(entry, module, sampleModule) {
-  const value =
-    entry.sampleFrom === "sibling"
-      ? (sampleModule?.default ?? sampleModule?.sample)
-      : module?.sample;
-  if (value === undefined || value === null) throw new Error(entry.messages.noSample);
-  if (typeof value !== "object" || typeof value.fields !== "object" || value.fields === null) {
-    throw new Error(entry.messages.badSample);
+async function readSample(entry, module) {
+  for (const source of entry.samples) {
+    const sampleModule = source.load ? await source.load() : module;
+    const exported = sampleModule?.[source.exportName];
+    if (exported === undefined || exported === null) continue;
+    const value = typeof exported === "function" ? await exported() : exported;
+    if (typeof value !== "object" || typeof value.fields !== "object" || value.fields === null) {
+      throw new Error("Sample " + source.relative + " must be an object with a fields object.");
+    }
+    return { fields: value.fields, parties: value.parties ?? {}, annexes: value.annexes ?? {} };
   }
-  return { fields: value.fields, parties: value.parties ?? {} };
+  throw new Error(entry.messages.noSample);
 }
 
 /** Loads one composition and its sample, reporting rather than throwing. */
@@ -429,10 +431,9 @@ function useComposition(entry) {
     void (async () => {
       try {
         const module = await entry.load();
-        const sampleModule = entry.loadSample ? await entry.loadSample() : null;
         const Composition = module.default;
         if (typeof Composition !== "function") throw new Error(entry.messages.noComponent);
-        const data = readSample(entry, module, sampleModule);
+        const data = await readSample(entry, module);
         if (live) setState({ status: "ready", Composition, data });
       } catch (error) {
         if (live) setState({ status: "failed", messages: [String(error?.message ?? error)] });

@@ -39,6 +39,7 @@ import {
 } from './harness.js'
 import { messagesFor } from './messages.js'
 import { loadDevToolchain } from './peers.js'
+import { loadSampleData } from './sample-loader.js'
 
 /** What the browser asks the PDF route for. */
 interface PdfRequest {
@@ -328,12 +329,12 @@ async function renderRoute(
 			return findings(response, [{ kind: 'composition-error', message: messages.noComponent }])
 		}
 
-		const sample = entry.samples[0]
-		const sampleModule =
-			sample && sample.from === 'sibling'
-				? ((await server.ssrLoadModule(sample.file)) as Record<string, unknown>)
-				: module
-		const data = readSample(entry, sampleModule)
+		const data = await loadSampleData(entry.samples, async (source) =>
+			source.file === entry.file
+				? module
+				: ((await server.ssrLoadModule(source.file)) as Record<string, unknown>)
+		)
+		if (!data) throw new Error(messages.noSample)
 
 		// React comes from the project through Vite, not from `paradoc`: the element
 		// has to be made by the same React the composition imports, which is what
@@ -409,24 +410,6 @@ function findings(response: ServerResponse, list: { kind: string; message: strin
 	response.setHeader('Content-Type', 'application/json; charset=utf-8')
 	response.setHeader('Cache-Control', 'no-store')
 	response.end(JSON.stringify({ findings: list }))
-}
-
-/** The sample data one composition previews with. */
-function readSample(
-	entry: DiscoveredComposition,
-	module: Record<string, unknown>,
-): { fields: Record<string, unknown>; parties: Record<string, unknown> } {
-	const messages = messagesFor(entry)
-	const from = entry.samples[0]?.from ?? 'composition'
-	const value = (from === 'sibling' ? (module.default ?? module.sample) : module.sample) as
-		| { fields?: unknown; parties?: unknown }
-		| undefined
-	if (value === undefined || value === null) throw new Error(messages.noSample)
-	if (typeof value.fields !== 'object' || value.fields === null) throw new Error(messages.badSample)
-	return {
-		fields: value.fields as Record<string, unknown>,
-		parties: (value.parties ?? {}) as Record<string, unknown>,
-	}
 }
 
 /**

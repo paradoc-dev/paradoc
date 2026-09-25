@@ -1,7 +1,6 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import { dirname, extname, relative, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 
 import { assertCurrentSchemaVersion, isForm, reactLayersOf, validate, type Form } from '@paradoc/core'
 import type { DocumentData } from '@paradoc/react'
@@ -13,10 +12,11 @@ import { readTextInput, resolveArtifactTarget } from '../utils/io.js'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { parseDataInput, toFormPayload } from '../utils/data-input.js'
 import { findRepoRoot } from '../utils/project.js'
-import { rendererManager } from '../utils/renderer-manager.js'
 import { ensureTsLoader } from '../utils/ts-loader.js'
 import { loadValidatedArtifact } from '../utils/artifact-file.js'
 import { formatPayloadErrors, validateFormPayload } from '../utils/validate-data.js'
+import { importPeer } from './dev/peers.js'
+import { loadSampleData } from './dev/sample-loader.js'
 
 type AdapterName = 'takumi' | 'chromium'
 
@@ -38,13 +38,12 @@ const REACT_EXTENSIONS = new Set(['.tsx', '.jsx'])
 
 /**
  * `@paradoc/react-pdf` carries a WebAssembly PDF layout engine, fonts, and React
- * itself — real weight that most `paradoc` installs never touch. It is installed
- * on first use into `~/.paradoc/renderers`, the same as `@paradoc/render`
- * (see `renderer-manager.ts`), rather than shipped with every install.
+ * itself — real weight that most `paradoc` installs never touch. Check resolves
+ * it from the project so the composition and renderer share one React instance.
  */
-async function loadBindComponent(): Promise<typeof bindComponent> {
+async function loadBindComponent(root: string): Promise<typeof bindComponent> {
   try {
-    const mod = await rendererManager.loadModule('@paradoc/react-pdf')
+    const mod = await importPeer(root, '@paradoc/react-pdf')
     return mod.bindComponent as typeof bindComponent
   } catch (error) {
     throw new Error(
@@ -54,9 +53,9 @@ async function loadBindComponent(): Promise<typeof bindComponent> {
   }
 }
 
-async function loadCheckComposition(): Promise<typeof checkComposition> {
+async function loadCheckComposition(root: string): Promise<typeof checkComposition> {
   try {
-    const mod = await rendererManager.loadModule('@paradoc/react-pdf/check')
+    const mod = await importPeer(root, '@paradoc/react-pdf/check')
     return mod.checkComposition as typeof checkComposition
   } catch (error) {
     throw new Error(
@@ -75,9 +74,9 @@ async function loadCheckComposition(): Promise<typeof checkComposition> {
  * only one of them implemented would make a composition that previews fail a
  * check, or the reverse, for a reason about the tools rather than the document.
  */
-async function loadDiscovery(): Promise<typeof Discovery> {
+async function loadDiscovery(root: string): Promise<typeof Discovery> {
   try {
-    return (await rendererManager.loadModule('@paradoc/react/discovery')) as unknown as typeof Discovery
+    return (await importPeer(root, '@paradoc/react/discovery')) as unknown as typeof Discovery
   } catch (error) {
     throw new Error(
       `Could not install or load @paradoc/react, needed to find the composition's artifact: ` +
@@ -101,9 +100,10 @@ export function createCheckCommand(): Command {
         const resolvedTarget = await resolveArtifactTarget(target)
         const resolved = await resolveCompositionLayer(resolvedTarget, options.layer)
         const compositionPath = resolve(resolved.artifactDir, resolved.layer.path)
+        const projectRoot = (await findRepoRoot(dirname(compositionPath))) ?? dirname(compositionPath)
 
         await ensureTsLoader(dirname(compositionPath))
-        const bind = await loadBindComponent()
+        const bind = await loadBindComponent(projectRoot)
         const composition = await bind(
           { type: 'react', mimeType: resolved.layer.mimeType, key: resolved.layer.key, path: resolved.layer.path },
           { baseDir: resolved.artifactDir }
@@ -111,9 +111,9 @@ export function createCheckCommand(): Command {
 
         const data = options.data
           ? await explicitData(options.data, resolved.artifact)
-          : await discoverSampleData(compositionPath)
+          : await discoverSampleData(compositionPath, projectRoot)
 
-        const runCheck = await loadCheckComposition()
+        const runCheck = await loadCheckComposition(projectRoot)
         const result = await runCheck({
           artifact: resolved.artifact,
           composition,
@@ -189,8 +189,9 @@ async function findArtifactForComposition(
     throw new Error(`File not found: ${target}`)
   }
 
-  const root = (await findRepoRoot()) ?? process.cwd()
-  const discovery = await loadDiscovery()
+  const start = dirname(compositionAbs)
+  const root = (await findRepoRoot(start)) ?? start
+  const discovery = await loadDiscovery(root)
   const { byLayer } = await discovery.findCompositionArtifact(root, compositionAbs)
 
   const matches: ResolvedLayer[] = byLayer.map((match) => ({
@@ -203,6 +204,12 @@ async function findArtifactForComposition(
   if (layerKey) {
     const named = matches.filter((match) => match.layer.key === layerKey)
     if (named.length === 1) return validatedLayer(named[0]!)
+    if (matches.length > 0) {
+      throw new Error(
+        `No matched artifact declares ${relative(root, compositionAbs)} under layer "${layerKey}". ` +
+        `Found layers: ${matches.map((match) => match.layer.key).join(', ')}`
+      )
+    }
   } else if (matches.length === 1) {
     return validatedLayer(matches[0]!)
   }
@@ -330,42 +337,12 @@ async function explicitData(value: string, form: Form): Promise<DocumentData> {
  * and `Table` path still resolves against the artifact's schema, which does not
  * depend on data being present.
  */
-async function discoverSampleData(compositionPath: string): Promise<DocumentData | undefined> {
-  const discovery = await loadDiscovery()
-  const root = (await findRepoRoot()) ?? process.cwd()
-
-  for (const source of await discovery.sampleSources(root, compositionPath)) {
-    const sample = await sampleFromModule(source.file, {
-      allowDefaultExport: source.from === 'sibling',
-    })
-    if (sample) return sample
-  }
-  return undefined
-}
-
-async function sampleFromModule(
-  modulePath: string,
-  options: { allowDefaultExport: boolean }
-): Promise<DocumentData | undefined> {
-  let module: Record<string, unknown>
-  try {
-    module = (await import(/* @vite-ignore */ pathToFileURL(modulePath).href)) as Record<string, unknown>
-  } catch {
-    return undefined
-  }
-
-  const exported = module.sample ?? (options.allowDefaultExport ? module.default : undefined)
-  if (exported === undefined) return undefined
-  const resolved = typeof exported === 'function' ? await (exported as () => unknown)() : exported
-  return isDocumentData(resolved) ? resolved : undefined
-}
-
-function isDocumentData(value: unknown): value is DocumentData {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'fields' in value &&
-    typeof (value as { fields: unknown }).fields === 'object'
+async function discoverSampleData(compositionPath: string, root: string): Promise<DocumentData | undefined> {
+  const discovery = await loadDiscovery(root)
+  const sources = await discovery.sampleSources(root, compositionPath)
+  await ensureTsLoader(dirname(compositionPath))
+  return loadSampleData(sources, async (source) =>
+    (await import(/* @vite-ignore */ source.file)) as Record<string, unknown>
   )
 }
 

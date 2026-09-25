@@ -13,6 +13,8 @@ import kleur from 'kleur'
 import { loadDiscovery, type DiscoveredComposition } from './discovery.js'
 import { bindingLabel, sampleLabel } from './messages.js'
 import { assertDevPeers, MissingDevPeerError } from './peers.js'
+import { findRepoRoot } from '../../utils/project.js'
+import { resolve } from 'node:path'
 
 interface DevOptions {
 	port: string
@@ -42,7 +44,8 @@ export function createDevCommand(): Command {
 		.option('--list', 'Print the compositions and what each is bound to, then exit')
 		.option('--json', 'With --list, print JSON')
 		.action(async (dir: string | undefined, options: DevOptions) => {
-			const root = dir ?? process.cwd()
+			const start = resolve(dir ?? process.cwd())
+			const root = (await findRepoRoot(start)) ?? start
 
 			try {
 				// Before anything is read from disk: an unusable port is a mistake in

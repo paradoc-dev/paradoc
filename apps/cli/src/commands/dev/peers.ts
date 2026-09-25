@@ -8,9 +8,8 @@
  * shown a resolution error from inside a dependency.
  *
  * **Why not the renderer manager.** `paradoc` installs a renderer on first use
- * (`utils/renderer-manager.ts`), and `paradoc check` installs `@paradoc/react-pdf` that
- * way, because a check needs one package and nothing else of the project. A
- * preview is the opposite case: it compiles the project's source, so the React
+ * (`utils/renderer-manager.ts`) for standalone render commands. Both `paradoc
+ * check` and the preview compile project source, so the React
  * it renders with, the `@paradoc/react` the composition imports, and the Vite
  * that resolves both have to be the project's own, not a copy `paradoc` fetched
  * into its cache. Installing them on demand would produce a second React beside
