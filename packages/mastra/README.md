@@ -49,14 +49,16 @@ tools.render;
 tools.extract;
 ```
 
-Each operation is also available through an individual factory, such as `createRenderTool()` or `createUpdateFillTool()`. The factories pass the shared Zod input and output schemas directly to Mastra, and the tool IDs and descriptions remain aligned with the neutral contract.
+Each operation is also available through an individual factory, such as `render()` or `updateFill()`. The factories pass the shared Zod input and output schemas directly to Mastra, and the tool IDs and descriptions remain aligned with the neutral contract.
 
-Mastra's execution `abortSignal` is forwarded to the shared request policy. The raw operation result stays available to application code while `toModelOutput` bounds rendered text and base64 content for the model. Set `modelOutputMaxBytes` to change the default 16 KiB model-facing budget:
+The same factories are available from per-tool subpaths such as `@paradoc/mastra/render` and `@paradoc/mastra/update-fill`.
+
+Mastra's execution `abortSignal` is forwarded to the shared request policy. The raw operation result stays available to application code while `toModelOutput` bounds text and base64 content for the model. Set `maxOutputBytes` to change the default 16 KiB model-facing budget:
 
 ```typescript
 const tools = paradocTools({
   defaultRegistryUrl: "https://public.paradoc.dev",
-  modelOutputMaxBytes: 32_000,
+  maxOutputBytes: 32_000,
 });
 ```
 

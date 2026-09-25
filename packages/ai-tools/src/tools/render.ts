@@ -36,11 +36,6 @@ function outputResult(
 	}
 }
 
-function presentationWithConfig(input: RenderInput['presentation'], config: ParadocToolsConfig | undefined): RenderInput['presentation'] {
-	if (input || config?.maxOutputBytes === undefined) return input
-	return { max_bytes: config.maxOutputBytes, include_content: true }
-}
-
 export async function executeRender(
 	input: RenderInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
@@ -73,13 +68,13 @@ export async function executeRender(
 			const result = instance.safeFill(asFormPayload(normalized.data) as never, contextOptions(normalized.evaluation_context))
 			if (!result.success) return { success: false, artifact_kind: 'form', errors: validationErrors(result.error), error: errorFromUnknown(result.error, 'validation_error') }
 			const content = await result.data.render(renderOptions)
-			return outputResult('form', content, layer.mime_type, presentationWithConfig(normalized.presentation, config))
+			return outputResult('form', content, layer.mime_type, normalized.presentation)
 		}
 
 		if (isDocument(artifact)) {
 			const instance = loadFromObject<'document'>(artifact, { resolver })
 			const content = await instance.render(renderOptions)
-			return outputResult('document', content, layer.mime_type, presentationWithConfig(normalized.presentation, config))
+			return outputResult('document', content, layer.mime_type, normalized.presentation)
 		}
 
 		if (isChecklist(artifact)) {
@@ -87,7 +82,7 @@ export async function executeRender(
 			const result = instance.safeFill(asChecklistPayload(normalized.data) as never, contextOptions(normalized.evaluation_context))
 			if (!result.success) return { success: false, artifact_kind: 'checklist', errors: validationErrors(result.error), error: errorFromUnknown(result.error, 'validation_error') }
 			const content = await result.data.render(renderOptions)
-			return outputResult('checklist', content, layer.mime_type, presentationWithConfig(normalized.presentation, config))
+			return outputResult('checklist', content, layer.mime_type, normalized.presentation)
 		}
 
 		return { success: false, ...(kind ? { artifact_kind: kind } : {}), error: { code: 'unsupported_artifact', message: 'Rendering supports form, document, and checklist artifacts.' } }

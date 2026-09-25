@@ -13,7 +13,7 @@ The Paradoc AI packages give your own AI agents tools to find, inspect, validate
 |---------|-------------|---------|
 | [`@paradoc/ai-tools`](/ai/ai-tools) | Framework-neutral tool contract: Zod schemas, execute functions, registry client | `npm install @paradoc/ai-tools` |
 | [`@paradoc/ai-sdk`](/ai/ai-sdk) | Vercel AI SDK 7 adapter | `npm install @paradoc/ai-sdk ai zod` |
-| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai @tanstack/ai zod` |
+| [`@paradoc/tanstack-ai`](/ai/tanstack-ai) | TanStack AI adapter | `npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod` |
 | [`@paradoc/mastra`](/ai/mastra) | Mastra adapter | `npm install @paradoc/mastra @mastra/core zod` |
 
 Install the adapter for your framework. Each adapter depends on `@paradoc/ai-tools`, so every adapter exposes the same tools with the same schemas.
@@ -61,7 +61,7 @@ All tools except `get_registry` and `get_artifact` take a [source](/ai/tools#sou
   </Tab>
   <Tab value="TanStack AI">
     ```bash
-    npm install @paradoc/tanstack-ai @tanstack/ai zod @tanstack/ai-openai
+    npm install @paradoc/tanstack-ai@0.5.0 @tanstack/ai@0.53.0 @tanstack/ai-openai@0.22.5 zod
     ```
 
     ```typescript
@@ -141,11 +141,11 @@ paradocTools({
 | `maxRedirects` | `number` | Maximum validated redirects per request. Default `3`. |
 | `context` | `ToolExecutionContext` | Request-scoped cache and signal. Create one per request with `createToolExecutionContext()`. |
 | `signal` | `AbortSignal` | Abort all work for the call |
-| `maxOutputBytes` | `number` | Default `render` output budget when the call has no `presentation` |
+| `maxOutputBytes` | `number` | Maximum content bytes sent to the model; defaults to 16,384 |
 
 `approvedOrigins` checks hostnames only. When sources are untrusted, pair it with a network egress policy, because a hostname check cannot stop DNS rebinding.
 
-Every adapter combines the framework's abort signal with `signal` and `context.signal`. The Mastra adapter adds one option, [`modelOutputMaxBytes`](/ai/mastra#configuration).
+Every adapter combines the framework's abort signal with `signal` and `context.signal`, returns the complete result to application code, and bounds the model-facing copy with `maxOutputBytes`.
 
 ## Differences from the MCP server
 

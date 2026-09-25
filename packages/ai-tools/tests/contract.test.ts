@@ -15,7 +15,9 @@ import {
 	UpdateFillOutputSchema,
 	resolveSource,
 	safeFetch,
+	toModelOutput,
 	toolDefinitions,
+	truncateContent,
 	validateFetchUrl,
 } from '../src'
 
@@ -272,5 +274,19 @@ describe('shared AI tool contract', () => {
 		expect(result.truncated).toBe(true)
 		expect(result.byte_length).toBeGreaterThan(4)
 		expect(result.content).toBe('A no')
+	})
+
+	it('bounds model output on UTF-8 and base64 boundaries', () => {
+		const utf8 = truncateContent('ééééé', 'utf-8', 3)
+		expect(utf8).toEqual({ content: 'é', truncated: true })
+		expect(new TextEncoder().encode(utf8.content).byteLength).toBeLessThanOrEqual(3)
+
+		const base64 = truncateContent('QUJDREVGRw==', 'base64', 6)
+		expect(base64).toEqual({ content: 'QUJD', truncated: true })
+		expect(base64.content.length).toBeLessThanOrEqual(6)
+		expect(toModelOutput({ content: '0123456789' }, 4)).toEqual({
+			type: 'json',
+			value: { content: '0123', truncated: true },
+		})
 	})
 })

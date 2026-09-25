@@ -187,7 +187,8 @@ describe('AI SDK 7 Paradoc tools', () => {
 
 	it('exposes canonical native schema errors for malformed model input', () => {
 		const tools = paradocTools()
-		const parsed = toolDefinitions.validate_artifact.input_schema.safeParse({ source: 'artifact' })
+		const schema = tools.validate_artifact.inputSchema as typeof toolDefinitions.validate_artifact.input_schema
+		const parsed = schema.safeParse({ source: 'artifact' })
 
 		expect(parsed.success).toBe(false)
 		if (!parsed.success) expect(parsed.error.issues[0]?.path).toEqual(['artifact'])
@@ -291,5 +292,14 @@ describe('AI SDK 7 Paradoc tools', () => {
 		await resolveToolResult(tools.get_registry.execute({}, executionOptions))
 		await resolveToolResult(tools.get_registry.execute({}, executionOptions))
 		expect(calls).toBe(2)
+	})
+
+	it('keeps application output complete while bounding the model copy', async () => {
+		const tool = render({ maxOutputBytes: 4 })
+		const output = { success: true, content: '0123456789', encoding: 'utf-8' as const, byte_length: 10 }
+		const modelOutput = await tool.toModelOutput?.({ toolCallId: 'render-1', input: {}, output })
+
+		expect(output.content).toBe('0123456789')
+		expect(modelOutput).toEqual({ type: 'json', value: { ...output, content: '0123', truncated: true } })
 	})
 })

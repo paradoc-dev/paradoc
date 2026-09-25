@@ -21,7 +21,7 @@ Takes a [source](/ai/tools#sources) plus:
 | `presentation.max_bytes` | `integer` | No | Cut `content` to this many bytes. Base64 is cut at a whole 4-character group so it still decodes. |
 | `presentation.include_content` | `boolean` | No | Set `false` to return only metadata, with no `content`. Default `true`. |
 
-Without `presentation`, the `maxOutputBytes` [config](/ai#configuration) value sets `max_bytes`. File-backed layers load relative to the source's base URL; with an [artifact source](/ai/tools#sources), set `base_url`.
+`presentation` controls the application-facing result. The separate `maxOutputBytes` [config](/ai#configuration) value controls the copy sent to the model. File-backed layers load relative to the source's base URL; with an [artifact source](/ai/tools#sources), set `base_url`.
 
 ## Output
 

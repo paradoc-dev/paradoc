@@ -6,6 +6,7 @@ import {
 	type ToolExecutionContext,
 } from '@tanstack/ai'
 import {
+	attachModelOutputSerialization,
 	configForExecution,
 	operationNames,
 	toolDefinitions,
@@ -16,6 +17,7 @@ import {
 	type ToolDefinitions,
 } from '@paradoc/ai-tools'
 
+export { createToolExecutionContext } from '@paradoc/ai-tools'
 export type { ParadocToolsConfig }
 export type {
 	ExtractInput,
@@ -115,9 +117,17 @@ function createTool<Name extends OperationName>(name: Name, config?: ParadocTool
 		ToolDefinitions[Name]['input_schema'],
 		ToolDefinitions[Name]['output_schema']
 	>
-	const definition = definitions[name] as ParadocToolDefinition<Name>
+	const shared = toolDefinitions[name]
+	// TanStack serializes the validated output directly for the next model turn.
+	// A schema transform preserves the full value while supplying its bounded JSON form.
+	const definition = toolDefinition({
+		name,
+		description: shared.description,
+		inputSchema: shared.input_schema,
+		outputSchema: shared.output_schema.transform((output) => attachModelOutputSerialization(output, config?.maxOutputBytes)),
+	})
 
-	return definition.server(execute) as ParadocServerTool<Name>
+	return definition.server(execute as never) as unknown as ParadocServerTool<Name>
 }
 
 /** Return the definition-only tools for client registration or a shared chat declaration. */

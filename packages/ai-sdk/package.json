@@ -71,7 +71,6 @@
   ],
   "keywords": [
     "paradoc",
-    "paradoc",
     "ai",
     "ai-sdk",
     "vercel",
@@ -117,7 +116,7 @@
   },
   "peerDependencies": {
     "ai": "^7.0.94",
-    "zod": "^4.1.8"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@paradoc/eslint-config": "workspace:*",
