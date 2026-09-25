@@ -10,11 +10,11 @@
  * rather than sitting behind a stale pass.
  */
 
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { generateRegistry, moduleId } from "./registry/generate";
+import { generateRegistry } from "./registry/generate";
 import { REGISTRY_ITEMS } from "./registry/manifest";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -24,33 +24,6 @@ export const PACKAGE_ROOT = path.resolve(here, "..");
 
 /** Where the docs app serves the registry from, as `/r/{name}.json`. */
 export const DEFAULT_OUT_DIR = path.resolve(PACKAGE_ROOT, "../../apps/docs/public/r");
-
-/**
- * Files an emitted module may name, as the module ids an import would write.
- *
- * Not only TypeScript: a composition binds its artifact by importing the JSON
- * beside it, and that import has to resolve here too or the generator would
- * reject a file that is perfectly correct. Binary assets are excluded, since
- * nothing imports a PNG by module specifier.
- */
-const IMPORTABLE = /\.(?:tsx?|jsx?|json|css)$/;
-
-export function collectPackageModules(srcDir: string): string[] {
-  const modules: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir).sort()) {
-      const absolute = path.join(dir, entry);
-      if (statSync(absolute).isDirectory()) {
-        walk(absolute);
-        continue;
-      }
-      if (!IMPORTABLE.test(entry)) continue;
-      modules.push(moduleId(path.posix.join(path.relative(srcDir, dir), entry)));
-    }
-  };
-  walk(srcDir);
-  return modules.map((module) => (module.startsWith("./") ? module.slice(2) : module));
-}
 
 /** The public runtime version installed files target. */
 export function packageVersion(packageRoot = PACKAGE_ROOT): string {
@@ -69,10 +42,8 @@ export function buildRegistry(packageRoot = PACKAGE_ROOT) {
   const srcDir = path.join(packageRoot, "src");
   return generateRegistry({
     srcDir,
-    entrySource: readFileSync(path.resolve(packageRoot, "../react/src/index.ts"), "utf8"),
     items: REGISTRY_ITEMS,
     version: packageVersion(packageRoot),
-    packageModules: collectPackageModules(srcDir),
   });
 }
 

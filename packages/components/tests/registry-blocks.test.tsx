@@ -37,8 +37,7 @@ import { VENDOR_PACKET_KEYS, vendorPacketBundle } from "../src/examples/vendor-p
 import { vendorPacketData, vendorPacketTaxpayerData } from "../src/examples/vendor-packet-data";
 import { PartyIndexOutOfRangeError, planPages, type MeasuredKeep } from "@paradoc/react";
 import { renderPdf } from "@paradoc/react-pdf";
-import { readPdf, type ReadPage } from "./pdf-reader";
-import { normalizeText, treeKeeps } from "./tree-keeps";
+import { normalizeText, readPdf, treeKeeps, type ReadPage } from "../../react-pdf/tests/pdf-reader";
 
 /** The manifest's source paths for one block, relative to `src/`. */
 function shipped(name: string): string[] {
@@ -145,13 +144,6 @@ describe("the vendor packet block", () => {
       "examples/vendor-packet-data.ts",
       "examples/vendor-packet-document.tsx",
     ]);
-  });
-
-  it("names @paradoc/essentials, which the installed packet cannot be sealed without", () => {
-    // Nothing the block ships imports it. The packet's second part is the W-9,
-    // and the sample carries the taxpayer's values rather than the artifact.
-    const item = REGISTRY_ITEMS.find((candidate) => candidate.name === "vendor-packet");
-    expect(item?.dependencies).toContain("@paradoc/essentials");
   });
 
   it("ships a sample for every part it declares", () => {

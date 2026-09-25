@@ -19,7 +19,7 @@ import {
 } from "../src/examples";
 import { Attachment, Bundle, Document, Field, Part, Section, Signature, Table, Totals } from "../src";
 import { proposalLogoImage } from "../src/examples/pdf";
-import { readPdf } from "./pdf-reader";
+import { readPdf } from "../../react-pdf/tests/pdf-reader";
 
 type Tokens = Parameters<typeof Document>[0]["tokens"];
 

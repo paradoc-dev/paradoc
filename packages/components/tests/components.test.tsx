@@ -4,6 +4,8 @@ import { expect, it } from "vitest";
 
 import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm } from "../src/examples/purchase-order";
+import { arabicLetterData } from "../src/examples/arabic-letter-data";
+import { arabicLetterForm, arabicLetterTokens } from "../src/examples/arabic-letter";
 import { Document, Field, Part, QRCode, Signature, Table, Totals } from "../src";
 
 it("renders a configurable URL QR code as SVG", () => {
@@ -59,4 +61,41 @@ it("composes signing and truthful packet placement from headless bindings", () =
   expect(html).toContain('data-keep-id="signature:buyer"');
   expect(html).toContain('data-keep-id="initials:buyer"');
   expect(html).toContain('data-keep-id="signature:supplier"');
+});
+
+it("lets applications localize every signature caption", () => {
+  const html = renderToStaticMarkup(
+    <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
+      <Signature party="buyer" fieldLabel="توقيع" requiredLabel="مطلوب" dateLabel="التاريخ" />
+    </Document>
+  );
+  expect(html).toContain("توقيع (مطلوب)");
+  expect(html).toContain("التاريخ");
+});
+
+it("isolates phone values inside an RTL document", () => {
+  const html = renderToStaticMarkup(
+    <Document artifact={arabicLetterForm} data={arabicLetterData} tokens={arabicLetterTokens}>
+      <Field path="senderPhone" />
+      <Field path="letterNumber" />
+    </Document>
+  );
+  expect(html).toMatch(/style="direction:ltr;unicode-bidi:isolate"[^>]*>\+966/);
+  expect(html).not.toMatch(/style="direction:ltr;unicode-bidi:isolate"[^>]*>AWH/);
+});
+
+it("prints a total's rate field only when ratePath is present", () => {
+  const withRate = renderToStaticMarkup(
+    <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
+      <Totals rows={[{ def: "tax", ratePath: "taxRatePercent" }]} />
+    </Document>
+  );
+  const withoutRate = renderToStaticMarkup(
+    <Document artifact={purchaseOrderForm} data={purchaseOrderData}>
+      <Totals rows={[{ def: "tax" }]} />
+    </Document>
+  );
+  expect(withRate).toContain('data-field-path="taxRatePercent"');
+  expect(withRate).toContain("(8.25%)");
+  expect(withoutRate).not.toContain('data-field-path="taxRatePercent"');
 });

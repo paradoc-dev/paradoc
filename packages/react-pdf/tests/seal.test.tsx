@@ -27,7 +27,7 @@ import {
   proposalRenderers,
   sealProposal,
 } from "../../components/src/examples/pdf";
-import { SIGNATURE_RULE } from "../../components/src/components/signature";
+import { SIGNATURE_RULE } from "@paradoc/react";
 import { readPdf, type ReadPage } from "./pdf-reader";
 
 /** CSS pixels at 96 dpi to the PDF's points at 72 dpi. */

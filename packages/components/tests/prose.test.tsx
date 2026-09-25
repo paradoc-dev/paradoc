@@ -37,8 +37,7 @@ import { Document, List, Section, Text } from "../src";
 import type { ListItem, TextRole } from "../src";
 import { proposalForm } from "../src/examples/proposal";
 import { shortProposalData } from "../src/examples/proposal-data";
-import { readPdf, type ReadPage } from "./pdf-reader";
-import { treeKeeps } from "./tree-keeps";
+import { readPdf, treeKeeps, type ReadPage } from "../../react-pdf/tests/pdf-reader";
 
 type Tokens = Parameters<typeof Document>[0]["tokens"];
 

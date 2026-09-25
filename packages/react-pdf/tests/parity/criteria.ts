@@ -8,7 +8,7 @@
  */
 
 import type { ReadPage } from "../pdf-reader";
-import { normalizeText, type TreeKeep } from "../tree-keeps";
+import { normalizeText, type TreeKeep } from "../pdf-reader";
 import type { PreviewPlan } from "./preview";
 
 /**

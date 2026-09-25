@@ -5,8 +5,8 @@
  * generator produces right now, so nobody edits the served JSON by hand. That
  * every component the package exports is an item, so a new component cannot be
  * added and quietly left out. And that the import rewrite is the checked kind:
- * an item that reaches for something the package does not export publicly fails
- * the build rather than shipping a file the consumer cannot compile.
+ * an item that reaches for a relative module no registry item carries fails the
+ * build rather than shipping a file the consumer cannot compile.
  *
  * The install itself — the stock CLI, a scratch project, `tsc` over what lands
  * — is `tests/registry/install.test.ts`, which needs a server and a build and
@@ -21,7 +21,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildRegistry,
   DEFAULT_OUT_DIR,
-  collectPackageModules,
   generatedSources,
   packageVersion,
   registryFileNames,
@@ -53,15 +52,8 @@ function probeFile(relPath: string): RegistryManifestFile {
 function generateFrom(sources: Record<string, string>, item = REGISTRY_ITEMS[0]!) {
   return generateRegistry({
     srcDir,
-    entrySource,
     items: [{ ...item, files: Object.keys(sources).map(probeFile) }],
     version: packageVersion(packageRoot),
-    packageModules: [
-      ...collectPackageModules(srcDir),
-      "lib/measure",
-      "lib/plan",
-      ...Object.keys(sources).map((file) => file.replace(/\.tsx?$/, "")),
-    ],
     readSource: (relPath) => sources[relPath] ?? "",
   });
 }
@@ -241,7 +233,6 @@ describe("the emitted files", () => {
     expect(byName.get("field")?.dependencies).toEqual([`${SUBSTRATE_PACKAGE}@^${version}`]);
     expect(byName.get("document")?.dependencies).toEqual([
       `${SUBSTRATE_PACKAGE}@^${version}`,
-      `@paradoc/core@^${version}`,
       `@paradoc/types@^${version}`,
     ]);
 
@@ -263,7 +254,6 @@ describe("an item whose files do not install side by side", () => {
   // the path between them where they are authored.
   const built = generateRegistry({
     srcDir,
-    entrySource,
     items: [
       {
         ...REGISTRY_ITEMS[0]!,
@@ -286,11 +276,6 @@ describe("an item whose files do not install side by side", () => {
       },
     ],
     version: packageVersion(packageRoot),
-    packageModules: [
-      ...collectPackageModules(srcDir),
-      "blocks/purchase-order",
-      "blocks/purchase-order.json",
-    ],
     readSource: (relPath) =>
       relPath.endsWith(".tsx")
         ? 'import { useArtifact } from "@paradoc/react";\nimport artifact from "./purchase-order.json";\n'
@@ -322,45 +307,16 @@ describe("an item whose files do not install side by side", () => {
 });
 
 describe("the generator refuses what would not compile", () => {
-  it("rejects a binding the package does not export publicly", () => {
-    expect(() =>
-      generateFrom({
-        "components/probe.tsx": 'import { measureKeeps, privateHelper } from "../lib/measure";\n',
-      })
-    ).toThrow(/privateHelper/);
-  });
-
-  it("rejects a default import of the substrate, which exports names only", () => {
-    expect(() =>
-      generateFrom({ "components/probe.tsx": 'import measure from "../lib/measure";\n' })
-    ).toThrow(/exports names only/);
-  });
-
-  it("rejects a namespace import of the substrate too", () => {
-    expect(() =>
-      generateFrom({ "components/probe.tsx": 'import * as measure from "../lib/measure";\n' })
-    ).toThrow(RegistryGenerationError);
-  });
-
-  it("rejects a re-export of something the package does not export publicly", () => {
-    expect(() =>
-      generateFrom({
-        "components/probe.tsx": 'export { privateHelper } from "../lib/measure";\n',
-      })
-    ).toThrow(/privateHelper/);
-  });
-
-  it("rejects a relative import that resolves to nothing", () => {
+  it("rejects a relative import no registry item carries", () => {
     expect(() =>
       generateFrom({ "components/probe.tsx": 'import { thing } from "../lib/nowhere";\n' })
-    ).toThrow(/resolves to no module/);
+    ).toThrow(/no registry item carries/);
   });
 
   it("rejects a sibling item the manifest did not declare a dependency on", () => {
     expect(() =>
       generateRegistry({
         srcDir,
-        entrySource,
         items: [
           {
             ...REGISTRY_ITEMS[0]!,
@@ -376,7 +332,6 @@ describe("the generator refuses what would not compile", () => {
           },
         ],
         version: packageVersion(packageRoot),
-        packageModules: ["components/one", "components/two"],
         readSource: (relPath) =>
           relPath === "components/one.tsx" ? 'import { Two } from "./two";\n' : "",
       })
@@ -387,6 +342,29 @@ describe("the generator refuses what would not compile", () => {
     expect(() =>
       generateFrom({ "components/probe.tsx": 'import { z } from "zod";\n' })
     ).toThrow(/`zod`[\s\S]*does not list/);
+  });
+
+  it("rejects a declared npm dependency no file imports", () => {
+    expect(() =>
+      generateFrom({ "components/probe.tsx": "" }, {
+        ...REGISTRY_ITEMS[0]!,
+        dependencies: ["zod"],
+      })
+    ).toThrow(/lists `zod` in dependencies but no file imports it/);
+  });
+
+  it("rejects a declared registry dependency no file imports", () => {
+    expect(() =>
+      generateRegistry({
+        srcDir,
+        items: [
+          { ...REGISTRY_ITEMS[0]!, registryDependencies: ["keep-together"] },
+          REGISTRY_ITEMS.find((item) => item.name === "keep-together")!,
+        ],
+        version: packageVersion(packageRoot),
+        readSource: () => "",
+      })
+    ).toThrow(/lists "keep-together" in registryDependencies but no file imports it/);
   });
 
   it("reads a subpath import as its package, and lets `react` go undeclared", () => {
@@ -415,7 +393,6 @@ describe("the generator refuses what would not compile", () => {
     expect(() =>
       generateRegistry({
         srcDir,
-        entrySource,
         items: [
           {
             ...REGISTRY_ITEMS[0]!,
@@ -430,34 +407,8 @@ describe("the generator refuses what would not compile", () => {
           },
         ],
         version: packageVersion(packageRoot),
-        packageModules: ["components/probe"],
         readSource: () => "",
       })
     ).toThrow(/named for registry item "keep-together"/);
-  });
-});
-
-describe("an aliased import", () => {
-  // An earlier version kept only the bound name, so `x as y` was emitted as
-  // `import { y }` and the installed file asked the module for a name it does
-  // not export. Nothing caught it until a block imported one.
-  it("keeps its alias, and asks the substrate for the name it exports", () => {
-    const built = generateFrom({
-      "components/probe.tsx":
-        'import { measureKeeps as measure } from "../lib/measure";\n' +
-        'import { planPages as plan, type PagePlan as Plan } from "../lib/plan";\n',
-    });
-    const content = built.items[0]?.files[0]?.content ?? "";
-    expect(content).toContain(
-      `import { measureKeeps as measure, planPages as plan, type PagePlan as Plan } from "${SUBSTRATE_PACKAGE}";`
-    );
-  });
-
-  it("is rejected on the name the module would have to export, not the local one", () => {
-    expect(() =>
-      generateFrom({
-        "components/probe.tsx": 'import { privateHelper as measureKeeps } from "../lib/measure";\n',
-      })
-    ).toThrow(/privateHelper/);
   });
 });

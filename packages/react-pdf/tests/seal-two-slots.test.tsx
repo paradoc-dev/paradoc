@@ -19,7 +19,8 @@ import { describe, expect, it } from "vitest";
 
 import { Document } from "../../components/src/components/document";
 import { Section } from "../../components/src/components/section";
-import { INITIALS_RULE, Signature, SIGNATURE_RULE } from "../../components/src/components/signature";
+import { INITIALS_RULE, SIGNATURE_RULE } from "@paradoc/react";
+import { Signature } from "../../components/src/components/signature";
 import type { DocumentData } from "@paradoc/react";
 import { reactLayerRenderers } from "../src/layer";
 import { readPdf } from "./pdf-reader";

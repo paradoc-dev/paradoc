@@ -29,7 +29,7 @@ import { Document, EmptyQRCodeUrlError, QRCode } from "../src";
 import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm } from "../src/examples/purchase-order";
 import { rasterizePdfPage } from "./pdf-raster";
-import { readPdf } from "./pdf-reader";
+import { readPdf } from "../../react-pdf/tests/pdf-reader";
 
 /** The URL every fixture in this file encodes. */
 const ENCODED_URL = "https://docs.paradoc.dev/forms/123";

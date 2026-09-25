@@ -6,12 +6,9 @@
   "description": "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
   "dependencies": [
     "@paradoc/react@^0.5.0",
-    "@paradoc/core@^0.5.0",
     "@paradoc/types@^0.5.0"
   ],
-  "registryDependencies": [
-    "@paradoc/document-styles"
-  ],
+  "registryDependencies": [],
   "files": [
     {
       "path": "components/paradoc/document.tsx",

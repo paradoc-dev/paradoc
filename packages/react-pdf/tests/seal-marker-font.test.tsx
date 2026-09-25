@@ -20,7 +20,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { overflowProposalData, PROPOSAL_SIGNATURE_SLOTS } from "../../components/src/examples";
 import { fillProposalForSeal, proposalLogoImage, proposalRenderers } from "../../components/src/examples/pdf";
 import { MissingSigningMarkerError, renderPdf, type PdfImage } from "../src";
-import { SIGNATURE_RULE } from "../../components/src/components/signature";
+import { SIGNATURE_RULE } from "@paradoc/react";
 import { readPdf } from "./pdf-reader";
 
 /** Core's marker for signer index 1, a signature field: eight braille codepoints. */

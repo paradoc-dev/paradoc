@@ -10,15 +10,12 @@
  * - a module another item carries becomes that item's install path,
  *   `@/components/paradoc/<name>`, so editing the installed `keep-together`
  *   changes the installed `field` that uses it;
- * - anything else inside the package becomes `@paradoc/react`, the substrate
- *   the consumer depends on;
  * - a bare specifier (`react`, `@paradoc/core`) is left alone.
  *
- * The rewrite is checked, not hopeful. A binding rewritten to `@paradoc/react`
- * must appear in that package's public entry, so moving a helper out of the
- * root export fails the generator rather than shipping a file that cannot
- * resolve it. An import form the generator cannot read is an error too: silence
- * is what produced the broken files this avoids.
+ * The rewrite is checked, not hopeful. Relative imports must name files carried
+ * by the same item or a declared registry dependency. An import form the
+ * generator cannot read is an error too: silence is what produced the broken
+ * files this avoids.
  */
 
 import { readFileSync } from "node:fs";
@@ -29,7 +26,6 @@ import {
   INSTALL_DIR,
   REGISTRY_HOMEPAGE,
   REGISTRY_NAMESPACE,
-  SUBSTRATE_PACKAGE,
   type RegistryFileType,
   type RegistryItemType,
   type RegistryManifestFile,
@@ -173,25 +169,6 @@ function relocateModuleComment(source: string): string {
   if (lastImportEnd === -1) return source;
 
   return `${rest.slice(0, lastImportEnd)}\n\n${header[1]}\n\n${rest.slice(lastImportEnd).replace(/^\n+/, "")}`;
-}
-
-/**
- * The names `@paradoc/react`'s root entry exports.
- *
- * Read from the entry rather than listed here, so a helper that stops being
- * public stops satisfying the check on the next build.
- */
-export function readPublicExports(entrySource: string): Set<string> {
-  const names = new Set<string>();
-  const clause = /^export\s+(type\s+)?\{([^}]*)\}\s*from\s*"[^"]+";$/gm;
-  for (const match of entrySource.matchAll(clause)) {
-    for (const binding of parseBindings(match[2] ?? "", match[1] !== undefined)) {
-      // A re-export publishes the name it binds, so that is what the entry
-      // exports and what an installed file may reach for.
-      names.add(binding.local);
-    }
-  }
-  return names;
 }
 
 /** Splits an import or export clause body into its bindings. */
@@ -410,12 +387,10 @@ export function packageOf(specifier: string): string {
 interface RewriteContext {
   /** Module id (see `moduleId`) to the item and file that carry it. */
   moduleOwner: Map<string, { item: RegistryManifestItem; file: RegistryManifestFile }>;
-  /** Names `@paradoc/react` exports from its root entry. */
-  publicExports: Set<string>;
-  /** Modules that exist inside the package, as module ids. */
-  packageModules: Set<string>;
   /** Bare specifiers the file reached for, collected as they are seen. */
   bare: Set<string>;
+  /** Registry items reached through relative imports. */
+  registry: Set<string>;
 }
 
 /**
@@ -450,6 +425,7 @@ export function rewriteImports(
             `but item "${item.name}" does not list "${owner.item.name}" in registryDependencies.`
         );
       }
+      context.registry.add(owner.item.name);
       return { ...statement, specifier: installSpecifier(owner.file.target) };
     }
 
@@ -459,34 +435,9 @@ export function rewriteImports(
       return { ...statement, specifier: siblingSpecifier(file.target, owner.file.target) };
     }
 
-    if (!context.packageModules.has(target)) {
-      throw new RegistryGenerationError(
-        `${describe} names "${statement.specifier}", which resolves to no module in the package.`
-      );
-    }
-
-    // The substrate has named exports and nothing else, so a default or a
-    // namespace clause pointed at it could not resolve.
-    if (!statement.mergeable) {
-      throw new RegistryGenerationError(
-        `${describe} imports "${statement.specifier}" as a default or a namespace, but an ` +
-          `installed file must reach it through ${SUBSTRATE_PACKAGE}, which exports names only.`
-      );
-    }
-
-    const missing = statement.bindings
-      .map((binding) => binding.imported)
-      .filter((name) => !context.publicExports.has(name));
-    if (missing.length > 0) {
-      throw new RegistryGenerationError(
-        `${describe} names ${missing.map((name) => `\`${name}\``).join(", ")} from ` +
-          `"${statement.specifier}", which the installed file must reach through ${SUBSTRATE_PACKAGE}. ` +
-          `Export ${missing.length === 1 ? "it" : "them"} from src/index.ts, or give the item a file that carries ` +
-          `${missing.length === 1 ? "it" : "them"}.`
-      );
-    }
-
-    return { ...statement, specifier: SUBSTRATE_PACKAGE };
+    throw new RegistryGenerationError(
+      `${describe} names "${statement.specifier}", which no registry item carries.`
+    );
   });
 
   // Two authoring imports can collapse onto one specifier — `../lib/format`
@@ -555,7 +506,6 @@ function versioned(dependency: string, version: string): string {
 /** Builds the whole registry from the manifest and the package sources. */
 export function generateRegistry(options: {
   srcDir: string;
-  entrySource: string;
   items: readonly RegistryManifestItem[];
   /**
    * This package's version. Every `@paradoc/*` dependency an item declares is
@@ -564,14 +514,12 @@ export function generateRegistry(options: {
    * whatever `latest` happens to be the day they install.
    */
   version: string;
-  /** Every module in the package, as module ids (see `moduleId`). */
-  packageModules: Iterable<string>;
   /** Reads one source file, relative to `src/`. Defaults to the file system. */
   readSource?: (relPath: string) => string;
   /** Reads one binary file, relative to `src/`. Defaults to the file system. */
   readBinary?: (relPath: string) => Uint8Array;
 }): GeneratedRegistry {
-  const { srcDir, entrySource, items, version } = options;
+  const { srcDir, items, version } = options;
   const readSource =
     options.readSource ?? ((relPath: string) => readFileSync(path.join(srcDir, relPath), "utf8"));
   const readBinary =
@@ -627,14 +575,12 @@ export function generateRegistry(options: {
     }
   }
 
-  const publicExports = readPublicExports(entrySource);
-  const packageModules = new Set(options.packageModules);
-
   const built = items.map((item): RegistryItem => {
     // Collected per item rather than per file: what the item declares has to
     // cover everything it ships, whichever of its files reached for it.
     const bare = new Set<string>();
-    const context: RewriteContext = { moduleOwner, publicExports, packageModules, bare };
+    const registry = new Set<string>();
+    const context: RewriteContext = { moduleOwner, bare, registry };
 
     const files = item.files.map((file): RegistryItemFile => {
       // A module carrying a binary file is generated from those bytes, not read
@@ -665,6 +611,18 @@ export function generateRegistry(options: {
         `Item "${item.name}" imports ${undeclared.map((name) => `\`${name}\``).join(", ")} ` +
           `but does not list ${undeclared.length === 1 ? "it" : "them"} in dependencies. ` +
           `A consumer installing this item would get a file importing a package they do not have.`
+      );
+    }
+    const unused = item.dependencies.map(packageOf).filter((name) => !bare.has(name));
+    if (unused.length > 0) {
+      throw new RegistryGenerationError(
+        `Item "${item.name}" lists ${unused.map((name) => `\`${name}\``).join(", ")} in dependencies but no file imports ${unused.length === 1 ? "it" : "them"}.`
+      );
+    }
+    const unusedRegistry = item.registryDependencies.filter((name) => !registry.has(name));
+    if (unusedRegistry.length > 0) {
+      throw new RegistryGenerationError(
+        `Item "${item.name}" lists ${unusedRegistry.map((name) => `"${name}"`).join(", ")} in registryDependencies but no file imports ${unusedRegistry.length === 1 ? "it" : "them"}.`
       );
     }
 

@@ -26,9 +26,8 @@ import { ProposalDocument, overflowProposalData } from "../../components/src/exa
 import { planPages, type MeasuredKeep, type PagePlan } from "@paradoc/react";
 import { preparePdfTree, renderPdf, type PageBreakPlan } from "../src";
 import { proposalLogoImage } from "../../components/src/examples/pdf";
-import { readPdf, type ReadPage } from "./pdf-reader";
+import { normalizeText as normalize, nodeByKeepId, readPdf, textOf, treeKeeps, type ReadPage } from "./pdf-reader";
 import { PREVIEW_PLAN } from "./preview-plan";
-import { normalizeText as normalize, nodeByKeepId, textOf, treeKeeps } from "./tree-keeps";
 
 /** The node carrying `data-keep-id={id}` in the resolved tree. */
 function byKeepId(node: Node, id: string): Node {

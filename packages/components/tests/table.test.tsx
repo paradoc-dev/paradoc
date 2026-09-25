@@ -31,8 +31,7 @@ import { Document, Table } from "../src";
 import type { TableColumn } from "../src";
 import { purchaseOrderData } from "../src/examples/purchase-order-data";
 import { purchaseOrderForm } from "../src/examples/purchase-order";
-import { readPdf, type ReadPage } from "./pdf-reader";
-import { treeKeeps } from "./tree-keeps";
+import { readPdf, treeKeeps, type ReadPage } from "../../react-pdf/tests/pdf-reader";
 
 /** The purchase order sample's own line-item columns, reused so the rows are real formatted values. */
 const COLUMNS: readonly TableColumn[] = [

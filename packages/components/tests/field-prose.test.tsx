@@ -33,13 +33,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { Document } from "../src";
-// By module path, not through the package index: the rule and the splitter are
-// the component's own, the way `SIGNATURE_RULE` is `signature.tsx`'s.
+// By module path, not through the package index: the field rule and splitter
+// are implementation details of this component.
 import { Field, FIELD_RULE, fieldParagraphs } from "../src/components/field";
 import { proposalForm } from "../src/examples/proposal";
 import { shortProposalData } from "../src/examples/proposal-data";
-import { readPdf, type ReadPage } from "./pdf-reader";
-import { treeKeeps } from "./tree-keeps";
+import { readPdf, treeKeeps, type ReadPage } from "../../react-pdf/tests/pdf-reader";
 
 type Tokens = Parameters<typeof Document>[0]["tokens"];
 type Format = Parameters<typeof Document>[0]["format"];

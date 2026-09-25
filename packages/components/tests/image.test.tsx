@@ -28,7 +28,7 @@ import {
   sitePhotoDataUri,
   surveyReportAttachment,
 } from "../src/examples/sample-image";
-import { readPdf } from "./pdf-reader";
+import { readPdf } from "../../react-pdf/tests/pdf-reader";
 
 /**
  * PDF points per CSS pixel. A composition declares a picture's size in pixels

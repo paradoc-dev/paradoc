@@ -33,8 +33,7 @@ import { PAPER_HEIGHT_PX, PAPER_WIDTH_PX, planPages, type MeasuredKeep } from "@
 import { proposalLogoImage } from "../../components/src/examples/pdf";
 import { renderPdf, type PdfImage } from "../src";
 import { chromiumExecutable, closeChromium } from "../src/adapters/chromium";
-import { readPdf } from "./pdf-reader";
-import { treeKeeps } from "./tree-keeps";
+import { readPdf, treeKeeps } from "./pdf-reader";
 import { PREVIEW_PLAN } from "./preview-plan";
 
 /** CSS pixels at 96 dpi to the PDF's points at 72 dpi. */

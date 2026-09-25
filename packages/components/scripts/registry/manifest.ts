@@ -240,8 +240,8 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     description:
       "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
     files: [component("document")],
-    dependencies: [SUBSTRATE_PACKAGE, "@paradoc/core", "@paradoc/types"],
-    registryDependencies: ["document-styles"],
+    dependencies: [SUBSTRATE_PACKAGE, "@paradoc/types"],
+    registryDependencies: [],
   },
   {
     name: "bundle",
@@ -271,7 +271,7 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       "A PDF part of a packet, painted page by page at its own paper size, or a named attachment card when it cannot be painted.",
     files: [component("pdf-pages")],
     dependencies: [SUBSTRATE_PACKAGE],
-    registryDependencies: ["paper"],
+    registryDependencies: [],
   },
   {
     name: "paper",
@@ -301,10 +301,7 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       "The page being drawn and how many there are, for a document's page furniture. The preview counts the sheets it laid out and the PDF engine fills the same two numbers.",
     files: [component("page-number")],
     dependencies: [SUBSTRATE_PACKAGE],
-    // It imports nothing from `pages`, and it is listed anyway for the reason
-    // the blocks list it: a page number with nothing paginating above it is a
-    // page number that always reads "Page 1 of 1".
-    registryDependencies: ["pages"],
+    registryDependencies: [],
   },
   {
     name: "section",
@@ -429,15 +426,11 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     ],
     // `@paradoc/core` parses the artifact and `@paradoc/types` is what it is.
     dependencies: [SUBSTRATE_PACKAGE, "@paradoc/core", "@paradoc/types"],
-    // `pages` is imported by none of these files and is listed anyway: the
-    // composition is a document, and a document that is never paginated is not
-    // one. A consumer installing this block should be able to see it.
     registryDependencies: [
       "document",
       "field",
       "page-number",
       "priced-line-items",
-      "pages",
       "section",
       "signature",
       "table",
@@ -460,9 +453,7 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
     dependencies: [SUBSTRATE_PACKAGE, "@paradoc/core", "@paradoc/types"],
     // No `signature`: an invoice is a demand for payment rather than an
     // agreement, so the artifact declares no slot and the composition draws no
-    // signing block. `pages` is imported by none of these files and is listed
-    // for the reason the purchase order lists it: a document that is never
-    // paginated is not one.
+    // signing block.
     registryDependencies: [
       "document",
       "field",
@@ -470,7 +461,6 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       "page-number",
       "party",
       "priced-line-items",
-      "pages",
       "section",
       "table",
       "text",
@@ -497,7 +487,6 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       "field",
       "list",
       "page-number",
-      "pages",
       "party",
       "section",
       "signature",
@@ -520,18 +509,11 @@ export const REGISTRY_ITEMS: readonly RegistryManifestItem[] = [
       artifactFile("vendor-packet-data", "vendor-packet.data"),
       composition("vendor-packet", "vendor-packet-document"),
     ],
-    // `@paradoc/essentials` is not imported by any of these files and is
-    // declared anyway. The packet's second part is the IRS W-9, and the
-    // installed packet cannot be filled or sealed without that artifact and its
-    // resolver; the sample carries the taxpayer's values, not the form.
     dependencies: [
       SUBSTRATE_PACKAGE,
       "@paradoc/core",
       "@paradoc/types",
-      "@paradoc/essentials",
     ],
-    // The purchase order is a part of the packet, so the block installs it: the
-    // packet's composition renders it and its bundle declares its artifact.
     registryDependencies: ["bundle", "pages", "part", "pdf-pages", "purchase-order"],
   },
 ];

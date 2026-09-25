@@ -99,7 +99,7 @@ import {
   opensWithTokens,
   treeKeeps,
   type TreeKeep,
-} from "../tree-keeps";
+} from "../pdf-reader";
 import {
   CAPTURE_SCALE,
   DRIFT_LIMIT_PX,

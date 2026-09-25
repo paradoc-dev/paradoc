@@ -61,12 +61,9 @@
       "description": "Binds one form artifact and its data to the components beneath it. The only component that knows how the artifact is loaded.",
       "dependencies": [
         "@paradoc/react@^0.5.0",
-        "@paradoc/core@^0.5.0",
         "@paradoc/types@^0.5.0"
       ],
-      "registryDependencies": [
-        "@paradoc/document-styles"
-      ],
+      "registryDependencies": [],
       "files": [
         {
           "path": "paradoc/packages/components/src/components/document.tsx",
@@ -117,9 +114,7 @@
       "dependencies": [
         "@paradoc/react@^0.5.0"
       ],
-      "registryDependencies": [
-        "@paradoc/paper"
-      ],
+      "registryDependencies": [],
       "files": [
         {
           "path": "paradoc/packages/components/src/components/pdf-pages.tsx",
@@ -172,9 +167,7 @@
       "dependencies": [
         "@paradoc/react@^0.5.0"
       ],
-      "registryDependencies": [
-        "@paradoc/pages"
-      ],
+      "registryDependencies": [],
       "files": [
         {
           "path": "paradoc/packages/components/src/components/page-number.tsx",
@@ -403,7 +396,6 @@
         "@paradoc/field",
         "@paradoc/page-number",
         "@paradoc/priced-line-items",
-        "@paradoc/pages",
         "@paradoc/section",
         "@paradoc/signature",
         "@paradoc/table",
@@ -445,7 +437,6 @@
         "@paradoc/page-number",
         "@paradoc/party",
         "@paradoc/priced-line-items",
-        "@paradoc/pages",
         "@paradoc/section",
         "@paradoc/table",
         "@paradoc/text",
@@ -484,7 +475,6 @@
         "@paradoc/field",
         "@paradoc/list",
         "@paradoc/page-number",
-        "@paradoc/pages",
         "@paradoc/party",
         "@paradoc/section",
         "@paradoc/signature",
@@ -516,8 +506,7 @@
       "dependencies": [
         "@paradoc/react@^0.5.0",
         "@paradoc/core@^0.5.0",
-        "@paradoc/types@^0.5.0",
-        "@paradoc/essentials@^0.5.0"
+        "@paradoc/types@^0.5.0"
       ],
       "registryDependencies": [
         "@paradoc/bundle",

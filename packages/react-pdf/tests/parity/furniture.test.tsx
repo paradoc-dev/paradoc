@@ -46,7 +46,7 @@ import { type PageFurniture, pageGeometry, resolveDocumentTokens, DEFAULT_TYPOGR
 import { renderPdf, type PdfAdapterName, type PdfImage } from "../../src";
 import { closeChromium } from "../../src/adapters/chromium";
 import { readPdf, type ReadPage } from "../pdf-reader";
-import { normalizeText, treeKeeps, type TreeKeep } from "../tree-keeps";
+import { normalizeText, treeKeeps, type TreeKeep } from "../pdf-reader";
 import {
   CAPTURE_SCALE,
   pdfFirstKeeps,

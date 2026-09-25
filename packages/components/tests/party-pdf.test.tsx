@@ -2,7 +2,7 @@ import { renderPdf } from "@paradoc/react-pdf";
 import { describe, expect, it } from "vitest";
 
 import { Document, Party } from "../src";
-import { readPdf } from "./pdf-reader";
+import { readPdf } from "../../react-pdf/tests/pdf-reader";
 import { buyerPaths, partyFixtureData as data, partyFixtureForm as artifact, witnessPaths } from "./party-fixture";
 
 describe("Party PDF path", () => {

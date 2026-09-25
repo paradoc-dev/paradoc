@@ -14,7 +14,6 @@
     "@paradoc/field",
     "@paradoc/page-number",
     "@paradoc/priced-line-items",
-    "@paradoc/pages",
     "@paradoc/section",
     "@paradoc/signature",
     "@paradoc/table",

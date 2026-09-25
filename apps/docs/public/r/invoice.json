@@ -16,7 +16,6 @@
     "@paradoc/page-number",
     "@paradoc/party",
     "@paradoc/priced-line-items",
-    "@paradoc/pages",
     "@paradoc/section",
     "@paradoc/table",
     "@paradoc/text",

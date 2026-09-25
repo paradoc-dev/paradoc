@@ -7,9 +7,7 @@
   "dependencies": [
     "@paradoc/react@^0.5.0"
   ],
-  "registryDependencies": [
-    "@paradoc/pages"
-  ],
+  "registryDependencies": [],
   "files": [
     {
       "path": "components/paradoc/page-number.tsx",

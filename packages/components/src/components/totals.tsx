@@ -37,8 +37,8 @@ export function Totals({ rows, id, className }: TotalsProps) {
   return (
     <KeepTogether keepId={id ?? "totals"} className={className ?? "flex w-1/2 flex-col gap-1 self-end"}>
       {rows.map((row, index) => <div key={row.def} data-def={row.def} className={scaleTextClasses(row.emphasis ? "flex w-full justify-between border-t border-neutral-800 pt-1 text-base font-semibold" : "flex w-full justify-between text-sm", typography.scale)} style={row.emphasis && accentColor ? { borderColor: accentColor } : undefined}>
-        <span className="text-neutral-600">{row.label ?? totals[index]?.label ?? row.def}{row.ratePath ? <Rate path={row.ratePath} /> : null}</span>
-        <span className="text-neutral-900">{totals[index]?.text}</span>
+        <span className="text-neutral-600">{row.label ?? totals[index]!.label}{row.ratePath ? <Rate path={row.ratePath} /> : null}</span>
+        <span className="text-neutral-900">{totals[index]!.text}</span>
       </div>)}
     </KeepTogether>
   );
