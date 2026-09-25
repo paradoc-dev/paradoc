@@ -11,6 +11,7 @@
  */
 /** @jsxRuntime classic */
 import React from "react";
+import { RENDER_ATTRIBUTES } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 export interface PageBreakProps {
@@ -28,8 +29,7 @@ export function PageBreak({ keepId, table }: PageBreakProps) {
   return (
     <KeepTogether
       keepId={keepId}
-      data-break-before="page"
-      data-table-row={table}
+      {...{ [RENDER_ATTRIBUTES.breakBefore]: "page", [RENDER_ATTRIBUTES.tableRow]: table }}
       aria-hidden="true"
       className="h-0"
     />

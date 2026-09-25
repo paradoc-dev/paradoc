@@ -71,6 +71,20 @@ export const FURNITURE_EDGE_INSET_PX = 20;
 /** The attribute a page-number component marks its counter slots with. */
 export const PAGE_COUNTER_ATTRIBUTE = "data-page-counter";
 
+/** DOM vocabulary shared by components, pagination, and PDF translation. */
+export const RENDER_ATTRIBUTES = {
+  section: "data-section", tableHeader: "data-table-header", tableRow: "data-table-row",
+  breakBefore: "data-break-before", tableFooter: "data-table-footer",
+  keepWithNext: "data-keep-with-next", pageHeader: "data-page-header",
+  pageFooter: "data-page-footer", pageCounter: PAGE_COUNTER_ATTRIBUTE,
+  keepId: "data-keep-id", keepRepeat: "data-keep-repeat",
+  continuedLabel: "data-continued-label",
+} as const;
+
+/** Public class and rule for directionally isolated left-to-right values. */
+export const LTR_ISOLATE_CLASS = "paradoc-ltr-isolate";
+export const LTR_ISOLATE_STYLESHEET = `.${LTR_ISOLATE_CLASS} {\n  direction: ltr;\n  unicode-bidi: isolate;\n}`;
+
 /**
  * The attribute the preview marks each drawn band with, by slot.
  *
@@ -78,8 +92,8 @@ export const PAGE_COUNTER_ATTRIBUTE = "data-page-counter";
  * that draws a band and the check that measures it agree on one name.
  */
 export const FURNITURE_BAND_ATTRIBUTES: Readonly<Record<FurnitureBandSlot, string>> = {
-  header: "data-page-header",
-  footer: "data-page-footer",
+  header: RENDER_ATTRIBUTES.pageHeader,
+  footer: RENDER_ATTRIBUTES.pageFooter,
 };
 
 /** Which number a counter slot prints. */

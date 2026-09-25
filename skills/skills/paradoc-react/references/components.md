@@ -193,8 +193,9 @@ Errors, all thrown in a finished render:
 | `UnknownAnnexError` | The artifact declares no annex slot at `annexes.<slot>`. |
 | `MissingImageSizeError` | `as="image"` without `width` or `height`. |
 
-With `as="image"`, an attachment whose MIME type is not `image/*` prints its
-file name, and `paradoc check` reports it as `image:<path>`.
+With `as="image"`, only PNG, JPEG, GIF, WebP, and SVG MIME types are drawable
+(case-insensitively). Any other attachment prints its file name, and
+`paradoc check` reports it as `image:<path>`.
 
 ### `Table`
 

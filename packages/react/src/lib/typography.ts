@@ -78,14 +78,36 @@ function stepOf(level: TypographyLevel): number {
  * The verified size scale, smallest first: every `text-<size>` the engine's
  * vocabulary names, in the order Tailwind defines them.
  */
-const TEXT_SIZES = ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl", "7xl", "8xl", "9xl"] as const;
+export const TYPOGRAPHY_CLASS_SCALE = {
+  textSizes: ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl", "7xl", "8xl", "9xl"],
+  namedLeadings: ["none", "tight", "snug", "relaxed", "loose"],
+  spacingMin: 0,
+  spacingMax: 999.5,
+  spacingStep: 0.5,
+  gapStep: 2,
+} as const;
+
+/** Tailwind source patterns generated from the public scale above. */
+const SPACING_INTEGER_MAX = Math.floor(TYPOGRAPHY_CLASS_SCALE.spacingMax);
+const SPACING_PATTERN = `{${TYPOGRAPHY_CLASS_SCALE.spacingMin}..${SPACING_INTEGER_MAX}}`;
+const FRACTIONAL_SPACING_PATTERNS = Array.from(
+  { length: Math.ceil(1 / TYPOGRAPHY_CLASS_SCALE.spacingStep) - 1 },
+  (_unused, index) => `{${TYPOGRAPHY_CLASS_SCALE.spacingMin}..${SPACING_INTEGER_MAX}}${String((index + 1) * TYPOGRAPHY_CLASS_SCALE.spacingStep).slice(1)}`
+);
+const NUMERIC_SPACING_PATTERNS = [SPACING_PATTERN, ...FRACTIONAL_SPACING_PATTERNS].join(",");
+export const TYPOGRAPHY_SAFELIST_PATTERNS = [
+  `text-{${TYPOGRAPHY_CLASS_SCALE.textSizes.join(",")}}`,
+  `leading-{${TYPOGRAPHY_CLASS_SCALE.namedLeadings.join(",")},${NUMERIC_SPACING_PATTERNS}}`,
+  `gap-{${NUMERIC_SPACING_PATTERNS}} gap-x-{${NUMERIC_SPACING_PATTERNS}} gap-y-{${NUMERIC_SPACING_PATTERNS}}`,
+] as const;
+const TEXT_SIZES = TYPOGRAPHY_CLASS_SCALE.textSizes;
 
 /**
  * The named leadings, tightest first: every `leading-<name>` the vocabulary
  * verifies. `normal` is not among them, which is why a step from `relaxed`
  * lands on `snug` rather than a sixteenth of an em away.
  */
-const LEADINGS = ["none", "tight", "snug", "relaxed", "loose"] as const;
+const LEADINGS = TYPOGRAPHY_CLASS_SCALE.namedLeadings;
 
 /**
  * The spacing scale's bounds, in the quarter-rem units Tailwind counts in.
@@ -93,7 +115,7 @@ const LEADINGS = ["none", "tight", "snug", "relaxed", "loose"] as const;
  * The vocabulary admits up to three digits with an optional half, so the
  * ceiling is the largest such value and the floor is zero.
  */
-const SPACING_MAX = 999.5;
+const SPACING_MAX = TYPOGRAPHY_CLASS_SCALE.spacingMax;
 
 /**
  * How far one step moves a gap, in spacing units.
@@ -102,7 +124,7 @@ const SPACING_MAX = 999.5;
  * next gap a reader notices; one unit at this size is under a quarter of a
  * line and reads as nothing.
  */
-const GAP_STEP = 2;
+const GAP_STEP = TYPOGRAPHY_CLASS_SCALE.gapStep;
 
 function stepAlong<T extends string>(scale: readonly T[], current: T, steps: number): T {
   const index = scale.indexOf(current);

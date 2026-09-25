@@ -36,6 +36,7 @@ import { compile } from "tailwindcss";
 
 import type { PdfFontFile } from "../resources";
 import type { PdfPageGeometry } from "../adapter";
+import { LTR_ISOLATE_STYLESHEET } from "@paradoc/react";
 
 const require = createRequire(import.meta.url);
 
@@ -46,11 +47,7 @@ const require = createRequire(import.meta.url);
  * module, which is one file in source and another in the built bundle. The
  * export map names one path from both, and it is the path the preview imports.
  */
-const DOCUMENT_STYLES = `
-.paradoc-ltr-isolate {
-  direction: ltr;
-  unicode-bidi: isolate;
-}`;
+const DOCUMENT_STYLES = LTR_ISOLATE_STYLESHEET;
 
 /** CSS pixels per inch, which is what makes 816 x 1056 US Letter. */
 const CSS_PIXELS_PER_INCH = 96;

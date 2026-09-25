@@ -1,6 +1,6 @@
 /** @jsxRuntime classic */
 import React from "react";
-import { scaleTextClasses, useDocumentTokens, useSectionVisible } from "@paradoc/react";
+import { RENDER_ATTRIBUTES, scaleTextClasses, useDocumentTokens, useSectionVisible } from "@paradoc/react";
 import type { ReactNode } from "react";
 import { KeepTogether } from "./keep-together";
 
@@ -19,8 +19,8 @@ export function Section({ id, title, className, children }: SectionProps) {
   const visible = useSectionVisible(id);
   const { accentColor, typography } = useDocumentTokens();
   if (!visible) return null;
-  return <section data-section={id} className={className ?? "flex flex-col gap-2"}>
-    {title ? <KeepTogether as="h2" keepId={`heading:${id}`} data-keep-with-next="" className={scaleTextClasses("text-xs font-semibold uppercase tracking-wider text-neutral-500", typography.scale)} style={accentColor ? { color: accentColor } : undefined}>{title}</KeepTogether> : null}
+  return <section {...{ [RENDER_ATTRIBUTES.section]: id }} className={className ?? "flex flex-col gap-2"}>
+    {title ? <KeepTogether as="h2" keepId={`heading:${id}`} {...{ [RENDER_ATTRIBUTES.keepWithNext]: "" }} className={scaleTextClasses("text-xs font-semibold uppercase tracking-wider text-neutral-500", typography.scale)} style={accentColor ? { color: accentColor } : undefined}>{title}</KeepTogether> : null}
     {children}
   </section>;
 }

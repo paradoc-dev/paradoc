@@ -1,7 +1,7 @@
 /** @jsxRuntime classic */
 import React from "react";
 import type { ReactNode } from "react";
-import { scaleTextClasses, useDocumentTokens, useList, usePage, useTotals } from "@paradoc/react";
+import { RENDER_ATTRIBUTES, scaleTextClasses, useDocumentTokens, useList, usePage, useTotals } from "@paradoc/react";
 import { KeepTogether } from "./keep-together";
 
 export interface TableColumn {
@@ -75,7 +75,7 @@ export function Table({ path, columns, id, className, continuedLabel, footer }: 
   return (
     <div className={className ?? "flex flex-col"}>
       {!continuedLabel ? (
-        <KeepTogether keepId={headerId} data-table-header={prefix} className={scaleTextClasses("flex gap-4 border-b border-neutral-800 pb-1 text-xs font-semibold uppercase tracking-wide text-neutral-700", typography.scale)}>
+        <KeepTogether keepId={headerId} {...{ [RENDER_ATTRIBUTES.tableHeader]: prefix }} className={scaleTextClasses("flex gap-4 border-b border-neutral-800 pb-1 text-xs font-semibold uppercase tracking-wide text-neutral-700", typography.scale)}>
           {columnHeaders}
         </KeepTogether>
       ) : (
@@ -83,12 +83,12 @@ export function Table({ path, columns, id, className, continuedLabel, footer }: 
         // columns already claim the row's width, so a label competing for
         // what is left of it can be laid out at zero width by an engine that
         // does not overflow the way a browser does.
-        <KeepTogether keepId={headerId} data-table-header={prefix} className="flex flex-col gap-0.5 border-b border-neutral-800 pb-1">
+        <KeepTogether keepId={headerId} {...{ [RENDER_ATTRIBUTES.tableHeader]: prefix }} className="flex flex-col gap-0.5 border-b border-neutral-800 pb-1">
           <div className={scaleTextClasses("flex gap-4 text-xs font-semibold uppercase tracking-wide text-neutral-700", typography.scale)}>
             {columnHeaders}
           </div>
           <span
-            data-continued-label={continuedLabel}
+            {...{ [RENDER_ATTRIBUTES.continuedLabel]: continuedLabel }}
             className={scaleTextClasses("truncate text-xs italic text-neutral-500", typography.scale)}
           >
             {headerRepeated ? continuedLabel : CONTINUED_LABEL_PLACEHOLDER}
@@ -96,7 +96,7 @@ export function Table({ path, columns, id, className, continuedLabel, footer }: 
         </KeepTogether>
       )}
       {list.rows.map((row, index) => (
-        <KeepTogether key={index} keepId={`${prefix}:${index}`} data-table-row={prefix} className="flex gap-4 border-b border-neutral-200 py-1.5">
+        <KeepTogether key={index} keepId={`${prefix}:${index}`} {...{ [RENDER_ATTRIBUTES.tableRow]: prefix }} className="flex gap-4 border-b border-neutral-200 py-1.5">
           {columns.map((column) => {
             const text = list.text(index, column.field);
             return (
@@ -108,7 +108,7 @@ export function Table({ path, columns, id, className, continuedLabel, footer }: 
         </KeepTogether>
       ))}
       {footer ? (
-        <KeepTogether keepId={footerId} data-table-footer={prefix} className="flex flex-col gap-1 pt-1">
+        <KeepTogether keepId={footerId} {...{ [RENDER_ATTRIBUTES.tableFooter]: prefix }} className="flex flex-col gap-1 pt-1">
           {footer.map((row, index) => (
             <div
               key={row.def}

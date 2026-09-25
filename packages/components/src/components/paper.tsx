@@ -4,6 +4,7 @@ import {
   DocumentTokensProvider,
   DrawnPaperProvider,
   FURNITURE_EDGE_INSET_PX,
+  FURNITURE_BAND_ATTRIBUTES,
   hasPageFurniture,
   useDocumentSettings,
   useDrawnPaper,
@@ -59,8 +60,8 @@ export function PageFurnitureBands({ furniture }: PageFurnitureBandsProps) {
   });
   const bands = <>
     {furniture.stamp === undefined ? null : <div data-page-stamp="true" style={{ position: "absolute", inset: 0, zIndex: -1, display: "flex", alignItems: "center", justifyContent: "center" }}>{furniture.stamp}</div>}
-    {furniture.header === undefined ? null : <div data-page-header="true" style={band("top")}>{furniture.header}</div>}
-    {furniture.footer === undefined ? null : <div data-page-footer="true" style={band("bottom")}>{furniture.footer}</div>}
+    {furniture.header === undefined ? null : <div {...{ [FURNITURE_BAND_ATTRIBUTES.header]: "true" }} style={band("top")}>{furniture.header}</div>}
+    {furniture.footer === undefined ? null : <div {...{ [FURNITURE_BAND_ATTRIBUTES.footer]: "true" }} style={band("bottom")}>{furniture.footer}</div>}
   </>;
   return drawn === null ? bands : <DocumentTokensProvider tokens={drawn.tokens}>{bands}</DocumentTokensProvider>;
 }

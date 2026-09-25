@@ -15,7 +15,7 @@
  */
 /** @jsxRuntime classic */
 import React from "react";
-import { scaleTextClasses, useDocumentTokens, usePageNumber } from "@paradoc/react";
+import { PAGE_COUNTER_ATTRIBUTE, scaleTextClasses, useDocumentTokens, usePageNumber } from "@paradoc/react";
 
 export interface PageNumberProps {
   /**
@@ -52,11 +52,11 @@ export function PageNumber({
       className={className ?? scaleTextClasses("text-xs text-neutral-500", typography.scale)}
     >
       {label === "" ? null : `${label} `}
-      <span data-page-counter="current">{page}</span>
+      <span {...{ [PAGE_COUNTER_ATTRIBUTE]: "current" }}>{page}</span>
       {total ? (
         <>
           {` ${separator} `}
-          <span data-page-counter="total">{pages}</span>
+          <span {...{ [PAGE_COUNTER_ATTRIBUTE]: "total" }}>{pages}</span>
         </>
       ) : null}
     </span>

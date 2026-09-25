@@ -32,6 +32,7 @@ import type { DocumentData } from "../components/document-context";
 import { useUnresolvedPathCollector, type UnresolvedPathCollector } from "../components/check-context";
 import { useArtifactFormatting } from "../components/formatter-context";
 import { usePartialValues } from "../components/partial-context";
+import { DRAWABLE_IMAGE_MEDIA_TYPES } from "../lib/image";
 
 export class MissingArtifactProviderError extends Error {
   constructor() {
@@ -342,7 +343,7 @@ export interface AnnexPictureBinding extends AnnexBinding {
 
 /** A MIME type a renderer draws rather than names. */
 function isPicture(attachment: Attachment | undefined): boolean {
-  return attachment?.mimeType.startsWith("image/") === true;
+  return attachment !== undefined && DRAWABLE_IMAGE_MEDIA_TYPES.includes(attachment.mimeType.toLowerCase());
 }
 
 /**

@@ -21,6 +21,13 @@ const IMAGE_SIGNATURES: readonly { format: string; magic: readonly (number | nul
   },
 ];
 
+/** The picture encodings every Paradoc renderer can draw. */
+export const DRAWABLE_IMAGE_FORMATS = ["png", "jpeg", "gif", "webp", "svg"] as const;
+export type DrawableImageFormat = (typeof DRAWABLE_IMAGE_FORMATS)[number];
+
+/** MIME types accepted by picture bindings, derived from the renderer formats. */
+export const DRAWABLE_IMAGE_MEDIA_TYPES: readonly string[] = DRAWABLE_IMAGE_FORMATS.map(imageMediaType);
+
 /** The encoding of `data`, or `undefined` when the engine cannot decode it. */
 export function imageFormat(data: Uint8Array): string | undefined {
   for (const { format, magic } of IMAGE_SIGNATURES) {
@@ -29,8 +36,13 @@ export function imageFormat(data: Uint8Array): string | undefined {
     }
   }
   // SVG embeds as vectors and arrives as text rather than a binary header.
-  const head = new TextDecoder().decode(data.subarray(0, 256)).trimStart();
-  if (head.startsWith("<svg") || head.startsWith("<?xml")) return "svg";
+  let head = new TextDecoder().decode(data.subarray(0, 4096)).trimStart();
+  while (true) {
+    const prolog = /^(?:<\?xml[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE(?:[^"'[\]>]|"[^"]*"|'[^']*'|\[[\s\S]*?\])*>)[\s]*/iu.exec(head);
+    if (!prolog) break;
+    head = head.slice(prolog[0].length);
+  }
+  if (/^<svg(?:\s|\/?>)/iu.test(head)) return "svg";
   return undefined;
 }
 

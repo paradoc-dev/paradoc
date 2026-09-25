@@ -31,6 +31,16 @@ function riff(form: string): Uint8Array {
   return bytes;
 }
 
+describe("SVG root sniffing", () => {
+  const bytes = (text: string) => new TextEncoder().encode(text);
+  it("skips prolog material but requires an SVG root", () => {
+    expect(imageFormat(bytes('<?xml version="1.0"?><note/>'))).toBeUndefined();
+    expect(imageFormat(bytes('<!-- made here --><svg xmlns="http://www.w3.org/2000/svg"/>'))).toBe("svg");
+    expect(imageFormat(bytes('<!DOCTYPE svg PUBLIC "x"><svg/>'))).toBe("svg");
+    expect(imageFormat(bytes('<!DOCTYPE svg [<!ENTITY sample "ok">]><svg/>'))).toBe("svg");
+  });
+});
+
 function text(value: string): Uint8Array {
   return new TextEncoder().encode(value);
 }

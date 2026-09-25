@@ -51,6 +51,7 @@ import {
 import {
   assertFurnitureStampFits,
   PAGE_COUNTER_ATTRIBUTE,
+  imageMediaType,
   type FurnitureBandSlot,
 } from "@paradoc/react";
 import { imageFormat, type PdfFontFile } from "../resources";
@@ -168,7 +169,7 @@ export async function closeChromium(): Promise<void> {
 function dataUri(data: Uint8Array): string | undefined {
   const format = imageFormat(data);
   if (format === undefined) return undefined;
-  const mime = format === "svg" ? "image/svg+xml" : `image/${format}`;
+  const mime = imageMediaType(format);
   return `data:${mime};base64,${Buffer.from(data).toString("base64")}`;
 }
 

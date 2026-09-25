@@ -1,6 +1,6 @@
 /** @jsxRuntime classic */
 import React from "react";
-import { useKeepVisible, usePage } from "@paradoc/react";
+import { RENDER_ATTRIBUTES, useKeepVisible, usePage } from "@paradoc/react";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 
 export interface KeepTogetherProps {
@@ -21,5 +21,6 @@ export function KeepTogether({ keepId, as: Tag = "div", children, ...props }: Ke
   const visible = useKeepVisible(keepId);
   const repeated = usePage()?.repeats.has(keepId) === true;
   if (!visible) return null;
-  return <Tag {...props as ComponentPropsWithoutRef<"div">} data-keep-id={keepId} data-keep-repeat={repeated ? "true" : undefined}>{children}</Tag>;
+  const pagination = { [RENDER_ATTRIBUTES.keepId]: keepId, [RENDER_ATTRIBUTES.keepRepeat]: repeated ? "true" : undefined };
+  return <Tag {...props as ComponentPropsWithoutRef<"div">} {...pagination}>{children}</Tag>;
 }

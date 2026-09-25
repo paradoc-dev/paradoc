@@ -8,12 +8,13 @@
 
 import { FURNITURE_BAND_ATTRIBUTES, type FurnitureBandSlot } from "./furniture";
 import type { MeasuredKeep } from "./plan";
+import { RENDER_ATTRIBUTES } from "./furniture";
 
 /** The sections enclosing `node`, outermost first, within `root`. */
 function sectionChain(node: HTMLElement, root: HTMLElement): string[] {
   const chain: string[] = [];
   for (let current = node.parentElement; current && current !== root; current = current.parentElement) {
-    const section = current.getAttribute("data-section");
+    const section = current.getAttribute(RENDER_ATTRIBUTES.section);
     if (section !== null) chain.unshift(section);
   }
   return chain;
@@ -30,16 +31,16 @@ function sectionChain(node: HTMLElement, root: HTMLElement): string[] {
 export function measureKeeps(root: HTMLElement): MeasuredKeep[] {
   const origin = root.getBoundingClientRect().top;
 
-  return [...root.querySelectorAll<HTMLElement>("[data-keep-id]")].map((node) => {
+  return [...root.querySelectorAll<HTMLElement>(`[${RENDER_ATTRIBUTES.keepId}]`)].map((node) => {
     const rect = node.getBoundingClientRect();
-    const header = node.getAttribute("data-table-header");
-    const row = node.getAttribute("data-table-row");
-    const breakBefore = node.getAttribute("data-break-before");
-    const footer = node.getAttribute("data-table-footer");
-    const keepWithNext = node.getAttribute("data-keep-with-next");
+    const header = node.getAttribute(RENDER_ATTRIBUTES.tableHeader);
+    const row = node.getAttribute(RENDER_ATTRIBUTES.tableRow);
+    const breakBefore = node.getAttribute(RENDER_ATTRIBUTES.breakBefore);
+    const footer = node.getAttribute(RENDER_ATTRIBUTES.tableFooter);
+    const keepWithNext = node.getAttribute(RENDER_ATTRIBUTES.keepWithNext);
 
     return {
-      id: node.getAttribute("data-keep-id") ?? "",
+      id: node.getAttribute(RENDER_ATTRIBUTES.keepId) ?? "",
       top: rect.top - origin,
       bottom: rect.bottom - origin,
       sections: sectionChain(node, root),

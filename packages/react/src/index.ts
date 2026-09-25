@@ -76,6 +76,9 @@ export {
   FURNITURE_EDGE_INSET_PX,
   FURNITURE_SLOTS,
   PAGE_COUNTER_ATTRIBUTE,
+  RENDER_ATTRIBUTES,
+  LTR_ISOLATE_CLASS,
+  LTR_ISOLATE_STYLESHEET,
   PageFurnitureOverflowError,
   PageStampTooWideError,
   UnsupportedFurnitureContentError,
@@ -87,6 +90,11 @@ export {
   type PageFurniture,
   type StampMeasure,
 } from "./lib/furniture";
+export {
+  DRAWABLE_IMAGE_FORMATS,
+  DRAWABLE_IMAGE_MEDIA_TYPES,
+  type DrawableImageFormat,
+} from "./lib/image";
 export {
   useFitToWidth,
   useFurnitureFit,
@@ -222,6 +230,8 @@ export {
 export {
   DEFAULT_TYPOGRAPHY,
   TYPOGRAPHY_LEVELS,
+  TYPOGRAPHY_CLASS_SCALE,
+  TYPOGRAPHY_SAFELIST_PATTERNS,
   flowGapClasses,
   isTypographyLevel,
   scaleTextClasses,

@@ -46,22 +46,13 @@ import {
   FURNITURE_EDGE_INSET_PX,
   PAGE_COUNTER_ATTRIBUTE,
   type FurnitureBandSlot,
-  type PageCounter,
   type PageFurniture,
 } from "@paradoc/react";
 import type { PdfPageGeometry } from "../adapter";
 import { preparePdfTree, recordOnce } from "../tree";
+import { isPageCounter, PAGE_COUNTER_CLASSES } from "./counters";
 
 /** The class this engine fills with each counter a component marked. */
-const COUNTER_CLASS: Record<PageCounter, string> = {
-  current: "pageNumber",
-  total: "totalPages",
-};
-
-/** True when a marked slot names a counter this engine fills. */
-function isPageCounter(value: string | undefined): value is PageCounter {
-  return value !== undefined && value in COUNTER_CLASS;
-}
 
 /** The bands, and everything translating them turned up. */
 export interface TranslatedFurniture {
@@ -114,7 +105,7 @@ export interface TranslateFurnitureOptions {
 function withCounterHooks(node: Node): Node {
   const counter = node.attributes?.[PAGE_COUNTER_ATTRIBUTE];
   const hooked: Node = isPageCounter(counter)
-    ? { ...node, className: COUNTER_CLASS[counter] }
+    ? { ...node, className: PAGE_COUNTER_CLASSES[counter] }
     : node;
   if (hooked.type !== "container" || hooked.children === undefined) return hooked;
   return { ...hooked, children: hooked.children.map(withCounterHooks) };

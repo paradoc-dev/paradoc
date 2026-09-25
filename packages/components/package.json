@@ -8,7 +8,8 @@
     "check-types": "tsc --noEmit",
     "test": "vitest run",
     "test:registry": "vitest run --config vitest.registry.config.ts",
-    "regenerate:annex": "tsx scripts/regenerate-annex.ts"
+    "regenerate:annex": "tsx scripts/regenerate-annex.ts",
+    "regenerate:styles": "tsx scripts/generate-shared-styles.ts"
   },
   "dependencies": {
     "@paradoc/core": "workspace:^",

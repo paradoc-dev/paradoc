@@ -45,17 +45,14 @@ import {
   PAGE_COUNTER_ATTRIBUTE,
   UnsupportedFurnitureContentError,
   type FurnitureBandSlot,
-  type PageCounter,
   type PageFurniture,
   type StampMeasure,
 } from "@paradoc/react";
 import type { PdfPageGeometry } from "../adapter";
+import { PAGE_COUNTER_CLASSES } from "./counters";
 
 /** The class Chromium's print templates fill with each counter a component marked. */
-export const CHROMIUM_COUNTER_CLASS: Record<PageCounter, string> = {
-  current: "pageNumber",
-  total: "totalPages",
-};
+export const CHROMIUM_COUNTER_CLASS = PAGE_COUNTER_CLASSES;
 
 /**
  * Every class Chromium's print templates fill with text of their own.

@@ -43,7 +43,7 @@ hooks need `Pages` above them, and return the unpaginated answer otherwise.
 | `usePartyContact(role, index?, paths?)` | `{ roleLabel, nameText, organizationText?, addressText?, contactText? }` | A party's printed lines, as `Party` prints them. `paths` is `{ organization?, address?, contact? }`. |
 | `useSignature(role, index?, type?)` | `{ roleLabel, partyText, fieldLabel, required, rule, dateRule, marker? }` | A signing block. Print `marker` and `rule` as **one** string so the seal finds the slot. |
 | `useAnnex(path)` | `{ annex, label, attachment, text }` | An annex slot, `annexes.<slot>`. |
-| `useAnnexPicture(path)` | `useAnnex` plus `picture` | An annex that may be an image. `picture` is set only for `image/*`. |
+| `useAnnexPicture(path)` | `useAnnex` plus `picture` | An annex that may be a picture. `picture` is set for PNG, JPEG, GIF, WebP, and SVG MIME types, case-insensitively. |
 | `useArtifact()` | `Form` | The whole artifact, such as `artifact.title`. |
 | `useFormatter()` | `Formatter` | The document's formatter, for a value that is not a field. |
 | `useDocumentTokens()` | `DocumentTokens` | The resolved tokens: `accentColor`, `logo` (a string source), `pageSize`, `marginPx`, `dir`, `lang`, `typography`. |
@@ -165,10 +165,10 @@ export function Notice({ keepId, children }: { keepId: string; children: React.R
 }
 ```
 
-The installed stylesheet lists the stepped classes for the browser, because
-they are built at runtime: every text size, the named leadings, `leading-0` to
-`leading-16`, and `gap-0` to `gap-24`. Start from `gap-22` or less and
-`leading-15` or less, so the roomy step still has a browser rule.
+The installed stylesheet is generated from the same exported scale as the
+helpers: every text size, each named leading, and numeric leadings and gaps
+from `0` through `999.5` in half steps. A compact or roomy step therefore
+always remains in the browser vocabulary.
 
 ## Wrap a Document
 

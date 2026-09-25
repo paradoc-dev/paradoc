@@ -36,14 +36,14 @@
 import type { CSSProperties } from "react";
 import type { Node } from "@takumi-rs/helpers";
 
-import type { PagePlan } from "@paradoc/react";
+import { RENDER_ATTRIBUTES, type PagePlan } from "@paradoc/react";
 import { unsupportedClasses } from "./tailwind";
 
 /** The attribute that marks a pagination unit, shared with the preview. */
-export const KEEP_ID_ATTRIBUTE = "data-keep-id";
+export const KEEP_ID_ATTRIBUTE = RENDER_ATTRIBUTES.keepId;
 
 /** The attribute that marks a copy rather than a keep's place in the flow. */
-export const KEEP_REPEAT_ATTRIBUTE = "data-keep-repeat";
+export const KEEP_REPEAT_ATTRIBUTE = RENDER_ATTRIBUTES.keepRepeat;
 
 /**
  * The attribute a table header's continued-page label carries, holding the
@@ -56,7 +56,7 @@ export const KEEP_REPEAT_ATTRIBUTE = "data-keep-repeat";
  * real text is a translation decision made here rather than a second thing
  * the component renders.
  */
-export const CONTINUED_LABEL_ATTRIBUTE = "data-continued-label";
+export const CONTINUED_LABEL_ATTRIBUTE = RENDER_ATTRIBUTES.continuedLabel;
 
 /**
  * The half of the preview's page plan the PDF engine can act on.
