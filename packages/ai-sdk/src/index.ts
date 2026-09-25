@@ -1,30 +1,12 @@
 import { tool, type FlexibleSchema, type Tool, type ToolExecutionOptions, type ToolSet } from 'ai'
 import {
-	createToolExecutionContext,
+	configForExecution,
 	operationNames,
 	toolDefinitions,
-	type ExtractInput,
-	type ExtractOutput,
-	type FillInput,
-	type FillOutput,
-	type FillStateInput,
-	type FillStateOutput,
-	type GetArtifactInput,
-	type GetArtifactOutput,
-	type GetRegistryInput,
-	type GetRegistryOutput,
-	type InspectArtifactInput,
-	type InspectArtifactOutput,
 	type OperationName,
+	type OperationInput,
+	type OperationOutput,
 	type ParadocToolsConfig,
-	type RenderInput,
-	type RenderOutput,
-	type UpdateFillInput,
-	type UpdateFillOutput,
-	type ValidateArtifactInput,
-	type ValidateArtifactOutput,
-	type ValidateInputOutput,
-	type ValidateInputValue,
 	type ToolDefinitions,
 } from '@paradoc/ai-tools'
 
@@ -52,35 +34,6 @@ export type {
 	ValidateInputValue,
 } from '@paradoc/ai-tools'
 
-type OperationInputs = {
-	get_registry: GetRegistryInput
-	get_artifact: GetArtifactInput
-	inspect_artifact: InspectArtifactInput
-	validate_artifact: ValidateArtifactInput
-	validate_input: ValidateInputValue
-	fill: FillInput
-	get_fill_state: FillStateInput
-	update_fill: UpdateFillInput
-	render: RenderInput
-	extract: ExtractInput
-}
-
-type OperationOutputs = {
-	get_registry: GetRegistryOutput
-	get_artifact: GetArtifactOutput
-	inspect_artifact: InspectArtifactOutput
-	validate_artifact: ValidateArtifactOutput
-	validate_input: ValidateInputOutput
-	fill: FillOutput
-	get_fill_state: FillStateOutput
-	update_fill: UpdateFillOutput
-	render: RenderOutput
-	extract: ExtractOutput
-}
-
-type OperationInput<Name extends OperationName> = OperationInputs[Name]
-type OperationOutput<Name extends OperationName> = OperationOutputs[Name]
-
 type AdapterDefinition<Name extends OperationName> = {
 	name: Name
 	description: string
@@ -99,42 +52,7 @@ export type ParadocToolSet = {
 	[Name in OperationName]: ParadocTool<Name>
 }
 
-function mergeAbortSignals(...signals: Array<AbortSignal | undefined>): AbortSignal | undefined {
-	const present = signals.filter((signal): signal is AbortSignal => signal !== undefined)
-	if (present.length === 0) return undefined
-	if (present.length === 1) return present[0]
-	if (typeof AbortSignal.any === 'function') return AbortSignal.any(present)
-
-	const controller = new AbortController()
-	const abort = (signal: AbortSignal) => controller.abort(signal.reason)
-	for (const signal of present) {
-		if (signal.aborted) {
-			abort(signal)
-			break
-		}
-		signal.addEventListener('abort', () => abort(signal), { once: true })
-	}
-	return controller.signal
-}
-
-function configForExecution(config: ParadocToolsConfig | undefined, abortSignal: AbortSignal | undefined): ParadocToolsConfig {
-	const signal = mergeAbortSignals(config?.signal, config?.context?.signal, abortSignal)
-	const configuredContext = config?.context
-		? signal && config.context.signal !== signal
-			? { ...config.context, signal }
-			: config.context
-		: createToolExecutionContext(signal ? { signal } : {})
-
-	return {
-		...config,
-		...(signal ? { signal } : {}),
-		context: configuredContext,
-	}
-}
-
-function createTool<Name extends OperationName>(name: Name, config?: ParadocToolsConfig): ParadocTool<Name> {
-	const definition = toolDefinitions[name] as unknown as AdapterDefinition<Name>
-
+function createTool<Name extends OperationName>(definition: AdapterDefinition<Name>, config?: ParadocToolsConfig): ParadocTool<Name> {
 	const nativeTool = tool<unknown, unknown, Record<string, unknown>>({
 		description: definition.description,
 		inputSchema: definition.input_schema as unknown as FlexibleSchema<unknown>,
@@ -148,52 +66,52 @@ function createTool<Name extends OperationName>(name: Name, config?: ParadocTool
 
 /** Create the registry discovery tool. */
 export function getRegistry(config?: ParadocToolsConfig): ParadocTool<'get_registry'> {
-	return createTool('get_registry', config)
+	return createTool(toolDefinitions.get_registry, config)
 }
 
 /** Create the registry artifact retrieval tool. */
 export function getArtifact(config?: ParadocToolsConfig): ParadocTool<'get_artifact'> {
-	return createTool('get_artifact', config)
+	return createTool(toolDefinitions.get_artifact, config)
 }
 
 /** Create the bounded artifact inspection tool. */
 export function inspectArtifact(config?: ParadocToolsConfig): ParadocTool<'inspect_artifact'> {
-	return createTool('inspect_artifact', config)
+	return createTool(toolDefinitions.inspect_artifact, config)
 }
 
 /** Create the artifact validation tool. */
 export function validateArtifact(config?: ParadocToolsConfig): ParadocTool<'validate_artifact'> {
-	return createTool('validate_artifact', config)
+	return createTool(toolDefinitions.validate_artifact, config)
 }
 
 /** Create the progressive input validation tool. */
 export function validateInput(config?: ParadocToolsConfig): ParadocTool<'validate_input'> {
-	return createTool('validate_input', config)
+	return createTool(toolDefinitions.validate_input, config)
 }
 
 /** Create the initial draft fill tool. */
 export function fill(config?: ParadocToolsConfig): ParadocTool<'fill'> {
-	return createTool('fill', config)
+	return createTool(toolDefinitions.fill, config)
 }
 
 /** Create the draft progress inspection tool. */
 export function getFillState(config?: ParadocToolsConfig): ParadocTool<'get_fill_state'> {
-	return createTool('get_fill_state', config)
+	return createTool(toolDefinitions.get_fill_state, config)
 }
 
 /** Create the draft update tool. */
 export function updateFill(config?: ParadocToolsConfig): ParadocTool<'update_fill'> {
-	return createTool('update_fill', config)
+	return createTool(toolDefinitions.update_fill, config)
 }
 
 /** Create the artifact rendering tool. */
 export function render(config?: ParadocToolsConfig): ParadocTool<'render'> {
-	return createTool('render', config)
+	return createTool(toolDefinitions.render, config)
 }
 
 /** Create the filled-PDF extraction tool. */
 export function extract(config?: ParadocToolsConfig): ParadocTool<'extract'> {
-	return createTool('extract', config)
+	return createTool(toolDefinitions.extract, config)
 }
 
 /**

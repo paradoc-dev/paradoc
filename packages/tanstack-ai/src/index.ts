@@ -6,32 +6,14 @@ import {
 	type ToolExecutionContext,
 } from '@tanstack/ai'
 import {
-	createToolExecutionContext,
+	configForExecution,
 	operationNames,
 	toolDefinitions,
-	type ExtractInput,
-	type ExtractOutput,
-	type FillInput,
-	type FillOutput,
-	type FillStateInput,
-	type FillStateOutput,
-	type GetArtifactInput,
-	type GetArtifactOutput,
-	type GetRegistryInput,
-	type GetRegistryOutput,
-	type InspectArtifactInput,
-	type InspectArtifactOutput,
 	type OperationName,
+	type OperationInput,
+	type OperationOutput,
 	type ParadocToolsConfig,
-	type RenderInput,
-	type RenderOutput,
 	type ToolDefinitions,
-	type UpdateFillInput,
-	type UpdateFillOutput,
-	type ValidateArtifactInput,
-	type ValidateArtifactOutput,
-	type ValidateInputOutput,
-	type ValidateInputValue,
 } from '@paradoc/ai-tools'
 
 export type { ParadocToolsConfig }
@@ -60,34 +42,6 @@ export type {
 	ValidateInputValue,
 } from '@paradoc/ai-tools'
 
-type OperationInputs = {
-	get_registry: GetRegistryInput
-	get_artifact: GetArtifactInput
-	inspect_artifact: InspectArtifactInput
-	validate_artifact: ValidateArtifactInput
-	validate_input: ValidateInputValue
-	fill: FillInput
-	get_fill_state: FillStateInput
-	update_fill: UpdateFillInput
-	render: RenderInput
-	extract: ExtractInput
-}
-
-type OperationOutputs = {
-	get_registry: GetRegistryOutput
-	get_artifact: GetArtifactOutput
-	inspect_artifact: InspectArtifactOutput
-	validate_artifact: ValidateArtifactOutput
-	validate_input: ValidateInputOutput
-	fill: FillOutput
-	get_fill_state: FillStateOutput
-	update_fill: UpdateFillOutput
-	render: RenderOutput
-	extract: ExtractOutput
-}
-
-type OperationInput<Name extends OperationName> = OperationInputs[Name]
-type OperationOutput<Name extends OperationName> = OperationOutputs[Name]
 type OperationExecutor<Name extends OperationName> = (
 	input: OperationInput<Name>,
 	config?: ParadocToolsConfig,
@@ -131,42 +85,6 @@ export type ParadocToolSet = readonly [
 	ParadocServerTool<'extract'>,
 ]
 
-function mergeAbortSignals(...signals: Array<AbortSignal | undefined>): AbortSignal | undefined {
-	const present = signals.filter((signal): signal is AbortSignal => signal !== undefined)
-	if (present.length === 0) return undefined
-	if (present.length === 1) return present[0]
-	if (typeof AbortSignal.any === 'function') return AbortSignal.any(present)
-
-	const controller = new AbortController()
-	const abort = (signal: AbortSignal) => controller.abort(signal.reason)
-	for (const signal of present) {
-		if (signal.aborted) {
-			abort(signal)
-			break
-		}
-		signal.addEventListener('abort', () => abort(signal), { once: true })
-	}
-	return controller.signal
-}
-
-function configForExecution(
-	config: ParadocToolsConfig | undefined,
-	context: ToolExecutionContext | undefined,
-): ParadocToolsConfig {
-	const signal = mergeAbortSignals(config?.signal, config?.context?.signal, context?.abortSignal)
-	const configuredContext = config?.context
-		? signal && config.context.signal !== signal
-			? { ...config.context, signal }
-			: config.context
-		: createToolExecutionContext(signal ? { signal } : {})
-
-	return {
-		...config,
-		...(signal ? { signal } : {}),
-		context: configuredContext,
-	}
-}
-
 function definitionFor<Name extends OperationName>(name: Name): ParadocToolDefinition<Name> {
 	const definition = toolDefinitions[name]
 	return toolDefinition({
@@ -193,7 +111,7 @@ const definitions = {
 function createTool<Name extends OperationName>(name: Name, config?: ParadocToolsConfig): ParadocServerTool<Name> {
 	const operation = toolDefinitions[name].execute as unknown as OperationExecutor<Name>
 	const execute = (async (input: OperationInput<Name>, context?: ToolExecutionContext) =>
-		operation(input, configForExecution(config, context))) as unknown as ToolExecuteFunction<
+		operation(input, configForExecution(config, context?.abortSignal))) as ToolExecuteFunction<
 		ToolDefinitions[Name]['input_schema'],
 		ToolDefinitions[Name]['output_schema']
 	>

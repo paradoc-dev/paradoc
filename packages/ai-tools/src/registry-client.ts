@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { ParadocToolsConfig } from './config'
 import type { ToolExecutionContext } from './context'
-import { cacheKey } from './context'
+import { cacheKey, configForExecution } from './context'
 
 export const MAX_INDEX_SIZE = 1_048_576
 export const MAX_ITEM_SIZE = 1_048_576
@@ -220,12 +220,13 @@ export async function safeFetch(
 	const maxRedirects = Number.isFinite(policy.maxRedirects)
 		? Math.max(0, Math.floor(policy.maxRedirects!))
 		: DEFAULT_MAX_REDIRECTS
+	const execution = configForExecution({ signal: policy.signal, context: policy.context })
+	const parentSignal = execution.signal
 
 	for (let redirect = 0; ; redirect += 1) {
 		validateFetchUrl(currentUrl, policy)
-		const parentSignal = policy.signal ?? policy.context?.signal
 		if (parentSignal?.aborted) throw parentSignal.reason instanceof Error ? parentSignal.reason : new Error('Request aborted')
-		const cache = policy.context?.cache
+		const cache = execution.context?.cache
 		const scope = [
 			policy.allowLocalDevelopment ? 'local' : 'remote',
 			policy.maxRedirects ?? DEFAULT_MAX_REDIRECTS,
@@ -236,7 +237,7 @@ export async function safeFetch(
 		const cached = cache?.responses.get(key)
 		if (cached) return responseFromCache(cached)
 
-		const merged = mergeSignals(policy.signal ?? policy.context?.signal, FETCH_TIMEOUT_MS)
+		const merged = mergeSignals(parentSignal, FETCH_TIMEOUT_MS)
 		let response: Response
 		try {
 			response = await fetchFn(currentUrl, { signal: merged.signal, redirect: 'manual' })

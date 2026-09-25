@@ -76,7 +76,7 @@ describe('@paradoc/mastra', () => {
 			expect(tool.id).toBe(name)
 			expect(tool.description).toBe(toolDefinitions[name].description)
 			expect(tool.inputSchema).toBe(toolDefinitions[name].input_schema)
-			expect((z.toJSONSchema(tool.inputSchema) as Record<string, unknown>).type, name).toBe('object')
+			expect((z.toJSONSchema(toolDefinitions[name].input_schema) as Record<string, unknown>).type, name).toBe('object')
 			expect(tool.outputSchema).toBe(toolDefinitions[name].output_schema)
 			expect(tool.execute).toBeTypeOf('function')
 		}
@@ -182,5 +182,33 @@ describe('@paradoc/mastra', () => {
 
 		expect(observedSignal?.aborted).toBe(true)
 		expect(result).toMatchObject({ items: [], error: { code: 'registry_fetch_error' } })
+	})
+
+	it.each(['signal', 'context'] as const)('honors an aborted config %s signal', async (source) => {
+		const controller = new AbortController()
+		controller.abort(new Error('cancelled before execution'))
+		const fetch = vi.fn(async () => Response.json({ items: [] }))
+		const signalConfig = source === 'signal'
+			? { signal: controller.signal }
+			: { context: { signal: controller.signal } }
+
+		const result = await execute(createGetRegistryTool({
+			...signalConfig,
+			fetch,
+			defaultRegistryUrl: 'https://registry.example',
+		}), {})
+
+		expect(fetch).not.toHaveBeenCalled()
+		expect(result).toMatchObject({ items: [], error: { code: 'registry_fetch_error' } })
+	})
+
+	it('creates a fresh request cache for each Mastra call', async () => {
+		const fetch = vi.fn(async () => Response.json({ items: [] }))
+		const tool = createGetRegistryTool({ fetch, defaultRegistryUrl: 'https://registry.example' })
+
+		await execute(tool, {})
+		await execute(tool, {})
+
+		expect(fetch).toHaveBeenCalledTimes(2)
 	})
 })

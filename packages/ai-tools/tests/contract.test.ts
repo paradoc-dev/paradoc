@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 import {
+	configForExecution,
 	createToolExecutionContext,
 	buildArtifactItemUrl,
 	executeFill,
@@ -55,6 +56,35 @@ const documentArtifact = {
 const tenant = { name: 'Alice Tenant', firstName: 'Alice', lastName: 'Tenant' }
 
 describe('shared AI tool contract', () => {
+	it('composes every signal and creates isolated request contexts', () => {
+		for (const source of ['config', 'context', 'framework'] as const) {
+			const configController = new AbortController()
+			const contextController = new AbortController()
+			const frameworkController = new AbortController()
+			const config = {
+				signal: configController.signal,
+				context: { signal: contextController.signal },
+			}
+			const composed = configForExecution(config, frameworkController.signal)
+
+			const controller = source === 'config'
+				? configController
+				: source === 'context'
+					? contextController
+					: frameworkController
+			controller.abort(new Error(`${source} cancelled`))
+			expect(composed.signal?.aborted, source).toBe(true)
+			expect(composed.context?.signal?.aborted, source).toBe(true)
+			expect(composed.context).not.toBe(config.context)
+		}
+
+		const freshFirst = configForExecution(undefined)
+		const freshSecond = configForExecution(undefined)
+		expect(freshFirst.context?.cache).toBeDefined()
+		expect(freshSecond.context?.cache).toBeDefined()
+		expect(freshFirst.context?.cache).not.toBe(freshSecond.context?.cache)
+	})
+
 	it('publishes exactly ten independently usable operations', () => {
 		expect(Object.keys(toolDefinitions)).toEqual([
 			'get_registry',

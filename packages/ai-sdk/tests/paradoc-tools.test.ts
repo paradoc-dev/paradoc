@@ -282,4 +282,19 @@ describe('AI SDK 7 Paradoc tools', () => {
 
 		expect(contextAbortReachedRequest).toBe(true)
 	})
+
+	it('creates a fresh request cache for each AI SDK call', async () => {
+		let calls = 0
+		const tools = paradocTools({
+			defaultRegistryUrl: 'https://registry.example',
+			fetch: async () => {
+				calls += 1
+				return Response.json({ items: [] })
+			},
+		})
+
+		await resolveToolResult(tools.get_registry.execute({}, executionOptions))
+		await resolveToolResult(tools.get_registry.execute({}, executionOptions))
+		expect(calls).toBe(2)
+	})
 })

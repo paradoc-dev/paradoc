@@ -134,7 +134,7 @@ const result = await generateText({
 | `getRegistry`, `getArtifact`, `inspectArtifact`, `validateArtifact`, `validateInput`, `fill`, `getFillState`, `updateFill`, `render`, `extract` | One AI SDK `tool()` each, taking `config?`. |
 | Subpaths `@paradoc/ai-sdk/<tool-name>` (`/fill`, `/get-fill-state`, …) | The same factory, as named and default export. |
 
-The AI SDK abort signal is combined with `config.signal`.
+The framework abort signal is combined with `config.signal` and `config.context.signal` in every adapter.
 
 ### `@paradoc/mastra`
 

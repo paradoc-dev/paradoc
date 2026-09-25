@@ -40,14 +40,16 @@ import {
 	type GetArtifactOutput,
 	type GetRegistryOutput,
 	type InspectArtifactOutput,
+	type OperationName,
 	type RenderOutput,
 	type ValidateArtifactOutput,
 	type ValidateInputOutput,
 } from './contracts'
 import type { ParadocToolsConfig } from './config'
+import type { output } from 'zod'
 
 export * from './contracts'
-export { createToolExecutionContext } from './context'
+export { configForExecution, createToolExecutionContext } from './context'
 export type { ToolExecutionContext, RequestCache } from './context'
 export type { ParadocToolsConfig } from './config'
 export { resolveSource } from './resolve-source'
@@ -181,5 +183,7 @@ export const toolDefinitions = {
 } as const
 
 export type ToolDefinitions = typeof toolDefinitions
+export type OperationInput<Name extends OperationName> = output<ToolDefinitions[Name]['input_schema']>
+export type OperationOutput<Name extends OperationName> = output<ToolDefinitions[Name]['output_schema']>
 export { operationNames }
 export { SourceSchema, SourceOperationSchema, ArtifactSourceSchema }

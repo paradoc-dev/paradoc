@@ -145,7 +145,7 @@ paradocTools({
 
 `approvedOrigins` checks hostnames only. When sources are untrusted, pair it with a network egress policy, because a hostname check cannot stop DNS rebinding.
 
-The AI SDK and TanStack AI adapters combine the framework's abort signal with `signal` and `context.signal`. The Mastra adapter passes its execution abort signal as `signal` and adds one option, [`modelOutputMaxBytes`](/ai/mastra#configuration).
+Every adapter combines the framework's abort signal with `signal` and `context.signal`. The Mastra adapter adds one option, [`modelOutputMaxBytes`](/ai/mastra#configuration).
 
 ## Differences from the MCP server
 
