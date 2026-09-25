@@ -13,6 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { extractRegistryEntry } from './lib/registry-export.js';
+import { MANIFEST_SCHEMA_ID } from '../src/zod/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +21,6 @@ const __dirname = dirname(__filename);
 const SCHEMAS_PKG_DIR = join(__dirname, '..');
 const OUTPUT_DIR = join(SCHEMAS_PKG_DIR, 'schemas');
 const OUTPUT_FILE = join(OUTPUT_DIR, 'manifest.json');
-const MANIFEST_SCHEMA_ID = 'https://schema.paradoc.dev/manifest.json';
 
 /** Generate the manifest schema document. */
 export async function generateManifestSchema(): Promise<Record<string, unknown>> {

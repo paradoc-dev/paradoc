@@ -12,7 +12,7 @@ import { ArtifactOutputFormatSchema, RegistryEntrySchema } from './registry-entr
 /**
  * Global cache configuration
  */
-export const CacheConfigSchema = z.object({
+export const CacheConfigSchema = z.strictObject({
 	ttl: z.number()
 		.int()
 		.min(0)

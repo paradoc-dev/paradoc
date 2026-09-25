@@ -19,6 +19,13 @@ export const SCHEMA_VERSION = '2026-09-24' as const satisfies SchemaVersion;
 
 export const SCHEMA_BASE = 'https://schema.paradoc.dev';
 
+/** Stable schema addresses used by CLI-owned configuration files. */
+export const MANIFEST_SCHEMA_ID = `${SCHEMA_BASE}/manifest.json`;
+export const CONFIG_SCHEMA_ID = `${SCHEMA_BASE}/config.json`;
+export const LOCK_SCHEMA_ID = `${SCHEMA_BASE}/lock.json`;
+export const REGISTRY_SCHEMA_ID = `${SCHEMA_BASE}/registry.json`;
+export const REGISTRY_ITEM_SCHEMA_ID = `${SCHEMA_BASE}/registry-item.json`;
+
 /** Undated address of the latest bundle, kept for editors that follow it. */
 export const SCHEMA_ROOT_ID = `${SCHEMA_BASE}/schema.json`;
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IDENTIFIER_PATTERN } from '../../primitives/name';
 import type { FieldsetField, FormField } from '@paradoc/types';
 import { BaseFieldSchema } from './base-field';
 import { ListFieldObjectSchema } from './list';
@@ -295,7 +296,7 @@ const RatingFieldSchema = BaseFieldSchema.extend({
 export const FieldsetFieldObjectSchema = BaseFieldSchema.extend({
 	type: z.literal('fieldset'),
 	fields: z.lazy(() => z.record(
-		z.string().min(1).max(100).regex(/^[a-z][a-zA-Z0-9_]*$/).describe('Nested field identifier (camelCase, starts with lowercase letter)'),
+		z.string().min(1).max(100).regex(IDENTIFIER_PATTERN).describe('Nested field identifier (camelCase, starts with lowercase letter)'),
 		FormFieldSchema,
 	)),
 }).meta({

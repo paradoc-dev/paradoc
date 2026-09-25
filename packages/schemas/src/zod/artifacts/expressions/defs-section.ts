@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IDENTIFIER_PATTERN } from '../../primitives/name';
 import { ExpressionSchema } from './expression';
 
 /**
@@ -11,7 +12,7 @@ export const DefsSectionSchema = z.record(
 	z.string()
 		.min(1)
 		.max(100)
-		.regex(/^[a-z][a-zA-Z0-9_]*$/)
+		.regex(IDENTIFIER_PATTERN)
 		.describe('Definition identifier (camelCase, starts with lowercase letter)'),
 	ExpressionSchema,
 ).meta({

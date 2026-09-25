@@ -8,6 +8,9 @@
  */
 export const ARTIFACT_NAME_PATTERN = /^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$/;
 
+/** A camelCase identifier used for artifact-owned keys. */
+export const IDENTIFIER_PATTERN = /^[a-z][a-zA-Z0-9_]*$/;
+
 /**
  * Registry namespace pattern
  *

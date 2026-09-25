@@ -11,7 +11,7 @@ import { z } from 'zod';
 /**
  * Per-registry cache configuration
  */
-export const RegistryCacheConfigSchema = z.object({
+export const RegistryCacheConfigSchema = z.strictObject({
 	ttl: z.number()
 		.int()
 		.min(0)
@@ -25,7 +25,7 @@ export const RegistryCacheConfigSchema = z.object({
 /**
  * Registry entry with authentication
  */
-export const RegistryEntryObjectSchema = z.object({
+export const RegistryEntryObjectSchema = z.strictObject({
 	url: z.url().describe('Registry base URL'),
 	headers: z.record(z.string(), z.string())
 		.describe('HTTP headers for authentication (supports ${ENV_VAR} expansion)')

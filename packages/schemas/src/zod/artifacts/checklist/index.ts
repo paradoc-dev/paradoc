@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IDENTIFIER_PATTERN } from '../../primitives/name';
 import { ArtifactSchema } from '../shared/base';
 import { LayerSchema, withoutReactLayers } from '../shared/layer';
 import { addDuplicateIdentityIssues } from '../shared/unique';
@@ -23,7 +24,7 @@ export const ChecklistSchema = ArtifactSchema.extend({
 		z.string()
 			.min(1)
 			.max(100)
-			.regex(/^[a-z][a-zA-Z0-9_]*$/)
+			.regex(IDENTIFIER_PATTERN)
 			.describe('Layer identifier (camelCase, starts with lowercase letter)'),
 		LayerSchema,
 	).describe('Named layers for rendering this checklist into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)'))

@@ -13,7 +13,7 @@ import { ArtifactOutputFormatSchema, RegistryEntrySchema } from './registry/regi
 /**
  * Project-level cache configuration
  */
-export const ManifestCacheConfigSchema = z.object({
+export const ManifestCacheConfigSchema = z.strictObject({
 	ttl: z.number()
 		.int()
 		.min(0)
@@ -28,7 +28,7 @@ export const ManifestCacheConfigSchema = z.object({
 /**
  * Artifact configuration for the project
  */
-export const ManifestArtifactConfigSchema = z.object({
+export const ManifestArtifactConfigSchema = z.strictObject({
 	dir: z.string()
 		.min(1)
 		.max(256)

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IDENTIFIER_PATTERN } from '../../primitives/name';
 import { ArtifactSchema } from '../shared/base';
 import { LayerSchema } from '../shared/layer';
 import { DefsSectionSchema } from '../expressions/defs-section';
@@ -24,7 +25,7 @@ export const FormSchema = ArtifactSchema.extend({
 		z.string()
 			.min(1)
 			.max(100)
-			.regex(/^[a-z][a-zA-Z0-9_]*$/)
+			.regex(IDENTIFIER_PATTERN)
 			.describe('Field identifier (camelCase, starts with lowercase letter)'),
 		FormFieldSchema,
 	).describe('Form field definitions keyed by field identifier. Fields define the input structure and validation rules for the form')
@@ -33,7 +34,7 @@ export const FormSchema = ArtifactSchema.extend({
 		z.string()
 			.min(1)
 			.max(100)
-			.regex(/^[a-z][a-zA-Z0-9_]*$/)
+			.regex(IDENTIFIER_PATTERN)
 			.describe('Layer identifier (camelCase, starts with lowercase letter)'),
 		LayerSchema,
 	).describe('Named layers for rendering this form into different formats. Keys are user-defined identifiers (e.g., markdown, pdf, html)')
@@ -50,7 +51,7 @@ export const FormSchema = ArtifactSchema.extend({
 		z.string()
 			.min(1)
 			.max(100)
-			.regex(/^[a-z][a-zA-Z0-9_]*$/)
+			.regex(IDENTIFIER_PATTERN)
 			.describe('Annex identifier (camelCase, starts with lowercase letter)'),
 		FormAnnexSchema,
 	).describe('Predefined annex slots keyed by identifier. Each slot can be marked as required (must be filled at runtime) or optional')
@@ -59,7 +60,7 @@ export const FormSchema = ArtifactSchema.extend({
 		z.string()
 			.min(1)
 			.max(50)
-			.regex(/^[a-z][a-zA-Z0-9_]*$/)
+			.regex(IDENTIFIER_PATTERN)
 			.describe('Party role identifier (e.g., buyer, seller, landlord, buyerRepresentative)'),
 		FormPartySchema,
 	).describe('Party role definitions keyed by role identifier. Each role specifies constraints on who can fill it (person/organization) and signature requirements.')

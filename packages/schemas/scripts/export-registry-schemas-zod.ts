@@ -16,14 +16,18 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { extractRegistryEntry } from './lib/registry-export.js';
+import {
+	CONFIG_SCHEMA_ID,
+	LOCK_SCHEMA_ID,
+	REGISTRY_ITEM_SCHEMA_ID,
+	REGISTRY_SCHEMA_ID,
+} from '../src/zod/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SCHEMAS_PKG_DIR = join(__dirname, '..');
 const OUTPUT_DIR = join(SCHEMAS_PKG_DIR, 'schemas');
-
-const SCHEMA_BASE = 'https://schema.paradoc.dev';
 
 interface SchemaExport {
 	name: string;
@@ -36,25 +40,25 @@ const SCHEMAS_TO_EXPORT: SchemaExport[] = [
 	{
 		name: 'Registry Index',
 		outputFile: 'registry.json',
-		schemaId: `${SCHEMA_BASE}/registry.json`,
+		schemaId: REGISTRY_SCHEMA_ID,
 		registryId: 'RegistryIndex',
 	},
 	{
 		name: 'Registry Item',
 		outputFile: 'registry-item.json',
-		schemaId: `${SCHEMA_BASE}/registry-item.json`,
+		schemaId: REGISTRY_ITEM_SCHEMA_ID,
 		registryId: 'RegistryItem',
 	},
 	{
 		name: 'Global Config',
 		outputFile: 'config.json',
-		schemaId: `${SCHEMA_BASE}/config.json`,
+		schemaId: CONFIG_SCHEMA_ID,
 		registryId: 'GlobalConfig',
 	},
 	{
 		name: 'Lock File',
 		outputFile: 'lock.json',
-		schemaId: `${SCHEMA_BASE}/lock.json`,
+		schemaId: LOCK_SCHEMA_ID,
 		registryId: 'LockFile',
 	},
 ];
