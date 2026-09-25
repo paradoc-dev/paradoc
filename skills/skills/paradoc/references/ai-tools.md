@@ -202,8 +202,8 @@ Every adapter factory takes `ParadocToolsConfig`:
 | Option | Default | Use |
 |--------|---------|-----|
 | `defaultRegistryUrl` | none | Registry for calls that omit `registry_url`. Without it, those calls return `missing_registry_url`. |
-| `approvedOrigins` | none | Origin allowlist for every registry, artifact, instruction and layer fetch. Checks hostnames only: pair it with a network egress policy for untrusted sources. |
-| `allowLocalDevelopment` | `false` | Allow loopback and private hosts, and plain HTTP. Otherwise only public HTTPS URLs are fetched. |
+| `approvedOrigins` | none | Origin allowlist for every registry, artifact, instruction and layer fetch. Matches complete origins, including scheme and port. |
+| `allowLocalDevelopment` | `false` | Allow loopback and private hosts; plain HTTP remains limited to local hosts. Otherwise only public HTTPS URLs are fetched. |
 | `fetch` | global `fetch` | Add auth headers, or mock in tests. |
 | `maxRedirects` | `3` | Validated redirects per request. |
 | `maxOutputBytes` | 16,384 | Maximum content bytes sent to the model. |

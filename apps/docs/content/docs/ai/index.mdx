@@ -143,7 +143,7 @@ paradocTools({
 | `signal` | `AbortSignal` | Abort all work for the call |
 | `maxOutputBytes` | `number` | Maximum content bytes sent to the model; defaults to 16,384 |
 
-`approvedOrigins` checks hostnames only. When sources are untrusted, pair it with a network egress policy, because a hostname check cannot stop DNS rebinding.
+`approvedOrigins` matches complete origins, including scheme and port. `allowLocalDevelopment` permits loopback and private hosts; plain HTTP remains limited to local hosts.
 
 Every adapter combines the framework's abort signal with `signal` and `context.signal`, returns the complete result to application code, and bounds the model-facing copy with `maxOutputBytes`.
 

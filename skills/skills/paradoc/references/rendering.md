@@ -56,7 +56,7 @@ Documents render raw layer content by default; forms and checklists render throu
 |--------|------|--------|
 | `layer` | `string` | Layer key. Default: `defaultLayer`, then the first layer |
 | `formatter` | `Formatter` | Locale and value styles for this render ([formatting.md](./formatting.md)) |
-| `progressive` | `{ missing?, incomplete? }` | Text for a missing value (default `—`) and an incomplete composite (default `…`) |
+| `progressive` | `{ missing?, incomplete? }` | Enable progressive placeholders. Defaults (`—` and `…`) apply only when this option is passed |
 | `renderers` | `Record<mimeType, renderer>` | Renderers keyed by MIME type, tried before the built-in engines. React layers need one |
 | `renderer` | `ParadocRenderer` | Replaces the engine for this call. Use `createLayerRenderer({ ... })` to pass engine options |
 | `bindings` | `Record<string, string>` | PDF layers only: PDF field name → Paradoc path, merged over the layer's own `bindings`. Any other layer refuses it |

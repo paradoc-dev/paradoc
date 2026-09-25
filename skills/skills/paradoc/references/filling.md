@@ -1,6 +1,6 @@
 ---
 name: filling
-description: Progressive fill of a form draft. fill, update as the one way to change a draft, fill state and issues, checking input before applying it, clear and reset, persisting and resuming runtime instances, and @paradoc/sessions for conversational intake. Reading a filled PDF lives in pdf.md.
+description: Progressive fill of a form draft. fill and immutable draft mutators, fill state and issues, checking input before applying it, clear and reset, persisting and resuming runtime instances, and @paradoc/sessions for conversational intake. Reading a filled PDF lives in pdf.md.
 metadata:
   tags: fill, update, draft, progressive, fill-state, validation, persist, resume, rehydrate, sessions, intake
 ---
@@ -9,7 +9,7 @@ metadata:
 
 **Contents:** [The draft](#the-draft) · [Fill](#fill) · [Update](#update) · [Fill state](#fill-state) · [Check input first](#check-input-first) · [Readiness](#readiness) · [Persist and resume](#persist-and-resume) · [Sessions](#sessions) · [Extract from a filled PDF](#extract-from-a-filled-pdf)
 
-A **draft** is a filled but unsealed form. `fill()` creates it, `update()` changes it, and each call returns a new draft: reassign it. To build a value, look up its shape per field type in [fields.md](./fields.md) and per party in [parties.md § Party fill values](./parties.md#party-fill-values). To sign a finished draft, load [sealing.md](./sealing.md).
+A **draft** is a filled but unsealed form. `fill()` creates it; `update()`, `clear()`, `reset()`, and `setAnnex()` change it. Each call returns a new draft: reassign it. To build a value, look up its shape per field type in [fields.md](./fields.md) and per party in [parties.md § Party fill values](./parties.md#party-fill-values). To sign a finished draft, load [sealing.md](./sealing.md).
 
 The examples use this form:
 
@@ -36,7 +36,7 @@ const lease = p.form({
 ## The draft
 
 <!-- dep:C1 -->
-`update()` is the one way to change a draft's values.
+Draft mutators are immutable: reassign `update()`, `clear()`, `reset()`, and `setAnnex()` results.
 
 | Step | Call | Returns |
 |------|------|---------|
@@ -94,7 +94,7 @@ const state = draft.getFillState();
 state.summary;        // { requiredTotal, requiredDone, requiredRemaining, completionPercent }
 state.next;           // { kind: "field" | "party" | "annex", key, required, order } or null
 state.openRequired;   // visible, unfilled, required items
-state.blocked;        // hidden until a prerequisite is filled; item.blockedBy lists it
+state.blocked;        // every hidden, unfilled item; item.blockedBy lists known prerequisite paths when available
 state.rules;          // { valid, errors, warnings }: failed rules, same objects as validateRules()
 state.issues;         // expressions that failed to evaluate: { message, path, expression? }
 ```
@@ -235,10 +235,12 @@ view.progress;   // { answered, requiredRemaining, optionalRemaining, deferredCo
 const draft = p.form(definition).fill(sessionPayload(view.projected, runtime)); // { fields, parties, annexes } answered so far
 ```
 
+Only one of `next`, `nextParty`, and `nextAnnex` is set at a time. Continue until `view.phase === "ready"`.
+
 | Part | Detail |
 |------|--------|
 | Commands | `start`, `prefill` (`values` by field path, `lockedPaths?`; each value checked against its field schema; visibility is not checked), `answer` and `revise` (`fieldPath`, `value`, `source`), `clear`, `defer`/`undefer`, `skip`/`unskip`, `answerParty` (`roleId`, `index?`, `value`; indices in order from 0 for a role with `max` above 1), `answerAnnex` (`annexId`, `value`), `clearAnnex`, `present`, `validate`, `render`, `abandon` |
-| Coercion | Only inputs with one reading: `"36"` to 36, yes/no to a boolean, JSON strings for lists and composites, `"25"` or `"25 EUR"` to money (the field's `currency` when none is given; never an invented one). Dates are not parsed: use `YYYY-MM-DD`. A phone number needs a leading `+`, unless `createParadocRuntime(definition, { defaultCallingCode: "+1" })` supplies one. |
+| Coercion | Only inputs with one reading: `"36"` to 36, yes/no to a boolean, structured list and composite values (JSON strings are not parsed), `"25"` or `"25 EUR"` to money (the field's `currency` when none is given; never an invented one). Dates are not parsed: use `YYYY-MM-DD`. A phone number needs a leading `+`, unless `createParadocRuntime(definition, { defaultCallingCode: "+1" })` supplies one. |
 | Actor | `{ kind: "user" }`, `{ kind: "agent", model }`, `{ kind: "system", reason }` |
 | Error codes | `field-not-found`, `field-not-visible`, `field-locked`, `invalid-value`, `stale-state`, `party-not-found`, `party-index-out-of-order`, `annex-not-found`, `session-not-active`, `session-already-started`, and others on `CommandErrorCode` |
 | Options | `execute(..., { expectedEventCount, now })`: `expectedEventCount` rejects with `stale-state` when another writer appended first |

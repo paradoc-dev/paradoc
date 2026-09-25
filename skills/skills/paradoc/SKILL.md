@@ -31,7 +31,7 @@ Paradoc is a documents-as-code framework. An **artifact** (form, document, check
 - **Templates** name values as `{{fields.x}}`. Place every signing mark with a directive such as `{{signature(parties.tenant, "tenant-sig")}}`. The location string is a slot id in the layer's `signatures`, one slot per party and type.
 <!-- dep:C8 -->
 - **PDF bindings** exist only on PDF layers. Keys are the PDF's field names (from `paradoc inspect`); values are bare Paradoc paths such as `petName` or `parties.tenant.name`.
-- **Drafts are immutable.** Every draft and signable method returns a new form; reassign it. <!-- dep:C1 --> `update()` is the one way to change a draft's field values.
+- **Drafts are immutable.** Every draft and signable method returns a new form; reassign it. <!-- dep:C1 --> reassign `update()`, `clear()`, `reset()`, and `setAnnex()` results. See [filling.md](./references/filling.md).
 - **Finish line.** Authoring is done when the round trip passes: `data template` → `render --data` → `data extract` (see [cli.md § Round trip](./references/cli.md#round-trip)).
 
 ## Packages

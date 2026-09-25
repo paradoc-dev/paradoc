@@ -87,6 +87,8 @@ view.nextAnnex; // the attachment to collect next, if any
 view.progress; // answered vs. remaining
 ```
 
+Only one of `next`, `nextParty`, and `nextAnnex` is non-null at a time. Continue until `view.phase === "ready"`.
+
 Project the log into the artifact's own shape, to fill, render, or seal from what has been answered. Pass the runtime: it says which party roles take an array. The payload is valid part-way through a fill: a field, party, or annex nobody has answered is simply absent.
 
 ```typescript

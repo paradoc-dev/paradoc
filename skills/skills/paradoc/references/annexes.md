@@ -64,7 +64,7 @@ Each annex holds one Attachment:
 
 These are the only keys (`size` fails with `Unknown field(s): size`). The Attachment describes the file; the bytes travel separately.
 
-Attach with `fill()` and change with `update()`. In an `update()` patch, `undefined` leaves an annex as it is, and `null` is rejected.
+Attach with `fill()` and change with immutable `update()`, `clear()`, `reset()`, or `setAnnex()` calls; reassign their results. In an `update()` patch, `undefined` leaves an annex as it is, and `null` is rejected.
 
 ```typescript
 // form: the lease-application form built in the SDK section below

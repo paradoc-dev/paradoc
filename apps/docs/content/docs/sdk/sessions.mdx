@@ -100,6 +100,8 @@ view.nextAnnex        // the next attachment to collect, or null
 view.progress         // ProgressSummary: answered vs. remaining
 ```
 
+Only one of `next`, `nextParty`, and `nextAnnex` is non-null at a time. Continue until `view.phase === "ready"`.
+
 A `SessionView` also carries `projected` (the replayed session), `pendingParties`, `pendingAnnexes` (required annexes not yet attached), `fieldIndex` (status and `locked` flag per field, in declaration order, with list item fields as `items[].name`), `partyIndex` (status, `max`, and `filled` count per party role), and `annexIndex` (status per annex slot).
 
 The session is `ready` only when no required field, party, or annex is open. `progress` counts fields as core reports them: `requiredTotal` and `optionalTotal` count each field by its current status, whether answered or not, and a field that is now hidden counts toward neither.
