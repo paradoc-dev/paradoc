@@ -64,8 +64,6 @@ export const commandEntries: CommandEntry[] = [
 		load: () => import('./commands/configure.js').then(m => m.createConfigureCommand()) },
 	{ name: 'cache', description: 'Manage registry cache', group: 'Settings',
 		load: () => import('./commands/cache.js').then(m => m.createCacheCommand()) },
-	{ name: 'renderers', description: 'Manage renderer plugins (installed on first use)', group: 'Settings',
-		load: () => import('./commands/renderers.js').then(m => m.createRenderersCommand()) },
 	{ name: 'reset', description: 'Reset Paradoc CLI to factory defaults (clears global config and cache)', group: 'Settings',
 		load: () => import('./commands/reset.js').then(m => m.createResetCommand()) },
 	{ name: 'docs', description: 'Open Paradoc documentation in browser', group: 'Settings',

@@ -8,7 +8,6 @@ import { paradocHomePath, userHomeDir } from '../utils/home.js'
 import type { GlobalConfig } from '@paradoc/schemas'
 import { registryClient } from '../utils/registry-client.js'
 import { configManager } from '../utils/config.js'
-import { rendererManager } from '../utils/renderer-manager.js'
 import { formatBytes } from '../utils/format.js'
 
 /**
@@ -60,8 +59,7 @@ export function createResetCommand(): Command {
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('--keep-registries', 'Keep registry configurations')
     .option('--keep-cache', 'Keep cached data')
-    .option('--keep-renderers', 'Keep installed renderers')
-    .action(async (options: { yes?: boolean; keepRegistries?: boolean; keepCache?: boolean; keepRenderers?: boolean }) => {
+    .action(async (options: { yes?: boolean; keepRegistries?: boolean; keepCache?: boolean }) => {
       const spinner = ora()
 
       try {
@@ -107,9 +105,7 @@ export function createResetCommand(): Command {
           console.log(kleur.gray('  • Keep cached data'))
         }
 
-        console.log(options.keepRenderers
-          ? kleur.gray('  • Keep installed renderers')
-          : kleur.yellow('  • Remove installed renderers'))
+
 
         console.log()
 
@@ -140,13 +136,6 @@ export function createResetCommand(): Command {
           } else {
             spinner.succeed('Cache cleared')
           }
-        }
-
-        // Clear installed renderers
-        if (!options.keepRenderers) {
-          spinner.start('Clearing installed renderers...')
-          await rendererManager.removeAll()
-          spinner.succeed('Cleared installed renderers')
         }
 
         // Preserve user preferences from existing config

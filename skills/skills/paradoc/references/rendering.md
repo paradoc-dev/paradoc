@@ -171,7 +171,7 @@ paradoc render lease.json --dry-run                          # resolve the layer
 
 The CLI resolves layer files from the artifact's directory. It renders text, PDF and DOCX layers. For React layers use the SDK with `renderers`, or `paradoc check` and `paradoc dev` (the `paradoc-react` skill).
 
-The engines install on first use under `~/.paradoc/renderers/`. Manage them with `paradoc renderers status`, `install [name]`, `remove [name]` and `update`. `name` is `render` (text, PDF, DOCX) or `react`.
+Text, PDF, and DOCX rendering ship in the CLI. React layers require the project dependencies described by the `paradoc-react` skill.
 
 ## Errors
 

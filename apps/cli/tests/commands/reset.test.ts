@@ -37,7 +37,6 @@ describe('CLI reset command', () => {
       expect(result.stdout).toContain('--yes')
       expect(result.stdout).toContain('--keep-registries')
       expect(result.stdout).toContain('--keep-cache')
-      expect(result.stdout).toContain('--keep-renderers')
     })
   })
 
@@ -72,7 +71,7 @@ describe('CLI reset command', () => {
       await fs.mkdir(cacheDir, { recursive: true })
       await fs.writeFile(path.join(cacheDir, 'entry.json'), '{}')
 
-      const result = await executeCliCommand(['reset', '--yes', '--keep-renderers'])
+      const result = await executeCliCommand(['reset', '--yes'])
 
       expect(result.exitCode).toBe(0)
       expect(await fs.readdir(cacheDir).catch(() => [])).toEqual([])

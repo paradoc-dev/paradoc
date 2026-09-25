@@ -26,8 +26,7 @@ paradoc reset [options]
 Performs a factory reset of the CLI by:
 
 1. Clearing the registry cache (`~/.paradoc/cache`)
-2. Removing all installed renderer plugins (`~/.paradoc/renderers`)
-3. Creating a fresh default configuration (`~/.paradoc/config.json`)
+2. Creating a fresh default configuration (`~/.paradoc/config.json`)
 
 You will be prompted for confirmation unless `--yes` is passed.
 
@@ -61,7 +60,6 @@ This will:
     - Registry configurations will be removed
   • Clear cache (~/.paradoc/cache) - 45.2 KB
 ✓ Cleared 12 cached entries
-✓ Cleared installed renderers
 ✓ Created default configuration
 
 ✓ Paradoc CLI has been reset to factory defaults
@@ -78,6 +76,4 @@ Default settings:
 
 - [configure](/cli/commands/configure) - Interactive configuration wizard
 - [cache](/cli/commands/cache) - Manage registry cache
-- [renderers](/cli/commands/renderers) - Manage renderer plugins
-
-Reset removes installed renderers as part of its reported plan. It rebuilds configuration while preserving the telemetry choice and anonymous telemetry ID.
+ It rebuilds configuration while preserving the telemetry choice and anonymous telemetry ID.

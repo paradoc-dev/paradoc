@@ -59,7 +59,7 @@ An installed reference such as `@acme/w9` works in place of a file path for `val
 | `check <target>` | Check a React composition | the `paradoc-react` skill |
 | `dev [dir]` | Live composition preview with a proof PDF | the `paradoc-react` skill |
 | `configure` (`config`) | Wizard: output format, artifacts dir, cache TTL, telemetry | [Settings](#settings) |
-| `cache`, `renderers`, `reset` | Cache, renderer plugins, factory reset | [Settings](#settings) |
+| `cache`, `reset` | Cache, renderer plugins, factory reset | [Settings](#settings) |
 | `docs`, `console`, `about` | Open the docs, open the web console, print version and environment | none |
 
 A bare name to `add` (`paradoc add invoice`) installs a document component or block and needs a `components.json`; load the `paradoc-react` skill for it.
@@ -328,7 +328,6 @@ An unknown key or invalid JSON in the global config stops every command with an 
 | Command | Use |
 |---------|-----|
 | `cache stats` (`info`), `clear`, `invalidate @ns`, `config`, `reset [--clear]` | Registry cache |
-| `renderers status [--json]`, `install [name]`, `remove [name]`, `update` | Renderer plugins in `~/.paradoc/renderers/`, installed on first use. `install` with no name installs all; `update` reinstalls to match the CLI |
 | `reset [-y] [--keep-registries] [--keep-cache]` | Factory reset of global config and cache |
 
 Telemetry is also off with `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`.

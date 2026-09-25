@@ -7,15 +7,7 @@
  * project, and a project missing one is told exactly what to install rather than
  * shown a resolution error from inside a dependency.
  *
- * **Why not the renderer manager.** `paradoc` installs a renderer on first use
- * (`utils/renderer-manager.ts`) for standalone render commands. Both `paradoc
- * check` and the preview compile project source, so the React
- * it renders with, the `@paradoc/react` the composition imports, and the Vite
- * that resolves both have to be the project's own, not a copy `paradoc` fetched
- * into its cache. Installing them on demand would produce a second React beside
- * the project's and a preview of a document the project cannot build. A project
- * with compositions in it is a React project with a bundler; asking for that is
- * asking for what it already has.
+ * React peers come from the project so the composition and renderer share one React instance.
  *
  * **Where each one is resolved.** `react`, `react-dom`, `@paradoc/react` and
  * `@paradoc/react-pdf` are resolved at the project and nowhere else: a copy of

@@ -22,7 +22,6 @@ CLI is not installed.
 | `paradoc check <composition-or-artifact>` | Walks the tree a render walks and reports faults. Writes no PDF | Exit 0 |
 | `paradoc dev [dir]` | Serves every composition live with its sample data, beside the PDF from the same tree | The composition lists with no `!` problems |
 | `paradoc add <name...>` | Installs document components or blocks through the shadcn CLI | Files land in `components/paradoc/` |
-| `paradoc renderers install react-pdf` | Installs the package `paradoc check` checks through, ahead of first use | `paradoc renderers status` shows it installed |
 
 ## Discovery
 
@@ -106,8 +105,7 @@ fix each path against the artifact's fields, and give each image a `data:` URI
 or bytes at render time.
 
 **Runtime.** The check loads `.tsx` through `tsx`, with the composition's
-nearest `tsconfig.json`, so `@/` aliases resolve. On first use it downloads its
-React renderer into `~/.paradoc/renderers`, which needs the network.
+nearest `tsconfig.json`, so `@/` aliases resolve. The project must install `@paradoc/react`, `@paradoc/react-pdf`, `react`, and `react-dom`.
 <!-- dep:R4 -->
 
 ### From code
