@@ -2,7 +2,7 @@
 
 > **In development; not yet published.** This package is currently `private: true` and is consumed by applications in the Paradoc workspace. Its API may change before publication.
 
-A **headless UI specification** for Paradoc artifacts. It maps form fields to typed, validated presentation trees. The companion private package `@paradoc/ui-catalog` binds this spec to controls.
+A **headless UI specification** for Paradoc artifacts. It maps form fields to typed, validated presentation trees. The landing playground renderer binds the spec to its interactive controls.
 
 ## What it does
 
@@ -151,4 +151,4 @@ export const registry = {
 } satisfies Registry;
 ```
 
-A renderer must resolve a list template to a concrete item path before calling `createSubmitFieldValueAction`. It should emit canonical values such as `option.value` and preserve typed composite values instead of converting them to display strings. If the host cannot render a visible component safely, show a visible fallback and let the agent or another host path collect and validate the value. The landing playground currently renders `TextInput`, `TextArea`, `NumberInput`, `CoordinateInput`, `BboxInput`, `YesNoToggle`, `EnumPicker`, `MultiSelectChips`, `DateInput`, `EmailInput`, and `AddressForm`; its remaining catalog nodes use that fallback.
+A renderer must resolve a list template to a concrete item path before calling `createSubmitFieldValueAction`. It should emit canonical values such as `option.value` and preserve typed composite values instead of converting them to display strings. If the host cannot render a visible component safely, show a visible fallback and let the agent or another host path collect and validate the value. The landing playground currently renders `TextInput`, `TextArea`, `NumberInput`, `CoordinateInput`, `BboxInput`, `YesNoToggle`, `EnumPicker`, `MultiSelectChips`, `DateInput`, `DateTimeInput`, `TimeInput`, `EmailInput`, `UriInput`, and `AddressForm`; its remaining catalog nodes use that fallback.
