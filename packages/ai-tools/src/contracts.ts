@@ -231,7 +231,7 @@ export const ValidateInputOutputSchema = z.object({
 export const FillOutputSchema = z.object({
 	accepted: z.boolean(),
 	complete: z.boolean(),
-	artifact_kind: z.enum(['form', 'checklist']).optional(),
+	artifact_kind: z.enum(['form', 'document', 'bundle', 'checklist']).optional(),
 	data: z.record(z.string(), z.unknown()).optional(),
 	evaluation_context: z.record(z.string(), z.unknown()).optional(),
 	errors: z.array(ToolErrorSchema).optional(),
@@ -247,7 +247,7 @@ export const RuleViolationSchema = z.object({
 })
 
 export const FillStateOutputSchema = z.object({
-	artifact_kind: z.enum(['form', 'checklist']),
+	artifact_kind: z.enum(['form', 'document', 'bundle', 'checklist']).optional(),
 	phase: z.string(),
 	summary: z.object({ required_total: z.number(), required_done: z.number(), required_remaining: z.number(), completion_percent: z.number() }),
 	defs_values: z.record(z.string(), z.unknown()).optional(),

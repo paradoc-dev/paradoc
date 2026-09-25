@@ -1,14 +1,9 @@
 import type { ParadocToolsConfig } from '../config'
 import type { FillInput, FillOutput } from '../contracts'
-import { artifactKind, contextSnapshot, errorList, formDraftPayload, asChecklistPayload, asFormPayload, makeResolver } from '../artifact'
-import { errorFromUnknown } from '../errors'
+import { artifactKind, contextOptions, contextSnapshot, formDraftPayload, asChecklistPayload, asFormPayload, makeResolver } from '../artifact'
+import { errorFromUnknown, validationErrors } from '../errors'
 import { normalizeFillInput } from '../input'
 import { resolveSource } from '../resolve-source'
-
-function contextOptions(value: unknown): { context?: import('@paradoc/core').RuntimeContextOptions } | undefined {
-	const context = contextSnapshot(value)
-	return context ? { context: { asOf: context.asOf as import('@paradoc/core').RuntimeContextOptions['asOf'] } } : undefined
-}
 
 export async function executeFill(
 	input: FillInput | Record<string, unknown>,
@@ -27,7 +22,7 @@ export async function executeFill(
 					accepted: false,
 					complete: false,
 					artifact_kind: 'form',
-					errors: errorList(result.error),
+					errors: validationErrors(result.error),
 					error: errorFromUnknown(result.error, 'validation_error'),
 				}
 			}
@@ -49,7 +44,7 @@ export async function executeFill(
 					accepted: false,
 					complete: false,
 					artifact_kind: 'checklist',
-					errors: errorList(result.error),
+					errors: validationErrors(result.error),
 					error: errorFromUnknown(result.error, 'validation_error'),
 				}
 			}
@@ -66,7 +61,7 @@ export async function executeFill(
 		return {
 			accepted: false,
 			complete: false,
-			...(kind ? { artifact_kind: kind as 'form' | 'checklist' } : {}),
+			...(kind ? { artifact_kind: kind } : {}),
 			error: { code: 'unsupported_artifact', message: 'Only form and checklist artifacts support filling.' },
 		}
 	} catch (error) {

@@ -23,6 +23,7 @@ Takes a [source](/ai/tools#sources) plus:
 | `valid` | `boolean` | Whether the artifact passed |
 | `artifact_kind` | `string` | `form`, `document`, `bundle`, or `checklist`, when detected |
 | `issues` | `{ message, path? }[]` | Validation issues, when invalid |
+| `warnings` | `{ message, path? }[]` | Findings that do not make the artifact invalid |
 | `error` | [`ToolError`](/ai/tools#errors) | Set when validation could not run, for example because the source could not be loaded |
 
 ## Direct usage

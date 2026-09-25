@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { PARADOC_SCHEMA_URL } from '@paradoc/core'
 import { executeRender } from '../src/tools/render'
 
 const textForm = {
@@ -141,6 +142,15 @@ describe('executeRender', () => {
   })
 
   describe('invalid artifact', () => {
+		it('reports a valid bundle as unsupported before looking for a layer', async () => {
+			const result = await executeRender({
+				source: 'artifact',
+				artifact: { $schema: PARADOC_SCHEMA_URL, kind: 'bundle', name: 'packet', contents: [] },
+			})
+
+			expect(result).toMatchObject({ success: false, artifact_kind: 'bundle', error: { code: 'unsupported_artifact' } })
+		})
+
     it('returns error for non-form artifact', async () => {
       const result = await executeRender({
         source: 'artifact' as const,

@@ -3,6 +3,7 @@ import type { SourceInput } from './contracts'
 import { normalizeSource } from './input'
 import {
 	buildArtifactItemUrl,
+	fetchPolicyFromConfig,
 	fetchRegistryIndexResponse,
 	fetchRegistryItemResponse,
 	MAX_ITEM_SIZE,
@@ -14,6 +15,29 @@ export interface ResolvedSource {
 	artifact: Record<string, unknown>
 	base_url?: string
 	artifact_url?: string
+}
+
+export async function resolveRegistryArtifact(
+	registryUrl: string,
+	artifactName: string,
+	config?: ParadocToolsConfig,
+): Promise<ResolvedSource | undefined> {
+	const resolvedIndex = await fetchRegistryIndexResponse(registryUrl, config?.fetch, config)
+	const index = resolvedIndex.index
+	const resolvedRegistryUrl = registryBaseFromIndexUrl(resolvedIndex.response.url || new URL('registry.json', `${registryUrl.replace(/\/$/, '')}/`).toString())
+	const indexItem = index.items.find((item) => item.name === artifactName)
+	if (!indexItem) return undefined
+	const requestedArtifactUrl = buildArtifactItemUrl(resolvedRegistryUrl, index.artifactsPath, artifactName, indexItem.path)
+	const resolvedItem = await fetchRegistryItemResponse(
+		resolvedRegistryUrl,
+		index.artifactsPath,
+		artifactName,
+		indexItem.path,
+		config?.fetch,
+		config,
+	)
+	const artifactUrl = resolvedItem.response.url || requestedArtifactUrl
+	return { artifact: resolvedItem.artifact, base_url: artifactBaseUrl(artifactUrl), artifact_url: artifactUrl }
 }
 
 function requireRegistryUrl(input: string | undefined, config?: ParadocToolsConfig): string {
@@ -61,13 +85,7 @@ async function resolveUncheckedSource(
 	}
 
 	if (source.source === 'url') {
-		const response = await safeFetch(source.url, MAX_ITEM_SIZE, config?.fetch, {
-			allowLocalDevelopment: config?.allowLocalDevelopment,
-			approvedOrigins: config?.approvedOrigins,
-			maxRedirects: config?.maxRedirects,
-			context: config?.context,
-			signal: config?.signal,
-		})
+		const response = await safeFetch(source.url, MAX_ITEM_SIZE, config?.fetch, fetchPolicyFromConfig(config))
 		const artifact = await response.json()
 		if (!artifact || typeof artifact !== 'object' || Array.isArray(artifact)) {
 			throw new Error('Artifact URL must return a JSON object')
@@ -77,22 +95,9 @@ async function resolveUncheckedSource(
 	}
 
 	const registryUrl = requireRegistryUrl(source.registry_url, config)
-	const resolvedIndex = await fetchRegistryIndexResponse(registryUrl, config?.fetch, config)
-	const index = resolvedIndex.index
-	const resolvedRegistryUrl = registryBaseFromIndexUrl(resolvedIndex.response.url || new URL('registry.json', `${registryUrl.replace(/\/$/, '')}/`).toString())
-	const indexItem = index.items.find((item) => item.name === source.artifact_name)
-	if (!indexItem) {
+	const resolved = await resolveRegistryArtifact(registryUrl, source.artifact_name, config)
+	if (!resolved) {
 		throw new Error(`Artifact "${source.artifact_name}" not found in registry`)
 	}
-	const artifactUrl = buildArtifactItemUrl(resolvedRegistryUrl, index.artifactsPath, source.artifact_name, indexItem.path)
-	const resolvedItem = await fetchRegistryItemResponse(
-		resolvedRegistryUrl,
-		index.artifactsPath,
-		source.artifact_name,
-		indexItem.path,
-		config?.fetch,
-		config,
-	)
-	const finalArtifactUrl = resolvedItem.response.url || artifactUrl
-	return { artifact: resolvedItem.artifact, base_url: artifactBaseUrl(finalArtifactUrl), artifact_url: finalArtifactUrl }
+	return resolved
 }

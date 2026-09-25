@@ -131,9 +131,9 @@ The configured default is used only when an operation omits `registry_url`; an e
 | Tool | Input | Output | Network? |
 |------|-------|--------|----------|
 | `get_registry` | `{registry_url?}` | `{registry_url, items[]}` | Yes |
-| `get_artifact` | `{registry_url?, artifact_name}` | `{artifact, artifact_name, instructions?}` | Yes |
+| `get_artifact` | `{registry_url?, artifact_name}` | `{artifact, artifact_name, base_url, instructions?, agent_instructions?}` | Yes |
 | `inspect_artifact` | A source plus selectable sections | Bounded artifact projection | Source dependent |
-| `validate_artifact` | A source plus validation options | `{valid, artifact_kind?, issues?}` | Source dependent |
+| `validate_artifact` | A source plus validation options | `{valid, artifact_kind?, issues?, warnings?}` | Source dependent |
 | `validate_input` | A source plus one field/party/annex/item value | Typed normalized value or structured errors | Source dependent |
 | `fill` | A source plus `{data}` | `{accepted, complete, data?, evaluation_context?}` | Source dependent |
 | `get_fill_state` | A source plus draft data | Progress, open targets, rules, and next target | Source dependent |

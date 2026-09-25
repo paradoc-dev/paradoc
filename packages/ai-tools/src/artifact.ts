@@ -1,4 +1,4 @@
-import type { FormPayload, ToolError } from './contracts'
+import type { FormPayload } from './contracts'
 import type { ParadocToolsConfig } from './config'
 import { createHttpResolver } from '@paradoc/resolvers/http'
 import { bytesToBase64, fetchPolicyFromConfig, MAX_LAYER_FILE_SIZE, safeFetch } from './registry-client'
@@ -53,20 +53,9 @@ export function contextSnapshot(value: unknown): Record<string, unknown> | undef
 	return structuredClone(value)
 }
 
-export function errorList(error: unknown): ToolError[] {
-	const value = error && typeof error === 'object' && 'errors' in error ? (error as { errors?: unknown }).errors : undefined
-	if (!Array.isArray(value)) return []
-	return value.map((entry) => {
-		if (entry && typeof entry === 'object') {
-			const issue = entry as { field?: unknown; message?: unknown }
-			return {
-				code: 'validation_error',
-				message: typeof issue.message === 'string' ? issue.message : String(entry),
-				...(typeof issue.field === 'string' ? { path: issue.field.split('.') } : {}),
-			}
-		}
-		return { code: 'validation_error', message: String(entry) }
-	})
+export function contextOptions(value: unknown): { context?: import('@paradoc/core').RuntimeContextOptions } | undefined {
+	const context = contextSnapshot(value)
+	return context ? { context: { asOf: context.asOf as import('@paradoc/core').RuntimeContextOptions['asOf'] } } : undefined
 }
 
 export function encodeOutput(bytes: Uint8Array | string): { content: string; encoding: 'utf-8' | 'base64'; byte_length: number } {

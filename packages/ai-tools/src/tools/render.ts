@@ -1,7 +1,7 @@
 import type { ParadocToolsConfig } from '../config'
 import type { RenderInput, RenderOutput } from '../contracts'
-import { artifactKind, asChecklistPayload, asFormPayload, boundedPresentation, contextSnapshot, encodeOutput, errorList, makeResolver } from '../artifact'
-import { errorFromUnknown } from '../errors'
+import { artifactKind, asChecklistPayload, asFormPayload, boundedPresentation, contextOptions, encodeOutput, makeResolver } from '../artifact'
+import { errorFromUnknown, validationErrors } from '../errors'
 import { normalizeRenderInput } from '../input'
 import { resolveSource } from '../resolve-source'
 
@@ -12,11 +12,6 @@ function selectedLayer(artifact: Record<string, unknown>, requested: string | un
 	const key = requested ?? (typeof artifact.defaultLayer === 'string' ? artifact.defaultLayer : Object.keys(layers)[0])
 	const layer = key ? layers[key] : undefined
 	return { key, mime_type: typeof layer?.mimeType === 'string' ? layer.mimeType : undefined, kind: typeof layer?.kind === 'string' ? layer.kind : undefined }
-}
-
-function contextOptions(value: unknown): { context?: import('@paradoc/core').RuntimeContextOptions } | undefined {
-	const context = contextSnapshot(value)
-	return context ? { context: { asOf: context.asOf as import('@paradoc/core').RuntimeContextOptions['asOf'] } } : undefined
 }
 
 async function renderer() {
@@ -65,6 +60,9 @@ export async function executeRender(
 				error: { code: 'invalid_artifact', message: 'Artifact failed schema validation.' },
 			}
 		}
+		if (kind === 'bundle') {
+			return { success: false, artifact_kind: kind, error: { code: 'unsupported_artifact', message: 'Rendering supports form, document, and checklist artifacts.' } }
+		}
 
 		const layer = selectedLayer(artifact, normalized.layer)
 		if (!layer.key) return { success: false, ...(kind ? { artifact_kind: kind } : {}), error: { code: 'missing_layer', message: 'Artifact has no renderable layers.' } }
@@ -74,7 +72,7 @@ export async function executeRender(
 		if (isForm(artifact)) {
 			const instance = loadFromObject<'form'>(artifact, { resolver })
 			const result = instance.safeFill(asFormPayload(normalized.data) as never, contextOptions(normalized.evaluation_context))
-			if (!result.success) return { success: false, artifact_kind: 'form', errors: errorList(result.error), error: errorFromUnknown(result.error, 'validation_error') }
+			if (!result.success) return { success: false, artifact_kind: 'form', errors: validationErrors(result.error), error: errorFromUnknown(result.error, 'validation_error') }
 			const content = await result.data.render(renderOptions)
 			return outputResult('form', content, layer.mime_type, presentationWithConfig(normalized.presentation, config))
 		}
@@ -88,7 +86,7 @@ export async function executeRender(
 		if (isChecklist(artifact)) {
 			const instance = loadFromObject<'checklist'>(artifact, { resolver })
 			const result = instance.safeFill(asChecklistPayload(normalized.data) as never, contextOptions(normalized.evaluation_context))
-			if (!result.success) return { success: false, artifact_kind: 'checklist', errors: errorList(result.error), error: errorFromUnknown(result.error, 'validation_error') }
+			if (!result.success) return { success: false, artifact_kind: 'checklist', errors: validationErrors(result.error), error: errorFromUnknown(result.error, 'validation_error') }
 			const content = await result.data.render(renderOptions)
 			return outputResult('checklist', content, layer.mime_type, presentationWithConfig(normalized.presentation, config))
 		}

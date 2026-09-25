@@ -3,17 +3,15 @@ import type { GetArtifactInput, GetArtifactOutput, InstructionContent } from '..
 import { errorFromUnknown } from '../errors'
 import { normalizeGetArtifactInput } from '../input'
 import {
-	buildArtifactItemUrl,
 	bytesToBase64,
 	bytesToText,
-	fetchRegistryIndexResponse,
-	fetchRegistryItemResponse,
 	fetchPolicyFromConfig,
 	MAX_INSTRUCTIONS_SIZE,
 	registryUrlFromConfig,
 	resolveRelativeUrl,
 	safeFetch,
 } from '../registry-client'
+import { resolveRegistryArtifact } from '../resolve-source'
 
 type ContentRef =
 	| { kind: 'inline'; text: string }
@@ -55,21 +53,16 @@ export async function executeGetArtifact(
 	const registryUrl = registryUrlFromConfig(normalized.registry_url, config)
 	if (!registryUrl) return { error: { code: 'missing_registry_url', message: 'registry_url is required, or configure defaultRegistryUrl.' } }
 	try {
-		const resolvedIndex = await fetchRegistryIndexResponse(registryUrl, config?.fetch, config)
-		const index = resolvedIndex.index
-		const resolvedRegistryUrl = new URL('.', resolvedIndex.response.url || new URL('registry.json', `${registryUrl.replace(/\/$/, '')}/`).toString()).toString().replace(/\/$/, '')
-		const indexItem = index.items.find((item) => item.name === normalized.artifact_name)
-		if (!indexItem) return { artifact_name: normalized.artifact_name, error: { code: 'artifact_not_found', message: `Artifact "${normalized.artifact_name}" not found in registry.` } }
-		const requestedArtifactUrl = buildArtifactItemUrl(resolvedRegistryUrl, index.artifactsPath, normalized.artifact_name, indexItem.path)
-		const resolvedItem = await fetchRegistryItemResponse(resolvedRegistryUrl, index.artifactsPath, normalized.artifact_name, indexItem.path, config?.fetch, config)
-		const artifact = resolvedItem.artifact
+		const resolved = await resolveRegistryArtifact(registryUrl, normalized.artifact_name, config)
+		if (!resolved) return { artifact_name: normalized.artifact_name, error: { code: 'artifact_not_found', message: `Artifact "${normalized.artifact_name}" not found in registry.` } }
+		const { artifact, artifact_url: artifactUrl, base_url } = resolved
 		const { assertCurrentSchemaVersion } = await import('@paradoc/core')
 		assertCurrentSchemaVersion(artifact, { required: true })
-		const artifactUrl = resolvedItem.response.url || requestedArtifactUrl
+		if (!artifactUrl) throw new Error('Resolved registry artifact has no source URL')
 		const output: GetArtifactOutput = {
 			artifact,
 			artifact_name: normalized.artifact_name,
-			base_url: new URL('.', artifactUrl).toString().replace(/\/$/, ''),
+			base_url,
 		}
 		if (normalized.include_instructions !== false) {
 			const ref = contentRef(artifact.instructions)

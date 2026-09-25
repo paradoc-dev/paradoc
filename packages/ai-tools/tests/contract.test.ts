@@ -10,6 +10,8 @@ import {
 	executeRender,
 	executeUpdateFill,
 	executeValidateInput,
+	FillOutputSchema,
+	UpdateFillOutputSchema,
 	resolveSource,
 	safeFetch,
 	toolDefinitions,
@@ -94,6 +96,25 @@ describe('shared AI tool contract', () => {
 		const rendered = await executeRender({ source: 'artifact', artifact: formArtifact, data: filled.data, evaluation_context: filled.evaluation_context })
 		expect(rendered.success).toBe(true)
 		expect(rendered.content).toContain('Application / Alice Tenant / New York')
+	})
+
+	it('keeps unsupported artifact results inside each tool output schema', async () => {
+		const bundle = { $schema: PARADOC_SCHEMA_URL, kind: 'bundle' as const, name: 'packet', contents: [] }
+		const documentFill = await executeFill({ source: 'artifact', artifact: documentArtifact, data: {} })
+		const bundleFill = await executeFill({ source: 'artifact', artifact: bundle, data: {} })
+		const bundleUpdate = await executeUpdateFill({ source: 'artifact', artifact: bundle, data: {} })
+
+		expect(documentFill).toMatchObject({ accepted: false, artifact_kind: 'document', error: { code: 'unsupported_artifact' } })
+		expect(bundleFill).toMatchObject({ accepted: false, artifact_kind: 'bundle', error: { code: 'unsupported_artifact' } })
+		expect(bundleUpdate).toMatchObject({ accepted: false, artifact_kind: 'bundle', error: { code: 'unsupported_artifact' } })
+		expect(FillOutputSchema.safeParse(documentFill).success).toBe(true)
+		expect(FillOutputSchema.safeParse(bundleFill).success).toBe(true)
+		expect(UpdateFillOutputSchema.safeParse(bundleUpdate).success).toBe(true)
+	})
+
+	it('binds fill and update_fill to their own output schemas', () => {
+		expect(toolDefinitions.fill.output_schema).toBe(FillOutputSchema)
+		expect(toolDefinitions.update_fill.output_schema).toBe(UpdateFillOutputSchema)
 	})
 
 	it('updates, clears, and resets while preserving untouched data and context', async () => {

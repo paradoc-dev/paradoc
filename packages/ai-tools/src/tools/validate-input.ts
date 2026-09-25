@@ -1,21 +1,9 @@
 import type { ParadocToolsConfig } from '../config'
 import type { ValidateInputOutput, ValidateInputValue } from '../contracts'
 import { artifactKind } from '../artifact'
-import { errorFromUnknown, toolError } from '../errors'
+import { errorFromUnknown, toolError, validationErrors } from '../errors'
 import { normalizeValidateInput } from '../input'
 import { resolveSource } from '../resolve-source'
-
-function coreErrors(value: unknown) {
-	if (!Array.isArray(value)) return [toolError('validation_error', 'Input was rejected by the artifact schema')]
-	return value.map((entry) => {
-		const issue = entry as { field?: unknown; message?: unknown }
-		return toolError(
-			'validation_error',
-			typeof issue.message === 'string' ? issue.message : String(entry),
-			typeof issue.field === 'string' ? issue.field.split('.') : undefined,
-		)
-	})
-}
 
 function failure(input: ValidateInputValue, kind: ReturnType<typeof artifactKind> | undefined, message: string, path?: string): ValidateInputOutput {
 	return {
@@ -45,7 +33,7 @@ export async function executeValidateInput(
 			})
 			return result.success
 				? { valid: true, target: normalized.target, artifact_kind: 'form', normalized_value: result.value }
-				: { valid: false, target: normalized.target, artifact_kind: 'form', errors: coreErrors(result.errors) }
+				: { valid: false, target: normalized.target, artifact_kind: 'form', errors: validationErrors(result.errors) }
 		}
 
 		if (normalized.target === 'party') {
@@ -58,7 +46,7 @@ export async function executeValidateInput(
 			})
 			return result.success
 				? { valid: true, target: normalized.target, artifact_kind: 'form', normalized_value: result.value }
-				: { valid: false, target: normalized.target, artifact_kind: 'form', errors: coreErrors(result.errors) }
+				: { valid: false, target: normalized.target, artifact_kind: 'form', errors: validationErrors(result.errors) }
 		}
 
 		if (normalized.target === 'annex') {
@@ -67,7 +55,7 @@ export async function executeValidateInput(
 			const result = loadFromObject<'form'>(artifact).validateAnnexInput({ annexId: normalized.annex_id, value: normalized.value })
 			return result.success
 				? { valid: true, target: normalized.target, artifact_kind: 'form', normalized_value: result.value }
-				: { valid: false, target: normalized.target, artifact_kind: 'form', errors: coreErrors(result.errors) }
+				: { valid: false, target: normalized.target, artifact_kind: 'form', errors: validationErrors(result.errors) }
 		}
 
 		if (!isChecklist(artifact)) return failure(normalized, kind, 'Target "checklist_item" requires a checklist artifact.')
@@ -75,7 +63,7 @@ export async function executeValidateInput(
 		const result = loadFromObject<'checklist'>(artifact).validateItemInput({ itemId: normalized.item_id, value: normalized.value })
 		return result.success
 			? { valid: true, target: normalized.target, artifact_kind: 'checklist', normalized_value: result.value }
-			: { valid: false, target: normalized.target, artifact_kind: 'checklist', errors: coreErrors(result.errors) }
+			: { valid: false, target: normalized.target, artifact_kind: 'checklist', errors: validationErrors(result.errors) }
 	} catch (error) {
 		return { valid: false, target: normalized.target, error: errorFromUnknown(error, 'validation_error') }
 	}

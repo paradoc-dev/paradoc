@@ -85,8 +85,32 @@ describe('get_fill_state rule results', () => {
 		const state = await executeGetFillState({ source: 'artifact', artifact: document })
 
 		expect(state.phase).toBe('unsupported')
+		expect(state.artifact_kind).toBe('document')
 		expect(state.rules).toEqual({ valid: false, errors: [], warnings: [] })
 		expect(state.errors).toEqual([{ code: 'unsupported_artifact', message: 'Only form and checklist artifacts support fill state.' }])
+		expect(FillStateOutputSchema.safeParse(state).success).toBe(true)
+	})
+
+	it('keeps each rejected value as a separate error with its path', async () => {
+		const state = await executeGetFillState({
+			source: 'artifact',
+			artifact: ruledForm,
+			data: { fields: { amount: 'many', term: 'long' } },
+		})
+
+		expect(state.errors).toHaveLength(2)
+		expect(state.errors?.map((error) => error.path)).toEqual(expect.arrayContaining([['fields', 'amount'], ['fields', 'term']]))
+		expect(FillStateOutputSchema.safeParse(state).success).toBe(true)
+	})
+
+	it('does not invent an artifact kind when loading fails before the kind is known', async () => {
+		const state = await executeGetFillState(
+			{ source: 'registry', registry_url: 'https://registry.example', artifact_name: 'missing' },
+			{ fetch: async () => new Response('nope', { status: 500 }) },
+		)
+
+		expect(state.artifact_kind).toBeUndefined()
+		expect(state.error).toBeDefined()
 		expect(FillStateOutputSchema.safeParse(state).success).toBe(true)
 	})
 

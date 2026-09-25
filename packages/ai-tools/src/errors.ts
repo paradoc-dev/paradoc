@@ -20,7 +20,9 @@ export function errorFromUnknown(error: unknown, fallbackCode = 'execution_error
 }
 
 export function validationErrors(error: unknown): ToolError[] {
-	const errors = error && typeof error === 'object' && 'errors' in error ? (error as { errors?: unknown }).errors : undefined
+	const errors = Array.isArray(error)
+		? error
+		: error && typeof error === 'object' && 'errors' in error ? (error as { errors?: unknown }).errors : undefined
 	if (Array.isArray(errors)) {
 		return errors.map((entry) => {
 			if (entry && typeof entry === 'object') {

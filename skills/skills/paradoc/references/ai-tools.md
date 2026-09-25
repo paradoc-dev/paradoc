@@ -91,20 +91,23 @@ const first = await executeFill({ ...source, data: { fields: { petName: 'Rex' } 
 
 // 2. Ask what is still open.
 const state = await executeGetFillState({ ...source, data: first.data, evaluation_context: first.evaluation_context })
-// state.summary: { required_total: 3, required_done: 1, … }
+// state.summary: { required_total: 6, required_done: 1, … }
 // state.next:    { kind: 'party', key: 'tenant', required: true, … }
 
 // 3. Merge the next answers into the same draft.
 const second = await executeUpdateFill({
   ...source,
   data: first.data!,
-  patch: { fields: { weight: 30 }, parties: { tenant: { name: 'Jane Smith' } } },
+  patch: {
+    fields: { weight: 30, species: 'dog', isVaccinated: true },
+    parties: { tenant: { name: 'Jane Smith' }, landlord: { name: 'Pat Jones' } },
+  },
   evaluation_context: first.evaluation_context,
 })
 // { accepted: true, complete: true, data: { …, parties: { tenant: { name: 'Jane Smith', id: 'tenant-0' } } } }
 
 // 4. Render. A draft renders whether or not it is complete.
-const doc = await executeRender({ ...source, data: second.data, layer: 'summary', evaluation_context: second.evaluation_context })
+const doc = await executeRender({ ...source, data: second.data, layer: 'markdown', evaluation_context: second.evaluation_context })
 // { success: true, encoding: 'utf-8', mime_type: 'text/markdown', content: '# Pet Addendum…' }
 ```
 

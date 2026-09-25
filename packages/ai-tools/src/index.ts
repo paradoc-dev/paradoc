@@ -148,7 +148,7 @@ export const toolDefinitions = {
 		name: 'fill',
 		description: 'Apply a seed payload to a form or checklist, reporting supplied-value acceptance separately from completeness.',
 		input_schema: FillInputSchema,
-		output_schema: UpdateFillOutputSchema,
+		output_schema: FillOutputSchema,
 		execute: executeFill,
 	},
 	get_fill_state: {
@@ -162,7 +162,7 @@ export const toolDefinitions = {
 		name: 'update_fill',
 		description: 'Merge, clear, or reset an existing form or checklist draft while preserving untouched data and evaluation context.',
 		input_schema: UpdateFillInputSchema,
-		output_schema: FillOutputSchema,
+		output_schema: UpdateFillOutputSchema,
 		execute: executeUpdateFill,
 	},
 	render: {
