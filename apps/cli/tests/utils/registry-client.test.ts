@@ -162,6 +162,22 @@ describe('RegistryClient network fetches', () => {
   })
 
   describe('registry JSON', () => {
+    it('fetches an exact item URL without requesting the registry index', async () => {
+      const itemUrl = 'https://registry.example.com/custom/form.json'
+      const fetchMock = stubFetch(() => new Response(JSON.stringify({ name: 'form', kind: 'form', version: '1.0.0' }), { headers: { 'content-type': 'application/json' } }))
+      const result = await (await newClient()).fetchItemUrl(itemUrl, registry.headers)
+      expect(result.url).toBe(itemUrl)
+      expect(result.item.name).toBe('form')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0]![0]).toBe(itemUrl)
+    })
+
+    it('parses YAML registry items', async () => {
+      stubFetch(() => new Response('name: lease\nkind: document\nversion: 1.0.0\n', { headers: { 'content-type': 'application/yaml' } }))
+      const result = await (await newClient()).fetchItemUrl('https://registry.example.com/items/lease.yaml')
+      expect(result.item).toMatchObject({ name: 'lease', kind: 'document', version: '1.0.0' })
+    })
+
     it('parses the index and sends Accept plus registry headers', async () => {
       const index = { name: 'test', items: [] }
       const fetchMock = stubFetch(

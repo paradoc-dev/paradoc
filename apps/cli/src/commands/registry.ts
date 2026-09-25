@@ -1092,7 +1092,6 @@ export function createRegistryCommand(): Command {
     .action(async (artifact: string, options: ViewOptions) => {
       try {
         const { LocalFileSystem } = await import('../utils/local-fs.js')
-        const YAML = await import('yaml')
 
         // Parse artifact reference
         const artifactRef = parseArtifactRef(artifact)
@@ -1133,11 +1132,7 @@ export function createRegistryCommand(): Command {
         let artifactContent: Record<string, unknown>
         try {
           const content = await storage.readFile(artifactPath, 'utf-8')
-          if (lockedInfo.output === 'json' || lockedInfo.output === 'typed') {
-            artifactContent = JSON.parse(content)
-          } else {
-            artifactContent = YAML.parse(content) as Record<string, unknown>
-          }
+          artifactContent = loadValidatedArtifact(content) as unknown as Record<string, unknown>
         } catch {
           console.error(kleur.red(`Could not read artifact file: ${lockedInfo.path}`))
           process.exit(1)

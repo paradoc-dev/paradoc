@@ -38,7 +38,9 @@ The `add` command fetches an artifact from a configured registry and saves it to
 
 By default, only the artifact definition is downloaded. Use `--layers` to also download associated files like PDFs or templates.
 
-**Content reference files** (`instructions`, `agentInstructions`) that use `kind: "file"` are downloaded automatically — no `--layers` flag needed. These are typically small text files essential for the artifact to function correctly. A checksum is required for security; files without a checksum are skipped with a warning.
+**Content reference files** (`instructions`, `agentInstructions`) that use `kind: "file"` are downloaded automatically — no `--layers` flag needed. These are typically small text files essential for the artifact to function correctly. Every downloaded file requires a checksum; a missing checksum or requested layer fails the install without writing the artifact or lock entry.
+
+A direct URL fetches that exact JSON or YAML resource without requesting a registry index. `--output ts` writes the TypeScript module and keeps a JSON source for other Paradoc commands; the lock points to that JSON source.
 
 When called with just a namespace (`@namespace`), the command enters browse mode and lets you interactively select artifacts to install.
 

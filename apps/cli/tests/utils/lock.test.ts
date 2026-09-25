@@ -183,7 +183,7 @@ describe('LockFileManager', () => {
         kind: 'form',
         version: '3.0.0',
         resolved: 'https://registry.acme.com/r/saved-artifact.json',
-        integrity: 'sha256-saved',
+        integrity: 'sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
         output: 'yaml',
         path: 'artifacts/@acme/saved-artifact.yaml',
         layers: {},

@@ -39,6 +39,13 @@ describe('paradoc add', () => {
   })
 
   describe('argument validation', () => {
+    it('rejects an unknown output format before project or network access', async () => {
+      const result = await executeCliCommand(['add', '@acme/test', '--output', 'xml'], { cwd: tempDir })
+      expect(result.stderr).toContain('Invalid output format: xml')
+      expect(result.stderr).not.toContain('Not in an Paradoc project')
+      expect(result.exitCode).toBe(1)
+    })
+
     it('shows error for invalid artifact reference (missing @)', async () => {
       const result = await executeCliCommand(['add', 'acme/test'], { cwd: tempDir })
       expect(result.stderr).toContain('Invalid artifact')
@@ -288,6 +295,23 @@ describe('paradoc add (files the artifact references)', () => {
     expect(result.stderr).toContain('instructions (packet-instructions.md)')
   }, 30000)
 
+  it('fails when an explicitly requested layer is absent', async () => {
+    const result = await executeCliCommand(['add', '@fixture/packet', '--layers', 'missing', '--no-cache'], { cwd: tempDir })
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('requested layer is not declared')
+    expect(await exists('artifacts/@fixture/packet.json')).toBe(false)
+  }, 30000)
+
+  it('fails when a requested file layer has no checksum', async () => {
+    const item = JSON.parse(serve['/r/packet.json']!.body.toString()) as { layers: { pdf: { checksum?: string } } }
+    delete item.layers.pdf.checksum
+    serve['/r/packet.json']!.body = Buffer.from(JSON.stringify(item))
+    const result = await executeCliCommand(['add', '@fixture/packet', '--layers', 'pdf', '--no-cache'], { cwd: tempDir })
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('missing required checksum')
+    expect(await exists('artifacts/@fixture/packet.json')).toBe(false)
+  }, 30000)
+
   const installedArtifact = async (): Promise<Record<string, unknown>> =>
     JSON.parse(await fs.readFile(join(tempDir, 'artifacts/@fixture/packet.json'), 'utf-8')) as Record<string, unknown>
 
@@ -453,6 +477,26 @@ describe('paradoc add (registry integration)', () => {
     const artifactPath = join(tempDir, 'artifacts', '@acme', 'residential-lease.yaml')
     const exists = await fs.access(artifactPath).then(() => true).catch(() => false)
     expect(exists).toBe(true)
+  }, 30000)
+
+  it.each(['typed', 'ts'] as const)('adds artifact with --output %s and keeps a JSON source', async (format) => {
+    const result = await executeCliCommand(['add', '@acme/residential-lease', '--output', format, '--layers', 'all'], { cwd: tempDir })
+    expect(result.exitCode).toBe(0)
+    const namespaceDir = join(tempDir, 'artifacts', '@acme')
+    await expect(fs.access(join(namespaceDir, 'residential-lease.json'))).resolves.toBeUndefined()
+    if (format === 'typed') await expect(fs.access(join(namespaceDir, 'residential-lease.json.d.ts'))).resolves.toBeUndefined()
+    if (format === 'ts') await expect(fs.access(join(namespaceDir, 'residential-lease.ts'))).resolves.toBeUndefined()
+    const lock = JSON.parse(await fs.readFile(join(tempDir, '.paradoc', 'lock.json'), 'utf8'))
+    expect(lock.artifacts['@acme/residential-lease'].path).toBe('artifacts/@acme/residential-lease.json')
+    if (format === 'ts') {
+      const source = join(namespaceDir, 'residential-lease.json')
+      expect((await executeCliCommand(['validate', source], { cwd: tempDir })).exitCode).toBe(0)
+      expect((await executeCliCommand(['data', 'template', source, '--json'], { cwd: tempDir })).exitCode).toBe(0)
+      expect((await executeCliCommand(['render', source, '--dry-run'], { cwd: tempDir })).exitCode).toBe(0)
+      await fs.writeFile(join(namespaceDir, 'note.md'), '# Note\n')
+      expect((await executeCliCommand(['attach', source, join(namespaceDir, 'note.md'), '--name', 'note', '--yes', '--dry-run'], { cwd: tempDir })).exitCode).toBe(0)
+      expect((await executeCliCommand(['registry', 'view', '@acme/residential-lease', '--json'], { cwd: tempDir })).exitCode).toBe(0)
+    }
   }, 30000)
 
   it('fails with error for nonexistent artifact', async () => {

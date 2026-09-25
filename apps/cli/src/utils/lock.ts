@@ -89,6 +89,12 @@ export class LockFileManager {
       throw new Error('Lock file manager not initialized.')
     }
 
+    const result = LockFileSchema.safeParse(this.lockFile)
+    if (!result.success) {
+      throw new Error(`Refusing to save invalid lock file: ${formatConfigIssues(result.error)}`)
+    }
+    this.lockFile = result.data
+
     // Ensure directory exists
     const lockDir = this.storage.joinPath(LOCK_FILE_DIR)
     await this.storage.mkdir(lockDir, true)

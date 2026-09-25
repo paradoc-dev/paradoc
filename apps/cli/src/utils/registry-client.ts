@@ -25,6 +25,7 @@ import {
 import { sanitizeForDisplay, validateUrl } from './security.js'
 import { cacheManager, type CacheResult } from './cache.js'
 import { formatBytes } from './format.js'
+import { parse } from '@paradoc/core'
 
 /**
  * ContentRef from a registry item (inline text or file reference)
@@ -335,7 +336,7 @@ async function fetchJson<T>(
     headers: { Accept: 'application/json', ...headers },
     validateContentType: validateArtifactContentType,
   })
-  return JSON.parse(new TextDecoder().decode(bytes)) as T
+  return parse(new TextDecoder().decode(bytes)) as T
 }
 
 /**
@@ -510,6 +511,12 @@ export class RegistryClient {
       SECURITY_LIMITS.MAX_ARTIFACT_SIZE,
     )
     return { item: sanitizeRegistryItem(fetchedItem), url }
+  }
+
+  /** Fetch one artifact from its exact URL without consulting a registry index. */
+  async fetchItemUrl(url: string, headers?: Record<string, string>): Promise<{ item: RegistryItem; url: string }> {
+    const item = await fetchJson<RegistryItem>(url, headers, SECURITY_LIMITS.MAX_ARTIFACT_SIZE)
+    return { item: sanitizeRegistryItem(item), url }
   }
 
   /**

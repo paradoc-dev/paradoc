@@ -83,10 +83,9 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
 
   let registryItem
   try {
-    const fetched = await registryClient.fetchItem(registry, artifactName, {
-      cacheTtl,
-      skipCache,
-    })
+    const fetched = resolvedUrl
+      ? await registryClient.fetchItemUrl(resolvedUrl, registry.headers)
+      : await registryClient.fetchItem(registry, artifactName, { cacheTtl, skipCache })
     registryItem = fetched.item
     resolvedUrl ??= fetched.url
   } catch (error) {
@@ -110,7 +109,20 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     process.exit(1)
   }
 
-  // Validate artifact structure
+  // Core owns artifact structure validation.
+  const artifactContent = toInstalledArtifact(registryItem)
+  const artifactValidation = validate(artifactContent)
+  if (artifactValidation.issues) {
+    console.error()
+    console.error(kleur.red(`${artifactFull} from the registry is not a valid artifact:`))
+    for (const issue of artifactValidation.issues) {
+      const location = issue.path?.length ? issue.path.map(String).join('.') : 'root'
+      console.error(kleur.red(`  • ${location}: ${issue.message}`))
+    }
+    console.error(kleur.gray('Nothing was installed. Consider contacting the registry maintainer.'))
+    process.exit(1)
+  }
+
   const validation = validateDownloadedArtifact(registryItem as unknown as Record<string, unknown>, artifactName)
 
   if (!validation.valid) {
@@ -140,22 +152,6 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   const artifactsDir = configManager.getArtifactsDir()
   const namespaceDir = storage.joinPath(artifactsDir, artifactNamespace)
 
-  // Install only the artifact: registry metadata is dropped, and what remains
-  // must be a valid artifact, so an item in another shape (such as one that
-  // wraps its artifact in an `artifact` key) fails here with nothing written.
-  // The installed file keeps the registry artifact's dated $schema.
-  const artifactContent = toInstalledArtifact(registryItem)
-  const artifactValidation = validate(artifactContent)
-  if (artifactValidation.issues) {
-    console.error()
-    console.error(kleur.red(`${artifactFull} from the registry is not a valid artifact:`))
-    for (const issue of artifactValidation.issues) {
-      const location = issue.path?.length ? issue.path.map(String).join('.') : 'root'
-      console.error(kleur.red(`  • ${location}: ${issue.message}`))
-    }
-    console.error(kleur.gray('Nothing was installed. Consider contacting the registry maintainer.'))
-    process.exit(1)
-  }
   const artifactKind = registryItem.kind as ArtifactKind
 
   // Determine primary file extension based on format
@@ -213,20 +209,19 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     for (const layerKey of layerKeys) {
       const layer = registryItem.layers[layerKey]
       if (!layer) {
-        console.warn(kleur.yellow(`Layer not found: ${layerKey}`))
+        failures.push({ label: `layer "${layerKey}"`, path: layerKey, cause: 'requested layer is not declared by the artifact' })
         continue
       }
       if (layer.kind !== 'file') continue
 
       if (!layer.checksum) {
-        console.warn(kleur.yellow(`Skipping layer "${layerKey}": missing required checksum`))
-        console.warn(kleur.gray('  Layers must have a checksum for integrity verification'))
+        failures.push({ label: `layer "${layerKey}"`, path: layer.path, cause: 'missing required checksum' })
         continue
       }
 
       const sanitizedPath = sanitizePath(namespaceDir, layer.path)
       if (!sanitizedPath) {
-        console.warn(kleur.yellow(`Invalid layer path (path traversal detected): ${layer.path}`))
+        failures.push({ label: `layer "${layerKey}"`, path: layer.path, cause: 'path traversal detected' })
         continue
       }
 
@@ -238,12 +233,12 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
       // A declared font travels with its layer, verified the same way.
       if (layer.font) {
         if (!layer.font.checksum) {
-          console.warn(kleur.yellow(`Skipping font for layer "${layerKey}": missing required checksum`))
+          failures.push({ label: `font of layer "${layerKey}"`, path: layer.font.path, cause: 'missing required checksum' })
           continue
         }
         const sanitizedFontPath = sanitizePath(namespaceDir, layer.font.path)
         if (!sanitizedFontPath) {
-          console.warn(kleur.yellow(`Invalid font path (path traversal detected): ${layer.font.path}`))
+          failures.push({ label: `font of layer "${layerKey}"`, path: layer.font.path, cause: 'path traversal detected' })
           continue
         }
         await fetchVerified(`font of layer "${layerKey}"`, layer.font.path, sanitizedFontPath, layer.font.checksum)
@@ -260,14 +255,13 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     if (!ref || ref.kind !== 'file') continue
 
     if (!ref.checksum) {
-      console.warn(kleur.yellow(`Skipping ${field} file: missing required checksum`))
-      console.warn(kleur.gray('  Content files must have a checksum for integrity verification'))
+      failures.push({ label: field, path: ref.path, cause: 'missing required checksum' })
       continue
     }
 
     const sanitizedRefPath = sanitizePath(namespaceDir, ref.path)
     if (!sanitizedRefPath) {
-      console.warn(kleur.yellow(`Invalid ${field} path (path traversal detected): ${ref.path}`))
+      failures.push({ label: field, path: ref.path, cause: 'path traversal detected' })
       continue
     }
 
@@ -302,6 +296,14 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     await storage.writeFile(sanitizedArtifactPath, contentString)
     writtenFiles.push(artifactFileName)
     spinner.succeed(`Generated: ${join(artifactsDir, artifactNamespace, artifactFileName)}`)
+
+    const sourceFileName = `${artifactName}.json`
+    const sourcePath = sanitizePath(namespaceDir, sourceFileName)
+    if (!sourcePath) throw new Error('Invalid artifact source path')
+    contentString = JSON.stringify(artifactContent, null, 2)
+    await assertNotSymlink(sourcePath)
+    await storage.writeFile(sourcePath, contentString)
+    writtenFiles.push(sourceFileName)
   } else if (format === 'typed') {
     spinner.start(`Writing ${artifactFileName}...`)
     contentString = JSON.stringify(artifactContent, null, 2)
@@ -340,13 +342,16 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
 
   // Update lock file
   const isUpdate = lockFileManager.getArtifact(artifactFull) !== null
+  const lockArtifactPath = format === 'ts'
+    ? sanitizePath(namespaceDir, `${artifactName}.json`)!
+    : sanitizedArtifactPath
   const lockedArtifact = lockFileManager.createLockedArtifact({
     kind: artifactKind,
     version: registryItem.version,
     resolved: resolvedUrl,
     content: contentString,
     output: format,
-    path: storage.relative(projectRoot, sanitizedArtifactPath),
+    path: storage.relative(projectRoot, lockArtifactPath),
     layers: downloadedLayers,
   })
   lockFileManager.setArtifact(artifactFull, lockedArtifact)
@@ -405,6 +410,10 @@ export function createAddCommand(): Command {
       const spinner = ora()
 
       try {
+        if (options.output && !['json', 'yaml', 'typed', 'ts'].includes(options.output)) {
+          console.error(kleur.red(`Invalid output format: ${options.output}`))
+          process.exit(1)
+        }
         // 0. A known item name is a document component, installed through the
         // shadcn CLI. Everything else is an artifact, which is always
         // namespaced or a URL, so the two cannot be confused for one another.
