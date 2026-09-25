@@ -407,5 +407,6 @@ and `page` is a packet page. When two parts share a signer, map them with
 | `PageFurnitureOverflowError` | A header or footer is taller than the margin. Raise `marginPx` or shorten the band |
 | `SealConfigError` | A required slot has no signatory, or a flow slot is not `signature`/`initials` |
 | `MissingSigningMarkerError` | A slot's marker is not in the PDF. The layer declares a flow slot that no `Signature` block draws (check role, index, type), or a custom adapter's fonts do not cover the marker glyphs |
-| `AmbiguousSigningMarkError` | Two `Signature` blocks for the same party, index, and type |
+| `AmbiguousSigningMarkError` | Two flow slots on the layer place the same type for one party and index |
+| `LocateError` | Two `Signature` blocks emit the same marker. Keep one block for each party, index, and type |
 | `BundleSealError` | A packet part is missing, mismatched, or fails. `problems` lists each |

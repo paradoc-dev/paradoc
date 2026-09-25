@@ -190,6 +190,34 @@ describe('CLI render command', () => {
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toMatch(/not found|error/i)
     })
+
+    it('reports the same core error for a React layer with and without data', async () => {
+      const artifactPath = path.join(tempDir, 'react-form.json')
+      await fs.writeFile(artifactPath, JSON.stringify({
+        $schema: PARADOC_SCHEMA_URL,
+        kind: 'form',
+        name: 'react-form',
+        version: '1.0.0',
+        title: 'React Form',
+        description: 'Exercises React layer errors.',
+        fields: {},
+        layers: {
+          composition: { kind: 'file', mimeType: 'text/tsx', path: 'composition.tsx' },
+        },
+        defaultLayer: 'composition',
+      }))
+
+      const withoutData = await executeCliCommand(['render', artifactPath])
+      const withData = await executeCliCommand([
+        'render', artifactPath, '--data', JSON.stringify({ fields: {} }),
+      ])
+      const message = 'Layer "composition" has MIME type text/tsx and no renderer is registered for it'
+
+      expect(withoutData).toMatchObject({ exitCode: 1 })
+      expect(withData).toMatchObject({ exitCode: 1 })
+      expect(withoutData.stderr).toContain(message)
+      expect(withData.stderr).toContain(message)
+    })
   })
 
   describe('file-layer resolution', () => {

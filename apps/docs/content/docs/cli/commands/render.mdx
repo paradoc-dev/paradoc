@@ -23,7 +23,7 @@ paradoc render <artifact> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--data <pathOrJson>` | Data payload: file path (JSON/YAML), `-` for stdin, or inline JSON |
+| `--data <pathOrJson>` | Complete, valid data payload: file path (JSON/YAML), `-` for stdin, or inline JSON |
 | `--bindings <pathOrJson>` | PDF layers only: AcroForm field name to Paradoc path, merged over the layer's own bindings (path to JSON/YAML or inline JSON) |
 | `--out <file>` | Write output to file (defaults to stdout) |
 | `--format <style>` | Summary format: `pretty` or `json` (default: pretty) |
@@ -102,3 +102,4 @@ Dry run summary:
 An artifact argument may be a file path or an installed `@namespace/name` reference from `.paradoc/lock.json`. An uninstalled reference fails with an error.
 
 `--data` and `--bindings` apply only to forms. Other artifact kinds ignore `--data` with a warning and reject `--bindings`. Invalid form data stops rendering.
+Use the SDK's progressive fill and render flow for an incomplete draft. React layers also require an SDK React renderer; the CLI reports the core `UnregisteredLayerRendererError` for them.

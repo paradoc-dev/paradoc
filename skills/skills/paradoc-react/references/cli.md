@@ -32,8 +32,11 @@ CLI is not installed.
 | What is a composition | `paradoc dev`: a `.tsx`/`.jsx` file under a `compositions/` directory, not `*.sample.*`, `*.test.*`, `*.spec.*`, `*.stories.*`. `paradoc check`: any file you name |
 | Its artifact | A `.yaml`, `.yml` or `.json` file with `kind: form` whose `text/tsx`/`text/jsx` layer `path` resolves to the composition. If none, an artifact file of the same name beside it (`purchase-order.tsx` + `purchase-order.json`) |
 | Artifact rules | The artifact must pass `validate` with the current `$schema`. A `.ts` artifact module is never found |
-| Search root | `paradoc check`: the directory with `paradoc.json` and `.paradoc`, else the working directory. `paradoc dev`: `[dir]`, default the working directory |
-| Its sample data | A sibling `<name>.sample.{ts,tsx,js,mjs,jsx}` default export (a `DocumentData`, or a function that returns one). Else a named `sample` export on the composition |
+| Search root | Both commands use the nearest project. Outside one, `check` starts at the composition directory and `dev` at `[dir]`. Pass the artifact explicitly when it sits above the composition |
+| Its sample data | A sibling `<name>.sample.{ts,tsx,js,mjs,jsx}` default export (a `DocumentData`, or a function that returns one), shape-checked but allowed to be partial. Else a named `sample` export on the composition |
+
+The React layer's `path` is relative to the artifact file that declares it and
+must remain inside that artifact's directory, including after resolving symlinks.
 
 When the artifact is authored in TypeScript, save it as JSON beside the
 composition:
@@ -73,7 +76,7 @@ paradoc check compositions/agreement.json
 | Flag | Purpose |
 |---|---|
 | `--layer <key>` | The React layer to check, when there are several, or when several artifacts point at one composition |
-| `--data <pathOrJson>` | Sample data (file path or inline JSON). Overrides the discovered sample |
+| `--data <pathOrJson>` | Complete valid data (file path or inline JSON). Overrides the discovered partial sample |
 | `--adapter <takumi\|chromium>` | Class vocabulary to check against. Default `takumi`. `chromium` skips the class check |
 
 A clean run:

@@ -24,7 +24,7 @@ Paradoc is a documents-as-code framework. An **artifact** (form, document, check
 ## Global rules
 
 - **Schema version.** Every artifact sets `$schema` to `https://schema.paradoc.dev/2026-09-24.json`. Migrate an older file with `npx paradoc-cli migrate <file>`.
-- **Validate** each file after every change with `npx paradoc-cli validate <file>` (one file per call). Run the CLI as `npx paradoc-cli`; the npm package `paradoc` is unrelated.
+- **Validate** files after every change with `npx paradoc-cli validate <files...>`. Run the CLI as `npx paradoc-cli`; the npm package `paradoc` is unrelated.
 - **Identifiers.** Artifact names match `^[A-Za-z0-9]([A-Za-z0-9]|-[A-Za-z0-9])*$`. Field, party, def and rule ids match `^[a-z][a-zA-Z0-9_]*$`. Details per key: [schemas.md § Identifier patterns](./references/schemas.md#identifier-patterns).
 - **Field types.** Use the most specific type: `money`, `date`, `email`, `phone`, `address` and so on, not `text`. See [fields.md § Type selection table](./references/fields.md#type-selection-table).
 - **Expressions.** Use `and`, `or`, `not`. Read fields as `fields.<id>` and defs by bare name. A condition must be boolean (`isNotEmpty(fields.x)`, not `fields.x`). Read money as `fields.price.amount` for arithmetic and comparison. See [logic.md](./references/logic.md).

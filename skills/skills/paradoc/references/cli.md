@@ -184,12 +184,14 @@ The skeleton holds placeholder values by type, not `null`:
 
 | Type | Placeholder |
 |------|-------------|
-| text, email, date and other string types | `""` |
+| text, email, date and other string types | declared `default`, then `""` |
 | `boolean` | `false` |
-| `money` | `{ "amount": 0, "currency": "USD" }` |
+| `money` | `{ "amount": 0, "currency": "USD" }`, even when the field declares another currency |
 | `enum` | the first option |
-| `multiselect` | `[]` |
+| `multiselect`, `list` | `[]` |
 | `number`, `percentage`, `rating` | `null` |
+| `duration` | `"PT0S"` |
+| `coordinate`, `bbox` | zero-valued coordinates |
 | `address`, `person`, `fieldset` | an object of the parts above |
 
 Replace every placeholder with real sample values. An unedited template can pass `data validate`, so a pass proves nothing until the values are real.
@@ -223,11 +225,11 @@ paradoc render pet.yaml --data sample.json --dry-run --format json
 ```
 
 - Pass `--out`. Without it the rendered bytes, binary PDF included, go to stdout.
-- `--layer` defaults to `defaultLayer`. The layer MIME type picks the renderer.
-- Pass `--data` to fill values. Without it the raw layer renders unfilled, with no warning.
+- `--layer` defaults to `defaultLayer`, then the first declared layer. The layer MIME type picks the renderer.
+- Pass `--data` with a complete valid payload to fill values. Without it the raw layer renders unfilled, with no warning. Use SDK progressive rendering for an incomplete draft.
 - `--format json` shapes only the success message after `--out` and the `--dry-run` summary.
 - `--bindings` merges over a PDF layer's `bindings`; the CLI value wins. Any other layer refuses it.
-- React (`text/tsx`) layers render through the `paradoc-react` skill.
+- React (`text/tsx`) layers require the SDK renderer described by the `paradoc-react` skill.
 
 For render options and their SDK equivalents, load [rendering.md](./rendering.md).
 
@@ -337,7 +339,7 @@ Telemetry is also off with `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`.
 | Message | Fix |
 |---------|-----|
 | `paradoc: command not found` | Use `npx paradoc-cli`, or `npm install -g paradoc-cli` |
-| `Not an Paradoc repository (no .paradoc directory found)` / `Not in an Paradoc project.` | Run `paradoc init` in the project root |
+| `Not in a Paradoc project. Expected paradoc.json with a .paradoc directory.` | Run `paradoc init` in the project root |
 | `No registry is configured for @acme. Run: paradoc registry add @acme <url>` | Add the registry: `paradoc registry add @acme <url>`. `@paradoc` is built in and cannot be added |
 | `Environment variable not set: ACME_TOKEN` | Export the variable a registry `url` or header names |
 | `"w9" is not a document component.` | Name the registry: `paradoc add @acme/w9` |
@@ -345,10 +347,10 @@ Telemetry is also off with `PARADOC_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`.
 | `The artifact was written for schema version <v>; ...` | `paradoc migrate <file>` |
 | `The artifact has no $schema; ...` / `$schema ... names no schema version; ...` | `paradoc migrate <file> --from <version>` |
 | `` Checksum mismatch. Run `paradoc fix` to update. `` | `paradoc fix <file> -y` |
-| `Validation failed:` (from `fix`) | Fix the listed schema errors by hand, then run `fix` |
+| `Error: Invalid artifact: <path>: <message>` (from `fix`) | Fix the listed schema errors by hand, then run `fix` |
 | `✗ Schema validation failed:` with a path | Look up the message in [schemas.md](./schemas.md#error-messages) |
 | `error: unknown option '--verbose'` | Use `--json` for structured output |
 | `error: required option '--out <file>' not specified` | Add `--out` (`data fill`) |
 | `Error (not_matching): Layer "<key>" has no bindings ...` | Add `bindings` to the PDF layer ([pdf.md](./pdf.md)) |
 | `Error (unknown_bindings_source): Layer "<key>" takes its bindings from "<name>" ...` | Point `bindingsFrom` at an existing PDF layer |
-| `Unsupported render layer MIME type: text/tsx.` | Render React layers with the `paradoc-react` skill |
+| `Layer "composition" has MIME type text/tsx and no renderer is registered for it` | Render React layers with the SDK renderer in the `paradoc-react` skill |

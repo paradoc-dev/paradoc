@@ -106,9 +106,10 @@ export function createRenderCommand(): Command {
 
           const formInstance = formApi.from(artifact as Form, { resolver })
 
-          const renderer = createLayerRenderer()
           content = await formInstance.render({
-            renderer,
+            ...(layer.mimeType !== 'text/tsx' && layer.mimeType !== 'text/jsx'
+              ? { renderer: createLayerRenderer() }
+              : {}),
             ...(normalizedData && { data: normalizedData }),
             layer: layerKey,
             bindings: parsedBindings,

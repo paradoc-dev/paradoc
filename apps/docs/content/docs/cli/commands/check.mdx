@@ -26,7 +26,7 @@ paradoc check <target> [options]
 | Option | Description |
 |--------|-------------|
 | `--layer <key>` | React layer key to check, when the artifact declares more than one |
-| `--data <pathOrJson>` | Sample data: a file path or inline JSON, overriding any discovered sample |
+| `--data <pathOrJson>` | Complete valid data: a file path or inline JSON, overriding any discovered sample |
 | `--adapter <name>` | Adapter whose class vocabulary to check against: `takumi` (default) or `chromium` |
 
 ## Description
@@ -57,12 +57,16 @@ the current [schema version](/schemas#loading-rules) in `$schema`, as for
 `paradoc dev`. A missing, outdated, or unknown `$schema` exits 1 and points
 to [`paradoc migrate`](/cli/commands/migrate).
 
-Sample data, when `--data` is not given, is discovered **sibling-first**: a
+Sample data, when `--data` is not given, is discovered **sibling-first** and may be partial: a
 `<composition>.sample.{ts,tsx,js,mjs,jsx}` file next to the composition wins
 if present; only when none exists does discovery fall back to a named
 `sample` export on the composition module itself. Neither found, the check
 still runs with empty data — every `Field`/`Table` path is checked against
 the artifact's schema regardless of whether data is present.
+
+Both `check` and `dev` search from the nearest project. Outside one, `check`
+starts at the composition directory and `dev` at its `[dir]` argument. Pass the
+artifact explicitly when it sits above the composition.
 
 The command exits non-zero when it finds any fault. A composition using
 `Totals` over a def checks cleanly with no sample data at all: a value with

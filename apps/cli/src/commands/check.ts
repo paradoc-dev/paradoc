@@ -174,10 +174,9 @@ async function loadArtifactLayer(target: string, layerKey: string | undefined): 
  * so a composition written before its layer entry is checkable and previewable
  * on the same terms.
  *
- * Scoped by `findRepoRoot()`, the same project boundary `diff` and `cache`
- * use — the directory carrying both `paradoc.json` and `.paradoc`, not merely
- * a `.paradoc` directory (see `project.ts` for why that distinction matters).
- * Falls back to `process.cwd()` outside a project.
+ * Scoped to the nearest project from the composition. Outside a project, the
+ * search starts in the composition's directory. `paradoc dev` uses the same
+ * nearest-project rule, starting from its `[dir]` argument.
  */
 async function findArtifactForComposition(
   target: string,

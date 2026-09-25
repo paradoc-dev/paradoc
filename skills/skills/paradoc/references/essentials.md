@@ -35,7 +35,7 @@ const draft = w9.fill(data);
 const pdf = await draft.render({ layer: "pdf" });
 ```
 
-`paradoc data template` prints the same ids as a sample payload.
+After writing the artifact to JSON or YAML, `paradoc data template <artifact>` prints the same ids as a sample payload.
 
 ## Form-specific rules
 

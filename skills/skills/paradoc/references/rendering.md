@@ -161,15 +161,15 @@ paradoc render lease.json --dry-run                          # resolve the layer
 
 | Flag | Behavior |
 |------|----------|
-| `--data <pathOrJson>` | A payload `{ fields, parties?, annexes? }` from a JSON/YAML file, `-` (stdin) or inline JSON. Forms only: other kinds print a warning and render raw |
+| `--data <pathOrJson>` | A complete, valid payload `{ fields, parties?, annexes? }` from a JSON/YAML file, `-` (stdin) or inline JSON. Forms only: other kinds print a warning and render raw |
 | (no `--data`) | Prints the raw layer: the template text, or the PDF bytes unchanged |
-| `--layer <key>` | Layer to render. Default: `defaultLayer` |
+| `--layer <key>` | Layer to render. Default: `defaultLayer`, then the first declared layer |
 | `--out <file>` | Write to a file and print a summary. Without it, the content goes to stdout |
-| `--format json` | Prints the `--out` summary as JSON. It does not change the rendered content |
+| `--format json` | Prints the `--out` or `--dry-run` summary as JSON. It does not change rendered content |
 | `--bindings <pathOrJson>` | PDF bindings merged over the layer's own |
 | `--dry-run` | Validate and resolve the layer only |
 
-The CLI resolves layer files from the artifact's directory. It renders text, PDF and DOCX layers. For React layers use the SDK with `renderers`, or `paradoc check` and `paradoc dev` (the `paradoc-react` skill).
+The CLI resolves layer files from the artifact's directory. It renders text, PDF and DOCX layers. For React layers use the SDK with `renderers`; `paradoc check` finds faults and `paradoc dev` previews compositions. Neither produces final React-layer output. Preview incomplete data through the SDK's progressive fill and render flow because CLI `--data` requires a complete valid payload.
 
 Text, PDF, and DOCX rendering ship in the CLI. React layers require the project dependencies described by the `paradoc-react` skill.
 
