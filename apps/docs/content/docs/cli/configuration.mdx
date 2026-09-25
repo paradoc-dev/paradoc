@@ -237,3 +237,5 @@ paradoc --no-telemetry add @paradoc/w9
 | `PARADOC_TELEMETRY_DEBUG=1` | Log telemetry events to console |
 
 When multiple settings conflict, the CLI checks in this order: CLI flag, environment variables, global config. Any opt-out at any level disables telemetry entirely.
+
+Public registry install and add events are also sent to `https://tasks.paradoc.dev/v1/directory-events` to maintain directory install counts. The same CLI telemetry opt-outs disable these events. A registry can disable its own install telemetry with `enableTelemetry: false`, or only directory events with `enableDirectory: false` in `registry.json`.

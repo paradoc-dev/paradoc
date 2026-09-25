@@ -34,6 +34,16 @@ describe('classifyRegistryUrl', () => {
     it('classifies 192.168.x.x as local', () => {
       expect(classifyRegistryUrl('https://192.168.1.100/r')).toBe('local')
     })
+
+    it.each([
+      'http://169.254.10.1/r',
+      'http://100.64.0.1/r',
+      'http://100.127.255.254/r',
+      'http://[fd12::1]/r',
+      'http://[fe80::1]/r',
+    ])('keeps non-public address %s local', (url) => {
+      expect(classifyRegistryUrl(url)).toBe('local')
+    })
   })
 
   describe('private registries', () => {
@@ -49,6 +59,15 @@ describe('classifyRegistryUrl', () => {
 
     it('classifies unparseable URL as private', () => {
       expect(classifyRegistryUrl('not-a-url')).toBe('private')
+    })
+
+    it.each([
+      'https://registry/r',
+      'https://registry.local/r',
+      'https://registry.internal/r',
+      'https://registry.lan/r',
+    ])('keeps non-public hostname %s private', (url) => {
+      expect(classifyRegistryUrl(url)).toBe('private')
     })
 
     it('env-var tokens take priority over localhost', () => {

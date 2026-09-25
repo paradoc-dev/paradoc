@@ -21,7 +21,7 @@ const NPM_REGISTRY_URL = `https://registry.npmjs.org/${CLI_PACKAGE}/latest`
 
 interface UpdateCache {
 	lastChecked: number
-	latestVersion: string
+	latestVersion?: string
 }
 
 function shouldSkipCheck(): boolean {
@@ -67,6 +67,8 @@ export function checkForUpdate(): void {
 
 			const controller = new AbortController()
 			const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+			timeoutId.unref()
+			const lastChecked = Date.now()
 
 			try {
 				const response = await fetch(NPM_REGISTRY_URL, {
@@ -75,16 +77,23 @@ export function checkForUpdate(): void {
 				})
 				clearTimeout(timeoutId)
 
-				if (!response.ok) return
+				if (!response.ok) {
+					await writeCache({ lastChecked, latestVersion: cache?.latestVersion })
+					return
+				}
 
 				const data = (await response.json()) as { version?: string }
-				if (!data.version) return
+				if (!data.version) {
+					await writeCache({ lastChecked, latestVersion: cache?.latestVersion })
+					return
+				}
 
 				await writeCache({
-					lastChecked: Date.now(),
+					lastChecked,
 					latestVersion: data.version,
 				})
 			} catch {
+				await writeCache({ lastChecked, latestVersion: cache?.latestVersion })
 				// Network error, timeout, npm 404 — all silenced
 			}
 		} catch {

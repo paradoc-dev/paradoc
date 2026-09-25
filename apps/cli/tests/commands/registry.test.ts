@@ -149,10 +149,17 @@ describe('CLI Registry Command', () => {
       const content = await fs.readFile(path.join(tempDir, 'registry.json'), 'utf-8')
       const registry = JSON.parse(content)
       expect(registry.enableDirectory).toBe(false)
-      // Note: --no-telemetry is shadowed by the root program's identically-named
-      // option, so `make --no-telemetry` does not propagate to the subcommand.
-      // enableTelemetry defaults to true here.
       expect(registry.enableTelemetry).toBe(true)
+    })
+
+    it('writes the registry telemetry opt-out', async () => {
+      const result = await executeCliCommand(
+        ['registry', 'make', tempDir, '--yes', '--name', 'test-reg', '--no-registry-telemetry'],
+      )
+
+      expect(result.exitCode).toBe(0)
+      const registry = JSON.parse(await fs.readFile(path.join(tempDir, 'registry.json'), 'utf-8'))
+      expect(registry.enableTelemetry).toBe(false)
     })
   })
 

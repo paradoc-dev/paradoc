@@ -56,6 +56,8 @@ export interface ArtifactRef {
 export interface ResolvedRegistry {
   namespace: string
   baseUrl: string
+  /** Configured URL before environment variables are expanded. */
+  configuredUrl?: string
   headers?: Record<string, string>
   params?: Record<string, string>
   artifactsPath?: string

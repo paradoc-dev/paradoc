@@ -427,7 +427,7 @@ export function createRegistryCommand(): Command {
     .option('--description <description>', 'Registry description')
     .option('--homepage <url>', 'Registry homepage URL')
     .option('--artifacts-path <path>', 'Path prefix for artifacts (e.g., /r or /artifacts)')
-    .option('--no-telemetry', 'Disable usage telemetry for this registry')
+    .option('--no-registry-telemetry', 'Disable usage telemetry for this registry')
     .option('--no-directory', 'Do not list this registry in the Paradoc Hub')
     .option('-y, --yes', 'Skip confirmation prompts')
     .description('Create a new registry.json file')
@@ -436,7 +436,7 @@ export function createRegistryCommand(): Command {
       description?: string
       homepage?: string
       artifactsPath?: string
-      telemetry?: boolean
+      registryTelemetry?: boolean
       directory?: boolean
       yes?: boolean
     }) => {
@@ -566,7 +566,7 @@ export function createRegistryCommand(): Command {
         }
 
         // Always include telemetry/directory flags explicitly for transparency
-        registry.enableTelemetry = options.telemetry !== false
+        registry.enableTelemetry = options.registryTelemetry !== false
         registry.enableDirectory = options.directory !== false
 
         registry.items = []

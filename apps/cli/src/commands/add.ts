@@ -82,12 +82,20 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   spinner.start(`Fetching ${artifactFull}...`)
 
   let registryItem
+  let registryTelemetry = { enableTelemetry: true, enableDirectory: true }
   try {
     const fetched = resolvedUrl
       ? await registryClient.fetchItemUrl(resolvedUrl, registry.headers)
       : await registryClient.fetchItem(registry, artifactName, { cacheTtl, skipCache })
     registryItem = fetched.item
     resolvedUrl ??= fetched.url
+    if (!opts.resolvedUrl) {
+      const index = await registryClient.fetchIndex(registry, { cacheTtl, skipCache })
+      registryTelemetry = {
+        enableTelemetry: index.enableTelemetry !== false,
+        enableDirectory: index.enableDirectory !== false,
+      }
+    }
   } catch (error) {
     spinner.fail(`Failed to fetch ${artifactFull}`)
     if (error instanceof RegistryFetchError && error.statusCode === 404) {
@@ -359,12 +367,15 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
 
   // Track install for telemetry (fire and forget)
   trackInstall(
-    registry.baseUrl,
+    registry.configuredUrl ?? registry.baseUrl,
     artifactName,
     registryItem.version,
     registryItem.kind,
     isUpdate,
-    { hasHeaders: !!registry.headers && Object.keys(registry.headers).length > 0 }
+    {
+      hasHeaders: !!registry.headers && Object.keys(registry.headers).length > 0,
+      ...registryTelemetry,
+    }
   )
 
   // Success message

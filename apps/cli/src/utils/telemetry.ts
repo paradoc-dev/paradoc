@@ -13,6 +13,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { isIP } from 'node:net'
 import { platform, arch, release } from 'node:os'
 import type { GlobalConfig } from '@paradoc/schemas'
 import { configManager } from './config.js'
@@ -155,6 +156,7 @@ async function sendEvents(events: TelemetryEvent[]): Promise<void> {
   const endpoint = TELEMETRY_ENDPOINT
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS)
+  timeout.unref()
 
   try {
     await fetch(endpoint, {
@@ -192,6 +194,7 @@ async function sendEvents(events: TelemetryEvent[]): Promise<void> {
 async function sendDirectoryEvent(event: Record<string, string>): Promise<void> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS)
+  timeout.unref()
   try {
     await fetch(DIRECTORY_EVENTS_ENDPOINT, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -239,10 +242,17 @@ export type RegistryType = 'local' | 'private' | 'public'
 function isPrivateIP(hostname: string): boolean {
   if (/^10\./.test(hostname)) return true
   if (/^192\.168\./.test(hostname)) return true
+  if (/^169\.254\./.test(hostname)) return true
+  if (/^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(hostname)) return true
   const match = hostname.match(/^172\.(\d+)\./)
   if (match) {
     const second = parseInt(match[1]!, 10)
     if (second >= 16 && second <= 31) return true
+  }
+  const ipv6 = hostname.replace(/^\[|\]$/g, '').toLowerCase()
+  if (isIP(ipv6) === 6) {
+    return ipv6 === '::1' || ipv6.startsWith('fe8') || ipv6.startsWith('fe9') ||
+      ipv6.startsWith('fea') || ipv6.startsWith('feb') || /^f[cd]/.test(ipv6)
   }
   return false
 }
@@ -286,6 +296,13 @@ export function classifyRegistryUrl(
   // Private IP ranges
   if (isPrivateIP(hostname)) return 'local'
 
+  // Names without a public DNS suffix and names reserved for private networks
+  // must never be reported as public registry hosts.
+  if (!hostname.includes('.') || /\.(?:local|internal|lan)$/i.test(hostname)) return 'private'
+
+  // Parsed IP literals are public only when they are outside the private ranges.
+  if (isIP(hostname.replace(/^\[|\]$/g, '')) !== 0) return 'public'
+
   return 'public'
 }
 
@@ -302,8 +319,9 @@ export async function trackInstall(
   version: string,
   kind: string,
   isUpdate: boolean = false,
-  opts?: { hasHeaders?: boolean }
+  opts?: { hasHeaders?: boolean; enableTelemetry?: boolean; enableDirectory?: boolean }
 ): Promise<void> {
+  if (opts?.enableTelemetry === false || !(await isTelemetryEnabled())) return
   const registryType = classifyRegistryUrl(registryUrl, opts)
 
   if (registryType === 'local') return
@@ -314,19 +332,23 @@ export async function trackInstall(
     })
   }
 
-  return trackEvent('artifact.installed', {
+  const event = await buildEvent('artifact.installed', {
     properties: {
       registryType,
-      registryUrl,
+      registryUrl: new URL(registryUrl).origin,
       artifact,
       version,
       kind,
       isUpdate,
     },
-  }).then(() => sendDirectoryEvent({
-    type: 'artifact.installed', registryUrl, artifactName: artifact,
-    artifactKind: kind, version,
-  }).catch(() => {}))
+  })
+  sendEvents([event]).catch(() => {})
+  if (opts?.enableDirectory !== false) {
+    sendDirectoryEvent({
+      type: 'artifact.installed', registryUrl: new URL(registryUrl).origin,
+      artifactName: artifact, artifactKind: kind, version,
+    }).catch(() => {})
+  }
 }
 
 /**
@@ -340,6 +362,7 @@ export async function trackRegistryAdd(
   url: string,
   opts?: { hasHeaders?: boolean }
 ): Promise<void> {
+  if (!(await isTelemetryEnabled())) return
   const registryType = classifyRegistryUrl(url, opts)
 
   if (registryType === 'local') return
@@ -350,7 +373,10 @@ export async function trackRegistryAdd(
     })
   }
 
-  return trackEvent('registry.added', {
-    properties: { registryType, registryUrl: url },
-  }).then(() => sendDirectoryEvent({ type: 'registry.added', registryUrl: url }).catch(() => {}))
+  const registryUrl = new URL(url).origin
+  const event = await buildEvent('registry.added', {
+    properties: { registryType, registryUrl },
+  })
+  sendEvents([event]).catch(() => {})
+  sendDirectoryEvent({ type: 'registry.added', registryUrl }).catch(() => {})
 }

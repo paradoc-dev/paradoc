@@ -130,6 +130,18 @@ describe('update-notifier', () => {
 				expect.anything(),
 			)
 		})
+
+		it('records a failed check so it is not retried on every command', async () => {
+			vi.resetModules()
+			vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+			const { checkForUpdate } = await import('../../src/utils/update-notifier.js')
+
+			checkForUpdate()
+			await vi.waitFor(async () => {
+				const written = JSON.parse(await fs.readFile(cacheFile, 'utf-8')) as { lastChecked: number }
+				expect(written.lastChecked).toBeGreaterThan(0)
+			})
+		})
 	})
 
 	describe('printUpdateNotice', () => {

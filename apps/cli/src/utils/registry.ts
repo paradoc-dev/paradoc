@@ -143,11 +143,13 @@ export async function resolveRegistry(namespace: string): Promise<ResolvedRegist
 
   // Get registry params
   const registry = await configManager.getRegistry(normalizedNamespace)
+  const configuredUrl = typeof registry === 'string' ? registry : registry?.url
   const params = registry && typeof registry !== 'string' ? registry.params : undefined
 
   return {
     namespace: normalizedNamespace,
     baseUrl,
+    configuredUrl,
     headers,
     params,
   }
