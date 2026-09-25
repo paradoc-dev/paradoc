@@ -29,7 +29,7 @@ export function ComponentInstallation({ name }: ComponentInstallationProps) {
         Or, with the Paradoc CLI, which writes the namespace into{" "}
         <code>components.json</code> for you:
       </p>
-      <RegistryCodeBlock lang="bash" code={`paradoc add ${name}`} />
+      <RegistryCodeBlock lang="bash" code={`npx paradoc-cli add ${name}`} />
       {files.length > 0 ? (
         <p className="text-sm text-fd-muted-foreground">
           Installs to{" "}

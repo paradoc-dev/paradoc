@@ -20,6 +20,10 @@ const installationPage = readFileSync(
   path.join(root, 'content/docs/components/installation.mdx'),
   'utf8',
 )
+const componentPage = (name: string) => readFileSync(
+  path.join(root, 'content/docs/components', `${name}.mdx`),
+  'utf8',
+)
 /** Names with their own reference page, linked internally instead of to the registry JSON. */
 const referencePages = new Set([
   'bundle',
@@ -117,5 +121,20 @@ describe('the components page', () => {
   test('runs the Paradoc CLI through the paradoc-cli package', () => {
     expect(installationPage).toContain('npx paradoc-cli add field')
     expect(installationPage).not.toMatch(/npx paradoc add|@paradoc\/cli/)
+    expect(readFileSync(path.join(root, 'src/components/component-docs/component-installation.tsx'), 'utf8'))
+      .toContain('npx paradoc-cli add ${name}')
+  })
+
+  test('keeps component reference copy aligned with the component contracts', () => {
+    expect(page).toContain('if (!parsed.success) throw new Error("Invalid taxpayer data")')
+    expect(componentPage('blocks/vendor-packet')).toContain(
+      'if (!parsed.success) throw new Error("Invalid taxpayer data")',
+    )
+    expect(componentPage('section')).toContain('[Document](/components/document)')
+    expect(componentPage('section')).toContain('three places')
+    expect(componentPage('totals')).toContain('Table`](/components/table) footer row')
+    expect(installationPage).toContain('PageBreak` is the exception')
+    expect(componentPage('document')).toContain('optional `id`, `format`, `tokens`')
+    expect(componentPage('typography')).toContain('between the paragraphs of a `Field`')
   })
 })
