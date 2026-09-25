@@ -45,12 +45,12 @@ describe('time', () => {
 })
 
 describe('datetime', () => {
-	test.each(['2024-02-29T10:00:00Z', '2024-02-29T10:00:00.123+05:30', '2024-02-29T10:00:00'])('accepts %s', (value) => {
+	test.each(['2024-02-29T10:00:00Z', '2024-02-29T10:00:00.123+05:30'])('accepts %s', (value) => {
 		expect(datetime(value)).toBe(value)
 		expect(datetime.isValid(value)).toBe(true)
 	})
 
-	test.each(['2024-02-29', '2024-02-29 10:00:00Z', '2024-02-29T25:00:00Z', '2024-02-29T10:00:00+24:00'])('rejects %s', (value) => {
+	test.each(['2024-02-29', '2024-02-29 10:00:00Z', '2024-02-29T10:00:00', '2024-02-29T25:00:00Z', '2024-02-29T10:00:00+24:00'])('rejects %s', (value) => {
 		expect(datetime.isValid(value)).toBe(false)
 		expect(() => datetime.parse(value)).toThrow('is not a valid ISO 8601 datetime')
 	})

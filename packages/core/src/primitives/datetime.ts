@@ -4,7 +4,7 @@
 
 // ISO 8601 datetime format regex (supports both Z and +/-HH:MM timezone)
 const DATETIME_REGEX =
-	/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?$/;
+	/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
 
 function isValidDatetime(value: string): boolean {
 	if (!DATETIME_REGEX.test(value)) {

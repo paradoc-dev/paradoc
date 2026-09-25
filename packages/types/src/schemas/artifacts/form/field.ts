@@ -275,14 +275,14 @@ export interface DateField extends BaseField {
 }
 
 /**
- * Datetime input field (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ).
+ * Datetime input field (ISO 8601 with `Z` or a `±HH:MM` offset).
  */
 export interface DatetimeField extends BaseField {
   /** Discriminator for datetime field type. */
   type: "datetime";
-  /** Minimum allowed datetime in ISO 8601 format. */
+  /** Minimum allowed datetime with an explicit timezone. */
   min?: string;
-  /** Maximum allowed datetime in ISO 8601 format. */
+  /** Maximum allowed datetime with an explicit timezone. */
   max?: string;
   /** Default value for the field. */
   default?: string;

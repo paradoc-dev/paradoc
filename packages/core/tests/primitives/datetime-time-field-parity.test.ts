@@ -13,10 +13,17 @@ const f = form().name('drift').fields({
 }).build()
 
 describe('core-072', () => {
-	test.each(['2024-01-01T10:00:00', '2024-01-01T10:00:00+02:00', '2024-01-01T10:00:00Z', '0099-01-01T10:00:00Z'])('datetime %s', (value) => {
+	test.each(['2024-01-01T10:00:00+02:00', '2024-01-01T10:00:00Z', '0099-01-01T10:00:00Z'])('datetime %s', (value) => {
 		expect(datetime.isValid(value)).toBe(true)
 		expect(validateFieldInput(f, { fieldPath: 'when', value }).success).toBe(true)
 		expect(f.safeFill({ fields: { when: value } } as never).success).toBe(true)
+	})
+
+	test('refuses a datetime without a timezone', () => {
+		const value = '2024-01-01T10:00:00'
+		expect(datetime.isValid(value)).toBe(false)
+		expect(validateFieldInput(f, { fieldPath: 'when', value }).success).toBe(false)
+		expect(f.safeFill({ fields: { when: value } } as never).success).toBe(false)
 	})
 
 	test('time 10:00:00.5', () => {

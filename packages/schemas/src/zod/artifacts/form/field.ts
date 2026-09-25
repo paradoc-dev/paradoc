@@ -206,25 +206,31 @@ const DateFieldSchema = BaseFieldSchema.extend({
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
+const DatetimeValueSchema = z.iso.datetime({ offset: true }).regex(
+	/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/,
+)
+
 const DatetimeFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('datetime'),
-	min: z.iso.datetime()
-		.describe('Minimum datetime (ISO 8601)')
+	min: DatetimeValueSchema
+		.describe('Minimum datetime (ISO 8601 with Z or ±HH:MM timezone)')
 		.optional(),
-	max: z.iso.datetime()
-		.describe('Maximum datetime (ISO 8601)')
+	max: DatetimeValueSchema
+		.describe('Maximum datetime (ISO 8601 with Z or ±HH:MM timezone)')
 		.optional(),
-	default: z.iso.datetime().describe('Default value').optional(),
+	default: DatetimeValueSchema.describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', compareTemporalBounds)
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })
 });
 
+const TimeValueSchema = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?$/)
+
 const TimeFieldSchema = BaseFieldSchema.extend({
 	type: z.literal('time'),
-	min: z.iso.time().describe('Minimum time (ISO 8601: HH:MM or HH:MM:SS[.fff])').optional(),
-	max: z.iso.time().describe('Maximum time (ISO 8601: HH:MM or HH:MM:SS[.fff])').optional(),
-	default: z.iso.time().describe('Default value').optional(),
+	min: TimeValueSchema.describe('Minimum time (HH:MM:SS[.fff])').optional(),
+	max: TimeValueSchema.describe('Maximum time (HH:MM:SS[.fff])').optional(),
+	default: TimeValueSchema.describe('Default value').optional(),
 }).superRefine((field, ctx) => {
 	const issue = getOrderedBoundsIssue(field.min, field.max, 'min', 'max', compareClockTimeBounds)
 	if (issue) ctx.addIssue({ code: 'custom', ...issue })

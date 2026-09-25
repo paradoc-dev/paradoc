@@ -125,7 +125,7 @@ Arithmetic and ordering work on numbers, so read `.amount`:
 
 - Compare two values of the same temporal type: `fields.endDate > fields.startDate`, `fields.startDate <= today()`, `fields.signedAt < now()`.
 - A string literal is not a date. `fields.startDate > '2020-01-01'` fails with `Cannot compare date and string`. Pass the literal to a date function, which validates it: `dateDiff('2020-01-01', fields.startDate) > 0`.
-- Date values are `YYYY-MM-DD`. Datetime values need `Z` or an offset. Times are `HH:MM` or `HH:MM:SS`.
+- Date values are `YYYY-MM-DD`. Datetime values need `Z` or a `±HH:MM` offset. Times are `HH:MM:SS` with optional fractional seconds.
 
 ### Numbers
 

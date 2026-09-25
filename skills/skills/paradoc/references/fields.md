@@ -38,8 +38,8 @@ Paradoc has 24 field types. The fill value column is the exact JSON a payload ca
 | `percentage` | number in percentage points (`8.25` is 8.25%) | Rates, ratios |
 | `rating` | number | Scores |
 | `date` | `"2026-01-31"` (`YYYY-MM-DD`) | Calendar dates |
-| `datetime` | `"2026-01-31T14:30:00Z"` (UTC, ends in `Z`) | Timestamps |
-| `time` | `"14:30:00"` (`HH:MM:SS`, 24-hour) | Times of day |
+| `datetime` | `"2026-01-31T14:30:00Z"` or `"2026-01-31T14:30:00+02:00"` | Timestamps |
+| `time` | `"14:30:00"` or `"14:30:00.5"` (`HH:MM:SS[.fff]`, 24-hour) | Times of day |
 | `duration` | `"P1Y"`, `"PT30M"` (ISO 8601) | Lease terms, warranties |
 | `email` | `"jane@example.com"` | Email addresses |
 | `phone` | `{ "number": "+14155552671", "type": "mobile" }` | Phone numbers |
@@ -163,10 +163,10 @@ A rating has no implied range. Set `min` and `max`; without `max` a rendered rat
 | Type | Accepted | Refused |
 |------|----------|---------|
 | `date` | `2026-01-31` | `2026-1-31` |
-| `datetime` | `2026-01-31T14:30:00Z`, `2026-01-31T14:30:00.123Z` | `2026-01-31T14:30:00+02:00`, `2026-01-31T14:30:00` (`Invalid ISO datetime`) |
-| `time` | `14:30:00` | `14:30`, `14:30:00.5`, `24:00:00` |
+| `datetime` | `2026-01-31T14:30:00Z`, `2026-01-31T14:30:00.123+02:00` | `2026-01-31T14:30:00` (`Invalid ISO datetime`) |
+| `time` | `14:30:00`, `14:30:00.5` | `14:30`, `24:00:00` |
 
-Convert a local datetime to UTC before you fill it.
+Include the local offset or convert a local datetime to UTC before you fill it.
 
 ```json schema=fields
 "dateOfBirth": { "type": "date", "label": "Date of birth", "required": true, "max": "2008-01-01" },

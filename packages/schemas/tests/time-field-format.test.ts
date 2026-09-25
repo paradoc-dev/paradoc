@@ -13,8 +13,9 @@ describe('time field format', () => {
 		expect(FormFieldSchema.safeParse({ type: 'time', min: 'noon', max: 'later' }).success).toBe(false)
 	})
 
-	it('accepts valid HH:MM and HH:MM:SS bounds', () => {
-		expect(FormFieldSchema.safeParse({ type: 'time', min: '09:00', max: '10:00:00' }).success).toBe(true)
+	it('requires seconds in time bounds', () => {
+		expect(FormFieldSchema.safeParse({ type: 'time', min: '09:00', max: '10:00:00' }).success).toBe(false)
+		expect(FormFieldSchema.safeParse({ type: 'time', min: '09:00:00', max: '10:00:00' }).success).toBe(true)
 	})
 
 	it('accepts a valid HH:MM:SS.fff default', () => {
@@ -23,5 +24,14 @@ describe('time field format', () => {
 
 	it('rejects reversed bounds once both parse to the same padded precision', () => {
 		expect(FormFieldSchema.safeParse({ type: 'time', min: '10:00:01', max: '10:00:00' }).success).toBe(false)
+	})
+})
+
+describe('datetime field format', () => {
+	it('requires seconds and an explicit timezone in defaults and bounds', () => {
+		expect(FormFieldSchema.safeParse({ type: 'datetime', default: '2026-09-25T14:30:00' }).success).toBe(false)
+		expect(FormFieldSchema.safeParse({ type: 'datetime', default: '2026-09-25T14:30Z' }).success).toBe(false)
+		expect(FormFieldSchema.safeParse({ type: 'datetime', min: '2026-09-25T14:30:00Z' }).success).toBe(true)
+		expect(FormFieldSchema.safeParse({ type: 'datetime', max: '2026-09-25T14:30:00.500-04:00' }).success).toBe(true)
 	})
 })
