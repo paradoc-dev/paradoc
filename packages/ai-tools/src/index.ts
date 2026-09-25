@@ -47,7 +47,6 @@ import {
 import type { ParadocToolsConfig } from './config'
 
 export * from './contracts'
-export * from './schemas'
 export { createToolExecutionContext } from './context'
 export type { ToolExecutionContext, RequestCache } from './context'
 export type { ParadocToolsConfig } from './config'

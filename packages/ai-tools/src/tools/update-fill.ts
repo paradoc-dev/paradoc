@@ -1,8 +1,7 @@
 import type { ParadocToolsConfig } from '../config'
-import type { UpdateFillInput, UpdateFillOutput } from '../contracts'
+import { UpdateFillInputSchema, type UpdateFillInput, type UpdateFillOutput } from '../contracts'
 import { artifactKind, asChecklistPayload, asFormPayload, contextSnapshot, errorList, formDraftPayload, makeResolver } from '../artifact'
 import { errorFromUnknown } from '../errors'
-import { normalizeUpdateFillInput } from '../input'
 import { resolveSource } from '../resolve-source'
 
 function contextOptions(value: unknown): { context?: import('@paradoc/core').RuntimeContextOptions } | undefined {
@@ -27,8 +26,8 @@ export async function executeUpdateFill(
 	input: UpdateFillInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<UpdateFillOutput> {
-	const normalized = normalizeUpdateFillInput(input)
 	try {
+		const normalized = UpdateFillInputSchema.parse(input)
 		const { isChecklist, isForm, loadFromObject } = await import('@paradoc/core')
 		const { artifact, base_url } = await resolveSource(normalized, config)
 		if (isForm(artifact)) {

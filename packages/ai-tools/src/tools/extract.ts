@@ -1,8 +1,7 @@
 import type { ParadocToolsConfig } from '../config'
-import type { ExtractInput, ExtractOutput } from '../contracts'
+import { ExtractInputSchema, type ExtractInput, type ExtractOutput } from '../contracts'
 import { artifactKind } from '../artifact'
 import { errorFromUnknown, toolError } from '../errors'
-import { normalizeExtractInput } from '../input'
 import { fetchPolicyFromConfig, MAX_LAYER_FILE_SIZE, safeFetch } from '../registry-client'
 import { resolveSource } from '../resolve-source'
 
@@ -40,8 +39,8 @@ export async function executeExtract(
 	input: ExtractInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<ExtractOutput> {
-	const normalized = normalizeExtractInput(input)
 	try {
+		const normalized = ExtractInputSchema.parse(input)
 		const { isForm, loadFromObject, validate } = await import('@paradoc/core')
 		const { artifact } = await resolveSource(normalized, config)
 		const kind = artifactKind(artifact)

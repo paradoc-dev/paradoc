@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import {
 	createExtractTool,
 	createFillTool,
@@ -75,6 +76,7 @@ describe('@paradoc/mastra', () => {
 			expect(tool.id).toBe(name)
 			expect(tool.description).toBe(toolDefinitions[name].description)
 			expect(tool.inputSchema).toBe(toolDefinitions[name].input_schema)
+			expect((z.toJSONSchema(tool.inputSchema) as Record<string, unknown>).type, name).toBe('object')
 			expect(tool.outputSchema).toBe(toolDefinitions[name].output_schema)
 			expect(tool.execute).toBeTypeOf('function')
 		}

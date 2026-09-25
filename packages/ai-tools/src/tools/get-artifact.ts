@@ -1,7 +1,6 @@
 import type { ParadocToolsConfig } from '../config'
-import type { GetArtifactInput, GetArtifactOutput, InstructionContent } from '../contracts'
+import { GetArtifactInputSchema, type GetArtifactInput, type GetArtifactOutput, type InstructionContent } from '../contracts'
 import { errorFromUnknown } from '../errors'
-import { normalizeGetArtifactInput } from '../input'
 import {
 	buildArtifactItemUrl,
 	bytesToBase64,
@@ -51,10 +50,10 @@ export async function executeGetArtifact(
 	input: GetArtifactInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<GetArtifactOutput> {
-	const normalized = normalizeGetArtifactInput(input)
-	const registryUrl = registryUrlFromConfig(normalized.registry_url, config)
-	if (!registryUrl) return { error: { code: 'missing_registry_url', message: 'registry_url is required, or configure defaultRegistryUrl.' } }
 	try {
+		const normalized = GetArtifactInputSchema.parse(input)
+		const registryUrl = registryUrlFromConfig(normalized.registry_url, config)
+		if (!registryUrl) return { error: { code: 'missing_registry_url', message: 'registry_url is required, or configure defaultRegistryUrl.' } }
 		const resolvedIndex = await fetchRegistryIndexResponse(registryUrl, config?.fetch, config)
 		const index = resolvedIndex.index
 		const resolvedRegistryUrl = new URL('.', resolvedIndex.response.url || new URL('registry.json', `${registryUrl.replace(/\/$/, '')}/`).toString()).toString().replace(/\/$/, '')
@@ -81,6 +80,9 @@ export async function executeGetArtifact(
 		}
 		return output
 	} catch (error) {
-		return { artifact_name: normalized.artifact_name, error: errorFromUnknown(error, 'artifact_fetch_error') }
+		const artifactName = input && typeof input === 'object' && 'artifact_name' in input && typeof input.artifact_name === 'string'
+			? input.artifact_name
+			: undefined
+		return { ...(artifactName ? { artifact_name: artifactName } : {}), error: errorFromUnknown(error, 'artifact_fetch_error') }
 	}
 }

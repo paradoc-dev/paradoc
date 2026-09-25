@@ -1,8 +1,7 @@
 import type { ParadocToolsConfig } from '../config'
-import type { InspectArtifactInput, InspectArtifactOutput } from '../contracts'
+import { InspectArtifactInputSchema, type InspectArtifactInput, type InspectArtifactOutput } from '../contracts'
 import { artifactKind, isRecord } from '../artifact'
 import { errorFromUnknown } from '../errors'
-import { normalizeInspectArtifactInput } from '../input'
 import { resolveSource } from '../resolve-source'
 
 type SectionName = 'metadata' | 'fields' | 'parties' | 'annexes' | 'items' | 'layers'
@@ -91,8 +90,8 @@ export async function executeInspectArtifact(
 	input: InspectArtifactInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<InspectArtifactOutput> {
-	const normalized = normalizeInspectArtifactInput(input)
 	try {
+		const normalized = InspectArtifactInputSchema.parse(input)
 		const { artifact } = await resolveSource(normalized, config)
 		const sections = (normalized.sections ?? ['metadata', 'fields', 'parties', 'annexes', 'items', 'layers']) as SectionName[]
 		const projection = inspectSections(artifact, sections, normalized.max_items ?? 100)

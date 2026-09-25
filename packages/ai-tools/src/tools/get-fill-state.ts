@@ -1,9 +1,8 @@
 import type { RuleValidationResult } from '@paradoc/core'
 import type { ParadocToolsConfig } from '../config'
-import type { FillStateInput, FillStateOutput, RuleViolation, ToolError } from '../contracts'
+import { FillStateInputSchema, type FillStateInput, type FillStateOutput, type RuleViolation, type ToolError } from '../contracts'
 import { artifactKind, asChecklistPayload, asFormPayload, contextSnapshot, makeResolver } from '../artifact'
 import { errorFromUnknown } from '../errors'
-import { normalizeFillStateInput } from '../input'
 import { resolveSource } from '../resolve-source'
 
 type CoreRules = { valid: boolean; errors: RuleValidationResult[]; warnings: RuleValidationResult[] }
@@ -57,8 +56,8 @@ export async function executeGetFillState(
 	input: FillStateInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<FillStateOutput> {
-	const normalized = normalizeFillStateInput(input)
 	try {
+		const normalized = FillStateInputSchema.parse(input)
 		const { isChecklist, isForm, loadFromObject } = await import('@paradoc/core')
 		const { artifact, base_url } = await resolveSource(normalized, config)
 		if (isForm(artifact)) {

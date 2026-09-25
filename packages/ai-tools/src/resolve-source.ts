@@ -1,6 +1,5 @@
 import type { ParadocToolsConfig } from './config'
-import type { SourceInput } from './contracts'
-import { normalizeSource } from './input'
+import { SourceSchema, type SourceInput } from './contracts'
 import {
 	buildArtifactItemUrl,
 	fetchRegistryIndexResponse,
@@ -55,7 +54,7 @@ async function resolveUncheckedSource(
 	input: SourceInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<ResolvedSource> {
-	const source = normalizeSource(input)
+	const source = SourceSchema.parse(input)
 	if (source.source === 'artifact') {
 		return { artifact: source.artifact, base_url: source.base_url }
 	}

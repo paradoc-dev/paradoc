@@ -1,8 +1,7 @@
 import type { ParadocToolsConfig } from '../config'
-import type { RenderInput, RenderOutput } from '../contracts'
+import { RenderInputSchema, type RenderInput, type RenderOutput } from '../contracts'
 import { artifactKind, asChecklistPayload, asFormPayload, boundedPresentation, contextSnapshot, encodeOutput, errorList, makeResolver } from '../artifact'
 import { errorFromUnknown } from '../errors'
-import { normalizeRenderInput } from '../input'
 import { resolveSource } from '../resolve-source'
 
 function selectedLayer(artifact: Record<string, unknown>, requested: string | undefined): { key?: string; mime_type?: string; kind?: string } {
@@ -51,8 +50,8 @@ export async function executeRender(
 	input: RenderInput | Record<string, unknown>,
 	config?: ParadocToolsConfig,
 ): Promise<RenderOutput> {
-	const normalized = normalizeRenderInput(input)
 	try {
+		const normalized = RenderInputSchema.parse(input)
 		const { isChecklist, isDocument, isForm, loadFromObject, validate } = await import('@paradoc/core')
 		const { artifact, base_url } = await resolveSource(normalized, config)
 		const kind = artifactKind(artifact)
