@@ -111,7 +111,7 @@ function DocsSidebar(props: ComponentProps<"aside">) {
         {({ ref }) => (
           <div
             data-sidebar-placeholder=""
-            className="sticky top-(--fd-docs-row-2) z-20 h-[calc(var(--fd-docs-height)-var(--fd-docs-row-2))] [grid-area:sidebar] max-md:hidden md:layout:[--fd-sidebar-width:268px]"
+            className="sticky top-(--fd-docs-row-2) z-20 flex h-[calc(var(--fd-docs-height)-var(--fd-docs-row-2))] justify-end [grid-area:sidebar] max-md:hidden md:layout:[--fd-sidebar-width:268px]"
           >
             <aside
               id="nd-sidebar"
