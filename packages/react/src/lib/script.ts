@@ -1,11 +1,10 @@
 /**
- * The document's script and its writing direction, and what each of them
- * demands of the thing about to render.
+ * The document's language, script, and writing direction.
  *
  * A document declares a language and a direction the way HTML does, and it
- * declares them as document tokens, so one resolution reaches the preview and
- * the render alike. Two things then have to be true before anything draws it,
- * and neither of them fails loudly on its own.
+ * declares language and direction as document tokens, so one resolution
+ * reaches the preview and the render alike. The selected engine must then lay
+ * that direction out correctly before anything draws it.
  *
  * **The engine has to lay the direction out.** Right-to-left is not a property
  * of the text alone: it decides which edge a line starts on and which end of a
