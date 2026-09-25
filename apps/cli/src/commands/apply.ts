@@ -19,7 +19,9 @@ interface PatchTarget {
 }
 
 function normalizeFilename(patch: DiffPatch): string | null {
-  const candidate = patch.newFileName ?? patch.oldFileName
+  const candidate = patch.newFileName === '/dev/null'
+    ? patch.oldFileName
+    : patch.newFileName ?? patch.oldFileName
   if (!candidate) return null
   return candidate.replace(/^[ab]\//, '')
 }

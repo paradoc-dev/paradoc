@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
+import { resolve } from 'node:path'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { resolveArtifactTarget } from '../utils/io.js'
 
@@ -30,7 +31,7 @@ export function createShowCommand(): Command {
 
         // Resolve artifact reference or file path
         const resolvedTarget = await resolveArtifactTarget(artifactPath)
-        const filePath = storage.getAbsolutePath(resolvedTarget)
+        const filePath = resolve(resolvedTarget)
 
         // Check file exists
         if (!(await fileExists(filePath))) {

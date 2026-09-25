@@ -1,6 +1,7 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import semver from 'semver'
+import { resolve } from 'node:path'
 import { validate, type Artifact } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 import { ensureRepo, fileExists } from '../utils/project.js'
@@ -20,6 +21,7 @@ export function createVersionCommand(): Command {
     .description('Bump semantic version in an artifact file')
     .action(async (file: string, bumpType: string) => {
       try {
+        const filePath = resolve(file)
         // Ensure in valid repository
         const repoRoot = await ensureRepo()
         process.chdir(repoRoot)
@@ -27,13 +29,13 @@ export function createVersionCommand(): Command {
         const storage = new LocalFileSystem(repoRoot)
 
         // Verify file exists
-        if (!(await fileExists(file))) {
+        if (!(await fileExists(filePath))) {
           throw new Error(`File not found: ${file}`)
         }
 
         // Read file content
-        const content = await storage.readFile(file)
-        const ext = storage.extname(file).toLowerCase()
+        const content = await storage.readFile(filePath)
+        const ext = storage.extname(filePath).toLowerCase()
 
         // Parse artifact (auto-detects format)
         if (!['.json', '.yaml', '.yml'].includes(ext)) {
@@ -104,7 +106,7 @@ export function createVersionCommand(): Command {
         // Update artifact with new version
         artifact.version = newVersion
 
-        await writeArtifactEdit(storage, file, content, artifact as unknown as Artifact)
+        await writeArtifactEdit(storage, filePath, content, artifact as unknown as Artifact)
 
         // Output success message
         console.log(kleur.green(`✓ Version bumped: ${currentVersion} → ${newVersion}`))

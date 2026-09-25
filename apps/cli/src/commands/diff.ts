@@ -1,6 +1,7 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
 import * as Diff from 'diff'
+import { resolve } from 'node:path'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import {
@@ -18,8 +19,6 @@ const EXIT_ERROR = 2
  * Create the 'diff' command
  * Shows differences between artifact files.
  * Exits 0 when the files are identical, 1 when they differ, 2 on error.
- *
- * TODO: Implement registry-based diff (compare local vs registry version)
  */
 export function createDiffCommand(): Command {
   const diff = new Command('diff')
@@ -40,8 +39,8 @@ export function createDiffCommand(): Command {
         const storage = new LocalFileSystem(repoRoot)
 
         // Resolve file paths
-        const path1 = storage.getAbsolutePath(file1)
-        const path2 = storage.getAbsolutePath(file2)
+        const path1 = resolve(file1)
+        const path2 = resolve(file2)
 
         // Check files exist
         if (!(await fileExists(path1))) {
