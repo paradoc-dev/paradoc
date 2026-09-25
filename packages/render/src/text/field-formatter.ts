@@ -36,6 +36,13 @@ export interface FieldFormattingOptions {
 
 type RecordValue = Record<string, unknown>
 
+const organizationPartyKeys = new Set(['legalName', 'domicile', 'entityType', 'entityId', 'taxId'])
+
+/** Match core's party inference: any organization-only member makes an organization; otherwise it is a person. */
+function inferredPartyType(value: RecordValue): 'person' | 'organization' {
+	return Object.keys(value).some((key) => organizationPartyKeys.has(key)) ? 'organization' : 'person'
+}
+
 const rawValues = new WeakMap<FormattedFieldValue, unknown>()
 const renderedValues = new WeakMap<FormattedFieldValue, string>()
 
@@ -378,7 +385,10 @@ export function formatDefinitionValue(
 			case 'phone': return callFormatter(path, type, value, () => formatter.safeFormatPhone(typeof value === 'string' ? value : recordInput(value, path, type)), options)
 			case 'person': return callFormatter(path, type, value, () => formatter.safeFormatPerson(recordInput(value, path, type)), options)
 			case 'organization': return callFormatter(path, type, value, () => formatter.safeFormatOrganization(recordInput(value, path, type)), options)
-			case 'party': return callFormatter(path, type, value, () => formatter.safeFormatParty(recordInput(value, path, type)), options)
+			case 'party': {
+				const party = recordInput(value, path, type)
+				return callFormatter(path, type, value, () => formatter.safeFormatParty(party, { partyType: inferredPartyType(party) }), options)
+			}
 			case 'coordinate': return callFormatter(path, type, value, () => formatter.safeFormatCoordinate(recordInput(value, path, type)), options)
 			case 'bbox': return callFormatter(path, type, value, () => formatter.safeFormatBbox(recordInput(value, path, type)), options)
 			case 'duration': return callFormatter(path, type, value, () => formatter.safeFormatDuration(stringInput(value, path, type)), options)
@@ -429,7 +439,8 @@ export function formatParties(
 	if (Array.isArray(value)) return value.map((entry, index) => formatParties(formatter, form, entry, childPath(path, index), options, role))
 	const party = recordInput(value, path, 'party')
 	const partyType = role ? form.parties?.[role]?.partyType : undefined
-	return callFormatter(path, 'party', value, () => formatter.safeFormatParty(party, partyType === 'person' || partyType === 'organization' ? { partyType } : undefined), options)
+	const resolvedPartyType = partyType === 'person' || partyType === 'organization' ? partyType : inferredPartyType(party)
+	return callFormatter(path, 'party', value, () => formatter.safeFormatParty(party, { partyType: resolvedPartyType }), options)
 }
 
 function formatAnnexes(

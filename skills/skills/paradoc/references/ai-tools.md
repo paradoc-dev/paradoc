@@ -83,7 +83,11 @@ import { readFile } from 'node:fs/promises'
 import { executeFill, executeGetFillState, executeUpdateFill, executeRender } from '@paradoc/ai-tools'
 
 const artifact = JSON.parse(await readFile('pet-addendum.json', 'utf8'))
-const source = { source: 'artifact' as const, artifact }
+const source = {
+  source: 'artifact' as const,
+  artifact,
+  base_url: 'https://public-dev.paradoc.dev/pet-addendum/',
+}
 
 // 1. Start the draft with what the user gave.
 const first = await executeFill({ ...source, data: { fields: { petName: 'Rex' } } })

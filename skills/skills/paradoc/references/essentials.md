@@ -40,5 +40,5 @@ const pdf = await draft.render({ layer: "pdf" });
 ## Form-specific rules
 
 - The 1099 forms have one PDF layer per copy: `pdfCopyA`, `pdfCopy1`, `pdfCopyB`, `pdfCopy2`. Pass `layer` to render and extract.
-- A party with `partyType: "any"` (the W-9 `taxpayer`) needs `firstName` and `lastName`, or an organization `name`. Otherwise the render throws `Party identity is ambiguous`.
+- A party with `partyType: "any"` (the W-9 `taxpayer`) is a person unless it carries an organization-only member such as `legalName` or `entityType`.
 - The forms fill, render, extract and seal like any form: see [filling.md](./filling.md), [pdf.md](./pdf.md) and [sealing.md](./sealing.md).
