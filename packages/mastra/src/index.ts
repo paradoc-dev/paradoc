@@ -1,5 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import {
+	configForExecution,
 	operationNames,
 	toolDefinitions,
 	type ParadocToolsConfig,
@@ -99,8 +100,7 @@ function sharedConfig(config: ParadocMastraConfig | undefined): ParadocToolsConf
 
 function executionConfig(config: ParadocMastraConfig | undefined, context: MastraExecutionContext): ParadocToolsConfig | undefined {
 	const shared = sharedConfig(config)
-	if (!context.abortSignal) return shared
-	return { ...shared, signal: context.abortSignal }
+	return configForExecution(shared, context.abortSignal)
 }
 
 function createMastraTool<Input, Output>(

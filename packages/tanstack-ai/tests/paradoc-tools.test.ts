@@ -167,6 +167,21 @@ describe('paradocTools', () => {
 		expect(observedSignal).not.toBe(controller.signal)
 	})
 
+	it('creates a fresh request cache for each TanStack call', async () => {
+		let calls = 0
+		const tool = getRegistry({
+			defaultRegistryUrl: 'https://registry.example',
+			fetch: async () => {
+				calls += 1
+				return Response.json({ items: [] })
+			},
+		})
+
+		await tool.execute!({})
+		await tool.execute!({})
+		expect(calls).toBe(2)
+	})
+
 	it('executes a deterministic tool call through native TanStack chat', async () => {
 		let callCount = 0
 		let receivedToolCount = 0
