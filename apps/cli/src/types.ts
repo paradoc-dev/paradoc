@@ -59,7 +59,6 @@ export interface ResolvedRegistry {
   /** Configured URL before environment variables are expanded. */
   configuredUrl?: string
   headers?: Record<string, string>
-  params?: Record<string, string>
   artifactsPath?: string
   cache?: RegistryCacheConfig
 }

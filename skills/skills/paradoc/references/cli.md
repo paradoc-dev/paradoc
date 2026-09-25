@@ -121,7 +121,7 @@ What it checks, unless `--schema-only`:
 <!-- dep:C7 -->
 Exit 0 is a trustworthy gate for these checks. The final check for a form is still the [round trip](#round-trip).
 
-Exit 0 means no errors; warnings keep exit 0. `--layers-only` checks only layer paths and checksums; `--checksum-only` checks only checksums. For the error messages, see [schemas.md](./schemas.md#error-messages).
+Exit 0 means no errors; warnings keep exit 0. `--checksum-only` checks only checksums. For the error messages, see [schemas.md](./schemas.md#error-messages).
 
 ### fix
 
@@ -302,7 +302,6 @@ A registry entry is a URL string or an object:
   "@acme": {
     "url": "https://registry.acme.com",
     "headers": { "Authorization": "Bearer ${ACME_TOKEN}" },
-    "params": { "channel": "stable" },
     "cache": { "ttl": 600 }
   },
   "@public": "https://registry.example.com"

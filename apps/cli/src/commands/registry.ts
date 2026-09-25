@@ -1074,6 +1074,18 @@ export function createRegistryCommand(): Command {
           }
         }
 
+        if (!options.dryRun && errors === 0) {
+          const { artifactsPath: _artifactsPath, items, ...registryMetadata } = registryData
+          const compiledIndex = {
+            ...registryMetadata,
+            items: items.map(({ path: _path, ...item }) => item),
+          }
+          await storage.writeFile(
+            storage.joinPath(outputDir, 'registry.json'),
+            JSON.stringify(compiledIndex, null, 2),
+          )
+        }
+
         console.log()
         if (errors > 0) {
           console.log(kleur.yellow(`Compiled ${compiled}/${registryData.items.length} artifacts (${errors} error(s))`))

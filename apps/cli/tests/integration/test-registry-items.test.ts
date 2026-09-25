@@ -24,12 +24,15 @@ describe('test registry', () => {
     try {
       const result = await runCli(['registry', 'compile', '--registry', path.join(root, 'registry.json'), '--output', output], { cwd: root })
       expect(result.exitCode).toBe(0)
-      const generated = fs.readdirSync(output).sort()
+      const generated = fs.readdirSync(output).filter((file) => file !== 'registry.json').sort()
       const committed = fs.readdirSync(itemsDir).sort()
       expect(generated).toEqual(committed)
       for (const file of committed) {
         expect(fs.readFileSync(path.join(output, file))).toEqual(fs.readFileSync(path.join(itemsDir, file)))
       }
+      const compiledIndex = RegistryIndexSchema.parse(readJson(path.join(output, 'registry.json')))
+      expect(compiledIndex.artifactsPath).toBeUndefined()
+      expect(compiledIndex.items.every((item) => item.path === undefined)).toBe(true)
     } finally {
       fs.rmSync(output, { recursive: true, force: true })
     }

@@ -195,15 +195,6 @@ describe('CLI Validate Command', () => {
       expect(result.stdout).toMatch(/skipped|schema-only/i)
     })
 
-    it('should validate layers-only', async () => {
-      const formPath = path.join(fixturesDir, 'pet-addendum.yaml')
-      const result = await executeCliCommand(['validate', formPath, '--layers-only'])
-
-      expect(result.exitCode).toBe(0)
-      // Should show layer info but not schema details
-      expect(result.stdout).toContain('Valid')
-    })
-
     it('should validate checksum-only', async () => {
       const formPath = path.join(fixturesDir, 'pet-addendum.yaml')
       const result = await executeCliCommand(['validate', formPath, '--checksum-only'])
@@ -213,15 +204,7 @@ describe('CLI Validate Command', () => {
 
     it('should reject mutually exclusive scope flags', async () => {
       const formPath = path.join(fixturesDir, 'pet-addendum.yaml')
-      const result = await executeCliCommand(['validate', formPath, '--schema-only', '--layers-only'])
-
-      expect(result.exitCode).toBe(1)
-      expect(result.stderr).toContain('mutually exclusive')
-    })
-
-    it('should reject all three scope flags combined', async () => {
-      const formPath = path.join(fixturesDir, 'pet-addendum.yaml')
-      const result = await executeCliCommand(['validate', formPath, '--schema-only', '--layers-only', '--checksum-only'])
+      const result = await executeCliCommand(['validate', formPath, '--schema-only', '--checksum-only'])
 
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toContain('mutually exclusive')
@@ -237,14 +220,6 @@ describe('CLI Validate Command', () => {
       expect(parsed.layersSkipped).toBe(true)
     })
 
-    it('should validate layers-only with JSON output', async () => {
-      const formPath = path.join(fixturesDir, 'pet-addendum.yaml')
-      const result = await executeCliCommand(['validate', formPath, '--layers-only', '--json'])
-
-      expect(result.exitCode).toBe(0)
-      const parsed = JSON.parse(result.stdout)
-      expect(parsed.ok).toBe(true)
-    })
   })
 
   describe('validate document artifact', () => {

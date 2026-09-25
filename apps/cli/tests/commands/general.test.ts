@@ -241,6 +241,7 @@ describe('CLI General Commands', () => {
 
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain('--json')
+      expect(result.stdout).not.toContain('--layers-only')
     })
   })
 

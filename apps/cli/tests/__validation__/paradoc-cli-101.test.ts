@@ -10,11 +10,9 @@ writeFileSync(file, JSON.stringify({ $schema: 'https://schema.paradoc.dev/2026-0
 afterAll(() => rmSync(root, { recursive: true, force: true }))
 
 describe('paradoc-cli-101: scope flags require a schema-valid artifact', () => {
-  for (const scope of ['--layers-only', '--checksum-only']) {
-    it(`${scope} fails`, async () => {
-      const result = await runCli(['validate', file, scope, '--json'], { cwd: root })
-      expect(result.exitCode).toBe(1)
-      expect(JSON.parse(result.stdout).ok).toBe(false)
-    })
-  }
+  it('--checksum-only fails', async () => {
+    const result = await runCli(['validate', file, '--checksum-only', '--json'], { cwd: root })
+    expect(result.exitCode).toBe(1)
+    expect(JSON.parse(result.stdout).ok).toBe(false)
+  })
 })

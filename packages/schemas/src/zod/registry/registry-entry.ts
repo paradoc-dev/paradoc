@@ -30,9 +30,6 @@ export const RegistryEntryObjectSchema = z.strictObject({
 	headers: z.record(z.string(), z.string())
 		.describe('HTTP headers for authentication (supports ${ENV_VAR} expansion)')
 		.optional(),
-	params: z.record(z.string(), z.string())
-		.describe('Query parameters to include in requests')
-		.optional(),
 	cache: RegistryCacheConfigSchema
 		.describe('Per-registry cache settings')
 		.optional(),

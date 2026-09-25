@@ -576,7 +576,12 @@ describe('CLI Registry Command', () => {
 
       // Verify compiled file exists
       const files = await fs.readdir(outDir)
-      expect(files.length).toBeGreaterThan(0)
+      expect(files.sort()).toEqual(['my-form.json', 'registry.json'])
+      const compiledIndex = JSON.parse(await fs.readFile(path.join(outDir, 'registry.json'), 'utf8'))
+      expect(compiledIndex.artifactsPath).toBeUndefined()
+      expect(compiledIndex.items).toEqual([
+        { name: 'my-form', kind: 'form', version: '1.0.0' },
+      ])
     })
 
     it('should record checksums for a PDF layer and its declared font', async () => {

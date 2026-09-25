@@ -38,16 +38,14 @@ describe('one artifact file-reference walker', () => {
     ])
   })
 
-  it('fails schema-invalid artifacts in layers-only and checksum-only scopes', async () => {
+  it('fails schema-invalid artifacts in checksum-only scope', async () => {
     const root = scratch()
     const file = path.join(root, 'bad.json')
     writeFileSync(file, JSON.stringify({ $schema: schema, kind: 'form', name: 'bad', title: 'Bad', version: '1.0.0', fields: { a: { type: 'nope', label: 'A' } } }))
 
-    for (const scope of ['--layers-only', '--checksum-only']) {
-      const result = await runCli(['validate', file, scope, '--json'], { cwd: root })
-      expect(result.exitCode).toBe(1)
-      expect(JSON.parse(result.stdout).ok).toBe(false)
-    }
+    const result = await runCli(['validate', file, '--checksum-only', '--json'], { cwd: root })
+    expect(result.exitCode).toBe(1)
+    expect(JSON.parse(result.stdout).ok).toBe(false)
   })
 
   it('reports a read error once on stderr', async () => {

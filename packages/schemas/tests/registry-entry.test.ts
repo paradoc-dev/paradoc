@@ -5,7 +5,7 @@ const manifestBase = { name: '@acme/forms', title: 'Acme forms' };
 
 const validEntries = [
 	'https://registry.example.com',
-	{ url: 'https://registry.example.com', headers: { Authorization: 'Bearer ${TOKEN}' }, params: { v: '1' }, cache: { ttl: 0 } },
+	{ url: 'https://registry.example.com', headers: { Authorization: 'Bearer ${TOKEN}' }, cache: { ttl: 0 } },
 ];
 
 const invalidEntries = [
@@ -14,6 +14,7 @@ const invalidEntries = [
 	{ url: 'https://registry.example.com', cache: { ttl: -1 } },
 	{ url: 'https://registry.example.com', cache: { ttl: 1.5 } },
 	{ url: 'https://registry.example.com', headers: { Authorization: 1 } },
+	{ url: 'https://registry.example.com', params: { v: '1' } },
 ];
 
 const parseManifestEntry = (entry: unknown) => ManifestSchema.safeParse({ ...manifestBase, registries: { '@acme': entry } });

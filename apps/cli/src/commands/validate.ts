@@ -18,7 +18,6 @@ interface ValidateOptions {
   silent?: boolean
   expectKind?: string
   schemaOnly?: boolean
-  layersOnly?: boolean
   checksumOnly?: boolean
 }
 
@@ -63,13 +62,12 @@ export function createValidateCommand(): Command {
     .option('--silent', 'Suppress console output (exit code only)')
     .option('--expect-kind <kind>', 'Assert artifact kind (form, document, checklist, bundle)')
     .option('--schema-only', 'Only validate artifact schema (skip layer checks)')
-    .option('--layers-only', 'Validate schema and referenced files (paths + checksums)')
     .option('--checksum-only', 'Validate schema and verify checksums for files that exist')
     .action(async (artifactTargets: string[], options: ValidateOptions) => {
       // Validate flag exclusivity — a global option error, unrelated to any one file
-      const scopeFlags = [options.schemaOnly, options.layersOnly, options.checksumOnly].filter(Boolean)
+      const scopeFlags = [options.schemaOnly, options.checksumOnly].filter(Boolean)
       if (scopeFlags.length > 1) {
-        console.error(kleur.red('Error: --schema-only, --layers-only, and --checksum-only are mutually exclusive.'))
+        console.error(kleur.red('Error: --schema-only and --checksum-only are mutually exclusive.'))
         process.exit(1)
         return
       }
