@@ -71,7 +71,6 @@ import ts from "typescript";
 // rewriting rule — is the smaller amount of drift risk.
 import {
   moduleId,
-  readPublicExports,
   rewriteImports,
 } from "../../../packages/components/scripts/registry/generate";
 import {
@@ -79,7 +78,6 @@ import {
   type RegistryManifestFile,
   type RegistryManifestItem,
 } from "../../../packages/components/scripts/registry/manifest";
-import { collectPackageModules } from "../../../packages/components/scripts/build-registry";
 import type { PropRow, RegistryItem } from "../src/lib/registry-types";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -90,8 +88,6 @@ const REGISTRY_DIR = resolve(here, "../public/r");
 const COMPONENTS_PKG_ROOT = resolve(here, "../../../packages/components");
 const COMPONENTS_SRC_DIR = resolve(COMPONENTS_PKG_ROOT, "src");
 const EXAMPLES_DIR = resolve(COMPONENTS_SRC_DIR, "examples");
-// scripts/ -> apps/docs/ -> apps/ -> paradoc/ -> packages/react
-const REACT_ENTRY_PATH = resolve(here, "../../../packages/react/src/index.ts");
 // The real, currently-shipping component sources — the same files the registry
 // build reads and `public/r/{name}.json` serves — not packages/react's parallel
 // substrate components. The props table must describe what a consumer actually
@@ -396,10 +392,7 @@ function buildRewriteContext(): RewriteContext {
     }
   }
 
-  const publicExports = readPublicExports(readFileSync(REACT_ENTRY_PATH, "utf8"));
-  const packageModules = new Set(collectPackageModules(COMPONENTS_SRC_DIR));
-
-  return { moduleOwner, publicExports, packageModules, bare: new Set<string>() };
+  return { moduleOwner, bare: new Set<string>(), registry: new Set<string>() };
 }
 
 const PRAGMA = /^\s*\/\*\*\s*@jsxRuntime\s+classic\s*\*\/\s*\n+/;
