@@ -30,6 +30,7 @@ type FormField =
   | PercentageField
   | RatingField
   | FieldsetField
+  | ListField
 ```
 
 ## BaseField
@@ -665,6 +666,10 @@ Identification document input field.
   },
 ]} />
 
+### ListField
+
+A repeatable list whose `item` is another `FormField`. See [ListField](/schemas/artifacts/form/list).
+
 ### FieldsetField
 
 Nested fieldset containing other fields.
@@ -721,6 +726,13 @@ fields:
     max: "2006-01-01"
 
   # Conditional field
+  maritalStatus:
+    type: enum
+    enum:
+      - value: single
+        label: Single
+      - value: married
+        label: Married
   spouseName:
     type: person
     label: Spouse Information
@@ -773,6 +785,13 @@ fields:
       "type": "date",
       "label": "Date of Birth",
       "max": "2006-01-01"
+    },
+    "maritalStatus": {
+      "type": "enum",
+      "enum": [
+        { "value": "single", "label": "Single" },
+        { "value": "married", "label": "Married" }
+      ]
     },
     "spouseName": {
       "type": "person",

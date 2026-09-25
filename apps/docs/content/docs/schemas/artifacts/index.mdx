@@ -18,6 +18,12 @@ All artifacts share the same base properties:
 
 <PropertiesTable properties={[
   {
+    name: '$schema',
+    type: 'string',
+    description: 'Current dated schema URL. Required in artifact files and optional for in-memory objects',
+    isOptional: true,
+  },
+  {
     name: 'name',
     type: 'string',
     description: 'Unique identifier; must follow slug constraints',

@@ -7,10 +7,10 @@ A Duration is a string primitive that represents a time period expressed as an I
 
 ## Format
 
-A duration is a string following the ISO 8601 duration format:
+A duration is a string following the ISO 8601 duration format: Weeks use `W`, seconds may have a fractional part, and `P` or `PT` alone is invalid.
 
 ```
-P[n]Y[n]M[n]DT[n]H[n]M[n]S
+P[n]Y[n]M[n]W[n]DT[n]H[n]M[n(.n)]S
 ```
 
 | Component | Description |

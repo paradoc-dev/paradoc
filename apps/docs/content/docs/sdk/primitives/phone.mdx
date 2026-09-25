@@ -91,7 +91,7 @@ Chain methods to build a Phone value incrementally:
 <MethodChain
   starter="p.phone()"
   methods={[
-    { name: 'number', params: 'value: string', description: 'Set phone number (E.164 format recommended)' },
+    { name: 'number', params: 'value: string', description: 'Set phone number (E.164 format required)' },
     { name: 'type', params: 'value: string | undefined', description: 'Set phone type (mobile, home, work, etc.)' },
     { name: 'extension', params: 'value: string | undefined', description: 'Set extension number' },
     { name: 'from', params: 'value: Phone', description: 'Initialize from existing Phone' },
@@ -110,14 +110,14 @@ Chain methods to build a Phone value incrementally:
 ## Properties
 
 <PropertiesTable properties={[
-  { name: 'number', type: 'string', description: 'Phone number. E.164 format recommended (+[country][number]).' },
+  { name: 'number', type: 'string', description: 'Phone number. E.164 format required (+[country][number]).' },
   { name: 'type', type: 'string?', description: 'Type of phone (mobile, home, work, fax).' },
   { name: 'extension', type: 'string?', description: 'Extension number for business lines.' },
 ]} />
 
 ## E.164 Format
 
-The recommended format for phone numbers is E.164:
+Phone numbers must use E.164:
 
 ```
 +[country code][subscriber number]
@@ -145,7 +145,7 @@ The recommended format for phone numbers is E.164:
 
 The Phone primitive validates:
 
-- `number` must be a non-empty string
+- `number` must be 8–16 characters, start with `+`, and otherwise contain digits
 - `type` and `extension` are optional
 
 ```ts

@@ -78,6 +78,7 @@ Validation rules (`rules`) may also reference field values unprefixed (e.g. `cre
 ## Examples
 
 ```yaml tab="YAML"
+$schema: https://schema.paradoc.dev/__SCHEMA_VERSION__.json
 kind: form
 name: loan-application
 defs:
@@ -96,7 +97,7 @@ rules:
     expr: "creditScore >= 300 and creditScore <= 850"
     message: "Credit score must be between 300 and 850"
   incomeRequired:
-    expr: "not isEmployed or monthlyIncome > 0"
+    expr: "not isEmployed or monthlyIncome.amount > 0"
     message: "Monthly income is required for employed applicants"
     severity: error
 
@@ -133,6 +134,7 @@ fields:
 
 ```json tab="JSON"
 {
+  "$schema": "https://schema.paradoc.dev/__SCHEMA_VERSION__.json",
   "kind": "form",
   "name": "loan-application",
   "defs": {
@@ -155,7 +157,7 @@ fields:
       "message": "Credit score must be between 300 and 850"
     },
     "incomeRequired": {
-      "expr": "not isEmployed or monthlyIncome > 0",
+      "expr": "not isEmployed or monthlyIncome.amount > 0",
       "message": "Monthly income is required for employed applicants",
       "severity": "error"
     }

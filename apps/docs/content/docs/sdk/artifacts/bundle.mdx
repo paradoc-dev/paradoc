@@ -10,14 +10,24 @@ Create Bundle artifacts to group multiple documents, forms, and checklists into 
 ### Creating a bundle
 
 ```ts
+const lease = p.form({
+  name: 'lease',
+  fields: {
+    pets: { type: 'list', item: { type: 'text' } },
+    vehicles: { type: 'list', item: { type: 'text' } },
+  },
+})
+
+const disclosureDoc = p.document({ name: 'disclosure' })
+
 // Object pattern
 const bundle = p.bundle({
   name: 'lease-package',
   version: '1.0.0',
   title: 'Residential Lease Package',
-  defs: { hasPets: { type: 'boolean', value: 'data.pets.length > 0' } },
+  defs: { hasPets: { type: 'boolean', value: 'forms.lease.fields.pets.length > 0' } },
   contents: [
-    { type: 'registry', key: 'lease', slug: 'residential-lease@1.0.0' },
+    { type: 'inline', key: 'lease', artifact: lease },
     { type: 'path', key: 'addendum', path: './pet-addendum.json', include: 'hasPets' },
     { type: 'inline', key: 'disclosure', artifact: disclosureDoc }
   ]
@@ -28,8 +38,8 @@ const bundle = p.bundle()
   .name('lease-package')
   .version('1.0.0')
   .title('Residential Lease Package')
-  .def('hasPets', 'data.pets.length > 0')
-  .registry('lease', 'residential-lease@1.0.0')
+  .def('hasPets', 'forms.lease.fields.pets.length > 0')
+  .inline('lease', lease)
   .path('addendum', './pet-addendum.json', 'hasPets')
   .inline('disclosure', disclosureDoc)
   .build()
@@ -148,7 +158,7 @@ Chain methods to build a bundle incrementally:
     { name: 'def', params: 'name: string, expression: string | Expression', description: 'Add a single typed computed value' },
     { name: 'registry', params: 'key: string, slug: string, include?: CondExpr', description: 'Add registry reference' },
     { name: 'path', params: 'key: string, path: string, include?: CondExpr', description: 'Add path reference' },
-    { name: 'inline', params: 'key: string, artifact: Artifact', description: 'Add inline artifact' },
+    { name: 'inline', params: 'key: string, artifact: Artifact, include?: CondExpr', description: 'Add inline artifact' },
     { name: 'contents', params: 'items: BundleContentItem[]', description: 'Set all contents at once' },
     { name: 'removeContent', params: 'predicate: (item, index) => boolean', description: 'Remove matching content' },
     { name: 'clearContents', params: '', description: 'Remove all contents' },
@@ -195,6 +205,7 @@ Embed an artifact directly in the bundle:
   { name: 'type', type: "'inline'", description: 'Discriminator for inline bundle item' },
   { name: 'key', type: 'string', description: 'Unique key for this item within the bundle' },
   { name: 'artifact', type: 'Document | Form | Checklist | Bundle', description: 'The embedded artifact' },
+  { name: 'include', type: 'CondExpr', description: 'Conditional expression for including this item', isOptional: true },
 ]} />
 
 #### PathBundleItem
@@ -221,16 +232,16 @@ Reference a published artifact by slug:
 
 ### Conditional Includes
 
-Path and registry items support conditional inclusion using defs:
+All item types support conditional inclusion using defs. Item keys start with a letter and contain only letters, digits, `_`, and `-`:
 
 ```ts
 const bundle = p.bundle()
   .name('lease-package')
   // Define typed computed values
-  .def('hasPets', 'data.pets.length > 0')
-  .def('hasVehicles', 'data.vehicles.length > 0')
+  .def('hasPets', 'forms.lease.fields.pets.length > 0')
+  .def('hasVehicles', 'forms.lease.fields.vehicles.length > 0')
   // Always include
-  .registry('lease', 'residential-lease@1.0.0')
+  .inline('lease', lease)
   // Include only if hasPets evaluates to true
   .path('pet-addendum', './pet-addendum.yaml', 'hasPets')
   // Include only if hasVehicles evaluates to true

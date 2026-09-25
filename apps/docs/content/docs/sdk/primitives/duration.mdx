@@ -70,10 +70,10 @@ const period = p.duration('P6M')  // 6 months
 
 ## Format
 
-The Duration primitive uses ISO 8601 duration format:
+The Duration primitive uses ISO 8601 duration format: Weeks use `W`, seconds may have a fractional part, and `P` or `PT` alone is invalid.
 
 ```
-P[n]Y[n]M[n]DT[n]H[n]M[n]S
+P[n]Y[n]M[n]W[n]DT[n]H[n]M[n(.n)]S
 ```
 
 | Component | Description | Example |

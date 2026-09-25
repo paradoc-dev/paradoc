@@ -11,33 +11,33 @@ An Address is a structured primitive that represents a postal address.
   {
     name: 'line1',
     type: 'string',
-    description: 'Primary address line (street address, PO box, company name).',
+    description: 'Primary address line (street address, PO box, company name), 1–200 characters.',
   },
   {
     name: 'line2',
     type: 'string',
-    description: 'Secondary address line (apartment, suite, unit, building).',
+    description: 'Secondary address line (apartment, suite, unit, building), up to 200 characters.',
     isOptional: true,
   },
   {
     name: 'locality',
     type: 'string',
-    description: 'City, town, or locality.',
+    description: 'City, town, or locality, 1–200 characters.',
   },
   {
     name: 'region',
     type: 'string',
-    description: 'State, province, or region.',
+    description: 'State, province, or region, 1–100 characters.',
   },
   {
     name: 'postalCode',
     type: 'string',
-    description: 'Postal or ZIP code.',
+    description: 'Postal or ZIP code: 3–20 uppercase letters, digits, spaces, or hyphens.',
   },
   {
     name: 'country',
     type: 'string',
-    description: 'ISO country code or full country name.',
+    description: 'ISO country code or full country name, 2–100 characters.',
   },
 ]} />
 

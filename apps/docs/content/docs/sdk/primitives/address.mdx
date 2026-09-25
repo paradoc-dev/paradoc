@@ -135,12 +135,12 @@ Chain methods to build an Address value incrementally:
 
 The Address primitive validates:
 
-- `line1` must be a non-empty string
-- `locality` must be a non-empty string
-- `region` must be a non-empty string
-- `postalCode` must be a non-empty string
-- `country` must be a non-empty string
-- `line2` is optional
+- `line1` must be 1–200 characters
+- `locality` must be 1–200 characters
+- `region` must be 1–100 characters
+- `postalCode` must be 3–20 uppercase letters, digits, spaces, or hyphens
+- `country` must be 2–100 characters
+- `line2` is optional and at most 200 characters
 
 ```ts
 // Valid

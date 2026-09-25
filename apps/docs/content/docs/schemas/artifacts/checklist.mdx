@@ -12,6 +12,7 @@ Examples include a loan closing checklist, document review checklist, or onboard
 ## Properties
 
 <PropertiesTable properties={[
+  { name: '$schema', type: 'string', description: 'Current dated schema URL. Required in artifact files and optional for in-memory objects', isOptional: true },
   {
     name: 'kind',
     type: '"checklist"',
@@ -191,6 +192,7 @@ Template-time checklist item definition.
 ## Examples
 
 ```yaml tab="YAML"
+$schema: https://schema.paradoc.dev/__SCHEMA_VERSION__.json
 kind: checklist
 name: loan-closing
 version: "1.0.0"
@@ -220,6 +222,7 @@ items:
 
 ```json tab="JSON"
 {
+  "$schema": "https://schema.paradoc.dev/__SCHEMA_VERSION__.json",
   "kind": "checklist",
   "name": "loan-closing",
   "version": "1.0.0",

@@ -10,6 +10,7 @@ Examples include a loan application packet, new hire paperwork, or compliance su
 ## Properties
 
 <PropertiesTable properties={[
+  { name: '$schema', type: 'string', description: 'Current dated schema URL. Required in artifact files and optional for in-memory objects', isOptional: true },
   {
     name: 'kind',
     type: "'bundle'",
@@ -115,6 +116,12 @@ type BundleContentItem = InlineBundleItem | PathBundleItem | RegistryBundleItem
             type: 'Document | Form | Checklist | Bundle',
             description: 'Inline artifact definition',
           },
+          {
+            name: 'include',
+            type: 'CondExpr',
+            description: 'Conditional expression controlling inclusion',
+            isOptional: true,
+          },
         ],
       },
       {
@@ -165,9 +172,12 @@ type BundleContentItem = InlineBundleItem | PathBundleItem | RegistryBundleItem
   },
 ]} />
 
+Item keys start with a letter and contain only letters, digits, `_`, and `-`. Every item type accepts optional `include`.
+
 ## Examples
 
 ```yaml tab="YAML"
+$schema: https://schema.paradoc.dev/__SCHEMA_VERSION__.json
 kind: bundle
 name: loan-application
 version: "1.0.0"
@@ -176,16 +186,29 @@ title: Loan Application Packet
 defs:
   needsW9:
     type: boolean
-    value: "applicant.type == 'contractor'"
+    value: "forms.application.fields.applicantType == 'contractor'"
 
 contents:
   # Inline artifact
   - type: inline
     key: welcome-doc
     artifact:
+      $schema: https://schema.paradoc.dev/__SCHEMA_VERSION__.json
       kind: document
       name: welcome
       title: Welcome Letter
+
+  # Inline form read by bundle expressions
+  - type: inline
+    key: application
+    artifact:
+      $schema: https://schema.paradoc.dev/__SCHEMA_VERSION__.json
+      kind: form
+      name: application
+      fields:
+        applicantType:
+          type: enum
+          enum: [{ value: employee }, { value: contractor }]
 
   # Path reference
   - type: path
@@ -201,6 +224,7 @@ contents:
 
 ```json tab="JSON"
 {
+  "$schema": "https://schema.paradoc.dev/__SCHEMA_VERSION__.json",
   "kind": "bundle",
   "name": "loan-application",
   "version": "1.0.0",
@@ -208,7 +232,7 @@ contents:
   "defs": {
     "needsW9": {
       "type": "boolean",
-      "value": "applicant.type == 'contractor'"
+      "value": "forms.application.fields.applicantType == 'contractor'"
     }
   },
   "contents": [
@@ -216,9 +240,25 @@ contents:
       "type": "inline",
       "key": "welcome-doc",
       "artifact": {
+        "$schema": "https://schema.paradoc.dev/__SCHEMA_VERSION__.json",
         "kind": "document",
         "name": "welcome",
         "title": "Welcome Letter"
+      }
+    },
+    {
+      "type": "inline",
+      "key": "application",
+      "artifact": {
+        "$schema": "https://schema.paradoc.dev/__SCHEMA_VERSION__.json",
+        "kind": "form",
+        "name": "application",
+        "fields": {
+          "applicantType": {
+            "type": "enum",
+            "enum": [{ "value": "employee" }, { "value": "contractor" }]
+          }
+        }
       }
     },
     {

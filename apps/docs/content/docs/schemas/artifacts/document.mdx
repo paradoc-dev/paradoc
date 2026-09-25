@@ -10,6 +10,7 @@ Documents are used for disclosures, pamphlets, statutory notices, or any other s
 ## Properties
 
 <PropertiesTable properties={[
+  { name: '$schema', type: 'string', description: 'Current dated schema URL. Required in artifact files and optional for in-memory objects', isOptional: true },
   {
     name: 'kind',
     type: '"document"',
@@ -91,6 +92,7 @@ Documents are used for disclosures, pamphlets, statutory notices, or any other s
 ## Examples
 
 ```yaml tab="YAML"
+$schema: https://schema.paradoc.dev/__SCHEMA_VERSION__.json
 kind: document
 name: lead-paint-disclosure
 version: "1.0.0"
@@ -121,6 +123,7 @@ defaultLayer: pdf
 
 ```json tab="JSON"
 {
+  "$schema": "https://schema.paradoc.dev/__SCHEMA_VERSION__.json",
   "kind": "document",
   "name": "lead-paint-disclosure",
   "version": "1.0.0",
