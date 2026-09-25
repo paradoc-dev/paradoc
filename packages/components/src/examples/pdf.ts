@@ -11,6 +11,7 @@ export { proposalLogoImage } from "./logo-image";
 export {
   engagementLetterRenderers,
   fillEngagementLetterForSeal,
+  MissingEngagementLetterPartyError,
   MissingEngagementSignerError,
   sealEngagementLetter,
   type EngagementLetterPartyRole,
@@ -19,6 +20,7 @@ export {
 } from "./engagement-letter-seal";
 export {
   fillProposalForSeal,
+  MissingProposalPartyError,
   MissingSignerError,
   proposalRenderers,
   sealProposal,

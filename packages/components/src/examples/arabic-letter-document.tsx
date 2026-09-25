@@ -37,7 +37,7 @@ import { Table } from "../components/table";
 import { Totals } from "../components/totals";
 import type { FormatOptions } from "@paradoc/react";
 import type { DocumentTokensInput } from "@paradoc/react";
-import { arabicLetterForm, arabicLetterTokens } from "./arabic-letter";
+import { arabicLetterForm } from "./arabic-letter";
 
 const arabicFormatter = createFormatter({ locale: "ar-SA", numberingSystem: "latn", overrides: { organization: (value, options, context) => { context.delegate(value, options); return String(value?.name ?? ""); } } });
 
@@ -52,14 +52,8 @@ export interface ArabicLetterDocumentProps {
    * difference.
    */
   format?: FormatOptions;
-  /**
-   * Tenant branding. It defaults to the letter's own set, because a sample that
-   * was wrong until a caller passed the right tokens would be a sample nobody
-   * could copy. A caller layering its own set over it still has to carry the
-   * script's family, direction and language, or the document fails naming what
-   * is missing.
-   */
-  tokens?: DocumentTokensInput;
+  /** Tenant branding, including the letter's Arabic direction and language. */
+  tokens: DocumentTokensInput;
 }
 
 /**
@@ -142,7 +136,7 @@ export function ArabicLetterDocument({
   data,
   artifact = arabicLetterForm,
   format = { formatter: arabicFormatter },
-  tokens = arabicLetterTokens,
+  tokens,
 }: ArabicLetterDocumentProps) {
   return (
     <Document

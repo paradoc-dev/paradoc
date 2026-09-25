@@ -8,9 +8,9 @@
  * bytes. The three are gathered here so the block installs a packet a consumer
  * can render without inventing any of them.
  *
- * The W-9 itself is not here, and that is deliberate: `@paradoc/react` does not
- * depend on `@paradoc/essentials` and should not, because a packet declaration
- * names its parts and where a part comes from is the application's business.
+ * The W-9 itself is not here, and that is deliberate: this data module carries
+ * values only. The block preview imports `@paradoc/essentials`; other consumers
+ * may resolve the packet's registry part through their own application wiring.
  * So this carries the taxpayer's values and nothing else. A consumer holds them
  * against the artifact:
  *

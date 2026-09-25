@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@paradoc/core": "workspace:^",
+    "@paradoc/essentials": "workspace:^",
     "@paradoc/format": "workspace:^",
     "@paradoc/react": "workspace:^",
     "@paradoc/react-pdf": "workspace:^",
@@ -21,7 +22,6 @@
     "react": "catalog:"
   },
   "devDependencies": {
-    "@paradoc/essentials": "workspace:^",
     "@paradoc/typescript-config": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

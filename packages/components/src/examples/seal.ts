@@ -68,6 +68,17 @@ export class MissingSignerError extends Error {
   }
 }
 
+/** Thrown when the data has no party filling a role the seal requires. */
+export class MissingProposalPartyError extends Error {
+  readonly role: ProposalPartyRole;
+
+  constructor(role: ProposalPartyRole) {
+    super(`Cannot seal the proposal: no party fills the required "${role}" role.`);
+    this.name = "MissingProposalPartyError";
+    this.role = role;
+  }
+}
+
 /** What the sample's renderer registry needs. */
 export interface ProposalRenderersOptions {
   /** Pre-fetched image bytes, exactly as `renderPdf` takes them. */
@@ -109,7 +120,9 @@ function signerPerson(data: ProposalData, role: ProposalPartyRole): Person {
 /** The id the data carries for the party filling a role. `RuntimeParty` requires one. */
 function partyId(data: ProposalData, role: ProposalPartyRole): string {
   const party = data.parties[role];
-  return (Array.isArray(party) ? party[0]! : party!).id;
+  const selected = Array.isArray(party) ? party[0] : party;
+  if (!selected) throw new MissingProposalPartyError(role);
+  return selected.id;
 }
 
 /**

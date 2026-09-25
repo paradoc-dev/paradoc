@@ -19,6 +19,10 @@ import { w9 } from "@paradoc/essentials";
 import { vendorPacketData } from "./vendor-packet-data";
 import { VendorPacketDocument } from "./vendor-packet-document";
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function VendorPacketBlockPreview() {
   const [taxpayerPdf, setTaxpayerPdf] = useState<Uint8Array | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +31,10 @@ export function VendorPacketBlockPreview() {
     let cancelled = false;
     const parsed = w9.safeParseData(vendorPacketData.taxpayer);
     if (!parsed.success) {
-      setError("The taxpayer's sample data failed validation against the W-9 artifact.");
+      const details = parsed.errors.map((issue) => `${issue.field}: ${issue.message}`).join("; ");
+      setError(
+        `The taxpayer's sample data failed validation against the W-9 artifact. ${details}`
+      );
       return;
     }
     w9.fill(parsed.data)
@@ -37,8 +44,8 @@ export function VendorPacketBlockPreview() {
         if (output instanceof Uint8Array) setTaxpayerPdf(output);
         else setError("Rendering the W-9's PDF layer did not return PDF bytes.");
       })
-      .catch(() => {
-        if (!cancelled) setError("Rendering the W-9's PDF layer failed.");
+      .catch((cause: unknown) => {
+        if (!cancelled) setError(`Rendering the W-9's PDF layer failed. ${errorMessage(cause)}`);
       });
     return () => {
       cancelled = true;
