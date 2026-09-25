@@ -42,7 +42,7 @@ describe('paradoc add', () => {
     it('rejects an unknown output format before project or network access', async () => {
       const result = await executeCliCommand(['add', '@acme/test', '--output', 'xml'], { cwd: tempDir })
       expect(result.stderr).toContain('Invalid output format: xml')
-      expect(result.stderr).not.toContain('Not in an Paradoc project')
+      expect(result.stderr).not.toContain('Not in a Paradoc project')
       expect(result.exitCode).toBe(1)
     })
 
@@ -55,8 +55,8 @@ describe('paradoc add', () => {
     it('treats @namespace as namespace-only browse (requires project)', async () => {
       const result = await executeCliCommand(['add', '@acme'], { cwd: tempDir })
       // @acme is now a valid namespace-only pattern (browse mode),
-      // but fails because tempDir is not an Paradoc project
-      expect(result.stderr).toContain('Not in an Paradoc project')
+      // but fails because tempDir is not a Paradoc project
+      expect(result.stderr).toContain('Not in a Paradoc project')
       expect(result.exitCode).not.toBe(0)
     })
 
@@ -80,7 +80,7 @@ describe('paradoc add', () => {
       const nonProjectDir = await fs.mkdtemp(join(tmpdir(), 'paradoc-no-project-'))
       try {
         const result = await executeCliCommand(['add', '@acme/test'], { cwd: nonProjectDir })
-        expect(result.stderr).toContain('Not in an Paradoc project')
+        expect(result.stderr).toContain('Not in a Paradoc project')
         expect(result.exitCode).not.toBe(0)
       } finally {
         await fs.rm(nonProjectDir, { recursive: true, force: true })
@@ -529,7 +529,7 @@ describe('paradoc list', () => {
     const nonProjectDir = await fs.mkdtemp(join(tmpdir(), 'paradoc-no-project-'))
     try {
       const result = await executeCliCommand(['list'], { cwd: nonProjectDir })
-      expect(result.stderr).toContain('Not in an Paradoc project')
+      expect(result.stderr).toContain('Not in a Paradoc project')
       expect(result.exitCode).not.toBe(0)
     } finally {
       await fs.rm(nonProjectDir, { recursive: true, force: true })

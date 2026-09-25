@@ -22,7 +22,7 @@ describe('CLI apply command', () => {
     const result = await executeCliCommand(['apply', '/tmp/nonexistent.patch'])
 
     expect(result.exitCode).toBe(1)
-    // Fails with either "not found" (patch) or "Not an Paradoc repository" (no project)
+    // Fails with either "not found" (patch) or "Not in a Paradoc project" (no project)
     expect(result.stderr).toContain('Error')
   })
 

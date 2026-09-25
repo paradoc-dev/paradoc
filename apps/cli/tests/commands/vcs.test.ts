@@ -116,7 +116,7 @@ describe('CLI Project Commands', () => {
 
       expect(result.exitCode).toBe(1)
       const output = result.stdout + result.stderr
-      expect(output).toContain('Not in an Paradoc project')
+      expect(output).toContain('Not in a Paradoc project')
     })
 
     it('should support layers option', async () => {

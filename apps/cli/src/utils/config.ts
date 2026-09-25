@@ -15,6 +15,7 @@ import {
   DEFAULT_ALLOWED_CONTENT_TYPES,
   isBlockedContentType,
 } from './constants.js'
+import { PROJECT_REQUIRED_MESSAGE } from './user-copy.js'
 
 // Default paths (relative to the home directory)
 const GLOBAL_CONFIG_DIR = '.paradoc'
@@ -452,7 +453,7 @@ export class ConfigManager {
   async setProjectRegistry(namespace: string, entry: RegistryEntry): Promise<void> {
     assertConfigurableNamespace(namespace)
     if (!this.projectManifest || !this.projectRoot) {
-      throw new Error('Not in an Paradoc project. Cannot save to project config.')
+      throw new Error(`${PROJECT_REQUIRED_MESSAGE} Cannot save to project config.`)
     }
 
     if (!this.projectManifest.registries) {
@@ -470,7 +471,7 @@ export class ConfigManager {
    */
   async removeProjectRegistry(namespace: string): Promise<boolean> {
     if (!this.projectManifest || !this.projectRoot) {
-      throw new Error('Not in an Paradoc project. Cannot modify project config.')
+      throw new Error(`${PROJECT_REQUIRED_MESSAGE} Cannot modify project config.`)
     }
 
     if (!this.projectManifest.registries) {

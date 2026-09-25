@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { LocalFileSystem } from './local-fs.js';
 import { lockFileManager } from './lock.js';
 import { findRepoRoot } from './project.js';
+import { PROJECT_REQUIRED_MESSAGE } from './user-copy.js';
 
 export interface TextInputResult {
 	raw: string;
@@ -34,7 +35,7 @@ export async function resolveArtifactTarget(target: string): Promise<string> {
 	const projectRoot = await findRepoRoot();
 	if (!projectRoot) {
 		throw new Error(
-			`Cannot resolve "${target}": not in an Paradoc project.\n  Run 'paradoc init' to initialize a project first.`,
+			`Cannot resolve "${target}": ${PROJECT_REQUIRED_MESSAGE}\n  Run 'paradoc init' to initialize a project first.`,
 		);
 	}
 

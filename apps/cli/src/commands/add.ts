@@ -12,6 +12,7 @@ import { registryClient, RegistryFetchError, type RegistryItem } from '../utils/
 import { lockFileManager } from '../utils/lock.js'
 import { configManager } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
+import { PROJECT_REQUIRED_MESSAGE } from '../utils/user-copy.js'
 import { sanitizePath, validateDownloadedArtifact, assertNotSymlink, SymlinkError } from '../utils/security.js'
 import { verifyChecksum } from '../utils/hash.js'
 import { trackInstall } from '../utils/telemetry.js'
@@ -506,7 +507,7 @@ export function createAddCommand(): Command {
         // 2. Find project root
         const projectRoot = await findRepoRoot()
         if (!projectRoot) {
-          console.error(kleur.red('Not in an Paradoc project.'))
+          console.error(kleur.red(PROJECT_REQUIRED_MESSAGE))
           console.error(kleur.gray("Run 'paradoc init' to initialize a project first."))
           process.exit(1)
         }

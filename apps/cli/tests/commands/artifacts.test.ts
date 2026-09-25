@@ -95,7 +95,7 @@ describe('CLI Artifact Commands', () => {
 
       // Should fail because not in a repo
       expect(result.exitCode).toBe(1)
-      expect(result.stderr).toContain('Not an Paradoc repository')
+      expect(result.stderr).toContain('Not in a Paradoc project')
     })
 
     it('should bump version in initialized repo', async () => {

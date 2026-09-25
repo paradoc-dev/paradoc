@@ -2,6 +2,7 @@ import { LocalFileSystem } from './local-fs.js'
 
 import type { Artifact } from '@paradoc/core'
 import { fileReferencesOf, loadValidatedArtifact } from './artifact-file.js'
+import { PROJECT_REQUIRED_MESSAGE } from './user-copy.js'
 
 // --------------------------------------------
 // Project Utilities
@@ -59,7 +60,7 @@ export async function findRepoRoot(startDir: string = process.cwd()): Promise<st
 export async function ensureRepo(): Promise<string> {
   const root = await findRepoRoot()
   if (!root) {
-    throw new Error("Not an Paradoc repository (no .paradoc directory found). Run 'paradoc init' first.")
+    throw new Error(`${PROJECT_REQUIRED_MESSAGE} Run 'paradoc init' first.`)
   }
   return root
 }

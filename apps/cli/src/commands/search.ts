@@ -7,6 +7,7 @@ import { resolveRegistry } from '../utils/registry.js'
 import { registryClient, RequestTimeoutError } from '../utils/registry-client.js'
 import { configManager, normalizeNamespace, PARADOC_NAMESPACE } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
+import { formatLayerCount } from '../utils/user-copy.js'
 
 /** fetch() rejects with a TypeError carrying a cause when no response arrives at all. */
 function isUnreachable(error: unknown): error is TypeError | RequestTimeoutError {
@@ -121,7 +122,7 @@ export function createSearchCommand(): Command {
               meta.push(item.tags.map((t) => kleur.blue(`#${t}`)).join(' '))
             }
             if (item.layers && item.layers.length > 0) {
-              meta.push(`${item.layers.length} layers`)
+              meta.push(formatLayerCount(item.layers.length))
             }
             console.log(`  ${meta.join(kleur.dim(' · '))}`)
             console.log()

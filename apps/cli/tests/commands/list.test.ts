@@ -28,7 +28,7 @@ describe('CLI list command', () => {
     const result = await executeCliCommand(['list'], { cwd: os.tmpdir() })
 
     expect(result.exitCode).toBe(1)
-    expect(result.stderr).toContain('Not in an Paradoc project')
+    expect(result.stderr).toContain('Not in a Paradoc project')
   })
 
   describe('list in a project', () => {

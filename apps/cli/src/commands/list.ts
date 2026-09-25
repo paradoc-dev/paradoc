@@ -5,6 +5,7 @@ import type { ListOptions, ArtifactKind } from '../types.js'
 import { lockFileManager } from '../utils/lock.js'
 import { configManager } from '../utils/config.js'
 import { findRepoRoot } from '../utils/project.js'
+import { formatLayerCount, PROJECT_REQUIRED_MESSAGE } from '../utils/user-copy.js'
 
 /**
  * Create the 'list' command
@@ -23,7 +24,7 @@ export function createListCommand(): Command {
         // Find project root
         const projectRoot = await findRepoRoot()
         if (!projectRoot) {
-          console.error(kleur.red('Not in an Paradoc project.'))
+          console.error(kleur.red(PROJECT_REQUIRED_MESSAGE))
           process.exit(1)
         }
 
@@ -84,7 +85,7 @@ export function createListCommand(): Command {
             for (const { ref, info } of nsArtifacts) {
               const name = ref.split('/')[1] ?? ref
               const layerCount = Object.keys(info.layers).length
-              const layerInfo = layerCount > 0 ? kleur.gray(` (${layerCount} layers)`) : ''
+              const layerInfo = layerCount > 0 ? kleur.gray(` (${formatLayerCount(layerCount)})`) : ''
               console.log(`  ${name} ${kleur.gray('v' + info.version)}${layerInfo}`)
             }
           }

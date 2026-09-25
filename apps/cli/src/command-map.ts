@@ -72,6 +72,6 @@ export const commandEntries: CommandEntry[] = [
 		load: () => import('./commands/docs.js').then(m => m.createDocsCommand()) },
 	{ name: 'console', description: 'Open Paradoc web console in browser', group: 'Settings',
 		load: () => import('./commands/console.js').then(m => m.createConsoleCommand()) },
-	{ name: 'about', description: 'Display information about Paradoc Manager', group: 'Settings',
+	{ name: 'about', description: 'Display information about Paradoc CLI', group: 'Settings',
 		load: () => import('./commands/about.js').then(m => m.createAboutCommand()) },
 ]

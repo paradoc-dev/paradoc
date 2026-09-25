@@ -9,6 +9,7 @@ import { lockFileManager } from '../utils/lock.js'
 import { registryClient, RegistryFetchError } from '../utils/registry-client.js'
 import { parseArtifactRef, resolveRegistry } from '../utils/registry.js'
 import { findRepoRoot } from '../utils/project.js'
+import { PROJECT_REQUIRED_MESSAGE } from '../utils/user-copy.js'
 import { trackRegistryAdd } from '../utils/telemetry.js'
 import { fileReferencesOf, loadValidatedArtifact, parseArtifactFile } from '../utils/artifact-file.js'
 import { collectHeader } from '../utils/cli-helpers.js'
@@ -219,7 +220,7 @@ export function createRegistryCommand(): Command {
           target = 'global'
         } else if (options.project) {
           if (!projectRoot) {
-            console.error(kleur.red('Not in an Paradoc project. Cannot use --project flag.'))
+            console.error(kleur.red(`${PROJECT_REQUIRED_MESSAGE} Cannot use --project flag.`))
             console.error(kleur.gray('Use --global to save to global config, or run from a project directory.'))
             process.exit(1)
           }
@@ -290,7 +291,7 @@ export function createRegistryCommand(): Command {
             target = 'global'
           } else if (options.project) {
             if (!projectRoot) {
-              console.error(kleur.red('Not in an Paradoc project. Cannot use --project flag.'))
+              console.error(kleur.red(`${PROJECT_REQUIRED_MESSAGE} Cannot use --project flag.`))
               process.exit(1)
             }
             target = 'project'
@@ -327,7 +328,7 @@ export function createRegistryCommand(): Command {
           scope = 'global'
         } else if (options.project) {
           if (!projectRoot) {
-            console.error(kleur.red('Not in an Paradoc project. Cannot use --project flag.'))
+            console.error(kleur.red(`${PROJECT_REQUIRED_MESSAGE} Cannot use --project flag.`))
             process.exit(1)
           }
           scope = 'project'
@@ -1112,7 +1113,7 @@ export function createRegistryCommand(): Command {
         // Find project root
         const projectRoot = await findRepoRoot()
         if (!projectRoot) {
-          console.error(kleur.red('Not in an Paradoc project.'))
+          console.error(kleur.red(PROJECT_REQUIRED_MESSAGE))
           process.exit(1)
         }
 

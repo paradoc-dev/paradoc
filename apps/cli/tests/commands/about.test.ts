@@ -11,7 +11,7 @@ describe('CLI about command', () => {
     const result = await executeCliCommand(['about'])
 
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('Paradoc Manager')
+    expect(result.stdout).toContain('Paradoc CLI')
     expect(result.stdout).toMatch(/Version:/)
     expect(result.stdout).toMatch(/Platform:/)
     expect(result.stdout).toMatch(/Node Version:/)

@@ -1,32 +1,12 @@
 <p align="center">
   <a href="https://paradoc.dev?utm_source=github&utm_medium=cli" target="_blank" rel="noopener noreferrer">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://assets.paradoc.dev/logo-400x400.png" type="image/png">
-      <img src="https://assets.paradoc.dev/logo-400x400.png" height="64" alt="Paradoc logo">
-    </picture>
+    <img src="https://assets.paradoc.dev/logo-400x400.png" height="64" alt="Paradoc logo">
   </a>
-  <br />
 </p>
 
 <h1 align="center">@paradoc/cli</h1>
 
-<div align="center">
-
-[![Paradoc documentation](https://img.shields.io/badge/Documentation-Paradoc-red.svg)](https://docs.paradoc.dev?utm_source=github&utm_medium=cli)
-[![Follow on Twitter](https://img.shields.io/twitter/follow/paradochq?style=social)](https://twitter.com/intent/follow?screen_name=paradochq)
-
-</div>
-
-[Paradoc](https://paradoc.dev?utm_source=github&utm_medium=cli) is **documents as code**. The CLI provides a registry-first workflow for installing, managing, and creating Paradoc artifacts — forms, documents, checklists, and bundles.
-
-## Package overview
-
-- 📦 **Registry-first** — Install artifacts from public or private registries
-- 🔍 **Search & discover** — Find artifacts by name, kind, or tags
-- 🏗️ **Project management** — Initialize projects with proper configuration
-- ✏️ **Authoring tools** — Create and validate your own artifacts
-- 🔒 **Lock file support** — Reproducible installations across environments
-- 🌐 **Private registries** — Authenticate with custom headers and tokens
+Paradoc treats documents as structured, machine-readable artifacts. The CLI initializes projects, manages artifacts and registries, validates data, and runs local document workflows.
 
 ## Installation
 
@@ -36,246 +16,48 @@ Requires Node.js 22 or newer.
 npm install -g paradoc-cli
 ```
 
-Or use with npx:
+You can also run it without a global install:
 
 ```bash
 npx paradoc-cli --help
 ```
 
-The CLI is published as two packages with the same version and behavior: `paradoc-cli`, the documented install, and `@paradoc/cli`. Install one of them, not both. Each registers the `paradoc` command, so a second global install fails with `EEXIST`.
+`paradoc-cli` and `@paradoc/cli` publish the same CLI and both register the `paradoc` executable. Install one package, not both.
 
 ## Quick start
 
 ```bash
-# Initialize a new project
 paradoc init my-project
 cd my-project
 
-# Search for artifacts
 paradoc search "lease agreement"
-
-# Install an artifact
-paradoc add @acme/residential-lease
-
-# List installed artifacts
+paradoc add @paradoc/example-form
 paradoc list
-
-# View artifact details
-paradoc view @acme/residential-lease
+paradoc show @paradoc/example-form
 ```
 
-## Commands
-
-### Registry commands
-
-| Command | Description |
-|---------|-------------|
-| `paradoc add <artifact>` | Install an artifact from a registry |
-| `paradoc list` | List installed artifacts |
-| `paradoc view <artifact>` | View details of an installed artifact |
-| `paradoc search [query]` | Search for artifacts in a registry |
-
-### Registry management
-
-| Command | Description |
-|---------|-------------|
-| `paradoc registry add <namespace> <url>` | Add a registry |
-| `paradoc registry remove <namespace>` | Remove a registry |
-| `paradoc registry list` | List configured registries |
-| `paradoc registry info <namespace>` | Show registry details |
-
-### Authoring commands
-
-| Command | Description |
-|---------|-------------|
-| `paradoc new form <name>` | Create a new form |
-| `paradoc new document <name>` | Create a new document |
-| `paradoc new checklist <name>` | Create a new checklist |
-| `paradoc new bundle <name>` | Create a new bundle |
-| `paradoc validate <artifacts...>` | Validate one or more artifacts |
-| `paradoc fix <artifact>` | Fix artifact metadata |
-| `paradoc migrate <path>` | Migrate artifact files to the current schema version |
-| `paradoc check <composition-or-artifact>` | Check a React composition against its artifact, without rendering a PDF |
-
-### Project commands
-
-| Command | Description |
-|---------|-------------|
-| `paradoc init [directory]` | Initialize a new project |
-| `paradoc dev [directory]` | Preview React compositions live beside their PDF |
-| `paradoc render <artifact>` | Render an artifact layer |
-| `paradoc show <artifact>` | Display artifact structure |
-| `paradoc diff <file1> <file2>` | Compare two artifacts |
-
-## Installing artifacts
-
-Install artifacts from the built-in `@paradoc` registry or any registry you configure:
+`paradoc init` prompts for project details. For a non-interactive setup, pass `--yes` and `--name`:
 
 ```bash
-# Basic install
-paradoc add @acme/residential-lease
-
-# Install with layers (templates, PDFs, etc.)
-paradoc add @acme/residential-lease --layers all
-
-# Install specific layers
-paradoc add @acme/residential-lease --layers default,pdf-template
-
-# Choose output format
-paradoc add @acme/residential-lease --format json
-
-# Force reinstall
-paradoc add @acme/residential-lease --force
+paradoc init my-project --yes --name "My Project"
 ```
 
-Artifacts are referenced using scoped names: `@namespace/artifact-name`
+## Global options
 
-## Searching registries
-
-```bash
-# Search by keyword (the built-in @paradoc registry)
-paradoc search "lease agreement"
-
-# Search a specific registry
-paradoc search --registry @acme
-
-# Filter by artifact kind
-paradoc search --kind form
-
-# Filter by tags
-paradoc search --tags real-estate,california
-
-# Output as JSON (for scripting)
-paradoc search --json
+```text
+-V, --version   output the version number
+-h, --help      display help for command
 ```
 
-## Managing registries
+Run `paradoc <command> --help` for command-specific arguments and options. The [CLI command reference](https://docs.paradoc.dev/cli/commands) documents the full command set.
 
-`@paradoc` is reserved and built in: it always resolves to `https://registry.paradoc.dev` and cannot be configured. Anyone can host a registry under any other namespace, and the CLI resolves it only through your configuration; an unconfigured namespace fails and prints the `paradoc registry add` command to run.
+## Project files
 
-Add registries to your global or project configuration:
-
-```bash
-# Add a public registry (prompts for location when in a project)
-paradoc registry add @acme https://registry.acme.com
-
-# Add to global config explicitly
-paradoc registry add @acme https://registry.acme.com --global
-
-# Add to project config explicitly
-paradoc registry add @acme https://registry.acme.com --project
-
-# Add with authentication
-paradoc registry add @private https://registry.private.com \
-  --header "Authorization: Bearer \${PRIVATE_TOKEN}"
-
-# List all registries
-paradoc registry list
-
-# Remove a registry
-paradoc registry remove @acme
-```
-
-## Configuration
-
-### Project configuration
-
-Created when you run `paradoc init`. Located at `paradoc.json` in your project root.
-
-```json
-{
-  "$schema": "https://schema.paradoc.dev/manifest.json",
-  "name": "@myorg/my-project",
-  "title": "My Paradoc Project",
-  "visibility": "private",
-  "registries": {
-    "@acme": "https://registry.acme.com"
-  },
-  "artifacts": {
-    "dir": "artifacts",
-    "format": "yaml"
-  }
-}
-```
-
-### Global configuration
-
-User-level settings at `~/.paradoc/config.json`. Applies to all projects.
-
-```json
-{
-  "$schema": "https://schema.paradoc.dev/config.json",
-  "registries": {
-    "@acme": "https://registry.acme.com",
-    "@private": {
-      "url": "https://registry.private.com",
-      "headers": {
-        "Authorization": "Bearer ${PRIVATE_TOKEN}"
-      }
-    }
-  },
-  "defaults": {
-    "output": "yaml",
-    "artifactsDir": "artifacts"
-  },
-  "telemetry": {
-    "enabled": false
-  }
-}
-```
-
-The CLI checks this file on every read and write. A missing file means no settings. If the file is not valid JSON or has a key the schema does not know, the command stops and names the file and each bad key; the CLI does not change the file.
-
-Environment variables in `${VAR_NAME}` format are automatically expanded.
-
-### Configuration precedence
-
-1. **Project config** — checked first
-2. **Global config** — fallback
-3. **Built-in defaults**
-
-## Project structure
-
-```
-my-project/
-├── paradoc.json           # Project manifest
-├── .paradoc/
-│   └── lock.json            # Lock file (commit this)
-└── artifacts/
-    └── @acme/
-        ├── residential-lease.yaml
-        └── commercial-lease.yaml
-```
-
-## Lock file
-
-The `.paradoc/lock.json` file tracks installed artifacts with their versions and integrity hashes. This ensures reproducible installations. Commit this file to version control.
+A Paradoc project contains `paradoc.json` and a `.paradoc` directory. Installed artifacts and their files are recorded in `.paradoc/lock.json`; commit the lock file with your project.
 
 ## Related packages
 
-- [`@paradoc/sdk`](../../packages/sdk) — All-in-one SDK package
-- [`@paradoc/core`](../../packages/core) — Core artifacts and builders
-- [`@paradoc/schemas`](../../packages/schemas) — JSON Schema definitions
-- [`@paradoc/render`](../../packages/render) — Unified PDF, DOCX, and text rendering
-
-## Testing
-
-`pnpm test` runs the default suite. It builds the CLI first and checks that the built binary starts, prints its version, and rejects unknown commands.
-
-The startup timing check is opt-in, because wall-clock budgets fail on a loaded machine. Run it on a quiet machine:
-
-```bash
-pnpm turbo run test:perf --filter=@paradoc/cli
-```
-
-This builds the CLI, then runs `test:perf`, which sets `PARADOC_PERF_TESTS=1` and asserts that the built binary's `--version` and `--help` have a p95 under 500ms over 10 runs.
-
-## Contributing
-
-We're open to all community contributions! If you'd like to contribute in any way, please read our [contribution guidelines](https://github.com/paradoc-dev/paradoc/blob/main/CONTRIBUTING.md) and [code of conduct](https://github.com/paradoc-dev/paradoc/blob/main/CODE_OF_CONDUCT.md).
-
-## License
-
-This project is licensed under the MIT license.
-
-See [LICENSE](https://github.com/paradoc-dev/paradoc/blob/main/LICENSE) for more information.
+- [`@paradoc/sdk`](../../packages/sdk)
+- [`@paradoc/core`](../../packages/core)
+- [`@paradoc/schemas`](../../packages/schemas)
+- [`@paradoc/render`](../../packages/render)
