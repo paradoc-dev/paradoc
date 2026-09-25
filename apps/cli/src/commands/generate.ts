@@ -1,15 +1,14 @@
 import { Command } from 'commander'
 import kleur from 'kleur'
+import { isDeepStrictEqual } from 'node:util'
 import YAML from 'yaml'
-import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
-
-import type { ArtifactKind } from '../types.js'
-
-type GenerateOutputFormat = 'typed' | 'ts'
+import { loadValidatedArtifact } from '../utils/artifact-file.js'
+import { writeTypedOutput, type TypedOutputFormat } from '../utils/typed-output.js'
 
 interface GenerateOptions {
-  output?: GenerateOutputFormat
+  output?: TypedOutputFormat
+  force?: boolean
 }
 
 /**
@@ -23,14 +22,16 @@ export function createGenerateCommand(): Command {
     .argument('<file>', 'Path to artifact file (JSON or YAML)')
     .description('Generate TypeScript types for an artifact file')
     .option('--output <output>', 'Output format: typed (.d.ts) or ts (TypeScript module)', 'typed')
+    .option('--force', 'Overwrite a differing generated JSON file')
     .action(async (file: string, options: GenerateOptions) => {
       try {
         const storage = new LocalFileSystem()
 
         // 1. Read and parse the artifact file
-        const ext = storage.extname(file).toLowerCase()
+        const sourceExt = storage.extname(file)
+        const ext = sourceExt.toLowerCase()
         let content: string
-        let artifact: Record<string, unknown>
+        let artifact
 
         try {
           content = await storage.readFile(file, 'utf-8')
@@ -43,44 +44,36 @@ export function createGenerateCommand(): Command {
         }
 
         try {
-          if (ext === '.json') {
-            artifact = JSON.parse(content)
-          } else if (ext === '.yaml' || ext === '.yml') {
-            artifact = YAML.parse(content) as Record<string, unknown>
-          } else {
+          if (ext !== '.json' && ext !== '.yaml' && ext !== '.yml') {
             console.error(kleur.red(`Unsupported file extension: ${ext}`))
             console.error(kleur.gray('Supported extensions: .json, .yaml, .yml'))
             process.exit(1)
           }
+          let candidate: Record<string, unknown>
+          try {
+            candidate = (ext === '.json' ? JSON.parse(content) : YAML.parse(content)) as Record<string, unknown>
+          } catch (error) {
+            console.error(kleur.red(`Could not parse file: ${file}`))
+            console.error(kleur.gray(error instanceof Error ? error.message : String(error)))
+            process.exit(1)
+          }
+          if (!candidate.kind || typeof candidate.kind !== 'string') {
+            console.error(kleur.red('File does not appear to be a valid artifact'))
+            console.error(kleur.gray('Missing or invalid "kind" field'))
+            process.exit(1)
+          }
+          const validKinds = ['form', 'document', 'checklist', 'bundle']
+          if (!validKinds.includes(candidate.kind)) {
+            console.error(kleur.red(`Invalid artifact kind: ${candidate.kind}`))
+            console.error(kleur.gray(`Expected one of: ${validKinds.join(', ')}`))
+            process.exit(1)
+          }
+          artifact = loadValidatedArtifact(content)
         } catch (error) {
-          console.error(kleur.red(`Could not parse file: ${file}`))
+          console.error(kleur.red(`Could not load valid artifact: ${file}`))
           console.error(kleur.gray(error instanceof Error ? error.message : String(error)))
           process.exit(1)
         }
-
-        // 2. Validate it looks like an artifact
-        if (!artifact.kind || typeof artifact.kind !== 'string') {
-          console.error(kleur.red('File does not appear to be a valid artifact'))
-          console.error(kleur.gray('Missing or invalid "kind" field'))
-          process.exit(1)
-        }
-
-        const validKinds = ['form', 'document', 'checklist', 'bundle']
-        if (!validKinds.includes(artifact.kind)) {
-          console.error(kleur.red(`Invalid artifact kind: ${artifact.kind}`))
-          console.error(kleur.gray(`Expected one of: ${validKinds.join(', ')}`))
-          process.exit(1)
-        }
-
-        try {
-          assertCurrentSchemaVersion(artifact, { required: true })
-        } catch (error) {
-          console.error(kleur.red(error instanceof Error ? error.message : String(error)))
-          process.exit(1)
-        }
-
-        const artifactKind = artifact.kind as ArtifactKind
-        const _artifactName = (artifact.name as string) || storage.basename(file).replace(ext, '')
 
         // 3. Determine output format
         const format = options.output || 'typed'
@@ -92,7 +85,7 @@ export function createGenerateCommand(): Command {
 
         // 4. Generate and write output file(s)
         const dir = storage.dirname(file)
-        const baseFileName = storage.basename(file).replace(ext, '')
+        const baseFileName = storage.basename(file).slice(0, -sourceExt.length)
 
         if (format === 'ts') {
           // Generate TypeScript module with embedded schema
@@ -101,13 +94,11 @@ export function createGenerateCommand(): Command {
           const tsFileName = `${baseFileName}.ts`
           const tsPath = storage.joinPath(dir, tsFileName)
 
-          const tsContent = jsonToTsModule(artifact, {
-            artifactKind,
-            exportName: toCamelCase(baseFileName),
-          })
-
-          await storage.writeFile(tsPath, tsContent)
+          const result = await writeTypedOutput(storage, { artifact, format, primaryPath: tsPath })
           console.log(kleur.green('✓') + ` Generated: ${tsPath}`)
+          console.log()
+          console.log(kleur.gray('You can now import the artifact with full type safety:'))
+          console.log(kleur.cyan(`  import { ${result.exportName} } from './${baseFileName}.js'`))
         } else {
           // Generate .d.ts file
           // First, ensure we have a JSON file (convert YAML if needed)
@@ -121,26 +112,28 @@ export function createGenerateCommand(): Command {
             // Convert YAML to JSON
             jsonFileName = `${baseFileName}.json`
             jsonPath = storage.joinPath(dir, jsonFileName)
-            await storage.writeFile(jsonPath, JSON.stringify(artifact, null, 2))
-            console.log(kleur.green('✓') + ` Generated: ${jsonPath}`)
+            if (await storage.exists(jsonPath) && !options.force) {
+              let existing: unknown
+              try { existing = JSON.parse(await storage.readFile(jsonPath, 'utf-8')) } catch { existing = undefined }
+              if (!isDeepStrictEqual(existing, artifact)) {
+                throw new Error(`${jsonPath} already exists with different content; pass --force to overwrite it`)
+              }
+            }
           }
 
-          // Generate .d.ts
-          const dtsFileName = `${jsonFileName}.d.ts`
-          const dtsPath = storage.joinPath(dir, dtsFileName)
-          const dtsContent = jsonToDts(artifact, jsonFileName)
-          await storage.writeFile(dtsPath, dtsContent)
-          console.log(kleur.green('✓') + ` Generated: ${dtsPath}`)
-        }
-
-        console.log()
-        console.log(kleur.gray('You can now import the artifact with full type safety:'))
-        if (format === 'ts') {
-          console.log(kleur.cyan(`  import { ${toCamelCase(baseFileName)} } from './${baseFileName}.js'`))
-        } else {
+          const result = await writeTypedOutput(storage, {
+            artifact,
+            format,
+            primaryPath: jsonPath,
+            sourceJsonPath: jsonPath,
+            writeSourceJson: ext !== '.json',
+          })
+          for (const path of result.writtenPaths) console.log(kleur.green('✓') + ` Generated: ${path}`)
+          console.log()
+          console.log(kleur.gray('You can now import the artifact with full type safety:'))
           console.log(kleur.cyan(`  import schema from './${baseFileName}.json'`))
           console.log(kleur.cyan(`  import { p } from '@paradoc/sdk'`))
-          console.log(kleur.cyan(`  const ${toCamelCase(baseFileName)} = p.${artifactKind}(schema)`))
+          console.log(kleur.cyan(`  const ${result.exportName} = p.${artifact.kind}(schema)`))
         }
       } catch (error) {
         console.error(kleur.red('Failed to generate types'))
@@ -150,12 +143,4 @@ export function createGenerateCommand(): Command {
     })
 
   return generate
-}
-
-/**
- * Convert kebab-case to camelCase for export names
- * @example "w9-form" -> "w9Form"
- */
-function toCamelCase(str: string): string {
-  return str.replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase())
 }

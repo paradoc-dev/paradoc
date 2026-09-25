@@ -247,7 +247,7 @@ fields:
 
       const tsContent = await fs.readFile(join(tempDir, 'form.ts'), 'utf-8')
       expect(tsContent).toContain('p.form(schema)')
-      expect(tsContent).toContain('FormPayload') // Forms get payload type
+      expect(tsContent).toContain('FPayload') // Forms get payload type named from the artifact
     })
 
     it('generates types for document artifact', async () => {
@@ -271,7 +271,7 @@ fields:
 
       const tsContent = await fs.readFile(join(tempDir, 'checklist.ts'), 'utf-8')
       expect(tsContent).toContain('p.checklist(schema)')
-      expect(tsContent).toContain('ChecklistPayload') // Checklists get payload type
+      expect(tsContent).toContain('CPayload') // Checklists get payload type named from the artifact
     })
 
     it('generates types for bundle artifact', async () => {

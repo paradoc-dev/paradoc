@@ -2,7 +2,7 @@ import { Command } from 'commander'
 import kleur from 'kleur'
 import ora, { type Ora } from 'ora'
 import prompts from 'prompts'
-import { assertCurrentSchemaVersion, jsonToDts, jsonToTsModule, validate } from '@paradoc/core'
+import { assertCurrentSchemaVersion, validate, type Artifact } from '@paradoc/core'
 import { LocalFileSystem } from '../utils/local-fs.js'
 
 import type { AddOptions, OutputFormat, ArtifactKind, ResolvedRegistry, RegistryItemSummary } from '../types.js'
@@ -18,6 +18,7 @@ import { trackInstall } from '../utils/telemetry.js'
 import { collectHeader } from '../utils/cli-helpers.js'
 import { join } from 'node:path'
 import { serializeArtifactFile } from '../utils/artifact-file.js'
+import { writeTypedOutput } from '../utils/typed-output.js'
 
 interface InstallArtifactOpts {
   registry: ResolvedRegistry
@@ -291,17 +292,17 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
   await storage.mkdir(namespaceDir, true)
 
   // Write artifact file(s) based on format
-  let contentString: string
+  let contentString = serializeArtifactFile(artifactContent, 'json')
   const writtenFiles: string[] = []
 
   if (format === 'ts') {
     spinner.start(`Generating ${artifactFileName}...`)
-    contentString = jsonToTsModule(artifactContent, {
-      artifactKind,
-      exportName: toCamelCase(artifactName),
+    await writeTypedOutput(storage, {
+      artifact: artifactContent as unknown as Artifact,
+      format,
+      primaryPath: sanitizedArtifactPath,
+      beforeWrite: assertNotSymlink,
     })
-    await assertNotSymlink(sanitizedArtifactPath)
-    await storage.writeFile(sanitizedArtifactPath, contentString)
     writtenFiles.push(artifactFileName)
     spinner.succeed(`Generated: ${join(artifactsDir, artifactNamespace, artifactFileName)}`)
 
@@ -314,9 +315,13 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     writtenFiles.push(sourceFileName)
   } else if (format === 'typed') {
     spinner.start(`Writing ${artifactFileName}...`)
-    contentString = serializeArtifactFile(artifactContent, 'json')
-    await assertNotSymlink(sanitizedArtifactPath)
-    await storage.writeFile(sanitizedArtifactPath, contentString)
+    await writeTypedOutput(storage, {
+      artifact: artifactContent as unknown as Artifact,
+      format,
+      primaryPath: sanitizedArtifactPath,
+      sourceJsonPath: sanitizedArtifactPath,
+      beforeWrite: assertNotSymlink,
+    })
     writtenFiles.push(artifactFileName)
     spinner.succeed(`Written: ${join(artifactsDir, artifactNamespace, artifactFileName)}`)
 
@@ -324,9 +329,6 @@ async function installArtifact(opts: InstallArtifactOpts): Promise<void> {
     const sanitizedDtsPath = sanitizePath(namespaceDir, dtsFileName)
     if (sanitizedDtsPath) {
       spinner.start(`Generating ${dtsFileName}...`)
-      const dtsContent = jsonToDts(artifactContent, `${artifactName}.json`)
-      await assertNotSymlink(sanitizedDtsPath)
-      await storage.writeFile(sanitizedDtsPath, dtsContent)
       writtenFiles.push(dtsFileName)
       spinner.succeed(`Generated: ${join(artifactsDir, artifactNamespace, dtsFileName)}`)
     }
@@ -632,12 +634,4 @@ function parseLayerOption(layersOption: string, availableLayers: string[]): stri
     return availableLayers
   }
   return layersOption.split(',').map((s) => s.trim()).filter(Boolean)
-}
-
-/**
- * Convert kebab-case to camelCase for export names
- * @example "w9-form" -> "w9Form"
- */
-function toCamelCase(str: string): string {
-  return str.replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase())
 }
