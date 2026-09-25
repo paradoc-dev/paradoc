@@ -2,7 +2,9 @@ import { createTool } from '@mastra/core/tools'
 import {
 	configForExecution,
 	createToolExecutionContext,
+	DEFAULT_MODEL_OUTPUT_MAX_BYTES,
 	operationNames,
+	toModelOutput,
 	toolDefinitions,
 	type ParadocToolsConfig,
 } from '@paradoc/ai-tools'
@@ -37,12 +39,8 @@ export { operationNames }
 export { createToolExecutionContext }
 
 /** Configuration for the Mastra adapter and the shared Paradoc operations. */
-export interface ParadocMastraConfig extends ParadocToolsConfig {
-	/** Maximum UTF-8 or decoded binary bytes exposed to the model by `toModelOutput`. */
-	modelOutputMaxBytes?: number
-}
-
-export const DEFAULT_MODEL_OUTPUT_MAX_BYTES = 16_384
+export type ParadocMastraConfig = ParadocToolsConfig
+export { DEFAULT_MODEL_OUTPUT_MAX_BYTES }
 
 type MastraExecutionContext = {
 	abortSignal?: AbortSignal
@@ -56,48 +54,8 @@ type MastraToolDefinition<Input, Output> = {
 	execute: (input: Input, config?: ParadocToolsConfig) => Promise<Output>
 }
 
-type ContentResult = {
-	content: string
-	encoding?: 'utf-8' | 'base64'
-	byte_length?: number
-	truncated?: boolean
-	[key: string]: unknown
-}
-
-function isContentResult(value: unknown): value is ContentResult {
-	return typeof value === 'object' && value !== null && !Array.isArray(value) && typeof (value as { content?: unknown }).content === 'string'
-}
-
-function modelBudget(value: number | undefined): number {
-	if (value === undefined || !Number.isFinite(value)) return DEFAULT_MODEL_OUTPUT_MAX_BYTES
-	return Math.max(1, Math.floor(value))
-}
-
-function boundedModelOutput<Output>(output: Output, requestedMaxBytes: number | undefined): Output {
-	if (!isContentResult(output)) return output
-
-	const maxBytes = modelBudget(requestedMaxBytes)
-	const encoding = output.encoding ?? 'utf-8'
-	if (encoding === 'base64') {
-		const maxChars = Math.floor(maxBytes / 3) * 4
-		if (output.content.length <= maxChars) return output
-		return { ...output, content: output.content.slice(0, maxChars), truncated: true } as Output
-	}
-
-	const bytes = new TextEncoder().encode(output.content)
-	if (bytes.byteLength <= maxBytes) return output
-	return {
-		...output,
-		content: new TextDecoder().decode(bytes.slice(0, maxBytes)),
-		truncated: true,
-	} as Output
-}
-
 function sharedConfig(config: ParadocMastraConfig | undefined): ParadocToolsConfig | undefined {
-	if (!config) return undefined
-	const shared = { ...config }
-	delete shared.modelOutputMaxBytes
-	return shared
+	return config
 }
 
 function executionConfig(config: ParadocMastraConfig | undefined, context: MastraExecutionContext): ParadocToolsConfig | undefined {
@@ -115,7 +73,7 @@ function createMastraTool<Input, Output>(
 		inputSchema: definition.input_schema,
 		outputSchema: definition.output_schema,
 		execute: async (input, context) => definition.execute(input, executionConfig(config, context)),
-		toModelOutput: (output) => boundedModelOutput(output, config?.modelOutputMaxBytes),
+		toModelOutput: (output) => toModelOutput(output, config?.maxOutputBytes),
 	})
 }
 

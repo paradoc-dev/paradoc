@@ -77,7 +77,7 @@ The adapter passes the shared Zod schemas directly to AI SDK 7. AI SDK validates
 
 The AI SDK `abortSignal` is composed with `ParadocToolsConfig.signal` and passed into a request-scoped neutral execution context. Registry, artifact, instruction, and layer requests observe the combined signal.
 
-Render presentation can bound content sent back to the model while keeping byte length and truncation metadata in the result:
+`maxOutputBytes` bounds content sent back to the model while keeping the application result complete. Render presentation can separately request a smaller application result:
 
 ```typescript
 const tools = paradocTools({ maxOutputBytes: 200_000 });
@@ -93,7 +93,7 @@ const renderResult = await tools.render.execute({
 });
 ```
 
-`maxOutputBytes` supplies a default only when the input has no `presentation`. Explicit input presentation wins. Omit the presentation limit when the caller needs the unbounded application result.
+The model-facing limit defaults to 16,384 bytes. An explicit `presentation` input controls the application-facing render result independently.
 
 ## Related packages
 

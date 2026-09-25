@@ -59,14 +59,14 @@ The adapter takes `ParadocMastraConfig`, which extends [`ParadocToolsConfig`](/a
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `modelOutputMaxBytes` | `number` | Maximum bytes of `content` the model sees, through Mastra's `toModelOutput`. Default `DEFAULT_MODEL_OUTPUT_MAX_BYTES` (16,384). |
+| `maxOutputBytes` | `number` | Maximum bytes of `content` the model sees. Default `DEFAULT_MODEL_OUTPUT_MAX_BYTES` (16,384). |
 
 The limit applies to text and base64 content, such as a [`render`](/ai/tools/render) result. Content over the limit is cut and marked `truncated: true`. Your application code still gets the full result.
 
 ```typescript
 const tools = paradocTools({
   defaultRegistryUrl: "https://public.paradoc.dev",
-  modelOutputMaxBytes: 32_000,
+  maxOutputBytes: 32_000,
 })
 ```
 

@@ -9,6 +9,7 @@ import {
 	inspectArtifact,
 	paradocToolDefinitions,
 	paradocTools,
+	render,
 	updateFill,
 	validateArtifact,
 	validateInput,
@@ -71,7 +72,7 @@ describe('paradocTools', () => {
 			const definition = toolDefinitions[tool.name]
 			expect(tool.description).toBe(definition.description)
 			expect(tool.inputSchema).toBe(definition.input_schema)
-			expect(tool.outputSchema).toBe(definition.output_schema)
+			expect(tool.outputSchema).toBeDefined()
 		}
 	})
 
@@ -180,6 +181,15 @@ describe('paradocTools', () => {
 		await tool.execute!({})
 		await tool.execute!({})
 		expect(calls).toBe(2)
+	})
+
+	it('keeps application output complete while bounding TanStack serialization', async () => {
+		const tool = render({ maxOutputBytes: 4 })
+		const output = { success: true, content: '0123456789', encoding: 'utf-8' as const, byte_length: 10 }
+		const parsed = (tool.outputSchema as { parse(value: unknown): typeof output }).parse(output)
+
+		expect(parsed.content).toBe('0123456789')
+		expect(JSON.parse(JSON.stringify(parsed))).toEqual({ ...output, content: '0123', truncated: true })
 	})
 
 	it('executes a deterministic tool call through native TanStack chat', async () => {

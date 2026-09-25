@@ -1,7 +1,8 @@
-import { tool, type FlexibleSchema, type Tool, type ToolExecutionOptions, type ToolSet } from 'ai'
+import { tool, type FlexibleSchema, type JSONValue, type Tool, type ToolExecutionOptions, type ToolSet } from 'ai'
 import {
 	configForExecution,
 	operationNames,
+	toModelOutput as createModelOutput,
 	toolDefinitions,
 	type OperationName,
 	type OperationInput,
@@ -60,6 +61,7 @@ function createTool<Name extends OperationName>(definition: AdapterDefinition<Na
 		outputSchema: definition.output_schema as unknown as FlexibleSchema<unknown>,
 		execute: async (input: unknown, options: ToolExecutionOptions<Record<string, unknown>>) =>
 			definition.execute(input as OperationInput<Name>, configForExecution(config, options.abortSignal)),
+		toModelOutput: ({ output }) => createModelOutput(output, config?.maxOutputBytes) as { type: 'json'; value: JSONValue },
 	})
 
 	return nativeTool as unknown as ParadocTool<Name>

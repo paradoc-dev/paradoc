@@ -72,7 +72,7 @@ Each tool also has a definition function, such as `renderDefinition()`.
 
 ## Configuration
 
-`paradocTools()` and each factory take `ParadocToolsConfig`. See the [configuration reference](/ai#configuration). TanStack AI's execution `abortSignal` is combined with `signal` and `context.signal`. `maxOutputBytes` sets the default [`render`](/ai/tools/render) output budget when a call has no `presentation`.
+`paradocTools()` and each factory take `ParadocToolsConfig`. See the [configuration reference](/ai#configuration). TanStack AI's execution `abortSignal` is combined with `signal` and `context.signal`. `maxOutputBytes` bounds only the result copy sent to the model; application code receives the complete result.
 
 ## API
 
