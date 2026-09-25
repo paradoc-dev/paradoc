@@ -248,7 +248,8 @@ Use defs for conditional party requirements:
 ```ts
 const form = p.form()
   .name('loan-application')
-  .def('needsGuarantor', 'loanAmount > 100000')
+  .field('loanAmount', field.number().label('Loan amount').build())
+  .def('needsGuarantor', 'fields.loanAmount > 100000')
   .party('borrower', party()
     .label('Borrower')
     .signature({ required: true })

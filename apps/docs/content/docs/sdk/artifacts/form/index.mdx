@@ -22,7 +22,7 @@ const form = p.form({
   },
   parties: {
     tenant: { label: 'Tenant', partyType: 'person', signature: { required: true } },
-    landlord: { label: 'Landlord', signature: { required: true, witnesses: 1 } }
+    landlord: { label: 'Landlord', signature: { required: true } }
   },
   annexes: {
     photoId: { title: 'Photo ID', required: true }
@@ -44,7 +44,7 @@ const form = p.form()
   .party('tenant', party().label('Tenant').partyType('person')
     .signature({ required: true }).build())
   .party('landlord', party().label('Landlord')
-    .signature({ required: true, witnesses: 1 }).build())
+    .signature({ required: true }).build())
   .annex('photoId', annex().title('Photo ID').required().build())
   .inlineLayer('html', { mimeType: 'text/html', text: '<p>Tenant: {{fields.tenantName}}</p>' })
   .defaultLayer('html')
@@ -91,9 +91,10 @@ Forms follow a three-phase lifecycle: Draft → Signable → Executed.
 // 1. Fill form to create DraftForm (mutable data)
 const draft = form.fill({
   fields: { tenantName: 'John Doe', moveInDate: '2024-02-01' },
+  annexes: { photoId: { name: 'photo-id.pdf', mimeType: 'application/pdf' } },
   parties: {
     tenant: { id: 'tenant-0', name: 'John Doe' },
-    landlord: { id: 'landlord-0', name: 'ABC Property LLC' }
+    landlord: { id: 'landlord-0', name: 'ABC Property LLC', legalName: 'ABC Property LLC' }
   }
 })
 
@@ -104,12 +105,19 @@ const ready = draft
     adopted: { signature: { image: 'data:...', method: 'drawn' } }
   })
   .addSignatory('tenant', 'tenant-0', { signerId: 'john' })
+  .addSigner('abc-property', {
+    person: { name: 'Bob Manager' },
+    adopted: { signature: { image: 'data:...', method: 'drawn' } }
+  })
+  .addSignatory('landlord', 'landlord-0', { signerId: 'abc-property', capacity: 'Property manager' })
 
 // 3. Prepare for signing (SignableForm - data frozen)
 const signable = ready.prepareForSigning()
 
 // 4. Capture signatures
-const signed = signable.captureSignature('tenant', 'tenant-0', 'john', 'final-sig')
+const signed = signable
+  .captureSignature('tenant', 'tenant-0', 'john', 'final-sig')
+  .captureSignature('landlord', 'landlord-0', 'abc-property', 'final-sig')
 
 // 5. Finalize (ExecutedForm - fully frozen)
 const executed = signed.finalize()
@@ -472,18 +480,24 @@ Created by `form.fill()`. Mutable data and signer configuration.
   { name: 'addParty', type: '(roleId: string, party: Party) => DraftForm', description: 'Append a party with the next `<role>-<index>` id', isMethod: true },
   { name: 'removeParty', type: '(roleId: string, index: number) => DraftForm', description: 'Remove a party; later parties take their new ids and keep their signatories', isMethod: true },
   { name: 'addSigner', type: '(signerId: string, signer: Signer) => DraftForm', description: 'Add signer to registry', isMethod: true },
+  { name: 'removeSigner', type: '(signerId: string) => DraftForm', description: 'Remove a signer from the registry', isMethod: true },
   { name: 'addSignatory', type: '(roleId, partyId, signatory) => DraftForm', description: 'Link a registered signer to a filled party. Throws for an unknown party or a signer already linked to it', isMethod: true },
   { name: 'update', type: '(patch: Partial<Payload>) => DraftForm', description: 'Merge a patch into current data and return a new DraftForm', isMethod: true },
   { name: 'safeUpdate', type: '(patch: Partial<Payload>) => SafeFillResult', description: 'Safely merge a patch (returns result object)', isMethod: true },
+  { name: 'clear', type: '(path: FormPath) => DraftForm', description: 'Remove a field or annex value', isMethod: true },
+  { name: 'reset', type: '(path: FormPath) => DraftForm', description: 'Restore a declared default or remove the value', isMethod: true },
   { name: 'getFillState', type: '(options?: FillTargetOptions) => FillState', description: 'Compute full fill state: open/blocked/done items, candidates, progress summary', isMethod: true },
   { name: 'getNextFillTarget', type: '(options?: FillTargetOptions) => FillTarget | null', description: 'Get the next recommended fill target, or null if all required are done', isMethod: true },
   { name: 'getAvailableFillTargets', type: '(options?: FillTargetOptions) => FillTarget[]', description: 'Get available fill targets in dependency order, required before optional by default', isMethod: true },
+  { name: 'setAnnex', type: '(annexId: string, annex: Attachment) => DraftForm', description: 'Set an annex attachment', isMethod: true },
+  { name: 'setTargetLayer', type: '(layer: string) => DraftForm', description: 'Change the target layer', isMethod: true },
   { name: 'prepareForSigning', type: '() => SignableForm', description: 'Transition to signable phase', isMethod: true },
   { name: 'seal', type: '(options?: SealOptions) => Promise<SignableForm>', description: 'Render, place signature fields, flatten, and hash the target layer for formal e-signing. See [Seal options](#seal-options)', isMethod: true },
   { name: 'prepareSeal', type: '(options?: SealOptions) => Promise<SealPreparation>', description: 'Resolve the signature map and the converted PDF it describes, without flattening, hashing, or changing phase. Requires a layer with `signatures`', isMethod: true },
   { name: 'render', type: '(options?: RuntimeFormRenderOptions) => Promise<Output>', description: 'Render with embedded data', isMethod: true },
   { name: 'toJSON', type: '() => DraftFormJSON', description: 'Serialize to JSON', isMethod: true },
   { name: 'toYAML', type: '() => string', description: 'Serialize to YAML', isMethod: true },
+  { name: 'clone', type: '() => DraftForm', description: 'Create an exact copy', isMethod: true },
 ]} />
 
 ### SignableForm
@@ -514,11 +528,17 @@ Created by `signable.finalize()`. Fully frozen, ready for archival.
 <PropertiesTable properties={[
   { name: 'phase', type: "'executed'", description: 'Phase discriminator' },
   { name: 'executedAt', type: 'string', description: 'ISO timestamp of execution' },
-  { name: 'getCaptures', type: '() => SignatureCapture[]', description: 'Get all captures', isMethod: true },
-  { name: 'getWitnesses', type: '() => WitnessParty[]', description: 'Get all witnesses', isMethod: true },
-  { name: 'getAttestations', type: '() => Attestation[]', description: 'Get all attestations', isMethod: true },
+  { name: 'captures', type: 'SignatureCapture[]', description: 'Captured signatures' },
+  { name: 'witnesses', type: 'WitnessParty[]', description: 'Declared witnesses' },
+  { name: 'attestations', type: 'Attestation[]', description: 'Witness attestations' },
+  { name: 'getCapture', type: '(role, partyId, signerId, locationId, type) => SignatureCapture | undefined', description: 'Get one capture', isMethod: true },
+  { name: 'getCapturesForLocation', type: '(locationId: string) => SignatureCapture[]', description: 'Get captures at a location', isMethod: true },
+  { name: 'getCapturesForParty', type: '(roleId: string, partyId: string) => SignatureCapture[]', description: 'Get captures for a party', isMethod: true },
+  { name: 'getCapturesForSigner', type: '(signerId: string) => SignatureCapture[]', description: 'Get captures for a signer', isMethod: true },
   { name: 'render', type: '(options?: RuntimeFormRenderOptions) => Promise<Output>', description: 'Render the executed form', isMethod: true },
   { name: 'toJSON', type: '() => ExecutedFormJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'toYAML', type: '() => string', description: 'Serialize to YAML', isMethod: true },
+  { name: 'clone', type: '() => ExecutedForm', description: 'Create an exact copy', isMethod: true },
 ]} />
 
 ## Render options

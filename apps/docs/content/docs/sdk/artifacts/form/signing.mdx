@@ -291,11 +291,13 @@ Check signature progress using status methods on `SignableForm`:
 ```typescript
 // Get status for a specific role
 const status = signable.getSignatureStatus('tenant')
-// { required: true, captured: 1, total: 2, complete: false, witnesses: { required: 1, captured: 0 } }
+// { required: 1, collected: 1, complete: true,
+//   parties: [{ partyId: 'tenant-0', hasSignatory: true, hasCapture: true, witnessed: true }] }
 
 // Get overall status
 const overall = signable.getOverallSignatureStatus()
-// { complete: false, roles: { tenant: {...}, landlord: {...} } }
+// { roles: { tenant: { required: 1, collected: 1, complete: true }, landlord: {...} },
+//   complete: false, totalRequired: 2, totalCollected: 1 }
 ```
 
 ## Related

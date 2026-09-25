@@ -3,7 +3,7 @@ title: field
 description: Define form fields for data capture
 ---
 
-Define form fields for capturing user input. Paradoc supports 21 field types covering text, numeric, temporal, entity, spatial, and selection inputs.
+Define form fields for capturing user input. Paradoc supports 24 field types covering text, numeric, temporal, entity, spatial, and selection inputs.
 
 ## Examples
 
@@ -271,13 +271,11 @@ All fields share these base properties:
   { name: 'description', type: 'string', description: 'Helper text displayed in UI', isOptional: true },
   { name: 'required', type: 'boolean | string', description: 'Whether field is required. Can be an expression.', isOptional: true },
   { name: 'visible', type: 'boolean | string', description: 'Whether field is visible. Can be an expression.', isOptional: true },
-  { name: 'disabled', type: 'boolean | string', description: 'Whether field is read-only. Can be an expression.', isOptional: true },
-  { name: 'attrs', type: 'Record<string, string | number | boolean>', description: 'Custom metadata attributes', isOptional: true },
 ]} />
 
 ## Conditional Logic
 
-The `required`, `visible`, and `disabled` properties can be expressions that reference defs keys or field values (`fields.<id>`):
+The `required` and `visible` properties can be expressions that reference defs keys or field values (`fields.<id>`):
 
 ```ts
 const form = p.form()

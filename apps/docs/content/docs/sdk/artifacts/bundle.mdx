@@ -306,7 +306,7 @@ packet.signatureMap      // every slot, on packet pages
 ```
 
 <PropertiesTable properties={[
-  { name: 'contents', type: 'Record<string, BundleAssemblyEntry>', description: 'One entry per bundle content key, as for assemble()' },
+  { name: 'contents', type: 'Record<string, AssemblyContentEntry>', description: 'One runtime artifact or byte entry per bundle content key' },
   { name: 'renderers', type: 'RendererRegistry', description: 'Renderers keyed by layer MIME type, used by every part\'s render and seal', isOptional: true },
   { name: 'adapter', type: 'SealAdapter', description: 'Converter for a part whose layer is neither PDF nor drawn by a registered renderer', isOptional: true },
   { name: 'locate', type: 'SealLocator', description: 'Locator for anchor placements', isOptional: true },
@@ -314,9 +314,9 @@ packet.signatureMap      // every slot, on packet pages
   { name: 'context', type: '{ asOf?: string | AsOf }', description: 'The clock include conditions read for `today()` and `now()`. Defaults to the current instant', isOptional: true },
 ]} />
 
-The result, a `SealedBundle`, carries `pdf`, `canonicalPdfHash`, `packetHash` (a digest over the merged PDF's hash and every part's), `signers`, `signatureMap`, and `parts`. Each part reports its `kind` (`'sealed'`, `'rendered'`, or `'annex'`), its page range in the packet, and its own digest.
+The result, a `SealedBundle`, carries `bundle`, `pdf`, `canonicalPdfHash`, `packetHash` (a digest over the merged PDF's hash and every part's), `signers`, `signatureMap`, `parts`, and `warnings`. Each part reports its `kind` (`'sealed'`, `'rendered'`, or `'annex'`), its page range in the packet, and its own digest.
 
-Part signer ids are scoped as `<part>/<signerId>`, because two parts that both say `signer-1` are not evidence that one person signs both. Map them with `signers` when they are. A failure throws `BundleSealError`, whose `problems` lists every issue and `part` names the content key when there is one.
+Part signer ids are scoped as `<part>/<signerId>`, because two parts that both say `signer-1` are not evidence that one person signs both. Map them with `signers` when they are. A failure throws `BundleSealError`, an `Error` with a `problems: string[]` list and an optional `part: string` content key. Its `cause` preserves a lower-level rendering or sealing failure when one exists.
 
 ## Lifecycle Types
 

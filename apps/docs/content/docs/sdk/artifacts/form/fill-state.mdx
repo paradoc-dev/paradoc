@@ -36,7 +36,7 @@ while (true) {
   const value = await collectValueFromUser(target)
 
   draft = draft.update({
-    [target.kind === 'party' ? 'parties' : 'fields']: {
+    [target.kind === 'party' ? 'parties' : target.kind === 'annex' ? 'annexes' : 'fields']: {
       [target.key]: value
     }
   })

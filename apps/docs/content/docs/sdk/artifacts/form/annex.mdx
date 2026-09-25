@@ -112,8 +112,10 @@ Use defs for conditional requirements:
 ```ts
 const form = p.form()
   .name('loan-application')
-  .def('isLargeAmount', 'amount > 50000')
-  .def('isMinor', 'age < 18')
+  .field('amount', field.number().label('Loan amount').build())
+  .field('age', field.number().label('Applicant age').build())
+  .def('isLargeAmount', 'fields.amount > 50000')
+  .def('isMinor', 'fields.age < 18')
   .annex('financialStatements', annex()
     .title('Financial Statements')
     .description('Required for loans over $50,000')

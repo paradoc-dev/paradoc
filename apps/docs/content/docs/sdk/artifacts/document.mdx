@@ -97,7 +97,6 @@ Returns a `DocumentInstance` with the following properties and methods:
   { name: 'toJSON', type: '(options?: SerializationOptions) => object', description: 'Serialize to JSON (includes the current dated $schema by default)', isMethod: true },
   { name: 'toYAML', type: '(options?: SerializationOptions) => string', description: 'Serialize to YAML (includes the current dated $schema by default)', isMethod: true },
   { name: 'clone', type: '() => DocumentInstance', description: 'Deep clone the instance', isMethod: true },
-  { name: 'prepare', type: '(targetLayer?: string) => DraftDocument', description: 'Create a runtime document in draft phase', isMethod: true },
   { name: 'prepare', type: '(targetLayer?: string) => DraftDocument', description: 'Create a draft for a layer (defaults to defaultLayer)', isMethod: true },
   { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render document content. See [Render options](#render-options)', isMethod: true },
 ]} />
@@ -173,6 +172,8 @@ Created by `doc.prepare()`.
   { name: 'finalize', type: '() => FinalDocument', description: 'Transition to final phase', isMethod: true },
   { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render the document', isMethod: true },
   { name: 'toJSON', type: '() => DraftDocumentJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'toYAML', type: '() => string', description: 'Serialize to YAML', isMethod: true },
+  { name: 'clone', type: '() => DraftDocument', description: 'Create an exact copy', isMethod: true },
 ]} />
 
 ### FinalDocument
@@ -184,6 +185,8 @@ Created by `draft.finalize()`. Fully frozen.
   { name: 'finalizedAt', type: 'string', description: 'ISO timestamp of finalization' },
   { name: 'render', type: '(options?: ArtifactLayerRenderOptions) => Promise<string | Uint8Array>', description: 'Render the document', isMethod: true },
   { name: 'toJSON', type: '() => FinalDocumentJSON', description: 'Serialize to JSON', isMethod: true },
+  { name: 'toYAML', type: '() => string', description: 'Serialize to YAML', isMethod: true },
+  { name: 'clone', type: '() => FinalDocument', description: 'Create an exact copy', isMethod: true },
 ]} />
 
 ## Render options
