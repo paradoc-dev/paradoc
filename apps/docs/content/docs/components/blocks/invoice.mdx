@@ -57,8 +57,8 @@ taxable, so no caller supplies a total.
 Like the purchase order, the composition renders bare, with no self-wrapping
 [`Pages`](/components/pages): it is meant to sit inside whatever pagination
 or packet a caller supplies. This page's Preview wraps it in `Pages` exactly
-the way a consumer's own page would, which is also why installing `invoice`
-brings `pages` along even though none of the block's own files import it.
+the way a consumer's own page would. Install `pages` explicitly for that
+wrapper; the block still brings `@paradoc/core`, which evaluates its defs.
 
 ## Variants
 

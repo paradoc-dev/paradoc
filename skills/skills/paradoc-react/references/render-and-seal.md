@@ -183,12 +183,13 @@ load `.tsx` (for example `tsx`).
 <!-- dep:R2 -->
 Leave `baseDir` unset to turn the import route off entirely: `process.cwd()`
 is never used, and a layer not in `components` fails naming both options.
-`paradoc check` and `paradoc dev` pass the declaring artifact file's directory
-as `baseDir` for you. Bind an untrusted artifact through `components` only,
+`paradoc check` passes the declaring artifact file's directory as `baseDir`.
+`paradoc dev` loads discovered compositions through Vite instead of this import
+route. Bind an untrusted artifact through `components` only,
 and never set `baseDir`.
 
 `reactRenderer(options)` returns the single renderer. `bindComponent(layer, options)`
-returns the bound component without rendering.
+returns a Promise; await it to get the bound component without rendering.
 
 ## Render an element
 
@@ -222,6 +223,7 @@ await writeFile('agreement.pdf', bytes)
 | `tokens` | `DocumentTokensInput` | A last token layer for this render, such as a tenant accent |
 | `partial` | `boolean` | Render a draft. See [Drafts](#drafts) |
 | `fonts` | `PdfFontResource[]` | Application font faces to embed |
+| `resolveFrom` | `string` | Directory relative font paths and package specifiers resolve from. Default `process.cwd()` |
 | `applicationCss` | `string` | Compiled app CSS. Chromium only |
 | `formatter`, `progressive` | | Override the value formatter and its progressive policy |
 | `signingMarkers` | `boolean` | Embeds the seal marker face. The seal sets it |

@@ -51,8 +51,8 @@ Like the invoice, the composition renders bare, with no self-wrapping
 the [vendor packet](https://docs.paradoc.dev/r/vendor-packet.json), whose own
 layer supplies the bundle around it, so this composition lets the caller
 decide. This page's Preview wraps it in `Pages` exactly the way a standalone
-consumer's own page would, which is also why installing `purchase-order`
-brings `pages` along even though none of the block's own files import it.
+consumer's own page would. Install `pages` explicitly for that wrapper; the
+block still brings `@paradoc/core`, which evaluates its defs.
 
 ## Variants
 

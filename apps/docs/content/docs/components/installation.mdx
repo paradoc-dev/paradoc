@@ -19,12 +19,13 @@ Add the `@paradoc` registry to your project's `components.json`:
 
 ## Install the substrate
 
-Install the `document` component. It brings the `@paradoc/react` substrate
-with it, along with `@paradoc/core` and `@paradoc/types`, and the
-`document-styles` preset, which writes `styles/paradoc.css`:
+Install the styles, preview pages, and document component explicitly. The
+components bring the public runtime packages they import; `document` itself
+brings `@paradoc/react` and `@paradoc/types`. The preset writes
+`styles/paradoc.css`:
 
 ```bash
-npx shadcn@4 add @paradoc/document
+npx shadcn@4 add @paradoc/document-styles @paradoc/pages @paradoc/document
 ```
 
 Then import the preset in your global stylesheet:

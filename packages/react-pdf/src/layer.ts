@@ -91,8 +91,8 @@ export interface ReactLayerRendererOptions {
   /**
    * Directory the layer's path resolves against, and the boundary the resolved
    * path may not leave. A layer path is relative to the artifact file that
-   * declares it, so this is that file's directory: `paradoc check` and
-   * `paradoc dev` pass it for you.
+   * declares it, so this is that file's directory. `paradoc check` passes it
+   * for you; `paradoc dev` loads discovered modules through Vite instead.
    *
    * Leaving it unset turns the import route off entirely: a layer binds only
    * through `components`, and an unbound layer fails naming both options.
@@ -176,9 +176,9 @@ function compositionProps(request: RenderRequest<RendererLayer>): ReactLayerComp
 /**
  * Binds a layer's `path` or `key` to a component, exactly as {@link reactRenderer}
  * does before it renders. Exported for callers that need the component itself
- * rather than PDF bytes: `paradoc check` binds a composition this way to check it
- * without rendering it, and a planned `paradoc dev` preview is expected to bind
- * the same way to run one live.
+ * rather than PDF bytes: `paradoc check` binds a composition this way to check
+ * it without rendering it. `paradoc dev` loads discovered modules through Vite
+ * instead of this import route.
  *
  * @throws {UnboundReactLayerError}
  */
@@ -197,8 +197,8 @@ export async function bindComponent(
 
   // No `baseDir` means the import route is off entirely: `process.cwd()` is
   // never used as a fallback. A caller who does not control the artifact binds
-  // through `components` only and never sets `baseDir`, and `paradoc check` and
-  // `paradoc dev` always pass the declaring artifact's own directory.
+  // through `components` only and never sets `baseDir`; `paradoc check` passes
+  // the declaring artifact's own directory.
   if (options.baseDir === undefined) {
     throw new UnboundReactLayerError(
       path,

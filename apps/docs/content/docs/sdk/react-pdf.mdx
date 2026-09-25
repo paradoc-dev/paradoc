@@ -175,7 +175,7 @@ const bytes = await form.fill({ fields, parties }).render<Uint8Array>({
 });
 ```
 
-A layer binds through `components`, keyed by the layer's path or key, or by importing its path from `baseDir` and taking `exportName` (default `default`). Leaving `baseDir` unset turns the import route off entirely — `process.cwd()` is never used — so a layer absent from `components` fails naming both options. `paradoc check` and `paradoc dev` pass the declaring artifact file's directory as `baseDir` for you. `pdf` passes `RenderPdfOptions` to every render. A layer that cannot be bound throws `UnboundReactLayerError`. `reactRenderer(options)` returns the single renderer, and `bindComponent(layer, options)` returns the bound component without rendering.
+A layer binds through `components`, keyed by the layer's path or key, or by importing its path from `baseDir` and taking `exportName` (default `default`). Leaving `baseDir` unset turns the import route off entirely — `process.cwd()` is never used — so a layer absent from `components` fails naming both options. `paradoc check` passes the declaring artifact file's directory as `baseDir`; `paradoc dev` loads discovered modules through Vite instead. `pdf` passes `RenderPdfOptions` to every render. A layer that cannot be bound throws `UnboundReactLayerError`. `reactRenderer(options)` returns the single renderer, and `await bindComponent(layer, options)` resolves to the bound component without rendering.
 
 ## Fonts and images
 

@@ -154,6 +154,8 @@ compositions/agreement-document.tsx → compositions/agreement.json#composition 
 ```
 
 The preview compiles the project's source with the project's own toolchain.
+It requires `components/paradoc/pages.tsx` under the project root; install it
+with `paradoc add pages` before starting the server.
 Install these in the project first:
 
 <!-- dep:R4 -->
@@ -174,12 +176,13 @@ composition imports in the browser. To load the artifact there, see
 
 ```bash
 npx shadcn@latest init        # once, if components.json is missing
-paradoc add document field signature
+paradoc add document-styles pages document field signature
 ```
 
 The first run writes the `@paradoc` namespace into `components.json`, then runs
 `npx shadcn@4 add @paradoc/<name> --yes` for each item. Dependencies come
-along: `field` brings `keep-together`, `document` brings `document-styles`.
+along: `field` brings `keep-together`. Presets such as `document-styles`, and
+the `pages` preview wrapper, are installed explicitly.
 
 | Flag | Purpose |
 |---|---|

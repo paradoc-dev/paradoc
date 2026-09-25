@@ -43,10 +43,10 @@ Inputs are immutable snapshots. A provider update publishes only selectors whose
 Visible document components are source you own. Configure the Paradoc component collection in `components.json`, then use the stock shadcn CLI:
 
 ```sh
-npx shadcn@latest add @paradoc/document @paradoc/field @paradoc/pages
+npx shadcn@latest add @paradoc/document-styles @paradoc/pages @paradoc/document @paradoc/field
 ```
 
-`document` installs the optional `document-styles` preset at `styles/paradoc.css`. Import that file from the application entry when you want the default Tailwind presentation. You may instead copy the canonical files from `packages/components/src/components` and provide all markup and styles yourself.
+The optional `document-styles` preset installs at `styles/paradoc.css`; import it from the application entry when you want the default Tailwind presentation. Install `pages` for the preview wrapper used by `paradoc dev`. You may instead copy the canonical files from `packages/components/src/components` and provide all markup and styles yourself.
 
 Installed components import maintained logic from `@paradoc/react` and local sibling components. Updating the runtime can therefore fix bindings without replacing customized source. The CLI never overwrites an edited component unless you pass `--overwrite` explicitly.
 

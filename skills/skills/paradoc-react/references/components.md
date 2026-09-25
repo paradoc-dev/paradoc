@@ -297,6 +297,9 @@ reads "(required)" when the role's `signature.required` is `true`.
 | `type` | `"signature" \| "initials"?` | Default `"signature"`. |
 | `id` | `string?` | Keep id. Default `<type>:<party>`, or `<type>:<party>:<index>` after the first. |
 | `className` | `string?` | Default `flex flex-col gap-1`. |
+| `dateLabel` | `string?` | Date-column caption. Default `"Date"`. |
+| `requiredLabel` | `string?` | Required-field suffix. Default `"required"`. |
+| `fieldLabel` | `string?` | Overrides the field-type caption from the artifact binding. |
 
 ```tsx
 <Signature party="tenant" />
@@ -541,5 +544,6 @@ component does not fit.
 |---|---|---|
 | `Page`, `Sheet`, `PageFurnitureBands` | `pages.tsx`, `paper.tsx` | Draw sheets yourself from a `PagePlan`. `Page` takes `plan`, `index`, `furniture`, `children`. |
 | `Attachment` | `pdf-pages.tsx` | A card for a part carried as a file: `filename`, `mimeType`, `byteLength?`, `reason`. Preview only: its default classes include `border-dashed`, which the PDF path refuses. |
-| `FIELD_RULE`, `SIGNATURE_RULE`, `INITIALS_RULE`, `DATE_RULE` | `field.tsx`, `signature.tsx` | The underscore runs the components print. Core owns the signature and initials rules; `@paradoc/react` re-exports them. |
+| `FIELD_RULE` | `field.tsx` | The underscore rule the field component prints. |
+| `SIGNATURE_RULE`, `INITIALS_RULE`, `DATE_RULE` | `@paradoc/react` | The underscore rules signing components print. |
 | `ListMarker`, `TextRole`, `PartKind`, `TotalRow`, `TableColumn` | the component files | Prop types. |

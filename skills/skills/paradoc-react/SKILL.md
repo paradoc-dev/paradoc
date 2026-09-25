@@ -35,7 +35,7 @@ A **composition** is a React component that draws one Paradoc form artifact. The
 
 Do the steps in order. Each ends on a result you can check.
 
-1. **Install.** `paradoc add document field table signature` (needs a `components.json`), or a block such as `paradoc add invoice`. See [cli.md § paradoc add](./references/cli.md#paradoc-add).
+1. **Install.** `paradoc add document-styles pages document field table signature` (needs a `components.json`), or a block plus the shared substrate, such as `paradoc add document-styles pages invoice`. See [cli.md § paradoc add](./references/cli.md#paradoc-add).
    Done when the component files exist under your components folder.
 2. **Declare the layer.** Add a file layer with `mimeType: "text/tsx"` whose `path` names the composition module. See [render-and-seal.md § Declare the layer](./references/render-and-seal.md#declare-the-layer).
    Done when `npx paradoc-cli validate <artifact>` exits 0.
@@ -43,7 +43,7 @@ Do the steps in order. Each ends on a result you can check.
    Done when every value on the page comes from a `Field`, `Table`, `Totals`, `Party` or `Signature` path.
 4. **Check.** `paradoc check <composition>` finds unsupported classes, unresolved paths and missing images without rendering. See [cli.md § paradoc check](./references/cli.md#paradoc-check).
    Done when it exits 0.
-5. **Preview.** `paradoc dev` serves every composition under `compositions/` beside its PDF. In an app, wrap the composition in `<Pages onPaginate>`. See [cli.md § paradoc dev](./references/cli.md#paradoc-dev).
+5. **Preview.** `paradoc dev` needs `components/paradoc/pages.tsx` (`paradoc add pages`) and serves every composition under `compositions/` beside its PDF. In an app, wrap the composition in `<Pages onPaginate>`. See [cli.md § paradoc dev](./references/cli.md#paradoc-dev).
    Done when the composition is listed with no `!`.
 6. **Render.** `renderPdf(element, { plan, furniture })`, or render through the artifact with `reactLayerRenderers`. Pass the preview's `plan` when the PDF must break where the preview broke. See [render-and-seal.md](./references/render-and-seal.md#render-through-the-layer).
    Done when you have bytes and `unknownBreaks` and `unknownRepeats` are empty.
