@@ -36,6 +36,8 @@ export interface DocumentData {
    * its own record rather than something read out of `fields`.
    */
   annexes?: Record<string, Attachment>;
+  /** Computed definition values already evaluated by core for this render. */
+  defs?: Record<string, unknown>;
 }
 
 /** What every component below `Document` can read. */

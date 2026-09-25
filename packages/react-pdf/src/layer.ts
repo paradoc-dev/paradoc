@@ -171,8 +171,11 @@ function compositionProps(request: RenderRequest<RendererLayer>): ReactLayerComp
   if (request.kind !== "form") {
     throw new UnsupportedReactLayerArtifactError(request.kind, request.template.key);
   }
-  const { fields, parties = {}, annexes } = request.data;
-  return { artifact: request.artifact, data: { fields, parties, ...(annexes && { annexes }) } };
+  const { fields, parties = {}, annexes, defs } = request.data;
+  return {
+    artifact: request.artifact,
+    data: { fields, parties, ...(annexes && { annexes }), ...(defs && { defs }) },
+  };
 }
 
 /**

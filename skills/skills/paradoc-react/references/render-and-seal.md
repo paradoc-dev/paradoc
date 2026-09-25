@@ -91,7 +91,7 @@ Draw one `Signature` block per party, index and type.
 
 The module's **default export** is the component. It receives
 `ReactLayerComponentProps`: `artifact` (the `Form`) and `data`
-(`DocumentData`: `{ fields; parties; annexes? }`). Root it in `Document`.
+(`DocumentData`: `{ fields; parties; annexes?; defs? }`). A core render supplies evaluated `defs`; direct compositions may omit them and let `ArtifactProvider` evaluate. Root it in `Document`.
 
 ```tsx
 // agreement-document.tsx

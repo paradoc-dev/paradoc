@@ -76,7 +76,7 @@ artifact's `defs`. Every component below names a path, a def or a party role.
 | Prop | Type | Notes |
 |---|---|---|
 | `artifact` | `Form` | The parsed form artifact. |
-| `data` | `DocumentData` | `{ fields: Record<string, unknown>; parties: Record<string, Party \| Party[]>; annexes?: Record<string, Attachment> }`. `parties` is required; pass `{}` for none. |
+| `data` | `DocumentData` | `{ fields: Record<string, unknown>; parties: Record<string, Party \| Party[]>; annexes?: Record<string, Attachment>; defs?: Record<string, unknown> }`. `parties` is required; pass `{}` for none. Supplied `defs` are core's evaluated values; otherwise the provider evaluates them. |
 | `format` | `FormatOptions?` | `{ formatter?, blank?, partial?, progressive? }`. See below. |
 | `tokens` | `DocumentTokensInput?` | Branding. Inside a `Bundle`, only `accentColor` and `logo`. |
 | `id` | `string?` | Default `artifact.name`. |
@@ -91,6 +91,8 @@ artifact's `defs`. Every component below names a path, a def or a party role.
 | `blank` | `string?` | What an empty value prints. Default `"—"`. |
 | `partial` | `boolean?` | Partial mode, for a draft that is still being filled. Default `false`. |
 | `progressive` | `{ missing?, incomplete? }?` | Placeholders in partial mode, for an absent value and for a composite with members missing. Both default to `blank`. |
+
+When `format` omits `formatter` or `progressive`, the document inherits it from `FormatterProvider` (including `renderPdf` options). A failed def throws in a finished render, reports `defs.<name>` in check mode, and prints the placeholder in partial mode.
 
 ```tsx
 import { createFormatter } from "@paradoc/format";

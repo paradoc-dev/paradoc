@@ -28,6 +28,7 @@ import {
 } from "../lib/format";
 import type { DocumentData } from "../components/document-context";
 import { useUnresolvedPathCollector, type UnresolvedPathCollector } from "../components/check-context";
+import { useArtifactFormatting } from "../components/formatter-context";
 import { usePartialValues } from "../components/partial-context";
 
 export class MissingArtifactProviderError extends Error {
@@ -62,6 +63,7 @@ interface ArtifactSnapshot {
   artifact: Form;
   data: DocumentData;
   defs: Map<string, unknown>;
+  definitionIssues: Map<string, string>;
   formatting: DocumentFormatter;
   collector?: UnresolvedPathCollector;
 }
@@ -103,12 +105,22 @@ export interface ArtifactProviderProps {
   children: ReactNode;
 }
 
+function definitionIssuePath(path: readonly unknown[]): string {
+  return path.length > 0 ? path.map(String).join(".") : "defs";
+}
+
 function snapshotOf(artifact: Form, data: DocumentData, formatting: DocumentFormatter, collector?: UnresolvedPathCollector): ArtifactSnapshot {
+  if (data.defs !== undefined) {
+    return { artifact, data, defs: new Map(Object.entries(data.defs)), definitionIssues: new Map(), formatting, collector };
+  }
   const evaluated = evaluateFormDefs(artifact, { fields: data.fields, parties: data.parties });
+  const issues = ("value" in evaluated && evaluated.value ? evaluated.value.issues : evaluated.issues) ?? [];
+  const definitionIssues = new Map(issues.map((issue) => [definitionIssuePath(issue.path ?? []), issue.message]));
   return {
     artifact,
     data,
     defs: "value" in evaluated && evaluated.value ? evaluated.value.defsValues : new Map(),
+    definitionIssues,
     formatting,
     collector,
   };
@@ -117,11 +129,12 @@ function snapshotOf(artifact: Form, data: DocumentData, formatting: DocumentForm
 /** Supplies artifact data to headless hooks without rendering a DOM element. */
 export function ArtifactProvider({ artifact, data, format, children }: ArtifactProviderProps) {
   const inheritedPartial = usePartialValues();
+  const inheritedFormatting = useArtifactFormatting();
   const collector = useUnresolvedPathCollector();
-  const formatterOption = format?.formatter;
+  const formatterOption = format?.formatter ?? inheritedFormatting.formatter;
   const blank = format?.blank;
   const partial = format?.partial ?? inheritedPartial;
-  const progressive = format?.progressive;
+  const progressive = format?.progressive ?? inheritedFormatting.progressive;
   const formatting = useMemo(
     () => createValueFormatter({ formatter: formatterOption, blank, partial, progressive }),
     [formatterOption, blank, partial, progressive]
@@ -405,8 +418,18 @@ function sameTotals(a: readonly TotalBinding[], b: readonly TotalBinding[]): boo
 export function useTotals(names: readonly string[]): readonly TotalBinding[] {
   return useSelection(`totals:${names.join("\u0000")}`, (snapshot) => names.map((name) => {
     const definition = snapshot.artifact.defs?.[name];
-    if (!definition) throw new UnknownDefinitionError(name, snapshot.artifact.name);
+    if (!definition) {
+      if (!snapshot.collector) throw new UnknownDefinitionError(name, snapshot.artifact.name);
+      snapshot.collector.report(`defs.${name}`);
+      return { name, label: name, value: undefined, text: snapshot.formatting.blank };
+    }
     const value = snapshot.defs.get(name);
+    const issuePath = `defs.${name}`;
+    const issue = snapshot.definitionIssues.get(issuePath) ?? snapshot.definitionIssues.get("defs");
+    if (issue !== undefined) {
+      if (snapshot.collector) snapshot.collector.report(issuePath);
+      else if (!snapshot.formatting.partial) throw new Error(`${issuePath}: ${issue}`);
+    }
     return {
       name,
       label: definition.label ?? name,

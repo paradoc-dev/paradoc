@@ -51,7 +51,7 @@ export function Profile({ artifact, data }: { artifact: Form; data: DocumentData
 | Prop | Type | Description |
 | --- | --- | --- |
 | `artifact` | `Form` | The form artifact every hook reads from |
-| `data` | `DocumentData` | `{ fields, parties, annexes? }`, the same shape `FormData` carries |
+| `data` | `DocumentData` | `{ fields, parties, annexes?, defs? }`, the same render values `FormData` carries. Supplied `defs` are core's evaluated values; otherwise the provider evaluates them. |
 | `format` | `FormatOptions` | Optional `formatter`, `blank` placeholder, `partial`, and `progressive` policy |
 
 Inputs are immutable snapshots. A provider update republishes only the selectors whose resolved value changed. Each provider creates an isolated store, including during SSR.
@@ -79,6 +79,8 @@ Paths are field paths as the artifact declares them. A path the artifact does no
 ### Signing
 
 `useSignature(role, index?, type?)` returns a `SignatureBinding` for one signing mark: `roleLabel`, `partyText`, `fieldLabel`, `required`, the `rule` and `dateRule` strings, and the invisible `marker` the seal flow locates. `type` is `"signature"` (the default) or `"initials"`. Core owns `SIGNATURE_RULE` and `INITIALS_RULE`; `@paradoc/react` re-exports them alongside its `DATE_RULE` for the rules the default components draw.
+
+When `format` omits `formatter` or `progressive`, `ArtifactProvider` inherits that setting from the nearest `FormatterProvider`. A failed computed definition throws in a finished render, reports `defs.<name>` during a check, and prints the progressive placeholder in partial mode.
 
 ### Document settings and paper
 
