@@ -8,7 +8,7 @@
  * config, the same Tailwind, the same font files — and drives it.
  *
  * Chrome is the machine's own. Puppeteer is already the workspace's browser
- * driver (`@paradoc/documents-service` renders with it), and the workspace
+ * driver (`@paradoc-platform/documents-service` renders with it), and the workspace
  * already passes it a browser through `PUPPETEER_EXECUTABLE_PATH`, so nothing
  * here downloads one. When neither that variable nor a well-known install path
  * points at a browser, the suite says so rather than failing obscurely.
