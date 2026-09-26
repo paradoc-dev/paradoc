@@ -34,7 +34,7 @@ export function SearchTrigger({
       )}
     >
       <SearchIcon className="size-3.5 shrink-0" aria-hidden />
-      <span>Search</span>
+      <span className="text-fd-foreground">Search</span>
       <Kbd className="ms-auto bg-fd-background px-1.5 tracking-wide text-fd-muted-foreground group-hover:bg-fd-background/70">
         {hotKey.map((hotKey) => (
           <Fragment key={String(hotKey.key)}>{hotKey.display}</Fragment>

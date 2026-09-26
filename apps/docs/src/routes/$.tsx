@@ -18,6 +18,7 @@ import { DocsHeader, DocsShellProvider } from "@/components/docs-header";
 import { docsSidebar, noSidebar } from "@/components/docs-sidebar";
 import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { Link } from "@tanstack/react-router";
+import { canonicalDocsUrl } from "@/lib/canonical-url";
 import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/$")({
   component: Page,
@@ -28,6 +29,12 @@ export const Route = createFileRoute("/$")({
     return data;
   },
   head: ({ loaderData }) => ({
+    links: [
+      {
+        rel: "canonical",
+        href: canonicalDocsUrl(loaderData?.url ?? "/"),
+      },
+    ],
     meta: [
       {
         title: loaderData?.title
@@ -55,8 +62,8 @@ export const Route = createFileRoute("/$")({
       {
         property: "og:url",
         content: loaderData?.url
-          ? `https://docs.paradoc.dev${loaderData.url}`
-          : "https://docs.paradoc.dev",
+          ? canonicalDocsUrl(loaderData.url)
+          : canonicalDocsUrl("/"),
       },
       {
         name: "twitter:title",
@@ -80,7 +87,7 @@ export const Route = createFileRoute("/$")({
         <div className="flex flex-col items-center justify-center gap-4">
           <h1>Not Found</h1>
           <p>This page doesn't exist...</p>
-          <Link to="/$" params={{ _splat: "" }} className="bg-secondary px-4 py-2 rounded-md">
+          <Link to="/$/" params={{ _splat: "" }} className="bg-secondary px-4 py-2 rounded-md">
             Go back to the home page
           </Link>
         </div>

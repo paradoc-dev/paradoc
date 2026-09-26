@@ -12,7 +12,11 @@ const llmMiddleware = createMiddleware().server(({ next, request }) => {
   const path = rewriteLLM(url.pathname);
 
   if (path) {
-    throw redirect(new URL(path, url));
+    const splat = path.slice("/llms.mdx/docs/".length);
+    throw redirect({
+      to: "/llms.mdx/docs/$/",
+      params: { _splat: splat },
+    });
   }
 
   return next();

@@ -113,8 +113,10 @@ const config = defineConfig({
         routeFileIgnorePrefix: "components",
       },
       sitemap: {
-        enabled: true,
-        host: 'https://docs.paradoc.dev',
+        // The built-in sitemap includes crawled fragment URLs and assigns
+        // every page the build date as lastmod. The sitemap route owns the
+        // canonical, fragment-free URL list instead.
+        enabled: false,
       },
     }),
     viteReact(),
