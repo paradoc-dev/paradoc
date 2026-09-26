@@ -62,13 +62,13 @@ The skill activates when the assistant sees Paradoc work: `@paradoc/*` imports, 
 
 ## Pairing with MCP
 
-The skills and the [hosted MCP server](/mcp) do different jobs:
+The skills and the hosted MCP server do different jobs:
 
 | | Skills | MCP |
 |---|---|---|
 | **Provides** | Reference and workflow guidance | Runtime tools: `validate`, `fill`, `render`, and the registry tools |
 | **Loaded** | On demand by the agent | Connected as a tool server |
-| **Needs** | Nothing | A Paradoc credential: an OAuth sign-in or an API key (see [Authentication](/mcp#authentication)) |
+| **Needs** | Nothing | A Paradoc credential: an OAuth sign-in or an API key |
 | **Best for** | Writing code, designing artifacts, debugging | Browsing the registry, rendering live artifacts |
 
 To give your own agent Paradoc tools in code, use the [AI tool packages](/ai) instead of MCP.

@@ -5,7 +5,7 @@ ogTitle: Paradoc AI Tools
 ogDescription: npm packages that give AI agents ten Paradoc tools to find, inspect, validate, fill, render, and read back documents
 ---
 
-The Paradoc AI packages give your own AI agents tools to find, inspect, validate, fill, and render documents, and to read filled PDF forms back into data. Unlike the [MCP server](/mcp), which is a hosted service, these are npm packages you install and run in your own stack.
+The Paradoc AI packages give your own AI agents tools to find, inspect, validate, fill, and render documents, and to read filled PDF forms back into data. Unlike the hosted MCP server, these are npm packages you install and run in your own stack.
 
 ## Packages
 
@@ -155,6 +155,6 @@ Every adapter combines the framework's abort signal with `signal` and `context.s
 | **Protocol** | Model Context Protocol | Your framework's tool API (AI SDK, TanStack AI, Mastra) |
 | **Registry lookup** | DB-backed registry IDs | Direct registry URLs |
 | **Render output** | Short-link URL or inline | Inline only |
-| **Auth** | Every `/mcp` request needs an OAuth bearer token scoped to an organization, or an `x-api-key` header. See [MCP server](/mcp). | Your config (`fetch`, API keys) |
+| **Auth** | Every `/mcp` request needs an OAuth bearer token scoped to an organization, or an `x-api-key` header. | Your config (`fetch`, API keys) |
 | **Tools only here** | `list_artifacts`, `list_registries`, `search`, and platform tools for e-signature envelopes, payments, and extraction jobs | `inspect_artifact`, `validate_input`, `get_fill_state`, `update_fill` |
 | **Extraction** | The platform `extract` tool runs hosted extraction jobs, including scanned and flattened documents | [`extract`](/ai/tools/extract) reads the fields of a fillable PDF in your own process, with no service call |

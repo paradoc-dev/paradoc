@@ -95,7 +95,6 @@ describe("the docs areas, from the content folders", () => {
       "Schemas",
       "SDK",
       "CLI",
-      "MCP",
       "Skill",
       "AI",
     ]);
