@@ -135,6 +135,15 @@ fix(render): correct PDF form field rendering
 docs(schemas): update artifact schema documentation
 ```
 
+### Changelog Entries
+
+Add each user-visible change to the `[Unreleased]` section of `CHANGELOG.md`.
+
+- Write one short line in user terms: what changed and why it matters.
+- Mark breaking changes and state exactly what the user must do.
+- Leave out internal refactors, tests, and documentation-only changes.
+- Group related changes instead of recording implementation steps or cause-and-effect history.
+
 ## Project Structure
 
 ```
