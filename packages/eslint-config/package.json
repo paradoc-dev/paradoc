@@ -36,7 +36,8 @@
   "exports": {
     "./base": "./base.js",
     "./next-js": "./next.js",
-    "./react-internal": "./react-internal.js"
+    "./react-internal": "./react-internal.js",
+    "./service-boundary": "./service-boundary.js"
   },
   "peerDependencies": {
     "eslint": ">=9.0.0"
