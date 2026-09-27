@@ -84,13 +84,19 @@ function toArea(tree: PageTree.Root): DocsArea {
   const title = textOf(tree.name);
   const pages = flattenTree(tree.children);
   if (pages.length === 0) throw new Error(`Docs area "${title}" has no pages`);
+  const changelogArea = pages.every(
+    (page) => page.url === "/changelog" || page.url.startsWith("/changelog/"),
+  );
 
   return {
     title,
     url: pages[0].url,
     urls: new Set(pages.map((page) => page.url)),
     tree,
-    sidebar: pages.length > 1,
+    // Release permalinks are linked from the complete changelog. Keep that
+    // reading surface full-width instead of duplicating every version in a
+    // sidebar.
+    sidebar: pages.length > 1 && !changelogArea,
   };
 }
 

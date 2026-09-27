@@ -97,8 +97,8 @@ describe('docs content', () => {
   })
 
   test('no page hand-writes a schema version', () => {
-    // The changelog page is generated from CHANGELOG.md and names past versions on purpose.
-    const pages = contentPages().filter((file) => file !== path.join('changelog', 'index.mdx'))
+    // Changelog pages are generated from CHANGELOG.md and name past versions on purpose.
+    const pages = contentPages().filter((file) => !file.startsWith(`changelog${path.sep}`))
     expect(pages.length).toBeGreaterThan(20)
     const found = pages.flatMap((file) => handWrittenVersions(file, readFileSync(path.join(contentRoot, file), 'utf8')))
     expect(found).toEqual([])

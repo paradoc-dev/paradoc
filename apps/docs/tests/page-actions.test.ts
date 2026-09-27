@@ -15,6 +15,9 @@ describe("page actions", () => {
     expect(pageGitHubUrl("changelog/index.mdx")).toBe(
       "https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md",
     );
+    expect(pageGitHubUrl("changelog/v0.6.0.mdx")).toBe(
+      "https://github.com/paradoc-dev/paradoc/blob/main/CHANGELOG.md",
+    );
   });
 
   test("expands component documentation from built registry content", () => {

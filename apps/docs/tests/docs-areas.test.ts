@@ -134,8 +134,9 @@ describe("the docs areas, from the content folders", () => {
     expect(components.sidebar).toBe(true);
   });
 
-  test("Changelog is a single page without a sidebar", () => {
-    expect([...changelog.urls]).toEqual(["/changelog"]);
+  test("Changelog includes release permalinks without a sidebar", () => {
+    expect([...changelog.urls]).toContain("/changelog");
+    expect([...changelog.urls]).toContain("/changelog/v0.6.0");
     expect(changelog.sidebar).toBe(false);
   });
 
