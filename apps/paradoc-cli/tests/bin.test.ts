@@ -6,10 +6,14 @@ import { runCli } from '../../cli/tests/setup/spawn-cli'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const cliRoot = path.resolve(packageRoot, '../cli')
+const packageVersion = (JSON.parse(readFileSync(path.join(packageRoot, 'package.json'), 'utf8')) as { version: string }).version
 
 describe('paradoc-cli shim', () => {
   it('runs the built CLI and reports its version', async () => {
-    await expect(runCli(['--version'], { target: 'shim' })).resolves.toMatchObject({ stdout: '0.6.0\n', exitCode: 0 })
+    await expect(runCli(['--version'], { target: 'shim' })).resolves.toMatchObject({
+      stdout: `${packageVersion}\n`,
+      exitCode: 0,
+    })
   })
 
   it('imports the dist entry published by @paradoc/cli', () => {

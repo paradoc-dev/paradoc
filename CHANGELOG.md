@@ -4,6 +4,24 @@ All notable changes to Paradoc. Packages are versioned in lockstep.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-28
+
+Paradoc 0.6.1 tightens prerelease schema distribution and makes the documentation easier for people and agents to discover. It also publishes a reusable service-layer boundary for projects using the Paradoc ESLint configuration.
+
+### Highlights
+
+- `@paradoc/schemas` now packages only the current dated schema set and live-root schemas, while older prerelease schemas remain available through Git history.
+- The documentation publishes a permanent page for each release alongside the latest changelog index.
+- Canonical URLs, a generated sitemap, and improved Markdown responses make documentation routes easier for search engines and agents to discover.
+- `@paradoc/eslint-config/service-boundary` enforces API-free service modules by preventing imports from co-located contracts and `@paradoc/api-kernel`.
+
+### Other changes
+
+#### Documentation
+
+- Public navigation no longer advertises the hosted MCP reference; AI guidance directs developers to the published adapter packages for in-process tools.
+- Sidebar and content-grid behavior is more consistent across documentation pages.
+
 ## [0.6.0] - 2026-09-25
 
 Paradoc 0.6 turns documents into a complete application surface: compose them in React, migrate versioned artifacts, extract filled PDFs, and seal multi-document packets. It also tightens public contracts across the SDK, CLI, rendering, sessions, and AI adapters.
