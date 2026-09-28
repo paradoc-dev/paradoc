@@ -157,9 +157,11 @@ describe("the published JSON Schema", () => {
     expectPublishedDirection(layerDefinition(json, "inline"), layerDefinition(json, "file"), json.allOf);
   });
 
-  it("ships the corrected text in the current dated snapshot and leaves 2026-09-22 as published", () => {
-    const layerIn = (version: string) =>
-      (JSON.parse(readFileSync(join(__dirname, "..", "schemas", `${version}.json`), "utf-8")) as { $defs: { Layer: JsonSchema } }).$defs.Layer;
+  it("ships the corrected text in the current output and keeps 2026-09-22 as migration history", () => {
+    const layerIn = (version: string) => {
+      const source = version === SCHEMA_VERSION ? "schemas" : "snapshots";
+      return (JSON.parse(readFileSync(join(__dirname, "..", source, `${version}.json`), "utf-8")) as { $defs: { Layer: JsonSchema } }).$defs.Layer;
+    };
 
     const current = layerIn(SCHEMA_VERSION);
     expectPublishedDirection(layerDefinition(current, "inline"), layerDefinition(current, "file"), current.allOf);

@@ -56,6 +56,8 @@ try {
 
 ### Version history
 
+Before 1.0, the package and hosted schema service contain only the current dated schema set. Superseded prerelease schemas remain available through repository history, but they are not a supported package or hosted-service surface. Migration support is separate: `paradoc migrate` continues to recognize the versions listed below.
+
 | Version | Changes |
 | ------- | ------- |
 | `2026-09-24` | A layer declares signature slots only in `signatures`: `signatureBlocks` and `anchorBlocks` are removed. `paradoc migrate` moves each block into `signatures` under the same id, with the block type `date` renamed `date_signed`. |
@@ -67,7 +69,7 @@ try {
 
 ## Hosted server
 
-Every published version stays at its address.
+The hosted service exposes the current prerelease schema set and the live root schemas.
 
 | Schema           | URL                                                 |
 | ---------------- | --------------------------------------------------- |

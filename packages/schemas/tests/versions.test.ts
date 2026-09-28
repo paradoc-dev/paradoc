@@ -10,7 +10,12 @@ import {
 	schemaVersionUrl,
 } from '../src/zod';
 
+const snapshotsDir = join(__dirname, '..', 'snapshots');
 const schemasDir = join(__dirname, '..', 'schemas');
+
+function versionDirectory(version: string): string {
+	return version === SCHEMA_VERSION ? schemasDir : snapshotsDir;
+}
 
 describe('schema versions', () => {
 	it('lists published versions oldest first, and the last is current', () => {
@@ -24,16 +29,17 @@ describe('schema versions', () => {
 		expect(schemaVersionUrl(SCHEMA_VERSION)).toBe(PARADOC_SCHEMA_URL);
 	});
 
-	it.each(SCHEMA_VERSIONS)('publishes %s at its dated address', (version) => {
-		const bundle = JSON.parse(readFileSync(join(schemasDir, `${version}.json`), 'utf-8'));
+	it.each(SCHEMA_VERSIONS)('keeps the %s schema definition for migration history', (version) => {
+		const directory = versionDirectory(version);
+		const bundle = JSON.parse(readFileSync(join(directory, `${version}.json`), 'utf-8'));
 		expect(bundle.$id).toBe(schemaVersionUrl(version));
 		expect(bundle.$defs.Form).toBeDefined();
-		expect(existsSync(join(schemasDir, version, 'form.json'))).toBe(true);
+		expect(existsSync(join(directory, version, 'form.json'))).toBe(true);
 	});
 
 	it('keeps each dated bundle a self-contained document', () => {
 		for (const version of SCHEMA_VERSIONS) {
-			const text = readFileSync(join(schemasDir, `${version}.json`), 'utf-8');
+			const text = readFileSync(join(versionDirectory(version), `${version}.json`), 'utf-8');
 			expect(text).not.toMatch(/"\$ref": "https:/);
 		}
 	});

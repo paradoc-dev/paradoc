@@ -50,7 +50,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "node scripts/prepare-schema-output.mjs && tsup && pnpm export:all",
+    "build": "tsx scripts/prepare-schema-output.ts && tsup && pnpm export:all",
     "dev": "tsup --watch",
     "clean": "rm -rf dist schemas",
     "pack:dry": "npm pack --dry-run",
