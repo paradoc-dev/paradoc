@@ -17,7 +17,8 @@ import { describe, expect, it } from 'vitest'
 const repo = path.resolve(import.meta.dirname, '../../../..')
 
 function run(args: string[], cwd: string, home: string) {
-  const result = spawnSync('pnpm', ['tsx', path.join(repo, 'apps/cli/src/index.ts'), ...args], {
+  const cliRoot = path.join(repo, 'apps/cli')
+  const result = spawnSync(path.join(cliRoot, 'node_modules/.bin/tsx'), [path.join(cliRoot, 'src/index.ts'), ...args], {
     cwd,
     encoding: 'utf8',
     env: { ...process.env, HOME: home, NO_COLOR: '1' },
