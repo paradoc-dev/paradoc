@@ -22,6 +22,7 @@ export const docs = defineDocs({
     }),
     postprocess: {
       includeProcessedMarkdown: {
+        headingIds: false,
         filterElement: filterMdxComponent,
         stringify: stringifyMdxComponent,
       },

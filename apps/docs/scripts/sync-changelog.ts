@@ -98,11 +98,27 @@ export function buildPage(markdown: string): string {
   return `${frontmatter}\n${body.trimEnd()}\n`;
 }
 
+/**
+ * Raise every heading one level outside code fences. A release's sections sit
+ * under its `##` version heading in CHANGELOG.md; on the release's own page
+ * the version is the title, so its sections become the page's `##` headings.
+ */
+export function promoteHeadings(markdown: string): string {
+  let fenced = false;
+  return markdown.split("\n").map((line) => {
+    if (/^\s*```/.test(line)) {
+      fenced = !fenced;
+      return line;
+    }
+    return fenced ? line : line.replace(/^#(#{2,6}[ \t])/, "$1");
+  }).join("\n");
+}
+
 export function buildReleasePage(release: ReleaseSection): string {
   const title = `Paradoc v${release.version}`;
   const description = `Released ${release.date}`;
   const ogDescription = `Release notes for Paradoc v${release.version}`;
-  const body = escapeMdxProse(release.body);
+  const body = escapeMdxProse(promoteHeadings(release.body));
 
   const frontmatter = [
     "---",

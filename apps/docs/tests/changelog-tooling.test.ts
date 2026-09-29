@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildPage,
   buildReleasePage,
+  promoteHeadings,
   releaseSections,
 } from '../scripts/sync-changelog'
 import { prTitlesSince } from '../scripts/changelog-draft'
@@ -58,6 +59,13 @@ describe('changelog tooling', () => {
     await expect(compile(body)).resolves.toBeDefined()
   })
 
+  it('raises release sections one heading level outside code fences', () => {
+    const body = ['### Highlights', '', '#### Core', '', '```md', '### kept', '```', '', '## stays'].join('\n')
+    expect(promoteHeadings(body)).toBe(
+      ['## Highlights', '', '### Core', '', '```md', '### kept', '```', '', '## stays'].join('\n'),
+    )
+  })
+
   it('generates one permanent page with stable metadata for each release', async () => {
     const markdown = [
       '# Changelog',
@@ -65,6 +73,8 @@ describe('changelog tooling', () => {
       '## [2.0.0] - 2026-09-25',
       '',
       'Second release.',
+      '',
+      '### Highlights',
       '',
       '## [1.0.0] - 2026-08-01',
       '',
@@ -82,6 +92,8 @@ describe('changelog tooling', () => {
     expect(page).toContain('description: "Released 2026-09-25"')
     expect(page).toContain('ogDescription: "Release notes for Paradoc v2.0.0"')
     expect(page).toContain('Second release.')
+    expect(page).toMatch(/^## Highlights$/m)
+    expect(page).not.toMatch(/^### /m)
     expect(page).not.toContain('First release.')
     await expect(compile(page.replace(/^---[\s\S]*?---\n/, ''))).resolves.toBeDefined()
   })

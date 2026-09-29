@@ -126,6 +126,13 @@ describe("docs components as Markdown", () => {
     expect(filterMdxComponent({ type: "mdxJsxFlowElement", name: "Tab" })).toBe(true);
   });
 
+  test("drops MDX comments but keeps other expressions", () => {
+    expect(filterMdxComponent({ type: "mdxFlowExpression", value: "/* GENERATED FILE. */" })).toBe(false);
+    expect(filterMdxComponent({ type: "mdxTextExpression", value: " /* a\nb */ " })).toBe(false);
+    expect(filterMdxComponent({ type: "mdxFlowExpression", value: "props.name" })).toBe(true);
+    expect(filterMdxComponent({ type: "mdxFlowExpression", value: "/* note */ props.name" })).toBe(true);
+  });
+
   test("writes callouts as labeled block quotes and cards as a link list", () => {
     expect(
       render(jsx("Callout", [string("type", "warn")], [md("Needs Node.\n\nSee docs.")])),

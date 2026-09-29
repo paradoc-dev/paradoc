@@ -210,8 +210,18 @@ function labeled(label: string, body: string): string {
   return `**${label}**\n\n${body}`;
 }
 
-/** The `filterElement` hook: the tab strip repeats the labels each tab carries. */
-export function filterMdxComponent(node: { type: string; name?: string | null }): boolean {
+/**
+ * The `filterElement` hook. Drops the tab strip, which repeats the labels each
+ * tab carries, and MDX comments, which are authoring notes and not content.
+ */
+export function filterMdxComponent(node: {
+  type: string;
+  name?: string | null;
+  value?: string;
+}): boolean {
+  if (node.type === "mdxFlowExpression" || node.type === "mdxTextExpression") {
+    return !/^\s*\/\*[\s\S]*\*\/\s*$/.test(node.value ?? "");
+  }
   return node.name !== "CodeBlockTabsList";
 }
 

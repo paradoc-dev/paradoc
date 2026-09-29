@@ -226,6 +226,15 @@ describe.skipIf(!docsUrl)("built documentation delivery", () => {
       .match(/<\/?[A-Z][A-Za-z]*[\s/>]/g) ?? [];
   }
 
+  function prose(markdown: string): string {
+    return markdown.replace(/^```[\s\S]*?^```/gm, "");
+  }
+
+  /** Heading levels outside code fences, in document order. */
+  function headingLevels(markdown: string): number[] {
+    return [...prose(markdown).matchAll(/^(#{1,6}) /gm)].map(([, hashes]) => hashes!.length);
+  }
+
   test("serves every published page as complete Markdown by both routes", async () => {
     const paths = await inventory();
     expect(paths.length).toBeGreaterThan(100);
@@ -244,6 +253,14 @@ describe.skipIf(!docsUrl)("built documentation delivery", () => {
       expect(explicitBody, pathname).toContain(`Canonical URL: https://docs.paradoc.dev${pathname}`);
       expect(placeholders(explicitBody), pathname).toEqual([]);
       expect(explicitBody, pathname).not.toContain("__SCHEMA_VERSION__");
+      expect(explicitBody, pathname).not.toMatch(/^#{1,6} .*\[#[^\]]+\]\s*$/m);
+      expect(prose(explicitBody), pathname).not.toContain("{/*");
+      const levels = headingLevels(explicitBody);
+      expect(levels[0], pathname).toBe(1);
+      levels.slice(1).forEach((level, index) => {
+        expect(level, `${pathname} heading ${index + 2}`).toBeGreaterThan(1);
+        expect(level, `${pathname} heading ${index + 2}`).toBeLessThanOrEqual(levels[index]! + 1);
+      });
     }
   });
 
