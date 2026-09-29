@@ -14,7 +14,9 @@ pnpm test         # run the docs and snippet tests
 pnpm preview      # serve the production build locally
 ```
 
-Pages live in `content/docs/`. `PARADOC_DOCS_PLATFORM_API=true` includes the gated Platform API guide; it is excluded by default and from the public production build.
+Pages live in `content/docs/`. `PARADOC_DOCS_PLATFORM_API=true` includes the
+gated Platform API guides; they are excluded by default and from the public
+production build.
 
 ## Generated content
 

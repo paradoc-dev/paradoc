@@ -30,7 +30,9 @@ const signable = await form
 ```
 
 The adapter calls `POST /v1/exec/convert` (exported as `HOSTED_CONVERT_PATH`)
-and requires an API key.
+and requires an API key with `execution:run`. The result is returned directly
+to the caller; see [Platform access](/guides/platform-access) for the boundary
+between immediate execution results and stored content.
 
 `baseUrl` defaults to `https://api.paradoc.dev`; `fetch` can replace the request implementation. Pass `timeoutMs` to abort a conversion that takes too long, for example
 `timeoutMs: 30_000`. The timer starts when each request starts. A failed or unreadable response throws

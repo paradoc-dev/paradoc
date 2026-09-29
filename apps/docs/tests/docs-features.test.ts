@@ -1,7 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { filterDocsFiles, PLATFORM_API_PAGE } from "@/lib/docs-features";
+import {
+  filterDocsFiles,
+  PLATFORM_API_PAGES,
+} from "@/lib/docs-features";
 
 const CONTENT_DIR = path.resolve(__dirname, "../content/docs");
 
@@ -33,12 +36,18 @@ const files = [
     data: { title: "Hosted Sealing & Conversion" },
   },
   {
+    type: "page",
+    path: "guides/platform-access.mdx",
+    data: { title: "Platform Access" },
+  },
+  {
     type: "meta",
     path: "guides/meta.json",
     data: {
       pages: [
         "sealing-and-conversion",
         "hosted-sealing-and-conversion",
+        "platform-access",
       ],
     },
   },
@@ -48,9 +57,9 @@ describe("docs feature flags", () => {
   test("excludes platform API pages and navigation when disabled", () => {
     const filtered = filterDocsFiles(files, false);
 
-    expect(filtered.map((file) => file.path)).not.toContain(
-      "guides/hosted-sealing-and-conversion.mdx",
-    );
+    for (const page of PLATFORM_API_PAGES) {
+      expect(filtered.map((file) => file.path)).not.toContain(page);
+    }
     expect(filtered.find((file) => file.type === "meta")?.data).toEqual({
       pages: ["sealing-and-conversion"],
     });
@@ -62,20 +71,22 @@ describe("docs feature flags", () => {
 });
 
 describe("gated platform API pages", () => {
-  const gatedSlug = PLATFORM_API_PAGE.replace(/\.mdx$/, "");
-
-  test("only the feature-gated guide index links the gated page", () => {
+  test("only platform API pages link another gated page", () => {
     const pages = Object.fromEntries(
       contentPages()
-        .filter((file) => file !== PLATFORM_API_PAGE)
+        .filter((file) => !PLATFORM_API_PAGES.includes(file as typeof PLATFORM_API_PAGES[number]))
         .map((file) => [file, readFileSync(path.join(CONTENT_DIR, file), "utf8")]),
     );
 
-    expect(pagesLinking(pages, gatedSlug)).toEqual(["guides/index.mdx"]);
+    for (const page of PLATFORM_API_PAGES) {
+      const gatedSlug = page.replace(/\.mdx$/, "");
+      expect(pagesLinking(pages, gatedSlug)).toEqual(["guides/index.mdx"]);
+    }
     expect(pages["guides/index.mdx"]).toContain("platformApiDocsEnabled ?");
   });
 
   test("finds a link to a gated page", () => {
+    const gatedSlug = PLATFORM_API_PAGES[0].replace(/\.mdx$/, "");
     const pages = {
       "sdk/index.mdx": `See [Hosted sealing](/${gatedSlug}).`,
       "sdk/other.mdx": `See [Hosted sealing](/${gatedSlug}#adapter).`,

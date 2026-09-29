@@ -7,8 +7,16 @@ export const platformApiDocsEnabled =
       process.env.PARADOC_DOCS_PLATFORM_API === "true";
 
 export const PLATFORM_API_PAGE = "guides/hosted-sealing-and-conversion.mdx";
+export const PLATFORM_ACCESS_PAGE = "guides/platform-access.mdx";
+export const PLATFORM_API_PAGES = [
+  PLATFORM_API_PAGE,
+  PLATFORM_ACCESS_PAGE,
+] as const;
 const PLATFORM_API_META = "guides/meta.json";
-const PLATFORM_API_META_ENTRY = "hosted-sealing-and-conversion";
+const PLATFORM_API_META_ENTRIES = new Set([
+  "hosted-sealing-and-conversion",
+  "platform-access",
+]);
 
 interface DocsFile {
   type: string;
@@ -24,7 +32,9 @@ export function filterDocsFiles<T extends DocsFile>(
   if (enabled) return [...files];
 
   return files.flatMap((file) => {
-    if (file.type === "page" && file.path === PLATFORM_API_PAGE) return [];
+    if (file.type === "page" && PLATFORM_API_PAGES.includes(file.path as typeof PLATFORM_API_PAGES[number])) {
+      return [];
+    }
 
     if (file.type === "meta" && file.path === PLATFORM_API_META) {
       const data = file.data as { pages?: string[] };
@@ -36,7 +46,7 @@ export function filterDocsFiles<T extends DocsFile>(
           data: {
             ...data,
             pages: data.pages.filter(
-              (page) => page !== PLATFORM_API_META_ENTRY,
+              (page) => !PLATFORM_API_META_ENTRIES.has(page),
             ),
           },
         } as T,

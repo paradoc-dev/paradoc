@@ -11,7 +11,7 @@ export const docs = defineDocs({
     files:
       process.env.PARADOC_DOCS_PLATFORM_API === "true"
         ? ["**/*.{md,mdx}"]
-        : ["**/!(hosted-sealing-and-conversion).{md,mdx}"],
+        : ["**/!(hosted-sealing-and-conversion|platform-access).{md,mdx}"],
     schema: pageSchema.extend({
       ogTitle: z.string().optional(),
       ogDescription: z.string().optional(),

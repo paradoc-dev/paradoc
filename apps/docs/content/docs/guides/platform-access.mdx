@@ -1,0 +1,71 @@
+---
+title: Platform Access
+description: Control organization access to document content in the Platform API
+---
+
+Platform resources are controlled by the organization that creates them. Use a
+member role or an organization API key to decide who can operate a workflow and
+who can retrieve its stored document content.
+
+## Roles and permissions
+
+Platform has three roles: viewer, editor, and admin. A viewer can monitor
+envelope status with `esign:read`, but cannot download completed documents,
+certificates, detailed signing evidence, or the URLs that grant access to
+them. Viewers receive neither content permission and do not receive
+`execution:run`. Editors and admins receive `esign-content:read`,
+`execution:run`, and `execution-content:read`.
+
+The same split applies to execution:
+
+| Permission | Allows |
+| --- | --- |
+| `execution:run` | Run fill, render, convert, prefill, prepare, seal, and synchronous extraction operations, and receive their immediate result. It also allows submitting and monitoring extraction jobs. |
+| `execution-content:read` | Retrieve persisted extraction results and detailed failure content after the job has been stored. |
+| `request-log:read` | Read captured execution request logs in the console. This is a separate, content-bearing permission because logged inputs can contain populated values or document bytes. |
+
+`execution:run` does not imply `execution-content:read`. Immediate operation
+results remain available to the caller that runs them; the extra permission is
+for later reads of persisted extraction content. An extraction-job read without
+that permission returns operational fields, not stored values, document bytes,
+or access-bearing URLs.
+
+Ownership does not promote a viewer to document access. There are no custom
+roles, per-member grants, or separate certificate permissions.
+
+## API keys
+
+API keys carry the permissions selected when they are issued or changed. The
+member managing a key can select only API-key-eligible permissions that they
+currently hold. For example, a status-only key can carry `esign:read`, while
+an integration that archives completed agreements also needs
+`esign-content:read`.
+
+An issued key is an organization credential, not a continuously delegated
+member credential. It continues to work if its issuer changes role or leaves
+the organization. An authorized member can explicitly revoke it; normal
+expiry, revocation, organization, and mode boundaries still apply.
+
+MCP tools forward the connected caller's bearer token or organization API key
+to the same Platform authorization policies. MCP does not add a document
+content grant.
+
+## Other access paths
+
+Signer delivery is separate from organization access. A signer receives a
+ceremony session and, after completion, a per-signer download token subject to
+its existing access window and retention rules. That delivery does not remove
+the organization's authorized access to the completed document.
+
+First-party services use separate service authentication with organization,
+tenant, and on-behalf-of attribution. Those calls are outside the public role
+and API-key catalog. This guide does not make a network-routing,
+environment-secret-separation, or individual database-key-attribution claim.
+
+## What these permissions mean
+
+These permissions limit access within an organization. They do not make a
+document confidential from an application authorized to process it or from
+operators who control that application's authorized API keys. They also do not
+create a customer identity, consent, delegation, or customer-exclusive access
+model.
