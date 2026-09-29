@@ -125,6 +125,8 @@ These act on the session's organization through the Paradoc platform API. The ar
 { "source": "inline", "artifact": { "kind": "form", "…": "…" } }
 ```
 
+A registry coordinate resolves in the session's mode. A test session never falls back to a live artifact. To test with a live published version, add `"source_mode": "live"` to the registry source. The version is read-only, and the call and its records stay in test mode. To change a live artifact from test mode, fork it into a test repo.
+
 A billed tool fails with an insufficient-balance error when the organization's balance is empty.
 
 `extract`, `prefill`, `seal`, `extract_job_submit` and `create_envelope` take an optional `idempotency_key` (1-255 characters). To retry a call that failed or timed out, send the same key: the API returns the first result and does not bill it again. Without a key, each call is a new operation. A test-mode call and a live-mode call never share a result, even with the same key.
