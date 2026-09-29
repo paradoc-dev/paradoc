@@ -3,7 +3,14 @@
   "name": "paradoc-docs-prod",
   "compatibility_date": "2025-10-30",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
+  // The Worker answers ahead of the static assets so a page can be served as
+  // Markdown at its ordinary URL. Hashed build output, fonts, the component
+  // registry and the favicon skip the Worker.
+  "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": ["/*", "!/assets/*", "!/fonts/*", "!/r/*", "!/favicon.ico"]
+  },
   "routes": [
     { "pattern": "docs.paradoc.dev", "custom_domain": true }
   ]

@@ -4,8 +4,9 @@ import { expandComponentMarkdown } from "@/lib/page-markdown";
 
 describe("page actions", () => {
   test("points page Markdown actions at the built Markdown route", () => {
-    expect(pageMarkdownUrl("/concepts")).toBe("/llms.mdx/docs/concepts");
-    expect(pageMarkdownUrl("/")).toBe("/llms.mdx/docs");
+    expect(pageMarkdownUrl("/concepts")).toBe("/concepts.md");
+    expect(pageMarkdownUrl("/sdk/artifacts/form")).toBe("/sdk/artifacts/form.md");
+    expect(pageMarkdownUrl("/")).toBe("/index.md");
   });
 
   test("points source links at the public repository", () => {
@@ -50,7 +51,7 @@ describe.skipIf(!docsUrl)("built documentation routes", () => {
       fetch(new URL("/llms-full.txt", docsUrl)),
     ]);
     expect(index.status).toBe(200);
-    expect(await index.text()).toContain("https://docs.paradoc.dev/concepts.mdx");
+    expect(await index.text()).toContain("https://docs.paradoc.dev/concepts.md");
     expect(full.status).toBe(200);
     const fullText = await full.text();
     expect(fullText).toContain("npx shadcn@4 add @paradoc/text");

@@ -1,5 +1,6 @@
+/** The explicit Markdown URL of a docs page, as a path on the docs host. */
 export function pageMarkdownUrl(url: string): string {
-  return `/llms.mdx/docs${url === "/" ? "" : url}`;
+  return url === "/" ? "/index.md" : `${url.replace(/\/+$/, "")}.md`;
 }
 
 export function pageGitHubUrl(filePath: string): string {

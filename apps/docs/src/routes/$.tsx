@@ -18,7 +18,7 @@ import { DocsHeader, DocsShellProvider } from "@/components/docs-header";
 import { docsSidebar, noSidebar } from "@/components/docs-sidebar";
 import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { Link } from "@tanstack/react-router";
-import { canonicalDocsUrl } from "@/lib/canonical-url";
+import { canonicalDocsUrl, canonicalMarkdownUrl } from "@/lib/canonical-url";
 import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/$")({
   component: Page,
@@ -33,6 +33,11 @@ export const Route = createFileRoute("/$")({
       {
         rel: "canonical",
         href: canonicalDocsUrl(loaderData?.url ?? "/"),
+      },
+      {
+        rel: "alternate",
+        type: "text/markdown",
+        href: canonicalMarkdownUrl(loaderData?.url ?? "/"),
       },
     ],
     meta: [

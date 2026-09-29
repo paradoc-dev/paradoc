@@ -3,6 +3,10 @@ import { pageSchema } from "fumadocs-core/source/schema";
 import lastModified from "fumadocs-mdx/plugins/last-modified";
 import { z } from "zod";
 
+import {
+  filterMdxComponent,
+  stringifyMdxComponent,
+} from "./src/lib/markdown-components";
 import { remarkSchemaVersion } from './src/lib/schema-version';
 
 export const docs = defineDocs({
@@ -17,7 +21,10 @@ export const docs = defineDocs({
       ogDescription: z.string().optional(),
     }),
     postprocess: {
-      includeProcessedMarkdown: true,
+      includeProcessedMarkdown: {
+        filterElement: filterMdxComponent,
+        stringify: stringifyMdxComponent,
+      },
     },
   },
 });

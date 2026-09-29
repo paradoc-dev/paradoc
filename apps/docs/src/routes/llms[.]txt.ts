@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { pageMarkdownUrl } from "@/lib/page-actions";
 import { source } from "@/lib/source";
 
 const index = [
   "# Paradoc documentation",
   "",
   ...source.getPages().flatMap((page) => [
-    `- [${page.data.title}](https://docs.paradoc.dev${page.url}.mdx): ${page.data.description ?? ""}`,
+    `- [${page.data.title}](https://docs.paradoc.dev${pageMarkdownUrl(page.url)}): ${page.data.description ?? ""}`,
   ]),
 ].join("\n");
 
