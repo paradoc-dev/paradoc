@@ -50,6 +50,15 @@ MCP tools forward the connected caller's bearer token or organization API key
 to the same Platform authorization policies. MCP does not add a document
 content grant.
 
+An OAuth MCP connection also carries a grant that the member sets once in the
+console: test mode, live mode, or both, with its own permissions in each mode.
+The permissions are capped by the member's current role. With one mode
+granted, every call runs in it. With both, each call that touches mode-owned
+content names its mode, and a call without one is refused. Members revoke a
+mode or a whole connection on the MCP connections settings page, and
+administrators can turn MCP access off per mode. An API-key connection keeps
+the key's mode.
+
 ## Other access paths
 
 Signer delivery is separate from organization access. A signer receives a

@@ -1,6 +1,6 @@
 ---
 name: mcp
-description: The hosted Paradoc MCP server at https://mcp.paradoc.dev/mcp. Connect with OAuth or an x-api-key, the data payload shape, every tool with its arguments and limits, which tools are billed, and rate limits.
+description: The hosted Paradoc MCP server at https://mcp.paradoc.dev/mcp. Connect with OAuth or an x-api-key, choose test, live, or both modes per connection, the data payload shape, every tool with its arguments and limits, which tools are billed, and rate limits.
 metadata:
   tags: mcp, model-context-protocol, mcp.paradoc.dev, hosted, registry, fill, render, seal, extract, e-signature, payments, oauth, api-key
 ---
@@ -29,6 +29,24 @@ claude mcp add --transport http paradoc https://mcp.paradoc.dev/mcp
 
 Then run `/mcp` and choose **Authenticate**. The token must be scoped to an organization.
 
+**Choose the connection's modes.** Sign-in identifies the member. What the connection may do is set once per connection, in the Paradoc console, on **Settings → MCP connections**. The first call from a new connection returns an error with a link to that page. Open it, choose the modes and the permissions for each mode, and retry the call.
+
+| Grant | Behavior |
+|-------|----------|
+| Test only, or live only | Every call runs in that mode. A call that names the other mode is refused. |
+| Test and live | Every call that touches mode-owned content or records must pass `mode` (`"test"` or `"live"`). A call without it is refused; there is no default. |
+
+Each mode has its own permissions, capped by the member's role. Every result from a platform tool ends with the mode it ran in (`mode: test`). The artifact, registry and render tools touch no mode-owned content, so they take no `mode`.
+
+The same console page lists the member's connections. Revoke one mode, or the whole connection; the next call is refused. An organization administrator can turn MCP access off per mode for the whole organization.
+
+| Error code | Meaning |
+|------------|---------|
+| `MCP_CONNECTION_NOT_GRANTED` | The connection is not set up. The message carries the setup link. |
+| `MCP_MODE_REQUIRED` | A test-and-live connection called without `mode`. |
+| `MCP_MODE_NOT_GRANTED` | The call named a mode the connection does not hold. |
+| `MCP_MODE_DISABLED` | An administrator turned MCP access off in that mode. |
+
 **API key (headless clients).** Send the key in the `x-api-key` header, for example in `.mcp.json`:
 
 ```jsonc
@@ -44,7 +62,7 @@ Then run `/mcp` and choose **Authenticate**. The token must be scoped to an orga
 }
 ```
 
-The server checks the key with the platform before it opens a session.
+The server checks the key with the platform before it opens a session. An API-key connection runs in the key's mode (`ofk_test_…` or `ofk_live_…`) and needs no console setup. A call that names the other mode is refused.
 
 | Response | Meaning |
 |----------|---------|
@@ -125,7 +143,7 @@ These act on the session's organization through the Paradoc platform API. The ar
 { "source": "inline", "artifact": { "kind": "form", "…": "…" } }
 ```
 
-A registry coordinate resolves in the session's mode. A test session never falls back to a live artifact. To test with a live published version, add `"source_mode": "live"` to the registry source. The version is read-only, and the call and its records stay in test mode. To change a live artifact from test mode, fork it into a test repo.
+A registry coordinate resolves in the call's mode. A test session never falls back to a live artifact. To test with a live published version, add `"source_mode": "live"` to the registry source. The version is read-only, and the call and its records stay in test mode. To change a live artifact from test mode, fork it into a test repo.
 
 A billed tool fails with an insufficient-balance error when the organization's balance is empty.
 

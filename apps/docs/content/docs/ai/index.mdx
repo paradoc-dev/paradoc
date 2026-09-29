@@ -155,6 +155,6 @@ Every adapter combines the framework's abort signal with `signal` and `context.s
 | **Protocol** | Model Context Protocol | Your framework's tool API (AI SDK, TanStack AI, Mastra) |
 | **Registry lookup** | DB-backed registry IDs | Direct registry URLs |
 | **Render output** | Short-link URL or inline | Inline only |
-| **Auth** | Every `/mcp` request needs an OAuth bearer token scoped to an organization, or an `x-api-key` header. | Your config (`fetch`, API keys) |
+| **Auth** | Every `/mcp` request needs an OAuth bearer token scoped to an organization, or an `x-api-key` header. An OAuth connection is granted test, live, or both modes in the console; with both, each platform call names its mode. | Your config (`fetch`, API keys) |
 | **Tools only here** | `list_artifacts`, `list_registries`, `search`, and platform tools for e-signature envelopes, payments, and extraction jobs | `inspect_artifact`, `validate_input`, `get_fill_state`, `update_fill` |
 | **Extraction** | The platform `extract` tool runs hosted extraction jobs, including scanned and flattened documents | [`extract`](/ai/tools/extract) reads the fields of a fillable PDF in your own process, with no service call |
