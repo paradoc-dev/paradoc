@@ -60,6 +60,10 @@ The skill activates when the assistant sees Paradoc work: `@paradoc/*` imports, 
   </Tab>
 </Tabs>
 
+## Fetch the skills from the site
+
+An agent with no clone of the repository can read the skills from `https://docs.paradoc.dev/.well-known/agent-skills/index.json`, which follows the [Agent Skills discovery index](https://github.com/cloudflare/agent-skills-discovery-rfc). Each entry gives a `.tar.gz` archive with `SKILL.md` and every reference, and a `sha256` digest of the archive bytes to check before use. The same index is served at `https://paradoc.dev/.well-known/agent-skills/index.json`.
+
 ## Pairing with MCP
 
 The skills and the hosted MCP server do different jobs:

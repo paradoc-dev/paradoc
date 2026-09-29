@@ -1,5 +1,6 @@
 # public/robots.txt
 User-agent: *
 Allow: /
+Content-Signal: search=yes, ai-input=yes
 
 Sitemap: https://docs.paradoc.dev/sitemap.xml

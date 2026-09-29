@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
 
 import { canonicalMarkdownUrl } from "@/lib/canonical-url";
@@ -73,7 +74,8 @@ describe("docs delivery", () => {
     serve: async (request) => {
       served.push(request);
       const { pathname } = new URL(request.url);
-      return pathname === "/llms.txt"
+      return pathname === "/llms.txt" ||
+        pathname === "/.well-known/agent-skills/paradoc/SKILL.md"
         ? new Response("index", { status: 200 })
         : pathname.startsWith("/concepts") || pathname === "/"
           ? new Response("<html>", {
@@ -158,6 +160,22 @@ describe("docs delivery", () => {
     expect(json.status).toBe(404);
     expect(json.headers.get("Content-Type")).toContain("text/plain");
     expect(served[0]?.headers.get("Accept")).toBe("text/html");
+  });
+
+  test("serves a Markdown file under /.well-known/ as an asset, not as a docs page", async () => {
+    served.length = 0;
+    for (const accept of [undefined, "text/markdown", "*/*"]) {
+      const response = await get(
+        "/.well-known/agent-skills/paradoc/SKILL.md",
+        accept ? { Accept: accept } : {},
+      );
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("index");
+    }
+    const missing = await get("/.well-known/agent-skills/paradoc/nope.md", {
+      Accept: "text/markdown",
+    });
+    expect(missing.status).toBe(404);
   });
 
   test("passes existing resources and other methods to the app unchanged", async () => {
@@ -249,6 +267,32 @@ describe.skipIf(!docsUrl)("built documentation delivery", () => {
         fetch(new URL(`/${slug}/`, docsUrl)),
       ]);
       expect(responses.map((response) => response.status), slug).toEqual([404, 404, 404]);
+    }
+  });
+
+  test("serves discovery documents and complete skills, and 404s absent ones", async () => {
+    const catalog = await fetch(new URL("/.well-known/api-catalog", docsUrl), {
+      headers: { Accept: "application/linkset+json" },
+    });
+    expect(catalog.status).toBe(200);
+    expect(catalog.headers.get("content-type")).toContain("application/linkset+json");
+    const card = await fetch(new URL("/.well-known/mcp/server-card.json", docsUrl));
+    expect(card.status).toBe(200);
+
+    const index = (await (await fetch(new URL("/.well-known/agent-skills/index.json", docsUrl))).json()) as {
+      skills: { name: string; url: string; digest: string }[];
+    };
+    expect(index.skills.map((skill) => skill.name)).toEqual(["paradoc", "paradoc-react"]);
+    for (const skill of index.skills) {
+      const archive = Buffer.from(await (await fetch(new URL(skill.url, docsUrl))).arrayBuffer());
+      expect(`sha256:${createHash("sha256").update(archive).digest("hex")}`).toBe(skill.digest);
+      const manifest = await fetch(new URL(`/.well-known/agent-skills/${skill.name}/SKILL.md`, docsUrl));
+      expect(manifest.status).toBe(200);
+    }
+
+    for (const accept of ["text/html", "application/json", "application/linkset+json", "text/markdown", "*/*"]) {
+      const absent = await fetch(new URL("/.well-known/ai-catalog.json", docsUrl), { headers: { Accept: accept } });
+      expect(absent.status, accept).toBe(404);
     }
   });
 });

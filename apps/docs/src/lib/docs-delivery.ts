@@ -93,6 +93,9 @@ function notFound(request: Request): Response {
 /** The path prefix of the app's server functions, which read no `Accept`. */
 const SERVER_FUNCTION_PREFIX = "/_serverFn";
 
+/** Discovery documents and skill files live here, and are not docs pages. */
+const WELL_KNOWN_PREFIX = "/.well-known/";
+
 /** An absent resource answers by `Accept`, so caches must key on it. */
 function varyOnAbsence(response: Response): Response {
 	return response.status === 404
@@ -145,7 +148,10 @@ export function createDocsHandler<Page extends DeliverablePage>(
 			return delivery.serve(request);
 		}
 
-		const target = parseContentPath(new URL(request.url).pathname);
+		const { pathname } = new URL(request.url);
+		const target = pathname.startsWith(WELL_KNOWN_PREFIX)
+			? null
+			: parseContentPath(pathname);
 		const accept = request.headers.get("Accept");
 		const representation = negotiateRepresentation(accept);
 

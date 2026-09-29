@@ -32,6 +32,10 @@ cp -r paradoc/skills/skills/paradoc-react ~/.claude/skills/
 
 Upload `SKILL.md` and the relevant files from `references/` to your project knowledge.
 
+### From the website
+
+Both public sites publish an [Agent Skills discovery index](https://github.com/cloudflare/agent-skills-discovery-rfc) at `/.well-known/agent-skills/index.json`, for example `https://docs.paradoc.dev/.well-known/agent-skills/index.json`. Each entry is a `.tar.gz` archive with `SKILL.md` and every reference, and a `sha256` digest of the archive bytes.
+
 ### Other agents
 
 The skills follow the [Agent Skills specification](https://agentskills.io/specification.md). Point your agent's skill loader at each skill's `SKILL.md`.

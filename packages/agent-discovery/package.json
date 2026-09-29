@@ -1,0 +1,33 @@
+{
+  "name": "@paradoc/agent-discovery",
+  "version": "0.0.0",
+  "description": "Agent discovery for the Paradoc public sites: API catalog, MCP server card, Link headers and the Agent Skills distribution.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./skills": "./src/skills.ts"
+  },
+  "scripts": {
+    "generate:skills": "tsx scripts/generate-skills.ts",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "check": "pnpm lint && pnpm check-types",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@paradoc/eslint-config": "workspace:*",
+    "@paradoc/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "ajv": "catalog:",
+    "ajv-formats": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "yaml": "catalog:"
+  }
+}

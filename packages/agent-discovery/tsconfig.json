@@ -1,0 +1,11 @@
+{
+  "extends": "@paradoc/typescript-config/base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src", "scripts", "tests"],
+  "exclude": ["node_modules"]
+}
