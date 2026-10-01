@@ -162,6 +162,20 @@ that reads or writes a PDF (`renderPdf`, `flattenPdf`, `selectPdfPages`,
 entry point shares, decides: a trailer or cross-reference stream that declares
 `/Encrypt`.
 
+## Digital signature fields
+
+`preparePdfSignature()` appends an incremental update that adds an invisible
+signature field, an AcroForm with `/SigFlags 3`, and a signature dictionary
+with a reserved `/Contents`. Sign `signedBytes(prepared)` with your own keys and
+write the container with `embedPdfSignature()`. `readPdfSignature()` reads the
+newest signature dictionary back, and its `coversWholeFile` is false when any
+byte outside the container is unsigned.
+
+```ts
+const prepared = await preparePdfSignature(pdf, { contentsSize: 16384, signingTime: new Date(), name: 'Ada Lovelace' })
+const signed = embedPdfSignature(prepared, createCmsSignature(signedBytes(prepared)))
+```
+
 ## Signature placement
 
 The `@paradoc/render/pdf` subpath locates signature positions in converter-

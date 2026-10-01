@@ -245,6 +245,26 @@ refuses an encrypted PDF with `PdfEncryptedError`, whose `code` is
 `encrypted_pdf`. An encrypted file stores its strings and streams enciphered,
 so a filled or copied value would be unreadable. Remove the encryption first.
 
+### Digital signature fields
+
+Three helpers write and read the file structure a digital signature lives in.
+They do not sign: you produce the signature container (for example a CMS
+`SignedData`) with your own keys.
+
+| Function | Description |
+|----------|-------------|
+| `preparePdfSignature(pdf, options)` | Appends an incremental update with an invisible signature field on the first page, an AcroForm with `/SigFlags 3`, and a signature dictionary whose `/Contents` reserves `contentsSize` bytes. Returns `{ bytes, byteRange }` with the byte range already written. `name`, `reason`, `location` and `contactInfo` may use any script |
+| `signedBytes(prepared)` | The bytes the byte range covers: what your container signs |
+| `embedPdfSignature(prepared, container)` | Writes the container into `/Contents`. Throws when it is larger than the reserved size |
+| `readPdfSignature(pdf)` | Reads the newest signature dictionary: its container, byte range, signed bytes, text entries and signing time. `coversWholeFile` is false when any byte outside the container is unsigned, such as an update appended after signing |
+
+```ts
+import { embedPdfSignature, preparePdfSignature, signedBytes } from '@paradoc/render/pdf'
+
+const prepared = await preparePdfSignature(pdf, { contentsSize: 16384, signingTime: new Date(), name: 'Ada Lovelace' })
+const signed = embedPdfSignature(prepared, createCmsSignature(signedBytes(prepared)))
+```
+
 The same entry point exports the signature placement helpers the SDK
 re-exports: `locate`, `locator`, `LocateError`, `extractFieldsFromPdf`,
 `UnknownMarkerError`, and the marker `encode` and `decodeAll` functions.
