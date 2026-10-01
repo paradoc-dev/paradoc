@@ -1,8 +1,7 @@
 /**
  * The public services Paradoc advertises. Every URL here is a real hosted
- * resource: the Platform API and MCP worker routes are declared in
- * platform/apps/api-service/wrangler.jsonc and platform/apps/mcp-service/
- * wrangler.jsonc. Add an entry only when the service exists.
+ * resource: the Paradoc Platform API and the hosted MCP server. Add an entry
+ * only when the service exists.
  */
 
 /** The two public hosts that publish discovery metadata. */
@@ -21,7 +20,7 @@ export const MCP_URL = `${MCP_ORIGIN}/mcp`;
 export const MCP_STATUS_URL = `${MCP_ORIGIN}/health`;
 /** RFC 9728 protected-resource metadata served by the MCP worker. */
 export const MCP_RESOURCE_METADATA_URL = `${MCP_ORIGIN}/.well-known/oauth-protected-resource`;
-/** The MCP server version, mirroring `VERSION` in platform/apps/mcp-service/src/env.ts. */
+/** The hosted MCP server's version. The MCP service's tests fail when it drifts. */
 export const MCP_SERVER_VERSION = "0.14";
 
 export const API_CATALOG_PATH = "/.well-known/api-catalog";
