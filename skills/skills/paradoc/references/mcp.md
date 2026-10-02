@@ -157,7 +157,7 @@ A billed tool fails with an insufficient-balance error when the organization's b
 | `extract` | `artifact`, `document: { content_base64, mime_type }`, `options?: { confidence_threshold?, validate_extracted? }`, `idempotency_key?` | Per page | Reads a filled PDF or image (PNG, JPEG, WebP; 10 MB max, no data-URI prefix). Returns values with confidence and page provenance. Works on scanned and flattened documents. |
 | `prefill` | `artifact`, `document`, `options?: { confidence_threshold?, include_optional?, required_first? }`, `idempotency_key?` | Extract + fill | Extracts and commits readings above the threshold into a fill. Lower readings come back as suggestions. |
 | `seal` | `artifact`, `data`, `layer?`, `signers?`, `signatories?`, `idempotency_key?` | Per call | Fills the form and returns the canonical PDF, the signature map and `canonical_pdf_hash`. Creates no envelope. See [sealing.md](./sealing.md). |
-| `extract_job_submit` | `artifact`, `document` (25 MB, 100 pages max), `options?`, `idempotency_key?` | Per page, on success | Starts async extraction and returns a job id. |
+| `extract_job_submit` | `artifact`, `document` (about 18.75 MB, 100 pages max), `options?`, `idempotency_key?` | Per page, on success | Starts async extraction and returns a job id. |
 | `extract_job_get` | `job_id` | Free | Job status, and the `extract` result when complete. |
 | `extract_job_list` | `limit?` (1-100), `offset?` | Free | The organization's jobs, newest first. |
 
@@ -189,6 +189,6 @@ A billed tool fails with an insufficient-balance error when the organization's b
 |-------|-------|
 | Rate limit, `mcp.paradoc.dev` | 60 `POST /mcp` requests per 60 seconds per client IP |
 | Rate limit, `mcp-dev.paradoc.dev` | 60 per 60 seconds |
-| `extract`, `prefill` document | 10 MB. Larger documents: `extract_job_submit` (25 MB, 100 pages). |
+| `extract`, `prefill` document | 10 MB. Larger documents: `extract_job_submit` (about 18.75 MB, 100 pages). |
 
 The session handshake counts against the rate limit. A normal handshake and `tools/list` leave room for an active fill loop within the 60-request window. Request 61 from the same client IP gets `429`; wait for the 60-second window to reset. For larger workloads, use the npm tools ([ai-tools.md](./ai-tools.md)), the SDK ([sdk.md](./sdk.md)) or the CLI ([cli.md](./cli.md)) locally. When a result has no `issues` or `errors` array, read its top-level `error` string.
