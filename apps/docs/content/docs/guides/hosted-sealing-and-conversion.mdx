@@ -35,7 +35,7 @@ to the caller; see [Platform access](/guides/platform-access) for the boundary
 between immediate execution results and stored content.
 
 `baseUrl` defaults to `https://api.paradoc.dev`; `fetch` can replace the request implementation. Pass `timeoutMs` to abort a conversion that takes too long, for example
-`timeoutMs: 30_000`. The timer starts when each request starts. A failed or unreadable response throws
+`timeoutMs: 150_000`. Keep it above the 120 s server deadline described below. The timer starts when each request starts. A failed or unreadable response throws
 `TimeoutError` on timeout, or `HostedConversionError` for a failed response, which carries the HTTP `status` and the start of the
 response body in `bodyExcerpt`.
 
@@ -89,6 +89,8 @@ Send the API key in the `x-api-key` header. The response document contains
 `content_base64` is at most 26,213,376 characters, about 18.7 MiB of document
 bytes. Longer input fails request validation.
 
+A conversion can take up to 120 seconds before the API answers `504`. The time includes waiting in the queue when the converter is busy. Set your client, proxy, and SDK timeouts above 120 seconds.
+
 | Target | Supported sources |
 |--------|-------------------|
 | PDF | PDF, HTML, Markdown, DOCX |
@@ -118,8 +120,8 @@ A failed conversion returns one of these errors with a fixed message.
 |--------|----------|---------|
 | `422` | `document_unconvertible` | The converter could not read the document. |
 | `413` | `document_too_large` | The converter refused the document for its size. |
-| `504` | `conversion_timeout` | The conversion did not finish in time. Retry. |
-| `503` | `conversion_unavailable` | The converter is down or busy. Retry. |
+| `504` | `conversion_timeout` | The conversion did not finish within 120 seconds. Retry after a delay, with backoff. A retry joins the queue again. |
+| `503` | `conversion_unavailable` | The converter is down or busy. Retry after a delay, with backoff. A retry joins the queue again. |
 
 PDF conversion is metered per returned page. Markdown conversion is metered as
 one parse operation.
